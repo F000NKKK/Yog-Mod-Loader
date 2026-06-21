@@ -41,7 +41,10 @@ can support development via the donation links below — there are no paid tiers
   `on_use_item`, `on_tick`, `on_server_started`, `on_server_stopping`.
 - **World:** `World::get_block` / `set_block`.
 - **Player:** `Player::give` / `teleport`.
-- **Content:** `register_item` (`ItemDef`) / `register_block` (`BlockDef`).
+- **Content:** `register_item` (`ItemDef`) / `register_block` (`BlockDef`) — with
+  display name, tooltip, and an auto "Yog" creative tab. Textures/models are
+  bundled in the `.yog` (auto-generated from PNGs); serving them to the client +
+  recipes/lang are the next step.
 - **Commands:** `on_command` (with a reply back to the caller).
 - **Server actions:** `broadcast`.
 
