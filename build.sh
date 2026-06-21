@@ -49,10 +49,15 @@ build_rust() {
     echo "==> Building Rust runtime (release)"
     cargo build --release --manifest-path "$ROOT/rust/Cargo.toml"
     local lib; lib="$(native_lib_name)"
-    local stage="$ROOT/fabric/run/natives"
-    mkdir -p "$stage"
-    cp "$ROOT/rust/target/release/$lib" "$stage/"
-    echo "    Staged $lib -> $stage"
+    local src="$ROOT/rust/target/release/$lib"
+    # Stage for the Fabric dev runtime (java.library.path).
+    mkdir -p "$ROOT/fabric/run/natives"
+    cp "$src" "$ROOT/fabric/run/natives/"
+    echo "    Staged $lib -> fabric/run/natives"
+    # Loader-agnostic artifact: one shared copy, not duplicated per loader.
+    mkdir -p "$ROOT/artifacts/native"
+    cp "$src" "$ROOT/artifacts/native/"
+    echo "    Artifact -> artifacts/native/$lib"
 }
 
 # Run a gradle task inside a loader dir on JDK 17.
@@ -68,7 +73,8 @@ gradle_in() {
     ( cd "$ROOT/$dir" && JAVA_HOME="$jh" ./gradlew "$@" )
 }
 
-# Copy the distributable jar(s) + native lib into artifacts/<loader>/.
+# Copy the distributable jar(s) into artifacts/<loader>/ (native lib is shared,
+# see build_rust -> artifacts/native/).
 collect_artifacts() {
     local loader="$1"
     local out="$ROOT/artifacts/$loader"
@@ -76,9 +82,7 @@ collect_artifacts() {
     # remapped distributable jar(s), excluding dev/sources builds
     find "$ROOT/$loader/build/libs" -maxdepth 1 -name '*.jar' \
         ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
-    # native runtime needed alongside the mod
-    cp "$ROOT/fabric/run/natives/$(native_lib_name)" "$out/" 2>/dev/null || true
-    echo "    Artifacts -> $out"
+    echo "    Artifacts -> $out  (native lib in artifacts/native/)"
     ls -1 "$out" 2>/dev/null | sed 's/^/      /'
 }
 
