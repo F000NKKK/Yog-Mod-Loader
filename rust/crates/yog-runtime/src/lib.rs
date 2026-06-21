@@ -146,6 +146,15 @@ fn registry() -> &'static RwLock<Registry> {
     REGISTRY.get_or_init(|| RwLock::new(Registry::default()))
 }
 
+/// Run `f`, catching any panic that would otherwise unwind across the JNI
+/// boundary into the JVM (undefined behaviour). One misbehaving mod must not
+/// crash the server, so the panic is logged and swallowed.
+fn guard(label: &str, f: impl FnOnce()) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err() {
+        yog_logging::error!("a mod panicked handling `{}` (ignored)", label);
+    }
+}
+
 /// Read a `JString` argument into a Rust `String`, returning early on error.
 macro_rules! jstr {
     ($env:expr, $s:expr) => {
@@ -246,8 +255,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
 
     let dir = env.get_string(&mods_dir).map(String::from).unwrap_or_default();
 
-    let mut reg = registry().write().expect("registry poisoned");
-    load_mods(Path::new(&dir), &mut reg);
+    guard("mod loading", || {
+        let mut reg = registry().write().expect("registry poisoned");
+        load_mods(Path::new(&dir), &mut reg);
+    });
 
     yog_logging::info!("runtime initialised — the gate is open.");
 }
@@ -270,10 +281,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreak<'l>(
         pos: BlockPos { x, y, z },
     };
 
-    registry()
-        .read()
-        .expect("registry poisoned")
-        .dispatch_block_break(&event, &JniServer);
+    guard("on_block_break", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_block_break(&event, &JniServer);
+    });
 }
 
 /// Called by the host when a player sends a chat message.
@@ -289,10 +302,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChat<'l>(
         message: jstr!(env, message),
     };
 
-    registry()
-        .read()
-        .expect("registry poisoned")
-        .dispatch_chat(&event, &JniServer);
+    guard("on_chat", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_chat(&event, &JniServer);
+    });
 }
 
 /// Called by the host when a player joins the server.
@@ -308,10 +323,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
         uuid: jstr!(env, uuid),
     };
 
-    registry()
-        .read()
-        .expect("registry poisoned")
-        .dispatch_player_join(&event, &JniServer);
+    guard("on_player_join", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_player_join(&event, &JniServer);
+    });
 }
 
 /// Called by the host when a player leaves the server.
@@ -327,10 +344,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
         uuid: jstr!(env, uuid),
     };
 
-    registry()
-        .read()
-        .expect("registry poisoned")
-        .dispatch_player_leave(&event, &JniServer);
+    guard("on_player_leave", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_player_leave(&event, &JniServer);
+    });
 }
 
 /// Called by the host once the server has finished starting.
@@ -339,10 +358,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
     _env: JNIEnv<'l>,
     _class: JClass<'l>,
 ) {
-    registry()
-        .read()
-        .expect("registry poisoned")
-        .dispatch_server_started(&JniServer);
+    guard("on_server_started", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_server_started(&JniServer);
+    });
 }
 
 /// Called by the host when the server begins shutting down.
@@ -351,10 +372,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStopping<'l>(
     _env: JNIEnv<'l>,
     _class: JClass<'l>,
 ) {
-    registry()
-        .read()
-        .expect("registry poisoned")
-        .dispatch_server_stopping(&JniServer);
+    guard("on_server_stopping", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_server_stopping(&JniServer);
+    });
 }
 
 /// Returns mod-registered command names, one per line, so the host can wire them
@@ -389,11 +412,17 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
         source: env.get_string(&source).map(String::from).unwrap_or_default(),
     };
 
-    let reply = registry()
-        .read()
-        .expect("registry poisoned")
-        .dispatch_command(&ctx, &JniServer)
-        .unwrap_or_default();
+    let reply = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_command(&ctx, &JniServer)
+            .unwrap_or_default()
+    }))
+    .unwrap_or_else(|_| {
+        yog_logging::error!("a mod panicked handling command `{}` (ignored)", ctx.name);
+        String::new()
+    });
 
     env.new_string(reply)
         .map(|s| s.into_raw())

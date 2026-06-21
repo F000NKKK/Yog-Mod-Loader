@@ -33,11 +33,18 @@ macro_rules! export_mod {
 
         #[no_mangle]
         pub extern "C" fn yog_mod_register(registry: *mut $crate::Registry) {
-            // SAFETY: the runtime passes a valid, exclusive pointer to a Registry
-            // built against the same yog-api version, verified via
-            // yog_abi_version() before this call.
-            let registry: &mut $crate::Registry = unsafe { &mut *registry };
-            <$mod_ty as $crate::Mod>::register(registry);
+            // Catch panics so they never unwind across this `extern "C"` boundary
+            // back into the runtime (which would be undefined behaviour).
+            let outcome = ::std::panic::catch_unwind(::std::panic::AssertUnwindSafe(|| {
+                // SAFETY: the runtime passes a valid, exclusive pointer to a
+                // Registry built against the same yog-api version, verified via
+                // yog_abi_version() before this call.
+                let registry: &mut $crate::Registry = unsafe { &mut *registry };
+                <$mod_ty as $crate::Mod>::register(registry);
+            }));
+            if outcome.is_err() {
+                $crate::error!("mod {} panicked during register", ::core::stringify!($mod_ty));
+            }
         }
     };
 }
