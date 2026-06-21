@@ -80,24 +80,23 @@ yog/
 
 ## Build & run (local — needs JDK 17, Rust, and network access)
 
-1. **Build the Rust runtime** and stage the native library:
-   ```bash
-   ./build.sh
-   ```
-2. **Run the Fabric dev server** (the native lib path is wired into the Loom run
-   config in `build.gradle`):
-   ```bash
-   cd fabric
-   ./gradlew runServer
-   ```
-   First run creates `run/eula.txt` — set `eula=true` and run again.
+Use the `build.sh` helper (it auto-picks a JDK 17 for the Gradle parts — Gradle
+8.8 can't run on Java 23+):
 
-   > Gradle 8.8 must run on JDK ≤ 22. If your default `java` is newer (e.g.
-   > Java 25), point it at a JDK 17:
-   > ```bash
-   > JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew runServer
-   > ```
-3. Break a block / chat / join. You should see the Rust mod react in the console:
+```bash
+./build.sh            # = ./build.sh rust : build Rust runtime + stage native lib
+./build.sh fabric     # build the Fabric host mod
+./build.sh run        # run the Fabric dev server (also builds rust first)
+./build.sh neoforge   # (roadmap, not implemented yet)
+```
+
+1. **Run the dev server:**
+   ```bash
+   ./build.sh run
+   ```
+   First run creates `fabric/run/eula.txt` — set `eula=true` and run again.
+   (If your JDK 17 is elsewhere: `YOG_JAVA17_HOME=/path/to/jdk17 ./build.sh run`.)
+2. Break a block / chat / join. You should see the Rust mod react in the console:
    ```
    [yog] runtime initialised — the gate is open.
    [example-mod] server started — Yog is awake.
