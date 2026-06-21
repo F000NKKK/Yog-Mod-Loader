@@ -95,14 +95,111 @@ fn build() -> Result<(), String> {
         return Err("no platform built — install cargo-zigbuild and rustup targets".into());
     }
 
+    let assets = gather_assets(&root);
+    if !assets.is_empty() {
+        eprintln!("    bundled {} asset file(s)", assets.len());
+    }
+
     let artifacts = root.join("artifacts");
     std::fs::create_dir_all(&artifacts).map_err(|e| e.to_string())?;
     let out = artifacts.join(format!("{name}.yog"));
-    package(&out, &name, &version, &bundled)?;
+    package(&out, &name, &version, &bundled, &assets)?;
 
     let tags: Vec<&str> = bundled.iter().map(|(t, _)| t.as_str()).collect();
     eprintln!("==> packaged {} [{}]", out.display(), tags.join(", "));
     Ok(())
+}
+
+/// Collect everything under `<root>/assets/` for the archive, auto-generating
+/// default model JSONs from textures so authors usually only ship `.png`s:
+///   textures/item/<n>.png  -> models/item/<n>.json (item/generated)
+///   textures/block/<n>.png -> blockstates/<n>.json + models/block/<n>.json
+///                             (cube_all) + models/item/<n>.json
+/// Author-provided files are never overwritten.
+fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
+    let assets_dir = root.join("assets");
+    if !assets_dir.is_dir() {
+        return Vec::new();
+    }
+
+    let mut present: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut out: Vec<(String, Vec<u8>)> = Vec::new();
+
+    let mut stack = vec![assets_dir.clone()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if let Ok(rel) = path.strip_prefix(root) {
+                let key = rel.to_string_lossy().replace('\\', "/");
+                if let Ok(bytes) = std::fs::read(&path) {
+                    present.insert(key.clone());
+                    out.push((key, bytes));
+                }
+            }
+        }
+    }
+
+    let add = |set: &mut std::collections::BTreeSet<String>,
+               list: &mut Vec<(String, Vec<u8>)>,
+               path: String,
+               json: String| {
+        if set.insert(path.clone()) {
+            list.push((path, json.into_bytes()));
+        }
+    };
+
+    for key in present.clone() {
+        if let Some((ns, name)) = parse_texture(&key, "item") {
+            add(
+                &mut present,
+                &mut out,
+                format!("assets/{ns}/models/item/{name}.json"),
+                format!(r#"{{"parent":"item/generated","textures":{{"layer0":"{ns}:item/{name}"}}}}"#),
+            );
+        } else if let Some((ns, name)) = parse_texture(&key, "block") {
+            add(
+                &mut present,
+                &mut out,
+                format!("assets/{ns}/blockstates/{name}.json"),
+                format!(r#"{{"variants":{{"":{{"model":"{ns}:block/{name}"}}}}}}"#),
+            );
+            add(
+                &mut present,
+                &mut out,
+                format!("assets/{ns}/models/block/{name}.json"),
+                format!(r#"{{"parent":"block/cube_all","textures":{{"all":"{ns}:block/{name}"}}}}"#),
+            );
+            add(
+                &mut present,
+                &mut out,
+                format!("assets/{ns}/models/item/{name}.json"),
+                format!(r#"{{"parent":"{ns}:block/{name}"}}"#),
+            );
+        }
+    }
+
+    out
+}
+
+/// Match `assets/<ns>/textures/<kind>/<name>.png` → `(ns, name)`.
+fn parse_texture(entry: &str, kind: &str) -> Option<(String, String)> {
+    let parts: Vec<&str> = entry.split('/').collect();
+    if parts.len() == 5
+        && parts[0] == "assets"
+        && parts[2] == "textures"
+        && parts[3] == kind
+        && parts[4].ends_with(".png")
+    {
+        let name = parts[4].strip_suffix(".png")?;
+        Some((parts[1].to_string(), name.to_string()))
+    } else {
+        None
+    }
 }
 
 /// Which cargo subcommand cross-compiles for us.
@@ -208,7 +305,13 @@ fn field(line: &str, key: &str) -> Option<String> {
 
 /// Write the `.yog` archive: each platform's native under `natives/<tag>/` plus
 /// a manifest listing the bundled platforms.
-fn package(out: &Path, name: &str, version: &str, bundled: &[(String, PathBuf)]) -> Result<(), String> {
+fn package(
+    out: &Path,
+    name: &str,
+    version: &str,
+    bundled: &[(String, PathBuf)],
+    assets: &[(String, Vec<u8>)],
+) -> Result<(), String> {
     let file = std::fs::File::create(out).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipWriter::new(file);
     let opts =
@@ -223,6 +326,11 @@ fn package(out: &Path, name: &str, version: &str, bundled: &[(String, PathBuf)])
         let bytes = std::fs::read(native).map_err(|e| e.to_string())?;
         zip.start_file(entry, opts).map_err(|e| e.to_string())?;
         zip.write_all(&bytes).map_err(|e| e.to_string())?;
+    }
+
+    for (entry, bytes) in assets {
+        zip.start_file(entry.clone(), opts).map_err(|e| e.to_string())?;
+        zip.write_all(bytes).map_err(|e| e.to_string())?;
     }
 
     let platforms = bundled
