@@ -10,6 +10,19 @@ base {
     archivesName = project.archives_base_name
 }
 
+// Point the game JVM (not the Gradle daemon) at the native Yog runtime staged
+// by ../build.sh. Lets `./gradlew runServer` / `runClient` find libyog_runtime.
+loom {
+    runs {
+        server {
+            vmArg "-Djava.library.path=${file('run/natives').absolutePath}"
+        }
+        client {
+            vmArg "-Djava.library.path=${file('run/natives').absolutePath}"
+        }
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     // Yog uses Yarn mappings (libre). We deliberately do NOT bundle Mojmaps,

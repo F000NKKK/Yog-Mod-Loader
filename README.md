@@ -84,22 +84,25 @@ yog/
    ```bash
    ./build.sh
    ```
-2. **Run the Fabric dev server** with the native lib on the library path:
+2. **Run the Fabric dev server** (the native lib path is wired into the Loom run
+   config in `build.gradle`):
    ```bash
    cd fabric
-   ./gradlew runServer --args="nogui" \
-       -Dorg.gradle.jvmargs="-Djava.library.path=$(pwd)/run/natives"
+   ./gradlew runServer
    ```
-   (Or add `-Djava.library.path=.../fabric/run/natives` to your IDE run config.)
-3. In game, break a block. You should see the Rust mod react in the console:
+   First run creates `run/eula.txt` — set `eula=true` and run again.
+3. Break a block / chat / join. You should see the Rust mod react in the console:
    ```
    [yog] runtime initialised — the gate is open.
+   [example-mod] server started — Yog is awake.
+   [example-mod] Steve joined (069a79f4-…)
    [example-mod] Steve broke minecraft:stone at (10, 64, -3)
    ```
 
 > ⚠️ **Confirm versions/mappings.** The pinned numbers in `gradle.properties`
-> and the Yarn names in `ServerInteractionMixin.java` are for 1.20.1 and must be
-> checked against the exact Yarn build (see <https://fabricmc.net/develop>).
+> and the Fabric/Yarn accessor names in `YogHost.java` (e.g. `getUuidAsString`,
+> `getContent`) are for 1.20.1 — check against the exact Yarn build
+> (see <https://fabricmc.net/develop>) if compilation complains.
 
 ## Naming
 
