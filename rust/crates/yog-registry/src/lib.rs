@@ -57,6 +57,9 @@ pub struct BlockDef {
     pub hardness: f32,
     pub resistance: f32,
     pub name: Option<String>,
+    /// Optional collision/outline box in pixel units (0–16): `[x1,y1,z1,x2,y2,z2]`.
+    /// `None` = full cube.
+    pub shape: Option<[f32; 6]>,
 }
 
 impl BlockDef {
@@ -66,6 +69,7 @@ impl BlockDef {
             hardness: 1.5,
             resistance: 6.0,
             name: None,
+            shape: None,
         }
     }
 
@@ -79,6 +83,12 @@ impl BlockDef {
     /// Display name shown in-game.
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
+        self
+    }
+
+    /// Custom hitbox/outline in pixel units (0–16), like vanilla shapes.
+    pub fn shape(mut self, x1: f32, y1: f32, z1: f32, x2: f32, y2: f32, z2: f32) -> Self {
+        self.shape = Some([x1, y1, z1, x2, y2, z2]);
         self
     }
 }

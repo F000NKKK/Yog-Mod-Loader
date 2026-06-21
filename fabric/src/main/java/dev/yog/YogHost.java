@@ -149,7 +149,15 @@ public class YogHost implements ModInitializer {
                 float hardness = p.length > 1 && !p[1].isEmpty() ? Float.parseFloat(p[1]) : 1.5f;
                 float resistance = p.length > 2 && !p[2].isEmpty() ? Float.parseFloat(p[2]) : 6.0f;
                 String name = p.length > 3 ? p[3] : "";
-                Block block = new Block(AbstractBlock.Settings.create().strength(hardness, resistance));
+                AbstractBlock.Settings settings = AbstractBlock.Settings.create().strength(hardness, resistance);
+                Block block;
+                if (p.length >= 10) {
+                    block = new YogShapedBlock(settings,
+                            Double.parseDouble(p[4]), Double.parseDouble(p[5]), Double.parseDouble(p[6]),
+                            Double.parseDouble(p[7]), Double.parseDouble(p[8]), Double.parseDouble(p[9]));
+                } else {
+                    block = new Block(settings);
+                }
                 Registry.register(Registries.BLOCK, id, block);
                 Item blockItem = new YogBlockItem(block, new Item.Settings(), name);
                 Registry.register(Registries.ITEM, id, blockItem);

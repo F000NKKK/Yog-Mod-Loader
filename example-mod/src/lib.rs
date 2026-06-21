@@ -24,7 +24,11 @@ impl Mod for ExampleMod {
         registry.register_block(
             BlockDef::new("yog:ruby_block")
                 .name("Block of Ruby")
-                .strength(3.0, 6.0),
+                .strength(3.0, 6.0)
+                // Custom hitbox: a smaller centred box (selection/collision differ
+                // from the full-cube model — for a real shaped block ship a model
+                // to match).
+                .shape(3.0, 0.0, 3.0, 13.0, 13.0, 13.0),
         );
 
         registry.on_block_break(|e, srv| {

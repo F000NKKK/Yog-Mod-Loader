@@ -547,13 +547,20 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
         .blocks()
         .iter()
         .map(|d| {
-            format!(
+            let mut line = format!(
                 "{}\t{}\t{}\t{}",
                 d.id,
                 d.hardness,
                 d.resistance,
                 d.name.as_deref().unwrap_or("")
-            )
+            );
+            if let Some(s) = d.shape {
+                line.push_str(&format!(
+                    "\t{}\t{}\t{}\t{}\t{}\t{}",
+                    s[0], s[1], s[2], s[3], s[4], s[5]
+                ));
+            }
+            line
         })
         .collect::<Vec<_>>()
         .join("\n");
