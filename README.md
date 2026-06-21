@@ -80,15 +80,18 @@ yog/
 
 ## Build & run (local — needs JDK 17, Rust, and network access)
 
-Use the `build.sh` helper (it auto-picks a JDK 17 for the Gradle parts — Gradle
-8.8 can't run on Java 23+):
+`build.sh` is a dotnet-style task runner (it auto-picks a JDK 17 for the Gradle
+parts — Gradle 8.8 can't run on Java 23+):
 
 ```bash
-./build.sh                # = ./build.sh rust : build Rust runtime + stage native lib
-./build.sh fabric         # build the Fabric host mod
-./build.sh run            # run the Fabric dev server (also builds rust first)
-./build.sh fabric --debug # build, then launch the Fabric dev CLIENT to test in-game
-./build.sh neoforge       # (roadmap, not implemented yet)
+./build.sh build              # compile rust + fabric
+./build.sh run                # build + run the Fabric dev server
+./build.sh run --client       # build + run the Fabric dev CLIENT (test in-game)
+./build.sh test               # cargo test
+./build.sh publish fabric     # release build -> artifacts/fabric/ (+ artifacts/native/)
+./build.sh clean              # remove build outputs and artifacts
+./build.sh build -c Debug     # Debug configuration
+./build.sh --help
 ```
 
 1. **Run the dev server:**
