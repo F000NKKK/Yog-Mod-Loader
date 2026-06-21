@@ -1,0 +1,9 @@
+[package]
+name = "yog-event"
+version.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog event types and the subscription registry."
+
+[dependencies]
+yog-core = { path = "../yog-core" }

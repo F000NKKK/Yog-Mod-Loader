@@ -253,6 +253,21 @@ checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
 [[package]]
 name = "yog-api"
 version = "0.1.0"
+dependencies = [
+ "yog-core",
+ "yog-event",
+]
+
+[[package]]
+name = "yog-core"
+version = "0.1.0"
+
+[[package]]
+name = "yog-event"
+version = "0.1.0"
+dependencies = [
+ "yog-core",
+]
 
 [[package]]
 name = "yog-example-mod"

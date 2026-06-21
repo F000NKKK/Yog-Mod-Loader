@@ -1,7 +1,8 @@
 //! The registry mod authors use to subscribe to events.
 
+use yog_core::Server;
+
 use crate::events::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent};
-use crate::server::Server;
 
 type Handler<E> = Box<dyn Fn(&E, &dyn Server) + Send + Sync + 'static>;
 type Listener = Box<dyn Fn(&dyn Server) + Send + Sync + 'static>;

@@ -1,7 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
+    # domain crates (permissive — see LICENSING.md)
+    "crates/yog-core",
+    "crates/yog-event",
+    # facade mod authors depend on
     "crates/yog-api",
+    # engine (AGPL) + example
     "crates/yog-runtime",
     "crates/yog-example-mod",
 ]

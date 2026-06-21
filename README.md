@@ -65,10 +65,12 @@ not cover.)
 ```
 yog/
 ├── build.sh                     # build Rust runtime + stage the native lib
-├── rust/                        # Rust workspace
+├── rust/                        # Rust workspace (multi-crate + facade)
 │   └── crates/
-│       ├── yog-api/             # public API for mod authors (events, Registry)
-│       ├── yog-runtime/         # cdylib: JNI entry points + dispatch
+│       ├── yog-core/            # core types + handles (BlockPos, Server)   [MIT/Apache]
+│       ├── yog-event/           # events + subscription Registry            [MIT/Apache]
+│       ├── yog-api/             # FACADE mod authors depend on (re-exports)  [MIT/Apache]
+│       ├── yog-runtime/         # cdylib: JNI bridge + dispatch              [AGPL]
 │       └── yog-example-mod/     # sample mod using the API
 └── fabric/                      # Fabric host mod (Java)
     ├── build.gradle

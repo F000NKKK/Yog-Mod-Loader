@@ -1,0 +1,9 @@
+[package]
+name = "yog-core"
+version.workspace = true
+edition.workspace = true
+# Permissive: foundational types/handles shared by the mod-facing API.
+license = "MIT OR Apache-2.0"
+description = "Yog core types and handles shared across all API modules."
+
+[dependencies]

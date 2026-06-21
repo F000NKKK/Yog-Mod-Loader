@@ -1,15 +1,20 @@
-//! Yog API — write Minecraft mods in Rust.
+//! Yog API — the single crate mod authors depend on.
 //!
-//! "The Gate and the Key": this crate is the surface that mod authors code
-//! against. It is pure Rust and has no knowledge of the JVM — the [`yog-runtime`]
-//! library is what bridges these events to and from the Java host.
+//! A thin **facade** that re-exports every Yog domain module. Add a new domain
+//! crate and re-export it here; mods pick it up automatically via `yog_api::*`.
+//!
+//! Items are available both flat (`yog_api::Registry`) and namespaced by domain
+//! (`yog_api::event::Registry`).
 
-mod events;
-mod registry;
-mod server;
+pub use yog_core::{BlockPos, Server};
+pub use yog_event::{BlockBreakEvent, ChatEvent, Mod, PlayerJoinEvent, PlayerLeaveEvent, Registry};
 
-pub use events::{
-    BlockBreakEvent, BlockPos, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent,
-};
-pub use registry::{Mod, Registry};
-pub use server::Server;
+/// Core types and handles.
+pub mod core {
+    pub use yog_core::*;
+}
+
+/// Events and the subscription registry.
+pub mod event {
+    pub use yog_event::*;
+}

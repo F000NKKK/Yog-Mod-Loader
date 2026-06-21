@@ -1,12 +1,6 @@
 //! Event types passed from Minecraft (through the Java host) into Rust mods.
 
-/// A block position in the world.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BlockPos {
-    pub x: i32,
-    pub y: i32,
-    pub z: i32,
-}
+use yog_core::BlockPos;
 
 /// Fired when a player breaks a block (server side).
 #[derive(Debug, Clone)]
