@@ -5,6 +5,7 @@ members = [
     "crates/yog-core",
     "crates/yog-event",
     "crates/yog-world",
+    "crates/yog-entity",
     "crates/yog-player",
     "crates/yog-registry",
     "crates/yog-network",

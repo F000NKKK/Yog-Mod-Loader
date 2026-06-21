@@ -35,4 +35,32 @@ pub trait Server {
     /// Send a raw-byte packet to the named player on `channel` (server → client).
     /// Returns whether the player was online. Payload is opaque bytes — no NBT.
     fn send_to_player(&self, player: &str, channel: &str, payload: &[u8]) -> bool;
+
+    // ── entity (universal, by UUID) ─────────────────────────────────────────
+
+    /// Teleport any entity (by UUID) within its current world.
+    fn entity_teleport(&self, uuid: &str, x: f64, y: f64, z: f64) -> bool;
+
+    /// Position of an entity, or `None` if not loaded.
+    fn entity_position(&self, uuid: &str) -> Option<(f64, f64, f64)>;
+
+    /// Health of a living entity, or `None`.
+    fn entity_health(&self, uuid: &str) -> Option<f32>;
+
+    /// Set a living entity's health; returns whether it applied.
+    fn entity_set_health(&self, uuid: &str, health: f32) -> bool;
+
+    /// Remove/kill an entity.
+    fn entity_kill(&self, uuid: &str) -> bool;
+
+    /// Spawn an entity of `entity_type` (e.g. `minecraft:pig`) at a position;
+    /// returns its UUID, or `None` on failure.
+    fn spawn_entity(
+        &self,
+        entity_type: &str,
+        dimension: &str,
+        x: f64,
+        y: f64,
+        z: f64,
+    ) -> Option<String>;
 }

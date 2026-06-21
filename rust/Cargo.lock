@@ -319,6 +319,7 @@ version = "0.1.0"
 dependencies = [
  "yog-command",
  "yog-core",
+ "yog-entity",
  "yog-event",
  "yog-logging",
  "yog-network",
@@ -341,6 +342,13 @@ version = "0.1.0"
 [[package]]
 name = "yog-core"
 version = "0.1.0"
+
+[[package]]
+name = "yog-entity"
+version = "0.1.0"
+dependencies = [
+ "yog-core",
+]
 
 [[package]]
 name = "yog-event"

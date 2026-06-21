@@ -13,6 +13,8 @@ pub struct CommandContext {
     pub args: String,
     /// Name of the player (or console) that ran the command.
     pub source: String,
+    /// UUID of the executing entity (empty if run from the console).
+    pub uuid: String,
 }
 
 impl CommandContext {

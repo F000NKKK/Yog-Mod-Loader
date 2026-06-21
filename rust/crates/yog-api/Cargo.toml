@@ -11,6 +11,7 @@ description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 yog-core = { path = "../yog-core" }
 yog-event = { path = "../yog-event" }
 yog-world = { path = "../yog-world" }
+yog-entity = { path = "../yog-entity" }
 yog-player = { path = "../yog-player" }
 yog-registry = { path = "../yog-registry" }
 yog-network = { path = "../yog-network" }

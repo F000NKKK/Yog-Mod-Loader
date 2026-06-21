@@ -199,7 +199,9 @@ public class YogHost implements ModInitializer {
 
     private static int runCommand(String name, String args, CommandContext<ServerCommandSource> ctx) {
         ServerCommandSource src = ctx.getSource();
-        String reply = NativeBridge.nativeOnCommand(name, args, src.getName());
+        net.minecraft.entity.Entity entity = src.getEntity();
+        String uuid = entity != null ? entity.getUuidAsString() : "";
+        String reply = NativeBridge.nativeOnCommand(name, args, src.getName(), uuid);
         if (reply != null && !reply.isEmpty()) {
             src.sendFeedback(() -> Text.literal(reply), false);
         }

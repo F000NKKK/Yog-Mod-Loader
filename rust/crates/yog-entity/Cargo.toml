@@ -1,0 +1,9 @@
+[package]
+name = "yog-entity"
+version.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog entity access — universal handle to any entity by UUID."
+
+[dependencies]
+yog-core = { path = "../yog-core" }

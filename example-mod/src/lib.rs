@@ -6,6 +6,7 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use yog_api::entity::Entity;
 use yog_api::player::Player;
 use yog_api::world::World;
 use yog_api::{info, BlockDef, BlockPos, ItemDef, Mod, Registry};
@@ -104,6 +105,23 @@ impl Mod for ExampleMod {
         registry.on_command("ruby", |ctx, srv| {
             let ok = Player::new(srv, &ctx.source).give("yog:ruby", 1);
             Some(if ok { "Here's a ruby!".into() } else { "Failed.".into() })
+        });
+
+        // /heal -> set the caller's health via the universal entity layer.
+        registry.on_command("heal", |ctx, srv| {
+            let ok = Entity::new(srv, &ctx.uuid).set_health(20.0);
+            Some(if ok { "Healed.".into() } else { "Failed (are you a living entity?).".into() })
+        });
+
+        // /pig -> read the caller's position (entity layer) and spawn a pig there.
+        registry.on_command("pig", |ctx, srv| {
+            match Entity::new(srv, &ctx.uuid).position() {
+                Some((x, y, z)) => {
+                    srv.spawn_entity("minecraft:pig", "minecraft:overworld", x, y, z);
+                    Some("Oink!".into())
+                }
+                None => Some("No position (run as a player).".into()),
+            }
         });
 
         // /tp -> teleport the caller to (0, 100, 0).

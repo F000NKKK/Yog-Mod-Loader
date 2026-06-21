@@ -308,6 +308,152 @@ impl Server for JniServer {
         .and_then(|v| v.z())
         .unwrap_or(false)
     }
+
+    fn entity_teleport(&self, uuid: &str, x: f64, y: f64, z: f64) -> bool {
+        let Some(vm) = JAVA_VM.get() else {
+            return false;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return false;
+        };
+        let Ok(ju) = env.new_string(uuid) else {
+            return false;
+        };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "entityTeleport",
+            "(Ljava/lang/String;DDD)Z",
+            &[
+                JValue::Object(&ju),
+                JValue::Double(x),
+                JValue::Double(y),
+                JValue::Double(z),
+            ],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn entity_position(&self, uuid: &str) -> Option<(f64, f64, f64)> {
+        let vm = JAVA_VM.get()?;
+        let mut env = vm.attach_current_thread().ok()?;
+        let ju = env.new_string(uuid).ok()?;
+        let ret = env
+            .call_static_method(
+                "dev/yog/NativeBridge",
+                "entityPosition",
+                "(Ljava/lang/String;)Ljava/lang/String;",
+                &[JValue::Object(&ju)],
+            )
+            .ok()?;
+        let obj = ret.l().ok()?;
+        if obj.as_raw().is_null() {
+            return None;
+        }
+        let jstr = JString::from(obj);
+        let s: String = env.get_string(&jstr).ok()?.into();
+        let mut it = s.split('\t');
+        let x: f64 = it.next()?.parse().ok()?;
+        let y: f64 = it.next()?.parse().ok()?;
+        let z: f64 = it.next()?.parse().ok()?;
+        Some((x, y, z))
+    }
+
+    fn entity_health(&self, uuid: &str) -> Option<f32> {
+        let vm = JAVA_VM.get()?;
+        let mut env = vm.attach_current_thread().ok()?;
+        let ju = env.new_string(uuid).ok()?;
+        let v = env
+            .call_static_method(
+                "dev/yog/NativeBridge",
+                "entityHealth",
+                "(Ljava/lang/String;)D",
+                &[JValue::Object(&ju)],
+            )
+            .ok()?
+            .d()
+            .ok()?;
+        if v.is_nan() {
+            None
+        } else {
+            Some(v as f32)
+        }
+    }
+
+    fn entity_set_health(&self, uuid: &str, health: f32) -> bool {
+        let Some(vm) = JAVA_VM.get() else {
+            return false;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return false;
+        };
+        let Ok(ju) = env.new_string(uuid) else {
+            return false;
+        };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "entitySetHealth",
+            "(Ljava/lang/String;D)Z",
+            &[JValue::Object(&ju), JValue::Double(health as f64)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn entity_kill(&self, uuid: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else {
+            return false;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return false;
+        };
+        let Ok(ju) = env.new_string(uuid) else {
+            return false;
+        };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "entityKill",
+            "(Ljava/lang/String;)Z",
+            &[JValue::Object(&ju)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn spawn_entity(
+        &self,
+        entity_type: &str,
+        dimension: &str,
+        x: f64,
+        y: f64,
+        z: f64,
+    ) -> Option<String> {
+        let vm = JAVA_VM.get()?;
+        let mut env = vm.attach_current_thread().ok()?;
+        let jt = env.new_string(entity_type).ok()?;
+        let jd = env.new_string(dimension).ok()?;
+        let ret = env
+            .call_static_method(
+                "dev/yog/NativeBridge",
+                "spawnEntity",
+                "(Ljava/lang/String;Ljava/lang/String;DDD)Ljava/lang/String;",
+                &[
+                    JValue::Object(&jt),
+                    JValue::Object(&jd),
+                    JValue::Double(x),
+                    JValue::Double(y),
+                    JValue::Double(z),
+                ],
+            )
+            .ok()?;
+        let obj = ret.l().ok()?;
+        if obj.as_raw().is_null() {
+            return None;
+        }
+        let jstr = JString::from(obj);
+        let uuid: String = env.get_string(&jstr).ok()?.into();
+        Some(uuid)
+    }
 }
 
 /// Called once by the Java host after the native library is loaded. `mods_dir`
@@ -508,11 +654,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
     name: JString<'l>,
     args: JString<'l>,
     source: JString<'l>,
+    uuid: JString<'l>,
 ) -> jstring {
     let ctx = CommandContext {
         name: env.get_string(&name).map(String::from).unwrap_or_default(),
         args: env.get_string(&args).map(String::from).unwrap_or_default(),
         source: env.get_string(&source).map(String::from).unwrap_or_default(),
+        uuid: env.get_string(&uuid).map(String::from).unwrap_or_default(),
     };
 
     let reply = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {

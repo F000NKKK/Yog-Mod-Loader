@@ -7,9 +7,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import net.fabricmc.loader.api.FabricLoader;
+import java.util.UUID;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketByteBuf;
@@ -116,6 +120,85 @@ public final class NativeBridge {
         return s == null ? null : s.getPlayerManager().getPlayer(name);
     }
 
+    // --- entity ops (universal, by UUID) ---
+
+    public static boolean entityTeleport(String uuid, double x, double y, double z) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) {
+            return false;
+        }
+        if (e instanceof ServerPlayerEntity p) {
+            p.networkHandler.requestTeleport(x, y, z, p.getYaw(), p.getPitch());
+        } else {
+            e.teleport(x, y, z);
+        }
+        return true;
+    }
+
+    public static String entityPosition(String uuid) {
+        Entity e = entityByUuid(uuid);
+        return e == null ? null : e.getX() + "\t" + e.getY() + "\t" + e.getZ();
+    }
+
+    public static double entityHealth(String uuid) {
+        Entity e = entityByUuid(uuid);
+        return e instanceof LivingEntity le ? le.getHealth() : Double.NaN;
+    }
+
+    public static boolean entitySetHealth(String uuid, double health) {
+        Entity e = entityByUuid(uuid);
+        if (e instanceof LivingEntity le) {
+            le.setHealth((float) health);
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean entityKill(String uuid) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) {
+            return false;
+        }
+        e.kill();
+        return true;
+    }
+
+    public static String spawnEntity(String typeId, String dimension, double x, double y, double z) {
+        ServerWorld w = worldFor(dimension);
+        Identifier id = Identifier.tryParse(typeId);
+        if (w == null || id == null || !Registries.ENTITY_TYPE.containsId(id)) {
+            return null;
+        }
+        EntityType<?> type = Registries.ENTITY_TYPE.get(id);
+        Entity e = type.create(w);
+        if (e == null) {
+            return null;
+        }
+        e.refreshPositionAndAngles(x, y, z, e.getYaw(), e.getPitch());
+        w.spawnEntity(e);
+        return e.getUuidAsString();
+    }
+
+    private static Entity entityByUuid(String uuidStr) {
+        MinecraftServer s = server;
+        if (s == null) {
+            return null;
+        }
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(uuidStr);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+        for (ServerWorld w : s.getWorlds()) {
+            Entity e = w.getEntity(uuid);
+            if (e != null) {
+                return e;
+            }
+        }
+        return null;
+    }
+
     private static ServerWorld worldFor(String dimension) {
         MinecraftServer s = server;
         Identifier id = Identifier.tryParse(dimension);
@@ -212,7 +295,7 @@ public final class NativeBridge {
     public static native String nativeCommandNames();
 
     /** Run a registered command; returns the reply (empty string if none). */
-    public static native String nativeOnCommand(String name, String args, String source);
+    public static native String nativeOnCommand(String name, String args, String source, String uuid);
 
     /** Declared custom items as `id\tmax_stack` lines. */
     public static native String nativeItemDefs();
