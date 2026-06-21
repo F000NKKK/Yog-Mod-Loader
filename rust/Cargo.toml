@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/yog-api",
+    "crates/yog-runtime",
+    "crates/yog-example-mod",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+# Default for the protected engine (runtime + host). The mod-author-facing
+# `yog-api` and the example mod override this with a permissive license so the
+# mod ecosystem stays free — see LICENSING.md.
+license = "AGPL-3.0-only"

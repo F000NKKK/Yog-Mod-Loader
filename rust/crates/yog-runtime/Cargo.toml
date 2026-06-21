@@ -1,0 +1,17 @@
+[package]
+name = "yog-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Yog runtime — native library bridging the Fabric host to Rust mods via JNI."
+
+[lib]
+# cdylib produces libyog_runtime.so / .dylib / yog_runtime.dll, loaded by the
+# Fabric host via System.loadLibrary.
+crate-type = ["cdylib"]
+
+[dependencies]
+jni = "0.21"
+yog-api = { path = "../yog-api" }
+# MVP: mods are linked into the runtime. Roadmap: load them dynamically instead.
+yog-example-mod = { path = "../yog-example-mod" }

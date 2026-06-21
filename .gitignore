@@ -13,6 +13,17 @@ target
 # Contains mutation testing data
 **/mutants.out*/
 
+# ── Gradle / Fabric (fabric/) ──
+.gradle/
+build/
+# Fabric dev run dir (worlds, staged natives, logs)
+run/
+
+# ── Native libraries built by cargo / build.sh ──
+*.so
+*.dylib
+*.dll
+
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

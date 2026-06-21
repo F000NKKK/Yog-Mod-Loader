@@ -1,0 +1,10 @@
+[package]
+name = "yog-api"
+version.workspace = true
+edition.workspace = true
+# Permissive ON PURPOSE: mods link this crate, so AGPL here would force every
+# mod to be AGPL and kill the ecosystem. The protected part is the runtime/host.
+license = "MIT OR Apache-2.0"
+description = "Yog — ergonomic Rust API for writing Minecraft mods."
+
+[dependencies]
