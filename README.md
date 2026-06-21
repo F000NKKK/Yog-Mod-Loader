@@ -41,6 +41,7 @@ can support development via the donation links below — there are no paid tiers
   `on_use_item`, `on_tick`, `on_server_started`, `on_server_stopping`.
 - **World:** `World::get_block` / `set_block`.
 - **Player:** `Player::give` / `teleport`.
+- **Content:** `register_item` (`ItemDef`) / `register_block` (`BlockDef`).
 - **Commands:** `on_command` (with a reply back to the caller).
 - **Server actions:** `broadcast`.
 
@@ -78,6 +79,7 @@ yog/
 │       ├── yog-event/           # event types                              [MIT/Apache]
 │       ├── yog-world/           # world access: get/set block              [MIT/Apache]
 │       ├── yog-player/          # player actions: give/teleport            [MIT/Apache]
+│       ├── yog-registry/        # custom items/blocks (ItemDef/BlockDef)   [MIT/Apache]
 │       ├── yog-command/         # command types                            [MIT/Apache]
 │       ├── yog-logging/         # logging macros (infra)                   [MIT/Apache]
 │       ├── yog-api/             # FACADE + Registry hub + export_mod!       [MIT/Apache]
