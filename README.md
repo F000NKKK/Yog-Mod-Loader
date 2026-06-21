@@ -37,10 +37,14 @@ can support development via the donation links below — there are no paid tiers
 
 ### API available now
 
-Events: `on_block_break`, `on_chat`, `on_player_join`, `on_player_leave`,
-`on_server_started`, `on_server_stopping`. World: `World::get_block` /
-`set_block`. Commands: `on_command`. Actions on the [`Server`] handle:
-`broadcast`. See `example-mod` for usage.
+- **Events:** `on_block_break`, `on_chat`, `on_player_join`, `on_player_leave`,
+  `on_use_item`, `on_tick`, `on_server_started`, `on_server_stopping`.
+- **World:** `World::get_block` / `set_block`.
+- **Player:** `Player::give` / `teleport`.
+- **Commands:** `on_command` (with a reply back to the caller).
+- **Server actions:** `broadcast`.
+
+See `example-mod` for usage.
 
 ## Architecture
 
@@ -73,6 +77,7 @@ yog/
 │       ├── yog-core/            # core types + handles (BlockPos, Server)   [MIT/Apache]
 │       ├── yog-event/           # event types                              [MIT/Apache]
 │       ├── yog-world/           # world access: get/set block              [MIT/Apache]
+│       ├── yog-player/          # player actions: give/teleport            [MIT/Apache]
 │       ├── yog-command/         # command types                            [MIT/Apache]
 │       ├── yog-logging/         # logging macros (infra)                   [MIT/Apache]
 │       ├── yog-api/             # FACADE + Registry hub + export_mod!       [MIT/Apache]
