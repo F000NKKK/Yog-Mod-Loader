@@ -81,6 +81,20 @@ impl Mod for ExampleMod {
             info!("[example-mod] server stopping — the gate closes.");
         });
 
+        // Networking demo: client logs raw-byte packets the server sends.
+        registry.on_client_packet("yog:pong", |e, _srv| {
+            info!(
+                "[example-mod] client received pong: {}",
+                String::from_utf8_lossy(&e.payload)
+            );
+        });
+
+        // /ping -> server sends a raw-byte packet to the caller's client.
+        registry.on_command("ping", |ctx, srv| {
+            srv.send_to_player(&ctx.source, "yog:pong", b"pong from server");
+            Some("Sent a packet to your client.".into())
+        });
+
         registry.on_command("yog", |ctx, _srv| {
             info!("[example-mod] /{} by {} args='{}'", ctx.name, ctx.source, ctx.args);
             Some(format!("Yog here, {}! You said: '{}'", ctx.source, ctx.args))

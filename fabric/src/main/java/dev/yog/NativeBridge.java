@@ -7,9 +7,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -92,6 +95,19 @@ public final class NativeBridge {
             return false;
         }
         p.teleport(p.getServerWorld(), x, y, z, p.getYaw(), p.getPitch());
+        return true;
+    }
+
+    /** Send a raw-byte packet to a player on a channel (server -> client). */
+    public static boolean sendToPlayer(String player, String channel, byte[] data) {
+        ServerPlayerEntity p = playerByName(player);
+        Identifier id = Identifier.tryParse(channel);
+        if (p == null || id == null) {
+            return false;
+        }
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeBytes(data);
+        ServerPlayNetworking.send(p, id, buf);
         return true;
     }
 
@@ -203,4 +219,14 @@ public final class NativeBridge {
 
     /** Declared custom blocks as `id\thardness\tresistance` lines. */
     public static native String nativeBlockDefs();
+
+    public static native void nativeOnPacket(String channel, String player, byte[] payload);
+
+    public static native void nativeOnClientPacket(String channel, byte[] payload);
+
+    /** Server-receiver packet channels, one per line. */
+    public static native String nativePacketChannels();
+
+    /** Client-receiver packet channels, one per line. */
+    public static native String nativeClientPacketChannels();
 }

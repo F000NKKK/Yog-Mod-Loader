@@ -11,14 +11,14 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock, RwLock};
 
-use jni::objects::{JClass, JString, JValue};
+use jni::objects::{JByteArray, JClass, JString, JValue};
 use jni::sys::{jint, jstring};
 use jni::{JNIEnv, JavaVM};
 use libloading::{Library, Symbol};
 
 use yog_api::{
-    BlockBreakEvent, BlockPos, ChatEvent, CommandContext, PlayerJoinEvent, PlayerLeaveEvent,
-    Registry, Server, UseItemEvent, ABI_VERSION,
+    BlockBreakEvent, BlockPos, ChatEvent, CommandContext, PacketEvent, PlayerJoinEvent,
+    PlayerLeaveEvent, Registry, Server, UseItemEvent, ABI_VERSION,
 };
 
 /// Loaded mod libraries, kept alive for the process so their code stays mapped.
@@ -284,6 +284,30 @@ impl Server for JniServer {
         .and_then(|v| v.z())
         .unwrap_or(false)
     }
+
+    fn send_to_player(&self, player: &str, channel: &str, payload: &[u8]) -> bool {
+        let Some(vm) = JAVA_VM.get() else {
+            return false;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return false;
+        };
+        let (Ok(jp), Ok(jc), Ok(data)) = (
+            env.new_string(player),
+            env.new_string(channel),
+            env.byte_array_from_slice(payload),
+        ) else {
+            return false;
+        };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "sendToPlayer",
+            "(Ljava/lang/String;Ljava/lang/String;[B)Z",
+            &[JValue::Object(&jp), JValue::Object(&jc), JValue::Object(&data)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
 }
 
 /// Called once by the Java host after the native library is loaded. `mods_dir`
@@ -529,6 +553,81 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
             )
         })
         .collect::<Vec<_>>()
+        .join("\n");
+    env.new_string(s)
+        .map(|s| s.into_raw())
+        .unwrap_or(std::ptr::null_mut())
+}
+
+/// A packet arrived on the server from a client.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPacket<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    channel: JString<'l>,
+    player: JString<'l>,
+    payload: JByteArray<'l>,
+) {
+    let event = PacketEvent {
+        channel: env.get_string(&channel).map(String::from).unwrap_or_default(),
+        player: env.get_string(&player).map(String::from).unwrap_or_default(),
+        payload: env.convert_byte_array(&payload).unwrap_or_default(),
+    };
+    guard("on_packet", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_packet(&event, &JniServer);
+    });
+}
+
+/// A packet arrived on the client from the server.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientPacket<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    channel: JString<'l>,
+    payload: JByteArray<'l>,
+) {
+    let event = PacketEvent {
+        channel: env.get_string(&channel).map(String::from).unwrap_or_default(),
+        player: String::new(),
+        payload: env.convert_byte_array(&payload).unwrap_or_default(),
+    };
+    guard("on_client_packet", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_client_packet(&event, &JniServer);
+    });
+}
+
+/// Server-receiver channels, one per line.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativePacketChannels<'l>(
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) -> jstring {
+    let s = registry()
+        .read()
+        .expect("registry poisoned")
+        .packet_channels()
+        .join("\n");
+    env.new_string(s)
+        .map(|s| s.into_raw())
+        .unwrap_or(std::ptr::null_mut())
+}
+
+/// Client-receiver channels, one per line.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) -> jstring {
+    let s = registry()
+        .read()
+        .expect("registry poisoned")
+        .client_packet_channels()
         .join("\n");
     env.new_string(s)
         .map(|s| s.into_raw())

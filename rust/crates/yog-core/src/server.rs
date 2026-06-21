@@ -31,4 +31,8 @@ pub trait Server {
     /// Teleport the named player to `(x, y, z)` in their current world. Returns
     /// whether it worked. Call from the server thread.
     fn teleport(&self, player: &str, x: f64, y: f64, z: f64) -> bool;
+
+    /// Send a raw-byte packet to the named player on `channel` (server → client).
+    /// Returns whether the player was online. Payload is opaque bytes — no NBT.
+    fn send_to_player(&self, player: &str, channel: &str, payload: &[u8]) -> bool;
 }

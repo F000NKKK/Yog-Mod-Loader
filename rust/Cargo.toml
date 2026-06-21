@@ -7,6 +7,7 @@ members = [
     "crates/yog-world",
     "crates/yog-player",
     "crates/yog-registry",
+    "crates/yog-network",
     "crates/yog-command",
     # infrastructure (permissive)
     "crates/yog-logging",

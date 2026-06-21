@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};
+use yog_network::PacketEvent;
 use yog_registry::{BlockDef, ItemDef};
 
 type Handler<E> = Box<dyn Fn(&E, &dyn Server) + Send + Sync + 'static>;
@@ -32,6 +33,8 @@ pub struct Registry {
     commands: HashMap<String, CommandHandler>,
     items: Vec<ItemDef>,
     blocks: Vec<BlockDef>,
+    server_packets: HashMap<String, Vec<Handler<PacketEvent>>>,
+    client_packets: HashMap<String, Vec<Handler<PacketEvent>>>,
 }
 
 impl Registry {
@@ -137,6 +140,32 @@ impl Registry {
         &self.blocks
     }
 
+    // ── networking (raw-byte packets) ───────────────────────────────────────
+
+    /// Handle a packet received on the **server** from a client, on `channel`.
+    pub fn on_packet<F>(&mut self, channel: impl Into<String>, handler: F)
+    where
+        F: Fn(&PacketEvent, &dyn Server) + Send + Sync + 'static,
+    {
+        self.server_packets.entry(channel.into()).or_default().push(Box::new(handler));
+    }
+
+    /// Handle a packet received on the **client** from the server, on `channel`.
+    pub fn on_client_packet<F>(&mut self, channel: impl Into<String>, handler: F)
+    where
+        F: Fn(&PacketEvent, &dyn Server) + Send + Sync + 'static,
+    {
+        self.client_packets.entry(channel.into()).or_default().push(Box::new(handler));
+    }
+
+    /// Channels the host must register receivers for (server / client).
+    pub fn packet_channels(&self) -> Vec<String> {
+        self.server_packets.keys().cloned().collect()
+    }
+    pub fn client_packet_channels(&self) -> Vec<String> {
+        self.client_packets.keys().cloned().collect()
+    }
+
     // ── dispatch: called by the runtime, not by mod authors ─────────────────
 
     pub fn dispatch_block_break(&self, event: &BlockBreakEvent, server: &dyn Server) {
@@ -190,6 +219,22 @@ impl Registry {
     /// Run the handler for `ctx.name`, returning its reply (if any).
     pub fn dispatch_command(&self, ctx: &CommandContext, server: &dyn Server) -> Option<String> {
         self.commands.get(&ctx.name).and_then(|h| h(ctx, server))
+    }
+
+    pub fn dispatch_packet(&self, event: &PacketEvent, server: &dyn Server) {
+        if let Some(hs) = self.server_packets.get(&event.channel) {
+            for h in hs {
+                h(event, server);
+            }
+        }
+    }
+
+    pub fn dispatch_client_packet(&self, event: &PacketEvent, server: &dyn Server) {
+        if let Some(hs) = self.client_packets.get(&event.channel) {
+            for h in hs {
+                h(event, server);
+            }
+        }
     }
 }
 

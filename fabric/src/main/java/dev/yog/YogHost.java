@@ -21,6 +21,7 @@ import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
@@ -45,6 +46,26 @@ public class YogHost implements ModInitializer {
 
         // Register mod-declared content now, before the registries freeze.
         registerContent();
+
+        // Server-side packet receivers (client -> server), raw bytes.
+        String channels = NativeBridge.nativePacketChannels();
+        if (channels != null) {
+            for (String channel : channels.split("\n")) {
+                if (channel.isBlank()) {
+                    continue;
+                }
+                Identifier id = Identifier.tryParse(channel);
+                if (id == null) {
+                    continue;
+                }
+                ServerPlayNetworking.registerGlobalReceiver(id, (server, player, netHandler, buf, sender) -> {
+                    byte[] data = new byte[buf.readableBytes()];
+                    buf.readBytes(data);
+                    server.execute(() ->
+                            NativeBridge.nativeOnPacket(channel, player.getName().getString(), data));
+                });
+            }
+        }
 
         // Block break (server side).
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {

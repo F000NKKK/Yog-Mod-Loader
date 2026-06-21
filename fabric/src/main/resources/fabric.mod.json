@@ -11,6 +11,9 @@
   "entrypoints": {
     "main": [
       "dev.yog.YogHost"
+    ],
+    "client": [
+      "dev.yog.YogClient"
     ]
   },
   "mixins": [

@@ -1,0 +1,8 @@
+[package]
+name = "yog-network"
+version.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog networking — raw-byte packets over channels (no NBT on the wire)."
+
+[dependencies]

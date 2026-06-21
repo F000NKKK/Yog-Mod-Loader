@@ -52,6 +52,7 @@ macro_rules! export_mod {
 pub use yog_command::CommandContext;
 pub use yog_core::{BlockPos, Server};
 pub use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};
+pub use yog_network::PacketEvent;
 pub use yog_player::Player;
 pub use yog_registry::{BlockDef, ItemDef};
 pub use yog_world::World;
@@ -82,6 +83,11 @@ pub mod player {
 /// Content registration (custom items / blocks).
 pub mod content {
     pub use yog_registry::*;
+}
+
+/// Networking (raw-byte packets over channels).
+pub mod network {
+    pub use yog_network::*;
 }
 
 /// Commands.
