@@ -3,11 +3,15 @@ package dev.yog;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import java.util.ArrayList;
+import java.util.List;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
-import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemConvertible;
+import net.minecraft.item.ItemGroup;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -104,21 +108,30 @@ public class YogHost implements ModInitializer {
         });
     }
 
-    /** Register custom items/blocks declared by Rust mods. */
+    /**
+     * Register custom items/blocks declared by Rust mods, apply their name and
+     * tooltip, and collect them into a "Yog" creative tab.
+     */
     private static void registerContent() {
+        List<ItemConvertible> tabEntries = new ArrayList<>();
+
         String items = NativeBridge.nativeItemDefs();
         if (items != null) {
             for (String line : items.split("\n")) {
                 if (line.isBlank()) {
                     continue;
                 }
-                String[] p = line.split("\t");
+                String[] p = line.split("\t", -1);
                 Identifier id = Identifier.tryParse(p[0]);
                 if (id == null) {
                     continue;
                 }
-                int maxStack = p.length > 1 ? Integer.parseInt(p[1]) : 64;
-                Registry.register(Registries.ITEM, id, new Item(new Item.Settings().maxCount(maxStack)));
+                int maxStack = p.length > 1 && !p[1].isEmpty() ? Integer.parseInt(p[1]) : 64;
+                String name = p.length > 2 ? p[2] : "";
+                String tooltip = p.length > 3 ? p[3] : "";
+                Item item = new YogItem(new Item.Settings().maxCount(maxStack), name, tooltip);
+                Registry.register(Registries.ITEM, id, item);
+                tabEntries.add(item);
             }
         }
 
@@ -128,17 +141,30 @@ public class YogHost implements ModInitializer {
                 if (line.isBlank()) {
                     continue;
                 }
-                String[] p = line.split("\t");
+                String[] p = line.split("\t", -1);
                 Identifier id = Identifier.tryParse(p[0]);
                 if (id == null) {
                     continue;
                 }
-                float hardness = p.length > 1 ? Float.parseFloat(p[1]) : 1.5f;
-                float resistance = p.length > 2 ? Float.parseFloat(p[2]) : 6.0f;
+                float hardness = p.length > 1 && !p[1].isEmpty() ? Float.parseFloat(p[1]) : 1.5f;
+                float resistance = p.length > 2 && !p[2].isEmpty() ? Float.parseFloat(p[2]) : 6.0f;
+                String name = p.length > 3 ? p[3] : "";
                 Block block = new Block(AbstractBlock.Settings.create().strength(hardness, resistance));
                 Registry.register(Registries.BLOCK, id, block);
-                Registry.register(Registries.ITEM, id, new BlockItem(block, new Item.Settings()));
+                Item blockItem = new YogBlockItem(block, new Item.Settings(), name);
+                Registry.register(Registries.ITEM, id, blockItem);
+                tabEntries.add(blockItem);
             }
+        }
+
+        if (!tabEntries.isEmpty()) {
+            ItemConvertible icon = tabEntries.get(0);
+            ItemGroup group = FabricItemGroup.builder()
+                    .icon(() -> new ItemStack(icon))
+                    .displayName(Text.literal("Yog"))
+                    .entries((displayContext, entries) -> tabEntries.forEach(entries::add))
+                    .build();
+            Registry.register(Registries.ITEM_GROUP, new Identifier("yog", "yog"), group);
         }
     }
 

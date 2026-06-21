@@ -15,8 +15,17 @@ pub struct ExampleMod;
 impl Mod for ExampleMod {
     fn register(registry: &mut Registry) {
         // Custom content (registered before the game's registries freeze).
-        registry.register_item(ItemDef::new("yog:ruby").max_stack(16));
-        registry.register_block(BlockDef::new("yog:ruby_block").strength(3.0, 6.0));
+        registry.register_item(
+            ItemDef::new("yog:ruby")
+                .name("Ruby")
+                .tooltip("A shiny gem, forged in Rust.")
+                .max_stack(16),
+        );
+        registry.register_block(
+            BlockDef::new("yog:ruby_block")
+                .name("Block of Ruby")
+                .strength(3.0, 6.0),
+        );
 
         registry.on_block_break(|e, srv| {
             info!(

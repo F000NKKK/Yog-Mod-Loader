@@ -519,7 +519,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
         .expect("registry poisoned")
         .items()
         .iter()
-        .map(|d| format!("{}\t{}", d.id, d.max_stack))
+        .map(|d| {
+            format!(
+                "{}\t{}\t{}\t{}",
+                d.id,
+                d.max_stack,
+                d.name.as_deref().unwrap_or(""),
+                d.tooltip.as_deref().unwrap_or("")
+            )
+        })
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)
@@ -538,7 +546,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
         .expect("registry poisoned")
         .blocks()
         .iter()
-        .map(|d| format!("{}\t{}\t{}", d.id, d.hardness, d.resistance))
+        .map(|d| {
+            format!(
+                "{}\t{}\t{}\t{}",
+                d.id,
+                d.hardness,
+                d.resistance,
+                d.name.as_deref().unwrap_or("")
+            )
+        })
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)
