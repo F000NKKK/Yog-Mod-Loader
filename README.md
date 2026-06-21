@@ -84,10 +84,11 @@ Use the `build.sh` helper (it auto-picks a JDK 17 for the Gradle parts — Gradl
 8.8 can't run on Java 23+):
 
 ```bash
-./build.sh            # = ./build.sh rust : build Rust runtime + stage native lib
-./build.sh fabric     # build the Fabric host mod
-./build.sh run        # run the Fabric dev server (also builds rust first)
-./build.sh neoforge   # (roadmap, not implemented yet)
+./build.sh                # = ./build.sh rust : build Rust runtime + stage native lib
+./build.sh fabric         # build the Fabric host mod
+./build.sh run            # run the Fabric dev server (also builds rust first)
+./build.sh fabric --debug # build, then launch the Fabric dev CLIENT to test in-game
+./build.sh neoforge       # (roadmap, not implemented yet)
 ```
 
 1. **Run the dev server:**

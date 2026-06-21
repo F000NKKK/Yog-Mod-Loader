@@ -19,7 +19,30 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() {
+    cat <<'EOF'
+Yog build helper.
+
+  ./build.sh [component...] [--debug]
+
+Components:
+  rust | cargo   Build the Rust runtime (release) and stage the native lib
+  fabric         Build the Fabric host mod -> artifacts/fabric/
+  run            Run the Fabric dev server (depends on rust)
+  neoforge       (not implemented yet — roadmap)
+  forge          (not implemented yet — roadmap)
+  all            Build everything available (rust + fabric)
+
+Flags:
+  --debug        After building, launch the Fabric dev client (with the mod)
+                 so you can test in-game. E.g.: ./build.sh fabric --debug
+
+No args defaults to: rust
+
+Build outputs go to artifacts/<loader>/ (native lib in artifacts/native/).
+Gradle parts auto-pick a JDK 17; override with YOG_JAVA17_HOME=...
+EOF
+}
 
 # ── helpers ────────────────────────────────────────────────────────────────
 
@@ -98,16 +121,31 @@ not_impl() {
 
 # ── dispatch ───────────────────────────────────────────────────────────────
 
-[ $# -eq 0 ] && set -- rust
+# Split flags from components.
+debug=0
+comps=()
+for a in "$@"; do
+    case "$a" in
+        --debug|--client) debug=1 ;;
+        -h|--help|help)   usage; exit 0 ;;
+        *)                comps+=("$a") ;;
+    esac
+done
+[ ${#comps[@]} -eq 0 ] && comps=(rust)
 
-for comp in "$@"; do
+for comp in "${comps[@]}"; do
     case "$comp" in
         rust|cargo)     build_rust ;;
         fabric)         build_fabric ;;
         run)            build_rust; gradle_in fabric runServer ;;
         neoforge|forge) not_impl "$comp" ;;
         all)            build_fabric ;;
-        -h|--help|help) usage ;;
         *) echo "Unknown component: $comp" >&2; usage; exit 2 ;;
     esac
 done
+
+# --debug: launch the Fabric dev client (with the mod loaded) after building.
+if [ "$debug" = 1 ]; then
+    build_rust
+    gradle_in fabric runClient
+fi
