@@ -4,6 +4,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Implemented loaders. Add 'neoforge' / 'forge' here when their hosts land.
+LOADERS=(fabric)
+
 CONFIG="Release"   # Debug | Release
 RUN_CLIENT=0
 
@@ -14,18 +17,20 @@ Yog build — a dotnet-style task runner.
 Usage: ./build.sh <command> [target] [options]
 
 Commands:
-  restore           Fetch dependencies (cargo + gradle)
-  build [target]    Compile (default target: all)
-  run [target]      Build, then run the Fabric dev server (--client for client)
-  test              Run tests (cargo test)
-  clean             Remove build outputs and artifacts
-  publish [target]  Release build + assemble artifacts/<target>/ (+ native/)
+  restore             Fetch dependencies (cargo + every implemented loader)
+  build [target]      Compile (default target: all)
+  run <loader>        Build, then run that loader's dev server (--client for client)
+  test                Run tests (cargo test)
+  clean               Remove build outputs and artifacts
+  publish <target>    Release build + assemble artifacts/<loader>/ (+ native/)
 
 Targets:
-  rust              Rust runtime (native lib)
-  fabric            Fabric host mod (implies rust)   [default]
-  all               Everything                       (build only)
-  neoforge|forge    (not implemented yet — roadmap)
+  rust                Rust runtime (native lib)
+  <loader>            One of the implemented loaders (currently: fabric)
+  all                 rust + every implemented loader
+
+Loader-bound commands (run, publish) require an explicit loader — there is no
+default loader, since Yog targets many (fabric, neoforge, forge, ...).
 
 Options:
   -c, --configuration <Debug|Release>   default: Release
@@ -34,8 +39,9 @@ Options:
 
 Examples:
   ./build.sh build
-  ./build.sh run --client
+  ./build.sh run fabric --client
   ./build.sh publish fabric
+  ./build.sh publish all
   ./build.sh test -c Debug
   ./build.sh clean
 EOF
@@ -53,8 +59,24 @@ native_lib_name() {
     esac
 }
 
-# target/<profile> dir for the current configuration.
 cargo_profile_dir() { [ "$CONFIG" = "Release" ] && echo release || echo debug; }
+
+is_loader() {
+    local l
+    for l in "${LOADERS[@]}"; do [ "$l" = "$1" ] && return 0; done
+    return 1
+}
+
+# Resolve a loader target, failing helpfully for unimplemented / unknown ones.
+require_loader() {
+    [ -n "${1:-}" ] || die "this command needs a loader (one of: ${LOADERS[*]})"
+    if ! is_loader "$1"; then
+        case "$1" in
+            neoforge|forge) die "'$1' is not implemented yet (roadmap)" ;;
+            *) die "unknown loader: '$1' (have: ${LOADERS[*]})" ;;
+        esac
+    fi
+}
 
 # Find a JDK 17 for the Gradle daemon (Gradle 8.8 can't run on Java 23+).
 find_java17() {
@@ -86,28 +108,24 @@ cargo_build() {
     cargo build $flag --manifest-path "$ROOT/rust/Cargo.toml"
 }
 
-# Stage the freshly built native lib for the Fabric dev runtime.
-stage_native() {
+build_rust() {
+    echo "==> build rust ($CONFIG)"
+    cargo_build
     local lib; lib="$(native_lib_name)"
     mkdir -p "$ROOT/fabric/run/natives"
     cp "$ROOT/rust/target/$(cargo_profile_dir)/$lib" "$ROOT/fabric/run/natives/"
 }
 
-not_impl() { die "'$1' is not implemented yet (roadmap: Fabric -> NeoForge -> Forge)"; }
+build_loader() {
+    echo "==> build $1"
+    gradle_in "$1" build
+}
 
 build_target() {
     case "$1" in
-        rust)
-            echo "==> build rust ($CONFIG)"
-            cargo_build; stage_native ;;
-        fabric)
-            build_target rust
-            echo "==> build fabric"
-            gradle_in fabric build ;;
-        all)
-            build_target fabric ;;
-        neoforge|forge) not_impl "$1" ;;
-        *) die "unknown target: $1" ;;
+        rust) build_rust ;;
+        all)  build_rust; local l; for l in "${LOADERS[@]}"; do build_loader "$l"; done ;;
+        *)    require_loader "$1"; build_rust; build_loader "$1" ;;
     esac
 }
 
@@ -116,20 +134,25 @@ build_target() {
 cmd_restore() {
     echo "==> restore: cargo fetch"
     cargo fetch --manifest-path "$ROOT/rust/Cargo.toml"
-    echo "==> restore: gradle (resolve plugins/deps)"
-    gradle_in fabric --quiet help
+    local l
+    for l in "${LOADERS[@]}"; do
+        echo "==> restore: $l (resolve plugins/deps)"
+        gradle_in "$l" --quiet help
+    done
 }
 
 cmd_build() { build_target "${1:-all}"; }
 
 cmd_run() {
-    build_target rust
+    require_loader "${1:-}"
+    local loader="$1"
+    build_rust
     if [ "$RUN_CLIENT" = 1 ]; then
-        echo "==> run: Fabric dev client"
-        gradle_in fabric runClient
+        echo "==> run: $loader dev client"
+        gradle_in "$loader" runClient
     else
-        echo "==> run: Fabric dev server"
-        gradle_in fabric runServer
+        echo "==> run: $loader dev server"
+        gradle_in "$loader" runServer
     fi
 }
 
@@ -142,27 +165,35 @@ cmd_test() {
 cmd_clean() {
     echo "==> clean"
     cargo clean --manifest-path "$ROOT/rust/Cargo.toml" || true
-    gradle_in fabric clean || true
+    local l
+    for l in "${LOADERS[@]}"; do gradle_in "$l" clean || true; done
     rm -rf "$ROOT/artifacts"
-    echo "    removed rust/target, fabric/build, artifacts/"
+    echo "    removed rust/target, <loader>/build, artifacts/"
+}
+
+publish_loader() {
+    local loader="$1"
+    build_loader "$loader"
+    local out="$ROOT/artifacts/$loader"
+    rm -rf "$out"; mkdir -p "$out"
+    find "$ROOT/$loader/build/libs" -maxdepth 1 -name '*.jar' \
+        ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
+    echo "    artifacts/$loader/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
 }
 
 cmd_publish() {
-    local target="${1:-fabric}"
-    [ "$target" = "all" ] && target="fabric"
+    [ -n "${1:-}" ] || die "publish needs a target: a loader (${LOADERS[*]}) or 'all'"
     CONFIG="Release"
-    build_target "$target"
-
+    build_rust
     mkdir -p "$ROOT/artifacts/native"
     cp "$ROOT/rust/target/release/$(native_lib_name)" "$ROOT/artifacts/native/"
 
-    local out="$ROOT/artifacts/$target"
-    rm -rf "$out"; mkdir -p "$out"
-    find "$ROOT/$target/build/libs" -maxdepth 1 -name '*.jar' \
-        ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
-
-    echo "==> published -> artifacts/$target/ (native in artifacts/native/)"
-    ls -1 "$out" "$ROOT/artifacts/native" 2>/dev/null | sed 's/^/      /'
+    if [ "$1" = "all" ]; then
+        local l; for l in "${LOADERS[@]}"; do publish_loader "$l"; done
+    else
+        require_loader "$1"; publish_loader "$1"
+    fi
+    echo "==> published (native in artifacts/native/)"
 }
 
 # ── dispatch ────────────────────────────────────────────────────────────────
@@ -193,10 +224,10 @@ target="${targets[0]:-}"
 case "$cmd" in
     restore)        cmd_restore ;;
     build)          cmd_build "${target:-all}" ;;
-    run)            cmd_run ;;
+    run)            cmd_run "$target" ;;
     test)           cmd_test ;;
     clean)          cmd_clean ;;
-    publish)        cmd_publish "${target:-fabric}" ;;
+    publish)        cmd_publish "$target" ;;
     -h|--help|help) usage ;;
     *) echo "unknown command: $cmd" >&2; usage; exit 2 ;;
 esac

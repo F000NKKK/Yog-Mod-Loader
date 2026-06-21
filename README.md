@@ -85,8 +85,8 @@ parts — Gradle 8.8 can't run on Java 23+):
 
 ```bash
 ./build.sh build              # compile rust + fabric
-./build.sh run                # build + run the Fabric dev server
-./build.sh run --client       # build + run the Fabric dev CLIENT (test in-game)
+./build.sh run fabric fabric         # build + run the Fabric dev server
+./build.sh run fabric fabric --client # build + run the Fabric dev CLIENT (test in-game)
 ./build.sh test               # cargo test
 ./build.sh publish fabric     # release build -> artifacts/fabric/ (+ artifacts/native/)
 ./build.sh clean              # remove build outputs and artifacts
@@ -96,10 +96,10 @@ parts — Gradle 8.8 can't run on Java 23+):
 
 1. **Run the dev server:**
    ```bash
-   ./build.sh run
+   ./build.sh run fabric
    ```
    First run creates `fabric/run/eula.txt` — set `eula=true` and run again.
-   (If your JDK 17 is elsewhere: `YOG_JAVA17_HOME=/path/to/jdk17 ./build.sh run`.)
+   (If your JDK 17 is elsewhere: `YOG_JAVA17_HOME=/path/to/jdk17 ./build.sh run fabric`.)
 2. Break a block / chat / join. You should see the Rust mod react in the console:
    ```
    [yog] runtime initialised — the gate is open.
