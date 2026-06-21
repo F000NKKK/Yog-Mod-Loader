@@ -117,15 +117,18 @@ fn build() -> Result<(), String> {
 ///                             (cube_all) + models/item/<n>.json
 /// Author-provided files are never overwritten.
 fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
-    let assets_dir = root.join("assets");
-    if !assets_dir.is_dir() {
-        return Vec::new();
-    }
-
     let mut present: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     let mut out: Vec<(String, Vec<u8>)> = Vec::new();
 
-    let mut stack = vec![assets_dir.clone()];
+    // Bundle both client assets and server data trees.
+    let mut stack: Vec<std::path::PathBuf> = ["assets", "data"]
+        .iter()
+        .map(|d| root.join(d))
+        .filter(|p| p.is_dir())
+        .collect();
+    if stack.is_empty() {
+        return out;
+    }
     while let Some(dir) = stack.pop() {
         let Ok(entries) = std::fs::read_dir(&dir) else {
             continue;

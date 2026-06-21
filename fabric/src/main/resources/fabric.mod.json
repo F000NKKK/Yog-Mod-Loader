@@ -13,6 +13,9 @@
       "dev.yog.YogHost"
     ]
   },
+  "mixins": [
+    "yog.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.15.0",
     "fabric-api": "*",
