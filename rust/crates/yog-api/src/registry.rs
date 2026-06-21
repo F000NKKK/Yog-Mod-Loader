@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};
+use yog_registry::{BlockDef, ItemDef};
 
 type Handler<E> = Box<dyn Fn(&E, &dyn Server) + Send + Sync + 'static>;
 type Listener = Box<dyn Fn(&dyn Server) + Send + Sync + 'static>;
@@ -29,6 +30,8 @@ pub struct Registry {
     server_stopping: Vec<Listener>,
     server_tick: Vec<Listener>,
     commands: HashMap<String, CommandHandler>,
+    items: Vec<ItemDef>,
+    blocks: Vec<BlockDef>,
 }
 
 impl Registry {
@@ -111,6 +114,27 @@ impl Registry {
     /// Names of all registered commands (used by the host to wire Brigadier).
     pub fn command_names(&self) -> Vec<String> {
         self.commands.keys().cloned().collect()
+    }
+
+    // ── content (custom items / blocks) ─────────────────────────────────────
+
+    /// Register a custom item. Takes effect during host startup, before the
+    /// game's registries freeze.
+    pub fn register_item(&mut self, def: ItemDef) {
+        self.items.push(def);
+    }
+
+    /// Register a custom block (and a matching item).
+    pub fn register_block(&mut self, def: BlockDef) {
+        self.blocks.push(def);
+    }
+
+    /// Declared items / blocks (used by the host to register them).
+    pub fn items(&self) -> &[ItemDef] {
+        &self.items
+    }
+    pub fn blocks(&self) -> &[BlockDef] {
+        &self.blocks
     }
 
     // ── dispatch: called by the runtime, not by mod authors ─────────────────

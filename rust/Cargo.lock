@@ -322,6 +322,7 @@ dependencies = [
  "yog-event",
  "yog-logging",
  "yog-player",
+ "yog-registry",
  "yog-world",
 ]
 
@@ -357,6 +358,10 @@ version = "0.1.0"
 dependencies = [
  "yog-core",
 ]
+
+[[package]]
+name = "yog-registry"
+version = "0.1.0"
 
 [[package]]
 name = "yog-runtime"

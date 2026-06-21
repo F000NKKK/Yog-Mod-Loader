@@ -507,3 +507,41 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
         .map(|s| s.into_raw())
         .unwrap_or(std::ptr::null_mut())
 }
+
+/// Declared custom items as `id<TAB>max_stack` lines, for the host to register.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) -> jstring {
+    let s = registry()
+        .read()
+        .expect("registry poisoned")
+        .items()
+        .iter()
+        .map(|d| format!("{}\t{}", d.id, d.max_stack))
+        .collect::<Vec<_>>()
+        .join("\n");
+    env.new_string(s)
+        .map(|s| s.into_raw())
+        .unwrap_or(std::ptr::null_mut())
+}
+
+/// Declared custom blocks as `id<TAB>hardness<TAB>resistance` lines.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) -> jstring {
+    let s = registry()
+        .read()
+        .expect("registry poisoned")
+        .blocks()
+        .iter()
+        .map(|d| format!("{}\t{}\t{}", d.id, d.hardness, d.resistance))
+        .collect::<Vec<_>>()
+        .join("\n");
+    env.new_string(s)
+        .map(|s| s.into_raw())
+        .unwrap_or(std::ptr::null_mut())
+}

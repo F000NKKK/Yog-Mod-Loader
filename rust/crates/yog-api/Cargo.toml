@@ -12,5 +12,6 @@ yog-core = { path = "../yog-core" }
 yog-event = { path = "../yog-event" }
 yog-world = { path = "../yog-world" }
 yog-player = { path = "../yog-player" }
+yog-registry = { path = "../yog-registry" }
 yog-command = { path = "../yog-command" }
 yog-logging = { path = "../yog-logging" }

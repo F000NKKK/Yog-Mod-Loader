@@ -53,6 +53,7 @@ pub use yog_command::CommandContext;
 pub use yog_core::{BlockPos, Server};
 pub use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};
 pub use yog_player::Player;
+pub use yog_registry::{BlockDef, ItemDef};
 pub use yog_world::World;
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
@@ -76,6 +77,11 @@ pub mod world {
 /// Player access (give item, teleport).
 pub mod player {
     pub use yog_player::*;
+}
+
+/// Content registration (custom items / blocks).
+pub mod content {
+    pub use yog_registry::*;
 }
 
 /// Commands.

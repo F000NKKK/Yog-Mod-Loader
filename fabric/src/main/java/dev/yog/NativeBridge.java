@@ -197,4 +197,10 @@ public final class NativeBridge {
 
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source);
+
+    /** Declared custom items as `id\tmax_stack` lines. */
+    public static native String nativeItemDefs();
+
+    /** Declared custom blocks as `id\thardness\tresistance` lines. */
+    public static native String nativeBlockDefs();
 }

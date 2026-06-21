@@ -8,12 +8,16 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use yog_api::player::Player;
 use yog_api::world::World;
-use yog_api::{info, BlockPos, Mod, Registry};
+use yog_api::{info, BlockDef, BlockPos, ItemDef, Mod, Registry};
 
 pub struct ExampleMod;
 
 impl Mod for ExampleMod {
     fn register(registry: &mut Registry) {
+        // Custom content (registered before the game's registries freeze).
+        registry.register_item(ItemDef::new("yog:ruby").max_stack(16));
+        registry.register_block(BlockDef::new("yog:ruby_block").strength(3.0, 6.0));
+
         registry.on_block_break(|e, srv| {
             info!(
                 "[example-mod] {} broke {} at ({}, {}, {})",
@@ -67,6 +71,12 @@ impl Mod for ExampleMod {
         registry.on_command("yog", |ctx, _srv| {
             info!("[example-mod] /{} by {} args='{}'", ctx.name, ctx.source, ctx.args);
             Some(format!("Yog here, {}! You said: '{}'", ctx.source, ctx.args))
+        });
+
+        // /ruby -> give the caller our custom item.
+        registry.on_command("ruby", |ctx, srv| {
+            let ok = Player::new(srv, &ctx.source).give("yog:ruby", 1);
+            Some(if ok { "Here's a ruby!".into() } else { "Failed.".into() })
         });
 
         // /tp -> teleport the caller to (0, 100, 0).

@@ -4,6 +4,12 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
+import net.minecraft.block.AbstractBlock;
+import net.minecraft.block.Block;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.Item;
+import net.minecraft.registry.Registry;
+import net.minecraft.util.Identifier;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -32,6 +38,9 @@ public class YogHost implements ModInitializer {
     public void onInitialize() {
         NativeBridge.ensureLoaded();
         System.out.println("[yog] Fabric host initialised.");
+
+        // Register mod-declared content now, before the registries freeze.
+        registerContent();
 
         // Block break (server side).
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
@@ -93,6 +102,44 @@ public class YogHost implements ModInitializer {
                                         name, StringArgumentType.getString(ctx, "args"), ctx))));
             }
         });
+    }
+
+    /** Register custom items/blocks declared by Rust mods. */
+    private static void registerContent() {
+        String items = NativeBridge.nativeItemDefs();
+        if (items != null) {
+            for (String line : items.split("\n")) {
+                if (line.isBlank()) {
+                    continue;
+                }
+                String[] p = line.split("\t");
+                Identifier id = Identifier.tryParse(p[0]);
+                if (id == null) {
+                    continue;
+                }
+                int maxStack = p.length > 1 ? Integer.parseInt(p[1]) : 64;
+                Registry.register(Registries.ITEM, id, new Item(new Item.Settings().maxCount(maxStack)));
+            }
+        }
+
+        String blocks = NativeBridge.nativeBlockDefs();
+        if (blocks != null) {
+            for (String line : blocks.split("\n")) {
+                if (line.isBlank()) {
+                    continue;
+                }
+                String[] p = line.split("\t");
+                Identifier id = Identifier.tryParse(p[0]);
+                if (id == null) {
+                    continue;
+                }
+                float hardness = p.length > 1 ? Float.parseFloat(p[1]) : 1.5f;
+                float resistance = p.length > 2 ? Float.parseFloat(p[2]) : 6.0f;
+                Block block = new Block(AbstractBlock.Settings.create().strength(hardness, resistance));
+                Registry.register(Registries.BLOCK, id, block);
+                Registry.register(Registries.ITEM, id, new BlockItem(block, new Item.Settings()));
+            }
+        }
     }
 
     private static int runCommand(String name, String args, CommandContext<ServerCommandSource> ctx) {
