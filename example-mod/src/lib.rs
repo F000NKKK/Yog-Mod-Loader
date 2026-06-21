@@ -1,9 +1,8 @@
-//! A minimal example mod showing the Yog API surface.
+//! Example Yog mod — built on its own into a `.yog` artifact via `yog build`.
 //!
-//! This is exactly what a mod author writes: depend on `yog-api`, implement
-//! [`Mod`](yog_api::Mod), and register the events, world actions, and commands
-//! you care about. Each handler also gets a [`Server`](yog_api::Server) handle
-//! to act on the game.
+//! A mod author writes exactly this: depend on `yog-api`, implement [`Mod`], and
+//! export it with [`export_mod!`]. The runtime dlopen's the resulting library at
+//! startup and calls into it.
 
 use yog_api::world::World;
 use yog_api::{info, BlockPos, Mod, Registry};
@@ -27,7 +26,6 @@ impl Mod for ExampleMod {
 
         registry.on_player_join(|e, srv| {
             info!("[example-mod] {} joined ({})", e.player_name, e.uuid);
-            // Rust -> Minecraft: greet everyone from a Rust mod.
             srv.broadcast(&format!("Welcome, {}! (greeted by a Rust mod)", e.player_name));
         });
 
@@ -37,7 +35,6 @@ impl Mod for ExampleMod {
 
         registry.on_server_started(|srv| {
             info!("[example-mod] server started — Yog is awake.");
-            // World read: peek at a block near spawn.
             if let Some(block) = World::new(srv, "minecraft:overworld").get_block(BlockPos::new(0, 64, 0)) {
                 info!("[example-mod] block at (0, 64, 0) is {}", block);
             }
@@ -47,21 +44,11 @@ impl Mod for ExampleMod {
             info!("[example-mod] server stopping — the gate closes.");
         });
 
-        // Command: /yog <args> -> replies to the caller, from Rust.
         registry.on_command("yog", |ctx, _srv| {
             info!("[example-mod] /{} by {} args='{}'", ctx.name, ctx.source, ctx.args);
-            Some(format!(
-                "Yog here, {}! You said: '{}'",
-                ctx.source, ctx.args
-            ))
+            Some(format!("Yog here, {}! You said: '{}'", ctx.source, ctx.args))
         });
     }
 }
 
-/// Entry point the runtime calls.
-///
-/// In the MVP, mods are compiled into the runtime. Dynamic `.so`/`.dll` loading
-/// via a stable C-ABI plugin interface is on the roadmap (stage 3).
-pub fn register(registry: &mut Registry) {
-    ExampleMod::register(registry);
-}
+yog_api::export_mod!(ExampleMod);

@@ -10,10 +10,13 @@ members = [
     "crates/yog-logging",
     # facade mod authors depend on
     "crates/yog-api",
+    # build tooling
+    "crates/yog-cli",
     # engine (AGPL)
     "crates/yog-runtime",
-    "crates/yog-example-mod",
 ]
+# Note: example-mod lives in ../example-mod and builds on its own (like any
+# third-party mod), producing a .yog artifact via `yog build`.
 
 [workspace.package]
 version = "0.1.0"

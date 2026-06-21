@@ -1,0 +1,13 @@
+[package]
+name = "yog-cli"
+version.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog build tool — `yog build` compiles a mod and packages it as .yog."
+
+[[bin]]
+name = "yog"
+path = "src/main.rs"
+
+[dependencies]
+zip = { version = "0.6", default-features = false, features = ["deflate"] }

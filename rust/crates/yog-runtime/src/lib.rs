@@ -8,16 +8,133 @@
 //! Symbol naming follows the JNI convention `Java_<package>_<class>_<method>`,
 //! here `dev.yog.NativeBridge`.
 
-use std::sync::{OnceLock, RwLock};
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock, RwLock};
 
 use jni::objects::{JClass, JString, JValue};
 use jni::sys::{jint, jstring};
 use jni::{JNIEnv, JavaVM};
+use libloading::{Library, Symbol};
 
 use yog_api::{
     BlockBreakEvent, BlockPos, ChatEvent, CommandContext, PlayerJoinEvent, PlayerLeaveEvent,
-    Registry, Server,
+    Registry, Server, ABI_VERSION,
 };
+
+/// Loaded mod libraries, kept alive for the process so their code stays mapped.
+static LOADED_MODS: Mutex<Vec<Library>> = Mutex::new(Vec::new());
+
+type AbiVersionFn = unsafe extern "C" fn() -> u32;
+type RegisterFn = unsafe extern "C" fn(*mut Registry);
+
+/// Platform tag matching `std::env::consts`, e.g. `linux-x86_64`. Mirrors the
+/// layout the host uses for embedded natives and `.yog` mods.
+fn platform_tag() -> String {
+    format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
+}
+
+/// Load every mod in `dir`: plain native libs (`.so`/`.dll`/`.dylib`) and `.yog`
+/// archives (from which the current platform's native is extracted first).
+fn load_mods(dir: &Path, registry: &mut Registry) {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => {
+            yog_logging::info!("no mods directory at {} — none loaded", dir.display());
+            return;
+        }
+    };
+
+    let mut count = 0u32;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let lib_path = match path.extension().and_then(|e| e.to_str()) {
+            Some("yog") => match extract_yog(&path) {
+                Some(p) => p,
+                None => {
+                    yog_logging::error!("no native for {} in {}", platform_tag(), path.display());
+                    continue;
+                }
+            },
+            Some("so") | Some("dll") | Some("dylib") => path.clone(),
+            _ => continue,
+        };
+        if load_mod_lib(&lib_path, registry) {
+            count += 1;
+        }
+    }
+    yog_logging::info!("loaded {} mod(s) from {}", count, dir.display());
+}
+
+/// dlopen one native lib, verify its ABI, and run its `yog_mod_register`.
+fn load_mod_lib(path: &Path, registry: &mut Registry) -> bool {
+    unsafe {
+        let lib = match Library::new(path) {
+            Ok(l) => l,
+            Err(e) => {
+                yog_logging::error!("failed to load {}: {}", path.display(), e);
+                return false;
+            }
+        };
+        let abi: Symbol<AbiVersionFn> = match lib.get(b"yog_abi_version") {
+            Ok(s) => s,
+            Err(_) => {
+                yog_logging::error!("{} is not a Yog mod (no yog_abi_version)", path.display());
+                return false;
+            }
+        };
+        let mod_abi = abi();
+        if mod_abi != ABI_VERSION {
+            yog_logging::error!(
+                "{}: ABI {} incompatible with runtime ABI {}",
+                path.display(),
+                mod_abi,
+                ABI_VERSION
+            );
+            return false;
+        }
+        let register: Symbol<RegisterFn> = match lib.get(b"yog_mod_register") {
+            Ok(s) => s,
+            Err(_) => {
+                yog_logging::error!("{} missing yog_mod_register", path.display());
+                return false;
+            }
+        };
+        register(registry as *mut Registry);
+        drop(register);
+        drop(abi);
+        LOADED_MODS.lock().expect("mods lock poisoned").push(lib);
+    }
+    true
+}
+
+/// Extract the current platform's native from a `.yog` archive to a temp file.
+fn extract_yog(path: &Path) -> Option<PathBuf> {
+    let file = std::fs::File::open(path).ok()?;
+    let mut archive = zip::ZipArchive::new(file).ok()?;
+    let prefix = format!("natives/{}/", platform_tag());
+
+    let mut entry_name = None;
+    for i in 0..archive.len() {
+        let f = archive.by_index(i).ok()?;
+        if f.name().starts_with(&prefix) && !f.name().ends_with('/') {
+            entry_name = Some(f.name().to_string());
+            break;
+        }
+    }
+    let entry_name = entry_name?;
+
+    let ext = Path::new(&entry_name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("bin");
+    let stem = path.file_stem()?.to_string_lossy().into_owned();
+    let out = std::env::temp_dir().join(format!("yog-{}-{}.{}", stem, std::process::id(), ext));
+
+    let mut entry = archive.by_name(&entry_name).ok()?;
+    let mut out_file = std::fs::File::create(&out).ok()?;
+    std::io::copy(&mut entry, &mut out_file).ok()?;
+    Some(out)
+}
 
 /// Global registry of mod event handlers, initialised once on startup.
 static REGISTRY: OnceLock<RwLock<Registry>> = OnceLock::new();
@@ -115,20 +232,22 @@ impl Server for JniServer {
     }
 }
 
-/// Called once by the Java host after the native library is loaded.
+/// Called once by the Java host after the native library is loaded. `mods_dir`
+/// is the directory scanned for `.yog` / native mods.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
-    env: JNIEnv<'l>,
+    mut env: JNIEnv<'l>,
     _class: JClass<'l>,
+    mods_dir: JString<'l>,
 ) {
     if let Ok(vm) = env.get_java_vm() {
         let _ = JAVA_VM.set(vm);
     }
 
-    let mut reg = registry().write().expect("registry poisoned");
+    let dir = env.get_string(&mods_dir).map(String::from).unwrap_or_default();
 
-    // MVP: mods are linked in. Roadmap (stage 3): load `.so` mods from a dir.
-    yog_example_mod::register(&mut reg);
+    let mut reg = registry().write().expect("registry poisoned");
+    load_mods(Path::new(&dir), &mut reg);
 
     yog_logging::info!("runtime initialised — the gate is open.");
 }

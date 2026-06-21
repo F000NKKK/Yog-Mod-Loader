@@ -59,6 +59,18 @@ native_lib_name() {
     esac
 }
 
+# Platform tag matching the Rust runtime / Java host, e.g. linux-x86_64.
+platform_tag() {
+    local os arch
+    case "$(uname -s)" in Linux*) os=linux ;; Darwin*) os=macos ;; *) os=windows ;; esac
+    case "$(uname -m)" in
+        x86_64|amd64)   arch=x86_64 ;;
+        aarch64|arm64)  arch=aarch64 ;;
+        *)              arch="$(uname -m)" ;;
+    esac
+    echo "${os}-${arch}"
+}
+
 cargo_profile_dir() { [ "$CONFIG" = "Release" ] && echo release || echo debug; }
 
 is_loader() {
@@ -111,9 +123,29 @@ cargo_build() {
 build_rust() {
     echo "==> build rust ($CONFIG)"
     cargo_build
-    local lib; lib="$(native_lib_name)"
-    mkdir -p "$ROOT/fabric/run/natives"
-    cp "$ROOT/rust/target/$(cargo_profile_dir)/$lib" "$ROOT/fabric/run/natives/"
+    local lib src tag l
+    lib="$(native_lib_name)"
+    src="$ROOT/rust/target/$(cargo_profile_dir)/$lib"
+    tag="$(platform_tag)"
+    # Embed the runtime native into each loader's jar resources so the jar is
+    # self-contained — players never handle a loose .so/.dll.
+    for l in "${LOADERS[@]}"; do
+        mkdir -p "$ROOT/$l/src/main/resources/natives/$tag"
+        cp "$src" "$ROOT/$l/src/main/resources/natives/$tag/"
+    done
+    echo "    embedded $lib into loader resources ($tag)"
+}
+
+# Build the example mod into a .yog and stage it in each loader's dev mods dir.
+build_example() {
+    echo "==> build example-mod (.yog)"
+    cargo build --release -p yog-cli --manifest-path "$ROOT/rust/Cargo.toml"
+    ( cd "$ROOT/example-mod" && "$ROOT/rust/target/release/yog" build )
+    local l
+    for l in "${LOADERS[@]}"; do
+        mkdir -p "$ROOT/$l/run/yog-mods"
+        cp "$ROOT/example-mod/artifacts/"*.yog "$ROOT/$l/run/yog-mods/" 2>/dev/null || true
+    done
 }
 
 build_loader() {
@@ -124,7 +156,7 @@ build_loader() {
 build_target() {
     case "$1" in
         rust) build_rust ;;
-        all)  build_rust; local l; for l in "${LOADERS[@]}"; do build_loader "$l"; done ;;
+        all)  build_rust; build_example; local l; for l in "${LOADERS[@]}"; do build_loader "$l"; done ;;
         *)    require_loader "$1"; build_rust; build_loader "$1" ;;
     esac
 }
@@ -147,6 +179,7 @@ cmd_run() {
     require_loader "${1:-}"
     local loader="$1"
     build_rust
+    build_example
     if [ "$RUN_CLIENT" = 1 ]; then
         echo "==> run: $loader dev client"
         gradle_in "$loader" runClient

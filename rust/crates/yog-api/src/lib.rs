@@ -9,6 +9,39 @@ mod registry;
 
 pub use registry::{Mod, Registry};
 
+/// ABI version of the dynamic-mod interface. The runtime refuses to load a mod
+/// whose `yog_abi_version()` does not match, since Rust has no stable ABI:
+/// runtime and mods must be built against the same `yog-api`.
+pub const ABI_VERSION: u32 = 1;
+
+/// Export a [`Mod`] as a dynamically loadable Yog mod.
+///
+/// Generates the C-ABI entry points the runtime looks up (`yog_abi_version`,
+/// `yog_mod_register`) so mod authors never write `unsafe`. Put this once at the
+/// crate root of a `cdylib` mod:
+///
+/// ```ignore
+/// yog_api::export_mod!(MyMod);
+/// ```
+#[macro_export]
+macro_rules! export_mod {
+    ($mod_ty:ty) => {
+        #[no_mangle]
+        pub extern "C" fn yog_abi_version() -> u32 {
+            $crate::ABI_VERSION
+        }
+
+        #[no_mangle]
+        pub extern "C" fn yog_mod_register(registry: *mut $crate::Registry) {
+            // SAFETY: the runtime passes a valid, exclusive pointer to a Registry
+            // built against the same yog-api version, verified via
+            // yog_abi_version() before this call.
+            let registry: &mut $crate::Registry = unsafe { &mut *registry };
+            <$mod_ty as $crate::Mod>::register(registry);
+        }
+    };
+}
+
 pub use yog_command::CommandContext;
 pub use yog_core::{BlockPos, Server};
 pub use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent};
