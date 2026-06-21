@@ -35,7 +35,22 @@ So:
 A competitor can't rebuild a closed loader from the permissive API alone — the
 real work lives in the AGPL runtime/host.
 
+## License files in this repo
+
+- **`LICENSE`** — AGPL-3.0 text. This is the repo's primary license (GitHub
+  detects the project as AGPL), governing the loader as distributed.
+- **`LICENSE-MIT`**, **`LICENSE-APACHE`** — the permissive carve-out that applies
+  to `yog-api` and `yog-example-mod`, per the table above.
+
 ## Open questions to finalise
+
+- [ ] Keep `yog-api` permissive (MIT/Apache) **or** make it
+      `AGPL-3.0 WITH a linking exception` (Classpath-style)? Permissive is
+      simpler and friendlier; an exception keeps it copyleft while still freeing
+      mods. **Recommendation: permissive.**
+- [ ] Minecraft gray area: GPL-family licenses vs linking against proprietary
+      Minecraft is legally murky in modding. Confirm comfort, or consider
+      `LGPL`/`MPL-2.0` for the engine if AGPL proves awkward in practice.
 
 - [ ] Keep `yog-api` permissive (MIT/Apache) **or** make it
       `AGPL-3.0 WITH a linking exception` (Classpath-style)? Permissive is

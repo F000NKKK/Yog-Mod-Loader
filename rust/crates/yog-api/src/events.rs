@@ -23,3 +23,18 @@ pub struct ChatEvent {
     pub player_name: String,
     pub message: String,
 }
+
+/// Fired when a player joins the server.
+#[derive(Debug, Clone)]
+pub struct PlayerJoinEvent {
+    pub player_name: String,
+    /// Player UUID as a string, e.g. `069a79f4-44e9-4726-a5be-fca90e38aaf5`.
+    pub uuid: String,
+}
+
+/// Fired when a player leaves the server.
+#[derive(Debug, Clone)]
+pub struct PlayerLeaveEvent {
+    pub player_name: String,
+    pub uuid: String,
+}

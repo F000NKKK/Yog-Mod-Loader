@@ -28,11 +28,17 @@ can support development via the donation links below — there are no paid tiers
 | Stage | What |
 |------:|------|
 | ✅ 0 | Scaffold: Fabric host + Rust runtime + example mod |
-| ▶️ 1 | End-to-end bridge: block-break event `Java → Rust` (this MVP) |
-| 2 | More server events (chat, commands, join/leave) + world-access API |
+| ▶️ 1 | End-to-end bridge: events `Java → Rust` (run & verify locally) |
+| ✅ 2a | Event set: block break, chat, player join/leave, server lifecycle |
+| 2b | Command registration + world-access API (`get`/`set` block) |
 | 3 | Dynamic mod loading (`.so`/`.dll`) via a stable C-ABI plugin interface |
 | 4 | Client-side hooks (rendering / UI) — the real differentiator |
 | 5 | NeoForge host, then Forge host |
+
+### Events available now
+
+`on_block_break`, `on_chat`, `on_player_join`, `on_player_leave`,
+`on_server_started`, `on_server_stopping` — see `yog-example-mod` for usage.
 
 ## Architecture
 
@@ -43,13 +49,16 @@ can support development via the donation links below — there are no paid tiers
         │
    yog-runtime  (cdylib: JNI entry points + dispatch)   ← libyog_runtime.so
         │  JNI  (Java_dev_yog_NativeBridge_*)
-   Fabric host  (dev.yog: NativeBridge, YogHost) + Mixin hooks
+   Fabric host  (dev.yog: NativeBridge, YogHost) + Fabric API events
         │  Yarn mappings (not Mojmap)
    Minecraft 1.20.1
 ```
 
-The Java side is intentionally thin: it loads the native library, installs
-Mixin hooks, and forwards events across JNI. All mod logic lives in Rust.
+The Java side is intentionally thin: it loads the native library, subscribes to
+**Fabric API events**, and forwards them across JNI. All mod logic lives in Rust.
+(Fabric API events are more stable across versions than raw Mixins; Mixins
+return in stage 4 for deeper hooks like client rendering that Fabric API does
+not cover.)
 
 ## Layout
 
@@ -61,12 +70,12 @@ yog/
 │       ├── yog-api/             # public API for mod authors (events, Registry)
 │       ├── yog-runtime/         # cdylib: JNI entry points + dispatch
 │       └── yog-example-mod/     # sample mod using the API
-└── fabric/                      # Fabric host mod (Java + Mixin)
+└── fabric/                      # Fabric host mod (Java)
     ├── build.gradle
     ├── gradle.properties        # MC / Yarn / loader / fabric-api versions
     └── src/main/
-        ├── java/dev/yog/        # NativeBridge, YogHost, mixin/
-        └── resources/           # fabric.mod.json, yog.mixins.json
+        ├── java/dev/yog/        # NativeBridge, YogHost
+        └── resources/           # fabric.mod.json
 ```
 
 ## Build & run (local — needs JDK 17, Rust, and network access)

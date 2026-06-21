@@ -29,4 +29,12 @@ public final class NativeBridge {
             String player, String block, int x, int y, int z);
 
     public static native void nativeOnChat(String player, String message);
+
+    public static native void nativeOnPlayerJoin(String player, String uuid);
+
+    public static native void nativeOnPlayerLeave(String player, String uuid);
+
+    public static native void nativeOnServerStarted();
+
+    public static native void nativeOnServerStopping();
 }

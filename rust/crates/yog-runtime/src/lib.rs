@@ -12,7 +12,9 @@ use jni::objects::{JClass, JString};
 use jni::sys::jint;
 use jni::JNIEnv;
 
-use yog_api::{BlockBreakEvent, BlockPos, ChatEvent, Registry};
+use yog_api::{
+    BlockBreakEvent, BlockPos, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, Registry,
+};
 
 /// Global registry of mod event handlers, initialised once on startup.
 static REGISTRY: OnceLock<RwLock<Registry>> = OnceLock::new();
@@ -45,7 +47,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     println!("[yog] runtime initialised — the gate is open.");
 }
 
-/// Called by the host's Mixin when a player breaks a block (server side).
+/// Called by the host (Fabric `PlayerBlockBreakEvents`) when a player breaks a
+/// block, server side.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreak<'l>(
     mut env: JNIEnv<'l>,
@@ -85,4 +88,66 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChat<'l>(
         .read()
         .expect("registry poisoned")
         .dispatch_chat(&event);
+}
+
+/// Called by the host when a player joins the server.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    player: JString<'l>,
+    uuid: JString<'l>,
+) {
+    let event = PlayerJoinEvent {
+        player_name: jstr!(env, player),
+        uuid: jstr!(env, uuid),
+    };
+
+    registry()
+        .read()
+        .expect("registry poisoned")
+        .dispatch_player_join(&event);
+}
+
+/// Called by the host when a player leaves the server.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    player: JString<'l>,
+    uuid: JString<'l>,
+) {
+    let event = PlayerLeaveEvent {
+        player_name: jstr!(env, player),
+        uuid: jstr!(env, uuid),
+    };
+
+    registry()
+        .read()
+        .expect("registry poisoned")
+        .dispatch_player_leave(&event);
+}
+
+/// Called by the host once the server has finished starting.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) {
+    registry()
+        .read()
+        .expect("registry poisoned")
+        .dispatch_server_started();
+}
+
+/// Called by the host when the server begins shutting down.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStopping<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) {
+    registry()
+        .read()
+        .expect("registry poisoned")
+        .dispatch_server_stopping();
 }

@@ -19,6 +19,22 @@ impl Mod for ExampleMod {
         registry.on_chat(|e| {
             println!("[example-mod] <{}> {}", e.player_name, e.message);
         });
+
+        registry.on_player_join(|e| {
+            println!("[example-mod] {} joined ({})", e.player_name, e.uuid);
+        });
+
+        registry.on_player_leave(|e| {
+            println!("[example-mod] {} left", e.player_name);
+        });
+
+        registry.on_server_started(|| {
+            println!("[example-mod] server started — Yog is awake.");
+        });
+
+        registry.on_server_stopping(|| {
+            println!("[example-mod] server stopping — the gate closes.");
+        });
     }
 }
 
