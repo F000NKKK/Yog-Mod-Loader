@@ -5,7 +5,7 @@
 #
 # Components:
 #   rust | cargo   Build the Rust runtime (release) and stage the native lib
-#   fabric         Build the Fabric host mod (depends on rust)
+#   fabric         Build the Fabric host mod -> artifacts/fabric/
 #   run            Run the Fabric dev server (depends on rust)
 #   neoforge       (not implemented yet — roadmap)
 #   forge          (not implemented yet — roadmap)
@@ -13,8 +13,8 @@
 #
 # No args defaults to: rust
 #
-# The Gradle parts auto-pick a JDK 17 (Gradle 8.8 can't run on Java 23+).
-# Override detection with: YOG_JAVA17_HOME=/path/to/jdk17
+# Build outputs are copied into artifacts/<loader>/. The Gradle parts auto-pick a
+# JDK 17 (Gradle 8.8 can't run on Java 23+); override with YOG_JAVA17_HOME=...
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,6 +22,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # ── helpers ────────────────────────────────────────────────────────────────
+
+native_lib_name() {
+    case "$(uname -s)" in
+        Linux*)  echo "libyog_runtime.so" ;;
+        Darwin*) echo "libyog_runtime.dylib" ;;
+        *)       echo "yog_runtime.dll" ;;
+    esac
+}
 
 # Find a JDK 17 for the Gradle daemon.
 find_java17() {
@@ -40,11 +48,7 @@ find_java17() {
 build_rust() {
     echo "==> Building Rust runtime (release)"
     cargo build --release --manifest-path "$ROOT/rust/Cargo.toml"
-    case "$(uname -s)" in
-        Linux*)  lib="libyog_runtime.so" ;;
-        Darwin*) lib="libyog_runtime.dylib" ;;
-        *)       lib="yog_runtime.dll" ;;
-    esac
+    local lib; lib="$(native_lib_name)"
     local stage="$ROOT/fabric/run/natives"
     mkdir -p "$stage"
     cp "$ROOT/rust/target/release/$lib" "$stage/"
@@ -64,6 +68,26 @@ gradle_in() {
     ( cd "$ROOT/$dir" && JAVA_HOME="$jh" ./gradlew "$@" )
 }
 
+# Copy the distributable jar(s) + native lib into artifacts/<loader>/.
+collect_artifacts() {
+    local loader="$1"
+    local out="$ROOT/artifacts/$loader"
+    rm -rf "$out"; mkdir -p "$out"
+    # remapped distributable jar(s), excluding dev/sources builds
+    find "$ROOT/$loader/build/libs" -maxdepth 1 -name '*.jar' \
+        ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
+    # native runtime needed alongside the mod
+    cp "$ROOT/fabric/run/natives/$(native_lib_name)" "$out/" 2>/dev/null || true
+    echo "    Artifacts -> $out"
+    ls -1 "$out" 2>/dev/null | sed 's/^/      /'
+}
+
+build_fabric() {
+    build_rust
+    gradle_in fabric build
+    collect_artifacts fabric
+}
+
 not_impl() {
     echo "==> '$1' is not implemented yet (roadmap: Fabric -> NeoForge -> Forge)."
 }
@@ -75,10 +99,10 @@ not_impl() {
 for comp in "$@"; do
     case "$comp" in
         rust|cargo)     build_rust ;;
-        fabric)         build_rust; gradle_in fabric build ;;
+        fabric)         build_fabric ;;
         run)            build_rust; gradle_in fabric runServer ;;
         neoforge|forge) not_impl "$comp" ;;
-        all)            build_rust; gradle_in fabric build ;;
+        all)            build_fabric ;;
         -h|--help|help) usage ;;
         *) echo "Unknown component: $comp" >&2; usage; exit 2 ;;
     esac
