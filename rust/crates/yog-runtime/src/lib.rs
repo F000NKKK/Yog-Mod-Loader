@@ -309,6 +309,29 @@ impl Server for JniServer {
         .unwrap_or(false)
     }
 
+    fn send_to_server(&self, channel: &str, payload: &[u8]) -> bool {
+        let Some(vm) = JAVA_VM.get() else {
+            return false;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return false;
+        };
+        let (Ok(jc), Ok(data)) = (env.new_string(channel), env.byte_array_from_slice(payload))
+        else {
+            return false;
+        };
+        let result = env.call_static_method(
+            "dev/yog/YogClient",
+            "sendToServer",
+            "(Ljava/lang/String;[B)Z",
+            &[JValue::Object(&jc), JValue::Object(&data)],
+        );
+        // YogClient is client-only: on a dedicated server the class is absent and
+        // the call leaves a pending exception — clear it and report failure.
+        let _ = env.exception_clear();
+        result.and_then(|v| v.z()).unwrap_or(false)
+    }
+
     fn entity_teleport(&self, uuid: &str, x: f64, y: f64, z: f64) -> bool {
         let Some(vm) = JAVA_VM.get() else {
             return false;

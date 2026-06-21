@@ -2,6 +2,8 @@ package dev.yog;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 
 /** Client-side entry point: wires client packet receivers (server -> client). */
@@ -27,6 +29,22 @@ public class YogClient implements ClientModInitializer {
                 buf.readBytes(data);
                 client.execute(() -> NativeBridge.nativeOnClientPacket(channel, data));
             });
+        }
+    }
+
+    /** Send a raw-byte packet to the server (client -> server). */
+    public static boolean sendToServer(String channel, byte[] data) {
+        Identifier id = Identifier.tryParse(channel);
+        if (id == null) {
+            return false;
+        }
+        try {
+            PacketByteBuf buf = PacketByteBufs.create();
+            buf.writeBytes(data);
+            ClientPlayNetworking.send(id, buf);
+            return true;
+        } catch (Throwable t) {
+            return false;
         }
     }
 }

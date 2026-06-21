@@ -82,10 +82,21 @@ impl Mod for ExampleMod {
             info!("[example-mod] server stopping — the gate closes.");
         });
 
-        // Networking demo: client logs raw-byte packets the server sends.
-        registry.on_client_packet("yog:pong", |e, _srv| {
+        // Networking demo: client logs the server's packet and replies back.
+        registry.on_client_packet("yog:pong", |e, srv| {
             info!(
                 "[example-mod] client received pong: {}",
+                String::from_utf8_lossy(&e.payload)
+            );
+            // client -> server reply
+            srv.send_to_server("yog:ack", b"client got it");
+        });
+
+        // Server receives the client's reply.
+        registry.on_packet("yog:ack", |e, _srv| {
+            info!(
+                "[example-mod] server got ack from {}: {}",
+                e.player,
                 String::from_utf8_lossy(&e.payload)
             );
         });

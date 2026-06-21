@@ -36,6 +36,10 @@ pub trait Server {
     /// Returns whether the player was online. Payload is opaque bytes — no NBT.
     fn send_to_player(&self, player: &str, channel: &str, payload: &[u8]) -> bool;
 
+    /// Send a raw-byte packet to the server on `channel` (client → server).
+    /// Only works in a client context; returns whether it was sent.
+    fn send_to_server(&self, channel: &str, payload: &[u8]) -> bool;
+
     // ── entity (universal, by UUID) ─────────────────────────────────────────
 
     /// Teleport any entity (by UUID) within its current world.
