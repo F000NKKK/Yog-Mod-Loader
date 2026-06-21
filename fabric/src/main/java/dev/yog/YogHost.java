@@ -42,8 +42,12 @@ public class YogHost implements ModInitializer {
                 NativeBridge.nativeOnPlayerLeave(
                         handler.player.getName().getString(), handler.player.getUuidAsString()));
 
-        // Server lifecycle.
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> NativeBridge.nativeOnServerStarted());
+        // Server lifecycle. Capture the server first so Rust can act on it
+        // (e.g. NativeBridge.broadcast).
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            NativeBridge.setServer(server);
+            NativeBridge.nativeOnServerStarted();
+        });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> NativeBridge.nativeOnServerStopping());
     }
 }

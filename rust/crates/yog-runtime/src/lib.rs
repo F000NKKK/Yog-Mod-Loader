@@ -2,22 +2,27 @@
 //!
 //! It exposes JNI entry points that the Java side calls, translates the incoming
 //! data into [`yog_api`] events, and dispatches them to registered Rust mods.
+//! It also implements [`yog_api::Server`], the Rust → Minecraft path, by calling
+//! back into the Java host through a cached [`JavaVM`].
 //!
 //! Symbol naming follows the JNI convention `Java_<package>_<class>_<method>`,
 //! here `dev.yog.NativeBridge`.
 
 use std::sync::{OnceLock, RwLock};
 
-use jni::objects::{JClass, JString};
+use jni::objects::{JClass, JString, JValue};
 use jni::sys::jint;
-use jni::JNIEnv;
+use jni::{JNIEnv, JavaVM};
 
 use yog_api::{
-    BlockBreakEvent, BlockPos, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, Registry,
+    BlockBreakEvent, BlockPos, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, Registry, Server,
 };
 
 /// Global registry of mod event handlers, initialised once on startup.
 static REGISTRY: OnceLock<RwLock<Registry>> = OnceLock::new();
+
+/// Cached VM handle so we can call back into Java from any thread.
+static JAVA_VM: OnceLock<JavaVM> = OnceLock::new();
 
 fn registry() -> &'static RwLock<Registry> {
     REGISTRY.get_or_init(|| RwLock::new(Registry::default()))
@@ -33,12 +38,40 @@ macro_rules! jstr {
     };
 }
 
+/// Concrete [`Server`] handed to handlers. Calls into `dev.yog.NativeBridge`
+/// static methods via the cached [`JavaVM`].
+struct JniServer;
+
+impl Server for JniServer {
+    fn broadcast(&self, message: &str) {
+        let Some(vm) = JAVA_VM.get() else {
+            return;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return;
+        };
+        let Ok(jmsg) = env.new_string(message) else {
+            return;
+        };
+        let _ = env.call_static_method(
+            "dev/yog/NativeBridge",
+            "broadcast",
+            "(Ljava/lang/String;)V",
+            &[JValue::Object(&jmsg)],
+        );
+    }
+}
+
 /// Called once by the Java host after the native library is loaded.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
-    _env: JNIEnv<'l>,
+    env: JNIEnv<'l>,
     _class: JClass<'l>,
 ) {
+    if let Ok(vm) = env.get_java_vm() {
+        let _ = JAVA_VM.set(vm);
+    }
+
     let mut reg = registry().write().expect("registry poisoned");
 
     // MVP: mods are linked in. Roadmap (stage 3): load `.so` mods from a dir.
@@ -68,7 +101,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreak<'l>(
     registry()
         .read()
         .expect("registry poisoned")
-        .dispatch_block_break(&event);
+        .dispatch_block_break(&event, &JniServer);
 }
 
 /// Called by the host when a player sends a chat message.
@@ -87,7 +120,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChat<'l>(
     registry()
         .read()
         .expect("registry poisoned")
-        .dispatch_chat(&event);
+        .dispatch_chat(&event, &JniServer);
 }
 
 /// Called by the host when a player joins the server.
@@ -106,7 +139,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
     registry()
         .read()
         .expect("registry poisoned")
-        .dispatch_player_join(&event);
+        .dispatch_player_join(&event, &JniServer);
 }
 
 /// Called by the host when a player leaves the server.
@@ -125,7 +158,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
     registry()
         .read()
         .expect("registry poisoned")
-        .dispatch_player_leave(&event);
+        .dispatch_player_leave(&event, &JniServer);
 }
 
 /// Called by the host once the server has finished starting.
@@ -137,7 +170,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
     registry()
         .read()
         .expect("registry poisoned")
-        .dispatch_server_started();
+        .dispatch_server_started(&JniServer);
 }
 
 /// Called by the host when the server begins shutting down.
@@ -149,5 +182,5 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStopping<'l>(
     registry()
         .read()
         .expect("registry poisoned")
-        .dispatch_server_stopping();
+        .dispatch_server_stopping(&JniServer);
 }

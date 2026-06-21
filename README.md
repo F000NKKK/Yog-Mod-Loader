@@ -30,7 +30,7 @@ can support development via the donation links below — there are no paid tiers
 | ✅ 0 | Scaffold: Fabric host + Rust runtime + example mod |
 | ▶️ 1 | End-to-end bridge: events `Java → Rust` (run & verify locally) |
 | ✅ 2a | Event set: block break, chat, player join/leave, server lifecycle |
-| 2b | Command registration + world-access API (`get`/`set` block) |
+| ▶️ 2b | Rust→Minecraft actions via `Server` handle (broadcast ✅; commands + world `get`/`set` next) |
 | 3 | Dynamic mod loading (`.so`/`.dll`) via a stable C-ABI plugin interface |
 | 4 | Client-side hooks (rendering / UI) — the real differentiator |
 | 5 | NeoForge host, then Forge host |

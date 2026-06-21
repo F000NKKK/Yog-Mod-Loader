@@ -6,8 +6,10 @@
 
 mod events;
 mod registry;
+mod server;
 
 pub use events::{
     BlockBreakEvent, BlockPos, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent,
 };
 pub use registry::{Mod, Registry};
+pub use server::Server;
