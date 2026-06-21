@@ -39,11 +39,10 @@ processResources {
     }
 }
 
-tasks.withType(JavaCompile).configureEach {
-    it.options.release = 17
-}
-
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    // Minecraft 1.20.1 runs on Java 17. The toolchain pins compile + run to 17
+    // regardless of the default JDK (foojay can fetch it if missing).
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }

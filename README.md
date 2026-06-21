@@ -91,6 +91,12 @@ yog/
    ./gradlew runServer
    ```
    First run creates `run/eula.txt` — set `eula=true` and run again.
+
+   > Gradle 8.8 must run on JDK ≤ 22. If your default `java` is newer (e.g.
+   > Java 25), point it at a JDK 17:
+   > ```bash
+   > JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew runServer
+   > ```
 3. Break a block / chat / join. You should see the Rust mod react in the console:
    ```
    [yog] runtime initialised — the gate is open.
