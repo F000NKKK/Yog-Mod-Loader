@@ -18,7 +18,7 @@ use libloading::{Library, Symbol};
 
 use yog_api::{
     BlockBreakEvent, BlockPos, ChatEvent, CommandContext, PlayerJoinEvent, PlayerLeaveEvent,
-    Registry, Server, ABI_VERSION,
+    Registry, Server, UseItemEvent, ABI_VERSION,
 };
 
 /// Loaded mod libraries, kept alive for the process so their code stays mapped.
@@ -239,6 +239,51 @@ impl Server for JniServer {
         .and_then(|v| v.z())
         .unwrap_or(false)
     }
+
+    fn give_item(&self, player: &str, item_id: &str, count: u32) -> bool {
+        let Some(vm) = JAVA_VM.get() else {
+            return false;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return false;
+        };
+        let (Ok(jp), Ok(ji)) = (env.new_string(player), env.new_string(item_id)) else {
+            return false;
+        };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "giveItem",
+            "(Ljava/lang/String;Ljava/lang/String;I)Z",
+            &[JValue::Object(&jp), JValue::Object(&ji), JValue::Int(count as i32)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn teleport(&self, player: &str, x: f64, y: f64, z: f64) -> bool {
+        let Some(vm) = JAVA_VM.get() else {
+            return false;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return false;
+        };
+        let Ok(jp) = env.new_string(player) else {
+            return false;
+        };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "teleport",
+            "(Ljava/lang/String;DDD)Z",
+            &[
+                JValue::Object(&jp),
+                JValue::Double(x),
+                JValue::Double(y),
+                JValue::Double(z),
+            ],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
 }
 
 /// Called once by the Java host after the native library is loaded. `mods_dir`
@@ -349,6 +394,40 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
             .read()
             .expect("registry poisoned")
             .dispatch_player_leave(&event, &JniServer);
+    });
+}
+
+/// Called by the host when a player right-clicks with an item (server side).
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    player: JString<'l>,
+    item: JString<'l>,
+) {
+    let event = UseItemEvent {
+        player_name: jstr!(env, player),
+        item_id: jstr!(env, item),
+    };
+    guard("on_use_item", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_use_item(&event, &JniServer);
+    });
+}
+
+/// Called by the host at the end of every server tick.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) {
+    guard("on_tick", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_server_tick(&JniServer);
     });
 }
 

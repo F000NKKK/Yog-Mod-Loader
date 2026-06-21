@@ -8,10 +8,13 @@ import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -68,6 +71,33 @@ public final class NativeBridge {
         }
         Block block = Registries.BLOCK.get(id);
         return w.setBlockState(new BlockPos(x, y, z), block.getDefaultState());
+    }
+
+    /** Give `count` of `itemId` to the named online player. */
+    public static boolean giveItem(String player, String itemId, int count) {
+        ServerPlayerEntity p = playerByName(player);
+        Identifier id = Identifier.tryParse(itemId);
+        if (p == null || id == null || count <= 0 || !Registries.ITEM.containsId(id)) {
+            return false;
+        }
+        Item item = Registries.ITEM.get(id);
+        p.giveItemStack(new ItemStack(item, count));
+        return true;
+    }
+
+    /** Teleport the named online player within their current world. */
+    public static boolean teleport(String player, double x, double y, double z) {
+        ServerPlayerEntity p = playerByName(player);
+        if (p == null) {
+            return false;
+        }
+        p.teleport(p.getServerWorld(), x, y, z, p.getYaw(), p.getPitch());
+        return true;
+    }
+
+    private static ServerPlayerEntity playerByName(String name) {
+        MinecraftServer s = server;
+        return s == null ? null : s.getPlayerManager().getPlayer(name);
     }
 
     private static ServerWorld worldFor(String dimension) {
@@ -153,6 +183,10 @@ public final class NativeBridge {
     public static native void nativeOnPlayerJoin(String player, String uuid);
 
     public static native void nativeOnPlayerLeave(String player, String uuid);
+
+    public static native void nativeOnUseItem(String player, String item);
+
+    public static native void nativeOnTick();
 
     public static native void nativeOnServerStarted();
 

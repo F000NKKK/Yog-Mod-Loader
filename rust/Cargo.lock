@@ -321,6 +321,7 @@ dependencies = [
  "yog-core",
  "yog-event",
  "yog-logging",
+ "yog-player",
  "yog-world",
 ]
 
@@ -349,6 +350,13 @@ dependencies = [
 [[package]]
 name = "yog-logging"
 version = "0.1.0"
+
+[[package]]
+name = "yog-player"
+version = "0.1.0"
+dependencies = [
+ "yog-core",
+]
 
 [[package]]
 name = "yog-runtime"

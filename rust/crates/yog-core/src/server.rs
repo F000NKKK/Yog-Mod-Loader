@@ -23,4 +23,12 @@ pub trait Server {
     /// Set the block at `pos` in `dimension` to `block_id`. Returns whether the
     /// change was applied. Call from the server thread.
     fn set_block(&self, dimension: &str, pos: BlockPos, block_id: &str) -> bool;
+
+    /// Give `count` of `item_id` to the named player. Returns whether it worked
+    /// (player online, item valid). Call from the server thread.
+    fn give_item(&self, player: &str, item_id: &str, count: u32) -> bool;
+
+    /// Teleport the named player to `(x, y, z)` in their current world. Returns
+    /// whether it worked. Call from the server thread.
+    fn teleport(&self, player: &str, x: f64, y: f64, z: f64) -> bool;
 }

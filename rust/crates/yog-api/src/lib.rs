@@ -51,7 +51,8 @@ macro_rules! export_mod {
 
 pub use yog_command::CommandContext;
 pub use yog_core::{BlockPos, Server};
-pub use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent};
+pub use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};
+pub use yog_player::Player;
 pub use yog_world::World;
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
@@ -70,6 +71,11 @@ pub mod event {
 /// World access (block get/set, dimensions).
 pub mod world {
     pub use yog_world::*;
+}
+
+/// Player access (give item, teleport).
+pub mod player {
+    pub use yog_player::*;
 }
 
 /// Commands.

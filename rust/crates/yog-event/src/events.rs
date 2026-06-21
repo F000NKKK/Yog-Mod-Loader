@@ -32,3 +32,11 @@ pub struct PlayerLeaveEvent {
     pub player_name: String,
     pub uuid: String,
 }
+
+/// Fired when a player right-clicks with an item (server side).
+#[derive(Debug, Clone)]
+pub struct UseItemEvent {
+    pub player_name: String,
+    /// Registry id of the held item, e.g. `minecraft:stick`.
+    pub item_id: String,
+}

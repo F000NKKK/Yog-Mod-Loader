@@ -6,13 +6,18 @@ import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.TypedActionResult;
 
 /**
  * Fabric entry point. Boots the native Yog runtime and forwards server events
@@ -48,6 +53,19 @@ public class YogHost implements ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
                 NativeBridge.nativeOnPlayerLeave(
                         handler.player.getName().getString(), handler.player.getUuidAsString()));
+
+        // Item use (right-click), server side only.
+        UseItemCallback.EVENT.register((player, world, hand) -> {
+            if (!world.isClient && player instanceof ServerPlayerEntity sp) {
+                ItemStack stack = sp.getStackInHand(hand);
+                String itemId = Registries.ITEM.getId(stack.getItem()).toString();
+                NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId);
+            }
+            return TypedActionResult.pass(player.getStackInHand(hand));
+        });
+
+        // End-of-tick (20×/second).
+        ServerTickEvents.END_SERVER_TICK.register(server -> NativeBridge.nativeOnTick());
 
         // Server lifecycle. Capture the server first so Rust can act on it
         // (e.g. NativeBridge.broadcast).

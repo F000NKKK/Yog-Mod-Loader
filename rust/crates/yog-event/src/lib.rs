@@ -5,4 +5,4 @@
 
 mod events;
 
-pub use events::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent};
+pub use events::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};

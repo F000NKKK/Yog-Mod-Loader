@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use yog_command::CommandContext;
 use yog_core::Server;
-use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent};
+use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};
 
 type Handler<E> = Box<dyn Fn(&E, &dyn Server) + Send + Sync + 'static>;
 type Listener = Box<dyn Fn(&dyn Server) + Send + Sync + 'static>;
@@ -24,8 +24,10 @@ pub struct Registry {
     chat: Vec<Handler<ChatEvent>>,
     player_join: Vec<Handler<PlayerJoinEvent>>,
     player_leave: Vec<Handler<PlayerLeaveEvent>>,
+    use_item: Vec<Handler<UseItemEvent>>,
     server_started: Vec<Listener>,
     server_stopping: Vec<Listener>,
+    server_tick: Vec<Listener>,
     commands: HashMap<String, CommandHandler>,
 }
 
@@ -62,6 +64,22 @@ impl Registry {
         F: Fn(&PlayerLeaveEvent, &dyn Server) + Send + Sync + 'static,
     {
         self.player_leave.push(Box::new(handler));
+    }
+
+    /// Subscribe to item-use (right-click) events.
+    pub fn on_use_item<F>(&mut self, handler: F)
+    where
+        F: Fn(&UseItemEvent, &dyn Server) + Send + Sync + 'static,
+    {
+        self.use_item.push(Box::new(handler));
+    }
+
+    /// Subscribe to the end of every server tick (20×/second). Keep these cheap.
+    pub fn on_tick<F>(&mut self, listener: F)
+    where
+        F: Fn(&dyn Server) + Send + Sync + 'static,
+    {
+        self.server_tick.push(Box::new(listener));
     }
 
     /// Subscribe to the "server started" lifecycle event.
@@ -118,6 +136,18 @@ impl Registry {
     pub fn dispatch_player_leave(&self, event: &PlayerLeaveEvent, server: &dyn Server) {
         for handler in &self.player_leave {
             handler(event, server);
+        }
+    }
+
+    pub fn dispatch_use_item(&self, event: &UseItemEvent, server: &dyn Server) {
+        for handler in &self.use_item {
+            handler(event, server);
+        }
+    }
+
+    pub fn dispatch_server_tick(&self, server: &dyn Server) {
+        for listener in &self.server_tick {
+            listener(server);
         }
     }
 

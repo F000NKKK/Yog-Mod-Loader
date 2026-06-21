@@ -1,0 +1,9 @@
+[package]
+name = "yog-player"
+version.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog player access — ergonomic give/teleport over the Server handle."
+
+[dependencies]
+yog-core = { path = "../yog-core" }
