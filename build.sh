@@ -120,20 +120,56 @@ cargo_build() {
     cargo build $flag --manifest-path "$ROOT/rust/Cargo.toml"
 }
 
+# Supported runtime targets: "triple|tag|os".
+RUNTIME_TARGETS=(
+    "x86_64-unknown-linux-gnu|linux-x86_64|linux"
+    "aarch64-unknown-linux-gnu|linux-aarch64|linux"
+    "x86_64-pc-windows-gnu|windows-x86_64|windows"
+    "x86_64-apple-darwin|macos-x86_64|macos"
+    "aarch64-apple-darwin|macos-aarch64|macos"
+)
+
+runtime_lib_for_os() {
+    case "$1" in
+        windows) echo "yog_runtime.dll" ;;
+        macos)   echo "libyog_runtime.dylib" ;;
+        *)       echo "libyog_runtime.so" ;;
+    esac
+}
+
+cargo_builder() { command -v cargo-zigbuild >/dev/null 2>&1 && echo zigbuild || echo build; }
+
+# Build the runtime for every available platform and embed each into the loader
+# jars (resources/natives/<tag>/) so a single jar works on all OSes.
 build_rust() {
-    echo "==> build rust ($CONFIG)"
-    cargo_build
-    local lib src tag l
-    lib="$(native_lib_name)"
-    src="$ROOT/rust/target/$(cargo_profile_dir)/$lib"
-    tag="$(platform_tag)"
-    # Embed the runtime native into each loader's jar resources so the jar is
-    # self-contained — players never handle a loose .so/.dll.
-    for l in "${LOADERS[@]}"; do
-        mkdir -p "$ROOT/$l/src/main/resources/natives/$tag"
-        cp "$src" "$ROOT/$l/src/main/resources/natives/$tag/"
+    echo "==> build rust ($CONFIG) — all platforms"
+    local builder profile installed built l
+    builder="$(cargo_builder)"
+    profile=""; [ "$CONFIG" = "Release" ] && profile="--release"
+    installed="$(rustup target list --installed 2>/dev/null)"
+    built=()
+    for spec in "${RUNTIME_TARGETS[@]}"; do
+        IFS='|' read -r triple tag os <<<"$spec"
+        if ! grep -qx "$triple" <<<"$installed"; then
+            echo "    skip $tag (target not installed)"
+            continue
+        fi
+        if cargo "$builder" $profile --target "$triple" -p yog-runtime \
+                --manifest-path "$ROOT/rust/Cargo.toml" >/dev/null 2>&1; then
+            local src="$ROOT/rust/target/$triple/$(cargo_profile_dir)/$(runtime_lib_for_os "$os")"
+            if [ -f "$src" ]; then
+                for l in "${LOADERS[@]}"; do
+                    mkdir -p "$ROOT/$l/src/main/resources/natives/$tag"
+                    cp "$src" "$ROOT/$l/src/main/resources/natives/$tag/"
+                done
+                built+=("$tag")
+            fi
+        else
+            echo "    skip $tag (build failed — toolchain/SDK?)"
+        fi
     done
-    echo "    embedded $lib into loader resources ($tag)"
+    [ ${#built[@]} -gt 0 ] || die "no runtime platform built"
+    echo "    embedded runtime for: ${built[*]}"
 }
 
 # Build the example mod into a .yog and stage it in each loader's dev mods dir.
@@ -217,16 +253,18 @@ publish_loader() {
 cmd_publish() {
     [ -n "${1:-}" ] || die "publish needs a target: a loader (${LOADERS[*]}) or 'all'"
     CONFIG="Release"
-    build_rust
-    mkdir -p "$ROOT/artifacts/native"
-    cp "$ROOT/rust/target/release/$(native_lib_name)" "$ROOT/artifacts/native/"
+    build_rust      # embeds all-platform natives into the loader jars
+    build_example   # the example .yog mod
 
     if [ "$1" = "all" ]; then
         local l; for l in "${LOADERS[@]}"; do publish_loader "$l"; done
     else
         require_loader "$1"; publish_loader "$1"
     fi
-    echo "==> published (native in artifacts/native/)"
+
+    mkdir -p "$ROOT/artifacts/mods"
+    cp "$ROOT/example-mod/artifacts/"*.yog "$ROOT/artifacts/mods/" 2>/dev/null || true
+    echo "==> published to artifacts/ (self-contained jars + .yog mods)"
 }
 
 # ── dispatch ────────────────────────────────────────────────────────────────

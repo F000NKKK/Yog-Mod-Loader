@@ -103,6 +103,21 @@ parts — Gradle 8.8 can't run on Java 23+):
 ./build.sh --help
 ```
 
+`build` cross-compiles the runtime for **every supported platform**
+(linux/windows/macos × x86_64/aarch64) and embeds them all into the jar, and
+builds the example mod into a multi-platform `.yog`. This uses
+[`cargo-zigbuild`](https://github.com/rust-cross/cargo-zigbuild) + `zig` plus the
+rustup targets; install them for full coverage:
+
+```bash
+cargo install cargo-zigbuild   # and have `zig` on PATH
+rustup target add aarch64-unknown-linux-gnu x86_64-pc-windows-gnu \
+                  x86_64-apple-darwin aarch64-apple-darwin
+```
+
+Without them, only the platforms whose toolchain you have are bundled (the build
+skips the rest with a note).
+
 1. **Run the dev server:**
    ```bash
    ./build.sh run fabric
