@@ -1,17 +1,23 @@
-//! The registry mod authors use to subscribe to events.
+//! The registration hub mod authors use, composing every Yog domain.
+//!
+//! Lives in the facade because this is where domains come together: events
+//! (`yog-event`), commands (`yog-command`), and the [`Server`] handle
+//! (`yog-core`) all meet here.
 
+use std::collections::HashMap;
+
+use yog_command::CommandContext;
 use yog_core::Server;
-
-use crate::events::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent};
+use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent};
 
 type Handler<E> = Box<dyn Fn(&E, &dyn Server) + Send + Sync + 'static>;
 type Listener = Box<dyn Fn(&dyn Server) + Send + Sync + 'static>;
+type CommandHandler =
+    Box<dyn Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static>;
 
-/// Collects the event handlers registered by mods. The Yog runtime owns one of
-/// these and dispatches incoming events from the Java host into it.
-///
-/// Every handler receives a [`Server`] handle so it can act on the game, not
-/// just observe it.
+/// Collects everything a mod registers. The Yog runtime owns one of these and
+/// drives it from the Java host. Every handler receives a [`Server`] handle so
+/// it can act on the game, not just observe it.
 #[derive(Default)]
 pub struct Registry {
     block_break: Vec<Handler<BlockBreakEvent>>,
@@ -20,9 +26,12 @@ pub struct Registry {
     player_leave: Vec<Handler<PlayerLeaveEvent>>,
     server_started: Vec<Listener>,
     server_stopping: Vec<Listener>,
+    commands: HashMap<String, CommandHandler>,
 }
 
 impl Registry {
+    // ── events ──────────────────────────────────────────────────────────────
+
     /// Subscribe to block-break events.
     pub fn on_block_break<F>(&mut self, handler: F)
     where
@@ -71,7 +80,22 @@ impl Registry {
         self.server_stopping.push(Box::new(listener));
     }
 
-    // --- dispatch: called by the runtime, not by mod authors ---
+    // ── commands ────────────────────────────────────────────────────────────
+
+    /// Register `/name`. The handler may return a reply sent back to the source.
+    pub fn on_command<F>(&mut self, name: impl Into<String>, handler: F)
+    where
+        F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static,
+    {
+        self.commands.insert(name.into(), Box::new(handler));
+    }
+
+    /// Names of all registered commands (used by the host to wire Brigadier).
+    pub fn command_names(&self) -> Vec<String> {
+        self.commands.keys().cloned().collect()
+    }
+
+    // ── dispatch: called by the runtime, not by mod authors ─────────────────
 
     pub fn dispatch_block_break(&self, event: &BlockBreakEvent, server: &dyn Server) {
         for handler in &self.block_break {
@@ -108,10 +132,15 @@ impl Registry {
             listener(server);
         }
     }
+
+    /// Run the handler for `ctx.name`, returning its reply (if any).
+    pub fn dispatch_command(&self, ctx: &CommandContext, server: &dyn Server) -> Option<String> {
+        self.commands.get(&ctx.name).and_then(|h| h(ctx, server))
+    }
 }
 
 /// Implemented by every Yog mod. The runtime calls [`Mod::register`] once at
-/// startup so the mod can subscribe to the events it cares about.
+/// startup so the mod can register the events and commands it cares about.
 pub trait Mod {
     fn register(registry: &mut Registry);
 }

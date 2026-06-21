@@ -5,9 +5,12 @@ members = [
     "crates/yog-core",
     "crates/yog-event",
     "crates/yog-world",
+    "crates/yog-command",
+    # infrastructure (permissive)
+    "crates/yog-logging",
     # facade mod authors depend on
     "crates/yog-api",
-    # engine (AGPL) + example
+    # engine (AGPL)
     "crates/yog-runtime",
     "crates/yog-example-mod",
 ]

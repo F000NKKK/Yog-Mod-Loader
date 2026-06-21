@@ -1,0 +1,8 @@
+[package]
+name = "yog-logging"
+version.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog logging — lightweight, zero-overhead logging macros."
+
+[dependencies]

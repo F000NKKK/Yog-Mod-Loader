@@ -254,10 +254,16 @@ checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
 name = "yog-api"
 version = "0.1.0"
 dependencies = [
+ "yog-command",
  "yog-core",
  "yog-event",
+ "yog-logging",
  "yog-world",
 ]
+
+[[package]]
+name = "yog-command"
+version = "0.1.0"
 
 [[package]]
 name = "yog-core"
@@ -278,12 +284,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-logging"
+version = "0.1.0"
+
+[[package]]
 name = "yog-runtime"
 version = "0.1.0"
 dependencies = [
  "jni",
  "yog-api",
  "yog-example-mod",
+ "yog-logging",
 ]
 
 [[package]]

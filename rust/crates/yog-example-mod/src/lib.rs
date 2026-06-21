@@ -1,19 +1,19 @@
 //! A minimal example mod showing the Yog API surface.
 //!
 //! This is exactly what a mod author writes: depend on `yog-api`, implement
-//! [`Mod`](yog_api::Mod), and subscribe to the events you care about. Each
-//! handler also gets a [`Server`](yog_api::Server) handle to act on the game
-//! (here: broadcasting a welcome message).
+//! [`Mod`](yog_api::Mod), and register the events, world actions, and commands
+//! you care about. Each handler also gets a [`Server`](yog_api::Server) handle
+//! to act on the game.
 
 use yog_api::world::World;
-use yog_api::{BlockPos, Mod, Registry};
+use yog_api::{info, BlockPos, Mod, Registry};
 
 pub struct ExampleMod;
 
 impl Mod for ExampleMod {
     fn register(registry: &mut Registry) {
         registry.on_block_break(|e, srv| {
-            println!(
+            info!(
                 "[example-mod] {} broke {} at ({}, {}, {})",
                 e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
             );
@@ -22,29 +22,38 @@ impl Mod for ExampleMod {
         });
 
         registry.on_chat(|e, _srv| {
-            println!("[example-mod] <{}> {}", e.player_name, e.message);
+            info!("[example-mod] <{}> {}", e.player_name, e.message);
         });
 
         registry.on_player_join(|e, srv| {
-            println!("[example-mod] {} joined ({})", e.player_name, e.uuid);
+            info!("[example-mod] {} joined ({})", e.player_name, e.uuid);
             // Rust -> Minecraft: greet everyone from a Rust mod.
             srv.broadcast(&format!("Welcome, {}! (greeted by a Rust mod)", e.player_name));
         });
 
         registry.on_player_leave(|e, _srv| {
-            println!("[example-mod] {} left", e.player_name);
+            info!("[example-mod] {} left", e.player_name);
         });
 
         registry.on_server_started(|srv| {
-            println!("[example-mod] server started — Yog is awake.");
+            info!("[example-mod] server started — Yog is awake.");
             // World read: peek at a block near spawn.
             if let Some(block) = World::new(srv, "minecraft:overworld").get_block(BlockPos::new(0, 64, 0)) {
-                println!("[example-mod] block at (0, 64, 0) is {}", block);
+                info!("[example-mod] block at (0, 64, 0) is {}", block);
             }
         });
 
         registry.on_server_stopping(|_srv| {
-            println!("[example-mod] server stopping — the gate closes.");
+            info!("[example-mod] server stopping — the gate closes.");
+        });
+
+        // Command: /yog <args> -> replies to the caller, from Rust.
+        registry.on_command("yog", |ctx, _srv| {
+            info!("[example-mod] /{} by {} args='{}'", ctx.name, ctx.source, ctx.args);
+            Some(format!(
+                "Yog here, {}! You said: '{}'",
+                ctx.source, ctx.args
+            ))
         });
     }
 }

@@ -11,11 +11,12 @@
 use std::sync::{OnceLock, RwLock};
 
 use jni::objects::{JClass, JString, JValue};
-use jni::sys::jint;
+use jni::sys::{jint, jstring};
 use jni::{JNIEnv, JavaVM};
 
 use yog_api::{
-    BlockBreakEvent, BlockPos, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, Registry, Server,
+    BlockBreakEvent, BlockPos, ChatEvent, CommandContext, PlayerJoinEvent, PlayerLeaveEvent,
+    Registry, Server,
 };
 
 /// Global registry of mod event handlers, initialised once on startup.
@@ -129,7 +130,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     // MVP: mods are linked in. Roadmap (stage 3): load `.so` mods from a dir.
     yog_example_mod::register(&mut reg);
 
-    println!("[yog] runtime initialised — the gate is open.");
+    yog_logging::info!("runtime initialised — the gate is open.");
 }
 
 /// Called by the host (Fabric `PlayerBlockBreakEvents`) when a player breaks a
@@ -235,4 +236,47 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStopping<'l>(
         .read()
         .expect("registry poisoned")
         .dispatch_server_stopping(&JniServer);
+}
+
+/// Returns mod-registered command names, one per line, so the host can wire them
+/// into Brigadier.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeCommandNames<'l>(
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) -> jstring {
+    let names = registry()
+        .read()
+        .expect("registry poisoned")
+        .command_names()
+        .join("\n");
+    env.new_string(names)
+        .map(|s| s.into_raw())
+        .unwrap_or(std::ptr::null_mut())
+}
+
+/// Runs a registered command and returns its reply (empty string if none).
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    name: JString<'l>,
+    args: JString<'l>,
+    source: JString<'l>,
+) -> jstring {
+    let ctx = CommandContext {
+        name: env.get_string(&name).map(String::from).unwrap_or_default(),
+        args: env.get_string(&args).map(String::from).unwrap_or_default(),
+        source: env.get_string(&source).map(String::from).unwrap_or_default(),
+    };
+
+    let reply = registry()
+        .read()
+        .expect("registry poisoned")
+        .dispatch_command(&ctx, &JniServer)
+        .unwrap_or_default();
+
+    env.new_string(reply)
+        .map(|s| s.into_raw())
+        .unwrap_or(std::ptr::null_mut())
 }

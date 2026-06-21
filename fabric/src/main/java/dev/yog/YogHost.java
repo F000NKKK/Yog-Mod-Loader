@@ -1,11 +1,18 @@
 package dev.yog;
 
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.registry.Registries;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.Text;
 
 /**
  * Fabric entry point. Boots the native Yog runtime and forwards server events
@@ -49,5 +56,33 @@ public class YogHost implements ModInitializer {
             NativeBridge.nativeOnServerStarted();
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> NativeBridge.nativeOnServerStopping());
+
+        // Commands: register each mod-declared command name with Brigadier and
+        // route execution to Rust.
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            String names = NativeBridge.nativeCommandNames();
+            if (names == null || names.isBlank()) {
+                return;
+            }
+            for (String name : names.split("\n")) {
+                if (name.isBlank()) {
+                    continue;
+                }
+                dispatcher.register(CommandManager.literal(name)
+                        .executes(ctx -> runCommand(name, "", ctx))
+                        .then(CommandManager.argument("args", StringArgumentType.greedyString())
+                                .executes(ctx -> runCommand(
+                                        name, StringArgumentType.getString(ctx, "args"), ctx))));
+            }
+        });
+    }
+
+    private static int runCommand(String name, String args, CommandContext<ServerCommandSource> ctx) {
+        ServerCommandSource src = ctx.getSource();
+        String reply = NativeBridge.nativeOnCommand(name, args, src.getName());
+        if (reply != null && !reply.isEmpty()) {
+            src.sendFeedback(() -> Text.literal(reply), false);
+        }
+        return Command.SINGLE_SUCCESS;
     }
 }

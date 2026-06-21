@@ -99,4 +99,10 @@ public final class NativeBridge {
     public static native void nativeOnServerStarted();
 
     public static native void nativeOnServerStopping();
+
+    /** Names of mod-registered commands, one per line. */
+    public static native String nativeCommandNames();
+
+    /** Run a registered command; returns the reply (empty string if none). */
+    public static native String nativeOnCommand(String name, String args, String source);
 }
