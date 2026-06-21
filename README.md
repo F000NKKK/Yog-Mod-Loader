@@ -42,9 +42,9 @@ can support development via the donation links below — there are no paid tiers
 - **World:** `World::get_block` / `set_block`.
 - **Player:** `Player::give` / `teleport`.
 - **Content:** `register_item` (`ItemDef`) / `register_block` (`BlockDef`) — with
-  display name, tooltip, and an auto "Yog" creative tab. Textures/models are
-  bundled in the `.yog` (auto-generated from PNGs); serving them to the client +
-  recipes/lang are the next step.
+  display name, tooltip, and an auto "Yog" creative tab. Textures/models live in
+  the `.yog`'s `assets/` (auto-generated from PNGs), recipes/lang in `data/` —
+  both are served to the game as a runtime pack, just like a Fabric mod jar.
 - **Commands:** `on_command` (with a reply back to the caller).
 - **Server actions:** `broadcast`.
 
