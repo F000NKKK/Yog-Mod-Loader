@@ -8,6 +8,7 @@
 
 pub use yog_core::{BlockPos, Server};
 pub use yog_event::{BlockBreakEvent, ChatEvent, Mod, PlayerJoinEvent, PlayerLeaveEvent, Registry};
+pub use yog_world::World;
 
 /// Core types and handles.
 pub mod core {
@@ -17,4 +18,9 @@ pub mod core {
 /// Events and the subscription registry.
 pub mod event {
     pub use yog_event::*;
+}
+
+/// World access (block get/set, dimensions).
+pub mod world {
+    pub use yog_world::*;
 }

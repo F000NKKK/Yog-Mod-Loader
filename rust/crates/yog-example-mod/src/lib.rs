@@ -5,17 +5,20 @@
 //! handler also gets a [`Server`](yog_api::Server) handle to act on the game
 //! (here: broadcasting a welcome message).
 
-use yog_api::{Mod, Registry};
+use yog_api::world::World;
+use yog_api::{BlockPos, Mod, Registry};
 
 pub struct ExampleMod;
 
 impl Mod for ExampleMod {
     fn register(registry: &mut Registry) {
-        registry.on_block_break(|e, _srv| {
+        registry.on_block_break(|e, srv| {
             println!(
                 "[example-mod] {} broke {} at ({}, {}, {})",
                 e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
             );
+            // World access: replace the broken block with glass.
+            World::new(srv, "minecraft:overworld").set_block(e.pos, "minecraft:glass");
         });
 
         registry.on_chat(|e, _srv| {
@@ -32,8 +35,12 @@ impl Mod for ExampleMod {
             println!("[example-mod] {} left", e.player_name);
         });
 
-        registry.on_server_started(|_srv| {
+        registry.on_server_started(|srv| {
             println!("[example-mod] server started — Yog is awake.");
+            // World read: peek at a block near spawn.
+            if let Some(block) = World::new(srv, "minecraft:overworld").get_block(BlockPos::new(0, 64, 0)) {
+                println!("[example-mod] block at (0, 64, 0) is {}", block);
+            }
         });
 
         registry.on_server_stopping(|_srv| {

@@ -60,6 +60,58 @@ impl Server for JniServer {
             &[JValue::Object(&jmsg)],
         );
     }
+
+    fn get_block(&self, dimension: &str, pos: BlockPos) -> Option<String> {
+        let vm = JAVA_VM.get()?;
+        let mut env = vm.attach_current_thread().ok()?;
+        let jdim = env.new_string(dimension).ok()?;
+        let ret = env
+            .call_static_method(
+                "dev/yog/NativeBridge",
+                "getBlock",
+                "(Ljava/lang/String;III)Ljava/lang/String;",
+                &[
+                    JValue::Object(&jdim),
+                    JValue::Int(pos.x),
+                    JValue::Int(pos.y),
+                    JValue::Int(pos.z),
+                ],
+            )
+            .ok()?;
+        let obj = ret.l().ok()?;
+        if obj.as_raw().is_null() {
+            return None;
+        }
+        let jstr = JString::from(obj);
+        let block_id: String = env.get_string(&jstr).ok()?.into();
+        Some(block_id)
+    }
+
+    fn set_block(&self, dimension: &str, pos: BlockPos, block_id: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else {
+            return false;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return false;
+        };
+        let (Ok(jdim), Ok(jid)) = (env.new_string(dimension), env.new_string(block_id)) else {
+            return false;
+        };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "setBlock",
+            "(Ljava/lang/String;IIILjava/lang/String;)Z",
+            &[
+                JValue::Object(&jdim),
+                JValue::Int(pos.x),
+                JValue::Int(pos.y),
+                JValue::Int(pos.z),
+                JValue::Object(&jid),
+            ],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
 }
 
 /// Called once by the Java host after the native library is loaded.

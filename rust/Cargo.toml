@@ -4,6 +4,7 @@ members = [
     # domain crates (permissive — see LICENSING.md)
     "crates/yog-core",
     "crates/yog-event",
+    "crates/yog-world",
     # facade mod authors depend on
     "crates/yog-api",
     # engine (AGPL) + example

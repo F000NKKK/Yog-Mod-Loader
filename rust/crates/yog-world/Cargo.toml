@@ -1,0 +1,9 @@
+[package]
+name = "yog-world"
+version.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog world access — ergonomic block get/set over the Server handle."
+
+[dependencies]
+yog-core = { path = "../yog-core" }
