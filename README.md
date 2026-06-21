@@ -116,11 +116,6 @@ parts — Gradle 8.8 can't run on Java 23+):
 > `getContent`) are for 1.20.1 — check against the exact Yarn build
 > (see <https://fabricmc.net/develop>) if compilation complains.
 
-## Naming
-
-Sibling to the **Nyarla** project — both Lovecraftian. Future sub-components may
-take themed names (e.g. a mod-manifest format → *Necronomicon*).
-
 ## License
 
 Copyleft to keep the loader free, but split so the mod ecosystem stays open
