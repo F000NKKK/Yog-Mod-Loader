@@ -47,4 +47,29 @@ pub fn register(registry: &mut Registry) {
         Player::new(srv, &ctx.source).send_packet("yog:pong", b"pong from server");
         Some("Sent a packet to your client.".into())
     });
+
+    // Apply regeneration II for 5 seconds.
+    registry.on_command("regen", |ctx, srv| {
+        let ok = Player::with_uuid(srv, &ctx.source, &ctx.uuid)
+            .add_effect("minecraft:regeneration", 100, 1, true);
+        Some(if ok { "Regeneration applied!".into() } else { "Failed.".into() })
+    });
+
+    // Clear all effects.
+    registry.on_command("clear_effects", |ctx, srv| {
+        let ok = Player::with_uuid(srv, &ctx.source, &ctx.uuid).clear_effects();
+        Some(if ok { "Effects cleared.".into() } else { "Failed.".into() })
+    });
+
+    // Check if the held item (hardcoded demo: stick) is in #minecraft:logs.
+    registry.on_command("tag_check", |_ctx, srv| {
+        let is_log = srv.has_block_tag("minecraft:oak_log", "minecraft:logs");
+        Some(format!("oak_log in #minecraft:logs: {}", is_log))
+    });
+
+    // Roll the zombie loot table at (0, 64, 0).
+    registry.on_command("loot", |_ctx, srv| {
+        let ok = srv.drop_loot("minecraft:entities/zombie", "minecraft:overworld", 0.0, 64.0, 0.0);
+        Some(if ok { "Loot dropped at (0, 64, 0).".into() } else { "Loot table empty or not found.".into() })
+    });
 }

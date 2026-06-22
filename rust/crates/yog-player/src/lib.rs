@@ -90,4 +90,24 @@ impl<'a> Player<'a> {
     pub fn kill(&self) -> bool {
         self.entity().map_or(false, |e: Entity<'_>| e.kill())
     }
+
+    pub fn add_effect(
+        &self,
+        effect_id: &str,
+        duration_ticks: i32,
+        amplifier: u8,
+        show_particles: bool,
+    ) -> bool {
+        self.entity().map_or(false, |e: Entity<'_>| {
+            e.add_effect(effect_id, duration_ticks, amplifier, show_particles)
+        })
+    }
+
+    pub fn remove_effect(&self, effect_id: &str) -> bool {
+        self.entity().map_or(false, |e: Entity<'_>| e.remove_effect(effect_id))
+    }
+
+    pub fn clear_effects(&self) -> bool {
+        self.entity().map_or(false, |e: Entity<'_>| e.clear_effects())
+    }
 }

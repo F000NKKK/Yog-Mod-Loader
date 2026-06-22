@@ -444,6 +444,109 @@ impl Server for JniServer {
         .unwrap_or(false)
     }
 
+    fn entity_add_effect(
+        &self,
+        uuid: &str,
+        effect_id: &str,
+        duration_ticks: i32,
+        amplifier: u8,
+        show_particles: bool,
+    ) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(ju), Ok(je)) = (env.new_string(uuid), env.new_string(effect_id)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "entityAddEffect",
+            "(Ljava/lang/String;Ljava/lang/String;IIZ)Z",
+            &[
+                JValue::Object(&ju),
+                JValue::Object(&je),
+                JValue::Int(duration_ticks),
+                JValue::Int(amplifier as i32),
+                JValue::Bool(show_particles as u8),
+            ],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn entity_remove_effect(&self, uuid: &str, effect_id: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(ju), Ok(je)) = (env.new_string(uuid), env.new_string(effect_id)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "entityRemoveEffect",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&ju), JValue::Object(&je)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn entity_clear_effects(&self, uuid: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let Ok(ju) = env.new_string(uuid) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "entityClearEffects",
+            "(Ljava/lang/String;)Z",
+            &[JValue::Object(&ju)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn drop_loot(&self, table_id: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(jt), Ok(jd)) = (env.new_string(table_id), env.new_string(dimension)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "dropLoot",
+            "(Ljava/lang/String;Ljava/lang/String;DDD)Z",
+            &[
+                JValue::Object(&jt),
+                JValue::Object(&jd),
+                JValue::Double(x),
+                JValue::Double(y),
+                JValue::Double(z),
+            ],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn has_item_tag(&self, item_id: &str, tag_id: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(ji), Ok(jt)) = (env.new_string(item_id), env.new_string(tag_id)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "hasItemTag",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&ji), JValue::Object(&jt)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn has_block_tag(&self, block_id: &str, tag_id: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(jb), Ok(jt)) = (env.new_string(block_id), env.new_string(tag_id)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "hasBlockTag",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&jb), JValue::Object(&jt)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
     fn spawn_entity(
         &self,
         entity_type: &str,

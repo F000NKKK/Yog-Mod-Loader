@@ -67,4 +67,39 @@ pub trait Server {
         y: f64,
         z: f64,
     ) -> Option<String>;
+
+    // ── status effects ──────────────────────────────────────────────────────
+
+    /// Apply a status effect to a living entity. `effect_id` is a registry id
+    /// such as `"minecraft:speed"` or `"minecraft:regeneration"`. `amplifier` is
+    /// 0-based (0 = level I). Returns `false` if the entity or effect is unknown.
+    fn entity_add_effect(
+        &self,
+        uuid: &str,
+        effect_id: &str,
+        duration_ticks: i32,
+        amplifier: u8,
+        show_particles: bool,
+    ) -> bool;
+
+    /// Remove a single status effect from a living entity.
+    fn entity_remove_effect(&self, uuid: &str, effect_id: &str) -> bool;
+
+    /// Clear all active status effects from a living entity.
+    fn entity_clear_effects(&self, uuid: &str) -> bool;
+
+    // ── loot tables ─────────────────────────────────────────────────────────
+
+    /// Roll a loot table and spawn the resulting item entities in the world.
+    /// `table_id` is the namespaced id, e.g. `"minecraft:entities/zombie"`.
+    fn drop_loot(&self, table_id: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool;
+
+    // ── tag queries ─────────────────────────────────────────────────────────
+
+    /// Returns whether `item_id` (e.g. `"minecraft:stone"`) belongs to `tag_id`
+    /// (e.g. `"minecraft:planks"`).
+    fn has_item_tag(&self, item_id: &str, tag_id: &str) -> bool;
+
+    /// Returns whether `block_id` belongs to `tag_id`.
+    fn has_block_tag(&self, block_id: &str, tag_id: &str) -> bool;
 }

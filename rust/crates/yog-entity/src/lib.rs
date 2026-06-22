@@ -50,4 +50,28 @@ impl<'a> Entity<'a> {
     pub fn kill(&self) -> bool {
         self.server.entity_kill(&self.uuid)
     }
+
+    // ── status effects ──────────────────────────────────────────────────────
+
+    /// Apply a status effect. `effect_id` is a registry id like
+    /// `"minecraft:speed"`. `amplifier` is 0-based (0 = level I).
+    pub fn add_effect(
+        &self,
+        effect_id: &str,
+        duration_ticks: i32,
+        amplifier: u8,
+        show_particles: bool,
+    ) -> bool {
+        self.server.entity_add_effect(&self.uuid, effect_id, duration_ticks, amplifier, show_particles)
+    }
+
+    /// Remove a single status effect.
+    pub fn remove_effect(&self, effect_id: &str) -> bool {
+        self.server.entity_remove_effect(&self.uuid, effect_id)
+    }
+
+    /// Clear all active status effects.
+    pub fn clear_effects(&self) -> bool {
+        self.server.entity_clear_effects(&self.uuid)
+    }
 }

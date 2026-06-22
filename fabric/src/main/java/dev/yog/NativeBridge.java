@@ -14,8 +14,11 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.Item;
+import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.tag.TagKey;
+import net.minecraft.item.Item;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
@@ -152,6 +155,52 @@ public final class NativeBridge {
             return true;
         }
         return false;
+    }
+
+    public static boolean entityAddEffect(
+            String uuid, String effectId, int durationTicks, int amplifier, boolean showParticles) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return false;
+        Identifier id = Identifier.tryParse(effectId);
+        if (id == null || !Registries.STATUS_EFFECT.containsId(id)) return false;
+        StatusEffect effect = Registries.STATUS_EFFECT.get(id);
+        return le.addStatusEffect(new StatusEffectInstance(effect, durationTicks, amplifier, false, showParticles));
+    }
+
+    public static boolean entityRemoveEffect(String uuid, String effectId) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return false;
+        Identifier id = Identifier.tryParse(effectId);
+        if (id == null || !Registries.STATUS_EFFECT.containsId(id)) return false;
+        StatusEffect effect = Registries.STATUS_EFFECT.get(id);
+        return le.removeStatusEffect(effect);
+    }
+
+    public static boolean entityClearEffects(String uuid) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return false;
+        return le.clearStatusEffects();
+    }
+
+    public static boolean dropLoot(String tableId, String dimension, double x, double y, double z) {
+        // Loot table API differs between 1.20.x patch levels — stub until confirmed.
+        return false;
+    }
+
+    public static boolean hasItemTag(String itemId, String tagId) {
+        Identifier iid = Identifier.tryParse(itemId);
+        Identifier tid = Identifier.tryParse(tagId);
+        if (iid == null || tid == null || !Registries.ITEM.containsId(iid)) return false;
+        TagKey<Item> tag = TagKey.of(RegistryKeys.ITEM, tid);
+        return Registries.ITEM.get(iid).getDefaultStack().isIn(tag);
+    }
+
+    public static boolean hasBlockTag(String blockId, String tagId) {
+        Identifier bid = Identifier.tryParse(blockId);
+        Identifier tid = Identifier.tryParse(tagId);
+        if (bid == null || tid == null || !Registries.BLOCK.containsId(bid)) return false;
+        TagKey<Block> tag = TagKey.of(RegistryKeys.BLOCK, tid);
+        return Registries.BLOCK.get(bid).getDefaultState().isIn(tag);
     }
 
     public static boolean entityKill(String uuid) {
@@ -313,6 +362,8 @@ public final class NativeBridge {
 
     /** Declared custom blocks as `id\thardness\tresistance` lines. */
     public static native String nativeBlockDefs();
+
+    // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
 
     public static native void nativeOnPacket(String channel, String player, byte[] payload);
 
