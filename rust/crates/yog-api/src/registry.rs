@@ -310,6 +310,73 @@ impl Server for CServer {
         let s = srv!(self);
         unsafe { (s.bossbar_set_visible)(s.ctx, YogStr::from_str(id), visible) }
     }
+
+    fn get_block_nbt(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<String> {
+        let s = srv!(self);
+        let owned = unsafe {
+            (s.get_block_nbt)(s.ctx, YogStr::from_str(dimension),
+                yog_abi::YogBlockPos { x: pos.x, y: pos.y, z: pos.z })
+        };
+        if owned.is_none() { return None; }
+        let result = unsafe {
+            String::from_utf8(
+                std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()
+            ).ok()
+        };
+        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        result
+    }
+
+    fn set_block_nbt(&self, dimension: &str, pos: yog_core::BlockPos, snbt: &str) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.set_block_nbt)(s.ctx, YogStr::from_str(dimension),
+                yog_abi::YogBlockPos { x: pos.x, y: pos.y, z: pos.z },
+                YogStr::from_str(snbt))
+        }
+    }
+
+    fn player_inventory(&self, player: &str) -> Vec<(u32, String, u32)> {
+        let s = srv!(self);
+        let owned = unsafe { (s.player_inventory)(s.ctx, YogStr::from_str(player)) };
+        if owned.is_none() { return Vec::new(); }
+        let text = unsafe {
+            String::from_utf8(
+                std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()
+            ).unwrap_or_default()
+        };
+        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        text.lines().filter_map(|line| {
+            let mut it = line.split('\t');
+            let slot: u32 = it.next()?.parse().ok()?;
+            let item_id = it.next()?.to_owned();
+            let count: u32 = it.next()?.parse().ok()?;
+            Some((slot, item_id, count))
+        }).collect()
+    }
+
+    fn player_set_slot(&self, player: &str, slot: u32, item_id: &str, count: u32) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.player_set_slot)(s.ctx, YogStr::from_str(player), slot, YogStr::from_str(item_id), count)
+        }
+    }
+
+    fn teleport_to_dim(&self, player: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.player_teleport_dim)(s.ctx, YogStr::from_str(player),
+                YogStr::from_str(dimension), yog_abi::YogVec3 { x, y, z })
+        }
+    }
+
+    fn entity_teleport_to_dim(&self, uuid: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.entity_teleport_dim)(s.ctx, YogStr::from_str(uuid),
+                YogStr::from_str(dimension), yog_abi::YogVec3 { x, y, z })
+        }
+    }
 }
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────
@@ -589,6 +656,20 @@ impl Registry {
         let name_ys = YogStr::from_str(name.as_ref());
         let ud = Self::leak(handler);
         unsafe { ((*self.api).register_command)(self.ctx(), name_ys, ud, trampoline_command::<F>) }
+    }
+
+    /// Register a command with Brigadier-typed arguments.
+    ///
+    /// `schema` is a space-separated list of argument types:
+    /// `int`, `float`, `word`, `string` (greedy, must be last), `player`, `blockpos`.
+    ///
+    /// In the handler use `ctx.arg_int(0)`, `ctx.arg_blockpos(1)`, etc.
+    pub fn on_typed_command<F>(&mut self, name: impl AsRef<str>, schema: impl AsRef<str>, handler: F)
+    where F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static {
+        let name_ys   = YogStr::from_str(name.as_ref());
+        let schema_ys = YogStr::from_str(schema.as_ref());
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).register_typed_command)(self.ctx(), name_ys, schema_ys, ud, trampoline_command::<F>) }
     }
 
     // ── networking ───────────────────────────────────────────────────────────

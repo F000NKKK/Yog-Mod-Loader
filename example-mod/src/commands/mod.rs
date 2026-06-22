@@ -159,4 +159,51 @@ pub fn register(registry: &mut Registry) {
         w.set_weather(!raining, 6000);
         Some(if raining { "Rain stopped.".into() } else { "Rain started.".into() })
     });
+
+    // ── typed commands & new features ─────────────────────────────────────────
+
+    // /tp_dim <dim_word> <x> <y> <z>  — cross-dimension teleport
+    registry.on_typed_command("tp_dim", "word int int int", |ctx, srv| {
+        let dim = ctx.arg_str(0).unwrap_or("minecraft:overworld");
+        let x   = ctx.arg_int(1).unwrap_or(0) as f64;
+        let y   = ctx.arg_int(2).unwrap_or(64) as f64;
+        let z   = ctx.arg_int(3).unwrap_or(0) as f64;
+        let ok = Player::new(srv, &ctx.source).teleport_to_dim(dim, x, y, z);
+        Some(if ok {
+            format!("Teleported to {} ({}, {}, {})", dim, x, y, z)
+        } else {
+            "Failed (player offline or unknown dimension).".into()
+        })
+    });
+
+    // /give_slot <slot:int> <item:word>  — put one item in a specific slot
+    registry.on_typed_command("give_slot", "int word", |ctx, srv| {
+        let slot    = ctx.arg_int(0).unwrap_or(0) as u32;
+        let item_id = ctx.arg_str(1).unwrap_or("minecraft:stone");
+        let ok = Player::new(srv, &ctx.source).set_slot(slot, item_id, 1);
+        Some(if ok { format!("Placed {} in slot {}", item_id, slot) } else { "Failed.".into() })
+    });
+
+    // /inv  — list the first 8 occupied slots in your inventory
+    registry.on_command("inv", |ctx, srv| {
+        let slots = Player::new(srv, &ctx.source).inventory();
+        if slots.is_empty() {
+            return Some("Your inventory is empty.".into());
+        }
+        let list: String = slots.iter().take(8)
+            .map(|(slot, id, count)| format!("[{}] {}×{}", slot, id, count))
+            .collect::<Vec<_>>()
+            .join(", ");
+        Some(format!("Inventory: {}", list))
+    });
+
+    // /nbt <x:int> <y:int> <z:int>  — show SNBT of a block entity
+    registry.on_typed_command("nbt", "int int int", |ctx, srv| {
+        use yog_api::BlockPos;
+        let x = ctx.arg_int(0).unwrap_or(0);
+        let y = ctx.arg_int(1).unwrap_or(64);
+        let z = ctx.arg_int(2).unwrap_or(0);
+        let nbt = srv.get_block_nbt("minecraft:overworld", BlockPos::new(x, y, z));
+        Some(nbt.unwrap_or_else(|| format!("No block entity at ({}, {}, {})", x, y, z)))
+    });
 }

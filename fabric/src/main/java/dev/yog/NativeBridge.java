@@ -12,10 +12,14 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.entity.boss.CommandBossBar;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.StringNbtReader;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.loot.LootDataKey;
@@ -429,6 +433,83 @@ public final class NativeBridge {
         };
     }
 
+    public static String getBlockNbt(String dimension, int x, int y, int z) {
+        ServerWorld w = worldFor(dimension);
+        if (w == null) return null;
+        BlockEntity be = w.getBlockEntity(new BlockPos(x, y, z));
+        if (be == null) return null;
+        NbtCompound nbt = be.createNbt();
+        return nbt.toString();
+    }
+
+    public static boolean setBlockNbt(String dimension, int x, int y, int z, String snbt) {
+        ServerWorld w = worldFor(dimension);
+        if (w == null) return false;
+        BlockPos pos = new BlockPos(x, y, z);
+        BlockEntity be = w.getBlockEntity(pos);
+        if (be == null) return false;
+        try {
+            NbtCompound nbt = StringNbtReader.parse(snbt);
+            be.readNbt(nbt);
+            be.markDirty();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static String playerInventory(String playerName) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return null;
+        PlayerInventory inv = p.getInventory();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < inv.size(); i++) {
+            net.minecraft.item.ItemStack stack = inv.getStack(i);
+            if (!stack.isEmpty()) {
+                if (sb.length() > 0) sb.append('\n');
+                sb.append(i).append('\t')
+                  .append(Registries.ITEM.getId(stack.getItem())).append('\t')
+                  .append(stack.getCount());
+            }
+        }
+        return sb.toString();
+    }
+
+    public static boolean playerSetSlot(String playerName, int slot, String itemId, int count) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return false;
+        PlayerInventory inv = p.getInventory();
+        if (slot < 0 || slot >= inv.size()) return false;
+        if (count <= 0) {
+            inv.setStack(slot, net.minecraft.item.ItemStack.EMPTY);
+            return true;
+        }
+        Identifier id = Identifier.tryParse(itemId);
+        if (id == null || !Registries.ITEM.containsId(id)) return false;
+        inv.setStack(slot, new net.minecraft.item.ItemStack(Registries.ITEM.get(id), count));
+        return true;
+    }
+
+    public static boolean teleportToDim(String playerName, String dimension, double x, double y, double z) {
+        ServerPlayerEntity p = playerByName(playerName);
+        ServerWorld w = worldFor(dimension);
+        if (p == null || w == null) return false;
+        p.teleport(w, x, y, z, p.getYaw(), p.getPitch());
+        return true;
+    }
+
+    public static boolean entityTeleportToDim(String uuid, String dimension, double x, double y, double z) {
+        Entity e = entityByUuid(uuid);
+        ServerWorld w = worldFor(dimension);
+        if (e == null || w == null) return false;
+        if (e instanceof ServerPlayerEntity p) {
+            p.teleport(w, x, y, z, p.getYaw(), p.getPitch());
+        } else {
+            e.teleport(x, y, z);
+        }
+        return true;
+    }
+
     public static String gameDir() {
         MinecraftServer s = server;
         if (s == null) return null;
@@ -644,6 +725,9 @@ public final class NativeBridge {
 
     /** Names of mod-registered commands, one per line. */
     public static native String nativeCommandNames();
+
+    /** Typed command schemas: `name\tschema` per line (only typed commands). */
+    public static native String nativeTypedCommandSchemas();
 
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source, String uuid);

@@ -231,4 +231,31 @@ pub trait Server {
 
     /// Absolute path of the game / server root directory.
     fn game_dir(&self) -> String;
+
+    // ── block entity ─────────────────────────────────────────────────────────
+
+    /// SNBT string of the block entity at `pos` (e.g. chest contents, furnace
+    /// state, sign text). Returns `None` if there is no block entity there.
+    fn get_block_nbt(&self, dimension: &str, pos: BlockPos) -> Option<String>;
+
+    /// Write `snbt` data into the block entity at `pos` and mark it dirty.
+    /// Returns `false` if there is no block entity at that position.
+    fn set_block_nbt(&self, dimension: &str, pos: BlockPos, snbt: &str) -> bool;
+
+    // ── inventory ────────────────────────────────────────────────────────────
+
+    /// All occupied inventory slots of an online player.
+    /// Returns one entry per occupied slot: `(slot_index, item_id, count)`.
+    fn player_inventory(&self, player: &str) -> Vec<(u32, String, u32)>;
+
+    /// Set (or clear when `count == 0`) one inventory slot of an online player.
+    fn player_set_slot(&self, player: &str, slot: u32, item_id: &str, count: u32) -> bool;
+
+    // ── cross-dimension teleport ─────────────────────────────────────────────
+
+    /// Teleport a player to `(x, y, z)` in a different (or same) dimension.
+    fn teleport_to_dim(&self, player: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool;
+
+    /// Teleport any entity (by UUID) to `(x, y, z)` in `dimension`.
+    fn entity_teleport_to_dim(&self, uuid: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool;
 }

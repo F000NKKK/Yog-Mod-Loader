@@ -1,8 +1,15 @@
 package dev.yog;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.FloatArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.ArgumentBuilder;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.command.argument.BlockPosArgumentType;
+import net.minecraft.command.argument.EntityArgumentType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -154,17 +161,29 @@ public class YogHost implements ModInitializer {
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> NativeBridge.nativeOnServerStopping());
 
-        // Commands: register each mod-declared command name with Brigadier and
-        // route execution to Rust.
+        // Commands: register each mod-declared command with Brigadier and route to Rust.
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            String names = NativeBridge.nativeCommandNames();
-            if (names == null || names.isBlank()) {
-                return;
-            }
-            for (String name : names.split("\n")) {
-                if (name.isBlank()) {
-                    continue;
+            // Typed commands: build proper Brigadier argument chains.
+            java.util.Map<String, String> typedSchemas = new java.util.HashMap<>();
+            String schemaLines = NativeBridge.nativeTypedCommandSchemas();
+            if (schemaLines != null) {
+                for (String line : schemaLines.split("\n")) {
+                    if (line.isBlank()) continue;
+                    int tab = line.indexOf('\t');
+                    if (tab > 0) typedSchemas.put(line.substring(0, tab), line.substring(tab + 1));
                 }
+            }
+            for (java.util.Map.Entry<String, String> e : typedSchemas.entrySet()) {
+                String name   = e.getKey();
+                String schema = e.getValue();
+                dispatcher.register(buildTypedCommand(name, schema.split("\\s+")));
+            }
+
+            // Plain commands: greedy-string arg (or no args).
+            String names = NativeBridge.nativeCommandNames();
+            if (names == null || names.isBlank()) return;
+            for (String name : names.split("\n")) {
+                if (name.isBlank() || typedSchemas.containsKey(name)) continue;
                 dispatcher.register(CommandManager.literal(name)
                         .executes(ctx -> runCommand(name, "", ctx))
                         .then(CommandManager.argument("args", StringArgumentType.greedyString())
@@ -317,6 +336,71 @@ public class YogHost implements ModInitializer {
             case "nether_brick" -> BlockSoundGroup.NETHER_BRICKS;
             default             -> BlockSoundGroup.STONE;
         };
+    }
+
+    /**
+     * Build a Brigadier literal node with typed argument chain from a schema like
+     * {@code ["int", "player", "blockpos"]}.  Each arg is named {@code arg_N}.
+     * All resolved args are serialised tab-separated and forwarded to Rust.
+     */
+    private static LiteralArgumentBuilder<ServerCommandSource>
+            buildTypedCommand(String name, String[] schema) {
+        var root = CommandManager.literal(name);
+        if (schema.length == 0) {
+            root.executes(ctx -> runCommand(name, "", ctx));
+            return root;
+        }
+        // Build argument chain from last to first, wrapping inner with outer.
+        ArgumentBuilder<ServerCommandSource, ?> chain = buildLeaf(name, schema, schema.length - 1);
+        for (int i = schema.length - 2; i >= 0; i--) {
+            chain = buildArgNode(schema[i], "arg_" + i).then(chain);
+            // Also allow executing with fewer args (partial match not standard; just attach executes at leaf).
+        }
+        root.then(chain);
+        return root;
+    }
+
+    private static RequiredArgumentBuilder<ServerCommandSource, ?> buildArgNode(String type, String argName) {
+        return switch (type) {
+            case "int"      -> CommandManager.argument(argName, IntegerArgumentType.integer());
+            case "float"    -> CommandManager.argument(argName, FloatArgumentType.floatArg());
+            case "word"     -> CommandManager.argument(argName, StringArgumentType.word());
+            case "string"   -> CommandManager.argument(argName, StringArgumentType.greedyString());
+            case "player"   -> CommandManager.argument(argName, EntityArgumentType.player());
+            case "blockpos" -> CommandManager.argument(argName, BlockPosArgumentType.blockPos());
+            default         -> CommandManager.argument(argName, StringArgumentType.word());
+        };
+    }
+
+    private static ArgumentBuilder<ServerCommandSource, ?> buildLeaf(String cmdName, String[] schema, int idx) {
+        String type    = schema[idx];
+        String argName = "arg_" + idx;
+        return buildArgNode(type, argName).executes(ctx -> {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i <= idx; i++) {
+                if (i > 0) sb.append('\t');
+                sb.append(resolveArg(schema[i], "arg_" + i, ctx));
+            }
+            return runCommand(cmdName, sb.toString(), ctx);
+        });
+    }
+
+    private static String resolveArg(String type, String argName, CommandContext<ServerCommandSource> ctx) {
+        try {
+            return switch (type) {
+                case "int"      -> String.valueOf(IntegerArgumentType.getInteger(ctx, argName));
+                case "float"    -> String.valueOf(FloatArgumentType.getFloat(ctx, argName));
+                case "word", "string" -> StringArgumentType.getString(ctx, argName);
+                case "player"   -> EntityArgumentType.getPlayer(ctx, argName).getName().getString();
+                case "blockpos" -> {
+                    net.minecraft.util.math.BlockPos pos = BlockPosArgumentType.getBlockPos(ctx, argName);
+                    yield pos.getX() + "," + pos.getY() + "," + pos.getZ();
+                }
+                default -> StringArgumentType.getString(ctx, argName);
+            };
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private static int runCommand(String name, String args, CommandContext<ServerCommandSource> ctx) {

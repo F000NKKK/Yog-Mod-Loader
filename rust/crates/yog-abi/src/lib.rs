@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 2;
+pub const ABI_MINOR: u32 = 3;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -302,6 +302,22 @@ pub struct YogServer {
 
     // ── misc ─────────────────────────────────────────────────────────────────
     pub game_dir: unsafe extern "C" fn(ctx: *mut c_void) -> YogOwnedStr,
+
+    // ── block entity (NBT, ABI minor 3) ──────────────────────────────────────
+    /// SNBT string of the block entity at `pos`, or NONE if there is none.
+    pub get_block_nbt: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr,
+    /// Write SNBT into the block entity at `pos`. Returns false if no block entity exists.
+    pub set_block_nbt: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, snbt: YogStr) -> bool,
+
+    // ── inventory (ABI minor 3) ───────────────────────────────────────────────
+    /// Tab/newline-encoded inventory: one line per occupied slot, `slot\titem_id\tcount`.
+    pub player_inventory: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr) -> YogOwnedStr,
+    /// Set (or clear when count==0) a specific inventory slot.
+    pub player_set_slot:  unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, slot: u32, item_id: YogStr, count: u32) -> bool,
+
+    // ── cross-dimension teleport (ABI minor 3) ────────────────────────────────
+    pub player_teleport_dim: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, dim: YogStr, pos: YogVec3) -> bool,
+    pub entity_teleport_dim: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, dim: YogStr, pos: YogVec3) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.
@@ -346,6 +362,10 @@ pub struct YogApi {
 
     // ── commands ─────────────────────────────────────────────────────────────
     pub register_command: unsafe extern "C" fn(ctx: *mut c_void, name: YogStr, ud: *mut c_void, h: YogCommandFn),
+    /// Like `register_command` but declares Brigadier argument types.
+    /// `schema` is space-separated tokens: `int`, `float`, `word`, `string` (greedy),
+    /// `player`, `blockpos`.  Handler receives tab-separated serialised args.
+    pub register_typed_command: unsafe extern "C" fn(ctx: *mut c_void, name: YogStr, schema: YogStr, ud: *mut c_void, h: YogCommandFn),
 
     // ── content ──────────────────────────────────────────────────────────────
     pub register_item:  unsafe extern "C" fn(ctx: *mut c_void, def: *const YogItemDef),

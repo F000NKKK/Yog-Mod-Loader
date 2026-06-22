@@ -57,6 +57,7 @@ struct RuntimeHandlers {
     server_started:  Vec<(*mut c_void, YogServerFn)>,
     server_stopping: Vec<(*mut c_void, YogServerFn)>,
     commands:        HashMap<String, (*mut c_void, YogCommandFn)>,
+    typed_schemas:   HashMap<String, String>,
     packets:         HashMap<String, (*mut c_void, YogPacketFn)>,
     client_packets:  HashMap<String, (*mut c_void, YogPacketFn)>,
     items:           Vec<ItemDef>,
@@ -77,8 +78,8 @@ impl RuntimeHandlers {
             attack_entity: Vec::new(), entity_damage: Vec::new(),
             entity_death: Vec::new(), server_tick: Vec::new(),
             server_started: Vec::new(), server_stopping: Vec::new(),
-            commands: HashMap::new(), packets: HashMap::new(),
-            client_packets: HashMap::new(), items: Vec::new(),
+            commands: HashMap::new(), typed_schemas: HashMap::new(),
+            packets: HashMap::new(), client_packets: HashMap::new(), items: Vec::new(),
             blocks: Vec::new(), scheduler: Mutex::new(SchedulerState::new()),
         }
     }
@@ -545,6 +546,65 @@ unsafe extern "C" fn srv_bossbar_set_visible(_ctx: *mut c_void, id: YogStr, visi
     .and_then(|v| v.z()).unwrap_or(false)
 }
 
+unsafe extern "C" fn srv_get_block_nbt(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let Some(jd) = ys_to_java(&mut env, dim) else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "getBlockNbt",
+        "(Ljava/lang/String;III)Ljava/lang/String;",
+        &[JValue::Object(&jd), JValue::Int(pos.x), JValue::Int(pos.y), JValue::Int(pos.z)]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+unsafe extern "C" fn srv_set_block_nbt(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, snbt: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jd), Some(js)) = (ys_to_java(&mut env, dim), ys_to_java(&mut env, snbt)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "setBlockNbt",
+        "(Ljava/lang/String;IIILjava/lang/String;)Z",
+        &[JValue::Object(&jd), JValue::Int(pos.x), JValue::Int(pos.y), JValue::Int(pos.z), JValue::Object(&js)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_player_inventory(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let Some(jp) = ys_to_java(&mut env, player) else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "playerInventory",
+        "(Ljava/lang/String;)Ljava/lang/String;", &[JValue::Object(&jp)]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+unsafe extern "C" fn srv_player_set_slot(_ctx: *mut c_void, player: YogStr, slot: u32, item_id: YogStr, count: u32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(ji)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, item_id)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "playerSetSlot",
+        "(Ljava/lang/String;ILjava/lang/String;I)Z",
+        &[JValue::Object(&jp), JValue::Int(slot as i32), JValue::Object(&ji), JValue::Int(count as i32)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_player_teleport_dim(_ctx: *mut c_void, player: YogStr, dim: YogStr, pos: YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(jd)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, dim)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "teleportToDim",
+        "(Ljava/lang/String;Ljava/lang/String;DDD)Z",
+        &[JValue::Object(&jp), JValue::Object(&jd), JValue::Double(pos.x), JValue::Double(pos.y), JValue::Double(pos.z)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_entity_teleport_dim(_ctx: *mut c_void, uuid: YogStr, dim: YogStr, pos: YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ju), Some(jd)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, dim)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entityTeleportToDim",
+        "(Ljava/lang/String;Ljava/lang/String;DDD)Z",
+        &[JValue::Object(&ju), JValue::Object(&jd), JValue::Double(pos.x), JValue::Double(pos.y), JValue::Double(pos.z)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
 unsafe extern "C" fn srv_game_dir(_ctx: *mut c_void) -> YogOwnedStr {
     let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
     let ret = env.call_static_method("dev/yog/NativeBridge", "gameDir",
@@ -594,6 +654,13 @@ unsafe extern "C" fn api_on_client_packet(ctx: *mut c_void, channel: YogStr, ud:
 unsafe extern "C" fn api_register_command(ctx: *mut c_void, name: YogStr, ud: *mut c_void, h: YogCommandFn) {
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
     handlers.commands.insert(name.as_str().to_owned(), (ud, h));
+}
+
+unsafe extern "C" fn api_register_typed_command(ctx: *mut c_void, name: YogStr, schema: YogStr, ud: *mut c_void, h: YogCommandFn) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let n = name.as_str().to_owned();
+    handlers.typed_schemas.insert(n.clone(), schema.as_str().to_owned());
+    handlers.commands.insert(n, (ud, h));
 }
 
 unsafe extern "C" fn api_register_item(ctx: *mut c_void, def: *const YogItemDef) {
@@ -693,6 +760,12 @@ fn build_server_table() -> YogServer {
         bossbar_remove_player: srv_bossbar_remove_player,
         bossbar_set_visible: srv_bossbar_set_visible,
         game_dir: srv_game_dir,
+        get_block_nbt:       srv_get_block_nbt,
+        set_block_nbt:       srv_set_block_nbt,
+        player_inventory:    srv_player_inventory,
+        player_set_slot:     srv_player_set_slot,
+        player_teleport_dim: srv_player_teleport_dim,
+        entity_teleport_dim: srv_entity_teleport_dim,
     }
 }
 
@@ -716,8 +789,9 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         on_server_stopping: api_on_server_stopping,
         on_packet:          api_on_packet,
         on_client_packet:   api_on_client_packet,
-        register_command:   api_register_command,
-        register_item:      api_register_item,
+        register_command:       api_register_command,
+        register_typed_command: api_register_typed_command,
+        register_item:          api_register_item,
         register_block:     api_register_block,
         schedule_once:      api_schedule_once,
         schedule_repeating: api_schedule_repeating,
@@ -1076,6 +1150,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeCommandNames<'l>(
 ) -> jstring {
     let names = handlers().commands.keys().cloned().collect::<Vec<_>>().join("\n");
     env.new_string(names).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeTypedCommandSchemas<'l>(
+    env: JNIEnv<'l>, _class: JClass<'l>,
+) -> jstring {
+    let s = handlers().typed_schemas.iter()
+        .map(|(name, schema)| format!("{}\t{}", name, schema))
+        .collect::<Vec<_>>().join("\n");
+    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
 #[no_mangle]

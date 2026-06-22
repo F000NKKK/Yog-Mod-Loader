@@ -142,4 +142,23 @@ impl<'a> Player<'a> {
     pub fn clear_effects(&self) -> bool {
         self.entity().map_or(false, |e: Entity<'_>| e.clear_effects())
     }
+
+    // ── inventory ────────────────────────────────────────────────────────────
+
+    /// All occupied slots: `(slot_index, item_id, count)`.
+    pub fn inventory(&self) -> Vec<(u32, String, u32)> {
+        self.server.player_inventory(&self.name)
+    }
+
+    /// Set or clear (count==0) a specific inventory slot.
+    pub fn set_slot(&self, slot: u32, item_id: &str, count: u32) -> bool {
+        self.server.player_set_slot(&self.name, slot, item_id, count)
+    }
+
+    // ── cross-dimension teleport ─────────────────────────────────────────────
+
+    /// Teleport to `(x, y, z)` in `dimension` (may be a different dimension).
+    pub fn teleport_to_dim(&self, dimension: &str, x: f64, y: f64, z: f64) -> bool {
+        self.server.teleport_to_dim(&self.name, dimension, x, y, z)
+    }
 }
