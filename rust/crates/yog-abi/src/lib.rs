@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 5;
+pub const ABI_MINOR: u32 = 6;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -157,6 +157,14 @@ pub struct YogEntitySpawnEvent {
     pub dimension:   YogStr,
 }
 
+/// Fired when a player places a block (Pre: before placement; Post: after).
+#[repr(C)]
+pub struct YogPlaceBlockEvent {
+    pub player: YogStr,
+    pub block:  YogStr,
+    pub pos:    YogBlockPos,
+}
+
 #[repr(C)]
 pub struct YogPacketEvent {
     pub channel:     YogStr,
@@ -205,21 +213,30 @@ pub struct YogBlockDef {
 }
 
 // ── Handler function-pointer types ────────────────────────────────────────────
+//
+// All event handlers receive a `phase: u8` argument:
+//   0 = Pre  — fires before the action; return value matters (false = cancel).
+//   1 = Post — fires after the action; return value is ignored.
+//
+// This unified signature lets one registered closure handle both phases.
 
-pub type YogBlockBreakFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogBlockBreakEvent);
-pub type YogChatFn         = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogChatEvent);
-pub type YogPlayerFn       = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerEvent);
-pub type YogUseItemFn      = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogUseItemEvent);
-pub type YogUseBlockFn     = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogUseBlockEvent);
-pub type YogAttackEntityFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogAttackEntityEvent);
-pub type YogEntityDamageFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityDamageEvent);
-pub type YogEntityDeathFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityDeathEvent);
-pub type YogPacketFn       = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
-/// Tick / server-started / server-stopping handlers.
-pub type YogServerFn       = unsafe extern "C" fn(*mut c_void, *const YogServer);
-/// Command handler — writes reply into `reply_buf[0..reply_cap]` and sets `*reply_len`.
-/// `*reply_len == 0` means no reply.
-pub type YogCommandFn      = unsafe extern "C" fn(
+pub type YogBlockBreakFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogBlockBreakEvent,   u8) -> bool;
+pub type YogChatFn         = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogChatEvent,         u8) -> bool;
+pub type YogPlayerFn       = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerEvent,       u8) -> bool;
+pub type YogUseItemFn      = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogUseItemEvent,      u8) -> bool;
+pub type YogUseBlockFn     = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogUseBlockEvent,     u8) -> bool;
+pub type YogAttackEntityFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogAttackEntityEvent, u8) -> bool;
+pub type YogEntityDamageFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityDamageEvent, u8) -> bool;
+pub type YogEntityDeathFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityDeathEvent,  u8) -> bool;
+pub type YogEntitySpawnFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntitySpawnEvent,  u8) -> bool;
+pub type YogPlaceBlockFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlaceBlockEvent,   u8) -> bool;
+
+/// Packet events — always Post, no phase.
+pub type YogPacketFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
+/// Server lifecycle / tick — no event struct, always fires.
+pub type YogServerFn  = unsafe extern "C" fn(*mut c_void, *const YogServer);
+/// Command handler.
+pub type YogCommandFn = unsafe extern "C" fn(
     ud: *mut c_void,
     srv: *const YogServer,
     ev: *const YogCommandEvent,
@@ -229,14 +246,6 @@ pub type YogCommandFn      = unsafe extern "C" fn(
 );
 /// Scheduler handler (once or repeating).
 pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
-
-pub type YogEntitySpawnFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntitySpawnEvent);
-
-/// Cancellable event handlers — return `true` to allow, `false` to cancel.
-pub type YogCancellableBlockBreakFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogBlockBreakEvent) -> bool;
-pub type YogCancellableChatFn         = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogChatEvent) -> bool;
-pub type YogCancellableEntitySpawnFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntitySpawnEvent) -> bool;
-pub type YogCancellableEntityDamageFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityDamageEvent) -> bool;
 
 // ── Server action table (runtime → mod direction is wrong; it's mod → runtime) ─
 
@@ -338,10 +347,29 @@ pub struct YogServer {
     pub player_teleport_dim: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, dim: YogStr, pos: YogVec3) -> bool,
     pub entity_teleport_dim: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, dim: YogStr, pos: YogVec3) -> bool,
 
-    // ── entity counting (ABI minor 5) ────────────────────────────────────────
-    /// Count living instances of `entity_type` in `dimension`.
-    /// Returns -1 if the dimension is unknown or the entity type is invalid.
+    // ── entity counting ───────────────────────────────────────────────────────
+    /// Count loaded instances of `entity_type` in `dimension`. Returns -1 on error.
     pub world_entity_count: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, entity_type: YogStr) -> i32,
+
+    // ── entity NBT (ABI minor 6) ──────────────────────────────────────────────
+    /// SNBT of the entity's persistent data, or NONE if entity not found.
+    pub entity_get_nbt: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr,
+    /// Merge SNBT data into the entity. Returns false if entity not found.
+    pub entity_set_nbt: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, snbt: YogStr) -> bool,
+
+    // ── particles (ABI minor 6) ───────────────────────────────────────────────
+    /// Spawn `count` particles at `pos` in `dim`.
+    /// `dx/dy/dz` control spread, `speed` controls particle speed.
+    /// Returns false if the dimension or particle type is unknown.
+    pub spawn_particles: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        pos: YogVec3,
+        particle_type: YogStr,
+        count: i32,
+        dx: f64, dy: f64, dz: f64,
+        speed: f64,
+    ) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.
@@ -366,19 +394,22 @@ pub struct YogApi {
     /// Stable server action table — pass to handlers.
     pub server:      *const YogServer,
 
-    // ── events ───────────────────────────────────────────────────────────────
-    pub on_block_break:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogBlockBreakFn),
-    pub on_chat:            unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogChatFn),
-    pub on_player_join:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerFn),
-    pub on_player_leave:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerFn),
-    pub on_use_item:        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogUseItemFn),
-    pub on_use_block:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogUseBlockFn),
-    pub on_attack_entity:   unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogAttackEntityFn),
-    pub on_entity_damage:   unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityDamageFn),
-    pub on_entity_death:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityDeathFn),
-    pub on_server_tick:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
-    pub on_server_started:  unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
-    pub on_server_stopping: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
+    // ── events — all handlers receive (ud, srv, event, phase: u8) → bool ────────
+    // phase 0 = Pre (return false to cancel), phase 1 = Post (return ignored).
+    pub on_block_break:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogBlockBreakFn),
+    pub on_chat:              unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogChatFn),
+    pub on_player_join:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerFn),
+    pub on_player_leave:      unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerFn),
+    pub on_use_item:          unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogUseItemFn),
+    pub on_use_block:         unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogUseBlockFn),
+    pub on_attack_entity:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogAttackEntityFn),
+    pub on_entity_damage:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityDamageFn),
+    pub on_entity_death:      unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityDeathFn),
+    pub on_entity_spawn:      unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntitySpawnFn),
+    pub on_player_place_block: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlaceBlockFn),
+    pub on_server_tick:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
+    pub on_server_started:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
+    pub on_server_stopping:   unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
 
     // ── networking ───────────────────────────────────────────────────────────
     pub on_packet:        unsafe extern "C" fn(ctx: *mut c_void, channel: YogStr, ud: *mut c_void, h: YogPacketFn),
@@ -386,24 +417,9 @@ pub struct YogApi {
 
     // ── commands ─────────────────────────────────────────────────────────────
     pub register_command: unsafe extern "C" fn(ctx: *mut c_void, name: YogStr, ud: *mut c_void, h: YogCommandFn),
-    /// Like `register_command` but declares Brigadier argument types.
-    /// `schema` is space-separated tokens: `int`, `float`, `word`, `string` (greedy),
-    /// `player`, `blockpos`.  Handler receives tab-separated serialised args.
     pub register_typed_command: unsafe extern "C" fn(ctx: *mut c_void, name: YogStr, schema: YogStr, ud: *mut c_void, h: YogCommandFn),
 
-    // ── cancellable events (ABI minor 4) ─────────────────────────────────────
-    pub on_block_break_pre: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableBlockBreakFn),
-    pub on_chat_pre:        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableChatFn),
-
-    // ── entity spawn events (ABI minor 5) ────────────────────────────────────
-    /// Fires after an entity is loaded into a world (observe only).
-    pub on_entity_spawn:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntitySpawnFn),
-    /// Fires after load; return `false` to discard (effectively cancel) the entity.
-    pub on_entity_spawn_pre: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableEntitySpawnFn),
-    /// Fires before damage is applied; return `false` to cancel it.
-    pub on_entity_damage_pre: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableEntityDamageFn),
-
-    // ── recipes (ABI minor 4) ─────────────────────────────────────────────────
+    // ── recipes ──────────────────────────────────────────────────────────────
     /// Register a recipe by supplying Minecraft JSON (`data/` format).
     /// `namespace` + `name` form the file path: `data/{ns}/recipes/{name}.json`.
     pub register_recipe_json: unsafe extern "C" fn(ctx: *mut c_void, namespace: YogStr, name: YogStr, json: YogStr),

@@ -2,6 +2,13 @@
 
 use yog_core::BlockPos;
 
+/// Whether a handler is running before or after the action.
+///
+/// In `Pre` phase the handler's return value may cancel the action.
+/// In `Post` phase the return value is ignored.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventPhase { Pre, Post }
+
 /// Fired when a player breaks a block (server side).
 #[derive(Debug, Clone)]
 pub struct BlockBreakEvent {
@@ -80,6 +87,20 @@ pub struct EntityDeathEvent {
     pub uuid: String,
     /// Identifier of the killing damage source, e.g. `minecraft:player`.
     pub source: String,
+}
+
+/// Fired when a player places a block (server side).
+///
+/// Passed to handlers registered via `Registry::on_player_place_block` with an
+/// [`EventPhase`] argument:
+/// - `Pre`  — fires before placement; return `false` to cancel.
+/// - `Post` — fires after placement (requires mixin support; not yet wired).
+#[derive(Debug, Clone)]
+pub struct PlaceBlockEvent {
+    pub player_name: String,
+    /// Registry id of the block being placed, e.g. `minecraft:stone`.
+    pub block_id: String,
+    pub pos: BlockPos,
 }
 
 /// Fired when any entity is loaded into a world (server side).

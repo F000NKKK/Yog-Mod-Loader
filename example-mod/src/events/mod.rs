@@ -4,59 +4,134 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use yog_api::player::Player;
 use yog_api::world::World;
-use yog_api::{info, BlockPos, EntitySpawnEvent, Registry};
+use yog_api::{info, BlockPos, EntitySpawnEvent, EventPhase, PlaceBlockEvent, Registry};
 
 pub fn register(registry: &mut Registry) {
-    registry.on_block_break(|e, srv| {
-        info!(
-            "[example-mod] {} broke {} at ({}, {}, {})",
-            e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
-        );
-        World::new(srv, "minecraft:overworld").set_block(e.pos, "minecraft:glass");
+    registry.on_block_break(|e, phase, srv| {
+        match phase {
+            EventPhase::Pre => {
+                let allow = e.block_id != "minecraft:bedrock";
+                if !allow {
+                    info!("[example-mod] blocked {} from breaking bedrock", e.player_name);
+                }
+                allow
+            }
+            EventPhase::Post => {
+                info!(
+                    "[example-mod] {} broke {} at ({}, {}, {})",
+                    e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
+                );
+                World::new(srv, "minecraft:overworld").set_block(e.pos, "minecraft:glass");
+                true
+            }
+        }
     });
 
-    registry.on_chat(|e, _srv| {
-        info!("[example-mod] <{}> {}", e.player_name, e.message);
+    registry.on_chat(|e, phase, _srv| {
+        match phase {
+            EventPhase::Pre => {
+                let allow = !e.message.starts_with("!block ");
+                if !allow {
+                    info!("[example-mod] suppressed message from {}", e.player_name);
+                }
+                allow
+            }
+            EventPhase::Post => {
+                info!("[example-mod] <{}> {}", e.player_name, e.message);
+                true
+            }
+        }
     });
 
-    registry.on_player_join(|e, srv| {
+    registry.on_player_join(|e, _phase, srv| {
         info!("[example-mod] {} joined ({})", e.player_name, e.uuid);
         srv.broadcast(&format!("Welcome, {}! (greeted by a Rust mod)", e.player_name));
+        true
     });
 
-    registry.on_player_leave(|e, _srv| {
+    registry.on_player_leave(|e, _phase, _srv| {
         info!("[example-mod] {} left", e.player_name);
+        true
     });
 
-    registry.on_use_item(|e, srv| {
+    registry.on_use_item(|e, _phase, srv| {
         if e.item_id == "minecraft:stick" {
             Player::new(srv, &e.player_name).give("minecraft:diamond", 1);
             info!("[example-mod] gave {} a diamond", e.player_name);
         }
+        true
     });
 
-    registry.on_use_block(|e, _srv| {
+    registry.on_use_block(|e, _phase, _srv| {
         info!(
             "[example-mod] {} used {} at ({}, {}, {})",
             e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
         );
+        true
     });
 
-    registry.on_attack_entity(|e, srv| {
+    registry.on_attack_entity(|e, _phase, srv| {
         info!("[example-mod] {} attacked {} ({})", e.player_name, e.target_type, e.target_uuid);
         srv.broadcast(&format!("{} is fighting a {}!", e.player_name, e.target_type));
+        true
     });
 
-    registry.on_entity_damage(|e, _srv| {
-        info!(
-            "[example-mod] {} took {:.1} damage from {}",
-            e.entity_type, e.amount, e.source
-        );
+    registry.on_entity_damage(|e, phase, _srv| {
+        match phase {
+            EventPhase::Pre => {
+                let is_player_fall =
+                    e.entity_type == "minecraft:player" && e.source.contains("fall");
+                if is_player_fall {
+                    info!("[example-mod] cancelled fall damage for player {}", e.uuid);
+                }
+                !is_player_fall
+            }
+            EventPhase::Post => {
+                info!(
+                    "[example-mod] {} took {:.1} damage from {}",
+                    e.entity_type, e.amount, e.source
+                );
+                true
+            }
+        }
     });
 
-    registry.on_entity_death(|e, srv| {
+    registry.on_entity_death(|e, _phase, srv| {
         info!("[example-mod] {} died (source: {})", e.entity_type, e.source);
         srv.broadcast(&format!("A {} has perished.", e.entity_type));
+        true
+    });
+
+    registry.on_entity_spawn(|e: &EntitySpawnEvent, phase, _srv| {
+        match phase {
+            EventPhase::Pre => {
+                let allow = e.entity_type != "minecraft:creeper";
+                if !allow {
+                    info!("[example-mod] cancelled creeper spawn in {}", e.dimension);
+                }
+                allow
+            }
+            EventPhase::Post => {
+                info!(
+                    "[example-mod] entity spawned: {} ({}) in {}",
+                    e.entity_type, e.uuid, e.dimension
+                );
+                true
+            }
+        }
+    });
+
+    registry.on_player_place_block(|e: &PlaceBlockEvent, phase, _srv| {
+        match phase {
+            EventPhase::Pre => {
+                info!(
+                    "[example-mod] {} placing {} at ({}, {}, {})",
+                    e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
+                );
+                true
+            }
+            EventPhase::Post => true,
+        }
     });
 
     registry.on_tick(|srv| {
@@ -78,48 +153,5 @@ pub fn register(registry: &mut Registry) {
 
     registry.on_server_stopping(|_srv| {
         info!("[example-mod] server stopping — the gate closes.");
-    });
-
-    // ── cancellable events ────────────────────────────────────────────────────
-
-    // Block "minecraft:bedrock" is protected — cancel any attempt to break it.
-    registry.on_block_break_pre(|e, _srv| {
-        let allow = e.block_id != "minecraft:bedrock";
-        if !allow {
-            info!("[example-mod] blocked {} from breaking bedrock", e.player_name);
-        }
-        allow
-    });
-
-    // Filter profanity demo: cancel messages starting with "!block ".
-    registry.on_chat_pre(|e, _srv| {
-        let allow = !e.message.starts_with("!block ");
-        if !allow {
-            info!("[example-mod] suppressed message from {}", e.player_name);
-        }
-        allow
-    });
-
-    // Log entity spawns (observe only).
-    registry.on_entity_spawn(|e: &EntitySpawnEvent, _srv| {
-        info!("[example-mod] entity spawned: {} ({}) in {}", e.entity_type, e.uuid, e.dimension);
-    });
-
-    // Cancel creeper spawns — creepers are scary.
-    registry.on_entity_spawn_pre(|e: &EntitySpawnEvent, _srv| {
-        let allow = e.entity_type != "minecraft:creeper";
-        if !allow {
-            info!("[example-mod] cancelled creeper spawn in {}", e.dimension);
-        }
-        allow
-    });
-
-    // Cancel fall damage for players (source name contains "fall").
-    registry.on_entity_damage_pre(|e, _srv| {
-        let is_player_fall = e.entity_type == "minecraft:player" && e.source.contains("fall");
-        if is_player_fall {
-            info!("[example-mod] cancelled fall damage for player {}", e.uuid);
-        }
-        !is_player_fall
     });
 }

@@ -267,4 +267,26 @@ pub trait Server {
     /// Number of loaded entities of `entity_type` (e.g. `"minecraft:zombie"`)
     /// in `dimension`. Returns `-1` if the dimension or entity type is unknown.
     fn world_entity_count(&self, dimension: &str, entity_type: &str) -> i32;
+
+    // ── entity NBT ───────────────────────────────────────────────────────────
+
+    /// SNBT string of the entity's persistent NBT, or `None` if not found.
+    fn entity_get_nbt(&self, uuid: &str) -> Option<String>;
+
+    /// Merge SNBT data into the entity's persistent NBT. Returns `false` if not found.
+    fn entity_set_nbt(&self, uuid: &str, snbt: &str) -> bool;
+
+    // ── particles ────────────────────────────────────────────────────────────
+
+    /// Spawn `count` particles at `(x, y, z)` in `dimension`.
+    /// `dx/dy/dz` control the spatial spread; `speed` controls particle velocity.
+    fn spawn_particles(
+        &self,
+        dimension: &str,
+        x: f64, y: f64, z: f64,
+        particle_type: &str,
+        count: i32,
+        dx: f64, dy: f64, dz: f64,
+        speed: f64,
+    ) -> bool;
 }

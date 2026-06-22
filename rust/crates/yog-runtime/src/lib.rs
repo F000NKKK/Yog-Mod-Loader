@@ -24,9 +24,8 @@ use libloading::{Library, Symbol};
 
 use yog_abi::{
     ABI_VERSION, YogApi, YogAttackEntityFn, YogBlockBreakFn, YogBlockDef, YogBlockPos,
-    YogCancellableBlockBreakFn, YogCancellableChatFn, YogCancellableEntityDamageFn,
-    YogCancellableEntitySpawnFn, YogChatFn, YogCommandFn, YogEntityDamageFn,
-    YogEntityDeathFn, YogEntitySpawnFn, YogItemDef, YogOwnedStr, YogPacketFn,
+    YogChatFn, YogCommandFn, YogEntityDamageFn, YogEntityDeathFn, YogEntitySpawnFn,
+    YogItemDef, YogOwnedStr, YogPacketFn, YogPlaceBlockEvent, YogPlaceBlockFn,
     YogPlayerFn, YogScheduledFn, YogServer, YogServerFn, YogStr, YogUseBlockFn,
     YogUseItemFn, YogVec3,
 };
@@ -46,31 +45,28 @@ static HANDLERS: OnceLock<RuntimeHandlers> = OnceLock::new();
 // ── Handler storage ───────────────────────────────────────────────────────────
 
 struct RuntimeHandlers {
-    block_break:     Vec<(*mut c_void, YogBlockBreakFn)>,
-    chat:            Vec<(*mut c_void, YogChatFn)>,
-    player_join:     Vec<(*mut c_void, YogPlayerFn)>,
-    player_leave:    Vec<(*mut c_void, YogPlayerFn)>,
-    use_item:        Vec<(*mut c_void, YogUseItemFn)>,
-    use_block:       Vec<(*mut c_void, YogUseBlockFn)>,
-    attack_entity:   Vec<(*mut c_void, YogAttackEntityFn)>,
-    entity_damage:   Vec<(*mut c_void, YogEntityDamageFn)>,
-    entity_death:    Vec<(*mut c_void, YogEntityDeathFn)>,
-    server_tick:     Vec<(*mut c_void, YogServerFn)>,
-    server_started:  Vec<(*mut c_void, YogServerFn)>,
-    server_stopping: Vec<(*mut c_void, YogServerFn)>,
-    commands:        HashMap<String, (*mut c_void, YogCommandFn)>,
-    typed_schemas:   HashMap<String, String>,
-    block_break_pre:    Vec<(*mut c_void, YogCancellableBlockBreakFn)>,
-    chat_pre:           Vec<(*mut c_void, YogCancellableChatFn)>,
-    entity_spawn:       Vec<(*mut c_void, YogEntitySpawnFn)>,
-    entity_spawn_pre:   Vec<(*mut c_void, YogCancellableEntitySpawnFn)>,
-    entity_damage_pre:  Vec<(*mut c_void, YogCancellableEntityDamageFn)>,
-    recipes:            Vec<(String, String, String)>, // (namespace, name, json)
-    packets:         HashMap<String, (*mut c_void, YogPacketFn)>,
-    client_packets:  HashMap<String, (*mut c_void, YogPacketFn)>,
-    items:           Vec<ItemDef>,
-    blocks:          Vec<BlockDef>,
-    scheduler:       Mutex<SchedulerState>,
+    block_break:       Vec<(*mut c_void, YogBlockBreakFn)>,
+    chat:              Vec<(*mut c_void, YogChatFn)>,
+    player_join:       Vec<(*mut c_void, YogPlayerFn)>,
+    player_leave:      Vec<(*mut c_void, YogPlayerFn)>,
+    use_item:          Vec<(*mut c_void, YogUseItemFn)>,
+    use_block:         Vec<(*mut c_void, YogUseBlockFn)>,
+    attack_entity:     Vec<(*mut c_void, YogAttackEntityFn)>,
+    entity_damage:     Vec<(*mut c_void, YogEntityDamageFn)>,
+    entity_death:      Vec<(*mut c_void, YogEntityDeathFn)>,
+    entity_spawn:      Vec<(*mut c_void, YogEntitySpawnFn)>,
+    player_place_block: Vec<(*mut c_void, YogPlaceBlockFn)>,
+    server_tick:       Vec<(*mut c_void, YogServerFn)>,
+    server_started:    Vec<(*mut c_void, YogServerFn)>,
+    server_stopping:   Vec<(*mut c_void, YogServerFn)>,
+    commands:          HashMap<String, (*mut c_void, YogCommandFn)>,
+    typed_schemas:     HashMap<String, String>,
+    recipes:           Vec<(String, String, String)>,
+    packets:           HashMap<String, (*mut c_void, YogPacketFn)>,
+    client_packets:    HashMap<String, (*mut c_void, YogPacketFn)>,
+    items:             Vec<ItemDef>,
+    blocks:            Vec<BlockDef>,
+    scheduler:         Mutex<SchedulerState>,
 }
 
 // All fn ptrs are C-ABI; ud pointers are from Box::into_raw of Send+Sync closures.
@@ -84,13 +80,12 @@ impl RuntimeHandlers {
             player_join: Vec::new(), player_leave: Vec::new(),
             use_item: Vec::new(), use_block: Vec::new(),
             attack_entity: Vec::new(), entity_damage: Vec::new(),
-            entity_death: Vec::new(), server_tick: Vec::new(),
-            server_started: Vec::new(), server_stopping: Vec::new(),
+            entity_death: Vec::new(), entity_spawn: Vec::new(),
+            player_place_block: Vec::new(),
+            server_tick: Vec::new(), server_started: Vec::new(), server_stopping: Vec::new(),
             commands: HashMap::new(), typed_schemas: HashMap::new(),
-            block_break_pre: Vec::new(), chat_pre: Vec::new(),
-            entity_spawn: Vec::new(), entity_spawn_pre: Vec::new(),
-            entity_damage_pre: Vec::new(), recipes: Vec::new(),
-            packets: HashMap::new(), client_packets: HashMap::new(), items: Vec::new(),
+            recipes: Vec::new(), packets: HashMap::new(),
+            client_packets: HashMap::new(), items: Vec::new(),
             blocks: Vec::new(), scheduler: Mutex::new(SchedulerState::new()),
         }
     }
@@ -651,6 +646,39 @@ unsafe extern "C" fn srv_game_dir(_ctx: *mut c_void) -> YogOwnedStr {
     }
 }
 
+unsafe extern "C" fn srv_entity_get_nbt(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "entityGetNbt",
+        "(Ljava/lang/String;)Ljava/lang/String;", &[JValue::Object(&ju)]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+unsafe extern "C" fn srv_entity_set_nbt(_ctx: *mut c_void, uuid: YogStr, snbt: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ju), Some(js)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, snbt)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entitySetNbt",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&ju), JValue::Object(&js)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_spawn_particles(
+    _ctx: *mut c_void, dim: YogStr, pos: YogVec3, particle_type: YogStr,
+    count: i32, dx: f64, dy: f64, dz: f64, speed: f64,
+) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jd), Some(jp)) = (ys_to_java(&mut env, dim), ys_to_java(&mut env, particle_type)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "spawnParticles",
+        "(Ljava/lang/String;DDDLjava/lang/String;IDDDD)Z",
+        &[JValue::Object(&jd), JValue::Double(pos.x), JValue::Double(pos.y), JValue::Double(pos.z),
+          JValue::Object(&jp), JValue::Int(count),
+          JValue::Double(dx), JValue::Double(dy), JValue::Double(dz), JValue::Double(speed)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
 // ── YogApi registration functions ─────────────────────────────────────────────
 //
 // ctx is *mut RuntimeHandlers (cast from *mut c_void).
@@ -664,18 +692,20 @@ macro_rules! api_event {
     };
 }
 
-api_event!(api_on_block_break,    block_break,    YogBlockBreakFn);
-api_event!(api_on_chat,           chat,           YogChatFn);
-api_event!(api_on_player_join,    player_join,    YogPlayerFn);
-api_event!(api_on_player_leave,   player_leave,   YogPlayerFn);
-api_event!(api_on_use_item,       use_item,       YogUseItemFn);
-api_event!(api_on_use_block,      use_block,      YogUseBlockFn);
-api_event!(api_on_attack_entity,  attack_entity,  YogAttackEntityFn);
-api_event!(api_on_entity_damage,  entity_damage,  YogEntityDamageFn);
-api_event!(api_on_entity_death,   entity_death,   YogEntityDeathFn);
-api_event!(api_on_server_tick,    server_tick,    YogServerFn);
-api_event!(api_on_server_started, server_started, YogServerFn);
-api_event!(api_on_server_stopping,server_stopping,YogServerFn);
+api_event!(api_on_block_break,      block_break,        YogBlockBreakFn);
+api_event!(api_on_chat,             chat,               YogChatFn);
+api_event!(api_on_player_join,      player_join,        YogPlayerFn);
+api_event!(api_on_player_leave,     player_leave,       YogPlayerFn);
+api_event!(api_on_use_item,         use_item,           YogUseItemFn);
+api_event!(api_on_use_block,        use_block,          YogUseBlockFn);
+api_event!(api_on_attack_entity,    attack_entity,      YogAttackEntityFn);
+api_event!(api_on_entity_damage,    entity_damage,      YogEntityDamageFn);
+api_event!(api_on_entity_death,     entity_death,       YogEntityDeathFn);
+api_event!(api_on_entity_spawn,     entity_spawn,       YogEntitySpawnFn);
+api_event!(api_on_player_place_block, player_place_block, YogPlaceBlockFn);
+api_event!(api_on_server_tick,      server_tick,        YogServerFn);
+api_event!(api_on_server_started,   server_started,     YogServerFn);
+api_event!(api_on_server_stopping,  server_stopping,    YogServerFn);
 
 unsafe extern "C" fn api_on_packet(ctx: *mut c_void, channel: YogStr, ud: *mut c_void, h: YogPacketFn) {
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
@@ -699,19 +729,6 @@ unsafe extern "C" fn api_register_typed_command(ctx: *mut c_void, name: YogStr, 
     handlers.commands.insert(n, (ud, h));
 }
 
-unsafe extern "C" fn api_on_block_break_pre(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableBlockBreakFn) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
-    handlers.block_break_pre.push((ud, h));
-}
-
-unsafe extern "C" fn api_on_chat_pre(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableChatFn) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
-    handlers.chat_pre.push((ud, h));
-}
-
-api_event!(api_on_entity_spawn,       entity_spawn,       YogEntitySpawnFn);
-api_event!(api_on_entity_spawn_pre,   entity_spawn_pre,   YogCancellableEntitySpawnFn);
-api_event!(api_on_entity_damage_pre,  entity_damage_pre,  YogCancellableEntityDamageFn);
 
 unsafe extern "C" fn api_register_recipe_json(ctx: *mut c_void, namespace: YogStr, name: YogStr, json: YogStr) {
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
@@ -827,6 +844,9 @@ fn build_server_table() -> YogServer {
         entity_teleport_dim: srv_entity_teleport_dim,
         online_players:      srv_online_players,
         world_entity_count:  srv_world_entity_count,
+        entity_get_nbt:      srv_entity_get_nbt,
+        entity_set_nbt:      srv_entity_set_nbt,
+        spawn_particles:     srv_spawn_particles,
     }
 }
 
@@ -845,19 +865,16 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         on_attack_entity:   api_on_attack_entity,
         on_entity_damage:   api_on_entity_damage,
         on_entity_death:    api_on_entity_death,
-        on_server_tick:     api_on_server_tick,
-        on_server_started:  api_on_server_started,
-        on_server_stopping: api_on_server_stopping,
-        on_packet:          api_on_packet,
-        on_client_packet:   api_on_client_packet,
-        register_command:       api_register_command,
-        register_typed_command: api_register_typed_command,
-        on_block_break_pre:     api_on_block_break_pre,
-        on_chat_pre:            api_on_chat_pre,
-        on_entity_spawn:        api_on_entity_spawn,
-        on_entity_spawn_pre:    api_on_entity_spawn_pre,
-        on_entity_damage_pre:   api_on_entity_damage_pre,
-        register_recipe_json:   api_register_recipe_json,
+        on_entity_spawn:         api_on_entity_spawn,
+        on_player_place_block:   api_on_player_place_block,
+        on_server_tick:          api_on_server_tick,
+        on_server_started:       api_on_server_started,
+        on_server_stopping:      api_on_server_stopping,
+        on_packet:               api_on_packet,
+        on_client_packet:        api_on_client_packet,
+        register_command:        api_register_command,
+        register_typed_command:  api_register_typed_command,
+        register_recipe_json:    api_register_recipe_json,
         register_item:          api_register_item,
         register_block:     api_register_block,
         schedule_once:      api_schedule_once,
@@ -1002,7 +1019,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreak<'l>(
     let srv = srv_ptr();
     guard("on_block_break", || {
         for (ud, f) in &handlers().block_break {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1017,7 +1034,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChat<'l>(
     let srv = srv_ptr();
     guard("on_chat", || {
         for (ud, f) in &handlers().chat {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1032,7 +1049,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
     let srv = srv_ptr();
     guard("on_player_join", || {
         for (ud, f) in &handlers().player_join {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1047,7 +1064,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
     let srv = srv_ptr();
     guard("on_player_leave", || {
         for (ud, f) in &handlers().player_leave {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1062,7 +1079,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
     let srv = srv_ptr();
     guard("on_use_item", || {
         for (ud, f) in &handlers().use_item {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1080,7 +1097,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
     let srv = srv_ptr();
     guard("on_use_block", || {
         for (ud, f) in &handlers().use_block {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1097,7 +1114,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAttackEntity<'l>(
     let srv = srv_ptr();
     guard("on_attack_entity", || {
         for (ud, f) in &handlers().attack_entity {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1115,7 +1132,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamage<'l>(
     let srv = srv_ptr();
     guard("on_entity_damage", || {
         for (ud, f) in &handlers().entity_damage {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1132,7 +1149,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDeath<'l>(
     let srv = srv_ptr();
     guard("on_entity_death", || {
         for (ud, f) in &handlers().entity_death {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1225,7 +1242,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
     player: JString<'l>, block: JString<'l>, x: jint, y: jint, z: jint,
 ) -> jni::sys::jboolean {
     let h = handlers();
-    if h.block_break_pre.is_empty() { return 1; }
+    if h.block_break.is_empty() { return 1; }
     let p = match env.get_string(&player) { Ok(s) => String::from(s), Err(_) => return 1 };
     let b = match env.get_string(&block)  { Ok(s) => String::from(s), Err(_) => return 1 };
     let ev = yog_abi::YogBlockBreakEvent {
@@ -1235,8 +1252,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
     let srv = srv_ptr();
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        for (ud, f) in &h.block_break_pre {
-            if !unsafe { f(*ud, srv, &ev) } { allow = false; break; }
+        for (ud, f) in &h.block_break {
+            if !unsafe { f(*ud, srv, &ev, 0) } { allow = false; break; }
         }
     })).ok();
     allow as jni::sys::jboolean
@@ -1248,15 +1265,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
     player: JString<'l>, message: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
-    if h.chat_pre.is_empty() { return 1; }
+    if h.chat.is_empty() { return 1; }
     let p = match env.get_string(&player)  { Ok(s) => String::from(s), Err(_) => return 1 };
     let m = match env.get_string(&message) { Ok(s) => String::from(s), Err(_) => return 1 };
     let ev = yog_abi::YogChatEvent { player: YogStr::from_str(&p), message: YogStr::from_str(&m) };
     let srv = srv_ptr();
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        for (ud, f) in &h.chat_pre {
-            if !unsafe { f(*ud, srv, &ev) } { allow = false; break; }
+        for (ud, f) in &h.chat {
+            if !unsafe { f(*ud, srv, &ev, 0) } { allow = false; break; }
         }
     })).ok();
     allow as jni::sys::jboolean
@@ -1419,7 +1436,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawn<'l>(
     entity_type: JString<'l>, uuid: JString<'l>, dimension: JString<'l>,
 ) {
     let h = handlers();
-    if h.entity_spawn.is_empty() && h.entity_spawn_pre.is_empty() { return; }
+    if h.entity_spawn.is_empty() { return; }
     let (et, u, d) = (jstr!(env, entity_type), jstr!(env, uuid), jstr!(env, dimension));
     let ev = yog_abi::YogEntitySpawnEvent {
         entity_type: YogStr::from_str(&et), uuid: YogStr::from_str(&u),
@@ -1428,7 +1445,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawn<'l>(
     let srv = srv_ptr();
     guard("on_entity_spawn", || {
         for (ud, f) in &h.entity_spawn {
-            unsafe { f(*ud, srv, &ev) };
+            unsafe { f(*ud, srv, &ev, 1) };
         }
     });
 }
@@ -1439,7 +1456,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawnPre<'l>(
     entity_type: JString<'l>, uuid: JString<'l>, dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
-    if h.entity_spawn_pre.is_empty() { return 1; }
+    if h.entity_spawn.is_empty() { return 1; }
     let et = match env.get_string(&entity_type) { Ok(s) => String::from(s), Err(_) => return 1 };
     let u  = match env.get_string(&uuid)        { Ok(s) => String::from(s), Err(_) => return 1 };
     let d  = match env.get_string(&dimension)   { Ok(s) => String::from(s), Err(_) => return 1 };
@@ -1450,8 +1467,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawnPre<'l>(
     let srv = srv_ptr();
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        for (ud, f) in &h.entity_spawn_pre {
-            if !unsafe { f(*ud, srv, &ev) } { allow = false; break; }
+        for (ud, f) in &h.entity_spawn {
+            if !unsafe { f(*ud, srv, &ev, 0) } { allow = false; break; }
         }
     })).ok();
     allow as jni::sys::jboolean
@@ -1463,7 +1480,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamagePre<'l>(
     entity_type: JString<'l>, uuid: JString<'l>, amount: jfloat, source: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
-    if h.entity_damage_pre.is_empty() { return 1; }
+    if h.entity_damage.is_empty() { return 1; }
     let et = match env.get_string(&entity_type) { Ok(s) => String::from(s), Err(_) => return 1 };
     let u  = match env.get_string(&uuid)        { Ok(s) => String::from(s), Err(_) => return 1 };
     let s  = match env.get_string(&source)      { Ok(s) => String::from(s), Err(_) => return 1 };
@@ -1474,9 +1491,52 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamagePre<'l>(
     let srv = srv_ptr();
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        for (ud, f) in &h.entity_damage_pre {
-            if !unsafe { f(*ud, srv, &ev) } { allow = false; break; }
+        for (ud, f) in &h.entity_damage {
+            if !unsafe { f(*ud, srv, &ev, 0) } { allow = false; break; }
         }
     })).ok();
     allow as jni::sys::jboolean
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlockPre<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, block: JString<'l>, x: jint, y: jint, z: jint,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.player_place_block.is_empty() { return 1; }
+    let p = match env.get_string(&player) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let b = match env.get_string(&block)  { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ev = YogPlaceBlockEvent {
+        player: YogStr::from_str(&p), block: YogStr::from_str(&b),
+        pos: YogBlockPos { x, y, z },
+    };
+    let srv = srv_ptr();
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.player_place_block {
+            if !unsafe { f(*ud, srv, &ev, 0) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlock<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, block: JString<'l>, x: jint, y: jint, z: jint,
+) {
+    let h = handlers();
+    if h.player_place_block.is_empty() { return; }
+    let (p, b) = (jstr!(env, player), jstr!(env, block));
+    let ev = YogPlaceBlockEvent {
+        player: YogStr::from_str(&p), block: YogStr::from_str(&b),
+        pos: YogBlockPos { x, y, z },
+    };
+    let srv = srv_ptr();
+    guard("on_player_place_block", || {
+        for (ud, f) in &h.player_place_block {
+            unsafe { f(*ud, srv, &ev, 1) };
+        }
+    });
 }

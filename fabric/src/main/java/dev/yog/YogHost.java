@@ -38,6 +38,7 @@ import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
@@ -132,6 +133,24 @@ public class YogHost implements ModInitializer {
                 String blockId = Registries.BLOCK.getId(world.getBlockState(pos).getBlock()).toString();
                 NativeBridge.nativeOnUseBlock(
                         sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+            }
+            return ActionResult.PASS;
+        });
+
+        // Block placement — Pre (cancellable). Fires when a player uses a BlockItem on a surface.
+        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            if (!world.isClient && player instanceof ServerPlayerEntity sp) {
+                ItemStack held = sp.getStackInHand(hand);
+                if (held.getItem() instanceof BlockItem bi) {
+                    net.minecraft.util.math.BlockPos placed =
+                            hitResult.getBlockPos().offset(hitResult.getSide());
+                    String blockId = Registries.BLOCK.getId(bi.getBlock()).toString();
+                    if (!NativeBridge.nativeOnPlaceBlockPre(
+                            sp.getName().getString(), blockId,
+                            placed.getX(), placed.getY(), placed.getZ())) {
+                        return ActionResult.FAIL;
+                    }
+                }
             }
             return ActionResult.PASS;
         });

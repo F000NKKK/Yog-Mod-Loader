@@ -91,4 +91,16 @@ impl<'a> Entity<'a> {
     pub fn add_velocity(&self, vx: f64, vy: f64, vz: f64) -> bool {
         self.server.entity_add_velocity(&self.uuid, vx, vy, vz)
     }
+
+    // ── NBT ─────────────────────────────────────────────────────────────────
+
+    /// SNBT string of the entity's persistent NBT, or `None` if not found.
+    pub fn get_nbt(&self) -> Option<String> {
+        self.server.entity_get_nbt(&self.uuid)
+    }
+
+    /// Merge SNBT data into the entity's persistent NBT. Returns `false` if not found.
+    pub fn set_nbt(&self, snbt: &str) -> bool {
+        self.server.entity_set_nbt(&self.uuid, snbt)
+    }
 }

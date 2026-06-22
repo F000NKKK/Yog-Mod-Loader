@@ -12,14 +12,15 @@ use std::os::raw::c_void;
 use yog_abi::{
     YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef, YogChatEvent,
     YogCommandEvent, YogEntityDamageEvent, YogEntityDeathEvent, YogEntitySpawnEvent,
-    YogItemDef, YogPacketEvent, YogPlayerEvent, YogServer, YogStr, YogUseBlockEvent,
-    YogUseItemEvent,
+    YogItemDef, YogPacketEvent, YogPlaceBlockEvent, YogPlayerEvent, YogServer, YogStr,
+    YogUseBlockEvent, YogUseItemEvent,
 };
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_event::{
     AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent, EntityDeathEvent,
-    EntitySpawnEvent, PlayerJoinEvent, PlayerLeaveEvent, UseBlockEvent, UseItemEvent,
+    EntitySpawnEvent, EventPhase, PlaceBlockEvent, PlayerJoinEvent, PlayerLeaveEvent,
+    UseBlockEvent, UseItemEvent,
 };
 use yog_network::PacketEvent;
 use yog_registry::{BlockDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
@@ -396,6 +397,31 @@ impl Server for CServer {
         let s = srv!(self);
         unsafe { (s.world_entity_count)(s.ctx, YogStr::from_str(dimension), YogStr::from_str(entity_type)) }
     }
+
+    fn entity_get_nbt(&self, uuid: &str) -> Option<String> {
+        let s = srv!(self);
+        let owned = unsafe { (s.entity_get_nbt)(s.ctx, YogStr::from_str(uuid)) };
+        if owned.is_none() { return None; }
+        let result = unsafe {
+            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()).ok()
+        };
+        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        result
+    }
+
+    fn entity_set_nbt(&self, uuid: &str, snbt: &str) -> bool {
+        let s = srv!(self);
+        unsafe { (s.entity_set_nbt)(s.ctx, YogStr::from_str(uuid), YogStr::from_str(snbt)) }
+    }
+
+    fn spawn_particles(&self, dimension: &str, x: f64, y: f64, z: f64, particle_type: &str, count: i32, dx: f64, dy: f64, dz: f64, speed: f64) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.spawn_particles)(s.ctx, YogStr::from_str(dimension),
+                yog_abi::YogVec3 { x, y, z }, YogStr::from_str(particle_type),
+                count, dx, dy, dz, speed)
+        }
+    }
 }
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────
@@ -409,107 +435,90 @@ impl Server for CServer {
 // Closures are Box::into_raw'd in Registry methods — they are INTENTIONALLY
 // leaked and live for the process lifetime.
 
-unsafe extern "C" fn trampoline_block_break<F>(ud: *mut c_void, srv: *const YogServer, ev: *const YogBlockBreakEvent)
-where F: Fn(&BlockBreakEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = BlockBreakEvent {
-        player_name: ev.player.as_str().to_owned(),
-        block_id:    ev.block.as_str().to_owned(),
-        pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
+// ── Trampoline helpers ────────────────────────────────────────────────────────
+//
+// All phased event trampolines share the same pattern:
+//   `phase: u8`  0 = EventPhase::Pre, 1 = EventPhase::Post
+//   Return value is meaningful only in Pre phase.
+
+macro_rules! trampoline_phased {
+    ($name:ident, $abi_ev:ty, $rust_ev:ty, |$ev:ident| $build:expr) => {
+        unsafe extern "C" fn $name<F>(
+            ud: *mut c_void, srv: *const YogServer, ev: *const $abi_ev, phase: u8,
+        ) -> bool
+        where F: Fn(&$rust_ev, EventPhase, &dyn Server) -> bool + Send + Sync,
+        {
+            let f = &*(ud as *const F);
+            let $ev = &*ev;
+            let rust_ev = $build;
+            let p = if phase == 0 { EventPhase::Pre } else { EventPhase::Post };
+            f(&rust_ev, p, &CServer(srv))
+        }
     };
-    f(&rust_ev, &CServer(srv));
 }
 
-unsafe extern "C" fn trampoline_chat<F>(ud: *mut c_void, srv: *const YogServer, ev: *const YogChatEvent)
-where F: Fn(&ChatEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = ChatEvent { player_name: ev.player.as_str().to_owned(), message: ev.message.as_str().to_owned() };
-    f(&rust_ev, &CServer(srv));
-}
+trampoline_phased!(trampoline_block_break, YogBlockBreakEvent, BlockBreakEvent, |ev| BlockBreakEvent {
+    player_name: ev.player.as_str().to_owned(),
+    block_id:    ev.block.as_str().to_owned(),
+    pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
+});
 
-unsafe extern "C" fn trampoline_player_join<F>(ud: *mut c_void, srv: *const YogServer, ev: *const YogPlayerEvent)
-where F: Fn(&PlayerJoinEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = PlayerJoinEvent { player_name: ev.player.as_str().to_owned(), uuid: ev.uuid.as_str().to_owned() };
-    f(&rust_ev, &CServer(srv));
-}
+trampoline_phased!(trampoline_chat, YogChatEvent, ChatEvent, |ev| ChatEvent {
+    player_name: ev.player.as_str().to_owned(),
+    message:     ev.message.as_str().to_owned(),
+});
 
-unsafe extern "C" fn trampoline_player_leave<F>(ud: *mut c_void, srv: *const YogServer, ev: *const YogPlayerEvent)
-where F: Fn(&PlayerLeaveEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = PlayerLeaveEvent { player_name: ev.player.as_str().to_owned(), uuid: ev.uuid.as_str().to_owned() };
-    f(&rust_ev, &CServer(srv));
-}
+trampoline_phased!(trampoline_player_join, YogPlayerEvent, PlayerJoinEvent, |ev| PlayerJoinEvent {
+    player_name: ev.player.as_str().to_owned(),
+    uuid:        ev.uuid.as_str().to_owned(),
+});
 
-unsafe extern "C" fn trampoline_use_item<F>(ud: *mut c_void, srv: *const YogServer, ev: *const YogUseItemEvent)
-where F: Fn(&UseItemEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = UseItemEvent { player_name: ev.player.as_str().to_owned(), item_id: ev.item.as_str().to_owned() };
-    f(&rust_ev, &CServer(srv));
-}
+trampoline_phased!(trampoline_player_leave, YogPlayerEvent, PlayerLeaveEvent, |ev| PlayerLeaveEvent {
+    player_name: ev.player.as_str().to_owned(),
+    uuid:        ev.uuid.as_str().to_owned(),
+});
 
-unsafe extern "C" fn trampoline_use_block<F>(ud: *mut c_void, srv: *const YogServer, ev: *const YogUseBlockEvent)
-where F: Fn(&UseBlockEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = UseBlockEvent {
-        player_name: ev.player.as_str().to_owned(),
-        block_id:    ev.block.as_str().to_owned(),
-        pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
-    };
-    f(&rust_ev, &CServer(srv));
-}
+trampoline_phased!(trampoline_use_item, YogUseItemEvent, UseItemEvent, |ev| UseItemEvent {
+    player_name: ev.player.as_str().to_owned(),
+    item_id:     ev.item.as_str().to_owned(),
+});
 
-unsafe extern "C" fn trampoline_attack_entity<F>(ud: *mut c_void, srv: *const YogServer, ev: *const YogAttackEntityEvent)
-where F: Fn(&AttackEntityEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = AttackEntityEvent {
-        player_name: ev.player.as_str().to_owned(),
-        target_type: ev.target_type.as_str().to_owned(),
-        target_uuid: ev.target_uuid.as_str().to_owned(),
-    };
-    f(&rust_ev, &CServer(srv));
-}
+trampoline_phased!(trampoline_use_block, YogUseBlockEvent, UseBlockEvent, |ev| UseBlockEvent {
+    player_name: ev.player.as_str().to_owned(),
+    block_id:    ev.block.as_str().to_owned(),
+    pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
+});
 
-unsafe extern "C" fn trampoline_entity_damage<F>(ud: *mut c_void, srv: *const YogServer, ev: *const YogEntityDamageEvent)
-where F: Fn(&EntityDamageEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = EntityDamageEvent {
-        entity_type: ev.entity_type.as_str().to_owned(),
-        uuid:        ev.uuid.as_str().to_owned(),
-        amount:      ev.amount,
-        source:      ev.source.as_str().to_owned(),
-    };
-    f(&rust_ev, &CServer(srv));
-}
+trampoline_phased!(trampoline_attack_entity, YogAttackEntityEvent, AttackEntityEvent, |ev| AttackEntityEvent {
+    player_name: ev.player.as_str().to_owned(),
+    target_type: ev.target_type.as_str().to_owned(),
+    target_uuid: ev.target_uuid.as_str().to_owned(),
+});
 
-unsafe extern "C" fn trampoline_entity_death<F>(ud: *mut c_void, srv: *const YogServer, ev: *const YogEntityDeathEvent)
-where F: Fn(&EntityDeathEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = EntityDeathEvent {
-        entity_type: ev.entity_type.as_str().to_owned(),
-        uuid:        ev.uuid.as_str().to_owned(),
-        source:      ev.source.as_str().to_owned(),
-    };
-    f(&rust_ev, &CServer(srv));
-}
+trampoline_phased!(trampoline_entity_damage, YogEntityDamageEvent, EntityDamageEvent, |ev| EntityDamageEvent {
+    entity_type: ev.entity_type.as_str().to_owned(),
+    uuid:        ev.uuid.as_str().to_owned(),
+    amount:      ev.amount,
+    source:      ev.source.as_str().to_owned(),
+});
+
+trampoline_phased!(trampoline_entity_death, YogEntityDeathEvent, EntityDeathEvent, |ev| EntityDeathEvent {
+    entity_type: ev.entity_type.as_str().to_owned(),
+    uuid:        ev.uuid.as_str().to_owned(),
+    source:      ev.source.as_str().to_owned(),
+});
+
+trampoline_phased!(trampoline_entity_spawn, YogEntitySpawnEvent, EntitySpawnEvent, |ev| EntitySpawnEvent {
+    entity_type: ev.entity_type.as_str().to_owned(),
+    uuid:        ev.uuid.as_str().to_owned(),
+    dimension:   ev.dimension.as_str().to_owned(),
+});
+
+trampoline_phased!(trampoline_place_block, YogPlaceBlockEvent, PlaceBlockEvent, |ev| PlaceBlockEvent {
+    player_name: ev.player.as_str().to_owned(),
+    block_id:    ev.block.as_str().to_owned(),
+    pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
+});
 
 unsafe extern "C" fn trampoline_server_fn<F>(ud: *mut c_void, srv: *const YogServer)
 where F: Fn(&dyn Server) + Send + Sync,
@@ -564,81 +573,6 @@ where F: Fn(&dyn Server) + Send + Sync,
     f(&CServer(srv));
 }
 
-unsafe extern "C" fn trampoline_block_break_pre<F>(
-    ud: *mut c_void, srv: *const YogServer, ev: *const yog_abi::YogBlockBreakEvent,
-) -> bool
-where F: Fn(&BlockBreakEvent, &dyn Server) -> bool + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = BlockBreakEvent {
-        player_name: ev.player.as_str().to_owned(),
-        block_id:    ev.block.as_str().to_owned(),
-        pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
-    };
-    f(&rust_ev, &CServer(srv))
-}
-
-unsafe extern "C" fn trampoline_chat_pre<F>(
-    ud: *mut c_void, srv: *const YogServer, ev: *const yog_abi::YogChatEvent,
-) -> bool
-where F: Fn(&ChatEvent, &dyn Server) -> bool + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = ChatEvent {
-        player_name: ev.player.as_str().to_owned(),
-        message:     ev.message.as_str().to_owned(),
-    };
-    f(&rust_ev, &CServer(srv))
-}
-
-unsafe extern "C" fn trampoline_entity_spawn<F>(
-    ud: *mut c_void, srv: *const YogServer, ev: *const YogEntitySpawnEvent,
-)
-where F: Fn(&EntitySpawnEvent, &dyn Server) + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = EntitySpawnEvent {
-        entity_type: ev.entity_type.as_str().to_owned(),
-        uuid:        ev.uuid.as_str().to_owned(),
-        dimension:   ev.dimension.as_str().to_owned(),
-    };
-    f(&rust_ev, &CServer(srv));
-}
-
-unsafe extern "C" fn trampoline_entity_spawn_pre<F>(
-    ud: *mut c_void, srv: *const YogServer, ev: *const YogEntitySpawnEvent,
-) -> bool
-where F: Fn(&EntitySpawnEvent, &dyn Server) -> bool + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = EntitySpawnEvent {
-        entity_type: ev.entity_type.as_str().to_owned(),
-        uuid:        ev.uuid.as_str().to_owned(),
-        dimension:   ev.dimension.as_str().to_owned(),
-    };
-    f(&rust_ev, &CServer(srv))
-}
-
-unsafe extern "C" fn trampoline_entity_damage_pre<F>(
-    ud: *mut c_void, srv: *const YogServer, ev: *const YogEntityDamageEvent,
-) -> bool
-where F: Fn(&EntityDamageEvent, &dyn Server) -> bool + Send + Sync,
-{
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = EntityDamageEvent {
-        entity_type: ev.entity_type.as_str().to_owned(),
-        uuid:        ev.uuid.as_str().to_owned(),
-        amount:      ev.amount,
-        source:      ev.source.as_str().to_owned(),
-    };
-    f(&rust_ev, &CServer(srv))
-}
-
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 /// Wraps the [`YogApi`] table and provides an ergonomic registration API.
@@ -670,59 +604,76 @@ impl Registry {
     }
 
     // ── events ───────────────────────────────────────────────────────────────
+    //
+    // All handlers receive `(event, EventPhase, &dyn Server) -> bool`.
+    // In `Pre` phase, returning `false` cancels the action.
+    // In `Post` phase, the return value is ignored.
+    // A single registration fires for BOTH phases.
 
     pub fn on_block_break<F>(&mut self, handler: F)
-    where F: Fn(&BlockBreakEvent, &dyn Server) + Send + Sync + 'static {
+    where F: Fn(&BlockBreakEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_block_break)(self.ctx(), ud, trampoline_block_break::<F>) }
     }
 
     pub fn on_chat<F>(&mut self, handler: F)
-    where F: Fn(&ChatEvent, &dyn Server) + Send + Sync + 'static {
+    where F: Fn(&ChatEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_chat)(self.ctx(), ud, trampoline_chat::<F>) }
     }
 
     pub fn on_player_join<F>(&mut self, handler: F)
-    where F: Fn(&PlayerJoinEvent, &dyn Server) + Send + Sync + 'static {
+    where F: Fn(&PlayerJoinEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_player_join)(self.ctx(), ud, trampoline_player_join::<F>) }
     }
 
     pub fn on_player_leave<F>(&mut self, handler: F)
-    where F: Fn(&PlayerLeaveEvent, &dyn Server) + Send + Sync + 'static {
+    where F: Fn(&PlayerLeaveEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_player_leave)(self.ctx(), ud, trampoline_player_leave::<F>) }
     }
 
     pub fn on_use_item<F>(&mut self, handler: F)
-    where F: Fn(&UseItemEvent, &dyn Server) + Send + Sync + 'static {
+    where F: Fn(&UseItemEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_use_item)(self.ctx(), ud, trampoline_use_item::<F>) }
     }
 
     pub fn on_use_block<F>(&mut self, handler: F)
-    where F: Fn(&UseBlockEvent, &dyn Server) + Send + Sync + 'static {
+    where F: Fn(&UseBlockEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_use_block)(self.ctx(), ud, trampoline_use_block::<F>) }
     }
 
     pub fn on_attack_entity<F>(&mut self, handler: F)
-    where F: Fn(&AttackEntityEvent, &dyn Server) + Send + Sync + 'static {
+    where F: Fn(&AttackEntityEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_attack_entity)(self.ctx(), ud, trampoline_attack_entity::<F>) }
     }
 
     pub fn on_entity_damage<F>(&mut self, handler: F)
-    where F: Fn(&EntityDamageEvent, &dyn Server) + Send + Sync + 'static {
+    where F: Fn(&EntityDamageEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_entity_damage)(self.ctx(), ud, trampoline_entity_damage::<F>) }
     }
 
     pub fn on_entity_death<F>(&mut self, handler: F)
-    where F: Fn(&EntityDeathEvent, &dyn Server) + Send + Sync + 'static {
+    where F: Fn(&EntityDeathEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_entity_death)(self.ctx(), ud, trampoline_entity_death::<F>) }
+    }
+
+    pub fn on_entity_spawn<F>(&mut self, handler: F)
+    where F: Fn(&EntitySpawnEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_entity_spawn)(self.ctx(), ud, trampoline_entity_spawn::<F>) }
+    }
+
+    pub fn on_player_place_block<F>(&mut self, handler: F)
+    where F: Fn(&PlaceBlockEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_player_place_block)(self.ctx(), ud, trampoline_place_block::<F>) }
     }
 
     pub fn on_tick<F>(&mut self, listener: F)
@@ -780,45 +731,6 @@ impl Registry {
         let ch = YogStr::from_str(channel.as_ref());
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_client_packet)(self.ctx(), ch, ud, trampoline_packet::<F>) }
-    }
-
-    // ── cancellable events ───────────────────────────────────────────────────
-
-    /// Register a handler that fires **before** a block is broken.
-    /// Return `true` to allow the break, `false` to cancel it.
-    pub fn on_block_break_pre<F>(&mut self, handler: F)
-    where F: Fn(&BlockBreakEvent, &dyn Server) -> bool + Send + Sync + 'static {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_block_break_pre)(self.ctx(), ud, trampoline_block_break_pre::<F>) }
-    }
-
-    /// Register a handler that fires **before** a chat message is sent.
-    /// Return `true` to allow the message, `false` to suppress it.
-    pub fn on_chat_pre<F>(&mut self, handler: F)
-    where F: Fn(&ChatEvent, &dyn Server) -> bool + Send + Sync + 'static {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_chat_pre)(self.ctx(), ud, trampoline_chat_pre::<F>) }
-    }
-
-    /// Observe entity spawns (entity just added to world).
-    pub fn on_entity_spawn<F>(&mut self, handler: F)
-    where F: Fn(&EntitySpawnEvent, &dyn Server) + Send + Sync + 'static {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_entity_spawn)(self.ctx(), ud, trampoline_entity_spawn::<F>) }
-    }
-
-    /// Cancel entity spawns — return `false` to discard the entity.
-    pub fn on_entity_spawn_pre<F>(&mut self, handler: F)
-    where F: Fn(&EntitySpawnEvent, &dyn Server) -> bool + Send + Sync + 'static {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_entity_spawn_pre)(self.ctx(), ud, trampoline_entity_spawn_pre::<F>) }
-    }
-
-    /// Cancel entity damage — return `false` to prevent the damage.
-    pub fn on_entity_damage_pre<F>(&mut self, handler: F)
-    where F: Fn(&EntityDamageEvent, &dyn Server) -> bool + Send + Sync + 'static {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_entity_damage_pre)(self.ctx(), ud, trampoline_entity_damage_pre::<F>) }
     }
 
     // ── recipes ──────────────────────────────────────────────────────────────

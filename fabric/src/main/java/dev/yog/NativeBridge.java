@@ -595,6 +595,40 @@ public final class NativeBridge {
         return true;
     }
 
+    public static String entityGetNbt(String uuid) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) return null;
+        NbtCompound nbt = new NbtCompound();
+        e.writeNbt(nbt);
+        return nbt.toString();
+    }
+
+    public static boolean entitySetNbt(String uuid, String snbt) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) return false;
+        try {
+            NbtCompound nbt = StringNbtReader.parse(snbt);
+            e.readNbt(nbt);
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    public static boolean spawnParticles(
+            String dimension, double x, double y, double z,
+            String particleTypeId, int count,
+            double dx, double dy, double dz, double speed) {
+        ServerWorld w = worldFor(dimension);
+        if (w == null) return false;
+        Identifier id = Identifier.tryParse(particleTypeId);
+        if (id == null) return false;
+        net.minecraft.particle.ParticleType<?> type = Registries.PARTICLE_TYPE.get(id);
+        if (!(type instanceof net.minecraft.particle.ParticleEffect effect)) return false;
+        w.spawnParticles(effect, x, y, z, count, dx, dy, dz, speed);
+        return true;
+    }
+
     public static int worldEntityCount(String dimension, String entityTypeId) {
         ServerWorld w = worldFor(dimension);
         if (w == null) return -1;
@@ -783,12 +817,18 @@ public final class NativeBridge {
     /** Client-receiver packet channels, one per line. */
     public static native String nativeClientPacketChannels();
 
-    /** Entity loaded into world — observe only. */
+    /** Entity loaded into world — Post phase (observe only). */
     public static native void nativeOnEntitySpawn(String entityType, String uuid, String dimension);
 
-    /** Entity loaded into world — return false to discard (cancel) it. */
+    /** Entity loaded into world — Pre phase; return false to discard (cancel) it. */
     public static native boolean nativeOnEntitySpawnPre(String entityType, String uuid, String dimension);
 
-    /** Entity about to take damage — return false to cancel the damage. */
+    /** Entity about to take damage — Pre phase; return false to cancel the damage. */
     public static native boolean nativeOnEntityDamagePre(String entityType, String uuid, float amount, String source);
+
+    /** Player placed a block — Pre phase; return false to cancel placement. */
+    public static native boolean nativeOnPlaceBlockPre(String player, String block, int x, int y, int z);
+
+    /** Player placed a block — Post phase (observe only). */
+    public static native void nativeOnPlaceBlock(String player, String block, int x, int y, int z);
 }

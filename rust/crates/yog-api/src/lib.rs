@@ -58,7 +58,8 @@ pub use yog_command::CommandContext;
 pub use yog_core::{BlockPos, Server};
 pub use yog_event::{
     AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent, EntityDeathEvent,
-    EntitySpawnEvent, PlayerJoinEvent, PlayerLeaveEvent, UseBlockEvent, UseItemEvent,
+    EntitySpawnEvent, EventPhase, PlaceBlockEvent, PlayerJoinEvent, PlayerLeaveEvent,
+    UseBlockEvent, UseItemEvent,
 };
 pub use yog_entity::Entity;
 pub use yog_network::PacketEvent;
