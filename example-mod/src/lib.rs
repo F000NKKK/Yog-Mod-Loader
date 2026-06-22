@@ -13,6 +13,11 @@ impl Mod for ExampleMod {
         events::register(registry);
         commands::register(registry);
         network::register(registry);
+
+        // Announce every 5 minutes (6000 ticks) via the scheduler.
+        registry.schedule_repeating(6000, |srv| {
+            srv.broadcast("Yog: the server is still running.");
+        });
     }
 }
 

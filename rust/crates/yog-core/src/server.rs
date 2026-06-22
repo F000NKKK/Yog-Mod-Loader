@@ -102,4 +102,20 @@ pub trait Server {
 
     /// Returns whether `block_id` belongs to `tag_id`.
     fn has_block_tag(&self, block_id: &str, tag_id: &str) -> bool;
+
+    // ── world state ─────────────────────────────────────────────────────────
+
+    /// Game time in ticks since world creation (never wraps, keeps counting).
+    fn world_time(&self, dimension: &str) -> Option<i64>;
+
+    /// Set the time-of-day (0 = dawn, 6000 = noon, 12000 = dusk, 18000 = midnight).
+    /// Only changes the visual time, not the absolute world age.
+    fn world_set_time(&self, dimension: &str, time: i64) -> bool;
+
+    /// Whether it is currently raining in the given dimension.
+    fn world_is_raining(&self, dimension: &str) -> bool;
+
+    /// Start or stop rain. `duration_ticks` controls how long the weather lasts
+    /// (use 0 for a server-chosen default duration).
+    fn world_set_weather(&self, dimension: &str, raining: bool, duration_ticks: i32) -> bool;
 }

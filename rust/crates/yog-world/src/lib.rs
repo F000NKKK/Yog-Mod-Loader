@@ -37,6 +37,26 @@ impl<'a> World<'a> {
     pub fn set_block(&self, pos: BlockPos, block_id: &str) -> bool {
         self.server.set_block(&self.dimension, pos, block_id)
     }
+
+    /// Game time in ticks since world creation.
+    pub fn time(&self) -> Option<i64> {
+        self.server.world_time(&self.dimension)
+    }
+
+    /// Set the time-of-day (0 = dawn, 6000 = noon, 12000 = dusk, 18000 = midnight).
+    pub fn set_time(&self, time: i64) -> bool {
+        self.server.world_set_time(&self.dimension, time)
+    }
+
+    /// Whether it is currently raining in this dimension.
+    pub fn is_raining(&self) -> bool {
+        self.server.world_is_raining(&self.dimension)
+    }
+
+    /// Start or stop rain. `duration_ticks = 0` picks a server-default duration.
+    pub fn set_weather(&self, raining: bool, duration_ticks: i32) -> bool {
+        self.server.world_set_weather(&self.dimension, raining, duration_ticks)
+    }
 }
 
 /// Convenience: the overworld of `server`.

@@ -5,6 +5,7 @@
 //! (`yog-core`) all meet here.
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use yog_command::CommandContext;
 use yog_core::Server;
@@ -19,6 +20,15 @@ type Handler<E> = Box<dyn Fn(&E, &dyn Server) + Send + Sync + 'static>;
 type Listener = Box<dyn Fn(&dyn Server) + Send + Sync + 'static>;
 type CommandHandler =
     Box<dyn Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static>;
+
+/// A pending scheduled task (one-shot or repeating).
+struct ScheduledTask {
+    /// Ticks remaining until the handler fires.
+    remaining: u64,
+    /// If `Some(n)`, re-schedule with `remaining = n` after firing.
+    period: Option<u64>,
+    handler: Arc<dyn Fn(&dyn Server) + Send + Sync + 'static>,
+}
 
 /// Collects everything a mod registers. The Yog runtime owns one of these and
 /// drives it from the Java host. Every handler receives a [`Server`] handle so
@@ -42,6 +52,9 @@ pub struct Registry {
     blocks: Vec<BlockDef>,
     server_packets: HashMap<String, Vec<Handler<PacketEvent>>>,
     client_packets: HashMap<String, Vec<Handler<PacketEvent>>>,
+    /// Pending scheduled tasks — uses interior mutability so `dispatch_server_tick`
+    /// can advance the queue without a write lock on the whole Registry.
+    scheduled: Mutex<Vec<ScheduledTask>>,
 }
 
 impl Registry {
@@ -125,6 +138,33 @@ impl Registry {
         F: Fn(&dyn Server) + Send + Sync + 'static,
     {
         self.server_tick.push(Box::new(listener));
+    }
+
+    /// Run `handler` once after `delay_ticks` ticks (e.g. 20 = 1 second).
+    pub fn schedule_once<F>(&self, delay_ticks: u64, handler: F)
+    where
+        F: Fn(&dyn Server) + Send + Sync + 'static,
+    {
+        self.scheduled.lock().expect("scheduler poisoned").push(ScheduledTask {
+            remaining: delay_ticks,
+            period: None,
+            handler: Arc::new(handler),
+        });
+    }
+
+    /// Run `handler` repeatedly, first time after `period_ticks`, then every
+    /// `period_ticks` thereafter. Returns immediately; cancellation is not yet
+    /// supported (schedule a one-shot that re-schedules itself for conditional
+    /// repeating logic).
+    pub fn schedule_repeating<F>(&self, period_ticks: u64, handler: F)
+    where
+        F: Fn(&dyn Server) + Send + Sync + 'static,
+    {
+        self.scheduled.lock().expect("scheduler poisoned").push(ScheduledTask {
+            remaining: period_ticks,
+            period: Some(period_ticks),
+            handler: Arc::new(handler),
+        });
     }
 
     /// Subscribe to the "server started" lifecycle event.
@@ -264,6 +304,31 @@ impl Registry {
     pub fn dispatch_server_tick(&self, server: &dyn Server) {
         for listener in &self.server_tick {
             listener(server);
+        }
+
+        // Advance the scheduler: collect ready handlers, rebuild the queue,
+        // then fire — all without holding the lock during handler execution.
+        let to_fire: Vec<Arc<dyn Fn(&dyn Server) + Send + Sync>> = {
+            let mut tasks = self.scheduled.lock().expect("scheduler poisoned");
+            let mut ready = Vec::new();
+            let mut kept = Vec::new();
+            for mut task in tasks.drain(..) {
+                if task.remaining == 0 {
+                    ready.push(Arc::clone(&task.handler));
+                    if let Some(period) = task.period {
+                        task.remaining = period;
+                        kept.push(task);
+                    }
+                } else {
+                    task.remaining -= 1;
+                    kept.push(task);
+                }
+            }
+            *tasks = kept;
+            ready
+        };
+        for handler in to_fire {
+            handler(server);
         }
     }
 

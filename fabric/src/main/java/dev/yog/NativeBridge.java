@@ -162,6 +162,43 @@ public final class NativeBridge {
         return false;
     }
 
+    /** Game time in ticks since world creation, or Long.MIN_VALUE if dimension unknown. */
+    public static long worldTime(String dimension) {
+        ServerWorld w = worldFor(dimension);
+        return w == null ? Long.MIN_VALUE : w.getTime();
+    }
+
+    /** Set the time-of-day; returns false if the dimension is unknown. */
+    public static boolean worldSetTime(String dimension, long time) {
+        ServerWorld w = worldFor(dimension);
+        if (w == null) return false;
+        w.setTimeOfDay(time);
+        return true;
+    }
+
+    /** Whether it is currently raining in the given dimension. */
+    public static boolean worldIsRaining(String dimension) {
+        ServerWorld w = worldFor(dimension);
+        return w != null && w.isRaining();
+    }
+
+    /**
+     * Start or stop rain. {@code durationTicks == 0} picks a server default.
+     * Internally calls {@link net.minecraft.server.world.ServerWorld#setWeather}.
+     * Signature: clearDuration, rainDuration, rain, thunder.
+     */
+    public static boolean worldSetWeather(String dimension, boolean raining, int durationTicks) {
+        ServerWorld w = worldFor(dimension);
+        if (w == null) return false;
+        int dur = durationTicks > 0 ? durationTicks : 6000;
+        if (raining) {
+            w.setWeather(0, dur, true, false);
+        } else {
+            w.setWeather(dur, 0, false, false);
+        }
+        return true;
+    }
+
     public static boolean entityAddEffect(
             String uuid, String effectId, int durationTicks, int amplifier, boolean showParticles) {
         Entity e = entityByUuid(uuid);

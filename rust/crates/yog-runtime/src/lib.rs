@@ -444,6 +444,65 @@ impl Server for JniServer {
         .unwrap_or(false)
     }
 
+    fn world_time(&self, dimension: &str) -> Option<i64> {
+        let vm = JAVA_VM.get()?;
+        let mut env = vm.attach_current_thread().ok()?;
+        let jd = env.new_string(dimension).ok()?;
+        let v = env
+            .call_static_method(
+                "dev/yog/NativeBridge",
+                "worldTime",
+                "(Ljava/lang/String;)J",
+                &[JValue::Object(&jd)],
+            )
+            .ok()?
+            .j()
+            .ok()?;
+        if v == i64::MIN { None } else { Some(v) }
+    }
+
+    fn world_set_time(&self, dimension: &str, time: i64) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let Ok(jd) = env.new_string(dimension) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "worldSetTime",
+            "(Ljava/lang/String;J)Z",
+            &[JValue::Object(&jd), JValue::Long(time)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn world_is_raining(&self, dimension: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let Ok(jd) = env.new_string(dimension) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "worldIsRaining",
+            "(Ljava/lang/String;)Z",
+            &[JValue::Object(&jd)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn world_set_weather(&self, dimension: &str, raining: bool, duration_ticks: i32) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let Ok(jd) = env.new_string(dimension) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "worldSetWeather",
+            "(Ljava/lang/String;ZI)Z",
+            &[JValue::Object(&jd), JValue::Bool(raining as u8), JValue::Int(duration_ticks)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
     fn entity_add_effect(
         &self,
         uuid: &str,

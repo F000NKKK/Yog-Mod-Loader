@@ -72,4 +72,23 @@ pub fn register(registry: &mut Registry) {
         let ok = srv.drop_loot("minecraft:entities/zombie", "minecraft:overworld", 0.0, 64.0, 0.0);
         Some(if ok { "Loot dropped at (0, 64, 0).".into() } else { "Loot table empty or not found.".into() })
     });
+
+    // Show current world time.
+    registry.on_command("time", |_ctx, srv| {
+        use yog_api::world::World;
+        let w = World::new(srv, "minecraft:overworld");
+        match w.time() {
+            Some(t) => Some(format!("World time: {} ticks ({})", t, t % 24000)),
+            None => Some("Dimension not found.".into()),
+        }
+    });
+
+    // Toggle rain.
+    registry.on_command("weather", |_ctx, srv| {
+        use yog_api::world::World;
+        let w = World::new(srv, "minecraft:overworld");
+        let raining = w.is_raining();
+        w.set_weather(!raining, 6000);
+        Some(if raining { "Rain stopped.".into() } else { "Rain started.".into() })
+    });
 }
