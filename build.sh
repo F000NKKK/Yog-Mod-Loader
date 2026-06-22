@@ -180,6 +180,7 @@ build_example() {
     local l
     for l in "${LOADERS[@]}"; do
         mkdir -p "$ROOT/$l/run/yog-mods"
+        rm -f "$ROOT/$l/run/yog-mods/"*.yog
         cp "$ROOT/example-mod/artifacts/"*.yog "$ROOT/$l/run/yog-mods/" 2>/dev/null || true
     done
 }
