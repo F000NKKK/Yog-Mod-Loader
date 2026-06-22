@@ -3,13 +3,13 @@ package dev.yog.mixin;
 import dev.yog.NativeBridge;
 import net.minecraft.advancement.Advancement;
 import net.minecraft.advancement.AdvancementProgress;
+import net.minecraft.advancement.PlayerAdvancementTracker;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import net.minecraft.advancement.PlayerAdvancementTracker;
 
 @Mixin(PlayerAdvancementTracker.class)
 public abstract class AdvancementMixin {
@@ -18,7 +18,11 @@ public abstract class AdvancementMixin {
 
     @Shadow public abstract AdvancementProgress getProgress(Advancement advancement);
 
-    @Inject(method = "grantCriterionProgress", at = @At("RETURN"))
+    // Yarn: grantCriterion(Advancement, String) -> boolean (method_12878)
+    @Inject(
+        method = "grantCriterion(Lnet/minecraft/advancement/Advancement;Ljava/lang/String;)Z",
+        at = @At("RETURN")
+    )
     private void yog$onCriterionGrant(
             Advancement advancement, String criterionName,
             CallbackInfoReturnable<Boolean> cir) {
