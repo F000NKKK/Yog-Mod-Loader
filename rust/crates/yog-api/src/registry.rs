@@ -8,7 +8,10 @@ use std::collections::HashMap;
 
 use yog_command::CommandContext;
 use yog_core::Server;
-use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};
+use yog_event::{
+    AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent, EntityDeathEvent,
+    PlayerJoinEvent, PlayerLeaveEvent, UseBlockEvent, UseItemEvent,
+};
 use yog_network::PacketEvent;
 use yog_registry::{BlockDef, ItemDef};
 
@@ -27,6 +30,10 @@ pub struct Registry {
     player_join: Vec<Handler<PlayerJoinEvent>>,
     player_leave: Vec<Handler<PlayerLeaveEvent>>,
     use_item: Vec<Handler<UseItemEvent>>,
+    use_block: Vec<Handler<UseBlockEvent>>,
+    attack_entity: Vec<Handler<AttackEntityEvent>>,
+    entity_damage: Vec<Handler<EntityDamageEvent>>,
+    entity_death: Vec<Handler<EntityDeathEvent>>,
     server_started: Vec<Listener>,
     server_stopping: Vec<Listener>,
     server_tick: Vec<Listener>,
@@ -78,6 +85,38 @@ impl Registry {
         F: Fn(&UseItemEvent, &dyn Server) + Send + Sync + 'static,
     {
         self.use_item.push(Box::new(handler));
+    }
+
+    /// Subscribe to block-use (right-click on a block) events.
+    pub fn on_use_block<F>(&mut self, handler: F)
+    where
+        F: Fn(&UseBlockEvent, &dyn Server) + Send + Sync + 'static,
+    {
+        self.use_block.push(Box::new(handler));
+    }
+
+    /// Subscribe to attack-entity (left-click on an entity) events.
+    pub fn on_attack_entity<F>(&mut self, handler: F)
+    where
+        F: Fn(&AttackEntityEvent, &dyn Server) + Send + Sync + 'static,
+    {
+        self.attack_entity.push(Box::new(handler));
+    }
+
+    /// Subscribe to living-entity damage events.
+    pub fn on_entity_damage<F>(&mut self, handler: F)
+    where
+        F: Fn(&EntityDamageEvent, &dyn Server) + Send + Sync + 'static,
+    {
+        self.entity_damage.push(Box::new(handler));
+    }
+
+    /// Subscribe to living-entity death events.
+    pub fn on_entity_death<F>(&mut self, handler: F)
+    where
+        F: Fn(&EntityDeathEvent, &dyn Server) + Send + Sync + 'static,
+    {
+        self.entity_death.push(Box::new(handler));
     }
 
     /// Subscribe to the end of every server tick (20×/second). Keep these cheap.
@@ -194,6 +233,30 @@ impl Registry {
 
     pub fn dispatch_use_item(&self, event: &UseItemEvent, server: &dyn Server) {
         for handler in &self.use_item {
+            handler(event, server);
+        }
+    }
+
+    pub fn dispatch_use_block(&self, event: &UseBlockEvent, server: &dyn Server) {
+        for handler in &self.use_block {
+            handler(event, server);
+        }
+    }
+
+    pub fn dispatch_attack_entity(&self, event: &AttackEntityEvent, server: &dyn Server) {
+        for handler in &self.attack_entity {
+            handler(event, server);
+        }
+    }
+
+    pub fn dispatch_entity_damage(&self, event: &EntityDamageEvent, server: &dyn Server) {
+        for handler in &self.entity_damage {
+            handler(event, server);
+        }
+    }
+
+    pub fn dispatch_entity_death(&self, event: &EntityDeathEvent, server: &dyn Server) {
+        for handler in &self.entity_death {
             handler(event, server);
         }
     }

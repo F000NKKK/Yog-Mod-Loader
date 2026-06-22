@@ -17,7 +17,10 @@ import net.minecraft.util.Identifier;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -28,6 +31,7 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.TypedActionResult;
 
 /**
@@ -96,6 +100,42 @@ public class YogHost implements ModInitializer {
                 NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId);
             }
             return TypedActionResult.pass(player.getStackInHand(hand));
+        });
+
+        // Block use (right-click on a block), server side only.
+        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            if (!world.isClient && player instanceof ServerPlayerEntity sp) {
+                net.minecraft.util.math.BlockPos pos = hitResult.getBlockPos();
+                String blockId = Registries.BLOCK.getId(world.getBlockState(pos).getBlock()).toString();
+                NativeBridge.nativeOnUseBlock(
+                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+            }
+            return ActionResult.PASS;
+        });
+
+        // Attack (left-click on an entity), server side only.
+        AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            if (!world.isClient && player instanceof ServerPlayerEntity sp) {
+                String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
+                NativeBridge.nativeOnAttackEntity(
+                        sp.getName().getString(), type, entity.getUuidAsString());
+            }
+            return ActionResult.PASS;
+        });
+
+        // Living-entity damage (server side). Observe only; always allow.
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
+            NativeBridge.nativeOnEntityDamage(
+                    type, entity.getUuidAsString(), amount, source.getName());
+            return true;
+        });
+
+        // Living-entity death (server side).
+        ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+            String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
+            NativeBridge.nativeOnEntityDeath(
+                    type, entity.getUuidAsString(), source.getName());
         });
 
         // End-of-tick (20×/second).

@@ -12,13 +12,14 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock, RwLock};
 
 use jni::objects::{JByteArray, JClass, JString, JValue};
-use jni::sys::{jint, jstring};
+use jni::sys::{jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
 use libloading::{Library, Symbol};
 
 use yog_api::{
-    BlockBreakEvent, BlockPos, ChatEvent, CommandContext, PacketEvent, PlayerJoinEvent,
-    PlayerLeaveEvent, Registry, Server, UseItemEvent, ABI_VERSION,
+    AttackEntityEvent, BlockBreakEvent, BlockPos, ChatEvent, CommandContext, EntityDamageEvent,
+    EntityDeathEvent, PacketEvent, PlayerJoinEvent, PlayerLeaveEvent, Registry, Server,
+    UseBlockEvent, UseItemEvent, ABI_VERSION,
 };
 
 /// Loaded mod libraries, kept alive for the process so their code stays mapped.
@@ -607,6 +608,98 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
             .read()
             .expect("registry poisoned")
             .dispatch_use_item(&event, &JniServer);
+    });
+}
+
+/// Called by the host when a player right-clicks a block (server side).
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    player: JString<'l>,
+    block: JString<'l>,
+    x: jint,
+    y: jint,
+    z: jint,
+) {
+    let event = UseBlockEvent {
+        player_name: jstr!(env, player),
+        block_id: jstr!(env, block),
+        pos: BlockPos { x, y, z },
+    };
+    guard("on_use_block", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_use_block(&event, &JniServer);
+    });
+}
+
+/// Called by the host when a player attacks (left-clicks) an entity.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAttackEntity<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    player: JString<'l>,
+    target_type: JString<'l>,
+    target_uuid: JString<'l>,
+) {
+    let event = AttackEntityEvent {
+        player_name: jstr!(env, player),
+        target_type: jstr!(env, target_type),
+        target_uuid: jstr!(env, target_uuid),
+    };
+    guard("on_attack_entity", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_attack_entity(&event, &JniServer);
+    });
+}
+
+/// Called by the host after a living entity takes damage.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamage<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    entity_type: JString<'l>,
+    uuid: JString<'l>,
+    amount: jfloat,
+    source: JString<'l>,
+) {
+    let event = EntityDamageEvent {
+        entity_type: jstr!(env, entity_type),
+        uuid: jstr!(env, uuid),
+        amount,
+        source: jstr!(env, source),
+    };
+    guard("on_entity_damage", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_entity_damage(&event, &JniServer);
+    });
+}
+
+/// Called by the host after a living entity dies.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDeath<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    entity_type: JString<'l>,
+    uuid: JString<'l>,
+    source: JString<'l>,
+) {
+    let event = EntityDeathEvent {
+        entity_type: jstr!(env, entity_type),
+        uuid: jstr!(env, uuid),
+        source: jstr!(env, source),
+    };
+    guard("on_entity_death", || {
+        registry()
+            .read()
+            .expect("registry poisoned")
+            .dispatch_entity_death(&event, &JniServer);
     });
 }
 

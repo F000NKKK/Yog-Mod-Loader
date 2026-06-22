@@ -62,6 +62,34 @@ impl Mod for ExampleMod {
             }
         });
 
+        // Right-click a block -> log which block was used.
+        registry.on_use_block(|e, _srv| {
+            info!(
+                "[example-mod] {} used {} at ({}, {}, {})",
+                e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
+            );
+        });
+
+        // Attack an entity -> announce the target.
+        registry.on_attack_entity(|e, srv| {
+            info!("[example-mod] {} attacked {} ({})", e.player_name, e.target_type, e.target_uuid);
+            srv.broadcast(&format!("{} is fighting a {}!", e.player_name, e.target_type));
+        });
+
+        // Entity damage -> log it.
+        registry.on_entity_damage(|e, _srv| {
+            info!(
+                "[example-mod] {} took {:.1} damage from {}",
+                e.entity_type, e.amount, e.source
+            );
+        });
+
+        // Entity death -> announce it.
+        registry.on_entity_death(|e, srv| {
+            info!("[example-mod] {} died (source: {})", e.entity_type, e.source);
+            srv.broadcast(&format!("A {} has perished.", e.entity_type));
+        });
+
         // Periodic logic with shared state — announce every minute (1200 ticks).
         registry.on_tick(|srv| {
             static TICKS: AtomicU64 = AtomicU64::new(0);

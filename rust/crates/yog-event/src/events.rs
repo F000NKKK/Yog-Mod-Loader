@@ -40,3 +40,44 @@ pub struct UseItemEvent {
     /// Registry id of the held item, e.g. `minecraft:stick`.
     pub item_id: String,
 }
+
+/// Fired when a player right-clicks a block (server side).
+#[derive(Debug, Clone)]
+pub struct UseBlockEvent {
+    pub player_name: String,
+    /// Registry id of the targeted block, e.g. `minecraft:chest`.
+    pub block_id: String,
+    pub pos: BlockPos,
+}
+
+/// Fired when a player attacks (left-clicks) an entity (server side).
+#[derive(Debug, Clone)]
+pub struct AttackEntityEvent {
+    pub player_name: String,
+    /// Registry id of the target, e.g. `minecraft:zombie`.
+    pub target_type: String,
+    /// Target entity UUID as a string.
+    pub target_uuid: String,
+}
+
+/// Fired after a living entity takes damage (server side).
+#[derive(Debug, Clone)]
+pub struct EntityDamageEvent {
+    /// Registry id of the entity, e.g. `minecraft:zombie`.
+    pub entity_type: String,
+    pub uuid: String,
+    /// Amount of damage dealt (hit points).
+    pub amount: f32,
+    /// Identifier of the damage source, e.g. `minecraft:player`, `fall`.
+    pub source: String,
+}
+
+/// Fired after a living entity dies (server side).
+#[derive(Debug, Clone)]
+pub struct EntityDeathEvent {
+    /// Registry id of the entity, e.g. `minecraft:zombie`.
+    pub entity_type: String,
+    pub uuid: String,
+    /// Identifier of the killing damage source, e.g. `minecraft:player`.
+    pub source: String,
+}

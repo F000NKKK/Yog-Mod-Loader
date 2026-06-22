@@ -51,7 +51,10 @@ macro_rules! export_mod {
 
 pub use yog_command::CommandContext;
 pub use yog_core::{BlockPos, Server};
-pub use yog_event::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};
+pub use yog_event::{
+    AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent, EntityDeathEvent,
+    PlayerJoinEvent, PlayerLeaveEvent, UseBlockEvent, UseItemEvent,
+};
 pub use yog_entity::Entity;
 pub use yog_network::PacketEvent;
 pub use yog_player::Player;

@@ -285,6 +285,17 @@ public final class NativeBridge {
 
     public static native void nativeOnUseItem(String player, String item);
 
+    public static native void nativeOnUseBlock(
+            String player, String block, int x, int y, int z);
+
+    public static native void nativeOnAttackEntity(
+            String player, String targetType, String targetUuid);
+
+    public static native void nativeOnEntityDamage(
+            String entityType, String uuid, float amount, String source);
+
+    public static native void nativeOnEntityDeath(String entityType, String uuid, String source);
+
     public static native void nativeOnTick();
 
     public static native void nativeOnServerStarted();

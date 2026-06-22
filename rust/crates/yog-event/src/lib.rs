@@ -5,4 +5,7 @@
 
 mod events;
 
-pub use events::{BlockBreakEvent, ChatEvent, PlayerJoinEvent, PlayerLeaveEvent, UseItemEvent};
+pub use events::{
+    AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent, EntityDeathEvent,
+    PlayerJoinEvent, PlayerLeaveEvent, UseBlockEvent, UseItemEvent,
+};
