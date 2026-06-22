@@ -24,6 +24,7 @@ use libloading::{Library, Symbol};
 
 use yog_abi::{
     ABI_VERSION, YogApi, YogAttackEntityFn, YogBlockBreakFn, YogBlockDef, YogBlockPos,
+    YogCancellableBlockBreakFn, YogCancellableChatFn,
     YogChatFn, YogCommandFn, YogEntityDamageFn, YogEntityDeathFn, YogItemDef,
     YogOwnedStr, YogPacketFn, YogPlayerFn, YogScheduledFn, YogServer,
     YogServerFn, YogStr, YogUseBlockFn, YogUseItemFn, YogVec3,
@@ -58,6 +59,9 @@ struct RuntimeHandlers {
     server_stopping: Vec<(*mut c_void, YogServerFn)>,
     commands:        HashMap<String, (*mut c_void, YogCommandFn)>,
     typed_schemas:   HashMap<String, String>,
+    block_break_pre: Vec<(*mut c_void, YogCancellableBlockBreakFn)>,
+    chat_pre:        Vec<(*mut c_void, YogCancellableChatFn)>,
+    recipes:         Vec<(String, String, String)>, // (namespace, name, json)
     packets:         HashMap<String, (*mut c_void, YogPacketFn)>,
     client_packets:  HashMap<String, (*mut c_void, YogPacketFn)>,
     items:           Vec<ItemDef>,
@@ -79,6 +83,7 @@ impl RuntimeHandlers {
             entity_death: Vec::new(), server_tick: Vec::new(),
             server_started: Vec::new(), server_stopping: Vec::new(),
             commands: HashMap::new(), typed_schemas: HashMap::new(),
+            block_break_pre: Vec::new(), chat_pre: Vec::new(), recipes: Vec::new(),
             packets: HashMap::new(), client_packets: HashMap::new(), items: Vec::new(),
             blocks: Vec::new(), scheduler: Mutex::new(SchedulerState::new()),
         }
@@ -605,6 +610,16 @@ unsafe extern "C" fn srv_entity_teleport_dim(_ctx: *mut c_void, uuid: YogStr, di
     .and_then(|v| v.z()).unwrap_or(false)
 }
 
+unsafe extern "C" fn srv_online_players(_ctx: *mut c_void) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "onlinePlayers",
+        "()Ljava/lang/String;", &[]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
 unsafe extern "C" fn srv_game_dir(_ctx: *mut c_void) -> YogOwnedStr {
     let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
     let ret = env.call_static_method("dev/yog/NativeBridge", "gameDir",
@@ -661,6 +676,25 @@ unsafe extern "C" fn api_register_typed_command(ctx: *mut c_void, name: YogStr, 
     let n = name.as_str().to_owned();
     handlers.typed_schemas.insert(n.clone(), schema.as_str().to_owned());
     handlers.commands.insert(n, (ud, h));
+}
+
+unsafe extern "C" fn api_on_block_break_pre(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableBlockBreakFn) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    handlers.block_break_pre.push((ud, h));
+}
+
+unsafe extern "C" fn api_on_chat_pre(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableChatFn) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    handlers.chat_pre.push((ud, h));
+}
+
+unsafe extern "C" fn api_register_recipe_json(ctx: *mut c_void, namespace: YogStr, name: YogStr, json: YogStr) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    handlers.recipes.push((
+        namespace.as_str().to_owned(),
+        name.as_str().to_owned(),
+        json.as_str().to_owned(),
+    ));
 }
 
 unsafe extern "C" fn api_register_item(ctx: *mut c_void, def: *const YogItemDef) {
@@ -766,6 +800,7 @@ fn build_server_table() -> YogServer {
         player_set_slot:     srv_player_set_slot,
         player_teleport_dim: srv_player_teleport_dim,
         entity_teleport_dim: srv_entity_teleport_dim,
+        online_players:      srv_online_players,
     }
 }
 
@@ -791,6 +826,9 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         on_client_packet:   api_on_client_packet,
         register_command:       api_register_command,
         register_typed_command: api_register_typed_command,
+        on_block_break_pre:     api_on_block_break_pre,
+        on_chat_pre:            api_on_chat_pre,
+        register_recipe_json:   api_register_recipe_json,
         register_item:          api_register_item,
         register_block:     api_register_block,
         schedule_once:      api_schedule_once,
@@ -1150,6 +1188,59 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeCommandNames<'l>(
 ) -> jstring {
     let names = handlers().commands.keys().cloned().collect::<Vec<_>>().join("\n");
     env.new_string(names).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, block: JString<'l>, x: jint, y: jint, z: jint,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.block_break_pre.is_empty() { return 1; }
+    let p = match env.get_string(&player) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let b = match env.get_string(&block)  { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ev = yog_abi::YogBlockBreakEvent {
+        player: YogStr::from_str(&p), block: YogStr::from_str(&b),
+        pos: YogBlockPos { x, y, z },
+    };
+    let srv = srv_ptr();
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.block_break_pre {
+            if !unsafe { f(*ud, srv, &ev) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, message: JString<'l>,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.chat_pre.is_empty() { return 1; }
+    let p = match env.get_string(&player)  { Ok(s) => String::from(s), Err(_) => return 1 };
+    let m = match env.get_string(&message) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ev = yog_abi::YogChatEvent { player: YogStr::from_str(&p), message: YogStr::from_str(&m) };
+    let srv = srv_ptr();
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.chat_pre {
+            if !unsafe { f(*ud, srv, &ev) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeRecipeJsons<'l>(
+    env: JNIEnv<'l>, _class: JClass<'l>,
+) -> jstring {
+    let s = handlers().recipes.iter()
+        .map(|(ns, name, json)| format!("{}\t{}\t{}", ns, name, json))
+        .collect::<Vec<_>>().join("\n");
+    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
 #[no_mangle]

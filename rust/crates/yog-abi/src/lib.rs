@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 3;
+pub const ABI_MINOR: u32 = 4;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -223,6 +223,10 @@ pub type YogCommandFn      = unsafe extern "C" fn(
 /// Scheduler handler (once or repeating).
 pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
 
+/// Cancellable event handlers — return `true` to allow, `false` to cancel.
+pub type YogCancellableBlockBreakFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogBlockBreakEvent) -> bool;
+pub type YogCancellableChatFn       = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogChatEvent) -> bool;
+
 // ── Server action table (runtime → mod direction is wrong; it's mod → runtime) ─
 
 /// All Minecraft-mutating calls available inside a handler.
@@ -303,6 +307,10 @@ pub struct YogServer {
     // ── misc ─────────────────────────────────────────────────────────────────
     pub game_dir: unsafe extern "C" fn(ctx: *mut c_void) -> YogOwnedStr,
 
+    // ── player query (ABI minor 4) ────────────────────────────────────────────
+    /// Newline-separated list of online player names, or NONE if server not up.
+    pub online_players: unsafe extern "C" fn(ctx: *mut c_void) -> YogOwnedStr,
+
     // ── block entity (NBT, ABI minor 3) ──────────────────────────────────────
     /// SNBT string of the block entity at `pos`, or NONE if there is none.
     pub get_block_nbt: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr,
@@ -366,6 +374,15 @@ pub struct YogApi {
     /// `schema` is space-separated tokens: `int`, `float`, `word`, `string` (greedy),
     /// `player`, `blockpos`.  Handler receives tab-separated serialised args.
     pub register_typed_command: unsafe extern "C" fn(ctx: *mut c_void, name: YogStr, schema: YogStr, ud: *mut c_void, h: YogCommandFn),
+
+    // ── cancellable events (ABI minor 4) ─────────────────────────────────────
+    pub on_block_break_pre: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableBlockBreakFn),
+    pub on_chat_pre:        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCancellableChatFn),
+
+    // ── recipes (ABI minor 4) ─────────────────────────────────────────────────
+    /// Register a recipe by supplying Minecraft JSON (`data/` format).
+    /// `namespace` + `name` form the file path: `data/{ns}/recipes/{name}.json`.
+    pub register_recipe_json: unsafe extern "C" fn(ctx: *mut c_void, namespace: YogStr, name: YogStr, json: YogStr),
 
     // ── content ──────────────────────────────────────────────────────────────
     pub register_item:  unsafe extern "C" fn(ctx: *mut c_void, def: *const YogItemDef),

@@ -232,6 +232,9 @@ pub trait Server {
     /// Absolute path of the game / server root directory.
     fn game_dir(&self) -> String;
 
+    /// Names of all currently connected players.
+    fn online_players(&self) -> Vec<String>;
+
     // ── block entity ─────────────────────────────────────────────────────────
 
     /// SNBT string of the block entity at `pos` (e.g. chest contents, furnace

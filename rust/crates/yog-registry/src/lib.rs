@@ -111,6 +111,141 @@ impl ItemDef {
     }
 }
 
+// ── Recipes ──────────────────────────────────────────────────────────────────
+
+/// A shaped crafting recipe (3×3 grid with a pattern and key mapping).
+///
+/// ```
+/// # use yog_registry::ShapedRecipe;
+/// ShapedRecipe::new("yog:ruby_sword", "yog:ruby_shard", 1)
+///     .row("R  ").row("RS ").row(" S ")
+///     .key('R', "yog:ruby_shard").key('S', "minecraft:stick");
+/// ```
+#[derive(Debug, Clone)]
+pub struct ShapedRecipe {
+    pub id:     String,
+    pub output: String,
+    pub count:  u32,
+    rows:       Vec<String>,
+    keys:       Vec<(char, String)>,
+}
+
+impl ShapedRecipe {
+    pub fn new(id: impl Into<String>, output: impl Into<String>, count: u32) -> Self {
+        Self { id: id.into(), output: output.into(), count, rows: Vec::new(), keys: Vec::new() }
+    }
+
+    pub fn row(mut self, pattern: impl Into<String>) -> Self {
+        self.rows.push(pattern.into());
+        self
+    }
+
+    pub fn key(mut self, symbol: char, item_id: impl Into<String>) -> Self {
+        self.keys.push((symbol, item_id.into()));
+        self
+    }
+
+    /// Generate the Minecraft 1.20 recipe JSON for this recipe.
+    pub fn to_json(&self) -> String {
+        let pattern: String = self.rows.iter()
+            .map(|r| format!("\"{}\"", r))
+            .collect::<Vec<_>>()
+            .join(",");
+        let keys: String = self.keys.iter()
+            .map(|(ch, item)| format!("\"{}\":{{\"item\":\"{}\"}}", ch, item))
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"type\":\"minecraft:crafting_shaped\",\"pattern\":[{}],\"key\":{{{}}},\"result\":{{\"item\":\"{}\",\"count\":{}}}}}",
+            pattern, keys, self.output, self.count
+        )
+    }
+
+    /// Split `namespace:name` from the recipe id.
+    pub fn ns_name(&self) -> (&str, &str) {
+        self.id.split_once(':').unwrap_or(("minecraft", &self.id))
+    }
+}
+
+/// A shapeless crafting recipe (unordered ingredients).
+#[derive(Debug, Clone)]
+pub struct ShapelessRecipe {
+    pub id:          String,
+    pub output:      String,
+    pub count:       u32,
+    pub ingredients: Vec<String>,
+}
+
+impl ShapelessRecipe {
+    pub fn new(id: impl Into<String>, output: impl Into<String>, count: u32) -> Self {
+        Self { id: id.into(), output: output.into(), count, ingredients: Vec::new() }
+    }
+
+    pub fn ingredient(mut self, item_id: impl Into<String>) -> Self {
+        self.ingredients.push(item_id.into());
+        self
+    }
+
+    pub fn to_json(&self) -> String {
+        let ingr: String = self.ingredients.iter()
+            .map(|i| format!("{{\"item\":\"{}\"}}", i))
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"type\":\"minecraft:crafting_shapeless\",\"ingredients\":[{}],\"result\":{{\"item\":\"{}\",\"count\":{}}}}}",
+            ingr, self.output, self.count
+        )
+    }
+
+    pub fn ns_name(&self) -> (&str, &str) {
+        self.id.split_once(':').unwrap_or(("minecraft", &self.id))
+    }
+}
+
+/// A furnace smelting recipe.
+#[derive(Debug, Clone)]
+pub struct FurnaceRecipe {
+    pub id:         String,
+    pub input:      String,
+    pub output:     String,
+    pub count:      u32,
+    pub experience: f32,
+    pub cook_time:  u32,
+}
+
+impl FurnaceRecipe {
+    pub fn new(
+        id: impl Into<String>,
+        input: impl Into<String>,
+        output: impl Into<String>,
+        count: u32,
+    ) -> Self {
+        Self { id: id.into(), input: input.into(), output: output.into(), count, experience: 0.1, cook_time: 200 }
+    }
+
+    pub fn experience(mut self, xp: f32) -> Self {
+        self.experience = xp;
+        self
+    }
+
+    /// Cooking time in ticks (default 200 = 10 seconds).
+    pub fn cook_time(mut self, ticks: u32) -> Self {
+        self.cook_time = ticks;
+        self
+    }
+
+    pub fn to_json(&self) -> String {
+        format!(
+            "{{\"type\":\"minecraft:smelting\",\"ingredient\":{{\"item\":\"{}\"}},\"result\":{{\"item\":\"{}\",\"count\":{}}},\"experience\":{},\"cookingtime\":{}}}",
+            self.input, self.output, self.count, self.experience, self.cook_time
+        )
+    }
+
+    pub fn ns_name(&self) -> (&str, &str) {
+        self.id.split_once(':').unwrap_or(("minecraft", &self.id))
+    }
+}
+
 // ── Blocks ───────────────────────────────────────────────────────────────────
 
 /// A custom block to register; it also gets a matching block-item.

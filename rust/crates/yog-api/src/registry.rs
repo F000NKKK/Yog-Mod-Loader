@@ -13,6 +13,7 @@ use yog_abi::{
     YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef, YogChatEvent,
     YogCommandEvent, YogEntityDamageEvent, YogEntityDeathEvent, YogItemDef, YogPacketEvent,
     YogPlayerEvent, YogServer, YogStr, YogUseBlockEvent, YogUseItemEvent,
+
 };
 use yog_command::CommandContext;
 use yog_core::Server;
@@ -21,7 +22,7 @@ use yog_event::{
     PlayerJoinEvent, PlayerLeaveEvent, UseBlockEvent, UseItemEvent,
 };
 use yog_network::PacketEvent;
-use yog_registry::{BlockDef, ItemDef};
+use yog_registry::{BlockDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
 
 // ── CServer — implements Server via the YogServer function table ──────────────
 
@@ -311,6 +312,19 @@ impl Server for CServer {
         unsafe { (s.bossbar_set_visible)(s.ctx, YogStr::from_str(id), visible) }
     }
 
+    fn online_players(&self) -> Vec<String> {
+        let s = srv!(self);
+        let owned = unsafe { (s.online_players)(s.ctx) };
+        if owned.is_none() { return Vec::new(); }
+        let text = unsafe {
+            String::from_utf8(
+                std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()
+            ).unwrap_or_default()
+        };
+        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        if text.is_empty() { Vec::new() } else { text.lines().map(str::to_owned).collect() }
+    }
+
     fn get_block_nbt(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<String> {
         let s = srv!(self);
         let owned = unsafe {
@@ -545,6 +559,35 @@ where F: Fn(&dyn Server) + Send + Sync,
     f(&CServer(srv));
 }
 
+unsafe extern "C" fn trampoline_block_break_pre<F>(
+    ud: *mut c_void, srv: *const YogServer, ev: *const yog_abi::YogBlockBreakEvent,
+) -> bool
+where F: Fn(&BlockBreakEvent, &dyn Server) -> bool + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    let ev = &*ev;
+    let rust_ev = BlockBreakEvent {
+        player_name: ev.player.as_str().to_owned(),
+        block_id:    ev.block.as_str().to_owned(),
+        pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
+    };
+    f(&rust_ev, &CServer(srv))
+}
+
+unsafe extern "C" fn trampoline_chat_pre<F>(
+    ud: *mut c_void, srv: *const YogServer, ev: *const yog_abi::YogChatEvent,
+) -> bool
+where F: Fn(&ChatEvent, &dyn Server) -> bool + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    let ev = &*ev;
+    let rust_ev = ChatEvent {
+        player_name: ev.player.as_str().to_owned(),
+        message:     ev.message.as_str().to_owned(),
+    };
+    f(&rust_ev, &CServer(srv))
+}
+
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 /// Wraps the [`YogApi`] table and provides an ergonomic registration API.
@@ -686,6 +729,56 @@ impl Registry {
         let ch = YogStr::from_str(channel.as_ref());
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_client_packet)(self.ctx(), ch, ud, trampoline_packet::<F>) }
+    }
+
+    // ── cancellable events ───────────────────────────────────────────────────
+
+    /// Register a handler that fires **before** a block is broken.
+    /// Return `true` to allow the break, `false` to cancel it.
+    pub fn on_block_break_pre<F>(&mut self, handler: F)
+    where F: Fn(&BlockBreakEvent, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_block_break_pre)(self.ctx(), ud, trampoline_block_break_pre::<F>) }
+    }
+
+    /// Register a handler that fires **before** a chat message is sent.
+    /// Return `true` to allow the message, `false` to suppress it.
+    pub fn on_chat_pre<F>(&mut self, handler: F)
+    where F: Fn(&ChatEvent, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_chat_pre)(self.ctx(), ud, trampoline_chat_pre::<F>) }
+    }
+
+    // ── recipes ──────────────────────────────────────────────────────────────
+
+    fn recipe(&mut self, ns: &str, name: &str, json: &str) {
+        unsafe {
+            ((*self.api).register_recipe_json)(
+                self.ctx(),
+                YogStr::from_str(ns), YogStr::from_str(name), YogStr::from_str(json),
+            )
+        }
+    }
+
+    /// Register a shaped crafting recipe.
+    pub fn add_shaped_recipe(&mut self, recipe: ShapedRecipe) {
+        let json = recipe.to_json();
+        let (ns, name) = recipe.ns_name();
+        self.recipe(ns, name, &json);
+    }
+
+    /// Register a shapeless crafting recipe.
+    pub fn add_shapeless_recipe(&mut self, recipe: ShapelessRecipe) {
+        let json = recipe.to_json();
+        let (ns, name) = recipe.ns_name();
+        self.recipe(ns, name, &json);
+    }
+
+    /// Register a furnace smelting recipe.
+    pub fn add_furnace_recipe(&mut self, recipe: FurnaceRecipe) {
+        let json = recipe.to_json();
+        let (ns, name) = recipe.ns_name();
+        self.recipe(ns, name, &json);
     }
 
     // ── content ──────────────────────────────────────────────────────────────

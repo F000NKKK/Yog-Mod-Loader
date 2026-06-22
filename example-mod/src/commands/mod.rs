@@ -160,6 +160,16 @@ pub fn register(registry: &mut Registry) {
         Some(if raining { "Rain stopped.".into() } else { "Rain started.".into() })
     });
 
+    // List online players.
+    registry.on_command("players", |_ctx, srv| {
+        let list = srv.online_players();
+        if list.is_empty() {
+            Some("No players online.".into())
+        } else {
+            Some(format!("Online ({}): {}", list.len(), list.join(", ")))
+        }
+    });
+
     // ── typed commands & new features ─────────────────────────────────────────
 
     // /tp_dim <dim_word> <x> <y> <z>  — cross-dimension teleport

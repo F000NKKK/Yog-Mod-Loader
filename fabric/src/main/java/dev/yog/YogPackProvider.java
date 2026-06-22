@@ -97,9 +97,34 @@ public class YogPackProvider implements ResourcePackProvider {
             }
         }
 
+        // Inject mod-registered recipes as JSON files inside the data pack.
+        injectRecipes(out);
+
         // pack_format 15 = MC 1.20.1, valid for both resources and data.
         Files.writeString(out.resolve("pack.mcmeta"),
                 "{\"pack\":{\"pack_format\":15,\"description\":\"Yog mods\"}}");
         return out;
+    }
+
+    private static void injectRecipes(Path packRoot) {
+        String lines = NativeBridge.nativeRecipeJsons();
+        if (lines == null || lines.isBlank()) return;
+        for (String line : lines.split("\n")) {
+            if (line.isBlank()) continue;
+            String[] parts = line.split("\t", 3);
+            if (parts.length < 3) continue;
+            String namespace = parts[0];
+            String name     = parts[1];
+            String json     = parts[2];
+            try {
+                Path target = packRoot
+                        .resolve("data").resolve(namespace).resolve("recipes")
+                        .resolve(name + ".json");
+                Files.createDirectories(target.getParent());
+                Files.writeString(target, json);
+            } catch (IOException e) {
+                System.err.println("[yog] failed to write recipe " + namespace + ":" + name + ": " + e);
+            }
+        }
     }
 }

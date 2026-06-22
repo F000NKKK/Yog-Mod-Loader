@@ -79,4 +79,24 @@ pub fn register(registry: &mut Registry) {
     registry.on_server_stopping(|_srv| {
         info!("[example-mod] server stopping — the gate closes.");
     });
+
+    // ── cancellable events ────────────────────────────────────────────────────
+
+    // Block "minecraft:bedrock" is protected — cancel any attempt to break it.
+    registry.on_block_break_pre(|e, _srv| {
+        let allow = e.block_id != "minecraft:bedrock";
+        if !allow {
+            info!("[example-mod] blocked {} from breaking bedrock", e.player_name);
+        }
+        allow
+    });
+
+    // Filter profanity demo: cancel messages starting with "!block ".
+    registry.on_chat_pre(|e, _srv| {
+        let allow = !e.message.starts_with("!block ");
+        if !allow {
+            info!("[example-mod] suppressed message from {}", e.player_name);
+        }
+        allow
+    });
 }

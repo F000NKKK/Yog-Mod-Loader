@@ -83,14 +83,24 @@ public class YogHost implements ModInitializer {
             }
         }
 
-        // Block break (server side).
+        // Block break — pre (cancellable) then after (observe).
+        PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
+            String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
+            return NativeBridge.nativeOnBlockBreakPre(
+                    player.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+        });
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
             String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
             NativeBridge.nativeOnBlockBreak(
                     player.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
         });
 
-        // Chat.
+        // Chat — pre (cancellable).
+        ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) ->
+                NativeBridge.nativeOnChatPre(
+                        sender.getName().getString(), message.getContent().getString()));
+
+        // Chat — after (observe).
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) ->
                 NativeBridge.nativeOnChat(
                         sender.getName().getString(), message.getContent().getString()));

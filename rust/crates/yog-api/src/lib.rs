@@ -63,7 +63,7 @@ pub use yog_event::{
 pub use yog_entity::Entity;
 pub use yog_network::PacketEvent;
 pub use yog_player::Player;
-pub use yog_registry::{BlockDef, FoodDef, ItemDef};
+pub use yog_registry::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
 pub use yog_storage::Storage;
 pub use yog_world::World;
 

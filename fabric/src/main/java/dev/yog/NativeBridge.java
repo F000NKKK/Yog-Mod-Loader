@@ -433,6 +433,17 @@ public final class NativeBridge {
         };
     }
 
+    public static String onlinePlayers() {
+        MinecraftServer s = server;
+        if (s == null) return null;
+        StringBuilder sb = new StringBuilder();
+        for (ServerPlayerEntity p : s.getPlayerManager().getPlayerList()) {
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(p.getName().getString());
+        }
+        return sb.toString();
+    }
+
     public static String getBlockNbt(String dimension, int x, int y, int z) {
         ServerWorld w = worldFor(dimension);
         if (w == null) return null;
@@ -728,6 +739,15 @@ public final class NativeBridge {
 
     /** Typed command schemas: `name\tschema` per line (only typed commands). */
     public static native String nativeTypedCommandSchemas();
+
+    /** Cancel-check for block break (before). Returns true = allow, false = cancel. */
+    public static native boolean nativeOnBlockBreakPre(String player, String block, int x, int y, int z);
+
+    /** Cancel-check for chat message (before). Returns true = allow, false = cancel. */
+    public static native boolean nativeOnChatPre(String player, String message);
+
+    /** Recipe JSONs: `namespace\tname\tJSON` per line. */
+    public static native String nativeRecipeJsons();
 
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source, String uuid);
