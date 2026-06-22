@@ -13,8 +13,13 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.loot.LootDataKey;
+import net.minecraft.loot.LootDataType;
+import net.minecraft.loot.LootTable;
+import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.tag.TagKey;
@@ -183,8 +188,21 @@ public final class NativeBridge {
     }
 
     public static boolean dropLoot(String tableId, String dimension, double x, double y, double z) {
-        // Loot table API differs between 1.20.x patch levels — stub until confirmed.
-        return false;
+        MinecraftServer s = server;
+        if (s == null) return false;
+        Identifier id = Identifier.tryParse(tableId);
+        ServerWorld world = worldFor(dimension);
+        if (id == null || world == null) return false;
+        LootDataKey<LootTable> key = new LootDataKey<>(LootDataType.LOOT_TABLES, id);
+        LootTable table = s.getLootManager().getElement(key);
+        if (table == null || table == LootTable.EMPTY) return false;
+        LootContextParameterSet params = new LootContextParameterSet(
+                world, java.util.Map.of(), java.util.Map.of(), 0.0f);
+        java.util.List<ItemStack> stacks = table.generateLoot(params);
+        for (ItemStack stack : stacks) {
+            world.spawnEntity(new ItemEntity(world, x, y, z, stack));
+        }
+        return !stacks.isEmpty();
     }
 
     public static boolean hasItemTag(String itemId, String tagId) {
