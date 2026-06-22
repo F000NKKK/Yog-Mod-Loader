@@ -796,7 +796,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-/// Declared custom items as `id<TAB>max_stack` lines, for the host to register.
+/// Declared custom items as key=value lines, for the host to register.
+///
+/// Format per line: `id\tkey=value\t...` — always `id` first, then
+/// tab-separated `key=value` pairs. Unknown keys are ignored by the host.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
     env: JNIEnv<'l>,
@@ -808,13 +811,21 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
         .items()
         .iter()
         .map(|d| {
-            format!(
-                "{}\t{}\t{}\t{}",
-                d.id,
-                d.max_stack,
-                d.name.as_deref().unwrap_or(""),
-                d.tooltip.as_deref().unwrap_or("")
-            )
+            let mut parts = vec![d.id.clone()];
+            parts.push(format!("max_stack={}", d.max_stack));
+            if let Some(n) = &d.name    { parts.push(format!("name={n}")); }
+            if let Some(t) = &d.tooltip { parts.push(format!("tooltip={t}")); }
+            if d.max_damage > 0   { parts.push(format!("max_damage={}", d.max_damage)); }
+            if d.fire_resistant   { parts.push("fire_resistant=1".into()); }
+            if d.fuel_ticks > 0   { parts.push(format!("fuel_ticks={}", d.fuel_ticks)); }
+            if let Some(f) = &d.food {
+                parts.push(format!(
+                    "food={}:{}:{}",
+                    f.nutrition, f.saturation,
+                    if f.can_always_eat { 1 } else { 0 }
+                ));
+            }
+            parts.join("\t")
         })
         .collect::<Vec<_>>()
         .join("\n");
@@ -898,7 +909,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-/// Declared custom blocks as `id<TAB>hardness<TAB>resistance` lines.
+/// Declared custom blocks as key=value lines, for the host to register.
+///
+/// Format per line: `id\tkey=value\t...` — always `id` first, then
+/// tab-separated `key=value` pairs. Unknown keys are ignored by the host.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
     env: JNIEnv<'l>,
@@ -910,20 +924,19 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
         .blocks()
         .iter()
         .map(|d| {
-            let mut line = format!(
-                "{}\t{}\t{}\t{}",
-                d.id,
-                d.hardness,
-                d.resistance,
-                d.name.as_deref().unwrap_or("")
-            );
+            let mut parts = vec![d.id.clone()];
+            parts.push(format!("hardness={}", d.hardness));
+            parts.push(format!("resistance={}", d.resistance));
+            if let Some(n) = &d.name { parts.push(format!("name={n}")); }
             if let Some(s) = d.shape {
-                line.push_str(&format!(
-                    "\t{}\t{}\t{}\t{}\t{}\t{}",
-                    s[0], s[1], s[2], s[3], s[4], s[5]
-                ));
+                parts.push(format!("shape={}:{}:{}:{}:{}:{}", s[0], s[1], s[2], s[3], s[4], s[5]));
             }
-            line
+            if d.light_level > 0  { parts.push(format!("light={}", d.light_level)); }
+            if let Some(snd) = &d.sound { parts.push(format!("sound={snd}")); }
+            if d.requires_tool    { parts.push("requires_tool=1".into()); }
+            if d.no_collision     { parts.push("no_collision=1".into()); }
+            if d.slipperiness > 0.0 { parts.push(format!("slipperiness={}", d.slipperiness)); }
+            parts.join("\t")
         })
         .collect::<Vec<_>>()
         .join("\n");

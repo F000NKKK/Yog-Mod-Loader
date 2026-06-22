@@ -58,7 +58,7 @@ pub use yog_event::{
 pub use yog_entity::Entity;
 pub use yog_network::PacketEvent;
 pub use yog_player::Player;
-pub use yog_registry::{BlockDef, ItemDef};
+pub use yog_registry::{BlockDef, FoodDef, ItemDef};
 pub use yog_world::World;
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
@@ -89,7 +89,7 @@ pub mod player {
     pub use yog_player::*;
 }
 
-/// Content registration (custom items / blocks).
+/// Content registration (custom items / blocks / food).
 pub mod content {
     pub use yog_registry::*;
 }

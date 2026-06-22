@@ -4,15 +4,20 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
+import net.minecraft.item.FoodComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemConvertible;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.registry.Registry;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Identifier;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -173,55 +178,105 @@ public class YogHost implements ModInitializer {
      * Register custom items/blocks declared by Rust mods, apply their name and
      * tooltip, and collect them into a "Yog" creative tab.
      */
+    /** Parse `id\tkey=value\t...` into a map. First element is the id. */
+    private static Map<String, String> parseProps(String line) {
+        String[] parts = line.split("\t", -1);
+        Map<String, String> props = new HashMap<>();
+        for (int i = 1; i < parts.length; i++) {
+            int eq = parts[i].indexOf('=');
+            if (eq > 0) props.put(parts[i].substring(0, eq), parts[i].substring(eq + 1));
+        }
+        return props;
+    }
+
     private static void registerContent() {
         List<ItemConvertible> tabEntries = new ArrayList<>();
 
         String items = NativeBridge.nativeItemDefs();
         if (items != null) {
             for (String line : items.split("\n")) {
-                if (line.isBlank()) {
-                    continue;
+                if (line.isBlank()) continue;
+                String id = line.split("\t", 2)[0];
+                Identifier ident = Identifier.tryParse(id);
+                if (ident == null) continue;
+
+                Map<String, String> p = parseProps(line);
+                Item.Settings settings = new Item.Settings();
+
+                int maxDamage = parseInt(p, "max_damage", 0);
+                if (maxDamage > 0) {
+                    settings = settings.maxDamage(maxDamage);
+                } else {
+                    settings = settings.maxCount(parseInt(p, "max_stack", 64));
                 }
-                String[] p = line.split("\t", -1);
-                Identifier id = Identifier.tryParse(p[0]);
-                if (id == null) {
-                    continue;
+
+                if ("1".equals(p.get("fire_resistant"))) settings = settings.fireproof();
+
+                if (p.containsKey("food")) {
+                    String[] fp = p.get("food").split(":", 3);
+                    if (fp.length >= 2) {
+                        FoodComponent.Builder fb = new FoodComponent.Builder()
+                                .hunger(Integer.parseInt(fp[0]))
+                                .saturationModifier(Float.parseFloat(fp[1]));
+                    if ("1".equals(fp.length > 2 ? fp[2] : "0")) fb = fb.alwaysEdible();
+                    FoodComponent food = fb.build();
+                        settings = settings.food(food);
+                    }
                 }
-                int maxStack = p.length > 1 && !p[1].isEmpty() ? Integer.parseInt(p[1]) : 64;
-                String name = p.length > 2 ? p[2] : "";
-                String tooltip = p.length > 3 ? p[3] : "";
-                Item item = new YogItem(new Item.Settings().maxCount(maxStack), name, tooltip);
-                Registry.register(Registries.ITEM, id, item);
+
+                Item item = new YogItem(settings,
+                        p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""));
+                Registry.register(Registries.ITEM, ident, item);
                 tabEntries.add(item);
+
+                int fuelTicks = parseInt(p, "fuel_ticks", 0);
+                if (fuelTicks > 0) FuelRegistry.INSTANCE.add(item, fuelTicks);
             }
         }
 
         String blocks = NativeBridge.nativeBlockDefs();
         if (blocks != null) {
             for (String line : blocks.split("\n")) {
-                if (line.isBlank()) {
-                    continue;
+                if (line.isBlank()) continue;
+                String id = line.split("\t", 2)[0];
+                Identifier ident = Identifier.tryParse(id);
+                if (ident == null) continue;
+
+                Map<String, String> p = parseProps(line);
+                float hardness   = parseFloat(p, "hardness",   1.5f);
+                float resistance = parseFloat(p, "resistance",  6.0f);
+
+                AbstractBlock.Settings settings = AbstractBlock.Settings.create()
+                        .strength(hardness, resistance);
+
+                if (p.containsKey("light")) {
+                    int lv = parseInt(p, "light", 0);
+                    settings = settings.luminance(state -> lv);
                 }
-                String[] p = line.split("\t", -1);
-                Identifier id = Identifier.tryParse(p[0]);
-                if (id == null) {
-                    continue;
+                if (p.containsKey("sound")) {
+                    settings = settings.sounds(blockSoundGroup(p.get("sound")));
                 }
-                float hardness = p.length > 1 && !p[1].isEmpty() ? Float.parseFloat(p[1]) : 1.5f;
-                float resistance = p.length > 2 && !p[2].isEmpty() ? Float.parseFloat(p[2]) : 6.0f;
-                String name = p.length > 3 ? p[3] : "";
-                AbstractBlock.Settings settings = AbstractBlock.Settings.create().strength(hardness, resistance);
+                if ("1".equals(p.get("requires_tool"))) settings = settings.requiresTool();
+                if ("1".equals(p.get("no_collision")))  settings = settings.noCollision();
+                if (p.containsKey("slipperiness")) {
+                    settings = settings.slipperiness(parseFloat(p, "slipperiness", 0.6f));
+                }
+
                 Block block;
-                if (p.length >= 10) {
+                if (p.containsKey("shape")) {
+                    String[] sp = p.get("shape").split(":", 6);
                     block = new YogShapedBlock(settings,
-                            Double.parseDouble(p[4]), Double.parseDouble(p[5]), Double.parseDouble(p[6]),
-                            Double.parseDouble(p[7]), Double.parseDouble(p[8]), Double.parseDouble(p[9]));
+                            Double.parseDouble(sp[0]), Double.parseDouble(sp[1]),
+                            Double.parseDouble(sp[2]), Double.parseDouble(sp[3]),
+                            Double.parseDouble(sp[4]), Double.parseDouble(sp[5]));
                 } else {
                     block = new Block(settings);
                 }
-                Registry.register(Registries.BLOCK, id, block);
-                Item blockItem = new YogBlockItem(block, new Item.Settings(), name);
-                Registry.register(Registries.ITEM, id, blockItem);
+
+                Registry.register(Registries.BLOCK, ident, block);
+                Item blockItem = new YogBlockItem(block, new Item.Settings(),
+                        p.getOrDefault("name", ""));
+                Registry.register(Registries.ITEM, ident, blockItem);
                 tabEntries.add(blockItem);
             }
         }
@@ -235,6 +290,33 @@ public class YogHost implements ModInitializer {
                     .build();
             Registry.register(Registries.ITEM_GROUP, new Identifier("yog", "yog"), group);
         }
+    }
+
+    private static int parseInt(Map<String, String> p, String key, int def) {
+        String v = p.get(key);
+        if (v == null) return def;
+        try { return Integer.parseInt(v); } catch (NumberFormatException e) { return def; }
+    }
+
+    private static float parseFloat(Map<String, String> p, String key, float def) {
+        String v = p.get(key);
+        if (v == null) return def;
+        try { return Float.parseFloat(v); } catch (NumberFormatException e) { return def; }
+    }
+
+    private static BlockSoundGroup blockSoundGroup(String name) {
+        return switch (name) {
+            case "wood"         -> BlockSoundGroup.WOOD;
+            case "grass"        -> BlockSoundGroup.GRASS;
+            case "gravel"       -> BlockSoundGroup.GRAVEL;
+            case "sand"         -> BlockSoundGroup.SAND;
+            case "snow"         -> BlockSoundGroup.SNOW;
+            case "metal"        -> BlockSoundGroup.METAL;
+            case "glass"        -> BlockSoundGroup.GLASS;
+            case "wool"         -> BlockSoundGroup.WOOL;
+            case "nether_brick" -> BlockSoundGroup.NETHER_BRICKS;
+            default             -> BlockSoundGroup.STONE;
+        };
     }
 
     private static int runCommand(String name, String args, CommandContext<ServerCommandSource> ctx) {
