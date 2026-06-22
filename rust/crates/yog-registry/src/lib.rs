@@ -236,8 +236,8 @@ impl FurnaceRecipe {
 
     pub fn to_json(&self) -> String {
         format!(
-            "{{\"type\":\"minecraft:smelting\",\"ingredient\":{{\"item\":\"{}\"}},\"result\":{{\"item\":\"{}\",\"count\":{}}},\"experience\":{},\"cookingtime\":{}}}",
-            self.input, self.output, self.count, self.experience, self.cook_time
+            "{{\"type\":\"minecraft:smelting\",\"ingredient\":{{\"item\":\"{}\"}},\"result\":\"{}\",\"experience\":{},\"cookingtime\":{}}}",
+            self.input, self.output, self.experience, self.cook_time
         )
     }
 
