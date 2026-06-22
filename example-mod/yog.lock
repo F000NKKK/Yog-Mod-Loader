@@ -3,6 +3,13 @@
 version = 4
 
 [[package]]
+name = "example-mod"
+version = "0.1.0"
+dependencies = [
+ "yog-api",
+]
+
+[[package]]
 name = "yog-abi"
 version = "0.1.0"
 
@@ -43,13 +50,6 @@ name = "yog-event"
 version = "0.1.0"
 dependencies = [
  "yog-core",
-]
-
-[[package]]
-name = "yog-example-mod"
-version = "0.1.0"
-dependencies = [
- "yog-api",
 ]
 
 [[package]]
