@@ -6,7 +6,6 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use yog_api::entity::Entity;
 use yog_api::player::Player;
 use yog_api::world::World;
 use yog_api::{info, BlockDef, BlockPos, ItemDef, Mod, Registry};
@@ -131,7 +130,7 @@ impl Mod for ExampleMod {
 
         // /ping -> server sends a raw-byte packet to the caller's client.
         registry.on_command("ping", |ctx, srv| {
-            srv.send_to_player(&ctx.source, "yog:pong", b"pong from server");
+            Player::new(srv, &ctx.source).send_packet("yog:pong", b"pong from server");
             Some("Sent a packet to your client.".into())
         });
 
@@ -146,15 +145,15 @@ impl Mod for ExampleMod {
             Some(if ok { "Here's a ruby!".into() } else { "Failed.".into() })
         });
 
-        // /heal -> set the caller's health via the universal entity layer.
+        // /heal -> set the caller's health via the player wrapper (entity layer).
         registry.on_command("heal", |ctx, srv| {
-            let ok = Entity::new(srv, &ctx.uuid).set_health(20.0);
+            let ok = Player::with_uuid(srv, &ctx.source, &ctx.uuid).set_health(20.0);
             Some(if ok { "Healed.".into() } else { "Failed (are you a living entity?).".into() })
         });
 
-        // /pig -> read the caller's position (entity layer) and spawn a pig there.
+        // /pig -> read the caller's position (via player wrapper) and spawn a pig there.
         registry.on_command("pig", |ctx, srv| {
-            match Entity::new(srv, &ctx.uuid).position() {
+            match Player::with_uuid(srv, &ctx.source, &ctx.uuid).position() {
                 Some((x, y, z)) => {
                     srv.spawn_entity("minecraft:pig", "minecraft:overworld", x, y, z);
                     Some("Oink!".into())
@@ -163,9 +162,9 @@ impl Mod for ExampleMod {
             }
         });
 
-        // /tp -> teleport the caller to (0, 100, 0).
+        // /tp -> teleport the caller to (0, 100, 0) via entity layer.
         registry.on_command("tp", |ctx, srv| {
-            let ok = Player::new(srv, &ctx.source).teleport(0.0, 100.0, 0.0);
+            let ok = Player::with_uuid(srv, &ctx.source, &ctx.uuid).teleport(0.0, 100.0, 0.0);
             Some(if ok {
                 "Teleported to (0, 100, 0).".into()
             } else {

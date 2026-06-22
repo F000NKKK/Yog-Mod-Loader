@@ -7,3 +7,4 @@ description = "Yog player access — ergonomic give/teleport over the Server han
 
 [dependencies]
 yog-core = { path = "../yog-core" }
+yog-entity = { path = "../yog-entity" }

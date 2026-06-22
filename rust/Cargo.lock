@@ -370,6 +370,7 @@ name = "yog-player"
 version = "0.1.0"
 dependencies = [
  "yog-core",
+ "yog-entity",
 ]
 
 [[package]]

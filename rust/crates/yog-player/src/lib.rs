@@ -1,39 +1,93 @@
 //! Player access for Yog mods.
 //!
-//! An ergonomic handle over the player primitives on [`yog_core::Server`]: bind
-//! a [`Player`] to a name once, then act on them. Mirrors the shape of
-//! `yog-world`'s `World` so the API feels consistent.
+//! [`Player`] is a thin wrapper over [`yog_entity::Entity`]: it delegates all
+//! entity-level operations (teleport, position, health …) to that layer and
+//! adds the player-specific extras (inventory, networking) on top.
 
 use yog_core::Server;
+use yog_entity::Entity;
 
-/// A handle to one player by name, bound to a [`Server`].
+/// A handle to one player, bound to a [`Server`].
+///
+/// Construct with [`Player::new`] when you only have the player name (most
+/// event callbacks), or with [`Player::with_uuid`] when you also have the UUID
+/// (e.g. from [`yog_command::CommandContext`]) — the latter unlocks the full
+/// entity-layer API.
 pub struct Player<'a> {
     server: &'a dyn Server,
     name: String,
+    uuid: Option<String>,
 }
 
 impl<'a> Player<'a> {
-    /// Bind to the player called `name` on `server`.
+    /// Bind to the player called `name`. Entity-level ops that require a UUID
+    /// will return `None`/`false`; use [`Player::with_uuid`] to unlock them.
     pub fn new(server: &'a dyn Server, name: impl Into<String>) -> Self {
-        Self {
-            server,
-            name: name.into(),
-        }
+        Self { server, name: name.into(), uuid: None }
     }
 
-    /// The player's name.
+    /// Bind to the player with both `name` and `uuid` (full functionality).
+    pub fn with_uuid(
+        server: &'a dyn Server,
+        name: impl Into<String>,
+        uuid: impl Into<String>,
+    ) -> Self {
+        Self { server, name: name.into(), uuid: Some(uuid.into()) }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// Give `count` of `item_id` (e.g. `minecraft:diamond`). Returns whether it
-    /// worked (player online, item valid).
+    pub fn uuid(&self) -> Option<&str> {
+        self.uuid.as_deref()
+    }
+
+    /// The underlying [`Entity`] handle, available when a UUID was provided.
+    pub fn entity(&self) -> Option<Entity<'_>> {
+        self.uuid.as_deref().map(|u| Entity::new(self.server, u))
+    }
+
+    // ── player-specific ops ─────────────────────────────────────────────────
+
+    /// Give `count` of `item_id` (e.g. `"minecraft:diamond"`).
     pub fn give(&self, item_id: &str, count: u32) -> bool {
         self.server.give_item(&self.name, item_id, count)
     }
 
-    /// Teleport to `(x, y, z)` in the player's current world.
+    /// Send a raw-byte packet to this player on `channel` (server → client).
+    pub fn send_packet(&self, channel: &str, payload: &[u8]) -> bool {
+        self.server.send_to_player(&self.name, channel, payload)
+    }
+
+    // ── entity-level ops (delegated) ────────────────────────────────────────
+
+    /// Teleport to `(x, y, z)`. Uses the entity layer when a UUID is known;
+    /// falls back to the player-name primitive otherwise.
     pub fn teleport(&self, x: f64, y: f64, z: f64) -> bool {
-        self.server.teleport(&self.name, x, y, z)
+        match &self.uuid {
+            Some(u) => self.server.entity_teleport(u, x, y, z),
+            None => self.server.teleport(&self.name, x, y, z),
+        }
+    }
+
+    /// Current position, or `None` if the entity isn't loaded / UUID unknown.
+    pub fn position(&self) -> Option<(f64, f64, f64)> {
+        self.entity()?.position()
+    }
+
+    /// Health, or `None` if UUID unknown.
+    pub fn health(&self) -> Option<f32> {
+        self.entity()?.health()
+    }
+
+    /// Set health; returns `false` if UUID unknown.
+    pub fn set_health(&self, health: f32) -> bool {
+        self.entity().map_or(false, |e: Entity<'_>| e.set_health(health))
+    }
+
+    /// Kill/remove this player entity; returns `false` if UUID unknown.
+    pub fn kill(&self) -> bool {
+        self.entity().map_or(false, |e: Entity<'_>| e.kill())
     }
 }
