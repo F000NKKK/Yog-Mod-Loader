@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 6;
+pub const ABI_MINOR: u32 = 7;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -157,6 +157,34 @@ pub struct YogEntitySpawnEvent {
     pub dimension:   YogStr,
 }
 
+/// Fired when a player dies (Pre: before death is processed; Post: after death).
+/// Pre phase — return false to prevent death (keep entity alive at 0.5 HP).
+#[repr(C)]
+pub struct YogPlayerDeathEvent {
+    pub player: YogStr,
+    pub uuid:   YogStr,
+    /// Damage source identifier, e.g. `"player"`, `"fall"`.
+    pub source: YogStr,
+}
+
+/// Fired when a player respawns after death.
+#[repr(C)]
+pub struct YogPlayerRespawnEvent {
+    pub player:    YogStr,
+    pub uuid:      YogStr,
+    /// True if respawning at a bed or anchor, false at world spawn.
+    pub at_anchor: bool,
+}
+
+/// Fired when a player earns an advancement (Post only).
+#[repr(C)]
+pub struct YogAdvancementEvent {
+    pub player:      YogStr,
+    pub uuid:        YogStr,
+    /// Namespaced id, e.g. `"minecraft:story/mine_stone"`.
+    pub advancement: YogStr,
+}
+
 /// Fired when a player places a block (Pre: before placement; Post: after).
 #[repr(C)]
 pub struct YogPlaceBlockEvent {
@@ -228,8 +256,11 @@ pub type YogUseBlockFn     = unsafe extern "C" fn(*mut c_void, *const YogServer,
 pub type YogAttackEntityFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogAttackEntityEvent, u8) -> bool;
 pub type YogEntityDamageFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityDamageEvent, u8) -> bool;
 pub type YogEntityDeathFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityDeathEvent,  u8) -> bool;
-pub type YogEntitySpawnFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntitySpawnEvent,  u8) -> bool;
-pub type YogPlaceBlockFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlaceBlockEvent,   u8) -> bool;
+pub type YogEntitySpawnFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntitySpawnEvent,   u8) -> bool;
+pub type YogPlaceBlockFn    = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlaceBlockEvent,    u8) -> bool;
+pub type YogPlayerDeathFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerDeathEvent,   u8) -> bool;
+pub type YogPlayerRespawnFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerRespawnEvent, u8) -> bool;
+pub type YogAdvancementFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogAdvancementEvent,   u8) -> bool;
 
 /// Packet events — always Post, no phase.
 pub type YogPacketFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
@@ -370,6 +401,14 @@ pub struct YogServer {
         dx: f64, dy: f64, dz: f64,
         speed: f64,
     ) -> bool,
+
+    // ── attributes (ABI minor 7) ──────────────────────────────────────────────
+    /// Get the base value of an attribute on a living entity.
+    /// `attribute_id` is a registry id, e.g. `"minecraft:generic.max_health"`.
+    /// Returns `f64::NAN` if entity or attribute is not found.
+    pub entity_attribute_get: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, attribute_id: YogStr) -> f64,
+    /// Set the base value of an attribute. Returns false if entity or attribute is not found.
+    pub entity_attribute_set: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, attribute_id: YogStr, value: f64) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.
@@ -405,8 +444,11 @@ pub struct YogApi {
     pub on_attack_entity:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogAttackEntityFn),
     pub on_entity_damage:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityDamageFn),
     pub on_entity_death:      unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityDeathFn),
-    pub on_entity_spawn:      unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntitySpawnFn),
+    pub on_entity_spawn:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntitySpawnFn),
     pub on_player_place_block: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlaceBlockFn),
+    pub on_player_death:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerDeathFn),
+    pub on_player_respawn:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerRespawnFn),
+    pub on_advancement:        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogAdvancementFn),
     pub on_server_tick:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
     pub on_server_started:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
     pub on_server_stopping:   unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),

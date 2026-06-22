@@ -4,7 +4,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use yog_api::player::Player;
 use yog_api::world::World;
-use yog_api::{info, BlockPos, EntitySpawnEvent, EventPhase, PlaceBlockEvent, Registry};
+use yog_api::{
+    info, AdvancementEvent, BlockPos, EntitySpawnEvent, EventPhase, PlaceBlockEvent,
+    PlayerDeathEvent, PlayerRespawnEvent, Registry,
+};
 
 pub fn register(registry: &mut Registry) {
     registry.on_block_break(|e, phase, srv| {
@@ -132,6 +135,37 @@ pub fn register(registry: &mut Registry) {
             }
             EventPhase::Post => true,
         }
+    });
+
+    registry.on_player_death(|e: &PlayerDeathEvent, phase, srv| {
+        match phase {
+            EventPhase::Pre => {
+                info!("[example-mod] {} is dying (source: {})", e.player_name, e.source);
+                true
+            }
+            EventPhase::Post => {
+                srv.broadcast(&format!("{} died ({}). F.", e.player_name, e.source));
+                true
+            }
+        }
+    });
+
+    registry.on_player_respawn(|e: &PlayerRespawnEvent, _phase, srv| {
+        srv.broadcast(&format!("Welcome back, {}!", e.player_name));
+        info!("[example-mod] {} respawned (anchor: {})", e.player_name, e.at_anchor);
+        true
+    });
+
+    registry.on_advancement(|e: &AdvancementEvent, _phase, srv| {
+        info!(
+            "[example-mod] {} earned advancement {}",
+            e.player_name, e.advancement_id
+        );
+        srv.broadcast(&format!(
+            "{} earned: {}",
+            e.player_name, e.advancement_id
+        ));
+        true
     });
 
     registry.on_tick(|srv| {

@@ -103,4 +103,16 @@ impl<'a> Entity<'a> {
     pub fn set_nbt(&self, snbt: &str) -> bool {
         self.server.entity_set_nbt(&self.uuid, snbt)
     }
+
+    // ── attributes ───────────────────────────────────────────────────────────
+
+    /// Base value of an attribute (e.g. `"minecraft:generic.max_health"`), or `None`.
+    pub fn attribute_get(&self, attribute_id: &str) -> Option<f64> {
+        self.server.entity_attribute_get(&self.uuid, attribute_id)
+    }
+
+    /// Set the base value of an attribute. Returns `false` if not found.
+    pub fn attribute_set(&self, attribute_id: &str, value: f64) -> bool {
+        self.server.entity_attribute_set(&self.uuid, attribute_id, value)
+    }
 }

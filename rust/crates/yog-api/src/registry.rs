@@ -10,17 +10,17 @@
 use std::os::raw::c_void;
 
 use yog_abi::{
-    YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef, YogChatEvent,
-    YogCommandEvent, YogEntityDamageEvent, YogEntityDeathEvent, YogEntitySpawnEvent,
-    YogItemDef, YogPacketEvent, YogPlaceBlockEvent, YogPlayerEvent, YogServer, YogStr,
-    YogUseBlockEvent, YogUseItemEvent,
+    YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef,
+    YogChatEvent, YogCommandEvent, YogEntityDamageEvent, YogEntityDeathEvent,
+    YogEntitySpawnEvent, YogItemDef, YogPacketEvent, YogPlaceBlockEvent, YogPlayerDeathEvent,
+    YogPlayerEvent, YogPlayerRespawnEvent, YogServer, YogStr, YogUseBlockEvent, YogUseItemEvent,
 };
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_event::{
-    AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent, EntityDeathEvent,
-    EntitySpawnEvent, EventPhase, PlaceBlockEvent, PlayerJoinEvent, PlayerLeaveEvent,
-    UseBlockEvent, UseItemEvent,
+    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent,
+    EntityDeathEvent, EntitySpawnEvent, EventPhase, PlaceBlockEvent, PlayerDeathEvent,
+    PlayerJoinEvent, PlayerLeaveEvent, PlayerRespawnEvent, UseBlockEvent, UseItemEvent,
 };
 use yog_network::PacketEvent;
 use yog_registry::{BlockDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
@@ -422,6 +422,17 @@ impl Server for CServer {
                 count, dx, dy, dz, speed)
         }
     }
+
+    fn entity_attribute_get(&self, uuid: &str, attribute_id: &str) -> Option<f64> {
+        let s = srv!(self);
+        let v = unsafe { (s.entity_attribute_get)(s.ctx, YogStr::from_str(uuid), YogStr::from_str(attribute_id)) };
+        if v.is_nan() { None } else { Some(v) }
+    }
+
+    fn entity_attribute_set(&self, uuid: &str, attribute_id: &str, value: f64) -> bool {
+        let s = srv!(self);
+        unsafe { (s.entity_attribute_set)(s.ctx, YogStr::from_str(uuid), YogStr::from_str(attribute_id), value) }
+    }
 }
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────
@@ -518,6 +529,24 @@ trampoline_phased!(trampoline_place_block, YogPlaceBlockEvent, PlaceBlockEvent, 
     player_name: ev.player.as_str().to_owned(),
     block_id:    ev.block.as_str().to_owned(),
     pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
+});
+
+trampoline_phased!(trampoline_player_death, YogPlayerDeathEvent, PlayerDeathEvent, |ev| PlayerDeathEvent {
+    player_name: ev.player.as_str().to_owned(),
+    uuid:        ev.uuid.as_str().to_owned(),
+    source:      ev.source.as_str().to_owned(),
+});
+
+trampoline_phased!(trampoline_player_respawn, YogPlayerRespawnEvent, PlayerRespawnEvent, |ev| PlayerRespawnEvent {
+    player_name: ev.player.as_str().to_owned(),
+    uuid:        ev.uuid.as_str().to_owned(),
+    at_anchor:   ev.at_anchor,
+});
+
+trampoline_phased!(trampoline_advancement, YogAdvancementEvent, AdvancementEvent, |ev| AdvancementEvent {
+    player_name:    ev.player.as_str().to_owned(),
+    uuid:           ev.uuid.as_str().to_owned(),
+    advancement_id: ev.advancement.as_str().to_owned(),
 });
 
 unsafe extern "C" fn trampoline_server_fn<F>(ud: *mut c_void, srv: *const YogServer)
@@ -674,6 +703,24 @@ impl Registry {
     where F: Fn(&PlaceBlockEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_player_place_block)(self.ctx(), ud, trampoline_place_block::<F>) }
+    }
+
+    pub fn on_player_death<F>(&mut self, handler: F)
+    where F: Fn(&PlayerDeathEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_player_death)(self.ctx(), ud, trampoline_player_death::<F>) }
+    }
+
+    pub fn on_player_respawn<F>(&mut self, handler: F)
+    where F: Fn(&PlayerRespawnEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_player_respawn)(self.ctx(), ud, trampoline_player_respawn::<F>) }
+    }
+
+    pub fn on_advancement<F>(&mut self, handler: F)
+    where F: Fn(&AdvancementEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_advancement)(self.ctx(), ud, trampoline_advancement::<F>) }
     }
 
     pub fn on_tick<F>(&mut self, listener: F)

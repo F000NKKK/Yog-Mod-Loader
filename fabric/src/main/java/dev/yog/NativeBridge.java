@@ -11,6 +11,8 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
+import net.minecraft.entity.attribute.EntityAttribute;
+import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.boss.CommandBossBar;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
@@ -629,6 +631,28 @@ public final class NativeBridge {
         return true;
     }
 
+    public static double entityAttributeGet(String uuid, String attributeId) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return Double.NaN;
+        Identifier id = Identifier.tryParse(attributeId);
+        if (id == null || !Registries.ATTRIBUTE.containsId(id)) return Double.NaN;
+        EntityAttribute attr = Registries.ATTRIBUTE.get(id);
+        EntityAttributeInstance inst = le.getAttributeInstance(attr);
+        return inst == null ? Double.NaN : inst.getBaseValue();
+    }
+
+    public static boolean entityAttributeSet(String uuid, String attributeId, double value) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return false;
+        Identifier id = Identifier.tryParse(attributeId);
+        if (id == null || !Registries.ATTRIBUTE.containsId(id)) return false;
+        EntityAttribute attr = Registries.ATTRIBUTE.get(id);
+        EntityAttributeInstance inst = le.getAttributeInstance(attr);
+        if (inst == null) return false;
+        inst.setBaseValue(value);
+        return true;
+    }
+
     public static int worldEntityCount(String dimension, String entityTypeId) {
         ServerWorld w = worldFor(dimension);
         if (w == null) return -1;
@@ -831,4 +855,16 @@ public final class NativeBridge {
 
     /** Player placed a block — Post phase (observe only). */
     public static native void nativeOnPlaceBlock(String player, String block, int x, int y, int z);
+
+    /** Player about to die — Pre phase; return false to cancel death. */
+    public static native boolean nativeOnPlayerDeathPre(String player, String uuid, String source);
+
+    /** Player has died — Post phase (observe only). */
+    public static native void nativeOnPlayerDeath(String player, String uuid, String source);
+
+    /** Player respawned (Post only; no cancellation). */
+    public static native void nativeOnPlayerRespawn(String player, String uuid, boolean atAnchor);
+
+    /** Player earned an advancement (Post only; no cancellation). */
+    public static native void nativeOnAdvancement(String player, String uuid, String advancement);
 }

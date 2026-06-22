@@ -115,3 +115,34 @@ pub struct EntitySpawnEvent {
     /// Dimension the entity was added to, e.g. `minecraft:overworld`.
     pub dimension: String,
 }
+
+/// Fired when a player dies.
+///
+/// - `Pre`  — fires before death is processed; return `false` to prevent death
+///            (entity survives at 0.5 HP).
+/// - `Post` — fires after the player has died.
+#[derive(Debug, Clone)]
+pub struct PlayerDeathEvent {
+    pub player_name: String,
+    pub uuid: String,
+    /// Damage source identifier, e.g. `"player"`, `"fall"`.
+    pub source: String,
+}
+
+/// Fired when a player respawns after death (Post only).
+#[derive(Debug, Clone)]
+pub struct PlayerRespawnEvent {
+    pub player_name: String,
+    pub uuid: String,
+    /// True if respawning at a bed or respawn anchor; false for world spawn.
+    pub at_anchor: bool,
+}
+
+/// Fired when a player earns an advancement (Post only).
+#[derive(Debug, Clone)]
+pub struct AdvancementEvent {
+    pub player_name: String,
+    pub uuid: String,
+    /// Namespaced id of the advancement, e.g. `"minecraft:story/mine_stone"`.
+    pub advancement_id: String,
+}

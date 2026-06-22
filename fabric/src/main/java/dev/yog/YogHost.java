@@ -31,6 +31,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -191,11 +192,30 @@ public class YogHost implements ModInitializer {
             NativeBridge.nativeOnEntitySpawn(type, uuid, dim);
         });
 
-        // Living-entity death (server side).
+        // Living-entity death (server side — non-player entity post).
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+            if (entity instanceof ServerPlayerEntity) return; // handled separately below
             String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
             NativeBridge.nativeOnEntityDeath(
                     type, entity.getUuidAsString(), source.getName());
+        });
+
+        // Player death — pre (cancellable) and post.
+        ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
+            if (!(entity instanceof ServerPlayerEntity sp)) return true;
+            boolean allow = NativeBridge.nativeOnPlayerDeathPre(
+                    sp.getName().getString(), sp.getUuidAsString(), source.getName());
+            if (!allow) return false;
+            NativeBridge.nativeOnPlayerDeath(
+                    sp.getName().getString(), sp.getUuidAsString(), source.getName());
+            return true;
+        });
+
+        // Player respawn.
+        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+            if (alive) return; // dimension-change respawn, not death respawn
+            NativeBridge.nativeOnPlayerRespawn(
+                    newPlayer.getName().getString(), newPlayer.getUuidAsString(), false);
         });
 
         // End-of-tick (20×/second).

@@ -289,4 +289,14 @@ pub trait Server {
         dx: f64, dy: f64, dz: f64,
         speed: f64,
     ) -> bool;
+
+    // ── attributes ───────────────────────────────────────────────────────────
+
+    /// Get the base value of an attribute on a living entity.
+    /// `attribute_id` e.g. `"minecraft:generic.max_health"`.
+    /// Returns `None` if the entity or attribute is not found.
+    fn entity_attribute_get(&self, uuid: &str, attribute_id: &str) -> Option<f64>;
+
+    /// Set the base value of an attribute. Returns false if not found.
+    fn entity_attribute_set(&self, uuid: &str, attribute_id: &str, value: f64) -> bool;
 }
