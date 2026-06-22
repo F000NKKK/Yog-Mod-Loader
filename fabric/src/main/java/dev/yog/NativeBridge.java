@@ -11,10 +11,12 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
+import net.minecraft.entity.boss.CommandBossBar;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.loot.LootDataKey;
 import net.minecraft.loot.LootDataType;
@@ -22,18 +24,26 @@ import net.minecraft.loot.LootTable;
 import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket;
+import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.item.Item;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.entity.boss.BossBarManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.GameMode;
 import net.minecraft.world.World;
 
 /**
@@ -253,6 +263,170 @@ public final class NativeBridge {
         net.minecraft.scoreboard.ScoreboardPlayerScore score = sb.getPlayerScore(player, obj);
         score.incrementScore(delta);
         return score.getScore();
+    }
+
+    public static boolean playSound(
+            String dimension, double x, double y, double z,
+            String soundId, float volume, float pitch) {
+        ServerWorld w = worldFor(dimension);
+        Identifier id = Identifier.tryParse(soundId);
+        if (w == null || id == null) return false;
+        w.playSound(null, x, y, z, SoundEvent.of(id), SoundCategory.MASTER, volume, pitch);
+        return true;
+    }
+
+    public static boolean playSoundToPlayer(String playerName, String soundId, float volume, float pitch) {
+        ServerPlayerEntity p = playerByName(playerName);
+        Identifier id = Identifier.tryParse(soundId);
+        if (p == null || id == null) return false;
+        p.getServerWorld().playSound(
+                null, p.getX(), p.getY(), p.getZ(),
+                SoundEvent.of(id), SoundCategory.MASTER, volume, pitch);
+        return true;
+    }
+
+    public static boolean sendTitle(
+            String playerName, String title, String subtitle,
+            int fadein, int stay, int fadeout) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return false;
+        p.networkHandler.sendPacket(new TitleFadeS2CPacket(fadein, stay, fadeout));
+        if (!title.isEmpty()) {
+            p.networkHandler.sendPacket(new TitleS2CPacket(Text.literal(title)));
+        }
+        if (!subtitle.isEmpty()) {
+            p.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal(subtitle)));
+        }
+        return true;
+    }
+
+    public static boolean sendActionbar(String playerName, String message) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return false;
+        p.networkHandler.sendPacket(new OverlayMessageS2CPacket(Text.literal(message)));
+        return true;
+    }
+
+    public static boolean kickPlayer(String playerName, String reason) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return false;
+        p.networkHandler.disconnect(Text.literal(reason));
+        return true;
+    }
+
+    public static boolean setGamemode(String playerName, String gamemode) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return false;
+        GameMode mode = switch (gamemode.toLowerCase(Locale.ROOT)) {
+            case "survival", "s", "0" -> GameMode.SURVIVAL;
+            case "creative", "c", "1" -> GameMode.CREATIVE;
+            case "adventure", "a", "2" -> GameMode.ADVENTURE;
+            case "spectator", "sp", "3" -> GameMode.SPECTATOR;
+            default -> null;
+        };
+        if (mode == null) return false;
+        p.changeGameMode(mode);
+        return true;
+    }
+
+    // ── boss bar ────────────────────────────────────────────────────────────
+
+    public static boolean bossbarCreate(String id, String title, String color, String style) {
+        MinecraftServer s = server;
+        if (s == null) return false;
+        Identifier bid = Identifier.tryParse(id);
+        if (bid == null) return false;
+        BossBarManager mgr = s.getBossBarManager();
+        if (mgr.get(bid) != null) return false;
+        CommandBossBar bar = mgr.add(bid, Text.literal(title));
+        bar.setColor(parseBossBarColor(color));
+        bar.setStyle(parseBossBarStyle(style));
+        return true;
+    }
+
+    public static boolean bossbarRemove(String id) {
+        MinecraftServer s = server;
+        if (s == null) return false;
+        Identifier bid = Identifier.tryParse(id);
+        if (bid == null) return false;
+        BossBarManager mgr = s.getBossBarManager();
+        CommandBossBar bar = mgr.get(bid);
+        if (bar == null) return false;
+        mgr.remove(bar);
+        return true;
+    }
+
+    public static boolean bossbarSetTitle(String id, String title) {
+        CommandBossBar bar = getBossBar(id);
+        if (bar == null) return false;
+        bar.setName(Text.literal(title));
+        return true;
+    }
+
+    public static boolean bossbarSetProgress(String id, float progress) {
+        CommandBossBar bar = getBossBar(id);
+        if (bar == null) return false;
+        bar.setPercent(Math.max(0f, Math.min(1f, progress)));
+        return true;
+    }
+
+    public static boolean bossbarSetColor(String id, String color) {
+        CommandBossBar bar = getBossBar(id);
+        if (bar == null) return false;
+        bar.setColor(parseBossBarColor(color));
+        return true;
+    }
+
+    public static boolean bossbarAddPlayer(String id, String playerName) {
+        CommandBossBar bar = getBossBar(id);
+        ServerPlayerEntity p = playerByName(playerName);
+        if (bar == null || p == null) return false;
+        bar.addPlayer(p);
+        return true;
+    }
+
+    public static boolean bossbarRemovePlayer(String id, String playerName) {
+        CommandBossBar bar = getBossBar(id);
+        ServerPlayerEntity p = playerByName(playerName);
+        if (bar == null || p == null) return false;
+        bar.removePlayer(p);
+        return true;
+    }
+
+    public static boolean bossbarSetVisible(String id, boolean visible) {
+        CommandBossBar bar = getBossBar(id);
+        if (bar == null) return false;
+        bar.setVisible(visible);
+        return true;
+    }
+
+    private static CommandBossBar getBossBar(String id) {
+        MinecraftServer s = server;
+        if (s == null) return null;
+        Identifier bid = Identifier.tryParse(id);
+        return bid == null ? null : s.getBossBarManager().get(bid);
+    }
+
+    private static BossBar.Color parseBossBarColor(String color) {
+        return switch (color.toLowerCase(Locale.ROOT)) {
+            case "pink"   -> BossBar.Color.PINK;
+            case "blue"   -> BossBar.Color.BLUE;
+            case "red"    -> BossBar.Color.RED;
+            case "green"  -> BossBar.Color.GREEN;
+            case "yellow" -> BossBar.Color.YELLOW;
+            case "purple" -> BossBar.Color.PURPLE;
+            default       -> BossBar.Color.WHITE;
+        };
+    }
+
+    private static BossBar.Style parseBossBarStyle(String style) {
+        return switch (style.toLowerCase(Locale.ROOT)) {
+            case "notched_6"  -> BossBar.Style.NOTCHED_6;
+            case "notched_10" -> BossBar.Style.NOTCHED_10;
+            case "notched_12" -> BossBar.Style.NOTCHED_12;
+            case "notched_20" -> BossBar.Style.NOTCHED_20;
+            default           -> BossBar.Style.PROGRESS;
+        };
     }
 
     public static String gameDir() {

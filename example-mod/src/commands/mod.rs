@@ -91,6 +91,56 @@ pub fn register(registry: &mut Registry) {
         Some(format!("Coins: {} (+10)", new_balance))
     });
 
+    // Send a title screen to the caller.
+    registry.on_command("title", |ctx, srv| {
+        let ok = Player::new(srv, &ctx.source)
+            .send_title("\u{a7}6Yog Loaded!", "\u{a7}7This is Rust in Minecraft.", 10, 70, 20);
+        Some(if ok { "Title sent.".into() } else { "Failed (are you a player?).".into() })
+    });
+
+    // Send an action-bar message.
+    registry.on_command("bar", |ctx, srv| {
+        let ok = Player::new(srv, &ctx.source)
+            .send_actionbar("\u{a7}aYog action bar!");
+        Some(if ok { "Action-bar sent.".into() } else { "Failed.".into() })
+    });
+
+    // Play a level-up sound at the caller's position.
+    registry.on_command("sound", |ctx, srv| {
+        let ok = Player::new(srv, &ctx.source)
+            .play_sound("minecraft:entity.player.levelup", 1.0, 1.0);
+        Some(if ok { "Sound played.".into() } else { "Failed.".into() })
+    });
+
+    // Switch to creative mode.
+    registry.on_command("creative", |ctx, srv| {
+        let ok = Player::new(srv, &ctx.source).set_gamemode("creative");
+        Some(if ok { "Creative mode.".into() } else { "Failed.".into() })
+    });
+
+    // Switch to survival mode.
+    registry.on_command("survival", |ctx, srv| {
+        let ok = Player::new(srv, &ctx.source).set_gamemode("survival");
+        Some(if ok { "Survival mode.".into() } else { "Failed.".into() })
+    });
+
+    // Boss-bar demo: create a progress bar and add the caller to it.
+    registry.on_command("boss", |ctx, srv| {
+        let bid = "yog:demo";
+        srv.bossbar_create(bid, "\u{a7}6Yog Demo", "yellow", "notched_10");
+        srv.bossbar_set_progress(bid, 0.75);
+        srv.bossbar_add_player(bid, &ctx.source);
+        Some("Boss bar shown.".into())
+    });
+
+    // Remove the demo boss bar entirely.
+    registry.on_command("unboss", |ctx, srv| {
+        let bid = "yog:demo";
+        srv.bossbar_remove_player(bid, &ctx.source);
+        srv.bossbar_remove(bid);
+        Some("Boss bar removed.".into())
+    });
+
     // Show current world time.
     registry.on_command("time", |_ctx, srv| {
         use yog_api::world::World;

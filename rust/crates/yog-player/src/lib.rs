@@ -91,6 +91,38 @@ impl<'a> Player<'a> {
         self.entity().map_or(false, |e: Entity<'_>| e.kill())
     }
 
+    /// Send a title+subtitle screen to this player.
+    pub fn send_title(
+        &self,
+        title: &str,
+        subtitle: &str,
+        fadein: i32,
+        stay: i32,
+        fadeout: i32,
+    ) -> bool {
+        self.server.send_title(&self.name, title, subtitle, fadein, stay, fadeout)
+    }
+
+    /// Send a message to the action-bar (above hotbar).
+    pub fn send_actionbar(&self, message: &str) -> bool {
+        self.server.send_actionbar(&self.name, message)
+    }
+
+    /// Disconnect this player with a reason message.
+    pub fn kick(&self, reason: &str) -> bool {
+        self.server.kick_player(&self.name, reason)
+    }
+
+    /// Change this player's game mode (`"survival"`, `"creative"`, `"adventure"`, `"spectator"`).
+    pub fn set_gamemode(&self, gamemode: &str) -> bool {
+        self.server.set_gamemode(&self.name, gamemode)
+    }
+
+    /// Play a sound at this player's position (audible to nearby players too).
+    pub fn play_sound(&self, sound_id: &str, volume: f32, pitch: f32) -> bool {
+        self.server.play_sound_to_player(&self.name, sound_id, volume, pitch)
+    }
+
     pub fn add_effect(
         &self,
         effect_id: &str,

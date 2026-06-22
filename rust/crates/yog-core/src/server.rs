@@ -142,6 +142,91 @@ pub trait Server {
     /// or `None` if the objective doesn't exist.
     fn scoreboard_add(&self, objective: &str, player: &str, delta: i32) -> Option<i32>;
 
+    // ── sound ───────────────────────────────────────────────────────────────
+
+    /// Play a sound at `(x, y, z)` in `dimension`. `sound_id` is a registry id
+    /// (e.g. `"minecraft:entity.player.levelup"`). All players within range hear
+    /// it. Returns `false` if the dimension is unknown.
+    fn play_sound(
+        &self,
+        dimension: &str,
+        x: f64,
+        y: f64,
+        z: f64,
+        sound_id: &str,
+        volume: f32,
+        pitch: f32,
+    ) -> bool;
+
+    /// Play a sound at the named player's current position. All players nearby
+    /// (including the target) hear it. Returns `false` if the player is offline.
+    fn play_sound_to_player(
+        &self,
+        player: &str,
+        sound_id: &str,
+        volume: f32,
+        pitch: f32,
+    ) -> bool;
+
+    // ── title / actionbar ───────────────────────────────────────────────────
+
+    /// Send a title+subtitle screen to a player. Pass empty strings to omit
+    /// either line. Timings are in ticks (20 ticks = 1 second).
+    fn send_title(
+        &self,
+        player: &str,
+        title: &str,
+        subtitle: &str,
+        fadein: i32,
+        stay: i32,
+        fadeout: i32,
+    ) -> bool;
+
+    /// Send a short message to the action-bar (the line just above the hotbar).
+    fn send_actionbar(&self, player: &str, message: &str) -> bool;
+
+    // ── player management ───────────────────────────────────────────────────
+
+    /// Disconnect `player` with the given `reason` message.
+    fn kick_player(&self, player: &str, reason: &str) -> bool;
+
+    /// Change a player's game mode. `gamemode` is one of `"survival"`,
+    /// `"creative"`, `"adventure"`, `"spectator"` (or the abbreviations
+    /// `"s"`, `"c"`, `"a"`, `"sp"`). Returns `false` if the player is offline
+    /// or `gamemode` is unrecognised.
+    fn set_gamemode(&self, player: &str, gamemode: &str) -> bool;
+
+    // ── boss bar ────────────────────────────────────────────────────────────
+
+    /// Create a new boss bar identified by `id` (a namespaced id such as
+    /// `"mymod:progress"`). `color`: `"pink"` / `"blue"` / `"red"` / `"green"` /
+    /// `"yellow"` / `"purple"` / `"white"`. `style`: `"progress"` /
+    /// `"notched_6"` / `"notched_10"` / `"notched_12"` / `"notched_20"`.
+    /// Returns `false` if a bar with that id already exists.
+    fn bossbar_create(&self, id: &str, title: &str, color: &str, style: &str) -> bool;
+
+    /// Remove a boss bar (also removes it from all players). Returns `false` if
+    /// the bar doesn't exist.
+    fn bossbar_remove(&self, id: &str) -> bool;
+
+    /// Update the displayed title of a boss bar.
+    fn bossbar_set_title(&self, id: &str, title: &str) -> bool;
+
+    /// Set the fill level of a boss bar (0.0 = empty, 1.0 = full).
+    fn bossbar_set_progress(&self, id: &str, progress: f32) -> bool;
+
+    /// Change the color of a boss bar (same color names as [`bossbar_create`]).
+    fn bossbar_set_color(&self, id: &str, color: &str) -> bool;
+
+    /// Add an online player to the boss bar's audience.
+    fn bossbar_add_player(&self, id: &str, player: &str) -> bool;
+
+    /// Remove a player from the boss bar's audience.
+    fn bossbar_remove_player(&self, id: &str, player: &str) -> bool;
+
+    /// Show or hide a boss bar for all its current audience members.
+    fn bossbar_set_visible(&self, id: &str, visible: bool) -> bool;
+
     // ── misc ────────────────────────────────────────────────────────────────
 
     /// Absolute path of the game / server root directory.

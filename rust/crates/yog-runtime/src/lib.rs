@@ -601,6 +601,248 @@ impl Server for JniServer {
         if v == i32::MIN { None } else { Some(v) }
     }
 
+    fn play_sound(
+        &self,
+        dimension: &str,
+        x: f64,
+        y: f64,
+        z: f64,
+        sound_id: &str,
+        volume: f32,
+        pitch: f32,
+    ) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(jd), Ok(js)) = (env.new_string(dimension), env.new_string(sound_id)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "playSound",
+            "(Ljava/lang/String;DDDLjava/lang/String;FF)Z",
+            &[
+                JValue::Object(&jd),
+                JValue::Double(x),
+                JValue::Double(y),
+                JValue::Double(z),
+                JValue::Object(&js),
+                JValue::Float(volume),
+                JValue::Float(pitch),
+            ],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn play_sound_to_player(
+        &self,
+        player: &str,
+        sound_id: &str,
+        volume: f32,
+        pitch: f32,
+    ) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(jp), Ok(js)) = (env.new_string(player), env.new_string(sound_id)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "playSoundToPlayer",
+            "(Ljava/lang/String;Ljava/lang/String;FF)Z",
+            &[
+                JValue::Object(&jp),
+                JValue::Object(&js),
+                JValue::Float(volume),
+                JValue::Float(pitch),
+            ],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn send_title(
+        &self,
+        player: &str,
+        title: &str,
+        subtitle: &str,
+        fadein: i32,
+        stay: i32,
+        fadeout: i32,
+    ) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(jp), Ok(jt), Ok(js)) = (env.new_string(player), env.new_string(title), env.new_string(subtitle)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "sendTitle",
+            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)Z",
+            &[
+                JValue::Object(&jp),
+                JValue::Object(&jt),
+                JValue::Object(&js),
+                JValue::Int(fadein),
+                JValue::Int(stay),
+                JValue::Int(fadeout),
+            ],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn send_actionbar(&self, player: &str, message: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(jp), Ok(jm)) = (env.new_string(player), env.new_string(message)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "sendActionbar",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&jp), JValue::Object(&jm)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn kick_player(&self, player: &str, reason: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(jp), Ok(jr)) = (env.new_string(player), env.new_string(reason)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "kickPlayer",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&jp), JValue::Object(&jr)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn set_gamemode(&self, player: &str, gamemode: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(jp), Ok(jg)) = (env.new_string(player), env.new_string(gamemode)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "setGamemode",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&jp), JValue::Object(&jg)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn bossbar_create(&self, id: &str, title: &str, color: &str, style: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(ji), Ok(jt), Ok(jc), Ok(js)) = (
+            env.new_string(id), env.new_string(title),
+            env.new_string(color), env.new_string(style),
+        ) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "bossbarCreate",
+            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&ji), JValue::Object(&jt), JValue::Object(&jc), JValue::Object(&js)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn bossbar_remove(&self, id: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let Ok(ji) = env.new_string(id) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "bossbarRemove",
+            "(Ljava/lang/String;)Z",
+            &[JValue::Object(&ji)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn bossbar_set_title(&self, id: &str, title: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(ji), Ok(jt)) = (env.new_string(id), env.new_string(title)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "bossbarSetTitle",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&ji), JValue::Object(&jt)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn bossbar_set_progress(&self, id: &str, progress: f32) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let Ok(ji) = env.new_string(id) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "bossbarSetProgress",
+            "(Ljava/lang/String;F)Z",
+            &[JValue::Object(&ji), JValue::Float(progress)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn bossbar_set_color(&self, id: &str, color: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(ji), Ok(jc)) = (env.new_string(id), env.new_string(color)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "bossbarSetColor",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&ji), JValue::Object(&jc)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn bossbar_add_player(&self, id: &str, player: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(ji), Ok(jp)) = (env.new_string(id), env.new_string(player)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "bossbarAddPlayer",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&ji), JValue::Object(&jp)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn bossbar_remove_player(&self, id: &str, player: &str) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(ji), Ok(jp)) = (env.new_string(id), env.new_string(player)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "bossbarRemovePlayer",
+            "(Ljava/lang/String;Ljava/lang/String;)Z",
+            &[JValue::Object(&ji), JValue::Object(&jp)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn bossbar_set_visible(&self, id: &str, visible: bool) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let Ok(ji) = env.new_string(id) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "bossbarSetVisible",
+            "(Ljava/lang/String;Z)Z",
+            &[JValue::Object(&ji), JValue::Bool(visible as u8)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
     fn game_dir(&self) -> String {
         let Some(vm) = JAVA_VM.get() else { return String::new(); };
         let Ok(mut env) = vm.attach_current_thread() else { return String::new(); };
