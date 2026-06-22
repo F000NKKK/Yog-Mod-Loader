@@ -314,9 +314,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
 
 [[package]]
+name = "yog-abi"
+version = "0.1.0"
+
+[[package]]
 name = "yog-api"
 version = "0.1.0"
 dependencies = [
+ "yog-abi",
  "yog-command",
  "yog-core",
  "yog-entity",
@@ -384,8 +389,10 @@ version = "0.1.0"
 dependencies = [
  "jni",
  "libloading",
+ "yog-abi",
  "yog-api",
  "yog-logging",
+ "yog-registry",
  "zip",
 ]
 

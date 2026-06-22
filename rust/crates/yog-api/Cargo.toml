@@ -8,6 +8,7 @@ license = "MIT OR Apache-2.0"
 description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 
 [dependencies]
+yog-abi  = { path = "../yog-abi" }
 yog-core = { path = "../yog-core" }
 yog-event = { path = "../yog-event" }
 yog-world = { path = "../yog-world" }

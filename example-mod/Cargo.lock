@@ -3,9 +3,14 @@
 version = 4
 
 [[package]]
+name = "yog-abi"
+version = "0.1.0"
+
+[[package]]
 name = "yog-api"
 version = "0.1.0"
 dependencies = [
+ "yog-abi",
  "yog-command",
  "yog-core",
  "yog-entity",

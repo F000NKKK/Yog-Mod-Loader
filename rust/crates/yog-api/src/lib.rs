@@ -7,18 +7,21 @@
 
 mod registry;
 
-pub use registry::{Mod, Registry};
+pub use registry::{CServer, Mod, Registry};
 
-/// ABI version of the dynamic-mod interface. The runtime refuses to load a mod
-/// whose `yog_abi_version()` does not match, since Rust has no stable ABI:
-/// runtime and mods must be built against the same `yog-api`.
-pub const ABI_VERSION: u32 = 1;
+/// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
+pub use yog_abi::{ABI_VERSION, YogApi};
+
+#[doc(hidden)]
+pub use std::os::raw::c_void as __c_void;
 
 /// Export a [`Mod`] as a dynamically loadable Yog mod.
 ///
-/// Generates the C-ABI entry points the runtime looks up (`yog_abi_version`,
-/// `yog_mod_register`) so mod authors never write `unsafe`. Put this once at the
-/// crate root of a `cdylib` mod:
+/// Generates the two C-ABI entry points the runtime looks up:
+/// - `yog_abi_version() -> u32`  — version check before loading
+/// - `yog_mod_register(*const YogApi, *mut c_void)` — registration entry point
+///
+/// Put this once at the crate root of a `cdylib` mod:
 ///
 /// ```ignore
 /// yog_api::export_mod!(MyMod);
@@ -32,15 +35,17 @@ macro_rules! export_mod {
         }
 
         #[no_mangle]
-        pub extern "C" fn yog_mod_register(registry: *mut $crate::Registry) {
+        pub unsafe extern "C" fn yog_mod_register(
+            api: *const $crate::YogApi,
+            _ctx: *mut $crate::__c_void,
+        ) {
             // Catch panics so they never unwind across this `extern "C"` boundary
             // back into the runtime (which would be undefined behaviour).
             let outcome = ::std::panic::catch_unwind(::std::panic::AssertUnwindSafe(|| {
-                // SAFETY: the runtime passes a valid, exclusive pointer to a
-                // Registry built against the same yog-api version, verified via
-                // yog_abi_version() before this call.
-                let registry: &mut $crate::Registry = unsafe { &mut *registry };
-                <$mod_ty as $crate::Mod>::register(registry);
+                // SAFETY: the runtime passes a valid YogApi pointer, verified via
+                // yog_abi_version() and abi_version/size checks before this call.
+                let mut registry = unsafe { $crate::Registry::from_raw(api) };
+                <$mod_ty as $crate::Mod>::register(&mut registry);
             }));
             if outcome.is_err() {
                 $crate::error!("mod {} panicked during register", ::core::stringify!($mod_ty));

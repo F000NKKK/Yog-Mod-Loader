@@ -1,42 +1,739 @@
 //! Yog runtime — the native library loaded by the Fabric host.
 //!
-//! It exposes JNI entry points that the Java side calls, translates the incoming
-//! data into [`yog_api`] events, and dispatches them to registered Rust mods.
-//! It also implements [`yog_api::Server`], the Rust → Minecraft path, by calling
-//! back into the Java host through a cached [`JavaVM`].
+//! Exposes JNI entry points (`Java_dev_yog_NativeBridge_*`) that the host calls,
+//! and a stable C ABI (`YogApi` / `YogServer`) that mods program against.
 //!
-//! Symbol naming follows the JNI convention `Java_<package>_<class>_<method>`,
-//! here `dev.yog.NativeBridge`.
+//! Architecture:
+//!   - `YogServer`  — a `#[repr(C)]` table of standalone JNI-calling functions
+//!                    that mods call to mutate the world.
+//!   - `YogApi`     — a `#[repr(C)]` table of registration functions; mods call
+//!                    them inside `yog_mod_register` to subscribe to events.
+//!   - `RuntimeHandlers` — the runtime's internal event/handler storage.
+//!     Filled during `nativeInit` (write), read-only after. The scheduler sub-
+//!     state uses an inner `Mutex` for safe addition during event dispatch.
 
+use std::collections::HashMap;
+use std::os::raw::c_void;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock, RwLock};
+use std::sync::{Mutex, OnceLock};
 
 use jni::objects::{JByteArray, JClass, JString, JValue};
 use jni::sys::{jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
 use libloading::{Library, Symbol};
 
-use yog_api::{
-    AttackEntityEvent, BlockBreakEvent, BlockPos, ChatEvent, CommandContext, EntityDamageEvent,
-    EntityDeathEvent, PacketEvent, PlayerJoinEvent, PlayerLeaveEvent, Registry, Server,
-    UseBlockEvent, UseItemEvent, ABI_VERSION,
+use yog_abi::{
+    ABI_VERSION, YogApi, YogAttackEntityFn, YogBlockBreakFn, YogBlockDef, YogBlockPos,
+    YogChatFn, YogCommandFn, YogEntityDamageFn, YogEntityDeathFn, YogItemDef,
+    YogOwnedStr, YogPacketFn, YogPlayerFn, YogScheduledFn, YogServer,
+    YogServerFn, YogStr, YogUseBlockFn, YogUseItemFn, YogVec3,
 };
+use yog_registry::{BlockDef, FoodDef, ItemDef};
 
-/// Loaded mod libraries, kept alive for the process so their code stays mapped.
+// ── Static globals ────────────────────────────────────────────────────────────
+
+/// Cached JVM handle for any-thread callbacks.
+static JAVA_VM: OnceLock<JavaVM> = OnceLock::new();
+/// Loaded mod libraries — kept alive so the code pages stay mapped.
 static LOADED_MODS: Mutex<Vec<Library>> = Mutex::new(Vec::new());
+/// Stable server table (populated once in nativeInit, then read-only).
+static SERVER: OnceLock<YogServer> = OnceLock::new();
+/// All registered handlers + content (populated during mod loading, then read-only).
+static HANDLERS: OnceLock<RuntimeHandlers> = OnceLock::new();
 
-type AbiVersionFn = unsafe extern "C" fn() -> u32;
-type RegisterFn = unsafe extern "C" fn(*mut Registry);
+// ── Handler storage ───────────────────────────────────────────────────────────
 
-/// Platform tag matching `std::env::consts`, e.g. `linux-x86_64`. Mirrors the
-/// layout the host uses for embedded natives and `.yog` mods.
+struct RuntimeHandlers {
+    block_break:     Vec<(*mut c_void, YogBlockBreakFn)>,
+    chat:            Vec<(*mut c_void, YogChatFn)>,
+    player_join:     Vec<(*mut c_void, YogPlayerFn)>,
+    player_leave:    Vec<(*mut c_void, YogPlayerFn)>,
+    use_item:        Vec<(*mut c_void, YogUseItemFn)>,
+    use_block:       Vec<(*mut c_void, YogUseBlockFn)>,
+    attack_entity:   Vec<(*mut c_void, YogAttackEntityFn)>,
+    entity_damage:   Vec<(*mut c_void, YogEntityDamageFn)>,
+    entity_death:    Vec<(*mut c_void, YogEntityDeathFn)>,
+    server_tick:     Vec<(*mut c_void, YogServerFn)>,
+    server_started:  Vec<(*mut c_void, YogServerFn)>,
+    server_stopping: Vec<(*mut c_void, YogServerFn)>,
+    commands:        HashMap<String, (*mut c_void, YogCommandFn)>,
+    packets:         HashMap<String, (*mut c_void, YogPacketFn)>,
+    client_packets:  HashMap<String, (*mut c_void, YogPacketFn)>,
+    items:           Vec<ItemDef>,
+    blocks:          Vec<BlockDef>,
+    scheduler:       Mutex<SchedulerState>,
+}
+
+// All fn ptrs are C-ABI; ud pointers are from Box::into_raw of Send+Sync closures.
+unsafe impl Send for RuntimeHandlers {}
+unsafe impl Sync for RuntimeHandlers {}
+
+impl RuntimeHandlers {
+    fn new() -> Self {
+        Self {
+            block_break: Vec::new(), chat: Vec::new(),
+            player_join: Vec::new(), player_leave: Vec::new(),
+            use_item: Vec::new(), use_block: Vec::new(),
+            attack_entity: Vec::new(), entity_damage: Vec::new(),
+            entity_death: Vec::new(), server_tick: Vec::new(),
+            server_started: Vec::new(), server_stopping: Vec::new(),
+            commands: HashMap::new(), packets: HashMap::new(),
+            client_packets: HashMap::new(), items: Vec::new(),
+            blocks: Vec::new(), scheduler: Mutex::new(SchedulerState::new()),
+        }
+    }
+}
+
+struct SchedulerState {
+    once_tasks:       Vec<OnceTask>,
+    repeating_tasks:  Vec<RepeatingTask>,
+}
+
+struct OnceTask      { delay_remaining: u64, ud: *mut c_void, f: YogScheduledFn }
+struct RepeatingTask { period: u64, ticks_left: u64, ud: *mut c_void, f: YogScheduledFn }
+
+unsafe impl Send for SchedulerState {}
+unsafe impl Sync for SchedulerState {}
+unsafe impl Send for OnceTask {}
+unsafe impl Send for RepeatingTask {}
+
+impl SchedulerState {
+    fn new() -> Self { Self { once_tasks: Vec::new(), repeating_tasks: Vec::new() } }
+}
+
+fn handlers() -> &'static RuntimeHandlers {
+    HANDLERS.get().expect("yog: nativeInit not called yet")
+}
+
+// ── JNI helpers ──────────────────────────────────────────────────────────────
+
+fn guard(label: &str, f: impl FnOnce()) {
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err() {
+        yog_logging::error!("a mod panicked handling `{}` (ignored)", label);
+    }
+}
+
+macro_rules! jstr {
+    ($env:expr, $s:expr) => {
+        match $env.get_string(&$s) { Ok(s) => String::from(s), Err(_) => return }
+    };
+}
+
+/// Convert a `YogStr` into a Java String. Caller must ensure `s` is valid UTF-8.
+unsafe fn ys_to_java<'l>(env: &mut JNIEnv<'l>, s: YogStr)
+    -> Option<jni::objects::JString<'l>>
+{
+    env.new_string(s.as_str()).ok()
+}
+
+fn get_env() -> Option<jni::AttachGuard<'static>> {
+    JAVA_VM.get()?.attach_current_thread().ok()
+}
+
+// ── Free-str allocator used by YogOwnedStr ────────────────────────────────────
+
+unsafe extern "C" fn yog_free_str(ptr: *mut u8, len: u32) {
+    if !ptr.is_null() {
+        drop(Box::from_raw(std::slice::from_raw_parts_mut(ptr, len as usize)));
+    }
+}
+
+fn jstring_to_owned(env: &mut JNIEnv, obj: jni::objects::JObject) -> YogOwnedStr {
+    if obj.as_raw().is_null() { return YogOwnedStr::NONE; }
+    match env.get_string(&JString::from(obj)) {
+        Ok(s) => YogOwnedStr::from_string(String::from(s)),
+        Err(_) => YogOwnedStr::NONE,
+    }
+}
+
+// ── YogServer standalone functions (one per action) ───────────────────────────
+//
+// ctx is unused here — all state is in the JAVA_VM static.
+
+unsafe extern "C" fn srv_broadcast(_ctx: *mut c_void, msg: YogStr) {
+    let Some(mut env) = get_env() else { return };
+    if let Some(jmsg) = ys_to_java(&mut env, msg) {
+        let _ = env.call_static_method("dev/yog/NativeBridge", "broadcast",
+            "(Ljava/lang/String;)V", &[JValue::Object(&jmsg)]);
+    }
+}
+
+unsafe extern "C" fn srv_get_block(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let (Some(jd), ) = (ys_to_java(&mut env, dim),) else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "getBlock",
+        "(Ljava/lang/String;III)Ljava/lang/String;",
+        &[JValue::Object(&jd), JValue::Int(pos.x), JValue::Int(pos.y), JValue::Int(pos.z)]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+unsafe extern "C" fn srv_set_block(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, block: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jd), Some(jb)) = (ys_to_java(&mut env, dim), ys_to_java(&mut env, block)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "setBlock",
+        "(Ljava/lang/String;IIILjava/lang/String;)Z",
+        &[JValue::Object(&jd), JValue::Int(pos.x), JValue::Int(pos.y), JValue::Int(pos.z), JValue::Object(&jb)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_world_time(_ctx: *mut c_void, dim: YogStr, out: *mut i64) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(jd) = ys_to_java(&mut env, dim) else { return false };
+    match env.call_static_method("dev/yog/NativeBridge", "worldTime",
+        "(Ljava/lang/String;)J", &[JValue::Object(&jd)]).and_then(|v| v.j()) {
+        Ok(v) if v != i64::MIN => { *out = v; true }
+        _ => false,
+    }
+}
+
+unsafe extern "C" fn srv_set_time(_ctx: *mut c_void, dim: YogStr, time: i64) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(jd) = ys_to_java(&mut env, dim) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "worldSetTime",
+        "(Ljava/lang/String;J)Z", &[JValue::Object(&jd), JValue::Long(time)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_is_raining(_ctx: *mut c_void, dim: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(jd) = ys_to_java(&mut env, dim) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "worldIsRaining",
+        "(Ljava/lang/String;)Z", &[JValue::Object(&jd)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_set_weather(_ctx: *mut c_void, dim: YogStr, raining: bool, dur: i32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(jd) = ys_to_java(&mut env, dim) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "worldSetWeather",
+        "(Ljava/lang/String;ZI)Z",
+        &[JValue::Object(&jd), JValue::Bool(raining as u8), JValue::Int(dur)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_give_item(_ctx: *mut c_void, player: YogStr, item: YogStr, count: u32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(ji)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, item)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "giveItem",
+        "(Ljava/lang/String;Ljava/lang/String;I)Z",
+        &[JValue::Object(&jp), JValue::Object(&ji), JValue::Int(count as i32)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_player_teleport(_ctx: *mut c_void, player: YogStr, pos: YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(jp) = ys_to_java(&mut env, player) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "teleport",
+        "(Ljava/lang/String;DDD)Z",
+        &[JValue::Object(&jp), JValue::Double(pos.x), JValue::Double(pos.y), JValue::Double(pos.z)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_send_to_player(_ctx: *mut c_void, player: YogStr, channel: YogStr, data: *const u8, len: u32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(jc)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, channel)) else { return false };
+    let payload = std::slice::from_raw_parts(data, len as usize);
+    let Ok(jdata) = env.byte_array_from_slice(payload) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "sendToPlayer",
+        "(Ljava/lang/String;Ljava/lang/String;[B)Z",
+        &[JValue::Object(&jp), JValue::Object(&jc), JValue::Object(&jdata)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_send_to_server(_ctx: *mut c_void, channel: YogStr, data: *const u8, len: u32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(jc) = ys_to_java(&mut env, channel) else { return false };
+    let payload = std::slice::from_raw_parts(data, len as usize);
+    let Ok(jdata) = env.byte_array_from_slice(payload) else { return false };
+    let result = env.call_static_method("dev/yog/YogClient", "sendToServer",
+        "(Ljava/lang/String;[B)Z", &[JValue::Object(&jc), JValue::Object(&jdata)]);
+    let _ = env.exception_clear();
+    result.and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_kick_player(_ctx: *mut c_void, player: YogStr, reason: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(jr)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, reason)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "kickPlayer",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&jp), JValue::Object(&jr)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_set_gamemode(_ctx: *mut c_void, player: YogStr, mode: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(jg)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, mode)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "setGamemode",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&jp), JValue::Object(&jg)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_send_title(_ctx: *mut c_void, player: YogStr, title: YogStr, sub: YogStr, fi: i32, stay: i32, fo: i32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(jt), Some(js)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, title), ys_to_java(&mut env, sub)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "sendTitle",
+        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)Z",
+        &[JValue::Object(&jp), JValue::Object(&jt), JValue::Object(&js), JValue::Int(fi), JValue::Int(stay), JValue::Int(fo)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_send_actionbar(_ctx: *mut c_void, player: YogStr, msg: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(jm)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, msg)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "sendActionbar",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&jp), JValue::Object(&jm)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_play_sound(_ctx: *mut c_void, dim: YogStr, pos: YogVec3, sound: YogStr, vol: f32, pitch: f32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jd), Some(js)) = (ys_to_java(&mut env, dim), ys_to_java(&mut env, sound)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "playSound",
+        "(Ljava/lang/String;DDDLjava/lang/String;FF)Z",
+        &[JValue::Object(&jd), JValue::Double(pos.x), JValue::Double(pos.y), JValue::Double(pos.z), JValue::Object(&js), JValue::Float(vol), JValue::Float(pitch)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_play_sound_player(_ctx: *mut c_void, player: YogStr, sound: YogStr, vol: f32, pitch: f32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(js)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, sound)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "playSoundToPlayer",
+        "(Ljava/lang/String;Ljava/lang/String;FF)Z",
+        &[JValue::Object(&jp), JValue::Object(&js), JValue::Float(vol), JValue::Float(pitch)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_entity_teleport(_ctx: *mut c_void, uuid: YogStr, pos: YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entityTeleport",
+        "(Ljava/lang/String;DDD)Z",
+        &[JValue::Object(&ju), JValue::Double(pos.x), JValue::Double(pos.y), JValue::Double(pos.z)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_entity_position(_ctx: *mut c_void, uuid: YogStr, out: *mut YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "entityPosition",
+        "(Ljava/lang/String;)Ljava/lang/String;", &[JValue::Object(&ju)]);
+    let obj = match ret.and_then(|v| v.l()) { Ok(o) => o, Err(_) => return false };
+    if obj.as_raw().is_null() { return false; }
+    let s: String = match env.get_string(&JString::from(obj)) { Ok(s) => String::from(s), Err(_) => return false };
+    let mut it = s.split('\t');
+    let (x, y, z) = (it.next(), it.next(), it.next());
+    if let (Some(x), Some(y), Some(z)) = (x.and_then(|v| v.parse().ok()), y.and_then(|v| v.parse().ok()), z.and_then(|v| v.parse().ok())) {
+        *out = YogVec3 { x, y, z }; true
+    } else { false }
+}
+
+unsafe extern "C" fn srv_entity_health(_ctx: *mut c_void, uuid: YogStr, out: *mut f32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    match env.call_static_method("dev/yog/NativeBridge", "entityHealth",
+        "(Ljava/lang/String;)D", &[JValue::Object(&ju)]).and_then(|v| v.d()) {
+        Ok(v) if !v.is_nan() => { *out = v as f32; true }
+        _ => false,
+    }
+}
+
+unsafe extern "C" fn srv_entity_set_health(_ctx: *mut c_void, uuid: YogStr, hp: f32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entitySetHealth",
+        "(Ljava/lang/String;D)Z", &[JValue::Object(&ju), JValue::Double(hp as f64)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_entity_kill(_ctx: *mut c_void, uuid: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entityKill",
+        "(Ljava/lang/String;)Z", &[JValue::Object(&ju)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_spawn_entity(_ctx: *mut c_void, type_id: YogStr, dim: YogStr, pos: YogVec3) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let (Some(jt), Some(jd)) = (ys_to_java(&mut env, type_id), ys_to_java(&mut env, dim)) else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "spawnEntity",
+        "(Ljava/lang/String;Ljava/lang/String;DDD)Ljava/lang/String;",
+        &[JValue::Object(&jt), JValue::Object(&jd), JValue::Double(pos.x), JValue::Double(pos.y), JValue::Double(pos.z)]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+unsafe extern "C" fn srv_entity_add_effect(_ctx: *mut c_void, uuid: YogStr, fx: YogStr, dur: i32, amp: u8, particles: bool) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ju), Some(je)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, fx)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entityAddEffect",
+        "(Ljava/lang/String;Ljava/lang/String;IIZ)Z",
+        &[JValue::Object(&ju), JValue::Object(&je), JValue::Int(dur), JValue::Int(amp as i32), JValue::Bool(particles as u8)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_entity_remove_effect(_ctx: *mut c_void, uuid: YogStr, fx: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ju), Some(je)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, fx)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entityRemoveEffect",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&ju), JValue::Object(&je)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_entity_clear_effects(_ctx: *mut c_void, uuid: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entityClearEffects",
+        "(Ljava/lang/String;)Z", &[JValue::Object(&ju)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_entity_velocity(_ctx: *mut c_void, uuid: YogStr, out: *mut YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "entityVelocity",
+        "(Ljava/lang/String;)Ljava/lang/String;", &[JValue::Object(&ju)]);
+    let obj = match ret.and_then(|v| v.l()) { Ok(o) => o, Err(_) => return false };
+    if obj.as_raw().is_null() { return false; }
+    let s: String = match env.get_string(&JString::from(obj)) { Ok(s) => String::from(s), Err(_) => return false };
+    let mut it = s.split('\t');
+    let (x, y, z) = (it.next(), it.next(), it.next());
+    if let (Some(x), Some(y), Some(z)) = (x.and_then(|v| v.parse().ok()), y.and_then(|v| v.parse().ok()), z.and_then(|v| v.parse().ok())) {
+        *out = YogVec3 { x, y, z }; true
+    } else { false }
+}
+
+unsafe extern "C" fn srv_entity_set_velocity(_ctx: *mut c_void, uuid: YogStr, vel: YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entitySetVelocity",
+        "(Ljava/lang/String;DDD)Z",
+        &[JValue::Object(&ju), JValue::Double(vel.x), JValue::Double(vel.y), JValue::Double(vel.z)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_entity_add_velocity(_ctx: *mut c_void, uuid: YogStr, vel: YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "entityAddVelocity",
+        "(Ljava/lang/String;DDD)Z",
+        &[JValue::Object(&ju), JValue::Double(vel.x), JValue::Double(vel.y), JValue::Double(vel.z)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_has_item_tag(_ctx: *mut c_void, item: YogStr, tag: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ji), Some(jt)) = (ys_to_java(&mut env, item), ys_to_java(&mut env, tag)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "hasItemTag",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&ji), JValue::Object(&jt)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_has_block_tag(_ctx: *mut c_void, block: YogStr, tag: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jb), Some(jt)) = (ys_to_java(&mut env, block), ys_to_java(&mut env, tag)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "hasBlockTag",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&jb), JValue::Object(&jt)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_drop_loot(_ctx: *mut c_void, table: YogStr, dim: YogStr, pos: YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jt), Some(jd)) = (ys_to_java(&mut env, table), ys_to_java(&mut env, dim)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "dropLoot",
+        "(Ljava/lang/String;Ljava/lang/String;DDD)Z",
+        &[JValue::Object(&jt), JValue::Object(&jd), JValue::Double(pos.x), JValue::Double(pos.y), JValue::Double(pos.z)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_scoreboard_get(_ctx: *mut c_void, obj: YogStr, player: YogStr, out: *mut i32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jo), Some(jp)) = (ys_to_java(&mut env, obj), ys_to_java(&mut env, player)) else { return false };
+    match env.call_static_method("dev/yog/NativeBridge", "scoreboardGet",
+        "(Ljava/lang/String;Ljava/lang/String;)I", &[JValue::Object(&jo), JValue::Object(&jp)]).and_then(|v| v.i()) {
+        Ok(v) if v != i32::MIN => { *out = v; true }
+        _ => false,
+    }
+}
+
+unsafe extern "C" fn srv_scoreboard_set(_ctx: *mut c_void, obj: YogStr, player: YogStr, score: i32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jo), Some(jp)) = (ys_to_java(&mut env, obj), ys_to_java(&mut env, player)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "scoreboardSet",
+        "(Ljava/lang/String;Ljava/lang/String;I)Z",
+        &[JValue::Object(&jo), JValue::Object(&jp), JValue::Int(score)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_scoreboard_add(_ctx: *mut c_void, obj: YogStr, player: YogStr, delta: i32, out: *mut i32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jo), Some(jp)) = (ys_to_java(&mut env, obj), ys_to_java(&mut env, player)) else { return false };
+    match env.call_static_method("dev/yog/NativeBridge", "scoreboardAdd",
+        "(Ljava/lang/String;Ljava/lang/String;I)I",
+        &[JValue::Object(&jo), JValue::Object(&jp), JValue::Int(delta)]).and_then(|v| v.i()) {
+        Ok(v) if v != i32::MIN => { *out = v; true }
+        _ => false,
+    }
+}
+
+unsafe extern "C" fn srv_bossbar_create(_ctx: *mut c_void, id: YogStr, title: YogStr, color: YogStr, style: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ji), Some(jt), Some(jc), Some(js)) = (ys_to_java(&mut env, id), ys_to_java(&mut env, title), ys_to_java(&mut env, color), ys_to_java(&mut env, style)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "bossbarCreate",
+        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z",
+        &[JValue::Object(&ji), JValue::Object(&jt), JValue::Object(&jc), JValue::Object(&js)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_bossbar_remove(_ctx: *mut c_void, id: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ji) = ys_to_java(&mut env, id) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "bossbarRemove",
+        "(Ljava/lang/String;)Z", &[JValue::Object(&ji)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_bossbar_set_title(_ctx: *mut c_void, id: YogStr, title: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ji), Some(jt)) = (ys_to_java(&mut env, id), ys_to_java(&mut env, title)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "bossbarSetTitle",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&ji), JValue::Object(&jt)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_bossbar_set_progress(_ctx: *mut c_void, id: YogStr, progress: f32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ji) = ys_to_java(&mut env, id) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "bossbarSetProgress",
+        "(Ljava/lang/String;F)Z", &[JValue::Object(&ji), JValue::Float(progress)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_bossbar_set_color(_ctx: *mut c_void, id: YogStr, color: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ji), Some(jc)) = (ys_to_java(&mut env, id), ys_to_java(&mut env, color)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "bossbarSetColor",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&ji), JValue::Object(&jc)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_bossbar_add_player(_ctx: *mut c_void, id: YogStr, player: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ji), Some(jp)) = (ys_to_java(&mut env, id), ys_to_java(&mut env, player)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "bossbarAddPlayer",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&ji), JValue::Object(&jp)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_bossbar_remove_player(_ctx: *mut c_void, id: YogStr, player: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(ji), Some(jp)) = (ys_to_java(&mut env, id), ys_to_java(&mut env, player)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "bossbarRemovePlayer",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&ji), JValue::Object(&jp)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_bossbar_set_visible(_ctx: *mut c_void, id: YogStr, visible: bool) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ji) = ys_to_java(&mut env, id) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "bossbarSetVisible",
+        "(Ljava/lang/String;Z)Z", &[JValue::Object(&ji), JValue::Bool(visible as u8)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_game_dir(_ctx: *mut c_void) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "gameDir",
+        "()Ljava/lang/String;", &[]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+// ── YogApi registration functions ─────────────────────────────────────────────
+//
+// ctx is *mut RuntimeHandlers (cast from *mut c_void).
+
+macro_rules! api_event {
+    ($name:ident, $field:ident, $fn_ty:ty) => {
+        unsafe extern "C" fn $name(ctx: *mut c_void, ud: *mut c_void, h: $fn_ty) {
+            let handlers = &mut *(ctx as *mut RuntimeHandlers);
+            handlers.$field.push((ud, h));
+        }
+    };
+}
+
+api_event!(api_on_block_break,    block_break,    YogBlockBreakFn);
+api_event!(api_on_chat,           chat,           YogChatFn);
+api_event!(api_on_player_join,    player_join,    YogPlayerFn);
+api_event!(api_on_player_leave,   player_leave,   YogPlayerFn);
+api_event!(api_on_use_item,       use_item,       YogUseItemFn);
+api_event!(api_on_use_block,      use_block,      YogUseBlockFn);
+api_event!(api_on_attack_entity,  attack_entity,  YogAttackEntityFn);
+api_event!(api_on_entity_damage,  entity_damage,  YogEntityDamageFn);
+api_event!(api_on_entity_death,   entity_death,   YogEntityDeathFn);
+api_event!(api_on_server_tick,    server_tick,    YogServerFn);
+api_event!(api_on_server_started, server_started, YogServerFn);
+api_event!(api_on_server_stopping,server_stopping,YogServerFn);
+
+unsafe extern "C" fn api_on_packet(ctx: *mut c_void, channel: YogStr, ud: *mut c_void, h: YogPacketFn) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    handlers.packets.insert(channel.as_str().to_owned(), (ud, h));
+}
+
+unsafe extern "C" fn api_on_client_packet(ctx: *mut c_void, channel: YogStr, ud: *mut c_void, h: YogPacketFn) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    handlers.client_packets.insert(channel.as_str().to_owned(), (ud, h));
+}
+
+unsafe extern "C" fn api_register_command(ctx: *mut c_void, name: YogStr, ud: *mut c_void, h: YogCommandFn) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    handlers.commands.insert(name.as_str().to_owned(), (ud, h));
+}
+
+unsafe extern "C" fn api_register_item(ctx: *mut c_void, def: *const YogItemDef) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let d = &*def;
+    let food = if d.food_nutrition > 0 {
+        Some(FoodDef { nutrition: d.food_nutrition, saturation: d.food_saturation, can_always_eat: d.food_always_eat })
+    } else { None };
+    handlers.items.push(ItemDef {
+        id:            d.id.as_str().to_owned(),
+        max_stack:     d.max_stack as u8,
+        name:          if d.name.is_empty() { None } else { Some(d.name.as_str().to_owned()) },
+        tooltip:       if d.tooltip.is_empty() { None } else { Some(d.tooltip.as_str().to_owned()) },
+        max_damage:    d.max_damage,
+        fire_resistant: d.fire_resistant,
+        fuel_ticks:    d.fuel_ticks,
+        food,
+    });
+}
+
+unsafe extern "C" fn api_register_block(ctx: *mut c_void, def: *const YogBlockDef) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let d = &*def;
+    handlers.blocks.push(BlockDef {
+        id:            d.id.as_str().to_owned(),
+        hardness:      d.hardness,
+        resistance:    d.resistance,
+        name:          if d.name.is_empty() { None } else { Some(d.name.as_str().to_owned()) },
+        light_level:   d.light_level,
+        sound:         if d.sound.is_empty() { None } else { Some(d.sound.as_str().to_owned()) },
+        requires_tool: d.requires_tool,
+        no_collision:  d.no_collision,
+        slipperiness:  d.slipperiness,
+        shape:         if d.shape == [0.0f32; 6] { None } else { Some(d.shape) },
+    });
+}
+
+unsafe extern "C" fn api_schedule_once(ctx: *mut c_void, delay_ticks: u64, ud: *mut c_void, h: YogScheduledFn) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    handlers.scheduler.lock().expect("scheduler poisoned").once_tasks.push(OnceTask { delay_remaining: delay_ticks, ud, f: h });
+}
+
+unsafe extern "C" fn api_schedule_repeating(ctx: *mut c_void, period_ticks: u64, ud: *mut c_void, h: YogScheduledFn) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    handlers.scheduler.lock().expect("scheduler poisoned").repeating_tasks.push(RepeatingTask { period: period_ticks, ticks_left: period_ticks, ud, f: h });
+}
+
+// ── Table constructors ────────────────────────────────────────────────────────
+
+fn build_server_table() -> YogServer {
+    YogServer {
+        ctx:         std::ptr::null_mut(),
+        abi_version: ABI_VERSION,
+        size:        std::mem::size_of::<YogServer>() as u32,
+        free_str:    yog_free_str,
+        broadcast:   srv_broadcast,
+        get_block:   srv_get_block,
+        set_block:   srv_set_block,
+        world_time:  srv_world_time,
+        set_time:    srv_set_time,
+        is_raining:  srv_is_raining,
+        set_weather: srv_set_weather,
+        give_item:   srv_give_item,
+        player_teleport: srv_player_teleport,
+        send_to_player: srv_send_to_player,
+        send_to_server: srv_send_to_server,
+        kick_player: srv_kick_player,
+        set_gamemode: srv_set_gamemode,
+        send_title:  srv_send_title,
+        send_actionbar: srv_send_actionbar,
+        play_sound:  srv_play_sound,
+        play_sound_player: srv_play_sound_player,
+        entity_teleport: srv_entity_teleport,
+        entity_position: srv_entity_position,
+        entity_health: srv_entity_health,
+        entity_set_health: srv_entity_set_health,
+        entity_kill: srv_entity_kill,
+        spawn_entity: srv_spawn_entity,
+        entity_add_effect: srv_entity_add_effect,
+        entity_remove_effect: srv_entity_remove_effect,
+        entity_clear_effects: srv_entity_clear_effects,
+        entity_velocity: srv_entity_velocity,
+        entity_set_velocity: srv_entity_set_velocity,
+        entity_add_velocity: srv_entity_add_velocity,
+        has_item_tag: srv_has_item_tag,
+        has_block_tag: srv_has_block_tag,
+        drop_loot: srv_drop_loot,
+        scoreboard_get: srv_scoreboard_get,
+        scoreboard_set: srv_scoreboard_set,
+        scoreboard_add: srv_scoreboard_add,
+        bossbar_create: srv_bossbar_create,
+        bossbar_remove: srv_bossbar_remove,
+        bossbar_set_title: srv_bossbar_set_title,
+        bossbar_set_progress: srv_bossbar_set_progress,
+        bossbar_set_color: srv_bossbar_set_color,
+        bossbar_add_player: srv_bossbar_add_player,
+        bossbar_remove_player: srv_bossbar_remove_player,
+        bossbar_set_visible: srv_bossbar_set_visible,
+        game_dir: srv_game_dir,
+    }
+}
+
+fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogApi {
+    YogApi {
+        abi_version: ABI_VERSION,
+        size:        std::mem::size_of::<YogApi>() as u32,
+        ctx:         ctx as *mut c_void,
+        server,
+        on_block_break:     api_on_block_break,
+        on_chat:            api_on_chat,
+        on_player_join:     api_on_player_join,
+        on_player_leave:    api_on_player_leave,
+        on_use_item:        api_on_use_item,
+        on_use_block:       api_on_use_block,
+        on_attack_entity:   api_on_attack_entity,
+        on_entity_damage:   api_on_entity_damage,
+        on_entity_death:    api_on_entity_death,
+        on_server_tick:     api_on_server_tick,
+        on_server_started:  api_on_server_started,
+        on_server_stopping: api_on_server_stopping,
+        on_packet:          api_on_packet,
+        on_client_packet:   api_on_client_packet,
+        register_command:   api_register_command,
+        register_item:      api_register_item,
+        register_block:     api_register_block,
+        schedule_once:      api_schedule_once,
+        schedule_repeating: api_schedule_repeating,
+    }
+}
+
+// ── Mod loading ───────────────────────────────────────────────────────────────
+
 fn platform_tag() -> String {
     format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
 }
 
-/// Load every mod in `dir`: plain native libs (`.so`/`.dll`/`.dylib`) and `.yog`
-/// archives (from which the current platform's native is extracted first).
-fn load_mods(dir: &Path, registry: &mut Registry) {
+type AbiVersionFn   = unsafe extern "C" fn() -> u32;
+type RegisterFn     = unsafe extern "C" fn(*const YogApi, *mut c_void);
+
+fn load_mods(dir: &Path, api: &YogApi) {
     let entries = match std::fs::read_dir(dir) {
         Ok(e) => e,
         Err(_) => {
@@ -44,7 +741,6 @@ fn load_mods(dir: &Path, registry: &mut Registry) {
             return;
         }
     };
-
     let mut count = 0u32;
     for entry in entries.flatten() {
         let path = entry.path();
@@ -59,48 +755,31 @@ fn load_mods(dir: &Path, registry: &mut Registry) {
             Some("so") | Some("dll") | Some("dylib") => path.clone(),
             _ => continue,
         };
-        if load_mod_lib(&lib_path, registry) {
-            count += 1;
-        }
+        if load_mod_lib(&lib_path, api) { count += 1; }
     }
     yog_logging::info!("loaded {} mod(s) from {}", count, dir.display());
 }
 
-/// dlopen one native lib, verify its ABI, and run its `yog_mod_register`.
-fn load_mod_lib(path: &Path, registry: &mut Registry) -> bool {
+fn load_mod_lib(path: &Path, api: &YogApi) -> bool {
     unsafe {
         let lib = match Library::new(path) {
             Ok(l) => l,
-            Err(e) => {
-                yog_logging::error!("failed to load {}: {}", path.display(), e);
-                return false;
-            }
+            Err(e) => { yog_logging::error!("failed to load {}: {}", path.display(), e); return false; }
         };
         let abi: Symbol<AbiVersionFn> = match lib.get(b"yog_abi_version") {
             Ok(s) => s,
-            Err(_) => {
-                yog_logging::error!("{} is not a Yog mod (no yog_abi_version)", path.display());
-                return false;
-            }
+            Err(_) => { yog_logging::error!("{} is not a Yog mod (no yog_abi_version)", path.display()); return false; }
         };
         let mod_abi = abi();
         if mod_abi != ABI_VERSION {
-            yog_logging::error!(
-                "{}: ABI {} incompatible with runtime ABI {}",
-                path.display(),
-                mod_abi,
-                ABI_VERSION
-            );
+            yog_logging::error!("{}: ABI {} incompatible with runtime ABI {}", path.display(), mod_abi, ABI_VERSION);
             return false;
         }
         let register: Symbol<RegisterFn> = match lib.get(b"yog_mod_register") {
             Ok(s) => s,
-            Err(_) => {
-                yog_logging::error!("{} missing yog_mod_register", path.display());
-                return false;
-            }
+            Err(_) => { yog_logging::error!("{} missing yog_mod_register", path.display()); return false; }
         };
-        register(registry as *mut Registry);
+        register(api as *const YogApi, std::ptr::null_mut());
         drop(register);
         drop(abi);
         LOADED_MODS.lock().expect("mods lock poisoned").push(lib);
@@ -108,12 +787,10 @@ fn load_mod_lib(path: &Path, registry: &mut Registry) -> bool {
     true
 }
 
-/// Extract the current platform's native from a `.yog` archive to a temp file.
 fn extract_yog(path: &Path) -> Option<PathBuf> {
     let file = std::fs::File::open(path).ok()?;
     let mut archive = zip::ZipArchive::new(file).ok()?;
     let prefix = format!("natives/{}/", platform_tag());
-
     let mut entry_name = None;
     for i in 0..archive.len() {
         let f = archive.by_index(i).ok()?;
@@ -123,1346 +800,411 @@ fn extract_yog(path: &Path) -> Option<PathBuf> {
         }
     }
     let entry_name = entry_name?;
-
-    let ext = Path::new(&entry_name)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("bin");
+    let ext = Path::new(&entry_name).extension().and_then(|e| e.to_str()).unwrap_or("bin");
     let stem = path.file_stem()?.to_string_lossy().into_owned();
     let out = std::env::temp_dir().join(format!("yog-{}-{}.{}", stem, std::process::id(), ext));
-
     let mut entry = archive.by_name(&entry_name).ok()?;
     let mut out_file = std::fs::File::create(&out).ok()?;
     std::io::copy(&mut entry, &mut out_file).ok()?;
     Some(out)
 }
 
-/// Global registry of mod event handlers, initialised once on startup.
-static REGISTRY: OnceLock<RwLock<Registry>> = OnceLock::new();
+// ── Dispatcher helpers ────────────────────────────────────────────────────────
 
-/// Cached VM handle so we can call back into Java from any thread.
-static JAVA_VM: OnceLock<JavaVM> = OnceLock::new();
-
-fn registry() -> &'static RwLock<Registry> {
-    REGISTRY.get_or_init(|| RwLock::new(Registry::default()))
+fn srv_ptr() -> *const YogServer {
+    SERVER.get().expect("yog: SERVER not initialised") as *const YogServer
 }
 
-/// Run `f`, catching any panic that would otherwise unwind across the JNI
-/// boundary into the JVM (undefined behaviour). One misbehaving mod must not
-/// crash the server, so the panic is logged and swallowed.
-fn guard(label: &str, f: impl FnOnce()) {
-    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err() {
-        yog_logging::error!("a mod panicked handling `{}` (ignored)", label);
-    }
-}
+// ── JNI entry points ──────────────────────────────────────────────────────────
 
-/// Read a `JString` argument into a Rust `String`, returning early on error.
-macro_rules! jstr {
-    ($env:expr, $s:expr) => {
-        match $env.get_string(&$s) {
-            Ok(s) => String::from(s),
-            Err(_) => return,
-        }
-    };
-}
-
-/// Concrete [`Server`] handed to handlers. Calls into `dev.yog.NativeBridge`
-/// static methods via the cached [`JavaVM`].
-struct JniServer;
-
-impl Server for JniServer {
-    fn broadcast(&self, message: &str) {
-        let Some(vm) = JAVA_VM.get() else {
-            return;
-        };
-        let Ok(mut env) = vm.attach_current_thread() else {
-            return;
-        };
-        let Ok(jmsg) = env.new_string(message) else {
-            return;
-        };
-        let _ = env.call_static_method(
-            "dev/yog/NativeBridge",
-            "broadcast",
-            "(Ljava/lang/String;)V",
-            &[JValue::Object(&jmsg)],
-        );
-    }
-
-    fn get_block(&self, dimension: &str, pos: BlockPos) -> Option<String> {
-        let vm = JAVA_VM.get()?;
-        let mut env = vm.attach_current_thread().ok()?;
-        let jdim = env.new_string(dimension).ok()?;
-        let ret = env
-            .call_static_method(
-                "dev/yog/NativeBridge",
-                "getBlock",
-                "(Ljava/lang/String;III)Ljava/lang/String;",
-                &[
-                    JValue::Object(&jdim),
-                    JValue::Int(pos.x),
-                    JValue::Int(pos.y),
-                    JValue::Int(pos.z),
-                ],
-            )
-            .ok()?;
-        let obj = ret.l().ok()?;
-        if obj.as_raw().is_null() {
-            return None;
-        }
-        let jstr = JString::from(obj);
-        let block_id: String = env.get_string(&jstr).ok()?.into();
-        Some(block_id)
-    }
-
-    fn set_block(&self, dimension: &str, pos: BlockPos, block_id: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else {
-            return false;
-        };
-        let Ok(mut env) = vm.attach_current_thread() else {
-            return false;
-        };
-        let (Ok(jdim), Ok(jid)) = (env.new_string(dimension), env.new_string(block_id)) else {
-            return false;
-        };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "setBlock",
-            "(Ljava/lang/String;IIILjava/lang/String;)Z",
-            &[
-                JValue::Object(&jdim),
-                JValue::Int(pos.x),
-                JValue::Int(pos.y),
-                JValue::Int(pos.z),
-                JValue::Object(&jid),
-            ],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn give_item(&self, player: &str, item_id: &str, count: u32) -> bool {
-        let Some(vm) = JAVA_VM.get() else {
-            return false;
-        };
-        let Ok(mut env) = vm.attach_current_thread() else {
-            return false;
-        };
-        let (Ok(jp), Ok(ji)) = (env.new_string(player), env.new_string(item_id)) else {
-            return false;
-        };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "giveItem",
-            "(Ljava/lang/String;Ljava/lang/String;I)Z",
-            &[JValue::Object(&jp), JValue::Object(&ji), JValue::Int(count as i32)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn teleport(&self, player: &str, x: f64, y: f64, z: f64) -> bool {
-        let Some(vm) = JAVA_VM.get() else {
-            return false;
-        };
-        let Ok(mut env) = vm.attach_current_thread() else {
-            return false;
-        };
-        let Ok(jp) = env.new_string(player) else {
-            return false;
-        };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "teleport",
-            "(Ljava/lang/String;DDD)Z",
-            &[
-                JValue::Object(&jp),
-                JValue::Double(x),
-                JValue::Double(y),
-                JValue::Double(z),
-            ],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn send_to_player(&self, player: &str, channel: &str, payload: &[u8]) -> bool {
-        let Some(vm) = JAVA_VM.get() else {
-            return false;
-        };
-        let Ok(mut env) = vm.attach_current_thread() else {
-            return false;
-        };
-        let (Ok(jp), Ok(jc), Ok(data)) = (
-            env.new_string(player),
-            env.new_string(channel),
-            env.byte_array_from_slice(payload),
-        ) else {
-            return false;
-        };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "sendToPlayer",
-            "(Ljava/lang/String;Ljava/lang/String;[B)Z",
-            &[JValue::Object(&jp), JValue::Object(&jc), JValue::Object(&data)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn send_to_server(&self, channel: &str, payload: &[u8]) -> bool {
-        let Some(vm) = JAVA_VM.get() else {
-            return false;
-        };
-        let Ok(mut env) = vm.attach_current_thread() else {
-            return false;
-        };
-        let (Ok(jc), Ok(data)) = (env.new_string(channel), env.byte_array_from_slice(payload))
-        else {
-            return false;
-        };
-        let result = env.call_static_method(
-            "dev/yog/YogClient",
-            "sendToServer",
-            "(Ljava/lang/String;[B)Z",
-            &[JValue::Object(&jc), JValue::Object(&data)],
-        );
-        // YogClient is client-only: on a dedicated server the class is absent and
-        // the call leaves a pending exception — clear it and report failure.
-        let _ = env.exception_clear();
-        result.and_then(|v| v.z()).unwrap_or(false)
-    }
-
-    fn entity_teleport(&self, uuid: &str, x: f64, y: f64, z: f64) -> bool {
-        let Some(vm) = JAVA_VM.get() else {
-            return false;
-        };
-        let Ok(mut env) = vm.attach_current_thread() else {
-            return false;
-        };
-        let Ok(ju) = env.new_string(uuid) else {
-            return false;
-        };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "entityTeleport",
-            "(Ljava/lang/String;DDD)Z",
-            &[
-                JValue::Object(&ju),
-                JValue::Double(x),
-                JValue::Double(y),
-                JValue::Double(z),
-            ],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn entity_position(&self, uuid: &str) -> Option<(f64, f64, f64)> {
-        let vm = JAVA_VM.get()?;
-        let mut env = vm.attach_current_thread().ok()?;
-        let ju = env.new_string(uuid).ok()?;
-        let ret = env
-            .call_static_method(
-                "dev/yog/NativeBridge",
-                "entityPosition",
-                "(Ljava/lang/String;)Ljava/lang/String;",
-                &[JValue::Object(&ju)],
-            )
-            .ok()?;
-        let obj = ret.l().ok()?;
-        if obj.as_raw().is_null() {
-            return None;
-        }
-        let jstr = JString::from(obj);
-        let s: String = env.get_string(&jstr).ok()?.into();
-        let mut it = s.split('\t');
-        let x: f64 = it.next()?.parse().ok()?;
-        let y: f64 = it.next()?.parse().ok()?;
-        let z: f64 = it.next()?.parse().ok()?;
-        Some((x, y, z))
-    }
-
-    fn entity_health(&self, uuid: &str) -> Option<f32> {
-        let vm = JAVA_VM.get()?;
-        let mut env = vm.attach_current_thread().ok()?;
-        let ju = env.new_string(uuid).ok()?;
-        let v = env
-            .call_static_method(
-                "dev/yog/NativeBridge",
-                "entityHealth",
-                "(Ljava/lang/String;)D",
-                &[JValue::Object(&ju)],
-            )
-            .ok()?
-            .d()
-            .ok()?;
-        if v.is_nan() {
-            None
-        } else {
-            Some(v as f32)
-        }
-    }
-
-    fn entity_set_health(&self, uuid: &str, health: f32) -> bool {
-        let Some(vm) = JAVA_VM.get() else {
-            return false;
-        };
-        let Ok(mut env) = vm.attach_current_thread() else {
-            return false;
-        };
-        let Ok(ju) = env.new_string(uuid) else {
-            return false;
-        };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "entitySetHealth",
-            "(Ljava/lang/String;D)Z",
-            &[JValue::Object(&ju), JValue::Double(health as f64)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn entity_kill(&self, uuid: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else {
-            return false;
-        };
-        let Ok(mut env) = vm.attach_current_thread() else {
-            return false;
-        };
-        let Ok(ju) = env.new_string(uuid) else {
-            return false;
-        };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "entityKill",
-            "(Ljava/lang/String;)Z",
-            &[JValue::Object(&ju)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn world_time(&self, dimension: &str) -> Option<i64> {
-        let vm = JAVA_VM.get()?;
-        let mut env = vm.attach_current_thread().ok()?;
-        let jd = env.new_string(dimension).ok()?;
-        let v = env
-            .call_static_method(
-                "dev/yog/NativeBridge",
-                "worldTime",
-                "(Ljava/lang/String;)J",
-                &[JValue::Object(&jd)],
-            )
-            .ok()?
-            .j()
-            .ok()?;
-        if v == i64::MIN { None } else { Some(v) }
-    }
-
-    fn world_set_time(&self, dimension: &str, time: i64) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let Ok(jd) = env.new_string(dimension) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "worldSetTime",
-            "(Ljava/lang/String;J)Z",
-            &[JValue::Object(&jd), JValue::Long(time)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn world_is_raining(&self, dimension: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let Ok(jd) = env.new_string(dimension) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "worldIsRaining",
-            "(Ljava/lang/String;)Z",
-            &[JValue::Object(&jd)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn world_set_weather(&self, dimension: &str, raining: bool, duration_ticks: i32) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let Ok(jd) = env.new_string(dimension) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "worldSetWeather",
-            "(Ljava/lang/String;ZI)Z",
-            &[JValue::Object(&jd), JValue::Bool(raining as u8), JValue::Int(duration_ticks)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn entity_velocity(&self, uuid: &str) -> Option<(f64, f64, f64)> {
-        let vm = JAVA_VM.get()?;
-        let mut env = vm.attach_current_thread().ok()?;
-        let ju = env.new_string(uuid).ok()?;
-        let ret = env
-            .call_static_method(
-                "dev/yog/NativeBridge",
-                "entityVelocity",
-                "(Ljava/lang/String;)Ljava/lang/String;",
-                &[JValue::Object(&ju)],
-            )
-            .ok()?;
-        let obj = ret.l().ok()?;
-        if obj.as_raw().is_null() { return None; }
-        let s: String = env.get_string(&JString::from(obj)).ok()?.into();
-        let mut it = s.split('\t');
-        let vx: f64 = it.next()?.parse().ok()?;
-        let vy: f64 = it.next()?.parse().ok()?;
-        let vz: f64 = it.next()?.parse().ok()?;
-        Some((vx, vy, vz))
-    }
-
-    fn entity_set_velocity(&self, uuid: &str, vx: f64, vy: f64, vz: f64) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let Ok(ju) = env.new_string(uuid) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "entitySetVelocity",
-            "(Ljava/lang/String;DDD)Z",
-            &[JValue::Object(&ju), JValue::Double(vx), JValue::Double(vy), JValue::Double(vz)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn entity_add_velocity(&self, uuid: &str, vx: f64, vy: f64, vz: f64) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let Ok(ju) = env.new_string(uuid) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "entityAddVelocity",
-            "(Ljava/lang/String;DDD)Z",
-            &[JValue::Object(&ju), JValue::Double(vx), JValue::Double(vy), JValue::Double(vz)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn scoreboard_get(&self, objective: &str, player: &str) -> Option<i32> {
-        let vm = JAVA_VM.get()?;
-        let mut env = vm.attach_current_thread().ok()?;
-        let (jo, jp) = (env.new_string(objective).ok()?, env.new_string(player).ok()?);
-        let v = env
-            .call_static_method(
-                "dev/yog/NativeBridge",
-                "scoreboardGet",
-                "(Ljava/lang/String;Ljava/lang/String;)I",
-                &[JValue::Object(&jo), JValue::Object(&jp)],
-            )
-            .ok()?
-            .i()
-            .ok()?;
-        if v == i32::MIN { None } else { Some(v) }
-    }
-
-    fn scoreboard_set(&self, objective: &str, player: &str, score: i32) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(jo), Ok(jp)) = (env.new_string(objective), env.new_string(player)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "scoreboardSet",
-            "(Ljava/lang/String;Ljava/lang/String;I)Z",
-            &[JValue::Object(&jo), JValue::Object(&jp), JValue::Int(score)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn scoreboard_add(&self, objective: &str, player: &str, delta: i32) -> Option<i32> {
-        let vm = JAVA_VM.get()?;
-        let mut env = vm.attach_current_thread().ok()?;
-        let (jo, jp) = (env.new_string(objective).ok()?, env.new_string(player).ok()?);
-        let v = env
-            .call_static_method(
-                "dev/yog/NativeBridge",
-                "scoreboardAdd",
-                "(Ljava/lang/String;Ljava/lang/String;I)I",
-                &[JValue::Object(&jo), JValue::Object(&jp), JValue::Int(delta)],
-            )
-            .ok()?
-            .i()
-            .ok()?;
-        if v == i32::MIN { None } else { Some(v) }
-    }
-
-    fn play_sound(
-        &self,
-        dimension: &str,
-        x: f64,
-        y: f64,
-        z: f64,
-        sound_id: &str,
-        volume: f32,
-        pitch: f32,
-    ) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(jd), Ok(js)) = (env.new_string(dimension), env.new_string(sound_id)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "playSound",
-            "(Ljava/lang/String;DDDLjava/lang/String;FF)Z",
-            &[
-                JValue::Object(&jd),
-                JValue::Double(x),
-                JValue::Double(y),
-                JValue::Double(z),
-                JValue::Object(&js),
-                JValue::Float(volume),
-                JValue::Float(pitch),
-            ],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn play_sound_to_player(
-        &self,
-        player: &str,
-        sound_id: &str,
-        volume: f32,
-        pitch: f32,
-    ) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(jp), Ok(js)) = (env.new_string(player), env.new_string(sound_id)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "playSoundToPlayer",
-            "(Ljava/lang/String;Ljava/lang/String;FF)Z",
-            &[
-                JValue::Object(&jp),
-                JValue::Object(&js),
-                JValue::Float(volume),
-                JValue::Float(pitch),
-            ],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn send_title(
-        &self,
-        player: &str,
-        title: &str,
-        subtitle: &str,
-        fadein: i32,
-        stay: i32,
-        fadeout: i32,
-    ) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(jp), Ok(jt), Ok(js)) = (env.new_string(player), env.new_string(title), env.new_string(subtitle)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "sendTitle",
-            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)Z",
-            &[
-                JValue::Object(&jp),
-                JValue::Object(&jt),
-                JValue::Object(&js),
-                JValue::Int(fadein),
-                JValue::Int(stay),
-                JValue::Int(fadeout),
-            ],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn send_actionbar(&self, player: &str, message: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(jp), Ok(jm)) = (env.new_string(player), env.new_string(message)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "sendActionbar",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&jp), JValue::Object(&jm)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn kick_player(&self, player: &str, reason: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(jp), Ok(jr)) = (env.new_string(player), env.new_string(reason)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "kickPlayer",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&jp), JValue::Object(&jr)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn set_gamemode(&self, player: &str, gamemode: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(jp), Ok(jg)) = (env.new_string(player), env.new_string(gamemode)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "setGamemode",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&jp), JValue::Object(&jg)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn bossbar_create(&self, id: &str, title: &str, color: &str, style: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(ji), Ok(jt), Ok(jc), Ok(js)) = (
-            env.new_string(id), env.new_string(title),
-            env.new_string(color), env.new_string(style),
-        ) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "bossbarCreate",
-            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&ji), JValue::Object(&jt), JValue::Object(&jc), JValue::Object(&js)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn bossbar_remove(&self, id: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let Ok(ji) = env.new_string(id) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "bossbarRemove",
-            "(Ljava/lang/String;)Z",
-            &[JValue::Object(&ji)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn bossbar_set_title(&self, id: &str, title: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(ji), Ok(jt)) = (env.new_string(id), env.new_string(title)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "bossbarSetTitle",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&ji), JValue::Object(&jt)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn bossbar_set_progress(&self, id: &str, progress: f32) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let Ok(ji) = env.new_string(id) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "bossbarSetProgress",
-            "(Ljava/lang/String;F)Z",
-            &[JValue::Object(&ji), JValue::Float(progress)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn bossbar_set_color(&self, id: &str, color: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(ji), Ok(jc)) = (env.new_string(id), env.new_string(color)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "bossbarSetColor",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&ji), JValue::Object(&jc)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn bossbar_add_player(&self, id: &str, player: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(ji), Ok(jp)) = (env.new_string(id), env.new_string(player)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "bossbarAddPlayer",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&ji), JValue::Object(&jp)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn bossbar_remove_player(&self, id: &str, player: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(ji), Ok(jp)) = (env.new_string(id), env.new_string(player)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "bossbarRemovePlayer",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&ji), JValue::Object(&jp)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn bossbar_set_visible(&self, id: &str, visible: bool) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let Ok(ji) = env.new_string(id) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "bossbarSetVisible",
-            "(Ljava/lang/String;Z)Z",
-            &[JValue::Object(&ji), JValue::Bool(visible as u8)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn game_dir(&self) -> String {
-        let Some(vm) = JAVA_VM.get() else { return String::new(); };
-        let Ok(mut env) = vm.attach_current_thread() else { return String::new(); };
-        let ret = env.call_static_method(
-            "dev/yog/NativeBridge",
-            "gameDir",
-            "()Ljava/lang/String;",
-            &[],
-        );
-        match ret {
-            Ok(v) => match v.l() {
-                Ok(obj) if !obj.as_raw().is_null() => {
-                    env.get_string(&JString::from(obj)).map(String::from).unwrap_or_default()
-                }
-                _ => String::new(),
-            },
-            Err(_) => String::new(),
-        }
-    }
-
-    fn entity_add_effect(
-        &self,
-        uuid: &str,
-        effect_id: &str,
-        duration_ticks: i32,
-        amplifier: u8,
-        show_particles: bool,
-    ) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(ju), Ok(je)) = (env.new_string(uuid), env.new_string(effect_id)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "entityAddEffect",
-            "(Ljava/lang/String;Ljava/lang/String;IIZ)Z",
-            &[
-                JValue::Object(&ju),
-                JValue::Object(&je),
-                JValue::Int(duration_ticks),
-                JValue::Int(amplifier as i32),
-                JValue::Bool(show_particles as u8),
-            ],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn entity_remove_effect(&self, uuid: &str, effect_id: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(ju), Ok(je)) = (env.new_string(uuid), env.new_string(effect_id)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "entityRemoveEffect",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&ju), JValue::Object(&je)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn entity_clear_effects(&self, uuid: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let Ok(ju) = env.new_string(uuid) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "entityClearEffects",
-            "(Ljava/lang/String;)Z",
-            &[JValue::Object(&ju)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn drop_loot(&self, table_id: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(jt), Ok(jd)) = (env.new_string(table_id), env.new_string(dimension)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "dropLoot",
-            "(Ljava/lang/String;Ljava/lang/String;DDD)Z",
-            &[
-                JValue::Object(&jt),
-                JValue::Object(&jd),
-                JValue::Double(x),
-                JValue::Double(y),
-                JValue::Double(z),
-            ],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn has_item_tag(&self, item_id: &str, tag_id: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(ji), Ok(jt)) = (env.new_string(item_id), env.new_string(tag_id)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "hasItemTag",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&ji), JValue::Object(&jt)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn has_block_tag(&self, block_id: &str, tag_id: &str) -> bool {
-        let Some(vm) = JAVA_VM.get() else { return false; };
-        let Ok(mut env) = vm.attach_current_thread() else { return false; };
-        let (Ok(jb), Ok(jt)) = (env.new_string(block_id), env.new_string(tag_id)) else { return false; };
-        env.call_static_method(
-            "dev/yog/NativeBridge",
-            "hasBlockTag",
-            "(Ljava/lang/String;Ljava/lang/String;)Z",
-            &[JValue::Object(&jb), JValue::Object(&jt)],
-        )
-        .and_then(|v| v.z())
-        .unwrap_or(false)
-    }
-
-    fn spawn_entity(
-        &self,
-        entity_type: &str,
-        dimension: &str,
-        x: f64,
-        y: f64,
-        z: f64,
-    ) -> Option<String> {
-        let vm = JAVA_VM.get()?;
-        let mut env = vm.attach_current_thread().ok()?;
-        let jt = env.new_string(entity_type).ok()?;
-        let jd = env.new_string(dimension).ok()?;
-        let ret = env
-            .call_static_method(
-                "dev/yog/NativeBridge",
-                "spawnEntity",
-                "(Ljava/lang/String;Ljava/lang/String;DDD)Ljava/lang/String;",
-                &[
-                    JValue::Object(&jt),
-                    JValue::Object(&jd),
-                    JValue::Double(x),
-                    JValue::Double(y),
-                    JValue::Double(z),
-                ],
-            )
-            .ok()?;
-        let obj = ret.l().ok()?;
-        if obj.as_raw().is_null() {
-            return None;
-        }
-        let jstr = JString::from(obj);
-        let uuid: String = env.get_string(&jstr).ok()?.into();
-        Some(uuid)
-    }
-}
-
-/// Called once by the Java host after the native library is loaded. `mods_dir`
-/// is the directory scanned for `.yog` / native mods.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
     mods_dir: JString<'l>,
 ) {
-    if let Ok(vm) = env.get_java_vm() {
-        let _ = JAVA_VM.set(vm);
-    }
+    if let Ok(vm) = env.get_java_vm() { let _ = JAVA_VM.set(vm); }
 
     let dir = env.get_string(&mods_dir).map(String::from).unwrap_or_default();
 
+    // Build YogServer and store in static (gets a stable address).
+    let _ = SERVER.set(build_server_table());
+    let server_ptr = SERVER.get().unwrap() as *const YogServer;
+
+    // Build RuntimeHandlers on the heap temporarily so we have a stable pointer
+    // to pass as ctx while mods register.
+    let mut handlers = Box::new(RuntimeHandlers::new());
+    let handlers_ptr = &mut *handlers as *mut RuntimeHandlers;
+
+    let api = build_api_table(handlers_ptr, server_ptr);
+
     guard("mod loading", || {
-        let mut reg = registry().write().expect("registry poisoned");
-        load_mods(Path::new(&dir), &mut reg);
+        load_mods(Path::new(&dir), &api);
     });
+
+    // Move handlers out of Box and into the OnceLock.
+    let _ = HANDLERS.set(*handlers);
 
     yog_logging::info!("runtime initialised — the gate is open.");
 }
 
-/// Called by the host (Fabric `PlayerBlockBreakEvents`) when a player breaks a
-/// block, server side.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreak<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    player: JString<'l>,
-    block: JString<'l>,
-    x: jint,
-    y: jint,
-    z: jint,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, block: JString<'l>, x: jint, y: jint, z: jint,
 ) {
-    let event = BlockBreakEvent {
-        player_name: jstr!(env, player),
-        block_id: jstr!(env, block),
-        pos: BlockPos { x, y, z },
+    let (p, b) = (jstr!(env, player), jstr!(env, block));
+    let ev = yog_abi::YogBlockBreakEvent {
+        player: YogStr::from_str(&p), block: YogStr::from_str(&b),
+        pos: YogBlockPos { x, y, z },
     };
-
+    let srv = srv_ptr();
     guard("on_block_break", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_block_break(&event, &JniServer);
+        for (ud, f) in &handlers().block_break {
+            unsafe { f(*ud, srv, &ev) };
+        }
     });
 }
 
-/// Called by the host when a player sends a chat message.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChat<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    player: JString<'l>,
-    message: JString<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, message: JString<'l>,
 ) {
-    let event = ChatEvent {
-        player_name: jstr!(env, player),
-        message: jstr!(env, message),
-    };
-
+    let (p, m) = (jstr!(env, player), jstr!(env, message));
+    let ev = yog_abi::YogChatEvent { player: YogStr::from_str(&p), message: YogStr::from_str(&m) };
+    let srv = srv_ptr();
     guard("on_chat", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_chat(&event, &JniServer);
+        for (ud, f) in &handlers().chat {
+            unsafe { f(*ud, srv, &ev) };
+        }
     });
 }
 
-/// Called by the host when a player joins the server.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    player: JString<'l>,
-    uuid: JString<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, uuid: JString<'l>,
 ) {
-    let event = PlayerJoinEvent {
-        player_name: jstr!(env, player),
-        uuid: jstr!(env, uuid),
-    };
-
+    let (p, u) = (jstr!(env, player), jstr!(env, uuid));
+    let ev = yog_abi::YogPlayerEvent { player: YogStr::from_str(&p), uuid: YogStr::from_str(&u) };
+    let srv = srv_ptr();
     guard("on_player_join", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_player_join(&event, &JniServer);
+        for (ud, f) in &handlers().player_join {
+            unsafe { f(*ud, srv, &ev) };
+        }
     });
 }
 
-/// Called by the host when a player leaves the server.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    player: JString<'l>,
-    uuid: JString<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, uuid: JString<'l>,
 ) {
-    let event = PlayerLeaveEvent {
-        player_name: jstr!(env, player),
-        uuid: jstr!(env, uuid),
-    };
-
+    let (p, u) = (jstr!(env, player), jstr!(env, uuid));
+    let ev = yog_abi::YogPlayerEvent { player: YogStr::from_str(&p), uuid: YogStr::from_str(&u) };
+    let srv = srv_ptr();
     guard("on_player_leave", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_player_leave(&event, &JniServer);
+        for (ud, f) in &handlers().player_leave {
+            unsafe { f(*ud, srv, &ev) };
+        }
     });
 }
 
-/// Called by the host when a player right-clicks with an item (server side).
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    player: JString<'l>,
-    item: JString<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, item: JString<'l>,
 ) {
-    let event = UseItemEvent {
-        player_name: jstr!(env, player),
-        item_id: jstr!(env, item),
-    };
+    let (p, i) = (jstr!(env, player), jstr!(env, item));
+    let ev = yog_abi::YogUseItemEvent { player: YogStr::from_str(&p), item: YogStr::from_str(&i) };
+    let srv = srv_ptr();
     guard("on_use_item", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_use_item(&event, &JniServer);
+        for (ud, f) in &handlers().use_item {
+            unsafe { f(*ud, srv, &ev) };
+        }
     });
 }
 
-/// Called by the host when a player right-clicks a block (server side).
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    player: JString<'l>,
-    block: JString<'l>,
-    x: jint,
-    y: jint,
-    z: jint,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, block: JString<'l>, x: jint, y: jint, z: jint,
 ) {
-    let event = UseBlockEvent {
-        player_name: jstr!(env, player),
-        block_id: jstr!(env, block),
-        pos: BlockPos { x, y, z },
+    let (p, b) = (jstr!(env, player), jstr!(env, block));
+    let ev = yog_abi::YogUseBlockEvent {
+        player: YogStr::from_str(&p), block: YogStr::from_str(&b),
+        pos: YogBlockPos { x, y, z },
     };
+    let srv = srv_ptr();
     guard("on_use_block", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_use_block(&event, &JniServer);
+        for (ud, f) in &handlers().use_block {
+            unsafe { f(*ud, srv, &ev) };
+        }
     });
 }
 
-/// Called by the host when a player attacks (left-clicks) an entity.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAttackEntity<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    player: JString<'l>,
-    target_type: JString<'l>,
-    target_uuid: JString<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, target_type: JString<'l>, target_uuid: JString<'l>,
 ) {
-    let event = AttackEntityEvent {
-        player_name: jstr!(env, player),
-        target_type: jstr!(env, target_type),
-        target_uuid: jstr!(env, target_uuid),
+    let (p, tt, tu) = (jstr!(env, player), jstr!(env, target_type), jstr!(env, target_uuid));
+    let ev = yog_abi::YogAttackEntityEvent {
+        player: YogStr::from_str(&p), target_type: YogStr::from_str(&tt), target_uuid: YogStr::from_str(&tu),
     };
+    let srv = srv_ptr();
     guard("on_attack_entity", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_attack_entity(&event, &JniServer);
+        for (ud, f) in &handlers().attack_entity {
+            unsafe { f(*ud, srv, &ev) };
+        }
     });
 }
 
-/// Called by the host after a living entity takes damage.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamage<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    entity_type: JString<'l>,
-    uuid: JString<'l>,
-    amount: jfloat,
-    source: JString<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    entity_type: JString<'l>, uuid: JString<'l>, amount: jfloat, source: JString<'l>,
 ) {
-    let event = EntityDamageEvent {
-        entity_type: jstr!(env, entity_type),
-        uuid: jstr!(env, uuid),
-        amount,
-        source: jstr!(env, source),
+    let (et, u, s) = (jstr!(env, entity_type), jstr!(env, uuid), jstr!(env, source));
+    let ev = yog_abi::YogEntityDamageEvent {
+        entity_type: YogStr::from_str(&et), uuid: YogStr::from_str(&u),
+        amount, source: YogStr::from_str(&s),
     };
+    let srv = srv_ptr();
     guard("on_entity_damage", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_entity_damage(&event, &JniServer);
+        for (ud, f) in &handlers().entity_damage {
+            unsafe { f(*ud, srv, &ev) };
+        }
     });
 }
 
-/// Called by the host after a living entity dies.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDeath<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    entity_type: JString<'l>,
-    uuid: JString<'l>,
-    source: JString<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    entity_type: JString<'l>, uuid: JString<'l>, source: JString<'l>,
 ) {
-    let event = EntityDeathEvent {
-        entity_type: jstr!(env, entity_type),
-        uuid: jstr!(env, uuid),
-        source: jstr!(env, source),
+    let (et, u, s) = (jstr!(env, entity_type), jstr!(env, uuid), jstr!(env, source));
+    let ev = yog_abi::YogEntityDeathEvent {
+        entity_type: YogStr::from_str(&et), uuid: YogStr::from_str(&u), source: YogStr::from_str(&s),
     };
+    let srv = srv_ptr();
     guard("on_entity_death", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_entity_death(&event, &JniServer);
+        for (ud, f) in &handlers().entity_death {
+            unsafe { f(*ud, srv, &ev) };
+        }
     });
 }
 
-/// Called by the host at the end of every server tick.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
-    _env: JNIEnv<'l>,
-    _class: JClass<'l>,
+    _env: JNIEnv<'l>, _class: JClass<'l>,
 ) {
+    let h = handlers();
+    let srv = srv_ptr();
     guard("on_tick", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_server_tick(&JniServer);
+        for (ud, f) in &h.server_tick {
+            unsafe { f(*ud, srv) };
+        }
     });
+
+    // Scheduler — once tasks
+    {
+        let mut sched = h.scheduler.lock().expect("scheduler poisoned");
+        let mut to_fire: Vec<(*mut c_void, YogScheduledFn)> = Vec::new();
+        let mut remaining = Vec::new();
+        for task in sched.once_tasks.drain(..) {
+            if task.delay_remaining == 0 {
+                to_fire.push((task.ud, task.f));
+            } else {
+                remaining.push(OnceTask { delay_remaining: task.delay_remaining - 1, ..task });
+            }
+        }
+        sched.once_tasks = remaining;
+        drop(sched);
+        for (ud, f) in to_fire {
+            guard("schedule_once", || unsafe { f(ud, srv) });
+        }
+    }
+
+    // Scheduler — repeating tasks
+    {
+        let mut sched = h.scheduler.lock().expect("scheduler poisoned");
+        let mut to_fire: Vec<(*mut c_void, YogScheduledFn)> = Vec::new();
+        for task in &mut sched.repeating_tasks {
+            if task.ticks_left == 0 {
+                to_fire.push((task.ud, task.f));
+                task.ticks_left = task.period;
+            } else {
+                task.ticks_left -= 1;
+            }
+        }
+        drop(sched);
+        for (ud, f) in to_fire {
+            guard("schedule_repeating", || unsafe { f(ud, srv) });
+        }
+    }
 }
 
-/// Called by the host once the server has finished starting.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
-    _env: JNIEnv<'l>,
-    _class: JClass<'l>,
+    _env: JNIEnv<'l>, _class: JClass<'l>,
 ) {
+    let srv = srv_ptr();
     guard("on_server_started", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_server_started(&JniServer);
+        for (ud, f) in &handlers().server_started {
+            unsafe { f(*ud, srv) };
+        }
     });
 }
 
-/// Called by the host when the server begins shutting down.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStopping<'l>(
-    _env: JNIEnv<'l>,
-    _class: JClass<'l>,
+    _env: JNIEnv<'l>, _class: JClass<'l>,
 ) {
+    let srv = srv_ptr();
     guard("on_server_stopping", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_server_stopping(&JniServer);
+        for (ud, f) in &handlers().server_stopping {
+            unsafe { f(*ud, srv) };
+        }
     });
 }
 
-/// Returns mod-registered command names, one per line, so the host can wire them
-/// into Brigadier.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeCommandNames<'l>(
-    env: JNIEnv<'l>,
-    _class: JClass<'l>,
+    env: JNIEnv<'l>, _class: JClass<'l>,
 ) -> jstring {
-    let names = registry()
-        .read()
-        .expect("registry poisoned")
-        .command_names()
-        .join("\n");
-    env.new_string(names)
-        .map(|s| s.into_raw())
-        .unwrap_or(std::ptr::null_mut())
+    let names = handlers().commands.keys().cloned().collect::<Vec<_>>().join("\n");
+    env.new_string(names).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
-/// Runs a registered command and returns its reply (empty string if none).
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    name: JString<'l>,
-    args: JString<'l>,
-    source: JString<'l>,
-    uuid: JString<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    name: JString<'l>, args: JString<'l>, source: JString<'l>, uuid: JString<'l>,
 ) -> jstring {
-    let ctx = CommandContext {
-        name: env.get_string(&name).map(String::from).unwrap_or_default(),
-        args: env.get_string(&args).map(String::from).unwrap_or_default(),
-        source: env.get_string(&source).map(String::from).unwrap_or_default(),
-        uuid: env.get_string(&uuid).map(String::from).unwrap_or_default(),
+    let (n, a, s, u) = (
+        env.get_string(&name).map(String::from).unwrap_or_default(),
+        env.get_string(&args).map(String::from).unwrap_or_default(),
+        env.get_string(&source).map(String::from).unwrap_or_default(),
+        env.get_string(&uuid).map(String::from).unwrap_or_default(),
+    );
+    let ev = yog_abi::YogCommandEvent {
+        name: YogStr::from_str(&n), args: YogStr::from_str(&a),
+        source: YogStr::from_str(&s), uuid: YogStr::from_str(&u),
     };
-
+    let h = handlers();
+    let srv = srv_ptr();
     let reply = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_command(&ctx, &JniServer)
-            .unwrap_or_default()
+        if let Some((ud, f)) = h.commands.get(&n) {
+            let mut buf = [0u8; 4096];
+            let mut reply_len: u32 = 0;
+            unsafe { f(*ud, srv, &ev, buf.as_mut_ptr(), buf.len() as u32, &mut reply_len) };
+            String::from_utf8_lossy(&buf[..reply_len as usize]).into_owned()
+        } else {
+            String::new()
+        }
     }))
-    .unwrap_or_else(|_| {
-        yog_logging::error!("a mod panicked handling command `{}` (ignored)", ctx.name);
-        String::new()
-    });
+    .unwrap_or_else(|_| { yog_logging::error!("a mod panicked handling command `{}`", n); String::new() });
 
-    env.new_string(reply)
-        .map(|s| s.into_raw())
-        .unwrap_or(std::ptr::null_mut())
+    env.new_string(reply).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
-/// Declared custom items as key=value lines, for the host to register.
-///
-/// Format per line: `id\tkey=value\t...` — always `id` first, then
-/// tab-separated `key=value` pairs. Unknown keys are ignored by the host.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
-    env: JNIEnv<'l>,
-    _class: JClass<'l>,
+    env: JNIEnv<'l>, _class: JClass<'l>,
 ) -> jstring {
-    let s = registry()
-        .read()
-        .expect("registry poisoned")
-        .items()
-        .iter()
-        .map(|d| {
-            let mut parts = vec![d.id.clone()];
-            parts.push(format!("max_stack={}", d.max_stack));
-            if let Some(n) = &d.name    { parts.push(format!("name={n}")); }
-            if let Some(t) = &d.tooltip { parts.push(format!("tooltip={t}")); }
-            if d.max_damage > 0   { parts.push(format!("max_damage={}", d.max_damage)); }
-            if d.fire_resistant   { parts.push("fire_resistant=1".into()); }
-            if d.fuel_ticks > 0   { parts.push(format!("fuel_ticks={}", d.fuel_ticks)); }
-            if let Some(f) = &d.food {
-                parts.push(format!(
-                    "food={}:{}:{}",
-                    f.nutrition, f.saturation,
-                    if f.can_always_eat { 1 } else { 0 }
-                ));
-            }
-            parts.join("\t")
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    env.new_string(s)
-        .map(|s| s.into_raw())
-        .unwrap_or(std::ptr::null_mut())
+    let s = handlers().items.iter().map(|d| {
+        let mut parts = vec![d.id.clone()];
+        parts.push(format!("max_stack={}", d.max_stack));
+        if let Some(n) = &d.name    { parts.push(format!("name={n}")); }
+        if let Some(t) = &d.tooltip { parts.push(format!("tooltip={t}")); }
+        if d.max_damage > 0         { parts.push(format!("max_damage={}", d.max_damage)); }
+        if d.fire_resistant         { parts.push("fire_resistant=1".into()); }
+        if d.fuel_ticks > 0         { parts.push(format!("fuel_ticks={}", d.fuel_ticks)); }
+        if let Some(f) = &d.food {
+            parts.push(format!("food={}:{}:{}", f.nutrition, f.saturation, if f.can_always_eat { 1 } else { 0 }));
+        }
+        parts.join("\t")
+    }).collect::<Vec<_>>().join("\n");
+    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
-/// A packet arrived on the server from a client.
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPacket<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    channel: JString<'l>,
-    player: JString<'l>,
-    payload: JByteArray<'l>,
-) {
-    let event = PacketEvent {
-        channel: env.get_string(&channel).map(String::from).unwrap_or_default(),
-        player: env.get_string(&player).map(String::from).unwrap_or_default(),
-        payload: env.convert_byte_array(&payload).unwrap_or_default(),
-    };
-    guard("on_packet", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_packet(&event, &JniServer);
-    });
-}
-
-/// A packet arrived on the client from the server.
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientPacket<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    channel: JString<'l>,
-    payload: JByteArray<'l>,
-) {
-    let event = PacketEvent {
-        channel: env.get_string(&channel).map(String::from).unwrap_or_default(),
-        player: String::new(),
-        payload: env.convert_byte_array(&payload).unwrap_or_default(),
-    };
-    guard("on_client_packet", || {
-        registry()
-            .read()
-            .expect("registry poisoned")
-            .dispatch_client_packet(&event, &JniServer);
-    });
-}
-
-/// Server-receiver channels, one per line.
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativePacketChannels<'l>(
-    env: JNIEnv<'l>,
-    _class: JClass<'l>,
-) -> jstring {
-    let s = registry()
-        .read()
-        .expect("registry poisoned")
-        .packet_channels()
-        .join("\n");
-    env.new_string(s)
-        .map(|s| s.into_raw())
-        .unwrap_or(std::ptr::null_mut())
-}
-
-/// Client-receiver channels, one per line.
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
-    env: JNIEnv<'l>,
-    _class: JClass<'l>,
-) -> jstring {
-    let s = registry()
-        .read()
-        .expect("registry poisoned")
-        .client_packet_channels()
-        .join("\n");
-    env.new_string(s)
-        .map(|s| s.into_raw())
-        .unwrap_or(std::ptr::null_mut())
-}
-
-/// Declared custom blocks as key=value lines, for the host to register.
-///
-/// Format per line: `id\tkey=value\t...` — always `id` first, then
-/// tab-separated `key=value` pairs. Unknown keys are ignored by the host.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
-    env: JNIEnv<'l>,
-    _class: JClass<'l>,
+    env: JNIEnv<'l>, _class: JClass<'l>,
 ) -> jstring {
-    let s = registry()
-        .read()
-        .expect("registry poisoned")
-        .blocks()
-        .iter()
-        .map(|d| {
-            let mut parts = vec![d.id.clone()];
-            parts.push(format!("hardness={}", d.hardness));
-            parts.push(format!("resistance={}", d.resistance));
-            if let Some(n) = &d.name { parts.push(format!("name={n}")); }
-            if let Some(s) = d.shape {
-                parts.push(format!("shape={}:{}:{}:{}:{}:{}", s[0], s[1], s[2], s[3], s[4], s[5]));
-            }
-            if d.light_level > 0  { parts.push(format!("light={}", d.light_level)); }
-            if let Some(snd) = &d.sound { parts.push(format!("sound={snd}")); }
-            if d.requires_tool    { parts.push("requires_tool=1".into()); }
-            if d.no_collision     { parts.push("no_collision=1".into()); }
-            if d.slipperiness > 0.0 { parts.push(format!("slipperiness={}", d.slipperiness)); }
-            parts.join("\t")
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    env.new_string(s)
-        .map(|s| s.into_raw())
-        .unwrap_or(std::ptr::null_mut())
+    let s = handlers().blocks.iter().map(|d| {
+        let mut parts = vec![d.id.clone()];
+        parts.push(format!("hardness={}", d.hardness));
+        parts.push(format!("resistance={}", d.resistance));
+        if let Some(n) = &d.name { parts.push(format!("name={n}")); }
+        if let Some(sh) = d.shape {
+            parts.push(format!("shape={}:{}:{}:{}:{}:{}", sh[0], sh[1], sh[2], sh[3], sh[4], sh[5]));
+        }
+        if d.light_level > 0    { parts.push(format!("light={}", d.light_level)); }
+        if let Some(snd) = &d.sound { parts.push(format!("sound={snd}")); }
+        if d.requires_tool       { parts.push("requires_tool=1".into()); }
+        if d.no_collision        { parts.push("no_collision=1".into()); }
+        if d.slipperiness > 0.0  { parts.push(format!("slipperiness={}", d.slipperiness)); }
+        parts.join("\t")
+    }).collect::<Vec<_>>().join("\n");
+    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPacket<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    channel: JString<'l>, player: JString<'l>, payload: JByteArray<'l>,
+) {
+    let ch = env.get_string(&channel).map(String::from).unwrap_or_default();
+    let pl = env.get_string(&player).map(String::from).unwrap_or_default();
+    let data = env.convert_byte_array(&payload).unwrap_or_default();
+    let ev = yog_abi::YogPacketEvent {
+        channel: YogStr::from_str(&ch), player: YogStr::from_str(&pl),
+        payload: data.as_ptr(), payload_len: data.len() as u32,
+    };
+    let h = handlers();
+    let srv = srv_ptr();
+    guard("on_packet", || {
+        if let Some((ud, f)) = h.packets.get(&ch) {
+            unsafe { f(*ud, srv, &ev) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientPacket<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    channel: JString<'l>, payload: JByteArray<'l>,
+) {
+    let ch = env.get_string(&channel).map(String::from).unwrap_or_default();
+    let data = env.convert_byte_array(&payload).unwrap_or_default();
+    let ev = yog_abi::YogPacketEvent {
+        channel: YogStr::from_str(&ch), player: YogStr::EMPTY,
+        payload: data.as_ptr(), payload_len: data.len() as u32,
+    };
+    let h = handlers();
+    let srv = srv_ptr();
+    guard("on_client_packet", || {
+        if let Some((ud, f)) = h.client_packets.get(&ch) {
+            unsafe { f(*ud, srv, &ev) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativePacketChannels<'l>(
+    env: JNIEnv<'l>, _class: JClass<'l>,
+) -> jstring {
+    let s = handlers().packets.keys().cloned().collect::<Vec<_>>().join("\n");
+    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
+    env: JNIEnv<'l>, _class: JClass<'l>,
+) -> jstring {
+    let s = handlers().client_packets.keys().cloned().collect::<Vec<_>>().join("\n");
+    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }

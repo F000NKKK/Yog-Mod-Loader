@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
+    # stable C ABI shared between mods and the runtime (permissive)
+    "crates/yog-abi",
     # domain crates (permissive — see LICENSING.md)
     "crates/yog-core",
     "crates/yog-event",
