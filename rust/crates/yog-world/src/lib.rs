@@ -57,6 +57,12 @@ impl<'a> World<'a> {
     pub fn set_weather(&self, raining: bool, duration_ticks: i32) -> bool {
         self.server.world_set_weather(&self.dimension, raining, duration_ticks)
     }
+
+    /// Number of loaded entities of `entity_type` (e.g. `"minecraft:zombie"`)
+    /// in this dimension. Returns `-1` if the dimension or type is unknown.
+    pub fn entity_count(&self, entity_type: &str) -> i32 {
+        self.server.world_entity_count(&self.dimension, entity_type)
+    }
 }
 
 /// Convenience: the overworld of `server`.

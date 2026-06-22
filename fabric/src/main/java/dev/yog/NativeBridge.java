@@ -595,6 +595,19 @@ public final class NativeBridge {
         return true;
     }
 
+    public static int worldEntityCount(String dimension, String entityTypeId) {
+        ServerWorld w = worldFor(dimension);
+        if (w == null) return -1;
+        Identifier id = Identifier.tryParse(entityTypeId);
+        if (id == null || !Registries.ENTITY_TYPE.containsId(id)) return -1;
+        EntityType<?> targetType = Registries.ENTITY_TYPE.get(id);
+        int count = 0;
+        for (Entity e : w.iterateEntities()) {
+            if (e.getType() == targetType) count++;
+        }
+        return count;
+    }
+
     public static String spawnEntity(String typeId, String dimension, double x, double y, double z) {
         ServerWorld w = worldFor(dimension);
         Identifier id = Identifier.tryParse(typeId);
@@ -769,4 +782,13 @@ public final class NativeBridge {
 
     /** Client-receiver packet channels, one per line. */
     public static native String nativeClientPacketChannels();
+
+    /** Entity loaded into world — observe only. */
+    public static native void nativeOnEntitySpawn(String entityType, String uuid, String dimension);
+
+    /** Entity loaded into world — return false to discard (cancel) it. */
+    public static native boolean nativeOnEntitySpawnPre(String entityType, String uuid, String dimension);
+
+    /** Entity about to take damage — return false to cancel the damage. */
+    public static native boolean nativeOnEntityDamagePre(String entityType, String uuid, float amount, String source);
 }

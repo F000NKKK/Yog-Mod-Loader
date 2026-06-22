@@ -216,4 +216,16 @@ pub fn register(registry: &mut Registry) {
         let nbt = srv.get_block_nbt("minecraft:overworld", BlockPos::new(x, y, z));
         Some(nbt.unwrap_or_else(|| format!("No block entity at ({}, {}, {})", x, y, z)))
     });
+
+    // /mob_count <type:word>  — count loaded entities of a type in the overworld
+    registry.on_typed_command("mob_count", "word", |ctx, srv| {
+        use yog_api::world::World;
+        let type_id = ctx.arg_str(0).unwrap_or("minecraft:zombie");
+        let count = World::new(srv, "minecraft:overworld").entity_count(type_id);
+        if count < 0 {
+            Some(format!("Unknown entity type or dimension: {}", type_id))
+        } else {
+            Some(format!("Loaded {} of {} in overworld", count, type_id))
+        }
+    });
 }

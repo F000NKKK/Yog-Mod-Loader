@@ -27,6 +27,7 @@ import net.minecraft.registry.Registry;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Identifier;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -145,12 +146,30 @@ public class YogHost implements ModInitializer {
             return ActionResult.PASS;
         });
 
-        // Living-entity damage (server side). Observe only; always allow.
+        // Living-entity damage — pre (cancellable) then observe.
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
-            NativeBridge.nativeOnEntityDamage(
+            boolean allow = NativeBridge.nativeOnEntityDamagePre(
                     type, entity.getUuidAsString(), amount, source.getName());
-            return true;
+            if (allow) {
+                NativeBridge.nativeOnEntityDamage(
+                        type, entity.getUuidAsString(), amount, source.getName());
+            }
+            return allow;
+        });
+
+        // Entity spawn — fire when an entity is loaded into a server world.
+        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+            String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
+            String uuid = entity.getUuidAsString();
+            String dim  = world.getRegistryKey().getValue().toString();
+            // Pre (cancellable) — discard entity if any handler returns false.
+            if (!NativeBridge.nativeOnEntitySpawnPre(type, uuid, dim)) {
+                entity.discard();
+                return;
+            }
+            // Observe-only handlers.
+            NativeBridge.nativeOnEntitySpawn(type, uuid, dim);
         });
 
         // Living-entity death (server side).

@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use yog_api::player::Player;
 use yog_api::world::World;
-use yog_api::{info, BlockPos, Registry};
+use yog_api::{info, BlockPos, EntitySpawnEvent, Registry};
 
 pub fn register(registry: &mut Registry) {
     registry.on_block_break(|e, srv| {
@@ -98,5 +98,28 @@ pub fn register(registry: &mut Registry) {
             info!("[example-mod] suppressed message from {}", e.player_name);
         }
         allow
+    });
+
+    // Log entity spawns (observe only).
+    registry.on_entity_spawn(|e: &EntitySpawnEvent, _srv| {
+        info!("[example-mod] entity spawned: {} ({}) in {}", e.entity_type, e.uuid, e.dimension);
+    });
+
+    // Cancel creeper spawns — creepers are scary.
+    registry.on_entity_spawn_pre(|e: &EntitySpawnEvent, _srv| {
+        let allow = e.entity_type != "minecraft:creeper";
+        if !allow {
+            info!("[example-mod] cancelled creeper spawn in {}", e.dimension);
+        }
+        allow
+    });
+
+    // Cancel fall damage for players (source name contains "fall").
+    registry.on_entity_damage_pre(|e, _srv| {
+        let is_player_fall = e.entity_type == "minecraft:player" && e.source.contains("fall");
+        if is_player_fall {
+            info!("[example-mod] cancelled fall damage for player {}", e.uuid);
+        }
+        !is_player_fall
     });
 }

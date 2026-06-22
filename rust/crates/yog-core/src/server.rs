@@ -261,4 +261,10 @@ pub trait Server {
 
     /// Teleport any entity (by UUID) to `(x, y, z)` in `dimension`.
     fn entity_teleport_to_dim(&self, uuid: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool;
+
+    // ── entity query ─────────────────────────────────────────────────────────
+
+    /// Number of loaded entities of `entity_type` (e.g. `"minecraft:zombie"`)
+    /// in `dimension`. Returns `-1` if the dimension or entity type is unknown.
+    fn world_entity_count(&self, dimension: &str, entity_type: &str) -> i32;
 }

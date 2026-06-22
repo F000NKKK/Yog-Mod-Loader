@@ -11,15 +11,15 @@ use std::os::raw::c_void;
 
 use yog_abi::{
     YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef, YogChatEvent,
-    YogCommandEvent, YogEntityDamageEvent, YogEntityDeathEvent, YogItemDef, YogPacketEvent,
-    YogPlayerEvent, YogServer, YogStr, YogUseBlockEvent, YogUseItemEvent,
-
+    YogCommandEvent, YogEntityDamageEvent, YogEntityDeathEvent, YogEntitySpawnEvent,
+    YogItemDef, YogPacketEvent, YogPlayerEvent, YogServer, YogStr, YogUseBlockEvent,
+    YogUseItemEvent,
 };
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_event::{
     AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent, EntityDeathEvent,
-    PlayerJoinEvent, PlayerLeaveEvent, UseBlockEvent, UseItemEvent,
+    EntitySpawnEvent, PlayerJoinEvent, PlayerLeaveEvent, UseBlockEvent, UseItemEvent,
 };
 use yog_network::PacketEvent;
 use yog_registry::{BlockDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
@@ -391,6 +391,11 @@ impl Server for CServer {
                 YogStr::from_str(dimension), yog_abi::YogVec3 { x, y, z })
         }
     }
+
+    fn world_entity_count(&self, dimension: &str, entity_type: &str) -> i32 {
+        let s = srv!(self);
+        unsafe { (s.world_entity_count)(s.ctx, YogStr::from_str(dimension), YogStr::from_str(entity_type)) }
+    }
 }
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────
@@ -588,6 +593,52 @@ where F: Fn(&ChatEvent, &dyn Server) -> bool + Send + Sync,
     f(&rust_ev, &CServer(srv))
 }
 
+unsafe extern "C" fn trampoline_entity_spawn<F>(
+    ud: *mut c_void, srv: *const YogServer, ev: *const YogEntitySpawnEvent,
+)
+where F: Fn(&EntitySpawnEvent, &dyn Server) + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    let ev = &*ev;
+    let rust_ev = EntitySpawnEvent {
+        entity_type: ev.entity_type.as_str().to_owned(),
+        uuid:        ev.uuid.as_str().to_owned(),
+        dimension:   ev.dimension.as_str().to_owned(),
+    };
+    f(&rust_ev, &CServer(srv));
+}
+
+unsafe extern "C" fn trampoline_entity_spawn_pre<F>(
+    ud: *mut c_void, srv: *const YogServer, ev: *const YogEntitySpawnEvent,
+) -> bool
+where F: Fn(&EntitySpawnEvent, &dyn Server) -> bool + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    let ev = &*ev;
+    let rust_ev = EntitySpawnEvent {
+        entity_type: ev.entity_type.as_str().to_owned(),
+        uuid:        ev.uuid.as_str().to_owned(),
+        dimension:   ev.dimension.as_str().to_owned(),
+    };
+    f(&rust_ev, &CServer(srv))
+}
+
+unsafe extern "C" fn trampoline_entity_damage_pre<F>(
+    ud: *mut c_void, srv: *const YogServer, ev: *const YogEntityDamageEvent,
+) -> bool
+where F: Fn(&EntityDamageEvent, &dyn Server) -> bool + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    let ev = &*ev;
+    let rust_ev = EntityDamageEvent {
+        entity_type: ev.entity_type.as_str().to_owned(),
+        uuid:        ev.uuid.as_str().to_owned(),
+        amount:      ev.amount,
+        source:      ev.source.as_str().to_owned(),
+    };
+    f(&rust_ev, &CServer(srv))
+}
+
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 /// Wraps the [`YogApi`] table and provides an ergonomic registration API.
@@ -747,6 +798,27 @@ impl Registry {
     where F: Fn(&ChatEvent, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_chat_pre)(self.ctx(), ud, trampoline_chat_pre::<F>) }
+    }
+
+    /// Observe entity spawns (entity just added to world).
+    pub fn on_entity_spawn<F>(&mut self, handler: F)
+    where F: Fn(&EntitySpawnEvent, &dyn Server) + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_entity_spawn)(self.ctx(), ud, trampoline_entity_spawn::<F>) }
+    }
+
+    /// Cancel entity spawns — return `false` to discard the entity.
+    pub fn on_entity_spawn_pre<F>(&mut self, handler: F)
+    where F: Fn(&EntitySpawnEvent, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_entity_spawn_pre)(self.ctx(), ud, trampoline_entity_spawn_pre::<F>) }
+    }
+
+    /// Cancel entity damage — return `false` to prevent the damage.
+    pub fn on_entity_damage_pre<F>(&mut self, handler: F)
+    where F: Fn(&EntityDamageEvent, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_entity_damage_pre)(self.ctx(), ud, trampoline_entity_damage_pre::<F>) }
     }
 
     // ── recipes ──────────────────────────────────────────────────────────────

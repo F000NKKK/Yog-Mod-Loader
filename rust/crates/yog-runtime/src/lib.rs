@@ -24,10 +24,11 @@ use libloading::{Library, Symbol};
 
 use yog_abi::{
     ABI_VERSION, YogApi, YogAttackEntityFn, YogBlockBreakFn, YogBlockDef, YogBlockPos,
-    YogCancellableBlockBreakFn, YogCancellableChatFn,
-    YogChatFn, YogCommandFn, YogEntityDamageFn, YogEntityDeathFn, YogItemDef,
-    YogOwnedStr, YogPacketFn, YogPlayerFn, YogScheduledFn, YogServer,
-    YogServerFn, YogStr, YogUseBlockFn, YogUseItemFn, YogVec3,
+    YogCancellableBlockBreakFn, YogCancellableChatFn, YogCancellableEntityDamageFn,
+    YogCancellableEntitySpawnFn, YogChatFn, YogCommandFn, YogEntityDamageFn,
+    YogEntityDeathFn, YogEntitySpawnFn, YogItemDef, YogOwnedStr, YogPacketFn,
+    YogPlayerFn, YogScheduledFn, YogServer, YogServerFn, YogStr, YogUseBlockFn,
+    YogUseItemFn, YogVec3,
 };
 use yog_registry::{BlockDef, FoodDef, ItemDef};
 
@@ -59,9 +60,12 @@ struct RuntimeHandlers {
     server_stopping: Vec<(*mut c_void, YogServerFn)>,
     commands:        HashMap<String, (*mut c_void, YogCommandFn)>,
     typed_schemas:   HashMap<String, String>,
-    block_break_pre: Vec<(*mut c_void, YogCancellableBlockBreakFn)>,
-    chat_pre:        Vec<(*mut c_void, YogCancellableChatFn)>,
-    recipes:         Vec<(String, String, String)>, // (namespace, name, json)
+    block_break_pre:    Vec<(*mut c_void, YogCancellableBlockBreakFn)>,
+    chat_pre:           Vec<(*mut c_void, YogCancellableChatFn)>,
+    entity_spawn:       Vec<(*mut c_void, YogEntitySpawnFn)>,
+    entity_spawn_pre:   Vec<(*mut c_void, YogCancellableEntitySpawnFn)>,
+    entity_damage_pre:  Vec<(*mut c_void, YogCancellableEntityDamageFn)>,
+    recipes:            Vec<(String, String, String)>, // (namespace, name, json)
     packets:         HashMap<String, (*mut c_void, YogPacketFn)>,
     client_packets:  HashMap<String, (*mut c_void, YogPacketFn)>,
     items:           Vec<ItemDef>,
@@ -83,7 +87,9 @@ impl RuntimeHandlers {
             entity_death: Vec::new(), server_tick: Vec::new(),
             server_started: Vec::new(), server_stopping: Vec::new(),
             commands: HashMap::new(), typed_schemas: HashMap::new(),
-            block_break_pre: Vec::new(), chat_pre: Vec::new(), recipes: Vec::new(),
+            block_break_pre: Vec::new(), chat_pre: Vec::new(),
+            entity_spawn: Vec::new(), entity_spawn_pre: Vec::new(),
+            entity_damage_pre: Vec::new(), recipes: Vec::new(),
             packets: HashMap::new(), client_packets: HashMap::new(), items: Vec::new(),
             blocks: Vec::new(), scheduler: Mutex::new(SchedulerState::new()),
         }
@@ -620,6 +626,21 @@ unsafe extern "C" fn srv_online_players(_ctx: *mut c_void) -> YogOwnedStr {
     }
 }
 
+unsafe extern "C" fn srv_world_entity_count(_ctx: *mut c_void, dim: YogStr, entity_type: YogStr) -> i32 {
+    let Some(mut env) = get_env() else { return -1 };
+    let d = dim.as_str();
+    let et = entity_type.as_str();
+    let jd  = match env.new_string(d)  { Ok(s) => s, Err(_) => return -1 };
+    let jet = match env.new_string(et) { Ok(s) => s, Err(_) => return -1 };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "worldEntityCount",
+        "(Ljava/lang/String;Ljava/lang/String;)I",
+        &[JValue::Object(&jd), JValue::Object(&jet)]);
+    match ret.and_then(|v| v.i()) {
+        Ok(n) => n,
+        _ => -1,
+    }
+}
+
 unsafe extern "C" fn srv_game_dir(_ctx: *mut c_void) -> YogOwnedStr {
     let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
     let ret = env.call_static_method("dev/yog/NativeBridge", "gameDir",
@@ -687,6 +708,10 @@ unsafe extern "C" fn api_on_chat_pre(ctx: *mut c_void, ud: *mut c_void, h: YogCa
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
     handlers.chat_pre.push((ud, h));
 }
+
+api_event!(api_on_entity_spawn,       entity_spawn,       YogEntitySpawnFn);
+api_event!(api_on_entity_spawn_pre,   entity_spawn_pre,   YogCancellableEntitySpawnFn);
+api_event!(api_on_entity_damage_pre,  entity_damage_pre,  YogCancellableEntityDamageFn);
 
 unsafe extern "C" fn api_register_recipe_json(ctx: *mut c_void, namespace: YogStr, name: YogStr, json: YogStr) {
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
@@ -801,6 +826,7 @@ fn build_server_table() -> YogServer {
         player_teleport_dim: srv_player_teleport_dim,
         entity_teleport_dim: srv_entity_teleport_dim,
         online_players:      srv_online_players,
+        world_entity_count:  srv_world_entity_count,
     }
 }
 
@@ -828,6 +854,9 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         register_typed_command: api_register_typed_command,
         on_block_break_pre:     api_on_block_break_pre,
         on_chat_pre:            api_on_chat_pre,
+        on_entity_spawn:        api_on_entity_spawn,
+        on_entity_spawn_pre:    api_on_entity_spawn_pre,
+        on_entity_damage_pre:   api_on_entity_damage_pre,
         register_recipe_json:   api_register_recipe_json,
         register_item:          api_register_item,
         register_block:     api_register_block,
@@ -1382,4 +1411,72 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
 ) -> jstring {
     let s = handlers().client_packets.keys().cloned().collect::<Vec<_>>().join("\n");
     env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawn<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    entity_type: JString<'l>, uuid: JString<'l>, dimension: JString<'l>,
+) {
+    let h = handlers();
+    if h.entity_spawn.is_empty() && h.entity_spawn_pre.is_empty() { return; }
+    let (et, u, d) = (jstr!(env, entity_type), jstr!(env, uuid), jstr!(env, dimension));
+    let ev = yog_abi::YogEntitySpawnEvent {
+        entity_type: YogStr::from_str(&et), uuid: YogStr::from_str(&u),
+        dimension: YogStr::from_str(&d),
+    };
+    let srv = srv_ptr();
+    guard("on_entity_spawn", || {
+        for (ud, f) in &h.entity_spawn {
+            unsafe { f(*ud, srv, &ev) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawnPre<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    entity_type: JString<'l>, uuid: JString<'l>, dimension: JString<'l>,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.entity_spawn_pre.is_empty() { return 1; }
+    let et = match env.get_string(&entity_type) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let u  = match env.get_string(&uuid)        { Ok(s) => String::from(s), Err(_) => return 1 };
+    let d  = match env.get_string(&dimension)   { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ev = yog_abi::YogEntitySpawnEvent {
+        entity_type: YogStr::from_str(&et), uuid: YogStr::from_str(&u),
+        dimension: YogStr::from_str(&d),
+    };
+    let srv = srv_ptr();
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.entity_spawn_pre {
+            if !unsafe { f(*ud, srv, &ev) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamagePre<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    entity_type: JString<'l>, uuid: JString<'l>, amount: jfloat, source: JString<'l>,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.entity_damage_pre.is_empty() { return 1; }
+    let et = match env.get_string(&entity_type) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let u  = match env.get_string(&uuid)        { Ok(s) => String::from(s), Err(_) => return 1 };
+    let s  = match env.get_string(&source)      { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ev = yog_abi::YogEntityDamageEvent {
+        entity_type: YogStr::from_str(&et), uuid: YogStr::from_str(&u),
+        amount, source: YogStr::from_str(&s),
+    };
+    let srv = srv_ptr();
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.entity_damage_pre {
+            if !unsafe { f(*ud, srv, &ev) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
 }
