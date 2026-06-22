@@ -59,6 +59,7 @@ pub use yog_entity::Entity;
 pub use yog_network::PacketEvent;
 pub use yog_player::Player;
 pub use yog_registry::{BlockDef, FoodDef, ItemDef};
+pub use yog_storage::Storage;
 pub use yog_world::World;
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
@@ -102,4 +103,9 @@ pub mod network {
 /// Commands.
 pub mod command {
     pub use yog_command::*;
+}
+
+/// Persistent key-value storage for mod data.
+pub mod storage {
+    pub use yog_storage::*;
 }

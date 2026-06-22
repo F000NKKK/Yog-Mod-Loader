@@ -1,7 +1,7 @@
 //! Commands registered by this mod.
 
 use yog_api::player::Player;
-use yog_api::{info, Registry};
+use yog_api::{info, Registry, Storage};
 
 pub fn register(registry: &mut Registry) {
     registry.on_command("yog", |ctx, _srv| {
@@ -71,6 +71,24 @@ pub fn register(registry: &mut Registry) {
     registry.on_command("loot", |_ctx, srv| {
         let ok = srv.drop_loot("minecraft:entities/zombie", "minecraft:overworld", 0.0, 64.0, 0.0);
         Some(if ok { "Loot dropped at (0, 64, 0).".into() } else { "Loot table empty or not found.".into() })
+    });
+
+    // Launch the caller into the air.
+    registry.on_command("launch", |ctx, srv| {
+        use yog_api::entity::Entity;
+        let ok = Entity::new(srv, &ctx.uuid).add_velocity(0.0, 2.0, 0.0);
+        Some(if ok { "Wheee!".into() } else { "Failed.".into() })
+    });
+
+    // Persistent coin balance demo.
+    registry.on_command("coins", |ctx, srv| {
+        let mut store = Storage::open(&srv.game_dir(), "yog:economy");
+        let balance: i64 = store.get(&ctx.source).and_then(|v| v.parse().ok()).unwrap_or(0);
+        // Award 10 coins each time.
+        let new_balance = balance + 10;
+        store.set(&ctx.source, new_balance.to_string());
+        store.save().ok();
+        Some(format!("Coins: {} (+10)", new_balance))
     });
 
     // Show current world time.

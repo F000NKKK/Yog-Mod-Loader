@@ -17,3 +17,4 @@ yog-registry = { path = "../yog-registry" }
 yog-network = { path = "../yog-network" }
 yog-command = { path = "../yog-command" }
 yog-logging = { path = "../yog-logging" }
+yog-storage = { path = "../yog-storage" }

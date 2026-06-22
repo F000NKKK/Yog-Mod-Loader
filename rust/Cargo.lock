@@ -325,6 +325,7 @@ dependencies = [
  "yog-network",
  "yog-player",
  "yog-registry",
+ "yog-storage",
  "yog-world",
 ]
 
@@ -387,6 +388,10 @@ dependencies = [
  "yog-logging",
  "zip",
 ]
+
+[[package]]
+name = "yog-storage"
+version = "0.1.0"
 
 [[package]]
 name = "yog-world"

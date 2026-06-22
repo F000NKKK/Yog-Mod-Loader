@@ -118,4 +118,32 @@ pub trait Server {
     /// Start or stop rain. `duration_ticks` controls how long the weather lasts
     /// (use 0 for a server-chosen default duration).
     fn world_set_weather(&self, dimension: &str, raining: bool, duration_ticks: i32) -> bool;
+
+    // ── entity velocity ─────────────────────────────────────────────────────
+
+    /// Current velocity `(vx, vy, vz)` of any entity, or `None` if not loaded.
+    fn entity_velocity(&self, uuid: &str) -> Option<(f64, f64, f64)>;
+
+    /// Set the velocity of any entity. Returns `false` if not loaded.
+    fn entity_set_velocity(&self, uuid: &str, vx: f64, vy: f64, vz: f64) -> bool;
+
+    /// Add a velocity impulse (cumulative with existing velocity).
+    fn entity_add_velocity(&self, uuid: &str, vx: f64, vy: f64, vz: f64) -> bool;
+
+    // ── scoreboard ──────────────────────────────────────────────────────────
+
+    /// Score of `player` on `objective`, or `None` if the objective doesn't exist.
+    fn scoreboard_get(&self, objective: &str, player: &str) -> Option<i32>;
+
+    /// Set the score; returns `false` if the objective doesn't exist.
+    fn scoreboard_set(&self, objective: &str, player: &str, score: i32) -> bool;
+
+    /// Add `delta` to the score (negative = subtract). Returns the new score,
+    /// or `None` if the objective doesn't exist.
+    fn scoreboard_add(&self, objective: &str, player: &str, delta: i32) -> Option<i32>;
+
+    // ── misc ────────────────────────────────────────────────────────────────
+
+    /// Absolute path of the game / server root directory.
+    fn game_dir(&self) -> String;
 }

@@ -503,6 +503,124 @@ impl Server for JniServer {
         .unwrap_or(false)
     }
 
+    fn entity_velocity(&self, uuid: &str) -> Option<(f64, f64, f64)> {
+        let vm = JAVA_VM.get()?;
+        let mut env = vm.attach_current_thread().ok()?;
+        let ju = env.new_string(uuid).ok()?;
+        let ret = env
+            .call_static_method(
+                "dev/yog/NativeBridge",
+                "entityVelocity",
+                "(Ljava/lang/String;)Ljava/lang/String;",
+                &[JValue::Object(&ju)],
+            )
+            .ok()?;
+        let obj = ret.l().ok()?;
+        if obj.as_raw().is_null() { return None; }
+        let s: String = env.get_string(&JString::from(obj)).ok()?.into();
+        let mut it = s.split('\t');
+        let vx: f64 = it.next()?.parse().ok()?;
+        let vy: f64 = it.next()?.parse().ok()?;
+        let vz: f64 = it.next()?.parse().ok()?;
+        Some((vx, vy, vz))
+    }
+
+    fn entity_set_velocity(&self, uuid: &str, vx: f64, vy: f64, vz: f64) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let Ok(ju) = env.new_string(uuid) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "entitySetVelocity",
+            "(Ljava/lang/String;DDD)Z",
+            &[JValue::Object(&ju), JValue::Double(vx), JValue::Double(vy), JValue::Double(vz)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn entity_add_velocity(&self, uuid: &str, vx: f64, vy: f64, vz: f64) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let Ok(ju) = env.new_string(uuid) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "entityAddVelocity",
+            "(Ljava/lang/String;DDD)Z",
+            &[JValue::Object(&ju), JValue::Double(vx), JValue::Double(vy), JValue::Double(vz)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn scoreboard_get(&self, objective: &str, player: &str) -> Option<i32> {
+        let vm = JAVA_VM.get()?;
+        let mut env = vm.attach_current_thread().ok()?;
+        let (jo, jp) = (env.new_string(objective).ok()?, env.new_string(player).ok()?);
+        let v = env
+            .call_static_method(
+                "dev/yog/NativeBridge",
+                "scoreboardGet",
+                "(Ljava/lang/String;Ljava/lang/String;)I",
+                &[JValue::Object(&jo), JValue::Object(&jp)],
+            )
+            .ok()?
+            .i()
+            .ok()?;
+        if v == i32::MIN { None } else { Some(v) }
+    }
+
+    fn scoreboard_set(&self, objective: &str, player: &str, score: i32) -> bool {
+        let Some(vm) = JAVA_VM.get() else { return false; };
+        let Ok(mut env) = vm.attach_current_thread() else { return false; };
+        let (Ok(jo), Ok(jp)) = (env.new_string(objective), env.new_string(player)) else { return false; };
+        env.call_static_method(
+            "dev/yog/NativeBridge",
+            "scoreboardSet",
+            "(Ljava/lang/String;Ljava/lang/String;I)Z",
+            &[JValue::Object(&jo), JValue::Object(&jp), JValue::Int(score)],
+        )
+        .and_then(|v| v.z())
+        .unwrap_or(false)
+    }
+
+    fn scoreboard_add(&self, objective: &str, player: &str, delta: i32) -> Option<i32> {
+        let vm = JAVA_VM.get()?;
+        let mut env = vm.attach_current_thread().ok()?;
+        let (jo, jp) = (env.new_string(objective).ok()?, env.new_string(player).ok()?);
+        let v = env
+            .call_static_method(
+                "dev/yog/NativeBridge",
+                "scoreboardAdd",
+                "(Ljava/lang/String;Ljava/lang/String;I)I",
+                &[JValue::Object(&jo), JValue::Object(&jp), JValue::Int(delta)],
+            )
+            .ok()?
+            .i()
+            .ok()?;
+        if v == i32::MIN { None } else { Some(v) }
+    }
+
+    fn game_dir(&self) -> String {
+        let Some(vm) = JAVA_VM.get() else { return String::new(); };
+        let Ok(mut env) = vm.attach_current_thread() else { return String::new(); };
+        let ret = env.call_static_method(
+            "dev/yog/NativeBridge",
+            "gameDir",
+            "()Ljava/lang/String;",
+            &[],
+        );
+        match ret {
+            Ok(v) => match v.l() {
+                Ok(obj) if !obj.as_raw().is_null() => {
+                    env.get_string(&JString::from(obj)).map(String::from).unwrap_or_default()
+                }
+                _ => String::new(),
+            },
+            Err(_) => String::new(),
+        }
+    }
+
     fn entity_add_effect(
         &self,
         uuid: &str,

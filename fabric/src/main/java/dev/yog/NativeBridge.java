@@ -199,6 +199,68 @@ public final class NativeBridge {
         return true;
     }
 
+    public static String entityVelocity(String uuid) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) return null;
+        net.minecraft.util.math.Vec3d v = e.getVelocity();
+        return v.x + "\t" + v.y + "\t" + v.z;
+    }
+
+    public static boolean entitySetVelocity(String uuid, double vx, double vy, double vz) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) return false;
+        e.setVelocity(vx, vy, vz);
+        e.velocityModified = true;
+        return true;
+    }
+
+    public static boolean entityAddVelocity(String uuid, double vx, double vy, double vz) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) return false;
+        e.addVelocity(vx, vy, vz);
+        e.velocityModified = true;
+        return true;
+    }
+
+    /** Score of {@code player} on {@code objective}, or {@code Integer.MIN_VALUE} if unknown. */
+    public static int scoreboardGet(String objective, String player) {
+        MinecraftServer s = server;
+        if (s == null) return Integer.MIN_VALUE;
+        net.minecraft.scoreboard.Scoreboard sb = s.getScoreboard();
+        net.minecraft.scoreboard.ScoreboardObjective obj = sb.getNullableObjective(objective);
+        if (obj == null) return Integer.MIN_VALUE;
+        if (!sb.playerHasObjective(player, obj)) return 0;
+        return sb.getPlayerScore(player, obj).getScore();
+    }
+
+    public static boolean scoreboardSet(String objective, String player, int score) {
+        MinecraftServer s = server;
+        if (s == null) return false;
+        net.minecraft.scoreboard.Scoreboard sb = s.getScoreboard();
+        net.minecraft.scoreboard.ScoreboardObjective obj = sb.getNullableObjective(objective);
+        if (obj == null) return false;
+        sb.getPlayerScore(player, obj).setScore(score);
+        return true;
+    }
+
+    /** Returns new score, or {@code Integer.MIN_VALUE} if objective unknown. */
+    public static int scoreboardAdd(String objective, String player, int delta) {
+        MinecraftServer s = server;
+        if (s == null) return Integer.MIN_VALUE;
+        net.minecraft.scoreboard.Scoreboard sb = s.getScoreboard();
+        net.minecraft.scoreboard.ScoreboardObjective obj = sb.getNullableObjective(objective);
+        if (obj == null) return Integer.MIN_VALUE;
+        net.minecraft.scoreboard.ScoreboardPlayerScore score = sb.getPlayerScore(player, obj);
+        score.incrementScore(delta);
+        return score.getScore();
+    }
+
+    public static String gameDir() {
+        MinecraftServer s = server;
+        if (s == null) return null;
+        return s.getRunDirectory().getAbsolutePath();
+    }
+
     public static boolean entityAddEffect(
             String uuid, String effectId, int durationTicks, int amplifier, boolean showParticles) {
         Entity e = entityByUuid(uuid);

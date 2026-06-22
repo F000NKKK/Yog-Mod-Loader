@@ -74,4 +74,21 @@ impl<'a> Entity<'a> {
     pub fn clear_effects(&self) -> bool {
         self.server.entity_clear_effects(&self.uuid)
     }
+
+    // ── velocity ────────────────────────────────────────────────────────────
+
+    /// Current velocity `(vx, vy, vz)`, or `None` if not loaded.
+    pub fn velocity(&self) -> Option<(f64, f64, f64)> {
+        self.server.entity_velocity(&self.uuid)
+    }
+
+    /// Set velocity directly (replaces current velocity).
+    pub fn set_velocity(&self, vx: f64, vy: f64, vz: f64) -> bool {
+        self.server.entity_set_velocity(&self.uuid, vx, vy, vz)
+    }
+
+    /// Add an impulse to the current velocity (e.g. launch upward: `add_velocity(0, 1, 0)`).
+    pub fn add_velocity(&self, vx: f64, vy: f64, vz: f64) -> bool {
+        self.server.entity_add_velocity(&self.uuid, vx, vy, vz)
+    }
 }
