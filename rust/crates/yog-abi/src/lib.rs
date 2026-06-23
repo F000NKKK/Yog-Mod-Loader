@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 13;
+pub const ABI_MINOR: u32 = 14;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -403,90 +403,140 @@ pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
 // ── ABI minor 10 — client-side function pointer types ────────────────────────
 
 /// Client tick — no event, no server context.
-pub type YogClientFn    = unsafe extern "C" fn(ud: *mut c_void);
-/// HUD render — `delta_tick` is the partial tick interpolation factor (0.0–1.0).
-/// `draw` is a pointer to the draw command table; valid only for the call duration.
-pub type YogHudRenderFn = unsafe extern "C" fn(ud: *mut c_void, delta_tick: f32, draw: *const YogDraw);
+pub type YogClientFn = unsafe extern "C" fn(ud: *mut c_void);
+/// HUD render — `gfx` is the graphics context for this frame; only valid for
+/// the call duration.  `draw2d_*` functions in `gfx` work here.
+pub type YogHudRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
+/// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
+/// Valid only for the call duration.
+pub type YogWorldRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
 /// Key press — return `false` to cancel (prevent Minecraft from processing the key).
 pub type YogKeyPressFn  = unsafe extern "C" fn(ud: *mut c_void, ev: *const YogKeyPressEvent) -> bool;
 /// Screen event — `screen_class` is the simple class name (e.g. `"InventoryScreen"`).
 /// For `on_screen_open` return `false` to prevent the screen from opening.
 pub type YogScreenFn    = unsafe extern "C" fn(ud: *mut c_void, screen_class: YogStr) -> bool;
 
-// ── ABI minor 13 — HUD draw table ────────────────────────────────────────────
+// ── ABI minor 14 — low-level GPU pipeline ────────────────────────────────────
 
-/// Draw mode for vertex buffers.
-/// Values match the Java `VertexFormat.DrawMode` ordinals Yog exposes.
-pub mod draw_mode {
-    pub const TRIANGLES:      u8 = 0;
-    pub const QUADS:          u8 = 1;
-    pub const LINES:          u8 = 2;
-    pub const LINE_STRIP:     u8 = 3;
-    pub const TRIANGLE_STRIP: u8 = 4;
-    pub const TRIANGLE_FAN:   u8 = 5;
-}
-
-/// Function table passed to HUD render handlers.
-/// All functions use the current thread's `DrawContext` (stored by the Java host).
-/// Valid only for the duration of the `on_hud_render` callback — never store.
+/// Low-level GPU context passed to render handlers.
+///
+/// Provides direct access to the OpenGL pipeline: buffer objects, vertex arrays,
+/// shader programs, textures, draw calls, and render state.
+///
+/// The per-frame fields (`screen_w/h`, `delta_tick`, `view_proj`, `camera_pos`)
+/// are filled by the runtime before calling the handler; the function pointers
+/// point to statically-allocated implementations.
+///
+/// Valid only for the duration of the render callback — never store the pointer.
+/// GPU resource **handles** (`u32`) may be stored between frames.
 ///
 /// Colors are `0xAARRGGBB` (Minecraft convention).
 #[repr(C)]
-pub struct YogDraw {
-    // ── 2-D primitives ───────────────────────────────────────────────────────
-    /// Draw a string at GUI pixel position `(x, y)`.
-    /// `color` is `0xAARRGGBB`; `shadow` draws a drop-shadow.
-    pub draw_text: unsafe extern "C" fn(text: YogStr, x: i32, y: i32, color: u32, shadow: bool),
-    /// Fill the rectangle `[x1, y1] – [x2, y2]` with a flat ARGB color.
-    pub draw_rect: unsafe extern "C" fn(x1: i32, y1: i32, x2: i32, y2: i32, color: u32),
-    /// Fill the rectangle with a vertical linear gradient (top → bottom).
-    pub draw_gradient_rect: unsafe extern "C" fn(x1: i32, y1: i32, x2: i32, y2: i32, top: u32, bottom: u32),
-    /// Blit a region of a texture identified by a namespaced id (e.g. `"mymod:textures/hud.png"`).
-    /// `(u, v)` is the top-left UV in texels; `(w, h)` is the region size in pixels;
-    /// `(tex_w, tex_h)` is the full texture size.
-    pub draw_texture: unsafe extern "C" fn(id: YogStr, x: i32, y: i32, u: f32, v: f32, w: i32, h: i32, tex_w: i32, tex_h: i32),
+#[derive(Copy, Clone)]
+pub struct YogGfxApi {
+    // ── Per-frame context ─────────────────────────────────────────────────────
+    /// GUI-pixel screen width.
+    pub screen_w:   i32,
+    /// GUI-pixel screen height.
+    pub screen_h:   i32,
+    /// Partial-tick interpolation factor (0.0–1.0).
+    pub delta_tick:   f32,
+    /// GUI scale factor: physical pixels per GUI pixel (e.g. 2.0 for 2× GUI scale).
+    /// Useful for converting GUI-pixel coordinates to physical pixels for OpenGL calls.
+    pub scale_factor: f32,
+    /// View-projection matrix in camera-relative space (column-major, 16 × f32).
+    /// All zeros during `on_hud_render`; filled during `on_world_render`.
+    pub view_proj:  [f32; 16],
+    /// Camera world-space position.  All zeros during `on_hud_render`.
+    pub camera_pos: [f32; 3],
+    pub _pad1:      f32,
 
-    // ── matrix transform ─────────────────────────────────────────────────────
-    /// Push a copy of the current matrix onto the stack.
-    pub push_matrix: unsafe extern "C" fn(),
-    /// Pop the top of the matrix stack (restoring the previous transform).
-    pub pop_matrix:  unsafe extern "C" fn(),
-    /// Translate the current matrix by `(x, y, z)` in GUI pixels.
-    pub translate:   unsafe extern "C" fn(x: f32, y: f32, z: f32),
-    /// Scale the current matrix by `(sx, sy, sz)`.
-    pub scale:       unsafe extern "C" fn(sx: f32, sy: f32, sz: f32),
+    // ── GPU buffers ───────────────────────────────────────────────────────────
+    /// Allocate a new GPU buffer (VBO / EBO). Returns 0 on failure.
+    pub buf_create:  unsafe extern "C" fn() -> u32,
+    /// Delete a buffer created by `buf_create`.
+    pub buf_delete:  unsafe extern "C" fn(handle: u32),
+    /// Upload `len` bytes from `bytes` into `handle`.
+    /// `dynamic`: hints frequent updates (`GL_DYNAMIC_DRAW` vs `GL_STATIC_DRAW`).
+    pub buf_data:    unsafe extern "C" fn(handle: u32, bytes: *const u8, len: u32, dynamic: bool),
+    /// Overwrite `len` bytes at `offset` in `handle`.
+    pub buf_subdata: unsafe extern "C" fn(handle: u32, offset: u32, bytes: *const u8, len: u32),
 
-    // ── color vertex buffer ───────────────────────────────────────────────────
-    /// Begin a new `POSITION_COLOR` mesh with the given draw mode (`draw_mode::*`).
-    pub begin_mesh: unsafe extern "C" fn(mode: u8),
-    /// Add a colored vertex. Components are 0–255; the matrix transform is applied.
-    pub vertex:     unsafe extern "C" fn(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8, a: u8),
-    /// Submit and draw the current color mesh.
-    pub end_mesh:   unsafe extern "C" fn(),
+    // ── Vertex arrays ─────────────────────────────────────────────────────────
+    /// Create a vertex array object. Returns 0 on failure.
+    pub vao_create: unsafe extern "C" fn() -> u32,
+    /// Delete a VAO created by `vao_create`.
+    pub vao_delete: unsafe extern "C" fn(handle: u32),
+    /// Declare one vertex attribute in `vao`, sourced from `vbo`.
+    /// `dtype`: 0=f32, 1=u8, 2=i32, 3=u32.
+    pub vao_attrib: unsafe extern "C" fn(
+        vao: u32, vbo: u32, index: u32, components: u8,
+        dtype: u8, normalized: bool, stride: u32, offset: u32,
+    ),
+    /// Bind an index buffer (EBO) to `vao`.
+    pub vao_set_ebo: unsafe extern "C" fn(vao: u32, ebo: u32),
 
-    // ── textured vertex buffer ────────────────────────────────────────────────
-    /// Begin a `POSITION_TEXTURE_COLOR` mesh; binds `texture_id` before drawing.
-    pub begin_textured_mesh: unsafe extern "C" fn(mode: u8, texture_id: YogStr),
-    /// Add a textured+colored vertex. UV coords are 0.0–1.0 (normalized).
-    pub vertex_uv:           unsafe extern "C" fn(x: f32, y: f32, z: f32, u: f32, v: f32, r: u8, g: u8, b: u8, a: u8),
-    /// Submit and draw the current textured mesh.
-    pub end_textured_mesh:   unsafe extern "C" fn(),
+    // ── Shader programs ───────────────────────────────────────────────────────
+    /// Compile + link `vert_src` / `frag_src` (GLSL 150 core).
+    /// Writes the program handle to `*out`. Returns false and logs on error.
+    pub prog_create:       unsafe extern "C" fn(vert: YogStr, frag: YogStr, out: *mut u32) -> bool,
+    /// Delete a shader program.
+    pub prog_delete:       unsafe extern "C" fn(handle: u32),
+    pub prog_uniform_1i:   unsafe extern "C" fn(prog: u32, name: YogStr, v: i32),
+    pub prog_uniform_1f:   unsafe extern "C" fn(prog: u32, name: YogStr, v: f32),
+    pub prog_uniform_2f:   unsafe extern "C" fn(prog: u32, name: YogStr, x: f32, y: f32),
+    pub prog_uniform_3f:   unsafe extern "C" fn(prog: u32, name: YogStr, x: f32, y: f32, z: f32),
+    pub prog_uniform_4f:   unsafe extern "C" fn(prog: u32, name: YogStr, x: f32, y: f32, z: f32, w: f32),
+    /// Set a mat4 uniform from 16 column-major floats.
+    pub prog_uniform_mat4: unsafe extern "C" fn(prog: u32, name: YogStr, col_major: *const f32),
 
-    // ── clip ─────────────────────────────────────────────────────────────────
-    /// Enable scissor clipping to the given GUI-pixel rectangle.
-    pub scissor:       unsafe extern "C" fn(x: i32, y: i32, w: i32, h: i32),
+    // ── Textures ──────────────────────────────────────────────────────────────
+    /// Upload RGBA8 pixel data as a new texture.
+    /// `linear`: `GL_LINEAR` if true, `GL_NEAREST` if false.
+    pub tex_create:  unsafe extern "C" fn(w: u32, h: u32, rgba: *const u8, linear: bool) -> u32,
+    /// Delete a texture created by `tex_create`.
+    pub tex_delete:  unsafe extern "C" fn(handle: u32),
+    /// Bind `handle` to texture unit `unit` (0–7).
+    pub tex_bind:    unsafe extern "C" fn(unit: u32, handle: u32),
+    /// Return the GL texture handle Minecraft uses for a namespaced resource
+    /// (e.g. `"minecraft:textures/gui/icons.png"`). Returns 0 if not found.
+    /// Do **not** delete handles obtained this way — Minecraft owns them.
+    pub tex_from_mc: unsafe extern "C" fn(id: YogStr) -> u32,
+
+    // ── Draw calls ────────────────────────────────────────────────────────────
+    /// Draw `count` primitives from `vao`, using shader `prog`.
+    /// `mode`: 0=Triangles, 1=Lines, 2=LineStrip, 3=TriangleStrip, 4=TriangleFan.
+    pub draw_arrays:   unsafe extern "C" fn(vao: u32, prog: u32, mode: u8, first: u32, count: u32),
+    /// Draw indexed primitives.  `ebo` must be bound to `vao` via `vao_set_ebo`.
+    /// `u32_idx`: `true` for `u32` indices, `false` for `u16` indices.
+    pub draw_elements: unsafe extern "C" fn(vao: u32, ebo: u32, prog: u32, mode: u8, count: u32, u32_idx: bool),
+
+    // ── Render state ──────────────────────────────────────────────────────────
+    /// Enable/disable blending. `src`/`dst` are raw GL blend factor enum values.
+    pub set_blend:    unsafe extern "C" fn(enabled: bool, src: u32, dst: u32),
+    /// Enable/disable depth testing and depth writes.
+    pub set_depth:    unsafe extern "C" fn(test: bool, write: bool),
+    /// Enable scissor clipping (GUI-pixel rectangle).
+    pub set_scissor:  unsafe extern "C" fn(x: i32, y: i32, w: i32, h: i32),
     /// Disable scissor clipping.
     pub clear_scissor: unsafe extern "C" fn(),
+    /// Set the GL viewport (physical pixel coordinates).
+    pub set_viewport:  unsafe extern "C" fn(x: i32, y: i32, w: i32, h: i32),
 
-    // ── screen info ──────────────────────────────────────────────────────────
-    /// Scaled GUI screen width in pixels (accounts for GUI scale setting).
-    pub screen_width:  unsafe extern "C" fn() -> i32,
-    /// Scaled GUI screen height in pixels.
-    pub screen_height: unsafe extern "C" fn() -> i32,
+    // ── 2D convenience (HUD-render only — uses MC's DrawContext) ─────────────
+    /// Filled rectangle. Only valid during `on_hud_render`.
+    pub draw2d_rect:     unsafe extern "C" fn(x1: f32, y1: f32, x2: f32, y2: f32, color: u32),
+    /// Vertical-gradient rectangle. Only valid during `on_hud_render`.
+    pub draw2d_gradient: unsafe extern "C" fn(x1: f32, y1: f32, x2: f32, y2: f32, top: u32, bottom: u32),
+    /// MC text renderer string. Only valid during `on_hud_render`.
+    pub draw2d_text:     unsafe extern "C" fn(text: YogStr, x: f32, y: f32, color: u32, shadow: bool),
+    /// Blit from a Minecraft-managed texture. Only valid during `on_hud_render`.
+    /// `(u0, v0)` in texels; `(w, h)` in pixels; `(tw, th)` full texture size.
+    pub draw2d_mc_tex:   unsafe extern "C" fn(id: YogStr, x: f32, y: f32, u0: f32, v0: f32, w: f32, h: f32, tw: f32, th: f32),
 }
 
-unsafe impl Send for YogDraw {}
-unsafe impl Sync for YogDraw {}
+unsafe impl Send for YogGfxApi {}
+unsafe impl Sync for YogGfxApi {}
 
 // ── Server action table (runtime → mod direction is wrong; it's mod → runtime) ─
 
@@ -721,6 +771,12 @@ pub struct YogApi {
     pub on_key_press:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogKeyPressFn),
     pub on_screen_open:  unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogScreenFn),
     pub on_screen_close: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogScreenFn),
+
+    // ── ABI minor 14 — world render ──────────────────────────────────────────
+    /// Register a handler that fires after world geometry is rendered.
+    /// `gfx.view_proj` and `gfx.camera_pos` are filled; use them to project
+    /// custom 3D geometry into clip space.
+    pub on_world_render: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogWorldRenderFn),
 }
 
 unsafe impl Send for YogApi {}

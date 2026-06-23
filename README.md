@@ -50,9 +50,10 @@ Each platform has its own version-specific Mixin sources under
 | ✅ 8 | Item pickup, player move, container open/close, projectile hit; Config; typed packets | 9 |
 | ✅ 9 | Client-side hooks: tick, HUD render, keyboard, screen open/close | 10 |
 | ✅ 10 | Item NBT: held item + off-hand + full slot query/set | 11–12 |
-| 🔲 11 | NeoForge host, then Forge host |  |
+| ✅ 11 | Low-level GPU pipeline: `YogGfxApi`, HUD + world rendering, `yog-gfx` crate | 13–14 |
+| 🔲 12 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 12)
+## API available now (ABI minor 14)
 
 ### Events
 
@@ -101,10 +102,6 @@ registry.on_block_break(|event, phase, server| -> bool {
 ```rust
 registry.on_client_tick(|_ev| { /* fires every client tick */ });
 
-registry.on_hud_render(|ev| {
-    let _dt = ev.delta_tick; // partial-tick interpolation 0.0–1.0
-});
-
 registry.on_key_press(|ev| -> bool {
     if ev.key_code == 69 && ev.action == 1 { // E pressed
         info!("E key pressed!");
@@ -125,10 +122,125 @@ registry.on_screen_close(|ev| {
 | Registration | Event type | Notes |
 |---|---|---|
 | `on_client_tick` | `ClientTickEvent` | Every client tick |
-| `on_hud_render` | `HudRenderEvent` | Every frame; `delta_tick` = partial tick |
+| `on_hud_render` | `GfxContext` | Every frame; full GPU access + 2D helpers — see Graphics below |
+| `on_world_render` | `GfxContext` | After world geometry; `view_proj` + `camera_pos` filled |
 | `on_key_press` | `KeyPressEvent` | Return `false` to suppress; `action`: 0=release, 1=press, 2=repeat |
 | `on_screen_open` | `ScreenEvent` | GUI opened; `screen_class` is simple class name |
 | `on_screen_close` | `ScreenEvent` | GUI closed |
+
+### Graphics (ABI minor 14)
+
+Mods get direct access to the OpenGL pipeline via `GfxContext` (from `yog-gfx`).
+GPU resources (`u32` handles) are created once and stored between frames.
+
+#### HUD overlay (2D)
+
+```rust
+use yog_api::{GfxContext, gfx_draw2d};
+
+registry.on_hud_render(|ctx: &GfxContext| {
+    let (w, h) = ctx.screen_size();
+    let d = ctx.draw2d();
+    d.rect(4.0, 4.0, 60.0, 14.0, 0x88_00_00_00);
+    d.text("hello", 6.0, 5.0, 0xFF_FF_FF_FF, true);
+    d.mc_texture("minecraft:textures/gui/icons.png",
+        w as f32 / 2.0 - 9.0, h as f32 / 2.0 - 9.0,
+        0.0, 0.0, 18.0, 18.0, 256.0, 256.0);
+});
+```
+
+#### World geometry (3D, custom GLSL)
+
+GPU resources live outside the closure and persist across frames:
+
+```rust
+use yog_api::{GfxContext, gfx_gl::{Buffer, VertexArray, ShaderProgram}};
+use yog_api::gfx_core::{DrawMode, DataType};
+
+struct MyRenderer {
+    vbo: Option<Buffer>,
+    vao: Option<VertexArray>,
+    prog: Option<ShaderProgram>,
+}
+
+impl MyRenderer {
+    fn init(&mut self, ctx: &GfxContext) {
+        let vbo = ctx.create_buffer();
+        // 3 × (xyz as f32) — a single triangle
+        let verts: &[f32] = &[0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.5, 1.0, 0.0];
+        unsafe { vbo.upload(ctx, verts, false) };
+
+        let vao = ctx.create_vao();
+        vao.attrib(ctx, &vbo, 0, 3, DataType::F32, false, 12, 0);
+
+        let prog = ctx.create_shader(VERT_GLSL, FRAG_GLSL).expect("shader compile failed");
+        self.vbo = Some(vbo);
+        self.vao = Some(vao);
+        self.prog = Some(prog);
+    }
+
+    fn render(&mut self, ctx: &GfxContext) {
+        if self.vbo.is_none() { self.init(ctx); }
+        let prog = self.prog.as_ref().unwrap();
+        let vao  = self.vao.as_ref().unwrap();
+        // Shift triangle 8 blocks east of camera
+        let cam = ctx.camera_pos();
+        prog.uniform_mat4(ctx, "uViewProj", &ctx.view_proj());
+        prog.uniform_3f(ctx, "uOffset", 8.0 - cam[0], -cam[1], -cam[2]);
+        ctx.set_depth(true, false);
+        ctx.draw_arrays(vao, prog, DrawMode::Triangles, 0, 3);
+        ctx.set_depth(false, false);
+    }
+}
+
+// In register():
+let renderer = std::sync::Mutex::new(MyRenderer { vbo: None, vao: None, prog: None });
+registry.on_world_render(move |ctx| {
+    renderer.lock().unwrap().render(ctx);
+});
+```
+
+`view_proj` is **camera-relative**: world position `P` maps to clip space as
+`view_proj * (P - camera_pos)`.  This avoids floating-point precision loss for
+far objects.
+
+#### GfxContext API surface
+
+```rust
+// Frame info
+ctx.screen_size() -> (i32, i32)
+ctx.delta_tick()  -> f32
+ctx.view_proj()   -> [f32; 16]   // col-major; zeroed in on_hud_render
+ctx.camera_pos()  -> [f32; 3]    // zeroed in on_hud_render
+
+// GPU resources
+ctx.create_buffer() / delete_buffer(buf)
+ctx.create_vao()    / delete_vao(vao)
+ctx.create_shader(vert, frag) -> Result<ShaderProgram, ()>
+ctx.delete_shader(prog)
+ctx.create_texture_rgba(w, h, &[u8]) / delete_texture(tex)
+ctx.texture_from_mc("minecraft:textures/…")  // borrows MC's texture; do NOT delete
+
+// Draw
+ctx.draw_arrays(vao, prog, DrawMode::Triangles, first, count)
+ctx.draw_elements(vao, ebo, prog, DrawMode::Triangles, count, u32_idx)
+
+// State
+ctx.set_blend(enabled, src_factor, dst_factor)   // blend::SRC_ALPHA etc.
+ctx.set_depth(test, write)
+ctx.set_scissor(x, y, w, h)  // physical pixels
+ctx.clear_scissor()
+ctx.set_viewport(x, y, w, h)
+
+// Uniforms (via ShaderProgram)
+prog.uniform_1i / 1f / 2f / 3f / 4f / mat4(ctx, "name", value)
+
+// 2D helpers (HUD only)
+ctx.draw2d().text(text, x, y, color, shadow)
+ctx.draw2d().rect(x1, y1, x2, y2, color)
+ctx.draw2d().gradient(x1, y1, x2, y2, top_color, bottom_color)
+ctx.draw2d().mc_texture(id, x, y, u0, v0, w, h, tex_w, tex_h)
+```
 
 ### World
 
@@ -364,6 +476,7 @@ yog/
 │       ├── yog-storage/         # persistent key-value storage             [MIT/Apache]
 │       ├── yog-config/          # mod configuration (typed key/value files) [MIT/Apache]
 │       ├── yog-logging/         # logging macros                           [MIT/Apache]
+│       ├── yog-gfx/             # GPU pipeline facade (GfxContext, gl, draw2d) [MIT/Apache]
 │       ├── yog-api/             # FACADE + Registry hub + export_mod!      [MIT/Apache]
 │       └── yog-runtime/         # cdylib: JNI bridge + dispatch + loader   [AGPL]
 ├── example-mod/                 # standalone example mod (.yog output)

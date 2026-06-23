@@ -19,3 +19,5 @@ yog-registry = { path = "../yog-registry" }
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.
 libloading = "0.8"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
+# OpenGL bindings for low-level GPU access (client-side, render thread only).
+glow = "0.13"

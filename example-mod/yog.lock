@@ -23,6 +23,7 @@ dependencies = [
  "yog-core",
  "yog-entity",
  "yog-event",
+ "yog-gfx",
  "yog-logging",
  "yog-network",
  "yog-player",
@@ -55,6 +56,13 @@ name = "yog-event"
 version = "0.1.0"
 dependencies = [
  "yog-core",
+]
+
+[[package]]
+name = "yog-gfx"
+version = "0.1.0"
+dependencies = [
+ "yog-abi",
 ]
 
 [[package]]

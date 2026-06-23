@@ -13,11 +13,13 @@
 //!     state uses an inner `Mutex` for safe addition during event dispatch.
 
 use std::collections::HashMap;
+use std::num::NonZeroU32;
 use std::os::raw::c_void;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
-use jni::objects::{JByteArray, JClass, JString, JValue};
+use glow::HasContext;
+use jni::objects::{JByteArray, JClass, JFloatArray, JObject, JString, JValue};
 use jni::sys::{jdouble, jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
 use libloading::{Library, Symbol};
@@ -26,13 +28,14 @@ use yog_abi::{
     ABI_VERSION, YogAdvancementEvent, YogAdvancementFn, YogApi, YogAttackEntityFn,
     YogBlockBreakFn, YogBlockDef, YogBlockPos, YogChatFn, YogClientFn, YogCommandFn,
     YogContainerCloseEvent, YogContainerCloseFn, YogContainerOpenEvent, YogContainerOpenFn,
-    YogCraftEvent, YogCraftFn, YogDraw, YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent,
-    YogEntityInteractFn, YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogHudRenderFn,
-    YogItemDef, YogItemPickupEvent, YogItemPickupFn, YogKeyPressFn, YogKeyPressEvent,
-    YogOwnedStr, YogPacketFn, YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent,
-    YogPlayerDeathFn, YogPlayerFn, YogPlayerMoveEvent, YogPlayerMoveFn, YogPlayerRespawnEvent,
-    YogPlayerRespawnFn, YogProjectileHitEvent, YogProjectileHitFn, YogScheduledFn, YogScreenFn,
-    YogServer, YogServerFn, YogStr, YogUseBlockFn, YogUseItemFn, YogVec3,
+    YogCraftEvent, YogCraftFn, YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent,
+    YogEntityInteractFn, YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn,
+    YogGfxApi, YogHudRenderFn, YogItemDef, YogItemPickupEvent, YogItemPickupFn,
+    YogKeyPressFn, YogKeyPressEvent, YogOwnedStr, YogPacketFn, YogPlaceBlockEvent,
+    YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn, YogPlayerMoveEvent,
+    YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn, YogProjectileHitEvent,
+    YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn, YogStr,
+    YogUseBlockFn, YogUseItemFn, YogVec3, YogWorldRenderFn,
 };
 use yog_registry::{BlockDef, FoodDef, ItemDef};
 
@@ -46,6 +49,15 @@ static LOADED_MODS: Mutex<Vec<Library>> = Mutex::new(Vec::new());
 static SERVER: OnceLock<YogServer> = OnceLock::new();
 /// All registered handlers + content (populated during mod loading, then read-only).
 static HANDLERS: OnceLock<RuntimeHandlers> = OnceLock::new();
+
+// ── OpenGL context (client-side, render thread only) ─────────────────────────
+
+struct GlCtx(glow::Context);
+unsafe impl Send for GlCtx {}
+unsafe impl Sync for GlCtx {}
+
+/// Initialized by `nativeGlInit` on the render thread.  `None` on dedicated server.
+static GL: OnceLock<GlCtx> = OnceLock::new();
 
 // ── Handler storage ───────────────────────────────────────────────────────────
 
@@ -74,6 +86,7 @@ struct RuntimeHandlers {
     projectile_hit:     Vec<(*mut c_void, YogProjectileHitFn)>,
     client_tick:        Vec<(*mut c_void, YogClientFn)>,
     hud_render:         Vec<(*mut c_void, YogHudRenderFn)>,
+    world_render:       Vec<(*mut c_void, YogWorldRenderFn)>,
     key_press:          Vec<(*mut c_void, YogKeyPressFn)>,
     screen_open:        Vec<(*mut c_void, YogScreenFn)>,
     screen_close:       Vec<(*mut c_void, YogScreenFn)>,
@@ -108,7 +121,8 @@ impl RuntimeHandlers {
             item_pickup: Vec::new(), player_move: Vec::new(),
             container_open: Vec::new(), container_close: Vec::new(),
             projectile_hit: Vec::new(),
-            client_tick: Vec::new(), hud_render: Vec::new(), key_press: Vec::new(),
+            client_tick: Vec::new(), hud_render: Vec::new(), world_render: Vec::new(),
+            key_press: Vec::new(),
             screen_open: Vec::new(), screen_close: Vec::new(),
             server_tick: Vec::new(), server_started: Vec::new(), server_stopping: Vec::new(),
             commands: HashMap::new(), typed_schemas: HashMap::new(),
@@ -788,155 +802,386 @@ unsafe extern "C" fn srv_set_slot_item(
     .and_then(|v| v.z()).unwrap_or(false)
 }
 
-// ── ABI minor 13 — HUD draw functions ────────────────────────────────────────
+// ── ABI minor 14 — low-level GPU pipeline ────────────────────────────────────
 //
-// All functions use the DrawContext stored thread-locally in NativeDraw.java.
-// They are called on the render thread, which is already attached to the JVM,
-// so get_env() is cheap (no actual thread attachment).
+// All raw GL calls go through `glow::Context` stored in GL.
+// `draw2d_*` functions still call JNI (NativeDraw) for MC text/texture rendering.
+// Everything is called on the render thread — no synchronization needed.
 
-unsafe extern "C" fn hud_draw_text(text: YogStr, x: i32, y: i32, color: u32, shadow: bool) {
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+fn gl_draw_mode(mode: u8) -> u32 {
+    match mode {
+        1 => glow::LINES,
+        2 => glow::LINE_STRIP,
+        3 => glow::TRIANGLE_STRIP,
+        4 => glow::TRIANGLE_FAN,
+        _ => glow::TRIANGLES,
+    }
+}
+
+fn gl_attr_type(dtype: u8) -> u32 {
+    match dtype {
+        1 => glow::UNSIGNED_BYTE,
+        2 => glow::INT,
+        3 => glow::UNSIGNED_INT,
+        _ => glow::FLOAT,
+    }
+}
+
+unsafe fn compile_shader(gl: &glow::Context, stage: u32, src: &str) -> Option<glow::NativeShader> {
+    let sh = gl.create_shader(stage).ok()?;
+    gl.shader_source(sh, src);
+    gl.compile_shader(sh);
+    if !gl.get_shader_compile_status(sh) {
+        yog_logging::error!("yog-gfx shader compile: {}", gl.get_shader_info_log(sh));
+        gl.delete_shader(sh);
+        return None;
+    }
+    Some(sh)
+}
+
+// ── GPU buffers ───────────────────────────────────────────────────────────────
+
+unsafe extern "C" fn gfx_buf_create() -> u32 {
+    let Some(g) = GL.get() else { return 0 };
+    g.0.create_buffer().map(|b| b.0.get()).unwrap_or(0)
+}
+
+unsafe extern "C" fn gfx_buf_delete(handle: u32) {
+    let Some(g) = GL.get() else { return };
+    let Some(n) = NonZeroU32::new(handle) else { return };
+    g.0.delete_buffer(glow::NativeBuffer(n));
+}
+
+unsafe extern "C" fn gfx_buf_data(handle: u32, bytes: *const u8, len: u32, dynamic: bool) {
+    let Some(g) = GL.get() else { return };
+    let Some(n) = NonZeroU32::new(handle) else { return };
+    let gl = &g.0;
+    let data = std::slice::from_raw_parts(bytes, len as usize);
+    let usage = if dynamic { glow::DYNAMIC_DRAW } else { glow::STATIC_DRAW };
+    gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(n)));
+    gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, data, usage);
+    gl.bind_buffer(glow::ARRAY_BUFFER, None);
+}
+
+unsafe extern "C" fn gfx_buf_subdata(handle: u32, offset: u32, bytes: *const u8, len: u32) {
+    let Some(g) = GL.get() else { return };
+    let Some(n) = NonZeroU32::new(handle) else { return };
+    let gl = &g.0;
+    let data = std::slice::from_raw_parts(bytes, len as usize);
+    gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(n)));
+    gl.buffer_sub_data_u8_slice(glow::ARRAY_BUFFER, offset as i32, data);
+    gl.bind_buffer(glow::ARRAY_BUFFER, None);
+}
+
+// ── Vertex arrays ─────────────────────────────────────────────────────────────
+
+unsafe extern "C" fn gfx_vao_create() -> u32 {
+    let Some(g) = GL.get() else { return 0 };
+    g.0.create_vertex_array().map(|v| v.0.get()).unwrap_or(0)
+}
+
+unsafe extern "C" fn gfx_vao_delete(handle: u32) {
+    let Some(g) = GL.get() else { return };
+    let Some(n) = NonZeroU32::new(handle) else { return };
+    g.0.delete_vertex_array(glow::NativeVertexArray(n));
+}
+
+unsafe extern "C" fn gfx_vao_attrib(
+    vao: u32, vbo: u32, index: u32, components: u8,
+    dtype: u8, normalized: bool, stride: u32, offset: u32,
+) {
+    let Some(g) = GL.get() else { return };
+    let (Some(vn), Some(bn)) = (NonZeroU32::new(vao), NonZeroU32::new(vbo)) else { return };
+    let gl = &g.0;
+    gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
+    gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(bn)));
+    let gl_type = gl_attr_type(dtype);
+    if dtype == 2 || dtype == 3 {
+        gl.vertex_attrib_pointer_i32(index, components as i32, gl_type, stride as i32, offset as i32);
+    } else {
+        gl.vertex_attrib_pointer_f32(index, components as i32, gl_type, normalized, stride as i32, offset as i32);
+    }
+    gl.enable_vertex_attrib_array(index);
+    gl.bind_vertex_array(None);
+}
+
+unsafe extern "C" fn gfx_vao_set_ebo(vao: u32, ebo: u32) {
+    let Some(g) = GL.get() else { return };
+    let (Some(vn), Some(en)) = (NonZeroU32::new(vao), NonZeroU32::new(ebo)) else { return };
+    let gl = &g.0;
+    gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
+    gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(glow::NativeBuffer(en)));
+    gl.bind_vertex_array(None);
+}
+
+// ── Shader programs ───────────────────────────────────────────────────────────
+
+unsafe extern "C" fn gfx_prog_create(vert: YogStr, frag: YogStr, out: *mut u32) -> bool {
+    let Some(g) = GL.get() else { return false };
+    let gl = &g.0;
+    let vs = match compile_shader(gl, glow::VERTEX_SHADER, vert.as_str()) {
+        Some(s) => s,
+        None => return false,
+    };
+    let fs = match compile_shader(gl, glow::FRAGMENT_SHADER, frag.as_str()) {
+        Some(s) => s,
+        None => { gl.delete_shader(vs); return false; }
+    };
+    let prog = match gl.create_program() {
+        Ok(p) => p,
+        Err(e) => {
+            yog_logging::error!("yog-gfx: create_program: {}", e);
+            gl.delete_shader(vs); gl.delete_shader(fs);
+            return false;
+        }
+    };
+    gl.attach_shader(prog, vs);
+    gl.attach_shader(prog, fs);
+    gl.link_program(prog);
+    gl.detach_shader(prog, vs);
+    gl.detach_shader(prog, fs);
+    gl.delete_shader(vs);
+    gl.delete_shader(fs);
+    if !gl.get_program_link_status(prog) {
+        yog_logging::error!("yog-gfx: shader link: {}", gl.get_program_info_log(prog));
+        gl.delete_program(prog);
+        return false;
+    }
+    *out = prog.0.get();
+    true
+}
+
+unsafe extern "C" fn gfx_prog_delete(handle: u32) {
+    let Some(g) = GL.get() else { return };
+    let Some(n) = NonZeroU32::new(handle) else { return };
+    g.0.delete_program(glow::NativeProgram(n));
+}
+
+macro_rules! with_prog {
+    ($handle:expr, |$gl:ident, $prog:ident, $loc:ident ($name:expr)| $body:expr) => {{
+        let Some(g) = GL.get() else { return };
+        let Some(n) = NonZeroU32::new($handle) else { return };
+        let $gl = &g.0;
+        let $prog = glow::NativeProgram(n);
+        $gl.use_program(Some($prog));
+        let $loc = $gl.get_uniform_location($prog, $name.as_str());
+        $body
+    }};
+}
+
+unsafe extern "C" fn gfx_prog_uniform_1i(prog: u32, name: YogStr, v: i32) {
+    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_1_i32(loc.as_ref(), v));
+}
+unsafe extern "C" fn gfx_prog_uniform_1f(prog: u32, name: YogStr, v: f32) {
+    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_1_f32(loc.as_ref(), v));
+}
+unsafe extern "C" fn gfx_prog_uniform_2f(prog: u32, name: YogStr, x: f32, y: f32) {
+    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_2_f32(loc.as_ref(), x, y));
+}
+unsafe extern "C" fn gfx_prog_uniform_3f(prog: u32, name: YogStr, x: f32, y: f32, z: f32) {
+    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_3_f32(loc.as_ref(), x, y, z));
+}
+unsafe extern "C" fn gfx_prog_uniform_4f(prog: u32, name: YogStr, x: f32, y: f32, z: f32, w: f32) {
+    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_4_f32(loc.as_ref(), x, y, z, w));
+}
+unsafe extern "C" fn gfx_prog_uniform_mat4(prog: u32, name: YogStr, col_major: *const f32) {
+    with_prog!(prog, |gl, _p, loc(name)| {
+        let data = std::slice::from_raw_parts(col_major, 16);
+        gl.uniform_matrix_4_f32_slice(loc.as_ref(), false, data);
+    });
+}
+
+// ── Textures ──────────────────────────────────────────────────────────────────
+
+unsafe extern "C" fn gfx_tex_create(w: u32, h: u32, rgba: *const u8, linear: bool) -> u32 {
+    let Some(g) = GL.get() else { return 0 };
+    let gl = &g.0;
+    let tex = match gl.create_texture() { Ok(t) => t, Err(_) => return 0 };
+    gl.bind_texture(glow::TEXTURE_2D, Some(tex));
+    let filter = if linear { glow::LINEAR } else { glow::NEAREST };
+    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MIN_FILTER, filter as i32);
+    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MAG_FILTER, filter as i32);
+    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::CLAMP_TO_EDGE as i32);
+    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::CLAMP_TO_EDGE as i32);
+    let pixels = std::slice::from_raw_parts(rgba, (w * h * 4) as usize);
+    gl.tex_image_2d(
+        glow::TEXTURE_2D, 0, glow::RGBA8 as i32,
+        w as i32, h as i32, 0,
+        glow::RGBA, glow::UNSIGNED_BYTE,
+        Some(pixels),
+    );
+    gl.bind_texture(glow::TEXTURE_2D, None);
+    tex.0.get()
+}
+
+unsafe extern "C" fn gfx_tex_delete(handle: u32) {
+    let Some(g) = GL.get() else { return };
+    let Some(n) = NonZeroU32::new(handle) else { return };
+    g.0.delete_texture(glow::NativeTexture(n));
+}
+
+unsafe extern "C" fn gfx_tex_bind(unit: u32, handle: u32) {
+    let Some(g) = GL.get() else { return };
+    let gl = &g.0;
+    gl.active_texture(glow::TEXTURE0 + unit);
+    match NonZeroU32::new(handle) {
+        Some(n) => gl.bind_texture(glow::TEXTURE_2D, Some(glow::NativeTexture(n))),
+        None    => gl.bind_texture(glow::TEXTURE_2D, None),
+    }
+}
+
+unsafe extern "C" fn gfx_tex_from_mc(id: YogStr) -> u32 {
+    let Some(mut env) = get_env() else { return 0 };
+    let Some(ji) = ys_to_java(&mut env, id) else { return 0 };
+    env.call_static_method("dev/yog/NativeDraw", "getMcTextureId",
+        "(Ljava/lang/String;)I", &[JValue::Object(&ji)])
+        .and_then(|v| v.i())
+        .map(|id| id as u32)
+        .unwrap_or(0)
+}
+
+// ── Draw calls ────────────────────────────────────────────────────────────────
+
+unsafe extern "C" fn gfx_draw_arrays(vao: u32, prog: u32, mode: u8, first: u32, count: u32) {
+    let Some(g) = GL.get() else { return };
+    let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else { return };
+    let gl = &g.0;
+    gl.use_program(Some(glow::NativeProgram(pn)));
+    gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
+    gl.draw_arrays(gl_draw_mode(mode), first as i32, count as i32);
+    gl.bind_vertex_array(None);
+}
+
+unsafe extern "C" fn gfx_draw_elements(vao: u32, ebo: u32, prog: u32, mode: u8, count: u32, u32_idx: bool) {
+    let Some(g) = GL.get() else { return };
+    let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else { return };
+    let gl = &g.0;
+    gl.use_program(Some(glow::NativeProgram(pn)));
+    gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
+    // EBO is stored in the VAO; ebo param is informational for safety but not re-bound here.
+    let _ = ebo;
+    let idx_type = if u32_idx { glow::UNSIGNED_INT } else { glow::UNSIGNED_SHORT };
+    gl.draw_elements(gl_draw_mode(mode), count as i32, idx_type, 0);
+    gl.bind_vertex_array(None);
+}
+
+// ── Render state ──────────────────────────────────────────────────────────────
+
+unsafe extern "C" fn gfx_set_blend(enabled: bool, src: u32, dst: u32) {
+    let Some(g) = GL.get() else { return };
+    let gl = &g.0;
+    if enabled {
+        gl.enable(glow::BLEND);
+        gl.blend_func(src, dst);
+    } else {
+        gl.disable(glow::BLEND);
+    }
+}
+
+unsafe extern "C" fn gfx_set_depth(test: bool, write: bool) {
+    let Some(g) = GL.get() else { return };
+    let gl = &g.0;
+    if test { gl.enable(glow::DEPTH_TEST); } else { gl.disable(glow::DEPTH_TEST); }
+    gl.depth_mask(write);
+}
+
+unsafe extern "C" fn gfx_set_scissor(x: i32, y: i32, w: i32, h: i32) {
+    let Some(g) = GL.get() else { return };
+    let gl = &g.0;
+    gl.enable(glow::SCISSOR_TEST);
+    gl.scissor(x, y, w, h);
+}
+
+unsafe extern "C" fn gfx_clear_scissor() {
+    let Some(g) = GL.get() else { return };
+    g.0.disable(glow::SCISSOR_TEST);
+}
+
+unsafe extern "C" fn gfx_set_viewport(x: i32, y: i32, w: i32, h: i32) {
+    let Some(g) = GL.get() else { return };
+    g.0.viewport(x, y, w, h);
+}
+
+// ── 2D convenience (JNI — uses MC's DrawContext / text renderer) ──────────────
+
+unsafe extern "C" fn gfx_draw2d_rect(x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "drawRect",
+        "(FFFFI)V",
+        &[JValue::Float(x1), JValue::Float(y1), JValue::Float(x2), JValue::Float(y2),
+          JValue::Int(color as i32)]);
+}
+
+unsafe extern "C" fn gfx_draw2d_gradient(x1: f32, y1: f32, x2: f32, y2: f32, top: u32, bottom: u32) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "drawGradientRect",
+        "(FFFFII)V",
+        &[JValue::Float(x1), JValue::Float(y1), JValue::Float(x2), JValue::Float(y2),
+          JValue::Int(top as i32), JValue::Int(bottom as i32)]);
+}
+
+unsafe extern "C" fn gfx_draw2d_text(text: YogStr, x: f32, y: f32, color: u32, shadow: bool) {
     let Some(mut env) = get_env() else { return };
     if let Some(jt) = ys_to_java(&mut env, text) {
         let _ = env.call_static_method("dev/yog/NativeDraw", "drawText",
-            "(Ljava/lang/String;IIIZ)V",
-            &[JValue::Object(&jt), JValue::Int(x), JValue::Int(y),
+            "(Ljava/lang/String;FFIZ)V",
+            &[JValue::Object(&jt), JValue::Float(x), JValue::Float(y),
               JValue::Int(color as i32), JValue::Bool(shadow as u8)]);
     }
 }
 
-unsafe extern "C" fn hud_draw_rect(x1: i32, y1: i32, x2: i32, y2: i32, color: u32) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "drawRect",
-        "(IIIII)V",
-        &[JValue::Int(x1), JValue::Int(y1), JValue::Int(x2), JValue::Int(y2),
-          JValue::Int(color as i32)]);
-}
-
-unsafe extern "C" fn hud_draw_gradient_rect(x1: i32, y1: i32, x2: i32, y2: i32, top: u32, bottom: u32) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "drawGradientRect",
-        "(IIIIII)V",
-        &[JValue::Int(x1), JValue::Int(y1), JValue::Int(x2), JValue::Int(y2),
-          JValue::Int(top as i32), JValue::Int(bottom as i32)]);
-}
-
-unsafe extern "C" fn hud_draw_texture(id: YogStr, x: i32, y: i32, u: f32, v: f32, w: i32, h: i32, tex_w: i32, tex_h: i32) {
+unsafe extern "C" fn gfx_draw2d_mc_tex(
+    id: YogStr, x: f32, y: f32, u0: f32, v0: f32, w: f32, h: f32, tw: f32, th: f32,
+) {
     let Some(mut env) = get_env() else { return };
     if let Some(ji) = ys_to_java(&mut env, id) {
         let _ = env.call_static_method("dev/yog/NativeDraw", "drawTexture",
-            "(Ljava/lang/String;IIFFII)V",
-            &[JValue::Object(&ji), JValue::Int(x), JValue::Int(y),
-              JValue::Float(u), JValue::Float(v), JValue::Int(w), JValue::Int(h),
-              JValue::Int(tex_w), JValue::Int(tex_h)]);
+            "(Ljava/lang/String;FFFFFFFFF)V",
+            &[JValue::Object(&ji),
+              JValue::Float(x), JValue::Float(y), JValue::Float(u0), JValue::Float(v0),
+              JValue::Float(w), JValue::Float(h), JValue::Float(tw), JValue::Float(th)]);
     }
 }
 
-unsafe extern "C" fn hud_push_matrix() {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "pushMatrix", "()V", &[]);
-}
+// ── Static GFX function table (function pointers only — per-frame data filled at call time) ──
 
-unsafe extern "C" fn hud_pop_matrix() {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "popMatrix", "()V", &[]);
-}
-
-unsafe extern "C" fn hud_translate(x: f32, y: f32, z: f32) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "translate",
-        "(FFF)V", &[JValue::Float(x), JValue::Float(y), JValue::Float(z)]);
-}
-
-unsafe extern "C" fn hud_scale(sx: f32, sy: f32, sz: f32) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "scale",
-        "(FFF)V", &[JValue::Float(sx), JValue::Float(sy), JValue::Float(sz)]);
-}
-
-unsafe extern "C" fn hud_begin_mesh(mode: u8) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "beginMesh",
-        "(I)V", &[JValue::Int(mode as i32)]);
-}
-
-unsafe extern "C" fn hud_vertex(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8, a: u8) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "vertex",
-        "(FFFIIII)V",
-        &[JValue::Float(x), JValue::Float(y), JValue::Float(z),
-          JValue::Int(r as i32), JValue::Int(g as i32), JValue::Int(b as i32), JValue::Int(a as i32)]);
-}
-
-unsafe extern "C" fn hud_end_mesh() {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "endMesh", "()V", &[]);
-}
-
-unsafe extern "C" fn hud_begin_textured_mesh(mode: u8, texture_id: YogStr) {
-    let Some(mut env) = get_env() else { return };
-    if let Some(jt) = ys_to_java(&mut env, texture_id) {
-        let _ = env.call_static_method("dev/yog/NativeDraw", "beginTexturedMesh",
-            "(ILjava/lang/String;)V",
-            &[JValue::Int(mode as i32), JValue::Object(&jt)]);
-    }
-}
-
-unsafe extern "C" fn hud_vertex_uv(x: f32, y: f32, z: f32, u: f32, v: f32, r: u8, g: u8, b: u8, a: u8) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "vertexUv",
-        "(FFFFFIIIII)V",
-        &[JValue::Float(x), JValue::Float(y), JValue::Float(z),
-          JValue::Float(u), JValue::Float(v),
-          JValue::Int(r as i32), JValue::Int(g as i32), JValue::Int(b as i32), JValue::Int(a as i32)]);
-}
-
-unsafe extern "C" fn hud_end_textured_mesh() {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "endTexturedMesh", "()V", &[]);
-}
-
-unsafe extern "C" fn hud_scissor(x: i32, y: i32, w: i32, h: i32) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "scissor",
-        "(IIII)V", &[JValue::Int(x), JValue::Int(y), JValue::Int(w), JValue::Int(h)]);
-}
-
-unsafe extern "C" fn hud_clear_scissor() {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method("dev/yog/NativeDraw", "clearScissor", "()V", &[]);
-}
-
-unsafe extern "C" fn hud_screen_width() -> i32 {
-    let Some(mut env) = get_env() else { return 0 };
-    env.call_static_method("dev/yog/NativeDraw", "screenWidth", "()I", &[])
-        .and_then(|v| v.i()).unwrap_or(0)
-}
-
-unsafe extern "C" fn hud_screen_height() -> i32 {
-    let Some(mut env) = get_env() else { return 0 };
-    env.call_static_method("dev/yog/NativeDraw", "screenHeight", "()I", &[])
-        .and_then(|v| v.i()).unwrap_or(0)
-}
-
-static DRAW_TABLE: YogDraw = YogDraw {
-    draw_text:           hud_draw_text,
-    draw_rect:           hud_draw_rect,
-    draw_gradient_rect:  hud_draw_gradient_rect,
-    draw_texture:        hud_draw_texture,
-    push_matrix:         hud_push_matrix,
-    pop_matrix:          hud_pop_matrix,
-    translate:           hud_translate,
-    scale:               hud_scale,
-    begin_mesh:          hud_begin_mesh,
-    vertex:              hud_vertex,
-    end_mesh:            hud_end_mesh,
-    begin_textured_mesh: hud_begin_textured_mesh,
-    vertex_uv:           hud_vertex_uv,
-    end_textured_mesh:   hud_end_textured_mesh,
-    scissor:             hud_scissor,
-    clear_scissor:       hud_clear_scissor,
-    screen_width:        hud_screen_width,
-    screen_height:       hud_screen_height,
+static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
+    // Per-frame fields zeroed in the static; actual values are set on the stack per render call.
+    screen_w: 0, screen_h: 0, delta_tick: 0.0, scale_factor: 1.0,
+    view_proj: [0.0; 16], camera_pos: [0.0; 3], _pad1: 0.0,
+    buf_create:        gfx_buf_create,
+    buf_delete:        gfx_buf_delete,
+    buf_data:          gfx_buf_data,
+    buf_subdata:       gfx_buf_subdata,
+    vao_create:        gfx_vao_create,
+    vao_delete:        gfx_vao_delete,
+    vao_attrib:        gfx_vao_attrib,
+    vao_set_ebo:       gfx_vao_set_ebo,
+    prog_create:       gfx_prog_create,
+    prog_delete:       gfx_prog_delete,
+    prog_uniform_1i:   gfx_prog_uniform_1i,
+    prog_uniform_1f:   gfx_prog_uniform_1f,
+    prog_uniform_2f:   gfx_prog_uniform_2f,
+    prog_uniform_3f:   gfx_prog_uniform_3f,
+    prog_uniform_4f:   gfx_prog_uniform_4f,
+    prog_uniform_mat4: gfx_prog_uniform_mat4,
+    tex_create:        gfx_tex_create,
+    tex_delete:        gfx_tex_delete,
+    tex_bind:          gfx_tex_bind,
+    tex_from_mc:       gfx_tex_from_mc,
+    draw_arrays:       gfx_draw_arrays,
+    draw_elements:     gfx_draw_elements,
+    set_blend:         gfx_set_blend,
+    set_depth:         gfx_set_depth,
+    set_scissor:       gfx_set_scissor,
+    clear_scissor:     gfx_clear_scissor,
+    set_viewport:      gfx_set_viewport,
+    draw2d_rect:       gfx_draw2d_rect,
+    draw2d_gradient:   gfx_draw2d_gradient,
+    draw2d_text:       gfx_draw2d_text,
+    draw2d_mc_tex:     gfx_draw2d_mc_tex,
 };
 
 // ── YogApi registration functions ─────────────────────────────────────────────
@@ -976,6 +1221,7 @@ api_event!(api_on_container_close,  container_close,    YogContainerCloseFn);
 api_event!(api_on_projectile_hit,   projectile_hit,     YogProjectileHitFn);
 api_event!(api_on_client_tick,      client_tick,        YogClientFn);
 api_event!(api_on_hud_render,       hud_render,         YogHudRenderFn);
+api_event!(api_on_world_render,     world_render,       YogWorldRenderFn);
 api_event!(api_on_key_press,        key_press,          YogKeyPressFn);
 api_event!(api_on_screen_open,      screen_open,        YogScreenFn);
 api_event!(api_on_screen_close,     screen_close,       YogScreenFn);
@@ -1179,6 +1425,7 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         on_key_press:       api_on_key_press,
         on_screen_open:     api_on_screen_open,
         on_screen_close:    api_on_screen_close,
+        on_world_render:    api_on_world_render,
     }
 }
 
@@ -2242,15 +2489,79 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientTick<'l>(
 }
 
 #[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeGlInit<'l>(
+    _env: JNIEnv<'l>, _class: JClass<'l>,
+) {
+    if GL.get().is_some() { return; }
+    let gl = unsafe {
+        glow::Context::from_loader_function(|sym| {
+            let Some(mut env) = get_env() else { return std::ptr::null() };
+            let jsym = match env.new_string(sym) {
+                Ok(s) => s,
+                Err(_) => return std::ptr::null(),
+            };
+            let jsym_obj: JObject = jsym.into();
+            let val = env.call_static_method(
+                "dev/yog/NativeBridge",
+                "glProcAddress",
+                "(Ljava/lang/String;)J",
+                &[JValue::Object(&jsym_obj)],
+            );
+            match val.and_then(|v| v.j()) {
+                Ok(ptr) if ptr != 0 => ptr as usize as *const _,
+                _ => std::ptr::null(),
+            }
+        })
+    };
+    let _ = GL.set(GlCtx(gl));
+}
+
+#[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     _env: JNIEnv<'l>, _class: JClass<'l>,
     delta_tick: jfloat,
+    screen_w: jint,
+    screen_h: jint,
+    scale_factor: jfloat,
 ) {
     let h = handlers();
     if h.hud_render.is_empty() { return; }
+    let mut gfx = GFX_FN_TABLE;
+    gfx.screen_w = screen_w;
+    gfx.screen_h = screen_h;
+    gfx.delta_tick = delta_tick;
+    gfx.scale_factor = scale_factor;
     guard("on_hud_render", || {
         for (ud, f) in &h.hud_render {
-            unsafe { f(*ud, delta_tick, &DRAW_TABLE) };
+            unsafe { f(*ud, &gfx) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
+    env: JNIEnv<'l>, _class: JClass<'l>,
+    delta_tick: jfloat,
+    screen_w: jint,
+    screen_h: jint,
+    scale_factor: jfloat,
+    view_proj_arr: JFloatArray<'l>,
+    cam_x: jfloat, cam_y: jfloat, cam_z: jfloat,
+) {
+    let h = handlers();
+    if h.world_render.is_empty() { return; }
+    let mut view_proj = [0f32; 16];
+    if env.get_float_array_region(&view_proj_arr, 0, &mut view_proj).is_err() { return; }
+    let mut gfx = GFX_FN_TABLE;
+    gfx.screen_w = screen_w;
+    gfx.screen_h = screen_h;
+    gfx.delta_tick = delta_tick;
+    gfx.scale_factor = scale_factor;
+    gfx.view_proj = view_proj;
+    gfx.camera_pos = [cam_x, cam_y, cam_z];
+    guard("on_world_render", || {
+        for (ud, f) in &h.world_render {
+            unsafe { f(*ud, &gfx) };
         }
     });
 }

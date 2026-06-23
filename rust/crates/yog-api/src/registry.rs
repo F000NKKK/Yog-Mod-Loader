@@ -12,12 +12,13 @@ use std::os::raw::c_void;
 use yog_abi::{
     YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef,
     YogChatEvent, YogCommandEvent, YogContainerCloseEvent, YogContainerOpenEvent, YogCraftEvent,
-    YogDraw, YogEntityDamageEvent, YogEntityDeathEvent, YogEntityInteractEvent, YogEntitySpawnEvent,
-    YogExplosionEvent, YogItemDef, YogItemPickupEvent, YogKeyPressEvent, YogPacketEvent,
-    YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent, YogPlayerMoveEvent,
+    YogEntityDamageEvent, YogEntityDeathEvent, YogEntityInteractEvent, YogEntitySpawnEvent,
+    YogExplosionEvent, YogGfxApi, YogItemDef, YogItemPickupEvent, YogKeyPressEvent,
+    YogPacketEvent, YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent, YogPlayerMoveEvent,
     YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer, YogStr, YogUseBlockEvent,
-    YogUseItemEvent, draw_mode,
+    YogUseItemEvent,
 };
+use yog_gfx::GfxContext;
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_event::{
@@ -729,127 +730,6 @@ where F: Fn(&dyn Server) + Send + Sync,
     f(&CServer(srv));
 }
 
-// ── ABI minor 13 — Draw wrapper ──────────────────────────────────────────────
-
-/// Draw mode for vertex buffers passed to [`Draw::begin_mesh`] / [`Draw::begin_textured_mesh`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DrawMode {
-    Triangles     = draw_mode::TRIANGLES      as isize,
-    Quads         = draw_mode::QUADS          as isize,
-    Lines         = draw_mode::LINES          as isize,
-    LineStrip     = draw_mode::LINE_STRIP     as isize,
-    TriangleStrip = draw_mode::TRIANGLE_STRIP as isize,
-    TriangleFan   = draw_mode::TRIANGLE_FAN   as isize,
-}
-
-/// Ergonomic drawing handle available inside [`Registry::on_hud_render`] callbacks.
-///
-/// All methods issue immediate JNI draw calls that are processed by Minecraft's
-/// render system on the current (render) thread.
-///
-/// Colors use `0xAARRGGBB` — the same convention as Minecraft's own UI APIs.
-///
-/// The handle is valid only for the duration of the `on_hud_render` callback —
-/// do **not** store it across frames.
-#[derive(Copy, Clone)]
-pub struct Draw(*const YogDraw);
-unsafe impl Send for Draw {}
-unsafe impl Sync for Draw {}
-
-impl Draw {
-    #[inline] fn d(&self) -> &YogDraw { unsafe { &*self.0 } }
-
-    // ── text ─────────────────────────────────────────────────────────────────
-
-    /// Draw a string without drop-shadow.
-    pub fn text(&self, text: &str, x: i32, y: i32, color: u32) {
-        unsafe { (self.d().draw_text)(YogStr::from_str(text), x, y, color, false) }
-    }
-    /// Draw a string with a drop-shadow.
-    pub fn text_shadowed(&self, text: &str, x: i32, y: i32, color: u32) {
-        unsafe { (self.d().draw_text)(YogStr::from_str(text), x, y, color, true) }
-    }
-
-    // ── rectangles ───────────────────────────────────────────────────────────
-
-    /// Fill the axis-aligned rectangle `[x1, y1]–[x2, y2]` with a flat color.
-    pub fn rect(&self, x1: i32, y1: i32, x2: i32, y2: i32, color: u32) {
-        unsafe { (self.d().draw_rect)(x1, y1, x2, y2, color) }
-    }
-    /// Fill the rectangle with a vertical linear gradient.
-    pub fn gradient_rect(&self, x1: i32, y1: i32, x2: i32, y2: i32, top: u32, bottom: u32) {
-        unsafe { (self.d().draw_gradient_rect)(x1, y1, x2, y2, top, bottom) }
-    }
-
-    // ── texture ──────────────────────────────────────────────────────────────
-
-    /// Blit a region from a texture.
-    ///
-    /// `id` is the namespaced texture identifier, e.g. `"mymod:textures/hud.png"`.
-    /// `(u, v)` is the top-left corner in texels; `(w, h)` is the region size;
-    /// `(tex_w, tex_h)` is the full texture size (used to compute UV fractions).
-    pub fn texture(&self, id: &str, x: i32, y: i32, u: f32, v: f32, w: i32, h: i32, tex_w: i32, tex_h: i32) {
-        unsafe { (self.d().draw_texture)(YogStr::from_str(id), x, y, u, v, w, h, tex_w, tex_h) }
-    }
-
-    // ── matrix ───────────────────────────────────────────────────────────────
-
-    /// Save the current matrix stack.
-    pub fn push_matrix(&self) { unsafe { (self.d().push_matrix)() } }
-    /// Restore the previously saved matrix.
-    pub fn pop_matrix(&self)  { unsafe { (self.d().pop_matrix)() } }
-    /// Translate the current transform by `(x, y, z)` in GUI pixels.
-    pub fn translate(&self, x: f32, y: f32, z: f32) { unsafe { (self.d().translate)(x, y, z) } }
-    /// Scale the current transform by `(sx, sy, sz)`.
-    pub fn scale(&self, sx: f32, sy: f32, sz: f32)  { unsafe { (self.d().scale)(sx, sy, sz) } }
-
-    // ── color vertex buffer ───────────────────────────────────────────────────
-
-    /// Begin a `POSITION_COLOR` vertex buffer with the given draw mode.
-    /// Must be paired with [`end_mesh`](Self::end_mesh).
-    pub fn begin_mesh(&self, mode: DrawMode) {
-        unsafe { (self.d().begin_mesh)(mode as u8) }
-    }
-    /// Add a vertex with ARGB color (`0xAARRGGBB`) to the current color mesh.
-    pub fn vertex(&self, x: f32, y: f32, z: f32, color: u32) {
-        let [a, r, g, b] = color.to_be_bytes();
-        unsafe { (self.d().vertex)(x, y, z, r, g, b, a) }
-    }
-    /// Submit and draw the current color mesh.
-    pub fn end_mesh(&self) { unsafe { (self.d().end_mesh)() } }
-
-    // ── textured vertex buffer ────────────────────────────────────────────────
-
-    /// Begin a `POSITION_TEXTURE_COLOR` vertex buffer; binds `texture_id`.
-    /// Must be paired with [`end_textured_mesh`](Self::end_textured_mesh).
-    pub fn begin_textured_mesh(&self, mode: DrawMode, texture_id: &str) {
-        unsafe { (self.d().begin_textured_mesh)(mode as u8, YogStr::from_str(texture_id)) }
-    }
-    /// Add a UV+color vertex. UV is normalized (0.0–1.0). Color is `0xAARRGGBB`.
-    pub fn vertex_uv(&self, x: f32, y: f32, z: f32, u: f32, v: f32, color: u32) {
-        let [a, r, g, b] = color.to_be_bytes();
-        unsafe { (self.d().vertex_uv)(x, y, z, u, v, r, g, b, a) }
-    }
-    /// Submit and draw the current textured mesh.
-    pub fn end_textured_mesh(&self) { unsafe { (self.d().end_textured_mesh)() } }
-
-    // ── clip ─────────────────────────────────────────────────────────────────
-
-    /// Restrict rendering to the given GUI-pixel rectangle.
-    pub fn scissor(&self, x: i32, y: i32, w: i32, h: i32) {
-        unsafe { (self.d().scissor)(x, y, w, h) }
-    }
-    /// Disable scissor clipping.
-    pub fn clear_scissor(&self) { unsafe { (self.d().clear_scissor)() } }
-
-    // ── screen info ──────────────────────────────────────────────────────────
-
-    /// Current scaled screen size in GUI pixels: `(width, height)`.
-    pub fn screen_size(&self) -> (i32, i32) {
-        unsafe { ((self.d().screen_width)(), (self.d().screen_height)()) }
-    }
-}
-
 // ── ABI minor 10 — client-side trampolines ────────────────────────────────────
 
 unsafe extern "C" fn trampoline_client_tick<F>(ud: *mut c_void)
@@ -859,11 +739,18 @@ where F: Fn(&ClientTickEvent) + Send + Sync,
     f(&ClientTickEvent {});
 }
 
-unsafe extern "C" fn trampoline_hud_render<F>(ud: *mut c_void, delta_tick: f32, draw_raw: *const YogDraw)
-where F: Fn(f32, &Draw) + Send + Sync,
+unsafe extern "C" fn trampoline_hud_render<F>(ud: *mut c_void, gfx: *const YogGfxApi)
+where F: Fn(&GfxContext) + Send + Sync,
 {
     let f = &*(ud as *const F);
-    f(delta_tick, &Draw(draw_raw));
+    f(&GfxContext::from_raw(gfx));
+}
+
+unsafe extern "C" fn trampoline_world_render<F>(ud: *mut c_void, gfx: *const YogGfxApi)
+where F: Fn(&GfxContext) + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    f(&GfxContext::from_raw(gfx));
 }
 
 unsafe extern "C" fn trampoline_key_press<F>(
@@ -1230,12 +1117,23 @@ impl Registry {
 
     /// Register a handler called every frame when the HUD is rendered.
     ///
-    /// `delta_tick` is the partial-tick interpolation factor (0.0–1.0).
-    /// `draw` provides immediate-mode drawing commands for the current frame.
+    /// `gfx` provides full GPU pipeline access plus 2D convenience draw calls.
+    /// `view_proj` and `camera_pos` are zero in HUD context; use `gfx.draw2d()` for HUD elements.
     pub fn on_hud_render<F>(&mut self, handler: F)
-    where F: Fn(f32, &Draw) + Send + Sync + 'static {
+    where F: Fn(&GfxContext) + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_hud_render)(self.ctx(), ud, trampoline_hud_render::<F>) }
+    }
+
+    /// Register a handler called every frame at the end of world rendering.
+    ///
+    /// `gfx.view_proj()` is the combined projection × view matrix (camera-relative).
+    /// `gfx.camera_pos()` is the camera world position.
+    /// To render at world position P, translate by `P - camera_pos` before drawing.
+    pub fn on_world_render<F>(&mut self, handler: F)
+    where F: Fn(&GfxContext) + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_world_render)(self.ctx(), ud, trampoline_world_render::<F>) }
     }
 
     /// Register a handler for keyboard input (client-side).

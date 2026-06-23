@@ -4,10 +4,14 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
+import org.joml.Matrix4f;
 
 /** Client-side entry point: wires client packet receivers and client-side event hooks. */
 public class YogClient implements ClientModInitializer {
@@ -35,9 +39,33 @@ public class YogClient implements ClientModInitializer {
 
         // HUD render — store DrawContext for Rust draw calls, then clear it
         HudRenderCallback.EVENT.register((ctx, tickDelta) -> {
+            NativeBridge.nativeGlInit();  // no-op after first call; deferred here so GL is active
             NativeDraw.hudDrawContext = ctx;
-            NativeBridge.nativeOnHudRender(tickDelta);
+            MinecraftClient mc = MinecraftClient.getInstance();
+            NativeBridge.nativeOnHudRender(
+                tickDelta,
+                mc.getWindow().getScaledWidth(),
+                mc.getWindow().getScaledHeight(),
+                (float) mc.getWindow().getScaleFactor());
             NativeDraw.hudDrawContext = null;
+        });
+
+        // World render — fires at end of world render frame with camera matrices
+        WorldRenderEvents.LAST.register(ctx -> {
+            NativeBridge.nativeGlInit();  // no-op after first call
+            MinecraftClient mc = MinecraftClient.getInstance();
+            Matrix4f proj = ctx.projectionMatrix();
+            Matrix4f view = ctx.matrixStack().peek().getPositionMatrix();
+            float[] vp = new float[16];
+            new Matrix4f(proj).mul(view).get(vp);
+            var camPos = ctx.camera().getPos();
+            NativeBridge.nativeOnWorldRender(
+                ctx.tickDelta(),
+                mc.getWindow().getScaledWidth(),
+                mc.getWindow().getScaledHeight(),
+                (float) mc.getWindow().getScaleFactor(),
+                vp,
+                (float) camPos.x, (float) camPos.y, (float) camPos.z);
         });
 
         // screen open / close

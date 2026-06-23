@@ -18,6 +18,8 @@ members = [
     "crates/yog-config",
     # facade mod authors depend on
     "crates/yog-api",
+    # graphics subsystem — low-level GL pipeline access for mods (permissive)
+    "crates/yog-gfx",
     # build tooling
     "crates/yog-cli",
     # engine (AGPL)

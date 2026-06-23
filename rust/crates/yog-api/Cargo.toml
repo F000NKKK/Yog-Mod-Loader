@@ -20,3 +20,4 @@ yog-command = { path = "../yog-command" }
 yog-logging = { path = "../yog-logging" }
 yog-storage = { path = "../yog-storage" }
 yog-config  = { path = "../yog-config" }
+yog-gfx     = { path = "../yog-gfx" }

@@ -49,6 +49,7 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.World;
 
@@ -1027,8 +1028,23 @@ public final class NativeBridge {
     /** Client tick — fired every tick on the render thread. */
     public static native void nativeOnClientTick();
 
+    // ── ABI minor 14 — low-level GL pipeline ─────────────────────────────────
+
+    /** Initialize the glow GL context on the render thread.  Call once after the GL context exists. */
+    public static native void nativeGlInit();
+
     /** HUD render — fired every frame; deltaTick is partial-tick interpolation. */
-    public static native void nativeOnHudRender(float deltaTick);
+    public static native void nativeOnHudRender(float deltaTick, int screenW, int screenH, float scaleFactor);
+
+    /** World render — fired at WorldRenderEvents.LAST with full camera matrices. */
+    public static native void nativeOnWorldRender(
+            float deltaTick, int screenW, int screenH, float scaleFactor,
+            float[] viewProj, float camX, float camY, float camZ);
+
+    /** Called from Rust during nativeGlInit to resolve GL function pointers. */
+    public static long glProcAddress(String name) {
+        return GLFW.glfwGetProcAddress(name);
+    }
 
     /** Key pressed/released/repeated — return false to cancel (suppress Minecraft processing). */
     public static native boolean nativeOnKeyPress(int keyCode, int scanCode, int action, int modifiers);
