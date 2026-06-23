@@ -35,11 +35,11 @@ forward-compatible.
 | ✅ 3 | Dynamic mod loading; `.yog` packaging; self-contained jar; entity / effects / NBT | 2–3 |
 | ✅ 4 | Cancellable events; networking; scoreboard; bossbar; scheduler; custom items/blocks | 4 |
 | ✅ 5 | Entity spawn events; world entity count; `EntityPhase` unified API; entity NBT; particles | 5–6 |
-| 🔲 6 | Player death/respawn, advancements, attribute modifiers | 7 |
+| ✅ 6 | Player death/respawn, advancements, entity attribute get/set | 7 |
 | 🔲 7 | Client-side hooks (rendering / UI) |  |
 | 🔲 8 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 6)
+## API available now (ABI minor 7)
 
 ### Events
 
@@ -68,6 +68,9 @@ registry.on_block_break(|event, phase, server| -> bool {
 | `on_entity_death` | `EntityDeathEvent` | — |
 | `on_entity_spawn` | `EntitySpawnEvent` | ✅ |
 | `on_player_place_block` | `PlaceBlockEvent` | ✅ |
+| `on_player_death` | `PlayerDeathEvent` | ✅ |
+| `on_player_respawn` | `PlayerRespawnEvent` | — |
+| `on_advancement` | `AdvancementEvent` | — |
 | `on_tick` | — | — |
 | `on_server_started` | — | — |
 | `on_server_stopping` | — | — |
@@ -115,6 +118,8 @@ entity.velocity() / set_velocity(vx, vy, vz) / add_velocity(vx, vy, vz)
 entity.add_effect("minecraft:speed", 200, 1, true)
 entity.get_nbt()              // -> Option<String>  (SNBT)
 entity.set_nbt("{CustomName: 'Bob'}")
+entity.attribute_get("minecraft:generic.max_health")  // -> Option<f64>
+entity.attribute_set("minecraft:generic.max_health", 40.0)
 ```
 
 ### Server actions (via `&dyn Server` / `srv`)
