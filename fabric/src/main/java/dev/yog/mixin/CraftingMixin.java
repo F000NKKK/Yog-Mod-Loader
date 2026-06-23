@@ -19,7 +19,6 @@ public class CraftingMixin {
         at = @At("HEAD")
     )
     private void yog$onCraft(PlayerEntity player, ItemStack stack, CallbackInfo ci) {
-        if (stack.isEmpty()) return;
         if (!(player instanceof ServerPlayerEntity sp)) return;
         String itemId = Registries.ITEM.getId(stack.getItem()).toString();
         NativeBridge.nativeOnItemCraft(
