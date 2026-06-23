@@ -439,6 +439,22 @@ impl Server for CServer {
         let s = srv!(self);
         unsafe { (s.entity_attribute_set)(s.ctx, YogStr::from_str(uuid), YogStr::from_str(attribute_id), value) }
     }
+
+    fn get_held_item_nbt(&self, player: &str) -> Option<String> {
+        let s = srv!(self);
+        let owned = unsafe { (s.get_held_item_nbt)(s.ctx, YogStr::from_str(player)) };
+        if owned.is_none() { return None; }
+        let result = unsafe {
+            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()).ok()
+        };
+        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        result
+    }
+
+    fn set_held_item_nbt(&self, player: &str, snbt: &str) -> bool {
+        let s = srv!(self);
+        unsafe { (s.set_held_item_nbt)(s.ctx, YogStr::from_str(player), YogStr::from_str(snbt)) }
+    }
 }
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────

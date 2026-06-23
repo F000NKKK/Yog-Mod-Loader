@@ -299,4 +299,14 @@ pub trait Server {
 
     /// Set the base value of an attribute. Returns false if not found.
     fn entity_attribute_set(&self, uuid: &str, attribute_id: &str, value: f64) -> bool;
+
+    // ── held item NBT (ABI minor 11) ─────────────────────────────────────────
+
+    /// SNBT string of the item currently held in the player's main hand.
+    /// Returns `None` if the player is offline or holding air.
+    fn get_held_item_nbt(&self, player: &str) -> Option<String>;
+
+    /// Merge `snbt` data into the NBT of the item in the player's main hand.
+    /// Returns `false` if the player is offline or holding air.
+    fn set_held_item_nbt(&self, player: &str, snbt: &str) -> bool;
 }

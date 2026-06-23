@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 10;
+pub const ABI_MINOR: u32 = 11;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -543,6 +543,14 @@ pub struct YogServer {
     pub entity_attribute_get: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, attribute_id: YogStr) -> f64,
     /// Set the base value of an attribute. Returns false if entity or attribute is not found.
     pub entity_attribute_set: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, attribute_id: YogStr, value: f64) -> bool,
+
+    // ── held item NBT (ABI minor 11) ─────────────────────────────────────────
+    /// SNBT of the item currently held in the player's main hand.
+    /// Returns NONE if the player is offline or holding air.
+    pub get_held_item_nbt: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr) -> YogOwnedStr,
+    /// Merge `snbt` data into the NBT of the player's held main-hand item in-place.
+    /// Returns false if the player is offline or holding air.
+    pub set_held_item_nbt: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, snbt: YogStr) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.

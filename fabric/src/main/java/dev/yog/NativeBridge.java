@@ -653,6 +653,34 @@ public final class NativeBridge {
         return true;
     }
 
+    // ── held item NBT (ABI minor 11) ─────────────────────────────────────────
+
+    /** SNBT of the item in the player's main hand, or null if offline / holding air. */
+    public static String getHeldItemNbt(String playerName) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return null;
+        net.minecraft.item.ItemStack stack = p.getMainHandStack();
+        if (stack.isEmpty()) return null;
+        NbtCompound nbt = stack.hasNbt() ? stack.getNbt() : new NbtCompound();
+        return nbt.toString();
+    }
+
+    /** Merge snbt into the NBT of the item in the player's main hand.
+     *  Returns false if the player is offline or holding air. */
+    public static boolean setHeldItemNbt(String playerName, String snbt) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return false;
+        net.minecraft.item.ItemStack stack = p.getMainHandStack();
+        if (stack.isEmpty()) return false;
+        try {
+            NbtCompound nbt = StringNbtReader.parse(snbt);
+            stack.setNbt(nbt);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static int worldEntityCount(String dimension, String entityTypeId) {
         ServerWorld w = worldFor(dimension);
         if (w == null) return -1;
@@ -925,6 +953,10 @@ public final class NativeBridge {
             String projectileType, String projectileUuid, String shooterUuid,
             String hitType, String hitEntityUuid,
             double x, double y, double z, String dimension);
+
+    // ── ABI minor 11 — held item NBT native declarations ─────────────────────
+
+    // (no native entry points — Rust calls Java via JNI, not the other way around)
 
     // ── ABI minor 10 — client-side hooks ─────────────────────────────────────
 

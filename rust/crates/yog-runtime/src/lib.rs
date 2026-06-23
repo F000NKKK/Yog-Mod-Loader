@@ -724,6 +724,25 @@ unsafe extern "C" fn srv_entity_attribute_set(_ctx: *mut c_void, uuid: YogStr, a
     .and_then(|v| v.z()).unwrap_or(false)
 }
 
+unsafe extern "C" fn srv_get_held_item_nbt(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let Some(jp) = ys_to_java(&mut env, player) else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "getHeldItemNbt",
+        "(Ljava/lang/String;)Ljava/lang/String;", &[JValue::Object(&jp)]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+unsafe extern "C" fn srv_set_held_item_nbt(_ctx: *mut c_void, player: YogStr, snbt: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(js)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, snbt)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "setHeldItemNbt",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&jp), JValue::Object(&js)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
 // ── YogApi registration functions ─────────────────────────────────────────────
 //
 // ctx is *mut RuntimeHandlers (cast from *mut c_void).
@@ -910,6 +929,8 @@ fn build_server_table() -> YogServer {
         spawn_particles:         srv_spawn_particles,
         entity_attribute_get:    srv_entity_attribute_get,
         entity_attribute_set:    srv_entity_attribute_set,
+        get_held_item_nbt:       srv_get_held_item_nbt,
+        set_held_item_nbt:       srv_set_held_item_nbt,
     }
 }
 
