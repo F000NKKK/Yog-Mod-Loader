@@ -889,4 +889,40 @@ public final class NativeBridge {
     /** Explosion detonated — Post phase (observe only). */
     public static native void nativeOnExplosion(
             String dimension, double x, double y, double z, float power, String causeUuid);
+
+    // ── ABI minor 9 ──────────────────────────────────────────────────────────
+
+    /** Player about to pick up an item — Pre phase; return false to prevent pickup. */
+    public static native boolean nativeOnItemPickupPre(
+            String player, String playerUuid, String itemId, int itemCount, String entityUuid);
+
+    /** Player picked up an item — Post phase (observe only). */
+    public static native void nativeOnItemPickup(
+            String player, String playerUuid, String itemId, int itemCount, String entityUuid);
+
+    /** Player sent a movement packet — Post only (high frequency). */
+    public static native void nativeOnPlayerMove(
+            String player, String playerUuid, double x, double y, double z, float yaw, float pitch);
+
+    /** Player about to open a container — Pre phase; return false to prevent opening. */
+    public static native boolean nativeOnContainerOpenPre(String player, String playerUuid);
+
+    /** Player opened a container — Post phase; containerType is the screen handler registry id. */
+    public static native void nativeOnContainerOpen(
+            String player, String playerUuid, String containerType);
+
+    /** Player closed a container — Post phase. */
+    public static native void nativeOnContainerClose(String player, String playerUuid);
+
+    /** Projectile about to hit — Pre phase; return false to cancel the hit. */
+    public static native boolean nativeOnProjectileHitPre(
+            String projectileType, String projectileUuid, String shooterUuid,
+            String hitType, String hitEntityUuid,
+            double x, double y, double z, String dimension);
+
+    /** Projectile hit — Post phase. */
+    public static native void nativeOnProjectileHit(
+            String projectileType, String projectileUuid, String shooterUuid,
+            String hitType, String hitEntityUuid,
+            double x, double y, double z, String dimension);
 }

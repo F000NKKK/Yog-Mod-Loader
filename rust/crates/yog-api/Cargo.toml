@@ -19,3 +19,4 @@ yog-network = { path = "../yog-network" }
 yog-command = { path = "../yog-command" }
 yog-logging = { path = "../yog-logging" }
 yog-storage = { path = "../yog-storage" }
+yog-config  = { path = "../yog-config" }

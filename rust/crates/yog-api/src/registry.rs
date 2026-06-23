@@ -11,20 +11,22 @@ use std::os::raw::c_void;
 
 use yog_abi::{
     YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef,
-    YogChatEvent, YogCommandEvent, YogCraftEvent, YogEntityDamageEvent, YogEntityDeathEvent,
-    YogEntityInteractEvent, YogEntitySpawnEvent, YogExplosionEvent, YogItemDef, YogPacketEvent,
-    YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent, YogPlayerRespawnEvent, YogServer,
-    YogStr, YogUseBlockEvent, YogUseItemEvent,
+    YogChatEvent, YogCommandEvent, YogContainerCloseEvent, YogContainerOpenEvent, YogCraftEvent,
+    YogEntityDamageEvent, YogEntityDeathEvent, YogEntityInteractEvent, YogEntitySpawnEvent,
+    YogExplosionEvent, YogItemDef, YogItemPickupEvent, YogPacketEvent, YogPlaceBlockEvent,
+    YogPlayerDeathEvent, YogPlayerEvent, YogPlayerMoveEvent, YogPlayerRespawnEvent,
+    YogProjectileHitEvent, YogServer, YogStr, YogUseBlockEvent, YogUseItemEvent,
 };
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_event::{
-    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, CraftEvent,
-    EntityDamageEvent, EntityDeathEvent, EntityInteractEvent, EntitySpawnEvent,
-    EventPhase, ExplosionEvent, PlaceBlockEvent, PlayerDeathEvent,
-    PlayerJoinEvent, PlayerLeaveEvent, PlayerRespawnEvent, UseBlockEvent, UseItemEvent,
+    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ContainerCloseEvent,
+    ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent, EntityInteractEvent,
+    EntitySpawnEvent, EventPhase, ExplosionEvent, ItemPickupEvent, PlaceBlockEvent,
+    PlayerDeathEvent, PlayerJoinEvent, PlayerLeaveEvent, PlayerMoveEvent, PlayerRespawnEvent,
+    ProjectileHitEvent, UseBlockEvent, UseItemEvent,
 };
-use yog_network::PacketEvent;
+use yog_network::{Packet, PacketEvent};
 use yog_registry::{BlockDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
 
 // ── CServer — implements Server via the YogServer function table ──────────────
@@ -575,6 +577,47 @@ trampoline_phased!(trampoline_explosion, YogExplosionEvent, ExplosionEvent, |ev|
     cause_uuid: ev.cause_uuid.as_str().to_owned(),
 });
 
+trampoline_phased!(trampoline_item_pickup, YogItemPickupEvent, ItemPickupEvent, |ev| ItemPickupEvent {
+    player_name: ev.player.as_str().to_owned(),
+    player_uuid: ev.player_uuid.as_str().to_owned(),
+    item_id:     ev.item_id.as_str().to_owned(),
+    item_count:  ev.item_count,
+    entity_uuid: ev.entity_uuid.as_str().to_owned(),
+});
+
+trampoline_phased!(trampoline_player_move, YogPlayerMoveEvent, PlayerMoveEvent, |ev| PlayerMoveEvent {
+    player_name: ev.player.as_str().to_owned(),
+    player_uuid: ev.player_uuid.as_str().to_owned(),
+    x:     ev.x,
+    y:     ev.y,
+    z:     ev.z,
+    yaw:   ev.yaw,
+    pitch: ev.pitch,
+});
+
+trampoline_phased!(trampoline_container_open, YogContainerOpenEvent, ContainerOpenEvent, |ev| ContainerOpenEvent {
+    player_name:    ev.player.as_str().to_owned(),
+    player_uuid:    ev.player_uuid.as_str().to_owned(),
+    container_type: ev.container_type.as_str().to_owned(),
+});
+
+trampoline_phased!(trampoline_container_close, YogContainerCloseEvent, ContainerCloseEvent, |ev| ContainerCloseEvent {
+    player_name: ev.player.as_str().to_owned(),
+    player_uuid: ev.player_uuid.as_str().to_owned(),
+});
+
+trampoline_phased!(trampoline_projectile_hit, YogProjectileHitEvent, ProjectileHitEvent, |ev| ProjectileHitEvent {
+    projectile_type: ev.projectile_type.as_str().to_owned(),
+    projectile_uuid: ev.projectile_uuid.as_str().to_owned(),
+    shooter_uuid:    ev.shooter_uuid.as_str().to_owned(),
+    hit_type:        ev.hit_type.as_str().to_owned(),
+    hit_entity_uuid: ev.hit_entity_uuid.as_str().to_owned(),
+    x:               ev.x,
+    y:               ev.y,
+    z:               ev.z,
+    dimension:       ev.dimension.as_str().to_owned(),
+});
+
 unsafe extern "C" fn trampoline_server_fn<F>(ud: *mut c_void, srv: *const YogServer)
 where F: Fn(&dyn Server) + Send + Sync,
 {
@@ -767,6 +810,36 @@ impl Registry {
         unsafe { ((*self.api).on_explosion)(self.ctx(), ud, trampoline_explosion::<F>) }
     }
 
+    pub fn on_item_pickup<F>(&mut self, handler: F)
+    where F: Fn(&ItemPickupEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_item_pickup)(self.ctx(), ud, trampoline_item_pickup::<F>) }
+    }
+
+    pub fn on_player_move<F>(&mut self, handler: F)
+    where F: Fn(&PlayerMoveEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_player_move)(self.ctx(), ud, trampoline_player_move::<F>) }
+    }
+
+    pub fn on_container_open<F>(&mut self, handler: F)
+    where F: Fn(&ContainerOpenEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_container_open)(self.ctx(), ud, trampoline_container_open::<F>) }
+    }
+
+    pub fn on_container_close<F>(&mut self, handler: F)
+    where F: Fn(&ContainerCloseEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_container_close)(self.ctx(), ud, trampoline_container_close::<F>) }
+    }
+
+    pub fn on_projectile_hit<F>(&mut self, handler: F)
+    where F: Fn(&ProjectileHitEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_projectile_hit)(self.ctx(), ud, trampoline_projectile_hit::<F>) }
+    }
+
     pub fn on_tick<F>(&mut self, listener: F)
     where F: Fn(&dyn Server) + Send + Sync + 'static {
         let ud = Self::leak(listener);
@@ -822,6 +895,22 @@ impl Registry {
         let ch = YogStr::from_str(channel.as_ref());
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_client_packet)(self.ctx(), ch, ud, trampoline_packet::<F>) }
+    }
+
+    /// Register a typed-packet handler.
+    ///
+    /// The payload is decoded from raw bytes using `P`'s [`Packet`] impl.
+    /// Malformed payloads are silently dropped.
+    pub fn on_typed_packet<P, F>(&mut self, channel: impl AsRef<str>, handler: F)
+    where
+        P: Packet + Send + Sync + 'static,
+        F: Fn(&P, &dyn Server) + Send + Sync + 'static,
+    {
+        self.on_packet(channel, move |ev, srv| {
+            if let Some(pkt) = P::decode(&ev.payload) {
+                handler(&pkt, srv);
+            }
+        });
     }
 
     // ── recipes ──────────────────────────────────────────────────────────────

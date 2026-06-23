@@ -57,15 +57,19 @@ macro_rules! export_mod {
 pub use yog_command::CommandContext;
 pub use yog_core::{BlockPos, Server};
 pub use yog_event::{
-    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, CraftEvent,
-    EntityDamageEvent, EntityDeathEvent, EntityInteractEvent, EntitySpawnEvent,
-    EventPhase, ExplosionEvent, PlaceBlockEvent, PlayerDeathEvent,
-    PlayerJoinEvent, PlayerLeaveEvent, PlayerRespawnEvent, UseBlockEvent, UseItemEvent,
+    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ContainerCloseEvent,
+    ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent, EntityInteractEvent,
+    EntitySpawnEvent, EventPhase, ExplosionEvent, ItemPickupEvent, PlaceBlockEvent,
+    PlayerDeathEvent, PlayerJoinEvent, PlayerLeaveEvent, PlayerMoveEvent, PlayerRespawnEvent,
+    ProjectileHitEvent, UseBlockEvent, UseItemEvent,
 };
 pub use yog_entity::Entity;
-pub use yog_network::PacketEvent;
+pub use yog_network::{Packet, PacketEvent, PacketField};
+#[doc(inline)]
+pub use yog_network::packet;
 pub use yog_player::Player;
 pub use yog_registry::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
+pub use yog_config::Config;
 pub use yog_storage::Storage;
 pub use yog_world::World;
 
@@ -115,4 +119,9 @@ pub mod command {
 /// Persistent key-value storage for mod data.
 pub mod storage {
     pub use yog_storage::*;
+}
+
+/// Mod configuration (typed key/value files).
+pub mod config {
+    pub use yog_config::*;
 }

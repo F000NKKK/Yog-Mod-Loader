@@ -20,12 +20,22 @@ forward-compatible.
 
 ## Scope & roadmap
 
-- **Versions:** start at **1.20.1**; support only de-facto "LTS" modding
-  versions (`.1` releases: 1.20.1, 1.21.1, …). A new MC version is added only
-  once the loader is stable across all current targets.
+- **Versions:** support only de-facto "LTS" modding versions (`.1` releases:
+  1.20.1, 1.21.1, …). A new MC version is added only once the loader is stable
+  across all current targets.
 - **Loaders:** **Fabric** first → then **NeoForge** → then **Forge**.
 - **Mappings:** **Yarn** (libre). We deliberately do **not** bundle Mojmaps —
   their license forbids redistribution.
+
+### Supported Fabric platforms
+
+| Minecraft | Yarn mappings | fabric-loader | fabric-api | Java | Status |
+|-----------|--------------|--------------|------------|------|--------|
+| **1.20.1** | 1.20.1+build.10 | ≥ 0.15.11 | 0.92.2+1.20.1 | 17 | ✅ tested |
+
+Each platform has its own version-specific Mixin sources under
+`fabric/platforms/<mc-version>/`. The active platform is selected by
+`minecraft_version` in `fabric/gradle.properties`.
 
 | Stage | What | ABI minor |
 |------:|------|:---------:|
@@ -37,10 +47,11 @@ forward-compatible.
 | ✅ 5 | Entity spawn events; world entity count; `EntityPhase` unified API; entity NBT; particles | 5–6 |
 | ✅ 6 | Player death/respawn, advancements, entity attribute get/set | 7 |
 | ✅ 7 | Entity interact, item craft, explosion events | 8 |
-| 🔲 8 | Client-side hooks (rendering / UI) |  |
-| 🔲 9 | NeoForge host, then Forge host |  |
+| ✅ 8 | Item pickup, player move, container open/close, projectile hit; Config; typed packets | 9 |
+| 🔲 9 | Client-side hooks (rendering / UI) |  |
+| 🔲 10 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 8)
+## API available now (ABI minor 9)
 
 ### Events
 
@@ -75,6 +86,11 @@ registry.on_block_break(|event, phase, server| -> bool {
 | `on_entity_interact` | `EntityInteractEvent` | ✅ |
 | `on_item_craft` | `CraftEvent` | — |
 | `on_explosion` | `ExplosionEvent` | ✅ |
+| `on_item_pickup` | `ItemPickupEvent` | ✅ |
+| `on_player_move` | `PlayerMoveEvent` | — |
+| `on_container_open` | `ContainerOpenEvent` | ✅ |
+| `on_container_close` | `ContainerCloseEvent` | — |
+| `on_projectile_hit` | `ProjectileHitEvent` | ✅ |
 | `on_tick` | — | — |
 | `on_server_started` | — | — |
 | `on_server_stopping` | — | — |
@@ -189,6 +205,43 @@ store.set("key", "value");
 store.get("key")    // -> Option<String>
 ```
 
+### Config
+
+```rust
+let game_dir = srv.game_dir().unwrap_or_default();
+let mut cfg = Config::load(&game_dir, "mymod");
+// Reads <game_dir>/yog-config/mymod.cfg  (created on first save)
+cfg.set("max_players", 20);
+cfg.save_defaults().ok();   // only writes if file doesn't exist yet
+
+let max = cfg.get_int_or("max_players", 20);
+let pvp = cfg.get_bool_or("pvp_enabled", true);
+let msg = cfg.get_or("welcome_message", "Welcome!");
+```
+
+### Typed networking
+
+```rust
+use yog_api::{packet, Packet};
+
+// Declare a typed packet — encode/decode is automatic
+packet! {
+    pub struct SyncCoinsPacket {
+        player: String,
+        coins:  i64,
+    }
+}
+
+// Send
+let pkt = SyncCoinsPacket { player: "Steve".into(), coins: 100 };
+srv.send_to_player("Steve", "mymod:coins", &pkt.encode());
+
+// Receive
+registry.on_typed_packet::<SyncCoinsPacket, _>("mymod:coins", |pkt, srv| {
+    info!("{} has {} coins", pkt.player, pkt.coins);
+});
+```
+
 See `example-mod/src/` for full working usage.
 
 ## Architecture
@@ -198,9 +251,9 @@ See `example-mod/src/` for full working usage.
         │  dlopen + C-ABI (yog_mod_register / YogApi / YogServer tables)
    yog-runtime  (cdylib: JNI bridge + dispatch + mod loader)   ← embedded in jar
         │  JNI  (Java_dev_yog_NativeBridge_*)
-   Fabric host  (dev.yog: NativeBridge, YogHost) + Fabric API events
+   Fabric host  (dev.yog: NativeBridge, YogHost) + version-specific Mixins
         │  Yarn mappings (not Mojmap)
-   Minecraft 1.20.1
+   Minecraft (active: 1.20.1)
 ```
 
 - The Java side is thin: it extracts the embedded runtime native, subscribes to
@@ -231,18 +284,24 @@ yog/
 │       ├── yog-player/          # Player wrapper (inventory, kick, …)      [MIT/Apache]
 │       ├── yog-registry/        # custom items/blocks/recipes               [MIT/Apache]
 │       ├── yog-command/         # command types + arg parsing              [MIT/Apache]
-│       ├── yog-network/         # packet event type                        [MIT/Apache]
+│       ├── yog-network/         # typed + raw packet helpers               [MIT/Apache]
 │       ├── yog-storage/         # persistent key-value storage             [MIT/Apache]
+│       ├── yog-config/          # mod configuration (typed key/value files) [MIT/Apache]
 │       ├── yog-logging/         # logging macros                           [MIT/Apache]
 │       ├── yog-api/             # FACADE + Registry hub + export_mod!      [MIT/Apache]
 │       └── yog-runtime/         # cdylib: JNI bridge + dispatch + loader   [AGPL]
 ├── example-mod/                 # standalone example mod (.yog output)
 └── fabric/                      # Fabric host mod (Java)                   [AGPL]
-    ├── build.gradle
-    ├── gradle.properties        # MC / Yarn / loader / fabric-api versions
-    └── src/main/
-        ├── java/dev/yog/        # NativeBridge, YogHost
-        └── resources/           # fabric.mod.json (+ embedded natives)
+    ├── build.gradle             # adds platforms/<mc-version>/ to sourceSets
+    ├── gradle.properties        # active MC version + Yarn / loader / fabric-api pins
+    ├── src/main/
+    │   ├── java/dev/yog/        # version-agnostic host: NativeBridge, YogHost, …
+    │   └── resources/           # embedded native libs (natives/<os>-<arch>/)
+    └── platforms/
+        └── 1.20.1/              # version-specific Mixin sources + resources
+            └── src/main/
+                ├── java/dev/yog/mixin/   # all Mixin classes for 1.20.1
+                └── resources/            # fabric.mod.json, yog.mixins.json
 ```
 
 ## Build & run (needs JDK 17, Rust, network)

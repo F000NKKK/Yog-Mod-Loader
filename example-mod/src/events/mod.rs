@@ -5,8 +5,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use yog_api::player::Player;
 use yog_api::world::World;
 use yog_api::{
-    info, AdvancementEvent, BlockPos, CraftEvent, EntityInteractEvent, EntitySpawnEvent,
-    EventPhase, ExplosionEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerRespawnEvent, Registry,
+    info, AdvancementEvent, BlockPos, ContainerCloseEvent, ContainerOpenEvent, CraftEvent,
+    EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent, ItemPickupEvent,
+    PlaceBlockEvent, PlayerDeathEvent, PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent,
+    Registry,
 };
 
 pub fn register(registry: &mut Registry) {
@@ -206,6 +208,55 @@ pub fn register(registry: &mut Registry) {
                     "Explosion! ({:.0}, {:.0}, {:.0}) power={}",
                     e.x, e.y, e.z, e.power
                 ));
+                true
+            }
+        }
+    });
+
+    registry.on_item_pickup(|e: &ItemPickupEvent, phase, _srv| {
+        if phase == EventPhase::Post {
+            info!("[example-mod] {} picked up {}x {}", e.player_name, e.item_count, e.item_id);
+        }
+        true
+    });
+
+    registry.on_player_move(|e: &PlayerMoveEvent, _phase, _srv| {
+        // Only log occasionally to avoid spam (1 in 400 = ~every 20 seconds at 20hz)
+        static MOVE_COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let n = MOVE_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if n % 400 == 0 {
+            info!("[example-mod] {} at ({:.1}, {:.1}, {:.1})", e.player_name, e.x, e.y, e.z);
+        }
+        true
+    });
+
+    registry.on_container_open(|e: &ContainerOpenEvent, phase, _srv| {
+        if phase == EventPhase::Post {
+            info!("[example-mod] {} opened container: {}", e.player_name, e.container_type);
+        }
+        true
+    });
+
+    registry.on_container_close(|e: &ContainerCloseEvent, _phase, _srv| {
+        info!("[example-mod] {} closed container", e.player_name);
+        true
+    });
+
+    registry.on_projectile_hit(|e: &ProjectileHitEvent, phase, srv| {
+        match phase {
+            EventPhase::Pre => {
+                info!(
+                    "[example-mod] {} hit {} ({}) at ({:.1}, {:.1}, {:.1})",
+                    e.projectile_type, e.hit_type,
+                    if e.hit_entity_uuid.is_empty() { "block" } else { &e.hit_entity_uuid },
+                    e.x, e.y, e.z
+                );
+                true
+            }
+            EventPhase::Post => {
+                if e.hit_type == "entity" {
+                    srv.broadcast(&format!("{} arrow hit entity!", e.projectile_type));
+                }
                 true
             }
         }

@@ -5,8 +5,13 @@
   "mixins": [
     "AdvancementMixin",
     "BlockItemPlaceMixin",
+    "ContainerCloseMixin",
+    "ContainerOpenMixin",
     "CraftingMixin",
     "ExplosionMixin",
+    "ItemPickupMixin",
+    "PlayerMoveMixin",
+    "ProjectileHitMixin",
     "ResourcePackManagerMixin"
   ],
   "injectors": {

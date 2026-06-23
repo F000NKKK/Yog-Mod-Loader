@@ -10,6 +10,22 @@ base {
     archivesName = project.archives_base_name
 }
 
+// Version-specific sources live under platforms/<minecraft_version>/.
+// Changing minecraft_version in gradle.properties automatically switches
+// to the matching platform directory.
+def platformDir = "platforms/${project.minecraft_version}"
+
+sourceSets {
+    main {
+        java {
+            srcDir "${platformDir}/src/main/java"
+        }
+        resources {
+            srcDir "${platformDir}/src/main/resources"
+        }
+    }
+}
+
 // Point the game JVM (not the Gradle daemon) at the native Yog runtime staged
 // by ../build.sh. Lets `./gradlew runServer` / `runClient` find libyog_runtime.
 loom {

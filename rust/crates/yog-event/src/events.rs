@@ -187,3 +187,75 @@ pub struct ExplosionEvent {
     /// UUID of the entity that caused the explosion, or empty string if none.
     pub cause_uuid: String,
 }
+
+// ── ABI minor 9 event types ───────────────────────────────────────────────────
+
+/// Fired when a player picks up an item entity.
+///
+/// - `Pre`  — return `false` to prevent the pickup.
+/// - `Post` — item was successfully picked up.
+#[derive(Debug, Clone)]
+pub struct ItemPickupEvent {
+    pub player_name: String,
+    pub player_uuid: String,
+    /// Registry id of the item, e.g. `"minecraft:diamond"`.
+    pub item_id: String,
+    pub item_count: u32,
+    /// UUID of the item entity that was picked up.
+    pub entity_uuid: String,
+}
+
+/// Fired every time a player sends a movement packet (very high frequency).
+///
+/// Post-phase only. The fields reflect the *new* position the client claims.
+#[derive(Debug, Clone)]
+pub struct PlayerMoveEvent {
+    pub player_name: String,
+    pub player_uuid: String,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub yaw:   f32,
+    pub pitch: f32,
+}
+
+/// Fired when a player opens a container screen.
+///
+/// - `Pre`  — return `false` to prevent the screen from opening.
+/// - `Post` — screen opened; `container_type` is set.
+#[derive(Debug, Clone)]
+pub struct ContainerOpenEvent {
+    pub player_name: String,
+    pub player_uuid: String,
+    /// Screen handler registry id, e.g. `"minecraft:chest"`.
+    /// Empty string for screens not in the registry (e.g. the player inventory).
+    pub container_type: String,
+}
+
+/// Fired when a player closes a container screen (Post only).
+#[derive(Debug, Clone)]
+pub struct ContainerCloseEvent {
+    pub player_name: String,
+    pub player_uuid: String,
+}
+
+/// Fired when a persistent projectile (arrow, trident, etc.) hits a target.
+///
+/// - `Pre`  — return `false` to cancel the hit (projectile passes through).
+/// - `Post` — hit was processed.
+#[derive(Debug, Clone)]
+pub struct ProjectileHitEvent {
+    /// Registry id of the projectile, e.g. `"minecraft:arrow"`.
+    pub projectile_type: String,
+    pub projectile_uuid: String,
+    /// UUID of the entity that fired the projectile, or empty string.
+    pub shooter_uuid: String,
+    /// `"block"` or `"entity"`.
+    pub hit_type: String,
+    /// UUID of the entity that was hit (empty for block hits).
+    pub hit_entity_uuid: String,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub dimension: String,
+}

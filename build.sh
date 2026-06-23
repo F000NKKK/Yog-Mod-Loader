@@ -7,6 +7,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Implemented loaders. Add 'neoforge' / 'forge' here when their hosts land.
 LOADERS=(fabric)
 
+# The active MC platform for each loader is set by minecraft_version inside
+# <loader>/gradle.properties; build.sh does not need to know it separately.
+# Version-specific Mixin sources live under <loader>/platforms/<mc_version>/.
+
 CONFIG="Release"   # Debug | Release
 RUN_CLIENT=0
 

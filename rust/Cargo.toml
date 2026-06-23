@@ -15,6 +15,7 @@ members = [
     # infrastructure (permissive)
     "crates/yog-logging",
     "crates/yog-storage",
+    "crates/yog-config",
     # facade mod authors depend on
     "crates/yog-api",
     # build tooling

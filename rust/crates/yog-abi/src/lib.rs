@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 8;
+pub const ABI_MINOR: u32 = 9;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -219,6 +219,68 @@ pub struct YogExplosionEvent {
     pub cause_uuid:   YogStr,
 }
 
+// ── ABI minor 9 event structs ─────────────────────────────────────────────────
+
+/// Fired when a player picks up an item entity (Pre: cancellable; Post: informational).
+#[repr(C)]
+pub struct YogItemPickupEvent {
+    pub player:      YogStr,
+    pub player_uuid: YogStr,
+    /// Registry id of the item, e.g. `"minecraft:diamond"`.
+    pub item_id:     YogStr,
+    pub item_count:  u32,
+    /// UUID of the item entity that was picked up.
+    pub entity_uuid: YogStr,
+}
+
+/// Fired when a player sends a movement packet (Post only; very high frequency).
+#[repr(C)]
+pub struct YogPlayerMoveEvent {
+    pub player:      YogStr,
+    pub player_uuid: YogStr,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub yaw:   f32,
+    pub pitch: f32,
+}
+
+/// Fired when a player opens a container screen (Pre: cancellable; Post: informational).
+/// `container_type` is the screen handler registry id, e.g. `"minecraft:chest"`.
+/// Empty string if the type is not in the registry (e.g. the player inventory).
+#[repr(C)]
+pub struct YogContainerOpenEvent {
+    pub player:         YogStr,
+    pub player_uuid:    YogStr,
+    pub container_type: YogStr,
+}
+
+/// Fired when a player closes a container screen (Post only).
+#[repr(C)]
+pub struct YogContainerCloseEvent {
+    pub player:      YogStr,
+    pub player_uuid: YogStr,
+}
+
+/// Fired when a persistent projectile (arrow, trident) hits a target (Pre: cancellable).
+/// Pre phase — return false to cancel the hit (projectile passes through).
+#[repr(C)]
+pub struct YogProjectileHitEvent {
+    /// Registry id of the projectile, e.g. `"minecraft:arrow"`.
+    pub projectile_type: YogStr,
+    pub projectile_uuid: YogStr,
+    /// UUID of the entity that shot/threw this projectile, or empty.
+    pub shooter_uuid:    YogStr,
+    /// `"block"` or `"entity"`.
+    pub hit_type:        YogStr,
+    /// UUID of the entity that was hit (empty for block hits).
+    pub hit_entity_uuid: YogStr,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub dimension: YogStr,
+}
+
 /// Fired when a player places a block (Pre: before placement; Post: after).
 #[repr(C)]
 pub struct YogPlaceBlockEvent {
@@ -298,6 +360,11 @@ pub type YogAdvancementFn      = unsafe extern "C" fn(*mut c_void, *const YogSer
 pub type YogEntityInteractFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityInteractEvent,   u8) -> bool;
 pub type YogCraftFn            = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogCraftEvent,            u8) -> bool;
 pub type YogExplosionFn        = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogExplosionEvent,        u8) -> bool;
+pub type YogItemPickupFn       = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogItemPickupEvent,       u8) -> bool;
+pub type YogPlayerMoveFn       = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerMoveEvent,       u8) -> bool;
+pub type YogContainerOpenFn    = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogContainerOpenEvent,    u8) -> bool;
+pub type YogContainerCloseFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogContainerCloseEvent,   u8) -> bool;
+pub type YogProjectileHitFn    = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogProjectileHitEvent,    u8) -> bool;
 
 /// Packet events — always Post, no phase.
 pub type YogPacketFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
@@ -490,6 +557,12 @@ pub struct YogApi {
     pub on_entity_interact:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityInteractFn),
     pub on_item_craft:         unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCraftFn),
     pub on_explosion:          unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogExplosionFn),
+    // ── ABI minor 9 ──────────────────────────────────────────────────────────
+    pub on_item_pickup:        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogItemPickupFn),
+    pub on_player_move:        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerMoveFn),
+    pub on_container_open:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogContainerOpenFn),
+    pub on_container_close:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogContainerCloseFn),
+    pub on_projectile_hit:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogProjectileHitFn),
     pub on_server_tick:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
     pub on_server_started:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
     pub on_server_stopping:   unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
