@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 14;
+pub const ABI_MINOR: u32 = 15;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -448,8 +448,11 @@ pub struct YogGfxApi {
     /// All zeros during `on_hud_render`; filled during `on_world_render`.
     pub view_proj:  [f32; 16],
     /// Camera world-space position.  All zeros during `on_hud_render`.
-    pub camera_pos: [f32; 3],
-    pub _pad1:      f32,
+    pub camera_pos:  [f32; 3],
+    /// Local player world-space position (eye height).  All zeros during `on_hud_render`.
+    /// Differs from `camera_pos` in third-person view.
+    pub player_pos:  [f32; 3],
+    pub _pad1:       f32,
 
     // ── GPU buffers ───────────────────────────────────────────────────────────
     /// Allocate a new GPU buffer (VBO / EBO). Returns 0 on failure.

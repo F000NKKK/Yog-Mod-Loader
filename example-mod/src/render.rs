@@ -122,7 +122,7 @@ impl WorldRenderer {
 
         prog.uniform_mat4(ctx, "uViewProj", &vp);
 
-        // Red flat quad at world (0, 65, 0)
+        // Red flat quad at world (0, 65, 0) — world-anchor demo
         if let Some(vao) = self.quad_vao.as_ref() {
             prog.uniform_3f(ctx, "uOffset",
                 0.0 - cam[0], 65.0 - cam[1], 0.0 - cam[2]);
@@ -130,11 +130,14 @@ impl WorldRenderer {
             ctx.draw_arrays(vao, prog, DrawMode::Triangles, 0, 6);
         }
 
-        // Green plumbob: 3 blocks forward and 2 above eye — stays in front of camera
-        // (camera-relative Z must be negative; at Z=0 perspective division blows up)
-        // No depth test so it shows through terrain.
+        // Green plumbob above the player's head (player_pos, not camera_pos —
+        // these differ in third-person view).
+        // Offset by -0.3 on Z to keep all vertices in front of camera near-plane
+        // (camera-relative Z=0 causes perspective division by zero).
         if let Some(vao) = self.plumb_vao.as_ref() {
-            prog.uniform_3f(ctx, "uOffset", 0.0, 2.0, -3.0);
+            let p = ctx.player_pos();
+            prog.uniform_3f(ctx, "uOffset",
+                p[0] - cam[0], p[1] + 1.5 - cam[1], p[2] - cam[2] - 0.3);
             prog.uniform_4f(ctx, "uColor", 0.1, 0.9, 0.2, 0.9);
             ctx.draw_arrays(vao, prog, DrawMode::Triangles, 0,
                 (PLUMBOB_VERTS.len() / 3) as u32);

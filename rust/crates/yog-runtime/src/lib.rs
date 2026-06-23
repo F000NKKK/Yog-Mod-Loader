@@ -1150,7 +1150,7 @@ unsafe extern "C" fn gfx_draw2d_mc_tex(
 static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
     // Per-frame fields zeroed in the static; actual values are set on the stack per render call.
     screen_w: 0, screen_h: 0, delta_tick: 0.0, scale_factor: 1.0,
-    view_proj: [0.0; 16], camera_pos: [0.0; 3], _pad1: 0.0,
+    view_proj: [0.0; 16], camera_pos: [0.0; 3], player_pos: [0.0; 3], _pad1: 0.0,
     buf_create:        gfx_buf_create,
     buf_delete:        gfx_buf_delete,
     buf_data:          gfx_buf_data,
@@ -2523,6 +2523,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     screen_w: jint,
     screen_h: jint,
     scale_factor: jfloat,
+    player_x: jfloat, player_y: jfloat, player_z: jfloat,
 ) {
     let h = handlers();
     if h.hud_render.is_empty() { return; }
@@ -2531,6 +2532,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     gfx.screen_h = screen_h;
     gfx.delta_tick = delta_tick;
     gfx.scale_factor = scale_factor;
+    gfx.player_pos = [player_x, player_y, player_z];
     guard("on_hud_render", || {
         for (ud, f) in &h.hud_render {
             unsafe { f(*ud, &gfx) };
@@ -2547,6 +2549,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
     scale_factor: jfloat,
     view_proj_arr: JFloatArray<'l>,
     cam_x: jfloat, cam_y: jfloat, cam_z: jfloat,
+    player_x: jfloat, player_y: jfloat, player_z: jfloat,
 ) {
     let h = handlers();
     if h.world_render.is_empty() { return; }
@@ -2559,6 +2562,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
     gfx.scale_factor = scale_factor;
     gfx.view_proj = view_proj;
     gfx.camera_pos = [cam_x, cam_y, cam_z];
+    gfx.player_pos = [player_x, player_y, player_z];
     guard("on_world_render", || {
         for (ud, f) in &h.world_render {
             unsafe { f(*ud, &gfx) };

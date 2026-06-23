@@ -42,11 +42,13 @@ public class YogClient implements ClientModInitializer {
             NativeBridge.nativeGlInit();  // no-op after first call; deferred here so GL is active
             NativeDraw.hudDrawContext = ctx;
             MinecraftClient mc = MinecraftClient.getInstance();
+            var playerPos = mc.player != null ? mc.player.getEyePos() : net.minecraft.util.math.Vec3d.ZERO;
             NativeBridge.nativeOnHudRender(
                 tickDelta,
                 mc.getWindow().getScaledWidth(),
                 mc.getWindow().getScaledHeight(),
-                (float) mc.getWindow().getScaleFactor());
+                (float) mc.getWindow().getScaleFactor(),
+                (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
             NativeDraw.hudDrawContext = null;
         });
 
@@ -59,13 +61,15 @@ public class YogClient implements ClientModInitializer {
             float[] vp = new float[16];
             new Matrix4f(proj).mul(view).get(vp);
             var camPos = ctx.camera().getPos();
+            var playerPos = mc.player != null ? mc.player.getEyePos() : camPos;
             NativeBridge.nativeOnWorldRender(
                 ctx.tickDelta(),
                 mc.getWindow().getScaledWidth(),
                 mc.getWindow().getScaledHeight(),
                 (float) mc.getWindow().getScaleFactor(),
                 vp,
-                (float) camPos.x, (float) camPos.y, (float) camPos.z);
+                (float) camPos.x, (float) camPos.y, (float) camPos.z,
+                (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
         });
 
         // screen open / close

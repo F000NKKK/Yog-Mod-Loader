@@ -1034,12 +1034,15 @@ public final class NativeBridge {
     public static native void nativeGlInit();
 
     /** HUD render — fired every frame; deltaTick is partial-tick interpolation. */
-    public static native void nativeOnHudRender(float deltaTick, int screenW, int screenH, float scaleFactor);
+    public static native void nativeOnHudRender(
+            float deltaTick, int screenW, int screenH, float scaleFactor,
+            float playerX, float playerY, float playerZ);
 
     /** World render — fired at WorldRenderEvents.LAST with full camera matrices. */
     public static native void nativeOnWorldRender(
             float deltaTick, int screenW, int screenH, float scaleFactor,
-            float[] viewProj, float camX, float camY, float camZ);
+            float[] viewProj, float camX, float camY, float camZ,
+            float playerX, float playerY, float playerZ);
 
     /** Called from Rust during nativeGlInit to resolve GL function pointers. */
     public static long glProcAddress(String name) {

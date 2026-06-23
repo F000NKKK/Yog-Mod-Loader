@@ -91,6 +91,10 @@ impl GfxContext {
     /// Camera world-space position.  All zeros during `on_hud_render`.
     pub fn camera_pos(&self) -> [f32; 3] { self.api().camera_pos }
 
+    /// Local player world-space position (eye height).  All zeros during `on_hud_render`.
+    /// Use this to anchor geometry to the player; differs from `camera_pos` in third-person.
+    pub fn player_pos(&self) -> [f32; 3] { self.api().player_pos }
+
     // ── GPU buffer ───────────────────────────────────────────────────────────
 
     /// Allocate a new GPU buffer (VBO or EBO). Returns handle 0 on failure.
