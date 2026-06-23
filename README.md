@@ -283,7 +283,28 @@ Break a block / chat / run `/hello`. The Rust mod reacts:
 
 ## Writing a mod
 
-A mod is a `cdylib` crate depending on `yog-api`:
+### 1. Create a project
+
+```bash
+yog new my-mod     # creates my-mod/ with yog.toml + src/lib.rs
+cd my-mod
+```
+
+`yog.toml` is the project manifest (instead of `Cargo.toml`):
+
+```toml
+[mod]
+id          = "my-mod"
+name        = "My Mod"
+version     = "0.1.0"
+description = "Does something cool."
+authors     = ["You"]
+license     = "MIT"
+```
+
+### 2. Write the mod
+
+`src/lib.rs` (the only required source file):
 
 ```rust
 use yog_api::{info, EventPhase, Mod, Registry};
@@ -310,15 +331,48 @@ impl Mod for MyMod {
 yog_api::export_mod!(MyMod);
 ```
 
-Build with the Yog CLI, drop into `yog-mods/`:
+### 3. Build
 
 ```bash
-yog build     # -> artifacts/<name>.yog
+yog build          # -> artifacts/my-mod.yog
 ```
 
-A `.yog` is a zip: per-platform natives under `natives/<os>-<arch>/` plus a
-`yog.toml` manifest. Players install a mod by dropping the `.yog` into
-`<game dir>/yog-mods/` — no loose `.so`/`.dll`.
+Cross-compiles for every supported platform (linux/windows/macos ×
+x86_64/aarch64) in one shot. Install dependencies first:
+
+```bash
+yog setup          # checks cargo-zigbuild, zig, and rustup cross-compile targets
+```
+
+### 4. Install & test
+
+Drop `artifacts/my-mod.yog` into `<game dir>/yog-mods/` and start the server.
+Players also install mods this way — no extra tools needed.
+
+A `.yog` archive is a zip containing per-platform natives under
+`natives/<os>-<arch>/` plus a `yog.toml` manifest. The Yog runtime
+selects the right native at startup.
+
+### Project layout
+
+```
+my-mod/
+├── yog.toml           # mod metadata (id, name, version, …)
+├── src/
+│   └── lib.rs         # entry point: impl Mod + export_mod!(MyMod)
+│   └── …              # other source files as needed
+└── artifacts/
+    └── my-mod.yog     # built package — share this file with players
+```
+
+Assets (textures, sounds, data packs) live in `assets/` and `data/` and are
+bundled into the `.yog` automatically:
+
+```
+my-mod/
+├── assets/<namespace>/textures/item/my_item.png
+├── data/<namespace>/recipes/my_recipe.json
+```
 
 ## License
 
