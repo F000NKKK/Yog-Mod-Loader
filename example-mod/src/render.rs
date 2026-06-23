@@ -37,9 +37,9 @@ void main() {
 
 #[rustfmt::skip]
 const PLUMBOB_VERTS: &[f32] = {
-    const T: f32 =  0.5;   // top tip y
-    const B: f32 = -0.25;  // bottom tip y
-    const H: f32 =  0.25;  // half-width of base
+    const T: f32 =  0.7;   // top tip y
+    const B: f32 = -0.35;  // bottom tip y
+    const H: f32 =  0.35;  // half-width of base
     &[
         // ── upper pyramid ─────────────────────────────────────────────────
          0.0, T,  0.0,   H, 0.0,  H,  -H, 0.0,  H,   // +Z face
@@ -130,10 +130,12 @@ impl WorldRenderer {
             ctx.draw_arrays(vao, prog, DrawMode::Triangles, 0, 6);
         }
 
-        // Green plumbob 2.5 blocks above the player's eye (camera position)
+        // Green plumbob: 3 blocks forward and 2 above eye — stays in front of camera
+        // (camera-relative Z must be negative; at Z=0 perspective division blows up)
+        // No depth test so it shows through terrain.
         if let Some(vao) = self.plumb_vao.as_ref() {
-            prog.uniform_3f(ctx, "uOffset", 0.0, 2.5, 0.0);
-            prog.uniform_4f(ctx, "uColor", 0.1, 0.9, 0.2, 0.85);
+            prog.uniform_3f(ctx, "uOffset", 0.0, 2.0, -3.0);
+            prog.uniform_4f(ctx, "uColor", 0.1, 0.9, 0.2, 0.9);
             ctx.draw_arrays(vao, prog, DrawMode::Triangles, 0,
                 (PLUMBOB_VERTS.len() / 3) as u32);
         }
