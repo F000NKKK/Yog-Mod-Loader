@@ -184,12 +184,11 @@ pub fn register(registry: &mut Registry) {
         }
     });
 
-    registry.on_item_craft(|e: &CraftEvent, _phase, srv| {
+    registry.on_item_craft(|e: &CraftEvent, _phase, _srv| {
         info!(
             "[example-mod] {} crafted {}x {}",
             e.player_name, e.result_count, e.result_item
         );
-        srv.broadcast(&format!("{} crafted {}x {}.", e.player_name, e.result_count, e.result_item));
         true
     });
 
