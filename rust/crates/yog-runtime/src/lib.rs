@@ -743,6 +743,51 @@ unsafe extern "C" fn srv_set_held_item_nbt(_ctx: *mut c_void, player: YogStr, sn
     .and_then(|v| v.z()).unwrap_or(false)
 }
 
+unsafe extern "C" fn srv_get_offhand_item_nbt(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let Some(jp) = ys_to_java(&mut env, player) else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "getOffhandItemNbt",
+        "(Ljava/lang/String;)Ljava/lang/String;", &[JValue::Object(&jp)]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+unsafe extern "C" fn srv_set_offhand_item_nbt(_ctx: *mut c_void, player: YogStr, snbt: YogStr) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(js)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, snbt)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "setOffhandItemNbt",
+        "(Ljava/lang/String;Ljava/lang/String;)Z", &[JValue::Object(&jp), JValue::Object(&js)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_get_slot_item(_ctx: *mut c_void, player: YogStr, slot: u32) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let Some(jp) = ys_to_java(&mut env, player) else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "getSlotItem",
+        "(Ljava/lang/String;I)Ljava/lang/String;",
+        &[JValue::Object(&jp), JValue::Int(slot as i32)]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+unsafe extern "C" fn srv_set_slot_item(
+    _ctx: *mut c_void, player: YogStr, slot: u32,
+    item_id: YogStr, count: u32, snbt: YogStr,
+) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jp), Some(ji), Some(js)) = (
+        ys_to_java(&mut env, player), ys_to_java(&mut env, item_id), ys_to_java(&mut env, snbt)
+    ) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "setSlotItem",
+        "(Ljava/lang/String;ILjava/lang/String;ILjava/lang/String;)Z",
+        &[JValue::Object(&jp), JValue::Int(slot as i32), JValue::Object(&ji), JValue::Int(count as i32), JValue::Object(&js)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
 // ── YogApi registration functions ─────────────────────────────────────────────
 //
 // ctx is *mut RuntimeHandlers (cast from *mut c_void).
@@ -931,6 +976,10 @@ fn build_server_table() -> YogServer {
         entity_attribute_set:    srv_entity_attribute_set,
         get_held_item_nbt:       srv_get_held_item_nbt,
         set_held_item_nbt:       srv_set_held_item_nbt,
+        get_offhand_item_nbt:    srv_get_offhand_item_nbt,
+        set_offhand_item_nbt:    srv_set_offhand_item_nbt,
+        get_slot_item:           srv_get_slot_item,
+        set_slot_item:           srv_set_slot_item,
     }
 }
 

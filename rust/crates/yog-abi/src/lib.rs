@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 11;
+pub const ABI_MINOR: u32 = 12;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -551,6 +551,19 @@ pub struct YogServer {
     /// Merge `snbt` data into the NBT of the player's held main-hand item in-place.
     /// Returns false if the player is offline or holding air.
     pub set_held_item_nbt: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, snbt: YogStr) -> bool,
+
+    // ── item stack query (ABI minor 12) ──────────────────────────────────────
+    /// SNBT of the item in the player's off hand, or NONE if offline / holding air.
+    pub get_offhand_item_nbt: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr) -> YogOwnedStr,
+    /// Merge `snbt` into the NBT of the player's off-hand item.
+    /// Returns false if offline or holding air.
+    pub set_offhand_item_nbt: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, snbt: YogStr) -> bool,
+    /// Full item stack at inventory `slot`: tab-separated `item_id\tcount\tsnbt`.
+    /// `snbt` is `{}` when the item has no NBT. Returns NONE if offline or slot empty.
+    pub get_slot_item: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, slot: u32) -> YogOwnedStr,
+    /// Replace inventory `slot` with an item stack. `snbt` may be empty to clear NBT.
+    /// Pass `count == 0` to clear the slot (ignores `item_id` and `snbt`).
+    pub set_slot_item: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, slot: u32, item_id: YogStr, count: u32, snbt: YogStr) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.

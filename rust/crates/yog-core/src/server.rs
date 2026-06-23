@@ -309,4 +309,23 @@ pub trait Server {
     /// Merge `snbt` data into the NBT of the item in the player's main hand.
     /// Returns `false` if the player is offline or holding air.
     fn set_held_item_nbt(&self, player: &str, snbt: &str) -> bool;
+
+    // ── item stack query (ABI minor 12) ──────────────────────────────────────
+
+    /// SNBT of the item in the player's off hand.
+    /// Returns `None` if offline or holding air.
+    fn get_offhand_item_nbt(&self, player: &str) -> Option<String>;
+
+    /// Merge `snbt` into the NBT of the player's off-hand item.
+    /// Returns `false` if offline or holding air.
+    fn set_offhand_item_nbt(&self, player: &str, snbt: &str) -> bool;
+
+    /// Full item stack at inventory `slot`: `(item_id, count, nbt_snbt)`.
+    /// `nbt_snbt` is `"{}"` when the item has no NBT.
+    /// Returns `None` if the player is offline or the slot is empty.
+    fn get_slot_item(&self, player: &str, slot: u32) -> Option<(String, u32, String)>;
+
+    /// Replace inventory `slot`. Pass `count == 0` to clear the slot.
+    /// `snbt` is merged into the new item's NBT (pass `""` for no NBT).
+    fn set_slot_item(&self, player: &str, slot: u32, item_id: &str, count: u32, snbt: &str) -> bool;
 }

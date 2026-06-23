@@ -455,6 +455,46 @@ impl Server for CServer {
         let s = srv!(self);
         unsafe { (s.set_held_item_nbt)(s.ctx, YogStr::from_str(player), YogStr::from_str(snbt)) }
     }
+
+    fn get_offhand_item_nbt(&self, player: &str) -> Option<String> {
+        let s = srv!(self);
+        let owned = unsafe { (s.get_offhand_item_nbt)(s.ctx, YogStr::from_str(player)) };
+        if owned.is_none() { return None; }
+        let result = unsafe {
+            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()).ok()
+        };
+        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        result
+    }
+
+    fn set_offhand_item_nbt(&self, player: &str, snbt: &str) -> bool {
+        let s = srv!(self);
+        unsafe { (s.set_offhand_item_nbt)(s.ctx, YogStr::from_str(player), YogStr::from_str(snbt)) }
+    }
+
+    fn get_slot_item(&self, player: &str, slot: u32) -> Option<(String, u32, String)> {
+        let s = srv!(self);
+        let owned = unsafe { (s.get_slot_item)(s.ctx, YogStr::from_str(player), slot) };
+        if owned.is_none() { return None; }
+        let text = unsafe {
+            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
+                .unwrap_or_default()
+        };
+        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        let mut it = text.splitn(3, '\t');
+        let item_id = it.next()?.to_owned();
+        let count: u32 = it.next()?.parse().ok()?;
+        let nbt = it.next().unwrap_or("{}").to_owned();
+        Some((item_id, count, nbt))
+    }
+
+    fn set_slot_item(&self, player: &str, slot: u32, item_id: &str, count: u32, snbt: &str) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.set_slot_item)(s.ctx, YogStr::from_str(player), slot,
+                YogStr::from_str(item_id), count, YogStr::from_str(snbt))
+        }
+    }
 }
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────

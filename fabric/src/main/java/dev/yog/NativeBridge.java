@@ -681,6 +681,70 @@ public final class NativeBridge {
         }
     }
 
+    // ── item stack query (ABI minor 12) ──────────────────────────────────────
+
+    /** SNBT of the item in the player's off hand, or null if offline / holding air. */
+    public static String getOffhandItemNbt(String playerName) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return null;
+        net.minecraft.item.ItemStack stack = p.getOffHandStack();
+        if (stack.isEmpty()) return null;
+        NbtCompound nbt = stack.hasNbt() ? stack.getNbt() : new NbtCompound();
+        return nbt.toString();
+    }
+
+    /** Merge snbt into the NBT of the player's off-hand item. */
+    public static boolean setOffhandItemNbt(String playerName, String snbt) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return false;
+        net.minecraft.item.ItemStack stack = p.getOffHandStack();
+        if (stack.isEmpty()) return false;
+        try {
+            NbtCompound nbt = StringNbtReader.parse(snbt);
+            stack.setNbt(nbt);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Full item stack at inventory slot: "item_id\tcount\tnbt_snbt", or null if empty/offline. */
+    public static String getSlotItem(String playerName, int slot) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return null;
+        PlayerInventory inv = p.getInventory();
+        if (slot < 0 || slot >= inv.size()) return null;
+        net.minecraft.item.ItemStack stack = inv.getStack(slot);
+        if (stack.isEmpty()) return null;
+        String itemId = Registries.ITEM.getId(stack.getItem()).toString();
+        int count = stack.getCount();
+        String nbt = stack.hasNbt() ? stack.getNbt().toString() : "{}";
+        return itemId + "\t" + count + "\t" + nbt;
+    }
+
+    /** Replace inventory slot; snbt merged into new item's NBT (pass "" for no NBT). */
+    public static boolean setSlotItem(String playerName, int slot, String itemId, int count, String snbt) {
+        ServerPlayerEntity p = playerByName(playerName);
+        if (p == null) return false;
+        PlayerInventory inv = p.getInventory();
+        if (slot < 0 || slot >= inv.size()) return false;
+        if (count <= 0) {
+            inv.setStack(slot, net.minecraft.item.ItemStack.EMPTY);
+            return true;
+        }
+        Identifier id = Identifier.tryParse(itemId);
+        if (id == null || !Registries.ITEM.containsId(id)) return false;
+        net.minecraft.item.ItemStack stack = new net.minecraft.item.ItemStack(Registries.ITEM.get(id), count);
+        if (snbt != null && !snbt.isEmpty()) {
+            try {
+                NbtCompound nbt = StringNbtReader.parse(snbt);
+                stack.setNbt(nbt);
+            } catch (Exception ignored) {}
+        }
+        inv.setStack(slot, stack);
+        return true;
+    }
+
     public static int worldEntityCount(String dimension, String entityTypeId) {
         ServerWorld w = worldFor(dimension);
         if (w == null) return -1;
