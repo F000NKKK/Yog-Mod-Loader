@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 9;
+pub const ABI_MINOR: u32 = 10;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -219,7 +219,7 @@ pub struct YogExplosionEvent {
     pub cause_uuid:   YogStr,
 }
 
-// ── ABI minor 9 event structs ─────────────────────────────────────────────────
+// ── ABI minor 9–10 event structs ──────────────────────────────────────────────
 
 /// Fired when a player picks up an item entity (Pre: cancellable; Post: informational).
 #[repr(C)]
@@ -336,6 +336,21 @@ pub struct YogBlockDef {
     pub shape:         [f32; 6],
 }
 
+// ── ABI minor 10 client event structs ─────────────────────────────────────────
+
+/// Key press / release / repeat from the keyboard (client-side only).
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct YogKeyPressEvent {
+    /// GLFW key code (e.g. `GLFW_KEY_E = 69`).
+    pub key_code:  i32,
+    pub scan_code: i32,
+    /// 0 = release, 1 = press, 2 = repeat.
+    pub action:    i32,
+    /// Modifier bitmask: 1=shift, 2=ctrl, 4=alt, 8=super.
+    pub modifiers: i32,
+}
+
 // ── Handler function-pointer types ────────────────────────────────────────────
 //
 // All event handlers receive a `phase: u8` argument:
@@ -343,6 +358,9 @@ pub struct YogBlockDef {
 //   1 = Post — fires after the action; return value is ignored.
 //
 // This unified signature lets one registered closure handle both phases.
+//
+// Client-side handlers (minor 10) do NOT receive a `YogServer*` — they run on
+// the render thread and have no server context.
 
 pub type YogBlockBreakFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogBlockBreakEvent,   u8) -> bool;
 pub type YogChatFn         = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogChatEvent,         u8) -> bool;
@@ -381,6 +399,18 @@ pub type YogCommandFn = unsafe extern "C" fn(
 );
 /// Scheduler handler (once or repeating).
 pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
+
+// ── ABI minor 10 — client-side function pointer types ────────────────────────
+
+/// Client tick — no event, no server context.
+pub type YogClientFn    = unsafe extern "C" fn(ud: *mut c_void);
+/// HUD render — `delta_tick` is the partial tick interpolation factor (0.0–1.0).
+pub type YogHudRenderFn = unsafe extern "C" fn(ud: *mut c_void, delta_tick: f32);
+/// Key press — return `false` to cancel (prevent Minecraft from processing the key).
+pub type YogKeyPressFn  = unsafe extern "C" fn(ud: *mut c_void, ev: *const YogKeyPressEvent) -> bool;
+/// Screen event — `screen_class` is the simple class name (e.g. `"InventoryScreen"`).
+/// For `on_screen_open` return `false` to prevent the screen from opening.
+pub type YogScreenFn    = unsafe extern "C" fn(ud: *mut c_void, screen_class: YogStr) -> bool;
 
 // ── Server action table (runtime → mod direction is wrong; it's mod → runtime) ─
 
@@ -587,6 +617,13 @@ pub struct YogApi {
     // ── scheduler ────────────────────────────────────────────────────────────
     pub schedule_once:      unsafe extern "C" fn(ctx: *mut c_void, delay_ticks: u64, ud: *mut c_void, h: YogScheduledFn),
     pub schedule_repeating: unsafe extern "C" fn(ctx: *mut c_void, period_ticks: u64, ud: *mut c_void, h: YogScheduledFn),
+
+    // ── ABI minor 10 — client-side events ────────────────────────────────────
+    pub on_client_tick:  unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogClientFn),
+    pub on_hud_render:   unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogHudRenderFn),
+    pub on_key_press:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogKeyPressFn),
+    pub on_screen_open:  unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogScreenFn),
+    pub on_screen_close: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogScreenFn),
 }
 
 unsafe impl Send for YogApi {}

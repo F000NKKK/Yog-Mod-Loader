@@ -925,4 +925,21 @@ public final class NativeBridge {
             String projectileType, String projectileUuid, String shooterUuid,
             String hitType, String hitEntityUuid,
             double x, double y, double z, String dimension);
+
+    // ── ABI minor 10 — client-side hooks ─────────────────────────────────────
+
+    /** Client tick — fired every tick on the render thread. */
+    public static native void nativeOnClientTick();
+
+    /** HUD render — fired every frame; deltaTick is partial-tick interpolation. */
+    public static native void nativeOnHudRender(float deltaTick);
+
+    /** Key pressed/released/repeated — return false to cancel (suppress Minecraft processing). */
+    public static native boolean nativeOnKeyPress(int keyCode, int scanCode, int action, int modifiers);
+
+    /** A GUI screen was opened; screenClass is the simple class name (e.g. "InventoryScreen"). */
+    public static native void nativeOnScreenOpen(String screenClass);
+
+    /** A GUI screen was closed; screenClass is the simple class name. */
+    public static native void nativeOnScreenClose(String screenClass);
 }

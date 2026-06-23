@@ -24,15 +24,15 @@ use libloading::{Library, Symbol};
 
 use yog_abi::{
     ABI_VERSION, YogAdvancementEvent, YogAdvancementFn, YogApi, YogAttackEntityFn,
-    YogBlockBreakFn, YogBlockDef, YogBlockPos, YogChatFn, YogCommandFn,
+    YogBlockBreakFn, YogBlockDef, YogBlockPos, YogChatFn, YogClientFn, YogCommandFn,
     YogContainerCloseEvent, YogContainerCloseFn, YogContainerOpenEvent, YogContainerOpenFn,
     YogCraftEvent, YogCraftFn, YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent,
-    YogEntityInteractFn, YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogItemDef,
-    YogItemPickupEvent, YogItemPickupFn, YogOwnedStr, YogPacketFn, YogPlaceBlockEvent,
-    YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn, YogPlayerMoveEvent,
-    YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn, YogProjectileHitEvent,
-    YogProjectileHitFn, YogScheduledFn, YogServer, YogServerFn, YogStr, YogUseBlockFn,
-    YogUseItemFn, YogVec3,
+    YogEntityInteractFn, YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogHudRenderFn,
+    YogItemDef, YogItemPickupEvent, YogItemPickupFn, YogKeyPressFn, YogKeyPressEvent,
+    YogOwnedStr, YogPacketFn, YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent,
+    YogPlayerDeathFn, YogPlayerFn, YogPlayerMoveEvent, YogPlayerMoveFn, YogPlayerRespawnEvent,
+    YogPlayerRespawnFn, YogProjectileHitEvent, YogProjectileHitFn, YogScheduledFn, YogScreenFn,
+    YogServer, YogServerFn, YogStr, YogUseBlockFn, YogUseItemFn, YogVec3,
 };
 use yog_registry::{BlockDef, FoodDef, ItemDef};
 
@@ -72,6 +72,11 @@ struct RuntimeHandlers {
     container_open:     Vec<(*mut c_void, YogContainerOpenFn)>,
     container_close:    Vec<(*mut c_void, YogContainerCloseFn)>,
     projectile_hit:     Vec<(*mut c_void, YogProjectileHitFn)>,
+    client_tick:        Vec<(*mut c_void, YogClientFn)>,
+    hud_render:         Vec<(*mut c_void, YogHudRenderFn)>,
+    key_press:          Vec<(*mut c_void, YogKeyPressFn)>,
+    screen_open:        Vec<(*mut c_void, YogScreenFn)>,
+    screen_close:       Vec<(*mut c_void, YogScreenFn)>,
     server_tick:        Vec<(*mut c_void, YogServerFn)>,
     server_started:     Vec<(*mut c_void, YogServerFn)>,
     server_stopping:    Vec<(*mut c_void, YogServerFn)>,
@@ -103,6 +108,8 @@ impl RuntimeHandlers {
             item_pickup: Vec::new(), player_move: Vec::new(),
             container_open: Vec::new(), container_close: Vec::new(),
             projectile_hit: Vec::new(),
+            client_tick: Vec::new(), hud_render: Vec::new(), key_press: Vec::new(),
+            screen_open: Vec::new(), screen_close: Vec::new(),
             server_tick: Vec::new(), server_started: Vec::new(), server_stopping: Vec::new(),
             commands: HashMap::new(), typed_schemas: HashMap::new(),
             recipes: Vec::new(), packets: HashMap::new(),
@@ -752,6 +759,11 @@ api_event!(api_on_player_move,      player_move,        YogPlayerMoveFn);
 api_event!(api_on_container_open,   container_open,     YogContainerOpenFn);
 api_event!(api_on_container_close,  container_close,    YogContainerCloseFn);
 api_event!(api_on_projectile_hit,   projectile_hit,     YogProjectileHitFn);
+api_event!(api_on_client_tick,      client_tick,        YogClientFn);
+api_event!(api_on_hud_render,       hud_render,         YogHudRenderFn);
+api_event!(api_on_key_press,        key_press,          YogKeyPressFn);
+api_event!(api_on_screen_open,      screen_open,        YogScreenFn);
+api_event!(api_on_screen_close,     screen_close,       YogScreenFn);
 api_event!(api_on_server_tick,      server_tick,        YogServerFn);
 api_event!(api_on_server_started,   server_started,     YogServerFn);
 api_event!(api_on_server_stopping,  server_stopping,    YogServerFn);
@@ -941,6 +953,11 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         register_block:     api_register_block,
         schedule_once:      api_schedule_once,
         schedule_repeating: api_schedule_repeating,
+        on_client_tick:     api_on_client_tick,
+        on_hud_render:      api_on_hud_render,
+        on_key_press:       api_on_key_press,
+        on_screen_open:     api_on_screen_open,
+        on_screen_close:    api_on_screen_close,
     }
 }
 
@@ -1984,6 +2001,82 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnProjectileHit<'l>(
     guard("on_projectile_hit", || {
         for (ud, f) in &h.projectile_hit {
             unsafe { f(*ud, srv, &ev, 1) };
+        }
+    });
+}
+
+// ── ABI minor 10 — client-side JNI entry points ───────────────────────────────
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientTick<'l>(
+    _env: JNIEnv<'l>, _class: JClass<'l>,
+) {
+    let h = handlers();
+    if h.client_tick.is_empty() { return; }
+    guard("on_client_tick", || {
+        for (ud, f) in &h.client_tick {
+            unsafe { f(*ud) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
+    _env: JNIEnv<'l>, _class: JClass<'l>,
+    delta_tick: jfloat,
+) {
+    let h = handlers();
+    if h.hud_render.is_empty() { return; }
+    guard("on_hud_render", || {
+        for (ud, f) in &h.hud_render {
+            unsafe { f(*ud, delta_tick) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnKeyPress<'l>(
+    _env: JNIEnv<'l>, _class: JClass<'l>,
+    key_code: jint, scan_code: jint, action: jint, modifiers: jint,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.key_press.is_empty() { return 1; }
+    let ev = YogKeyPressEvent { key_code, scan_code, action, modifiers };
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.key_press {
+            if !unsafe { f(*ud, &ev) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenOpen<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    screen_class: JString<'l>,
+) {
+    let h = handlers();
+    if h.screen_open.is_empty() { return; }
+    let sc = match env.get_string(&screen_class) { Ok(s) => String::from(s), Err(_) => return };
+    guard("on_screen_open", || {
+        for (ud, f) in &h.screen_open {
+            unsafe { f(*ud, YogStr::from_str(&sc)) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    screen_class: JString<'l>,
+) {
+    let h = handlers();
+    if h.screen_close.is_empty() { return; }
+    let sc = match env.get_string(&screen_class) { Ok(s) => String::from(s), Err(_) => return };
+    guard("on_screen_close", || {
+        for (ud, f) in &h.screen_close {
+            unsafe { f(*ud, YogStr::from_str(&sc)) };
         }
     });
 }

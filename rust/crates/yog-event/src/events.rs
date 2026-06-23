@@ -239,6 +239,40 @@ pub struct ContainerCloseEvent {
     pub player_uuid: String,
 }
 
+// ── ABI minor 10 — client-side events ────────────────────────────────────────
+
+/// Fired every client tick on the render thread.
+#[derive(Debug, Clone)]
+pub struct ClientTickEvent {}
+
+/// Fired every frame when the HUD is rendered.
+/// `delta_tick` is the partial-tick interpolation factor (0.0–1.0).
+#[derive(Debug, Clone)]
+pub struct HudRenderEvent {
+    pub delta_tick: f32,
+}
+
+/// Fired on every key press, release, or repeat (client-side).
+///
+/// Return `false` in the handler to prevent Minecraft from processing the key.
+#[derive(Debug, Clone)]
+pub struct KeyPressEvent {
+    /// GLFW key code (e.g. 69 = E). See `org.lwjgl.glfw.GLFW`.
+    pub key_code:  i32,
+    pub scan_code: i32,
+    /// 0 = release, 1 = press, 2 = repeat.
+    pub action:    i32,
+    /// Modifier bitmask: 1=Shift, 2=Ctrl, 4=Alt, 8=Super.
+    pub modifiers: i32,
+}
+
+/// Fired when a GUI screen opens or closes.
+#[derive(Debug, Clone)]
+pub struct ScreenEvent {
+    /// Simple class name of the screen, e.g. `"InventoryScreen"`, `"ChestScreen"`.
+    pub screen_class: String,
+}
+
 /// Fired when a persistent projectile (arrow, trident, etc.) hits a target.
 ///
 /// - `Pre`  — return `false` to cancel the hit (projectile passes through).

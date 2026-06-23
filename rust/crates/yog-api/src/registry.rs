@@ -13,18 +13,20 @@ use yog_abi::{
     YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef,
     YogChatEvent, YogCommandEvent, YogContainerCloseEvent, YogContainerOpenEvent, YogCraftEvent,
     YogEntityDamageEvent, YogEntityDeathEvent, YogEntityInteractEvent, YogEntitySpawnEvent,
-    YogExplosionEvent, YogItemDef, YogItemPickupEvent, YogPacketEvent, YogPlaceBlockEvent,
-    YogPlayerDeathEvent, YogPlayerEvent, YogPlayerMoveEvent, YogPlayerRespawnEvent,
-    YogProjectileHitEvent, YogServer, YogStr, YogUseBlockEvent, YogUseItemEvent,
+    YogExplosionEvent, YogItemDef, YogItemPickupEvent, YogKeyPressEvent, YogPacketEvent,
+    YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent, YogPlayerMoveEvent,
+    YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer, YogStr, YogUseBlockEvent,
+    YogUseItemEvent,
 };
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_event::{
-    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ContainerCloseEvent,
-    ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent, EntityInteractEvent,
-    EntitySpawnEvent, EventPhase, ExplosionEvent, ItemPickupEvent, PlaceBlockEvent,
-    PlayerDeathEvent, PlayerJoinEvent, PlayerLeaveEvent, PlayerMoveEvent, PlayerRespawnEvent,
-    ProjectileHitEvent, UseBlockEvent, UseItemEvent,
+    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ClientTickEvent,
+    ContainerCloseEvent, ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent,
+    EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent, HudRenderEvent,
+    ItemPickupEvent, KeyPressEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerJoinEvent,
+    PlayerLeaveEvent, PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent, ScreenEvent,
+    UseBlockEvent, UseItemEvent,
 };
 use yog_network::{Packet, PacketEvent};
 use yog_registry::{BlockDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
@@ -671,6 +673,46 @@ where F: Fn(&dyn Server) + Send + Sync,
     f(&CServer(srv));
 }
 
+// ── ABI minor 10 — client-side trampolines ────────────────────────────────────
+
+unsafe extern "C" fn trampoline_client_tick<F>(ud: *mut c_void)
+where F: Fn(&ClientTickEvent) + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    f(&ClientTickEvent {});
+}
+
+unsafe extern "C" fn trampoline_hud_render<F>(ud: *mut c_void, delta_tick: f32)
+where F: Fn(&HudRenderEvent) + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    f(&HudRenderEvent { delta_tick });
+}
+
+unsafe extern "C" fn trampoline_key_press<F>(
+    ud: *mut c_void,
+    ev: *const YogKeyPressEvent,
+) -> bool
+where F: Fn(&KeyPressEvent) -> bool + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    let e = &*ev;
+    f(&KeyPressEvent {
+        key_code:  e.key_code,
+        scan_code: e.scan_code,
+        action:    e.action,
+        modifiers: e.modifiers,
+    })
+}
+
+unsafe extern "C" fn trampoline_screen<F>(ud: *mut c_void, screen_class: YogStr) -> bool
+where F: Fn(&ScreenEvent) + Send + Sync,
+{
+    let f = &*(ud as *const F);
+    f(&ScreenEvent { screen_class: screen_class.as_str().to_owned() });
+    true
+}
+
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 /// Wraps the [`YogApi`] table and provides an ergonomic registration API.
@@ -998,6 +1040,44 @@ impl Registry {
     where F: Fn(&dyn Server) + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).schedule_repeating)(self.ctx(), period_ticks, ud, trampoline_scheduled::<F>) }
+    }
+
+    // ── client-side hooks (ABI minor 10) ─────────────────────────────────────
+
+    /// Register a handler called every client tick (render thread, no server).
+    pub fn on_client_tick<F>(&mut self, handler: F)
+    where F: Fn(&ClientTickEvent) + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_client_tick)(self.ctx(), ud, trampoline_client_tick::<F>) }
+    }
+
+    /// Register a handler called every frame when the HUD is rendered.
+    pub fn on_hud_render<F>(&mut self, handler: F)
+    where F: Fn(&HudRenderEvent) + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_hud_render)(self.ctx(), ud, trampoline_hud_render::<F>) }
+    }
+
+    /// Register a handler for keyboard input (client-side).
+    /// Return `false` to prevent Minecraft from processing the key.
+    pub fn on_key_press<F>(&mut self, handler: F)
+    where F: Fn(&KeyPressEvent) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_key_press)(self.ctx(), ud, trampoline_key_press::<F>) }
+    }
+
+    /// Register a handler called when a GUI screen is opened.
+    pub fn on_screen_open<F>(&mut self, handler: F)
+    where F: Fn(&ScreenEvent) + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_screen_open)(self.ctx(), ud, trampoline_screen::<F>) }
+    }
+
+    /// Register a handler called when a GUI screen is closed.
+    pub fn on_screen_close<F>(&mut self, handler: F)
+    where F: Fn(&ScreenEvent) + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_screen_close)(self.ctx(), ud, trampoline_screen::<F>) }
     }
 }
 
