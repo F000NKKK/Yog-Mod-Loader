@@ -74,8 +74,8 @@ const PLUMBOB: &[f32] = {
 //
 // Critically damped: D ≈ 2√K.  K=12 → D_crit≈6.9.
 // Using D=7 (just barely overdamped) → no bounce, fast settle.
-const SPRING_K: f32 = 12.0;
-const SPRING_D: f32 = 7.0;
+const SPRING_K: f32 = 200.0;
+const SPRING_D: f32 = 28.0; // ≈ 2√200 — critically damped, settles in ~0.14s
 const ROT_SPEED: f32 = 1.2; // radians / second
 
 // ── Renderer ─────────────────────────────────────────────────────────────────
