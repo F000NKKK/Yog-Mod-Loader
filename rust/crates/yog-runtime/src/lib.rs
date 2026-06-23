@@ -26,7 +26,7 @@ use yog_abi::{
     ABI_VERSION, YogAdvancementEvent, YogAdvancementFn, YogApi, YogAttackEntityFn,
     YogBlockBreakFn, YogBlockDef, YogBlockPos, YogChatFn, YogClientFn, YogCommandFn,
     YogContainerCloseEvent, YogContainerCloseFn, YogContainerOpenEvent, YogContainerOpenFn,
-    YogCraftEvent, YogCraftFn, YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent,
+    YogCraftEvent, YogCraftFn, YogDraw, YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent,
     YogEntityInteractFn, YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogHudRenderFn,
     YogItemDef, YogItemPickupEvent, YogItemPickupFn, YogKeyPressFn, YogKeyPressEvent,
     YogOwnedStr, YogPacketFn, YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent,
@@ -787,6 +787,157 @@ unsafe extern "C" fn srv_set_slot_item(
         &[JValue::Object(&jp), JValue::Int(slot as i32), JValue::Object(&ji), JValue::Int(count as i32), JValue::Object(&js)])
     .and_then(|v| v.z()).unwrap_or(false)
 }
+
+// ── ABI minor 13 — HUD draw functions ────────────────────────────────────────
+//
+// All functions use the DrawContext stored thread-locally in NativeDraw.java.
+// They are called on the render thread, which is already attached to the JVM,
+// so get_env() is cheap (no actual thread attachment).
+
+unsafe extern "C" fn hud_draw_text(text: YogStr, x: i32, y: i32, color: u32, shadow: bool) {
+    let Some(mut env) = get_env() else { return };
+    if let Some(jt) = ys_to_java(&mut env, text) {
+        let _ = env.call_static_method("dev/yog/NativeDraw", "drawText",
+            "(Ljava/lang/String;IIIZ)V",
+            &[JValue::Object(&jt), JValue::Int(x), JValue::Int(y),
+              JValue::Int(color as i32), JValue::Bool(shadow as u8)]);
+    }
+}
+
+unsafe extern "C" fn hud_draw_rect(x1: i32, y1: i32, x2: i32, y2: i32, color: u32) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "drawRect",
+        "(IIIII)V",
+        &[JValue::Int(x1), JValue::Int(y1), JValue::Int(x2), JValue::Int(y2),
+          JValue::Int(color as i32)]);
+}
+
+unsafe extern "C" fn hud_draw_gradient_rect(x1: i32, y1: i32, x2: i32, y2: i32, top: u32, bottom: u32) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "drawGradientRect",
+        "(IIIIII)V",
+        &[JValue::Int(x1), JValue::Int(y1), JValue::Int(x2), JValue::Int(y2),
+          JValue::Int(top as i32), JValue::Int(bottom as i32)]);
+}
+
+unsafe extern "C" fn hud_draw_texture(id: YogStr, x: i32, y: i32, u: f32, v: f32, w: i32, h: i32, tex_w: i32, tex_h: i32) {
+    let Some(mut env) = get_env() else { return };
+    if let Some(ji) = ys_to_java(&mut env, id) {
+        let _ = env.call_static_method("dev/yog/NativeDraw", "drawTexture",
+            "(Ljava/lang/String;IIFFII)V",
+            &[JValue::Object(&ji), JValue::Int(x), JValue::Int(y),
+              JValue::Float(u), JValue::Float(v), JValue::Int(w), JValue::Int(h),
+              JValue::Int(tex_w), JValue::Int(tex_h)]);
+    }
+}
+
+unsafe extern "C" fn hud_push_matrix() {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "pushMatrix", "()V", &[]);
+}
+
+unsafe extern "C" fn hud_pop_matrix() {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "popMatrix", "()V", &[]);
+}
+
+unsafe extern "C" fn hud_translate(x: f32, y: f32, z: f32) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "translate",
+        "(FFF)V", &[JValue::Float(x), JValue::Float(y), JValue::Float(z)]);
+}
+
+unsafe extern "C" fn hud_scale(sx: f32, sy: f32, sz: f32) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "scale",
+        "(FFF)V", &[JValue::Float(sx), JValue::Float(sy), JValue::Float(sz)]);
+}
+
+unsafe extern "C" fn hud_begin_mesh(mode: u8) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "beginMesh",
+        "(I)V", &[JValue::Int(mode as i32)]);
+}
+
+unsafe extern "C" fn hud_vertex(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8, a: u8) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "vertex",
+        "(FFFIIII)V",
+        &[JValue::Float(x), JValue::Float(y), JValue::Float(z),
+          JValue::Int(r as i32), JValue::Int(g as i32), JValue::Int(b as i32), JValue::Int(a as i32)]);
+}
+
+unsafe extern "C" fn hud_end_mesh() {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "endMesh", "()V", &[]);
+}
+
+unsafe extern "C" fn hud_begin_textured_mesh(mode: u8, texture_id: YogStr) {
+    let Some(mut env) = get_env() else { return };
+    if let Some(jt) = ys_to_java(&mut env, texture_id) {
+        let _ = env.call_static_method("dev/yog/NativeDraw", "beginTexturedMesh",
+            "(ILjava/lang/String;)V",
+            &[JValue::Int(mode as i32), JValue::Object(&jt)]);
+    }
+}
+
+unsafe extern "C" fn hud_vertex_uv(x: f32, y: f32, z: f32, u: f32, v: f32, r: u8, g: u8, b: u8, a: u8) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "vertexUv",
+        "(FFFFFIIIII)V",
+        &[JValue::Float(x), JValue::Float(y), JValue::Float(z),
+          JValue::Float(u), JValue::Float(v),
+          JValue::Int(r as i32), JValue::Int(g as i32), JValue::Int(b as i32), JValue::Int(a as i32)]);
+}
+
+unsafe extern "C" fn hud_end_textured_mesh() {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "endTexturedMesh", "()V", &[]);
+}
+
+unsafe extern "C" fn hud_scissor(x: i32, y: i32, w: i32, h: i32) {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "scissor",
+        "(IIII)V", &[JValue::Int(x), JValue::Int(y), JValue::Int(w), JValue::Int(h)]);
+}
+
+unsafe extern "C" fn hud_clear_scissor() {
+    let Some(mut env) = get_env() else { return };
+    let _ = env.call_static_method("dev/yog/NativeDraw", "clearScissor", "()V", &[]);
+}
+
+unsafe extern "C" fn hud_screen_width() -> i32 {
+    let Some(mut env) = get_env() else { return 0 };
+    env.call_static_method("dev/yog/NativeDraw", "screenWidth", "()I", &[])
+        .and_then(|v| v.i()).unwrap_or(0)
+}
+
+unsafe extern "C" fn hud_screen_height() -> i32 {
+    let Some(mut env) = get_env() else { return 0 };
+    env.call_static_method("dev/yog/NativeDraw", "screenHeight", "()I", &[])
+        .and_then(|v| v.i()).unwrap_or(0)
+}
+
+static DRAW_TABLE: YogDraw = YogDraw {
+    draw_text:           hud_draw_text,
+    draw_rect:           hud_draw_rect,
+    draw_gradient_rect:  hud_draw_gradient_rect,
+    draw_texture:        hud_draw_texture,
+    push_matrix:         hud_push_matrix,
+    pop_matrix:          hud_pop_matrix,
+    translate:           hud_translate,
+    scale:               hud_scale,
+    begin_mesh:          hud_begin_mesh,
+    vertex:              hud_vertex,
+    end_mesh:            hud_end_mesh,
+    begin_textured_mesh: hud_begin_textured_mesh,
+    vertex_uv:           hud_vertex_uv,
+    end_textured_mesh:   hud_end_textured_mesh,
+    scissor:             hud_scissor,
+    clear_scissor:       hud_clear_scissor,
+    screen_width:        hud_screen_width,
+    screen_height:       hud_screen_height,
+};
 
 // ── YogApi registration functions ─────────────────────────────────────────────
 //
@@ -2099,7 +2250,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     if h.hud_render.is_empty() { return; }
     guard("on_hud_render", || {
         for (ud, f) in &h.hud_render {
-            unsafe { f(*ud, delta_tick) };
+            unsafe { f(*ud, delta_tick, &DRAW_TABLE) };
         }
     });
 }

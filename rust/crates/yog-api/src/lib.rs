@@ -7,7 +7,7 @@
 
 mod registry;
 
-pub use registry::{CServer, Mod, Registry};
+pub use registry::{CServer, Draw, DrawMode, Mod, Registry};
 
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
 pub use yog_abi::{ABI_VERSION, YogApi};

@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 12;
+pub const ABI_MINOR: u32 = 13;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -405,12 +405,88 @@ pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
 /// Client tick — no event, no server context.
 pub type YogClientFn    = unsafe extern "C" fn(ud: *mut c_void);
 /// HUD render — `delta_tick` is the partial tick interpolation factor (0.0–1.0).
-pub type YogHudRenderFn = unsafe extern "C" fn(ud: *mut c_void, delta_tick: f32);
+/// `draw` is a pointer to the draw command table; valid only for the call duration.
+pub type YogHudRenderFn = unsafe extern "C" fn(ud: *mut c_void, delta_tick: f32, draw: *const YogDraw);
 /// Key press — return `false` to cancel (prevent Minecraft from processing the key).
 pub type YogKeyPressFn  = unsafe extern "C" fn(ud: *mut c_void, ev: *const YogKeyPressEvent) -> bool;
 /// Screen event — `screen_class` is the simple class name (e.g. `"InventoryScreen"`).
 /// For `on_screen_open` return `false` to prevent the screen from opening.
 pub type YogScreenFn    = unsafe extern "C" fn(ud: *mut c_void, screen_class: YogStr) -> bool;
+
+// ── ABI minor 13 — HUD draw table ────────────────────────────────────────────
+
+/// Draw mode for vertex buffers.
+/// Values match the Java `VertexFormat.DrawMode` ordinals Yog exposes.
+pub mod draw_mode {
+    pub const TRIANGLES:      u8 = 0;
+    pub const QUADS:          u8 = 1;
+    pub const LINES:          u8 = 2;
+    pub const LINE_STRIP:     u8 = 3;
+    pub const TRIANGLE_STRIP: u8 = 4;
+    pub const TRIANGLE_FAN:   u8 = 5;
+}
+
+/// Function table passed to HUD render handlers.
+/// All functions use the current thread's `DrawContext` (stored by the Java host).
+/// Valid only for the duration of the `on_hud_render` callback — never store.
+///
+/// Colors are `0xAARRGGBB` (Minecraft convention).
+#[repr(C)]
+pub struct YogDraw {
+    // ── 2-D primitives ───────────────────────────────────────────────────────
+    /// Draw a string at GUI pixel position `(x, y)`.
+    /// `color` is `0xAARRGGBB`; `shadow` draws a drop-shadow.
+    pub draw_text: unsafe extern "C" fn(text: YogStr, x: i32, y: i32, color: u32, shadow: bool),
+    /// Fill the rectangle `[x1, y1] – [x2, y2]` with a flat ARGB color.
+    pub draw_rect: unsafe extern "C" fn(x1: i32, y1: i32, x2: i32, y2: i32, color: u32),
+    /// Fill the rectangle with a vertical linear gradient (top → bottom).
+    pub draw_gradient_rect: unsafe extern "C" fn(x1: i32, y1: i32, x2: i32, y2: i32, top: u32, bottom: u32),
+    /// Blit a region of a texture identified by a namespaced id (e.g. `"mymod:textures/hud.png"`).
+    /// `(u, v)` is the top-left UV in texels; `(w, h)` is the region size in pixels;
+    /// `(tex_w, tex_h)` is the full texture size.
+    pub draw_texture: unsafe extern "C" fn(id: YogStr, x: i32, y: i32, u: f32, v: f32, w: i32, h: i32, tex_w: i32, tex_h: i32),
+
+    // ── matrix transform ─────────────────────────────────────────────────────
+    /// Push a copy of the current matrix onto the stack.
+    pub push_matrix: unsafe extern "C" fn(),
+    /// Pop the top of the matrix stack (restoring the previous transform).
+    pub pop_matrix:  unsafe extern "C" fn(),
+    /// Translate the current matrix by `(x, y, z)` in GUI pixels.
+    pub translate:   unsafe extern "C" fn(x: f32, y: f32, z: f32),
+    /// Scale the current matrix by `(sx, sy, sz)`.
+    pub scale:       unsafe extern "C" fn(sx: f32, sy: f32, sz: f32),
+
+    // ── color vertex buffer ───────────────────────────────────────────────────
+    /// Begin a new `POSITION_COLOR` mesh with the given draw mode (`draw_mode::*`).
+    pub begin_mesh: unsafe extern "C" fn(mode: u8),
+    /// Add a colored vertex. Components are 0–255; the matrix transform is applied.
+    pub vertex:     unsafe extern "C" fn(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8, a: u8),
+    /// Submit and draw the current color mesh.
+    pub end_mesh:   unsafe extern "C" fn(),
+
+    // ── textured vertex buffer ────────────────────────────────────────────────
+    /// Begin a `POSITION_TEXTURE_COLOR` mesh; binds `texture_id` before drawing.
+    pub begin_textured_mesh: unsafe extern "C" fn(mode: u8, texture_id: YogStr),
+    /// Add a textured+colored vertex. UV coords are 0.0–1.0 (normalized).
+    pub vertex_uv:           unsafe extern "C" fn(x: f32, y: f32, z: f32, u: f32, v: f32, r: u8, g: u8, b: u8, a: u8),
+    /// Submit and draw the current textured mesh.
+    pub end_textured_mesh:   unsafe extern "C" fn(),
+
+    // ── clip ─────────────────────────────────────────────────────────────────
+    /// Enable scissor clipping to the given GUI-pixel rectangle.
+    pub scissor:       unsafe extern "C" fn(x: i32, y: i32, w: i32, h: i32),
+    /// Disable scissor clipping.
+    pub clear_scissor: unsafe extern "C" fn(),
+
+    // ── screen info ──────────────────────────────────────────────────────────
+    /// Scaled GUI screen width in pixels (accounts for GUI scale setting).
+    pub screen_width:  unsafe extern "C" fn() -> i32,
+    /// Scaled GUI screen height in pixels.
+    pub screen_height: unsafe extern "C" fn() -> i32,
+}
+
+unsafe impl Send for YogDraw {}
+unsafe impl Sync for YogDraw {}
 
 // ── Server action table (runtime → mod direction is wrong; it's mod → runtime) ─
 

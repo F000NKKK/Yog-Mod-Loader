@@ -33,8 +33,12 @@ public class YogClient implements ClientModInitializer {
         // client tick
         ClientTickEvents.END_CLIENT_TICK.register(client -> NativeBridge.nativeOnClientTick());
 
-        // HUD render
-        HudRenderCallback.EVENT.register((matrices, tickDelta) -> NativeBridge.nativeOnHudRender(tickDelta));
+        // HUD render — store DrawContext for Rust draw calls, then clear it
+        HudRenderCallback.EVENT.register((ctx, tickDelta) -> {
+            NativeDraw.hudDrawContext = ctx;
+            NativeBridge.nativeOnHudRender(tickDelta);
+            NativeDraw.hudDrawContext = null;
+        });
 
         // screen open / close
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
