@@ -49,10 +49,10 @@ Each platform has its own version-specific Mixin sources under
 | ✅ 7 | Entity interact, item craft, explosion events | 8 |
 | ✅ 8 | Item pickup, player move, container open/close, projectile hit; Config; typed packets | 9 |
 | ✅ 9 | Client-side hooks: tick, HUD render, keyboard, screen open/close | 10 |
-| 🔲 10 | Item NBT hooks (`get_held_item_nbt` / `set_held_item_nbt`) | 11 |
+| ✅ 10 | Item NBT: held item + off-hand + full slot query/set | 11–12 |
 | 🔲 11 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 10)
+## API available now (ABI minor 12)
 
 ### Events
 
@@ -158,6 +158,23 @@ player.inventory()            // -> Vec<(slot, item_id, count)>
 player.set_slot(36, "minecraft:stone", 1)
 player.scoreboard_get("kills")
 player.scoreboard_set("kills", 10)
+```
+
+### Item NBT (ABI minor 11–12)
+
+```rust
+// Main hand
+srv.get_held_item_nbt("Steve")          // -> Option<String>  (SNBT)
+srv.set_held_item_nbt("Steve", "{Enchantments: [{id: \"minecraft:sharpness\", lvl: 5}]}")
+
+// Off hand
+srv.get_offhand_item_nbt("Steve")       // -> Option<String>
+srv.set_offhand_item_nbt("Steve", "{display: {Name: '{\"text\":\"Shield++\"}'}}")
+
+// Arbitrary inventory slot
+srv.get_slot_item("Steve", 0)           // -> Option<(item_id, count, snbt)>
+srv.set_slot_item("Steve", 0, "minecraft:diamond_sword", 1, "{Damage: 0}")
+srv.set_slot_item("Steve", 9, "minecraft:air", 0, "")  // clear slot
 ```
 
 ### Entity (universal by UUID)
