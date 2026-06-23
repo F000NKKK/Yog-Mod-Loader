@@ -5,6 +5,8 @@
   "mixins": [
     "AdvancementMixin",
     "BlockItemPlaceMixin",
+    "CraftingMixin",
+    "ExplosionMixin",
     "ResourcePackManagerMixin"
   ],
   "injectors": {

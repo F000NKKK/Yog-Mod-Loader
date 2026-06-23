@@ -146,3 +146,44 @@ pub struct AdvancementEvent {
     /// Namespaced id of the advancement, e.g. `"minecraft:story/mine_stone"`.
     pub advancement_id: String,
 }
+
+/// Fired when a player right-clicks (interacts with) an entity (server side).
+///
+/// - `Pre`  — fires before the interaction; return `false` to cancel.
+/// - `Post` — fires after the interaction.
+#[derive(Debug, Clone)]
+pub struct EntityInteractEvent {
+    pub player_name: String,
+    pub player_uuid: String,
+    /// Registry id of the interacted entity, e.g. `"minecraft:villager"`.
+    pub entity_type: String,
+    pub entity_uuid: String,
+    /// `"main_hand"` or `"off_hand"`.
+    pub hand: String,
+}
+
+/// Fired when a player takes a crafted item from a crafting output slot (Post only).
+#[derive(Debug, Clone)]
+pub struct CraftEvent {
+    pub player_name: String,
+    pub player_uuid: String,
+    /// Registry id of the crafted item, e.g. `"minecraft:stick"`.
+    pub result_item: String,
+    pub result_count: u32,
+}
+
+/// Fired when an explosion occurs in a world.
+///
+/// - `Pre`  — fires before block destruction; return `false` to cancel
+///            (blocks and entities are unaffected).
+/// - `Post` — fires after the explosion has taken effect.
+#[derive(Debug, Clone)]
+pub struct ExplosionEvent {
+    pub dimension: String,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub power: f32,
+    /// UUID of the entity that caused the explosion, or empty string if none.
+    pub cause_uuid: String,
+}

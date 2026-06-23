@@ -18,14 +18,15 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use jni::objects::{JByteArray, JClass, JString, JValue};
-use jni::sys::{jfloat, jint, jstring};
+use jni::sys::{jdouble, jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
 use libloading::{Library, Symbol};
 
 use yog_abi::{
     ABI_VERSION, YogAdvancementEvent, YogAdvancementFn, YogApi, YogAttackEntityFn,
-    YogBlockBreakFn, YogBlockDef, YogBlockPos, YogChatFn, YogCommandFn, YogEntityDamageFn,
-    YogEntityDeathFn, YogEntitySpawnFn, YogItemDef, YogOwnedStr, YogPacketFn,
+    YogBlockBreakFn, YogBlockDef, YogBlockPos, YogChatFn, YogCommandFn, YogCraftEvent,
+    YogCraftFn, YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent, YogEntityInteractFn,
+    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogItemDef, YogOwnedStr, YogPacketFn,
     YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn,
     YogPlayerRespawnEvent, YogPlayerRespawnFn, YogScheduledFn, YogServer, YogServerFn,
     YogStr, YogUseBlockFn, YogUseItemFn, YogVec3,
@@ -60,6 +61,9 @@ struct RuntimeHandlers {
     player_death:       Vec<(*mut c_void, YogPlayerDeathFn)>,
     player_respawn:     Vec<(*mut c_void, YogPlayerRespawnFn)>,
     advancement:        Vec<(*mut c_void, YogAdvancementFn)>,
+    entity_interact:    Vec<(*mut c_void, YogEntityInteractFn)>,
+    item_craft:         Vec<(*mut c_void, YogCraftFn)>,
+    explosion:          Vec<(*mut c_void, YogExplosionFn)>,
     server_tick:        Vec<(*mut c_void, YogServerFn)>,
     server_started:     Vec<(*mut c_void, YogServerFn)>,
     server_stopping:    Vec<(*mut c_void, YogServerFn)>,
@@ -87,6 +91,7 @@ impl RuntimeHandlers {
             entity_death: Vec::new(), entity_spawn: Vec::new(),
             player_place_block: Vec::new(),
             player_death: Vec::new(), player_respawn: Vec::new(), advancement: Vec::new(),
+            entity_interact: Vec::new(), item_craft: Vec::new(), explosion: Vec::new(),
             server_tick: Vec::new(), server_started: Vec::new(), server_stopping: Vec::new(),
             commands: HashMap::new(), typed_schemas: HashMap::new(),
             recipes: Vec::new(), packets: HashMap::new(),
@@ -728,6 +733,9 @@ api_event!(api_on_player_place_block, player_place_block, YogPlaceBlockFn);
 api_event!(api_on_player_death,     player_death,       YogPlayerDeathFn);
 api_event!(api_on_player_respawn,   player_respawn,     YogPlayerRespawnFn);
 api_event!(api_on_advancement,      advancement,        YogAdvancementFn);
+api_event!(api_on_entity_interact,  entity_interact,    YogEntityInteractFn);
+api_event!(api_on_item_craft,       item_craft,         YogCraftFn);
+api_event!(api_on_explosion,        explosion,          YogExplosionFn);
 api_event!(api_on_server_tick,      server_tick,        YogServerFn);
 api_event!(api_on_server_started,   server_started,     YogServerFn);
 api_event!(api_on_server_stopping,  server_stopping,    YogServerFn);
@@ -897,6 +905,9 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         on_player_death:         api_on_player_death,
         on_player_respawn:       api_on_player_respawn,
         on_advancement:          api_on_advancement,
+        on_entity_interact:      api_on_entity_interact,
+        on_item_craft:           api_on_item_craft,
+        on_explosion:            api_on_explosion,
         on_server_tick:          api_on_server_tick,
         on_server_started:       api_on_server_started,
         on_server_stopping:      api_on_server_stopping,
@@ -1646,6 +1657,121 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAdvancement<'l>(
     let srv = srv_ptr();
     guard("on_advancement", || {
         for (ud, f) in &h.advancement {
+            unsafe { f(*ud, srv, &ev, 1) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteractPre<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, player_uuid: JString<'l>,
+    entity_type: JString<'l>, entity_uuid: JString<'l>, hand: JString<'l>,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.entity_interact.is_empty() { return 1; }
+    let p  = match env.get_string(&player)      { Ok(s) => String::from(s), Err(_) => return 1 };
+    let pu = match env.get_string(&player_uuid)  { Ok(s) => String::from(s), Err(_) => return 1 };
+    let et = match env.get_string(&entity_type)  { Ok(s) => String::from(s), Err(_) => return 1 };
+    let eu = match env.get_string(&entity_uuid)  { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ha = match env.get_string(&hand)         { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ev = YogEntityInteractEvent {
+        player: YogStr::from_str(&p), player_uuid: YogStr::from_str(&pu),
+        entity_type: YogStr::from_str(&et), entity_uuid: YogStr::from_str(&eu),
+        hand: YogStr::from_str(&ha),
+    };
+    let srv = srv_ptr();
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.entity_interact {
+            if !unsafe { f(*ud, srv, &ev, 0) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteract<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, player_uuid: JString<'l>,
+    entity_type: JString<'l>, entity_uuid: JString<'l>, hand: JString<'l>,
+) {
+    let h = handlers();
+    if h.entity_interact.is_empty() { return; }
+    let (p, pu) = (jstr!(env, player), jstr!(env, player_uuid));
+    let (et, eu, ha) = (jstr!(env, entity_type), jstr!(env, entity_uuid), jstr!(env, hand));
+    let ev = YogEntityInteractEvent {
+        player: YogStr::from_str(&p), player_uuid: YogStr::from_str(&pu),
+        entity_type: YogStr::from_str(&et), entity_uuid: YogStr::from_str(&eu),
+        hand: YogStr::from_str(&ha),
+    };
+    let srv = srv_ptr();
+    guard("on_entity_interact", || {
+        for (ud, f) in &h.entity_interact {
+            unsafe { f(*ud, srv, &ev, 1) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemCraft<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, player_uuid: JString<'l>,
+    result_item: JString<'l>, result_count: jint,
+) {
+    let h = handlers();
+    if h.item_craft.is_empty() { return; }
+    let (p, pu, ri) = (jstr!(env, player), jstr!(env, player_uuid), jstr!(env, result_item));
+    let ev = YogCraftEvent {
+        player: YogStr::from_str(&p), player_uuid: YogStr::from_str(&pu),
+        result_item: YogStr::from_str(&ri), result_count: result_count as u32,
+    };
+    let srv = srv_ptr();
+    guard("on_item_craft", || {
+        for (ud, f) in &h.item_craft {
+            unsafe { f(*ud, srv, &ev, 1) };
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosionPre<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    dimension: JString<'l>, x: jdouble, y: jdouble, z: jdouble,
+    power: jfloat, cause_uuid: JString<'l>,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.explosion.is_empty() { return 1; }
+    let d  = match env.get_string(&dimension)  { Ok(s) => String::from(s), Err(_) => return 1 };
+    let cu = match env.get_string(&cause_uuid) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ev = YogExplosionEvent {
+        dimension: YogStr::from_str(&d), x, y, z, power, cause_uuid: YogStr::from_str(&cu),
+    };
+    let srv = srv_ptr();
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.explosion {
+            if !unsafe { f(*ud, srv, &ev, 0) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosion<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    dimension: JString<'l>, x: jdouble, y: jdouble, z: jdouble,
+    power: jfloat, cause_uuid: JString<'l>,
+) {
+    let h = handlers();
+    if h.explosion.is_empty() { return; }
+    let (d, cu) = (jstr!(env, dimension), jstr!(env, cause_uuid));
+    let ev = YogExplosionEvent {
+        dimension: YogStr::from_str(&d), x, y, z, power, cause_uuid: YogStr::from_str(&cu),
+    };
+    let srv = srv_ptr();
+    guard("on_explosion", || {
+        for (ud, f) in &h.explosion {
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });

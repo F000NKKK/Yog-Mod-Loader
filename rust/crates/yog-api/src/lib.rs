@@ -57,8 +57,9 @@ macro_rules! export_mod {
 pub use yog_command::CommandContext;
 pub use yog_core::{BlockPos, Server};
 pub use yog_event::{
-    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent,
-    EntityDeathEvent, EntitySpawnEvent, EventPhase, PlaceBlockEvent, PlayerDeathEvent,
+    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, CraftEvent,
+    EntityDamageEvent, EntityDeathEvent, EntityInteractEvent, EntitySpawnEvent,
+    EventPhase, ExplosionEvent, PlaceBlockEvent, PlayerDeathEvent,
     PlayerJoinEvent, PlayerLeaveEvent, PlayerRespawnEvent, UseBlockEvent, UseItemEvent,
 };
 pub use yog_entity::Entity;

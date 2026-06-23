@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 7;
+pub const ABI_MINOR: u32 = 8;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -185,6 +185,40 @@ pub struct YogAdvancementEvent {
     pub advancement: YogStr,
 }
 
+/// Fired when a player right-clicks (interacts with) an entity (Pre: before; Post: after).
+/// Pre phase — return false to cancel the interaction.
+#[repr(C)]
+pub struct YogEntityInteractEvent {
+    pub player:      YogStr,
+    pub player_uuid: YogStr,
+    pub entity_type: YogStr,
+    pub entity_uuid: YogStr,
+    /// `"main_hand"` or `"off_hand"`.
+    pub hand:        YogStr,
+}
+
+/// Fired when a player takes a crafted item from a crafting output slot (Post only).
+#[repr(C)]
+pub struct YogCraftEvent {
+    pub player:       YogStr,
+    pub player_uuid:  YogStr,
+    pub result_item:  YogStr,
+    pub result_count: u32,
+}
+
+/// Fired when an explosion occurs in a world (Pre: before block destruction; Post: after).
+/// Pre phase — return false to cancel the explosion (block and entity damage suppressed).
+#[repr(C)]
+pub struct YogExplosionEvent {
+    pub dimension:    YogStr,
+    pub x:            f64,
+    pub y:            f64,
+    pub z:            f64,
+    pub power:        f32,
+    /// UUID of the entity that caused the explosion, or empty if world/tnt.
+    pub cause_uuid:   YogStr,
+}
+
 /// Fired when a player places a block (Pre: before placement; Post: after).
 #[repr(C)]
 pub struct YogPlaceBlockEvent {
@@ -260,7 +294,10 @@ pub type YogEntitySpawnFn   = unsafe extern "C" fn(*mut c_void, *const YogServer
 pub type YogPlaceBlockFn    = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlaceBlockEvent,    u8) -> bool;
 pub type YogPlayerDeathFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerDeathEvent,   u8) -> bool;
 pub type YogPlayerRespawnFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerRespawnEvent, u8) -> bool;
-pub type YogAdvancementFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogAdvancementEvent,   u8) -> bool;
+pub type YogAdvancementFn      = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogAdvancementEvent,      u8) -> bool;
+pub type YogEntityInteractFn   = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityInteractEvent,   u8) -> bool;
+pub type YogCraftFn            = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogCraftEvent,            u8) -> bool;
+pub type YogExplosionFn        = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogExplosionEvent,        u8) -> bool;
 
 /// Packet events — always Post, no phase.
 pub type YogPacketFn  = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
@@ -449,6 +486,10 @@ pub struct YogApi {
     pub on_player_death:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerDeathFn),
     pub on_player_respawn:     unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerRespawnFn),
     pub on_advancement:        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogAdvancementFn),
+    // ── ABI minor 8 ──────────────────────────────────────────────────────────
+    pub on_entity_interact:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityInteractFn),
+    pub on_item_craft:         unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCraftFn),
+    pub on_explosion:          unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogExplosionFn),
     pub on_server_tick:       unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
     pub on_server_started:    unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
     pub on_server_stopping:   unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),

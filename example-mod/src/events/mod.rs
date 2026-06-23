@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use yog_api::player::Player;
 use yog_api::world::World;
 use yog_api::{
-    info, AdvancementEvent, BlockPos, EntitySpawnEvent, EventPhase, PlaceBlockEvent,
-    PlayerDeathEvent, PlayerRespawnEvent, Registry,
+    info, AdvancementEvent, BlockPos, CraftEvent, EntityInteractEvent, EntitySpawnEvent,
+    EventPhase, ExplosionEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerRespawnEvent, Registry,
 };
 
 pub fn register(registry: &mut Registry) {
@@ -166,6 +166,50 @@ pub fn register(registry: &mut Registry) {
             e.player_name, e.advancement_id
         ));
         true
+    });
+
+    registry.on_entity_interact(|e: &EntityInteractEvent, phase, srv| {
+        match phase {
+            EventPhase::Pre => {
+                info!(
+                    "[example-mod] {} interacting with {} ({}) using {}",
+                    e.player_name, e.entity_type, e.entity_uuid, e.hand
+                );
+                true
+            }
+            EventPhase::Post => {
+                srv.broadcast(&format!("{} interacted with a {}.", e.player_name, e.entity_type));
+                true
+            }
+        }
+    });
+
+    registry.on_item_craft(|e: &CraftEvent, _phase, srv| {
+        info!(
+            "[example-mod] {} crafted {}x {}",
+            e.player_name, e.result_count, e.result_item
+        );
+        srv.broadcast(&format!("{} crafted {}x {}.", e.player_name, e.result_count, e.result_item));
+        true
+    });
+
+    registry.on_explosion(|e: &ExplosionEvent, phase, srv| {
+        match phase {
+            EventPhase::Pre => {
+                info!(
+                    "[example-mod] explosion at ({:.1}, {:.1}, {:.1}) power={} in {}",
+                    e.x, e.y, e.z, e.power, e.dimension
+                );
+                true
+            }
+            EventPhase::Post => {
+                srv.broadcast(&format!(
+                    "Explosion! ({:.0}, {:.0}, {:.0}) power={}",
+                    e.x, e.y, e.z, e.power
+                ));
+                true
+            }
+        }
     });
 
     registry.on_tick(|srv| {

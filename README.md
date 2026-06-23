@@ -36,10 +36,11 @@ forward-compatible.
 | ✅ 4 | Cancellable events; networking; scoreboard; bossbar; scheduler; custom items/blocks | 4 |
 | ✅ 5 | Entity spawn events; world entity count; `EntityPhase` unified API; entity NBT; particles | 5–6 |
 | ✅ 6 | Player death/respawn, advancements, entity attribute get/set | 7 |
-| 🔲 7 | Client-side hooks (rendering / UI) |  |
-| 🔲 8 | NeoForge host, then Forge host |  |
+| ✅ 7 | Entity interact, item craft, explosion events | 8 |
+| 🔲 8 | Client-side hooks (rendering / UI) |  |
+| 🔲 9 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 7)
+## API available now (ABI minor 8)
 
 ### Events
 
@@ -71,6 +72,9 @@ registry.on_block_break(|event, phase, server| -> bool {
 | `on_player_death` | `PlayerDeathEvent` | ✅ |
 | `on_player_respawn` | `PlayerRespawnEvent` | — |
 | `on_advancement` | `AdvancementEvent` | — |
+| `on_entity_interact` | `EntityInteractEvent` | ✅ |
+| `on_item_craft` | `CraftEvent` | — |
+| `on_explosion` | `ExplosionEvent` | ✅ |
 | `on_tick` | — | — |
 | `on_server_started` | — | — |
 | `on_server_stopping` | — | — |

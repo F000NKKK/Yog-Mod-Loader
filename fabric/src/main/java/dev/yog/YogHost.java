@@ -33,6 +33,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
@@ -152,6 +153,21 @@ public class YogHost implements ModInitializer {
                         return ActionResult.FAIL;
                     }
                 }
+            }
+            return ActionResult.PASS;
+        });
+
+        // Entity interact (right-click on entity) — Pre (cancellable) then Post.
+        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            if (!world.isClient && player instanceof net.minecraft.server.network.ServerPlayerEntity sp) {
+                String pName    = sp.getName().getString();
+                String pUuid    = sp.getUuidAsString();
+                String eType    = net.minecraft.registry.Registries.ENTITY_TYPE.getId(entity.getType()).toString();
+                String eUuid    = entity.getUuidAsString();
+                String handStr  = hand == net.minecraft.util.Hand.MAIN_HAND ? "main_hand" : "off_hand";
+                boolean allow = NativeBridge.nativeOnEntityInteractPre(pName, pUuid, eType, eUuid, handStr);
+                if (!allow) return ActionResult.FAIL;
+                NativeBridge.nativeOnEntityInteract(pName, pUuid, eType, eUuid, handStr);
             }
             return ActionResult.PASS;
         });

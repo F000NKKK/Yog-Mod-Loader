@@ -6,7 +6,8 @@
 mod events;
 
 pub use events::{
-    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent,
-    EntityDeathEvent, EntitySpawnEvent, EventPhase, PlaceBlockEvent, PlayerDeathEvent,
+    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, CraftEvent,
+    EntityDamageEvent, EntityDeathEvent, EntityInteractEvent, EntitySpawnEvent,
+    EventPhase, ExplosionEvent, PlaceBlockEvent, PlayerDeathEvent,
     PlayerJoinEvent, PlayerLeaveEvent, PlayerRespawnEvent, UseBlockEvent, UseItemEvent,
 };

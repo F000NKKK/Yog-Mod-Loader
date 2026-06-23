@@ -11,15 +11,17 @@ use std::os::raw::c_void;
 
 use yog_abi::{
     YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef,
-    YogChatEvent, YogCommandEvent, YogEntityDamageEvent, YogEntityDeathEvent,
-    YogEntitySpawnEvent, YogItemDef, YogPacketEvent, YogPlaceBlockEvent, YogPlayerDeathEvent,
-    YogPlayerEvent, YogPlayerRespawnEvent, YogServer, YogStr, YogUseBlockEvent, YogUseItemEvent,
+    YogChatEvent, YogCommandEvent, YogCraftEvent, YogEntityDamageEvent, YogEntityDeathEvent,
+    YogEntityInteractEvent, YogEntitySpawnEvent, YogExplosionEvent, YogItemDef, YogPacketEvent,
+    YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent, YogPlayerRespawnEvent, YogServer,
+    YogStr, YogUseBlockEvent, YogUseItemEvent,
 };
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_event::{
-    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, EntityDamageEvent,
-    EntityDeathEvent, EntitySpawnEvent, EventPhase, PlaceBlockEvent, PlayerDeathEvent,
+    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, CraftEvent,
+    EntityDamageEvent, EntityDeathEvent, EntityInteractEvent, EntitySpawnEvent,
+    EventPhase, ExplosionEvent, PlaceBlockEvent, PlayerDeathEvent,
     PlayerJoinEvent, PlayerLeaveEvent, PlayerRespawnEvent, UseBlockEvent, UseItemEvent,
 };
 use yog_network::PacketEvent;
@@ -549,6 +551,30 @@ trampoline_phased!(trampoline_advancement, YogAdvancementEvent, AdvancementEvent
     advancement_id: ev.advancement.as_str().to_owned(),
 });
 
+trampoline_phased!(trampoline_entity_interact, YogEntityInteractEvent, EntityInteractEvent, |ev| EntityInteractEvent {
+    player_name: ev.player.as_str().to_owned(),
+    player_uuid: ev.player_uuid.as_str().to_owned(),
+    entity_type: ev.entity_type.as_str().to_owned(),
+    entity_uuid: ev.entity_uuid.as_str().to_owned(),
+    hand:        ev.hand.as_str().to_owned(),
+});
+
+trampoline_phased!(trampoline_craft, YogCraftEvent, CraftEvent, |ev| CraftEvent {
+    player_name:  ev.player.as_str().to_owned(),
+    player_uuid:  ev.player_uuid.as_str().to_owned(),
+    result_item:  ev.result_item.as_str().to_owned(),
+    result_count: ev.result_count,
+});
+
+trampoline_phased!(trampoline_explosion, YogExplosionEvent, ExplosionEvent, |ev| ExplosionEvent {
+    dimension:  ev.dimension.as_str().to_owned(),
+    x:          ev.x,
+    y:          ev.y,
+    z:          ev.z,
+    power:      ev.power,
+    cause_uuid: ev.cause_uuid.as_str().to_owned(),
+});
+
 unsafe extern "C" fn trampoline_server_fn<F>(ud: *mut c_void, srv: *const YogServer)
 where F: Fn(&dyn Server) + Send + Sync,
 {
@@ -721,6 +747,24 @@ impl Registry {
     where F: Fn(&AdvancementEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_advancement)(self.ctx(), ud, trampoline_advancement::<F>) }
+    }
+
+    pub fn on_entity_interact<F>(&mut self, handler: F)
+    where F: Fn(&EntityInteractEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_entity_interact)(self.ctx(), ud, trampoline_entity_interact::<F>) }
+    }
+
+    pub fn on_item_craft<F>(&mut self, handler: F)
+    where F: Fn(&CraftEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_item_craft)(self.ctx(), ud, trampoline_craft::<F>) }
+    }
+
+    pub fn on_explosion<F>(&mut self, handler: F)
+    where F: Fn(&ExplosionEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_explosion)(self.ctx(), ud, trampoline_explosion::<F>) }
     }
 
     pub fn on_tick<F>(&mut self, listener: F)

@@ -867,4 +867,26 @@ public final class NativeBridge {
 
     /** Player earned an advancement (Post only; no cancellation). */
     public static native void nativeOnAdvancement(String player, String uuid, String advancement);
+
+    /** Player right-clicked an entity — Pre phase; return false to cancel. */
+    public static native boolean nativeOnEntityInteractPre(
+            String player, String playerUuid,
+            String entityType, String entityUuid, String hand);
+
+    /** Player right-clicked an entity — Post phase (observe only). */
+    public static native void nativeOnEntityInteract(
+            String player, String playerUuid,
+            String entityType, String entityUuid, String hand);
+
+    /** Player took a crafted item from a crafting table (Post only; no cancellation). */
+    public static native void nativeOnItemCraft(
+            String player, String playerUuid, String resultItem, int resultCount);
+
+    /** Explosion about to detonate — Pre phase; return false to cancel block damage. */
+    public static native boolean nativeOnExplosionPre(
+            String dimension, double x, double y, double z, float power, String causeUuid);
+
+    /** Explosion detonated — Post phase (observe only). */
+    public static native void nativeOnExplosion(
+            String dimension, double x, double y, double z, float power, String causeUuid);
 }
