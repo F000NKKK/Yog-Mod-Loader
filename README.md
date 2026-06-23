@@ -3,7 +3,7 @@
 > **The Gate and the Key** — write Minecraft mods in **Rust** instead of Java.
 
 Yog is an open-source mod loader that exposes an ergonomic **Rust** API for
-writing Minecraft mods (server-side first, client later), bridging into the Java
+writing Minecraft mods (server-side and client-side), bridging into the Java
 game through a thin **Fabric** host. Named after Yog-Sothoth, "the gate and the
 key" — the gateway between the Java and Rust worlds.
 
@@ -48,10 +48,11 @@ Each platform has its own version-specific Mixin sources under
 | ✅ 6 | Player death/respawn, advancements, entity attribute get/set | 7 |
 | ✅ 7 | Entity interact, item craft, explosion events | 8 |
 | ✅ 8 | Item pickup, player move, container open/close, projectile hit; Config; typed packets | 9 |
-| 🔲 9 | Client-side hooks (rendering / UI) |  |
-| 🔲 10 | NeoForge host, then Forge host |  |
+| ✅ 9 | Client-side hooks: tick, HUD render, keyboard, screen open/close | 10 |
+| 🔲 10 | Item NBT hooks (`get_held_item_nbt` / `set_held_item_nbt`) | 11 |
+| 🔲 11 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 9)
+## API available now (ABI minor 10)
 
 ### Events
 
@@ -94,6 +95,40 @@ registry.on_block_break(|event, phase, server| -> bool {
 | `on_tick` | — | — |
 | `on_server_started` | — | — |
 | `on_server_stopping` | — | — |
+
+#### Client-side events (render thread, no server context)
+
+```rust
+registry.on_client_tick(|_ev| { /* fires every client tick */ });
+
+registry.on_hud_render(|ev| {
+    let _dt = ev.delta_tick; // partial-tick interpolation 0.0–1.0
+});
+
+registry.on_key_press(|ev| -> bool {
+    if ev.key_code == 69 && ev.action == 1 { // E pressed
+        info!("E key pressed!");
+        return false; // return false to suppress Minecraft handling
+    }
+    true
+});
+
+registry.on_screen_open(|ev| {
+    info!("screen opened: {}", ev.screen_class); // e.g. "InventoryScreen"
+});
+
+registry.on_screen_close(|ev| {
+    info!("screen closed: {}", ev.screen_class);
+});
+```
+
+| Registration | Event type | Notes |
+|---|---|---|
+| `on_client_tick` | `ClientTickEvent` | Every client tick |
+| `on_hud_render` | `HudRenderEvent` | Every frame; `delta_tick` = partial tick |
+| `on_key_press` | `KeyPressEvent` | Return `false` to suppress; `action`: 0=release, 1=press, 2=repeat |
+| `on_screen_open` | `ScreenEvent` | GUI opened; `screen_class` is simple class name |
+| `on_screen_close` | `ScreenEvent` | GUI closed |
 
 ### World
 
