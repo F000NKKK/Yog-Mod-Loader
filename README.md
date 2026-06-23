@@ -51,9 +51,10 @@ Each platform has its own version-specific Mixin sources under
 | ✅ 9 | Client-side hooks: tick, HUD render, keyboard, screen open/close | 10 |
 | ✅ 10 | Item NBT: held item + off-hand + full slot query/set | 11–12 |
 | ✅ 11 | Low-level GPU pipeline: `YogGfxApi`, HUD + world rendering, `yog-gfx` crate | 13–14 |
+| ✅ 11.1 | `player_pos` in `GfxContext` (distinct from camera in F5 view); shader binary cache | 15 |
 | 🔲 12 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 14)
+## API available now (ABI minor 15)
 
 ### Events
 
@@ -128,10 +129,17 @@ registry.on_screen_close(|ev| {
 | `on_screen_open` | `ScreenEvent` | GUI opened; `screen_class` is simple class name |
 | `on_screen_close` | `ScreenEvent` | GUI closed |
 
-### Graphics (ABI minor 14)
+### Graphics (ABI minor 13–15)
 
 Mods get direct access to the OpenGL pipeline via `GfxContext` (from `yog-gfx`).
 GPU resources (`u32` handles) are created once and stored between frames.
+
+**Shader binary cache** — the runtime automatically saves compiled shaders to
+`~/.cache/yog/shaders/` using `GL_ARB_get_program_binary` (GL 4.1+).
+Subsequent launches load from the binary cache and skip GLSL re-compilation,
+eliminating first-frame stutter (analogous to Proton's pipeline cache for Vulkan).
+The cache is invalidated automatically when the shader source changes or the GL
+driver is updated.
 
 #### HUD overlay (2D)
 
@@ -183,10 +191,10 @@ impl MyRenderer {
         if self.vbo.is_none() { self.init(ctx); }
         let prog = self.prog.as_ref().unwrap();
         let vao  = self.vao.as_ref().unwrap();
-        // Shift triangle 8 blocks east of camera
+        // Anchor geometry to world (0, 65, 0): pass camera-relative offset.
         let cam = ctx.camera_pos();
         prog.uniform_mat4(ctx, "uViewProj", &ctx.view_proj());
-        prog.uniform_3f(ctx, "uOffset", 8.0 - cam[0], -cam[1], -cam[2]);
+        prog.uniform_3f(ctx, "uOffset", 0.0 - cam[0], 65.0 - cam[1], 0.0 - cam[2]);
         ctx.set_depth(true, false);
         ctx.draw_arrays(vao, prog, DrawMode::Triangles, 0, 3);
         ctx.set_depth(false, false);
@@ -211,7 +219,8 @@ far objects.
 ctx.screen_size() -> (i32, i32)
 ctx.delta_tick()  -> f32
 ctx.view_proj()   -> [f32; 16]   // col-major; zeroed in on_hud_render
-ctx.camera_pos()  -> [f32; 3]    // zeroed in on_hud_render
+ctx.camera_pos()  -> [f32; 3]    // world-space camera position; zeroed in on_hud_render
+ctx.player_pos()  -> [f32; 3]    // local player eye position; differs from camera in F5 view
 
 // GPU resources
 ctx.create_buffer() / delete_buffer(buf)

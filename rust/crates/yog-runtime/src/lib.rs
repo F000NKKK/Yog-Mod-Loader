@@ -59,6 +59,13 @@ unsafe impl Sync for GlCtx {}
 /// Initialized by `nativeGlInit` on the render thread.  `None` on dedicated server.
 static GL: OnceLock<GlCtx> = OnceLock::new();
 
+// Raw GL function pointers for GL_ARB_get_program_binary (not exposed by glow 0.13).
+// Captured during the glow loader callback in `nativeGlInit`.
+// `None` when the extension is unavailable (very old drivers).
+static GL_GET_PROGRAM_BINARY: OnceLock<Option<usize>> = OnceLock::new();
+static GL_PROGRAM_BINARY:     OnceLock<Option<usize>> = OnceLock::new();
+static GL_GET_PROGRAM_IV:     OnceLock<Option<usize>> = OnceLock::new();
+
 // ── Handler storage ───────────────────────────────────────────────────────────
 
 struct RuntimeHandlers {
@@ -918,14 +925,87 @@ unsafe extern "C" fn gfx_vao_set_ebo(vao: u32, ebo: u32) {
 
 // ── Shader programs ───────────────────────────────────────────────────────────
 
+/// Returns a path under `~/.cache/yog/shaders/<hash>.ysc` for the given GLSL source pair,
+/// creating the directory if needed.  Returns `None` if the home directory is unknown.
+fn shader_cache_path(vert: &str, frag: &str) -> Option<PathBuf> {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    vert.hash(&mut h);
+    frag.hash(&mut h);
+    let hash = h.finish();
+    let dir = std::env::var("HOME")
+        .map(|home| PathBuf::from(home).join(".cache").join("yog").join("shaders"))
+        .ok()?;
+    std::fs::create_dir_all(&dir).ok()?;
+    Some(dir.join(format!("{hash:016x}.ysc")))
+}
+
+/// Try restoring a program from a binary blob (`[4 LE bytes: GL format][binary…]`).
+/// Returns `Some(handle)` if the driver accepts the binary, `None` otherwise.
+///
+/// Uses `glProgramBinary` (GL 4.1 / ARB_get_program_binary) via the raw pointer
+/// captured in `nativeGlInit`.  Returns `None` if the extension is unavailable.
+unsafe fn load_shader_binary(gl: &glow::Context, data: &[u8]) -> Option<glow::NativeProgram> {
+    if data.len() < 4 { return None; }
+    type ProgramBinaryFn = unsafe extern "system" fn(u32, u32, *const c_void, i32);
+    let fn_ptr = (*GL_PROGRAM_BINARY.get()?)?;
+    let program_binary: ProgramBinaryFn = std::mem::transmute(fn_ptr);
+
+    let fmt = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+    let prog = gl.create_program().ok()?;
+    program_binary(prog.0.get(), fmt, data[4..].as_ptr() as *const c_void, (data.len() - 4) as i32);
+    if gl.get_program_link_status(prog) { Some(prog) } else { gl.delete_program(prog); None }
+}
+
+/// Read the compiled binary of a linked program.  Returns empty `Vec` if unsupported.
+unsafe fn get_shader_binary(prog: glow::NativeProgram) -> (Vec<u8>, u32) {
+    type GetProgramivFn       = unsafe extern "system" fn(u32, u32, *mut i32);
+    type GetProgramBinaryFn   = unsafe extern "system" fn(u32, i32, *mut i32, *mut u32, *mut c_void);
+
+    let Some(get_iv_raw)  = GL_GET_PROGRAM_IV.get().and_then(|v| *v) else { return (vec![], 0) };
+    let Some(get_bin_raw) = GL_GET_PROGRAM_BINARY.get().and_then(|v| *v) else { return (vec![], 0) };
+    let get_program_iv:     GetProgramivFn       = std::mem::transmute(get_iv_raw);
+    let get_program_binary: GetProgramBinaryFn   = std::mem::transmute(get_bin_raw);
+
+    // Query binary size via glGetProgramiv(GL_PROGRAM_BINARY_LENGTH).
+    const PROGRAM_BINARY_LENGTH: u32 = 0x8741;
+    let mut size: i32 = 0;
+    get_program_iv(prog.0.get(), PROGRAM_BINARY_LENGTH, &mut size);
+    if size <= 0 { return (vec![], 0); }
+
+    let mut buf = vec![0u8; size as usize];
+    let mut actual_len: i32 = 0;
+    let mut fmt: u32 = 0;
+    get_program_binary(prog.0.get(), size, &mut actual_len, &mut fmt, buf.as_mut_ptr() as *mut c_void);
+    buf.truncate(actual_len.max(0) as usize);
+    (buf, fmt)
+}
+
 unsafe extern "C" fn gfx_prog_create(vert: YogStr, frag: YogStr, out: *mut u32) -> bool {
     let Some(g) = GL.get() else { return false };
     let gl = &g.0;
-    let vs = match compile_shader(gl, glow::VERTEX_SHADER, vert.as_str()) {
+    let vert_s = vert.as_str();
+    let frag_s = frag.as_str();
+
+    // Fast path: binary shader cache — avoids GLSL re-compilation on subsequent launches.
+    let cache_path = shader_cache_path(vert_s, frag_s);
+    if let Some(ref path) = cache_path {
+        if let Ok(data) = std::fs::read(path) {
+            if let Some(prog) = load_shader_binary(gl, &data) {
+                *out = prog.0.get();
+                return true;
+            }
+            // Cache stale (driver updated?); remove and fall through to GLSL compile.
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    // GLSL compile path.
+    let vs = match compile_shader(gl, glow::VERTEX_SHADER, vert_s) {
         Some(s) => s,
         None => return false,
     };
-    let fs = match compile_shader(gl, glow::FRAGMENT_SHADER, frag.as_str()) {
+    let fs = match compile_shader(gl, glow::FRAGMENT_SHADER, frag_s) {
         Some(s) => s,
         None => { gl.delete_shader(vs); return false; }
     };
@@ -949,6 +1029,17 @@ unsafe extern "C" fn gfx_prog_create(vert: YogStr, frag: YogStr, out: *mut u32) 
         gl.delete_program(prog);
         return false;
     }
+
+    // Persist binary so the next launch skips GLSL compilation entirely.
+    if let Some(ref path) = cache_path {
+        let (binary, fmt) = get_shader_binary(prog);
+        if !binary.is_empty() {
+            let mut blob = fmt.to_le_bytes().to_vec();
+            blob.extend_from_slice(&binary);
+            let _ = std::fs::write(path, &blob);
+        }
+    }
+
     *out = prog.0.get();
     true
 }
@@ -2493,6 +2584,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeGlInit<'l>(
     _env: JNIEnv<'l>, _class: JClass<'l>,
 ) {
     if GL.get().is_some() { return; }
+    let mut raw_get_binary: usize = 0;
+    let mut raw_prog_binary: usize = 0;
     let gl = unsafe {
         glow::Context::from_loader_function(|sym| {
             let Some(mut env) = get_env() else { return std::ptr::null() };
@@ -2507,13 +2600,37 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeGlInit<'l>(
                 "(Ljava/lang/String;)J",
                 &[JValue::Object(&jsym_obj)],
             );
-            match val.and_then(|v| v.j()) {
-                Ok(ptr) if ptr != 0 => ptr as usize as *const _,
+            let ptr = match val.and_then(|v| v.j()) {
+                Ok(p) if p != 0 => p as usize as *const _,
                 _ => std::ptr::null(),
+            };
+            // Capture extension pointers while the loader runs.
+            match sym {
+                "glGetProgramBinary" => raw_get_binary = ptr as usize,
+                "glProgramBinary"    => raw_prog_binary = ptr as usize,
+                _ => {}
             }
+            ptr
         })
     };
     let _ = GL.set(GlCtx(gl));
+    let _ = GL_GET_PROGRAM_BINARY.set(if raw_get_binary != 0 { Some(raw_get_binary) } else { None });
+    let _ = GL_PROGRAM_BINARY.set(if raw_prog_binary != 0 { Some(raw_prog_binary) } else { None });
+    // `glGetProgramiv` is a core function; always available.  We look it up once here
+    // to avoid depending on glow internals for the PROGRAM_BINARY_LENGTH query.
+    if let Some(mut env) = get_env() {
+        if let Ok(jsym) = env.new_string("glGetProgramiv") {
+            let jsym_obj: JObject = jsym.into();
+            if let Ok(jv) = env.call_static_method(
+                "dev/yog/NativeBridge", "glProcAddress", "(Ljava/lang/String;)J",
+                &[JValue::Object(&jsym_obj)],
+            ) {
+                if let Ok(ptr) = jv.j() {
+                    let _ = GL_GET_PROGRAM_IV.set(if ptr != 0 { Some(ptr as usize) } else { None });
+                }
+            }
+        }
+    }
 }
 
 #[no_mangle]
