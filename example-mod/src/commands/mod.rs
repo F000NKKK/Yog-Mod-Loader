@@ -83,11 +83,11 @@ pub fn register(registry: &mut Registry) {
     // Persistent coin balance demo.
     registry.on_command("coins", |ctx, srv| {
         let mut store = Storage::open(&srv.game_dir(), "yog:economy");
-        let balance: i64 = store.get(&ctx.source).and_then(|v| v.parse().ok()).unwrap_or(0);
+        let balance: i64 = store.get_int(&ctx.source).unwrap_or(0);
         // Award 10 coins each time.
         let new_balance = balance + 10;
-        store.set(&ctx.source, new_balance.to_string());
-        store.save().ok();
+        store.set(&ctx.source, new_balance);
+        store.flush().ok();
         Some(format!("Coins: {} (+10)", new_balance))
     });
 

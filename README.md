@@ -199,11 +199,35 @@ registry.schedule_repeating(1200, |srv| srv.broadcast("every minute"));
 
 ### Storage
 
+Scoped, typed, auto-flushing key-value store.  Writes are atomic
+(temp + rename); unflushed mutations are persisted on `Drop`.
+
 ```rust
-let store = Storage::open(srv, "mymod");
-store.set("key", "value");
-store.get("key")    // -> Option<String>
+// Global store — one file for the whole server
+let mut store = Storage::open(&srv.game_dir(), "mymod");
+store.set("motd", "Hello!");
+store.set("spawn_x", 0i64);
+store.set("spawn_y", 64.0f64);
+
+// Per-player store — one file per UUID (survives restarts)
+let mut ps = Storage::open_player(&srv.game_dir(), "mymod", &player_uuid);
+ps.set("coins", 100i64);
+ps.set("flags", vec![0xAB_u8, 0xCD]);   // raw bytes for custom serialization
+let coins  = ps.get_int("coins").unwrap_or(0);
+let online = ps.get_bool("first_login_done").unwrap_or(false);
+
+// Per-dimension / per-chunk / per-entity scopes
+let mut ws  = Storage::open_world(&srv.game_dir(), "mymod", "minecraft:overworld");
+let mut cs  = Storage::open_chunk(&srv.game_dir(), "mymod", "minecraft:overworld", 2, -5);
+let mut es  = Storage::open_entity(&srv.game_dir(), "mymod", &entity_uuid);
+
+// Explicit flush (otherwise auto-flushed on drop)
+ps.flush().ok();
 ```
+
+File layout: `<game_dir>/yog-data/<mod_id>/{global,player/<uuid>,world/<dim>,
+entity/<uuid>,chunk/<dim>_<cx>_<cz>}.kv`  
+Format: `key\ttype\tvalue` plain text, sorted, human-readable.
 
 ### Config
 

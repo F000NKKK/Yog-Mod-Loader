@@ -70,7 +70,7 @@ pub use yog_network::packet;
 pub use yog_player::Player;
 pub use yog_registry::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
 pub use yog_config::Config;
-pub use yog_storage::Storage;
+pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_world::World;
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
