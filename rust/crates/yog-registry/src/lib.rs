@@ -246,6 +246,128 @@ impl FurnaceRecipe {
     }
 }
 
+// ── BookRecipe (like Patchouli's shapeless_book_recipe) ──────────────────────
+
+/// A shapeless recipe that produces a book from `yog-book`.
+/// Replaces `patchouli:shapeless_book_recipe`.
+#[derive(Debug, Clone)]
+pub struct BookRecipe {
+    pub id: String,
+    pub book: String,
+    pub ingredients: Vec<String>,
+}
+
+impl BookRecipe {
+    pub fn new(id: impl Into<String>, book: impl Into<String>) -> Self {
+        Self { id: id.into(), book: book.into(), ingredients: Vec::new() }
+    }
+
+    pub fn ingredient(mut self, item_id: impl Into<String>) -> Self {
+        self.ingredients.push(item_id.into());
+        self
+    }
+
+    pub fn to_json(&self) -> String {
+        let ingr: String = self.ingredients.iter()
+            .map(|i| format!("{{\"item\":\"{}\"}}", i))
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"type\":\"yog:crafting_book\",\"ingredients\":[{}],\"book\":\"{}\"}}",
+            ingr, self.book
+        )
+    }
+
+    pub fn ns_name(&self) -> (&str, &str) {
+        self.id.split_once(':').unwrap_or(("yog", &self.id))
+    }
+}
+
+// ── ItemModifier ─────────────────────────────────────────────────────────────
+
+/// An item modifier applied during loot generation (like smelting, enchanted, etc.).
+#[derive(Debug, Clone)]
+pub struct ItemModifier {
+    pub id: String,
+    /// Modifier function identifier, e.g. "yog:set_count" or "hexcasting:amethyst_shard_reducer".
+    pub function: String,
+    /// Parameters as JSON object.
+    pub parameters: std::collections::HashMap<String, String>,
+}
+
+impl ItemModifier {
+    pub fn new(id: impl Into<String>, function: impl Into<String>) -> Self {
+        Self { id: id.into(), function: function.into(), parameters: std::collections::HashMap::new() }
+    }
+
+    pub fn param(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.parameters.insert(key.into(), value.into());
+        self
+    }
+
+    pub fn to_json(&self) -> String {
+        let params: String = self.parameters.iter()
+            .map(|(k, v)| format!("\"{}\":{}", k, v))
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"function\":\"{}\",{}}}",
+            self.function, if params.is_empty() { String::new() } else { params }
+        )
+    }
+}
+
+// ── AdvancementReward ────────────────────────────────────────────────────────
+
+/// A loot table entry used as an advancement reward (grants items when an
+/// advancement is completed). Replaces `patchouli:guide_book` loot.
+#[derive(Debug, Clone)]
+pub struct AdvancementReward {
+    pub id: String,
+    /// The item to grant (default: special book item when book rewards).
+    pub item: String,
+    /// Optional NBT tag to apply.
+    pub nbt: Option<String>,
+    /// If set, the reward links to a yog-book.
+    pub book: Option<String>,
+}
+
+impl AdvancementReward {
+    pub fn new(id: impl Into<String>) -> Self {
+        Self { id: id.into(), item: "minecraft:written_book".into(), nbt: None, book: None }
+    }
+
+    pub fn item(mut self, item: impl Into<String>) -> Self {
+        self.item = item.into();
+        self
+    }
+
+    pub fn nbt(mut self, nbt: impl Into<String>) -> Self {
+        self.nbt = Some(nbt.into());
+        self
+    }
+
+    pub fn book(mut self, book: impl Into<String>) -> Self {
+        let book_str: String = book.into();
+        self.book = Some(book_str.clone());
+        self.nbt = Some(format!("{{yog_book:\"{}\",title:\"Yog Book\",author:\"Yog\"}}", book_str));
+        self
+    }
+
+    pub fn to_json(&self) -> String {
+        let nbt_part = self.nbt.as_ref().map(|n| format!("{{\"function\":\"set_nbt\",\"tag\":{}}}", n));
+        let entries = if let Some(nbt_part) = nbt_part {
+            format!("[{{\"type\":\"item\",\"name\":\"{}\",\"functions\":[{}]}}]", self.item, nbt_part)
+        } else {
+            format!("[{{\"type\":\"item\",\"name\":\"{}\"}}]", self.item)
+        };
+        format!(
+            "{{\"type\":\"advancement_reward\",\"pools\":[{{\"rolls\":1,\"entries\":{}}}]}}",
+            entries
+        )
+    }
+}
+
 // ── Blocks ───────────────────────────────────────────────────────────────────
 
 /// A custom block to register; it also gets a matching block-item.

@@ -8,5 +8,5 @@ license     = "MIT OR Apache-2.0"
 
 # Points yog-api at the local monorepo crate.
 # Real third-party mods omit this and get yog-api from crates.io.
-[dev]
-yog_api_path = "../rust/crates/yog-api"
+# [dev]
+# yog_api_path = "../rust/crates/yog-api"

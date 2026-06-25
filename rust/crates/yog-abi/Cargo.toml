@@ -2,5 +2,6 @@
 name = "yog-abi"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog stable C ABI — the shared contract between mods and the runtime."

@@ -70,10 +70,12 @@ pub use yog_network::{Packet, PacketEvent, PacketField};
 #[doc(inline)]
 pub use yog_network::packet;
 pub use yog_player::Player;
-pub use yog_registry::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
+pub use yog_registry::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe, BookRecipe, ItemModifier, AdvancementReward};
 pub use yog_config::Config;
 pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_world::World;
+pub use yog_book::{Book, BookCategory, BookEntry, BookPage, BookMacro, BookRegistry};
+pub use yog_book::{text_page, spotlight_page, crafting_page, smelting_page, image_page, entity_page, relations_page};
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
 pub use yog_logging::{error, info, warn};
@@ -126,4 +128,9 @@ pub mod storage {
 /// Mod configuration (typed key/value files).
 pub mod config {
     pub use yog_config::*;
+}
+
+/// In-game book/documentation system (Patchouli-like).
+pub mod book {
+    pub use yog_book::*;
 }

@@ -6,4 +6,4 @@ license = "MIT OR Apache-2.0"
 description = "Yog world access — ergonomic block get/set over the Server handle."
 
 [dependencies]
-yog-core = { path = "../yog-core" }
+yog-core = "0.1"

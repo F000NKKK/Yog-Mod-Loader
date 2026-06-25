@@ -2,8 +2,9 @@
 name = "yog-gfx"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog graphics subsystem — low-level GPU pipeline access for mods."
 
 [dependencies]
-yog-abi = { path = "../yog-abi" }
+yog-abi = "0.1"

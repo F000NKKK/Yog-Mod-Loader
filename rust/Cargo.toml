@@ -18,6 +18,8 @@ members = [
     "crates/yog-config",
     # facade mod authors depend on
     "crates/yog-api",
+    # in-game book/documentation system (Patchouli-like)
+    "crates/yog-book",
     # graphics subsystem — low-level GL pipeline access for mods (permissive)
     "crates/yog-gfx",
     # build tooling
@@ -25,12 +27,11 @@ members = [
     # engine (AGPL)
     "crates/yog-runtime",
 ]
-# Note: example-mod lives in ../example-mod and builds on its own (like any
-# third-party mod), producing a .yog artifact via `yog build`.
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+authors = ["F000NK, Yog Team, Voluntas Progressus"]
 # Default for the protected engine (runtime + host). The mod-author-facing
 # `yog-api` and the example mod override this with a permissive license so the
 # mod ecosystem stays free — see LICENSING.md.

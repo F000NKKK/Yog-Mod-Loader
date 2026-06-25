@@ -13,6 +13,7 @@ LOADERS=(fabric)
 
 CONFIG="Release"   # Debug | Release
 RUN_CLIENT=0
+NO_BUILD=0
 
 usage() {
     cat <<'EOF'
@@ -39,11 +40,13 @@ default loader, since Yog targets many (fabric, neoforge, forge, ...).
 Options:
   -c, --configuration <Debug|Release>   default: Release
       --client                          run: launch dev client instead of server
+      --no-build                        run: skip build, just launch client/server
   -h, --help
 
 Examples:
   ./build.sh build
   ./build.sh run fabric --client
+  ./build.sh run fabric --client --no-build
   ./build.sh publish fabric
   ./build.sh publish all
   ./build.sh test -c Debug
@@ -53,7 +56,7 @@ EOF
 
 die() { echo "error: $*" >&2; exit 1; }
 
-# ── toolchain helpers ───────────────────────────────────────────────────────
+# ── toolchain helpers ────────────────────────────────────────────────────────
 
 native_lib_name() {
     case "$(uname -s)" in
@@ -117,7 +120,7 @@ gradle_in() {
     ( cd "$ROOT/$dir" && JAVA_HOME="$jh" ./gradlew "$@" )
 }
 
-# ── build steps ─────────────────────────────────────────────────────────────
+# ── build steps ──────────────────────────────────────────────────────────────
 
 cargo_build() {
     local flag=""; [ "$CONFIG" = "Release" ] && flag="--release"
@@ -219,8 +222,12 @@ cmd_build() { build_target "${1:-all}"; }
 cmd_run() {
     require_loader "${1:-}"
     local loader="$1"
-    build_rust
-    build_example
+    if [ "$NO_BUILD" -eq 0 ]; then
+        build_rust
+        build_example
+    else
+        echo "==> run: $loader — skipping build (--no-build)"
+    fi
     if [ "$RUN_CLIENT" = 1 ]; then
         echo "==> run: $loader dev client"
         gradle_in "$loader" runClient
@@ -272,7 +279,7 @@ cmd_publish() {
     echo "==> published to artifacts/ (self-contained jars + .yog mods)"
 }
 
-# ── dispatch ────────────────────────────────────────────────────────────────
+# ── dispatch ─────────────────────────────────────────────────────────────────
 
 [ $# -eq 0 ] && { usage; exit 0; }
 cmd="$1"; shift
@@ -289,6 +296,7 @@ while [ $# -gt 0 ]; do
             shift 2 ;;
         --client) RUN_CLIENT=1; shift ;;
         --server) RUN_CLIENT=0; shift ;;
+        --no-build) NO_BUILD=1; shift ;;
         -h|--help) usage; exit 0 ;;
         -*) die "unknown option: $1" ;;
         *)  targets+=("$1"); shift ;;

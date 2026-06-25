@@ -2,9 +2,10 @@
 name = "yog-player"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Yog player access — ergonomic give/teleport over the Server handle."
+description = "Yog player access (teleport, give items, health)."
 
 [dependencies]
-yog-core = { path = "../yog-core" }
-yog-entity = { path = "../yog-entity" }
+yog-core = "0.1"
+yog-entity = "0.1"

@@ -2,22 +2,24 @@
 name = "yog-api"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
 # Permissive ON PURPOSE: mods link this crate, so AGPL here would force every
 # mod to be AGPL and kill the ecosystem. The protected part is the runtime/host.
 license = "MIT OR Apache-2.0"
 description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 
 [dependencies]
-yog-abi  = { path = "../yog-abi" }
-yog-core = { path = "../yog-core" }
-yog-event = { path = "../yog-event" }
-yog-world = { path = "../yog-world" }
-yog-entity = { path = "../yog-entity" }
-yog-player = { path = "../yog-player" }
-yog-registry = { path = "../yog-registry" }
-yog-network = { path = "../yog-network" }
-yog-command = { path = "../yog-command" }
-yog-logging = { path = "../yog-logging" }
-yog-storage = { path = "../yog-storage" }
-yog-config  = { path = "../yog-config" }
-yog-gfx     = { path = "../yog-gfx" }
+yog-abi  = "0.1"
+yog-core = "0.1"
+yog-event = "0.1"
+yog-world = "0.1"
+yog-entity = "0.1"
+yog-player = "0.1"
+yog-registry = "0.2"
+yog-network = "0.1"
+yog-command = "0.1"
+yog-logging = "0.1"
+yog-storage = "0.1"
+yog-config  = "0.1"
+yog-gfx     = "0.1"
+yog-book    = "0.2"
