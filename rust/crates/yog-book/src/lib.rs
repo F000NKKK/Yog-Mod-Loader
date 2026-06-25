@@ -14,7 +14,7 @@ pub struct BookMacro(pub String, pub String);
 /// A single page variant inside a book entry.
 #[derive(Debug, Clone)]
 pub enum BookPage {
-    /// Plain formatted text (Markdown-like, with macro support).
+    /// Plain formatted text (Patchouli-style).
     Text {
         text: String,
     },
@@ -54,6 +54,14 @@ pub enum BookPage {
     },
     /// Empty separator.
     Empty,
+    /// Custom pattern page for Hexcasting-style mods (like `hexcasting:pattern`).
+    Pattern {
+        op_id: String,
+        anchor: String,
+        input: String,
+        output: String,
+        text: String,
+    },
 }
 
 // ── Category ─────────────────────────────────────────────────────────────────
@@ -64,8 +72,10 @@ pub struct BookCategory {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
-    /// Texture for the category icon (path like "hexcasting:textures/item/...")
+    /// Texture for the category icon (path like "minecraft:textures/..." or "hexcasting:textures/item/...")
     pub icon: Option<String>,
+    /// Sort priority (lower = first).
+    pub sortnum: i32,
 }
 
 // ── Entry ────────────────────────────────────────────────────────────────────
@@ -77,12 +87,16 @@ pub struct BookEntry {
     pub name: String,
     pub category: String,
     pub pages: Vec<BookPage>,
-    /// Entry icon (item id).
+    /// Entry icon (item id or texture path).
     pub icon: Option<String>,
     /// If true, hides from the book (used for unlocks).
     pub secret: bool,
     /// Sort priority (lower = first).
     pub priority: i32,
+    /// If true, read by default when opening the book.
+    pub read_by_default: bool,
+    /// Advancement required to unlock.
+    pub advancement: Option<String>,
 }
 
 // ── Book ─────────────────────────────────────────────────────────────────────
@@ -254,4 +268,14 @@ pub fn entity_page(entity_type: impl Into<String>) -> BookPage {
 
 pub fn relations_page(entries: Vec<String>) -> BookPage {
     BookPage::Relations { entries, text: None }
+}
+
+pub fn pattern_page(op_id: impl Into<String>, anchor: impl Into<String>, input: impl Into<String>, output: impl Into<String>, text: impl Into<String>) -> BookPage {
+    BookPage::Pattern {
+        op_id: op_id.into(),
+        anchor: anchor.into(),
+        input: input.into(),
+        output: output.into(),
+        text: text.into(),
+    }
 }
