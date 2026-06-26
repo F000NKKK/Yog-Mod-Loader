@@ -70,7 +70,7 @@ pub use yog_network::{Packet, PacketEvent, PacketField};
 #[doc(inline)]
 pub use yog_network::packet;
 pub use yog_player::Player;
-pub use yog_registry::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe, BookRecipe, ItemModifier, AdvancementReward};
+pub use yog_registry::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe, BookRecipe, ItemModifier, AdvancementReward, StartupGrant};
 pub use yog_config::Config;
 pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_world::World;
