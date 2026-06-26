@@ -6,6 +6,8 @@ description = "Official Yog example mod — demonstrates the full API."
 authors     = ["Yog Contributors"]
 license     = "MIT OR Apache-2.0"
 
+[dependencies]
+
 # Points yog-api at the local monorepo crate.
 # Real third-party mods omit this and get yog-api from crates.io.
 # [dev]

@@ -63,6 +63,8 @@ struct YogToml {
     /// Optional: path to yog-api for local/monorepo development.
     /// Set via [dev] yog_api_path = "..."  or YOG_API_PATH env var.
     yog_api_path: Option<String>,
+    /// Optional: pin yog-api version as "yog_api = \"X.Y\"" in [dependencies].
+    yog_api_version: Option<String>,
     /// User-declared dependencies from [dependencies] section.
     dependencies: Vec<(String, String)>,
 }
@@ -77,7 +79,9 @@ impl YogToml {
     /// Resolve where yog-api lives.  Priority:
     ///   1. YOG_API_PATH env var
     ///   2. [dev] yog_api_path in yog.toml
-    ///   3. future: crates.io
+    ///   3. yog_api_version in [dependencies] (e.g. "0.5")
+    ///   4. YOG_API_VERSION env var
+    ///   5. latest from crates.io
     fn api_dep(&self) -> String {
         if let Ok(p) = std::env::var("YOG_API_PATH") {
             // Resolve to absolute so it works from any subdirectory
@@ -87,8 +91,14 @@ impl YogToml {
         if let Some(p) = &self.yog_api_path {
             return format!("yog-api = {{ path = {p:?} }}");
         }
-        // crates.io — publish target, uses the current stable version.
-        "yog-api = \"0.5\"".into()
+        let version = {
+            let env_version = std::env::var("YOG_API_VERSION").ok();
+            self.yog_api_version.as_deref()
+                .or(env_version.as_deref())
+                .map(|v| v.to_owned())
+                .unwrap_or_else(|| latest_yog_api_version())
+        };
+        format!("yog-api = {:?}", version)
     }
 }
 
@@ -134,6 +144,16 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     }
 
     let id = id.ok_or("yog.toml: missing [mod] id")?;
+    // Extract yog_api_version from dependencies if there
+    let mut yog_api_version = None;
+    let mut filtered_deps = Vec::new();
+    for (name, spec) in dependencies {
+        if name == "yog_api_version" {
+            yog_api_version = Some(spec);
+        } else {
+            filtered_deps.push((name, spec));
+        }
+    }
     Ok(YogToml {
         name:         name.unwrap_or_else(|| id.clone()),
         version:      version.unwrap_or_else(|| "0.1.0".into()),
@@ -141,7 +161,8 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         authors,
         license:      license.unwrap_or_else(|| "MIT OR Apache-2.0".into()),
         yog_api_path,
-        dependencies,
+        yog_api_version,
+        dependencies: filtered_deps,
         id,
     })
 }
@@ -772,4 +793,25 @@ fn remove_dep(crate_name: Option<&str>) -> Result<(), String> {
 
 fn write_file(path: &Path, data: &[u8]) -> Result<(), String> {
     std::fs::write(path, data).map_err(|e| format!("writing {}: {e}", path.display()))
+}
+
+/// Fetch the latest non-yanked version of `yog-api` from crates.io.
+fn latest_yog_api_version() -> String {
+    match std::process::Command::new("cargo")
+        .args(["search", "yog-api", "--limit", "1", "-q"])
+        .output()
+    {
+        Ok(out) if out.status.success() => {
+            String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .next()
+                .and_then(|l| {
+                    let mut parts = l.split_whitespace();
+                    parts.next(); // skip crate name
+                    parts.next().map(|v| v.trim_matches('"').to_owned())
+                })
+                .unwrap_or_else(|| "0.5".into())
+        }
+        _ => "0.5".into(), // fallback if network fails
+    }
 }
