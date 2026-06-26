@@ -11,17 +11,23 @@ dependencies = [
 
 [[package]]
 name = "yog-abi"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4110d8fe8e6aefeed1e96acafa65ec8ebb82ad368025ac9e172e231e29f1e61a"
+checksum = "e6b2f2d2f3624314d44a529e55326eee3a1ba03b7a9345c8122cc689de57fbe3"
+
+[[package]]
+name = "yog-abi"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95a5410b9f3cb19a66ca96f84c2e7faba00929945594ec3f186c6ad7da4274cb"
 
 [[package]]
 name = "yog-api"
-version = "0.1.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "512f6acd06e2d6033b676017a6e4865cc4a56def096cace5b75e09e375481745"
+checksum = "8cc3b3144a53aeceb99a8631f619b94dc4b9a82d09b4d7feb808eae13c8b5364"
 dependencies = [
- "yog-abi",
+ "yog-abi 0.3.0",
  "yog-book",
  "yog-command",
  "yog-config",
@@ -39,9 +45,9 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.2.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30562d76197bbf9016b1b21771eebb7efc2f2ac6ec38691f521cfdc2731f7ae5"
+checksum = "d6516bc6061605c45f8d2bbeebdfa1a4e562c9c98d2e2cd6827adb5a9b7ec12c"
 dependencies = [
  "yog-registry",
 ]
@@ -84,11 +90,11 @@ dependencies = [
 
 [[package]]
 name = "yog-gfx"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19ba1e0207e0e660cf00c1d446ece66c98236620f514b23533bbbfffe1411eec"
+checksum = "f773db6b06e8a78ccb118e26dbe441b4683c8d9af3c8722986d14afc6b59a58b"
 dependencies = [
- "yog-abi",
+ "yog-abi 0.3.0",
 ]
 
 [[package]]
@@ -115,11 +121,11 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.2.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84d9252f51f81b7b9ee1c5beec1c820c76d82120a6d2fa9996426b68e3b6846e"
+checksum = "df31aa02abf01b06e1c97cd283ce26836281491567345c0a84e9e4aa713da6d0"
 dependencies = [
- "yog-abi",
+ "yog-abi 0.2.0",
 ]
 
 [[package]]

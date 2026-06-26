@@ -87,8 +87,8 @@ impl YogToml {
         if let Some(p) = &self.yog_api_path {
             return format!("yog-api = {{ path = {p:?} }}");
         }
-        // crates.io — not yet published; this is a forward-looking placeholder.
-        "yog-api = \"0.1\"".into()
+        // crates.io — publish target, uses the current stable version.
+        "yog-api = \"0.5\"".into()
     }
 }
 
@@ -655,7 +655,7 @@ fn package(
 ) -> Result<(), String> {
     let file = std::fs::File::create(out).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipWriter::new(file);
-    let opts = zip::write::FileOptions::default()
+    let opts = zip::write::FileOptions::<()>::default()
         .compression_method(zip::CompressionMethod::Deflated);
 
     for (tag, native) in bundled {
