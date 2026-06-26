@@ -317,10 +317,72 @@ impl ItemModifier {
     }
 }
 
-// ── AdvancementReward ────────────────────────────────────────────────────────
+// ── StartupGrant ─────────────────────────────────────────────────────────────
 
-/// A loot table entry used as an advancement reward (grants items when an
-/// advancement is completed). Replaces `patchouli:guide_book` loot.
+/// Grant items/books to every player once when they first join.
+/// This is the Yog-side replacement for `grant_patchi_book.json`.
+#[derive(Debug, Clone)]
+pub struct StartupGrant {
+    pub id: String,
+    pub items: Vec<String>,
+    pub book: Option<String>,
+    pub command: Option<String>,
+}
+
+impl StartupGrant {
+    pub fn new(id: impl Into<String>) -> Self {
+        Self { id: id.into(), items: Vec::new(), book: None, command: None }
+    }
+
+    pub fn item(mut self, item_id: impl Into<String>) -> Self {
+        self.items.push(item_id.into());
+        self
+    }
+
+    pub fn book(mut self, book: impl Into<String>) -> Self {
+        self.book = Some(book.into());
+        self
+    }
+
+    pub fn command(mut self, cmd: impl Into<String>) -> Self {
+        self.command = Some(cmd.into());
+        self
+    }
+
+    pub fn to_json(&self) -> String {
+        let items: Vec<String> = self.items.iter().map(|i| format!("{{\"item\":\"{}\"}}", i)).collect();
+        let mut entries = String::new();
+        if !items.is_empty() {
+            entries.push_str(&format!("[{}]", items.join(",")));
+        }
+        if let Some(book) = &self.book {
+            if !entries.is_empty() {
+                entries.push(',');
+            }
+            let book_entry = format!(
+                "{{\"type\":\"item\",\"name\":\"minecraft:written_book\",\"functions\":[{{\"function\":\"set_nbt\",\"tag\":\"{{yog_book:\\\"{}\\\"}}\"}}]}}",
+                book
+            );
+            entries.push_str(&book_entry);
+        }
+        if let Some(cmd) = &self.command {
+            if !entries.is_empty() {
+                entries.push(',');
+            }
+            entries.push_str(&format!(
+                "{{\"type\":\"minecraft:command\",\"command\":\"{}\"}}",
+                cmd.replace('"', "\\\"")
+            ));
+        }
+        format!(
+            "{{\"type\":\"yog:startup_grant\",\"entries\":{},\"id\":\"{}\"}}",
+            if entries.is_empty() { "[]".to_string() } else { entries },
+            self.id
+        )
+    }
+}
+
+// ── Blocks ───────────────────────────────────────────────────────────────────
 #[derive(Debug, Clone)]
 pub struct AdvancementReward {
     pub id: String,

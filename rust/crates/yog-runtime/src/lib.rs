@@ -107,6 +107,8 @@ struct RuntimeHandlers {
     client_packets:     HashMap<String, (*mut c_void, YogPacketFn)>,
     items:              Vec<ItemDef>,
     blocks:             Vec<BlockDef>,
+    startup_grants:     Vec<yog_registry::StartupGrant>,
+    startup_granted:    Mutex<HashMap<String, bool>>,
     scheduler:          Mutex<SchedulerState>,
 }
 
@@ -135,7 +137,9 @@ impl RuntimeHandlers {
             commands: HashMap::new(), typed_schemas: HashMap::new(),
             recipes: Vec::new(), packets: HashMap::new(),
             client_packets: HashMap::new(), items: Vec::new(),
-            blocks: Vec::new(), scheduler: Mutex::new(SchedulerState::new()),
+            blocks: Vec::new(), startup_grants: Vec::new(),
+            startup_granted: Mutex::new(HashMap::new()),
+            scheduler: Mutex::new(SchedulerState::new()),
         }
     }
 }
@@ -1690,6 +1694,23 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
+    // Process startup grants (give items/books on first join).
+    let h = handlers();
+    let mut granted = h.startup_granted.lock().expect("startup_granted poisoned");
+    for sg in &h.startup_grants {
+        let key = format!("{}::{}", u, sg.id);
+        if granted.contains_key(&key) {
+            continue;
+        }
+        for item_id in &sg.items {
+            unsafe { srv_give_item(std::ptr::null_mut(), YogStr::from_str(&p), YogStr::from_str(item_id), 1); }
+        }
+        if let Some(book) = &sg.book {
+            unsafe { srv_give_item(std::ptr::null_mut(), YogStr::from_str(&p), YogStr::from_str("minecraft:written_book"), 1); }
+        }
+        granted.insert(key, true);
+    }
+    drop(granted);
 }
 
 #[no_mangle]

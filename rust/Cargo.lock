@@ -485,7 +485,7 @@ dependencies = [
  "yog-logging 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-network 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-player 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-registry 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-registry 0.2.0",
  "yog-storage 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-world 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -507,7 +507,7 @@ dependencies = [
  "yog-logging 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-network 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-player 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-registry 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-registry 0.2.0",
  "yog-storage 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-world 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -663,13 +663,6 @@ dependencies = [
 [[package]]
 name = "yog-registry"
 version = "0.2.0"
-dependencies = [
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "yog-registry"
-version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84d9252f51f81b7b9ee1c5beec1c820c76d82120a6d2fa9996426b68e3b6846e"
 dependencies = [
@@ -677,8 +670,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-registry"
+version = "0.3.0"
+dependencies = [
+ "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "yog-registry"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5320db00db205479c9a2e6e21250d1a3d403c8784a0a310c331e39fbf9c6cb91"
+dependencies = [
+ "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "yog-runtime"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "glow",
  "jni",
@@ -686,7 +695,7 @@ dependencies = [
  "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-api 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-logging 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-registry 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-registry 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "zip",
 ]
 
