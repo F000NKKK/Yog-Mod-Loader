@@ -462,70 +462,76 @@ checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
 
 [[package]]
 name = "yog-abi"
-version = "0.1.0"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6b2f2d2f3624314d44a529e55326eee3a1ba03b7a9345c8122cc689de57fbe3"
 
 [[package]]
 name = "yog-abi"
-version = "0.1.0"
+version = "0.3.0"
+
+[[package]]
+name = "yog-abi"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4110d8fe8e6aefeed1e96acafa65ec8ebb82ad368025ac9e172e231e29f1e61a"
+checksum = "95a5410b9f3cb19a66ca96f84c2e7faba00929945594ec3f186c6ad7da4274cb"
 
 [[package]]
 name = "yog-api"
-version = "0.2.0"
+version = "0.5.0"
 dependencies = [
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-book 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-abi 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-book 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-command 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-config 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-core 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-entity 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-event 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-gfx 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-gfx 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-logging 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-network 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-player 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-registry 0.2.0",
+ "yog-registry 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-storage 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-world 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "yog-api"
-version = "0.2.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96629f5a29c13ff05c69a54701b5086411cb12980dc235dc9e331fcd0e2144a8"
+checksum = "91b07b7d1da4c1478ba01d2aed48a48df77a9acd4148b5557c18c73facdda207"
 dependencies = [
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-book 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-abi 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-book 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-command 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-config 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-core 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-entity 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-event 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-gfx 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-gfx 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-logging 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-network 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-player 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-registry 0.2.0",
+ "yog-registry 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-storage 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-world 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "yog-book"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
- "yog-registry 0.1.0",
+ "yog-registry 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "yog-book"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1fe14b1c3813edc00ab799b4927610ec4779f741b3f7e0194974bc6b1c20117"
+checksum = "d6516bc6061605c45f8d2bbeebdfa1a4e562c9c98d2e2cd6827adb5a9b7ec12c"
 dependencies = [
- "yog-registry 0.1.0",
+ "yog-registry 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -599,18 +605,18 @@ dependencies = [
 
 [[package]]
 name = "yog-gfx"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-abi 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "yog-gfx"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19ba1e0207e0e660cf00c1d446ece66c98236620f514b23533bbbfffe1411eec"
+checksum = "f773db6b06e8a78ccb118e26dbe441b4683c8d9af3c8722986d14afc6b59a58b"
 dependencies = [
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-abi 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -653,49 +659,31 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d155d76db829757cffc7f1625880259f2b0fff0ef65372523802e455044b878"
+version = "0.4.0"
 dependencies = [
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-abi 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "yog-registry"
-version = "0.2.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84d9252f51f81b7b9ee1c5beec1c820c76d82120a6d2fa9996426b68e3b6846e"
+checksum = "df31aa02abf01b06e1c97cd283ce26836281491567345c0a84e9e4aa713da6d0"
 dependencies = [
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "yog-registry"
-version = "0.3.0"
-dependencies = [
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "yog-registry"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5320db00db205479c9a2e6e21250d1a3d403c8784a0a310c331e39fbf9c6cb91"
-dependencies = [
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-abi 0.2.0",
 ]
 
 [[package]]
 name = "yog-runtime"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "glow",
  "jni",
  "libloading",
- "yog-abi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-api 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-abi 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-api 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yog-logging 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "yog-registry 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yog-registry 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "zip",
 ]
 

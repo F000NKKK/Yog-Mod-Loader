@@ -15,8 +15,8 @@ use yog_abi::{
     YogEntityDamageEvent, YogEntityDeathEvent, YogEntityInteractEvent, YogEntitySpawnEvent,
     YogExplosionEvent, YogGfxApi, YogItemDef, YogItemPickupEvent, YogKeyPressEvent,
     YogPacketEvent, YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent, YogPlayerMoveEvent,
-    YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer, YogStr, YogUseBlockEvent,
-    YogUseItemEvent,
+    YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer, YogStr, YogStartupGrantDef,
+    YogUseBlockEvent, YogUseItemEvent,
 };
 use yog_gfx::GfxContext;
 use yog_command::CommandContext;
@@ -30,7 +30,7 @@ use yog_event::{
     UseBlockEvent, UseItemEvent,
 };
 use yog_network::{Packet, PacketEvent};
-use yog_registry::{BlockDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe};
+use yog_registry::{BlockDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe, StartupGrant};
 
 // ── CServer — implements Server via the YogServer function table ──────────────
 
@@ -1090,6 +1090,20 @@ impl Registry {
             shape,
         };
         unsafe { ((*self.api).register_block)(self.ctx(), &c) }
+    }
+
+    // ── startup grants ───────────────────────────────────────────────────────
+
+    /// Register a startup grant: items/books to give once when a player first joins.
+    pub fn register_startup_grant(&mut self, grant: StartupGrant) {
+        let items_str = grant.items.join("|");
+        let c = YogStartupGrantDef {
+            id:      YogStr::from_str(&grant.id),
+            items:   YogStr::from_str(&items_str),
+            book:    grant.book.as_deref().map(YogStr::from_str).unwrap_or(YogStr::EMPTY),
+            command: grant.command.as_deref().map(YogStr::from_str).unwrap_or(YogStr::EMPTY),
+        };
+        unsafe { ((*self.api).register_startup_grant)(self.ctx(), &c) }
     }
 
     // ── scheduler ────────────────────────────────────────────────────────────

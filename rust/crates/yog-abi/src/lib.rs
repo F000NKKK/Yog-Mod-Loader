@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 15;
+pub const ABI_MINOR: u32 = 16;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -303,6 +303,15 @@ pub struct YogCommandEvent {
     pub args:   YogStr,
     pub source: YogStr,
     pub uuid:   YogStr,
+}
+
+/// A startup grant definition — items/books to give on first join.
+#[repr(C)]
+pub struct YogStartupGrantDef {
+    pub id:    YogStr,
+    pub items: YogStr, // '|'-separated item ids
+    pub book:  YogStr, // empty = none
+    pub command: YogStr, // empty = none
 }
 
 // ── Content definition structs (mod → runtime) ────────────────────────────────
@@ -780,6 +789,9 @@ pub struct YogApi {
     /// `gfx.view_proj` and `gfx.camera_pos` are filled; use them to project
     /// custom 3D geometry into clip space.
     pub on_world_render: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogWorldRenderFn),
+
+    // ── ABI minor 16 — startup grants ────────────────────────────────────────
+    pub register_startup_grant: unsafe extern "C" fn(ctx: *mut c_void, grant: *const YogStartupGrantDef),
 }
 
 unsafe impl Send for YogApi {}

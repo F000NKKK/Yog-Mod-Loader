@@ -34,7 +34,7 @@ use yog_abi::{
     YogKeyPressFn, YogKeyPressEvent, YogOwnedStr, YogPacketFn, YogPlaceBlockEvent,
     YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn, YogPlayerMoveEvent,
     YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn, YogProjectileHitEvent,
-    YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn, YogStr,
+    YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn, YogStr, YogStartupGrantDef,
     YogUseBlockFn, YogUseItemFn, YogVec3, YogWorldRenderFn,
 };
 use yog_registry::{BlockDef, FoodDef, ItemDef};
@@ -1401,6 +1401,24 @@ unsafe extern "C" fn api_schedule_repeating(ctx: *mut c_void, period_ticks: u64,
     handlers.scheduler.lock().expect("scheduler poisoned").repeating_tasks.push(RepeatingTask { period: period_ticks, ticks_left: period_ticks, ud, f: h });
 }
 
+unsafe extern "C" fn api_register_startup_grant(ctx: *mut c_void, grant: *const YogStartupGrantDef) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let g = &*grant;
+    let items: Vec<String> = if g.items.is_empty() {
+        Vec::new()
+    } else {
+        unsafe { g.items.as_str().split('|').map(|s: &str| s.to_owned()).collect() }
+    };
+    let book = if g.book.is_empty() { None } else { Some(unsafe { g.book.as_str().to_owned() }) };
+    let command = if g.command.is_empty() { None } else { Some(unsafe { g.command.as_str().to_owned() }) };
+    handlers.startup_grants.push(yog_registry::StartupGrant {
+        id: unsafe { g.id.as_str().to_owned() },
+        items,
+        book,
+        command,
+    });
+}
+
 // ── Table constructors ────────────────────────────────────────────────────────
 
 fn build_server_table() -> YogServer {
@@ -1521,6 +1539,7 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         on_screen_open:     api_on_screen_open,
         on_screen_close:    api_on_screen_close,
         on_world_render:    api_on_world_render,
+        register_startup_grant: api_register_startup_grant,
     }
 }
 

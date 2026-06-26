@@ -1,10 +1,10 @@
 [package]
 name = "yog-book"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 description = "In-game book/documentation system for Yog mods (Patchouli-like)."
 authors = ["F000NK, Yog Team, Voluntas Progressus"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-yog-registry = "0.1"
+yog-registry = "0.4"
