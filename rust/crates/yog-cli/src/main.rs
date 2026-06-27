@@ -144,12 +144,16 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     }
 
     let id = id.ok_or("yog.toml: missing [mod] id")?;
-    // Extract yog_api_version from dependencies if there
+    // Extract yog_api_version / yog-api from dependencies if there
     let mut yog_api_version = None;
     let mut filtered_deps = Vec::new();
     for (name, spec) in dependencies {
         if name == "yog_api_version" {
-            yog_api_version = Some(spec);
+            yog_api_version = Some(spec.trim_matches('"').to_string());
+        } else if name == "yog-api" {
+            yog_api_version = Some(spec.trim_matches('"').to_string());
+        } else if name == "yog_api" {
+            yog_api_version = Some(spec.trim_matches('"').to_string());
         } else {
             filtered_deps.push((name, spec));
         }
@@ -798,7 +802,7 @@ fn write_file(path: &Path, data: &[u8]) -> Result<(), String> {
 /// Fetch the latest non-yanked version of `yog-api` from crates.io.
 fn latest_yog_api_version() -> String {
     match std::process::Command::new("cargo")
-        .args(["search", "yog-api", "--limit", "1", "-q"])
+        .args(["search", "yog-api", "--limit", "1"])
         .output()
     {
         Ok(out) if out.status.success() => {
@@ -807,11 +811,15 @@ fn latest_yog_api_version() -> String {
                 .next()
                 .and_then(|l| {
                     let mut parts = l.split_whitespace();
-                    parts.next(); // skip crate name
-                    parts.next().map(|v| v.trim_matches('"').to_owned())
+                    parts.next();                              // skip crate name (e.g. "yog-api")
+                    if parts.next() == Some("=") {            // skip the "=" separator
+                        parts.next().map(|v| v.trim_matches('"').to_owned())
+                    } else {
+                        None
+                    }
                 })
                 .unwrap_or_else(|| "0.5".into())
         }
-        _ => "0.5".into(), // fallback if network fails
+        _ => "0.5".into(), // fallback when cargo search fails (offline, etc.)
     }
 }
