@@ -121,6 +121,8 @@ public class YogBookScreen extends Screen {
             }
         }
 
+    }
+
     @Override
     public void render(DrawContext ctx, int mx, int my, float delta) {
         renderBackground(ctx);
@@ -186,8 +188,12 @@ public class YogBookScreen extends Screen {
     @Override public boolean shouldPause() { return false; }
 
     record Category(String id, String name, String desc, String icon, int sortnum) {}
-    record Entry(String id, String name, String cat, String icon) {
+    static class Entry {
+        final String id, name, cat, icon;
         final List<PageData> pages = new ArrayList<>();
+        Entry(String id, String name, String cat, String icon) {
+            this.id = id; this.name = name; this.cat = cat; this.icon = icon;
+        }
     }
     static class PageData { String type, text, itemId, recipeId, texture, title; boolean border; PageData(String t) { type = t; } }
 }

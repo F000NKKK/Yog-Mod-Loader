@@ -1,7 +1,7 @@
 //! Example Mod guide book — documents all items, blocks, commands and recipes.
 
 use yog_api::{
-    Book, BookCategory, BookEntry, BookPage,
+    Book, BookCategory, BookEntry,
     crafting_page, smelting_page, spotlight_page, text_page,
     ItemDef,
 };
