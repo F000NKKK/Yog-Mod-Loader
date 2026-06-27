@@ -134,13 +134,3 @@ pub fn guide_book() -> Book {
             ..Default::default()
         })
 }
-
-impl Default for BookEntry {
-    fn default() -> Self {
-        Self {
-            id: String::new(), name: String::new(), category: String::new(),
-            pages: Vec::new(), icon: None, secret: false,
-            priority: 0, read_by_default: false, advancement: None,
-        }
-    }
-}

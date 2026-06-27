@@ -1,6 +1,6 @@
 [package]
 name = "yog-book"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 description = "In-game book/documentation system for Yog mods (Patchouli-like)."
 authors = ["F000NK, Yog Team, Voluntas Progressus"]

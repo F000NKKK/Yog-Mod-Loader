@@ -81,7 +81,7 @@ pub struct BookCategory {
 // ── Entry ────────────────────────────────────────────────────────────────────
 
 /// One entry in a book (like a "page" in the TOC sidebar).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct BookEntry {
     pub id: String,
     pub name: String,
