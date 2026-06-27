@@ -279,3 +279,91 @@ pub fn pattern_page(op_id: impl Into<String>, anchor: impl Into<String>, input: 
         text: text.into(),
     }
 }
+
+// ── JSON serialization ────────────────────────────────────────────────────────
+
+fn esc(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+impl BookPage {
+    pub fn to_json(&self) -> String {
+        match self {
+            Self::Text { text } =>
+                format!(r#"{{"type":"text","text":"{}"}}"#, esc(text)),
+            Self::Spotlight { item, title, text } => {
+                let t = title.as_deref().map(|s| format!(r#","title":"{}""#, esc(s))).unwrap_or_default();
+                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
+                format!(r#"{{"type":"spotlight","item":"{id}"{t}{tx}}}"#, id = esc(&item.id))
+            }
+            Self::Crafting { recipe_id, text } => {
+                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
+                format!(r#"{{"type":"crafting","recipe":"{}"{}}}"#, esc(recipe_id), tx)
+            }
+            Self::Smelting { recipe_id, text } => {
+                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
+                format!(r#"{{"type":"smelting","recipe":"{}"{}}}"#, esc(recipe_id), tx)
+            }
+            Self::Image { texture, title, text, border } => {
+                let t = title.as_deref().map(|s| format!(r#","title":"{}""#, esc(s))).unwrap_or_default();
+                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
+                format!(r#"{{"type":"image","texture":"{}","border":{}{}{}}}"#,
+                    esc(texture), border, t, tx)
+            }
+            Self::Entity { entity_type, name, text } => {
+                let n = name.as_deref().map(|s| format!(r#","name":"{}""#, esc(s))).unwrap_or_default();
+                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
+                format!(r#"{{"type":"entity","entity":"{}"{}{}}}"#, esc(entity_type), n, tx)
+            }
+            Self::Relations { entries, text } => {
+                let e: String = entries.iter().map(|s| format!(r#""{}""#, esc(s))).collect::<Vec<_>>().join(",");
+                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
+                format!(r#"{{"type":"relations","entries":[{}]{}}}"#, e, tx)
+            }
+            Self::Empty => r#"{"type":"empty"}"#.to_string(),
+            Self::Pattern { op_id, anchor, input, output, text } =>
+                format!(r#"{{"type":"pattern","op_id":"{}","anchor":"{}","input":"{}","output":"{}","text":"{}"}}"#,
+                    esc(op_id), esc(anchor), esc(input), esc(output), esc(text)),
+        }
+    }
+}
+
+impl BookEntry {
+    pub fn to_json(&self) -> String {
+        let pages: String = self.pages.iter().map(|p| p.to_json()).collect::<Vec<_>>().join(",");
+        let icon = self.icon.as_deref().map(|s| format!(r#","icon":"{}""#, esc(s))).unwrap_or_default();
+        let adv = self.advancement.as_deref().map(|s| format!(r#","advancement":"{}""#, esc(s))).unwrap_or_default();
+        format!(
+            r#"{{"id":"{}","name":"{}","category":"{}","pages":[{}],"secret":{},"priority":{},"read_by_default":{}{}{}}}"#,
+            esc(&self.id), esc(&self.name), esc(&self.category), pages,
+            self.secret, self.priority, self.read_by_default, icon, adv
+        )
+    }
+}
+
+impl BookCategory {
+    pub fn to_json(&self) -> String {
+        let desc = self.description.as_deref().map(|s| format!(r#","description":"{}""#, esc(s))).unwrap_or_default();
+        let icon = self.icon.as_deref().map(|s| format!(r#","icon":"{}""#, esc(s))).unwrap_or_default();
+        format!(
+            r#"{{"id":"{}","name":"{}","sortnum":{}{}{}}}"#,
+            esc(&self.id), esc(&self.name), self.sortnum, desc, icon
+        )
+    }
+}
+
+impl Book {
+    pub fn to_json(&self) -> String {
+        let cats: String = self.categories.iter().map(|c| c.to_json()).collect::<Vec<_>>().join(",");
+        let entries: String = self.entries.iter().map(|e| e.to_json()).collect::<Vec<_>>().join(",");
+        let author = self.author.as_deref().map(|s| format!(r#","author":"{}""#, esc(s))).unwrap_or_default();
+        let tab = self.creative_tab.as_deref().map(|s| format!(r#","creative_tab":"{}""#, esc(s))).unwrap_or_default();
+        format!(
+            r#"{{"id":"{}","name":"{}","nameplate_color":"{}","landing_text":"{}","book_texture":"{}","filler_texture":"{}","model":"{}","show_progress":{},"i18n":{},"use_resource_pack":{},"categories":[{}],"entries":[{}]{}{}}}"#,
+            esc(&self.id), esc(&self.name), esc(&self.nameplate_color), esc(&self.landing_text),
+            esc(&self.book_texture), esc(&self.filler_texture), esc(&self.model),
+            self.show_progress, self.i18n, self.use_resource_pack,
+            cats, entries, author, tab
+        )
+    }
+}

@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 16;
+pub const ABI_MINOR: u32 = 18;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -792,6 +792,9 @@ pub struct YogApi {
 
     // ── ABI minor 16 — startup grants ────────────────────────────────────────
     pub register_startup_grant: unsafe extern "C" fn(ctx: *mut c_void, grant: *const YogStartupGrantDef),
+
+    // ── ABI minor 18 — books ─────────────────────────────────────────────────
+    pub register_book: unsafe extern "C" fn(ctx: *mut c_void, book_id: YogStr, book_json: YogStr),
 }
 
 unsafe impl Send for YogApi {}

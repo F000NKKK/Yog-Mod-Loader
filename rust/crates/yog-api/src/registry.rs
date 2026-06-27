@@ -18,6 +18,7 @@ use yog_abi::{
     YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer, YogStr, YogStartupGrantDef,
     YogUseBlockEvent, YogUseItemEvent,
 };
+use yog_book::Book;
 use yog_gfx::GfxContext;
 use yog_command::CommandContext;
 use yog_core::Server;
@@ -1104,6 +1105,14 @@ impl Registry {
             command: grant.command.as_deref().map(YogStr::from_str).unwrap_or(YogStr::EMPTY),
         };
         unsafe { ((*self.api).register_startup_grant)(self.ctx(), &c) }
+    }
+
+    /// Register a book with its JSON-serialized content.
+    pub fn register_book(&mut self, book: &Book) {
+        let json = book.to_json();
+        let id = YogStr::from_str(&book.id);
+        let j = YogStr::from_str(&json);
+        unsafe { ((*self.api).register_book)(self.ctx(), id, j) }
     }
 
     // ── scheduler ────────────────────────────────────────────────────────────

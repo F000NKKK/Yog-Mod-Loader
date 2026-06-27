@@ -1,5 +1,6 @@
 package dev.yog;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
@@ -20,8 +21,7 @@ public class YogBookItem extends YogItem {
         if (world.isClient) {
             String json = NativeBridge.nativeBookJson(bookId);
             if (json != null && !json.equals("null")) {
-                // TODO: open book screen — for now just log
-                System.out.println("[yog] opening book: " + bookId);
+                MinecraftClient.getInstance().setScreen(new YogBookScreen(bookId));
             }
         }
         return TypedActionResult.success(player.getStackInHand(hand));

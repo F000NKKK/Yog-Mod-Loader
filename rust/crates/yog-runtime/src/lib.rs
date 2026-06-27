@@ -107,6 +107,7 @@ struct RuntimeHandlers {
     client_packets:     HashMap<String, (*mut c_void, YogPacketFn)>,
     items:              Vec<ItemDef>,
     blocks:             Vec<BlockDef>,
+    books:              HashMap<String, String>, // book_id → JSON
     startup_grants:     Vec<yog_registry::StartupGrant>,
     startup_granted:    Mutex<HashMap<String, bool>>,
     scheduler:          Mutex<SchedulerState>,
@@ -137,7 +138,7 @@ impl RuntimeHandlers {
             commands: HashMap::new(), typed_schemas: HashMap::new(),
             recipes: Vec::new(), packets: HashMap::new(),
             client_packets: HashMap::new(), items: Vec::new(),
-            blocks: Vec::new(), startup_grants: Vec::new(),
+            blocks: Vec::new(), books: HashMap::new(), startup_grants: Vec::new(),
             startup_granted: Mutex::new(HashMap::new()),
             scheduler: Mutex::new(SchedulerState::new()),
         }
@@ -1419,6 +1420,23 @@ unsafe extern "C" fn api_register_startup_grant(ctx: *mut c_void, grant: *const 
     });
 }
 
+unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_json: YogStr) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    handlers.books.insert(unsafe { book_id.as_str().to_owned() }, unsafe { book_json.as_str().to_owned() });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeBookJson<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>, book_id: JString<'l>,
+) -> jstring {
+    let id = match env.get_string(&book_id) {
+        Ok(s) => String::from(s),
+        Err(_) => return std::ptr::null_mut(),
+    };
+    let json = handlers().books.get(&id).cloned().unwrap_or_else(|| "null".to_string());
+    env.new_string(json).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+}
+
 // ── Table constructors ────────────────────────────────────────────────────────
 
 fn build_server_table() -> YogServer {
@@ -1540,6 +1558,7 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         on_screen_close:    api_on_screen_close,
         on_world_render:    api_on_world_render,
         register_startup_grant: api_register_startup_grant,
+        register_book:          api_register_book,
     }
 }
 
@@ -1716,16 +1735,21 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
     // Process startup grants (give items/books on first join).
     let h = handlers();
     let mut granted = h.startup_granted.lock().expect("startup_granted poisoned");
+    yog_logging::info!("processing {} startup grants for player {}", h.startup_grants.len(), p);
     for sg in &h.startup_grants {
         let key = format!("{}::{}", u, sg.id);
         if granted.contains_key(&key) {
+            yog_logging::info!("startup grant {} already granted, skipping", sg.id);
             continue;
         }
+        yog_logging::info!("granting startup grant {} with {} items", sg.id, sg.items.len());
         for item_id in &sg.items {
-            unsafe { srv_give_item(std::ptr::null_mut(), YogStr::from_str(&p), YogStr::from_str(item_id), 1); }
+            let ok = unsafe { srv_give_item(std::ptr::null_mut(), YogStr::from_str(&p), YogStr::from_str(item_id), 1) };
+            yog_logging::info!("gave {} to {} -> {}", item_id, p, ok);
         }
         if let Some(book) = &sg.book {
-            unsafe { srv_give_item(std::ptr::null_mut(), YogStr::from_str(&p), YogStr::from_str("minecraft:written_book"), 1); }
+            let ok = unsafe { srv_give_item(std::ptr::null_mut(), YogStr::from_str(&p), YogStr::from_str("minecraft:written_book"), 1) };
+            yog_logging::info!("gave book {} to {} -> {}", book, p, ok);
         }
         granted.insert(key, true);
     }
