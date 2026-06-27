@@ -1,6 +1,6 @@
 //! Custom items and blocks declared by this mod.
 
-use yog_api::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, Registry, ShapedRecipe, ShapelessRecipe};
+use yog_api::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, Registry, ShapedRecipe, ShapelessRecipe, StartupGrant};
 
 pub fn register(registry: &mut Registry) {
     registry.register_item(
@@ -67,4 +67,18 @@ pub fn register(registry: &mut Registry) {
             .experience(0.5),
     );
 
+    // ── Guide book ─────────────────────────────────────────────────────────────
+
+    // Guide book item for the Example Mod.
+    registry.register_item(
+        ItemDef::new("yog:example_guide")
+            .name("Example Mod Guide")
+            .tooltip("Everything you need to know."),
+    );
+
+    // Give the guide book to every new player on first join.
+    registry.register_startup_grant(
+        StartupGrant::new("yog:example_guide_grant")
+            .item("yog:example_guide"),
+    );
 }

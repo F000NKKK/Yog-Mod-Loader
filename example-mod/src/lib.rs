@@ -1,5 +1,6 @@
 use yog_api::{Mod, Registry};
 
+mod book;
 mod commands;
 mod content;
 mod events;
