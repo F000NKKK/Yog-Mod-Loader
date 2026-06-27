@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 18;
+pub const ABI_MINOR: u32 = 19;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -415,6 +415,7 @@ pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
 pub type YogClientFn = unsafe extern "C" fn(ud: *mut c_void);
 /// HUD render — `gfx` is the graphics context for this frame; only valid for
 /// the call duration.  `draw2d_*` functions in `gfx` work here.
+pub type YogUIEventFn = unsafe extern "C" fn(ud: *mut c_void, ui_id: YogStr, event_id: YogStr);
 pub type YogHudRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
 /// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
 /// Valid only for the call duration.
@@ -795,6 +796,12 @@ pub struct YogApi {
 
     // ── ABI minor 18 — books ─────────────────────────────────────────────────
     pub register_book: unsafe extern "C" fn(ctx: *mut c_void, book_id: YogStr, book_json: YogStr),
+    
+    // ── ABI minor 19 — UI system ──────────────────────────────────────────────
+    /// Register a UI tree. `ui_id` is the unique identifier (e.g. "mymod:menu").
+    /// `layout_json` is the serialized layout tree.
+    /// `handler` is called when an interactive element is clicked/keyed.
+    pub register_ui: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr, layout_json: YogStr, ud: *mut c_void, h: YogUIEventFn),
 }
 
 unsafe impl Send for YogApi {}
