@@ -329,8 +329,16 @@ public class YogHost implements ModInitializer {
                     }
                 }
 
-                Item item = new YogItem(settings,
-                        p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""));
+                // Check if this item has an associated book
+                String bookJson = NativeBridge.nativeBookJson(id);
+                Item item;
+                if (bookJson != null && !bookJson.equals("null")) {
+                    item = new YogBookItem(settings,
+                            p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""), id);
+                } else {
+                    item = new YogItem(settings,
+                            p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""));
+                }
                 Registry.register(Registries.ITEM, ident, item);
                 tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(item);
 

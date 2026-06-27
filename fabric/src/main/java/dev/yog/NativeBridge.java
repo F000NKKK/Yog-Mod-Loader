@@ -922,6 +922,10 @@ public final class NativeBridge {
     /** Declared custom blocks as `id\thardness\tresistance` lines. */
     public static native String nativeBlockDefs();
 
+
+    /** Get the JSON of a registered book by its id (e.g. "yog:example_guide"). */
+    public static native String nativeBookJson(String bookId);
+
     // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
 
     public static native void nativeOnPacket(String channel, String player, byte[] payload);
