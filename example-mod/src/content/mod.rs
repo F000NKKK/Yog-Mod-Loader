@@ -66,4 +66,5 @@ pub fn register(registry: &mut Registry) {
         FurnaceRecipe::new("yog:ember_coal_smelting", "minecraft:coal", "yog:ember_coal", 1)
             .experience(0.5),
     );
+
 }

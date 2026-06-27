@@ -12,6 +12,7 @@ import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import net.fabricmc.api.ModInitializer;
@@ -279,7 +280,7 @@ public class YogHost implements ModInitializer {
 
     /**
      * Register custom items/blocks declared by Rust mods, apply their name and
-     * tooltip, and collect them into a "Yog" creative tab.
+     * tooltip, and collect them into per-namespace creative tabs.
      */
     /** Parse `id\tkey=value\t...` into a map. First element is the id. */
     private static Map<String, String> parseProps(String line) {
@@ -293,7 +294,8 @@ public class YogHost implements ModInitializer {
     }
 
     private static void registerContent() {
-        List<ItemConvertible> tabEntries = new ArrayList<>();
+        // Group items and blocks by namespace for per-mod creative tabs.
+        Map<String, List<ItemConvertible>> tabGroups = new LinkedHashMap<>();
 
         String items = NativeBridge.nativeItemDefs();
         if (items != null) {
@@ -330,7 +332,7 @@ public class YogHost implements ModInitializer {
                 Item item = new YogItem(settings,
                         p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""));
                 Registry.register(Registries.ITEM, ident, item);
-                tabEntries.add(item);
+                tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(item);
 
                 int fuelTicks = parseInt(p, "fuel_ticks", 0);
                 if (fuelTicks > 0) FuelRegistry.INSTANCE.add(item, fuelTicks);
@@ -380,18 +382,23 @@ public class YogHost implements ModInitializer {
                 Item blockItem = new YogBlockItem(block, new Item.Settings(),
                         p.getOrDefault("name", ""));
                 Registry.register(Registries.ITEM, ident, blockItem);
-                tabEntries.add(blockItem);
+                tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(blockItem);
             }
         }
 
-        if (!tabEntries.isEmpty()) {
-            ItemConvertible icon = tabEntries.get(0);
+        // Create one creative tab per namespace, using the first item from each as icon.
+        for (Map.Entry<String, List<ItemConvertible>> entry : tabGroups.entrySet()) {
+            String ns = entry.getKey();
+            List<ItemConvertible> entries = entry.getValue();
+            if (entries.isEmpty()) continue;
+
+            ItemConvertible icon = entries.get(0);
             ItemGroup group = FabricItemGroup.builder()
                     .icon(() -> new ItemStack(icon))
-                    .displayName(Text.literal("Yog"))
-                    .entries((displayContext, entries) -> tabEntries.forEach(entries::add))
+                    .displayName(Text.literal(ns))
+                    .entries((displayContext, tabEntries) -> entries.forEach(tabEntries::add))
                     .build();
-            Registry.register(Registries.ITEM_GROUP, new Identifier("yog", "yog"), group);
+            Registry.register(Registries.ITEM_GROUP, new Identifier(ns, ns), group);
         }
     }
 

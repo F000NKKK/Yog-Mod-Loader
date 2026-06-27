@@ -2,7 +2,7 @@
 //!
 //! Definitions are collected at registration time and handed to the host, which
 //! registers real `Item`/`Block` objects before the game's registries freeze,
-//! puts them in a "Yog" creative tab, and applies their properties.
+//! puts them in per-namespace creative tabs, and applies their properties.
 //! (Textures, models and recipes are assets/data shipped in the `.yog` and
 //! served to the game.)
 //!
