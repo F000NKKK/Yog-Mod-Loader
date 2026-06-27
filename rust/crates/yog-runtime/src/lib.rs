@@ -108,6 +108,7 @@ struct RuntimeHandlers {
     items:              Vec<ItemDef>,
     blocks:             Vec<BlockDef>,
     books:              HashMap<String, String>, // book_id → JSON
+    pub(crate) uis:     HashMap<String, yog_ui::LayoutNode>, // ui_id → current layout
     startup_grants:     Vec<yog_registry::StartupGrant>,
     startup_granted:    Mutex<HashMap<String, bool>>,
     scheduler:          Mutex<SchedulerState>,
@@ -138,7 +139,7 @@ impl RuntimeHandlers {
             commands: HashMap::new(), typed_schemas: HashMap::new(),
             recipes: Vec::new(), packets: HashMap::new(),
             client_packets: HashMap::new(), items: Vec::new(),
-            blocks: Vec::new(), books: HashMap::new(), startup_grants: Vec::new(),
+            blocks: Vec::new(), books: HashMap::new(), uis: HashMap::new(), startup_grants: Vec::new(),
             startup_granted: Mutex::new(HashMap::new()),
             scheduler: Mutex::new(SchedulerState::new()),
         }
@@ -2796,4 +2797,50 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
             unsafe { f(*ud, YogStr::from_str(&sc)) };
         }
     });
+}
+
+
+// ── UI system JNI ─────────────────────────────────────────────────────────────
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>, ui_id: JString<'l>, _w: jint, _h: jint,
+) {
+    let id = jstr!(env, ui_id);
+    yog_logging::info!("UI show: {}", id);
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIHide<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>, ui_id: JString<'l>,
+) {
+    let id = jstr!(env, ui_id);
+    yog_logging::info!("UI hide: {}", id);
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    ui_id: JString<'l>, mx: jfloat, my: jfloat, button: jint,
+) {
+    let id = jstr!(env, ui_id);
+    let h = handlers();
+    if let Some(ui_root) = h.uis.get(&id) {
+        if let Some(hit) = yog_ui::layout::hit_test(ui_root, mx, my) {
+            if let Some(event) = &hit.on_click {
+                yog_logging::info!("UI click on '{}' firing event '{}'", hit.id.as_deref().unwrap_or("?"), event);
+                // TODO: dispatch event to mod callback
+            }
+        }
+    }
+    let _ = button;
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    ui_id: JString<'l>, key: jint, _scan: jint, _mods: jint, action: jint,
+) {
+    let id = jstr!(env, ui_id);
+    yog_logging::info!("UI key: {} key={} action={}", id, key, action);
 }

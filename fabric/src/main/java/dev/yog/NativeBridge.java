@@ -109,7 +109,18 @@ public final class NativeBridge {
     public static boolean giveItem(String player, String itemId, int count) {
         ServerPlayerEntity p = playerByName(player);
         Identifier id = Identifier.tryParse(itemId);
-        if (p == null || id == null || count <= 0 || !Registries.ITEM.containsId(id)) {
+        if (p == null) { System.out.println("[yog] giveItem: player not found: " + player); return false; }
+        if (id == null) { System.out.println("[yog] giveItem: bad id: " + itemId); return false; }
+        if (count <= 0) { System.out.println("[yog] giveItem: bad count: " + count); return false; }
+        if (!Registries.ITEM.containsId(id)) {
+            System.out.println("[yog] giveItem: item not registered: " + itemId);
+            // List what IS registered for debugging
+            if (itemId.startsWith("yog:")) {
+                System.out.println("[yog] known yog: items: " +
+                    Registries.ITEM.getIds().stream()
+                        .filter(i -> i.getNamespace().equals("yog"))
+                        .map(Identifier::toString).toList());
+            }
             return false;
         }
         Item item = Registries.ITEM.get(id);
@@ -913,6 +924,21 @@ public final class NativeBridge {
     /** Recipe JSONs: `namespace\tname\tJSON` per line. */
     public static native String nativeRecipeJsons();
 
+    /** Get the JSON of a registered book by its id (e.g. "yog:example_guide"). */
+    public static native String nativeBookJson(String bookId);
+
+    // ── UI system ──────────────────────────────────────────────────────────
+
+    /** Open a Rust-mod-defined UI screen. Called from Java. */
+    public static native void nativeUIShow(String uiId, int screenW, int screenH);
+    /** Hide / close the UI. Rust should stop rendering. */
+    public static native void nativeUIHide(String uiId);
+    /** Forward a mouse click to Rust. button: 0=left, 1=right, 2=middle. */
+    public static native void nativeUIClick(String uiId, float mx, float my, int button);
+    /** Forward a key event. action: 0=release, 1=press. */
+    public static native void nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
+
+    // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source, String uuid);
 

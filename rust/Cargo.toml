@@ -22,6 +22,8 @@ members = [
     "crates/yog-book",
     # graphics subsystem — low-level GL pipeline access for mods (permissive)
     "crates/yog-gfx",
+    # UI framework — flexbox layout + widgets on top of yog-gfx
+    "crates/yog-ui",
     # build tooling
     "crates/yog-cli",
     # engine (AGPL)

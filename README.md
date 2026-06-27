@@ -52,9 +52,11 @@ Each platform has its own version-specific Mixin sources under
 | ✅ 10 | Item NBT: held item + off-hand + full slot query/set | 11–12 |
 | ✅ 11 | Low-level GPU pipeline: `YogGfxApi`, HUD + world rendering, `yog-gfx` crate | 13–14 |
 | ✅ 11.1 | `player_pos` in `GfxContext` (distinct from camera in F5 view); shader binary cache | 15 |
-| 🔲 12 | NeoForge host, then Forge host |  |
+| ✅ 12 | Startup grants (give items/books on first join); creative tabs per namespace | 16 |
+| ✅ 13 | `yog-book`: in-game documentation system (Patchouli replacement) — books, categories, entries, page types, JSON serialization, GUI screen | 17–18 |
+| 🔲 14 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 15)
+## API available now (ABI minor 18)
 
 ### Events
 
@@ -350,17 +352,83 @@ registry.on_typed_command("tp", "float float float", |ctx, srv| {
 });
 ```
 
-### Custom content
+### Custom items & blocks
 
 ```rust
-registry.register_item(ItemDef {
-    id: "mymod:ruby".into(),
-    max_stack: 64,
-    name: Some("Ruby".into()),
-    tooltip: Some("Shiny.".into()),
-    ..Default::default()
-});
-registry.add_shaped_recipe(ShapedRecipe { /* ... */ });
+registry.register_item(
+    ItemDef::new("mymod:ruby")
+        .name("Ruby")
+        .tooltip("A shiny gem.")
+        .max_stack(16)
+        .fuel(400)  // furnace fuel: 200 ticks = 1 coal
+);
+registry.register_item(
+    ItemDef::new("mymod:snack")
+        .food(FoodDef::new(4, 0.3))  // nutrition, saturation
+);
+registry.register_block(
+    BlockDef::new("mymod:lamp")
+        .strength(1.5, 6.0)
+        .light_level(15)
+        .sound("metal")
+        .requires_tool()
+);
+registry.add_shaped_recipe(
+    ShapedRecipe::new("mymod:ruby_sword", "mymod:ruby_sword", 1)
+        .row("R ").row("R ").row("S ")
+        .key('R', "mymod:ruby").key('S', "minecraft:stick")
+);
+```
+
+Items and blocks are automatically grouped into **per-namespace creative tabs**:
+`mymod:ruby` → `mymod` tab, `hexcasting:thehexbook` → `hexcasting` tab, etc.
+
+### Books (`yog-book` — Patchouli replacement) (ABI minor 17–18)
+
+Define in-game documentation books entirely in Rust:
+
+```rust
+use yog_api::{Book, BookCategory, BookEntry,
+    text_page, spotlight_page, crafting_page, smelting_page};
+
+let book = Book::new("mymod:guide", "My Mod Guide")
+    .nameplate("0066cc")
+    .landing_text("Welcome to the guide!")
+    .author("Mod Author")
+    .creative_tab("mymod")
+    .add_category(BookCategory {
+        id: "items".into(), name: "Items".into(),
+        description: Some("Mod items.".into()),
+        icon: Some("mymod:item/ruby".into()), sortnum: 0,
+    })
+    .add_entry(BookEntry {
+        id: "ruby".into(), name: "Ruby".into(), category: "items".into(),
+        icon: Some("mymod:ruby".into()),
+        pages: vec![
+            spotlight_page(ItemDef::new("mymod:ruby").name("Ruby")),
+            text_page("A shiny gem. Max stack: 16."),
+            crafting_page("mymod:ruby_sword"),
+        ],
+        ..Default::default()
+    });
+
+registry.register_book(&book);
+```
+
+When an item's ID matches a registered book ID, right-clicking opens the
+**YogBookScreen** GUI with categories, entries, and rendered pages (text,
+spotlight, crafting, smelting).
+
+### Startup grants (ABI minor 16)
+
+Give items or books to players on first join:
+
+```rust
+registry.register_startup_grant(
+    StartupGrant::new("mymod:welcome_grant")
+        .item("mymod:guide")     // give the guide book
+        .item("minecraft:bread"), // and some bread
+);
 ```
 
 ### Scheduler
@@ -480,6 +548,7 @@ yog/
 │       ├── yog-entity/          # Entity wrapper (teleport, health, NBT)   [MIT/Apache]
 │       ├── yog-player/          # Player wrapper (inventory, kick, …)      [MIT/Apache]
 │       ├── yog-registry/        # custom items/blocks/recipes               [MIT/Apache]
+│       ├── yog-book/            # in-game documentation system (Patchouli-like) [MIT/Apache]
 │       ├── yog-command/         # command types + arg parsing              [MIT/Apache]
 │       ├── yog-network/         # typed + raw packet helpers               [MIT/Apache]
 │       ├── yog-storage/         # persistent key-value storage             [MIT/Apache]
