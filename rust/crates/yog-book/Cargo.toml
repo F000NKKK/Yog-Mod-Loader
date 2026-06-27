@@ -1,10 +1,15 @@
 [package]
 name = "yog-book"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
-description = "In-game book/documentation system for Yog mods (Patchouli-like)."
+description = "In-game book/documentation system for Yog mods."
 authors = ["F000NK, Yog Team, Voluntas Progressus"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
 yog-registry = "0.6"
+yog-ui = { version = "0.3", optional = true }
+
+[features]
+default = []
+yog-ui-dep = ["yog-ui"]

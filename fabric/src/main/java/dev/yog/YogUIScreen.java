@@ -24,7 +24,7 @@ public class YogUIScreen extends Screen {
     public void render(DrawContext ctx, int mx, int my, float delta) {
         // Background
         renderBackground(ctx);
-        // Rust renders via on_hud_render / draw2d overlay
+        NativeBridge.nativeUIRender(uiId);
         super.render(ctx, mx, my, delta);
     }
 

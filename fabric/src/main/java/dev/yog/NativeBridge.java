@@ -938,6 +938,7 @@ public final class NativeBridge {
     /** Forward a key event. action: 0=release, 1=press. */
     public static native void nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
 
+    public static native void nativeUIRender(String uiId);
     // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source, String uuid);
@@ -947,10 +948,6 @@ public final class NativeBridge {
 
     /** Declared custom blocks as `id\thardness\tresistance` lines. */
     public static native String nativeBlockDefs();
-
-
-    /** Get the JSON of a registered book by its id (e.g. "yog:example_guide"). */
-    public static native String nativeBookJson(String bookId);
 
     // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
 

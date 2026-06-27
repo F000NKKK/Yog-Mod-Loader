@@ -280,6 +280,120 @@ pub fn pattern_page(op_id: impl Into<String>, anchor: impl Into<String>, input: 
     }
 }
 
+// ── Book → yog-ui bridge ─────────────────────────────────────────────────────
+#[cfg(feature = "yog-ui")]
+pub mod book_ui {
+    use crate::{Book, BookEntry, BookPage};
+    use yog_ui::widget::{self, Widget};
+    use yog_ui::{Align, FlexDir, UiRoot};
+
+    /// Build a `UiRoot` from a `Book`.
+    /// The UI has: left panel (categories + entries), right panel (pages),
+    /// prev/next buttons at bottom.
+    pub fn build_book_ui(book: &Book, selected_cat: usize, selected_entry: usize, current_page: usize) -> UiRoot {
+        let mut cats: Vec<Widget> = Vec::new();
+        for (i, cat) in book.categories.iter().enumerate() {
+            let color = if i == selected_cat { 0xFF_FFFF55 } else { 0xFF_CCCCCC };
+            cats.push(widget::button(&cat.name)
+                .color(color)
+                .on_click(format!("cat:{}", i)));
+        }
+
+        let cat = book.categories.get(selected_cat);
+        let mut entries: Vec<Widget> = Vec::new();
+        if let Some(cat) = cat {
+            let cat_entries: Vec<&BookEntry> = book.entries.iter()
+                .filter(|e| e.category == cat.id).collect();
+            for (i, entry) in cat_entries.iter().enumerate() {
+                let color = if i == selected_entry { 0xFF_FFFF55 } else { 0xFF_CCCCCC };
+                let label = if entry.name.len() > 14 { &entry.name[..14] } else { &entry.name };
+                entries.push(widget::button(label)
+                    .color(color)
+                    .on_click(format!("entry:{}", i)));
+            }
+        }
+
+        let mut pages: Vec<Widget> = Vec::new();
+        if let Some(cat) = cat {
+            let cat_entries: Vec<&BookEntry> = book.entries.iter()
+                .filter(|e| e.category == cat.id).collect();
+            if let Some(entry) = cat_entries.get(selected_entry) {
+                if let Some(page) = entry.pages.get(current_page) {
+                    pages.push(render_page(page));
+                }
+            }
+        }
+
+        let nav = widget::panel(FlexDir::Row).gap(4.0)
+            .child(widget::button("<").w(28.0).on_click("prev_page"))
+            .child(widget::label(&format!("{}/{}", current_page + 1,
+                cat.map_or(0, |c| {
+                    book.entries.iter().filter(|e| e.category == c.id).nth(selected_entry)
+                        .map_or(0, |e| e.pages.len())
+                }))).color(0xFF_888888).flex(1.0).align(Align::Center))
+            .child(widget::button(">").w(28.0).on_click("next_page"));
+
+        UiRoot::new(&book.id,
+            widget::panel(FlexDir::Row).gap(2.0)
+                .padding(2.0, 2.0, 2.0, 2.0).bg(0xFF_2A1A0E)
+                .child(
+                    widget::panel(FlexDir::Column).w(104.0)
+                        .child(widget::label("Categories").color(0xFF_888888))
+                        .child(widget::panel(FlexDir::Column).gap(1.0)
+                            .child_many(cats))
+                        .child(widget::label("Entries").color(0xFF_888888))
+                        .child(widget::panel(FlexDir::Column).gap(1.0)
+                            .child_many(entries))
+                )
+                .child(
+                    widget::panel(FlexDir::Column).flex(1.0).gap(2.0)
+                        .child(widget::panel(FlexDir::Column).flex(1.0)
+                            .child_many(pages))
+                        .child(nav)
+                )
+        )
+    }
+
+    fn render_page(page: &BookPage) -> Widget {
+        match page {
+            BookPage::Text { text } =>
+                widget::label(text).color(0xFF_CCCCAA),
+            BookPage::Spotlight { item, title, text } => {
+                let mut p = widget::panel(FlexDir::Column).gap(2.0);
+                if let Some(t) = title { p = p.child(widget::label(t).color(0xFF_FFFF55)); }
+                p = p.child(widget::item_slot(&item.id));
+                if let Some(t) = text { p = p.child(widget::label(t).color(0xFF_CCCCAA)); }
+                p
+            }
+            BookPage::Crafting { recipe_id, text } => {
+                let mut p = widget::panel(FlexDir::Column).gap(2.0);
+                p = p.child(widget::label(format!("Crafting: {}", recipe_id)).color(0xFF_888888));
+                if let Some(t) = text { p = p.child(widget::label(t).color(0xFF_CCCCAA)); }
+                p
+            }
+            BookPage::Smelting { recipe_id, text } => {
+                let mut p = widget::panel(FlexDir::Column).gap(2.0);
+                p = p.child(widget::label(format!("Smelting: {}", recipe_id)).color(0xFF_888888));
+                if let Some(t) = text { p = p.child(widget::label(t).color(0xFF_CCCCAA)); }
+                p
+            }
+            BookPage::Empty => widget::spacer(),
+            _ => widget::label("(unsupported page)").color(0xFF_888888),
+        }
+    }
+
+    // Helper: add multiple children to a widget
+    trait WidgetExt {
+        fn child_many(self, children: Vec<Widget>) -> Self;
+    }
+    impl WidgetExt for Widget {
+        fn child_many(mut self, children: Vec<Widget>) -> Self {
+            for c in children { self = self.child(c); }
+            self
+        }
+    }
+}
+
 // ── JSON serialization ────────────────────────────────────────────────────────
 
 fn esc(s: &str) -> String {

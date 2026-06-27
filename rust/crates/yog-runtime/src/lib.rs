@@ -2859,5 +2859,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
 ) {
     let id = jstr!(env, ui_id);
     yog_logging::info!("UI key: {} key={} action={}", id, key, action);
-    yog_logging::info!("UI key: {} key={} action={}", id, key, action);
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>, ui_id: JString<'l>,
+) {
+    let id = jstr!(env, ui_id);
+    // The mod's on_hud_render handler will call ui.render(ctx)
+    // So this just triggers a repaint — the mod handles actual rendering.
+    let _ = id;
 }

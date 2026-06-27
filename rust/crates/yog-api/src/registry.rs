@@ -1129,8 +1129,6 @@ impl Registry {
         }
     }
 
-    }
-
     // ── scheduler ────────────────────────────────────────────────────────────
 
     pub fn schedule_once<F>(&self, delay_ticks: u64, handler: F)
