@@ -1,10 +1,10 @@
 [package]
 name = "yog-registry"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog content registry — register items, blocks, recipes, etc."
 
 [dependencies]
-yog-abi = "0.4"
+yog-abi = "0.5"

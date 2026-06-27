@@ -109,6 +109,7 @@ struct RuntimeHandlers {
     blocks:             Vec<BlockDef>,
     books:              HashMap<String, String>, // book_id → JSON
     pub(crate) uis:     HashMap<String, yog_ui::LayoutNode>, // ui_id → current layout
+    ui_handlers:        HashMap<String, (*mut c_void, yog_abi::YogUIEventFn)>, // ui_id → callback
     startup_grants:     Vec<yog_registry::StartupGrant>,
     startup_granted:    Mutex<HashMap<String, bool>>,
     scheduler:          Mutex<SchedulerState>,
@@ -139,7 +140,8 @@ impl RuntimeHandlers {
             commands: HashMap::new(), typed_schemas: HashMap::new(),
             recipes: Vec::new(), packets: HashMap::new(),
             client_packets: HashMap::new(), items: Vec::new(),
-            blocks: Vec::new(), books: HashMap::new(), uis: HashMap::new(), startup_grants: Vec::new(),
+            blocks: Vec::new(), books: HashMap::new(), uis: HashMap::new(),
+            ui_handlers: HashMap::new(), startup_grants: Vec::new(),
             startup_granted: Mutex::new(HashMap::new()),
             scheduler: Mutex::new(SchedulerState::new()),
         }
@@ -1426,6 +1428,15 @@ unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_j
     handlers.books.insert(unsafe { book_id.as_str().to_owned() }, unsafe { book_json.as_str().to_owned() });
 }
 
+unsafe extern "C" fn api_register_ui(ctx: *mut c_void, ui_id: YogStr, _layout_json: YogStr,
+                                     ud: *mut c_void, h: yog_abi::YogUIEventFn) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let id = unsafe { ui_id.as_str().to_owned() };
+    handlers.ui_handlers.insert(id.clone(), (ud, h));
+    yog_logging::info!("registered UI handler: {}", id);
+}
+
+
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeBookJson<'l>(
     mut env: JNIEnv<'l>, _class: JClass<'l>, book_id: JString<'l>,
@@ -1560,6 +1571,7 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         on_world_render:    api_on_world_render,
         register_startup_grant: api_register_startup_grant,
         register_book:          api_register_book,
+        register_ui:            api_register_ui,
     }
 }
 
@@ -2825,11 +2837,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
 ) {
     let id = jstr!(env, ui_id);
     let h = handlers();
-    if let Some(ui_root) = h.uis.get(&id) {
-        if let Some(hit) = yog_ui::layout::hit_test(ui_root, mx, my) {
-            if let Some(event) = &hit.on_click {
-                yog_logging::info!("UI click on '{}' firing event '{}'", hit.id.as_deref().unwrap_or("?"), event);
-                // TODO: dispatch event to mod callback
+    if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
+        if let Some(ui_root) = h.uis.get(&id) {
+            if let Some(hit) = yog_ui::layout::hit_test(ui_root, mx, my) {
+                if let Some(event) = &hit.on_click {
+                    yog_logging::info!("UI click '{}' → event '{}'", id, event);
+                    let ev = YogStr::from_str(event);
+                    let ui = YogStr::from_str(&id);
+                    unsafe { handler(ud, ui, ev); }
+                }
             }
         }
     }
@@ -2842,5 +2858,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
     ui_id: JString<'l>, key: jint, _scan: jint, _mods: jint, action: jint,
 ) {
     let id = jstr!(env, ui_id);
+    yog_logging::info!("UI key: {} key={} action={}", id, key, action);
     yog_logging::info!("UI key: {} key={} action={}", id, key, action);
 }

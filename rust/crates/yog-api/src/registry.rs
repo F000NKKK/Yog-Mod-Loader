@@ -1115,6 +1115,22 @@ impl Registry {
         unsafe { ((*self.api).register_book)(self.ctx(), id, j) }
     }
 
+
+    /// Register a UI tree with an event callback.
+    /// `ui_id` is the unique identifier (e.g. "mymod:menu").
+    /// `handler` receives `(ui_id, event_id)` when a widget is clicked.
+    pub fn register_ui<F>(&mut self, ui_id: &str, handler: F)
+    where F: Fn(&str, &str) + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        let id = YogStr::from_str(ui_id);
+        let empty = YogStr::from_str("{}");
+        unsafe {
+            ((*self.api).register_ui)(self.ctx(), id, empty, ud, trampoline_ui_event::<F>)
+        }
+    }
+
+    }
+
     // ── scheduler ────────────────────────────────────────────────────────────
 
     pub fn schedule_once<F>(&self, delay_ticks: u64, handler: F)
@@ -1180,6 +1196,15 @@ impl Registry {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_screen_close)(self.ctx(), ud, trampoline_screen::<F>) }
     }
+}
+
+unsafe extern "C" fn trampoline_ui_event<F>(ud: *mut c_void, ui_id: yog_abi::YogStr, event_id: yog_abi::YogStr)
+where F: Fn(&str, &str) + Send + Sync + 'static
+{
+    let f = &*(ud as *const F);
+    let ui = unsafe { ui_id.as_str() };
+    let ev = unsafe { event_id.as_str() };
+    f(ui, ev);
 }
 
 // ── Mod trait ─────────────────────────────────────────────────────────────────

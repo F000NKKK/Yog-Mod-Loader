@@ -1,6 +1,6 @@
 [package]
 name = "yog-api"
-version = "0.8.0"
+version = "0.9.0"
 edition.workspace = true
 authors.workspace = true
 # Permissive ON PURPOSE: mods link this crate, so AGPL here would force every
@@ -9,18 +9,18 @@ license = "MIT OR Apache-2.0"
 description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 
 [dependencies]
-yog-abi  = "0.4"
+yog-abi  = "0.5"
 yog-core = "0.1"
 yog-event = "0.1"
 yog-world = "0.1"
 yog-entity = "0.1"
 yog-player = "0.1"
-yog-registry = "0.5"
+yog-registry = "0.6"
 yog-network = "0.1"
 yog-command = "0.1"
 yog-logging = "0.1"
 yog-storage = "0.1"
 yog-config  = "0.1"
-yog-gfx     = "0.3"
-yog-ui      = "0.2"
-yog-book = "0.6"
+yog-gfx     = "0.4"
+yog-ui      = "0.3"
+yog-book = "0.7"
