@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 description = "In-game book/documentation framework for Yog mods (Patchouli-like)."
 
 [dependencies]
-yog-registry = { version = "0.6", features = ["serde"] }
+yog-registry = { version = "0.7", features = ["serde"] }
 yog-ui  = "0.4"
 yog-gfx = "0.4"
 

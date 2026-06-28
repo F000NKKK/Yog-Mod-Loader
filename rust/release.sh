@@ -193,6 +193,36 @@ else
     fi
 fi
 
+# ── Шаг 3: cargo check (после обновления ссылок — граф воркспейса корректен) ──
+echo ""
+info "cargo check -p $CRATE ..."
+if $DRY_RUN; then
+    dryrun "cargo check -p $CRATE (пропущено)"
+else
+    cargo check --offline -p "$CRATE" 2>&1 | tail -5
+    ok "check пройден"
+fi
+
+# ── Шаг 4: публикация ─────────────────────────────────────────────────────────
+echo ""
+if $NO_PUBLISH; then
+    warn "--no-publish: пропускаю cargo publish"
+elif $DRY_RUN; then
+    dryrun "cargo publish -p $CRATE"
+else
+    info "Публикую $CRATE v$NEW_VERSION на crates.io..."
+    cargo publish -p "$CRATE"
+    ok "Опубликовано!"
+
+    info "Жду 45 сек — crates.io индексирует пакет..."
+    for i in $(seq 45 -1 1); do
+        printf "\r  %2d сек..." "$i"
+        sleep 1
+    done
+    echo ""
+    ok "Готово, продолжаем"
+fi
+
 # ── Итог ──────────────────────────────────────────────────────────────────────
 echo ""
 if $DRY_RUN; then
