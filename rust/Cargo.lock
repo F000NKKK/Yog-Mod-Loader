@@ -541,7 +541,7 @@ checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
 
 [[package]]
 name = "yog-abi"
-version = "0.5.0"
+version = "0.6.0"
 
 [[package]]
 name = "yog-api"
@@ -566,7 +566,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -610,7 +610,7 @@ dependencies = [
 
 [[package]]
 name = "yog-gfx"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "yog-abi",
 ]
@@ -633,7 +633,7 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "serde",
  "yog-abi",

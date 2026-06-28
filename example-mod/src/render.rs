@@ -1,4 +1,4 @@
-//! Client-side rendering: FPS counter + world renderer + book UI via yog-ui.
+//! Client-side rendering: FPS counter + custom book UI + world renderer.
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -11,7 +11,7 @@ use yog_api::{
     Book, BookCategory, BookEntry, BookPage,
     Registry,
 };
-use yog_api::ui::{UiRoot, widget, Align, FlexDir};
+use yog_api::ui::{UiRoot, LayoutNode, widget, Align, FlexDir};
 
 // ── GLSL (world renderer) ────────────────────────────────────────────────────
 
@@ -131,142 +131,224 @@ impl FrameTimer {
     }
 }
 
-// ── Book UI via fluent API ────────────────────────────────────────────────────
+// ── Book UI state ─────────────────────────────────────────────────────────────
 
-static BOOK_OPEN: AtomicBool = AtomicBool::new(false);
-static NAV: Mutex<(usize, usize, usize)> = Mutex::new((0, 0, 0)); // cat, entry, page
+// (cat, entry, page)
+static NAV: Mutex<(usize, usize, usize)> = Mutex::new((0, 0, 0));
+// Last computed layout root — used for mod-side click hit-testing.
+static LAST_LAYOUT: Mutex<Option<LayoutNode>> = Mutex::new(None);
 
-/// Build a `UiRoot` from the example-mod guide book at current navigation state.
-/// Build the book UI, centered on screen with fixed size.
-fn build_book_ui() -> UiRoot {
+fn handle_nav(event: &str) {
+    let mut nav = NAV.lock().unwrap();
+    match event {
+        "prev_page" => { if nav.2 > 0 { nav.2 -= 1; } }
+        "next_page" => { nav.2 += 1; }
+        e if e.starts_with("cat:") => {
+            if let Ok(i) = e[4..].parse::<usize>() { *nav = (i, 0, 0); }
+        }
+        e if e.starts_with("entry:") => {
+            if let Ok(i) = e[6..].parse::<usize>() { nav.1 = i; nav.2 = 0; }
+        }
+        _ => {}
+    }
+}
+
+// ── Book UI builder ───────────────────────────────────────────────────────────
+
+/// Build the book UiRoot centered on screen using flex spacers for both axes.
+fn build_book_ui(sw: f32, sh: f32) -> UiRoot {
     use crate::book;
     let book = book::guide_book();
     let (cat_idx, ent_idx, pg_idx) = *NAV.lock().unwrap();
 
-    // ── Left panel: categories + entries ──────────────────────────────────
-    let mut left = widget::panel(FlexDir::Column).w(100.0).gap(2.0).padding(2.0,2.0,2.0,2.0);
+    // ── Sidebar: categories ──────────────────────────────────────────────────
+    // Sidebar background colour: dark parchment
+    const SIDEBAR_BG: u32 = 0xFF_1A1008;
+    const PAGE_BG:    u32 = 0xFF_2A1E10;
+    const BORDER:     u32 = 0xFF_5C3A1A;
+    const TITLE_COL:  u32 = 0xFF_E8C070;
+    const SEL_COL:    u32 = 0xFF_FFE080;
+    const DIM_COL:    u32 = 0xFF_9A7850;
+    const TEXT_COL:   u32 = 0xFF_D4C8A0;
+    const NAV_COL:    u32 = 0xFF_C0A060;
 
-    left = left.child(widget::label("Categories").color(0xFF_888888).font_scale(0.9));
+    let mut cats_col = widget::panel(FlexDir::Column).gap(1.0).padding(4.0, 4.0, 2.0, 4.0);
+    cats_col = cats_col.child(
+        widget::label("── Разделы ──").color(DIM_COL).font_scale(0.8)
+    );
     for (i, cat) in book.categories.iter().enumerate() {
-        let c = if i == cat_idx { 0xFF_FFFF55 } else { 0xFF_AAAAAA };
-        left = left.child(widget::button(&cat.name).color(c).on_click(format!("cat:{i}")).font_scale(0.85));
-    }
-    left = left.child(widget::spacer().h(4.0));
-
-    if let Some(cat) = book.categories.get(cat_idx) {
-        let entries: Vec<_> = book.entries.iter().filter(|e| e.category == cat.id).collect();
-        left = left.child(widget::label("Entries").color(0xFF_888888).font_scale(0.9));
-        for (i, e) in entries.iter().enumerate() {
-            let c = if i == ent_idx { 0xFF_FFFF55 } else { 0xFF_CCCCCC };
-            let label: String = e.name.chars().take(14).collect();
-            left = left.child(widget::button(&label).color(c).on_click(format!("entry:{i}")).font_scale(0.85));
-        }
+        let selected = i == cat_idx;
+        let color = if selected { SEL_COL } else { DIM_COL };
+        let bg    = if selected { 0x40_FFFFFF } else { 0 };
+        cats_col = cats_col.child(
+            widget::button(&cat.name).color(color).bg(bg)
+                .padding(2.0, 6.0, 2.0, 6.0).font_scale(0.85)
+                .on_click(format!("cat:{i}"))
+        );
     }
 
-    // ── Right panel: page + nav ───────────────────────────────────────────
-    let mut right = widget::panel(FlexDir::Column).flex(1.0).gap(4.0).padding(4.0,4.0,4.0,4.0);
+    // ── Sidebar: entries ─────────────────────────────────────────────────────
+    let entries: Vec<_> = book.entries.iter()
+        .filter(|e| book.categories.get(cat_idx).map_or(false, |c| e.category == c.id))
+        .collect();
+    let mut entries_col = widget::panel(FlexDir::Column).gap(1.0).padding(2.0, 4.0, 4.0, 4.0);
+    entries_col = entries_col.child(
+        widget::label("── Записи ──").color(DIM_COL).font_scale(0.8)
+    );
+    for (i, e) in entries.iter().enumerate() {
+        let selected = i == ent_idx;
+        let color = if selected { SEL_COL } else { NAV_COL };
+        let bg    = if selected { 0x30_FFFFFF } else { 0 };
+        let label: String = e.name.chars().take(14).collect();
+        entries_col = entries_col.child(
+            widget::button(&label).color(color).bg(bg)
+                .padding(1.0, 6.0, 1.0, 6.0).font_scale(0.85)
+                .on_click(format!("entry:{i}"))
+        );
+    }
 
-    if let Some(cat) = book.categories.get(cat_idx) {
-        let entries: Vec<_> = book.entries.iter().filter(|e| e.category == cat.id).collect();
-        if let Some(entry) = entries.get(ent_idx) {
-            // Entry title
-            right = right.child(widget::label(&entry.name).color(0xFF_D4A84B).font_scale(1.1));
-            right = right.child(widget::spacer().h(2.0));
+    let sidebar = widget::panel(FlexDir::Column)
+        .w(110.0).bg(SIDEBAR_BG)
+        .padding(0.0, 0.0, 0.0, 0.0)
+        .child(
+            widget::label(&book.name).color(TITLE_COL)
+                .padding(4.0, 6.0, 4.0, 6.0).font_scale(1.0)
+        )
+        .child(widget::label("").h(1.0).bg(BORDER))
+        .child(cats_col)
+        .child(widget::label("").h(1.0).bg(BORDER))
+        .child(entries_col);
 
-            if let Some(page) = entry.pages.get(pg_idx) {
-                match page {
-                    BookPage::Text { text } => {
-                        right = right.child(widget::label(text).color(0xFF_CCCCAA).flex(1.0));
-                    }
-                    BookPage::Spotlight { item, title, text } => {
-                        if let Some(t) = title {
-                            right = right.child(widget::label(t).color(0xFF_FFFF55));
-                        }
-                        right = right.child(widget::item_slot(&item.id));
-                        if let Some(t) = text {
-                            right = right.child(widget::label(t).color(0xFF_CCCCAA).flex(1.0));
-                        }
-                    }
-                    _ => {
-                        right = right.child(widget::label("(unsupported page)").color(0xFF_888888));
-                    }
+    // ── Page area ────────────────────────────────────────────────────────────
+    let entry = entries.get(ent_idx).copied();
+    let page  = entry.and_then(|e| e.pages.get(pg_idx));
+    let page_count = entry.map_or(1, |e| e.pages.len().max(1));
+
+    let mut page_col = widget::panel(FlexDir::Column).flex(1.0).gap(3.0)
+        .padding(6.0, 8.0, 6.0, 8.0);
+
+    if let Some(e) = entry {
+        page_col = page_col.child(
+            widget::label(&e.name).color(TITLE_COL).font_scale(1.05)
+        );
+        page_col = page_col.child(widget::label("").h(1.0).bg(BORDER));
+    }
+
+    if let Some(p) = page {
+        match p {
+            BookPage::Text { text } => {
+                for para in text.split('\n') {
+                    page_col = page_col.child(
+                        widget::label(para).color(TEXT_COL).font_scale(0.9)
+                    );
                 }
             }
-
-            // Nav bar
-            let total = entry.pages.len().max(1);
-            right = right.child(
-                widget::panel(FlexDir::Row).gap(4.0)
-                    .child(widget::button("<").w(24.0).on_click("prev_page"))
-                    .child(widget::label(&format!("{}/{}", pg_idx + 1, total))
-                        .color(0xFF_888888).align(Align::Center).flex(1.0))
-                    .child(widget::button(">").w(24.0).on_click("next_page"))
-            );
+            BookPage::Spotlight { item, title, text } => {
+                if let Some(t) = title {
+                    page_col = page_col.child(widget::label(t).color(TITLE_COL));
+                }
+                page_col = page_col.child(widget::item_slot(&item.id));
+                if let Some(t) = text {
+                    page_col = page_col.child(widget::label(t).color(TEXT_COL).font_scale(0.9));
+                }
+            }
+            _ => {
+                page_col = page_col.child(
+                    widget::label("(unsupported page type)").color(DIM_COL).font_scale(0.85)
+                );
+            }
         }
+    } else if entry.is_none() {
+        page_col = page_col.child(
+            widget::label("Выберите запись слева.").color(DIM_COL).font_scale(0.9)
+        );
     }
 
-    // ── Root: centered book ───────────────────────────────────────────────
+    // push nav bar to bottom
+    page_col = page_col.child(widget::spacer().flex(1.0));
+    page_col = page_col.child(widget::label("").h(1.0).bg(BORDER));
+    let pg_label = format!("{}/{}", pg_idx + 1, page_count);
+    page_col = page_col.child(
+        widget::panel(FlexDir::Row).h(18.0).gap(4.0).padding(2.0, 4.0, 2.0, 4.0)
+            .child(widget::button("◀").w(20.0).h(14.0).color(NAV_COL).on_click("prev_page"))
+            .child(widget::label(&pg_label).color(DIM_COL).flex(1.0).align(Align::Center).font_scale(0.85))
+            .child(widget::button("▶").w(20.0).h(14.0).color(NAV_COL).on_click("next_page"))
+    );
+
+    // ── Book frame ───────────────────────────────────────────────────────────
+    let book_panel = widget::panel(FlexDir::Row)
+        .w(340.0).h(220.0)
+        .bg(PAGE_BG)
+        .padding(1.0, 1.0, 1.0, 1.0)
+        .child(sidebar)
+        .child(widget::label("").w(1.0).bg(BORDER))
+        .child(page_col);
+
+    // ── Full-screen wrapper with flex spacers — centers the book both axes ──
+    // Column: spacer + book + spacer  →  vertical center
+    // Align::Center on the Column     →  horizontal center
     UiRoot::new("yog:example_guide",
-        // Wrapper: full screen, centers child
-        widget::panel(FlexDir::Column).align(Align::Center)
-            .child(
-                widget::panel(FlexDir::Row).w(320.0).h(210.0).gap(2.0)
-                    .padding(3.0,3.0,3.0,3.0).bg(0xFF_2A1A0E)
-                    .child(left).child(right)
-            )
+        widget::panel(FlexDir::Column).w(sw).h(sh).align(Align::Center)
+            .child(widget::spacer().flex(1.0))
+            .child(book_panel)
+            .child(widget::spacer().flex(1.0))
     )
 }
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
 pub fn register(registry: &mut Registry) {
-    // Track YogUIScreen open/close
+    // ── Screen open/close tracking ────────────────────────────────────────────
     registry.on_screen_open(|ev| {
-        if ev.screen_class.contains("YogUIScreen") { BOOK_OPEN.store(true, Ordering::Relaxed); }
-    });
-    registry.on_screen_close(|_| { BOOK_OPEN.store(false, Ordering::Relaxed); });
-
-    // Handle book navigation events
-    registry.register_ui("yog:example_guide", |_ui_id, event| {
-        let mut nav = NAV.lock().unwrap();
-        match event {
-            "prev_page" => if nav.2 > 0 { nav.2 -= 1; }
-            "next_page" => { nav.2 += 1; }
-            e if e.starts_with("cat:") => {
-                if let Ok(i) = e[4..].parse::<usize>() { nav.0 = i; nav.1 = 0; nav.2 = 0; }
-            }
-            e if e.starts_with("entry:") => {
-                if let Ok(i) = e[6..].parse::<usize>() { nav.1 = i; nav.2 = 0; }
-            }
-            _ => {}
+        if ev.screen_class.contains("YogUIScreen") {
+            // clear stale layout when a new screen opens
+            *LAST_LAYOUT.lock().unwrap() = None;
         }
     });
 
-    // HUD: FPS + book
+    // ── Book UI: render (on_ui_render fires AFTER screen darkening) ───────────
+    registry.on_ui_render("yog:example_guide", |ctx: &GfxContext| {
+        let (sw, sh) = {
+            let s = ctx.screen_size();
+            (s.0 as f32, s.1 as f32)
+        };
+        let mut ui = build_book_ui(sw, sh);
+        ui.layout(sw, sh);
+        // Store layout for mod-side click hit-testing.
+        *LAST_LAYOUT.lock().unwrap() = Some(ui.layout_root.clone());
+        ui.render(ctx);
+    });
+
+    // ── Book UI: click handling (receives "click:X:Y" from runtime) ───────────
+    registry.register_ui("yog:example_guide", |_ui_id, event| {
+        // Hit-test against the last rendered layout.
+        if let Some(rest) = event.strip_prefix("click:") {
+            let mut parts = rest.splitn(2, ':');
+            if let (Some(xs), Some(ys)) = (parts.next(), parts.next()) {
+                if let (Ok(mx), Ok(my)) = (xs.parse::<f32>(), ys.parse::<f32>()) {
+                    let lock = LAST_LAYOUT.lock().unwrap();
+                    if let Some(layout) = lock.as_ref() {
+                        if let Some(hit) = yog_api::ui::layout::hit_test(layout, mx, my) {
+                            if let Some(click_ev) = &hit.on_click {
+                                handle_nav(click_ev);
+                            }
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+        handle_nav(event);
+    });
+
+    // ── HUD: FPS counter only (book renders via on_ui_render above) ───────────
     let timer = Mutex::new(FrameTimer::new());
     registry.on_hud_render(move |ctx: &GfxContext| {
-        let d = ctx.draw2d();
         let avg_ms = timer.lock().unwrap().tick() * 1000.0;
-        d.text(&format!("{:.1} ms", avg_ms), 4.0, 4.0, 0xFF_00FF00, true);
-
-        if BOOK_OPEN.load(Ordering::Relaxed) {
-            let mut ui = build_book_ui();
-            let sw = ctx.screen_size().0 as f32;
-            let sh = ctx.screen_size().1 as f32;
-            ui.layout(sw, sh);
-            // Center the root rect
-            let r = &ui.layout_root.rect;
-            let dx = ((sw - r.w) / 2.0).max(0.0);
-            let dy = ((sh - r.h) / 2.0).max(0.0);
-            // Translate all layout coords to center
-            // (layout engine positions from (0,0), we shift)
-            // Workaround: just render at offset
-            ui.render(ctx);  // yog-ui render uses layout coords directly
-        }
-
+        ctx.draw2d().text(&format!("{:.1} ms", avg_ms), 4.0, 4.0, 0xFF_00FF00, true);
     });
 
-    // World renderer
+    // ── World renderer ────────────────────────────────────────────────────────
     let renderer = Mutex::new(WorldRenderer::new());
     registry.on_world_render(move |ctx: &GfxContext| {
         renderer.lock().unwrap().render(ctx);

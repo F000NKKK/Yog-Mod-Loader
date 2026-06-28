@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 19;
+pub const ABI_MINOR: u32 = 20;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -802,6 +802,14 @@ pub struct YogApi {
     /// `layout_json` is the serialized layout tree.
     /// `handler` is called when an interactive element is clicked/keyed.
     pub register_ui: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr, layout_json: YogStr, ud: *mut c_void, h: YogUIEventFn),
+
+    // ── ABI minor 20 — per-UI screen renderer ────────────────────────────────
+    /// Register a render callback that fires during `YogUIScreen.render()` for a
+    /// specific UI id — i.e. AFTER the screen darkening, unlike `on_hud_render`.
+    /// Reuses `YogHudRenderFn` (`fn(ud, gfx)`); `gfx.screen_w/h` are set.
+    /// Clicks are forwarded as `"click:X:Y"` events to the `register_ui` handler
+    /// so mods can do their own hit-testing with their stored layout.
+    pub on_ui_render: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr, ud: *mut c_void, h: YogHudRenderFn),
 }
 
 unsafe impl Send for YogApi {}
