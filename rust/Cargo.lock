@@ -663,7 +663,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-ui"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "yog-abi",
  "yog-gfx",
