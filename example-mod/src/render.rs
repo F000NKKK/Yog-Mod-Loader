@@ -231,10 +231,11 @@ impl FrameTimer {
 pub fn register(registry: &mut Registry) {
     let timer = Mutex::new(FrameTimer::new());
     registry.on_hud_render(move |ctx: &GfxContext| {
-        let avg_ms = timer.lock().unwrap().tick() * 1000.0;
         let d = ctx.draw2d();
-        d.rect(4.0, 4.0, 84.0, 14.0, 0x88_00_00_00);
-        d.text(&format!("yog {avg_ms:.1}ms"), 6.0, 5.0, 0xFF_FF_FF_FF, true);
+
+        // FPS counter
+        let avg_ms = timer.lock().unwrap().tick() * 1000.0;
+        d.text(&format!("{:.1} ms", avg_ms), 4.0, 4.0, 0xFF_00FF00, true);
     });
 
     let renderer = Mutex::new(WorldRenderer::new());
