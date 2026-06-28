@@ -95,7 +95,7 @@ pub enum BookPage {
 // ── Category ─────────────────────────────────────────────────────────────────
 
 /// Represents a book category tab (e.g. "Basics", "Patterns").
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BookCategory {
     pub id: String,
     pub name: String,

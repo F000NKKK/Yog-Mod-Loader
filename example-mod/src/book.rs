@@ -15,22 +15,22 @@ pub fn guide_book() -> Book {
         .add_category(BookCategory {
             id: "items".into(), name: "Items".into(),
             description: Some("Custom items added by the mod.".into()),
-            icon: Some("yog:item/ruby".into()), sortnum: 0,
+            icon: Some("yog:item/ruby".into()), icon_svg: None, sortnum: 0,
         })
         .add_category(BookCategory {
             id: "blocks".into(), name: "Blocks".into(),
             description: Some("Custom blocks and their properties.".into()),
-            icon: Some("yog:item/ruby_block".into()), sortnum: 1,
+            icon: Some("yog:item/ruby_block".into()), icon_svg: None, sortnum: 1,
         })
         .add_category(BookCategory {
             id: "commands".into(), name: "Commands".into(),
             description: Some("Chat commands you can use.".into()),
-            icon: Some("minecraft:item/command_block".into()), sortnum: 2,
+            icon: Some("minecraft:item/command_block".into()), icon_svg: None, sortnum: 2,
         })
         .add_category(BookCategory {
             id: "crafting".into(), name: "Crafting".into(),
             description: Some("Recipes added by the mod.".into()),
-            icon: Some("minecraft:item/crafting_table".into()), sortnum: 3,
+            icon: Some("minecraft:item/crafting_table".into()), icon_svg: None, sortnum: 3,
         })
         // ── Items ──────────────────────────────────────────────────────────
         .add_entry(BookEntry {
