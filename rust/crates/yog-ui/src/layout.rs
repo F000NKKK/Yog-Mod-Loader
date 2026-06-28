@@ -1,5 +1,5 @@
 use crate::text;
-use crate::widget::{Widget, WidgetKind};
+use crate::widget::{Dock, Widget, WidgetKind};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FlexDir { Row, Column }
@@ -87,58 +87,135 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
     let content_w = ww - s.pad[1] - s.pad[3];
     let content_h = hh - s.pad[0] - s.pad[2];
 
+    // Helpers for Dock
+    // Returns effective flex factor (Dock::Fill implies at least 1.0).
+    let effective_flex = |child: &Widget| -> f32 {
+        if child.style.dock == Dock::Fill { child.style.flex.max(1.0) } else { child.style.flex }
+    };
+    // Returns true if this child consumes main-axis space in the normal forward pass.
+    let in_flow = |child: &Widget| -> bool {
+        match (dir, child.style.dock) {
+            (FlexDir::Row,    Dock::Right)  => false,
+            (FlexDir::Column, Dock::Bottom) => false,
+            _ => true,
+        }
+    };
+
     // Measure children
     let mut child_nodes: Vec<LayoutNode> = Vec::new();
     let mut total_flex: f32 = 0.0;
-    let mut used_main: f32 = 0.0;
+    let mut used_main: f32  = 0.0;
 
     for child in &w.children {
+        let dock = child.style.dock;
         let mut cn = LayoutNode {
             id: child.id.clone(), on_click: child.on_click.clone(),
             enabled: child.enabled, focused: child.focused,
             ..Default::default()
         };
-        let cmw = if dir == FlexDir::Row { f32::MAX } else { content_w };
-        let cmh = if dir == FlexDir::Column { f32::MAX } else { content_h };
+        // Determine measurement constraints based on Dock + direction.
+        let (cmw, cmh) = match (dir, dock) {
+            // Fill: constrain both axes so text can wrap to container dimensions.
+            (FlexDir::Row,    Dock::Fill) => (content_w, content_h),
+            (FlexDir::Column, Dock::Fill) => (content_w, content_h),
+            // Cross-axis fill: constrain cross axis, unlimited main axis.
+            (FlexDir::Row,    Dock::Left | Dock::Right) => (f32::MAX, content_h),
+            (FlexDir::Column, Dock::Top  | Dock::Bottom) => (content_w, f32::MAX),
+            // Default flex behaviour.
+            (FlexDir::Row,    _) => (f32::MAX, content_h),
+            (FlexDir::Column, _) => (content_w, f32::MAX),
+        };
         layout_widget(child, &mut cn, 0.0, 0.0, cmw, cmh);
-        if dir == FlexDir::Row { used_main += cn.rect.w; }
-        else { used_main += cn.rect.h; }
-        total_flex += child.style.flex;
+        if in_flow(child) {
+            if dir == FlexDir::Row { used_main += cn.rect.w; }
+            else                   { used_main += cn.rect.h; }
+        }
+        total_flex += effective_flex(child);
         child_nodes.push(cn);
     }
-    let gaps = s.gap * (w.children.len().saturating_sub(1) as f32);
+    let flow_count = w.children.iter().filter(|c| in_flow(c)).count();
+    let gaps = s.gap * (flow_count.saturating_sub(1) as f32);
     used_main += gaps;
 
     let available = (if dir == FlexDir::Row { content_w } else { content_h }) - used_main;
     let mut pos = if dir == FlexDir::Row { s.pad[3] } else { s.pad[0] };
 
-    // Position children
+    // --- Forward pass: position in-flow children (not Dock::Right / Dock::Bottom) ---
     for (i, child) in w.children.iter().enumerate() {
+        if !in_flow(child) { continue; }
+        let dock = child.style.dock;
         let cn = &mut child_nodes[i];
         if dir == FlexDir::Row {
-            if child.style.flex > 0.0 && total_flex > 0.0 && available > 0.0 {
-                cn.rect.w += available * child.style.flex / total_flex;
+            let ef = effective_flex(child);
+            if ef > 0.0 && total_flex > 0.0 && available > 0.0 {
+                cn.rect.w += available * ef / total_flex;
+            }
+            if dock == Dock::Fill || dock == Dock::Left || dock == Dock::Right {
+                cn.rect.h = content_h; // stretch cross axis
             }
             cn.rect.x = x + pos;
             cn.rect.y = y + s.pad[0] + match s.align {
                 Align::Center => (content_h - cn.rect.h) / 2.0,
-                Align::End => content_h - cn.rect.h,
-                _ => 0.0,
+                Align::End    => content_h - cn.rect.h,
+                _             => 0.0,
             };
             pos += cn.rect.w + s.gap;
         } else {
-            if child.style.flex > 0.0 && total_flex > 0.0 && available > 0.0 {
-                cn.rect.h += available * child.style.flex / total_flex;
+            let ef = effective_flex(child);
+            if ef > 0.0 && total_flex > 0.0 && available > 0.0 {
+                cn.rect.h += available * ef / total_flex;
+            }
+            if dock == Dock::Fill || dock == Dock::Top || dock == Dock::Bottom {
+                cn.rect.w = content_w; // stretch cross axis
             }
             cn.rect.x = x + s.pad[3] + match s.align {
                 Align::Center => (content_w - cn.rect.w) / 2.0,
-                Align::End => content_w - cn.rect.w,
-                _ => 0.0,
+                Align::End    => content_w - cn.rect.w,
+                _             => 0.0,
             };
             cn.rect.y = y + pos;
             pos += cn.rect.h + s.gap;
         }
-        // Recursively layout children of children
+        if !child.children.is_empty() {
+            layout_widget(child, cn, cn.rect.x, cn.rect.y, cn.rect.w, cn.rect.h);
+        }
+    }
+
+    // --- Reverse pass: position Dock::Right / Dock::Bottom children from the far edge ---
+    let mut rpos = if dir == FlexDir::Row {
+        x + s.pad[3] + content_w
+    } else {
+        y + s.pad[0] + content_h
+    };
+    for (i, child) in w.children.iter().enumerate() {
+        if in_flow(child) { continue; }
+        let dock = child.style.dock;
+        let cn = &mut child_nodes[i];
+        if dir == FlexDir::Row {
+            if dock == Dock::Fill || dock == Dock::Left || dock == Dock::Right {
+                cn.rect.h = content_h;
+            }
+            rpos -= cn.rect.w;
+            cn.rect.x = rpos;
+            cn.rect.y = y + s.pad[0] + match s.align {
+                Align::Center => (content_h - cn.rect.h) / 2.0,
+                Align::End    => content_h - cn.rect.h,
+                _             => 0.0,
+            };
+            rpos -= s.gap;
+        } else {
+            if dock == Dock::Fill || dock == Dock::Top || dock == Dock::Bottom {
+                cn.rect.w = content_w;
+            }
+            rpos -= cn.rect.h;
+            cn.rect.y = rpos;
+            cn.rect.x = x + s.pad[3] + match s.align {
+                Align::Center => (content_w - cn.rect.w) / 2.0,
+                Align::End    => content_w - cn.rect.w,
+                _             => 0.0,
+            };
+            rpos -= s.gap;
+        }
         if !child.children.is_empty() {
             layout_widget(child, cn, cn.rect.x, cn.rect.y, cn.rect.w, cn.rect.h);
         }
