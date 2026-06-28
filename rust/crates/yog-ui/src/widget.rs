@@ -16,7 +16,7 @@ pub struct Widget {
 #[derive(Debug, Clone)]
 pub enum WidgetKind {
     /// Container — arranges children according to `flex_dir`.
-    Panel,
+    Panel(FlexDir),
     /// Static or dynamic text label.
     Label(String),
     /// Clickable button with text.
@@ -89,7 +89,7 @@ impl Widget {
 
 // ── Widget constructors ───────────────────────────────────────────────────────
 
-pub fn panel(dir: FlexDir) -> Widget { Widget::new(WidgetKind::Panel).flex_dir(dir) }
+pub fn panel(dir: FlexDir) -> Widget { Widget::new(WidgetKind::Panel(dir)) }
 pub fn label(text: impl Into<String>) -> Widget { Widget::new(WidgetKind::Label(text.into())) }
 pub fn button(text: impl Into<String>) -> Widget { Widget::new(WidgetKind::Button(text.into())) }
 pub fn item_slot(item_id: impl Into<String>) -> Widget { Widget::new(WidgetKind::ItemSlot(item_id.into())) }

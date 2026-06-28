@@ -16,7 +16,7 @@ pub fn render_node(d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
     }
 
     match &widget.kind {
-        WidgetKind::Panel => {
+        WidgetKind::Panel(_) => {
             // Panel just draws children
         }
         WidgetKind::Label(text) | WidgetKind::Button(text) => {
@@ -26,25 +26,14 @@ pub fn render_node(d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
             d2d.text(text, tx, ty.max(r.y + s.pad[0]), s.color, true);
         }
         WidgetKind::ItemSlot(item_id) => {
-            // Draw item icon using Minecraft's item atlas
-            // We approximate with a simple rect + text for now;
-            // proper item rendering needs mc_texture with atlas coords.
-            // For now, draw a slot background and text label.
-            let inner_x = r.x + s.pad[3];
-            let inner_y = r.y + s.pad[0];
-            let inner_w = r.w - s.pad[1] - s.pad[3];
-            let inner_h = r.h - s.pad[0] - s.pad[2];
-            d2d.rect(inner_x, inner_y, inner_x + inner_w, inner_y + inner_h, 0xFF_444444);
-            d2d.rect(inner_x + 1.0, inner_y + 1.0, inner_x + inner_w - 1.0, inner_y + inner_h - 1.0, 0xFF_888888);
-            // Try to draw the item's texture
-            let ns_path = item_id.replace(':', ":textures/item/");
-            let tex_id = format!("{}:{}.png", item_id.split(':').next().unwrap_or("minecraft"), 
-                item_id.split(':').nth(1).unwrap_or("air"));
-            d2d.mc_texture(
-                &format!("minecraft:textures/item/{}.png", item_id.split(':').nth(1).unwrap_or("air")),
-                inner_x + 1.0, inner_y + 1.0,
-                0.0, 0.0, 16.0, 16.0, 16.0, 16.0,
-            );
+            let ix = r.x + s.pad[3]; let iy = r.y + s.pad[0];
+            let sz = 18.0;
+            d2d.rect(ix, iy, ix + sz, iy + sz, 0xFF_444444);
+            d2d.rect(ix+1.0, iy+1.0, ix+sz-1.0, iy+sz-1.0, 0xFF_888888);
+            if let Some((ns, name)) = item_id.split_once(':') {
+                d2d.mc_texture(&format!("{ns}:textures/item/{name}.png"),
+                    ix+2.0, iy+2.0, 0.0, 0.0, 14.0, 14.0, 16.0, 16.0);
+            }
         }
         WidgetKind::McImage { id, img_w, img_h } => {
             d2d.mc_texture(id, r.x + s.pad[3], r.y + s.pad[0],
