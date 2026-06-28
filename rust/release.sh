@@ -23,13 +23,14 @@ dryrun()  { echo -e "${YELLOW}[dry-run]${RESET} $*"; }
 
 # ── Аргументы ─────────────────────────────────────────────────────────────────
 usage() {
-    echo -e "${BOLD}Использование:${RESET} $0 <crate-name> --patch|--minor|--major [--dry-run] [--no-publish]"
+    echo -e "${BOLD}Использование:${RESET} $0 <crate-name> --patch|--minor|--major [--dry-run] [--no-publish] [--publish-only]"
     echo ""
-    echo "  --patch        0.9.3 → 0.9.4  (ссылки не меняются — semver совместимость)"
-    echo "  --minor        0.9.3 → 0.10.0 (обновит все ссылки «0.9» → «0.10»)"
-    echo "  --major        0.9.3 → 1.0.0  (обновит все ссылки «0.9» → «1.0»)"
-    echo "  --dry-run      только показать, что изменится"
-    echo "  --no-publish   сбампить и обновить ссылки без публикации"
+    echo "  --patch          0.9.3 → 0.9.4  (ссылки не меняются — semver совместимость)"
+    echo "  --minor          0.9.3 → 0.10.0 (обновит все ссылки «0.9» → «0.10»)"
+    echo "  --major          0.9.3 → 1.0.0  (обновит все ссылки «0.9» → «1.0»)"
+    echo "  --dry-run        только показать, что изменится"
+    echo "  --no-publish     сбампить и обновить ссылки без публикации"
+    echo "  --publish-only   только опубликовать текущую версию (бамп и обновление ссылок пропускаются)"
     exit 1
 }
 
@@ -37,12 +38,14 @@ CRATE=""
 BUMP=""
 DRY_RUN=false
 NO_PUBLISH=false
+PUBLISH_ONLY=false
 
 for arg in "$@"; do
     case "$arg" in
         --patch|--minor|--major) BUMP="$arg" ;;
-        --dry-run)    DRY_RUN=true ;;
-        --no-publish) NO_PUBLISH=true ;;
+        --dry-run)      DRY_RUN=true ;;
+        --no-publish)   NO_PUBLISH=true ;;
+        --publish-only) PUBLISH_ONLY=true ;;
         --*) die "Неизвестный флаг: $arg"; ;;
         *)
             if [[ -z "$CRATE" ]]; then CRATE="$arg"
@@ -52,7 +55,9 @@ for arg in "$@"; do
 done
 
 [[ -z "$CRATE" ]] && { echo "Не указано имя крейта."; usage; }
-[[ -z "$BUMP"  ]] && { echo "Не указан тип бампа.";   usage; }
+if ! $PUBLISH_ONLY && [[ -z "$BUMP" ]]; then
+    echo "Не указан тип бампа."; usage
+fi
 
 # ── Путь к крейту ─────────────────────────────────────────────────────────────
 CRATE_DIR="$WS/crates/$CRATE"
@@ -61,14 +66,41 @@ CRATE_TOML="$CRATE_DIR/Cargo.toml"
 [[ -f "$CRATE_TOML" ]] || die "Крейт не найден: $CRATE_TOML"
 
 # ── Читаем текущую версию ─────────────────────────────────────────────────────
-# Ищем строку version = "X.Y.Z" в секции [package].
-# Используем grep+sed (портативно; трёхаргументный match — только gawk).
 CURRENT=$(grep -m1 '^version *= *"' "$CRATE_TOML" | sed 's/.*"\([^"]*\)".*/\1/')
 
 [[ -z "$CURRENT" ]] && die "Не удалось прочитать version из $CRATE_TOML"
 
 if [[ "$CURRENT" == *"workspace"* ]] || [[ "$CURRENT" == *"true"* ]]; then
-    die "$CRATE использует version.workspace — замени на явную версию (sed -i 's/version.workspace = true/version = \"X.Y.Z\"/' Cargo.toml)"
+    die "$CRATE использует version.workspace — замени на явную версию сначала"
+fi
+
+# ── --publish-only: публикуем как есть, без бампа ─────────────────────────────
+if $PUBLISH_ONLY; then
+    echo ""
+    echo -e "${BOLD}Крейт:${RESET}   $CRATE"
+    echo -e "${BOLD}Версия:${RESET}  ${GREEN}$CURRENT${RESET} (без изменений)"
+    echo -e "${BOLD}Режим:${RESET}   --publish-only"
+    echo ""
+    info "cargo check -p $CRATE ..."
+    cargo check --offline -p "$CRATE" 2>&1 | tail -3
+    ok "check пройден"
+    echo ""
+    if $DRY_RUN; then
+        dryrun "cargo publish -p $CRATE"
+    elif $NO_PUBLISH; then
+        warn "--no-publish: пропускаю cargo publish"
+    else
+        info "Публикую $CRATE v$CURRENT на crates.io..."
+        cargo publish -p "$CRATE"
+        ok "Опубликовано!"
+        info "Жду 45 сек — crates.io индексирует пакет..."
+        for i in $(seq 45 -1 1); do printf "\r  %2d сек..." "$i"; sleep 1; done
+        echo ""; ok "Готово"
+    fi
+    echo ""
+    echo -e "${GREEN}${BOLD}Готово!${RESET} $CRATE v$CURRENT"
+    echo ""
+    exit 0
 fi
 
 # ── Вычисляем новую версию ────────────────────────────────────────────────────
@@ -122,7 +154,6 @@ info "Обновляю версию в $CRATE_TOML"
 if $DRY_RUN; then
     dryrun "$CRATE_TOML : version = \"$CURRENT\" → \"$NEW_VERSION\""
 else
-    # Меняем только в секции [package], первое вхождение version
     awk -v old="$CURRENT" -v new="$NEW_VERSION" '
         /^\[/{in_pkg=0}
         /^\[package\]/{in_pkg=1}
@@ -134,41 +165,10 @@ else
     ok "Версия обновлена: $CURRENT → $NEW_VERSION"
 fi
 
-# ── Шаг 2: cargo check перед публикацией ──────────────────────────────────────
-echo ""
-info "cargo check -p $CRATE ..."
-if $DRY_RUN; then
-    dryrun "cargo check -p $CRATE (пропущено)"
-else
-    cargo check --offline -p "$CRATE" 2>&1 | tail -5
-    ok "check пройден"
-fi
-
-# ── Шаг 3: публикация ─────────────────────────────────────────────────────────
-echo ""
-if $NO_PUBLISH; then
-    warn "--no-publish: пропускаю cargo publish"
-elif $DRY_RUN; then
-    dryrun "cargo publish -p $CRATE"
-else
-    info "Публикую $CRATE v$NEW_VERSION на crates.io..."
-    cargo publish -p "$CRATE"
-    ok "Опубликовано!"
-
-    info "Жду 45 сек — crates.io индексирует пакет..."
-    for i in $(seq 45 -1 1); do
-        printf "\r  %2d сек..." "$i"
-        sleep 1
-    done
-    echo ""
-    ok "Готово, продолжаем"
-fi
-
-# ── Шаг 4: обновить ссылки в воркспейсе ──────────────────────────────────────
+# ── Шаг 2: обновить ссылки в воркспейсе (ДО cargo check, чтобы граф резолвился) ──
 echo ""
 info "Обновляю ссылки во всех крейтах воркспейса..."
 
-# Patch-бамп: старый short == новый short ("0.9" → "0.9"), ссылки совместимы — ничего менять
 if [[ "$OLD_SHORT" == "$NEW_SHORT" ]]; then
     warn "patch-бамп: ссылки «$OLD_SHORT» остаются совместимыми, обновление не нужно"
 else
