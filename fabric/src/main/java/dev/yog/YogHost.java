@@ -60,6 +60,9 @@ import net.minecraft.util.TypedActionResult;
  * client rendering) that Fabric API does not cover.
  */
 public class YogHost implements ModInitializer {
+    /** UUID → [name, retriesLeft] for players waiting to appear in the server list. */
+    private static final java.util.concurrent.ConcurrentHashMap<String, String[]> PENDING_JOINS =
+            new java.util.concurrent.ConcurrentHashMap<>();
     @Override
     public void onInitialize() {
         NativeBridge.ensureLoaded();
@@ -111,13 +114,21 @@ public class YogHost implements ModInitializer {
                         sender.getName().getString(), message.getContent().getString()));
 
         // Player join / leave.
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                NativeBridge.nativeOnPlayerJoin(
-                        handler.player.getName().getString(), handler.player.getUuidAsString()));
+        // We don't call nativeOnPlayerJoin immediately because ServerPlayConnectionEvents.JOIN
+        // fires before the player is fully in the server's player list. We queue the UUID and
+        // check each server tick (via END_SERVER_TICK) until the player appears.
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            String pUuid = handler.player.getUuidAsString();
+            String pName = handler.player.getName().getString();
+            PENDING_JOINS.put(pUuid, new String[]{pName, "40"});
+        });
 
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                NativeBridge.nativeOnPlayerLeave(
-                        handler.player.getName().getString(), handler.player.getUuidAsString()));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            String pUuid = handler.player.getUuidAsString();
+            PENDING_JOINS.remove(pUuid); // cancel pending join if player disconnects before we process it
+            NativeBridge.nativeOnPlayerLeave(
+                    handler.player.getName().getString(), pUuid);
+        });
 
         // Item use (right-click), server side only.
         UseItemCallback.EVENT.register((player, world, hand) -> {
@@ -236,7 +247,29 @@ public class YogHost implements ModInitializer {
         });
 
         // End-of-tick (20×/second).
-        ServerTickEvents.END_SERVER_TICK.register(server -> NativeBridge.nativeOnTick());
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            // Resolve pending player joins: fire nativeOnPlayerJoin once the player is in the list.
+            if (!PENDING_JOINS.isEmpty()) {
+                java.util.List<String> toRemove = new java.util.ArrayList<>();
+                PENDING_JOINS.forEach((uuid, entry) -> {
+                    String name = entry[0];
+                    int retries = Integer.parseInt(entry[1]);
+                    java.util.UUID parsed = java.util.UUID.fromString(uuid);
+                    ServerPlayerEntity found = server.getPlayerManager().getPlayer(parsed);
+                    if (found != null) {
+                        NativeBridge.nativeOnPlayerJoin(found.getName().getString(), uuid);
+                        toRemove.add(uuid);
+                    } else if (retries <= 0) {
+                        System.out.println("[yog] player join: " + name + " never appeared after retries");
+                        toRemove.add(uuid);
+                    } else {
+                        entry[1] = String.valueOf(retries - 1);
+                    }
+                });
+                toRemove.forEach(PENDING_JOINS::remove);
+            }
+            NativeBridge.nativeOnTick();
+        });
 
         // Server lifecycle. Capture the server first so Rust can act on it
         // (e.g. NativeBridge.broadcast).

@@ -118,8 +118,23 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>, _ui_id: JString<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    ui_id: JString<'l>, screen_w: jint, screen_h: jint,
 ) {
-    // Mods render via on_hud_render by checking active_uis
-    let _ = jstr!(env, _ui_id);
+    let id = jstr!(env, ui_id);
+    let h = crate::handlers();
+    // Build a GfxContext using GFX_FN_TABLE function pointers with current screen dims.
+    let mut gfx = crate::GFX_FN_TABLE;
+    gfx.screen_w    = screen_w;
+    gfx.screen_h    = screen_h;
+    gfx.delta_tick  = 1.0;
+    gfx.scale_factor = 1.0;
+    let ctx = unsafe { yog_gfx::GfxContext::from_raw(&gfx as *const _) };
+    let sw = screen_w as f32;
+    let sh = screen_h as f32;
+    let fonts = h.book_fonts.lock().expect("book_fonts");
+    let mut renderers = h.book_renderers.lock().expect("book_renderers");
+    if let Some(renderer) = renderers.get_mut(&id) {
+        renderer.render(&ctx, sw, sh, &fonts);
+    }
 }

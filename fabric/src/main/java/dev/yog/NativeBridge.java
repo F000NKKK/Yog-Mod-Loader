@@ -935,8 +935,8 @@ public final class NativeBridge {
     public static native void nativeUIClick(String uiId, float mx, float my, int button);
     /** Forward a key event. action: 0=release, 1=press. */
     public static native void nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
-    /** Trigger a repaint cycle; actual rendering is done in nativeOnHudRender. */
-    public static native void nativeUIRender(String uiId);
+    /** Render a Rust UI immediately (called from Screen.render, not HUD). */
+    public static native void nativeUIRender(String uiId, int screenW, int screenH);
     public static native boolean nativeIsUIActive(String uiId);
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source, String uuid);

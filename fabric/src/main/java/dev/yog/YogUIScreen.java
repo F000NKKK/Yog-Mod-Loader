@@ -23,7 +23,7 @@ public class YogUIScreen extends Screen {
 
     @Override public void render(DrawContext ctx, int mx, int my, float delta) {
         renderBackground(ctx);
-        NativeBridge.nativeUIRender(uiId);
+        NativeBridge.nativeUIRender(uiId, this.width, this.height);
         super.render(ctx, mx, my, delta);
     }
 
