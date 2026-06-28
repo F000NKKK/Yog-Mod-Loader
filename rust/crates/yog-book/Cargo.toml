@@ -1,15 +1,24 @@
 [package]
 name = "yog-book"
 version = "0.8.0"
-edition = "2021"
-description = "In-game book/documentation system for Yog mods."
-authors = ["F000NK, Yog Team, Voluntas Progressus"]
+edition.workspace = true
+authors.workspace = true
 license = "MIT OR Apache-2.0"
+description = "In-game book/documentation framework for Yog mods (Patchouli-like)."
 
 [dependencies]
-yog-registry = "0.6"
-yog-ui = { version = "0.3", optional = true }
+yog-registry = { version = "0.6", features = ["serde"] }
+yog-ui  = "0.4"
+yog-gfx = "0.4"
+
+# Serialization (for runtime JSON parsing)
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [features]
 default = []
-yog-ui-dep = ["yog-ui"]
+# Enable SVG rasterization: add resvg = "0.41" to Cargo.toml, then enable this feature.
+svg   = []
+# Enable custom font rendering: add fontdue = "0.8" to Cargo.toml, then enable this feature.
+fonts = []
+full  = ["svg", "fonts"]

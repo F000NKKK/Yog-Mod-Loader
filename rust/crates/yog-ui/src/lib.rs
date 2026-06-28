@@ -29,7 +29,7 @@ use yog_gfx::GfxContext;
 pub struct UiRoot {
     pub id: String,
     pub root: Widget,
-    pub(crate) layout_root: LayoutNode,
+    pub layout_root: LayoutNode,
     pub needs_layout: bool,
 }
 

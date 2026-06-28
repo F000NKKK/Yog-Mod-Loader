@@ -53,10 +53,12 @@ Each platform has its own version-specific Mixin sources under
 | ✅ 11 | Low-level GPU pipeline: `YogGfxApi`, HUD + world rendering, `yog-gfx` crate | 13–14 |
 | ✅ 11.1 | `player_pos` in `GfxContext` (distinct from camera in F5 view); shader binary cache | 15 |
 | ✅ 12 | Startup grants (give items/books on first join); creative tabs per namespace | 16 |
-| ✅ 13 | `yog-book`: in-game documentation system (Patchouli replacement) — books, categories, entries, page types, JSON serialization, GUI screen | 17–18 |
+| ✅ 13 | `yog-book`: in-game documentation framework — data model, 9 page types, JSON serde, GUI screen | 17–18 |
+| ✅ 13.1 | `yog-ui`: retained-mode flexbox UI (panel, label, button, item_slot, mc_image); click dispatch | 19 |
+| ✅ 13.2 | `yog-book` GPU renderer: sidebar + entry list + page nav rendered via `yog-ui`/`yog-gfx`; SVG icons (`resvg`); custom TTF/OTF fonts (`fontdue`); visual `BookTheme` | 20 |
 | 🔲 14 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 18)
+## API available now (ABI minor 19+)
 
 ### Events
 
@@ -385,21 +387,25 @@ Items and blocks are automatically grouped into **per-namespace creative tabs**:
 
 ### Books (`yog-book` — Patchouli replacement) (ABI minor 17–18)
 
-Define in-game documentation books entirely in Rust:
+Define in-game documentation books entirely in Rust. `yog-book` is a full
+rendering framework on top of `yog-ui` and `yog-gfx` — no external tool
+required.
 
 ```rust
 use yog_api::{Book, BookCategory, BookEntry,
     text_page, spotlight_page, crafting_page, smelting_page};
 
 let book = Book::new("mymod:guide", "My Mod Guide")
-    .nameplate("0066cc")
-    .landing_text("Welcome to the guide!")
-    .author("Mod Author")
+    .nameplate("0066cc")          // nameplate accent colour (hex)
+    .landing_text("Welcome!")
+    .author("You")
     .creative_tab("mymod")
     .add_category(BookCategory {
         id: "items".into(), name: "Items".into(),
-        description: Some("Mod items.".into()),
-        icon: Some("mymod:item/ruby".into()), sortnum: 0,
+        description: Some("All mod items.".into()),
+        icon: Some("mymod:item/ruby".into()),
+        icon_svg: None,  // or Some("<svg>…</svg>") for vector icon
+        sortnum: 0,
     })
     .add_entry(BookEntry {
         id: "ruby".into(), name: "Ruby".into(), category: "items".into(),
@@ -415,9 +421,122 @@ let book = Book::new("mymod:guide", "My Mod Guide")
 registry.register_book(&book);
 ```
 
-When an item's ID matches a registered book ID, right-clicking opens the
-**YogBookScreen** GUI with categories, entries, and rendered pages (text,
-spotlight, crafting, smelting).
+Right-clicking a registered book item opens the book UI.
+
+#### Page types
+
+| Constructor | Description |
+|---|---|
+| `text_page(text)` | Paragraphs of text |
+| `spotlight_page(item)` | Item icon + optional title/text |
+| `crafting_page(recipe_id)` | Crafting recipe reference |
+| `smelting_page(recipe_id)` | Smelting recipe reference |
+| `image_page(texture)` | MC texture (resource location) |
+| `entity_page(entity_type)` | Entity portrait + optional text |
+| `relations_page(vec![…])` | "See also" links to other entries |
+| `pattern_page(…)` | Operation pattern (for magic mods) |
+| `BookPage::Svg { data, … }` | Inline SVG rasterized at render time (`svg` feature) |
+| `BookPage::CustomText { text, font, color }` | Custom TTF/OTF text (`fonts` feature) |
+| `BookPage::Empty` | Blank page |
+
+#### Visual theme
+
+`BookRenderer` uses `BookTheme` for colors. The default is a parchment brown
+palette. Override any color:
+
+```rust
+// Server-side: the book data model is colour-agnostic.
+// Client-side BookRenderer picks up the nameplate_color from the book and
+// builds a BookTheme automatically. Custom themes are set on the renderer:
+//   handlers.book_renderers.get_mut("mymod:guide")
+//       .map(|r| r.theme = BookTheme { bg: 0xFF_2A_1A_0E, ..Default::default() });
+```
+
+#### Optional features
+
+Add to `yog-book` dependency in your workspace:
+
+| Feature | Dep to add | Effect |
+|---|---|---|
+| `svg` | `resvg = "0.41"` | SVG page / category icon rasterization |
+| `fonts` | `fontdue = "0.8"` | Custom TTF/OTF glyph atlas for `CustomText` pages |
+| `full` | both | Enables both |
+
+Register custom fonts before first render:
+
+```rust
+// In your mod's register() or on_server_started:
+let ttf = include_bytes!("../assets/fonts/my_font.ttf").to_vec();
+// Fonts are registered via the runtime's BookFontRegistry:
+// handlers.book_fonts.lock().unwrap().register("mymod:my_font", ttf);
+```
+
+### UI (`yog-ui`)
+
+`yog-ui` is a retained-mode flexbox UI framework. Build widget trees once,
+layout is computed automatically, and the result is rendered via `yog-gfx`.
+Used internally by `yog-book`; available directly for custom HUD screens.
+
+```rust
+use yog_ui::{UiRoot, widget, FlexDir, Align};
+
+// Build a widget tree (done once; re-built when state changes)
+let root = widget::panel(FlexDir::Column)
+    .w(200.0).h(120.0)
+    .bg(0xCC_10_10_10)
+    .padding(8.0, 8.0, 8.0, 8.0)
+    .gap(4.0)
+    .child(
+        widget::label("Hello from yog-ui!")
+            .color(0xFF_FF_FF_FF)
+    )
+    .child(
+        widget::button("Click me")
+            .w(80.0).h(20.0)
+            .color(0xFF_FF_EE_AA)
+            .on_click("my_action")
+    )
+    .child(
+        widget::item_slot("minecraft:diamond")  // renders MC item icon
+    );
+
+let mut ui = UiRoot::new("mymod:my_screen", root);
+
+// In on_hud_render:
+registry.on_hud_render(move |ctx| {
+    let (sw, sh) = ctx.screen_size();
+    if ui.needs_layout { ui.layout(sw as f32, sh as f32); }
+    ui.render(ctx);
+});
+```
+
+#### Widgets
+
+| Constructor | Description |
+|---|---|
+| `widget::panel(dir)` | Flex container (Row or Column) |
+| `widget::label(text)` | Text label |
+| `widget::button(text)` | Clickable button; `.on_click("event")` |
+| `widget::item_slot(id)` | MC item icon (resource location) |
+| `widget::mc_image(id, w, h)` | MC texture blitted at given size |
+| `widget::spacer()` | Invisible filler |
+
+#### Layout modifiers (chainable on all widgets)
+
+```rust
+.w(f32)  .h(f32)           // fixed size
+.flex(f32)                  // grow factor (like CSS flex-grow)
+.gap(f32)                   // spacing between children (panel only)
+.padding(top, right, bot, left)
+.margin(top, right, bot, left)
+.bg(color: u32)             // ARGB background
+.color(color: u32)          // foreground / text color
+.align(Align::Center)       // cross-axis alignment
+```
+
+Click events from the UI are dispatched to Rust via the `on_click` string
+you set on the button — handle them in your `nativeUIClick` / `handle_event`
+implementation.
 
 ### Startup grants (ABI minor 16)
 

@@ -119,6 +119,8 @@ struct RuntimeHandlers {
     items:              Vec<ItemDef>,
     blocks:             Vec<BlockDef>,
     books:              HashMap<String, String>,
+    book_renderers:     Mutex<HashMap<String, yog_book::BookRenderer>>,
+    book_fonts:         Mutex<yog_book::font::BookFontRegistry>,
     pub(crate) uis:     HashMap<String, yog_ui::LayoutNode>,
     ui_handlers:        HashMap<String, (*mut c_void, yog_abi::YogUIEventFn)>,
     pub active_uis:     Mutex<Vec<UiLayer>>,
@@ -154,6 +156,8 @@ impl RuntimeHandlers {
             client_packets: HashMap::new(), items: Vec::new(),
             ui_handlers: HashMap::new(), active_uis: Mutex::new(Vec::new()), startup_grants: Vec::new(),
             blocks: Vec::new(), books: HashMap::new(), uis: HashMap::new(),
+            book_renderers: Mutex::new(HashMap::new()),
+            book_fonts: Mutex::new(yog_book::font::BookFontRegistry::default()),
             startup_granted: Mutex::new(HashMap::new()),
             scheduler: Mutex::new(SchedulerState::new()),
         }
@@ -1437,7 +1441,16 @@ unsafe extern "C" fn api_register_startup_grant(ctx: *mut c_void, grant: *const 
 
 unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_json: YogStr) {
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
-    handlers.books.insert(unsafe { book_id.as_str().to_owned() }, unsafe { book_json.as_str().to_owned() });
+    let id   = unsafe { book_id.as_str().to_owned() };
+    let json = unsafe { book_json.as_str().to_owned() };
+    handlers.books.insert(id.clone(), json.clone());
+    // Parse JSON → Book → BookRenderer so rendering works without Java round-trip.
+    if let Ok(book) = serde_json::from_str::<yog_book::Book>(&json) {
+        handlers.book_renderers.lock().unwrap()
+            .insert(id, yog_book::BookRenderer::new(book));
+    } else {
+        yog_logging::warn!("book '{}': failed to parse JSON for Rust renderer", id);
+    }
 }
 
 unsafe extern "C" fn api_register_ui(ctx: *mut c_void, ui_id: YogStr, _layout_json: YogStr,
@@ -2732,18 +2745,35 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     player_x: jfloat, player_y: jfloat, player_z: jfloat,
 ) {
     let h = handlers();
-    if h.hud_render.is_empty() { return; }
     let mut gfx = GFX_FN_TABLE;
-    gfx.screen_w = screen_w;
-    gfx.screen_h = screen_h;
-    gfx.delta_tick = delta_tick;
+    gfx.screen_w    = screen_w;
+    gfx.screen_h    = screen_h;
+    gfx.delta_tick  = delta_tick;
     gfx.scale_factor = scale_factor;
-    gfx.player_pos = [player_x, player_y, player_z];
-    guard("on_hud_render", || {
-        for (ud, f) in &h.hud_render {
-            unsafe { f(*ud, &gfx) };
+    gfx.player_pos  = [player_x, player_y, player_z];
+
+    // Mod hud_render callbacks.
+    if !h.hud_render.is_empty() {
+        guard("on_hud_render", || {
+            for (ud, f) in &h.hud_render {
+                unsafe { f(*ud, &gfx) };
+            }
+        });
+    }
+
+    // Render active book UIs.
+    let active_layers: Vec<UiLayer> = h.active_uis.lock().unwrap().clone();
+    let sw = screen_w as f32;
+    let sh = screen_h as f32;
+    let ctx = unsafe { yog_gfx::GfxContext::from_raw(&gfx as *const _) };
+    let fonts = h.book_fonts.lock().unwrap();
+    let mut renderers = h.book_renderers.lock().unwrap();
+    for layer in &active_layers {
+        if !layer.visible { continue; }
+        if let Some(renderer) = renderers.get_mut(&layer.id) {
+            renderer.render(&ctx, sw, sh, &fonts);
         }
-    });
+    }
 }
 
 #[no_mangle]

@@ -1,18 +1,32 @@
-//! yog-book — in-game book/documentation system for Yog mods (Patchouli-like).
-//! Full replacement: books, categories, entries, page types, macros, textures.
+//! yog-book — in-game book/documentation framework for Yog mods.
+//!
+//! Provides Patchouli-like book data model plus a full GPU renderer on top of
+//! yog-ui and yog-gfx, with SVG icon support and custom TTF/OTF fonts.
 
+pub mod state;
+pub mod theme;
+pub mod font;
+pub mod svg;
+pub mod renderer;
+
+use serde::{Deserialize, Serialize};
 use yog_registry::ItemDef;
+
+pub use state::BookViewState;
+pub use theme::BookTheme;
+pub use font::BookFont;
+pub use renderer::BookRenderer;
 
 // ── Macros ───────────────────────────────────────────────────────────────────
 
 /// A macro substitution (e.g. `$(thing)` → red color span).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BookMacro(pub String, pub String);
 
 // ── Page types ───────────────────────────────────────────────────────────────
 
 /// A single page variant inside a book entry.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BookPage {
     /// Plain formatted text (Patchouli-style).
     Text {
@@ -62,18 +76,34 @@ pub enum BookPage {
         output: String,
         text: String,
     },
+    /// SVG image page — rasterized at render time via `resvg`.
+    Svg {
+        /// Raw SVG source string.
+        data:  String,
+        title: Option<String>,
+        text:  Option<String>,
+    },
+    /// Text rendered with a custom TTF/OTF font.
+    CustomText {
+        text:  String,
+        font:  BookFont,
+        /// ARGB color (0xAARRGGBB).
+        color: u32,
+    },
 }
 
 // ── Category ─────────────────────────────────────────────────────────────────
 
 /// Represents a book category tab (e.g. "Basics", "Patterns").
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BookCategory {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
-    /// Texture for the category icon (path like "minecraft:textures/..." or "hexcasting:textures/item/...")
+    /// MC texture path for the category icon (e.g. `"minecraft:textures/item/book.png"`).
     pub icon: Option<String>,
+    /// Raw SVG string for the category icon (takes priority over `icon`).
+    pub icon_svg: Option<String>,
     /// Sort priority (lower = first).
     pub sortnum: i32,
 }
@@ -81,7 +111,7 @@ pub struct BookCategory {
 // ── Entry ────────────────────────────────────────────────────────────────────
 
 /// One entry in a book (like a "page" in the TOC sidebar).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BookEntry {
     pub id: String,
     pub name: String,
@@ -89,6 +119,8 @@ pub struct BookEntry {
     pub pages: Vec<BookPage>,
     /// Entry icon (item id or texture path).
     pub icon: Option<String>,
+    /// Raw SVG icon string (takes priority over `icon`).
+    pub icon_svg: Option<String>,
     /// If true, hides from the book (used for unlocks).
     pub secret: bool,
     /// Sort priority (lower = first).
@@ -102,7 +134,7 @@ pub struct BookEntry {
 // ── Book ─────────────────────────────────────────────────────────────────────
 
 /// The top-level book definition — replaces `patchouli_books/<id>/book.json`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Book {
     pub id: String,
     pub name: String,
@@ -281,7 +313,6 @@ pub fn pattern_page(op_id: impl Into<String>, anchor: impl Into<String>, input: 
 }
 
 // ── Book → yog-ui bridge ─────────────────────────────────────────────────────
-#[cfg(feature = "yog-ui")]
 pub mod book_ui {
     use crate::{Book, BookEntry, BookPage};
     use yog_ui::widget::{self, Widget};
@@ -438,6 +469,14 @@ impl BookPage {
             Self::Pattern { op_id, anchor, input, output, text } =>
                 format!(r#"{{"type":"pattern","op_id":"{}","anchor":"{}","input":"{}","output":"{}","text":"{}"}}"#,
                     esc(op_id), esc(anchor), esc(input), esc(output), esc(text)),
+            Self::Svg { data, title, text } => {
+                let t = title.as_deref().map(|s| format!(r#","title":"{}""#, esc(s))).unwrap_or_default();
+                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
+                format!(r#"{{"type":"svg","data":"{}"{}{}}}"#, esc(data), t, tx)
+            }
+            Self::CustomText { text, font, color } =>
+                format!(r#"{{"type":"custom_text","text":"{}","font_id":"{}","size_px":{},"color":{}}}"#,
+                    esc(text), esc(&font.font_id), font.size_px, color),
         }
     }
 }

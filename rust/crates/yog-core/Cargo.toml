@@ -1,6 +1,6 @@
 [package]
 name = "yog-core"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 # Permissive: foundational types/handles shared by the mod-facing API.

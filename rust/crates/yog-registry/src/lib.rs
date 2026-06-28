@@ -13,9 +13,13 @@
 //! BlockDef::new("mymod:lamp").light_level(15).sound("stone");
 //! ```
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 // ── Items ────────────────────────────────────────────────────────────────────
 
 /// Nutritional properties for a food item.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct FoodDef {
     /// Hunger points restored (1 unit = half a drumstick).
@@ -38,6 +42,7 @@ impl FoodDef {
 }
 
 /// A custom item to register, identified by `namespace:path`.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct ItemDef {
     pub id: String,
@@ -121,6 +126,7 @@ impl ItemDef {
 ///     .row("R  ").row("RS ").row(" S ")
 ///     .key('R', "yog:ruby_shard").key('S', "minecraft:stick");
 /// ```
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct ShapedRecipe {
     pub id:     String,
@@ -168,6 +174,7 @@ impl ShapedRecipe {
 }
 
 /// A shapeless crafting recipe (unordered ingredients).
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct ShapelessRecipe {
     pub id:          String,
@@ -203,6 +210,7 @@ impl ShapelessRecipe {
 }
 
 /// A furnace smelting recipe.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct FurnaceRecipe {
     pub id:         String,
@@ -250,6 +258,7 @@ impl FurnaceRecipe {
 
 /// A shapeless recipe that produces a book from `yog-book`.
 /// Replaces `patchouli:shapeless_book_recipe`.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct BookRecipe {
     pub id: String,
@@ -286,6 +295,7 @@ impl BookRecipe {
 // ── ItemModifier ─────────────────────────────────────────────────────────────
 
 /// An item modifier applied during loot generation (like smelting, enchanted, etc.).
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct ItemModifier {
     pub id: String,
@@ -321,6 +331,7 @@ impl ItemModifier {
 
 /// Grant items/books to every player once when they first join.
 /// This is the Yog-side replacement for `grant_patchi_book.json`.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct StartupGrant {
     pub id: String,
@@ -383,6 +394,7 @@ impl StartupGrant {
 }
 
 // ── Blocks ───────────────────────────────────────────────────────────────────
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct AdvancementReward {
     pub id: String,
@@ -433,6 +445,7 @@ impl AdvancementReward {
 // ── Blocks ───────────────────────────────────────────────────────────────────
 
 /// A custom block to register; it also gets a matching block-item.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct BlockDef {
     pub id: String,

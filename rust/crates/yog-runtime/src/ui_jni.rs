@@ -72,7 +72,28 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
         if id != *modal_id { return; }
     }
     drop(active);
-    // Dispatch event
+
+    // Try book click first: hit-test against the book renderer's last layout.
+    {
+        let mut renderers = h.book_renderers.lock().expect("book_renderers");
+        if let Some(renderer) = renderers.get_mut(&id) {
+            if let Some(ui) = &renderer.ui {
+                if let Some(hit) = yog_ui::layout::hit_test(&ui.layout_root, mx, my) {
+                    if let Some(event) = &hit.on_click {
+                        yog_logging::info!("book click '{}' → '{}'", id, event);
+                        let ev = event.clone();
+                        drop(renderers);
+                        h.book_renderers.lock().unwrap().get_mut(&id)
+                            .map(|r| r.handle_event(&ev));
+                        return;
+                    }
+                }
+            }
+            return; // book UI consumed the click
+        }
+    }
+
+    // Generic UI handler.
     if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
         if let Some(ui_root) = h.uis.get(&id) {
             if let Some(hit) = yog_ui::layout::hit_test(ui_root, mx, my) {

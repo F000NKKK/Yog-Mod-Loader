@@ -38,3 +38,21 @@ authors = ["F000NK, Yog Team, Voluntas Progressus"]
 # `yog-api` and the example mod override this with a permissive license so the
 # mod ecosystem stays free — see LICENSING.md.
 license = "AGPL-3.0-only"
+
+[patch.crates-io]
+yog-abi      = { path = "crates/yog-abi" }
+yog-core     = { path = "crates/yog-core" }
+yog-event    = { path = "crates/yog-event" }
+yog-world    = { path = "crates/yog-world" }
+yog-entity   = { path = "crates/yog-entity" }
+yog-player   = { path = "crates/yog-player" }
+yog-registry = { path = "crates/yog-registry" }
+yog-network  = { path = "crates/yog-network" }
+yog-command  = { path = "crates/yog-command" }
+yog-logging  = { path = "crates/yog-logging" }
+yog-storage  = { path = "crates/yog-storage" }
+yog-config   = { path = "crates/yog-config" }
+yog-api      = { path = "crates/yog-api" }
+yog-book     = { path = "crates/yog-book" }
+yog-gfx      = { path = "crates/yog-gfx" }
+yog-ui       = { path = "crates/yog-ui" }

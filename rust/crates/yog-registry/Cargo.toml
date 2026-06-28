@@ -8,3 +8,7 @@ description = "Yog content registry — register items, blocks, recipes, etc."
 
 [dependencies]
 yog-abi = "0.5"
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+serde = ["dep:serde"]

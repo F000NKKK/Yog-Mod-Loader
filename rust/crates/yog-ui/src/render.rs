@@ -46,6 +46,10 @@ pub fn render_node(d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
                 0.0, 0.0, 16.0, 16.0, 16.0, 16.0,
             );
         }
+        WidgetKind::McImage { id, img_w, img_h } => {
+            d2d.mc_texture(id, r.x + s.pad[3], r.y + s.pad[0],
+                0.0, 0.0, *img_w, *img_h, *img_w, *img_h);
+        }
         WidgetKind::Spacer => {} // invisible
     }
 

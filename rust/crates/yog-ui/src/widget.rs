@@ -23,6 +23,8 @@ pub enum WidgetKind {
     Button(String),
     /// Minecraft item icon.
     ItemSlot(String),
+    /// Minecraft texture blit (via `draw2d_mc_tex`).
+    McImage { id: String, img_w: f32, img_h: f32 },
     /// Invisible spacer.
     Spacer,
 }
@@ -91,4 +93,8 @@ pub fn panel(dir: FlexDir) -> Widget { Widget::new(WidgetKind::Panel).flex_dir(d
 pub fn label(text: impl Into<String>) -> Widget { Widget::new(WidgetKind::Label(text.into())) }
 pub fn button(text: impl Into<String>) -> Widget { Widget::new(WidgetKind::Button(text.into())) }
 pub fn item_slot(item_id: impl Into<String>) -> Widget { Widget::new(WidgetKind::ItemSlot(item_id.into())) }
+pub fn mc_image(id: impl Into<String>, img_w: f32, img_h: f32) -> Widget {
+    Widget::new(WidgetKind::McImage { id: id.into(), img_w, img_h })
+        .w(img_w).h(img_h)
+}
 pub fn spacer() -> Widget { Widget::new(WidgetKind::Spacer) }
