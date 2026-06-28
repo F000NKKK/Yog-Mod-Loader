@@ -927,19 +927,17 @@ public final class NativeBridge {
     /** Get the JSON of a registered book by its id (e.g. "yog:example_guide"). */
     public static native String nativeBookJson(String bookId);
 
-    // ── UI system ──────────────────────────────────────────────────────────
-
-    /** Open a Rust-mod-defined UI screen. Called from Java. */
-    public static native void nativeUIShow(String uiId, int screenW, int screenH);
-    /** Hide / close the UI. Rust should stop rendering. */
+    /** Open a Rust-mod-defined UI. parentId="" for top-level, modal blocks clicks outside, pauseGame pauses MC. */
+    public static native void nativeUIShow(String uiId, String parentId, boolean modal, boolean pauseGame, int screenW, int screenH);
+    /** Hide / close the UI. */
     public static native void nativeUIHide(String uiId);
     /** Forward a mouse click to Rust. button: 0=left, 1=right, 2=middle. */
     public static native void nativeUIClick(String uiId, float mx, float my, int button);
     /** Forward a key event. action: 0=release, 1=press. */
     public static native void nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
-
+    /** Trigger a repaint cycle; actual rendering is done in nativeOnHudRender. */
     public static native void nativeUIRender(String uiId);
-    // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
+    public static native boolean nativeIsUIActive(String uiId);
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source, String uuid);
 

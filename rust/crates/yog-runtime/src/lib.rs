@@ -68,6 +68,17 @@ static GL_GET_PROGRAM_IV:     OnceLock<Option<usize>> = OnceLock::new();
 
 // ── Handler storage ───────────────────────────────────────────────────────────
 
+#[derive(Debug, Clone)]
+pub struct UiLayer {
+    pub id:         String,
+    pub parent:     Option<String>,
+    pub modal:      bool,
+    pub pause_game: bool,
+    pub visible:    bool,
+    pub enabled:    bool,
+    pub z_index:    i32,
+}
+
 struct RuntimeHandlers {
     block_break:        Vec<(*mut c_void, YogBlockBreakFn)>,
     chat:               Vec<(*mut c_void, YogChatFn)>,
@@ -107,9 +118,10 @@ struct RuntimeHandlers {
     client_packets:     HashMap<String, (*mut c_void, YogPacketFn)>,
     items:              Vec<ItemDef>,
     blocks:             Vec<BlockDef>,
-    books:              HashMap<String, String>, // book_id → JSON
-    pub(crate) uis:     HashMap<String, yog_ui::LayoutNode>, // ui_id → current layout
-    ui_handlers:        HashMap<String, (*mut c_void, yog_abi::YogUIEventFn)>, // ui_id → callback
+    books:              HashMap<String, String>,
+    pub(crate) uis:     HashMap<String, yog_ui::LayoutNode>,
+    ui_handlers:        HashMap<String, (*mut c_void, yog_abi::YogUIEventFn)>,
+    pub active_uis:     Mutex<Vec<UiLayer>>,
     startup_grants:     Vec<yog_registry::StartupGrant>,
     startup_granted:    Mutex<HashMap<String, bool>>,
     scheduler:          Mutex<SchedulerState>,
@@ -140,8 +152,8 @@ impl RuntimeHandlers {
             commands: HashMap::new(), typed_schemas: HashMap::new(),
             recipes: Vec::new(), packets: HashMap::new(),
             client_packets: HashMap::new(), items: Vec::new(),
+            ui_handlers: HashMap::new(), active_uis: Mutex::new(Vec::new()), startup_grants: Vec::new(),
             blocks: Vec::new(), books: HashMap::new(), uis: HashMap::new(),
-            ui_handlers: HashMap::new(), startup_grants: Vec::new(),
             startup_granted: Mutex::new(HashMap::new()),
             scheduler: Mutex::new(SchedulerState::new()),
         }
@@ -2812,61 +2824,4 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
 }
 
 
-// ── UI system JNI ─────────────────────────────────────────────────────────────
-
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>, ui_id: JString<'l>, _w: jint, _h: jint,
-) {
-    let id = jstr!(env, ui_id);
-    yog_logging::info!("UI show: {}", id);
-}
-
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIHide<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>, ui_id: JString<'l>,
-) {
-    let id = jstr!(env, ui_id);
-    yog_logging::info!("UI hide: {}", id);
-}
-
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>,
-    ui_id: JString<'l>, mx: jfloat, my: jfloat, button: jint,
-) {
-    let id = jstr!(env, ui_id);
-    let h = handlers();
-    if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
-        if let Some(ui_root) = h.uis.get(&id) {
-            if let Some(hit) = yog_ui::layout::hit_test(ui_root, mx, my) {
-                if let Some(event) = &hit.on_click {
-                    yog_logging::info!("UI click '{}' → event '{}'", id, event);
-                    let ev = YogStr::from_str(event);
-                    let ui = YogStr::from_str(&id);
-                    unsafe { handler(ud, ui, ev); }
-                }
-            }
-        }
-    }
-    let _ = button;
-}
-
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>,
-    ui_id: JString<'l>, key: jint, _scan: jint, _mods: jint, action: jint,
-) {
-    let id = jstr!(env, ui_id);
-    yog_logging::info!("UI key: {} key={} action={}", id, key, action);
-}
-
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>, ui_id: JString<'l>,
-) {
-    let id = jstr!(env, ui_id);
-    // The mod's on_hud_render handler will call ui.render(ctx)
-    // So this just triggers a repaint — the mod handles actual rendering.
-    let _ = id;
-}
+mod ui_jni;
