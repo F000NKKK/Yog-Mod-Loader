@@ -21,7 +21,7 @@ public class YogBookItem extends YogItem {
         if (world.isClient) {
             String json = NativeBridge.nativeBookJson(bookId);
             if (json != null && !json.equals("null")) {
-                MinecraftClient.getInstance().setScreen(new YogBookScreen(bookId));
+                MinecraftClient.getInstance().setScreen(new YogUIScreen(bookId));
             }
         }
         return TypedActionResult.success(player.getStackInHand(hand));
