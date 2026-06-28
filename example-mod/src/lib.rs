@@ -17,6 +17,11 @@ impl Mod for ExampleMod {
         network::register(registry);
         render::register(registry);
 
+        // Register book item right-click behavior (opens YogUIScreen).
+        // Rendering is handled by on_ui_render in render.rs (not the JSON book renderer).
+        let book = book::guide_book();
+        registry.register_book(&book);
+
         // Announce every 5 minutes (6000 ticks) via the scheduler.
         registry.schedule_repeating(6000, |srv| {
             srv.broadcast("Yog: the server is still running.");
