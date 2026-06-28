@@ -1,3 +1,4 @@
+use crate::text;
 use crate::widget::{Widget, WidgetKind};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -48,11 +49,18 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
     if !has_children {
         // Leaf: size to content (text, item slot, spacer)
         match &w.kind {
-            WidgetKind::Label(text) | WidgetKind::Button(text) => {
-                // Approximate text size ~7px per char, 10px height
-                let tw = (text.len() as f32 * 7.0 * s.font_scale).min(max_w - s.pad[1] - s.pad[3]);
-                ww = (tw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
-                hh = (10.0 * s.font_scale + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
+            WidgetKind::Label(t) | WidgetKind::Button(t) => {
+                let avail_w = (max_w - s.pad[1] - s.pad[3]).max(0.0);
+                // Wrap only when max_w is a real constraint (not "unlimited").
+                if avail_w < 4096.0 {
+                    ww = (avail_w + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
+                    hh = (text::text_height(t, avail_w, s.font_scale) + s.pad[0] + s.pad[2])
+                        .max(s.min_h).min(max_h);
+                } else {
+                    let tw = t.len() as f32 * text::CHAR_W * s.font_scale;
+                    ww = (tw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
+                    hh = (text::LINE_H * s.font_scale + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
+                }
             }
             WidgetKind::ItemSlot(_) => {
                 ww = (18.0 + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);

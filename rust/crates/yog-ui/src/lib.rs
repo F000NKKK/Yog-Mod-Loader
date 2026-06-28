@@ -18,9 +18,11 @@
 
 pub mod layout;
 mod render;
+pub mod text;
 pub mod widget;
 
 pub use layout::{Align, FlexDir, LayoutNode, Rect, set_focus};
+pub use widget::FocusStyle;
 pub use widget::Widget;
 
 use yog_gfx::GfxContext;

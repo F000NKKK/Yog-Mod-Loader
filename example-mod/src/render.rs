@@ -11,7 +11,7 @@ use yog_api::{
     Book, BookCategory, BookEntry, BookPage,
     Registry,
 };
-use yog_api::ui::{UiRoot, LayoutNode, widget, Align, FlexDir};
+use yog_api::ui::{UiRoot, LayoutNode, widget, Align, FlexDir, FocusStyle};
 
 // ── GLSL (world renderer) ────────────────────────────────────────────────────
 
@@ -242,9 +242,13 @@ fn build_book_ui(sw: f32, sh: f32) -> UiRoot {
         match p {
             BookPage::Text { text } => {
                 for para in text.split('\n') {
-                    page_col = page_col.child(
-                        widget::label(para).color(TEXT_COL).font_scale(0.9)
-                    );
+                    if para.is_empty() {
+                        page_col = page_col.child(widget::spacer().h(3.0));
+                    } else {
+                        page_col = page_col.child(
+                            widget::label(para).color(TEXT_COL).font_scale(0.9)
+                        );
+                    }
                 }
             }
             BookPage::Spotlight { item, title, text } => {
@@ -253,7 +257,15 @@ fn build_book_ui(sw: f32, sh: f32) -> UiRoot {
                 }
                 page_col = page_col.child(widget::item_slot(&item.id));
                 if let Some(t) = text {
-                    page_col = page_col.child(widget::label(t).color(TEXT_COL).font_scale(0.9));
+                    for para in t.split('\n') {
+                        if para.is_empty() {
+                            page_col = page_col.child(widget::spacer().h(3.0));
+                        } else {
+                            page_col = page_col.child(
+                                widget::label(para).color(TEXT_COL).font_scale(0.9)
+                            );
+                        }
+                    }
                 }
             }
             _ => {
@@ -274,9 +286,13 @@ fn build_book_ui(sw: f32, sh: f32) -> UiRoot {
     let pg_label = format!("{}/{}", pg_idx + 1, page_count);
     page_col = page_col.child(
         widget::panel(FlexDir::Row).h(18.0).gap(4.0).padding(2.0, 4.0, 2.0, 4.0)
-            .child(widget::button("◀").w(20.0).h(14.0).color(NAV_COL).id("prev_page").on_click("prev_page"))
+            .child(widget::button("◀").w(20.0).h(14.0).color(NAV_COL)
+                .focus_style(FocusStyle::None).focus_color(0)
+                .id("prev_page").on_click("prev_page"))
             .child(widget::label(&pg_label).color(DIM_COL).flex(1.0).align(Align::Center).font_scale(0.85))
-            .child(widget::button("▶").w(20.0).h(14.0).color(NAV_COL).id("next_page").on_click("next_page"))
+            .child(widget::button("▶").w(20.0).h(14.0).color(NAV_COL)
+                .focus_style(FocusStyle::None).focus_color(0)
+                .id("next_page").on_click("next_page"))
     );
 
     // ── Book frame ───────────────────────────────────────────────────────────

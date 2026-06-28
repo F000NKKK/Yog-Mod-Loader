@@ -39,7 +39,7 @@ pub fn guide_book() -> Book {
             pages: vec![
                 spotlight_page(ItemDef::new("yog:ruby")
                     .name("Ruby").tooltip("A shiny gem, forged in Rust.").max_stack(16)),
-                text_page("Rubies are the core resource. Used to craft Ruby Blocks.\\nMax stack: 16. Obtain via /ruby."),
+                text_page("Rubies are the core resource. Used to craft Ruby Blocks.\nMax stack: 16. Obtain via /ruby."),
             ],
             ..Default::default()
         })
@@ -68,7 +68,7 @@ pub fn guide_book() -> Book {
             id: "ruby_block".into(), name: "Block of Ruby".into(), category: "blocks".into(),
             icon: Some("yog:ruby_block".into()),
             pages: vec![
-                text_page("Storage block. Requires pickaxe.\\nHardness: 3.0 | Resist: 6.0 | Sound: Metal"),
+                text_page("Storage block. Requires pickaxe.\nHardness: 3.0 | Resist: 6.0 | Sound: Metal"),
                 crafting_page("yog:ruby_block_from_rubies"),
             ],
             ..Default::default()
@@ -77,7 +77,7 @@ pub fn guide_book() -> Book {
             id: "ember_block".into(), name: "Ember Block".into(), category: "blocks".into(),
             icon: Some("yog:ember_block".into()),
             pages: vec![
-                text_page("Glowing block — light level 12.\\nHardness: 0.5 | Resist: 0.5 | Sound: Stone"),
+                text_page("Glowing block — light level 12.\nHardness: 0.5 | Resist: 0.5 | Sound: Stone"),
             ],
             ..Default::default()
         })
@@ -86,7 +86,7 @@ pub fn guide_book() -> Book {
             id: "cmd_yog".into(), name: "/yog".into(), category: "commands".into(),
             icon: Some("minecraft:command_block".into()),
             pages: vec![
-                text_page("Usage: /yog [args]\\n\\nEchoes a greeting. Example: /yog hello → \"Yog here! You said: 'hello'\""),
+                text_page("Usage: /yog [args]\n\nEchoes a greeting. Example: /yog hello → \"Yog here! You said: 'hello'\""),
             ],
             ..Default::default()
         })
@@ -94,7 +94,7 @@ pub fn guide_book() -> Book {
             id: "cmd_ruby".into(), name: "/ruby".into(), category: "commands".into(),
             icon: Some("yog:ruby".into()),
             pages: vec![
-                text_page("Usage: /ruby\\n\\nGives you one free Ruby in your inventory."),
+                text_page("Usage: /ruby\n\nGives you one free Ruby in your inventory."),
             ],
             ..Default::default()
         })
@@ -102,7 +102,7 @@ pub fn guide_book() -> Book {
             id: "cmd_loot".into(), name: "/loot".into(), category: "commands".into(),
             icon: Some("minecraft:chest".into()),
             pages: vec![
-                text_page("Usage: /loot\\n\\nDrops zombie loot at (0, 64, 0) overworld. Demonstrates loot API."),
+                text_page("Usage: /loot\n\nDrops zombie loot at (0, 64, 0) overworld. Demonstrates loot API."),
             ],
             ..Default::default()
         })

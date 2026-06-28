@@ -2,7 +2,8 @@
 //! Only valid inside `on_hud_render`.
 
 use crate::layout::LayoutNode;
-use crate::widget::{Widget, WidgetKind};
+use crate::text;
+use crate::widget::{FocusStyle, Widget, WidgetKind};
 use yog_gfx::draw2d::Draw2D;
 
 /// Recursively render a widget tree starting from the computed layout.
@@ -14,23 +15,53 @@ pub fn render_node(d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
     if s.bg != 0 {
         d2d.rect(r.x, r.y, r.x + r.w, r.y + r.h, s.bg);
     }
-    // Focus ring — 1px amber outline for focused widgets
+    // Focus indicator — style controlled per-widget.
     if node.focused {
-        d2d.rect(r.x,             r.y,             r.x + r.w,     r.y + 1.0,     0xFF_FFE040);
-        d2d.rect(r.x,             r.y + r.h - 1.0, r.x + r.w,     r.y + r.h,     0xFF_FFE040);
-        d2d.rect(r.x,             r.y,             r.x + 1.0,     r.y + r.h,     0xFF_FFE040);
-        d2d.rect(r.x + r.w - 1.0, r.y,            r.x + r.w,     r.y + r.h,     0xFF_FFE040);
+        let fc = if s.focus_color != 0 { s.focus_color } else { 0xFF_FFE040 };
+        match s.focus_style {
+            FocusStyle::Outline => {
+                d2d.rect(r.x,             r.y,             r.x + r.w, r.y + 1.0,     fc);
+                d2d.rect(r.x,             r.y + r.h - 1.0, r.x + r.w, r.y + r.h,     fc);
+                d2d.rect(r.x,             r.y,             r.x + 1.0, r.y + r.h,     fc);
+                d2d.rect(r.x + r.w - 1.0, r.y,            r.x + r.w, r.y + r.h,     fc);
+            }
+            FocusStyle::Fill => {
+                d2d.rect(r.x, r.y, r.x + r.w, r.y + r.h, fc);
+            }
+            FocusStyle::None => {}
+        }
     }
 
     match &widget.kind {
         WidgetKind::Panel(_) => {
             // Panel just draws children
         }
-        WidgetKind::Label(text) | WidgetKind::Button(text) => {
-            // Text centered vertically, with padding
+        WidgetKind::Label(t) => {
+            let avail_w = (r.w - s.pad[1] - s.pad[3] - 2.0).max(0.0);
             let tx = r.x + s.pad[3] + 2.0;
-            let ty = r.y + s.pad[0] + (r.h - s.pad[0] - s.pad[2] - 9.0) / 2.0;
-            d2d.text(text, tx, ty.max(r.y + s.pad[0]), s.color, true);
+            let lines = text::wrap_text(t, avail_w, s.font_scale);
+            let line_h = text::LINE_H * s.font_scale + text::LINE_GAP;
+            let total_h = lines.len() as f32 * line_h - text::LINE_GAP;
+            let content_h = r.h - s.pad[0] - s.pad[2];
+            let start_y = r.y + s.pad[0] + ((content_h - total_h) / 2.0).max(0.0);
+            for (i, line) in lines.iter().enumerate() {
+                d2d.text(line, tx, start_y + i as f32 * line_h, s.color, true);
+            }
+        }
+        WidgetKind::Button(t) => {
+            let avail_w = (r.w - s.pad[1] - s.pad[3] - 2.0).max(0.0);
+            let lines = text::wrap_text(t, avail_w, s.font_scale);
+            let line_h = text::LINE_H * s.font_scale + text::LINE_GAP;
+            let total_h = lines.len() as f32 * line_h - text::LINE_GAP;
+            let content_h = r.h - s.pad[0] - s.pad[2];
+            let content_w = r.w - s.pad[1] - s.pad[3];
+            let start_y = r.y + s.pad[0] + ((content_h - total_h) / 2.0).max(0.0);
+            for (i, line) in lines.iter().enumerate() {
+                // Center each line horizontally inside the button.
+                let line_w = line.len() as f32 * text::CHAR_W * s.font_scale;
+                let tx = r.x + s.pad[3] + ((content_w - line_w) / 2.0).max(0.0);
+                d2d.text(line, tx, start_y + i as f32 * line_h, s.color, true);
+            }
         }
         WidgetKind::ItemSlot(item_id) => {
             let ix = r.x + s.pad[3]; let iy = r.y + s.pad[0];

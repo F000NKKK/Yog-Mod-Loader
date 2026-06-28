@@ -31,6 +31,19 @@ pub enum WidgetKind {
     Spacer,
 }
 
+/// How a focused widget shows its focus indicator.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FocusStyle {
+    /// 1px outline using `focus_color` (default, amber).
+    Outline,
+    /// Solid background fill using `focus_color`.
+    Fill,
+    /// No visual indicator.
+    None,
+}
+
+impl Default for FocusStyle { fn default() -> Self { FocusStyle::Outline } }
+
 /// Visual and layout style for a widget.
 #[derive(Debug, Clone)]
 pub struct Style {
@@ -45,7 +58,9 @@ pub struct Style {
     pub bg:     u32,   // background colour 0xAARRGGBB; 0 = transparent
     pub color:  u32,   // text colour
     pub align:  Align,
-    pub font_scale: f32,
+    pub font_scale:  f32,
+    pub focus_style: FocusStyle,
+    pub focus_color: u32,  // 0 = default amber 0xFF_FFE040
 }
 
 impl Default for Style {
@@ -54,6 +69,7 @@ impl Default for Style {
             w: 0.0, h: 0.0, min_w: 4.0, min_h: 4.0, flex: 0.0, gap: 2.0,
             pad: [0.0; 4], margin: [0.0; 4], bg: 0, color: 0xFF_CCCCAA,
             align: Align::Start, font_scale: 1.0,
+            focus_style: FocusStyle::default(), focus_color: 0,
         }
     }
 }
@@ -82,6 +98,8 @@ impl Widget {
     pub fn color(mut self, v: u32) -> Self { self.style.color = v; self }
     pub fn align(mut self, v: Align) -> Self { self.style.align = v; self }
     pub fn font_scale(mut self, v: f32) -> Self { self.style.font_scale = v; self }
+    pub fn focus_style(mut self, v: FocusStyle) -> Self { self.style.focus_style = v; self }
+    pub fn focus_color(mut self, v: u32) -> Self { self.style.focus_color = v; self }
     pub fn enabled(mut self, v: bool) -> Self { self.enabled = v; self }
     pub fn focused(mut self, v: bool) -> Self { self.focused = v; self }
     pub fn padding(mut self, top: f32, right: f32, bottom: f32, left: f32) -> Self {
