@@ -10,6 +10,96 @@ dependencies = [
 ]
 
 [[package]]
+name = "itoa"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+
+[[package]]
+name = "memchr"
+version = "2.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88904434abc2901f197fe8cc55f0445e7ded921dba5911dad2e2b39b48e663c4"
+
+[[package]]
+name = "proc-macro2"
+version = "1.0.106"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fd00f0bb2e90d81d1044c2b32617f68fcb9fa3bb7640c23e9c748e53fb30934"
+dependencies = [
+ "unicode-ident",
+]
+
+[[package]]
+name = "quote"
+version = "1.0.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dfbc457d0c7a0759a614551b11a6409e5951f6c7537be1f1b7682b9ae9230368"
+dependencies = [
+ "proc-macro2",
+]
+
+[[package]]
+name = "serde"
+version = "1.0.228"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
+dependencies = [
+ "serde_core",
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_core"
+version = "1.0.228"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41d385c7d4ca58e59fc732af25c3983b67ac852c1a25000afe1175de458b67ad"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.228"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.150"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8014e44b4736ed0538adeecded0fce2a272f22dc9578a7eb6b2d9993c74cfb9"
+dependencies = [
+ "itoa",
+ "memchr",
+ "serde",
+ "serde_core",
+ "zmij",
+]
+
+[[package]]
+name = "syn"
+version = "2.0.118"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b9ae57f904213ebb649ce6895b8a66c66f0203b9319718f69a5612a065b1422"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "unicode-ident"
+version = "1.0.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
 name = "yog-abi"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -17,9 +107,9 @@ checksum = "00d0c87f1c32e00c6cfc503db2f0b699ab03b1b1b77d6412b2d55ca77693f7d2"
 
 [[package]]
 name = "yog-api"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03b7439c45d88fc445b597f01b3406fe2c1c7b19f10e5a5ba5824c13cf13771d"
+checksum = "dbf2989b1a98efeb8d341752a2d95144829defce9545bc3131099177b6001efe"
 dependencies = [
  "yog-abi",
  "yog-book",
@@ -40,11 +130,15 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1767ed7ce6a479a86856939d548c4b9a87fa687969f900637b2e9fd24fc7c070"
+checksum = "6bdc86630cc3e53172c4d47397b504b28c1ed7d39065b7e9685eda5cf5d8da2d"
 dependencies = [
+ "serde",
+ "serde_json",
+ "yog-gfx",
  "yog-registry",
+ "yog-ui",
 ]
 
 [[package]]
@@ -116,10 +210,11 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1503c3d609d53d774005376c84cc94c2a969b165f932468855f7d19c2cfb3d64"
+checksum = "2e4b1df2a40e1c8509687f9ad339d170b82c0e4a308b1252dee8a5afa7347aa7"
 dependencies = [
+ "serde",
  "yog-abi",
 ]
 
@@ -131,9 +226,9 @@ checksum = "d300b68e1172c9cec95fee547a1cf641cc7063562b5851b91017814d39beb045"
 
 [[package]]
 name = "yog-ui"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d582697d3f1a41868cad9fc5ac641dfc63d7a09352223f09b545a74db871206"
+checksum = "c959a42b964dd56c282739407d7c121b5c75de7727ba59f4c2f3d5ea6c083ebf"
 dependencies = [
  "yog-abi",
  "yog-gfx",
@@ -147,3 +242,9 @@ checksum = "a70e106eaaf4e78bad2bfa7bb984add066fc966c96b6c9471b18ce666faf57f1"
 dependencies = [
  "yog-core",
 ]
+
+[[package]]
+name = "zmij"
+version = "1.0.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
