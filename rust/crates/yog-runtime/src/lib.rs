@@ -1774,6 +1774,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
     let h = handlers();
     let mut granted = h.startup_granted.lock().expect("startup_granted poisoned");
     yog_logging::info!("processing {} startup grants for player {}", h.startup_grants.len(), p);
+    let mut any_new = false;
     for sg in &h.startup_grants {
         let key = format!("{}::{}", u, sg.id);
         if granted.contains_key(&key) {
@@ -1790,6 +1791,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
             yog_logging::info!("gave book {} to {} -> {}", book, p, ok);
         }
         granted.insert(key, true);
+        any_new = true;
+    }
+    if any_new {
+        save_startup_granted(&granted);
     }
     drop(granted);
 }
@@ -1944,10 +1949,42 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
     }
 }
 
+fn startup_grants_path() -> std::path::PathBuf {
+    std::path::PathBuf::from("yog-data").join("startup_grants.json")
+}
+
+fn load_startup_granted() {
+    let path = startup_grants_path();
+    let Ok(data) = std::fs::read_to_string(&path) else { return };
+    let Ok(keys) = serde_json::from_str::<Vec<String>>(&data) else {
+        yog_logging::warn!("startup_grants.json: invalid JSON, ignoring");
+        return;
+    };
+    let h = handlers();
+    let mut granted = h.startup_granted.lock().expect("startup_granted poisoned");
+    for k in keys {
+        granted.insert(k, true);
+    }
+    yog_logging::info!("loaded {} startup grants from disk", granted.len());
+}
+
+fn save_startup_granted(granted: &HashMap<String, bool>) {
+    let path = startup_grants_path();
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let keys: Vec<&String> = granted.keys().collect();
+    match serde_json::to_string(&keys) {
+        Ok(json) => { let _ = std::fs::write(&path, json); }
+        Err(e) => yog_logging::error!("failed to save startup_grants.json: {}", e),
+    }
+}
+
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
     _env: JNIEnv<'l>, _class: JClass<'l>,
 ) {
+    load_startup_granted();
     let srv = srv_ptr();
     guard("on_server_started", || {
         for (ud, f) in &handlers().server_started {
