@@ -133,8 +133,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     let sw = screen_w as f32;
     let sh = screen_h as f32;
     let fonts = h.book_fonts.lock().expect("book_fonts");
-    let mut renderers = h.book_renderers.lock().expect("book_renderers");
-    if let Some(renderer) = renderers.get_mut(&id) {
-        renderer.render(&ctx, sw, sh, &fonts);
+    let mut book_renderers = h.book_renderers.lock().expect("book_renderers");
+    if let Some(book_renderer) = book_renderers.get_mut(&id) {
+        book_renderer.render(&ctx, sw, sh, &fonts);
     }
 }
