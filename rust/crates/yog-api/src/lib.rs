@@ -76,7 +76,7 @@ pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_world::World;
 pub use yog_book::{Book, BookCategory, BookEntry, BookPage, BookMacro, BookRegistry};
 pub use yog_book::{text_page, spotlight_page, crafting_page, smelting_page, image_page, entity_page, relations_page, pattern_page};
-pub use yog_ui::{UiRoot, widget, Align, FlexDir};
+pub use yog_ui::{UiRoot, LayoutNode, widget, Align, FlexDir};
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
 pub use yog_logging::{error, info, warn};

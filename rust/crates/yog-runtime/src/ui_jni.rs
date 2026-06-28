@@ -93,16 +93,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
         }
     }
 
-    // Generic UI handler.
+    // Generic UI handler — forward raw click coords so the mod can hit-test its
+    // own stored layout (see Registry::on_ui_render + LAST_LAYOUT pattern).
     if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
-        if let Some(ui_root) = h.uis.get(&id) {
-            if let Some(hit) = yog_ui::layout::hit_test(ui_root, mx, my) {
-                if let Some(event) = &hit.on_click {
-                    yog_logging::info!("UI click '{}' → '{}'", id, event);
-                    unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(event)); }
-                }
-            }
-        }
+        let ev = format!("click:{:.1}:{:.1}", mx, my);
+        yog_logging::info!("UI click '{}' → raw {}", id, ev);
+        unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev)); }
     }
     let _ = button;
 }
@@ -123,7 +119,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 ) {
     let id = jstr!(env, ui_id);
     let h = crate::handlers();
-    // Build a GfxContext using GFX_FN_TABLE function pointers with current screen dims.
     let mut gfx = crate::GFX_FN_TABLE;
     gfx.screen_w    = screen_w;
     gfx.screen_h    = screen_h;
@@ -132,9 +127,24 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     let ctx = unsafe { yog_gfx::GfxContext::from_raw(&gfx as *const _) };
     let sw = screen_w as f32;
     let sh = screen_h as f32;
-    let fonts = h.book_fonts.lock().expect("book_fonts");
-    let mut book_renderers = h.book_renderers.lock().expect("book_renderers");
-    if let Some(book_renderer) = book_renderers.get_mut(&id) {
-        book_renderer.render(&ctx, sw, sh, &fonts);
+
+    // Book renderer path (books registered via register_book).
+    {
+        let fonts = h.book_fonts.lock().expect("book_fonts");
+        let mut book_renderers = h.book_renderers.lock().expect("book_renderers");
+        if let Some(book_renderer) = book_renderers.get_mut(&id) {
+            book_renderer.render(&ctx, sw, sh, &fonts);
+            return;
+        }
+    }
+
+    // Generic on_ui_render callbacks — run AFTER renderBackground(), so they appear
+    // on top of the screen darkening (unlike on_hud_render which runs before screens).
+    let render_cbs: Vec<_> = h.ui_render_handlers
+        .get(&id)
+        .cloned()
+        .unwrap_or_default();
+    for (ud, f) in render_cbs {
+        unsafe { f(ud, &gfx as *const _) };
     }
 }

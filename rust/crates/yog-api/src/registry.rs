@@ -1152,6 +1152,21 @@ impl Registry {
         unsafe { ((*self.api).on_client_tick)(self.ctx(), ud, trampoline_client_tick::<F>) }
     }
 
+    /// Register a render callback for a specific UI screen (`ui_id`).
+    ///
+    /// Called from `YogUIScreen.render()` — i.e. AFTER `renderBackground()` darkens
+    /// the screen — so your UI draws on top of the dimmed world view.
+    /// Use this instead of `on_hud_render` for book/inventory screens.
+    ///
+    /// Clicks are forwarded as `"click:X:Y"` via the `register_ui` handler so you
+    /// can do hit-testing on your own stored layout.
+    pub fn on_ui_render<F>(&mut self, ui_id: &str, handler: F)
+    where F: Fn(&GfxContext) + Send + Sync + 'static {
+        let ud = Self::leak(handler);
+        let id = YogStr::from_str(ui_id);
+        unsafe { ((*self.api).on_ui_render)(self.ctx(), id, ud, trampoline_hud_render::<F>) }
+    }
+
     /// Register a handler called every frame when the HUD is rendered.
     ///
     /// `gfx` provides full GPU pipeline access plus 2D convenience draw calls.
