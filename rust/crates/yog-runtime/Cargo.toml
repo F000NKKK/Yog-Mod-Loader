@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.9.0"
+version = "0.10.1"
 edition.workspace = true
 license.workspace = true
 description = "Yog runtime — native library bridging the Fabric host to Rust mods via JNI."
@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 jni = "0.21"
 
 yog-abi = "0.5"
-yog-api = "0.10"
+yog-api = "0.11"
 yog-logging = "0.1"
 yog-registry = "0.7"
 yog-ui     = "0.4"
