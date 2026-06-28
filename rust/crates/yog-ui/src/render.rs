@@ -14,6 +14,13 @@ pub fn render_node(d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
     if s.bg != 0 {
         d2d.rect(r.x, r.y, r.x + r.w, r.y + r.h, s.bg);
     }
+    // Focus ring — 1px amber outline for focused widgets
+    if node.focused {
+        d2d.rect(r.x,             r.y,             r.x + r.w,     r.y + 1.0,     0xFF_FFE040);
+        d2d.rect(r.x,             r.y + r.h - 1.0, r.x + r.w,     r.y + r.h,     0xFF_FFE040);
+        d2d.rect(r.x,             r.y,             r.x + 1.0,     r.y + r.h,     0xFF_FFE040);
+        d2d.rect(r.x + r.w - 1.0, r.y,            r.x + r.w,     r.y + r.h,     0xFF_FFE040);
+    }
 
     match &widget.kind {
         WidgetKind::Panel(_) => {

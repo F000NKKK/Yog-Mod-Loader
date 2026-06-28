@@ -20,7 +20,7 @@ pub mod layout;
 mod render;
 pub mod widget;
 
-pub use layout::{Align, FlexDir, LayoutNode, Rect};
+pub use layout::{Align, FlexDir, LayoutNode, Rect, set_focus};
 pub use widget::Widget;
 
 use yog_gfx::GfxContext;

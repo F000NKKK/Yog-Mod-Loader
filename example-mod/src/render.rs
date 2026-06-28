@@ -137,6 +137,8 @@ impl FrameTimer {
 static NAV: Mutex<(usize, usize, usize)> = Mutex::new((0, 0, 0));
 // Last computed layout root — used for mod-side click hit-testing.
 static LAST_LAYOUT: Mutex<Option<LayoutNode>> = Mutex::new(None);
+// ID of the currently focused widget (for visual focus ring).
+static FOCUSED_ID: Mutex<Option<String>> = Mutex::new(None);
 
 fn handle_nav(event: &str) {
     let mut nav = NAV.lock().unwrap();
@@ -183,6 +185,7 @@ fn build_book_ui(sw: f32, sh: f32) -> UiRoot {
         cats_col = cats_col.child(
             widget::button(&cat.name).color(color).bg(bg)
                 .padding(2.0, 6.0, 2.0, 6.0).font_scale(0.85)
+                .id(format!("cat:{i}"))
                 .on_click(format!("cat:{i}"))
         );
     }
@@ -203,6 +206,7 @@ fn build_book_ui(sw: f32, sh: f32) -> UiRoot {
         entries_col = entries_col.child(
             widget::button(&label).color(color).bg(bg)
                 .padding(1.0, 6.0, 1.0, 6.0).font_scale(0.85)
+                .id(format!("entry:{i}"))
                 .on_click(format!("entry:{i}"))
         );
     }
@@ -270,9 +274,9 @@ fn build_book_ui(sw: f32, sh: f32) -> UiRoot {
     let pg_label = format!("{}/{}", pg_idx + 1, page_count);
     page_col = page_col.child(
         widget::panel(FlexDir::Row).h(18.0).gap(4.0).padding(2.0, 4.0, 2.0, 4.0)
-            .child(widget::button("◀").w(20.0).h(14.0).color(NAV_COL).on_click("prev_page"))
+            .child(widget::button("◀").w(20.0).h(14.0).color(NAV_COL).id("prev_page").on_click("prev_page"))
             .child(widget::label(&pg_label).color(DIM_COL).flex(1.0).align(Align::Center).font_scale(0.85))
-            .child(widget::button("▶").w(20.0).h(14.0).color(NAV_COL).on_click("next_page"))
+            .child(widget::button("▶").w(20.0).h(14.0).color(NAV_COL).id("next_page").on_click("next_page"))
     );
 
     // ── Book frame ───────────────────────────────────────────────────────────
@@ -314,6 +318,11 @@ pub fn register(registry: &mut Registry) {
         };
         let mut ui = build_book_ui(sw, sh);
         ui.layout(sw, sh);
+        // Apply focused state from last click.
+        {
+            let fid = FOCUSED_ID.lock().unwrap();
+            yog_api::ui::set_focus(&mut ui.layout_root, fid.as_deref());
+        }
         // Store layout for mod-side click hit-testing.
         *LAST_LAYOUT.lock().unwrap() = Some(ui.layout_root.clone());
         ui.render(ctx);
@@ -329,8 +338,12 @@ pub fn register(registry: &mut Registry) {
                     let lock = LAST_LAYOUT.lock().unwrap();
                     if let Some(layout) = lock.as_ref() {
                         if let Some(hit) = yog_api::ui::layout::hit_test(layout, mx, my) {
+                            // Update focused widget.
+                            *FOCUSED_ID.lock().unwrap() = hit.id.clone();
                             if let Some(click_ev) = &hit.on_click {
-                                handle_nav(click_ev);
+                                let ev = click_ev.clone();
+                                drop(lock);
+                                handle_nav(&ev);
                             }
                         }
                     }

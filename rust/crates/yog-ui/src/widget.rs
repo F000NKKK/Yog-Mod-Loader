@@ -11,6 +11,8 @@ pub struct Widget {
     pub flex_dir: FlexDir,
     pub children: Vec<Widget>,
     pub on_click: Option<String>,
+    pub enabled:  bool,
+    pub focused:  bool,
 }
 
 #[derive(Debug, Clone)]
@@ -60,8 +62,9 @@ impl Default for Style {
 
 impl Widget {
     fn new(kind: WidgetKind) -> Self {
-        Self { kind, id: None, style: Style::default(), flex_dir: FlexDir::Column,
-               children: Vec::new(), on_click: None }
+        let flex_dir = if let WidgetKind::Panel(dir) = &kind { *dir } else { FlexDir::Column };
+        Self { kind, id: None, style: Style::default(), flex_dir,
+               children: Vec::new(), on_click: None, enabled: true, focused: false }
     }
 
     pub fn id(mut self, id: impl Into<String>) -> Self { self.id = Some(id.into()); self }
@@ -79,6 +82,8 @@ impl Widget {
     pub fn color(mut self, v: u32) -> Self { self.style.color = v; self }
     pub fn align(mut self, v: Align) -> Self { self.style.align = v; self }
     pub fn font_scale(mut self, v: f32) -> Self { self.style.font_scale = v; self }
+    pub fn enabled(mut self, v: bool) -> Self { self.enabled = v; self }
+    pub fn focused(mut self, v: bool) -> Self { self.focused = v; self }
     pub fn padding(mut self, top: f32, right: f32, bottom: f32, left: f32) -> Self {
         self.style.pad = [top, right, bottom, left]; self
     }

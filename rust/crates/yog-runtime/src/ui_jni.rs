@@ -74,22 +74,26 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
     drop(active);
 
     // Try book click first: hit-test against the book renderer's last layout.
+    // Only block generic handler if the book actually has a rendered UI (ui.is_some()).
     {
         let mut renderers = h.book_renderers.lock().expect("book_renderers");
         if let Some(renderer) = renderers.get_mut(&id) {
-            if let Some(ui) = &renderer.ui {
-                if let Some(hit) = yog_ui::layout::hit_test(&ui.layout_root, mx, my) {
-                    if let Some(event) = &hit.on_click {
-                        yog_logging::info!("book click '{}' → '{}'", id, event);
-                        let ev = event.clone();
-                        drop(renderers);
-                        h.book_renderers.lock().unwrap().get_mut(&id)
-                            .map(|r| r.handle_event(&ev));
-                        return;
+            if renderer.ui.is_some() {
+                if let Some(ui) = &renderer.ui {
+                    if let Some(hit) = yog_ui::layout::hit_test(&ui.layout_root, mx, my) {
+                        if let Some(event) = &hit.on_click {
+                            let ev = event.clone();
+                            drop(renderers);
+                            h.book_renderers.lock().unwrap().get_mut(&id)
+                                .map(|r| r.handle_event(&ev));
+                            yog_logging::info!("book click '{}' → '{}'", &id, &ev);
+                            return;
+                        }
                     }
                 }
+                return; // book UI consumed the click (no hit)
             }
-            return; // book UI consumed the click
+            // ui=None (JSON parse failed) → fall through to generic handler
         }
     }
 
@@ -129,12 +133,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     let sh = screen_h as f32;
 
     // Book renderer path (books registered via register_book).
+    // Only use if the book has a successfully parsed layout (ui.is_some()).
     {
         let fonts = h.book_fonts.lock().expect("book_fonts");
         let mut book_renderers = h.book_renderers.lock().expect("book_renderers");
         if let Some(book_renderer) = book_renderers.get_mut(&id) {
-            book_renderer.render(&ctx, sw, sh, &fonts);
-            return;
+            if book_renderer.ui.is_some() {
+                book_renderer.render(&ctx, sw, sh, &fonts);
+                return;
+            }
+            // ui=None → fall through to on_ui_render callbacks
         }
     }
 

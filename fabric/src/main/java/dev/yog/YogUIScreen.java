@@ -30,9 +30,8 @@ public class YogUIScreen extends Screen {
     }
 
     @Override public boolean mouseClicked(double mx, double my, int button) {
-        if (modal) return true; // block clicks outside
         NativeBridge.nativeUIClick(uiId, (float) mx, (float) my, button);
-        return true;
+        return true; // always consume — prevent game from processing the click
     }
 
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
