@@ -32,7 +32,7 @@ void main() { fragColor = uColor; }"#;
 
 #[rustfmt::skip]
 const PLUMBOB: &[f32] = {
-    const T: f32 = 0.70; const B: f32 = -0.35; const H: f32 = 0.35;
+    const T: f32 = 0.70; const B: f32 = -0.7; const H: f32 = 0.7;
     &[
         0.0,T,0.0, -H,0.0,H,  H,0.0,H,   0.0,T,0.0,  H,0.0,H,  H,0.0,-H,
         0.0,T,0.0,  H,0.0,-H, -H,0.0,-H,  0.0,T,0.0, -H,0.0,-H, -H,0.0,H,
@@ -97,7 +97,7 @@ impl WorldRenderer {
         prog.uniform_mat4(ctx, "uViewProj", &vp);
         if let Some(vao) = self.quad_vao.as_ref() {
             prog.uniform_1f(ctx, "uRotY", 0.0);
-            prog.uniform_3f(ctx, "uOffset", 0.0-cam[0], 65.0-cam[1], 0.0-cam[2]-0.25);
+            prog.uniform_3f(ctx, "uOffset", 0.0-cam[0], 65.0-cam[1], 0.0-cam[2]-0.0);
             prog.uniform_4f(ctx, "uColor", 1.0, 0.2, 0.2, 0.7);
             ctx.draw_arrays(vao, prog, DrawMode::Triangles, 0, 6);
         }

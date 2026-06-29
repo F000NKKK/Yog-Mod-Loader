@@ -61,10 +61,10 @@ fn quad(verts: &mut Vec<Vert>, x: f32, y: f32, w: f32, h: f32,
 // ── GLSL shaders ─────────────────────────────────────────────────────────────
 
 const VERT: &str = r#"
-#version 150 core
-in vec2 aPos;
-in vec2 aUv;
-in vec4 aCol;
+#version 330 core
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec2 aUv;
+layout(location = 2) in vec4 aCol;
 out vec2 fUv;
 out vec4 fCol;
 uniform vec2 uScreen;
@@ -77,7 +77,7 @@ void main() {
 "#;
 
 const FRAG: &str = r#"
-#version 150 core
+#version 330 core
 in vec2 fUv;
 in vec4 fCol;
 out vec4 outColor;

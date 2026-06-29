@@ -1200,6 +1200,8 @@ unsafe extern "C" fn gfx_set_depth(test: bool, write: bool) {
     let gl = &g.0;
     if test { gl.enable(glow::DEPTH_TEST); } else { gl.disable(glow::DEPTH_TEST); }
     gl.depth_mask(write);
+    // Disable face culling: our 2D quads use CW winding (back-face) due to y-flip.
+    if !test { gl.disable(glow::CULL_FACE); }
 }
 
 unsafe extern "C" fn gfx_set_scissor(x: i32, y: i32, w: i32, h: i32) {
