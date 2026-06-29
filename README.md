@@ -56,6 +56,8 @@ Each platform has its own version-specific Mixin sources under
 | ✅ 13 | `yog-book`: in-game documentation framework — data model, 9 page types, JSON serde, GUI screen | 17–18 |
 | ✅ 13.1 | `yog-ui`: retained-mode flexbox UI (panel, label, button, item_slot, mc_image); click dispatch | 19 |
 | ✅ 13.2 | `yog-book` GPU renderer: sidebar + entry list + page nav rendered via `yog-ui`/`yog-gfx`; SVG icons (`resvg`); custom TTF/OTF fonts (`fontdue`); visual `BookTheme` | 20 |
+| ✅ 13.3 | `yog-ui` focus system: `enabled`/`focused` per widget, `FocusStyle` (Outline/Fill/None), `set_focus()`, focus color | 21 |
+| ✅ 13.4 | `yog-ui` layout improvements: Unicode-safe text wrapping, `Dock` (Fill/Left/Right/Top/Bottom), auto-size, correct Row measurement | 21 |
 | 🔲 14 | NeoForge host, then Forge host |  |
 
 ## API available now (ABI minor 19+)
@@ -524,19 +526,74 @@ registry.on_hud_render(move |ctx| {
 #### Layout modifiers (chainable on all widgets)
 
 ```rust
-.w(f32)  .h(f32)           // fixed size
-.flex(f32)                  // grow factor (like CSS flex-grow)
+.w(f32)  .h(f32)           // fixed size (0 = auto-size to content)
+.min_w(f32)  .min_h(f32)   // minimum size floor
+.flex(f32)                  // grow factor in main axis (like CSS flex-grow)
+.dock(Dock::Fill)           // WinForms-style edge docking — see below
 .gap(f32)                   // spacing between children (panel only)
 .padding(top, right, bot, left)
 .margin(top, right, bot, left)
 .bg(color: u32)             // ARGB background
 .color(color: u32)          // foreground / text color
-.align(Align::Center)       // cross-axis alignment
+.align(Align::Center)       // cross-axis alignment of children
+.font_scale(f32)            // text scale (default 1.0)
+.enabled(bool)              // disabled widgets are skipped in hit-testing
+.focused(bool)              // draws focus indicator
+.focus_style(FocusStyle)    // Outline (default) | Fill | None
+.focus_color(u32)           // focus ring color (default: amber 0xFF_FFE040)
+```
+
+#### Dock (WinForms-style edge attachment)
+
+`Dock` controls how a widget fills space inside its parent panel:
+
+| Value | Effect |
+|---|---|
+| `Dock::None` | Normal flex positioning (default) |
+| `Dock::Fill` | Stretches to consume all remaining space in both axes (like CSS `flex: 1` + cross-axis stretch) |
+| `Dock::Left` | Full cross-axis height, natural width, positioned at current start |
+| `Dock::Top` | Full cross-axis width, natural height, positioned at current start |
+| `Dock::Right` | Full cross-axis height, natural width, pinned to far edge |
+| `Dock::Bottom` | Full cross-axis width, natural height, pinned to far edge |
+
+```rust
+// Label that fills all remaining width in a Row panel — text wraps automatically
+widget::panel(FlexDir::Row)
+    .child(widget::label("Section:").w(60.0))
+    .child(widget::label("Long description text that wraps…").dock(Dock::Fill))
+
+// OK / Cancel buttons pinned to bottom of a Column panel
+widget::panel(FlexDir::Column).h(200.0)
+    .child(widget::label("Body text").dock(Dock::Fill))
+    .child(widget::button("OK").w(60.0).h(20.0).dock(Dock::Bottom))
+```
+
+#### Text wrapping
+
+Labels and buttons automatically wrap text to fit their available width.
+Line breaks on `\n` in the string are honored. Width is measured in
+approximate character widths (`6px × font_scale`). When a widget has
+`Dock::Fill` or an explicit `w()`, the text wraps to that width; the
+widget's height auto-sizes to the wrapped content.
+
+#### Focus system
+
+Call `yog_api::ui::set_focus(&mut layout_root, Some("widget_id"))` after
+computing layout to mark one widget as focused. The focused widget renders
+a configurable indicator (outline by default). Track keyboard selection
+in a `static Mutex<Option<String>>` and call `set_focus` before each
+render.
+
+```rust
+// In on_ui_render:
+yog_api::ui::set_focus(&mut layout.layout_root, focused_id.as_deref());
+
+// In click handler:
+*FOCUSED_ID.lock().unwrap() = hit.id.clone();
 ```
 
 Click events from the UI are dispatched to Rust via the `on_click` string
-you set on the button — handle them in your `nativeUIClick` / `handle_event`
-implementation.
+you set on the button — handle them in your click event callback.
 
 ### Startup grants (ABI minor 16)
 
