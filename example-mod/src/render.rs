@@ -14,21 +14,53 @@ use yog_api::ui::{LayoutNode, layout};
 
 // ── GLSL (world renderer) ────────────────────────────────────────────────────
 
-const VERT: &str = r#"#version 150 core
+const VERT: &str = r#"#version 330 core
 in vec3 aPos;
+in vec3 aBary;
 uniform mat4 uViewProj;
 uniform vec3 uOffset;
 uniform float uRotY;
+out vec3 vBary;
 void main() {
     float s = sin(uRotY); float c = cos(uRotY);
     vec3 p = vec3(aPos.x*c - aPos.z*s, aPos.y, aPos.x*s + aPos.z*c);
     gl_Position = uViewProj * vec4(p + uOffset, 1.0);
+    vBary = aBary;
 }"#;
 
-const FRAG: &str = r#"#version 150 core
+const FRAG: &str = r#"#version 330 core
+in vec3 vBary;
 out vec4 fragColor;
 uniform vec4 uColor;
-void main() { fragColor = uColor; }"#;
+void main() {
+    float edgeDist = min(min(vBary.x, vBary.y), vBary.z);
+    float shade = 0.6 + 0.4 * edgeDist;
+    float glow = 0.15 * edgeDist * edgeDist;
+    vec3 col = uColor.rgb * shade + uColor.rgb * glow;
+#[rustfmt::skip]
+const PLUMBOB: &[f32] = {
+    const T: f32 = 0.70; const B: f32 = -0.35; const H: f32 = 0.35;
+    &[
+        // Upper — +Z
+        0.0,T,0.0, 1.0,0.0,0.0,  -H,0.0,H, 0.0,1.0,0.0,   H,0.0,H, 0.0,0.0,1.0,
+        // +X
+        0.0,T,0.0, 1.0,0.0,0.0,   H,0.0,H, 0.0,1.0,0.0,   H,0.0,-H, 0.0,0.0,1.0,
+        // -Z
+        0.0,T,0.0, 1.0,0.0,0.0,   H,0.0,-H, 0.0,1.0,0.0,  -H,0.0,-H, 0.0,0.0,1.0,
+        // -X
+        0.0,T,0.0, 1.0,0.0,0.0,  -H,0.0,-H, 0.0,1.0,0.0,  -H,0.0,H, 0.0,0.0,1.0,
+        // Lower — +Z
+        0.0,B,0.0, 1.0,0.0,0.0,   H,0.0,H, 0.0,1.0,0.0,  -H,0.0,H, 0.0,0.0,1.0,
+        // +X
+        0.0,B,0.0, 1.0,0.0,0.0,   H,0.0,-H, 0.0,1.0,0.0,   H,0.0,H, 0.0,0.0,1.0,
+        // -Z
+        0.0,B,0.0, 1.0,0.0,0.0,  -H,0.0,-H, 0.0,1.0,0.0,   H,0.0,-H, 0.0,0.0,1.0,
+        // -X
+        0.0,B,0.0, 1.0,0.0,0.0,  -H,0.0,H, 0.0,1.0,0.0,  -H,0.0,-H, 0.0,0.0,1.0,
+    ]
+};
+    fragColor = vec4(col, uColor.a);
+}"#;
 
 #[rustfmt::skip]
 const PLUMBOB: &[f32] = {
@@ -67,7 +99,9 @@ impl WorldRenderer {
         let qv = ctx.create_buffer(); unsafe { qv.upload(ctx, quad, false) };
         let qa = ctx.create_vao(); qa.attrib(ctx, &qv, 0, 3, DataType::F32, false, 12, 0);
         let pv = ctx.create_buffer(); unsafe { pv.upload(ctx, PLUMBOB, false) };
-        let pa = ctx.create_vao(); pa.attrib(ctx, &pv, 0, 3, DataType::F32, false, 12, 0);
+        let pa = ctx.create_vao();
+        pa.attrib(ctx, &pv, 0, 3, DataType::F32, false, 24, 0);   // aPos
+        pa.attrib(ctx, &pv, 1, 3, DataType::F32, false, 24, 12);  // aBary
         let now = Instant::now();
         self.prog = Some(prog); self.quad_vbo = Some(qv); self.quad_vao = Some(qa);
         self.plumb_vbo = Some(pv); self.plumb_vao = Some(pa);
