@@ -28,9 +28,11 @@ pub struct BookMacro(pub String, pub String);
 /// A single page variant inside a book entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BookPage {
-    /// Plain formatted text (Patchouli-style).
+    /// Plain formatted text, optionally with a section title (for non-first pages).
     Text {
         text: String,
+        #[serde(default)]
+        title: Option<String>,
     },
     /// Display an item outlined (tooltip on hover).
     Spotlight {
@@ -271,7 +273,11 @@ impl BookRegistry {
 // ── Builder helpers ──────────────────────────────────────────────────────────
 
 pub fn text_page(text: impl Into<String>) -> BookPage {
-    BookPage::Text { text: text.into() }
+    BookPage::Text { text: text.into(), title: None }
+}
+
+pub fn text_page_titled(title: impl Into<String>, text: impl Into<String>) -> BookPage {
+    BookPage::Text { text: text.into(), title: Some(title.into()) }
 }
 
 pub fn spotlight_page(item: ItemDef) -> BookPage {
@@ -387,7 +393,7 @@ pub mod book_ui {
 
     fn render_page(page: &BookPage) -> Widget {
         match page {
-            BookPage::Text { text } =>
+            BookPage::Text { text, .. } =>
                 widget::label(text).color(0xFF_CCCCAA),
             BookPage::Spotlight { item, title, text } => {
                 let mut p = widget::panel(FlexDir::Column).gap(2.0);
@@ -434,8 +440,10 @@ fn esc(s: &str) -> String {
 impl BookPage {
     pub fn to_json(&self) -> String {
         match self {
-            Self::Text { text } =>
-                format!(r#"{{"type":"text","text":"{}"}}"#, esc(text)),
+            Self::Text { text, title } => {
+                let t = title.as_deref().map(|s| format!(r#","title":"{}""#, esc(s))).unwrap_or_default();
+                format!(r#"{{"type":"text","text":"{}"{}}}"#, esc(text), t)
+            }
             Self::Spotlight { item, title, text } => {
                 let t = title.as_deref().map(|s| format!(r#","title":"{}""#, esc(s))).unwrap_or_default();
                 let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
