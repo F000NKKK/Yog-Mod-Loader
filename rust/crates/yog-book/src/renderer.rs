@@ -296,10 +296,11 @@ pub struct BookRenderer {
     pub book:  Book,
     pub state: BookViewState,
     pub theme: BookTheme,
+    fonts:        BookFontRegistry,
     gl:           Option<BookGl>,
     pub ui:       Option<UiRoot>,
-    bg_sprites:   Vec<BgSprite>,   // drawn after book bg, before yog-ui
-    overlays:     Vec<OverlayCmd>, // drawn after yog-ui (SVG / custom font)
+    bg_sprites:   Vec<BgSprite>,
+    overlays:     Vec<OverlayCmd>,
     dirty:   bool,
     last_sw: f32,
     last_sh: f32,
@@ -312,6 +313,7 @@ impl BookRenderer {
             book,
             state: BookViewState::default(),
             theme,
+            fonts: BookFontRegistry::default(),
             gl: None,
             ui: None,
             bg_sprites: Vec::new(),
@@ -328,7 +330,12 @@ impl BookRenderer {
         }
     }
 
-    pub fn render(&mut self, ctx: &GfxContext, sw: f32, sh: f32, fonts: &BookFontRegistry) {
+    /// Register a custom TTF/OTF font for use in `BookPage::CustomText`.
+    pub fn register_font(&mut self, id: impl Into<String>, ttf: Vec<u8>) {
+        self.fonts.register(id, ttf);
+    }
+
+    pub fn render(&mut self, ctx: &GfxContext, sw: f32, sh: f32) {
         // Lazy GL init.
         if self.gl.is_none() {
             self.gl = BookGl::init(ctx);
@@ -378,7 +385,7 @@ impl BookRenderer {
                     OverlayCmd::Svg  { data, x, y, w, h } =>
                         gl.draw_svg(ctx, &data, x, y, w, h),
                     OverlayCmd::Text { text, font, x, y, color } => {
-                        if let Some(ttf) = fonts.get(&font.font_id) {
+                        if let Some(ttf) = self.fonts.get(&font.font_id) {
                             gl.draw_text_custom(ctx, ttf, font.size_px, &text, x, y, color);
                         }
                     }
@@ -481,26 +488,49 @@ fn build_landing_left(book: &Book, theme: &BookTheme,
     -> widget::Widget
 {
     // The nameplate banner occupies book-local y=12..43.
-    // The page area starts at y=TOP_PAD=18, so the banner's visible part within
-    // the page widget is from y=0 to (43-18)*sy = 25*sy.
-    // We show the book name as a label in that region, then the landing text below.
-    let nameplate_content_h = (43.0 - TOP_PAD) * sy; // ≈25*sy
+    // Page area starts at y=TOP_PAD=18 → visible banner in page-widget: y=0..(43-18)*sy.
+    let nameplate_h = (43.0 - TOP_PAD) * sy;
+    let gap         = 4.0;
+    let pad_top     = 2.0;
 
     let mut col = widget::panel(FlexDir::Column)
         .w(page_w).h(page_h)
-        .padding(2.0, 6.0, 4.0, 4.0)
-        .gap(4.0);
+        .padding(pad_top, 6.0, 4.0, 4.0)
+        .gap(gap);
 
-    // Book name on the nameplate (will render atop the nameplate sprite).
+    // Book title on nameplate sprite.
     col = col.child(widget::label(&book.name).color(theme.nameplate).h(10.0));
-    // Spacer to consume the rest of the nameplate area.
-    let name_h = 10.0 + 2.0 + 4.0; // label + padding-top + gap
-    col = col.child(widget::spacer().h((nameplate_content_h - name_h).max(0.0)));
+
+    // Optional author subtitle ("by …") — mirrors Patchouli's subtitle field.
+    let spacer_h = if let Some(author) = &book.author {
+        col = col.child(
+            widget::label(format!("by {}", author)).color(theme.nameplate).h(8.0)
+        );
+        (nameplate_h - 10.0 - gap - 8.0 - gap).max(0.0)
+    } else {
+        (nameplate_h - 10.0 - gap).max(0.0)
+    };
+    col = col.child(widget::spacer().h(spacer_h));
 
     // Landing text paragraphs.
     for para in book.landing_text.split('\n') {
-        col = col.child(widget::label(para).color(theme.text));
+        if para.is_empty() {
+            col = col.child(widget::spacer().h(3.0));
+        } else {
+            col = col.child(widget::label(para).color(theme.text));
+        }
     }
+
+    // Progress bar at bottom: entry count across all categories.
+    let total = book.entries.len();
+    col = col.child(widget::spacer().flex(1.0));
+    col = col.child(
+        widget::spacer().h(3.0).bg(theme.border)   // thin separator line
+    );
+    col = col.child(
+        widget::label(format!("{} entries", total))
+            .color(theme.nav).h(9.0).align(Align::Center)
+    );
     col
 }
 

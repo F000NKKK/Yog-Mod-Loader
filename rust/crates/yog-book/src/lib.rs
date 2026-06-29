@@ -14,7 +14,7 @@ use yog_registry::ItemDef;
 
 pub use state::BookViewState;
 pub use theme::BookTheme;
-pub use font::BookFont;
+pub use font::{BookFont, BookFontRegistry};
 pub use renderer::BookRenderer;
 
 // ── Macros ───────────────────────────────────────────────────────────────────
