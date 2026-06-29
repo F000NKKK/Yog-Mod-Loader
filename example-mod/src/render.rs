@@ -35,25 +35,35 @@ const FRAG: &str = "
 in vec3 vBary;
 out vec4 fragColor;
 uniform vec4 uColor;
-
 void main() {
-    float edgeDist = min(min(vBary.x, vBary.y), vBary.z);
-    float shade = 0.6 + 0.4 * edgeDist;
-    float glow = 0.15 * edgeDist * edgeDist;
-    vec3 col = uColor.rgb * shade + uColor.rgb * glow;
-    fragColor = vec4(col, uColor.a);
+    float d = min(min(vBary.x, vBary.y), vBary.z);
+    float edge = 1.0 - d;           // 0=center, 1=edge
+    float shade = 1.0 - edge * 0.7; // edges 30%, center 100%
+    float glow = d * d * 0.6;       // center bloom
+    float rim  = edge * 0.25;       // rim highlight
+    vec3 col = uColor.rgb * (shade + glow + rim);
+    fragColor = vec4(col, uColor.a * (0.4 + 0.6 * d));
 }";
 
 #[rustfmt::skip]
 const PLUMBOB: &[f32] = {
-    const T: f32 = 0.70; const B: f32 = -0.7; const H: f32 = 0.45;
+    const T: f32 =  0.85;  // upper tip
+    const B: f32 = -0.50;  // lower tip  
+    const H: f32 =  0.45;  // base half-extent
     &[
-        0.0,T,0.0, -H,0.0,H,  H,0.0,H,   0.0,T,0.0,  H,0.0,H,  H,0.0,-H,
-        0.0,T,0.0,  H,0.0,-H, -H,0.0,-H,  0.0,T,0.0, -H,0.0,-H, -H,0.0,H,
-        0.0,B,0.0,  H,0.0,H,  -H,0.0,H,   0.0,B,0.0,  H,0.0,-H,  H,0.0,H,
-        0.0,B,0.0, -H,0.0,-H,  H,0.0,-H,  0.0,B,0.0, -H,0.0,H,  -H,0.0,-H,
+        // Top pyramid — 4 faces
+        0.0,T,0.0, 1.0,0.0,0.0,  -H,0.0, H, 0.0,1.0,0.0,   H,0.0, H, 0.0,0.0,1.0,
+        0.0,T,0.0, 1.0,0.0,0.0,   H,0.0, H, 0.0,1.0,0.0,   H,0.0,-H, 0.0,0.0,1.0,
+        0.0,T,0.0, 1.0,0.0,0.0,   H,0.0,-H, 0.0,1.0,0.0,  -H,0.0,-H, 0.0,0.0,1.0,
+        0.0,T,0.0, 1.0,0.0,0.0,  -H,0.0,-H, 0.0,1.0,0.0,  -H,0.0, H, 0.0,0.0,1.0,
+        // Bottom pyramid — 4 faces (winding reversed)
+        0.0,B,0.0, 1.0,0.0,0.0,   H,0.0, H, 0.0,1.0,0.0,  -H,0.0, H, 0.0,0.0,1.0,
+        0.0,B,0.0, 1.0,0.0,0.0,   H,0.0,-H, 0.0,1.0,0.0,   H,0.0, H, 0.0,0.0,1.0,
+        0.0,B,0.0, 1.0,0.0,0.0,  -H,0.0,-H, 0.0,1.0,0.0,   H,0.0,-H, 0.0,0.0,1.0,
+        0.0,B,0.0, 1.0,0.0,0.0,  -H,0.0, H, 0.0,1.0,0.0,  -H,0.0,-H, 0.0,0.0,1.0,
     ]
 };
+
 
 const SPRING_K: f32 = 200.0;
 const SPRING_D: f32 = 28.0;
