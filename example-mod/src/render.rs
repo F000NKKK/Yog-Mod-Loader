@@ -32,7 +32,7 @@ void main() { fragColor = uColor; }"#;
 
 #[rustfmt::skip]
 const PLUMBOB: &[f32] = {
-    const T: f32 = 0.70; const B: f32 = -0.7; const H: f32 = 0.35;
+    const T: f32 = 0.70; const B: f32 = -0.7; const H: f32 = 0.45;
     &[
         0.0,T,0.0, -H,0.0,H,  H,0.0,H,   0.0,T,0.0,  H,0.0,H,  H,0.0,-H,
         0.0,T,0.0,  H,0.0,-H, -H,0.0,-H,  0.0,T,0.0, -H,0.0,-H, -H,0.0,H,
