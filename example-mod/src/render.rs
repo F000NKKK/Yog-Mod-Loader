@@ -32,7 +32,7 @@ void main() { fragColor = uColor; }"#;
 
 #[rustfmt::skip]
 const PLUMBOB: &[f32] = {
-    const T: f32 = 0.70; const B: f32 = -0.7; const H: f32 = 0.7;
+    const T: f32 = 0.70; const B: f32 = -0.7; const H: f32 = 0.35;
     &[
         0.0,T,0.0, -H,0.0,H,  H,0.0,H,   0.0,T,0.0,  H,0.0,H,  H,0.0,-H,
         0.0,T,0.0,  H,0.0,-H, -H,0.0,-H,  0.0,T,0.0, -H,0.0,-H, -H,0.0,H,
@@ -89,7 +89,7 @@ impl WorldRenderer {
             self.plumb_vel[i] += force * dt; pos[i] += self.plumb_vel[i] * dt;
         }
         let pw = *pos;
-        let off = [pw[0]-cam[0], pw[1]-cam[1], pw[2]-cam[2]-0.25];
+        let off = [pw[0]-cam[0], pw[1]-cam[1], pw[2]-cam[2]-0.0];
         let rot = (t * ROT_SPEED) % std::f32::consts::TAU;
         let vp = ctx.view_proj();
         ctx.set_depth(true, false);
