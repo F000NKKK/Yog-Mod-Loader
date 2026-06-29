@@ -120,7 +120,6 @@ struct RuntimeHandlers {
     blocks:             Vec<BlockDef>,
     books:              HashMap<String, String>,
     book_renderers:     Mutex<HashMap<String, yog_book::BookRenderer>>,
-    book_fonts:         Mutex<yog_book::font::BookFontRegistry>,
     pub(crate) uis:     HashMap<String, yog_ui::LayoutNode>,
     ui_handlers:        HashMap<String, (*mut c_void, yog_abi::YogUIEventFn)>,
     ui_render_handlers: HashMap<String, Vec<(*mut c_void, YogHudRenderFn)>>,
@@ -159,7 +158,6 @@ impl RuntimeHandlers {
             active_uis: Mutex::new(Vec::new()), startup_grants: Vec::new(),
             blocks: Vec::new(), books: HashMap::new(), uis: HashMap::new(),
             book_renderers: Mutex::new(HashMap::new()),
-            book_fonts: Mutex::new(yog_book::font::BookFontRegistry::default()),
             startup_granted: Mutex::new(HashMap::new()),
             scheduler: Mutex::new(SchedulerState::new()),
         }
@@ -2813,12 +2811,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     let sw = screen_w as f32;
     let sh = screen_h as f32;
     let ctx = unsafe { yog_gfx::GfxContext::from_raw(&gfx as *const _) };
-    let fonts = h.book_fonts.lock().unwrap();
     let mut renderers = h.book_renderers.lock().unwrap();
     for layer in &active_layers {
         if !layer.visible { continue; }
         if let Some(renderer) = renderers.get_mut(&layer.id) {
-            renderer.render(&ctx, sw, sh, &fonts);
+            renderer.render(&ctx, sw, sh);
         }
     }
 }

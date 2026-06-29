@@ -135,11 +135,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     // Book renderer path (books registered via register_book).
     // Only use if the book has a successfully parsed layout (ui.is_some()).
     {
-        let fonts = h.book_fonts.lock().expect("book_fonts");
         let mut book_renderers = h.book_renderers.lock().expect("book_renderers");
         if let Some(book_renderer) = book_renderers.get_mut(&id) {
             if book_renderer.ui.is_some() {
-                book_renderer.render(&ctx, sw, sh, &fonts);
+                book_renderer.render(&ctx, sw, sh);
                 return;
             }
             // ui=None → fall through to on_ui_render callbacks
