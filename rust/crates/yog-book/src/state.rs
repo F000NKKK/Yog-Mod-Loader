@@ -2,24 +2,36 @@
 
 use crate::Book;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct BookViewState {
-    pub cat:   usize,
-    pub entry: usize,
-    pub page:  usize,
+    pub cat:     usize,
+    pub entry:   usize,
+    pub page:    usize,
+    /// True while showing the landing/home view (categories on right, landing text on left).
+    pub at_home: bool,
+}
+
+impl Default for BookViewState {
+    fn default() -> Self {
+        Self { cat: 0, entry: 0, page: 0, at_home: true }
+    }
 }
 
 impl BookViewState {
-    /// Handle a navigation event string (cat:N, entry:N, prev_page, next_page).
+    /// Handle a navigation event string (home, cat:N, entry:N, prev_page, next_page).
     /// Returns true if state changed.
     pub fn handle(&mut self, ev: &str, book: &Book) -> bool {
-        if let Some(n) = ev.strip_prefix("cat:") {
+        if ev == "home" {
+            if !self.at_home { self.at_home = true; return true; }
+        } else if let Some(n) = ev.strip_prefix("cat:") {
             if let Ok(i) = n.parse::<usize>() {
-                if i < book.categories.len() && i != self.cat {
-                    self.cat   = i;
-                    self.entry = 0;
-                    self.page  = 0;
-                    return true;
+                if i < book.categories.len() {
+                    let changed = self.at_home || i != self.cat;
+                    self.cat     = i;
+                    self.entry   = 0;
+                    self.page    = 0;
+                    self.at_home = false;
+                    return changed;
                 }
             }
         } else if let Some(n) = ev.strip_prefix("entry:") {

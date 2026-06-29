@@ -11,6 +11,26 @@ use crate::theme::BookTheme;
 use crate::font::{BookFontRegistry, FontAtlas};
 use crate::svg;
 
+// Patchouli-compatible book texture layout (512×256 sprite sheet).
+// UV coordinates are in pixels on a 512×256 sheet.
+// The full open-book background occupies 272×180 at UV (0,0).
+pub const BOOK_TEX_W: f32   = 512.0;
+pub const BOOK_TEX_H: f32   = 256.0;
+// Open-book dimensions in texture-space
+pub const BK_W: f32         = 272.0;
+pub const BK_H: f32         = 180.0;
+// Per-page dimensions and offsets (in book-local coords)
+pub const PAGE_W: f32       = 116.0;
+pub const PAGE_H: f32       = 156.0;
+pub const TOP_PAD: f32      = 18.0;   // vertical space above page text area
+pub const LEFT_X: f32       = 15.0;   // left page X inside book
+pub const RIGHT_X: f32      = 141.0;  // right page X inside book
+// Separator strip UV origin on the sprite sheet
+pub const SEP_U: f32        = 140.0;
+pub const SEP_V: f32        = 180.0;
+pub const SEP_W: f32        = 110.0;
+pub const SEP_H: f32        = 3.0;
+
 // ── Vertex for the custom 2D shader (pos + uv + color) ───────────────────────
 
 #[repr(C)]
@@ -75,15 +95,41 @@ void main() {
 }
 "#;
 
+// ── Embedded book background texture ─────────────────────────────────────────
+
+static BOOK_PNG: &[u8] = include_bytes!("../assets/book_brown.png");
+
+fn decode_book_png() -> Option<(Vec<u8>, u32, u32)> {
+    use png::Decoder;
+    let decoder = Decoder::new(std::io::Cursor::new(BOOK_PNG));
+    let mut reader = decoder.read_info().ok()?;
+    let mut buf = vec![0u8; reader.output_buffer_size()];
+    let info = reader.next_frame(&mut buf).ok()?;
+    // Convert to RGBA if needed
+    let rgba = match info.color_type {
+        png::ColorType::Rgba => buf[..info.buffer_size()].to_vec(),
+        png::ColorType::Rgb  => {
+            let rgb = &buf[..info.buffer_size()];
+            let mut out = Vec::with_capacity(rgb.len() / 3 * 4);
+            for px in rgb.chunks(3) {
+                out.extend_from_slice(px);
+                out.push(255);
+            }
+            out
+        }
+        _ => return None,
+    };
+    Some((rgba, info.width, info.height))
+}
+
 // ── GL resource cache ─────────────────────────────────────────────────────────
 
 struct BookGl {
-    prog: gl::ShaderProgram,
-    vao:  gl::VertexArray,
-    vbo:  gl::Buffer,
-    // SVG texture cache: hash → (Texture, pixel_w, pixel_h)
-    svg_tex: HashMap<u64, (gl::Texture, u32, u32)>,
-    // Font atlas cache: hash → (Texture, FontAtlas)
+    prog:     gl::ShaderProgram,
+    vao:      gl::VertexArray,
+    vbo:      gl::Buffer,
+    book_tex: Option<(gl::Texture, u32, u32)>,  // embedded book background
+    svg_tex:  HashMap<u64, (gl::Texture, u32, u32)>,
     font_atlas: HashMap<u64, (gl::Texture, FontAtlas)>,
 }
 
@@ -98,7 +144,12 @@ impl BookGl {
         vao.attrib(ctx, &vbo, 1, 2, DataType::F32, false, STRIDE, 8);  // uv
         vao.attrib(ctx, &vbo, 2, 4, DataType::F32, false, STRIDE, 16); // col
 
-        Some(BookGl { prog, vao, vbo, svg_tex: HashMap::new(), font_atlas: HashMap::new() })
+        let book_tex = decode_book_png().map(|(rgba, w, h)| {
+            let tex = ctx.create_texture_rgba(w, h, &rgba, true);
+            (tex, w, h)
+        });
+
+        Some(BookGl { prog, vao, vbo, book_tex, svg_tex: HashMap::new(), font_atlas: HashMap::new() })
     }
 
     fn svg_tex(&mut self, ctx: &GfxContext, hash: u64, data: &str, w: u32, h: u32)
@@ -127,6 +178,18 @@ impl BookGl {
         ctx.set_depth(false, false);
         self.prog.uniform_2f(ctx, "uScreen", sw, sh);
         self.prog.uniform_1i(ctx, "uTex", 0);
+    }
+
+    /// Blit the open-book background from the embedded book texture.
+    fn draw_book_bg(&self, ctx: &GfxContext, bx: f32, by: f32, bw: f32, bh: f32) {
+        let Some((tex, tw, th)) = &self.book_tex else { return };
+        let su = BK_W / *tw as f32;
+        let sv = BK_H / *th as f32;
+        self.prog.uniform_1i(ctx, "uMode", 1);
+        ctx.bind_texture(0, tex);
+        let mut v = Vec::with_capacity(6);
+        quad(&mut v, bx, by, bw, bh, 0.0, 0.0, su, sv, 0xFF_FFFFFF);
+        self.flush(ctx, &v);
     }
 
     fn draw_svg(&mut self, ctx: &GfxContext, data: &str, x: f32, y: f32, w: f32, h: f32) {
@@ -203,9 +266,9 @@ pub struct BookRenderer {
     gl:         Option<BookGl>,
     pub ui:     Option<UiRoot>,
     overlays:   Vec<OverlayCmd>,
-    dirty:     bool,
-    last_sw:   f32,
-    last_sh:   f32,
+    dirty:   bool,
+    last_sw: f32,
+    last_sh: f32,
 }
 
 impl BookRenderer {
@@ -236,9 +299,15 @@ impl BookRenderer {
             self.gl = BookGl::init(ctx);
         }
 
+        // Compute book rect (same formula as build_ui).
+        let bw = (sw * 0.72).min(BK_W * 2.5);
+        let bh = (sh * 0.80).min(BK_H * 2.5);
+        let bx = (sw - bw) / 2.0;
+        let by = (sh - bh) / 2.0;
+
         // Rebuild widget tree if dirty or screen resized.
         if self.dirty || sw != self.last_sw || sh != self.last_sh {
-            let (root, overlays) = build_ui(&self.book, &self.state, &self.theme, sw, sh);
+            let (root, overlays) = build_ui(&self.book, &self.state, &self.theme, sw, sh, bx, by, bw, bh);
             self.ui = Some(root);
             self.overlays = overlays;
             self.dirty = false;
@@ -246,13 +315,19 @@ impl BookRenderer {
             self.last_sh = sh;
         }
 
-        // Layout + yog-ui render (backgrounds, text, buttons).
+        // 1. Draw book background texture first.
+        if let Some(gl) = &mut self.gl {
+            gl.begin_frame(ctx, sw, sh);
+            gl.draw_book_bg(ctx, bx, by, bw, bh);
+        }
+
+        // 2. yog-ui: text, buttons, icons (transparent BG — texture is already there).
         if let Some(ui) = &mut self.ui {
             if ui.needs_layout { ui.layout(sw, sh); }
             ui.render(ctx);
         }
 
-        // Custom GL overlays (SVG icons, custom font text).
+        // 3. Custom GL overlays (SVG icons, custom font text).
         if let Some(gl) = &mut self.gl {
             gl.begin_frame(ctx, sw, sh);
             for ov in self.overlays.clone() {
@@ -273,145 +348,247 @@ impl BookRenderer {
 // ── UI builder ────────────────────────────────────────────────────────────────
 
 /// Build the yog-ui widget tree + overlay commands for the current book state.
+/// `bx/by/bw/bh` are the screen-space book rect (same values used to blit the bg texture).
 fn build_ui(book: &Book, state: &BookViewState, theme: &BookTheme,
-             sw: f32, sh: f32) -> (UiRoot, Vec<OverlayCmd>) {
+             sw: f32, sh: f32,
+             bx: f32, by: f32, bw: f32, bh: f32) -> (UiRoot, Vec<OverlayCmd>) {
+    let _ = (sw, sh);
     let mut overlays: Vec<OverlayCmd> = Vec::new();
 
-    // Overall book proportions (centered, fixed size).
-    let bw = (sw * 0.75).min(600.0);
-    let bh = (sh * 0.80).min(400.0);
-    let bx = (sw - bw) / 2.0;
-    let by = (sh - bh) / 2.0;
-    let sidebar_w = 130.0;
-    let page_w    = bw - sidebar_w - 6.0;
+    // Scale from Patchouli's fixed BK_W×BK_H coordinate space → actual bw×bh.
+    let sx = bw / BK_W;
+    let sy = bh / BK_H;
 
-    // ── Sidebar: categories ──────────────────────────────────────────────────
-    let mut cats_col = widget::panel(FlexDir::Column).gap(1.0).padding(4.0, 4.0, 4.0, 4.0);
-    for (i, cat) in book.categories.iter().enumerate() {
-        let selected = i == state.cat;
-        let color = if selected { theme.nav_selected } else { theme.nav };
-        let bg    = if selected { 0x30_FFFFFF } else { 0 };
-        let btn = widget::button(&cat.name)
-            .color(color).bg(bg).h(16.0)
-            .on_click(format!("cat:{}", i));
+    // In book-local: left page starts at x=LEFT_X, right at RIGHT_X, both y=TOP_PAD.
+    let pw = PAGE_W * sx;
+    let ph = PAGE_H * sy;
+    let spine_gap = (RIGHT_X - LEFT_X - PAGE_W) * sx; // ≈10px scaled
 
-        // Schedule SVG icon overlay if category has one.
-        if let Some(svg_data) = &cat.icon_svg {
-            // Icon is drawn at indent position; we'll track it by cat index.
-            // For layout, just add a small spacer to reserve horizontal space.
-            overlays.push(OverlayCmd::Svg {
-                data: svg_data.clone(),
-                x: bx + 4.0,
-                y: by + 20.0 + i as f32 * 18.0,
-                w: 14.0, h: 14.0,
-            });
-        }
-        cats_col = cats_col.child(btn);
-    }
+    // Content x/y in screen space (for SVG overlay positioning).
+    let lx = bx + LEFT_X  * sx;
+    let rx = bx + RIGHT_X * sx;
+    let py = by + TOP_PAD  * sy;
 
-    // ── Sidebar: entry list ──────────────────────────────────────────────────
-    let entries = state.entries_in_cat(book);
-    let mut entries_col = widget::panel(FlexDir::Column).gap(1.0).padding(0.0, 4.0, 4.0, 4.0);
-    entries_col = entries_col.child(
-        widget::label("─────────").color(theme.divider).h(8.0)
-    );
-    for (i, entry) in entries.iter().enumerate() {
-        let selected = i == state.entry;
-        let color = if selected { theme.nav_selected } else { theme.nav };
-        let bg    = if selected { 0x30_FFFFFF } else { 0 };
-        let label = if entry.name.len() > 16 { &entry.name[..16] } else { &entry.name };
-        let btn = widget::button(label)
-            .color(color).bg(bg).h(14.0)
-            .on_click(format!("entry:{}", i));
-        entries_col = entries_col.child(btn);
-    }
+    let (left_page, right_page) = if state.at_home {
+        let l = build_landing_left(book, theme, pw, ph, lx, py);
+        let r = build_categories_right(book, state, theme, pw, ph, rx, py, &mut overlays);
+        (l, r)
+    } else {
+        let l = build_entry_left(book, state, theme, pw, ph, lx, py, &mut overlays);
+        let r = build_entries_right(book, state, theme, pw, ph, rx, py);
+        (l, r)
+    };
 
-    let sidebar = widget::panel(FlexDir::Column)
-        .w(sidebar_w).h(bh)
-        .bg(theme.sidebar_bg)
-        .child(
-            widget::label(&book.name)
-                .color(theme.nameplate).h(18.0)
-                .padding(3.0, 4.0, 3.0, 4.0)
-        )
-        .child(cats_col)
-        .child(entries_col);
-
-    // ── Page area ────────────────────────────────────────────────────────────
-    let entry = state.current_entry(book);
-    let page  = entry.and_then(|e| e.pages.get(state.page));
-    let page_count = state.page_count(book);
-
-    let title_text = entry.map(|e| e.name.as_str()).unwrap_or("");
-    let title_widget = widget::label(title_text)
-        .color(theme.title).h(16.0)
-        .padding(4.0, 4.0, 2.0, 6.0);
-
-    let page_body = build_page(page, theme, &mut overlays,
-                               bx + sidebar_w + 6.0, by + 32.0);
-
-    // ── Nav buttons ──────────────────────────────────────────────────────────
-    let page_label = format!("{}/{}", state.page + 1, page_count);
-    let nav = widget::panel(FlexDir::Row).h(20.0).gap(4.0)
-        .padding(2.0, 6.0, 2.0, 6.0)
-        .child(widget::button("◀").w(22.0).h(16.0).color(theme.nav).on_click("prev_page"))
-        .child(widget::label(&page_label).color(theme.nav).flex(1.0).align(Align::Center))
-        .child(widget::button("▶").w(22.0).h(16.0).color(theme.nav).on_click("next_page"));
-
-    let page_panel = widget::panel(FlexDir::Column)
-        .w(page_w).h(bh)
-        .bg(theme.page_bg)
-        .child(title_widget)
-        .child(
-            widget::label("").h(1.0).bg(theme.border)  // divider
-        )
-        .child(page_body)
-        .child(nav);
-
-    // ── Root: outer book frame ───────────────────────────────────────────────
+    // Root row spans the full book width.
+    // padding-left = LEFT_X*sx offsets both pages from the left cover edge.
+    // padding-top  = TOP_PAD*sy offsets from the header banner.
+    // spine_gap spacer sits between the two pages.
     let root_widget = widget::panel(FlexDir::Row)
-        .w(bw).h(bh).gap(2.0)
-        .bg(theme.bg)
-        .padding(3.0, 3.0, 3.0, 3.0)
-        .margin(by, 0.0, 0.0, bx)
-        .child(sidebar)
-        .child(page_panel);
+        .w(bw).h(bh)
+        .padding(TOP_PAD * sy, 0.0, 0.0, LEFT_X * sx)
+        .child(left_page)
+        .child(widget::spacer().w(spine_gap))  // spine gap
+        .child(right_page);
 
-    let ui = UiRoot::new(&book.id, root_widget);
+    // Outer shell: positions the book on screen via a full-screen transparent Row.
+    // We use a Column + Row arrangement to apply top/left offsets without margin support.
+    let outer = widget::panel(FlexDir::Column)
+        .w(bw).h(bh)
+        .child(root_widget);
+
+    // Screen-level container: positions book at (bx, by).
+    // bx offset via padding, by offset via padding-top.
+    // Note: layout computes from (0,0), so we pass bx/by into the UiRoot manually
+    // by wrapping in a full-screen panel with the right padding.
+    let screen_root = widget::panel(FlexDir::Row)
+        .padding(by, 0.0, 0.0, bx)
+        .child(outer);
+
+    let ui = UiRoot::new(&book.id, screen_root);
     (ui, overlays)
 }
 
-/// Build the content widget for a single page. Appends overlay commands for
-/// SVG images and custom-font text.
+// ── Left page: landing (home view) ───────────────────────────────────────────
+
+fn build_landing_left(book: &Book, theme: &BookTheme,
+                       page_w: f32, page_h: f32, _lx: f32, _py: f32)
+    -> widget::Widget
+{
+    let mut col = widget::panel(FlexDir::Column)
+        .w(page_w).h(page_h)
+        .padding(4.0, 6.0, 4.0, 4.0)
+        .gap(4.0);
+
+    // Landing text
+    for para in book.landing_text.split('\n') {
+        col = col.child(widget::label(para).color(theme.text));
+    }
+    col
+}
+
+// ── Right page: category list (home view) ────────────────────────────────────
+
+fn build_categories_right(
+    book: &Book, state: &BookViewState, theme: &BookTheme,
+    page_w: f32, page_h: f32,
+    _rx: f32, _py: f32,
+    overlays: &mut Vec<OverlayCmd>,
+) -> widget::Widget {
+    let _ = overlays;
+    let mut col = widget::panel(FlexDir::Column)
+        .w(page_w).h(page_h)
+        .padding(4.0, 6.0, 4.0, 4.0)
+        .gap(1.0);
+
+    col = col.child(widget::label("Categories").color(theme.divider).h(11.0));
+    col = col.child(widget::spacer().h(2.0));
+
+    for (i, cat) in book.categories.iter().enumerate() {
+        let selected = !state.at_home && i == state.cat;
+        let bg    = if selected { theme.nav_selected_bg } else { 0 };
+        let color = if selected { theme.nav_selected } else { theme.nav };
+
+        let mut row = widget::panel(FlexDir::Row)
+            .h(20.0).gap(4.0).bg(bg)
+            .on_click(format!("cat:{}", i))
+            .id(format!("book_cat_{}", i))
+            .padding(2.0, 2.0, 2.0, 2.0);
+
+        if let Some(icon_id) = &cat.icon {
+            row = row.child(item_icon_widget(icon_id));
+        } else {
+            row = row.child(widget::spacer().w(16.0));
+        }
+        row = row.child(widget::label(&cat.name).color(color).flex(1.0));
+        col = col.child(row);
+    }
+    col
+}
+
+// ── Left page: entry content (entry view) ────────────────────────────────────
+
+fn build_entry_left(
+    book: &Book, state: &BookViewState, theme: &BookTheme,
+    page_w: f32, page_h: f32,
+    ox: f32, oy: f32,
+    overlays: &mut Vec<OverlayCmd>,
+) -> widget::Widget {
+    let entry      = state.current_entry(book);
+    let page       = entry.and_then(|e| e.pages.get(state.page));
+    let page_count = state.page_count(book);
+    let title_text = entry.map(|e| e.name.as_str()).unwrap_or("");
+
+    let page_label = format!("{}/{}", state.page + 1, page_count);
+    let nav = widget::panel(FlexDir::Row)
+        .h(16.0).gap(4.0)
+        .padding(0.0, 2.0, 0.0, 2.0)
+        .child(widget::button("◀").w(16.0).h(12.0).color(theme.nav)
+            .on_click("prev_page").id("prev_page"))
+        .child(widget::label(&page_label).color(theme.nav).flex(1.0).align(Align::Center))
+        .child(widget::button("⌂").w(16.0).h(12.0).color(theme.nav)
+            .on_click("home").id("book_home"))
+        .child(widget::button("▶").w(16.0).h(12.0).color(theme.nav)
+            .on_click("next_page").id("next_page"));
+
+    let page_body = build_page(page, theme, overlays, ox, oy);
+
+    widget::panel(FlexDir::Column)
+        .w(page_w).h(page_h)
+        .padding(4.0, 6.0, 4.0, 4.0)
+        .gap(3.0)
+        .child(widget::label(title_text).color(theme.title).h(14.0))
+        .child(widget::spacer().h(1.0).bg(theme.divider))
+        .child(page_body)
+        .child(nav)
+}
+
+// ── Right page: entry list for selected category (entry view) ─────────────────
+
+fn build_entries_right(
+    book: &Book, state: &BookViewState, theme: &BookTheme,
+    page_w: f32, page_h: f32, _rx: f32, _py: f32,
+) -> widget::Widget {
+    let entries  = state.entries_in_cat(book);
+    let cat_name = book.categories.get(state.cat).map(|c| c.name.as_str()).unwrap_or("Entries");
+
+    let mut col = widget::panel(FlexDir::Column)
+        .w(page_w).h(page_h)
+        .padding(4.0, 6.0, 4.0, 4.0)
+        .gap(1.0);
+
+    col = col.child(widget::label(cat_name).color(theme.divider).h(11.0));
+    col = col.child(widget::spacer().h(2.0));
+
+    for (i, entry) in entries.iter().enumerate() {
+        let selected = i == state.entry;
+        let bg    = if selected { theme.nav_selected_bg } else { 0 };
+        let color = if selected { theme.nav_selected } else { theme.nav };
+
+        let mut row = widget::panel(FlexDir::Row)
+            .h(16.0).gap(4.0).bg(bg)
+            .on_click(format!("entry:{}", i))
+            .id(format!("book_entry_{}", i))
+            .padding(1.0, 2.0, 1.0, 2.0);
+
+        if let Some(icon_id) = &entry.icon {
+            row = row.child(item_icon_widget(icon_id));
+        } else {
+            row = row.child(widget::spacer().w(16.0));
+        }
+        row = row.child(widget::label(&entry.name).color(color).flex(1.0));
+        col = col.child(row);
+    }
+    col
+}
+
+/// Bare 16×16 item icon widget from an item ID ("ns:item_name" or "ns:item/name").
+fn item_icon_widget(item_id: &str) -> widget::Widget {
+    // Normalize "ns:item/name" or "ns:block/name" → "ns:textures/item/name.png"
+    // Normalize "ns:name" → "ns:textures/item/name.png"
+    let tex = if let Some((ns, path)) = item_id.split_once(':') {
+        if path.starts_with("item/") || path.starts_with("block/") {
+            format!("{ns}:textures/{path}.png")
+        } else {
+            format!("{ns}:textures/item/{path}.png")
+        }
+    } else {
+        format!("minecraft:textures/item/{item_id}.png")
+    };
+    widget::mc_image(&tex, 16.0, 16.0)
+}
+
+// ── Page content builder ──────────────────────────────────────────────────────
+
+/// Build the content widget for a single page.
 fn build_page(
     page: Option<&BookPage>,
     theme: &BookTheme,
     overlays: &mut Vec<OverlayCmd>,
-    _content_x: f32,
-    _content_y: f32,
+    _ox: f32,
+    _oy: f32,
 ) -> widget::Widget {
-    let mut col = widget::panel(FlexDir::Column).flex(1.0).gap(4.0)
-        .padding(6.0, 8.0, 6.0, 8.0);
+    let mut col = widget::panel(FlexDir::Column).flex(1.0).gap(4.0);
 
     let Some(page) = page else {
-        return col.child(
-            widget::label("No entries yet.").color(theme.nav)
-        );
+        return col.child(widget::label("No entries yet.").color(theme.nav));
     };
 
     match page {
         BookPage::Text { text } => {
-            // Wrap long text into paragraphs at line breaks.
             for para in text.split('\n') {
                 col = col.child(widget::label(para).color(theme.text));
             }
         }
 
         BookPage::Spotlight { item, title, text } => {
-            if let Some(t) = title {
-                col = col.child(widget::label(t).color(theme.title));
-            }
-            col = col.child(widget::item_slot(&item.id));
+            // Icon row: bare item icon + item name side by side
+            let item_name = title.as_deref()
+                .or(item.name.as_deref())
+                .unwrap_or(item.id.as_str());
+            let row = widget::panel(FlexDir::Row).h(24.0).gap(6.0)
+                .child(item_icon_widget(&item.id))
+                .child(widget::label(item_name).color(theme.title).flex(1.0));
+            col = col.child(row);
             if let Some(t) = text {
                 col = col.child(widget::label(t).color(theme.text));
             }
@@ -439,10 +616,7 @@ fn build_page(
             if let Some(t) = title {
                 col = col.child(widget::label(t).color(theme.title));
             }
-            // Use MC texture blitter via draw2d_mc_tex — rendered by yog-ui render pass.
-            col = col.child(
-                widget::mc_image(texture, 80.0, 80.0)
-            );
+            col = col.child(widget::mc_image(texture, 80.0, 80.0));
             if let Some(t) = text {
                 col = col.child(widget::label(t).color(theme.text));
             }
@@ -452,14 +626,7 @@ fn build_page(
             if let Some(t) = title {
                 col = col.child(widget::label(t).color(theme.title));
             }
-            // Reserve space via a spacer; SVG drawn as overlay.
-            // Overlay position is approximate — refined at render time.
-            overlays.push(OverlayCmd::Svg {
-                data:  data.clone(),
-                x:     _content_x,
-                y:     _content_y,
-                w:     64.0, h: 64.0,
-            });
+            overlays.push(OverlayCmd::Svg { data: data.clone(), x: _ox, y: _oy, w: 64.0, h: 64.0 });
             col = col.child(widget::spacer().h(68.0));
             if let Some(t) = text {
                 col = col.child(widget::label(t).color(theme.text));
@@ -468,11 +635,7 @@ fn build_page(
 
         BookPage::CustomText { text, font, color } => {
             overlays.push(OverlayCmd::Text {
-                text:  text.clone(),
-                font:  font.clone(),
-                x:     _content_x,
-                y:     _content_y,
-                color: *color,
+                text: text.clone(), font: font.clone(), x: _ox, y: _oy, color: *color,
             });
             col = col.child(widget::spacer().h(font.size_px * 1.5));
         }
@@ -488,11 +651,8 @@ fn build_page(
         }
 
         BookPage::Entity { entity_type, name, text } => {
-            if let Some(n) = name {
-                col = col.child(widget::label(n).color(theme.title));
-            } else {
-                col = col.child(widget::label(entity_type).color(theme.title));
-            }
+            let display = name.as_deref().unwrap_or(entity_type.as_str());
+            col = col.child(widget::label(display).color(theme.title));
             if let Some(t) = text {
                 col = col.child(widget::label(t).color(theme.text));
             }
