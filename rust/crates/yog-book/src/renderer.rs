@@ -341,9 +341,11 @@ impl BookRenderer {
             self.gl = BookGl::init(ctx);
         }
 
-        // Compute book rect (same formula as build_ui).
-        let bw = (sw * 0.72).min(BK_W * 2.5);
-        let bh = (sh * 0.80).min(BK_H * 2.5);
+        // Render at Patchouli-native size (272×180 GUI pixels). Scale DOWN only
+        // if the screen is smaller; never scale up (MC font is designed for 1×).
+        let scale = ((sw - 16.0) / BK_W).min((sh - 16.0) / BK_H).min(1.0).max(0.4);
+        let bw = BK_W * scale;
+        let bh = BK_H * scale;
         let bx = (sw - bw) / 2.0;
         let by = (sh - bh) / 2.0;
 
