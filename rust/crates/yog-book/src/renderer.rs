@@ -286,8 +286,10 @@ pub(crate) struct BgSprite {
 
 #[derive(Clone)]
 pub(crate) enum OverlayCmd {
-    Svg  { data: String, x: f32, y: f32, w: f32, h: f32 },
-    Text { text: String, font: crate::font::BookFont, x: f32, y: f32, color: u32 },
+    Svg    { data: String, x: f32, y: f32, w: f32, h: f32 },
+    Text   { text: String, font: crate::font::BookFont, x: f32, y: f32, color: u32 },
+    /// MC default-font text rendered via draw2d (e.g. nameplate title/subtitle).
+    McText { text: String, x: f32, y: f32, color: u32 },
 }
 
 // ── BookRenderer ──────────────────────────────────────────────────────────────
@@ -391,6 +393,9 @@ impl BookRenderer {
                             gl.draw_text_custom(ctx, ttf, font.size_px, &text, x, y, color);
                         }
                     }
+                    OverlayCmd::McText { text, x, y, color } => {
+                        ctx.draw2d().text(&text, x, y, color, false);
+                    }
                 }
             }
         }
@@ -422,6 +427,9 @@ fn build_ui(book: &Book, state: &BookViewState, theme: &BookTheme,
     let rx = bx + RIGHT_X * sx;
     let py = by + TOP_PAD  * sy;
 
+    // Separator x offset within a page: centered = PAGE_W/2 - SEP_W/2 = 58-55 = 3.
+    let sep_cx = (PAGE_W / 2.0 - SEP_W / 2.0) * sx; // = 3*sx
+
     if state.at_home {
         // Nameplate banner: book-local (-8, 12) from LEFT_PAGE_X, size 140×31.
         bg_sprites.push(BgSprite {
@@ -432,11 +440,21 @@ fn build_ui(book: &Book, state: &BookViewState, theme: &BookTheme,
             w: 140.0 * sx,
             h: 31.0 * sy,
         });
-        // Separator below "Categories" header on right page (TOP_PAD + 12 book-local)
+        // Separator below "Categories" header on right page (y=12 page-local), centered.
         bg_sprites.push(BgSprite {
             sheet: SpriteSheet::Book,
             u: SEP_U, v: SEP_V, uw: SEP_W, uh: SEP_H,
-            x: rx,
+            x: rx + sep_cx,
+            y: by + (TOP_PAD + 12.0) * sy,
+            w: SEP_W * sx,
+            h: (SEP_H * sy).max(1.0),
+        });
+    } else {
+        // Entry view: separator on right page below category name (y=12 page-local).
+        bg_sprites.push(BgSprite {
+            sheet: SpriteSheet::Book,
+            u: SEP_U, v: SEP_V, uw: SEP_W, uh: SEP_H,
+            x: rx + sep_cx,
             y: by + (TOP_PAD + 12.0) * sy,
             w: SEP_W * sx,
             h: (SEP_H * sy).max(1.0),
@@ -444,11 +462,11 @@ fn build_ui(book: &Book, state: &BookViewState, theme: &BookTheme,
     }
 
     let (left_page, right_page) = if state.at_home {
-        let l = build_landing_left(book, theme, pw, ph, lx, py, sx, sy);
+        let l = build_landing_left(book, theme, pw, ph, lx, py, sx, sy, bx, by, &mut overlays);
         let r = build_categories_right(book, state, theme, pw, ph, rx, py, sx, sy, &mut overlays);
         (l, r)
     } else {
-        let l = build_entry_left(book, state, theme, pw, ph, lx, py, sx, sy, &mut bg_sprites, &mut overlays);
+        let l = build_entry_left(book, state, theme, pw, ph, lx, py, sx, sy, sep_cx, &mut bg_sprites, &mut overlays);
         let r = build_entries_right(book, state, theme, pw, ph, rx, py, sx, sy);
         (l, r)
     };
@@ -484,54 +502,53 @@ fn build_ui(book: &Book, state: &BookViewState, theme: &BookTheme,
 
 // ── Left page: landing (home view) ───────────────────────────────────────────
 
-fn build_landing_left(book: &Book, theme: &BookTheme,
-                       page_w: f32, page_h: f32, _lx: f32, _py: f32,
-                       _sx: f32, sy: f32)
-    -> widget::Widget
-{
-    // The nameplate banner occupies book-local y=12..43.
-    // Page area starts at y=TOP_PAD=18 → visible banner in page-widget: y=0..(43-18)*sy.
-    let nameplate_h = (43.0 - TOP_PAD) * sy;
-    let gap         = 4.0;
-    let pad_top     = 2.0;
+fn build_landing_left(
+    book: &Book, theme: &BookTheme,
+    page_w: f32, page_h: f32,
+    _lx: f32, _py: f32,
+    sx: f32, sy: f32,
+    bx: f32, by: f32,
+    overlays: &mut Vec<OverlayCmd>,
+) -> widget::Widget {
+    // Patchouli: title at book-local (13, 16), subtitle at (24, 24).
+    // These overlap the nameplate sprite which is above/within the page top.
+    overlays.push(OverlayCmd::McText {
+        text: book.name.clone(),
+        x: bx + 13.0 * sx,
+        y: by + 16.0 * sy,
+        color: theme.nameplate,
+    });
+    if let Some(author) = &book.author {
+        overlays.push(OverlayCmd::McText {
+            text: format!("by {}", author),
+            x: bx + 24.0 * sx,
+            y: by + 24.0 * sy,
+            color: theme.nameplate,
+        });
+    }
 
+    // Widget content: landing text + entry count.
+    // Landing text starts at page-local y=25 (= book-local y=43).
+    // We push it down with top padding = 25*sy.
     let mut col = widget::panel(FlexDir::Column)
         .w(page_w).h(page_h)
-        .padding(pad_top, 6.0, 4.0, 4.0)
-        .gap(gap);
+        .padding(25.0 * sy, 6.0, 4.0, 4.0)
+        .gap(0.0);
 
-    // Book title on nameplate sprite.
-    col = col.child(widget::label(&book.name).color(theme.nameplate).h(10.0));
-
-    // Optional author subtitle ("by …") — mirrors Patchouli's subtitle field.
-    let spacer_h = if let Some(author) = &book.author {
-        col = col.child(
-            widget::label(format!("by {}", author)).color(theme.nameplate).h(8.0)
-        );
-        (nameplate_h - 10.0 - gap - 8.0 - gap).max(0.0)
-    } else {
-        (nameplate_h - 10.0 - gap).max(0.0)
-    };
-    col = col.child(widget::spacer().h(spacer_h));
-
-    // Landing text paragraphs.
     for para in book.landing_text.split('\n') {
         if para.is_empty() {
-            col = col.child(widget::spacer().h(3.0));
+            col = col.child(widget::spacer().h(4.0 * sy));
         } else {
             col = col.child(widget::label(para).color(theme.text));
         }
     }
 
-    // Progress bar at bottom: entry count across all categories.
     let total = book.entries.len();
     col = col.child(widget::spacer().flex(1.0));
-    col = col.child(
-        widget::spacer().h(3.0).bg(theme.border)   // thin separator line
-    );
+    col = col.child(widget::spacer().h((SEP_H * sy).max(1.0)).bg(theme.border));
     col = col.child(
         widget::label(format!("{} entries", total))
-            .color(theme.nav).h(9.0).align(Align::Center)
+            .color(theme.nav).h(9.0 * sy).align(Align::Center)
     );
     col
 }
@@ -620,6 +637,7 @@ fn build_entry_left(
     page_w: f32, page_h: f32,
     ox: f32, oy: f32,
     sx: f32, sy: f32,
+    sep_cx: f32,
     bg_sprites: &mut Vec<BgSprite>,
     overlays: &mut Vec<OverlayCmd>,
 ) -> widget::Widget {
@@ -628,43 +646,44 @@ fn build_entry_left(
     let page_count = state.page_count(book);
     let title_text = entry.map(|e| e.name.as_str()).unwrap_or("");
 
-    // Sprite separator after title.
-    // Layout: padding-top=4, title h=14, gap=3 → separator at oy+21.
-    let pad_top  = 4.0;
-    let title_h  = 14.0;
-    let gap      = 3.0;
-    let sep_h_px = (SEP_H * sy).max(2.0);
-    let sep_y    = oy + pad_top + title_h + gap;
+    // Patchouli PageText page 0:
+    //   title centered at page-local (PAGE_W/2, 0)
+    //   separator at page-local (0, 12)  → centered ≡ sep_cx offset
+    //   text body at page-local (0, 22)
+    let title_h  = 9.0 * sy;
+    let sep_h_px = (SEP_H * sy).max(1.0);
+    let sep_y    = oy + 12.0 * sy;
+    let body_oy  = oy + 22.0 * sy;
+
     bg_sprites.push(BgSprite {
         sheet: SpriteSheet::Book,
         u: SEP_U, v: SEP_V, uw: SEP_W, uh: SEP_H,
-        x: ox, y: sep_y,
+        x: ox + sep_cx, y: sep_y,
         w: SEP_W * sx, h: sep_h_px,
     });
 
-    // Body starts after separator + another gap.
-    let body_oy = sep_y + sep_h_px + gap;
-
     let page_label = format!("{}/{}", state.page + 1, page_count);
     let nav = widget::panel(FlexDir::Row)
-        .h(16.0).gap(4.0)
+        .h(12.0 * sy).gap(4.0)
         .padding(0.0, 2.0, 0.0, 2.0)
-        .child(widget::button("◀").w(16.0).h(12.0).color(theme.nav)
+        .child(widget::button("◀").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
             .on_click("prev_page").id("prev_page"))
         .child(widget::label(&page_label).color(theme.nav).flex(1.0).align(Align::Center))
-        .child(widget::button("⌂").w(16.0).h(12.0).color(theme.nav)
+        .child(widget::button("⌂").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
             .on_click("home").id("book_home"))
-        .child(widget::button("▶").w(16.0).h(12.0).color(theme.nav)
+        .child(widget::button("▶").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
             .on_click("next_page").id("next_page"));
 
     let page_body = build_page(page, state.page, theme, bg_sprites, overlays, ox, body_oy, sx, sy);
 
     widget::panel(FlexDir::Column)
         .w(page_w).h(page_h)
-        .padding(pad_top, 6.0, 4.0, 4.0)
-        .gap(gap)
+        .padding(0.0, 6.0, 4.0, 4.0)
+        .gap(0.0)
         .child(widget::label(title_text).color(theme.title).h(title_h).align(Align::Center))
-        .child(widget::spacer().h(sep_h_px))   // space for sprite separator
+        .child(widget::spacer().h((12.0 - 9.0) * sy))  // gap: title end → sep start
+        .child(widget::spacer().h(sep_h_px))             // height occupied by sep sprite
+        .child(widget::spacer().h((22.0 - 12.0 - SEP_H) * sy)) // gap: sep end → body
         .child(page_body)
         .child(nav)
 }
@@ -674,19 +693,30 @@ fn build_entry_left(
 fn build_entries_right(
     book: &Book, state: &BookViewState, theme: &BookTheme,
     page_w: f32, page_h: f32, _rx: f32, _py: f32,
-    _sx: f32, _sy: f32,
+    sx: f32, sy: f32,
 ) -> widget::Widget {
     let entries  = state.entries_visible(book);
     let cat_name = book.categories.get(state.cat).map(|c| c.name.as_str()).unwrap_or("Entries");
     let spread_count = state.list_spread_count(book);
 
+    // Patchouli GuiBookEntryList layout (right page):
+    //   category name at page-local y=0, centered
+    //   separator at page-local y=12 (drawn as bg sprite in build_ui)
+    //   entries start at page-local y=20, each h=11
+    let header_h   = 9.0 * sy;
+    let row_h      = 11.0 * sy;
+    let icon_size  = 9.0 * sx.min(sy);
+
     let mut col = widget::panel(FlexDir::Column)
         .w(page_w).h(page_h)
-        .padding(4.0, 6.0, 4.0, 4.0)
-        .gap(1.0);
+        .padding(0.0, 4.0, 4.0, 0.0)
+        .gap(0.0);
 
-    col = col.child(widget::label(cat_name).color(theme.divider).h(11.0));
-    col = col.child(widget::spacer().h(2.0));
+    col = col.child(widget::label(cat_name).color(theme.divider).h(header_h).align(Align::Center));
+    // sep region: y=9..15 (sep h=3), then gap to entries start at y=20
+    col = col.child(widget::spacer().h((12.0 - 9.0) * sy));    // gap to sep
+    col = col.child(widget::spacer().h((SEP_H * sy).max(1.0))); // sep height
+    col = col.child(widget::spacer().h((20.0 - 12.0 - SEP_H) * sy)); // gap to entries
 
     let abs_start = state.list_spread_start();
     for (i, entry) in entries.iter().enumerate() {
@@ -696,31 +726,30 @@ fn build_entries_right(
         let color = if selected { theme.nav_selected } else { theme.nav };
 
         let mut row = widget::panel(FlexDir::Row)
-            .h(14.0).gap(4.0).bg(bg)
+            .h(row_h).gap(2.0).bg(bg)
             .on_click(format!("entry:{}", abs_i))
             .id(format!("book_entry_{}", abs_i))
             .padding(1.0, 2.0, 1.0, 2.0);
 
         if let Some(icon_id) = &entry.icon {
-            row = row.child(item_icon_widget(icon_id));
+            row = row.child(item_icon_widget(icon_id).w(icon_size).h(icon_size));
         } else {
-            row = row.child(widget::spacer().w(14.0));
+            row = row.child(widget::spacer().w(icon_size));
         }
         row = row.child(widget::label(&entry.name).color(color).flex(1.0));
         col = col.child(row);
     }
 
-    // List spread navigation — only shown when there's more than one spread.
     if spread_count > 1 {
         col = col.child(widget::spacer().flex(1.0));
         let spread_label = format!("{}/{}", state.list_spread + 1, spread_count);
         col = col.child(
-            widget::panel(FlexDir::Row).h(14.0).gap(2.0)
-                .child(widget::button("◀").w(14.0).h(12.0).color(theme.nav)
+            widget::panel(FlexDir::Row).h(12.0 * sy).gap(2.0)
+                .child(widget::button("◀").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
                     .on_click("prev_list").id("prev_list"))
                 .child(widget::label(&spread_label).color(theme.nav)
                     .flex(1.0).align(Align::Center))
-                .child(widget::button("▶").w(14.0).h(12.0).color(theme.nav)
+                .child(widget::button("▶").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
                     .on_click("next_list").id("next_list"))
         );
     }
@@ -768,16 +797,21 @@ fn build_page(
             // On non-first pages, show an optional section title + separator.
             if page_num > 0 {
                 if let Some(t) = title {
-                    let sep_h_px = (SEP_H * sy).max(2.0);
+                    let sep_h_px = (SEP_H * sy).max(1.0);
+                    let title_h  = 9.0 * sy;
                     col = col.child(widget::label(t.as_str()).color(theme.title)
-                        .h(12.0).align(Align::Center));
+                        .h(title_h).align(Align::Center));
+                    // sep at y=12 page-local, centered
                     bg_sprites.push(BgSprite {
                         sheet: SpriteSheet::Book,
                         u: SEP_U, v: SEP_V, uw: SEP_W, uh: SEP_H,
-                        x: ox, y: oy + 12.0 + 3.0,
+                        x: ox + (PAGE_W / 2.0 - SEP_W / 2.0) * sx,
+                        y: oy + 12.0 * sy,
                         w: SEP_W * sx, h: sep_h_px,
                     });
+                    col = col.child(widget::spacer().h((12.0 - 9.0) * sy));
                     col = col.child(widget::spacer().h(sep_h_px));
+                    col = col.child(widget::spacer().h((22.0 - 12.0 - SEP_H) * sy));
                 }
             }
             for para in text.split('\n') {
