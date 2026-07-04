@@ -31,20 +31,32 @@ forward-compatible.
 
 | Loader | Minecraft | Mappings | Loader version | API/Libs | Java | Status |
 |--------|-----------|----------|---------------|----------|------|--------|
-| **Fabric** | 1.20.1 | Yarn 1.20.1+build.10 | fabric-loader ≥ 0.15.11 | fabric-api 0.92.2+1.20.1 | 17 | ✅ tested |
-| **NeoForge** | 1.20.1 | Mojmap (via NeoForge) | 47.1.106 | NeoForge | 17 | ✅ implemented |
+| **Fabric** | 1.20.1 | Yarn 1.20.1+build.10 | ≥ 0.15.11 | fabric-api 0.92.2+1.20.1 | 17 | ✅ tested |
+| | 1.21.1 | Yarn 1.21.1+build.9 | ≥ 0.16.5 | fabric-api 0.104.0+1.21.1 | 21 | ✅ tested |
+| **NeoForge** | 1.20.1 | Mojmap (NeoForge) | 47.1.106 | — | 17 | ✅ tested |
+| | 1.21.1 | Mojmap (NeoForge) | 21.1.0+ | — | 21 | 🚧 scaffold |
+| **Forge** | 1.20.1 | MCP (ForgeGradle) | 47.3.0 | — | 17 | 🚧 scaffold |
+| | 1.21.1 | MCP (ForgeGradle) | 21.1.0+ | — | 21 | 🚧 scaffold |
 
 Each loader has its own version-specific Mixin sources under
 `<loader>/platforms/<mc-version>/`. The active platform is selected by
-`minecraft_version` in `<loader>/gradle.properties`.
+`minecraft_version` in `<loader>/gradle.properties`. Use `--mc` to override:
+
+```bash
+./build.sh run fabric --client --mc 1.21.1
+```
+
+Version properties (MC version, loader version, Java version) are stored in
+`<loader>/versions/<version>.properties`. Common Java code shared across
+all loaders lives in `java-common/`.
 
 ### Run a specific loader
 
 ```bash
-./build.sh run fabric             # dev server (Fabric)
-./build.sh run fabric --client    # dev client (Fabric)
-./build.sh run neoforge           # dev server (NeoForge)
-./build.sh run neoforge --client  # dev client (NeoForge)
+./build.sh run fabric --client                # Fabric 1.20.1
+./build.sh run fabric --client --mc 1.21.1    # Fabric 1.21.1
+./build.sh run neoforge --client              # NeoForge 1.20.1
+./build.sh run forge --client                 # Forge 1.20.1
 ```
 
 | Stage | What | ABI minor |

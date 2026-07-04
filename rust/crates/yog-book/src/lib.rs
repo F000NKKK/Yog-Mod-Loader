@@ -492,7 +492,21 @@ pub mod book_ui {
 // ── JSON serialization ────────────────────────────────────────────────────────
 
 fn esc(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
+    let mut out = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '"'  => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if c.is_control() => {
+                out.push_str(&format!("\\u{:04x}", c as u32));
+            }
+            _ => out.push(ch),
+        }
+    }
+    out
 }
 
 impl BookPage {

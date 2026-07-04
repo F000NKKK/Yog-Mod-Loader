@@ -501,4 +501,9 @@ public final class NativeBridge {
     public static native void nativeOnScreenOpen(String screenClass);
     public static native void nativeOnScreenClose(String screenClass);
     public static native boolean nativeOnKeyPress(int keyCode, int scanCode, int action, int modifiers);
+
+    /** Resolve an OpenGL function pointer by name — used by yog-runtime via JNI. */
+    public static long glProcAddress(String name) {
+        return GLFW.glfwGetProcAddress(name);
+    }
 }
