@@ -905,7 +905,8 @@ public final class NativeBridge {
 
     public static native void nativeOnTick();
 
-    public static native void nativeOnServerStarted();
+    /** `worldDir` — absolute path of the world save folder (per-world storage). */
+    public static native void nativeOnServerStarted(String worldDir);
 
     public static native void nativeOnServerStopping();
 

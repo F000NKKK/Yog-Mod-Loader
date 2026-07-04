@@ -586,8 +586,12 @@ fn build_ui(book: &Book, state: &BookViewState, theme: &BookTheme,
     // padding-left = LEFT_X*sx offsets both pages from the left cover edge.
     // padding-top  = TOP_PAD*sy offsets from the header banner.
     // spine_gap spacer sits between the two pages.
+    // gap must be 0: analytic overlay positions assume pages sit exactly at
+    // LEFT_X / RIGHT_X — any flex gap would shift widgets (and their focus
+    // highlights) away from the absolutely-positioned icons.
     let root_widget = widget::panel(FlexDir::Row)
         .w(bw).h(bh)
+        .gap(0.0)
         .padding(TOP_PAD * sy, 0.0, 0.0, LEFT_X * sx)
         .child(left_page)
         .child(widget::spacer().w(spine_gap))  // spine gap
@@ -924,6 +928,12 @@ fn draw_crafting_grid(
             color: theme.title,
         });
     }
+    // Patchouli's "toast symbol" under the output: the crafting table.
+    overlays.push(OverlayCmd::McItem {
+        item_id: "minecraft:crafting_table".into(),
+        x: ox + (rx0 + 79.0) * sx, y: oy + (ry + 41.0) * sy,
+        w: icon_s, h: icon_s,
+    });
 
     // Spacer from title end (10) to below the grid (ry+62+4).
     c = c.child(widget::spacer().h((ry + 62.0 + 4.0 - 10.0) * sy));
@@ -1058,6 +1068,12 @@ fn build_page(
                     overlays.push(OverlayCmd::McItem {
                         item_id: input.clone(),
                         x: ox + (rx0 + 4.0) * sx, y: oy + (ry + 4.0) * sy,
+                        w: icon_s, h: icon_s,
+                    });
+                    // Center: the furnace itself (Patchouli's "toast symbol").
+                    overlays.push(OverlayCmd::McItem {
+                        item_id: "minecraft:furnace".into(),
+                        x: ox + (rx0 + 40.0) * sx, y: oy + (ry + 4.0) * sy,
                         w: icon_s, h: icon_s,
                     });
                     overlays.push(OverlayCmd::McItem {

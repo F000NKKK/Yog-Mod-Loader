@@ -98,6 +98,7 @@ pub enum BookPage {
 
 /// Represents a book category tab (e.g. "Basics", "Patterns").
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct BookCategory {
     pub id: String,
     pub name: String,
@@ -114,6 +115,7 @@ pub struct BookCategory {
 
 /// One entry in a book (like a "page" in the TOC sidebar).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct BookEntry {
     pub id: String,
     pub name: String,
@@ -137,6 +139,7 @@ pub struct BookEntry {
 
 /// The top-level book definition — replaces `patchouli_books/<id>/book.json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Book {
     pub id: String,
     pub name: String,

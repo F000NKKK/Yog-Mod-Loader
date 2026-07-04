@@ -125,6 +125,10 @@ struct RuntimeHandlers {
     pub active_uis:     Mutex<Vec<UiLayer>>,
     startup_grants:     Vec<yog_registry::StartupGrant>,
     startup_granted:    Mutex<HashMap<String, bool>>,
+    /// Players whose startup grants are pending: (name, uuid, ticks_waited).
+    /// Granting happens on a server tick after join — giving items directly in
+    /// the join callback fails for the host of a freshly created world.
+    pending_grants:     Mutex<Vec<(String, String, u32)>>,
     scheduler:          Mutex<SchedulerState>,
 }
 
@@ -158,6 +162,7 @@ impl RuntimeHandlers {
             blocks: Vec::new(), books: HashMap::new(),
             book_renderers: Mutex::new(HashMap::new()),
             startup_granted: Mutex::new(HashMap::new()),
+            pending_grants: Mutex::new(Vec::new()),
             scheduler: Mutex::new(SchedulerState::new()),
         }
     }
@@ -1460,15 +1465,18 @@ unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_j
     let json = unsafe { book_json.as_str().to_owned() };
     handlers.books.insert(id.clone(), json.clone());
     // Parse JSON → Book → BookRenderer so rendering works without Java round-trip.
-    if let Ok(book) = serde_json::from_str::<yog_book::Book>(&json) {
-        let mut renderer = yog_book::BookRenderer::new(book);
-        // Recipes may register before the book — replay them into the renderer.
-        for (ns, name, j) in &handlers.recipes {
-            renderer.add_recipe(format!("{}:{}", ns, name), j);
+    match serde_json::from_str::<yog_book::Book>(&json) {
+        Ok(book) => {
+            let mut renderer = yog_book::BookRenderer::new(book);
+            // Recipes may register before the book — replay them into the renderer.
+            for (ns, name, j) in &handlers.recipes {
+                renderer.add_recipe(format!("{}:{}", ns, name), j);
+            }
+            handlers.book_renderers.lock().unwrap().insert(id, renderer);
         }
-        handlers.book_renderers.lock().unwrap().insert(id, renderer);
-    } else {
-        yog_logging::warn!("book '{}': failed to parse JSON for Rust renderer", id);
+        Err(e) => {
+            yog_logging::warn!("book '{}': failed to parse JSON for Rust renderer: {}", id, e);
+        }
     }
 }
 
@@ -1797,33 +1805,65 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
-    // Process startup grants (give items/books on first join).
+    // Queue startup grants: giving items directly inside the join callback
+    // fails for the host of a freshly created world (player not fully in the
+    // world yet), so grants are processed a few server ticks later.
     let h = handlers();
+    if !h.startup_grants.is_empty() {
+        h.pending_grants.lock().expect("pending_grants poisoned")
+            .push((p, u, 0));
+    }
+}
+
+/// Try to fulfil pending startup grants. Called each server tick; a grant is
+/// only marked as given (and persisted) after `give_item` actually succeeds.
+fn process_pending_grants() {
+    let h = handlers();
+    let mut pending = match h.pending_grants.try_lock() { Ok(g) => g, Err(_) => return };
+    if pending.is_empty() { return; }
+    // Wait a couple of ticks after join before the first attempt.
+    const FIRST_TRY_TICK: u32 = 2;
+    // Give up after 30 seconds — the player probably left.
+    const MAX_TICKS: u32 = 600;
+
     let mut granted = h.startup_granted.lock().expect("startup_granted poisoned");
-    yog_logging::info!("processing {} startup grants for player {}", h.startup_grants.len(), p);
+    let mut still_pending = Vec::new();
     let mut any_new = false;
-    for sg in &h.startup_grants {
-        let key = format!("{}::{}", u, sg.id);
-        if granted.contains_key(&key) {
-            yog_logging::info!("startup grant {} already granted, skipping", sg.id);
+
+    for (p, u, ticks) in pending.drain(..) {
+        if ticks < FIRST_TRY_TICK {
+            still_pending.push((p, u, ticks + 1));
             continue;
         }
-        yog_logging::info!("granting startup grant {} with {} items", sg.id, sg.items.len());
-        for item_id in &sg.items {
-            let ok = unsafe { srv_give_item(std::ptr::null_mut(), YogStr::from_str(&p), YogStr::from_str(item_id), 1) };
-            yog_logging::info!("gave {} to {} -> {}", item_id, p, ok);
+        let mut all_ok = true;
+        for sg in &h.startup_grants {
+            let key = format!("{}::{}", u, sg.id);
+            if granted.contains_key(&key) { continue; }
+            let mut ok = true;
+            for item_id in &sg.items {
+                ok &= unsafe { srv_give_item(std::ptr::null_mut(),
+                    YogStr::from_str(&p), YogStr::from_str(item_id), 1) };
+            }
+            if let Some(_book) = &sg.book {
+                ok &= unsafe { srv_give_item(std::ptr::null_mut(),
+                    YogStr::from_str(&p), YogStr::from_str("minecraft:written_book"), 1) };
+            }
+            if ok {
+                yog_logging::info!("startup grant {} given to {}", sg.id, p);
+                granted.insert(key, true);
+                any_new = true;
+            } else {
+                all_ok = false;
+            }
         }
-        if let Some(book) = &sg.book {
-            let ok = unsafe { srv_give_item(std::ptr::null_mut(), YogStr::from_str(&p), YogStr::from_str("minecraft:written_book"), 1) };
-            yog_logging::info!("gave book {} to {} -> {}", book, p, ok);
+        if !all_ok && ticks < MAX_TICKS {
+            still_pending.push((p, u, ticks + 1));
         }
-        granted.insert(key, true);
-        any_new = true;
     }
+    *pending = still_pending;
     if any_new {
         save_startup_granted(&granted);
     }
-    drop(granted);
 }
 
 #[no_mangle]
@@ -1938,6 +1978,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
         }
     });
 
+    guard("startup_grants", process_pending_grants);
+
     // Scheduler — once tasks
     {
         let mut sched = h.scheduler.lock().expect("scheduler poisoned");
@@ -1976,19 +2018,31 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
     }
 }
 
+/// Absolute path of the current world save folder (set on server start).
+static WORLD_DIR: Mutex<Option<std::path::PathBuf>> = Mutex::new(None);
+
+/// Per-world data path: `<world>/yog-data/startup_grants.json`.
+/// Falls back to the working directory before any server has started.
 fn startup_grants_path() -> std::path::PathBuf {
-    std::path::PathBuf::from("yog-data").join("startup_grants.json")
+    let base = WORLD_DIR.lock().ok()
+        .and_then(|d| d.clone())
+        .unwrap_or_else(|| std::path::PathBuf::from("."));
+    base.join("yog-data").join("startup_grants.json")
 }
 
 fn load_startup_granted() {
+    let h = handlers();
+    let mut granted = h.startup_granted.lock().expect("startup_granted poisoned");
+    // Reset first — in singleplayer the process outlives individual worlds,
+    // and grant state is per-world.
+    granted.clear();
+    h.pending_grants.lock().expect("pending_grants poisoned").clear();
     let path = startup_grants_path();
     let Ok(data) = std::fs::read_to_string(&path) else { return };
     let Ok(keys) = serde_json::from_str::<Vec<String>>(&data) else {
         yog_logging::warn!("startup_grants.json: invalid JSON, ignoring");
         return;
     };
-    let h = handlers();
-    let mut granted = h.startup_granted.lock().expect("startup_granted poisoned");
     for k in keys {
         granted.insert(k, true);
     }
@@ -2009,8 +2063,12 @@ fn save_startup_granted(granted: &HashMap<String, bool>) {
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
-    _env: JNIEnv<'l>, _class: JClass<'l>,
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    world_dir: JString<'l>,
 ) {
+    let dir = jstr!(env, world_dir);
+    *WORLD_DIR.lock().expect("WORLD_DIR poisoned") =
+        if dir.is_empty() { None } else { Some(std::path::PathBuf::from(dir)) };
     load_startup_granted();
     let srv = srv_ptr();
     guard("on_server_started", || {

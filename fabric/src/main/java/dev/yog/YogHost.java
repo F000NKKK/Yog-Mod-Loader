@@ -275,7 +275,9 @@ public class YogHost implements ModInitializer {
         // (e.g. NativeBridge.broadcast).
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             NativeBridge.setServer(server);
-            NativeBridge.nativeOnServerStarted();
+            String worldDir = server.getSavePath(net.minecraft.util.WorldSavePath.ROOT)
+                    .toAbsolutePath().toString();
+            NativeBridge.nativeOnServerStarted(worldDir);
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> NativeBridge.nativeOnServerStopping());
 

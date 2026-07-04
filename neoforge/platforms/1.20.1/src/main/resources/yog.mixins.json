@@ -1,0 +1,22 @@
+{
+    "required": true,
+    "package": "dev.yog.mixin",
+    "compatibilityLevel": "JAVA_17",
+    "refmap": "yog.refmap.json",
+    "mixins": [
+        "AdvancementMixin",
+        "BlockItemPlaceMixin",
+        "ContainerCloseMixin",
+        "ContainerOpenMixin",
+        "CraftingMixin",
+        "ExplosionMixin",
+        "ItemPickupMixin",
+        "PlayerMoveMixin",
+        "ProjectileHitMixin",
+        "ResourcePackManagerMixin"
+    ],
+    "client": [
+        "KeyboardMixin"
+    ],
+    "server": []
+}

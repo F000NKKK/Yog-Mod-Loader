@@ -50,6 +50,7 @@ public class YogClient implements ClientModInitializer {
                 (float) mc.getWindow().getScaleFactor(),
                 (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
             NativeDraw.hudDrawContext = null;
+            NativeDraw.syncGlState(); // raw GL from Rust desyncs GlStateManager caches
         });
 
         // World render — fires at end of world render frame with camera matrices
@@ -70,6 +71,7 @@ public class YogClient implements ClientModInitializer {
                 vp,
                 (float) camPos.x, (float) camPos.y, (float) camPos.z,
                 (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
+            NativeDraw.syncGlState(); // raw GL (e.g. plumbob demo) desyncs GL caches
         });
 
         // screen open / close

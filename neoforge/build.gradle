@@ -1,0 +1,48 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'net.neoforged.gradle.userdev' version '7.0.170'
+}
+
+// Version-specific sources live under platforms/<minecraft_version>/
+def platformDir = "platforms/${project.minecraft_version}"
+
+sourceSets {
+    main {
+        java { srcDir "${platformDir}/src/main/java" }
+        resources { srcDir "${platformDir}/src/main/resources" }
+    }
+}
+
+runs {
+    client {
+        workingDirectory file('run')
+        modSource project.sourceSets.main
+        jvmArgument '-Djava.library.path=' + file('run/natives').absolutePath
+    }
+    server {
+        workingDirectory file('run')
+        modSource project.sourceSets.main
+        programArgument '--nogui'
+        jvmArgument '-Djava.library.path=' + file('run/natives').absolutePath
+    }
+}
+
+dependencies {
+    implementation "net.neoforged:neoforge:${project.neo_version}"
+}
+
+base {
+    archivesName = project.archives_base_name
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

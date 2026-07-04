@@ -27,15 +27,25 @@ forward-compatible.
 - **Mappings:** **Yarn** (libre). We deliberately do **not** bundle Mojmaps —
   their license forbids redistribution.
 
-### Supported Fabric platforms
+### Supported platforms
 
-| Minecraft | Yarn mappings | fabric-loader | fabric-api | Java | Status |
-|-----------|--------------|--------------|------------|------|--------|
-| **1.20.1** | 1.20.1+build.10 | ≥ 0.15.11 | 0.92.2+1.20.1 | 17 | ✅ tested |
+| Loader | Minecraft | Mappings | Loader version | API/Libs | Java | Status |
+|--------|-----------|----------|---------------|----------|------|--------|
+| **Fabric** | 1.20.1 | Yarn 1.20.1+build.10 | fabric-loader ≥ 0.15.11 | fabric-api 0.92.2+1.20.1 | 17 | ✅ tested |
+| **NeoForge** | 1.20.1 | Mojmap (via NeoForge) | 47.1.106 | NeoForge | 17 | ✅ implemented |
 
-Each platform has its own version-specific Mixin sources under
-`fabric/platforms/<mc-version>/`. The active platform is selected by
-`minecraft_version` in `fabric/gradle.properties`.
+Each loader has its own version-specific Mixin sources under
+`<loader>/platforms/<mc-version>/`. The active platform is selected by
+`minecraft_version` in `<loader>/gradle.properties`.
+
+### Run a specific loader
+
+```bash
+./build.sh run fabric             # dev server (Fabric)
+./build.sh run fabric --client    # dev client (Fabric)
+./build.sh run neoforge           # dev server (NeoForge)
+./build.sh run neoforge --client  # dev client (NeoForge)
+```
 
 | Stage | What | ABI minor |
 |------:|------|:---------:|
@@ -58,8 +68,9 @@ Each platform has its own version-specific Mixin sources under
 | ✅ 13.2 | `yog-book` GPU renderer: sidebar + entry list + page nav rendered via `yog-ui`/`yog-gfx`; SVG icons (`resvg`); custom TTF/OTF fonts (`fontdue`); visual `BookTheme` | 20 |
 | ✅ 13.3 | `yog-ui` focus system: `enabled`/`focused` per widget, `FocusStyle` (Outline/Fill/None), `set_focus()`, focus color | 21 |
 | ✅ 13.4 | `yog-ui` layout improvements: Unicode-safe text wrapping, `Dock` (Fill/Left/Right/Top/Bottom), auto-size, correct Row measurement | 21 |
-| ✅ 13.5 | `draw2d_item`: render item stacks (3D block models included) via MC's item renderer in HUD overlay | 22 |
-| 🔲 14 | NeoForge host, then Forge host |  |
+| ✅ 13.5 | `draw2d_item`: render item stacks (3D block models included) via MC's item renderer in HUD overlay | 21 |
+| ✅ 14 | NeoForge host: full NeoForge platform support with event-bus-based host | — |
+| 🔲 15 | Forge host |  |
 
 ## API available now (ABI minor 21+)
 
@@ -815,6 +826,16 @@ yog/
             └── src/main/
                 ├── java/dev/yog/mixin/   # all Mixin classes for 1.20.1
                 └── resources/            # fabric.mod.json, yog.mixins.json
+├── neoforge/                     # NeoForge host mod (Java)                  [AGPL]
+    ├── build.gradle              # NeoGradle 7.0 userdev
+    ├── gradle.properties         # active MC version + NeoForge version
+    ├── src/main/java/dev/yog/    # version-agnostic host (event-bus-based)
+    ├── src/main/resources/       # embedded native libs (natives/<os>-<arch>/)
+    └── platforms/
+        └── 1.20.1/              # version-specific Mixin sources + resources
+            └── src/main/
+                ├── java/dev/yog/mixin/   # all Mixin classes for 1.20.1
+                └── resources/            # neoforge.mods.toml, yog.mixins.json
 ```
 
 ## Build & run (needs JDK 17, Rust, network)
