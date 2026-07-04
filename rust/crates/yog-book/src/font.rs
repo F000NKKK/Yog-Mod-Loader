@@ -54,6 +54,7 @@ pub struct FontAtlas {
 }
 
 /// ASCII + common Latin Extended-A charset for the atlas.
+#[cfg(feature = "fonts")]
 const ATLAS_CHARS: &str =
     " !\"#$%&'()*+,-./0123456789:;<=>?@\
      ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`\

@@ -1,72 +1,97 @@
 //! Text wrapping utilities shared by layout (measuring) and render (drawing).
+//!
+//! Widths use Minecraft's default (ASCII) font advance table so that
+//! wrapping and centering match what the MC text renderer actually draws.
 
-/// Approximate pixel width per character at font_scale=1.0 in Minecraft's default font.
+/// Approximate pixel width per character at font_scale=1.0 (fallback for
+/// non-ASCII chars and legacy callers).
 pub const CHAR_W: f32 = 6.0;
-/// Line height at font_scale=1.0.
-pub const LINE_H: f32 = 10.0;
+/// Line height at font_scale=1.0 (MC font is 9px; Patchouli uses 9-10px lines).
+pub const LINE_H: f32 = 9.0;
 /// Gap between wrapped lines.
-pub const LINE_GAP: f32 = 2.0;
+pub const LINE_GAP: f32 = 1.0;
+
+/// Advance width in pixels (including 1px inter-glyph spacing) of one char
+/// in Minecraft's default ASCII font at GUI scale 1.
+pub fn char_width(c: char) -> f32 {
+    match c {
+        ' ' => 4.0,
+        '!' | ',' | '.' | ':' | ';' | '|' | '\'' => 2.0,
+        'i' => 2.0,
+        'l' => 3.0,
+        '`' => 3.0,
+        '(' | ')' | '*' | '<' | '>' | '{' | '}' => 5.0,
+        'f' | 'k' => 5.0,
+        '"' => 5.0,
+        't' | '[' | ']' | 'I' => 4.0,
+        '@' | '~' => 7.0,
+        c if c.is_ascii() => 6.0,
+        _ => 6.0, // non-ASCII: MC unicode glyphs vary; 6 is a fair average
+    }
+}
+
+/// Pixel width of a string at the given font scale.
+pub fn str_width(s: &str, font_scale: f32) -> f32 {
+    s.chars().map(char_width).sum::<f32>() * font_scale
+}
 
 /// Break `text` into lines that fit within `max_w` pixels at `font_scale`.
-/// All comparisons are char-count based (Unicode-safe).
+/// Width accounting is per-glyph (MC default font advances).
 pub fn wrap_text(text: &str, max_w: f32, font_scale: f32) -> Vec<String> {
-    let char_w = CHAR_W * font_scale;
-    if char_w <= 0.0 || max_w <= 0.0 {
+    if font_scale <= 0.0 || max_w <= 0.0 {
         return vec![text.to_owned()];
     }
-    let max_chars = ((max_w / char_w).floor() as usize).max(1);
+    let space_w = char_width(' ') * font_scale;
     let mut lines: Vec<String> = Vec::new();
     let mut cur = String::new();
-    let mut cur_chars = 0usize;
+    let mut cur_w = 0.0f32;
 
     for word in text.split(' ') {
         if word.is_empty() { continue; }
-        let word_chars = word.chars().count();
+        let word_w = str_width(word, font_scale);
 
-        if cur_chars == 0 {
-            append_word(&mut lines, &mut cur, &mut cur_chars, word, word_chars, max_chars);
-        } else if cur_chars + 1 + word_chars <= max_chars {
+        if cur_w == 0.0 {
+            append_word(&mut lines, &mut cur, &mut cur_w, word, word_w, max_w, font_scale);
+        } else if cur_w + space_w + word_w <= max_w {
             cur.push(' ');
             cur.push_str(word);
-            cur_chars += 1 + word_chars;
+            cur_w += space_w + word_w;
         } else {
             lines.push(std::mem::take(&mut cur));
-            cur_chars = 0;
-            append_word(&mut lines, &mut cur, &mut cur_chars, word, word_chars, max_chars);
+            cur_w = 0.0;
+            append_word(&mut lines, &mut cur, &mut cur_w, word, word_w, max_w, font_scale);
         }
     }
-    if cur_chars > 0 || lines.is_empty() {
+    if cur_w > 0.0 || lines.is_empty() {
         lines.push(cur);
     }
     lines
 }
 
-/// Append a word, hard-breaking if it's longer than max_chars.
+/// Append a word, hard-breaking if it's wider than one line.
 fn append_word(
-    lines: &mut Vec<String>, cur: &mut String, cur_chars: &mut usize,
-    word: &str, word_chars: usize, max_chars: usize,
+    lines: &mut Vec<String>, cur: &mut String, cur_w: &mut f32,
+    word: &str, word_w: f32, max_w: f32, font_scale: f32,
 ) {
-    if word_chars <= max_chars {
+    if word_w <= max_w {
         cur.push_str(word);
-        *cur_chars = word_chars;
+        *cur_w = word_w;
         return;
     }
-    // Word is longer than one line — hard-break at char boundaries.
-    let mut remaining = word;
-    let mut rem_chars = word_chars;
-    while rem_chars > max_chars {
-        let split = char_boundary(remaining, max_chars);
-        lines.push(remaining[..split].to_owned());
-        remaining = &remaining[split..];
-        rem_chars -= max_chars;
+    // Word is wider than one line — hard-break at glyph boundaries.
+    let mut line = String::new();
+    let mut w = 0.0f32;
+    for ch in word.chars() {
+        let cw = char_width(ch) * font_scale;
+        if w + cw > max_w && !line.is_empty() {
+            lines.push(std::mem::take(&mut line));
+            w = 0.0;
+        }
+        line.push(ch);
+        w += cw;
     }
-    cur.push_str(remaining);
-    *cur_chars = rem_chars;
-}
-
-/// Byte index of the `n`-th char boundary in `s` (Unicode-safe).
-fn char_boundary(s: &str, n: usize) -> usize {
-    s.char_indices().nth(n).map(|(i, _)| i).unwrap_or(s.len())
+    *cur = line;
+    *cur_w = w;
 }
 
 /// Number of lines that `text` wraps to.

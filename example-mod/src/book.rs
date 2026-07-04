@@ -8,7 +8,6 @@ use yog_api::{
 
 pub fn guide_book() -> Book {
     Book::new("yog:example_guide", "Example Mod Guide")
-        .nameplate("aa0000")
         .landing_text("Welcome to the Example Mod! This book documents all the items, blocks, commands and crafting recipes added by this mod.")
         .author("Yog Team")
         .creative_tab("yog")

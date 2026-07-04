@@ -71,6 +71,7 @@ pub struct Style {
     pub color:  u32,   // text colour
     pub align:  Align,
     pub font_scale:  f32,
+    pub text_shadow: bool, // MC drop-shadow behind text (HUD default; books disable it)
     pub focus_style: FocusStyle,
     pub focus_color: u32,  // 0 = default amber 0xFF_FFE040
 }
@@ -80,7 +81,7 @@ impl Default for Style {
         Self {
             w: 0.0, h: 0.0, min_w: 4.0, min_h: 4.0, flex: 0.0, dock: Dock::None, gap: 2.0,
             pad: [0.0; 4], margin: [0.0; 4], bg: 0, color: 0xFF_CCCCAA,
-            align: Align::Start, font_scale: 1.0,
+            align: Align::Start, font_scale: 1.0, text_shadow: true,
             focus_style: FocusStyle::default(), focus_color: 0,
         }
     }
@@ -110,6 +111,7 @@ impl Widget {
     pub fn color(mut self, v: u32) -> Self { self.style.color = v; self }
     pub fn align(mut self, v: Align) -> Self { self.style.align = v; self }
     pub fn font_scale(mut self, v: f32) -> Self { self.style.font_scale = v; self }
+    pub fn shadow(mut self, v: bool) -> Self { self.style.text_shadow = v; self }
     pub fn focus_style(mut self, v: FocusStyle) -> Self { self.style.focus_style = v; self }
     pub fn focus_color(mut self, v: u32) -> Self { self.style.focus_color = v; self }
     pub fn dock(mut self, v: Dock) -> Self { self.style.dock = v; self }

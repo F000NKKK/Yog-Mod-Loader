@@ -404,6 +404,11 @@ impl BookRenderer {
 
 // ── UI builder ────────────────────────────────────────────────────────────────
 
+/// Book label: MC font, no drop-shadow (Patchouli draws book text shadowless).
+fn lbl(text: impl Into<String>) -> widget::Widget { widget::label(text).shadow(false) }
+/// Book button: no drop-shadow.
+fn btn(text: impl Into<String>) -> widget::Widget { widget::button(text).shadow(false) }
+
 /// Build the yog-ui widget tree + bg sprites + overlay commands for the current book state.
 /// `bx/by/bw/bh` are the screen-space book rect (same values used to blit the bg texture).
 fn build_ui(book: &Book, state: &BookViewState, theme: &BookTheme,
@@ -539,7 +544,7 @@ fn build_landing_left(
         if para.is_empty() {
             col = col.child(widget::spacer().h(4.0 * sy));
         } else {
-            col = col.child(widget::label(para).color(theme.text));
+            col = col.child(lbl(para).color(theme.text));
         }
     }
 
@@ -547,7 +552,7 @@ fn build_landing_left(
     col = col.child(widget::spacer().flex(1.0));
     col = col.child(widget::spacer().h((SEP_H * sy).max(1.0)).bg(theme.border));
     col = col.child(
-        widget::label(format!("{} entries", total))
+        lbl(format!("{} entries", total))
             .color(theme.nav).h(9.0 * sy).align(Align::Center)
     );
     col
@@ -586,7 +591,7 @@ fn build_categories_right(
 
     // Header: "Categories" centered
     col = col.child(
-        widget::label("Categories").color(theme.divider).h(header_h)
+        lbl("Categories").color(theme.divider).h(header_h)
     );
     // Gap where the separator sprite sits
     col = col.child(widget::spacer().h(sep_gap));
@@ -666,12 +671,12 @@ fn build_entry_left(
     let nav = widget::panel(FlexDir::Row)
         .h(12.0 * sy).gap(4.0)
         .padding(0.0, 2.0, 0.0, 2.0)
-        .child(widget::button("◀").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
+        .child(btn("◀").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
             .on_click("prev_page").id("prev_page"))
-        .child(widget::label(&page_label).color(theme.nav).flex(1.0).align(Align::Center))
-        .child(widget::button("⌂").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
+        .child(lbl(&page_label).color(theme.nav).flex(1.0).align(Align::Center))
+        .child(btn("⌂").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
             .on_click("home").id("book_home"))
-        .child(widget::button("▶").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
+        .child(btn("▶").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
             .on_click("next_page").id("next_page"));
 
     let page_body = build_page(page, state.page, theme, bg_sprites, overlays, ox, body_oy, sx, sy);
@@ -680,7 +685,7 @@ fn build_entry_left(
         .w(page_w).h(page_h)
         .padding(0.0, 6.0, 4.0, 4.0)
         .gap(0.0)
-        .child(widget::label(title_text).color(theme.title).h(title_h).align(Align::Center))
+        .child(lbl(title_text).color(theme.title).h(title_h).align(Align::Center))
         .child(widget::spacer().h((12.0 - 9.0) * sy))  // gap: title end → sep start
         .child(widget::spacer().h(sep_h_px))             // height occupied by sep sprite
         .child(widget::spacer().h((22.0 - 12.0 - SEP_H) * sy)) // gap: sep end → body
@@ -712,7 +717,7 @@ fn build_entries_right(
         .padding(0.0, 4.0, 4.0, 0.0)
         .gap(0.0);
 
-    col = col.child(widget::label(cat_name).color(theme.divider).h(header_h).align(Align::Center));
+    col = col.child(lbl(cat_name).color(theme.divider).h(header_h).align(Align::Center));
     // sep region: y=9..15 (sep h=3), then gap to entries start at y=20
     col = col.child(widget::spacer().h((12.0 - 9.0) * sy));    // gap to sep
     col = col.child(widget::spacer().h((SEP_H * sy).max(1.0))); // sep height
@@ -736,7 +741,7 @@ fn build_entries_right(
         } else {
             row = row.child(widget::spacer().w(icon_size));
         }
-        row = row.child(widget::label(&entry.name).color(color).flex(1.0));
+        row = row.child(lbl(&entry.name).color(color).flex(1.0));
         col = col.child(row);
     }
 
@@ -745,11 +750,11 @@ fn build_entries_right(
         let spread_label = format!("{}/{}", state.list_spread + 1, spread_count);
         col = col.child(
             widget::panel(FlexDir::Row).h(12.0 * sy).gap(2.0)
-                .child(widget::button("◀").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
+                .child(btn("◀").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
                     .on_click("prev_list").id("prev_list"))
-                .child(widget::label(&spread_label).color(theme.nav)
+                .child(lbl(&spread_label).color(theme.nav)
                     .flex(1.0).align(Align::Center))
-                .child(widget::button("▶").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
+                .child(btn("▶").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
                     .on_click("next_list").id("next_list"))
         );
     }
@@ -789,7 +794,7 @@ fn build_page(
     let mut col = widget::panel(FlexDir::Column).flex(1.0).gap(4.0);
 
     let Some(page) = page else {
-        return col.child(widget::label("No entries yet.").color(theme.nav));
+        return col.child(lbl("No entries yet.").color(theme.nav));
     };
 
     match page {
@@ -799,7 +804,7 @@ fn build_page(
                 if let Some(t) = title {
                     let sep_h_px = (SEP_H * sy).max(1.0);
                     let title_h  = 9.0 * sy;
-                    col = col.child(widget::label(t.as_str()).color(theme.title)
+                    col = col.child(lbl(t.as_str()).color(theme.title)
                         .h(title_h).align(Align::Center));
                     // sep at y=12 page-local, centered
                     bg_sprites.push(BgSprite {
@@ -815,7 +820,7 @@ fn build_page(
                 }
             }
             for para in text.split('\n') {
-                col = col.child(widget::label(para).color(theme.text));
+                col = col.child(lbl(para).color(theme.text));
             }
         }
 
@@ -837,7 +842,7 @@ fn build_page(
             let item_name = title.as_deref()
                 .or(item.name.as_deref())
                 .unwrap_or(item.id.as_str());
-            col = col.child(widget::label(item_name).color(theme.title)
+            col = col.child(lbl(item_name).color(theme.title)
                 .h(10.0).align(Align::Center));
 
             // Spacer to box top (y=10 book-local) minus title.
@@ -858,46 +863,46 @@ fn build_page(
             col = col.child(widget::spacer().h((box_end - icon_end + 4.0).max(0.0)));
 
             if let Some(t) = text {
-                col = col.child(widget::label(t.as_str()).color(theme.text));
+                col = col.child(lbl(t.as_str()).color(theme.text));
             }
         }
 
         BookPage::Crafting { recipe_id, text } => {
             col = col.child(
-                widget::label(format!("[Crafting: {}]", recipe_id)).color(theme.nav)
+                lbl(format!("[Crafting: {}]", recipe_id)).color(theme.nav)
             );
             if let Some(t) = text {
-                col = col.child(widget::label(t.as_str()).color(theme.text));
+                col = col.child(lbl(t.as_str()).color(theme.text));
             }
         }
 
         BookPage::Smelting { recipe_id, text } => {
             col = col.child(
-                widget::label(format!("[Smelting: {}]", recipe_id)).color(theme.nav)
+                lbl(format!("[Smelting: {}]", recipe_id)).color(theme.nav)
             );
             if let Some(t) = text {
-                col = col.child(widget::label(t.as_str()).color(theme.text));
+                col = col.child(lbl(t.as_str()).color(theme.text));
             }
         }
 
         BookPage::Image { texture, title, text, .. } => {
             if let Some(t) = title {
-                col = col.child(widget::label(t.as_str()).color(theme.title));
+                col = col.child(lbl(t.as_str()).color(theme.title));
             }
             col = col.child(widget::mc_image(texture, 80.0, 80.0));
             if let Some(t) = text {
-                col = col.child(widget::label(t.as_str()).color(theme.text));
+                col = col.child(lbl(t.as_str()).color(theme.text));
             }
         }
 
         BookPage::Svg { data, title, text } => {
             if let Some(t) = title {
-                col = col.child(widget::label(t.as_str()).color(theme.title));
+                col = col.child(lbl(t.as_str()).color(theme.title));
             }
             overlays.push(OverlayCmd::Svg { data: data.clone(), x: ox, y: oy, w: 64.0, h: 64.0 });
             col = col.child(widget::spacer().h(68.0));
             if let Some(t) = text {
-                col = col.child(widget::label(t.as_str()).color(theme.text));
+                col = col.child(lbl(t.as_str()).color(theme.text));
             }
         }
 
@@ -910,29 +915,29 @@ fn build_page(
 
         BookPage::Relations { entries, text } => {
             if let Some(t) = text {
-                col = col.child(widget::label(t.as_str()).color(theme.text));
+                col = col.child(lbl(t.as_str()).color(theme.text));
             }
-            col = col.child(widget::label("See also:").color(theme.title));
+            col = col.child(lbl("See also:").color(theme.title));
             for e in entries {
-                col = col.child(widget::label(format!("• {}", e)).color(theme.nav));
+                col = col.child(lbl(format!("• {}", e)).color(theme.nav));
             }
         }
 
         BookPage::Entity { entity_type, name, text } => {
             let display = name.as_deref().unwrap_or(entity_type.as_str());
-            col = col.child(widget::label(display).color(theme.title));
+            col = col.child(lbl(display).color(theme.title));
             if let Some(t) = text {
-                col = col.child(widget::label(t.as_str()).color(theme.text));
+                col = col.child(lbl(t.as_str()).color(theme.text));
             }
         }
 
         BookPage::Pattern { op_id, input, output, text, .. } => {
-            col = col.child(widget::label(op_id.as_str()).color(theme.title));
+            col = col.child(lbl(op_id.as_str()).color(theme.title));
             col = col.child(
-                widget::label(format!("{} → {}", input, output)).color(theme.nav)
+                lbl(format!("{} → {}", input, output)).color(theme.nav)
             );
             if !text.is_empty() {
-                col = col.child(widget::label(text.as_str()).color(theme.text));
+                col = col.child(lbl(text.as_str()).color(theme.text));
             }
         }
 

@@ -160,7 +160,7 @@ impl Book {
         Self {
             id: id.into(),
             name: name.into(),
-            nameplate_color: "000000".into(),
+            nameplate_color: "FFDD98".into(), // Patchouli default nameplateColor
             landing_text: String::new(),
             author: None,
             book_texture: "yog:textures/gui/book.png".into(),
