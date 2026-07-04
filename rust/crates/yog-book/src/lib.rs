@@ -31,7 +31,7 @@ pub struct BookMacro(pub String, pub String);
 /// format used across the mod ↔ runtime JSON boundary (like Patchouli's
 /// per-page "type" field).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum BookPage {
     /// Plain formatted text, optionally with a section title (for non-first pages).
     Text {
