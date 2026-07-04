@@ -10,7 +10,6 @@ import java.util.UUID;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.boss.CommandBossBar;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -19,7 +18,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
-import net.minecraft.world.entity.boss.BossBar;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.level.storage.loot.LootDataId;
 import net.minecraft.world.level.storage.loot.LootDataType;
@@ -40,7 +38,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.boss.BossBarManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
@@ -50,9 +47,8 @@ import net.minecraft.core.BlockPos;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
-import net.neoforged.fml.ModLoadingContext;
-import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
 import java.util.Map;
 
 /**
@@ -116,7 +112,7 @@ public final class NativeBridge {
         if (p == null || id == null) return false;
         FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
         buf.writeBytes(data);
-        PacketDistributor.PLAYER.with(p).send(new net.neoforged.neoforge.network.handling.SimplePayload(id, buf));
+        p.connection.send(new ClientboundCustomPayloadPacket(id, buf));
         return true;
     }
 
