@@ -96,7 +96,6 @@ require_loader() {
     [ -n "${1:-}" ] || die "this command needs a loader (one of: ${LOADERS[*]})"
     if ! is_loader "$1"; then
         case "$1" in
-            forge) die "'$1' is not implemented yet (roadmap)" ;;
             *)     die "unknown loader: '$1' (have: ${LOADERS[*]})" ;;
         esac
     fi
@@ -274,17 +273,29 @@ cmd_clean() {
     echo "    removed rust/target, <loader>/build, artifacts/"
 }
 
+# Publish a single loader for a specific MC version.
 publish_loader() {
     local loader="$1"
-    build_loader "$loader"
-    # Host jars are MC-version-dependent (unlike .yog mods) — artifacts are
-    # laid out per version: artifacts/<loader>/<mc_version>/.
-    local mc="${MC_VERSION:-$(grep '^minecraft_version=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)}"
+    local mc="$2"
+    echo "==> publish $loader $mc"
+    MC_VERSION="$mc" build_loader "$loader"
     local out="$ROOT/artifacts/$loader/$mc"
     rm -rf "$out"; mkdir -p "$out"
-    find "$ROOT/$loader/build/libs" -maxdepth 1 -name '*.jar' \
+    # Copy only the jar matching the current loader and MC version, ignoring stale
+    # builds from previous mod_version values.
+    local archive="$(grep '^archives_base_name=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)"
+    find "$ROOT/$loader/build/libs" -maxdepth 1 -name "${archive}*${mc}*.jar" \
         ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
     echo "    artifacts/$loader/$mc/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
+}
+
+# List all MC versions available for a loader (from versions/ directory).
+list_versions() {
+    local loader="$1"
+    local vdir="$ROOT/$loader/versions"
+    if [ -d "$vdir" ]; then
+        find "$vdir" -name '*.properties' -exec basename {} .properties \; | sort -V
+    fi
 }
 
 cmd_publish() {
@@ -294,9 +305,22 @@ cmd_publish() {
     build_example   # the example .yog mod
 
     if [ "$1" = "all" ]; then
-        local l; for l in "${LOADERS[@]}"; do publish_loader "$l"; done
+        local l v
+        for l in "${LOADERS[@]}"; do
+            local versions
+            versions="$(list_versions "$l")"
+            if [ -z "$versions" ]; then
+                # No version dir — fall back to default from gradle.properties.
+                publish_loader "$l" "${MC_VERSION:-$(grep '^minecraft_version=' "$ROOT/$l/gradle.properties" | cut -d= -f2)}"
+            else
+                for v in $versions; do
+                    publish_loader "$l" "$v"
+                done
+            fi
+        done
     else
-        require_loader "$1"; publish_loader "$1"
+        require_loader "$1"
+        publish_loader "$1" "${MC_VERSION:-$(grep '^minecraft_version=' "$ROOT/$1/gradle.properties" | cut -d= -f2)}"
     fi
 
     mkdir -p "$ROOT/artifacts/mods"
