@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "yog",
+  "version": "${version}",
+  "name": "Yog",
+  "description": "The Gate and the Key — write Minecraft mods in Rust.",
+  "authors": [],
+  "contact": {},
+  "license": "AGPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.yog.YogHost"
+    ],
+    "client": [
+      "dev.yog.YogClient"
+    ]
+  },
+  "mixins": [
+    "yog.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.20.1",
+    "java": ">=17"
+  }
+}

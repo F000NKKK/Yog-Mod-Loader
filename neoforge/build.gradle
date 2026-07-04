@@ -8,6 +8,13 @@ plugins {
 // Version-specific sources live under platforms/<minecraft_version>/
 def platformDir = "platforms/${project.minecraft_version}"
 
+// Per-version toolchain versions (neo_version, neo_artifact, java_version)
+// come from versions/<minecraft_version>.properties. Override the Minecraft
+// version from the command line with -Pminecraft_version=<v>.
+def versionProps = new Properties()
+file("versions/${project.minecraft_version}.properties").withInputStream { versionProps.load(it) }
+versionProps.each { k, v -> if (!project.hasProperty(k)) project.ext[k] = v }
+
 sourceSets {
     main {
         java {
@@ -28,15 +35,16 @@ runs {
     server {
         workingDirectory file('run')
         modSource project.sourceSets.main
-        programArgument '--nogui'
+        arguments.add('--nogui')
         jvmArgument '-Djava.library.path=' + file('run/natives').absolutePath
     }
 }
 
 dependencies {
-    // NeoForge for MC 1.20.1 is published under the legacy "forge" artifact id
-    // (the "neoforge" artifact only exists from MC 1.20.2 / NeoForge 20.2+).
-    implementation "net.neoforged:forge:${project.neo_version}"
+    // The artifact id is version-dependent: the 1.20.1 line ships as
+    // net.neoforged:forge, MC 1.20.2+ as net.neoforged:neoforge
+    // (see versions/<mc>.properties).
+    implementation "net.neoforged:${project.neo_artifact}:${project.neo_version}"
 }
 
 base {
@@ -44,8 +52,10 @@ base {
 }
 
 java {
+    // Java version comes from versions/<mc>.properties (17 for 1.20.1,
+    // 21 for 1.21.1+).
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version as String))
     }
 }
 

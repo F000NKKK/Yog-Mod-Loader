@@ -15,6 +15,13 @@ base {
 // to the matching platform directory.
 def platformDir = "platforms/${project.minecraft_version}"
 
+// Per-version toolchain versions (yarn/loader/api/java) come from
+// versions/<minecraft_version>.properties so adding a platform doesn't
+// require touching this build script.
+def versionProps = new Properties()
+file("versions/${project.minecraft_version}.properties").withInputStream { versionProps.load(it) }
+versionProps.each { k, v -> if (!project.hasProperty(k)) project.ext[k] = v }
+
 sourceSets {
     main {
         java {
@@ -58,9 +65,10 @@ processResources {
 }
 
 java {
-    // Minecraft 1.20.1 runs on Java 17. The toolchain pins compile + run to 17
-    // regardless of the default JDK (foojay can fetch it if missing).
+    // Java version comes from versions/<mc>.properties (17 for 1.20.1,
+    // 21 for 1.21.1+). The toolchain pins compile + run regardless of the
+    // default JDK (foojay can fetch it if missing).
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version as String))
     }
 }

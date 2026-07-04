@@ -26,7 +26,12 @@ pub struct BookMacro(pub String, pub String);
 // ── Page types ───────────────────────────────────────────────────────────────
 
 /// A single page variant inside a book entry.
+///
+/// Serialized internally-tagged (`{"type": "Text", ...}`) — the stable wire
+/// format used across the mod ↔ runtime JSON boundary (like Patchouli's
+/// per-page "type" field).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum BookPage {
     /// Plain formatted text, optionally with a section title (for non-first pages).
     Text {
