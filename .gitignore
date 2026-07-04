@@ -13,11 +13,14 @@ target
 # Contains mutation testing data
 **/mutants.out*/
 
-# ── Gradle / Fabric (fabric/) ──
+# ── Gradle / Fabric / NeoForge / Forge ──
 .gradle/
 build/
-# Fabric dev run dir (worlds, staged natives, logs)
-run/
+# Compiled class files (Gradle/IDE output)
+**/bin/
+# Dev run dirs (worlds, staged natives, logs, configs)
+**/run/
+**/runs/
 
 # ── Native libraries built by cargo / build.sh ──
 *.so
