@@ -12,8 +12,7 @@
         "ExplosionMixin",
         "ItemPickupMixin",
         "PlayerMoveMixin",
-        "ProjectileHitMixin",
-        "ResourcePackManagerMixin"
+        "ProjectileHitMixin"
     ],
     "client": [
         "KeyboardMixin"
