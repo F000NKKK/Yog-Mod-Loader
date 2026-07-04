@@ -18,7 +18,7 @@ versionProps.each { k, v -> if (!project.hasProperty(k)) project.ext[k] = v }
 // The mod version lives in one place for all loaders: ../version.properties.
 def rootVersion = new Properties()
 file("../version.properties").withInputStream { rootVersion.load(it) }
-version = rootVersion.getProperty('mod_version')
+version = "${rootVersion.getProperty('mod_version')}+${project.minecraft_version}"
 
 sourceSets {
     main {

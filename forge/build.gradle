@@ -1,0 +1,93 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+// Per-version toolchain versions (forge_version, java_version) come from
+// versions/<minecraft_version>.properties. Override the Minecraft version
+// from the command line with -Pminecraft_version=<v>.
+def versionProps = new Properties()
+file("versions/${project.minecraft_version}.properties").withInputStream { versionProps.load(it) }
+versionProps.each { k, v -> if (!project.hasProperty(k)) project.ext[k] = v }
+
+// The mod version lives in one place for all loaders: ../version.properties.
+def rootVersion = new Properties()
+file("../version.properties").withInputStream { rootVersion.load(it) }
+version = "${rootVersion.getProperty('mod_version')}+${project.minecraft_version}"
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+// The 1.20.1 NeoForge line is an API-identical fork of Forge 1.20.1, so this
+// module shares the host and mixin sources with neoforge/ instead of keeping
+// a copy. When the two APIs diverge on newer MC versions, the divergent
+// platform gets its own sources under forge/platforms/<version>/.
+def neoDir = "../neoforge"
+def platformDir = "${neoDir}/platforms/${project.minecraft_version}"
+
+sourceSets {
+    main {
+        java {
+            srcDir "${neoDir}/src/main/java"
+            srcDir "${platformDir}/src/main/java"
+            // Loader- and mapping-agnostic Java shared with other loader hosts.
+            srcDir "../java-common/src/main/java"
+        }
+        resources {
+            srcDir "${neoDir}/src/main/resources"
+            srcDir "${platformDir}/src/main/resources"
+        }
+    }
+}
+
+minecraft {
+    mappings channel: 'official', version: project.minecraft_version
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            jvmArg '-Djava.library.path=' + file('run/natives').absolutePath
+            args '--mixin.config', 'yog.mixins.json'
+            mods { yog { source sourceSets.main } }
+        }
+        server {
+            workingDirectory project.file('run')
+            jvmArg '-Djava.library.path=' + file('run/natives').absolutePath
+            args '--nogui', '--mixin.config', 'yog.mixins.json'
+            mods { yog { source sourceSets.main } }
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${project.forge_version}"
+}
+
+java {
+    // Java version comes from versions/<mc>.properties (17 for 1.20.1,
+    // 21 for 1.21.1+).
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version as String))
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// Expand ${mod_version} etc. into the platform's mod metadata at build time.
+processResources {
+    inputs.property 'mod_version', project.version
+    filesMatching('META-INF/mods.toml') {
+        expand 'mod_version': project.version
+    }
+}
+
+jar {
+    manifest {
+        attributes 'MixinConfigs': 'yog.mixins.json'
+    }
+}
