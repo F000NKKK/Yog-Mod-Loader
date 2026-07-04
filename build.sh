@@ -14,6 +14,7 @@ LOADERS=(fabric neoforge)
 CONFIG="Release"   # Debug | Release
 RUN_CLIENT=0
 NO_BUILD=0
+MC_VERSION=""      # --mc <version>: override the loader's active MC platform
 
 usage() {
     cat <<'EOF'
@@ -41,12 +42,17 @@ Options:
   -c, --configuration <Debug|Release>   default: Release
       --client                          run: launch dev client instead of server
       --no-build                        run: skip build, just launch client/server
+      --mc <version>                    Minecraft platform override (e.g. 1.21.1);
+                                        default comes from <loader>/gradle.properties.
+                                        Must match <loader>/platforms/<version>/ and
+                                        <loader>/versions/<version>.properties.
   -h, --help
 
 Examples:
   ./build.sh build
   ./build.sh run fabric --client
   ./build.sh run fabric --client --no-build
+  ./build.sh build fabric --mc 1.21.1
   ./build.sh publish fabric
   ./build.sh publish all
   ./build.sh test -c Debug
@@ -111,13 +117,15 @@ find_java17() {
     return 1
 }
 
-# Run a gradle task inside a loader dir on JDK 17.
+# Run a gradle task inside a loader dir on JDK 17 (the daemon JVM; the
+# compile toolchain per MC version is resolved by Gradle itself).
 gradle_in() {
     local dir="$1"; shift
-    local jh
+    local jh extra=()
     find_java17 >/dev/null || die "JDK 17 not found (set YOG_JAVA17_HOME=/path/to/jdk17)"
     jh="$(find_java17)"
-    ( cd "$ROOT/$dir" && JAVA_HOME="$jh" ./gradlew "$@" )
+    [ -n "$MC_VERSION" ] && extra+=("-Pminecraft_version=$MC_VERSION")
+    ( cd "$ROOT/$dir" && JAVA_HOME="$jh" ./gradlew "${extra[@]}" "$@" )
 }
 
 # ── build steps ──────────────────────────────────────────────────────────────
@@ -297,6 +305,9 @@ while [ $# -gt 0 ]; do
         --client) RUN_CLIENT=1; shift ;;
         --server) RUN_CLIENT=0; shift ;;
         --no-build) NO_BUILD=1; shift ;;
+        --mc)
+            [ -n "${2:-}" ] || die "--mc needs a version (e.g. 1.21.1)"
+            MC_VERSION="$2"; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         -*) die "unknown option: $1" ;;
         *)  targets+=("$1"); shift ;;
