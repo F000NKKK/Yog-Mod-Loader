@@ -34,7 +34,7 @@ import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -78,14 +78,14 @@ public final class NativeBridge {
         ServerLevel w = worldFor(dimension);
         if (w == null) return null;
         Block block = w.getBlockState(new BlockPos(x, y, z)).getBlock();
-        return Registries.BLOCK.getKey(block).toString();
+        return BuiltInRegistries.BLOCK.getKey(block).toString();
     }
 
     public static boolean setBlock(String dimension, int x, int y, int z, String blockId) {
         ServerLevel w = worldFor(dimension);
         ResourceLocation id = ResourceLocation.tryParse(blockId);
-        if (w == null || id == null || !Registries.BLOCK.containsKey(id)) return false;
-        Block block = Registries.BLOCK.get(id);
+        if (w == null || id == null || !BuiltInRegistries.BLOCK.containsKey(id)) return false;
+        Block block = BuiltInRegistries.BLOCK.get(id);
         return w.setBlockAndUpdate(new BlockPos(x, y, z), block.defaultBlockState());
     }
 
@@ -93,8 +93,8 @@ public final class NativeBridge {
         ServerPlayer p = playerByName(player);
         ResourceLocation id = ResourceLocation.tryParse(itemId);
         if (p == null || id == null || count <= 0) return false;
-        if (!Registries.ITEM.containsKey(id)) return false;
-        Item item = Registries.ITEM.get(id);
+        if (!BuiltInRegistries.ITEM.containsKey(id)) return false;
+        Item item = BuiltInRegistries.ITEM.get(id);
         p.addItem(new ItemStack(item, count));
         return true;
     }
@@ -282,7 +282,7 @@ public final class NativeBridge {
             ItemStack stack = inv.items.get(i);
             if (!stack.isEmpty()) {
                 if (sb.length() > 0) sb.append('\n');
-                sb.append(i).append('\t').append(Registries.ITEM.getKey(stack.getItem())).append('\t').append(stack.getCount());
+                sb.append(i).append('\t').append(BuiltInRegistries.ITEM.getKey(stack.getItem())).append('\t').append(stack.getCount());
             }
         }
         return sb.toString();
@@ -295,8 +295,8 @@ public final class NativeBridge {
         if (slot < 0 || slot >= inv.items.size()) return false;
         if (count <= 0) { inv.items.set(slot, ItemStack.EMPTY); return true; }
         ResourceLocation id = ResourceLocation.tryParse(itemId);
-        if (id == null || !Registries.ITEM.containsKey(id)) return false;
-        inv.items.set(slot, new ItemStack(Registries.ITEM.get(id), count));
+        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return false;
+        inv.items.set(slot, new ItemStack(BuiltInRegistries.ITEM.get(id), count));
         return true;
     }
 
@@ -312,7 +312,7 @@ public final class NativeBridge {
         Entity e = entityByUuid(uuid);
         ServerLevel w = worldFor(dimension);
         if (e == null || w == null) return false;
-        e.teleportTo(w, x, y, z, e.getYRot(), e.getXRot());
+        e.teleportTo(w, x, y, z, java.util.Set.of(), e.getYRot(), e.getXRot());
         return true;
     }
 
@@ -326,8 +326,8 @@ public final class NativeBridge {
         Entity e = entityByUuid(uuid);
         if (!(e instanceof LivingEntity le)) return false;
         ResourceLocation id = ResourceLocation.tryParse(effectId);
-        if (id == null || !Registries.MOB_EFFECT.containsKey(id)) return false;
-        MobEffect effect = Registries.MOB_EFFECT.get(id);
+        if (id == null || !BuiltInRegistries.MOB_EFFECT.containsKey(id)) return false;
+        MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(id);
         return le.addEffect(new MobEffectInstance(effect, durationTicks, amplifier, false, showParticles));
     }
 
@@ -357,8 +357,8 @@ public final class NativeBridge {
         ServerLevel w = worldFor(dimension);
         if (w == null) return -1;
         ResourceLocation id = ResourceLocation.tryParse(entityTypeId);
-        if (id == null || !Registries.ENTITY_TYPE.containsKey(id)) return -1;
-        EntityType<?> targetType = Registries.ENTITY_TYPE.get(id);
+        if (id == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(id)) return -1;
+        EntityType<?> targetType = BuiltInRegistries.ENTITY_TYPE.get(id);
         int count = 0;
         for (Entity e : w.getEntities().getAll()) {
             if (e.getType() == targetType) count++;
@@ -369,8 +369,8 @@ public final class NativeBridge {
     public static String spawnEntity(String typeId, String dimension, double x, double y, double z) {
         ServerLevel w = worldFor(dimension);
         ResourceLocation id = ResourceLocation.tryParse(typeId);
-        if (w == null || id == null || !Registries.ENTITY_TYPE.containsKey(id)) return null;
-        EntityType<?> type = Registries.ENTITY_TYPE.get(id);
+        if (w == null || id == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(id)) return null;
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(id);
         Entity e = type.create(w);
         if (e == null) return null;
         e.moveTo(x, y, z, e.getYRot(), e.getXRot());

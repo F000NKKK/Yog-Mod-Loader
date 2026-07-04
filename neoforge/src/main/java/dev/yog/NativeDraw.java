@@ -9,7 +9,7 @@ import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
@@ -90,7 +90,7 @@ public final class NativeDraw {
         if (ctx == null) return;
         ResourceLocation ident = ResourceLocation.tryParse(id);
         if (ident == null) return;
-        Item item = Registries.ITEM.get(ident);
+        Item item = BuiltInRegistries.ITEM.get(ident);
         if (item == Items.AIR) return;
         syncGlState();
         float scale = size / 16.0f;
