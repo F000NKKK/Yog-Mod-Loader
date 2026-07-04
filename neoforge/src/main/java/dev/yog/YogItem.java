@@ -1,11 +1,11 @@
 package dev.yog;
 
 import java.util.List;
-import net.minecraft.client.item.TooltipContext;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.world.World;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 /** An item whose display name and tooltip come from a Yog mod (no lang file needed). */
@@ -13,30 +13,30 @@ public class YogItem extends Item {
     private final String displayName;
     private final String tooltip;
 
-    public YogItem(Settings settings, String displayName, String tooltip) {
-        super(settings);
+    public YogItem(Properties properties, String displayName, String tooltip) {
+        super(properties);
         this.displayName = displayName;
         this.tooltip = tooltip;
     }
 
     @Override
-    public Text getName(ItemStack stack) {
+    public Component getName(ItemStack stack) {
         return displayName == null || displayName.isEmpty()
                 ? super.getName(stack)
-                : Text.literal(displayName);
+                : Component.literal(displayName);
     }
 
     @Override
-    public Text getName() {
+    public Component getDescription() {
         return displayName == null || displayName.isEmpty()
-                ? super.getName()
-                : Text.literal(displayName);
+                ? super.getDescription()
+                : Component.literal(displayName);
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> lines, TooltipContext ctx) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
         if (tooltip != null && !tooltip.isEmpty()) {
-            lines.add(Text.literal(tooltip));
+            lines.add(Component.literal(tooltip));
         }
     }
 }

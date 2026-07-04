@@ -51,7 +51,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.GameMode;
-import net.minecraft.world.World;
 
 /**
  * Bridge between the Fabric host and the native Yog runtime ({@code libyog_runtime}).

@@ -1,30 +1,30 @@
 package dev.yog;
 
-import net.minecraft.block.Block;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 
 /** A block's item form whose display name comes from a Yog mod. */
 public class YogBlockItem extends BlockItem {
     private final String displayName;
 
-    public YogBlockItem(Block block, Settings settings, String displayName) {
-        super(block, settings);
+    public YogBlockItem(Block block, Properties properties, String displayName) {
+        super(block, properties);
         this.displayName = displayName;
     }
 
     @Override
-    public Text getName(ItemStack stack) {
+    public Component getName(ItemStack stack) {
         return displayName == null || displayName.isEmpty()
                 ? super.getName(stack)
-                : Text.literal(displayName);
+                : Component.literal(displayName);
     }
 
     @Override
-    public Text getName() {
+    public Component getDescription() {
         return displayName == null || displayName.isEmpty()
-                ? super.getName()
-                : Text.literal(displayName);
+                ? super.getDescription()
+                : Component.literal(displayName);
     }
 }

@@ -1,9 +1,9 @@
 package dev.yog;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /** Minecraft Screen hosting a Rust Yog UI. Supports modal, pause, layering. */
 public class YogUIScreen extends Screen {
@@ -12,7 +12,7 @@ public class YogUIScreen extends Screen {
     private final boolean pauseGame;
 
     public YogUIScreen(String uiId, boolean modal, boolean pauseGame) {
-        super(Text.literal(uiId));
+        super(Component.literal(uiId));
         this.uiId = uiId;
         this.modal = modal;
         this.pauseGame = pauseGame;
@@ -21,9 +21,9 @@ public class YogUIScreen extends Screen {
 
     public YogUIScreen(String uiId) { this(uiId, true, false); }
 
-    @Override public void render(DrawContext ctx, int mx, int my, float delta) {
+    @Override public void render(GuiGraphics ctx, int mx, int my, float delta) {
         renderBackground(ctx);
-        ctx.draw();
+        ctx.flush();
         NativeDraw.hudDrawContext = ctx;
         NativeBridge.nativeUIRender(uiId, this.width, this.height);
         NativeDraw.hudDrawContext = null;
@@ -41,14 +41,14 @@ public class YogUIScreen extends Screen {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    @Override public boolean shouldPause() { return pauseGame; }
+    @Override public boolean isPauseScreen() { return pauseGame; }
 
-    @Override public void close() {
+    @Override public void onClose() {
         NativeBridge.nativeUIHide(uiId);
-        super.close();
+        super.onClose();
     }
 
     public static void open(String uiId, boolean modal, boolean pause) {
-        MinecraftClient.getInstance().setScreen(new YogUIScreen(uiId, modal, pause));
+        Minecraft.getInstance().setScreen(new YogUIScreen(uiId, modal, pause));
     }
 }

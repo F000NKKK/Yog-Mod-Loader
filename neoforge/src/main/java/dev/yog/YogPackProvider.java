@@ -9,28 +9,28 @@ import java.util.Comparator;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.resource.DirectoryResourcePack;
-import net.minecraft.resource.ResourcePackProfile;
-import net.minecraft.resource.ResourcePackProvider;
-import net.minecraft.resource.ResourcePackSource;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.PathPackResources;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackSource;
+import net.minecraft.server.packs.repository.RepositorySource;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 /**
  * Exposes the {@code assets/} and {@code data/} bundled inside {@code .yog} mods
- * to the game as a single always-on pack — the same way Fabric exposes a mod
- * jar's resources, but for our runtime-loaded mods.
+ * to the game as a single always-on pack — the same way a mod jar's resources
+ * are exposed, but for our runtime-loaded mods.
  */
-public class YogPackProvider implements ResourcePackProvider {
-    private final ResourceType type;
+public class YogPackProvider implements RepositorySource {
+    private final PackType type;
 
-    public YogPackProvider(ResourceType type) {
+    public YogPackProvider(PackType type) {
         this.type = type;
     }
 
     @Override
-    public void register(Consumer<ResourcePackProfile> adder) {
+    public void loadPacks(Consumer<Pack> adder) {
         Path dir;
         try {
             dir = extract();
@@ -41,23 +41,24 @@ public class YogPackProvider implements ResourcePackProvider {
         if (dir == null) {
             return;
         }
-        ResourcePackProfile profile = ResourcePackProfile.create(
+        Pack pack = Pack.readMetaAndCreate(
                 "yog_runtime",
-                Text.literal("Yog Mods"),
+                Component.literal("Yog Mods"),
                 true,
-                name -> new DirectoryResourcePack(name, dir, true),
+                name -> new PathPackResources(name, dir, true),
                 type,
-                ResourcePackProfile.InsertionPosition.TOP,
-                ResourcePackSource.NONE);
-        if (profile != null) {
-            adder.accept(profile);
+                Pack.Position.TOP,
+                PackSource.DEFAULT);
+        if (pack != null) {
+            adder.accept(pack);
         }
     }
 
     /** Merge every .yog's assets/ and data/ into one pack directory. */
     private static synchronized Path extract() throws IOException {
-        Path mods = FabricLoader.getInstance().getGameDir().resolve("yog-mods");
-        Path out = FabricLoader.getInstance().getGameDir().resolve(".yog-pack");
+        Path game = FMLPaths.GAMEDIR.get();
+        Path mods = game.resolve("yog-mods");
+        Path out  = game.resolve(".yog-pack");
         if (!Files.isDirectory(mods)) {
             return null;
         }

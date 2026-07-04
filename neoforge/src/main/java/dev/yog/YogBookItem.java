@@ -1,29 +1,29 @@
 package dev.yog;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 
 /** A Yog item that opens a book GUI when right-clicked. */
 public class YogBookItem extends YogItem {
     private final String bookId;
 
-    public YogBookItem(Settings settings, String displayName, String tooltip, String bookId) {
-        super(settings, displayName, tooltip);
+    public YogBookItem(Properties properties, String displayName, String tooltip, String bookId) {
+        super(properties, displayName, tooltip);
         this.bookId = bookId;
     }
 
     @Override
-    public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
-        if (world.isClient) {
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        if (level.isClientSide) {
             String json = NativeBridge.nativeBookJson(bookId);
             if (json != null && !json.equals("null")) {
-                MinecraftClient.getInstance().setScreen(new YogUIScreen(bookId));
+                Minecraft.getInstance().setScreen(new YogUIScreen(bookId));
             }
         }
-        return TypedActionResult.success(player.getStackInHand(hand));
+        return InteractionResultHolder.success(player.getItemInHand(hand));
     }
 }
