@@ -15,6 +15,11 @@ def versionProps = new Properties()
 file("versions/${project.minecraft_version}.properties").withInputStream { versionProps.load(it) }
 versionProps.each { k, v -> if (!project.hasProperty(k)) project.ext[k] = v }
 
+// The mod version lives in one place for all loaders: ../version.properties.
+def rootVersion = new Properties()
+file("../version.properties").withInputStream { rootVersion.load(it) }
+version = rootVersion.getProperty('mod_version')
+
 sourceSets {
     main {
         java {
@@ -30,11 +35,15 @@ runs {
     client {
         workingDirectory file('run')
         modSource project.sourceSets.main
+        // Mixin configs are read from the jar manifest in production; in dev
+        // runs they must be passed explicitly.
+        arguments.addAll('--mixin.config', 'yog.mixins.json')
         jvmArgument '-Djava.library.path=' + file('run/natives').absolutePath
     }
     server {
         workingDirectory file('run')
         modSource project.sourceSets.main
+        arguments.addAll('--mixin.config', 'yog.mixins.json')
         arguments.add('--nogui')
         jvmArgument '-Djava.library.path=' + file('run/natives').absolutePath
     }
@@ -61,4 +70,20 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+// Expand ${mod_version} etc. into the platform's mod metadata at build time —
+// the toml itself stays in the platform-dependent tree, values come from the
+// central version.properties / gradle.properties.
+processResources {
+    inputs.property 'mod_version', project.version
+    filesMatching('META-INF/mods.toml') {
+        expand 'mod_version': project.version
+    }
+}
+
+jar {
+    manifest {
+        attributes 'MixinConfigs': 'yog.mixins.json'
+    }
 }

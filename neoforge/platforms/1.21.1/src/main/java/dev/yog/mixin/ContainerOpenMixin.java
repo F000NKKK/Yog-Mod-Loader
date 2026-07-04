@@ -1,10 +1,10 @@
 package dev.yog.mixin;
 
 import dev.yog.NativeBridge;
-import net.minecraft.registry.Registries;
-import net.minecraft.screen.NamedScreenHandlerFactory;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.MenuProvider;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -12,33 +12,33 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.OptionalInt;
 
-@Mixin(ServerPlayerEntity.class)
+@Mixin(ServerPlayer.class)
 public class ContainerOpenMixin {
 
     @Inject(
-        method = "openHandledScreen(Lnet/minecraft/screen/NamedScreenHandlerFactory;)Ljava/util/OptionalInt;",
+        method = "openMenu(Lnet/minecraft/world/MenuProvider;)Ljava/util/OptionalInt;",
         at = @At("HEAD"),
         cancellable = true
     )
-    private void yog$onContainerOpenPre(NamedScreenHandlerFactory factory,
+    private void yog$onContainerOpenPre(MenuProvider factory,
                                          CallbackInfoReturnable<OptionalInt> cir) {
-        ServerPlayerEntity sp = (ServerPlayerEntity)(Object)this;
+        ServerPlayer sp = (ServerPlayer)(Object)this;
         boolean allow = NativeBridge.nativeOnContainerOpenPre(
-                sp.getName().getString(), sp.getUuidAsString());
+                sp.getName().getString(), sp.getStringUUID());
         if (!allow) cir.setReturnValue(OptionalInt.empty());
     }
 
     @Inject(
-        method = "openHandledScreen(Lnet/minecraft/screen/NamedScreenHandlerFactory;)Ljava/util/OptionalInt;",
+        method = "openMenu(Lnet/minecraft/world/MenuProvider;)Ljava/util/OptionalInt;",
         at = @At("RETURN")
     )
-    private void yog$onContainerOpen(NamedScreenHandlerFactory factory,
+    private void yog$onContainerOpen(MenuProvider factory,
                                       CallbackInfoReturnable<OptionalInt> cir) {
         if (!cir.getReturnValue().isPresent()) return;
-        ServerPlayerEntity sp = (ServerPlayerEntity)(Object)this;
-        Identifier typeId = Registries.SCREEN_HANDLER.getId(sp.currentScreenHandler.getType());
+        ServerPlayer sp = (ServerPlayer)(Object)this;
+        ResourceLocation typeId = BuiltInRegistries.MENU.getKey(sp.containerMenu.getType());
         String containerType = typeId != null ? typeId.toString() : "";
         NativeBridge.nativeOnContainerOpen(
-                sp.getName().getString(), sp.getUuidAsString(), containerType);
+                sp.getName().getString(), sp.getStringUUID(), containerType);
     }
 }

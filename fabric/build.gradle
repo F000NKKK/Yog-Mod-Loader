@@ -3,7 +3,10 @@ plugins {
     id 'java'
 }
 
-version = project.mod_version
+// The mod version lives in one place for all loaders: ../version.properties.
+def rootVersion = new Properties()
+file("../version.properties").withInputStream { rootVersion.load(it) }
+version = rootVersion.getProperty('mod_version')
 group = project.maven_group
 
 base {

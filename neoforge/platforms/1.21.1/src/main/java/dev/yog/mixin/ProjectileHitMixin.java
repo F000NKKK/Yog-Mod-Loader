@@ -1,45 +1,44 @@
 package dev.yog.mixin;
 
 import dev.yog.NativeBridge;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.projectile.ProjectileEntity;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.Vec3d;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ProjectileEntity.class)
+@Mixin(Projectile.class)
 public abstract class ProjectileHitMixin extends Entity {
 
-    // field_33399 in ProjectileEntity
-    @Shadow @Nullable protected Entity owner;
-
-    protected ProjectileHitMixin(net.minecraft.entity.EntityType<?> type, net.minecraft.world.World world) {
-        super(type, world);
+    protected ProjectileHitMixin(EntityType<?> type, Level level) {
+        super(type, level);
     }
 
-    @Inject(method = "onCollision", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "onHit", at = @At("HEAD"), cancellable = true)
     private void yog$onProjectileHit(HitResult hitResult, CallbackInfo ci) {
         if (hitResult.getType() == HitResult.Type.MISS) return;
-        if (getWorld().isClient()) return;
+        if (level().isClientSide()) return;
 
-        String projType = Registries.ENTITY_TYPE.getId(getType()).toString();
-        String projUuid = getUuidAsString();
-        String shooterUuid = owner != null ? owner.getUuidAsString() : "";
-        String dim = getWorld().getRegistryKey().getValue().toString();
+        Projectile self = (Projectile)(Object)this;
+        String projType = BuiltInRegistries.ENTITY_TYPE.getKey(getType()).toString();
+        String projUuid = getStringUUID();
+        Entity owner = self.getOwner();
+        String shooterUuid = owner != null ? owner.getStringUUID() : "";
+        String dim = level().dimension().location().toString();
 
         String hitType;
         String hitEntityUuid;
-        Vec3d pos = hitResult.getPos();
+        Vec3 pos = hitResult.getLocation();
         if (hitResult instanceof EntityHitResult ehr) {
             hitType       = "entity";
-            hitEntityUuid = ehr.getEntity().getUuidAsString();
+            hitEntityUuid = ehr.getEntity().getStringUUID();
         } else {
             hitType       = "block";
             hitEntityUuid = "";
