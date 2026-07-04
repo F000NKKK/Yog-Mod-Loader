@@ -278,15 +278,18 @@ publish_loader() {
     local loader="$1"
     local mc="$2"
     echo "==> publish $loader $mc"
-    MC_VERSION="$mc" build_loader "$loader"
-    local out="$ROOT/artifacts/$loader/$mc"
-    rm -rf "$out"; mkdir -p "$out"
-    # Copy only the jar matching the current loader and MC version, ignoring stale
-    # builds from previous mod_version values.
-    local archive="$(grep '^archives_base_name=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)"
-    find "$ROOT/$loader/build/libs" -maxdepth 1 -name "${archive}*${mc}*.jar" \
-        ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
-    echo "    artifacts/$loader/$mc/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
+    # Scaffold / unported platforms fail to compile — skip with a warning
+    # rather than aborting the whole publish.
+    if MC_VERSION="$mc" build_loader "$loader"; then
+        local out="$ROOT/artifacts/$loader/$mc"
+        rm -rf "$out"; mkdir -p "$out"
+        local archive="$(grep '^archives_base_name=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)"
+        find "$ROOT/$loader/build/libs" -maxdepth 1 -name "${archive}*${mc}*.jar" \
+            ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
+        echo "    artifacts/$loader/$mc/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
+    else
+        echo "    WARNING: $loader $mc build failed — skipping (scaffold / unported?)"
+    fi
 }
 
 # List all MC versions available for a loader (from versions/ directory).

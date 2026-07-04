@@ -1,7 +1,7 @@
 package dev.yog;
 
 import java.util.List;
-import net.minecraft.client.item.TooltipContext;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
@@ -34,9 +34,10 @@ public class YogItem extends Item {
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> lines, TooltipContext ctx) {
+    public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltipLines, TooltipType type) {
+        super.appendTooltip(stack, context, tooltipLines, type);
         if (tooltip != null && !tooltip.isEmpty()) {
-            lines.add(Text.literal(tooltip));
+            tooltipLines.add(Text.literal(tooltip));
         }
     }
 }
