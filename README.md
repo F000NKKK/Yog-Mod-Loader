@@ -58,9 +58,10 @@ Each platform has its own version-specific Mixin sources under
 | ✅ 13.2 | `yog-book` GPU renderer: sidebar + entry list + page nav rendered via `yog-ui`/`yog-gfx`; SVG icons (`resvg`); custom TTF/OTF fonts (`fontdue`); visual `BookTheme` | 20 |
 | ✅ 13.3 | `yog-ui` focus system: `enabled`/`focused` per widget, `FocusStyle` (Outline/Fill/None), `set_focus()`, focus color | 21 |
 | ✅ 13.4 | `yog-ui` layout improvements: Unicode-safe text wrapping, `Dock` (Fill/Left/Right/Top/Bottom), auto-size, correct Row measurement | 21 |
+| ✅ 13.5 | `draw2d_item`: render item stacks (3D block models included) via MC's item renderer in HUD overlay | 22 |
 | 🔲 14 | NeoForge host, then Forge host |  |
 
-## API available now (ABI minor 19+)
+## API available now (ABI minor 21+)
 
 ### Events
 
@@ -135,7 +136,7 @@ registry.on_screen_close(|ev| {
 | `on_screen_open` | `ScreenEvent` | GUI opened; `screen_class` is simple class name |
 | `on_screen_close` | `ScreenEvent` | GUI closed |
 
-### Graphics (ABI minor 13–15)
+### Graphics (ABI minor 13–15, 22)
 
 Mods get direct access to the OpenGL pipeline via `GfxContext` (from `yog-gfx`).
 GPU resources (`u32` handles) are created once and stored between frames.
@@ -235,6 +236,7 @@ ctx.create_shader(vert, frag) -> Result<ShaderProgram, ()>
 ctx.delete_shader(prog)
 ctx.create_texture_rgba(w, h, &[u8]) / delete_texture(tex)
 ctx.texture_from_mc("minecraft:textures/…")  // borrows MC's texture; do NOT delete
+ctx.bind_texture(unit, tex)  // bind a texture to sampler unit 0–7
 
 // Draw
 ctx.draw_arrays(vao, prog, DrawMode::Triangles, first, count)
@@ -255,6 +257,7 @@ ctx.draw2d().text(text, x, y, color, shadow)
 ctx.draw2d().rect(x1, y1, x2, y2, color)
 ctx.draw2d().gradient(x1, y1, x2, y2, top_color, bottom_color)
 ctx.draw2d().mc_texture(id, x, y, u0, v0, w, h, tex_w, tex_h)
+ctx.draw2d().item(id, x, y, size)  // (ABI 21) render item stack via MC's item renderer (3D models included)
 ```
 
 ### World
@@ -315,6 +318,8 @@ entity.health() / set_health(20.0)
 entity.kill()
 entity.velocity() / set_velocity(vx, vy, vz) / add_velocity(vx, vy, vz)
 entity.add_effect("minecraft:speed", 200, 1, true)
+entity.remove_effect("minecraft:speed")
+entity.clear_effects()
 entity.get_nbt()              // -> Option<String>  (SNBT)
 entity.set_nbt("{CustomName: 'Bob'}")
 entity.attribute_get("minecraft:generic.max_health")  // -> Option<f64>
@@ -364,30 +369,44 @@ registry.register_item(
         .name("Ruby")
         .tooltip("A shiny gem.")
         .max_stack(16)
-        .fuel(400)  // furnace fuel: 200 ticks = 1 coal
+        .max_damage(100)    // durability (0 = unbreakable)
+        .fire_resistant()
+        .fuel(400)           // furnace fuel: 200 ticks = 1 coal
 );
 registry.register_item(
     ItemDef::new("mymod:snack")
-        .food(FoodDef::new(4, 0.3))  // nutrition, saturation
+        .food(FoodDef::new(4, 0.3).can_always_eat())  // nutrition, saturation, optional always-edible
 );
 registry.register_block(
     BlockDef::new("mymod:lamp")
-        .strength(1.5, 6.0)
+        .strength(1.5, 6.0)   // hardness, resistance
         .light_level(15)
         .sound("metal")
         .requires_tool()
+        .no_collision()       // players & entities pass through
+        .slipperiness(0.6)    // friction (0.6 = default, 0.98 = ice)
+        .shape([0.0, 0.0, 0.0, 16.0, 16.0, 16.0])  // bounding box in pixels
 );
 registry.add_shaped_recipe(
     ShapedRecipe::new("mymod:ruby_sword", "mymod:ruby_sword", 1)
         .row("R ").row("R ").row("S ")
         .key('R', "mymod:ruby").key('S', "minecraft:stick")
 );
+// Shapeless recipe
+registry.add_shapeless_recipe(
+    ShapelessRecipe::new("mymod:rubies_from_block", "mymod:ruby", 4)
+        .ingredient("mymod:ruby_block")
+);
+// Furnace recipe
+registry.add_furnace_recipe(
+    FurnaceRecipe::new("mymod:ember_coal_smelting", "minecraft:coal", "mymod:ember_coal", 0.5)
+);
 ```
 
 Items and blocks are automatically grouped into **per-namespace creative tabs**:
 `mymod:ruby` → `mymod` tab, `hexcasting:thehexbook` → `hexcasting` tab, etc.
 
-### Books (`yog-book` — Patchouli replacement) (ABI minor 17–18)
+### Books (`yog-book` — Patchouli replacement) (ABI minor 17–18, 20)
 
 Define in-game documentation books entirely in Rust. `yog-book` is a full
 rendering framework on top of `yog-ui` and `yog-gfx` — no external tool
@@ -430,6 +449,7 @@ Right-clicking a registered book item opens the book UI.
 | Constructor | Description |
 |---|---|
 | `text_page(text)` | Paragraphs of text |
+| `text_page_titled(title, text)` | Page with a title heading |
 | `spotlight_page(item)` | Item icon + optional title/text |
 | `crafting_page(recipe_id)` | Crafting recipe reference |
 | `smelting_page(recipe_id)` | Smelting recipe reference |
@@ -440,6 +460,35 @@ Right-clicking a registered book item opens the book UI.
 | `BookPage::Svg { data, … }` | Inline SVG rasterized at render time (`svg` feature) |
 | `BookPage::CustomText { text, font, color }` | Custom TTF/OTF text (`fonts` feature) |
 | `BookPage::Empty` | Blank page |
+| `BookPage::Crafting { recipe: BookRecipe, … }` | (ABI 20) Inline crafting grid — no recipe ID needed |
+| `BookPage::Smelting { recipe: BookRecipe, … }` | (ABI 20) Inline furnace recipe |
+
+#### BookRecipe (inline recipe data) (ABI 20)
+
+Embed recipe grids directly without referencing a registered recipe ID:
+
+```rust
+use yog_api::{BookRecipe, BookPage};
+
+let recipe = BookRecipe {
+    pattern: vec!["R R".into(), " S ".into()],
+    key: vec![('R'.into(), "mymod:ruby".into()), ('S'.into(), "minecraft:stick".into())],
+    result: "mymod:ruby_sword".into(),
+    result_count: 1,
+};
+
+let page = BookPage::Crafting {
+    recipe,
+    title: Some("Ruby Sword".into()),
+    text:  Some("A blade forged in Rust.".into()),
+};
+```
+
+#### BookMacro (template entries) (ABI 20)
+
+`BookMacro` allows defining reusable entry templates with variable substitution
+(e.g., for generating tiers of tools/armor). Takes a `pattern` entry with
+`{key}` placeholders and a map of substitutions.
 
 #### Visual theme
 
@@ -594,6 +643,27 @@ yog_api::ui::set_focus(&mut layout.layout_root, focused_id.as_deref());
 
 Click events from the UI are dispatched to Rust via the `on_click` string
 you set on the button — handle them in your click event callback.
+
+#### Hit-testing
+
+`UiRoot` provides a `hit_test(mx, my)` method that traverses the layout tree
+and returns `Option<&LayoutNode>` for the widget under the given coordinates.
+Use it from the `register_ui` / `on_ui_render` click handler to dispatch events:
+
+```rust
+// In the register_ui handler:
+if let Some(rest) = event.strip_prefix("click:") {
+    let mut parts = rest.splitn(2, ':');
+    if let (Some(xs), Some(ys)) = (parts.next(), parts.next()) {
+        if let (Ok(mx), Ok(my)) = (xs.parse::<f32>(), ys.parse::<f32>()) {
+            let hit = ui.hit_test(mx, my);
+            if let Some(ev) = hit.and_then(|n| n.on_click.as_deref()) {
+                // dispatch ev to your widget handler
+            }
+        }
+    }
+}
+```
 
 ### Startup grants (ABI minor 16)
 
