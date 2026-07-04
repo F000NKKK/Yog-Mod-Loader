@@ -34,7 +34,9 @@ runs {
 }
 
 dependencies {
-    implementation "net.neoforged:neoforge:${project.neo_version}"
+    // NeoForge for MC 1.20.1 is published under the legacy "forge" artifact id
+    // (the "neoforge" artifact only exists from MC 1.20.2 / NeoForge 20.2+).
+    implementation "net.neoforged:forge:${project.neo_version}"
 }
 
 base {

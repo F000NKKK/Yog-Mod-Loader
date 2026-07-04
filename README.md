@@ -68,8 +68,11 @@ Each loader has its own version-specific Mixin sources under
 | ✅ 13.2 | `yog-book` GPU renderer: sidebar + entry list + page nav rendered via `yog-ui`/`yog-gfx`; SVG icons (`resvg`); custom TTF/OTF fonts (`fontdue`); visual `BookTheme` | 20 |
 | ✅ 13.3 | `yog-ui` focus system: `enabled`/`focused` per widget, `FocusStyle` (Outline/Fill/None), `set_focus()`, focus color | 21 |
 | ✅ 13.4 | `yog-ui` layout improvements: Unicode-safe text wrapping, `Dock` (Fill/Left/Right/Top/Bottom), auto-size, correct Row measurement | 21 |
-| ✅ 13.5 | `draw2d_item`: render item stacks (3D block models included) via MC's item renderer in HUD overlay | 21 |
-| ✅ 14 | NeoForge host: full NeoForge platform support with event-bus-based host | — |
+| ✅ 13.5 | `yog-ui` text metrics: per-glyph MC font widths, `text_shadow` style, `Align`-aware label rendering; explicit leaf sizes honored in layout | 21 |
+| ✅ 13.6 | `yog-book` Patchouli-parity layout: exact page coordinates (272×180), nameplate, centered separators, crafting/smelting recipe rendering from recipe JSON | 21 |
+| ✅ 13.7 | `draw2d_item`: render item stacks (3D block models included) via MC's item renderer; `syncGlState` fixes raw-GL ↔ MC state desync | 21 |
+| ✅ 13.8 | Per-world startup grants (stored in the world save, retried on server tick); `java-common/` for loader-agnostic host code | 21 |
+| 🔧 14 | NeoForge host: sources ported (event-bus host, mixins), Gradle setup for MC 1.20.1 in progress | — |
 | 🔲 15 | Forge host |  |
 
 ## API available now (ABI minor 21+)
