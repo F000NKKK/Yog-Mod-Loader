@@ -263,11 +263,14 @@ cmd_clean() {
 publish_loader() {
     local loader="$1"
     build_loader "$loader"
-    local out="$ROOT/artifacts/$loader"
+    # Host jars are MC-version-dependent (unlike .yog mods) — artifacts are
+    # laid out per version: artifacts/<loader>/<mc_version>/.
+    local mc="${MC_VERSION:-$(grep '^minecraft_version=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)}"
+    local out="$ROOT/artifacts/$loader/$mc"
     rm -rf "$out"; mkdir -p "$out"
     find "$ROOT/$loader/build/libs" -maxdepth 1 -name '*.jar' \
         ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
-    echo "    artifacts/$loader/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
+    echo "    artifacts/$loader/$mc/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
 }
 
 cmd_publish() {
