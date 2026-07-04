@@ -57,7 +57,7 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
                     hh = (text::text_height(t, avail_w, s.font_scale) + s.pad[0] + s.pad[2])
                         .max(s.min_h).min(max_h);
                 } else {
-                    let tw = t.len() as f32 * text::CHAR_W * s.font_scale;
+                    let tw = text::str_width(t, s.font_scale);
                     ww = (tw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
                     hh = (text::LINE_H * s.font_scale + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
                 }
@@ -76,6 +76,9 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
                 hh = (*img_h + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
             }
         }
+        // Explicit width/height always wins over content sizing.
+        if s.w > 0.0 { ww = s.w.min(max_w); }
+        if s.h > 0.0 { hh = s.h.min(max_h); }
     }
 
     node.rect = Rect { x, y, w: ww, h: hh };

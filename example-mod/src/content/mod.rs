@@ -2,6 +2,29 @@
 
 use yog_api::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, Registry, ShapedRecipe, ShapelessRecipe, StartupGrant};
 
+/// All recipes as `(id, recipe JSON)` — used both for registration and for
+/// the guide book's crafting page rendering.
+pub fn recipes() -> (Vec<ShapedRecipe>, Vec<ShapelessRecipe>, Vec<FurnaceRecipe>) {
+    let shaped = vec![
+        // 4 rubies in a 2×2 square → 1 ruby block.
+        ShapedRecipe::new("yog:ruby_block_from_rubies", "yog:ruby_block", 1)
+            .row("RR")
+            .row("RR")
+            .key('R', "yog:ruby"),
+    ];
+    let shapeless = vec![
+        // Ruby block → 4 rubies.
+        ShapelessRecipe::new("yog:rubies_from_block", "yog:ruby", 4)
+            .ingredient("yog:ruby_block"),
+    ];
+    let furnace = vec![
+        // Smelt ember_coal from regular coal (just a demo).
+        FurnaceRecipe::new("yog:ember_coal_smelting", "minecraft:coal", "yog:ember_coal", 1)
+            .experience(0.5),
+    ];
+    (shaped, shapeless, furnace)
+}
+
 pub fn register(registry: &mut Registry) {
     registry.register_item(
         ItemDef::new("yog:ruby")
@@ -47,25 +70,10 @@ pub fn register(registry: &mut Registry) {
 
     // ── Recipes ──────────────────────────────────────────────────────────────
 
-    // 4 rubies in a 2×2 square → 1 ruby block.
-    registry.add_shaped_recipe(
-        ShapedRecipe::new("yog:ruby_block_from_rubies", "yog:ruby_block", 1)
-            .row("RR")
-            .row("RR")
-            .key('R', "yog:ruby"),
-    );
-
-    // Ruby block → 4 rubies (shapeless).
-    registry.add_shapeless_recipe(
-        ShapelessRecipe::new("yog:rubies_from_block", "yog:ruby", 4)
-            .ingredient("yog:ruby_block"),
-    );
-
-    // Smelt ember_coal from regular coal (just a demo).
-    registry.add_furnace_recipe(
-        FurnaceRecipe::new("yog:ember_coal_smelting", "minecraft:coal", "yog:ember_coal", 1)
-            .experience(0.5),
-    );
+    let (shaped, shapeless, furnace) = recipes();
+    for r in shaped    { registry.add_shaped_recipe(r); }
+    for r in shapeless { registry.add_shapeless_recipe(r); }
+    for r in furnace   { registry.add_furnace_recipe(r); }
 
     // ── Guide book ─────────────────────────────────────────────────────────────
 

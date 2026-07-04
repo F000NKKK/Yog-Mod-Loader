@@ -218,22 +218,20 @@ impl BookGl {
     /// texture paths (block items have no flat item texture). Cached.
     fn resolve_item_tex(&mut self, ctx: &GfxContext, item_id: &str) -> u32 {
         if let Some(&h) = self.mc_item_tex.get(item_id) { return h; }
-        let candidates: Vec<String> = if let Some((ns, path)) = item_id.split_once(':') {
-            if path.starts_with("item/") || path.starts_with("block/") || path.starts_with("textures/") {
-                let p = if path.starts_with("textures/") { path.to_owned() }
-                        else { format!("textures/{path}") };
-                vec![format!("{ns}:{}.png", p.trim_end_matches(".png"))]
-            } else {
-                vec![
-                    format!("{ns}:textures/item/{path}.png"),
-                    format!("{ns}:textures/block/{path}.png"),
-                    format!("{ns}:textures/block/{path}_front.png"),
-                    format!("{ns}:textures/block/{path}_top.png"),
-                    format!("{ns}:textures/block/{path}_side.png"),
-                ]
-            }
+        let (ns, path) = item_id.split_once(':').unwrap_or(("minecraft", item_id));
+        let candidates: Vec<String> = if path.starts_with("textures/") {
+            vec![format!("{ns}:{}.png", path.trim_end_matches(".png"))]
         } else {
-            vec![format!("minecraft:textures/item/{item_id}.png")]
+            // Plain item name — "item/ruby_block" and "ruby_block" both resolve
+            // through the same chain (block items have no flat item texture).
+            let name = path.trim_start_matches("item/").trim_start_matches("block/");
+            vec![
+                format!("{ns}:textures/item/{name}.png"),
+                format!("{ns}:textures/block/{name}.png"),
+                format!("{ns}:textures/block/{name}_front.png"),
+                format!("{ns}:textures/block/{name}_top.png"),
+                format!("{ns}:textures/block/{name}_side.png"),
+            ]
         };
         let mut handle = 0u32;
         for c in &candidates {

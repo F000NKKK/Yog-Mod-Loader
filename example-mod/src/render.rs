@@ -165,10 +165,14 @@ struct BookState {
 
 impl BookState {
     fn new() -> Self {
-        Self {
-            renderer: BookRenderer::new(crate::book::guide_book()),
-            layout:   None,
-        }
+        let mut renderer = BookRenderer::new(crate::book::guide_book());
+        // Feed recipes to the renderer so Crafting/Smelting pages draw the
+        // actual grid instead of a placeholder.
+        let (shaped, shapeless, furnace) = crate::content::recipes();
+        for r in shaped    { renderer.add_recipe(r.id.clone(), &r.to_json()); }
+        for r in shapeless { renderer.add_recipe(r.id.clone(), &r.to_json()); }
+        for r in furnace   { renderer.add_recipe(r.id.clone(), &r.to_json()); }
+        Self { renderer, layout: None }
     }
 }
 
