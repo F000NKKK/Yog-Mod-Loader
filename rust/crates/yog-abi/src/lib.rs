@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 20;
+pub const ABI_MINOR: u32 = 21;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -546,6 +546,13 @@ pub struct YogGfxApi {
     /// Blit from a Minecraft-managed texture. Only valid during `on_hud_render`.
     /// `(u0, v0)` in texels; `(w, h)` in pixels; `(tw, th)` full texture size.
     pub draw2d_mc_tex:   unsafe extern "C" fn(id: YogStr, x: f32, y: f32, u0: f32, v0: f32, w: f32, h: f32, tw: f32, th: f32),
+
+    // ── appended in ABI minor 21 ──────────────────────────────────────────────
+    /// Render an item stack (3D block models included) via MC's item renderer,
+    /// like Patchouli's `renderItemStack`. `id` is a registry item id
+    /// ("minecraft:crafting_table"); `size` is the on-screen size in GUI px
+    /// (16 = inventory size). Only valid during `on_hud_render`.
+    pub draw2d_item:     unsafe extern "C" fn(id: YogStr, x: f32, y: f32, size: f32),
 }
 
 unsafe impl Send for YogGfxApi {}

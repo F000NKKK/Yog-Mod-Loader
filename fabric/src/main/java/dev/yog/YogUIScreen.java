@@ -27,6 +27,7 @@ public class YogUIScreen extends Screen {
         NativeDraw.hudDrawContext = ctx;
         NativeBridge.nativeUIRender(uiId, this.width, this.height);
         NativeDraw.hudDrawContext = null;
+        NativeDraw.syncGlState(); // raw GL from Rust desyncs GlStateManager caches
         super.render(ctx, mx, my, delta);
     }
 

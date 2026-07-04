@@ -51,4 +51,15 @@ impl<'ctx> Draw2D<'ctx> {
         let a = self.0.api();
         unsafe { (a.draw2d_mc_tex)(YogStr::from_str(id), x, y, u0, v0, w, h, tw, th) }
     }
+
+    /// Render an item stack (3D block models included) via Minecraft's item
+    /// renderer — like inventory slots or Patchouli's item icons.
+    ///
+    /// - `id`: item registry id, e.g. `"minecraft:crafting_table"`
+    /// - `(x, y)`: screen position in GUI pixels
+    /// - `size`: on-screen size in GUI pixels (16 = inventory icon size)
+    pub fn item(&self, id: &str, x: f32, y: f32, size: f32) {
+        let a = self.0.api();
+        unsafe { (a.draw2d_item)(YogStr::from_str(id), x, y, size) }
+    }
 }

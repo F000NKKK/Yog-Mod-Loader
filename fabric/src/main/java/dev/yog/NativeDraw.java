@@ -1,9 +1,19 @@
 package dev.yog;
 
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.texture.AbstractTexture;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
+
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL13;
 
 /**
  * Client-only HUD draw helpers called from Rust via JNI during on_hud_render.
@@ -48,6 +58,59 @@ public final class NativeDraw {
         if (ident == null) return;
         ctx.drawTexture(ident, (int) x, (int) y, u0, v0,
                 (int) w, (int) h, (int) tw, (int) th);
+    }
+
+    // Two dummy GL textures used to force-desync-proof texture rebinding in
+    // syncGlState(): binding A then B guarantees a real glBindTexture happens
+    // regardless of what GlStateManager's cache currently holds.
+    private static int dummyTexA, dummyTexB;
+
+    /**
+     * Re-synchronize GlStateManager's cached GL state with actual GL state
+     * after raw OpenGL calls from the Rust side. Without this, MC draws that
+     * rely on cached state (item rendering, drawTexture) silently use stale
+     * bindings and render nothing.
+     */
+    public static void syncGlState() {
+        if (dummyTexA == 0) {
+            dummyTexA = GL11.glGenTextures();
+            dummyTexB = GL11.glGenTextures();
+        }
+        // Texture unit 0: bind two distinct ids so the second bind is real.
+        GlStateManager._activeTexture(GL13.GL_TEXTURE0);
+        GlStateManager._bindTexture(dummyTexA);
+        GlStateManager._bindTexture(dummyTexB);
+        // Toggle boolean states both ways — ends real and cached in a known
+        // state regardless of what the cache held before.
+        RenderSystem.enableBlend();
+        RenderSystem.disableBlend();
+        RenderSystem.enableDepthTest();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.depthMask(true);
+        RenderSystem.disableCull();
+        RenderSystem.enableCull();
+        RenderSystem.defaultBlendFunc();
+    }
+
+    /**
+     * Render an item stack at GUI position (x, y) with the given on-screen
+     * size in GUI pixels (16 = standard inventory icon). Renders 3D block
+     * models exactly like inventory slots / Patchouli.
+     */
+    public static void drawItem(String id, float x, float y, float size) {
+        DrawContext ctx = hudDrawContext;
+        if (ctx == null) return;
+        Identifier ident = Identifier.tryParse(id);
+        if (ident == null) return;
+        Item item = Registries.ITEM.get(ident);
+        if (item == Items.AIR) return;
+        syncGlState();
+        float scale = size / 16.0f;
+        ctx.getMatrices().push();
+        ctx.getMatrices().scale(scale, scale, 1.0f);
+        ctx.drawItem(new ItemStack(item), (int) (x / scale), (int) (y / scale));
+        ctx.getMatrices().pop();
     }
 
     /**

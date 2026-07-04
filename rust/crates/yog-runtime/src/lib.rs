@@ -1261,6 +1261,15 @@ unsafe extern "C" fn gfx_draw2d_mc_tex(
     }
 }
 
+unsafe extern "C" fn gfx_draw2d_item(id: YogStr, x: f32, y: f32, size: f32) {
+    let Some(mut env) = get_env() else { return };
+    if let Some(ji) = ys_to_java(&mut env, id) {
+        let _ = env.call_static_method("dev/yog/NativeDraw", "drawItem",
+            "(Ljava/lang/String;FFF)V",
+            &[JValue::Object(&ji), JValue::Float(x), JValue::Float(y), JValue::Float(size)]);
+    }
+}
+
 // ── Static GFX function table (function pointers only — per-frame data filled at call time) ──
 
 static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
@@ -1298,6 +1307,7 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
     draw2d_gradient:   gfx_draw2d_gradient,
     draw2d_text:       gfx_draw2d_text,
     draw2d_mc_tex:     gfx_draw2d_mc_tex,
+    draw2d_item:       gfx_draw2d_item,
 };
 
 // ── YogApi registration functions ─────────────────────────────────────────────

@@ -129,8 +129,6 @@ struct BookGl {
     crafting_tex: Option<(gl::Texture, u32, u32)>,
     svg_tex:      HashMap<u64, (gl::Texture, u32, u32)>,
     font_atlas:   HashMap<u64, (gl::Texture, FontAtlas)>,
-    /// item id → resolved MC texture handle (0 = no texture found).
-    mc_item_tex:  HashMap<String, u32>,
 }
 
 impl BookGl {
@@ -152,8 +150,7 @@ impl BookGl {
         let crafting_tex = load(CRAFTING_PNG);
 
         Some(BookGl { prog, vao, vbo, book_tex, crafting_tex,
-                      svg_tex: HashMap::new(), font_atlas: HashMap::new(),
-                      mc_item_tex: HashMap::new() })
+                      svg_tex: HashMap::new(), font_atlas: HashMap::new() })
     }
 
     fn svg_tex(&mut self, ctx: &GfxContext, hash: u64, data: &str, w: u32, h: u32)
@@ -211,45 +208,6 @@ impl BookGl {
         ctx.bind_texture(0, tex);
         let mut v = Vec::with_capacity(6);
         quad(&mut v, bx, by, bw, bh, 0.0, 0.0, su, sv, 0xFF_FFFFFF);
-        self.flush(ctx, &v);
-    }
-
-    /// Resolve an item id to an MC texture handle, trying item/ then block/
-    /// texture paths (block items have no flat item texture). Cached.
-    fn resolve_item_tex(&mut self, ctx: &GfxContext, item_id: &str) -> u32 {
-        if let Some(&h) = self.mc_item_tex.get(item_id) { return h; }
-        let (ns, path) = item_id.split_once(':').unwrap_or(("minecraft", item_id));
-        let candidates: Vec<String> = if path.starts_with("textures/") {
-            vec![format!("{ns}:{}.png", path.trim_end_matches(".png"))]
-        } else {
-            // Plain item name — "item/ruby_block" and "ruby_block" both resolve
-            // through the same chain (block items have no flat item texture).
-            let name = path.trim_start_matches("item/").trim_start_matches("block/");
-            vec![
-                format!("{ns}:textures/item/{name}.png"),
-                format!("{ns}:textures/block/{name}.png"),
-                format!("{ns}:textures/block/{name}_front.png"),
-                format!("{ns}:textures/block/{name}_top.png"),
-                format!("{ns}:textures/block/{name}_side.png"),
-            ]
-        };
-        let mut handle = 0u32;
-        for c in &candidates {
-            let t = ctx.texture_from_mc(c);
-            if t.handle != 0 { handle = t.handle; break; }
-        }
-        self.mc_item_tex.insert(item_id.to_owned(), handle);
-        handle
-    }
-
-    /// Draw a 16×16-style item icon from an MC-managed texture.
-    fn draw_mc_item(&mut self, ctx: &GfxContext, item_id: &str, x: f32, y: f32, w: f32, h: f32) {
-        let handle = self.resolve_item_tex(ctx, item_id);
-        if handle == 0 { return; }
-        self.prog.uniform_1i(ctx, "uMode", 1);
-        ctx.bind_texture(0, &gl::Texture { handle });
-        let mut v = Vec::with_capacity(6);
-        quad(&mut v, x, y, w, h, 0.0, 0.0, 1.0, 1.0, 0xFF_FFFFFF);
         self.flush(ctx, &v);
     }
 
@@ -393,6 +351,14 @@ fn parse_recipe(json: &str) -> Option<RecipeVis> {
     }
 }
 
+/// Normalize icon ids like "yog:item/ruby" / "yog:block/x" to registry item
+/// ids ("yog:ruby") accepted by the MC item renderer.
+fn normalize_item_id(id: &str) -> String {
+    let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
+    let name = path.trim_start_matches("item/").trim_start_matches("block/");
+    format!("{ns}:{name}")
+}
+
 /// "yog:ruby_block" → "Ruby Block" (fallback display name from an item id).
 fn pretty_item_name(id: &str) -> String {
     let name = id.rsplit(':').next().unwrap_or(id);
@@ -508,7 +474,7 @@ impl BookRenderer {
             ui.render(ctx);
         }
 
-        // 3. Custom GL overlays (SVG icons, custom font text).
+        // 3. Custom GL overlays (SVG icons, custom font text) — raw GL first.
         if let Some(gl) = &mut self.gl {
             gl.begin_frame(ctx, sw, sh);
             for ov in self.overlays.clone() {
@@ -520,13 +486,22 @@ impl BookRenderer {
                             gl.draw_text_custom(ctx, ttf, font.size_px, &text, x, y, color);
                         }
                     }
-                    OverlayCmd::McText { text, x, y, color } => {
-                        ctx.draw2d().text(&text, x, y, color, false);
-                    }
-                    OverlayCmd::McItem { item_id, x, y, w, h } => {
-                        gl.draw_mc_item(ctx, &item_id, x, y, w, h);
-                    }
+                    OverlayCmd::McText { .. } | OverlayCmd::McItem { .. } => {}
                 }
+            }
+        }
+
+        // 4. MC-pipeline overlays (item stacks, MC-font text) — after all raw
+        //    GL, because item rendering resyncs and mutates MC's GL state.
+        for ov in self.overlays.clone() {
+            match ov {
+                OverlayCmd::McItem { item_id, x, y, w, h } => {
+                    ctx.draw2d().item(&normalize_item_id(&item_id), x, y, w.min(h));
+                }
+                OverlayCmd::McText { text, x, y, color } => {
+                    ctx.draw2d().text(&text, x, y, color, false);
+                }
+                _ => {}
             }
         }
     }
