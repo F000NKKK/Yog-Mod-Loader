@@ -4,10 +4,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Implemented loaders. Add 'neoforge' / 'forge' here when their hosts land.
-# neoforge: Gradle setup done, but host/mixin sources are still being ported
-# from Yarn to the 1.20.1 Forge API — re-add once it compiles.
-LOADERS=(fabric)
+# Implemented loaders. Add 'forge' here when its host lands.
+LOADERS=(fabric neoforge)
 
 # The active MC platform for each loader is set by minecraft_version inside
 # <loader>/gradle.properties; build.sh does not need to know it separately.
@@ -99,9 +97,8 @@ require_loader() {
     [ -n "${1:-}" ] || die "this command needs a loader (one of: ${LOADERS[*]})"
     if ! is_loader "$1"; then
         case "$1" in
-            neoforge) die "'neoforge' host is not compilable yet (source port in progress)" ;;
-            forge)    die "'$1' is not implemented yet (roadmap)" ;;
-            *)        die "unknown loader: '$1' (have: ${LOADERS[*]})" ;;
+            forge) die "'$1' is not implemented yet (roadmap)" ;;
+            *)     die "unknown loader: '$1' (have: ${LOADERS[*]})" ;;
         esac
     fi
 }

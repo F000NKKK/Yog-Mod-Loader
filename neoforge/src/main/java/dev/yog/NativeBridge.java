@@ -35,6 +35,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -488,7 +489,7 @@ public final class NativeBridge {
     public static native boolean nativeOnItemPickupPre(String player, String playerUuid, String itemId, int itemCount, String entityUuid);
     public static native void nativeOnItemPickup(String player, String playerUuid, String itemId, int itemCount, String entityUuid);
     public static native void nativeOnPlayerMove(String player, String playerUuid, double x, double y, double z, float yaw, float pitch);
-    public static native boolean nativeOnContainerOpenPre(String player, String playerUuid, String containerType);
+    public static native boolean nativeOnContainerOpenPre(String player, String playerUuid);
     public static native void nativeOnContainerOpen(String player, String playerUuid, String containerType);
     public static native void nativeOnContainerClose(String player, String playerUuid);
     public static native boolean nativeOnProjectileHitPre(String projectileType, String projectileUuid, String shooterUuid, String hitType, String hitEntityUuid, double x, double y, double z, String dimension);
