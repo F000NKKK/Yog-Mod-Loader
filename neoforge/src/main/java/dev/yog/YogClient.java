@@ -1,42 +1,35 @@
 package dev.yog;
 
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RenderGuiEvent;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.neoforged.neoforge.client.event.ScreenEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
 
 /** NeoForge client-side event handlers. Wired via @Mod.EventBusSubscriber. */
 @Mod.EventBusSubscriber(modid = "yog", bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
-public class YogClient {
-    private static boolean initialised = false;
-
-    private static void ensureInit() {
-        if (!initialised) {
-            NativeBridge.ensureLoaded();
-            initialised = true;
-        }
-    }
+public final class YogClient {
+    private YogClient() {}
 
     // ── Client tick ──────────────────────────────────────────────────────
 
     @SubscribeEvent
-    public void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
         NativeBridge.nativeOnClientTick();
     }
 
     // ── HUD render ───────────────────────────────────────────────────────
 
     @SubscribeEvent
-    public void onRenderGui(RenderGuiEvent.Post event) {
+    public static void onRenderGui(RenderGuiEvent.Post event) {
         NativeBridge.nativeGlInit();
         NativeDraw.hudDrawContext = event.getGuiGraphics();
         Minecraft mc = Minecraft.getInstance();
@@ -48,17 +41,18 @@ public class YogClient {
             (float) mc.getWindow().getGuiScale(),
             (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
         NativeDraw.hudDrawContext = null;
+        NativeDraw.syncGlState(); // raw GL from Rust desyncs GlStateManager caches
     }
 
     // ── World render ─────────────────────────────────────────────────────
 
     @SubscribeEvent
-    public void onRenderLevel(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT) return;
+    public static void onRenderLevel(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
         NativeBridge.nativeGlInit();
         Minecraft mc = Minecraft.getInstance();
         Matrix4f proj = event.getProjectionMatrix();
-        Matrix4f view = event.getModelViewMatrix();
+        Matrix4f view = event.getPoseStack().last().pose();
         float[] vp = new float[16];
         new Matrix4f(proj).mul(view).get(vp);
         var cam = event.getCamera();
@@ -71,18 +65,19 @@ public class YogClient {
             vp,
             (float) cam.getPosition().x, (float) cam.getPosition().y, (float) cam.getPosition().z,
             (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
+        NativeDraw.syncGlState(); // raw GL (e.g. demo world renderers) desyncs GL caches
     }
 
     // ── Screen open / close ──────────────────────────────────────────────
 
     @SubscribeEvent
-    public void onScreenOpen(ScreenEvent.Opening event) {
+    public static void onScreenOpen(ScreenEvent.Opening event) {
         String screenClass = event.getScreen().getClass().getSimpleName();
         NativeBridge.nativeOnScreenOpen(screenClass);
     }
 
     @SubscribeEvent
-    public void onScreenClose(ScreenEvent.Closing event) {
+    public static void onScreenClose(ScreenEvent.Closing event) {
         String screenClass = event.getScreen().getClass().getSimpleName();
         NativeBridge.nativeOnScreenClose(screenClass);
     }
@@ -92,9 +87,11 @@ public class YogClient {
         ResourceLocation id = ResourceLocation.tryParse(channel);
         if (id == null) return false;
         try {
+            var conn = Minecraft.getInstance().getConnection();
+            if (conn == null) return false;
             FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
             buf.writeBytes(data);
-            PacketDistributor.SERVER.noArg().send(new net.neoforged.neoforge.network.handling.SimplePayload(id, buf));
+            conn.send(new ServerboundCustomPayloadPacket(id, buf));
             return true;
         } catch (Throwable t) {
             return false;
