@@ -129,6 +129,8 @@ struct BookGl {
     crafting_tex: Option<(gl::Texture, u32, u32)>,
     svg_tex:      HashMap<u64, (gl::Texture, u32, u32)>,
     font_atlas:   HashMap<u64, (gl::Texture, FontAtlas)>,
+    /// item id → resolved MC texture handle (0 = no texture found).
+    mc_item_tex:  HashMap<String, u32>,
 }
 
 impl BookGl {
@@ -149,7 +151,9 @@ impl BookGl {
         let book_tex     = load(BOOK_PNG);
         let crafting_tex = load(CRAFTING_PNG);
 
-        Some(BookGl { prog, vao, vbo, book_tex, crafting_tex, svg_tex: HashMap::new(), font_atlas: HashMap::new() })
+        Some(BookGl { prog, vao, vbo, book_tex, crafting_tex,
+                      svg_tex: HashMap::new(), font_atlas: HashMap::new(),
+                      mc_item_tex: HashMap::new() })
     }
 
     fn svg_tex(&mut self, ctx: &GfxContext, hash: u64, data: &str, w: u32, h: u32)
@@ -207,6 +211,47 @@ impl BookGl {
         ctx.bind_texture(0, tex);
         let mut v = Vec::with_capacity(6);
         quad(&mut v, bx, by, bw, bh, 0.0, 0.0, su, sv, 0xFF_FFFFFF);
+        self.flush(ctx, &v);
+    }
+
+    /// Resolve an item id to an MC texture handle, trying item/ then block/
+    /// texture paths (block items have no flat item texture). Cached.
+    fn resolve_item_tex(&mut self, ctx: &GfxContext, item_id: &str) -> u32 {
+        if let Some(&h) = self.mc_item_tex.get(item_id) { return h; }
+        let candidates: Vec<String> = if let Some((ns, path)) = item_id.split_once(':') {
+            if path.starts_with("item/") || path.starts_with("block/") || path.starts_with("textures/") {
+                let p = if path.starts_with("textures/") { path.to_owned() }
+                        else { format!("textures/{path}") };
+                vec![format!("{ns}:{}.png", p.trim_end_matches(".png"))]
+            } else {
+                vec![
+                    format!("{ns}:textures/item/{path}.png"),
+                    format!("{ns}:textures/block/{path}.png"),
+                    format!("{ns}:textures/block/{path}_front.png"),
+                    format!("{ns}:textures/block/{path}_top.png"),
+                    format!("{ns}:textures/block/{path}_side.png"),
+                ]
+            }
+        } else {
+            vec![format!("minecraft:textures/item/{item_id}.png")]
+        };
+        let mut handle = 0u32;
+        for c in &candidates {
+            let t = ctx.texture_from_mc(c);
+            if t.handle != 0 { handle = t.handle; break; }
+        }
+        self.mc_item_tex.insert(item_id.to_owned(), handle);
+        handle
+    }
+
+    /// Draw a 16×16-style item icon from an MC-managed texture.
+    fn draw_mc_item(&mut self, ctx: &GfxContext, item_id: &str, x: f32, y: f32, w: f32, h: f32) {
+        let handle = self.resolve_item_tex(ctx, item_id);
+        if handle == 0 { return; }
+        self.prog.uniform_1i(ctx, "uMode", 1);
+        ctx.bind_texture(0, &gl::Texture { handle });
+        let mut v = Vec::with_capacity(6);
+        quad(&mut v, x, y, w, h, 0.0, 0.0, 1.0, 1.0, 0xFF_FFFFFF);
         self.flush(ctx, &v);
     }
 
@@ -290,6 +335,79 @@ pub(crate) enum OverlayCmd {
     Text   { text: String, font: crate::font::BookFont, x: f32, y: f32, color: u32 },
     /// MC default-font text rendered via draw2d (e.g. nameplate title/subtitle).
     McText { text: String, x: f32, y: f32, color: u32 },
+    /// Item icon rendered through our GL pipeline from an MC-managed texture.
+    McItem { item_id: String, x: f32, y: f32, w: f32, h: f32 },
+}
+
+// ── Recipe visuals (parsed from registered recipe JSON) ───────────────────────
+
+#[derive(Clone)]
+pub(crate) enum RecipeVis {
+    Shaped    { grid: Vec<Option<String>>, width: usize, output: String, count: u32 },
+    Shapeless { ingredients: Vec<String>, output: String, count: u32 },
+    Smelting  { input: String, output: String },
+}
+
+fn parse_recipe(json: &str) -> Option<RecipeVis> {
+    let v: serde_json::Value = serde_json::from_str(json).ok()?;
+    match v.get("type")?.as_str()? {
+        "minecraft:crafting_shaped" => {
+            let pattern: Vec<&str> = v.get("pattern")?.as_array()?
+                .iter().filter_map(|p| p.as_str()).collect();
+            let width = pattern.iter().map(|r| r.chars().count()).max()?.max(1);
+            let key = v.get("key")?.as_object()?;
+            let mut grid = Vec::new();
+            for row in &pattern {
+                let mut chars: Vec<char> = row.chars().collect();
+                chars.resize(width, ' ');
+                for ch in chars {
+                    grid.push(key.get(&ch.to_string())
+                        .and_then(|k| k.get("item")).and_then(|i| i.as_str())
+                        .map(str::to_owned));
+                }
+            }
+            let result = v.get("result")?;
+            Some(RecipeVis::Shaped {
+                grid, width,
+                output: result.get("item")?.as_str()?.to_owned(),
+                count:  result.get("count").and_then(|c| c.as_u64()).unwrap_or(1) as u32,
+            })
+        }
+        "minecraft:crafting_shapeless" => {
+            let ingredients = v.get("ingredients")?.as_array()?.iter()
+                .filter_map(|i| i.get("item").and_then(|x| x.as_str()).map(str::to_owned))
+                .collect();
+            let result = v.get("result")?;
+            Some(RecipeVis::Shapeless {
+                ingredients,
+                output: result.get("item")?.as_str()?.to_owned(),
+                count:  result.get("count").and_then(|c| c.as_u64()).unwrap_or(1) as u32,
+            })
+        }
+        "minecraft:smelting" | "minecraft:blasting"
+        | "minecraft:smoking" | "minecraft:campfire_cooking" => {
+            Some(RecipeVis::Smelting {
+                input:  v.get("ingredient")?.get("item")?.as_str()?.to_owned(),
+                output: v.get("result")?.as_str()?.to_owned(),
+            })
+        }
+        _ => None,
+    }
+}
+
+/// "yog:ruby_block" → "Ruby Block" (fallback display name from an item id).
+fn pretty_item_name(id: &str) -> String {
+    let name = id.rsplit(':').next().unwrap_or(id);
+    name.split('_')
+        .map(|w| {
+            let mut c = w.chars();
+            match c.next() {
+                Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                None    => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 // ── BookRenderer ──────────────────────────────────────────────────────────────
@@ -299,6 +417,7 @@ pub struct BookRenderer {
     pub state: BookViewState,
     pub theme: BookTheme,
     fonts:        BookFontRegistry,
+    recipes:      HashMap<String, RecipeVis>,
     gl:           Option<BookGl>,
     pub ui:       Option<UiRoot>,
     bg_sprites:   Vec<BgSprite>,
@@ -316,6 +435,7 @@ impl BookRenderer {
             state: BookViewState::default(),
             theme,
             fonts: BookFontRegistry::default(),
+            recipes: HashMap::new(),
             gl: None,
             ui: None,
             bg_sprites: Vec::new(),
@@ -337,6 +457,15 @@ impl BookRenderer {
         self.fonts.register(id, ttf);
     }
 
+    /// Register a recipe (vanilla recipe JSON) so Crafting/Smelting pages can
+    /// render it visually. Unknown recipe types are ignored.
+    pub fn add_recipe(&mut self, id: impl Into<String>, json: &str) {
+        if let Some(vis) = parse_recipe(json) {
+            self.recipes.insert(id.into(), vis);
+            self.dirty = true;
+        }
+    }
+
     pub fn render(&mut self, ctx: &GfxContext, sw: f32, sh: f32) {
         // Lazy GL init.
         if self.gl.is_none() {
@@ -353,7 +482,7 @@ impl BookRenderer {
 
         // Rebuild widget tree if dirty or screen resized.
         if self.dirty || sw != self.last_sw || sh != self.last_sh {
-            let (root, bg_sprites, overlays) = build_ui(&self.book, &self.state, &self.theme, sw, sh, bx, by, bw, bh);
+            let (root, bg_sprites, overlays) = build_ui(&self.book, &self.state, &self.theme, &self.recipes, sw, sh, bx, by, bw, bh);
             self.ui = Some(root);
             self.bg_sprites = bg_sprites;
             self.overlays = overlays;
@@ -396,6 +525,9 @@ impl BookRenderer {
                     OverlayCmd::McText { text, x, y, color } => {
                         ctx.draw2d().text(&text, x, y, color, false);
                     }
+                    OverlayCmd::McItem { item_id, x, y, w, h } => {
+                        gl.draw_mc_item(ctx, &item_id, x, y, w, h);
+                    }
                 }
             }
         }
@@ -412,6 +544,7 @@ fn btn(text: impl Into<String>) -> widget::Widget { widget::button(text).shadow(
 /// Build the yog-ui widget tree + bg sprites + overlay commands for the current book state.
 /// `bx/by/bw/bh` are the screen-space book rect (same values used to blit the bg texture).
 fn build_ui(book: &Book, state: &BookViewState, theme: &BookTheme,
+             recipes: &HashMap<String, RecipeVis>,
              sw: f32, sh: f32,
              bx: f32, by: f32, bw: f32, bh: f32) -> (UiRoot, Vec<BgSprite>, Vec<OverlayCmd>) {
     let _ = (sw, sh);
@@ -471,8 +604,8 @@ fn build_ui(book: &Book, state: &BookViewState, theme: &BookTheme,
         let r = build_categories_right(book, state, theme, pw, ph, rx, py, sx, sy, &mut overlays);
         (l, r)
     } else {
-        let l = build_entry_left(book, state, theme, pw, ph, lx, py, sx, sy, sep_cx, &mut bg_sprites, &mut overlays);
-        let r = build_entries_right(book, state, theme, pw, ph, rx, py, sx, sy);
+        let l = build_entry_left(book, state, theme, recipes, pw, ph, lx, py, sx, sy, sep_cx, &mut bg_sprites, &mut overlays);
+        let r = build_entries_right(book, state, theme, pw, ph, rx, py, sx, sy, &mut overlays);
         (l, r)
     };
 
@@ -550,7 +683,6 @@ fn build_landing_left(
 
     let total = book.entries.len();
     col = col.child(widget::spacer().flex(1.0));
-    col = col.child(widget::spacer().h((SEP_H * sy).max(1.0)).bg(theme.border));
     col = col.child(
         lbl(format!("{} entries", total))
             .color(theme.nav).h(9.0 * sy).align(Align::Center)
@@ -563,41 +695,33 @@ fn build_landing_left(
 fn build_categories_right(
     book: &Book, state: &BookViewState, theme: &BookTheme,
     page_w: f32, page_h: f32,
-    _rx: f32, _py: f32,
+    rx: f32, py: f32,
     sx: f32, sy: f32,
     overlays: &mut Vec<OverlayCmd>,
 ) -> widget::Widget {
-    let _ = overlays;
-
     // Patchouli right-page layout (landing):
-    //   "Categories" header at TOP_PADDING, centered over RIGHT_PAGE_X..RIGHT_PAGE_X+PAGE_WIDTH
-    //   Separator at TOP_PADDING+12 (drawn as bg sprite, not here)
-    //   4-column 24×24 icon grid starting at (RIGHT_PAGE_X+10, TOP_PADDING+25)
-    //   In page-local terms: left-pad=10, top-pad=(TOP_PAD+25-TOP_PAD)=25, cell=24
+    //   "Categories" header at page-local y=0, centered
+    //   Separator at page-local y=12 (drawn as bg sprite, not here)
+    //   4-column 24×24 icon grid starting at page-local (10, 25)
     let cell_w = 24.0 * sx;
     let cell_h = 24.0 * sy;
     let grid_pad_left = 10.0 * sx;
-    // TOP_PADDING+12 is where separator is; TOP_PADDING+25 is where the grid starts.
-    // In page-widget space (y=0 = book-local TOP_PAD): grid starts at 25*sy.
-    let grid_top = 25.0 * sy;
-    // Space above grid = grid_top (separator region = 12*sy to 25*sy)
-    let header_h  = 12.0 * sy; // "Categories" label
-    let sep_gap   = (grid_top - header_h).max(0.0); // gap between label and grid
+    let header_h = 9.0 * sy;
 
     let mut col = widget::panel(FlexDir::Column)
         .w(page_w).h(page_h)
         .padding(0.0, 4.0, 4.0, 0.0)
         .gap(0.0);
 
-    // Header: "Categories" centered
     col = col.child(
-        lbl("Categories").color(theme.divider).h(header_h)
+        lbl("Categories").color(theme.divider).h(header_h).align(Align::Center)
     );
-    // Gap where the separator sprite sits
-    col = col.child(widget::spacer().h(sep_gap));
+    // Gap covering the separator region up to grid start (page-local y=25).
+    col = col.child(widget::spacer().h(25.0 * sy - header_h));
 
-    // 4-column icon grid
+    // 4-column icon grid; icons drawn as GL overlays at exact Patchouli positions.
     let cats = &book.categories;
+    let icon_s = 16.0 * sx.min(sy);
     let mut row_i = 0usize;
     loop {
         let row_start = row_i * 4;
@@ -613,20 +737,18 @@ fn build_categories_right(
             let selected = !state.at_home && idx == state.cat;
             let bg = if selected { theme.nav_selected_bg } else { 0 };
 
-            let icon_w = 16.0 * sx;
-            let icon_h = 16.0 * sy;
-            let pad_xy = (cell_w - icon_w) / 2.0;
-
-            let mut cell = widget::panel(FlexDir::Column)
+            if let Some(icon_id) = &cat.icon {
+                overlays.push(OverlayCmd::McItem {
+                    item_id: icon_id.clone(),
+                    x: rx + (10.0 + col_i as f32 * 24.0 + 4.0) * sx,
+                    y: py + (25.0 + row_i as f32 * 24.0 + 4.0) * sy,
+                    w: icon_s, h: icon_s,
+                });
+            }
+            let cell = widget::panel(FlexDir::Column)
                 .w(cell_w).h(cell_h).bg(bg)
                 .on_click(format!("cat:{}", idx))
-                .id(format!("book_cat_{}", idx))
-                .padding(pad_xy, pad_xy, pad_xy, pad_xy);
-            cell = if let Some(icon_id) = &cat.icon {
-                cell.child(item_icon_widget(icon_id).w(icon_w).h(icon_h))
-            } else {
-                cell.child(widget::spacer().w(icon_w).h(icon_h))
-            };
+                .id(format!("book_cat_{}", idx));
             row = row.child(cell);
         }
         col = col.child(row);
@@ -639,6 +761,7 @@ fn build_categories_right(
 
 fn build_entry_left(
     book: &Book, state: &BookViewState, theme: &BookTheme,
+    recipes: &HashMap<String, RecipeVis>,
     page_w: f32, page_h: f32,
     ox: f32, oy: f32,
     sx: f32, sy: f32,
@@ -679,7 +802,7 @@ fn build_entry_left(
         .child(btn("▶").w(12.0 * sx).h(12.0 * sy).color(theme.nav)
             .on_click("next_page").id("next_page"));
 
-    let page_body = build_page(page, state.page, theme, bg_sprites, overlays, ox, body_oy, sx, sy);
+    let page_body = build_page(page, state.page, theme, recipes, bg_sprites, overlays, ox, body_oy, sx, sy);
 
     widget::panel(FlexDir::Column)
         .w(page_w).h(page_h)
@@ -697,8 +820,9 @@ fn build_entry_left(
 
 fn build_entries_right(
     book: &Book, state: &BookViewState, theme: &BookTheme,
-    page_w: f32, page_h: f32, _rx: f32, _py: f32,
+    page_w: f32, page_h: f32, rx: f32, py: f32,
     sx: f32, sy: f32,
+    overlays: &mut Vec<OverlayCmd>,
 ) -> widget::Widget {
     let entries  = state.entries_visible(book);
     let cat_name = book.categories.get(state.cat).map(|c| c.name.as_str()).unwrap_or("Entries");
@@ -710,7 +834,7 @@ fn build_entries_right(
     //   entries start at page-local y=20, each h=11
     let header_h   = 9.0 * sy;
     let row_h      = 11.0 * sy;
-    let icon_size  = 9.0 * sx.min(sy);
+    let icon_size  = 8.0 * sx.min(sy);
 
     let mut col = widget::panel(FlexDir::Column)
         .w(page_w).h(page_h)
@@ -730,17 +854,24 @@ fn build_entries_right(
         let bg    = if selected { theme.nav_selected_bg } else { 0 };
         let color = if selected { theme.nav_selected } else { theme.nav };
 
+        // Icon at page-local (1, 20 + i*11 + 1), 8×8 (Patchouli renders entry
+        // icons at 0.5× scale).
+        if let Some(icon_id) = &entry.icon {
+            overlays.push(OverlayCmd::McItem {
+                item_id: icon_id.clone(),
+                x: rx + 1.0 * sx,
+                y: py + (20.0 + i as f32 * 11.0 + 1.0) * sy,
+                w: icon_size, h: icon_size,
+            });
+        }
+
         let mut row = widget::panel(FlexDir::Row)
             .h(row_h).gap(2.0).bg(bg)
             .on_click(format!("entry:{}", abs_i))
             .id(format!("book_entry_{}", abs_i))
             .padding(1.0, 2.0, 1.0, 2.0);
 
-        if let Some(icon_id) = &entry.icon {
-            row = row.child(item_icon_widget(icon_id).w(icon_size).h(icon_size));
-        } else {
-            row = row.child(widget::spacer().w(icon_size));
-        }
+        row = row.child(widget::spacer().w(icon_size + 2.0));
         row = row.child(lbl(&entry.name).color(color).flex(1.0));
         col = col.child(row);
     }
@@ -761,20 +892,69 @@ fn build_entries_right(
     col
 }
 
-/// Bare 16×16 item icon widget from an item ID ("ns:item_name" or "ns:item/name").
-fn item_icon_widget(item_id: &str) -> widget::Widget {
-    // Normalize "ns:item/name" or "ns:block/name" → "ns:textures/item/name.png"
-    // Normalize "ns:name" → "ns:textures/item/name.png"
-    let tex = if let Some((ns, path)) = item_id.split_once(':') {
-        if path.starts_with("item/") || path.starts_with("block/") {
-            format!("{ns}:textures/{path}.png")
-        } else {
-            format!("{ns}:textures/item/{path}.png")
+/// Draw a Patchouli-style crafting recipe: title, 100×62 grid background
+/// (UV 0,0 on the crafting sheet), 3×N ingredient icons, output item.
+/// `rx0`/`ry` are body-local recipe origin; `ox`/`oy` the body screen origin.
+#[allow(clippy::too_many_arguments)]
+fn draw_crafting_grid(
+    theme: &BookTheme,
+    bg_sprites: &mut Vec<BgSprite>,
+    overlays: &mut Vec<OverlayCmd>,
+    col: &mut widget::Widget,
+    grid: &[Option<String>], width: usize,
+    output: &str, count: u32, shapeless: bool,
+    ox: f32, oy: f32, rx0: f32, ry: f32, sx: f32, sy: f32,
+) {
+    let mut c = std::mem::replace(col, widget::panel(FlexDir::Column));
+    c = c.child(lbl(pretty_item_name(output)).color(theme.title)
+        .h(10.0 * sy).align(Align::Center));
+
+    // Grid background: blit at (rx0-2, ry-2) size 100×62, UV(0,0).
+    bg_sprites.push(BgSprite {
+        sheet: SpriteSheet::Crafting,
+        u: 0.0, v: 0.0, uw: 100.0, uh: 62.0,
+        x: ox + (rx0 - 2.0) * sx, y: oy + (ry - 2.0) * sy,
+        w: 100.0 * sx, h: 62.0 * sy,
+    });
+    // Shapeless marker: UV(0,64) 11×11 at (rx0+62, ry+2).
+    if shapeless {
+        bg_sprites.push(BgSprite {
+            sheet: SpriteSheet::Crafting,
+            u: 0.0, v: 64.0, uw: 11.0, uh: 11.0,
+            x: ox + (rx0 + 62.0) * sx, y: oy + (ry + 2.0) * sy,
+            w: 11.0 * sx, h: 11.0 * sy,
+        });
+    }
+
+    let icon_s = 16.0 * sx.min(sy);
+    let width = width.max(1);
+    for (i, slot) in grid.iter().enumerate() {
+        if let Some(item) = slot {
+            overlays.push(OverlayCmd::McItem {
+                item_id: item.clone(),
+                x: ox + (rx0 + 3.0 + (i % width) as f32 * 19.0) * sx,
+                y: oy + (ry  + 3.0 + (i / width) as f32 * 19.0) * sy,
+                w: icon_s, h: icon_s,
+            });
         }
-    } else {
-        format!("minecraft:textures/item/{item_id}.png")
-    };
-    widget::mc_image(&tex, 16.0, 16.0)
+    }
+    // Output item at (rx0+79, ry+22); stack count below it when > 1.
+    overlays.push(OverlayCmd::McItem {
+        item_id: output.to_owned(),
+        x: ox + (rx0 + 79.0) * sx, y: oy + (ry + 22.0) * sy,
+        w: icon_s, h: icon_s,
+    });
+    if count > 1 {
+        overlays.push(OverlayCmd::McText {
+            text: format!("x{}", count),
+            x: ox + (rx0 + 81.0) * sx, y: oy + (ry + 40.0) * sy,
+            color: theme.title,
+        });
+    }
+
+    // Spacer from title end (10) to below the grid (ry+62+4).
+    c = c.child(widget::spacer().h((ry + 62.0 + 4.0 - 10.0) * sy));
+    *col = c;
 }
 
 // ── Page content builder ──────────────────────────────────────────────────────
@@ -786,6 +966,7 @@ fn build_page(
     page: Option<&BookPage>,
     page_num: usize,
     theme: &BookTheme,
+    recipes: &HashMap<String, RecipeVis>,
     bg_sprites: &mut Vec<BgSprite>,
     overlays: &mut Vec<OverlayCmd>,
     ox: f32, oy: f32,
@@ -825,42 +1006,34 @@ fn build_page(
         }
 
         BookPage::Spotlight { item, title, text } => {
-            // Crafting-box frame from crafting.png sprite sheet.
-            // Source: u=0, v=102 (=128-26), w=66, h=26 on 128×256 sheet.
-            // Destination (page-body-local): x = PAGE_W/2 - 33 = 25, y = 10.
-            let box_w   = 66.0 * sx;
-            let box_h   = 26.0 * sy;
-            let box_x   = ox + (PAGE_W / 2.0 - 33.0) * sx;
-            let box_y   = oy + 10.0 * sy;
+            // Patchouli PageSpotlight (page-body-local coordinates):
+            //   title at y=0 centered, item frame at (PAGE_W/2-33, 10) 66×26
+            //   (UV 0,102 on the 128×256 crafting sheet), item at (PAGE_W/2-8, 15),
+            //   text at y=40.
             bg_sprites.push(BgSprite {
                 sheet: SpriteSheet::Crafting,
                 u: 0.0, v: 102.0, uw: 66.0, uh: 26.0,
-                x: box_x, y: box_y, w: box_w, h: box_h,
+                x: ox + (PAGE_W / 2.0 - 33.0) * sx,
+                y: oy + 10.0 * sy,
+                w: 66.0 * sx, h: 26.0 * sy,
             });
 
-            // Item title above the box (page-body y=0).
             let item_name = title.as_deref()
                 .or(item.name.as_deref())
                 .unwrap_or(item.id.as_str());
             col = col.child(lbl(item_name).color(theme.title)
-                .h(10.0).align(Align::Center));
+                .h(10.0 * sy).align(Align::Center));
 
-            // Spacer to box top (y=10 book-local) minus title.
-            col = col.child(widget::spacer().h((10.0 * sy - 10.0 - 4.0).max(0.0)));
+            let icon_s = 16.0 * sx.min(sy);
+            overlays.push(OverlayCmd::McItem {
+                item_id: item.id.clone(),
+                x: ox + (PAGE_W / 2.0 - 8.0) * sx,
+                y: oy + 15.0 * sy,
+                w: icon_s, h: icon_s,
+            });
 
-            // Item icon centered in box (page-body y=15, x=PAGE_W/2-8).
-            let icon_size = 16.0 * sx.min(sy);
-            col = col.child(
-                widget::panel(FlexDir::Row).h(icon_size)
-                    .child(widget::spacer().flex(1.0))
-                    .child(item_icon_widget(&item.id).w(icon_size).h(icon_size))
-                    .child(widget::spacer().flex(1.0))
-            );
-
-            // Spacer for the rest of the box below the icon.
-            let icon_end = 15.0 * sy + icon_size;
-            let box_end  = 10.0 * sy + box_h;
-            col = col.child(widget::spacer().h((box_end - icon_end + 4.0).max(0.0)));
+            // Spacer from title end (y=10) to text start (y=40).
+            col = col.child(widget::spacer().h(30.0 * sy));
 
             if let Some(t) = text {
                 col = col.child(lbl(t.as_str()).color(theme.text));
@@ -868,18 +1041,65 @@ fn build_page(
         }
 
         BookPage::Crafting { recipe_id, text } => {
-            col = col.child(
-                lbl(format!("[Crafting: {}]", recipe_id)).color(theme.nav)
-            );
+            // Patchouli PageCrafting: recipe origin at page-local
+            // (PAGE_W/2-49, 4); we place it in body-local coords below a title.
+            let rx0 = PAGE_W / 2.0 - 49.0; // = 9
+            let ry  = 12.0;                // body-local recipe y (title occupies 0..10)
+            match recipes.get(recipe_id.as_str()) {
+                Some(RecipeVis::Shaped { grid, width, output, count })  => {
+                    draw_crafting_grid(theme, bg_sprites, overlays, &mut col,
+                        grid, *width, output, *count, false, ox, oy, rx0, ry, sx, sy);
+                }
+                Some(RecipeVis::Shapeless { ingredients, output, count }) => {
+                    let grid: Vec<Option<String>> =
+                        ingredients.iter().cloned().map(Some).collect();
+                    draw_crafting_grid(theme, bg_sprites, overlays, &mut col,
+                        &grid, 3, output, *count, true, ox, oy, rx0, ry, sx, sy);
+                }
+                _ => {
+                    col = col.child(lbl(format!("[Recipe: {}]", recipe_id))
+                        .color(theme.nav));
+                }
+            }
             if let Some(t) = text {
                 col = col.child(lbl(t.as_str()).color(theme.text));
             }
         }
 
         BookPage::Smelting { recipe_id, text } => {
-            col = col.child(
-                lbl(format!("[Smelting: {}]", recipe_id)).color(theme.nav)
-            );
+            // Patchouli PageSmelting: bg UV(11,71) 96×24, input at +4,+4,
+            // output at +76,+4.
+            let rx0 = PAGE_W / 2.0 - 49.0;
+            let ry  = 12.0;
+            match recipes.get(recipe_id.as_str()) {
+                Some(RecipeVis::Smelting { input, output }) => {
+                    col = col.child(lbl(pretty_item_name(output)).color(theme.title)
+                        .h(10.0 * sy).align(Align::Center));
+                    bg_sprites.push(BgSprite {
+                        sheet: SpriteSheet::Crafting,
+                        u: 11.0, v: 71.0, uw: 96.0, uh: 24.0,
+                        x: ox + rx0 * sx, y: oy + ry * sy,
+                        w: 96.0 * sx, h: 24.0 * sy,
+                    });
+                    let icon_s = 16.0 * sx.min(sy);
+                    overlays.push(OverlayCmd::McItem {
+                        item_id: input.clone(),
+                        x: ox + (rx0 + 4.0) * sx, y: oy + (ry + 4.0) * sy,
+                        w: icon_s, h: icon_s,
+                    });
+                    overlays.push(OverlayCmd::McItem {
+                        item_id: output.clone(),
+                        x: ox + (rx0 + 76.0) * sx, y: oy + (ry + 4.0) * sy,
+                        w: icon_s, h: icon_s,
+                    });
+                    // Spacer from title end (10) to below the furnace strip (ry+24+4).
+                    col = col.child(widget::spacer().h((ry + 24.0 + 4.0 - 10.0) * sy));
+                }
+                _ => {
+                    col = col.child(lbl(format!("[Recipe: {}]", recipe_id))
+                        .color(theme.nav));
+                }
+            }
             if let Some(t) = text {
                 col = col.child(lbl(t.as_str()).color(theme.text));
             }

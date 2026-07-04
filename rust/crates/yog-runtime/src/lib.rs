@@ -1370,11 +1370,15 @@ unsafe extern "C" fn api_register_typed_command(ctx: *mut c_void, name: YogStr, 
 
 unsafe extern "C" fn api_register_recipe_json(ctx: *mut c_void, namespace: YogStr, name: YogStr, json: YogStr) {
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
-    handlers.recipes.push((
-        namespace.as_str().to_owned(),
-        name.as_str().to_owned(),
-        json.as_str().to_owned(),
-    ));
+    let ns = namespace.as_str().to_owned();
+    let n  = name.as_str().to_owned();
+    let j  = json.as_str().to_owned();
+    // Feed the recipe to already-registered book renderers (crafting pages).
+    let full_id = format!("{}:{}", ns, n);
+    for r in handlers.book_renderers.lock().unwrap().values_mut() {
+        r.add_recipe(full_id.clone(), &j);
+    }
+    handlers.recipes.push((ns, n, j));
 }
 
 unsafe extern "C" fn api_register_item(ctx: *mut c_void, def: *const YogItemDef) {
@@ -1447,8 +1451,12 @@ unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_j
     handlers.books.insert(id.clone(), json.clone());
     // Parse JSON → Book → BookRenderer so rendering works without Java round-trip.
     if let Ok(book) = serde_json::from_str::<yog_book::Book>(&json) {
-        handlers.book_renderers.lock().unwrap()
-            .insert(id, yog_book::BookRenderer::new(book));
+        let mut renderer = yog_book::BookRenderer::new(book);
+        // Recipes may register before the book — replay them into the renderer.
+        for (ns, name, j) in &handlers.recipes {
+            renderer.add_recipe(format!("{}:{}", ns, name), j);
+        }
+        handlers.book_renderers.lock().unwrap().insert(id, renderer);
     } else {
         yog_logging::warn!("book '{}': failed to parse JSON for Rust renderer", id);
     }

@@ -57,8 +57,11 @@ public final class NativeDraw {
     public static int getMcTextureId(String id) {
         Identifier ident = Identifier.tryParse(id);
         if (ident == null) return 0;
-        AbstractTexture tex = MinecraftClient.getInstance()
-                .getTextureManager().getTexture(ident);
+        MinecraftClient mc = MinecraftClient.getInstance();
+        // Missing resources resolve to the checkerboard texture; report 0 instead
+        // so callers can try alternative paths (e.g. item/ vs block/ textures).
+        if (mc.getResourceManager().getResource(ident).isEmpty()) return 0;
+        AbstractTexture tex = mc.getTextureManager().getTexture(ident);
         return tex != null ? tex.getGlId() : 0;
     }
 }

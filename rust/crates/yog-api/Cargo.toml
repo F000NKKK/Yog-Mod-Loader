@@ -23,4 +23,4 @@ yog-storage = "0.1"
 yog-config  = "0.1"
 yog-gfx     = "0.5"
 yog-ui      = "0.12"
-yog-book = { path = "../yog-book", version = "0.22" }
+yog-book = { path = "../yog-book", version = "0.23" }
