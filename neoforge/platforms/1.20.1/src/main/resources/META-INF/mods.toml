@@ -14,17 +14,19 @@ The Gate and the Key between Java and Rust worlds.
 '''
 logoFile = ""
 
-# The 1.20.1-line NeoForge keeps the legacy "forge" mod container id.
+# The 1.20.1-line NeoForge keeps the legacy "forge" mod container id, and
+# its FML uses the legacy `mandatory` dependency field (the `type` field is
+# NeoForge 1.20.5+ syntax).
 [[dependencies.yog]]
     modId = "forge"
-    type = "required"
+    mandatory = true
     versionRange = "[47.1,)"
     ordering = "NONE"
     side = "BOTH"
 
 [[dependencies.yog]]
     modId = "minecraft"
-    type = "required"
+    mandatory = true
     versionRange = "[1.20.1,1.21)"
     ordering = "NONE"
     side = "BOTH"

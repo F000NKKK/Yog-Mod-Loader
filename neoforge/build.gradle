@@ -15,6 +15,13 @@ def versionProps = new Properties()
 file("versions/${project.minecraft_version}.properties").withInputStream { versionProps.load(it) }
 versionProps.each { k, v -> if (!project.hasProperty(k)) project.ext[k] = v }
 
+// Scaffolded platforms have build plumbing but unported sources — fail fast
+// with a clear message instead of a wall of compile errors.
+if (project.ext.has('status') && project.status == 'scaffold' && !project.hasProperty('allowScaffold')) {
+    throw new GradleException("Platform ${project.minecraft_version} is scaffolded: host/mixin sources are not ported yet. " +
+        "Use a ported platform (see versions/*.properties) or pass -PallowScaffold to try anyway.")
+}
+
 // The mod version lives in one place for all loaders: ../version.properties.
 def rootVersion = new Properties()
 file("../version.properties").withInputStream { rootVersion.load(it) }

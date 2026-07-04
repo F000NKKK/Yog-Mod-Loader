@@ -4,8 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Implemented loaders. Add 'forge' here when its host lands.
-LOADERS=(fabric neoforge)
+LOADERS=(fabric neoforge forge)
 
 # The active MC platform for each loader is set by minecraft_version inside
 # <loader>/gradle.properties; build.sh does not need to know it separately.
@@ -103,27 +102,40 @@ require_loader() {
     fi
 }
 
-# Find a JDK 17 for the Gradle daemon (Gradle 8.8 can't run on Java 23+).
-find_java17() {
-    if [ -n "${YOG_JAVA17_HOME:-}" ] && [ -x "${YOG_JAVA17_HOME}/bin/java" ]; then
-        echo "$YOG_JAVA17_HOME"; return 0
+# Find a JDK of the requested major version for the Gradle daemon.
+# (Loom/FG require the daemon itself to run on the MC-matching Java.)
+find_java() {
+    local ver="$1"
+    local envvar="YOG_JAVA${ver}_HOME"
+    local from_env="${!envvar:-}"
+    if [ -n "$from_env" ] && [ -x "$from_env/bin/java" ]; then
+        echo "$from_env"; return 0
     fi
-    for d in /usr/lib/jvm/java-17-openjdk-amd64 \
-             /usr/lib/jvm/java-1.17.0-openjdk-amd64 \
-             /usr/lib/jvm/openjdk-17 \
-             "$HOME"/.sdkman/candidates/java/17*; do
+    for d in /usr/lib/jvm/java-"$ver"-openjdk-amd64 \
+             /usr/lib/jvm/java-1."$ver".0-openjdk-amd64 \
+             /usr/lib/jvm/openjdk-"$ver" \
+             "$HOME"/.sdkman/candidates/java/"$ver"*; do
         [ -x "$d/bin/java" ] && { echo "$d"; return 0; }
     done
     return 1
 }
 
-# Run a gradle task inside a loader dir on JDK 17 (the daemon JVM; the
-# compile toolchain per MC version is resolved by Gradle itself).
+# Java major version required by the loader's active MC platform
+# (java_version in <loader>/versions/<mc>.properties; default 17).
+java_for() {
+    local loader="$1"
+    local mc="${MC_VERSION:-$(grep '^minecraft_version=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)}"
+    local vf="$ROOT/$loader/versions/$mc.properties"
+    [ -f "$vf" ] && grep '^java_version=' "$vf" | cut -d= -f2 || echo 17
+}
+
+# Run a gradle task inside a loader dir on the platform-matching JDK.
 gradle_in() {
     local dir="$1"; shift
-    local jh extra=()
-    find_java17 >/dev/null || die "JDK 17 not found (set YOG_JAVA17_HOME=/path/to/jdk17)"
-    jh="$(find_java17)"
+    local jv jh extra=()
+    jv="$(java_for "$dir")"
+    find_java "$jv" >/dev/null || die "JDK $jv not found (set YOG_JAVA${jv}_HOME=/path/to/jdk$jv)"
+    jh="$(find_java "$jv")"
     [ -n "$MC_VERSION" ] && extra+=("-Pminecraft_version=$MC_VERSION")
     ( cd "$ROOT/$dir" && JAVA_HOME="$jh" ./gradlew "${extra[@]}" "$@" )
 }
@@ -174,6 +186,8 @@ build_rust() {
             local src="$ROOT/rust/target/$triple/$(cargo_profile_dir)/$(runtime_lib_for_os "$os")"
             if [ -f "$src" ]; then
                 for l in "${LOADERS[@]}"; do
+                    # forge shares neoforge's resource tree (see forge/build.gradle).
+                    [ "$l" = "forge" ] && continue
                     mkdir -p "$ROOT/$l/src/main/resources/natives/$tag"
                     cp "$src" "$ROOT/$l/src/main/resources/natives/$tag/"
                 done
