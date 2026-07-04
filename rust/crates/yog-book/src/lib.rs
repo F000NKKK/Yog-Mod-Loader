@@ -27,9 +27,11 @@ pub struct BookMacro(pub String, pub String);
 
 /// A single page variant inside a book entry.
 ///
-/// Serialized internally-tagged (`{"type": "Text", ...}`) — the stable wire
-/// format used across the mod ↔ runtime JSON boundary (like Patchouli's
-/// per-page "type" field).
+/// The wire format (mod ↔ runtime JSON boundary, produced by
+/// [`BookPage::to_json`]) is internally tagged with snake_case names —
+/// `{"type": "spotlight", "item": "yog:ruby", ...}` — like Patchouli's
+/// per-page "type" field. The serde attributes below keep `Deserialize`
+/// in exact agreement with `to_json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum BookPage {
@@ -41,36 +43,52 @@ pub enum BookPage {
     },
     /// Display an item outlined (tooltip on hover).
     Spotlight {
+        /// On the wire this is the item id string ("yog:ruby"); rich
+        /// `ItemDef` maps are accepted too.
+        #[serde(with = "item_ref")]
         item: ItemDef,
+        #[serde(default)]
         title: Option<String>,
+        #[serde(default)]
         text: Option<String>,
     },
     /// Crafting recipe display (autorenders 3×3 grid).
     Crafting {
+        #[serde(rename = "recipe", alias = "recipe_id")]
         recipe_id: String,
+        #[serde(default)]
         text: Option<String>,
     },
     /// Smelting recipe display.
     Smelting {
+        #[serde(rename = "recipe", alias = "recipe_id")]
         recipe_id: String,
+        #[serde(default)]
         text: Option<String>,
     },
     /// Image overlay page.
     Image {
         texture: String,
+        #[serde(default)]
         title: Option<String>,
+        #[serde(default)]
         text: Option<String>,
+        #[serde(default)]
         border: bool,
     },
     /// Entity display page (renders a living entity in a box).
     Entity {
+        #[serde(rename = "entity", alias = "entity_type")]
         entity_type: String,
+        #[serde(default)]
         name: Option<String>,
+        #[serde(default)]
         text: Option<String>,
     },
     /// Link to another entry (like Patchouli's relations).
     Relations {
         entries: Vec<String>,
+        #[serde(default)]
         text: Option<String>,
     },
     /// Empty separator.
@@ -78,25 +96,57 @@ pub enum BookPage {
     /// Custom pattern page for Hexcasting-style mods (like `hexcasting:pattern`).
     Pattern {
         op_id: String,
+        #[serde(default)]
         anchor: String,
+        #[serde(default)]
         input: String,
+        #[serde(default)]
         output: String,
+        #[serde(default)]
         text: String,
     },
     /// SVG image page — rasterized at render time via `resvg`.
     Svg {
         /// Raw SVG source string.
         data:  String,
+        #[serde(default)]
         title: Option<String>,
+        #[serde(default)]
         text:  Option<String>,
     },
     /// Text rendered with a custom TTF/OTF font.
     CustomText {
         text:  String,
+        /// Flattened on the wire: `"font_id": …, "size_px": …`.
+        #[serde(flatten)]
         font:  BookFont,
         /// ARGB color (0xAARRGGBB).
         color: u32,
     },
+}
+
+/// (De)serialize `ItemDef` as a plain item-id string ("yog:ruby"), accepting
+/// a full `ItemDef` map on input for richer definitions.
+mod item_ref {
+    use serde::{Deserialize, Deserializer, Serializer};
+    use yog_registry::ItemDef;
+
+    pub fn serialize<S: Serializer>(item: &ItemDef, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&item.id)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<ItemDef, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Repr {
+            Id(String),
+            Def(ItemDef),
+        }
+        Ok(match Repr::deserialize(d)? {
+            Repr::Id(id) => ItemDef::new(id),
+            Repr::Def(def) => def,
+        })
+    }
 }
 
 // ── Category ─────────────────────────────────────────────────────────────────
@@ -534,5 +584,52 @@ impl Book {
             self.show_progress, self.i18n, self.use_resource_pack,
             cats, entries, author, tab
         )
+    }
+}
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod wire_format_tests {
+    use super::*;
+
+    /// The hand-written `to_json` wire format must stay parseable by the
+    /// serde `Deserialize` impls (runtime side of the mod ↔ runtime boundary).
+    #[test]
+    fn book_to_json_roundtrips_through_serde() {
+        let book = Book::new("yog:test", "Test Book")
+            .author("Tester")
+            .landing_text("hello")
+            .add_category(BookCategory {
+                id: "c1".into(), name: "Cat".into(),
+                description: Some("d".into()),
+                icon: Some("yog:item/ruby".into()), icon_svg: None, sortnum: 0,
+            })
+            .add_entry(BookEntry {
+                id: "e1".into(), name: "Entry".into(), category: "c1".into(),
+                pages: vec![
+                    text_page("plain"),
+                    spotlight_page(yog_registry::ItemDef::new("yog:ruby")),
+                    crafting_page("yog:r1"),
+                    smelting_page("yog:r2"),
+                    BookPage::Empty,
+                ],
+                icon: Some("yog:ruby".into()), icon_svg: None,
+                secret: false, priority: 0, read_by_default: false, advancement: None,
+            });
+
+        let json = book.to_json();
+        let parsed: Book = serde_json::from_str(&json)
+            .unwrap_or_else(|e| panic!("wire JSON failed to parse: {e}\njson: {json}"));
+        assert_eq!(parsed.id, "yog:test");
+        assert_eq!(parsed.entries.len(), 1);
+        assert_eq!(parsed.entries[0].pages.len(), 5);
+        match &parsed.entries[0].pages[1] {
+            BookPage::Spotlight { item, .. } => assert_eq!(item.id, "yog:ruby"),
+            p => panic!("expected spotlight, got {p:?}"),
+        }
+        match &parsed.entries[0].pages[2] {
+            BookPage::Crafting { recipe_id, .. } => assert_eq!(recipe_id, "yog:r1"),
+            p => panic!("expected crafting, got {p:?}"),
+        }
     }
 }
