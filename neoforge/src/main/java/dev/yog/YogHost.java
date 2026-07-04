@@ -8,58 +8,57 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.command.argument.BlockPosArgumentType;
-import net.minecraft.command.argument.EntityArgumentType;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.fml.LogicalSide;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.entity.living.LivingEvent;
-import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.level.BlockEvent;
-import net.neoforged.neoforge.event.ServerChatEvent;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlerEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
-
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.CreativeModeTab;
-import net.minecraft.item.FoodProperties;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.sounds.BlockSoundGroup;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.network.chat.Component;
-import net.minecraft.core.BlockPos;
+import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.AddPackFindersEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.ServerChatEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.RegisterEvent;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 /**
  * NeoForge entry point. Boots the native Yog runtime and forwards events
@@ -71,39 +70,201 @@ public class YogHost {
     private static final java.util.concurrent.ConcurrentHashMap<String, String[]> PENDING_JOINS =
             new java.util.concurrent.ConcurrentHashMap<>();
 
-    public YogHost(IEventBus modBus) {
+    /** Item → burn time in ticks for mod-registered fuels. */
+    private static final Map<Item, Integer> FUEL = new HashMap<>();
+
+    // Parsed content defs, shared between RegisterEvent phases.
+    private final Map<ResourceLocation, Block> registeredBlocks = new LinkedHashMap<>();
+    private final Map<String, List<ItemLike>> tabGroups = new LinkedHashMap<>();
+
+    public YogHost() {
         NativeBridge.ensureLoaded();
         System.out.println("[yog] NeoForge host initialised.");
 
-        // Register mod-declared content now, before the registries freeze.
-        registerContent();
+        var modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modBus.addListener(this::onRegister);
+        modBus.addListener(this::onAddPackFinders);
 
-        // Register event handlers on the Forge event bus
-        NeoForge.EVENT_BUS.register(this);
+        MinecraftForge.EVENT_BUS.register(this);
+    }
+
+    // ── Content registration (mod bus) ───────────────────────────────────────
+
+    private void onRegister(RegisterEvent event) {
+        if (event.getRegistryKey().equals(Registries.BLOCK)) {
+            registerBlocks(event);
+        } else if (event.getRegistryKey().equals(Registries.ITEM)) {
+            registerItems(event);
+        } else if (event.getRegistryKey().equals(Registries.CREATIVE_MODE_TAB)) {
+            registerTabs(event);
+        }
+    }
+
+    private void onAddPackFinders(AddPackFindersEvent event) {
+        event.addRepositorySource(new YogPackProvider(event.getPackType()));
+    }
+
+    private void registerBlocks(RegisterEvent event) {
+        String blocks = NativeBridge.nativeBlockDefs();
+        if (blocks == null) return;
+        for (String line : blocks.split("\n")) {
+            if (line.isBlank()) continue;
+            String id = line.split("\t", 2)[0];
+            ResourceLocation ident = ResourceLocation.tryParse(id);
+            if (ident == null) continue;
+
+            Map<String, String> p = parseProps(line);
+            float hardness   = parseFloat(p, "hardness", 1.5f);
+            float resistance = parseFloat(p, "resistance", 6.0f);
+
+            BlockBehaviour.Properties props = BlockBehaviour.Properties.of()
+                    .strength(hardness, resistance);
+
+            if (p.containsKey("light")) {
+                int lv = parseInt(p, "light", 0);
+                props = props.lightLevel(state -> lv);
+            }
+            if (p.containsKey("sound")) {
+                props = props.sound(soundType(p.get("sound")));
+            }
+            if ("1".equals(p.get("requires_tool"))) props = props.requiresCorrectToolForDrops();
+            if ("1".equals(p.get("no_collision"))) props = props.noCollission();
+            if (p.containsKey("slipperiness")) {
+                props = props.friction(parseFloat(p, "slipperiness", 0.6f));
+            }
+
+            Block block;
+            if (p.containsKey("shape")) {
+                String[] sp = p.get("shape").split(":", 6);
+                block = new YogShapedBlock(props,
+                        Double.parseDouble(sp[0]), Double.parseDouble(sp[1]),
+                        Double.parseDouble(sp[2]), Double.parseDouble(sp[3]),
+                        Double.parseDouble(sp[4]), Double.parseDouble(sp[5]));
+            } else {
+                block = new Block(props);
+            }
+
+            event.register(Registries.BLOCK, ident, () -> block);
+            registeredBlocks.put(ident, block);
+        }
+    }
+
+    private void registerItems(RegisterEvent event) {
+        String items = NativeBridge.nativeItemDefs();
+        if (items != null) {
+            for (String line : items.split("\n")) {
+                if (line.isBlank()) continue;
+                String id = line.split("\t", 2)[0];
+                ResourceLocation ident = ResourceLocation.tryParse(id);
+                if (ident == null) continue;
+
+                Map<String, String> p = parseProps(line);
+                Item.Properties props = new Item.Properties();
+
+                int maxDamage = parseInt(p, "max_damage", 0);
+                if (maxDamage > 0) {
+                    props = props.durability(maxDamage);
+                } else {
+                    props = props.stacksTo(parseInt(p, "max_stack", 64));
+                }
+
+                if ("1".equals(p.get("fire_resistant"))) props = props.fireResistant();
+
+                if (p.containsKey("food")) {
+                    String[] fp = p.get("food").split(":", 3);
+                    if (fp.length >= 2) {
+                        FoodProperties.Builder fb = new FoodProperties.Builder()
+                                .nutrition(Integer.parseInt(fp[0]))
+                                .saturationMod(Float.parseFloat(fp[1]));
+                        if ("1".equals(fp.length > 2 ? fp[2] : "0"))
+                            fb = fb.alwaysEat();
+                        props = props.food(fb.build());
+                    }
+                }
+
+                String bookJson = NativeBridge.nativeBookJson(id);
+                Item item;
+                if (bookJson != null && !bookJson.equals("null")) {
+                    item = new YogBookItem(props,
+                            p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""), id);
+                } else {
+                    item = new YogItem(props,
+                            p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""));
+                }
+                event.register(Registries.ITEM, ident, () -> item);
+                tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(item);
+
+                int fuelTicks = parseInt(p, "fuel_ticks", 0);
+                if (fuelTicks > 0) FUEL.put(item, fuelTicks);
+            }
+        }
+
+        // Block items for blocks registered in the BLOCK phase.
+        String blocks = NativeBridge.nativeBlockDefs();
+        if (blocks != null) {
+            for (String line : blocks.split("\n")) {
+                if (line.isBlank()) continue;
+                String id = line.split("\t", 2)[0];
+                ResourceLocation ident = ResourceLocation.tryParse(id);
+                Block block = ident == null ? null : registeredBlocks.get(ident);
+                if (block == null) continue;
+
+                Map<String, String> p = parseProps(line);
+                Item blockItem = new YogBlockItem(block, new Item.Properties(),
+                        p.getOrDefault("name", ""));
+                event.register(Registries.ITEM, ident, () -> blockItem);
+                tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(blockItem);
+            }
+        }
+    }
+
+    private void registerTabs(RegisterEvent event) {
+        for (Map.Entry<String, List<ItemLike>> entry : tabGroups.entrySet()) {
+            String ns = entry.getKey();
+            List<ItemLike> entries = entry.getValue();
+            if (entries.isEmpty()) continue;
+
+            ItemLike icon = entries.get(0);
+            CreativeModeTab tab = CreativeModeTab.builder()
+                    .icon(() -> new ItemStack(icon))
+                    .title(Component.literal(ns))
+                    .displayItems((params, output) -> entries.forEach(output::accept))
+                    .build();
+            event.register(Registries.CREATIVE_MODE_TAB, new ResourceLocation(ns, ns), () -> tab);
+        }
+    }
+
+    // ── Fuel burn time (mod-registered fuels) ────────────────────────────────
+
+    @net.minecraftforge.eventbus.api.SubscribeEvent
+    public void onFuelBurnTime(FurnaceFuelBurnTimeEvent event) {
+        Integer ticks = FUEL.get(event.getItemStack().getItem());
+        if (ticks != null) event.setBurnTime(ticks);
     }
 
     // ── Server lifecycle ─────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onServerStarted(ServerStartedEvent event) {
         NativeBridge.setServer(event.getServer());
         String worldDir = event.getServer()
-                .getSavePath(net.minecraft.util.WorldSavePath.ROOT)
+                .getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT)
                 .toAbsolutePath().toString();
         NativeBridge.nativeOnServerStarted(worldDir);
     }
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onServerStopping(ServerStoppingEvent event) {
         NativeBridge.nativeOnServerStopping();
     }
 
     // ── Server tick ──────────────────────────────────────────────────────────
 
-    @SubscribeEvent
-    public void onServerTick(ServerTickEvent event) {
-        if (event.phase != ServerTickEvent.Phase.END) return;
-        MinecraftServer server = event.getServer();
+    @net.minecraftforge.eventbus.api.SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return;
 
         // Resolve pending player joins
         if (!PENDING_JOINS.isEmpty()) {
@@ -130,10 +291,9 @@ public class YogHost {
 
     // ── Commands ─────────────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
         var dispatcher = event.getDispatcher();
-        var registryAccess = event.getBuildContext();
 
         // Typed commands
         java.util.Map<String, String> typedSchemas = new java.util.HashMap<>();
@@ -156,19 +316,19 @@ public class YogHost {
         if (names == null || names.isBlank()) return;
         for (String name : names.split("\n")) {
             if (name.isBlank() || typedSchemas.containsKey(name)) continue;
-            dispatcher.register(CommandManager.literal(name)
+            dispatcher.register(Commands.literal(name)
                     .executes(ctx -> runCommand(name, "", ctx))
-                    .then(CommandManager.argument("args", StringArgumentType.greedyString())
+                    .then(Commands.argument("args", StringArgumentType.greedyString())
                             .executes(ctx -> runCommand(name, StringArgumentType.getString(ctx, "args"), ctx))));
         }
     }
 
     // ── Block break ──────────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onBlockBreak(BlockEvent.BreakEvent event) {
-        ServerPlayer player = (ServerPlayer) event.getPlayer();
-        String blockId = Registries.BLOCK.getKey(event.getState().getBlock()).toString();
+        if (!(event.getPlayer() instanceof ServerPlayer player)) return;
+        String blockId = BuiltInRegistries.BLOCK.getKey(event.getState().getBlock()).toString();
         if (!NativeBridge.nativeOnBlockBreakPre(
                 player.getName().getString(), blockId,
                 event.getPos().getX(), event.getPos().getY(), event.getPos().getZ())) {
@@ -182,7 +342,7 @@ public class YogHost {
 
     // ── Chat ─────────────────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onChat(ServerChatEvent event) {
         String playerName = event.getPlayer().getName().getString();
         String message = event.getMessage().getString();
@@ -195,17 +355,17 @@ public class YogHost {
 
     // ── Player join / leave ──────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
-        ServerPlayer player = (ServerPlayer) event.getEntity();
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
         String pUuid = player.getStringUUID();
         String pName = player.getName().getString();
         PENDING_JOINS.put(pUuid, new String[]{pName, "40"});
     }
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
-        ServerPlayer player = (ServerPlayer) event.getEntity();
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
         String pUuid = player.getStringUUID();
         PENDING_JOINS.remove(pUuid);
         NativeBridge.nativeOnPlayerLeave(player.getName().getString(), pUuid);
@@ -213,23 +373,23 @@ public class YogHost {
 
     // ── Right-click item ─────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
         if (event.getSide() != LogicalSide.SERVER) return;
-        ServerPlayer sp = (ServerPlayer) event.getEntity();
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         ItemStack stack = sp.getItemInHand(event.getHand());
-        String itemId = Registries.ITEM.getKey(stack.getItem()).toString();
+        String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
         NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId);
     }
 
     // ── Right-click block ────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (event.getSide() != LogicalSide.SERVER) return;
-        ServerPlayer sp = (ServerPlayer) event.getEntity();
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         BlockPos pos = event.getPos();
-        String blockId = Registries.BLOCK.getKey(sp.level().getBlockState(pos).getBlock()).toString();
+        String blockId = BuiltInRegistries.BLOCK.getKey(sp.level().getBlockState(pos).getBlock()).toString();
         NativeBridge.nativeOnUseBlock(sp.getName().getString(), blockId,
                 pos.getX(), pos.getY(), pos.getZ());
 
@@ -237,7 +397,7 @@ public class YogHost {
         ItemStack held = sp.getItemInHand(event.getHand());
         if (held.getItem() instanceof BlockItem bi) {
             BlockPos placed = pos.relative(event.getFace());
-            String bid = Registries.BLOCK.getKey(bi.getBlock()).toString();
+            String bid = BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
             if (!NativeBridge.nativeOnPlaceBlockPre(
                     sp.getName().getString(), bid, placed.getX(), placed.getY(), placed.getZ())) {
                 event.setCanceled(true);
@@ -247,14 +407,14 @@ public class YogHost {
 
     // ── Entity interact ──────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (event.getSide() != LogicalSide.SERVER) return;
-        ServerPlayer sp = (ServerPlayer) event.getEntity();
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         Entity target = event.getTarget();
         String pName = sp.getName().getString();
         String pUuid = sp.getStringUUID();
-        String eType = Registries.ENTITY_TYPE.getKey(target.getType()).toString();
+        String eType = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString();
         String eUuid = target.getStringUUID();
         String handStr = event.getHand() == InteractionHand.MAIN_HAND ? "main_hand" : "off_hand";
         if (!NativeBridge.nativeOnEntityInteractPre(pName, pUuid, eType, eUuid, handStr)) {
@@ -266,23 +426,34 @@ public class YogHost {
 
     // ── Attack entity ────────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onAttackEntity(AttackEntityEvent event) {
         if (event.getEntity().level().isClientSide) return;
-        ServerPlayer sp = (ServerPlayer) event.getEntity();
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         Entity target = event.getTarget();
-        String type = Registries.ENTITY_TYPE.getKey(target.getType()).toString();
+        String type = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString();
         NativeBridge.nativeOnAttackEntity(sp.getName().getString(), type, target.getStringUUID());
     }
 
-    // ── Entity damage ───────────────────────────────────────────────────────
+    // ── Entity damage / player death ─────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onLivingDamage(LivingDamageEvent event) {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
-        String type = Registries.ENTITY_TYPE.getKey(entity.getType()).toString();
         String source = event.getSource().getMsgId();
+
+        if (entity instanceof ServerPlayer sp && sp.getHealth() - event.getAmount() <= 0.0f) {
+            // Damage that would kill the player — Pre (cancellable).
+            boolean allow = NativeBridge.nativeOnPlayerDeathPre(
+                    sp.getName().getString(), sp.getStringUUID(), source);
+            if (!allow) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+
+        String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         if (!NativeBridge.nativeOnEntityDamagePre(
                 type, entity.getStringUUID(), event.getAmount(), source)) {
             event.setCanceled(true);
@@ -294,11 +465,11 @@ public class YogHost {
 
     // ── Entity spawn ────────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onEntityJoinLevel(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide()) return;
         Entity entity = event.getEntity();
-        String type = Registries.ENTITY_TYPE.getKey(entity.getType()).toString();
+        String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         String uuid = entity.getStringUUID();
         String dim = event.getLevel().dimension().location().toString();
         if (!NativeBridge.nativeOnEntitySpawnPre(type, uuid, dim)) {
@@ -308,47 +479,33 @@ public class YogHost {
         NativeBridge.nativeOnEntitySpawn(type, uuid, dim);
     }
 
-    // ── Entity death ────────────────────────────────────────────────────────
+    // ── Entity / player death ────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
-        if (entity instanceof ServerPlayer) return; // handled below
-        String type = Registries.ENTITY_TYPE.getKey(entity.getType()).toString();
-        NativeBridge.nativeOnEntityDeath(type, entity.getStringUUID(), event.getSource().getMsgId());
-    }
-
-    // ── Player death ────────────────────────────────────────────────────────
-
-    @SubscribeEvent
-    public void onLivingDamage_PlayerDeath(LivingDamageEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        if (event.getEntity().level().isClientSide) return;
         String source = event.getSource().getMsgId();
-        boolean allow = NativeBridge.nativeOnPlayerDeathPre(
-                sp.getName().getString(), sp.getStringUUID(), source);
-        if (!allow) {
-            sp.setHealth(0.5f); // prevent death as expected by ABI
-            event.setCanceled(true);
+        if (entity instanceof ServerPlayer sp) {
+            NativeBridge.nativeOnPlayerDeath(
+                    sp.getName().getString(), sp.getStringUUID(), source);
             return;
         }
-        // Post is fire-and-forget; actual death still happens.
-        NativeBridge.nativeOnPlayerDeath(
-                sp.getName().getString(), sp.getStringUUID(), source);
+        String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
+        NativeBridge.nativeOnEntityDeath(type, entity.getStringUUID(), source);
     }
 
     // ── Player respawn ───────────────────────────────────────────────────────
 
-    @SubscribeEvent
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
-        ServerPlayer sp = (ServerPlayer) event.getEntity();
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         if (event.isEndConquered()) return; // dimension-change respawn, not death
         NativeBridge.nativeOnPlayerRespawn(
                 sp.getName().getString(), sp.getStringUUID(), false);
     }
 
-    // ── Content registration helpers ────────────────────────────────────────
+    // ── helpers ──────────────────────────────────────────────────────────────
 
     private static Map<String, String> parseProps(String line) {
         String[] parts = line.split("\t", -1);
@@ -358,125 +515,6 @@ public class YogHost {
             if (eq > 0) props.put(parts[i].substring(0, eq), parts[i].substring(eq + 1));
         }
         return props;
-    }
-
-    private static void registerContent() {
-        Map<String, List<net.minecraft.world.level.ItemLike>> tabGroups = new LinkedHashMap<>();
-
-        String items = NativeBridge.nativeItemDefs();
-        if (items != null) {
-            for (String line : items.split("\n")) {
-                if (line.isBlank()) continue;
-                String id = line.split("\t", 2)[0];
-                ResourceLocation ident = ResourceLocation.tryParse(id);
-                if (ident == null) continue;
-
-                Map<String, String> p = parseProps(line);
-                Item.Properties settings = new Item.Properties();
-
-                int maxDamage = parseInt(p, "max_damage", 0);
-                if (maxDamage > 0) {
-                    settings = settings.durability(maxDamage);
-                } else {
-                    settings = settings.stacksTo(parseInt(p, "max_stack", 64));
-                }
-
-                if ("1".equals(p.get("fire_resistant"))) settings = settings.fireResistant();
-
-                if (p.containsKey("food")) {
-                    String[] fp = p.get("food").split(":", 3);
-                    if (fp.length >= 2) {
-                        FoodProperties.Builder fb = new FoodProperties.Builder()
-                                .nutrition(Integer.parseInt(fp[0]))
-                                .saturationMod(Float.parseFloat(fp[1]));
-                        if ("1".equals(fp.length > 2 ? fp[2] : "0"))
-                            fb = fb.alwaysEat();
-                        settings = settings.food(fb.build());
-                    }
-                }
-
-                String bookJson = NativeBridge.nativeBookJson(id);
-                Item item;
-                if (bookJson != null && !bookJson.equals("null")) {
-                    item = new YogBookItem(settings,
-                            p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""), id);
-                } else {
-                    item = new YogItem(settings,
-                            p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""));
-                }
-                Registry.register(Registries.ITEM, ident, item);
-                tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(item);
-
-                int fuelTicks = parseInt(p, "fuel_ticks", 0);
-                if (fuelTicks > 0) {
-                    net.neoforged.neoforge.common.extensions.IItemExtension ext =
-                            (net.neoforged.neoforge.common.extensions.IItemExtension) item;
-                    net.neoforged.neoforge.common.extensions.IItemExtension.getBurnTime(item.getDefaultInstance(), null);
-                }
-            }
-        }
-
-        String blocks = NativeBridge.nativeBlockDefs();
-        if (blocks != null) {
-            for (String line : blocks.split("\n")) {
-                if (line.isBlank()) continue;
-                String id = line.split("\t", 2)[0];
-                ResourceLocation ident = ResourceLocation.tryParse(id);
-                if (ident == null) continue;
-
-                Map<String, String> p = parseProps(line);
-                float hardness = parseFloat(p, "hardness", 1.5f);
-                float resistance = parseFloat(p, "resistance", 6.0f);
-
-                AbstractBlock.Properties settings = AbstractBlock.Properties.of()
-                        .strength(hardness, resistance);
-
-                if (p.containsKey("light")) {
-                    int lv = parseInt(p, "light", 0);
-                    settings = settings.lightLevel(state -> lv);
-                }
-                if (p.containsKey("sound")) {
-                    settings = settings.sound(blockSoundGroup(p.get("sound")));
-                }
-                if ("1".equals(p.get("requires_tool"))) settings = settings.requiresCorrectToolForDrops();
-                if ("1".equals(p.get("no_collision"))) settings = settings.noCollission();
-                if (p.containsKey("slipperiness")) {
-                    settings = settings.friction(parseFloat(p, "slipperiness", 0.6f));
-                }
-
-                Block block;
-                if (p.containsKey("shape")) {
-                    String[] sp = p.get("shape").split(":", 6);
-                    block = new YogShapedBlock(settings,
-                            Double.parseDouble(sp[0]), Double.parseDouble(sp[1]),
-                            Double.parseDouble(sp[2]), Double.parseDouble(sp[3]),
-                            Double.parseDouble(sp[4]), Double.parseDouble(sp[5]));
-                } else {
-                    block = new Block(settings);
-                }
-
-                Registry.register(Registries.BLOCK, ident, block);
-                Item blockItem = new YogBlockItem(block, new Item.Properties(),
-                        p.getOrDefault("name", ""));
-                Registry.register(Registries.ITEM, ident, blockItem);
-                tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(blockItem);
-            }
-        }
-
-        // Create one creative tab per namespace
-        for (Map.Entry<String, List<net.minecraft.world.level.ItemLike>> entry : tabGroups.entrySet()) {
-            String ns = entry.getKey();
-            List<net.minecraft.world.level.ItemLike> entries = entry.getValue();
-            if (entries.isEmpty()) continue;
-
-            net.minecraft.world.level.ItemLike icon = entries.get(0);
-            CreativeModeTab group = CreativeModeTab.builder()
-                    .icon(() -> new ItemStack(icon))
-                    .title(Component.literal(ns))
-                    .displayItems((params, output) -> entries.forEach(output::accept))
-                    .build();
-            Registry.register(Registries.CREATIVE_MODE_TAB, new ResourceLocation(ns, ns), group);
-        }
     }
 
     private static int parseInt(Map<String, String> p, String key, int def) {
@@ -491,31 +529,31 @@ public class YogHost {
         try { return Float.parseFloat(v); } catch (NumberFormatException e) { return def; }
     }
 
-    private static BlockSoundGroup blockSoundGroup(String name) {
+    private static SoundType soundType(String name) {
         return switch (name) {
-            case "wood" -> BlockSoundGroup.WOOD;
-            case "grass" -> BlockSoundGroup.GRASS;
-            case "gravel" -> BlockSoundGroup.GRAVEL;
-            case "snow" -> BlockSoundGroup.SNOW;
-            case "sand" -> BlockSoundGroup.SAND;
-            case "metal" -> BlockSoundGroup.METAL;
-            case "glass" -> BlockSoundGroup.GLASS;
-            case "wool" -> BlockSoundGroup.WOOL;
-            case "nether_brick" -> BlockSoundGroup.NETHER_BRICKS;
-            default -> BlockSoundGroup.STONE;
+            case "wood" -> SoundType.WOOD;
+            case "grass" -> SoundType.GRASS;
+            case "gravel" -> SoundType.GRAVEL;
+            case "snow" -> SoundType.SNOW;
+            case "sand" -> SoundType.SAND;
+            case "metal" -> SoundType.METAL;
+            case "glass" -> SoundType.GLASS;
+            case "wool" -> SoundType.WOOL;
+            case "nether_brick" -> SoundType.NETHER_BRICKS;
+            default -> SoundType.STONE;
         };
     }
 
-    // ── Brigadier command builder (unchanged from Fabric) ────────────────────
+    // ── Brigadier command builder (same shape as the Fabric host) ────────────
 
-    private static LiteralArgumentBuilder<ServerCommandSource>
+    private static LiteralArgumentBuilder<CommandSourceStack>
             buildTypedCommand(String name, String[] schema) {
-        var root = CommandManager.literal(name);
+        var root = Commands.literal(name);
         if (schema.length == 0) {
             root.executes(ctx -> runCommand(name, "", ctx));
             return root;
         }
-        ArgumentBuilder<ServerCommandSource, ?> chain = buildLeaf(name, schema, schema.length - 1);
+        ArgumentBuilder<CommandSourceStack, ?> chain = buildLeaf(name, schema, schema.length - 1);
         for (int i = schema.length - 2; i >= 0; i--) {
             chain = buildArgNode(schema[i], "arg_" + i).then(chain);
         }
@@ -523,19 +561,19 @@ public class YogHost {
         return root;
     }
 
-    private static RequiredArgumentBuilder<ServerCommandSource, ?> buildArgNode(String type, String argName) {
+    private static RequiredArgumentBuilder<CommandSourceStack, ?> buildArgNode(String type, String argName) {
         return switch (type) {
-            case "int" -> CommandManager.argument(argName, IntegerArgumentType.integer());
-            case "float" -> CommandManager.argument(argName, FloatArgumentType.floatArg());
-            case "word" -> CommandManager.argument(argName, StringArgumentType.word());
-            case "string" -> CommandManager.argument(argName, StringArgumentType.greedyString());
-            case "player" -> CommandManager.argument(argName, EntityArgumentType.player());
-            case "blockpos" -> CommandManager.argument(argName, BlockPosArgumentType.blockPos());
-            default -> CommandManager.argument(argName, StringArgumentType.word());
+            case "int" -> Commands.argument(argName, IntegerArgumentType.integer());
+            case "float" -> Commands.argument(argName, FloatArgumentType.floatArg());
+            case "word" -> Commands.argument(argName, StringArgumentType.word());
+            case "string" -> Commands.argument(argName, StringArgumentType.greedyString());
+            case "player" -> Commands.argument(argName, EntityArgument.player());
+            case "blockpos" -> Commands.argument(argName, BlockPosArgument.blockPos());
+            default -> Commands.argument(argName, StringArgumentType.word());
         };
     }
 
-    private static ArgumentBuilder<ServerCommandSource, ?> buildLeaf(String cmdName, String[] schema, int idx) {
+    private static ArgumentBuilder<CommandSourceStack, ?> buildLeaf(String cmdName, String[] schema, int idx) {
         String type = schema[idx];
         String argName = "arg_" + idx;
         return buildArgNode(type, argName).executes(ctx -> {
@@ -548,15 +586,15 @@ public class YogHost {
         });
     }
 
-    private static String resolveArg(String type, String argName, CommandContext<ServerCommandSource> ctx) {
+    private static String resolveArg(String type, String argName, CommandContext<CommandSourceStack> ctx) {
         try {
             return switch (type) {
                 case "int" -> String.valueOf(IntegerArgumentType.getInteger(ctx, argName));
                 case "float" -> String.valueOf(FloatArgumentType.getFloat(ctx, argName));
                 case "word", "string" -> StringArgumentType.getString(ctx, argName);
-                case "player" -> EntityArgumentType.getPlayer(ctx, argName).getName().getString();
+                case "player" -> EntityArgument.getPlayer(ctx, argName).getName().getString();
                 case "blockpos" -> {
-                    BlockPos pos = BlockPosArgumentType.getBlockPos(ctx, argName);
+                    BlockPos pos = BlockPosArgument.getBlockPos(ctx, argName);
                     yield pos.getX() + "," + pos.getY() + "," + pos.getZ();
                 }
                 default -> StringArgumentType.getString(ctx, argName);
@@ -566,8 +604,8 @@ public class YogHost {
         }
     }
 
-    private static int runCommand(String name, String args, CommandContext<ServerCommandSource> ctx) {
-        ServerCommandSource src = ctx.getSource();
+    private static int runCommand(String name, String args, CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack src = ctx.getSource();
         Entity entity = src.getEntity();
         String uuid = entity != null ? entity.getStringUUID() : "";
         String reply = NativeBridge.nativeOnCommand(name, args, src.getTextName(), uuid);
