@@ -606,7 +606,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "zip 8.6.0",
 ]

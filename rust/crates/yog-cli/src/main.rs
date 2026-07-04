@@ -580,16 +580,50 @@ impl Builder {
     fn subcmd(&self) -> &'static str { match self { Builder::Zig => "zigbuild", Builder::Cargo => "build" } }
 
     fn build(&self, build_dir: &Path, triple: &str, root: &Path) -> Result<(), ()> {
-        let status = Command::new("cargo")
+        let output = Command::new("cargo")
             .current_dir(build_dir)
             .env("CARGO_TARGET_DIR", root.join("target"))
             .args([self.subcmd(), "--release", "--target", triple])
-            .status();
-        match status {
-            Ok(s) if s.success() => Ok(()),
+            .output();
+        match output {
+            Ok(o) => {
+                eprint!("{}", filter_benign_warnings(&String::from_utf8_lossy(&o.stderr)));
+                if o.status.success() { Ok(()) } else { Err(()) }
+            }
             _ => Err(()),
         }
     }
+}
+
+/// Drop the benign "xcrun … MacOSX.sdk failed" warning block that rustc emits
+/// when cross-linking Apple targets without a macOS SDK (zig handles the
+/// actual linking), along with the matching cargo "generated 1 warning" line.
+fn filter_benign_warnings(stderr: &str) -> String {
+    let mut out = String::new();
+    let mut in_block = false;
+    let mut suppressed = 0usize;
+    for line in stderr.lines() {
+        let t = line.trim_start();
+        if t.starts_with("warning:") && t.contains("xcrun") && t.contains("failed") {
+            in_block = true;
+            suppressed += 1;
+            continue;
+        }
+        if in_block {
+            if t == "|" || t.starts_with("= note:") || t.starts_with("= help:") || t.is_empty() {
+                continue;
+            }
+            in_block = false;
+        }
+        // Cargo's per-crate summary counting only the suppressed warning.
+        if suppressed > 0 && t.starts_with("warning:") && t.ends_with("generated 1 warning") {
+            suppressed -= 1;
+            continue;
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+    out
 }
 
 fn installed_targets() -> Vec<String> {
