@@ -30,18 +30,21 @@ public final class NativeDraw {
     public static void drawText(String text, float x, float y, int color, boolean shadow) {
         GuiGraphics ctx = hudDrawContext;
         if (ctx == null) return;
+        syncGlState(); // MC-pipeline draw may follow raw GL from Rust
         ctx.drawString(Minecraft.getInstance().font, text, (int) x, (int) y, color, shadow);
     }
 
     public static void drawRect(float x1, float y1, float x2, float y2, int color) {
         GuiGraphics ctx = hudDrawContext;
         if (ctx == null) return;
+        syncGlState(); // MC-pipeline draw may follow raw GL from Rust
         ctx.fill((int) x1, (int) y1, (int) x2, (int) y2, color);
     }
 
     public static void drawGradientRect(float x1, float y1, float x2, float y2, int top, int bottom) {
         GuiGraphics ctx = hudDrawContext;
         if (ctx == null) return;
+        syncGlState(); // MC-pipeline draw may follow raw GL from Rust
         ctx.fillGradient((int) x1, (int) y1, (int) x2, (int) y2, top, bottom);
     }
 
@@ -51,6 +54,7 @@ public final class NativeDraw {
                                    float tw, float th) {
         GuiGraphics ctx = hudDrawContext;
         if (ctx == null) return;
+        syncGlState(); // MC-pipeline draw may follow raw GL from Rust
         ResourceLocation ident = ResourceLocation.tryParse(id);
         if (ident == null) return;
         ctx.blit(ident, (int) x, (int) y, u0, v0, (int) w, (int) h, (int) tw, (int) th);
