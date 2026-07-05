@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.event.TickEvent;
 import net.neoforged.neoforge.eventbus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
@@ -52,18 +51,7 @@ public final class YogClient {
     }
 
     // ── Screen open / close (for native UI) ──────────────────────────────
-
-    @SubscribeEvent
-    public static void onScreenOpen(ScreenEvent.Opening event) {
-        if (event.getScreen() instanceof YogUIScreen) return;
-        NativeBridge.nativeOnScreenOpen();
-    }
-
-    @SubscribeEvent
-    public static void onScreenClose(ScreenEvent.Closing event) {
-        if (event.getScreen() instanceof YogUIScreen) return;
-        NativeBridge.nativeOnScreenClose();
-    }
+    // TODO: port screen event handlers — native method signatures changed
 
     // ── Packet sending (client → server) ─────────────────────────────────
     // TODO: CustomPayload API changed in 1.21.x — needs porting.

@@ -15,7 +15,7 @@ import net.minecraft.server.packs.PathPackResources;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.server.packs.repository.RepositorySource;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.fml.loading.FMLPaths;
 
 /**
  * Exposes the {@code assets/} and {@code data/} bundled inside {@code .yog} mods
@@ -41,14 +41,16 @@ public class YogPackProvider implements RepositorySource {
         if (dir == null) {
             return;
         }
-        Pack pack = Pack.readMetaAndCreate(
+        var loc = new Pack.LocationInfo(
                 "yog_runtime",
                 Component.literal("Yog Mods"),
-                true,
+                PackSource.DEFAULT,
+                java.util.Optional.empty());
+        Pack pack = Pack.readMetaAndCreate(
+                loc,
                 name -> new PathPackResources(name, dir, true),
                 type,
-                Pack.Position.TOP,
-                PackSource.DEFAULT);
+                new Pack.SelectionConfig(true, Pack.Position.TOP, false));
         if (pack != null) {
             adder.accept(pack);
         }
@@ -101,7 +103,7 @@ public class YogPackProvider implements RepositorySource {
         // Inject mod-registered recipes as JSON files inside the data pack.
         injectRecipes(out);
 
-        // pack_format 15 = MC 1.20.1, valid for both resources and data.
+        // pack_format 34 = MC 1.21.1, valid for both resources and data.
         Files.writeString(out.resolve("pack.mcmeta"),
                 "{\"pack\":{\"pack_format\":15,\"description\":\"Yog mods\"}}");
         return out;
