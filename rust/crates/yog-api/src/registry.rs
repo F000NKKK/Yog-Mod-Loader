@@ -835,6 +835,27 @@ pub fn installed_mods() -> Vec<ModInfo> {
         .collect()
 }
 
+/// Open the Yog UI registered as `ui_id` (client side; no-op on dedicated
+/// servers). `modal` blocks game input, `pause` pauses singleplayer. Callable
+/// from any handler after registration — e.g. an `on_client_packet` handler.
+pub fn open_ui(ui_id: &str, modal: bool, pause: bool) {
+    let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
+    if api.is_null() { return; }
+    unsafe { ((*api).ui_open)((*api).ctx, YogStr::from_str(ui_id), modal, pause) }
+}
+
+/// Handle to the runtime's server-action table, usable from any handler after
+/// registration — including client-side ones that don't receive `&dyn Server`
+/// (UI event handlers, client tick). Server-world actions are no-ops client
+/// side, but networking (`send_to_server`) and similar client-safe calls work.
+pub fn server() -> Option<CServer> {
+    let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
+    if api.is_null() { return None; }
+    let srv = unsafe { (*api).server };
+    if srv.is_null() { return None; }
+    Some(CServer(srv))
+}
+
 pub struct Registry {
     api: *const YogApi,
 }

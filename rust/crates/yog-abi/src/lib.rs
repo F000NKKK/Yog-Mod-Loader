@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 23;
+pub const ABI_MINOR: u32 = 24;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -835,6 +835,12 @@ pub struct YogApi {
     /// Free a `YogOwnedStr` returned by an api-table call (same allocator as
     /// `YogServer::free_str`).
     pub free_str: unsafe extern "C" fn(ptr: *mut u8, len: u32),
+
+    // ── ABI minor 24 — open a Yog UI screen ─────────────────────────────────
+    /// Open the Yog UI registered as `ui_id` on the client (schedules onto the
+    /// render thread). Client-side only; a no-op on dedicated servers.
+    /// `modal` blocks game input; `pause` pauses a singleplayer game.
+    pub ui_open: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr, modal: bool, pause: bool),
 }
 
 unsafe impl Send for YogApi {}

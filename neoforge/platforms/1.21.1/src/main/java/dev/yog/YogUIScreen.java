@@ -48,6 +48,16 @@ public class YogUIScreen extends Screen {
         return true;
     }
 
+    @Override public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+        NativeBridge.nativeUIDrag(uiId, (float) mx, (float) my);
+        return true;
+    }
+
+    @Override public boolean mouseReleased(double mx, double my, int button) {
+        NativeBridge.nativeUIRelease(uiId, (float) mx, (float) my);
+        return true;
+    }
+
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         NativeBridge.nativeUIKey(uiId, keyCode, scanCode, modifiers, 1);
         return super.keyPressed(keyCode, scanCode, modifiers);

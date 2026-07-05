@@ -122,6 +122,32 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIScroll<'l>(
 }
 
 #[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIDrag<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    ui_id: JString<'l>, mx: jfloat, my: jfloat,
+) {
+    let id = jstr!(env, ui_id);
+    let h = handlers();
+    if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
+        let ev = format!("drag:{:.1}:{:.1}", mx, my);
+        unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev)); }
+    }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRelease<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    ui_id: JString<'l>, mx: jfloat, my: jfloat,
+) {
+    let id = jstr!(env, ui_id);
+    let h = handlers();
+    if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
+        let ev = format!("release:{:.1}:{:.1}", mx, my);
+        unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev)); }
+    }
+}
+
+#[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
     mut env: JNIEnv<'l>, _class: JClass<'l>,
     ui_id: JString<'l>, key: jint, _scan: jint, _mods: jint, action: jint,

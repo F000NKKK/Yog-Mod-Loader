@@ -1,15 +1,15 @@
 [package]
 name = "yog-book"
-version = "0.36.0"
+version = "0.37.0"
 edition.workspace = true
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "In-game book/documentation framework for Yog mods (Patchouli-like)."
 
 [dependencies]
-yog-registry = { version = "0.12", features = ["serde"] }
-yog-ui  = "0.17"
-yog-gfx = "0.9"
+yog-registry = { version = "0.13", features = ["serde"] }
+yog-ui  = "0.18"
+yog-gfx = "0.10"
 
 # Serialization (for runtime JSON parsing)
 serde      = { version = "1", features = ["derive"] }

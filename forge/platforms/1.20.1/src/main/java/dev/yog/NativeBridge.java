@@ -465,6 +465,22 @@ public final class NativeBridge {
 
     /** Mouse wheel over a Yog UI screen; dy is the vertical scroll amount. */
     public static native void nativeUIScroll(String uiId, float dy);
+
+    /** Open a registered Yog UI (called from Rust; schedules onto the render thread). */
+    public static void openUI(String uiId, boolean modal, boolean pause) {
+        try {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            mc.execute(() -> YogUIScreen.open(uiId, modal, pause));
+        } catch (Throwable t) {
+            // dedicated server — no client classes; ignore
+        }
+    }
+
+    /** Mouse dragged over a Yog UI screen (any button held). */
+    public static native void nativeUIDrag(String uiId, float mx, float my);
+
+    /** Mouse button released over a Yog UI screen. */
+    public static native void nativeUIRelease(String uiId, float mx, float my);
     public static native void nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
     public static native void nativeUIRender(String uiId, int screenW, int screenH);
     public static native boolean nativeIsUIActive(String uiId);

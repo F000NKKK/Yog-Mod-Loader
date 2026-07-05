@@ -1510,6 +1510,21 @@ fn tsv_clean(v: &str) -> String {
     v.replace(['\t', '\n', '\r'], " ")
 }
 
+unsafe extern "C" fn api_ui_open(_ctx: *mut c_void, ui_id: YogStr, modal: bool, pause: bool) {
+    let id = ui_id.as_str().to_string();
+    if id.is_empty() { return; }
+    let Some(mut env) = get_env() else { return };
+    let Ok(jid) = env.new_string(&id) else { return };
+    let jid_obj: JObject = jid.into();
+    // Java side schedules onto the render thread; no-op on dedicated servers.
+    if env.call_static_method(
+        "dev/yog/NativeBridge", "openUI", "(Ljava/lang/String;ZZ)V",
+        &[JValue::Object(&jid_obj), JValue::Bool(modal as u8), JValue::Bool(pause as u8)],
+    ).is_err() {
+        env.exception_clear().ok();
+    }
+}
+
 unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
     let mut lines: Vec<String> = Vec::new();
     for m in MOD_INFOS.lock().expect("mod infos lock poisoned").iter() {
@@ -1685,6 +1700,7 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         register_menu_entry:    api_register_menu_entry,
         mods_list:              api_mods_list,
         free_str:               yog_free_str,
+        ui_open:                api_ui_open,
     }
 }
 
