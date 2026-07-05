@@ -78,7 +78,7 @@ public final class YogClient {
         try {
             var conn = Minecraft.getInstance().getConnection();
             if (conn == null) return false;
-            conn.send(new net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket(
+            conn.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
                     new YogPayload(YogPayload.typeFor(id), data)));
             return true;
         } catch (Throwable t) {

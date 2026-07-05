@@ -49,7 +49,7 @@ import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import java.util.Map;
 
 /**

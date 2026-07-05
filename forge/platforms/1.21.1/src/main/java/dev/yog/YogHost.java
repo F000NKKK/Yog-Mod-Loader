@@ -332,7 +332,7 @@ public class YogHost {
         String playerName = player.getName().getString();
         int x = event.getPos().getX(), y = event.getPos().getY(), z = event.getPos().getZ();
         if (!NativeBridge.nativeOnBlockBreakPre(playerName, blockId, x, y, z)) {
-            event.setCanceled(true);
+            event.getContainer().setNewDamage(0);
             return;
         }
         // Defer Post to after the block is actually removed.
@@ -352,7 +352,7 @@ public class YogHost {
         String playerName = event.getPlayer().getName().getString();
         String message = event.getMessage().getString();
         if (!NativeBridge.nativeOnChatPre(playerName, message)) {
-            event.setCanceled(true);
+            event.getContainer().setNewDamage(0);
             return;
         }
         NativeBridge.nativeOnChat(playerName, message);
@@ -405,7 +405,7 @@ public class YogHost {
             String bid = BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
             if (!NativeBridge.nativeOnPlaceBlockPre(
                     sp.getName().getString(), bid, placed.getX(), placed.getY(), placed.getZ())) {
-                event.setCanceled(true);
+                event.getContainer().setNewDamage(0);
             }
         }
     }
@@ -423,7 +423,7 @@ public class YogHost {
         String eUuid = target.getStringUUID();
         String handStr = event.getHand() == InteractionHand.MAIN_HAND ? "main_hand" : "off_hand";
         if (!NativeBridge.nativeOnEntityInteractPre(pName, pUuid, eType, eUuid, handStr)) {
-            event.setCanceled(true);
+            event.getContainer().setNewDamage(0);
             return;
         }
         NativeBridge.nativeOnEntityInteract(pName, pUuid, eType, eUuid, handStr);
@@ -446,26 +446,26 @@ public class YogHost {
     public void onLivingDamage(LivingDamageEvent event) {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
-        String source = event.getSource().getMsgId();
+        String source = event.getContainer().getSource().getMsgId();
 
-        if (entity instanceof ServerPlayer sp && sp.getHealth() - event.getAmount() <= 0.0f) {
+        if (entity instanceof ServerPlayer sp && sp.getHealth() - event.getContainer().getNewDamage() <= 0.0f) {
             // Damage that would kill the player — Pre (cancellable).
             boolean allow = NativeBridge.nativeOnPlayerDeathPre(
                     sp.getName().getString(), sp.getStringUUID(), source);
             if (!allow) {
-                event.setCanceled(true);
+                event.getContainer().setNewDamage(0);
                 return;
             }
         }
 
         String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         if (!NativeBridge.nativeOnEntityDamagePre(
-                type, entity.getStringUUID(), event.getAmount(), source)) {
-            event.setCanceled(true);
+                type, entity.getStringUUID(), event.getContainer().getNewDamage(), source)) {
+            event.getContainer().setNewDamage(0);
             return;
         }
         NativeBridge.nativeOnEntityDamage(
-                type, entity.getStringUUID(), event.getAmount(), source);
+                type, entity.getStringUUID(), event.getContainer().getNewDamage(), source);
     }
 
     // ── Entity spawn ────────────────────────────────────────────────────────
@@ -478,7 +478,7 @@ public class YogHost {
         String uuid = entity.getStringUUID();
         String dim = event.getLevel().dimension().location().toString();
         if (!NativeBridge.nativeOnEntitySpawnPre(type, uuid, dim)) {
-            event.setCanceled(true);
+            event.getContainer().setNewDamage(0);
             return;
         }
         NativeBridge.nativeOnEntitySpawn(type, uuid, dim);
@@ -490,7 +490,7 @@ public class YogHost {
     public void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
-        String source = event.getSource().getMsgId();
+        String source = event.getContainer().getSource().getMsgId();
         if (entity instanceof ServerPlayer sp) {
             NativeBridge.nativeOnPlayerDeath(
                     sp.getName().getString(), sp.getStringUUID(), source);

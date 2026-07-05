@@ -41,7 +41,7 @@ public class YogPackProvider implements RepositorySource {
         if (dir == null) {
             return;
         }
-        var loc = new Pack.LocationInfo(
+        var loc = new net.minecraft.server.packs.PackLocationInfo(
                 "yog_runtime",
                 Component.literal("Yog Mods"),
                 PackSource.DEFAULT,
@@ -50,7 +50,7 @@ public class YogPackProvider implements RepositorySource {
                 loc,
                 name -> new PathPackResources(name, dir, true),
                 type,
-                new Pack.SelectionConfig(true, Pack.Position.TOP, false));
+                new net.minecraft.server.packs.PackSelectionConfig(true, Pack.Position.TOP, false));
         if (pack != null) {
             adder.accept(pack);
         }
