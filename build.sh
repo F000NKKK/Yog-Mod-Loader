@@ -206,7 +206,9 @@ build_example() {
     local l
     for l in "${LOADERS[@]}"; do
         mkdir -p "$ROOT/$l/run/yog-mods"
-        rm -f "$ROOT/$l/run/yog-mods/"*.yog
+        # Refresh only the example mod — leave other staged .yog mods
+        # (e.g. yog-modlist under development) alone.
+        rm -f "$ROOT/$l/run/yog-mods/example-mod.yog"
         cp "$ROOT/example-mod/artifacts/"*.yog "$ROOT/$l/run/yog-mods/" 2>/dev/null || true
     done
 }

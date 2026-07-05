@@ -573,7 +573,7 @@ version = "0.11.0"
 
 [[package]]
 name = "yog-api"
-version = "0.38.0"
+version = "0.39.0"
 dependencies = [
  "yog-abi",
  "yog-book",
@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.39.0"
+version = "0.40.0"
 dependencies = [
  "glow",
  "jni",

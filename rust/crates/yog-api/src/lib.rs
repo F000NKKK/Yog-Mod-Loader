@@ -7,7 +7,7 @@
 
 mod registry;
 
-pub use registry::{CServer, Mod, Registry};
+pub use registry::{installed_mods, CServer, Mod, ModInfo, Registry};
 pub use yog_gfx::{GfxContext, core as gfx_core, gl as gfx_gl, draw2d as gfx_draw2d};
 
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
