@@ -459,7 +459,7 @@ public class YogHost {
         String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         if (!NativeBridge.nativeOnEntityDamagePre(
                 type, entity.getStringUUID(), event.getContainer().getNewDamage(), source)) {
-            event.setCanceled(true);
+            event.getContainer().setNewDamage(0);
             return;
         }
         NativeBridge.nativeOnEntityDamage(
@@ -488,7 +488,7 @@ public class YogHost {
     public void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
-        String source = event.getContainer().getSource().getMsgId();
+        String source = event.getSource().getMsgId();
         if (entity instanceof ServerPlayer sp) {
             NativeBridge.nativeOnPlayerDeath(
                     sp.getName().getString(), sp.getStringUUID(), source);
