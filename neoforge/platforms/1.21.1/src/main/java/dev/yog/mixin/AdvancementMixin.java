@@ -27,10 +27,10 @@ public abstract class AdvancementMixin {
             CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValue()) return;
         if (!getOrStartProgress(advancement).isDone()) return;
-        if (player == null || advancement.id() == null) return;
+        if (player == null || net.minecraft.core.registries.BuiltInRegistries.ADVANCEMENT.getKey(advancement) == null) return;
         NativeBridge.nativeOnAdvancement(
                 player.getName().getString(),
                 player.getStringUUID(),
-                advancement.id().toString());
+                net.minecraft.core.registries.BuiltInRegistries.ADVANCEMENT.getKey(advancement).toString());
     }
 }

@@ -260,8 +260,7 @@ public class YogHost {
     // ── Server tick ──────────────────────────────────────────────────────────
 
     @net.neoforged.bus.api.SubscribeEvent
-    public void onServerTick(ServerTickEvent event) {
-        if (event.getPhase() != net.neoforged.neoforge.event.tick.Phase.END) return;
+    public void onServerTick(ServerTickEvent.Post event) {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;
 
@@ -331,7 +330,7 @@ public class YogHost {
         String playerName = player.getName().getString();
         int x = event.getPos().getX(), y = event.getPos().getY(), z = event.getPos().getZ();
         if (!NativeBridge.nativeOnBlockBreakPre(playerName, blockId, x, y, z)) {
-            event.getContainer().setNewDamage(0);
+            event.setCanceled(true);
             return;
         }
         // Defer Post to after the block is actually removed.
@@ -351,7 +350,7 @@ public class YogHost {
         String playerName = event.getPlayer().getName().getString();
         String message = event.getMessage().getString();
         if (!NativeBridge.nativeOnChatPre(playerName, message)) {
-            event.getContainer().setNewDamage(0);
+            event.setCanceled(true);
             return;
         }
         NativeBridge.nativeOnChat(playerName, message);
@@ -404,7 +403,7 @@ public class YogHost {
             String bid = BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
             if (!NativeBridge.nativeOnPlaceBlockPre(
                     sp.getName().getString(), bid, placed.getX(), placed.getY(), placed.getZ())) {
-                event.getContainer().setNewDamage(0);
+                event.setCanceled(true);
             }
         }
     }
@@ -422,7 +421,7 @@ public class YogHost {
         String eUuid = target.getStringUUID();
         String handStr = event.getHand() == InteractionHand.MAIN_HAND ? "main_hand" : "off_hand";
         if (!NativeBridge.nativeOnEntityInteractPre(pName, pUuid, eType, eUuid, handStr)) {
-            event.getContainer().setNewDamage(0);
+            event.setCanceled(true);
             return;
         }
         NativeBridge.nativeOnEntityInteract(pName, pUuid, eType, eUuid, handStr);
@@ -460,7 +459,7 @@ public class YogHost {
         String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         if (!NativeBridge.nativeOnEntityDamagePre(
                 type, entity.getStringUUID(), event.getContainer().getNewDamage(), source)) {
-            event.getContainer().setNewDamage(0);
+            event.setCanceled(true);
             return;
         }
         NativeBridge.nativeOnEntityDamage(
@@ -477,7 +476,7 @@ public class YogHost {
         String uuid = entity.getStringUUID();
         String dim = event.getLevel().dimension().location().toString();
         if (!NativeBridge.nativeOnEntitySpawnPre(type, uuid, dim)) {
-            event.getContainer().setNewDamage(0);
+            event.setCanceled(true);
             return;
         }
         NativeBridge.nativeOnEntitySpawn(type, uuid, dim);

@@ -17,8 +17,7 @@ public final class YogClient {
     private YogClient() {}
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent event) {
-        if (event.getPhase() != net.neoforged.neoforge.event.tick.Phase.END) return;
+    public static void onClientTick(ClientTickEvent.Post event) {
         NativeBridge.nativeOnClientTick();
     }
 

@@ -18,7 +18,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
-// MobEffect: use Holder<MobEffect> via BuiltInRegistries.MOB_EFFECT.getHolder()
+import net.minecraft.world.effect.MobEffect;
 // LootDataId removed in 1.21.1 — using RegistryKey<LootTable>
 // LootDataType removed in 1.21.1
 import net.minecraft.world.level.storage.loot.LootTable;

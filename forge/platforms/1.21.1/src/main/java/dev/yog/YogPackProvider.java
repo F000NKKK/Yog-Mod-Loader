@@ -12,6 +12,8 @@ import java.util.zip.ZipFile;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.PathPackResources;
+import net.minecraft.server.packs.resources.IoSupplier;
+import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.server.packs.repository.RepositorySource;
@@ -41,16 +43,19 @@ public class YogPackProvider implements RepositorySource {
         if (dir == null) {
             return;
         }
-        var loc = new net.minecraft.server.packs.PackLocationInfo(
+        var loc = new PackLocationInfo(
                 "yog_runtime",
                 Component.literal("Yog Mods"),
                 PackSource.DEFAULT,
                 java.util.Optional.empty());
         Pack pack = Pack.readMetaAndCreate(
                 loc,
-                name -> new PathPackResources(name, dir, true),
+                new Pack.ResourcesSupplier() {
+            @Override public PackResources openPrimary(PackLocationInfo loc) { return new PathPackResources(loc.id(), dir, true); }
+            @Override public PackResources openFull(PackLocationInfo loc, Pack.Metadata meta) { return new PathPackResources(loc.id(), dir, true); }
+        },
                 type,
-                new net.minecraft.server.packs.PackSelectionConfig(true, Pack.Position.TOP, false));
+                new PackSelectionConfig(true, Pack.Position.TOP, false));
         if (pack != null) {
             adder.accept(pack);
         }
