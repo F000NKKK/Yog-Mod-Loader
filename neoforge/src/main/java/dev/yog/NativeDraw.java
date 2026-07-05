@@ -2,6 +2,7 @@ package dev.yog;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferUploader;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -29,8 +30,7 @@ public final class NativeDraw {
     public static void drawText(String text, float x, float y, int color, boolean shadow) {
         GuiGraphics ctx = hudDrawContext;
         if (ctx == null) return;
-        ctx.drawString(Minecraft.getInstance().font, text, (int) x, (int) y, color);
-        if (shadow) ctx.drawString(Minecraft.getInstance().font, text, (int) x + 1, (int) y + 1, 0x44000000);
+        ctx.drawString(Minecraft.getInstance().font, text, (int) x, (int) y, color, shadow);
     }
 
     public static void drawRect(float x1, float y1, float x2, float y2, int color) {
@@ -67,6 +67,11 @@ public final class NativeDraw {
             dummyTexA = GL11.glGenTextures();
             dummyTexB = GL11.glGenTextures();
         }
+        // Raw GL from Rust binds its own VAOs; BufferUploader caches the last
+        // bound VAO/VBO and skips the real glBindVertexArray when it thinks
+        // nothing changed — the next MC draw then hits a foreign VAO and dies
+        // with GL_INVALID_OPERATION in glDrawElements. Drop the cache.
+        BufferUploader.reset();
         GlStateManager._activeTexture(GL13.GL_TEXTURE0);
         GlStateManager._bindTexture(dummyTexA);
         GlStateManager._bindTexture(dummyTexB);

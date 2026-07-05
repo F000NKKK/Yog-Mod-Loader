@@ -13,7 +13,9 @@ versionProps.each { k, v -> if (!project.hasProperty(k)) project.ext[k] = v }
 
 // Scaffolded platforms have build plumbing but unported sources — fail fast
 // with a clear message instead of a wall of compile errors.
-if (project.ext.has('status') && project.status == 'scaffold' && !project.hasProperty('allowScaffold')) {
+// NB: read from versionProps, not project.status — Gradle projects have a
+// built-in 'status' property that shadows the one from the versions file.
+if (versionProps.getProperty('status') == 'scaffold' && !project.hasProperty('allowScaffold')) {
     throw new GradleException("Platform ${project.minecraft_version} is scaffolded: host/mixin sources are not ported yet. " +
         "Use a ported platform (see versions/*.properties) or pass -PallowScaffold to try anyway.")
 }

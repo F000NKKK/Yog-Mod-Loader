@@ -278,6 +278,10 @@ publish_loader() {
     local loader="$1"
     local mc="$2"
     echo "==> publish $loader $mc"
+    # Jars from previous mod versions linger in build/libs (Gradle never
+    # removes them) and would be copied into artifacts/ alongside the fresh
+    # one — always start from an empty libs dir.
+    rm -f "$ROOT/$loader/build/libs/"*.jar
     # Scaffold / unported platforms fail to compile — skip with a warning
     # rather than aborting the whole publish.
     if MC_VERSION="$mc" build_loader "$loader"; then

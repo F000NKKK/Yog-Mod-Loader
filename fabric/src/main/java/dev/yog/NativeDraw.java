@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.BufferRenderer;
 import net.minecraft.client.texture.AbstractTexture;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -76,6 +77,11 @@ public final class NativeDraw {
             dummyTexA = GL11.glGenTextures();
             dummyTexB = GL11.glGenTextures();
         }
+        // Raw GL from Rust binds its own VAOs; BufferRenderer caches the last
+        // bound VAO/VBO and skips the real glBindVertexArray when it thinks
+        // nothing changed — the next MC draw then hits a foreign VAO and dies
+        // with GL_INVALID_OPERATION in glDrawElements. Drop the cache.
+        BufferRenderer.reset();
         // Texture unit 0: bind two distinct ids so the second bind is real.
         GlStateManager._activeTexture(GL13.GL_TEXTURE0);
         GlStateManager._bindTexture(dummyTexA);
