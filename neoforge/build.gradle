@@ -58,20 +58,11 @@ runs {
     }
 }
 
-repositories {
-    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
-}
-
 dependencies {
     // The artifact id is version-dependent: the 1.20.1 line ships as
     // net.neoforged:forge, MC 1.20.2+ as net.neoforged:neoforge
     // (see versions/<mc>.properties).
     implementation "net.neoforged:${project.neo_artifact}:${project.neo_version}"
-
-    // Mixin annotation processor — placed on compileOnly so it has access to
-    // NeoForge's Gson, Guava, ASM, etc. on the compile classpath. Generates
-    // yog.refmap.json; NeoGradle's reobfuscation remaps it to SRG.
-    compileOnly 'org.spongepowered:mixin:0.8.5'
 }
 
 base {
@@ -86,12 +77,34 @@ java {
     }
 }
 
+// ── Mixin refmap generation ─────────────────────────────────────────────────
+// The refmap maps Mojang @Inject method names to target class descriptors.
+// NeoGradle's reobfuscation remaps it from Mojang → SRG so it works in production.
+def genRefmap = tasks.register('generateRefmap') {
+    description = 'Generate yog.refmap.json from mixin source annotations'
+    group       = 'yog'
+
+    def srcRoot = file("${platformDir}/src/main/java")
+    def outFile = layout.buildDirectory.file("generated/refmap/yog.refmap.json")
+
+    inputs.dir(srcRoot)
+    outputs.file(outFile)
+
+    doLast {
+        def script = file('../scripts/gen_refmap.py')
+        exec {
+            commandLine 'python3', script.absolutePath, srcRoot.absolutePath, outFile.get().asFile.absolutePath
+        }
+    }
+}
+
+sourceSets.main.resources.srcDir layout.buildDirectory.dir("generated/refmap")
+
+tasks.named('processResources').configure { dependsOn genRefmap }
+tasks.named('classes').configure { dependsOn genRefmap }
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    // Point the annotation processor path at the compile classpath so the
-    // Mixin AP (compileOnly) finds its deps: Gson, Guava, ASM from NeoForge.
-    options.annotationProcessorPath = configurations.compileClasspath
-    options.compilerArgs << '-AMixinRefMap=yog.refmap.json'
 }
 
 // Expand ${mod_version} etc. into the platform's mod metadata at build time —
