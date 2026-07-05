@@ -46,6 +46,16 @@ sourceSets {
     }
 }
 
+// Forge 1.21+ dev bootstrap expects a mod's classes and resources in a single
+// directory: split dirs are scanned as two separate "mod files" and loading
+// dies with "has mods that were not found". Same workaround as the official
+// 1.21 MDK — merge each source set's outputs into one directory.
+sourceSets.each {
+    def dir = layout.buildDirectory.dir("sourcesSets/$it.name")
+    it.output.resourcesDir = dir
+    it.java.destinationDirectory = dir
+}
+
 minecraft {
     mappings channel: 'official', version: project.minecraft_version
 

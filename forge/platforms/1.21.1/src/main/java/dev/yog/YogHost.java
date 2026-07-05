@@ -56,6 +56,7 @@ import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.RegisterEvent;
 import net.minecraftforge.server.ServerLifecycleHooks;
@@ -81,10 +82,13 @@ public class YogHost {
     private final Map<ResourceLocation, Block> registeredBlocks = new LinkedHashMap<>();
     private final Map<String, List<ItemLike>> tabGroups = new LinkedHashMap<>();
 
-    public YogHost(IEventBus modBus) {
+    // Forge's javafml only constructs @Mod classes through a no-arg
+    // constructor (NeoForge-style injected parameters are not supported).
+    public YogHost() {
         NativeBridge.ensureLoaded();
-        System.out.println("[yog] NeoForge host initialised.");
+        System.out.println("[yog] Forge host initialised.");
 
+        var modBus = FMLJavaModLoadingContext.get().getModEventBus();
         modBus.addListener(this::onRegister);
         modBus.addListener(this::onAddPackFinders);
 
