@@ -224,6 +224,10 @@ ensure_platform_clean() {
     if [ -d "$ROOT/$loader/build" ]; then
         echo "    platform switch ($loader -> $mc): cleaning stale build outputs"
         rm -rf "$ROOT/$loader/build"
+        # A warm Gradle daemon (Loom especially) keeps zip filesystems open
+        # for jars under build/ — after deleting them the next remapJar dies
+        # with ClosedFileSystemException. Restart the daemon on switch.
+        gradle_in "$loader" --stop >/dev/null 2>&1 || true
     fi
     mkdir -p "$ROOT/$loader/build"
     printf '%s' "$mc" > "$marker"

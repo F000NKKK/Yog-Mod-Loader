@@ -23,7 +23,7 @@ public final class NativeDraw {
     private NativeDraw() {}
 
     /** The GuiGraphics for the current HUD render frame. Render-thread only. */
-    static GuiGraphics hudDrawContext;
+    public static GuiGraphics hudDrawContext;
 
     // ── 2-D primitives ───────────────────────────────────────────────────────
 
