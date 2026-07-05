@@ -211,8 +211,27 @@ build_example() {
     done
 }
 
+# Gradle keeps build/ outputs from the previously selected MC platform; on a
+# platform switch the stale expanded resources (mods.toml with the old version
+# range) would leak into the next build/run. Clean when the platform changes.
+ensure_platform_clean() {
+    local loader="$1"
+    local mc="${MC_VERSION:-$(grep '^minecraft_version=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)}"
+    local marker="$ROOT/$loader/build/.yog_platform"
+    if [ -f "$marker" ] && [ "$(cat "$marker")" = "$mc" ]; then
+        return 0
+    fi
+    if [ -d "$ROOT/$loader/build" ]; then
+        echo "    platform switch ($loader -> $mc): cleaning stale build outputs"
+        rm -rf "$ROOT/$loader/build"
+    fi
+    mkdir -p "$ROOT/$loader/build"
+    printf '%s' "$mc" > "$marker"
+}
+
 build_loader() {
     echo "==> build $1"
+    ensure_platform_clean "$1"
     gradle_in "$1" build
 }
 
@@ -247,6 +266,7 @@ cmd_run() {
     else
         echo "==> run: $loader — skipping build (--no-build)"
     fi
+    ensure_platform_clean "$loader"
     if [ "$RUN_CLIENT" = 1 ]; then
         echo "==> run: $loader dev client"
         gradle_in "$loader" runClient
