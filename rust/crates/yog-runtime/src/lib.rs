@@ -49,6 +49,12 @@ static LOADED_MODS: Mutex<Vec<Library>> = Mutex::new(Vec::new());
 static MOD_INFOS: Mutex<Vec<[String; 5]>> = Mutex::new(Vec::new());
 /// Stable server table (populated once in nativeInit, then read-only).
 static SERVER: OnceLock<YogServer> = OnceLock::new();
+/// Stable api table. Mods capture this pointer at registration (yog-api's
+/// `installed_mods()` calls through it later, e.g. from UI render) — so it
+/// must outlive `nativeInit`, not live on its stack. NB: `ctx` inside points
+/// at the pre-move handlers Box and is only valid during registration; late
+/// api calls must not dereference it (api_mods_list doesn't).
+static API_TABLE: OnceLock<YogApi> = OnceLock::new();
 /// All registered handlers + content (populated during mod loading, then read-only).
 static HANDLERS: OnceLock<RuntimeHandlers> = OnceLock::new();
 
@@ -1847,10 +1853,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     let mut handlers = Box::new(RuntimeHandlers::new());
     let handlers_ptr = &mut *handlers as *mut RuntimeHandlers;
 
-    let api = build_api_table(handlers_ptr, server_ptr);
+    let api: &'static YogApi = API_TABLE.get_or_init(|| build_api_table(handlers_ptr, server_ptr));
 
     guard("mod loading", || {
-        load_mods(Path::new(&dir), &api);
+        load_mods(Path::new(&dir), api);
     });
 
     // Move handlers out of Box and into the OnceLock.

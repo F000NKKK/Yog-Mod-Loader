@@ -182,7 +182,7 @@ checksum = "fed166a5e7aaa5174893a23792ceaba0247227223492e97f3db954c4f5f72798"
 
 [[package]]
 name = "yog-api"
-version = "0.38.0"
+version = "0.39.0"
 dependencies = [
  "yog-abi",
  "yog-book",
