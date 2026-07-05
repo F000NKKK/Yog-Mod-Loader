@@ -17,7 +17,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.StringTagParser;
+import net.minecraft.nbt.TagParser;
 // MobEffect: use Holder<MobEffect> via BuiltInRegistries.MOB_EFFECT.getHolder()
 // LootDataId removed in 1.21.1
 // LootDataType removed in 1.21.1
@@ -270,7 +270,7 @@ public final class NativeBridge {
         if (w == null) return false;
         BlockEntity be = w.getBlockEntity(new BlockPos(x, y, z));
         if (be == null) return false;
-        try { CompoundTag nbt = StringTagParser.parseTag(snbt); be.loadWithComponents(nbt, w.registryAccess()); be.setChanged(); return true; }
+        try { CompoundTag nbt = TagParser.parseTag(snbt); be.loadWithComponents(nbt, w.registryAccess()); be.setChanged(); return true; }
         catch (Exception e) { return false; }
     }
 
@@ -350,7 +350,7 @@ public final class NativeBridge {
     public static boolean entitySetNbt(String uuid, String snbt) {
         Entity e = entityByUuid(uuid);
         if (e == null) return false;
-        try { CompoundTag nbt = StringTagParser.parseTag(snbt); e.load(nbt); return true; }
+        try { CompoundTag nbt = TagParser.parseTag(snbt); e.load(nbt); return true; }
         catch (Exception ex) { return false; }
     }
 

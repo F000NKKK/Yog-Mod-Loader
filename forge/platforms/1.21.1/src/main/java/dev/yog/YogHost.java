@@ -175,9 +175,9 @@ public class YogHost {
                     if (fp.length >= 2) {
                         FoodProperties.Builder fb = new FoodProperties.Builder()
                                 .nutrition(Integer.parseInt(fp[0]))
-                                .saturationMod(Float.parseFloat(fp[1]));
+                                .saturationModifier(Float.parseFloat(fp[1]));
                         if ("1".equals(fp.length > 2 ? fp[2] : "0"))
-                            fb = fb.alwaysEat();
+                            fb = fb.alwaysEdible();
                         props = props.food(fb.build());
                     }
                 }
@@ -230,7 +230,7 @@ public class YogHost {
                     .title(Component.literal(ns))
                     .displayItems((params, output) -> entries.forEach(output::accept))
                     .build();
-            event.register(Registries.CREATIVE_MODE_TAB, new ResourceLocation(ns, ns), () -> tab);
+            event.register(Registries.CREATIVE_MODE_TAB, ResourceLocation.fromNamespaceAndPath(ns, ns), () -> tab);
         }
     }
 
