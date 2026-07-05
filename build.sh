@@ -185,8 +185,6 @@ build_rust() {
             local src="$ROOT/rust/target/$triple/$(cargo_profile_dir)/$(runtime_lib_for_os "$os")"
             if [ -f "$src" ]; then
                 for l in "${LOADERS[@]}"; do
-                    # forge shares neoforge's resource tree (see forge/build.gradle).
-                    [ "$l" = "forge" ] && continue
                     mkdir -p "$ROOT/$l/src/main/resources/natives/$tag"
                     cp "$src" "$ROOT/$l/src/main/resources/natives/$tag/"
                 done

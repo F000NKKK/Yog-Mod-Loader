@@ -1,0 +1,32 @@
+# NeoForge mod metadata — Yog Mod Loader host for NeoForge
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "AGPL-3.0-only"
+
+[[mods]]
+modId = "yog"
+version = "${mod_version}"
+displayName = "Yog"
+authors = "Yog Team"
+description = '''
+Yog Mod Loader — run Rust mods inside Minecraft via NeoForge.
+The Gate and the Key between Java and Rust worlds.
+'''
+logoFile = ""
+
+# The 1.20.1-line NeoForge keeps the legacy "forge" mod container id, and
+# its FML uses the legacy `mandatory` dependency field (the `type` field is
+# NeoForge 1.20.5+ syntax).
+[[dependencies.yog]]
+    modId = "forge"
+    mandatory = true
+    versionRange = "[47.1,)"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.yog]]
+    modId = "minecraft"
+    mandatory = true
+    versionRange = "[1.20.1,1.21)"
+    ordering = "NONE"
+    side = "BOTH"

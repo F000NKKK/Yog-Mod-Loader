@@ -1,0 +1,42 @@
+package dev.yog;
+
+import java.util.List;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
+/** An item whose display name and tooltip come from a Yog mod (no lang file needed). */
+public class YogItem extends Item {
+    private final String displayName;
+    private final String tooltip;
+
+    public YogItem(Properties properties, String displayName, String tooltip) {
+        super(properties);
+        this.displayName = displayName;
+        this.tooltip = tooltip;
+    }
+
+    @Override
+    public Component getName(ItemStack stack) {
+        return displayName == null || displayName.isEmpty()
+                ? super.getName(stack)
+                : Component.literal(displayName);
+    }
+
+    @Override
+    public Component getDescription() {
+        return displayName == null || displayName.isEmpty()
+                ? super.getDescription()
+                : Component.literal(displayName);
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+        if (tooltip != null && !tooltip.isEmpty()) {
+            lines.add(Component.literal(tooltip));
+        }
+    }
+}
