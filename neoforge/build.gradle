@@ -58,11 +58,19 @@ runs {
     }
 }
 
+repositories {
+    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+}
+
 dependencies {
     // The artifact id is version-dependent: the 1.20.1 line ships as
     // net.neoforged:forge, MC 1.20.2+ as net.neoforged:neoforge
     // (see versions/<mc>.properties).
     implementation "net.neoforged:${project.neo_artifact}:${project.neo_version}"
+
+    // Mixin annotation processor — generates yog.refmap.json at compile time.
+    // NeoGradle's reobfuscation remaps it from Mojang → SRG for production.
+    annotationProcessor 'org.spongepowered:mixin:0.8.5'
 }
 
 base {
@@ -79,6 +87,9 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // Let the Mixin annotation processor know the output refmap filename
+    // (must match the "refmap" field in yog.mixins.json).
+    options.compilerArgs << '-AMixinRefMap=yog.refmap.json'
 }
 
 // Expand ${mod_version} etc. into the platform's mod metadata at build time —

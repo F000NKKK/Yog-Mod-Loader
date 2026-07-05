@@ -75,12 +75,20 @@ minecraft {
     }
 }
 
+repositories {
+    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+}
+
 dependencies {
     minecraft "net.minecraftforge:forge:${project.forge_version}"
     // Forge 1.21+ dev bootstrap resolves modlauncher's jopt.simple module from
     // the classpath; without this pin the module is missing and runClient dies
     // with "Module jopt.simple not found". Same workaround ships in the MDK.
     implementation('net.sf.jopt-simple:jopt-simple:5.0.4') { version { strictly '5.0.4' } }
+
+    // Mixin annotation processor — generates yog.refmap.json at compile time.
+    // ForgeGradle reobfuscateJar remaps it from Mojang → SRG for production.
+    annotationProcessor 'org.spongepowered:mixin:0.8.5'
 }
 
 java {
@@ -93,6 +101,9 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // Let the Mixin annotation processor know the output refmap filename
+    // (must match the "refmap" field in yog.mixins.json).
+    options.compilerArgs << '-AMixinRefMap=yog.refmap.json'
 }
 
 // Expand ${mod_version} etc. into the platform's mod metadata at build time.
