@@ -318,7 +318,7 @@ public final class NativeBridge {
 
     public static String gameDir() {
         MinecraftServer s = server;
-        if (s == null) return net.neoforged.fml.loading.FMLPaths.GAMEDIR.get().toAbsolutePath().toString();
+        if (s == null) return net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toAbsolutePath().toString();
         return s.getServerDirectory().toAbsolutePath().toString();
     }
 

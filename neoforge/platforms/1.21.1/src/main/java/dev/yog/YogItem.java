@@ -26,6 +26,13 @@ public class YogItem extends Item {
                 : Component.literal(displayName);
     }
 
+    /** Return the custom display name (same as getName) — kept for API consistency across versions. */
+    public Component getDescription() {
+        return displayName == null || displayName.isEmpty()
+                ? getName(ItemStack.EMPTY)
+                : Component.literal(displayName);
+    }
+
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
         if (tooltip != null && !tooltip.isEmpty()) {
