@@ -87,6 +87,10 @@ tasks.withType(JavaCompile).configureEach {
 processResources {
     inputs.property 'mod_version', project.version
     inputs.property 'minecraft_version_range', project.minecraft_version_range
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand 'mod_version': project.version,
+               'minecraft_version_range': project.minecraft_version_range
+    }
     filesMatching('META-INF/mods.toml') {
         expand 'mod_version': project.version,
                'minecraft_version_range': project.minecraft_version_range
