@@ -34,9 +34,9 @@ forward-compatible.
 | **Fabric** | 1.20.1 | Yarn 1.20.1+build.10 | ≥ 0.15.11 | fabric-api 0.92.2+1.20.1 | 17 | ✅ tested |
 | | 1.21.1 | Yarn 1.21.1+build.3 | ≥ 0.16.9 | fabric-api 0.115.6+1.21.1 | 21 | ✅ ported |
 | **NeoForge** | 1.20.1 | Mojmap (NeoForge) | 47.1.106 | — | 17 | ✅ tested |
-| | 1.21.1 | Mojmap (NeoForge) | 21.1.77 | — | 21 | ✅ ported |
+| | 1.21.1 | Mojmap (NeoForge) | 21.1.77 | — | 21 | ✅ tested |
 | **Forge** | 1.20.1 | Mojmap (ForgeGradle) | 47.3.0 | — | 17 | ✅ tested |
-| | 1.21.1 | Mojmap (ForgeGradle) | 52.0.40 | — | 21 | ✅ ported |
+| | 1.21.1 | Mojmap (ForgeGradle) | 52.0.40 | — | 21 | ✅ tested |
 
 Every loader/version pair builds from its own source tree under
 `<loader>/platforms/<mc-version>/` — no code is shared between platforms, so
