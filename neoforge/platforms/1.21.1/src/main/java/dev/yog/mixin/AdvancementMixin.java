@@ -1,7 +1,7 @@
 package dev.yog.mixin;
 
 import dev.yog.NativeBridge;
-import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,21 +16,21 @@ public abstract class AdvancementMixin {
 
     @Shadow private ServerPlayer player;
 
-    @Shadow public abstract AdvancementProgress getOrStartProgress(Advancement advancement);
+    @Shadow public abstract AdvancementProgress getOrStartProgress(AdvancementHolder advancement);
 
     @Inject(
-        method = "award(Lnet/minecraft/advancements/Advancement;Ljava/lang/String;)Z",
+        method = "award(Lnet/minecraft/advancements/AdvancementHolder;Ljava/lang/String;)Z",
         at = @At("RETURN")
     )
     private void yog$onCriterionGrant(
-            Advancement advancement, String criterionName,
+            AdvancementHolder advancement, String criterionName,
             CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValue()) return;
         if (!getOrStartProgress(advancement).isDone()) return;
-        if (player == null || advancement.name().orElse(null) == null) return;
+        if (player == null || advancement.id() == null) return;
         NativeBridge.nativeOnAdvancement(
                 player.getName().getString(),
                 player.getStringUUID(),
-                advancement.name().orElse(null).toString());
+                advancement.id().toString());
     }
 }
