@@ -66,6 +66,10 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks;
  */
 @Mod("yog")
 public class YogHost {
+    /** Callbacks deferred to the end of the current server tick. */
+    private static final java.util.concurrent.ConcurrentLinkedQueue<Runnable> POST_TICK =
+            new java.util.concurrent.ConcurrentLinkedQueue<>();
+
     /** UUID → [name, retriesLeft] for players waiting to appear in the server list. */
     private static final java.util.concurrent.ConcurrentHashMap<String, String[]> PENDING_JOINS =
             new java.util.concurrent.ConcurrentHashMap<>();
@@ -264,6 +268,10 @@ public class YogHost {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;
 
+        // Deferred callbacks queued by pre-events (e.g. block-break post).
+        Runnable deferred;
+        while ((deferred = POST_TICK.poll()) != null) deferred.run();
+
         // Resolve pending player joins
         if (!PENDING_JOINS.isEmpty()) {
             java.util.List<String> toRemove = new java.util.ArrayList<>();
@@ -336,11 +344,9 @@ public class YogHost {
         // Defer Post to after the block is actually removed.
         // BlockEvent.BreakEvent fires *before* the break — if we setBlock
         // here, vanilla will destroy the block we just placed.
-        MinecraftServer server = player.getServer();
-        if (server != null) {
-            server.execute(() ->
-                NativeBridge.nativeOnBlockBreak(playerName, blockId, x, y, z));
-        }
+        // NB: server.execute() runs inline when already on the server thread
+        // (BlockableEventLoop), so it would NOT defer — queue for end of tick.
+        POST_TICK.add(() -> NativeBridge.nativeOnBlockBreak(playerName, blockId, x, y, z));
     }
 
     // ── Chat ─────────────────────────────────────────────────────────────────

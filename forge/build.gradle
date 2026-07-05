@@ -67,6 +67,10 @@ minecraft {
 
 dependencies {
     minecraft "net.minecraftforge:forge:${project.forge_version}"
+    // Forge 1.21+ dev bootstrap resolves modlauncher's jopt.simple module from
+    // the classpath; without this pin the module is missing and runClient dies
+    // with "Module jopt.simple not found". Same workaround ships in the MDK.
+    implementation('net.sf.jopt-simple:jopt-simple:5.0.4') { version { strictly '5.0.4' } }
 }
 
 java {
