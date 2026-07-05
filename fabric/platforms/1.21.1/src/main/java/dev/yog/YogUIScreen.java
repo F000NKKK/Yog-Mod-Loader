@@ -22,13 +22,21 @@ public class YogUIScreen extends Screen {
     public YogUIScreen(String uiId) { this(uiId, true, false); }
 
     @Override public void render(DrawContext ctx, int mx, int my, float delta) {
-        renderBackground(ctx, mx, my, delta);
+        super.renderBackground(ctx, mx, my, delta);
         ctx.draw();
         NativeDraw.hudDrawContext = ctx;
         NativeBridge.nativeUIRender(uiId, this.width, this.height);
         NativeDraw.hudDrawContext = null;
         NativeDraw.syncGlState(); // raw GL from Rust desyncs GlStateManager caches
         super.render(ctx, mx, my, delta);
+    }
+
+    @Override
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+        // No-op: the blurred background is rendered explicitly via
+        // super.renderBackground() above, before the book. This override
+        // prevents duplicate background draws from Screen.render() or
+        // Fabric mixins that would otherwise layer blur on top of the book.
     }
 
     @Override public boolean mouseClicked(double mx, double my, int button) {
