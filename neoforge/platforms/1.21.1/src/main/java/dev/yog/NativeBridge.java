@@ -111,9 +111,8 @@ public final class NativeBridge {
         ServerPlayer p = playerByName(player);
         ResourceLocation id = ResourceLocation.tryParse(channel);
         if (p == null || id == null) return false;
-        // TODO: port to 1.21.x Payload API
-        // ClientboundCustomPayloadPacket removed in 1.21.1
-        return false;
+        p.connection.send(new ClientboundCustomPayloadPacket(
+                new YogPayload(YogPayload.typeFor(id), data)));
         return true;
     }
 
