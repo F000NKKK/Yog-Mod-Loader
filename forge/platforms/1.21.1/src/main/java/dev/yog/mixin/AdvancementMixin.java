@@ -27,10 +27,10 @@ public abstract class AdvancementMixin {
             CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValue()) return;
         if (!getOrStartProgress(advancement).isDone()) return;
-        if (player == null || BuiltInRegistries.ADVANCEMENT.getKey(advancement.value()) == null) return;
+        if (player == null || advancement.id() == null) return;
         NativeBridge.nativeOnAdvancement(
                 player.getName().getString(),
                 player.getStringUUID(),
-                BuiltInRegistries.ADVANCEMENT.getKey(advancement.value()).toString());
+                advancement.id().toString());
     }
 }

@@ -443,7 +443,7 @@ public class YogHost {
     // ── Entity damage / player death ─────────────────────────────────────────
 
     @net.minecraftforge.eventbus.api.SubscribeEvent
-    public void onLivingDamage(LivingDamageEvent event) {
+    public void onLivingDamage(LivingDamageEvent.Pre event) {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
         String source = event.getContainer().getSource().getMsgId();
