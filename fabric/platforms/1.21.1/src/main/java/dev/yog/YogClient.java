@@ -7,6 +7,10 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.joml.Matrix4f;
 
@@ -71,12 +75,40 @@ public class YogClient implements ClientModInitializer {
             NativeDraw.syncGlState(); // raw GL (e.g. plumbob demo) desyncs GL caches
         });
 
-        // screen open / close
+        // screen open / close + menu entry injection
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             String screenClass = screen.getClass().getSimpleName();
             NativeBridge.nativeOnScreenOpen(screenClass);
             ScreenEvents.remove(screen).register(s -> NativeBridge.nativeOnScreenClose(screenClass));
+
+            // Inject menu entry buttons on TitleScreen
+            if (screen instanceof TitleScreen) {
+                injectMenuButtons(screen);
+            }
         });
+    }
+
+    private static void injectMenuButtons(Screen screen) {
+        String raw = NativeBridge.nativeMenuEntries();
+        if (raw == null || raw.isEmpty()) return;
+
+        String[] lines = raw.split("\\n");
+        int x = screen.width / 2 - 100;
+        int y = screen.height / 4 + 120;
+
+        for (String line : lines) {
+            String[] parts = line.split("\\t", 2);
+            if (parts.length < 2) continue;
+            String label = parts[0];
+            String uiId  = parts[1];
+
+            screen.addDrawableChild(
+                ButtonWidget.builder(Text.literal(label), btn -> {
+                    YogUIScreen.open(uiId, false, false);
+                }).position(x, y).size(100, 20).build()
+            );
+            y += 24;
+        }
     }
 
     /** Send a raw-byte packet to the server (client -> server). */

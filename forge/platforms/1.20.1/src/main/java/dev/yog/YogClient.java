@@ -1,7 +1,10 @@
 package dev.yog;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
@@ -80,6 +83,48 @@ public final class YogClient {
     public static void onScreenClose(ScreenEvent.Closing event) {
         String screenClass = event.getScreen().getClass().getSimpleName();
         NativeBridge.nativeOnScreenClose(screenClass);
+    }
+
+    // ── Menu entry injection ────────────────────────────────────────────────
+
+    @SubscribeEvent
+    public static void onScreenInitPost(ScreenEvent.Init.Post event) {
+        Screen screen = event.getScreen();
+        String cls = screen.getClass().getName();
+
+        // Only inject on ModListScreen (Forge) and TitleScreen (all loaders).
+        boolean isModList = cls.equals("net.minecraftforge.client.gui.ModListScreen");
+        boolean isTitle   = cls.equals("net.minecraft.client.gui.screens.TitleScreen");
+        if (!isModList && !isTitle) return;
+
+        String raw = NativeBridge.nativeMenuEntries();
+        if (raw == null || raw.isEmpty()) return;
+
+        String[] lines = raw.split("\\n");
+        int x, y;
+        if (isModList) {
+            // Place buttons at top-right of the mod list
+            x = screen.width - 110;
+            y = 10;
+        } else {
+            // TitleScreen: place below the main menu buttons
+            x = screen.width / 2 - 100;
+            y = screen.height / 4 + 120;
+        }
+
+        for (String line : lines) {
+            String[] parts = line.split("\\t", 2);
+            if (parts.length < 2) continue;
+            String label = parts[0];
+            String uiId  = parts[1];
+
+            event.addListener(
+                Button.builder(Component.literal(label), btn -> {
+                    YogUIScreen.open(uiId, false, false);
+                }).pos(x, y).size(100, 20).build()
+            );
+            y += 24;
+        }
     }
 
     /** Send a raw-byte packet to the server (client -> server). */

@@ -160,7 +160,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 /// Java side parses this and injects buttons into vanilla screens.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeMenuEntries<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    env: JNIEnv<'l>, _class: JClass<'l>,
 ) -> jstring {
     let h = handlers();
     let lines: Vec<String> = h.menu_entries.iter()
