@@ -2377,17 +2377,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientPacket<'l>(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeMenuEntries<'l>(
-    env: JNIEnv<'l>, _class: JClass<'l>,
-) -> jstring {
-    let s = handlers().menu_entries.iter()
-        .map(|(label, ui_id)| format!("{label}\t{ui_id}"))
-        .collect::<Vec<_>>()
-        .join("\n");
-    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
-}
-
-#[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativePacketChannels<'l>(
     env: JNIEnv<'l>, _class: JClass<'l>,
 ) -> jstring {
