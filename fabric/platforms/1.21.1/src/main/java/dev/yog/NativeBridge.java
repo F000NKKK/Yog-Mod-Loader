@@ -142,9 +142,7 @@ public final class NativeBridge {
         if (p == null || id == null) {
             return false;
         }
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeBytes(data);
-        ServerPlayNetworking.send(p, id, buf);
+        ServerPlayNetworking.send(p, new YogPayload(YogPayload.idFor(id), data));
         return true;
     }
 
@@ -162,8 +160,8 @@ public final class NativeBridge {
         }
         if (e instanceof ServerPlayerEntity p) {
             p.networkHandler.requestTeleport(x, y, z, p.getYaw(), p.getPitch());
-        } else {
-            e.teleport(x, y, z);
+        } else if (e.getWorld() instanceof ServerWorld sw) {
+            e.teleport(sw, x, y, z, java.util.Set.of(), e.getYaw(), e.getPitch());
         }
         return true;
     }
@@ -254,8 +252,9 @@ public final class NativeBridge {
         net.minecraft.scoreboard.Scoreboard sb = s.getScoreboard();
         net.minecraft.scoreboard.ScoreboardObjective obj = sb.getNullableObjective(objective);
         if (obj == null) return Integer.MIN_VALUE;
-        if (!sb.playerHasObjective(player, obj)) return 0;
-        return sb.getPlayerScore(player, obj).getScore();
+        net.minecraft.scoreboard.ReadableScoreboardScore sc =
+                sb.getScore(net.minecraft.scoreboard.ScoreHolder.fromName(player), obj);
+        return sc == null ? 0 : sc.getScore();
     }
 
     public static boolean scoreboardSet(String objective, String player, int score) {
@@ -264,7 +263,7 @@ public final class NativeBridge {
         net.minecraft.scoreboard.Scoreboard sb = s.getScoreboard();
         net.minecraft.scoreboard.ScoreboardObjective obj = sb.getNullableObjective(objective);
         if (obj == null) return false;
-        sb.getPlayerScore(player, obj).setScore(score);
+        sb.getOrCreateScore(net.minecraft.scoreboard.ScoreHolder.fromName(player), obj).setScore(score);
         return true;
     }
 
@@ -275,7 +274,8 @@ public final class NativeBridge {
         net.minecraft.scoreboard.Scoreboard sb = s.getScoreboard();
         net.minecraft.scoreboard.ScoreboardObjective obj = sb.getNullableObjective(objective);
         if (obj == null) return Integer.MIN_VALUE;
-        net.minecraft.scoreboard.ScoreboardPlayerScore score = sb.getPlayerScore(player, obj);
+        net.minecraft.scoreboard.ScoreAccess score =
+                sb.getOrCreateScore(net.minecraft.scoreboard.ScoreHolder.fromName(player), obj);
         score.incrementScore(delta);
         return score.getScore();
     }
@@ -460,7 +460,7 @@ public final class NativeBridge {
         if (w == null) return null;
         BlockEntity be = w.getBlockEntity(new BlockPos(x, y, z));
         if (be == null) return null;
-        NbtCompound nbt = be.createNbt();
+        NbtCompound nbt = be.createNbt(w.getRegistryManager());
         return nbt.toString();
     }
 
@@ -472,7 +472,7 @@ public final class NativeBridge {
         if (be == null) return false;
         try {
             NbtCompound nbt = StringNbtReader.parse(snbt);
-            be.readNbt(nbt);
+            be.readNbt(nbt, w.getRegistryManager());
             be.markDirty();
             return true;
         } catch (Exception e) {
@@ -527,7 +527,7 @@ public final class NativeBridge {
         if (e instanceof ServerPlayerEntity p) {
             p.teleport(w, x, y, z, p.getYaw(), p.getPitch());
         } else {
-            e.teleport(x, y, z);
+            e.teleport(w, x, y, z, java.util.Set.of(), e.getYaw(), e.getPitch());
         }
         return true;
     }
@@ -535,7 +535,7 @@ public final class NativeBridge {
     public static String gameDir() {
         MinecraftServer s = server;
         if (s == null) return null;
-        return s.getRunDirectory().getAbsolutePath();
+        return s.getRunDirectory().toAbsolutePath().toString();
     }
 
     public static boolean entityAddEffect(
@@ -545,7 +545,9 @@ public final class NativeBridge {
         Identifier id = Identifier.tryParse(effectId);
         if (id == null || !Registries.STATUS_EFFECT.containsId(id)) return false;
         StatusEffect effect = Registries.STATUS_EFFECT.get(id);
-        return le.addStatusEffect(new StatusEffectInstance(effect, durationTicks, amplifier, false, showParticles));
+        if (effect == null) return false;
+        return le.addStatusEffect(new StatusEffectInstance(
+                Registries.STATUS_EFFECT.getEntry(effect), durationTicks, amplifier, false, showParticles));
     }
 
     public static boolean entityRemoveEffect(String uuid, String effectId) {
@@ -554,7 +556,8 @@ public final class NativeBridge {
         Identifier id = Identifier.tryParse(effectId);
         if (id == null || !Registries.STATUS_EFFECT.containsId(id)) return false;
         StatusEffect effect = Registries.STATUS_EFFECT.get(id);
-        return le.removeStatusEffect(effect);
+        if (effect == null) return false;
+        return le.removeStatusEffect(Registries.STATUS_EFFECT.getEntry(effect));
     }
 
     public static boolean entityClearEffects(String uuid) {
@@ -646,7 +649,8 @@ public final class NativeBridge {
         Identifier id = Identifier.tryParse(attributeId);
         if (id == null || !Registries.ATTRIBUTE.containsId(id)) return Double.NaN;
         EntityAttribute attr = Registries.ATTRIBUTE.get(id);
-        EntityAttributeInstance inst = le.getAttributeInstance(attr);
+        if (attr == null) return Double.NaN;
+        EntityAttributeInstance inst = le.getAttributeInstance(Registries.ATTRIBUTE.getEntry(attr));
         return inst == null ? Double.NaN : inst.getBaseValue();
     }
 
@@ -656,7 +660,8 @@ public final class NativeBridge {
         Identifier id = Identifier.tryParse(attributeId);
         if (id == null || !Registries.ATTRIBUTE.containsId(id)) return false;
         EntityAttribute attr = Registries.ATTRIBUTE.get(id);
-        EntityAttributeInstance inst = le.getAttributeInstance(attr);
+        if (attr == null) return false;
+        EntityAttributeInstance inst = le.getAttributeInstance(Registries.ATTRIBUTE.getEntry(attr));
         if (inst == null) return false;
         inst.setBaseValue(value);
         return true;
@@ -670,8 +675,8 @@ public final class NativeBridge {
         if (p == null) return null;
         net.minecraft.item.ItemStack stack = p.getMainHandStack();
         if (stack.isEmpty()) return null;
-        NbtCompound nbt = stack.hasNbt() ? stack.getNbt() : new NbtCompound();
-        return nbt.toString();
+        return stack.getOrDefault(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                net.minecraft.component.type.NbtComponent.DEFAULT).copyNbt().toString();
     }
 
     /** Merge snbt into the NBT of the item in the player's main hand.
@@ -683,7 +688,8 @@ public final class NativeBridge {
         if (stack.isEmpty()) return false;
         try {
             NbtCompound nbt = StringNbtReader.parse(snbt);
-            stack.setNbt(nbt);
+            stack.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                    net.minecraft.component.type.NbtComponent.of(nbt));
             return true;
         } catch (Exception e) {
             return false;
@@ -698,8 +704,8 @@ public final class NativeBridge {
         if (p == null) return null;
         net.minecraft.item.ItemStack stack = p.getOffHandStack();
         if (stack.isEmpty()) return null;
-        NbtCompound nbt = stack.hasNbt() ? stack.getNbt() : new NbtCompound();
-        return nbt.toString();
+        return stack.getOrDefault(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                net.minecraft.component.type.NbtComponent.DEFAULT).copyNbt().toString();
     }
 
     /** Merge snbt into the NBT of the player's off-hand item. */
@@ -710,7 +716,8 @@ public final class NativeBridge {
         if (stack.isEmpty()) return false;
         try {
             NbtCompound nbt = StringNbtReader.parse(snbt);
-            stack.setNbt(nbt);
+            stack.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                    net.minecraft.component.type.NbtComponent.of(nbt));
             return true;
         } catch (Exception e) {
             return false;
@@ -727,7 +734,8 @@ public final class NativeBridge {
         if (stack.isEmpty()) return null;
         String itemId = Registries.ITEM.getId(stack.getItem()).toString();
         int count = stack.getCount();
-        String nbt = stack.hasNbt() ? stack.getNbt().toString() : "{}";
+        String nbt = stack.getOrDefault(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                net.minecraft.component.type.NbtComponent.DEFAULT).copyNbt().toString();
         return itemId + "\t" + count + "\t" + nbt;
     }
 
@@ -747,7 +755,8 @@ public final class NativeBridge {
         if (snbt != null && !snbt.isEmpty()) {
             try {
                 NbtCompound nbt = StringNbtReader.parse(snbt);
-                stack.setNbt(nbt);
+                stack.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                        net.minecraft.component.type.NbtComponent.of(nbt));
             } catch (Exception ignored) {}
         }
         inv.setStack(slot, stack);

@@ -1,7 +1,7 @@
 package dev.yog.mixin;
 
 import dev.yog.NativeBridge;
-import net.minecraft.advancement.Advancement;
+import net.minecraft.advancement.AdvancementEntry;
 import net.minecraft.advancement.AdvancementProgress;
 import net.minecraft.advancement.PlayerAdvancementTracker;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -16,22 +16,22 @@ public abstract class AdvancementMixin {
 
     @Shadow private ServerPlayerEntity owner;
 
-    @Shadow public abstract AdvancementProgress getProgress(Advancement advancement);
+    @Shadow public abstract AdvancementProgress getProgress(AdvancementEntry advancement);
 
-    // Yarn: grantCriterion(Advancement, String) -> boolean (method_12878)
+    // Yarn: grantCriterion(AdvancementEntry, String) -> boolean
     @Inject(
-        method = "grantCriterion(Lnet/minecraft/advancement/Advancement;Ljava/lang/String;)Z",
+        method = "grantCriterion(Lnet/minecraft/advancement/AdvancementEntry;Ljava/lang/String;)Z",
         at = @At("RETURN")
     )
     private void yog$onCriterionGrant(
-            Advancement advancement, String criterionName,
+            AdvancementEntry advancement, String criterionName,
             CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValue()) return;
         if (!getProgress(advancement).isDone()) return;
-        if (owner == null || advancement.getId() == null) return;
+        if (owner == null || advancement.id() == null) return;
         NativeBridge.nativeOnAdvancement(
                 owner.getName().getString(),
                 owner.getUuidAsString(),
-                advancement.getId().toString());
+                advancement.id().toString());
     }
 }

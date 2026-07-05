@@ -82,10 +82,11 @@ public class YogHost implements ModInitializer {
                 if (id == null) {
                     continue;
                 }
-                ServerPlayNetworking.registerGlobalReceiver(id, (server, player, netHandler, buf, sender) -> {
-                    byte[] data = new byte[buf.readableBytes()];
-                    buf.readBytes(data);
-                    server.execute(() ->
+                YogPayload.register(id);
+                ServerPlayNetworking.registerGlobalReceiver(YogPayload.idFor(id), (payload, context) -> {
+                    byte[] data = payload.data();
+                    var player = context.player();
+                    player.getServer().execute(() ->
                             NativeBridge.nativeOnPacket(channel, player.getName().getString(), data));
                 });
             }
@@ -441,7 +442,7 @@ public class YogHost implements ModInitializer {
                     .displayName(Text.literal(ns))
                     .entries((displayContext, tabEntries) -> entries.forEach(tabEntries::add))
                     .build();
-            Registry.register(Registries.ITEM_GROUP, new Identifier(ns, ns), group);
+            Registry.register(Registries.ITEM_GROUP, Identifier.of(ns, ns), group);
         }
     }
 

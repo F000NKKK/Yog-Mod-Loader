@@ -22,7 +22,7 @@ public class YogUIScreen extends Screen {
     public YogUIScreen(String uiId) { this(uiId, true, false); }
 
     @Override public void render(DrawContext ctx, int mx, int my, float delta) {
-        renderBackground(ctx);
+        renderBackground(ctx, mx, my, delta);
         ctx.draw();
         NativeDraw.hudDrawContext = ctx;
         NativeBridge.nativeUIRender(uiId, this.width, this.height);
