@@ -111,9 +111,8 @@ public final class NativeBridge {
         ServerPlayer p = playerByName(player);
         ResourceLocation id = ResourceLocation.tryParse(channel);
         if (p == null || id == null) return false;
-        FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
-        buf.writeBytes(data);
-        p.connection.send(new ClientboundCustomPayloadPacket(id, buf));
+        p.connection.send(new ClientboundCustomPayloadPacket(
+                new YogPayload(YogPayload.typeFor(id), data)));
         return true;
     }
 

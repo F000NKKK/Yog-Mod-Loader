@@ -49,7 +49,7 @@ import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.neoforged.fml.loading.FMLPaths;
-// TODO: ClientboundCustomPayloadPacket removed in 1.21.1
+import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
 import java.util.Map;
 
 /**
