@@ -14,6 +14,7 @@ import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackSelectionConfig;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.PathPackResources;
+import net.minecraft.server.packs.PackResources;
 
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
@@ -52,8 +53,8 @@ public class YogPackProvider implements RepositorySource {
         Pack pack = Pack.readMetaAndCreate(
                 loc,
                 new Pack.ResourcesSupplier() {
-            @Override public PackResources openPrimary(PackLocationInfo loc) { return new PathPackResources(loc.id(), dir, true); }
-            @Override public PackResources openFull(PackLocationInfo loc, Pack.Metadata meta) { return new PathPackResources(loc.id(), dir, true); }
+            @Override public PackResources openPrimary(PackLocationInfo loc) { return new PathPackResources(loc, dir); }
+            @Override public PackResources openFull(PackLocationInfo loc, Pack.Metadata meta) { return new PathPackResources(loc, dir); }
         },
                 type,
                 new PackSelectionConfig(true, Pack.Position.TOP, false));
