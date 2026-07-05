@@ -32,11 +32,17 @@ forward-compatible.
 | Loader | Minecraft | Mappings | Loader version | API/Libs | Java | Status |
 |--------|-----------|----------|---------------|----------|------|--------|
 | **Fabric** | 1.20.1 | Yarn 1.20.1+build.10 | ≥ 0.15.11 | fabric-api 0.92.2+1.20.1 | 17 | ✅ tested |
-| | 1.21.1 | Yarn 1.21.1+build.9 | ≥ 0.16.5 | fabric-api 0.104.0+1.21.1 | 21 | ✅ tested |
+| | 1.21.1 | Yarn 1.21.1+build.3 | ≥ 0.16.9 | fabric-api 0.115.6+1.21.1 | 21 | ✅ ported |
 | **NeoForge** | 1.20.1 | Mojmap (NeoForge) | 47.1.106 | — | 17 | ✅ tested |
-| | 1.21.1 | Mojmap (NeoForge) | 21.1.0+ | — | 21 | 🚧 scaffold |
-| **Forge** | 1.20.1 | MCP (ForgeGradle) | 47.3.0 | — | 17 | 🚧 scaffold |
-| | 1.21.1 | MCP (ForgeGradle) | 21.1.0+ | — | 21 | 🚧 scaffold |
+| | 1.21.1 | Mojmap (NeoForge) | 21.1.77 | — | 21 | ✅ ported |
+| **Forge** | 1.20.1 | Mojmap (ForgeGradle) | 47.3.0 | — | 17 | ✅ tested |
+| | 1.21.1 | Mojmap (ForgeGradle) | 52.0.40 | — | 21 | ✅ ported |
+
+Every loader/version pair builds from its own source tree under
+`<loader>/platforms/<mc-version>/` — no code is shared between platforms, so
+API differences between loader versions never leak into each other.
+(✅ tested = verified in-game; ✅ ported = compiles and publishes, in-game
+verification in progress.)
 
 Each loader has its own version-specific Mixin sources under
 `<loader>/platforms/<mc-version>/`. The active platform is selected by
@@ -56,7 +62,9 @@ all loaders lives in `java-common/`.
 ./build.sh run fabric --client                # Fabric 1.20.1
 ./build.sh run fabric --client --mc 1.21.1    # Fabric 1.21.1
 ./build.sh run neoforge --client              # NeoForge 1.20.1
+./build.sh run neoforge --client --mc 1.21.1  # NeoForge 1.21.1
 ./build.sh run forge --client                 # Forge 1.20.1
+./build.sh run forge --client --mc 1.21.1     # Forge 1.21.1
 ```
 
 | Stage | What | ABI minor |
@@ -84,8 +92,9 @@ all loaders lives in `java-common/`.
 | ✅ 13.6 | `yog-book` Patchouli-parity layout: exact page coordinates (272×180), nameplate, centered separators, crafting/smelting recipe rendering from recipe JSON | 21 |
 | ✅ 13.7 | `draw2d_item`: render item stacks (3D block models included) via MC's item renderer; `syncGlState` fixes raw-GL ↔ MC state desync | 21 |
 | ✅ 13.8 | Per-world startup grants (stored in the world save, retried on server tick); `java-common/` for loader-agnostic host code | 21 |
-| ✅ 14 | NeoForge host (MC 1.20.1): event-bus host, Mojmap mixins, `RegisterEvent` content registration, `AddPackFindersEvent` packs — compiles; in-game testing pending | — |
-| 🔲 15 | Forge host |  |
+| ✅ 14 | NeoForge host (MC 1.20.1): event-bus host, Mojmap mixins, `RegisterEvent` content registration, `AddPackFindersEvent` packs — verified in-game | — |
+| ✅ 15 | Forge host (MC 1.20.1): standalone source tree, FG6 build, verified in-game | — |
+| ✅ 16 | 1.21.1 ports for all three loaders: typed `CustomPayload` networking, component-based item NBT, `AdvancementEntry`, per-platform mods.toml/version ranges | — |
 
 ## API available now (ABI minor 21+)
 
