@@ -11,6 +11,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resource.DirectoryResourcePack;
+import net.minecraft.resource.ResourcePack;
+import net.minecraft.resource.ResourcePackInfo;
+import net.minecraft.resource.ResourcePackPosition;
 import net.minecraft.resource.ResourcePackProfile;
 import net.minecraft.resource.ResourcePackProvider;
 import net.minecraft.resource.ResourcePackSource;
@@ -41,14 +44,22 @@ public class YogPackProvider implements ResourcePackProvider {
         if (dir == null) {
             return;
         }
+        ResourcePackInfo info = new ResourcePackInfo(
+                "yog_runtime", Text.literal("Yog Mods"), ResourcePackSource.NONE, java.util.Optional.empty());
+        ResourcePackProfile.PackFactory factory = new ResourcePackProfile.PackFactory() {
+            @Override
+            public ResourcePack open(ResourcePackInfo packInfo) {
+                return new DirectoryResourcePack(packInfo, dir);
+            }
+
+            @Override
+            public ResourcePack openWithOverlays(ResourcePackInfo packInfo, ResourcePackProfile.Metadata metadata) {
+                return open(packInfo);
+            }
+        };
         ResourcePackProfile profile = ResourcePackProfile.create(
-                "yog_runtime",
-                Text.literal("Yog Mods"),
-                true,
-                name -> new DirectoryResourcePack(name, dir, true),
-                type,
-                ResourcePackProfile.InsertionPosition.TOP,
-                ResourcePackSource.NONE);
+                info, factory, type,
+                new ResourcePackPosition(true, ResourcePackProfile.InsertionPosition.TOP, false));
         if (profile != null) {
             adder.accept(profile);
         }

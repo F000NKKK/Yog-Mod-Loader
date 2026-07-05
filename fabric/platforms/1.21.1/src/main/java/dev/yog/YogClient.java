@@ -6,9 +6,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 import org.joml.Matrix4f;
 
@@ -18,17 +16,17 @@ public class YogClient implements ClientModInitializer {
     public void onInitializeClient() {
         NativeBridge.ensureLoaded();
 
-        // client packets
+        // client packets — typed payloads since 1.20.5 (one codec per channel)
         String channels = NativeBridge.nativeClientPacketChannels();
         if (channels != null) {
             for (String channel : channels.split("\n")) {
                 if (channel.isBlank()) continue;
                 Identifier id = Identifier.tryParse(channel);
                 if (id == null) continue;
-                ClientPlayNetworking.registerGlobalReceiver(id, (client, handler, buf, sender) -> {
-                    byte[] data = new byte[buf.readableBytes()];
-                    buf.readBytes(data);
-                    client.execute(() -> NativeBridge.nativeOnClientPacket(channel, data));
+                YogPayload.register(id);
+                ClientPlayNetworking.registerGlobalReceiver(YogPayload.idFor(id), (payload, context) -> {
+                    byte[] data = payload.data();
+                    context.client().execute(() -> NativeBridge.nativeOnClientPacket(channel, data));
                 });
             }
         }
@@ -37,13 +35,13 @@ public class YogClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> NativeBridge.nativeOnClientTick());
 
         // HUD render — store DrawContext for Rust draw calls, then clear it
-        HudRenderCallback.EVENT.register((ctx, tickDelta) -> {
+        HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
             NativeBridge.nativeGlInit();  // no-op after first call; deferred here so GL is active
             NativeDraw.hudDrawContext = ctx;
             MinecraftClient mc = MinecraftClient.getInstance();
             var playerPos = mc.player != null ? mc.player.getEyePos() : net.minecraft.util.math.Vec3d.ZERO;
             NativeBridge.nativeOnHudRender(
-                tickDelta,
+                tickCounter.getTickDelta(false),
                 mc.getWindow().getScaledWidth(),
                 mc.getWindow().getScaledHeight(),
                 (float) mc.getWindow().getScaleFactor(),
@@ -63,7 +61,7 @@ public class YogClient implements ClientModInitializer {
             var camPos = ctx.camera().getPos();
             var playerPos = mc.player != null ? mc.player.getEyePos() : camPos;
             NativeBridge.nativeOnWorldRender(
-                ctx.tickDelta(),
+                ctx.tickCounter().getTickDelta(false),
                 mc.getWindow().getScaledWidth(),
                 mc.getWindow().getScaledHeight(),
                 (float) mc.getWindow().getScaleFactor(),
@@ -88,9 +86,7 @@ public class YogClient implements ClientModInitializer {
             return false;
         }
         try {
-            PacketByteBuf buf = PacketByteBufs.create();
-            buf.writeBytes(data);
-            ClientPlayNetworking.send(id, buf);
+            ClientPlayNetworking.send(new YogPayload(YogPayload.idFor(id), data));
             return true;
         } catch (Throwable t) {
             return false;

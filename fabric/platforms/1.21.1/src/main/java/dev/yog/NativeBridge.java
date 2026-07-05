@@ -472,7 +472,7 @@ public final class NativeBridge {
         if (be == null) return false;
         try {
             NbtCompound nbt = StringNbtReader.parse(snbt);
-            be.readNbt(nbt, w.getRegistryManager());
+            be.read(nbt, w.getRegistryManager());
             be.markDirty();
             return true;
         } catch (Exception e) {

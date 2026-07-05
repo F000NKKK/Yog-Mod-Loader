@@ -2,7 +2,7 @@
     "required": true,
     "minVersion": "0.8.5",
     "package": "dev.yog.mixin",
-    "compatibilityLevel": "JAVA_17",
+    "compatibilityLevel": "JAVA_21",
     "refmap": "yog.refmap.json",
     "mixins": [
         "AdvancementMixin",
