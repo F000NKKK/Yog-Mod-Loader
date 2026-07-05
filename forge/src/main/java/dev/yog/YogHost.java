@@ -329,15 +329,20 @@ public class YogHost {
     public void onBlockBreak(BlockEvent.BreakEvent event) {
         if (!(event.getPlayer() instanceof ServerPlayer player)) return;
         String blockId = BuiltInRegistries.BLOCK.getKey(event.getState().getBlock()).toString();
-        if (!NativeBridge.nativeOnBlockBreakPre(
-                player.getName().getString(), blockId,
-                event.getPos().getX(), event.getPos().getY(), event.getPos().getZ())) {
+        String playerName = player.getName().getString();
+        int x = event.getPos().getX(), y = event.getPos().getY(), z = event.getPos().getZ();
+        if (!NativeBridge.nativeOnBlockBreakPre(playerName, blockId, x, y, z)) {
             event.setCanceled(true);
             return;
         }
-        NativeBridge.nativeOnBlockBreak(
-                player.getName().getString(), blockId,
-                event.getPos().getX(), event.getPos().getY(), event.getPos().getZ());
+        // Defer Post to after the block is actually removed.
+        // BlockEvent.BreakEvent fires *before* the break — if we setBlock
+        // here, vanilla will destroy the block we just placed.
+        MinecraftServer server = player.getServer();
+        if (server != null) {
+            server.execute(() ->
+                NativeBridge.nativeOnBlockBreak(playerName, blockId, x, y, z));
+        }
     }
 
     // ── Chat ─────────────────────────────────────────────────────────────────
