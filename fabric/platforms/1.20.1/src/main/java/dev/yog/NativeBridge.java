@@ -938,6 +938,7 @@ public final class NativeBridge {
     /** Render a Rust UI immediately (called from Screen.render, not HUD). */
     public static native void nativeUIRender(String uiId, int screenW, int screenH);
     public static native boolean nativeIsUIActive(String uiId);
+    public static native String nativeMenuEntries();
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source, String uuid);
 

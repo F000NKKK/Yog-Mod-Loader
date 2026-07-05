@@ -155,3 +155,17 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
         unsafe { f(ud, &gfx as *const _) };
     }
 }
+
+/// Return tab+newline-encoded menu entries: `label\tui_id\n...`
+/// Java side parses this and injects buttons into vanilla screens.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeMenuEntries<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+) -> jstring {
+    let h = handlers();
+    let lines: Vec<String> = h.menu_entries.iter()
+        .map(|(label, ui_id)| format!("{}\t{}", label, ui_id))
+        .collect();
+    let out = lines.join("\n");
+    env.new_string(out).unwrap().into_raw()
+}

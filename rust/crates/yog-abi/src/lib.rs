@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 21;
+pub const ABI_MINOR: u32 = 22;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -817,6 +817,13 @@ pub struct YogApi {
     /// Clicks are forwarded as `"click:X:Y"` events to the `register_ui` handler
     /// so mods can do their own hit-testing with their stored layout.
     pub on_ui_render: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr, ud: *mut c_void, h: YogHudRenderFn),
+
+    // ── ABI minor 22 — menu entry registration ──────────────────────────────
+    /// Register a button/link that the host renders on vanilla screens
+    /// (TitleScreen on Fabric, ModListScreen on Forge/NeoForge).
+    /// `label` is the human-readable button text (e.g. "Yog Mods").
+    /// `ui_id` is the Yog UI to open when clicked (e.g. "yog:modlist").
+    pub register_menu_entry: unsafe extern "C" fn(ctx: *mut c_void, label: YogStr, ui_id: YogStr),
 }
 
 unsafe impl Send for YogApi {}

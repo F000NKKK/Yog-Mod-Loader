@@ -1,11 +1,11 @@
 [package]
 name = "yog-ui"
-version = "0.14.0"
+version = "0.15.0"
 edition.workspace = true
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog UI framework — flexbox layout engine + GPU rendering via yog-gfx"
 
 [dependencies]
-yog-gfx = "0.6"
-yog-abi = "0.7"
+yog-gfx = "0.7"
+yog-abi = "0.8"

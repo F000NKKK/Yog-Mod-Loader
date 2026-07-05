@@ -122,6 +122,7 @@ struct RuntimeHandlers {
     book_renderers:     Mutex<HashMap<String, yog_book::BookRenderer>>,
     ui_handlers:        HashMap<String, (*mut c_void, yog_abi::YogUIEventFn)>,
     ui_render_handlers: HashMap<String, Vec<(*mut c_void, YogHudRenderFn)>>,
+    menu_entries:       Vec<(String, String)>,  // (label, ui_id) for vanilla screen buttons
     pub active_uis:     Mutex<Vec<UiLayer>>,
     startup_grants:     Vec<yog_registry::StartupGrant>,
     startup_granted:    Mutex<HashMap<String, bool>>,
@@ -158,6 +159,7 @@ impl RuntimeHandlers {
             recipes: Vec::new(), packets: HashMap::new(),
             client_packets: HashMap::new(), items: Vec::new(),
             ui_handlers: HashMap::new(), ui_render_handlers: HashMap::new(),
+            menu_entries: Vec::new(),
             active_uis: Mutex::new(Vec::new()), startup_grants: Vec::new(),
             blocks: Vec::new(), books: HashMap::new(),
             book_renderers: Mutex::new(HashMap::new()),
@@ -1495,6 +1497,13 @@ unsafe extern "C" fn api_on_ui_render(ctx: *mut c_void, ui_id: YogStr,
     handlers.ui_render_handlers.entry(id).or_default().push((ud, h));
 }
 
+unsafe extern "C" fn api_register_menu_entry(ctx: *mut c_void, label: YogStr, ui_id: YogStr) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let l = unsafe { label.as_str().to_owned() };
+    let u = unsafe { ui_id.as_str().to_owned() };
+    handlers.menu_entries.push((l, u));
+}
+
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeBookJson<'l>(
@@ -1632,6 +1641,7 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         register_book:          api_register_book,
         register_ui:            api_register_ui,
         on_ui_render:           api_on_ui_render,
+        register_menu_entry:    api_register_menu_entry,
     }
 }
 

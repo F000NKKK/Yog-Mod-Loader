@@ -464,6 +464,7 @@ public final class NativeBridge {
     public static native void nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
     public static native void nativeUIRender(String uiId, int screenW, int screenH);
     public static native boolean nativeIsUIActive(String uiId);
+    public static native String nativeMenuEntries();
     public static native String nativeOnCommand(String name, String args, String source, String uuid);
     public static native String nativeItemDefs();
     public static native String nativeBlockDefs();

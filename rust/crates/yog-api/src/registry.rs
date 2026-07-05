@@ -1116,6 +1116,16 @@ impl Registry {
     }
 
 
+    /// Register a menu entry — the host renders a button on vanilla screens
+    /// (TitleScreen on Fabric, ModListScreen on Forge/NeoForge) that opens `ui_id`.
+    /// `label` is the human-readable button text (e.g. "Yog Mods").
+    /// `ui_id` is the UI to open when clicked (e.g. "yog:modlist").
+    pub fn register_menu_entry(&mut self, label: &str, ui_id: &str) {
+        let l = YogStr::from_str(label);
+        let u = YogStr::from_str(ui_id);
+        unsafe { ((*self.api).register_menu_entry)(self.ctx(), l, u) }
+    }
+
     /// Register a UI tree with an event callback.
     /// `ui_id` is the unique identifier (e.g. "mymod:menu").
     /// `handler` receives `(ui_id, event_id)` when a widget is clicked.
