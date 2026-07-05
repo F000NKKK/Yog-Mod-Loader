@@ -4,17 +4,16 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.event.TickEvent;
 import net.neoforged.neoforge.eventbus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
 import org.joml.Matrix4f;
 
-/** NeoForge client-side event handlers. Wired via @Mod.EventBusSubscriber. */
-@Mod.EventBusSubscriber(modid = "yog", bus = Mod.EventBusSubscriber.Bus.GAME, value = net.neoforged.fml.loading.FMLLoader.getDist().isClient() ? net.neoforged.api.distmarker.Dist.CLIENT : net.neoforged.api.distmarker.Dist.DEDICATED_SERVER)
+@Mod.EventBusSubscriber(modid = "yog", bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class YogClient {
     private YogClient() {}
-
-    // ── Client tick ──────────────────────────────────────────────────────
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
@@ -22,11 +21,21 @@ public final class YogClient {
         NativeBridge.nativeOnClientTick();
     }
 
-    // ── HUD render ───────────────────────────────────────────────────────
-    // TODO: RenderGuiEvent API changed in 1.21.x NeoForge — needs porting.
-    // HUD rendering is temporarily unavailable on this platform.
-
-    // ── World render ─────────────────────────────────────────────────────
+    @SubscribeEvent
+    public static void onRenderGui(RenderGuiEvent.Post event) {
+        NativeBridge.nativeGlInit();
+        NativeDraw.hudDrawContext = event.getGuiGraphics();
+        Minecraft mc = Minecraft.getInstance();
+        var playerPos = mc.player != null ? mc.player.getEyePosition() : net.minecraft.world.phys.Vec3.ZERO;
+        NativeBridge.nativeOnHudRender(
+            event.getPartialTick().getGameTimeDeltaTicks(),
+            mc.getWindow().getGuiScaledWidth(),
+            mc.getWindow().getGuiScaledHeight(),
+            (float) mc.getWindow().getGuiScale(),
+            (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
+        NativeDraw.hudDrawContext = null;
+        NativeDraw.syncGlState();
+    }
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
@@ -50,14 +59,30 @@ public final class YogClient {
         NativeDraw.syncGlState();
     }
 
-    // ── Screen open / close (for native UI) ──────────────────────────────
-    // TODO: port screen event handlers — native method signatures changed
+    @SubscribeEvent
+    public static void onScreenOpen(ScreenEvent.Opening event) {
+        if (event.getScreen() instanceof YogUIScreen) return;
+        NativeBridge.nativeOnScreenOpen(event.getScreen().getClass().getSimpleName());
+    }
 
-    // ── Packet sending (client → server) ─────────────────────────────────
-    // TODO: CustomPayload API changed in 1.21.x — needs porting.
+    @SubscribeEvent
+    public static void onScreenClose(ScreenEvent.Closing event) {
+        if (event.getScreen() instanceof YogUIScreen) return;
+        NativeBridge.nativeOnScreenClose(event.getScreen().getClass().getSimpleName());
+    }
 
+    /** Send a raw-byte packet to the server (client -> server) via YogPayload. */
     public static boolean sendToServer(String channel, byte[] data) {
-        // TODO: port to 1.21.x Payload API
-        return false;
+        ResourceLocation id = ResourceLocation.tryParse(channel);
+        if (id == null) return false;
+        try {
+            var conn = Minecraft.getInstance().getConnection();
+            if (conn == null) return false;
+            conn.send(new net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket(
+                    new YogPayload(YogPayload.typeFor(id), data)));
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 }

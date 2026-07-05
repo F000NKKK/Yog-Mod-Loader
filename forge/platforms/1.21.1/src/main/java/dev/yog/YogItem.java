@@ -27,13 +27,6 @@ public class YogItem extends Item {
     }
 
     @Override
-    public Component getDescription() {
-        return displayName == null || displayName.isEmpty()
-                ? super.getDescription()
-                : Component.literal(displayName);
-    }
-
-    @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
         if (tooltip != null && !tooltip.isEmpty()) {
             lines.add(Component.literal(tooltip));

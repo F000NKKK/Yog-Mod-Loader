@@ -56,7 +56,7 @@ import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.fml.LogicalSide;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
@@ -77,11 +77,10 @@ public class YogHost {
     private final Map<ResourceLocation, Block> registeredBlocks = new LinkedHashMap<>();
     private final Map<String, List<ItemLike>> tabGroups = new LinkedHashMap<>();
 
-    public YogHost() {
+    public YogHost(IEventBus modBus) {
         NativeBridge.ensureLoaded();
         System.out.println("[yog] NeoForge host initialised.");
 
-        var modBus = ModLoadingContext.get().getModEventBus();
         modBus.addListener(this::onRegister);
         modBus.addListener(this::onAddPackFinders);
 

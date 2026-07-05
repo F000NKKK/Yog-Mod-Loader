@@ -1,8 +1,6 @@
 package dev.yog;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.fml.event.TickEvent;
 import net.neoforged.bus.api.SubscribeEvent;
