@@ -68,12 +68,10 @@ dependencies {
     // (see versions/<mc>.properties).
     implementation "net.neoforged:${project.neo_artifact}:${project.neo_version}"
 
-    // Mixin annotation processor — generates yog.refmap.json at compile time.
-    // NeoGradle's reobfuscation remaps it from Mojang → SRG for production.
-    annotationProcessor 'org.spongepowered:mixin:0.8.5'
-    // Mixin AP needs Gson + Guava on the AP classpath (undeclared in POM).
-    annotationProcessor 'com.google.code.gson:gson:2.10.1'
-    annotationProcessor 'com.google.guava:guava:31.1-jre'
+    // Mixin annotation processor — placed on compileOnly so it has access to
+    // NeoForge's Gson, Guava, ASM, etc. on the compile classpath. Generates
+    // yog.refmap.json; NeoGradle's reobfuscation remaps it to SRG.
+    compileOnly 'org.spongepowered:mixin:0.8.5'
 }
 
 base {
@@ -90,8 +88,9 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    // Let the Mixin annotation processor know the output refmap filename
-    // (must match the "refmap" field in yog.mixins.json).
+    // Point the annotation processor path at the compile classpath so the
+    // Mixin AP (compileOnly) finds its deps: Gson, Guava, ASM from NeoForge.
+    options.annotationProcessorPath = configurations.compileClasspath
     options.compilerArgs << '-AMixinRefMap=yog.refmap.json'
 }
 
