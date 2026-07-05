@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 22;
+pub const ABI_MINOR: u32 = 23;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -824,6 +824,17 @@ pub struct YogApi {
     /// `label` is the human-readable button text (e.g. "Yog Mods").
     /// `ui_id` is the Yog UI to open when clicked (e.g. "yog:modlist").
     pub register_menu_entry: unsafe extern "C" fn(ctx: *mut c_void, label: YogStr, ui_id: YogStr),
+
+    // ── ABI minor 23 — installed mods listing ───────────────────────────────
+    /// All installed mods as TSV, one per line:
+    /// `source \t id \t name \t version \t authors \t description`
+    /// where `source` is `yog` (a .yog mod) or `platform` (a loader mod, e.g.
+    /// a Fabric/Forge jar). Tabs and newlines inside fields become spaces.
+    /// Callable at any time after registration (also client-side).
+    pub mods_list: unsafe extern "C" fn(ctx: *mut c_void) -> YogOwnedStr,
+    /// Free a `YogOwnedStr` returned by an api-table call (same allocator as
+    /// `YogServer::free_str`).
+    pub free_str: unsafe extern "C" fn(ptr: *mut u8, len: u32),
 }
 
 unsafe impl Send for YogApi {}

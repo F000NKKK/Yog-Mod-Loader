@@ -507,4 +507,24 @@ public final class NativeBridge {
     public static long glProcAddress(String name) {
         return GLFW.glfwGetProcAddress(name);
     }
+
+    // ── platform mod listing (consumed by the runtime's mods_list ABI) ──────
+
+    /** TSV lines: id \t name \t version \t authors \t description. */
+    public static String listPlatformMods() {
+        StringBuilder sb = new StringBuilder();
+        for (var info : net.minecraftforge.fml.ModList.get().getMods()) {
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(tsvField(info.getModId())).append('\t')
+              .append(tsvField(info.getDisplayName())).append('\t')
+              .append(tsvField(info.getVersion().toString())).append('\t')
+              .append('\t')
+              .append(tsvField(info.getDescription()));
+        }
+        return sb.toString();
+    }
+
+    private static String tsvField(String s) {
+        return s == null ? "" : s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
+    }
 }

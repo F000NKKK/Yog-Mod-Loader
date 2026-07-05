@@ -785,6 +785,56 @@ where F: Fn(&ScreenEvent) + Send + Sync,
 /// Obtained inside `yog_mod_register` via `export_mod!`.  Closures registered
 /// here are boxed and leaked — they live as long as the process (which is the
 /// correct lifetime for a server mod).
+/// Pointer to the runtime's `YogApi` table (a process-lifetime static in the
+/// runtime), captured when the mod registers. Lets free functions like
+/// [`installed_mods`] work outside of `register()` — e.g. in UI handlers.
+static GLOBAL_API: std::sync::atomic::AtomicPtr<YogApi> =
+    std::sync::atomic::AtomicPtr::new(std::ptr::null_mut());
+
+/// Metadata of an installed mod, as reported by the loader.
+#[derive(Debug, Clone)]
+pub struct ModInfo {
+    /// `"yog"` for .yog mods, `"platform"` for loader (Java) mods.
+    pub source:      String,
+    pub id:          String,
+    pub name:        String,
+    pub version:     String,
+    /// Comma-separated author list (may be empty).
+    pub authors:     String,
+    pub description: String,
+}
+
+/// All installed mods known to the loader: .yog mods plus, where the host
+/// exposes them, platform (Java) mods. Callable at any time after this mod's
+/// `register()` ran — including client-side UI handlers. Note that during
+/// `register()` mods that load after this one are not in the list yet; query
+/// lazily (e.g. on first render) for a complete view.
+pub fn installed_mods() -> Vec<ModInfo> {
+    let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
+    if api.is_null() { return Vec::new(); }
+    let owned = unsafe { ((*api).mods_list)((*api).ctx) };
+    if owned.is_none() { return Vec::new(); }
+    let text = unsafe {
+        String::from_utf8(
+            std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()
+        ).unwrap_or_default()
+    };
+    unsafe { ((*api).free_str)(owned.ptr, owned.len) };
+    text.lines()
+        .filter_map(|line| {
+            let mut f = line.split('\t');
+            Some(ModInfo {
+                source:      f.next()?.to_string(),
+                id:          f.next()?.to_string(),
+                name:        f.next().unwrap_or_default().to_string(),
+                version:     f.next().unwrap_or_default().to_string(),
+                authors:     f.next().unwrap_or_default().to_string(),
+                description: f.next().unwrap_or_default().to_string(),
+            })
+        })
+        .collect()
+}
+
 pub struct Registry {
     api: *const YogApi,
 }
@@ -796,6 +846,7 @@ unsafe impl Sync for Registry {}
 impl Registry {
     /// Build from the pointer passed by the runtime. Only called by `export_mod!`.
     pub unsafe fn from_raw(api: *const YogApi) -> Self {
+        GLOBAL_API.store(api as *mut YogApi, std::sync::atomic::Ordering::Release);
         Self { api }
     }
 
@@ -1120,6 +1171,12 @@ impl Registry {
     /// (TitleScreen on Fabric, ModListScreen on Forge/NeoForge) that opens `ui_id`.
     /// `label` is the human-readable button text (e.g. "Yog Mods").
     /// `ui_id` is the UI to open when clicked (e.g. "yog:modlist").
+    /// See [`installed_mods`]. During `register()` the list only contains
+    /// mods loaded before this one.
+    pub fn installed_mods(&self) -> Vec<ModInfo> {
+        installed_mods()
+    }
+
     pub fn register_menu_entry(&mut self, label: &str, ui_id: &str) {
         let l = YogStr::from_str(label);
         let u = YogStr::from_str(ui_id);

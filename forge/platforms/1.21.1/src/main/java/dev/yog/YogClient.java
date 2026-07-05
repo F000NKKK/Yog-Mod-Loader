@@ -86,8 +86,9 @@ public final class YogClient {
             x = screen.width - 110;
             y = 10;
         } else {
-            x = screen.width / 2 - 100;
-            y = screen.height / 4 + 120;
+            // Top-left corner — clear of the vanilla title button column.
+            x = 4;
+            y = 4;
         }
 
         for (String line : lines) {

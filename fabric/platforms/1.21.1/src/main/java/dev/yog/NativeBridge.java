@@ -1090,4 +1090,29 @@ public final class NativeBridge {
 
     /** A GUI screen was closed; screenClass is the simple class name. */
     public static native void nativeOnScreenClose(String screenClass);
+
+    // ── platform mod listing (consumed by the runtime's mods_list ABI) ──────
+
+    /** TSV lines: id \t name \t version \t authors \t description. */
+    public static String listPlatformMods() {
+        StringBuilder sb = new StringBuilder();
+        for (net.fabricmc.loader.api.ModContainer c
+                : net.fabricmc.loader.api.FabricLoader.getInstance().getAllMods()) {
+            var m = c.getMetadata();
+            String authors = m.getAuthors().stream()
+                    .map(p -> p.getName())
+                    .reduce((a, b) -> a + ", " + b).orElse("");
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(tsvField(m.getId())).append('\t')
+              .append(tsvField(m.getName())).append('\t')
+              .append(tsvField(m.getVersion().getFriendlyString())).append('\t')
+              .append(tsvField(authors)).append('\t')
+              .append(tsvField(m.getDescription()));
+        }
+        return sb.toString();
+    }
+
+    private static String tsvField(String s) {
+        return s == null ? "" : s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
+    }
 }

@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
@@ -93,8 +94,10 @@ public class YogClient implements ClientModInitializer {
         if (raw == null || raw.isEmpty()) return;
 
         String[] lines = raw.split("\\n");
-        int x = screen.width / 2 - 100;
-        int y = screen.height / 4 + 120;
+        // Top-left corner — the one spot vanilla title/pause layouts leave
+        // free, so we never collide with (or shift) existing buttons.
+        int x = 4;
+        int y = 4;
 
         for (String line : lines) {
             String[] parts = line.split("\\t", 2);
@@ -102,7 +105,9 @@ public class YogClient implements ClientModInitializer {
             String label = parts[0];
             String uiId  = parts[1];
 
-            screen.addDrawableChild(
+            // Screen.addDrawableChild is protected — Fabric API exposes the
+            // screen's button list for exactly this kind of injection.
+            Screens.getButtons(screen).add(
                 ButtonWidget.builder(Text.literal(label), btn -> {
                     YogUIScreen.open(uiId, false, false);
                 }).position(x, y).size(100, 20).build()

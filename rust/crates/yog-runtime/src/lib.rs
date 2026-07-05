@@ -45,6 +45,8 @@ use yog_registry::{BlockDef, FoodDef, ItemDef};
 static JAVA_VM: OnceLock<JavaVM> = OnceLock::new();
 /// Loaded mod libraries — kept alive so the code pages stay mapped.
 static LOADED_MODS: Mutex<Vec<Library>> = Mutex::new(Vec::new());
+/// Metadata of loaded .yog mods: [id, name, version, authors, description].
+static MOD_INFOS: Mutex<Vec<[String; 5]>> = Mutex::new(Vec::new());
 /// Stable server table (populated once in nativeInit, then read-only).
 static SERVER: OnceLock<YogServer> = OnceLock::new();
 /// All registered handlers + content (populated during mod loading, then read-only).
@@ -1497,6 +1499,39 @@ unsafe extern "C" fn api_on_ui_render(ctx: *mut c_void, ui_id: YogStr,
     handlers.ui_render_handlers.entry(id).or_default().push((ud, h));
 }
 
+/// Strip TSV separators so one mod can't corrupt the line format.
+fn tsv_clean(v: &str) -> String {
+    v.replace(['\t', '\n', '\r'], " ")
+}
+
+unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
+    let mut lines: Vec<String> = Vec::new();
+    for m in MOD_INFOS.lock().expect("mod infos lock poisoned").iter() {
+        lines.push(format!("yog\t{}\t{}\t{}\t{}\t{}", m[0], m[1], m[2], m[3], m[4]));
+    }
+    // Loader-side (Java) mods, if the host provides them.
+    if let Some(mut env) = get_env() {
+        if let Ok(val) = env.call_static_method(
+            "dev/yog/NativeBridge", "listPlatformMods", "()Ljava/lang/String;", &[],
+        ) {
+            if let Ok(obj) = val.l() {
+                if !obj.as_raw().is_null() {
+                    if let Ok(js) = env.get_string(&obj.into()) {
+                        for line in String::from(js).lines() {
+                            if !line.trim().is_empty() {
+                                lines.push(format!("platform\t{line}"));
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            env.exception_clear().ok();
+        }
+    }
+    YogOwnedStr::from_string(lines.join("\n"))
+}
+
 unsafe extern "C" fn api_register_menu_entry(ctx: *mut c_void, label: YogStr, ui_id: YogStr) {
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
     let l = unsafe { label.as_str().to_owned() };
@@ -1642,6 +1677,8 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         register_ui:            api_register_ui,
         on_ui_render:           api_on_ui_render,
         register_menu_entry:    api_register_menu_entry,
+        mods_list:              api_mods_list,
+        free_str:               yog_free_str,
     }
 }
 
@@ -1676,7 +1713,10 @@ fn load_mods(dir: &Path, api: &YogApi) {
             Some("so") | Some("dll") | Some("dylib") => path.clone(),
             _ => continue,
         };
-        if load_mod_lib(&lib_path, api) { count += 1; }
+        if load_mod_lib(&lib_path, api) {
+            count += 1;
+            MOD_INFOS.lock().expect("mod infos lock poisoned").push(read_mod_info(&path));
+        }
     }
     yog_logging::info!("loaded {} mod(s) from {}", count, dir.display());
 }
@@ -1706,6 +1746,56 @@ fn load_mod_lib(path: &Path, api: &YogApi) -> bool {
         LOADED_MODS.lock().expect("mods lock poisoned").push(lib);
     }
     true
+}
+
+/// Metadata for a mod file: [id, name, version, authors, description].
+/// For .yog archives this comes from the bundled yog.toml; bare native libs
+/// fall back to the file stem.
+fn read_mod_info(path: &Path) -> [String; 5] {
+    let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    let mut info = [stem.clone(), stem, String::new(), String::new(), String::new()];
+    if path.extension().and_then(|e| e.to_str()) != Some("yog") {
+        return info;
+    }
+    let Some(text) = (|| {
+        let file = std::fs::File::open(path).ok()?;
+        let mut archive = zip::ZipArchive::new(file).ok()?;
+        let mut entry = archive.by_name("yog.toml").ok()?;
+        let mut text = String::new();
+        std::io::Read::read_to_string(&mut entry, &mut text).ok()?;
+        Some(text)
+    })() else { return info };
+    // Minimal parse of the [mod] section — enough for id/name/version/
+    // description/authors without pulling in a TOML dependency.
+    let mut in_mod = false;
+    for line in text.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_mod = line == "[mod]";
+            continue;
+        }
+        if !in_mod { continue; }
+        let Some((key, value)) = line.split_once('=') else { continue };
+        let key = key.trim();
+        let value = value.trim();
+        let unquote = |v: &str| v.trim().trim_matches('"').to_string();
+        match key {
+            "id"          => info[0] = tsv_clean(&unquote(value)),
+            "name"        => info[1] = tsv_clean(&unquote(value)),
+            "version"     => info[2] = tsv_clean(&unquote(value)),
+            "description" => info[4] = tsv_clean(&unquote(value)),
+            "authors" => {
+                let list = value.trim_start_matches('[').trim_end_matches(']');
+                let authors: Vec<String> = list.split(',')
+                    .map(|a| unquote(a))
+                    .filter(|a| !a.is_empty())
+                    .collect();
+                info[3] = tsv_clean(&authors.join(", "));
+            }
+            _ => {}
+        }
+    }
+    info
 }
 
 fn extract_yog(path: &Path) -> Option<PathBuf> {
@@ -2284,6 +2374,17 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientPacket<'l>(
             unsafe { f(*ud, srv, &ev) };
         }
     });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeMenuEntries<'l>(
+    env: JNIEnv<'l>, _class: JClass<'l>,
+) -> jstring {
+    let s = handlers().menu_entries.iter()
+        .map(|(label, ui_id)| format!("{label}\t{ui_id}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
 #[no_mangle]
