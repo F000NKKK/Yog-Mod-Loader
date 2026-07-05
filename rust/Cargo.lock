@@ -606,7 +606,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "zip 8.6.0",
 ]
@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.41.0"
+version = "0.42.0"
 dependencies = [
  "glow",
  "jni",

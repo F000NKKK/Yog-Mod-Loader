@@ -108,6 +108,20 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
 }
 
 #[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIScroll<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    ui_id: JString<'l>, dy: jfloat,
+) {
+    let id = jstr!(env, ui_id);
+    let h = handlers();
+    // Forward as a generic UI event; the mod applies its own scroll offset.
+    if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
+        let ev = format!("scroll:{:.2}", dy);
+        unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev)); }
+    }
+}
+
+#[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
     mut env: JNIEnv<'l>, _class: JClass<'l>,
     ui_id: JString<'l>, key: jint, _scan: jint, _mods: jint, action: jint,

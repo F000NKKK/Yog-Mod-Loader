@@ -44,6 +44,11 @@ public class YogUIScreen extends Screen {
         return true; // always consume — prevent game from processing the click
     }
 
+    @Override public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
+        NativeBridge.nativeUIScroll(uiId, (float) vertical);
+        return true;
+    }
+
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         NativeBridge.nativeUIKey(uiId, keyCode, scanCode, modifiers, 1);
         return super.keyPressed(keyCode, scanCode, modifiers);

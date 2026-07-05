@@ -462,6 +462,9 @@ public final class NativeBridge {
     public static native void nativeUIShow(String uiId, String parentId, boolean modal, boolean pauseGame, int screenW, int screenH);
     public static native void nativeUIHide(String uiId);
     public static native void nativeUIClick(String uiId, float mx, float my, int button);
+
+    /** Mouse wheel over a Yog UI screen; dy is the vertical scroll amount. */
+    public static native void nativeUIScroll(String uiId, float dy);
     public static native void nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
     public static native void nativeUIRender(String uiId, int screenW, int screenH);
     public static native boolean nativeIsUIActive(String uiId);

@@ -940,6 +940,9 @@ public final class NativeBridge {
     public static native void nativeUIHide(String uiId);
     /** Forward a mouse click to Rust. button: 0=left, 1=right, 2=middle. */
     public static native void nativeUIClick(String uiId, float mx, float my, int button);
+
+    /** Mouse wheel over a Yog UI screen; dy is the vertical scroll amount. */
+    public static native void nativeUIScroll(String uiId, float dy);
     /** Forward a key event. action: 0=release, 1=press. */
     public static native void nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
     /** Render a Rust UI immediately (called from Screen.render, not HUD). */

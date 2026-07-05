@@ -370,7 +370,7 @@ fn build() -> Result<(), String> {
     let artifacts = root.join("artifacts");
     std::fs::create_dir_all(&artifacts).map_err(|e| e.to_string())?;
     let out = artifacts.join(format!("{}.yog", meta.id));
-    package(&out, &meta.id, &meta.name, &meta.version, &bundled, &assets)?;
+    package(&out, &meta, &bundled, &assets)?;
 
     let tags: Vec<&str> = bundled.iter().map(|(t, _)| t.as_str()).collect();
     eprintln!("==> packaged {} [{}]", out.display(), tags.join(", "));
@@ -709,7 +709,7 @@ fn parse_texture(entry: &str, kind: &str) -> Option<(String, String)> {
 // ── Packaging ─────────────────────────────────────────────────────────────────
 
 fn package(
-    out: &Path, id: &str, name: &str, version: &str,
+    out: &Path, meta: &YogToml,
     bundled: &[(String, PathBuf)], assets: &[(String, Vec<u8>)],
 ) -> Result<(), String> {
     let file = std::fs::File::create(out).map_err(|e| e.to_string())?;
@@ -731,8 +731,12 @@ fn package(
     }
 
     let platforms = bundled.iter().map(|(t, _)| format!("{t:?}")).collect::<Vec<_>>().join(", ");
+    let authors = meta.authors.iter().map(|a| format!("{a:?}")).collect::<Vec<_>>().join(", ");
+    // The full metadata travels inside the archive so the loader can show it
+    // (mod list UI etc.) without needing the source project.
     let manifest = format!(
-        "id = {id:?}\nname = {name:?}\nversion = {version:?}\nabi = 2\nplatforms = [{platforms}]\n"
+        "id = {:?}\nname = {:?}\nversion = {:?}\ndescription = {:?}\nauthors = [{}]\nlicense = {:?}\nabi = 2\nplatforms = [{platforms}]\n",
+        meta.id, meta.name, meta.version, meta.description, authors, meta.license,
     );
     zip.start_file("yog.toml", opts).map_err(|e| e.to_string())?;
     zip.write_all(manifest.as_bytes()).map_err(|e| e.to_string())?;

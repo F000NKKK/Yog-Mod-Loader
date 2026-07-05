@@ -1771,9 +1771,11 @@ fn read_mod_info(path: &Path) -> [String; 5] {
         std::io::Read::read_to_string(&mut entry, &mut text).ok()?;
         Some(text)
     })() else { return info };
-    // Minimal parse of the [mod] section — enough for id/name/version/
-    // description/authors without pulling in a TOML dependency.
-    let mut in_mod = false;
+    // Minimal parse — enough for id/name/version/description/authors without
+    // pulling in a TOML dependency. Source manifests keep these under [mod];
+    // the packaged manifest (written by yog-cli) has them at top level, so
+    // keys before any section header count too.
+    let mut in_mod = true;
     for line in text.lines() {
         let line = line.trim();
         if line.starts_with('[') {
