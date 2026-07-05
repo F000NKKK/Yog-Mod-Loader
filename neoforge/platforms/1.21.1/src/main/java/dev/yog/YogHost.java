@@ -43,7 +43,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddPackFindersEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.ServerChatEvent;
-import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.fml.event.TickEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -56,7 +56,7 @@ import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.fml.LogicalSide;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
@@ -81,7 +81,7 @@ public class YogHost {
         NativeBridge.ensureLoaded();
         System.out.println("[yog] NeoForge host initialised.");
 
-        var modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        var modBus = ModLoadingContext.get().getModEventBus();
         modBus.addListener(this::onRegister);
         modBus.addListener(this::onAddPackFinders);
 
@@ -236,7 +236,7 @@ public class YogHost {
 
     // ── Fuel burn time (mod-registered fuels) ────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onFuelBurnTime(FurnaceFuelBurnTimeEvent event) {
         Integer ticks = FUEL.get(event.getItemStack().getItem());
         if (ticks != null) event.setBurnTime(ticks);
@@ -244,7 +244,7 @@ public class YogHost {
 
     // ── Server lifecycle ─────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onServerStarted(ServerStartedEvent event) {
         NativeBridge.setServer(event.getServer());
         String worldDir = event.getServer()
@@ -253,14 +253,14 @@ public class YogHost {
         NativeBridge.nativeOnServerStarted(worldDir);
     }
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onServerStopping(ServerStoppingEvent event) {
         NativeBridge.nativeOnServerStopping();
     }
 
     // ── Server tick ──────────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
@@ -291,7 +291,7 @@ public class YogHost {
 
     // ── Commands ─────────────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
         var dispatcher = event.getDispatcher();
 
@@ -325,7 +325,7 @@ public class YogHost {
 
     // ── Block break ──────────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onBlockBreak(BlockEvent.BreakEvent event) {
         if (!(event.getPlayer() instanceof ServerPlayer player)) return;
         String blockId = BuiltInRegistries.BLOCK.getKey(event.getState().getBlock()).toString();
@@ -347,7 +347,7 @@ public class YogHost {
 
     // ── Chat ─────────────────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onChat(ServerChatEvent event) {
         String playerName = event.getPlayer().getName().getString();
         String message = event.getMessage().getString();
@@ -360,7 +360,7 @@ public class YogHost {
 
     // ── Player join / leave ──────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         String pUuid = player.getStringUUID();
@@ -368,7 +368,7 @@ public class YogHost {
         PENDING_JOINS.put(pUuid, new String[]{pName, "40"});
     }
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         String pUuid = player.getStringUUID();
@@ -378,7 +378,7 @@ public class YogHost {
 
     // ── Right-click item ─────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
         if (event.getSide() != LogicalSide.SERVER) return;
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -389,7 +389,7 @@ public class YogHost {
 
     // ── Right-click block ────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (event.getSide() != LogicalSide.SERVER) return;
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -412,7 +412,7 @@ public class YogHost {
 
     // ── Entity interact ──────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (event.getSide() != LogicalSide.SERVER) return;
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -431,7 +431,7 @@ public class YogHost {
 
     // ── Attack entity ────────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onAttackEntity(AttackEntityEvent event) {
         if (event.getEntity().level().isClientSide) return;
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -442,7 +442,7 @@ public class YogHost {
 
     // ── Entity damage / player death ─────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onLivingDamage(LivingDamageEvent event) {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
@@ -470,7 +470,7 @@ public class YogHost {
 
     // ── Entity spawn ────────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onEntityJoinLevel(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide()) return;
         Entity entity = event.getEntity();
@@ -486,7 +486,7 @@ public class YogHost {
 
     // ── Entity / player death ────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
@@ -502,7 +502,7 @@ public class YogHost {
 
     // ── Player respawn ───────────────────────────────────────────────────────
 
-    @net.neoforged.neoforge.eventbus.api.SubscribeEvent
+    @net.neoforged.bus.api.SubscribeEvent
     public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         if (event.isEndConquered()) return; // dimension-change respawn, not death

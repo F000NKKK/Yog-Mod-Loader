@@ -17,9 +17,9 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.StringTagParser;
+import net.minecraft.nbt.TagParser;
 // MobEffect: use Holder<MobEffect> via BuiltInRegistries.MOB_EFFECT.getHolder()
-// LootDataId removed in 1.21.1
+// LootDataId removed in 1.21.1 — using RegistryKey<LootTable>
 // LootDataType removed in 1.21.1
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -49,7 +49,7 @@ import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.neoforged.fml.loading.FMLPaths;
-import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
+// TODO: ClientboundCustomPayloadPacket removed in 1.21.1
 import java.util.Map;
 
 /**
@@ -111,9 +111,9 @@ public final class NativeBridge {
         ServerPlayer p = playerByName(player);
         ResourceLocation id = ResourceLocation.tryParse(channel);
         if (p == null || id == null) return false;
-        FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
-        buf.writeBytes(data);
-        p.connection.send(new ClientboundCustomPayloadPacket(id, buf));
+        // TODO: port to 1.21.x Payload API
+        // ClientboundCustomPayloadPacket removed in 1.21.1
+        return false;
         return true;
     }
 
@@ -270,7 +270,7 @@ public final class NativeBridge {
         if (w == null) return false;
         BlockEntity be = w.getBlockEntity(new BlockPos(x, y, z));
         if (be == null) return false;
-        try { CompoundTag nbt = StringTagParser.parseTag(snbt); be.loadWithComponents(nbt, w.registryAccess()); be.setChanged(); return true; }
+        try { CompoundTag nbt = TagParser.parseTag(snbt); be.loadWithComponents(nbt, w.registryAccess()); be.setChanged(); return true; }
         catch (Exception e) { return false; }
     }
 
@@ -350,7 +350,7 @@ public final class NativeBridge {
     public static boolean entitySetNbt(String uuid, String snbt) {
         Entity e = entityByUuid(uuid);
         if (e == null) return false;
-        try { CompoundTag nbt = StringTagParser.parseTag(snbt); e.load(nbt); return true; }
+        try { CompoundTag nbt = TagParser.parseTag(snbt); e.load(nbt); return true; }
         catch (Exception ex) { return false; }
     }
 
