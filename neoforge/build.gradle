@@ -71,8 +71,9 @@ dependencies {
     // Mixin annotation processor — generates yog.refmap.json at compile time.
     // NeoGradle's reobfuscation remaps it from Mojang → SRG for production.
     annotationProcessor 'org.spongepowered:mixin:0.8.5'
-    // Mixin AP serializes the refmap with Gson; needs it on the AP classpath.
+    // Mixin AP needs Gson + Guava on the AP classpath (undeclared in POM).
     annotationProcessor 'com.google.code.gson:gson:2.10.1'
+    annotationProcessor 'com.google.guava:guava:31.1-jre'
 }
 
 base {
