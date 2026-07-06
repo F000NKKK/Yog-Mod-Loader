@@ -276,6 +276,26 @@ fn to_struct_name(id: &str) -> String {
         .collect()
 }
 
+/// Cargo derives a lib crate name from the package `name` by turning `-` into
+/// `_`, but keeps case — so a mod `id` like "HexMod-Yog" becomes the invalid
+/// `HexMod_Yog` and rustc warns on every build. `id` is a free-form project
+/// identifier (not required to be a valid Rust ident), so the generated
+/// wrapper pins `[lib] name` to a proper snake_case form instead.
+fn to_snake_name(id: &str) -> String {
+    let mut out = String::with_capacity(id.len());
+    for c in id.chars() {
+        if c == '-' || c == '_' {
+            if out.chars().last() != Some('_') { out.push('_'); }
+        } else if c.is_uppercase() {
+            if !out.is_empty() && out.chars().last() != Some('_') { out.push('_'); }
+            out.extend(c.to_lowercase());
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 // ── yog build ─────────────────────────────────────────────────────────────────
 
 /// A platform Yog can target.
@@ -400,6 +420,7 @@ description  = {description:?}
 {authors_line}license      = {license:?}
 
 [lib]
+name       = "{lib_name}"
 crate-type = ["cdylib"]
 path       = "../src/lib.rs"
 
@@ -408,6 +429,7 @@ path       = "../src/lib.rs"
 {deps}
 "#,
         id           = meta.id,
+        lib_name     = to_snake_name(&meta.id),
         version      = meta.version,
         description  = meta.description,
         authors_line = authors_toml,
@@ -635,7 +657,9 @@ fn installed_targets() -> Vec<String> {
 }
 
 fn lib_filename(name: &str, os: &str) -> String {
-    let stem = name.replace('-', "_");
+    // Must match the `[lib] name` pinned in the generated wrapper Cargo.toml
+    // (see to_snake_name) — that's what cargo actually names the artifact.
+    let stem = to_snake_name(name);
     match os {
         "windows" => format!("{stem}.dll"),
         "macos"   => format!("lib{stem}.dylib"),
