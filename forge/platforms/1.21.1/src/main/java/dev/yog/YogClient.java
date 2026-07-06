@@ -30,6 +30,10 @@ public final class YogClient {
 
     // ── World render ─────────────────────────────────────────────────────
 
+    // Forge 52's RenderLevelStageEvent only exposes getPoseStack() (marked
+    // for removal); unlike NeoForge it has no getModelViewMatrix() yet, so
+    // there is nothing else to switch to.
+    @SuppressWarnings("removal")
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;

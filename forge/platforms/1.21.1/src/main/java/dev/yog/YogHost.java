@@ -82,13 +82,14 @@ public class YogHost {
     private final Map<ResourceLocation, Block> registeredBlocks = new LinkedHashMap<>();
     private final Map<String, List<ItemLike>> tabGroups = new LinkedHashMap<>();
 
-    // Forge's javafml only constructs @Mod classes through a no-arg
-    // constructor (NeoForge-style injected parameters are not supported).
-    public YogHost() {
+    // javafml also supports a single-arg constructor taking the mod's own
+    // FMLJavaModLoadingContext — use that instead of the deprecated static
+    // FMLJavaModLoadingContext.get().
+    public YogHost(FMLJavaModLoadingContext context) {
         NativeBridge.ensureLoaded();
         System.out.println("[yog] Forge host initialised.");
 
-        var modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        var modBus = context.getModEventBus();
         modBus.addListener(this::onRegister);
         modBus.addListener(this::onAddPackFinders);
 
