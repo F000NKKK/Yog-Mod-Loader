@@ -573,7 +573,7 @@ version = "0.14.0"
 
 [[package]]
 name = "yog-api"
-version = "0.43.0"
+version = "0.43.1"
 dependencies = [
  "yog-abi",
  "yog-book",
