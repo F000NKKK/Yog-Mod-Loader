@@ -573,14 +573,14 @@ version = "0.14.0"
 
 [[package]]
 name = "yog-api"
-version = "0.42.0"
+version = "0.43.0"
 dependencies = [
  "yog-abi",
  "yog-book",
  "yog-command",
  "yog-config",
- "yog-core 0.2.0",
- "yog-entity 0.1.0",
+ "yog-core",
+ "yog-entity",
  "yog-event",
  "yog-gfx",
  "yog-logging",
@@ -621,35 +621,20 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-core"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8edab5c5a273fae2266d2e633e7e87ca0eba9f75164fbb36553f870937d3640d"
-
-[[package]]
-name = "yog-core"
 version = "0.2.0"
-
-[[package]]
-name = "yog-entity"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8288095aa79f8063328d80c86034dc86e374cd2bc17a7e27b11bd8f5e4db2ebe"
-dependencies = [
- "yog-core 0.1.0",
-]
 
 [[package]]
 name = "yog-entity"
 version = "0.2.0"
 dependencies = [
- "yog-core 0.2.0",
+ "yog-core",
 ]
 
 [[package]]
 name = "yog-event"
 version = "0.2.0"
 dependencies = [
- "yog-core 0.2.0",
+ "yog-core",
 ]
 
 [[package]]
@@ -671,8 +656,8 @@ version = "0.1.0"
 name = "yog-player"
 version = "0.2.0"
 dependencies = [
- "yog-core 0.2.0",
- "yog-entity 0.2.0",
+ "yog-core",
+ "yog-entity",
 ]
 
 [[package]]
@@ -685,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.44.0"
+version = "0.45.0"
 dependencies = [
  "glow",
  "jni",
@@ -717,7 +702,7 @@ dependencies = [
 name = "yog-world"
 version = "0.2.0"
 dependencies = [
- "yog-core 0.2.0",
+ "yog-core",
 ]
 
 [[package]]
