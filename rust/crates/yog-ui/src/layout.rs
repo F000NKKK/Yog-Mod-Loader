@@ -51,8 +51,9 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
         match &w.kind {
             WidgetKind::Label(t) | WidgetKind::Button(t) => {
                 let avail_w = (max_w - s.pad[1] - s.pad[3]).max(0.0);
-                // Wrap only when max_w is a real constraint (not "unlimited").
-                if avail_w < 4096.0 {
+                // Wrap only when max_w is a real constraint (not "unlimited")
+                // and the widget doesn't opt out of wrapping entirely.
+                if avail_w < 4096.0 && !s.no_wrap {
                     ww = (avail_w + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
                     hh = (text::text_height(t, avail_w, s.font_scale) + s.pad[0] + s.pad[2])
                         .max(s.min_h).min(max_h);

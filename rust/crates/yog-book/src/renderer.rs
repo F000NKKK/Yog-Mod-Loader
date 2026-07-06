@@ -713,7 +713,7 @@ fn build_categories_right(
         .gap(0.0);
 
     col = col.child(
-        lbl("Categories").color(theme.divider).h(header_h).align(Align::Center)
+        lbl("Categories").color(theme.divider).h(header_h).align(Align::Center).no_wrap()
     );
     // Gap covering the separator region up to grid start (page-local y=25).
     col = col.child(widget::spacer().h(25.0 * sy - header_h));
@@ -807,7 +807,7 @@ fn build_entry_left(
         .w(page_w).h(page_h)
         .padding(0.0, 6.0, 4.0, 4.0)
         .gap(0.0)
-        .child(lbl(title_text).color(theme.title).h(title_h).align(Align::Center))
+        .child(lbl(title_text).color(theme.title).h(title_h).align(Align::Center).no_wrap())
         .child(widget::spacer().h((12.0 - 9.0) * sy))  // gap: title end → sep start
         .child(widget::spacer().h(sep_h_px))             // height occupied by sep sprite
         .child(widget::spacer().h((22.0 - 12.0 - SEP_H) * sy)) // gap: sep end → body
@@ -840,7 +840,7 @@ fn build_entries_right(
         .padding(0.0, 4.0, 4.0, 0.0)
         .gap(0.0);
 
-    col = col.child(lbl(cat_name).color(theme.divider).h(header_h).align(Align::Center));
+    col = col.child(lbl(cat_name).color(theme.divider).h(header_h).align(Align::Center).no_wrap());
     // sep region: y=9..15 (sep h=3), then gap to entries start at y=20
     col = col.child(widget::spacer().h((12.0 - 9.0) * sy));    // gap to sep
     col = col.child(widget::spacer().h((SEP_H * sy).max(1.0))); // sep height
@@ -871,7 +871,7 @@ fn build_entries_right(
             .padding(1.0, 2.0, 1.0, 2.0);
 
         row = row.child(widget::spacer().w(icon_size + 2.0));
-        row = row.child(lbl(&entry.name).color(color).flex(1.0));
+        row = row.child(lbl(&entry.name).color(color).flex(1.0).no_wrap());
         col = col.child(row);
     }
 
@@ -991,7 +991,7 @@ fn build_page(
                     let sep_h_px = (SEP_H * sy).max(1.0);
                     let title_h  = 9.0 * sy;
                     col = col.child(lbl(t.as_str()).color(theme.title)
-                        .h(title_h).align(Align::Center));
+                        .h(title_h).align(Align::Center).no_wrap());
                     // sep at y=12 page-local, centered
                     bg_sprites.push(BgSprite {
                         sheet: SpriteSheet::Book,
