@@ -293,6 +293,22 @@ pub(crate) enum OverlayCmd {
     McText { text: String, x: f32, y: f32, color: u32 },
     /// Item icon rendered through our GL pipeline from an MC-managed texture.
     McItem { item_id: String, x: f32, y: f32, w: f32, h: f32 },
+    /// Flat texture icon blitted as-is (16×16), for icon strings that name a
+    /// texture resource directly rather than an item — matches Patchouli's
+    /// `BookIcon.from`: any icon string ending in `.png` is a raw texture,
+    /// everything else is parsed as an item stack.
+    McTexture { path: String, x: f32, y: f32, w: f32, h: f32 },
+}
+
+/// Push a book-author-supplied icon (category/entry icon field) as the right
+/// overlay kind. Matches Patchouli's `BookIcon.from(String)`: `.png` → raw
+/// texture blit, anything else → item stack render.
+fn push_icon(overlays: &mut Vec<OverlayCmd>, icon: &str, x: f32, y: f32, w: f32, h: f32) {
+    if icon.ends_with(".png") {
+        overlays.push(OverlayCmd::McTexture { path: icon.to_string(), x, y, w, h });
+    } else {
+        overlays.push(OverlayCmd::McItem { item_id: icon.to_string(), x, y, w, h });
+    }
 }
 
 // ── Recipe visuals (parsed from registered recipe JSON) ───────────────────────
@@ -486,7 +502,8 @@ impl BookRenderer {
                             gl.draw_text_custom(ctx, ttf, font.size_px, &text, x, y, color);
                         }
                     }
-                    OverlayCmd::McText { .. } | OverlayCmd::McItem { .. } => {}
+                    OverlayCmd::McText { .. } | OverlayCmd::McItem { .. }
+                    | OverlayCmd::McTexture { .. } => {}
                 }
             }
         }
@@ -500,6 +517,11 @@ impl BookRenderer {
                 }
                 OverlayCmd::McText { text, x, y, color } => {
                     ctx.draw2d().text(&text, x, y, color, false);
+                }
+                OverlayCmd::McTexture { path, x, y, w, h } => {
+                    // Standalone 16×16 icon texture, not an atlas region —
+                    // blit it whole (u0=v0=0, tw/th = the icon's own size).
+                    ctx.draw2d().mc_texture(&path, x, y, 0.0, 0.0, w, h, w, h);
                 }
                 _ => {}
             }
@@ -715,12 +737,12 @@ fn build_categories_right(
             let bg = if selected { theme.nav_selected_bg } else { 0 };
 
             if let Some(icon_id) = &cat.icon {
-                overlays.push(OverlayCmd::McItem {
-                    item_id: icon_id.clone(),
-                    x: rx + (10.0 + col_i as f32 * 24.0 + 4.0) * sx,
-                    y: py + (25.0 + row_i as f32 * 24.0 + 4.0) * sy,
-                    w: icon_s, h: icon_s,
-                });
+                push_icon(
+                    overlays, icon_id,
+                    rx + (10.0 + col_i as f32 * 24.0 + 4.0) * sx,
+                    py + (25.0 + row_i as f32 * 24.0 + 4.0) * sy,
+                    icon_s, icon_s,
+                );
             }
             let cell = widget::panel(FlexDir::Column)
                 .w(cell_w).h(cell_h).bg(bg)
@@ -834,12 +856,12 @@ fn build_entries_right(
         // Icon at page-local (1, 20 + i*11 + 1), 8×8 (Patchouli renders entry
         // icons at 0.5× scale).
         if let Some(icon_id) = &entry.icon {
-            overlays.push(OverlayCmd::McItem {
-                item_id: icon_id.clone(),
-                x: rx + 1.0 * sx,
-                y: py + (20.0 + i as f32 * 11.0 + 1.0) * sy,
-                w: icon_size, h: icon_size,
-            });
+            push_icon(
+                overlays, icon_id,
+                rx + 1.0 * sx,
+                py + (20.0 + i as f32 * 11.0 + 1.0) * sy,
+                icon_size, icon_size,
+            );
         }
 
         let mut row = widget::panel(FlexDir::Row)
