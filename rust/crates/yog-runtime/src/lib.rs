@@ -408,6 +408,21 @@ unsafe extern "C" fn srv_entity_teleport(_ctx: *mut c_void, uuid: YogStr, pos: Y
     .and_then(|v| v.z()).unwrap_or(false)
 }
 
+unsafe extern "C" fn srv_entity_rotation(_ctx: *mut c_void, uuid: YogStr, out: *mut YogVec3) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "entityRotation",
+        "(Ljava/lang/String;)Ljava/lang/String;", &[JValue::Object(&ju)]);
+    let obj = match ret.and_then(|v| v.l()) { Ok(o) => o, Err(_) => { env.exception_clear().ok(); return false; } };
+    if obj.as_raw().is_null() { return false; }
+    let s: String = match env.get_string(&JString::from(obj)) { Ok(s) => String::from(s), Err(_) => return false };
+    let mut it = s.split('\t');
+    let (yaw, pitch) = (it.next(), it.next());
+    if let (Some(yaw), Some(pitch)) = (yaw.and_then(|v| v.parse().ok()), pitch.and_then(|v| v.parse().ok())) {
+        *out = YogVec3 { x: yaw, y: pitch, z: 0.0 }; true
+    } else { false }
+}
+
 unsafe extern "C" fn srv_entity_position(_ctx: *mut c_void, uuid: YogStr, out: *mut YogVec3) -> bool {
     let Some(mut env) = get_env() else { return false };
     let Some(ju) = ys_to_java(&mut env, uuid) else { return false };
@@ -1600,6 +1615,7 @@ fn build_server_table() -> YogServer {
         play_sound_player: srv_play_sound_player,
         entity_teleport: srv_entity_teleport,
         entity_position: srv_entity_position,
+        entity_rotation:      srv_entity_rotation,
         entity_health: srv_entity_health,
         entity_set_health: srv_entity_set_health,
         entity_kill: srv_entity_kill,
@@ -2008,10 +2024,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
     mut env: JNIEnv<'l>, _class: JClass<'l>,
-    player: JString<'l>, item: JString<'l>,
+    player: JString<'l>, item: JString<'l>, sneaking: jni::sys::jboolean,
 ) {
     let (p, i) = (jstr!(env, player), jstr!(env, item));
-    let ev = yog_abi::YogUseItemEvent { player: YogStr::from_str(&p), item: YogStr::from_str(&i) };
+    let ev = yog_abi::YogUseItemEvent {
+        player: YogStr::from_str(&p),
+        item: YogStr::from_str(&i),
+        sneaking: sneaking != 0,
+    };
     let srv = srv_ptr();
     guard("on_use_item", || {
         for (ud, f) in &handlers().use_item {

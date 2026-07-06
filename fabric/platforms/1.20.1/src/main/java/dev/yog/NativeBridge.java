@@ -175,6 +175,12 @@ public final class NativeBridge {
         return e == null ? null : e.getX() + "\t" + e.getY() + "\t" + e.getZ();
     }
 
+    /** Yaw and pitch (degrees) of an entity by UUID: "yaw\tpitch", or null. */
+    public static String entityRotation(String uuid) {
+        Entity e = entityByUuid(uuid);
+        return e == null ? null : e.getYaw() + "\t" + e.getPitch();
+    }
+
     public static double entityHealth(String uuid) {
         Entity e = entityByUuid(uuid);
         return e instanceof LivingEntity le ? le.getHealth() : Double.NaN;
@@ -889,7 +895,7 @@ public final class NativeBridge {
 
     public static native void nativeOnPlayerLeave(String player, String uuid);
 
-    public static native void nativeOnUseItem(String player, String item);
+    public static native void nativeOnUseItem(String player, String item, boolean sneaking);
 
     public static native void nativeOnUseBlock(
             String player, String block, int x, int y, int z);

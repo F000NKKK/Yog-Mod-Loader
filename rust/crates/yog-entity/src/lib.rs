@@ -32,6 +32,19 @@ impl<'a> Entity<'a> {
     }
 
     /// Current position, or `None` if the entity isn't loaded.
+    /// Yaw and pitch in degrees, or `None` if the entity does not exist.
+    pub fn rotation(&self) -> Option<(f32, f32)> {
+        self.server.entity_rotation(&self.uuid)
+    }
+
+    /// Unit look vector derived from yaw/pitch (Minecraft convention).
+    pub fn look_vector(&self) -> Option<(f64, f64, f64)> {
+        let (yaw, pitch) = self.rotation()?;
+        let (yaw, pitch) = ((yaw as f64).to_radians(), (pitch as f64).to_radians());
+        let cos_p = pitch.cos();
+        Some((-yaw.sin() * cos_p, -pitch.sin(), yaw.cos() * cos_p))
+    }
+
     pub fn position(&self) -> Option<(f64, f64, f64)> {
         self.server.entity_position(&self.uuid)
     }

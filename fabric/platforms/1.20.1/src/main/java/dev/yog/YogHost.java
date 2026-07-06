@@ -135,7 +135,7 @@ public class YogHost implements ModInitializer {
             if (!world.isClient && player instanceof ServerPlayerEntity sp) {
                 ItemStack stack = sp.getStackInHand(hand);
                 String itemId = Registries.ITEM.getId(stack.getItem()).toString();
-                NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId);
+                NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId, sp.isSneaking());
             }
             return TypedActionResult.pass(player.getStackInHand(hand));
         });

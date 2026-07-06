@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 24;
+pub const ABI_MINOR: u32 = 25;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -119,6 +119,8 @@ pub struct YogPlayerEvent {
 pub struct YogUseItemEvent {
     pub player: YogStr,
     pub item:   YogStr,
+    /// ABI minor 25: whether the player was sneaking (shift) during use.
+    pub sneaking: bool,
 }
 
 #[repr(C)]
@@ -710,6 +712,11 @@ pub struct YogServer {
     /// Replace inventory `slot` with an item stack. `snbt` may be empty to clear NBT.
     /// Pass `count == 0` to clear the slot (ignores `item_id` and `snbt`).
     pub set_slot_item: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, slot: u32, item_id: YogStr, count: u32, snbt: YogStr) -> bool,
+
+    // ── entity rotation (ABI minor 25) ───────────────────────────────────────
+    /// Yaw and pitch (degrees) of an entity by UUID. Returns false if the
+    /// entity does not exist. `out` receives x=yaw, y=pitch, z=0.
+    pub entity_rotation: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, out: *mut YogVec3) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.

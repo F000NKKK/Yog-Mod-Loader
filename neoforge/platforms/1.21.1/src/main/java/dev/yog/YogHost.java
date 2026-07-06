@@ -388,7 +388,7 @@ public class YogHost {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         ItemStack stack = sp.getItemInHand(event.getHand());
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
-        NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId);
+        NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId, sp.isShiftKeyDown());
     }
 
     // ── Right-click block ────────────────────────────────────────────────────

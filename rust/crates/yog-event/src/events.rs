@@ -46,6 +46,8 @@ pub struct UseItemEvent {
     pub player_name: String,
     /// Registry id of the held item, e.g. `minecraft:stick`.
     pub item_id: String,
+    /// Whether the player was sneaking (shift) during use.
+    pub sneaking: bool,
 }
 
 /// Fired when a player right-clicks a block (server side).

@@ -185,6 +185,10 @@ pub trait Server {
     /// Send a short message to the action-bar (the line just above the hotbar).
     fn send_actionbar(&self, player: &str, message: &str) -> bool;
 
+    /// Yaw and pitch (degrees) of an entity by UUID, or `None` if it does not
+    /// exist. Minecraft convention: yaw 0 = south, positive pitch looks down.
+    fn entity_rotation(&self, uuid: &str) -> Option<(f32, f32)>;
+
     // ── player management ───────────────────────────────────────────────────
 
     /// Disconnect `player` with the given `reason` message.

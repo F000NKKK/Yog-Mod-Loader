@@ -266,6 +266,13 @@ impl Server for CServer {
         unsafe { (s.send_title)(s.ctx, YogStr::from_str(player), YogStr::from_str(title), YogStr::from_str(subtitle), fadein, stay, fadeout) }
     }
 
+    fn entity_rotation(&self, uuid: &str) -> Option<(f32, f32)> {
+        let s = srv!(self);
+        let mut out = yog_abi::YogVec3 { x: 0.0, y: 0.0, z: 0.0 };
+        let ok = unsafe { (s.entity_rotation)(s.ctx, YogStr::from_str(uuid), &mut out) };
+        if ok { Some((out.x as f32, out.y as f32)) } else { None }
+    }
+
     fn send_actionbar(&self, player: &str, message: &str) -> bool {
         let s = srv!(self);
         unsafe { (s.send_actionbar)(s.ctx, YogStr::from_str(player), YogStr::from_str(message)) }
@@ -556,6 +563,7 @@ trampoline_phased!(trampoline_player_leave, YogPlayerEvent, PlayerLeaveEvent, |e
 trampoline_phased!(trampoline_use_item, YogUseItemEvent, UseItemEvent, |ev| UseItemEvent {
     player_name: ev.player.as_str().to_owned(),
     item_id:     ev.item.as_str().to_owned(),
+    sneaking: ev.sneaking,
 });
 
 trampoline_phased!(trampoline_use_block, YogUseBlockEvent, UseBlockEvent, |ev| UseBlockEvent {
