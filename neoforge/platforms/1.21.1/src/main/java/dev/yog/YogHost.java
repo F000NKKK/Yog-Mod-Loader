@@ -318,27 +318,31 @@ public class YogHost {
     public void onRegisterCommands(RegisterCommandsEvent event) {
         var dispatcher = event.getDispatcher();
 
-        // Typed commands
-        java.util.Map<String, String> typedSchemas = new java.util.HashMap<>();
+        // Typed commands. A single command name can have MULTIPLE distinct
+        // schemas (subcommands with different arg counts) — each is registered
+        // separately; Brigadier merges repeated `dispatcher.register()` calls
+        // that share a root literal name into one command-tree node, so this
+        // produces one node with a sibling branch per distinct arg shape,
+        // instead of collapsing them all down to whichever schema was seen last.
+        java.util.Set<String> typedNames = new java.util.HashSet<>();
         String schemaLines = NativeBridge.nativeTypedCommandSchemas();
         if (schemaLines != null) {
             for (String line : schemaLines.split("\n")) {
                 if (line.isBlank()) continue;
                 int tab = line.indexOf('\t');
-                if (tab > 0) typedSchemas.put(line.substring(0, tab), line.substring(tab + 1));
+                if (tab <= 0) continue;
+                String name   = line.substring(0, tab);
+                String schema = line.substring(tab + 1);
+                typedNames.add(name);
+                dispatcher.register(buildTypedCommand(name, schema.split("\\s+")));
             }
-        }
-        for (java.util.Map.Entry<String, String> e : typedSchemas.entrySet()) {
-            String name = e.getKey();
-            String schema = e.getValue();
-            dispatcher.register(buildTypedCommand(name, schema.split("\\s+")));
         }
 
         // Plain commands
         String names = NativeBridge.nativeCommandNames();
         if (names == null || names.isBlank()) return;
         for (String name : names.split("\n")) {
-            if (name.isBlank() || typedSchemas.containsKey(name)) continue;
+            if (name.isBlank() || typedNames.contains(name)) continue;
             dispatcher.register(Commands.literal(name)
                     .executes(ctx -> runCommand(name, "", ctx))
                     .then(Commands.argument("args", StringArgumentType.greedyString())
