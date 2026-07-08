@@ -1,21 +1,46 @@
 package dev.yog;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * Pure geometry for fence/pipe-style "connects to same-id neighbors" blocks —
- * no Minecraft types at all, so it compiles identically under Yarn (Fabric)
- * and Mojang mappings (Forge/NeoForge). Each platform's `YogConnectingBlock`
- * is a thin bridge: it resolves which of the 6 neighbors are the same block
- * (a one-line, mapping-specific check) and hands the boolean results here to
- * get back the list of boxes (core + one per connected side) to union into a
- * VoxelShape using whatever that platform's shape API looks like.
+ * Pure geometry + connection-compatibility bookkeeping for fence/pipe-style
+ * blocks — no Minecraft types at all, so it compiles identically under Yarn
+ * (Fabric) and Mojang mappings (Forge/NeoForge). Each platform's
+ * `YogConnectingBlock` is a thin bridge: it resolves neighbor blocks (a
+ * one-line, mapping-specific lookup) and hands them here, keyed as opaque
+ * `Object`s (every registered Block instance, connecting or not, is a valid
+ * key) to decide compatibility and compute the resulting shape.
  */
 public final class YogConnectingLogic {
     public static final int NORTH = 0, SOUTH = 1, EAST = 2, WEST = 3, UP = 4, DOWN = 5;
 
+    /** Connection-compatibility tags per registered block instance. */
+    private static final Map<Object, Set<String>> GROUPS = new HashMap<>();
+
     private YogConnectingLogic() {}
+
+    /** Called once per block at registration time, for every block that carries `connect_groups`. */
+    public static void registerGroups(Object block, String[] groups) {
+        GROUPS.put(block, new HashSet<>(Arrays.asList(groups)));
+    }
+
+    /** Two blocks are compatible (should connect) when their tag sets share at least one entry. */
+    public static boolean compatible(Object a, Object b) {
+        Set<String> ga = GROUPS.getOrDefault(a, Collections.emptySet());
+        Set<String> gb = GROUPS.getOrDefault(b, Collections.emptySet());
+        if (ga.isEmpty() || gb.isEmpty()) return false;
+        for (String g : ga) {
+            if (gb.contains(g)) return true;
+        }
+        return false;
+    }
 
     /**
      * @param core      the block's core box, pixel units 0-16: [x1,y1,z1,x2,y2,z2]
