@@ -460,6 +460,9 @@ public class YogHost implements ModInitializer {
                 }
 
                 Registry.register(Registries.BLOCK, ident, block);
+                if (p.containsKey("connect_groups")) {
+                    YogConnectingLogic.registerGroups(block, p.get("connect_groups").split(","));
+                }
                 Item blockItem = new YogBlockItem(block, new Item.Settings(),
                         blockItemNames.getOrDefault(id, ""),
                         blockItemTooltips.getOrDefault(id, ""));
