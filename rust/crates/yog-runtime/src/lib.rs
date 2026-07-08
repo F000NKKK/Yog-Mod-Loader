@@ -1460,6 +1460,7 @@ unsafe extern "C" fn api_register_block(ctx: *mut c_void, def: *const YogBlockDe
         no_collision:  d.no_collision,
         slipperiness:  d.slipperiness,
         shape:         if d.shape == [0.0f32; 6] { None } else { Some(d.shape) },
+        connects:      d.connects,
     });
 }
 
@@ -2399,6 +2400,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
         if d.requires_tool       { parts.push("requires_tool=1".into()); }
         if d.no_collision        { parts.push("no_collision=1".into()); }
         if d.slipperiness > 0.0  { parts.push(format!("slipperiness={}", d.slipperiness)); }
+        if d.connects            { parts.push("connects=1".into()); }
         parts.join("\t")
     }).collect::<Vec<_>>().join("\n");
     env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())

@@ -1169,6 +1169,7 @@ impl Registry {
             no_collision:  def.no_collision,
             slipperiness:  def.slipperiness,
             shape,
+            connects:      def.connects,
         };
         unsafe { ((*self.api).register_block)(self.ctx(), &c) }
     }

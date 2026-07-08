@@ -467,6 +467,14 @@ pub struct BlockDef {
     pub no_collision: bool,
     /// Friction coefficient. `0.0` = default (0.6). Ice = 0.989.
     pub slipperiness: f32,
+    /// If `true`, this block dynamically connects to neighboring blocks of
+    /// the *same registered id* (fence/pipe-style): the Java host tracks
+    /// N/S/E/W/U/D boolean blockstate properties, recomputed on placement and
+    /// on neighbor change, and grows the collision/outline shape from the
+    /// `shape` core box (or a default post) out to each connected side. Any
+    /// mod block can opt in — `yog-pipes` builds its cable/pipe networks on
+    /// top of this same primitive.
+    pub connects: bool,
 }
 
 impl BlockDef {
@@ -482,6 +490,7 @@ impl BlockDef {
             requires_tool: false,
             no_collision: false,
             slipperiness: 0.0,
+            connects: false,
         }
     }
 
@@ -532,6 +541,13 @@ impl BlockDef {
     /// Friction (default 0.6). Set to 0.989 for ice-like slipperiness.
     pub fn slipperiness(mut self, value: f32) -> Self {
         self.slipperiness = value;
+        self
+    }
+
+    /// Dynamically connect to neighboring blocks that share this exact
+    /// registered id — fence/pipe-style. See the `connects` field doc.
+    pub fn connects_to_neighbors(mut self) -> Self {
+        self.connects = true;
         self
     }
 }
