@@ -1158,6 +1158,7 @@ impl Registry {
 
     pub fn register_block(&mut self, def: BlockDef) {
         let shape = def.shape.unwrap_or([0.0; 6]);
+        let groups_joined = def.connect_groups.join(",");
         let c = YogBlockDef {
             id:            YogStr::from_str(&def.id),
             hardness:      def.hardness,
@@ -1170,6 +1171,7 @@ impl Registry {
             slipperiness:  def.slipperiness,
             shape,
             connects:      def.connects,
+            connect_groups: YogStr::from_str(&groups_joined),
         };
         unsafe { ((*self.api).register_block)(self.ctx(), &c) }
     }

@@ -345,9 +345,12 @@ pub struct YogBlockDef {
     pub slipperiness:  f32,
     /// Bounding box in pixels: `[x1, y1, z1, x2, y2, z2]`. All zeros = full cube.
     pub shape:         [f32; 6],
-    /// Fence/pipe-style dynamic connection to same-id neighbors — see
+    /// Fence/pipe-style dynamic arm growth toward compatible neighbors — see
     /// `yog_registry::BlockDef::connects_to_neighbors`.
     pub connects:      bool,
+    /// Comma-joined connection compatibility tags — see
+    /// `yog_registry::BlockDef::connect_groups`. Empty = no tags.
+    pub connect_groups: YogStr,
 }
 
 // ── ABI minor 10 client event structs ─────────────────────────────────────────

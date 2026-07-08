@@ -467,14 +467,18 @@ pub struct BlockDef {
     pub no_collision: bool,
     /// Friction coefficient. `0.0` = default (0.6). Ice = 0.989.
     pub slipperiness: f32,
-    /// If `true`, this block dynamically connects to neighboring blocks of
-    /// the *same registered id* (fence/pipe-style): the Java host tracks
-    /// N/S/E/W/U/D boolean blockstate properties, recomputed on placement and
-    /// on neighbor change, and grows the collision/outline shape from the
-    /// `shape` core box (or a default post) out to each connected side. Any
-    /// mod block can opt in — `yog-pipes` builds its cable/pipe networks on
-    /// top of this same primitive.
+    /// If `true`, this block dynamically grows arms toward neighbors it's
+    /// compatible with (fence/pipe-style): the Java host tracks N/S/E/W/U/D
+    /// boolean blockstate properties, recomputed on placement and on
+    /// neighbor change, and grows the collision/outline shape from the
+    /// `shape` core box (or a default post) out to each connected side.
     pub connects: bool,
+    /// Connection compatibility tags (configured in code via
+    /// `.connect_groups(&[...])` — see that method's docs for how this
+    /// drives which blocks link up). Independent of `connects`: a block can
+    /// carry tags purely as a connection *target* (e.g. an ALU accepting a
+    /// Digital Cable) without dynamically growing its own shape.
+    pub connect_groups: Vec<String>,
 }
 
 impl BlockDef {
@@ -491,6 +495,7 @@ impl BlockDef {
             no_collision: false,
             slipperiness: 0.0,
             connects: false,
+            connect_groups: Vec::new(),
         }
     }
 
@@ -544,10 +549,24 @@ impl BlockDef {
         self
     }
 
-    /// Dynamically connect to neighboring blocks that share this exact
-    /// registered id — fence/pipe-style. See the `connects` field doc.
+    /// Dynamically grow arms toward compatible neighbors — fence/pipe-style.
+    /// "Compatible" means the neighbor also has a `connect_groups` tag in
+    /// common (set here, or via `connect_groups` alone on a static target
+    /// block). Call `.connect_groups(&[...])` too, or this connects to
+    /// nothing. See the `connects` field doc.
     pub fn connects_to_neighbors(mut self) -> Self {
         self.connects = true;
+        self
+    }
+
+    /// Connection compatibility tags — two blocks link up (for
+    /// `connects_to_neighbors` arm growth, and as valid connection targets
+    /// generally) when their tag sets share at least one entry. Example: for
+    /// Yog-VLSI, `analog_cable` and `redstone_port` both carry `"analog"`;
+    /// `digital_cable` carries `"digital"`; an ALU block carries both, so it
+    /// accepts either cable while a Redstone Port only accepts the analog one.
+    pub fn connect_groups(mut self, groups: &[&str]) -> Self {
+        self.connect_groups = groups.iter().map(|s| s.to_string()).collect();
         self
     }
 }
