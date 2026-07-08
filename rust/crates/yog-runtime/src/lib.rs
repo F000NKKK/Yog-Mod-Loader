@@ -1162,7 +1162,7 @@ unsafe extern "C" fn gfx_tex_create(w: u32, h: u32, rgba: *const u8, linear: boo
         glow::TEXTURE_2D, 0, glow::RGBA8 as i32,
         w as i32, h as i32, 0,
         glow::RGBA, glow::UNSIGNED_BYTE,
-        Some(pixels),
+        glow::PixelUnpackData::Slice(Some(pixels)),
     );
     gl.bind_texture(glow::TEXTURE_2D, None);
     tex.0.get()
