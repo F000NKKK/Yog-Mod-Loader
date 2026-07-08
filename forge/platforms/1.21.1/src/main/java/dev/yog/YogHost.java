@@ -163,6 +163,9 @@ public class YogHost {
 
             event.register(Registries.BLOCK, ident, () -> block);
             registeredBlocks.put(ident, block);
+            if (p.containsKey("connect_groups")) {
+                YogConnectingLogic.registerGroups(block, p.get("connect_groups").split(","));
+            }
         }
     }
 
