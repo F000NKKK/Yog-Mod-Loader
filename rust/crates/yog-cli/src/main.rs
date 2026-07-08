@@ -513,9 +513,30 @@ fn run_config(config_name: &str) -> Result<(), String> {
 }
 
 /// Resolve a possibly-relative path against the project root.
+/// Expands a leading `~` or `~/` to the user's home directory on Unix,
+/// then canonicalises the result (resolving `..` and symlinks) when the
+/// path already exists.
 fn resolve(root: &Path, path: &str) -> PathBuf {
-    let p = PathBuf::from(path);
-    if p.is_absolute() { p } else { root.join(p) }
+    let expanded = expand_tilde(path);
+    let p = PathBuf::from(&expanded);
+    let joined = if p.is_absolute() { p } else { root.join(p) };
+    // If the path already exists on disk, canonicalise to remove `..` etc.
+    joined.canonicalize().unwrap_or(joined)
+}
+
+/// Replace a leading `~` with the value of `$HOME`.
+fn expand_tilde(path: &str) -> String {
+    if path == "~" {
+        if let Ok(home) = std::env::var("HOME") {
+            return home;
+        }
+    }
+    if path.starts_with("~/") {
+        if let Ok(home) = std::env::var("HOME") {
+            return home + &path[1..];
+        }
+    }
+    path.to_string()
 }
 
 /// Generate the hidden Cargo.toml from yog.toml metadata.
