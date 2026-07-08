@@ -119,8 +119,16 @@ struct RuntimeHandlers {
     server_tick:        Vec<(*mut c_void, YogServerFn)>,
     server_started:     Vec<(*mut c_void, YogServerFn)>,
     server_stopping:    Vec<(*mut c_void, YogServerFn)>,
-    commands:           HashMap<String, (*mut c_void, YogCommandFn)>,
-    typed_schemas:      HashMap<String, String>,
+    /// All handlers registered under one command name, in registration order.
+    /// `schema` is `None` for a plain `on_command` (bare, zero-argument)
+    /// registration and `Some(schema)` for `on_typed_command`. Kept as a
+    /// `Vec` (not a single slot) so a mod can register several subcommands —
+    /// e.g. differing arg counts, or several bare/typed registrations sharing
+    /// one top-level name — without later registrations silently clobbering
+    /// earlier ones (see `nativeOnCommand`, which tries each entry whose
+    /// schema's arg count matches the actual invocation, in order, until one
+    /// produces a reply).
+    commands:           HashMap<String, Vec<(Option<String>, *mut c_void, YogCommandFn)>>,
     recipes:            Vec<(String, String, String)>,
     packets:            HashMap<String, (*mut c_void, YogPacketFn)>,
     client_packets:     HashMap<String, (*mut c_void, YogPacketFn)>,
@@ -163,7 +171,7 @@ impl RuntimeHandlers {
             key_press: Vec::new(),
             screen_open: Vec::new(), screen_close: Vec::new(),
             server_tick: Vec::new(), server_started: Vec::new(), server_stopping: Vec::new(),
-            commands: HashMap::new(), typed_schemas: HashMap::new(),
+            commands: HashMap::new(),
             recipes: Vec::new(), packets: HashMap::new(),
             client_packets: HashMap::new(), items: Vec::new(),
             ui_handlers: HashMap::new(), ui_render_handlers: HashMap::new(),
@@ -1397,14 +1405,13 @@ unsafe extern "C" fn api_on_client_packet(ctx: *mut c_void, channel: YogStr, ud:
 
 unsafe extern "C" fn api_register_command(ctx: *mut c_void, name: YogStr, ud: *mut c_void, h: YogCommandFn) {
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
-    handlers.commands.insert(name.as_str().to_owned(), (ud, h));
+    handlers.commands.entry(name.as_str().to_owned()).or_default().push((None, ud, h));
 }
 
 unsafe extern "C" fn api_register_typed_command(ctx: *mut c_void, name: YogStr, schema: YogStr, ud: *mut c_void, h: YogCommandFn) {
     let handlers = &mut *(ctx as *mut RuntimeHandlers);
     let n = name.as_str().to_owned();
-    handlers.typed_schemas.insert(n.clone(), schema.as_str().to_owned());
-    handlers.commands.insert(n, (ud, h));
+    handlers.commands.entry(n).or_default().push((Some(schema.as_str().to_owned()), ud, h));
 }
 
 
@@ -2299,10 +2306,22 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeRecipeJsons<'l>(
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeTypedCommandSchemas<'l>(
     env: JNIEnv<'l>, _class: JClass<'l>,
 ) -> jstring {
-    let s = handlers().typed_schemas.iter()
-        .map(|(name, schema)| format!("{}\t{}", name, schema))
-        .collect::<Vec<_>>().join("\n");
-    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+    // One line per DISTINCT (name, schema) pair — a name can have several
+    // typed registrations (different arg shapes); Brigadier merges repeated
+    // `dispatcher.register()` calls for the same literal name into one tree,
+    // so the Java side just needs every distinct schema once each.
+    let mut lines = Vec::new();
+    for (name, regs) in handlers().commands.iter() {
+        let mut seen = std::collections::HashSet::new();
+        for (schema, _, _) in regs {
+            if let Some(schema) = schema {
+                if seen.insert(schema.as_str()) {
+                    lines.push(format!("{}\t{}", name, schema));
+                }
+            }
+        }
+    }
+    env.new_string(lines.join("\n")).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
 #[no_mangle]
@@ -2322,15 +2341,21 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
     };
     let h = handlers();
     let srv = srv_ptr();
+    // Actual arg count of this invocation (0 for a bare command with no args).
+    let actual_argc = if a.is_empty() { 0 } else { a.split('\t').count() };
     let reply = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if let Some((ud, f)) = h.commands.get(&n) {
+        let Some(regs) = h.commands.get(&n) else { return String::new() };
+        for (schema, ud, f) in regs {
+            let expected_argc = schema.as_ref().map_or(0, |s| s.split_whitespace().count());
+            if expected_argc != actual_argc { continue; }
             let mut buf = [0u8; 4096];
             let mut reply_len: u32 = 0;
             unsafe { f(*ud, srv, &ev, buf.as_mut_ptr(), buf.len() as u32, &mut reply_len) };
-            String::from_utf8_lossy(&buf[..reply_len as usize]).into_owned()
-        } else {
-            String::new()
+            if reply_len > 0 {
+                return String::from_utf8_lossy(&buf[..reply_len as usize]).into_owned();
+            }
         }
+        String::new()
     }))
     .unwrap_or_else(|_| { yog_logging::error!("a mod panicked handling command `{}`", n); String::new() });
 
