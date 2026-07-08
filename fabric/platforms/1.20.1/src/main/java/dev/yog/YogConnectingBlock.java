@@ -44,7 +44,7 @@ public class YogConnectingBlock extends Block {
     }
 
     private boolean connectsTo(BlockView world, BlockPos pos, Direction dir) {
-        return world.getBlockState(pos.offset(dir)).getBlock() == this;
+        return YogConnectingLogic.compatible(this, world.getBlockState(pos.offset(dir)).getBlock());
     }
 
     @Override
@@ -65,7 +65,7 @@ public class YogConnectingBlock extends Block {
                                                  WorldAccess world, BlockPos pos, BlockPos neighborPos) {
         BooleanProperty prop = propertyFor(dir);
         if (prop == null) return state;
-        return state.with(prop, world.getBlockState(neighborPos).getBlock() == this);
+        return state.with(prop, YogConnectingLogic.compatible(this, world.getBlockState(neighborPos).getBlock()));
     }
 
     private static BooleanProperty propertyFor(Direction dir) {
