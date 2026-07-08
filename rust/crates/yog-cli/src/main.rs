@@ -271,6 +271,16 @@ license     = "MIT OR Apache-2.0"
 # Uncomment for local/monorepo development:
 # [dev]
 # yog_api_path = "../path/to/yog-api"
+
+# Uncomment to enable `yog run <name>` — builds, drops the .yog into
+# export_dir, then launches `command` with `args`/`cwd`/`env`. Add as many
+# [run.<name>] sections as you like (e.g. one per loader/version).
+# [run.dev]
+# export_dir = "../my-test-instance/yog-mods"
+# command    = "java"
+# args       = ["-jar", "server.jar", "--nogui"]
+# cwd        = "../my-test-instance"
+# env        = ["JAVA_OPTS=-Xmx4G"]
 "#,
         name    = name,
         display = to_display_name(name),
