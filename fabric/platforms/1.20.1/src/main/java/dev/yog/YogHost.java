@@ -442,7 +442,14 @@ public class YogHost implements ModInitializer {
                 }
 
                 Block block;
-                if (p.containsKey("shape")) {
+                if ("1".equals(p.get("connects"))) {
+                    double[] core = {6, 0, 6, 10, 16, 10};
+                    if (p.containsKey("shape")) {
+                        String[] sp = p.get("shape").split(":", 6);
+                        for (int i = 0; i < 6; i++) core[i] = Double.parseDouble(sp[i]);
+                    }
+                    block = new YogConnectingBlock(settings, core[0], core[1], core[2], core[3], core[4], core[5]);
+                } else if (p.containsKey("shape")) {
                     String[] sp = p.get("shape").split(":", 6);
                     block = new YogShapedBlock(settings,
                             Double.parseDouble(sp[0]), Double.parseDouble(sp[1]),

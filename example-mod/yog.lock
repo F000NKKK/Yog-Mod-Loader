@@ -176,15 +176,15 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 
 [[package]]
 name = "yog-abi"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f9f07ba8e1766907c7f92d3679fc70a901c606fdd1a6807e4dcdc39dbf20c0a"
+checksum = "6224ffa14353a813df4971a98d3d8117127b900b5f05526e3503bfb531c3a1e1"
 
 [[package]]
 name = "yog-api"
-version = "0.46.0"
+version = "0.47.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "028fd3ab53daac3e838d8b27d012ec33f02b70f5e1286b8af1d071c0d81743c4"
+checksum = "8567af2858eb26a00fe56011622985b6acc01df0e494a9d10e2ba8f3688ac4ff"
 dependencies = [
  "yog-abi",
  "yog-book",
@@ -205,9 +205,9 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.40.0"
+version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59754c4d5997375e78a0caa93b1efe36c0848b4564bd944cfadfcd94cbdbe808"
+checksum = "2938cda317cf396988725fe7b2cc0ad73648ef8ec421522f79058d6a3c980bf0"
 dependencies = [
  "png",
  "serde",
@@ -255,9 +255,9 @@ dependencies = [
 
 [[package]]
 name = "yog-gfx"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e35f33d7c263e4bf09869a39b738c503725017748156f0fcb2d9acc74fdcb32"
+checksum = "5eb3a4705fa2e16c7ed7596c547574865a97ebe3298634a738944d8f2cdf1208"
 dependencies = [
  "yog-abi",
 ]
@@ -286,9 +286,9 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73064e1c64669ae0595bf30aa476b2385d69fa471d8e516988b0fde4b5cd88a4"
+checksum = "464bd9586bc9ef8556dabb9c040ae560d7b96c6dbe9bd2a8b37e9ece7392abca"
 dependencies = [
  "serde",
  "yog-abi",
@@ -302,9 +302,9 @@ checksum = "d300b68e1172c9cec95fee547a1cf641cc7063562b5851b91017814d39beb045"
 
 [[package]]
 name = "yog-ui"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "651e387b5b3d1f2f1437a7679b4cc000c8f92674e66d9b0cc5633aad3afc54aa"
+checksum = "3753f6737390e726d6a12e188aa06bf3c259ea37286ac691f8f8a496edf31f4a"
 dependencies = [
  "yog-abi",
  "yog-gfx",
