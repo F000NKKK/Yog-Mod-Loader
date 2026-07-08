@@ -10,6 +10,7 @@
 //!   yog setup        — check/install build dependencies
 //!   yog help         — show usage
 
+use std::collections::HashMap;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -19,11 +20,15 @@ use std::process::Command;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let result = match args.get(1).map(String::as_str) {
-        Some("build")          => build(),
+        Some("build")          => build().map(|_| ()),
         Some("new")            => new_mod(args.get(2).map(String::as_str)),
         Some("setup")          => setup(),
         Some("add")            => add_dep(args.get(2).map(String::as_str)),
         Some("remove")         => remove_dep(args.get(2).map(String::as_str)),
+        Some("run")            => match args.get(2) {
+            Some(name) => run_config(name),
+            None => Err("usage: yog run <config_name>  (see [run.<config_name>] in yog.toml)".into()),
+        },
         Some("-h") | Some("--help") | Some("help") | None => { print_usage(); return; }
         Some(other)            => Err(format!("unknown command: {other}")),
     };
@@ -43,6 +48,7 @@ fn print_usage() {
          \x20 setup             Check and install build dependencies (Rust, Zig, targets)\n\
          \x20 add <crate>       Add a Rust dependency to yog.toml\n\
          \x20 remove <crate>    Remove a dependency from yog.toml\n\
+         \x20 run <config>      Build, export, and launch a [run.<config>] dev instance\n\
          \x20 help              Show this message\n\n\
          Mod projects use yog.toml instead of Cargo.toml.\n\
          Cross-compilation requires cargo-zigbuild + zig (yog setup installs them)."
@@ -67,6 +73,26 @@ struct YogToml {
     yog_api_version: Option<String>,
     /// User-declared dependencies from [dependencies] section.
     dependencies: Vec<(String, String)>,
+    /// Named dev-instance launch configs from `[run.<name>]` sections.
+    run_configs: Vec<RunConfig>,
+}
+
+/// A `[run.<name>]` section: where to drop the built artifact and what to
+/// launch afterwards, for a full `yog run <name>` dev-instance workflow.
+#[derive(Debug, Default, Clone)]
+struct RunConfig {
+    name: String,
+    /// Directory the built `.yog` gets copied into (e.g. an instance's `yog-mods/`).
+    /// Relative paths resolve against the mod project root.
+    export_dir: Option<String>,
+    /// Executable to launch after export (e.g. `java`, a wrapper script, `./gradlew`).
+    command: Option<String>,
+    /// Arguments passed to `command`, in order.
+    args: Vec<String>,
+    /// Working directory for `command`. Relative paths resolve against the project root.
+    cwd: Option<String>,
+    /// Extra environment variables as `KEY=VALUE` pairs.
+    env: Vec<(String, String)>,
 }
 
 impl YogToml {
@@ -112,6 +138,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let mut license       = None::<String>;
     let mut yog_api_path  = None::<String>;
     let mut dependencies: Vec<(String, String)> = Vec::new();
+    let mut run_configs: HashMap<String, RunConfig> = HashMap::new();
 
     for raw in text.lines() {
         let line = raw.trim();
@@ -139,9 +166,26 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
                     dependencies.push((name, spec));
                 }
             }
+            _ if section.starts_with("run.") => {
+                let run_name = &section["run.".len()..];
+                let cfg = run_configs.entry(run_name.to_string())
+                    .or_insert_with(|| RunConfig { name: run_name.to_string(), ..Default::default() });
+                if let Some(v) = field(line, "export_dir") { cfg.export_dir = Some(v); }
+                if let Some(v) = field(line, "command")    { cfg.command    = Some(v); }
+                if let Some(v) = field(line, "cwd")        { cfg.cwd        = Some(v); }
+                if line.trim_start().starts_with("args") {
+                    cfg.args = parse_string_array(line);
+                }
+                if line.trim_start().starts_with("env") {
+                    cfg.env = parse_string_array(line).into_iter()
+                        .filter_map(|kv| kv.split_once('=').map(|(k, v)| (k.to_string(), v.to_string())))
+                        .collect();
+                }
+            }
             _ => {}
         }
     }
+    let run_configs: Vec<RunConfig> = run_configs.into_values().collect();
 
     let id = id.ok_or("yog.toml: missing [mod] id")?;
     // Extract yog_api_version / yog-api from dependencies if there
@@ -167,6 +211,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         yog_api_path,
         yog_api_version,
         dependencies: filtered_deps,
+        run_configs,
         id,
     })
 }
@@ -309,7 +354,10 @@ const TARGETS: &[Target] = &[
     Target { triple: "aarch64-apple-darwin",      tag: "macos-aarch64",   os: "macos"   },
 ];
 
-fn build() -> Result<(), String> {
+/// Builds and packages the mod in the current directory. Returns the parsed
+/// `yog.toml` metadata and the path to the produced `.yog` artifact, so
+/// callers like `run_config` can reuse them without re-parsing/rebuilding.
+fn build() -> Result<(YogToml, PathBuf), String> {
     let root = std::env::current_dir().map_err(|e| e.to_string())?;
     let yog_toml_path = root.join("yog.toml");
     if !yog_toml_path.exists() {
@@ -394,7 +442,7 @@ fn build() -> Result<(), String> {
 
     let tags: Vec<&str> = bundled.iter().map(|(t, _)| t.as_str()).collect();
     eprintln!("==> packaged {} [{}]", out.display(), tags.join(", "));
-    Ok(())
+    Ok((meta, out))
 }
 
 /// Generate the hidden Cargo.toml from yog.toml metadata.
