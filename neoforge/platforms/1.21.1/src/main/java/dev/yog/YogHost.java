@@ -342,7 +342,7 @@ public class YogHost {
         String names = NativeBridge.nativeCommandNames();
         if (names == null || names.isBlank()) return;
         for (String name : names.split("\n")) {
-            if (name.isBlank() || typedNames.contains(name)) continue;
+            if (name.isBlank()) continue;
             dispatcher.register(Commands.literal(name)
                     .executes(ctx -> runCommand(name, "", ctx))
                     .then(Commands.argument("args", StringArgumentType.greedyString())

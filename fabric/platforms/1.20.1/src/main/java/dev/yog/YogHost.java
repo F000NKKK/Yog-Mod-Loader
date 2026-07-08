@@ -310,7 +310,7 @@ public class YogHost implements ModInitializer {
             String names = NativeBridge.nativeCommandNames();
             if (names == null || names.isBlank()) return;
             for (String name : names.split("\n")) {
-                if (name.isBlank() || typedNames.contains(name)) continue;
+                if (name.isBlank()) continue;
                 dispatcher.register(CommandManager.literal(name)
                         .executes(ctx -> runCommand(name, "", ctx))
                         .then(CommandManager.argument("args", StringArgumentType.greedyString())
