@@ -445,6 +445,69 @@ fn build() -> Result<(YogToml, PathBuf), String> {
     Ok((meta, out))
 }
 
+// ── yog run ───────────────────────────────────────────────────────────────────
+
+/// Build, optionally export the artifact into a dev instance's mod folder,
+/// then optionally launch a configured command (e.g. the instance's server
+/// or client launcher) — driven by a `[run.<config_name>]` section.
+fn run_config(config_name: &str) -> Result<(), String> {
+    let root = std::env::current_dir().map_err(|e| e.to_string())?;
+    let yog_toml_path = root.join("yog.toml");
+    if !yog_toml_path.exists() {
+        return Err("no yog.toml found in the current directory".into());
+    }
+    let meta = YogToml::read(&yog_toml_path)?;
+
+    let cfg = meta.run_configs.iter().find(|c| c.name == config_name)
+        .ok_or_else(|| {
+            if meta.run_configs.is_empty() {
+                format!("no [run.{config_name}] section in yog.toml, and no [run.*] sections are defined at all.\n\
+                    Add one, e.g.:\n\n[run.{config_name}]\nexport_dir = \"../my-instance/yog-mods\"\ncommand    = \"java\"\nargs       = [\"-jar\", \"server.jar\", \"--nogui\"]\ncwd        = \"../my-instance\"")
+            } else {
+                let available: Vec<&str> = meta.run_configs.iter().map(|c| c.name.as_str()).collect();
+                format!("no [run.{config_name}] section in yog.toml. Available: {}", available.join(", "))
+            }
+        })?
+        .clone();
+
+    let (meta, artifact) = build()?;
+
+    if let Some(export_dir) = &cfg.export_dir {
+        let dir = resolve(&root, export_dir);
+        std::fs::create_dir_all(&dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;
+        let dest = dir.join(format!("{}.yog", meta.id));
+        std::fs::copy(&artifact, &dest).map_err(|e| format!("copying to {}: {e}", dest.display()))?;
+        eprintln!("==> exported {} -> {}", meta.id, dest.display());
+    }
+
+    let Some(command) = &cfg.command else {
+        eprintln!("==> [run.{config_name}] has no `command` set — export-only, nothing to launch.");
+        return Ok(());
+    };
+
+    eprintln!("==> launching [run.{config_name}]: {command} {}", cfg.args.join(" "));
+    let mut proc = Command::new(command);
+    proc.args(&cfg.args);
+    if let Some(cwd) = &cfg.cwd {
+        proc.current_dir(resolve(&root, cwd));
+    }
+    for (k, v) in &cfg.env {
+        proc.env(k, v);
+    }
+
+    let status = proc.status().map_err(|e| format!("failed to launch `{command}`: {e}"))?;
+    if !status.success() {
+        return Err(format!("`{command}` exited with {status}"));
+    }
+    Ok(())
+}
+
+/// Resolve a possibly-relative path against the project root.
+fn resolve(root: &Path, path: &str) -> PathBuf {
+    let p = PathBuf::from(path);
+    if p.is_absolute() { p } else { root.join(p) }
+}
+
 /// Generate the hidden Cargo.toml from yog.toml metadata.
 fn generate_cargo_toml(meta: &YogToml) -> String {
     let authors_toml = if meta.authors.is_empty() {
