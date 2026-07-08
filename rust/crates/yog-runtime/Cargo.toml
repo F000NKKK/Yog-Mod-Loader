@@ -11,7 +11,11 @@ description = "Yog runtime — native library bridging the Fabric host to Rust m
 crate-type = ["cdylib"]
 
 [dependencies]
-jni = "0.22"
+# Pinned to 0.21 — 0.22 split `JNIEnv` into `Env`/`EnvUnowned` (a breaking
+# rewrite of the whole FFI surface this crate uses); don't bump past 0.21.x
+# without migrating every `Java_dev_yog_NativeBridge_*` signature and env
+# call site to the new API first.
+jni = "0.21"
 
 yog-abi = "0.14"
 yog-api = "0.46"
