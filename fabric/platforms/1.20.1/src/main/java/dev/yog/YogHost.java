@@ -12,9 +12,11 @@ import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
@@ -332,6 +334,23 @@ public class YogHost implements ModInitializer {
         // Group items and blocks by namespace for per-mod creative tabs.
         Map<String, List<ItemConvertible>> tabGroups = new LinkedHashMap<>();
 
+        // Mods register a block's item form as `register_item(same_id, name, tooltip)`
+        // alongside `register_block(same_id)` — BlockDef itself carries neither. Collect
+        // those ids up front so the item loop below hands their name/tooltip to the
+        // block's YogBlockItem instead of ALSO registering a second, non-block Item
+        // under the same Identifier (that used to silently collide in Registries.ITEM
+        // and show up as a duplicate, unplaceable ghost entry in the creative tab).
+        Set<String> blockIds = new HashSet<>();
+        String blocksRaw = NativeBridge.nativeBlockDefs();
+        if (blocksRaw != null) {
+            for (String line : blocksRaw.split("\n")) {
+                if (line.isBlank()) continue;
+                blockIds.add(line.split("\t", 2)[0]);
+            }
+        }
+        Map<String, String> blockItemNames = new HashMap<>();
+        Map<String, String> blockItemTooltips = new HashMap<>();
+
         String items = NativeBridge.nativeItemDefs();
         if (items != null) {
             for (String line : items.split("\n")) {
@@ -341,6 +360,13 @@ public class YogHost implements ModInitializer {
                 if (ident == null) continue;
 
                 Map<String, String> p = parseProps(line);
+
+                if (blockIds.contains(id)) {
+                    blockItemNames.put(id, p.getOrDefault("name", ""));
+                    blockItemTooltips.put(id, p.getOrDefault("tooltip", ""));
+                    continue;
+                }
+
                 Item.Settings settings = new Item.Settings();
 
                 int maxDamage = parseInt(p, "max_damage", 0);
@@ -382,7 +408,7 @@ public class YogHost implements ModInitializer {
             }
         }
 
-        String blocks = NativeBridge.nativeBlockDefs();
+        String blocks = blocksRaw;
         if (blocks != null) {
             for (String line : blocks.split("\n")) {
                 if (line.isBlank()) continue;
@@ -423,7 +449,8 @@ public class YogHost implements ModInitializer {
 
                 Registry.register(Registries.BLOCK, ident, block);
                 Item blockItem = new YogBlockItem(block, new Item.Settings(),
-                        p.getOrDefault("name", ""));
+                        blockItemNames.getOrDefault(id, ""),
+                        blockItemTooltips.getOrDefault(id, ""));
                 Registry.register(Registries.ITEM, ident, blockItem);
                 tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(blockItem);
             }

@@ -157,6 +157,12 @@ public class YogHost {
         }
     }
 
+    // name/tooltip for ids that turn out to be blocks, pulled from the matching
+    // register_item(...) call — mods use `ItemDef::new(block_id).name(..).tooltip(..)`
+    // as the block's display metadata (BlockDef itself carries neither yet).
+    private final Map<String, String> blockItemNames = new HashMap<>();
+    private final Map<String, String> blockItemTooltips = new HashMap<>();
+
     private void registerItems(RegisterEvent event) {
         String items = NativeBridge.nativeItemDefs();
         if (items != null) {
@@ -167,6 +173,17 @@ public class YogHost {
                 if (ident == null) continue;
 
                 Map<String, String> p = parseProps(line);
+
+                if (registeredBlocks.containsKey(ident)) {
+                    // This id belongs to a block — don't register a second, competing
+                    // Item under the same id (that used to silently collide and show up
+                    // as a duplicate, unplaceable ghost entry in the creative tab). Just
+                    // hand its name/tooltip to the block-item loop below.
+                    blockItemNames.put(id, p.getOrDefault("name", ""));
+                    blockItemTooltips.put(id, p.getOrDefault("tooltip", ""));
+                    continue;
+                }
+
                 Item.Properties props = new Item.Properties();
 
                 int maxDamage = parseInt(p, "max_damage", 0);
@@ -217,9 +234,9 @@ public class YogHost {
                 Block block = ident == null ? null : registeredBlocks.get(ident);
                 if (block == null) continue;
 
-                Map<String, String> p = parseProps(line);
                 Item blockItem = new YogBlockItem(block, new Item.Properties(),
-                        p.getOrDefault("name", ""));
+                        blockItemNames.getOrDefault(id, ""),
+                        blockItemTooltips.getOrDefault(id, ""));
                 event.register(Registries.ITEM, ident, () -> blockItem);
                 tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(blockItem);
             }
