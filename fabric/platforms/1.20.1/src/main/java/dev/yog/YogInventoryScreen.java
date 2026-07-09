@@ -47,8 +47,8 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screen.ingame.H
         NativeBridge.nativeUIDrag(uiId, (float) mx, (float) my);
         return super.mouseDragged(mx, my, b, dx, dy);
     }
-    public boolean mouseScrolled(double mx, double my, double h, double v) {
-        NativeBridge.nativeUIScroll(uiId, (float) v);
+    @Override public boolean mouseScrolled(double mx, double my, double amount) {
+        NativeBridge.nativeUIScroll(uiId, (float) amount);
         return true;
     }
     @Override public boolean keyPressed(int k, int s, int m) {
