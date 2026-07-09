@@ -7,7 +7,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -54,7 +54,7 @@ public class YogInventoryBlock extends Block implements EntityBlock {
     // ── Break-preserves-contents (phase 6, shulker-box pattern) ──────────────
 
     @Override
-    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
         BlockEntity be = level.getBlockEntity(pos);
         if (be instanceof YogInventoryBlockEntity inv && !level.isClientSide) {
             if (player.isCreative() && !inv.isEmpty()) {
@@ -66,11 +66,11 @@ public class YogInventoryBlock extends Block implements EntityBlock {
                 level.addFreshEntity(ie);
             }
         }
-        return super.playerWillDestroy(level, pos, state, player);
+        super.playerWillDestroy(level, pos, state, player);
     }
 
     @Override
-    protected List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
+    public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
         List<ItemStack> drops = super.getDrops(state, builder);
         BlockEntity be = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
         if (be instanceof YogInventoryBlockEntity inv && !inv.isEmpty()) {
@@ -82,7 +82,7 @@ public class YogInventoryBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
         ItemStack stack = super.getCloneItemStack(level, pos, state);
         if (level instanceof Level lvl) {
             BlockEntity be = lvl.getBlockEntity(pos);
