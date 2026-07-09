@@ -60,7 +60,7 @@ pub fn render_node(d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
         }
         WidgetKind::Button(t) => {
             let avail_w = (r.w - s.pad[1] - s.pad[3]).max(0.0);
-            let lines = text::wrap_text(t, avail_w, s.font_scale);
+            let lines = if s.no_wrap { vec![t.clone()] } else { text::wrap_text(t, avail_w, s.font_scale) };
             let line_h = text::LINE_H * s.font_scale + text::LINE_GAP;
             let total_h = lines.len() as f32 * line_h - text::LINE_GAP;
             let content_h = r.h - s.pad[0] - s.pad[2];
