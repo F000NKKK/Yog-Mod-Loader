@@ -196,14 +196,14 @@ public class YogHost {
                 },
                 inventoryBlocks.toArray(new Block[0])
         ).build(null);
-        event.register(Registries.BLOCK_ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("yog", "inventory"),
+        event.register(Registries.BLOCK_ENTITY_TYPE, new ResourceLocation("yog", "inventory"),
                 () -> INVENTORY_BLOCK_ENTITY_TYPE);
     }
 
     private void registerInventoryMenuType(RegisterEvent event) {
         INVENTORY_MENU_TYPE = net.minecraftforge.common.extensions.IForgeMenuType.create(
                 (IContainerFactory<YogInventoryMenu>) YogInventoryMenu::createClient);
-        event.register(Registries.MENU, ResourceLocation.fromNamespaceAndPath("yog", "inventory"),
+        event.register(Registries.MENU, new ResourceLocation("yog", "inventory"),
                 () -> INVENTORY_MENU_TYPE);
     }
 
