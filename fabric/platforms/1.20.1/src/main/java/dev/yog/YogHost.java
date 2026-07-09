@@ -137,6 +137,9 @@ public class YogHost implements ModInitializer {
             if (!world.isClient && player instanceof ServerPlayerEntity sp) {
                 ItemStack stack = sp.getStackInHand(hand);
                 String itemId = Registries.ITEM.getId(stack.getItem()).toString();
+                boolean allow = NativeBridge.nativeOnUseItemPre(
+                        sp.getName().getString(), itemId, sp.isSneaking());
+                if (!allow) return TypedActionResult.fail(stack);
                 NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId, sp.isSneaking());
             }
             return TypedActionResult.pass(player.getStackInHand(hand));
@@ -147,6 +150,9 @@ public class YogHost implements ModInitializer {
             if (!world.isClient && player instanceof ServerPlayerEntity sp) {
                 net.minecraft.util.math.BlockPos pos = hitResult.getBlockPos();
                 String blockId = Registries.BLOCK.getId(world.getBlockState(pos).getBlock()).toString();
+                boolean allow = NativeBridge.nativeOnUseBlockPre(
+                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+                if (!allow) return ActionResult.FAIL;
                 NativeBridge.nativeOnUseBlock(
                         sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
             }

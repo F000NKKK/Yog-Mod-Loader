@@ -2051,6 +2051,30 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
 }
 
 #[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItemPre<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, item: JString<'l>, sneaking: jni::sys::jboolean,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.use_item.is_empty() { return 1; }
+    let p = match env.get_string(&player) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let i = match env.get_string(&item) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ev = yog_abi::YogUseItemEvent {
+        player: YogStr::from_str(&p),
+        item: YogStr::from_str(&i),
+        sneaking: sneaking != 0,
+    };
+    let srv = srv_ptr();
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.use_item {
+            if !unsafe { f(*ud, srv, &ev, 0) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
+}
+
+#[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
     mut env: JNIEnv<'l>, _class: JClass<'l>,
     player: JString<'l>, block: JString<'l>, x: jint, y: jint, z: jint,
@@ -2066,6 +2090,29 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlockPre<'l>(
+    mut env: JNIEnv<'l>, _class: JClass<'l>,
+    player: JString<'l>, block: JString<'l>, x: jint, y: jint, z: jint,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.use_block.is_empty() { return 1; }
+    let p = match env.get_string(&player) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let b = match env.get_string(&block) { Ok(s) => String::from(s), Err(_) => return 1 };
+    let ev = yog_abi::YogUseBlockEvent {
+        player: YogStr::from_str(&p), block: YogStr::from_str(&b),
+        pos: YogBlockPos { x, y, z },
+    };
+    let srv = srv_ptr();
+    let mut allow = true;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (ud, f) in &h.use_block {
+            if !unsafe { f(*ud, srv, &ev, 0) } { allow = false; break; }
+        }
+    })).ok();
+    allow as jni::sys::jboolean
 }
 
 #[no_mangle]

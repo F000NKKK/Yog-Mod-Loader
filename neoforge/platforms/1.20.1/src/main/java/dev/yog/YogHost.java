@@ -421,6 +421,10 @@ public class YogHost {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         ItemStack stack = sp.getItemInHand(event.getHand());
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+        if (!NativeBridge.nativeOnUseItemPre(sp.getName().getString(), itemId, sp.isShiftKeyDown())) {
+            event.setCanceled(true);
+            return;
+        }
         NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId, sp.isShiftKeyDown());
     }
 
@@ -432,6 +436,11 @@ public class YogHost {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         BlockPos pos = event.getPos();
         String blockId = BuiltInRegistries.BLOCK.getKey(sp.level().getBlockState(pos).getBlock()).toString();
+        if (!NativeBridge.nativeOnUseBlockPre(sp.getName().getString(), blockId,
+                pos.getX(), pos.getY(), pos.getZ())) {
+            event.setCanceled(true);
+            return;
+        }
         NativeBridge.nativeOnUseBlock(sp.getName().getString(), blockId,
                 pos.getX(), pos.getY(), pos.getZ());
 

@@ -447,6 +447,13 @@ public final class NativeBridge {
     public static native void nativeOnPlayerLeave(String player, String uuid);
     public static native void nativeOnUseItem(String player, String item, boolean sneaking);
     public static native void nativeOnUseBlock(String player, String block, int x, int y, int z);
+
+    /** Cancel-check for item use (before). Returns true = allow, false = cancel. */
+    public static native boolean nativeOnUseItemPre(String player, String item, boolean sneaking);
+
+    /** Cancel-check for block use / right-click (before). Returns true = allow, false = cancel. */
+    public static native boolean nativeOnUseBlockPre(
+            String player, String block, int x, int y, int z);
     public static native void nativeOnAttackEntity(String player, String targetType, String targetUuid);
     public static native void nativeOnEntityDamage(String entityType, String uuid, float amount, String source);
     public static native void nativeOnEntityDeath(String entityType, String uuid, String source);

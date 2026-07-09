@@ -907,6 +907,13 @@ public final class NativeBridge {
     public static native void nativeOnUseBlock(
             String player, String block, int x, int y, int z);
 
+    /** Cancel-check for item use (before). Returns true = allow, false = cancel. */
+    public static native boolean nativeOnUseItemPre(String player, String item, boolean sneaking);
+
+    /** Cancel-check for block use / right-click (before). Returns true = allow, false = cancel. */
+    public static native boolean nativeOnUseBlockPre(
+            String player, String block, int x, int y, int z);
+
     public static native void nativeOnAttackEntity(
             String player, String targetType, String targetUuid);
 
