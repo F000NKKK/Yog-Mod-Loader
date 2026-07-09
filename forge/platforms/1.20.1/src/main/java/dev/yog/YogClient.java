@@ -3,10 +3,7 @@ package dev.yog;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
@@ -129,15 +126,8 @@ public final class YogClient {
 
     /** Send a raw-byte packet to the server (client -> server). */
     public static boolean sendToServer(String channel, byte[] data) {
-        ResourceLocation id = ResourceLocation.tryParse(channel);
-        if (id == null) return false;
         try {
-            var conn = Minecraft.getInstance().getConnection();
-            if (conn == null) return false;
-            FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
-            buf.writeBytes(data);
-            conn.send(new ServerboundCustomPayloadPacket(id, buf));
-            return true;
+            return YogNetworkBridge.sendToServer(channel, data);
         } catch (Throwable t) {
             return false;
         }

@@ -109,8 +109,7 @@ public final class NativeBridge {
     public static boolean sendToPlayer(String player, String channel, byte[] data) {
         ServerPlayer p = playerByName(player);
         if (p == null) return false;
-        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new YogPayload(channel, data));
-        return true;
+        return YogNetworkBridge.sendToPlayer(p, channel, data);
     }
 
     private static ServerPlayer playerByName(String name) {

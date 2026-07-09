@@ -129,15 +129,8 @@ public final class YogClient {
 
     /** Send a raw-byte packet to the server (client -> server). */
     public static boolean sendToServer(String channel, byte[] data) {
-        ResourceLocation id = ResourceLocation.tryParse(channel);
-        if (id == null) return false;
         try {
-            var conn = Minecraft.getInstance().getConnection();
-            if (conn == null) return false;
-            FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
-            buf.writeBytes(data);
-            conn.send(new ServerboundCustomPayloadPacket(id, buf));
-            return true;
+            return YogNetworkBridge.sendToServer(channel, data);
         } catch (Throwable t) {
             return false;
         }

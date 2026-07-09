@@ -117,8 +117,7 @@ public final class YogClient {
     /** Send a raw-byte packet to the server (client -> server). */
     public static boolean sendToServer(String channel, byte[] data) {
         try {
-            net.neoforged.neoforge.network.PacketDistributor.sendToServer(new YogPayload(channel, data));
-            return true;
+            return YogNetworkBridge.sendToServer(channel, data);
         } catch (Throwable t) {
             return false;
         }

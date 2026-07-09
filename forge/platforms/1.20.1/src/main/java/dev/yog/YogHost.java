@@ -83,7 +83,9 @@ public class YogHost {
 
     public YogHost() {
         NativeBridge.ensureLoaded();
-        System.out.println("[yog] NeoForge host initialised.");
+        System.out.println("[yog] Forge host initialised.");
+
+        YogNetworkBridge.init();
 
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
         modBus.addListener(this::onRegister);
