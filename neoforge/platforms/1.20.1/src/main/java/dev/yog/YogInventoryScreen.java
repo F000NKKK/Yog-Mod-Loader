@@ -4,12 +4,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
-/**
- * Inventory screen powered by yog-ui — renders everything (background, slot
- * frames, slot items, custom widgets) through Rust's flexbox layout engine.
- * Vanilla still handles slot *interaction* (drag-and-drop, quick-move,
- * tooltips), but all pixel output comes from {@code NativeBridge.nativeUIRender}.
- */
 public class YogInventoryScreen extends net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<YogInventoryMenu> {
     private final String uiId;
 
@@ -20,8 +14,7 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
         if (def != null) {
             this.imageWidth  = Math.max(176, this.imageWidth);
             this.imageHeight = Math.max(166, this.imageHeight);
-            this.titleLabelX = 8;
-            this.titleLabelY = 6;
+            this.titleLabelX = 8; this.titleLabelY = 6;
             if (def.includePlayerInventory) {
                 this.inventoryLabelX = (int) def.playerInvX;
                 this.inventoryLabelY = (int) def.playerInvY - 10;
@@ -30,8 +23,7 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
         NativeBridge.nativeUIShow(uiId, "", true, false, width, height);
     }
 
-    @Override
-    public void render(GuiGraphics ctx, int mx, int my, float delta) {
+    @Override public void render(GuiGraphics ctx, int mx, int my, float delta) {
         NativeBridge.activeInventoryMenu = this.menu;
         NativeDraw.hudDrawContext = ctx;
         NativeBridge.nativeUIRender(uiId, this.width, this.height);
@@ -40,37 +32,30 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
         this.renderTooltip(ctx, mx, my);
     }
 
-    @Override protected void renderBg(GuiGraphics ctx, float delta, int mx, int my) { /* yog-ui */ }
-    @Override protected void renderLabels(GuiGraphics ctx, int mx, int my) { /* yog-ui */ }
+    @Override protected void renderBg(GuiGraphics ctx, float d, int mx, int my) {}
+    @Override protected void renderLabels(GuiGraphics ctx, int mx, int my) {}
 
-    @Override
-    public boolean mouseClicked(double mx, double my, int button) {
-        if (NativeBridge.nativeUIClick(uiId, (float) mx, (float) my, button)) return true;
-        return super.mouseClicked(mx, my, button);
+    @Override public boolean mouseClicked(double mx, double my, int b) {
+        NativeBridge.nativeUIClick(uiId, (float) mx, (float) my, b);
+        return super.mouseClicked(mx, my, b);
     }
-    @Override
-    public boolean mouseReleased(double mx, double my, int button) {
-        if (NativeBridge.nativeUIRelease(uiId, (float) mx, (float) my)) return true;
-        return super.mouseReleased(mx, my, button);
+    @Override public boolean mouseReleased(double mx, double my, int b) {
+        NativeBridge.nativeUIRelease(uiId, (float) mx, (float) my);
+        return super.mouseReleased(mx, my, b);
     }
-    @Override
-    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+    @Override public boolean mouseDragged(double mx, double my, int b, double dx, double dy) {
         NativeBridge.nativeUIDrag(uiId, (float) mx, (float) my);
-        return super.mouseDragged(mx, my, button, dx, dy);
+        return super.mouseDragged(mx, my, b, dx, dy);
     }
-    @Override
-    public boolean mouseScrolled(double mx, double my, double horiz, double vert) {
-        NativeBridge.nativeUIScroll(uiId, (float) vert);
+    @Override public boolean mouseScrolled(double mx, double my, double h, double v) {
+        NativeBridge.nativeUIScroll(uiId, (float) v);
         return true;
     }
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        NativeBridge.nativeUIKey(uiId, keyCode, scanCode, modifiers, 1);
-        return super.keyPressed(keyCode, scanCode, modifiers);
+    @Override public boolean keyPressed(int k, int s, int m) {
+        NativeBridge.nativeUIKey(uiId, k, s, m, 1);
+        return super.keyPressed(k, s, m);
     }
-
-    @Override
-    public void onClose() {
+    @Override public void onClose() {
         NativeBridge.activeInventoryMenu = null;
         NativeBridge.nativeUIHide(uiId);
         super.onClose();
