@@ -87,8 +87,22 @@ public class YogHost {
 
         modBus.addListener(this::onRegister);
         modBus.addListener(this::onAddPackFinders);
+        modBus.addListener(this::onRegisterPayloads);
 
         NeoForge.EVENT_BUS.register(this);
+    }
+
+    // Single bidirectional payload multiplexing every dynamic Yog channel —
+    // see YogPayload's doc comment for why one type instead of one per channel.
+    private void onRegisterPayloads(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent event) {
+        event.registrar("1").playBidirectional(YogPayload.TYPE, YogPayload.CODEC, (payload, context) -> {
+            if (context.player() instanceof net.minecraft.server.level.ServerPlayer sp) {
+                context.enqueueWork(() ->
+                        NativeBridge.nativeOnPacket(payload.channelName(), sp.getName().getString(), payload.data()));
+            } else {
+                context.enqueueWork(() -> NativeBridge.nativeOnClientPacket(payload.channelName(), payload.data()));
+            }
+        });
     }
 
     // ── Content registration (mod bus) ───────────────────────────────────────

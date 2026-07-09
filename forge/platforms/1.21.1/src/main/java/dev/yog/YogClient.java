@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.ScreenEvent;
@@ -110,18 +109,8 @@ public final class YogClient {
         }
     }
 
-    /** Send a raw-byte packet to the server (client -> server) via YogPayload. */
+    /** Send a raw-byte packet to the server (client -> server). */
     public static boolean sendToServer(String channel, byte[] data) {
-        ResourceLocation id = ResourceLocation.tryParse(channel);
-        if (id == null) return false;
-        try {
-            var conn = Minecraft.getInstance().getConnection();
-            if (conn == null) return false;
-            conn.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
-                    new YogPayload(YogPayload.typeFor(id), data)));
-            return true;
-        } catch (Throwable t) {
-            return false;
-        }
+        return YogNetworkBridge.sendToServer(channel, data);
     }
 }

@@ -89,6 +89,8 @@ public class YogHost {
         NativeBridge.ensureLoaded();
         System.out.println("[yog] Forge host initialised.");
 
+        YogNetworkBridge.init();
+
         var modBus = context.getModEventBus();
         modBus.addListener(this::onRegister);
         modBus.addListener(this::onAddPackFinders);

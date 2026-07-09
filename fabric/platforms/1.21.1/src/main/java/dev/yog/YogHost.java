@@ -94,6 +94,23 @@ public class YogHost implements ModInitializer {
             }
         }
 
+        // Channels a mod only ever *sends* to a client (e.g. `send_to_player`
+        // from an `on_use_block` handler, to trigger a client-side `open_ui`)
+        // are declared via `on_client_packet` — the server itself never
+        // receives them, but Fabric's 1.20.5+ typed networking still requires
+        // the S2C codec to be registered here before `ServerPlayNetworking.send`
+        // will accept them, or the send throws and silently no-ops the whole
+        // interaction. Register those too (registration is idempotent).
+        String clientChannels = NativeBridge.nativeClientPacketChannels();
+        if (clientChannels != null) {
+            for (String channel : clientChannels.split("\n")) {
+                if (channel.isBlank()) continue;
+                Identifier id = Identifier.tryParse(channel);
+                if (id == null) continue;
+                YogPayload.register(id);
+            }
+        }
+
         // Block break — pre (cancellable) then after (observe).
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
             String blockId = Registries.BLOCK.getId(state.getBlock()).toString();

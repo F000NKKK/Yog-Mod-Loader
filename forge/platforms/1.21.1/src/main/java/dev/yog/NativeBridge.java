@@ -49,7 +49,6 @@ import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import java.util.Map;
 
 /**
@@ -109,11 +108,8 @@ public final class NativeBridge {
 
     public static boolean sendToPlayer(String player, String channel, byte[] data) {
         ServerPlayer p = playerByName(player);
-        ResourceLocation id = ResourceLocation.tryParse(channel);
-        if (p == null || id == null) return false;
-        p.connection.send(new ClientboundCustomPayloadPacket(
-                new YogPayload(YogPayload.typeFor(id), data)));
-        return true;
+        if (p == null) return false;
+        return YogNetworkBridge.sendToPlayer(p, channel, data);
     }
 
     private static ServerPlayer playerByName(String name) {

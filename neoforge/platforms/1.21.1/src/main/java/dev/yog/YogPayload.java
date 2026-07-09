@@ -1,45 +1,45 @@
 package dev.yog;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.nio.charset.StandardCharsets;
+
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Raw-byte custom payload for dynamic Yog channels.
- * NeoForge 1.21.x uses typed custom payloads — one codec per channel.
+ * Single bidirectional payload multiplexing every one of Yog's dynamic,
+ * mod-declared packet channels. NeoForge's typed networking
+ * (`RegisterPayloadHandlersEvent`/`PayloadRegistrar`) wants every payload
+ * `Type` declared once, up front — but Yog mods register channel *names* at
+ * runtime (`on_packet`, `on_client_packet`, `send_to_player`,
+ * `send_to_server`), so this wraps every message as one "yog:bridge" type
+ * carrying `[u16 name length][name utf8][raw data]`, demultiplexed by name
+ * in `YogHost`'s single payload handler.
  */
-public final class YogPayload implements CustomPacketPayload {
-    private static final Map<ResourceLocation, Type<YogPayload>> TYPES = new ConcurrentHashMap<>();
+public record YogPayload(String channelName, byte[] data) implements CustomPacketPayload {
+    public static final Type<YogPayload> TYPE =
+            new Type<>(ResourceLocation.fromNamespaceAndPath("yog", "bridge"));
 
-    private final Type<YogPayload> type;
-    private final byte[] data;
-
-    public YogPayload(Type<YogPayload> type, byte[] data) {
-        this.type = type;
-        this.data = data;
-    }
-
-    public byte[] data() { return data; }
-
-    public static Type<YogPayload> typeFor(ResourceLocation channel) {
-        return TYPES.computeIfAbsent(channel, Type::new);
-    }
+    public static final StreamCodec<FriendlyByteBuf, YogPayload> CODEC = StreamCodec.of(
+            (buf, payload) -> {
+                byte[] nameBytes = payload.channelName.getBytes(StandardCharsets.UTF_8);
+                buf.writeShort(nameBytes.length);
+                buf.writeBytes(nameBytes);
+                buf.writeBytes(payload.data);
+            },
+            buf -> {
+                int nameLen = buf.readUnsignedShort();
+                byte[] nameBytes = new byte[nameLen];
+                buf.readBytes(nameBytes);
+                String channelName = new String(nameBytes, StandardCharsets.UTF_8);
+                byte[] data = new byte[buf.readableBytes()];
+                buf.readBytes(data);
+                return new YogPayload(channelName, data);
+            });
 
     @Override
-    public Type<? extends CustomPacketPayload> type() { return type; }
-
-    /** StreamCodec for this payload type on a specific channel. */
-    public static StreamCodec<FriendlyByteBuf, YogPayload> codecFor(ResourceLocation channel) {
-        Type<YogPayload> t = typeFor(channel);
-        return StreamCodec.of(
-                (buf, payload) -> buf.writeBytes(payload.data),
-                buf -> {
-                    byte[] d = new byte[buf.readableBytes()];
-                    buf.readBytes(d);
-                    return new YogPayload(t, d);
-                });
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }
