@@ -35,8 +35,14 @@ public class YogItem extends Item {
 
     @Override
     public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> lines, TooltipContext ctx) {
-        if (tooltip != null && !tooltip.isEmpty()) {
-            lines.add(Text.literal(tooltip));
+        String descKey = this.getTranslationKey() + ".desc";
+        String resolved = net.minecraft.client.resource.language.I18n.hasTranslation(descKey)
+                ? net.minecraft.client.resource.language.I18n.translate(descKey)
+                : (tooltip != null && !tooltip.isEmpty() ? tooltip : null);
+        if (resolved != null) {
+            for (String line : resolved.split("\n")) {
+                lines.add(Text.literal(line));
+            }
         }
     }
 }

@@ -37,8 +37,14 @@ public class YogBlockItem extends BlockItem {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
         super.appendHoverText(stack, level, lines, flag);
-        if (tooltip != null && !tooltip.isEmpty()) {
-            lines.add(Component.literal(tooltip));
+        String descKey = this.getDescriptionId() + ".desc";
+        String resolved = net.minecraft.client.resources.language.I18n.exists(descKey)
+                ? net.minecraft.client.resources.language.I18n.get(descKey)
+                : (tooltip != null && !tooltip.isEmpty() ? tooltip : null);
+        if (resolved != null) {
+            for (String line : resolved.split("\n")) {
+                lines.add(Component.literal(line));
+            }
         }
     }
 }
