@@ -23,8 +23,10 @@ pub enum WidgetKind {
     Label(String),
     /// Clickable button with text.
     Button(String),
-    /// Minecraft item icon.
+    /// Minecraft item icon (static, known at build time).
     ItemSlot(String),
+    /// Dynamic inventory slot — queries slot data at render time via JNI.
+    InvSlot(usize),
     /// Minecraft texture blit (via `draw2d_mc_tex`).
     McImage { id: String, img_w: f32, img_h: f32 },
     /// Invisible spacer.
@@ -137,6 +139,7 @@ pub fn panel(dir: FlexDir) -> Widget { Widget::new(WidgetKind::Panel(dir)) }
 pub fn label(text: impl Into<String>) -> Widget { Widget::new(WidgetKind::Label(text.into())) }
 pub fn button(text: impl Into<String>) -> Widget { Widget::new(WidgetKind::Button(text.into())) }
 pub fn item_slot(item_id: impl Into<String>) -> Widget { Widget::new(WidgetKind::ItemSlot(item_id.into())) }
+pub fn inv_slot(index: usize) -> Widget { Widget::new(WidgetKind::InvSlot(index)).w(18.0).h(18.0) }
 pub fn mc_image(id: impl Into<String>, img_w: f32, img_h: f32) -> Widget {
     Widget::new(WidgetKind::McImage { id: id.into(), img_w, img_h })
         .w(img_w).h(img_h)

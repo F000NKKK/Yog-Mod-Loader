@@ -63,7 +63,7 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
                     hh = (text::LINE_H * s.font_scale + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
                 }
             }
-            WidgetKind::ItemSlot(_) => {
+            WidgetKind::ItemSlot(_) | WidgetKind::InvSlot(_) => {
                 ww = (18.0 + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
                 hh = (18.0 + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
             }

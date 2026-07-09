@@ -82,6 +82,31 @@ pub fn render_node(d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
                     ix+2.0, iy+2.0, 0.0, 0.0, 14.0, 14.0, 16.0, 16.0);
             }
         }
+        WidgetKind::InvSlot(index) => {
+            let ix = r.x + s.pad[3]; let iy = r.y + s.pad[0];
+            let sz: f32 = 18.0;
+            // Slot background
+            d2d.rect(ix, iy, ix + sz, iy + sz, 0xFF_8B8B8B);
+            d2d.rect(ix, iy, ix + sz, iy + 1.0, 0xFF_373737);
+            d2d.rect(ix, iy + sz - 1.0, ix + sz, iy + sz, 0xFF_FFFFFF);
+            d2d.rect(ix, iy, ix + 1.0, iy + sz, 0xFF_373737);
+            d2d.rect(ix + sz - 1.0, iy, ix + sz, iy + sz, 0xFF_FFFFFF);
+            // Item icon + count
+            if let Some(sd) = crate::slot_cache::get_slot(*index) {
+                if !sd.item_id.is_empty() {
+                    if let Some((ns, name)) = sd.item_id.split_once(':') {
+                        d2d.mc_texture(&format!("{ns}:textures/item/{name}.png"),
+                            ix+2.0, iy+2.0, 0.0, 0.0, 14.0, 14.0, 16.0, 16.0);
+                    }
+                    if sd.count > 1 {
+                        let count_str = sd.count.to_string();
+                        let cw = crate::text::str_width(&count_str, 0.7);
+                        d2d.text(&count_str, ix + sz - cw - 1.0, iy + sz - 10.0,
+                            0xFF_FFFFFF, true);
+                    }
+                }
+            }
+        }
         WidgetKind::McImage { id, img_w, img_h } => {
             d2d.mc_texture(id, r.x + s.pad[3], r.y + s.pad[0],
                 0.0, 0.0, *img_w, *img_h, *img_w, *img_h);

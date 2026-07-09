@@ -3,7 +3,7 @@
 //! Then add `mod ui_jni;` to lib.rs.
 
 use crate::{handlers, UiLayer};
-use jni::{JNIEnv, objects::JClass, objects::JString, sys::*};
+use jni::{JNIEnv, objects::JClass, objects::JString, objects::JValue, sys::*};
 use yog_abi::YogStr;
 
 macro_rules! jstr {
@@ -162,6 +162,24 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     ui_id: JString<'l>, screen_w: jint, screen_h: jint,
 ) {
     let id = jstr!(env, ui_id);
+
+    // Pre-fetch inventory slot data for InvSlot widgets.
+    let n = inv_slot_count(&mut env);
+    if n > 0 {
+        let mut slots = Vec::with_capacity(n as usize);
+        for i in 0..n {
+            let item = inv_slot_item(&mut env, i);
+            let pos  = inv_slot_pos(&mut env, i).unwrap_or((0, 0));
+            slots.push(yog_ui::slot_cache::SlotData {
+                item_id: item.as_ref().map(|(id, _)| id.clone()).unwrap_or_default(),
+                count:   item.map(|(_, c)| c as u32).unwrap_or(0),
+                x: pos.0,
+                y: pos.1,
+            });
+        }
+        yog_ui::slot_cache::set_slot_cache(slots);
+    }
+
     let h = crate::handlers();
     let mut gfx = crate::GFX_FN_TABLE;
     gfx.screen_w    = screen_w;
@@ -194,6 +212,40 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     for (ud, f) in render_cbs {
         unsafe { f(ud, &gfx as *const _) };
     }
+}
+
+// ── Inventory slot queries (Rust → Java, called during yog-ui render) ──────
+
+/// Number of slots in the currently open inventory screen (0 if none).
+pub fn inv_slot_count(env: &mut JNIEnv) -> i32 {
+    env.call_static_method("dev/yog/NativeBridge", "getSlotCount", "()I", &[])
+        .and_then(|v| v.i()).unwrap_or(0)
+}
+
+/// Query one slot: returns `Some((item_id, count))` or `None` if empty.
+/// `item_id` is a namespaced string like `"minecraft:diamond"`.
+pub fn inv_slot_item(env: &mut JNIEnv, index: i32) -> Option<(String, i32)> {
+    let ret = env.call_static_method("dev/yog/NativeBridge", "getSlotItem",
+        "(I)Ljava/lang/String;", &[JValue::Int(index)]).ok()?;
+    let obj = ret.l().ok()?;
+    let jstr = JString::from(obj);
+    let s = env.get_string(&jstr).ok()?;
+    let s: String = s.into();
+    if s.is_empty() { return None; }
+    let (id, count) = s.split_once('\t')?;
+    Some((id.to_owned(), count.parse().ok()?))
+}
+
+/// Pixel position of a slot (relative to screen, already including guiLeft/guiTop).
+pub fn inv_slot_pos(env: &mut JNIEnv, index: i32) -> Option<(i32, i32)> {
+    let ret = env.call_static_method("dev/yog/NativeBridge", "getSlotPos",
+        "(I)Ljava/lang/String;", &[JValue::Int(index)]).ok()?;
+    let obj = ret.l().ok()?;
+    let jstr = JString::from(obj);
+    let s = env.get_string(&jstr).ok()?;
+    let s: String = s.into();
+    let (x, y) = s.split_once('\t')?;
+    Some((x.parse().ok()?, y.parse().ok()?))
 }
 
 /// Return tab+newline-encoded menu entries: `label\tui_id\n...`
