@@ -1,0 +1,15 @@
+[package]
+name = "yog-interop"
+version = "0.1.0"
+edition = "2021"
+authors = ["Yog Team"]
+license = "MIT OR Apache-2.0"
+description = "Yog inter-mod communication — proc-macros for #[yog_export] and #[yog_import]"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true

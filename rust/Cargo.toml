@@ -26,6 +26,8 @@ members = [
     "crates/yog-ui",
     # inventory framework — real Container/Menu screens (BlockEntity-backed)
     "crates/yog-inventory",
+    # inter-mod communication (proc-macros)
+    "crates/yog-interop",
     # build tooling
     "crates/yog-cli",
     # engine (AGPL)
@@ -40,6 +42,11 @@ authors = ["F000NK, Yog Team, Voluntas Progressus"]
 # `yog-api` and the example mod override this with a permissive license so the
 # mod ecosystem stays free — see LICENSING.md.
 license = "AGPL-3.0-only"
+
+[workspace.dependencies]
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"
+proc-macro2 = "1"
 
 [patch.crates-io]
 yog-abi      = { path = "crates/yog-abi" }
@@ -59,3 +66,4 @@ yog-book     = { path = "crates/yog-book" }
 yog-gfx      = { path = "crates/yog-gfx" }
 yog-ui       = { path = "crates/yog-ui" }
 yog-inventory = { path = "crates/yog-inventory" }
+yog-interop   = { path = "crates/yog-interop" }

@@ -561,7 +561,7 @@ version = "0.18.0"
 
 [[package]]
 name = "yog-api"
-version = "0.55.0"
+version = "0.56.0"
 dependencies = [
  "yog-abi",
  "yog-book",
@@ -571,6 +571,7 @@ dependencies = [
  "yog-entity",
  "yog-event",
  "yog-gfx",
+ "yog-interop",
  "yog-inventory",
  "yog-logging",
  "yog-network",
@@ -634,6 +635,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-interop"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "yog-inventory"
 version = "0.4.0"
 dependencies = [
@@ -668,7 +678,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.58.0"
+version = "0.59.0"
 dependencies = [
  "glow",
  "jni",

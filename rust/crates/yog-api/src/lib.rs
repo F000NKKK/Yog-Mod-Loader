@@ -15,6 +15,9 @@ pub use yog_gfx::{GfxContext, core as gfx_core, gl as gfx_gl, draw2d as gfx_draw
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
 pub use yog_abi::{ABI_VERSION, YogApi};
 
+/// Inter-mod communication proc-macros.
+pub use yog_interop::{yog_export, import};
+
 #[doc(hidden)]
 pub use std::os::raw::c_void as __c_void;
 
