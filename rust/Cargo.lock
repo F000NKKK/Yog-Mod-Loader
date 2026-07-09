@@ -571,6 +571,7 @@ dependencies = [
  "yog-entity",
  "yog-event",
  "yog-gfx",
+ "yog-inventory",
  "yog-logging",
  "yog-network",
  "yog-player",
@@ -628,6 +629,13 @@ dependencies = [
 [[package]]
 name = "yog-gfx"
 version = "0.13.0"
+dependencies = [
+ "yog-abi",
+]
+
+[[package]]
+name = "yog-inventory"
+version = "0.1.0"
 dependencies = [
  "yog-abi",
 ]

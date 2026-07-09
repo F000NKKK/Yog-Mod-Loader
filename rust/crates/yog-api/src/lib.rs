@@ -78,6 +78,7 @@ pub use yog_book::{Book, BookCategory, BookEntry, BookPage, BookMacro, BookRegis
 pub use yog_book::{BookRenderer, BookFontRegistry};
 pub use yog_book::{text_page, text_page_titled, spotlight_page, crafting_page, smelting_page, image_page, entity_page, relations_page, pattern_page};
 pub use yog_ui::{UiRoot, LayoutNode, Rect, widget, Align, FlexDir, Dock, FocusStyle};
+pub use yog_inventory::{InventoryDef, SlotLayout};
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
 pub use yog_logging::{error, info, warn};
@@ -140,4 +141,10 @@ pub mod book {
 /// UI framework — flexbox layout + widgets on top of yog-gfx.
 pub mod ui {
     pub use yog_ui::*;
+}
+
+/// Inventory framework — real Container/Menu screens (BlockEntity-backed),
+/// as opposed to `ui`'s HUD-drawn overlays. See `yog-inventory`'s DESIGN.md.
+pub mod inventory {
+    pub use yog_inventory::*;
 }

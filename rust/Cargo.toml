@@ -24,6 +24,8 @@ members = [
     "crates/yog-gfx",
     # UI framework — flexbox layout + widgets on top of yog-gfx
     "crates/yog-ui",
+    # inventory framework — real Container/Menu screens (BlockEntity-backed)
+    "crates/yog-inventory",
     # build tooling
     "crates/yog-cli",
     # engine (AGPL)
@@ -56,3 +58,4 @@ yog-api      = { path = "crates/yog-api" }
 yog-book     = { path = "crates/yog-book" }
 yog-gfx      = { path = "crates/yog-gfx" }
 yog-ui       = { path = "crates/yog-ui" }
+yog-inventory = { path = "crates/yog-inventory" }
