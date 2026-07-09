@@ -1154,4 +1154,26 @@ public final class NativeBridge {
     private static String tsvField(String s) {
         return s == null ? "" : s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
     }
+
+    // ── Inventory bridge (yog-ui ↔ YogInventoryMenu) ──────────────────────────
+
+    public static YogInventoryMenu activeInventoryMenu;
+
+    public static int getSlotCount() {
+        return activeInventoryMenu != null ? activeInventoryMenu.slots.size() : 0;
+    }
+
+    public static String getSlotItem(int index) {
+        if (activeInventoryMenu == null || index < 0 || index >= activeInventoryMenu.slots.size()) return null;
+        net.minecraft.screen.slot.Slot slot = activeInventoryMenu.slots.get(index);
+        net.minecraft.item.ItemStack stack = slot.getStack();
+        if (stack.isEmpty()) return null;
+        return net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString() + "\t" + stack.getCount();
+    }
+
+    public static String getSlotPos(int index) {
+        if (activeInventoryMenu == null || index < 0 || index >= activeInventoryMenu.slots.size()) return null;
+        net.minecraft.screen.slot.Slot slot = activeInventoryMenu.slots.get(index);
+        return slot.x + "\t" + slot.y;
+    }
 }

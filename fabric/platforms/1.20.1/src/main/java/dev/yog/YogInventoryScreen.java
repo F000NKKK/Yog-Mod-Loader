@@ -3,78 +3,97 @@ package dev.yog;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 /**
- * Generic Container/Menu screen for {@link YogInventoryMenu} — draws a
- * native-looking dark panel (or a mod-supplied custom texture) sized to the
- * def's slot layout, with a light slot-shaped backdrop behind each slot.
- * See rust/crates/yog-inventory/DESIGN.md.
+ * Inventory screen powered by yog-ui — renders everything through Rust's
+ * flexbox layout engine. Vanilla handles slot interaction (drag-and-drop,
+ * quick-move, tooltips); all pixel output comes from yog-ui.
  */
 public class YogInventoryScreen extends net.minecraft.client.gui.screen.ingame.HandledScreen<YogInventoryMenu> {
-    private static final int PANEL_BG    = 0xFF_C6C6C6;
-    private static final int PANEL_BORDER = 0xFF_373737;
-    private static final int SLOT_BG     = 0xFF_8B8B8B;
-    private static final int TITLE_COLOR = 0xFF_404040;
-
-    private final YogHost.InventoryDefRt def;
+    private final String uiId;
 
     public YogInventoryScreen(YogInventoryMenu handler, PlayerInventory inv, Text title) {
         super(handler, inv, title);
-        this.def = YogHost.INVENTORY_DEFS.get(handler.defId);
-
-        float maxX = 176f, maxY = 18f;
+        this.uiId = "yog:inv/" + handler.defId;
+        YogHost.InventoryDefRt def = YogHost.INVENTORY_DEFS.get(handler.defId);
         if (def != null) {
-            for (float[] xy : def.layout) {
-                maxX = Math.max(maxX, xy[0] + 18f);
-                maxY = Math.max(maxY, xy[1] + 18f);
-            }
+            this.backgroundWidth  = Math.max(176, this.backgroundWidth);
+            this.backgroundHeight = Math.max(166, this.backgroundHeight);
+            this.titleX = 8;
+            this.titleY = 6;
             if (def.includePlayerInventory) {
-                maxY = Math.max(maxY, def.playerInvY + 58f + 18f);
-                maxX = Math.max(maxX, def.playerInvX + 9 * 18f);
+                this.playerInventoryTitleX = (int) def.playerInvX;
+                this.playerInventoryTitleY = (int) def.playerInvY - 10;
             }
         }
-        this.backgroundWidth = (int) maxX + 8;
-        this.backgroundHeight = (int) maxY + 8;
-        this.titleX = 8;
-        this.titleY = 6;
-        if (def != null && def.includePlayerInventory) {
-            this.playerInventoryTitleX = (int) def.playerInvX;
-            this.playerInventoryTitleY = (int) def.playerInvY - 10;
-        }
+        NativeBridge.nativeUIShow(uiId, "", true, false, width, height);
     }
 
     @Override
-    protected void drawBackground(DrawContext ctx, float delta, int mouseX, int mouseY) {
-        int x = (this.width - this.backgroundWidth) / 2;
-        int y = (this.height - this.backgroundHeight) / 2;
+    public void render(DrawContext ctx, int mx, int my, float delta) {
+        NativeBridge.activeInventoryMenu = this.handler;
+        NativeDraw.hudDrawContext = ctx;
+        NativeBridge.nativeUIRender(uiId, this.width, this.height);
+        NativeDraw.hudDrawContext = null;
+        NativeDraw.syncGlState();
 
-        if (def != null && def.backgroundTexture != null && !def.backgroundTexture.isEmpty()) {
-            Identifier id = Identifier.tryParse(def.backgroundTexture);
-            if (id != null) {
-                ctx.drawTexture(id, x, y, 0f, 0f, this.backgroundWidth, this.backgroundHeight,
-                        this.backgroundWidth, this.backgroundHeight);
-                return;
-            }
-        }
-
-        ctx.fill(x, y, x + backgroundWidth, y + backgroundHeight, PANEL_BG);
-        ctx.fill(x, y, x + backgroundWidth, y + 1, PANEL_BORDER);
-        ctx.fill(x, y + backgroundHeight - 1, x + backgroundWidth, y + backgroundHeight, PANEL_BORDER);
-        ctx.fill(x, y, x + 1, y + backgroundHeight, PANEL_BORDER);
-        ctx.fill(x + backgroundWidth - 1, y, x + backgroundWidth, y + backgroundHeight, PANEL_BORDER);
-
-        for (var slot : this.handler.slots) {
-            int sx = x + slot.x - 1;
-            int sy = y + slot.y - 1;
-            ctx.fill(sx, sy, sx + 18, sy + 18, SLOT_BG);
-        }
+        this.drawMouseoverTooltip(ctx, mx, my);
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        this.renderBackground(ctx);
-        super.render(ctx, mouseX, mouseY, delta);
-        this.drawMouseoverTooltip(ctx, mouseX, mouseY);
+    protected void drawBackground(DrawContext ctx, float delta, int mx, int my) {
+        // no-op — yog-ui handles it.
+    }
+
+    @Override
+    protected void drawForeground(DrawContext ctx, int mx, int my) {
+        // no-op — yog-ui renders text.
+    }
+
+    @Override
+    public boolean mouseClicked(double mx, double my, int button) {
+        if (NativeBridge.nativeUIClick(uiId, (float) mx, (float) my, button))
+            return true;
+        return super.mouseClicked(mx, my, button);
+    }
+
+    @Override
+    public boolean mouseReleased(double mx, double my, int button) {
+        if (NativeBridge.nativeUIRelease(uiId, (float) mx, (float) my))
+            return true;
+        return super.mouseReleased(mx, my, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+        NativeBridge.nativeUIDrag(uiId, (float) mx, (float) my);
+        return super.mouseDragged(mx, my, button, dx, dy);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mx, double my, double horiz, double vert) {
+        NativeBridge.nativeUIScroll(uiId, (float) vert);
+        return true;
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        NativeBridge.nativeUIKey(uiId, keyCode, scanCode, modifiers, 1);
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public void onClose() {
+        NativeBridge.activeInventoryMenu = null;
+        NativeBridge.nativeUIHide(uiId);
+        super.onClose();
+        if (this.handler != null) this.handler.onClosed(this.client.player);
+    }
+
+    @Override
+    public void removed() {
+        NativeBridge.activeInventoryMenu = null;
+        NativeBridge.nativeUIHide(uiId);
+        super.removed();
     }
 }
