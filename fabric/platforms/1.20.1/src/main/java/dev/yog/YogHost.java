@@ -107,6 +107,12 @@ public class YogHost implements ModInitializer {
             String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
             NativeBridge.nativeOnBlockBreak(
                     player.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+
+            // Phase 6: drop inventory contents so items survive block breaking.
+            if (blockEntity instanceof YogInventoryBlockEntity inv && !inv.isEmpty()) {
+                net.minecraft.util.ItemScatterer.spawn(world, pos, inv);
+                inv.clear();
+            }
         });
 
         // Chat — pre (cancellable).

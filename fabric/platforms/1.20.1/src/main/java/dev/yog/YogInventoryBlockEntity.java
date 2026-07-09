@@ -97,4 +97,5 @@ public class YogInventoryBlockEntity extends BlockEntity implements Inventory, E
         @Override public void set(int index, int value) { }
         @Override public int size() { return 0; }
     };
+
 }

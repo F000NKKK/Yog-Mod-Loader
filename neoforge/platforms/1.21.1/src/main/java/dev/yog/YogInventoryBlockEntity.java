@@ -81,4 +81,18 @@ public class YogInventoryBlockEntity extends BlockEntity implements Container, M
     public AbstractContainerMenu createMenu(int windowId, Inventory playerInv, Player player) {
         return YogInventoryMenu.create(windowId, playerInv, this, defId);
     }
+
+    /** Save this block entity's items to an {@link ItemStack} so the inventory
+     *  survives block breaking — the shulker-box pattern (phase 6). */
+    public void saveToItemStack(ItemStack stack) {
+        if (isEmpty()) return;
+        CompoundTag tag = new CompoundTag();
+        saveAdditional(tag, level != null ? level.registryAccess() : net.minecraft.core.RegistryAccess.EMPTY);
+        tag.remove("id");
+        tag.remove("x");
+        tag.remove("y");
+        tag.remove("z");
+        stack.set(net.minecraft.core.component.DataComponents.BLOCK_ENTITY_DATA,
+                net.minecraft.world.item.component.CustomData.of(tag));
+    }
 }
