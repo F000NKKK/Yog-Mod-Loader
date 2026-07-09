@@ -7,7 +7,7 @@ import net.minecraft.inventory.Inventories;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -24,7 +24,7 @@ import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
  * player-inventory inclusion) it was built from, looked up from
  * {@link YogHost#INVENTORY_DEFS}.
  */
-public class YogInventoryBlockEntity extends BlockEntity implements Inventory, ExtendedScreenHandlerFactory<String> {
+public class YogInventoryBlockEntity extends BlockEntity implements Inventory, ExtendedScreenHandlerFactory {
     private final String defId;
     private DefaultedList<ItemStack> items;
 
@@ -62,16 +62,16 @@ public class YogInventoryBlockEntity extends BlockEntity implements Inventory, E
     }
 
     @Override
-    protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-        super.readNbt(nbt, registries);
+    public void readNbt(NbtCompound nbt) {
+        super.readNbt(nbt);
         items = DefaultedList.ofSize(size(), ItemStack.EMPTY);
-        Inventories.readNbt(nbt, items, registries);
+        Inventories.readNbt(nbt, items);
     }
 
     @Override
-    protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-        super.writeNbt(nbt, registries);
-        Inventories.writeNbt(nbt, items, registries);
+    protected void writeNbt(NbtCompound nbt) {
+        super.writeNbt(nbt);
+        Inventories.writeNbt(nbt, items);
     }
 
     @Override
@@ -87,8 +87,8 @@ public class YogInventoryBlockEntity extends BlockEntity implements Inventory, E
     }
 
     @Override
-    public String getScreenOpeningData(ServerPlayerEntity player) {
-        return defId;
+    public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
+        buf.writeString(defId);
     }
 
     /** Unused — Yog inventories have no synced int properties (progress bars, etc.) yet. */

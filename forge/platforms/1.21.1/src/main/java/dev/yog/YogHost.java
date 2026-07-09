@@ -60,6 +60,9 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.RegisterEvent;
 import net.minecraftforge.server.ServerLifecycleHooks;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraftforge.network.IContainerFactory;
 
 /**
  * NeoForge entry point. Boots the native Yog runtime and forwards events
@@ -81,6 +84,73 @@ public class YogHost {
     // Parsed content defs, shared between RegisterEvent phases.
     private final Map<ResourceLocation, Block> registeredBlocks = new LinkedHashMap<>();
     private final Map<String, List<ItemLike>> tabGroups = new LinkedHashMap<>();
+    private final List<Block> inventoryBlocks = new ArrayList<>();
+
+    // ── yog-inventory (see rust/crates/yog-inventory/DESIGN.md) ────────────────
+
+    /** Parsed `InventoryDef`s, keyed by id — shared by the block entity/menu/screen. */
+    public static final Map<String, InventoryDefRt> INVENTORY_DEFS = new HashMap<>();
+    /** One generic block entity type valid for every block with an `inventory_id`. */
+    public static BlockEntityType<YogInventoryBlockEntity> INVENTORY_BLOCK_ENTITY_TYPE;
+    /** One generic menu type for every `InventoryDef` — the def id is synced as the
+     *  screen-opening data so the client knows which layout/slot-count to build. */
+    public static MenuType<YogInventoryMenu> INVENTORY_MENU_TYPE;
+
+    /** Runtime-side mirror of `yog_inventory::InventoryDef` — parsed from `nativeInventoryDefs()`. */
+    public static final class InventoryDefRt {
+        public final String id;
+        public final int slotCount;
+        public final List<float[]> layout;
+        public final boolean includePlayerInventory;
+        public final float playerInvX, playerInvY;
+        public final String backgroundTexture;
+        public final String title;
+
+        InventoryDefRt(String id, int slotCount, List<float[]> layout, boolean includePlayerInventory,
+                       float playerInvX, float playerInvY, String backgroundTexture, String title) {
+            this.id = id;
+            this.slotCount = slotCount;
+            this.layout = layout;
+            this.includePlayerInventory = includePlayerInventory;
+            this.playerInvX = playerInvX;
+            this.playerInvY = playerInvY;
+            this.backgroundTexture = backgroundTexture;
+            this.title = title;
+        }
+    }
+
+    private static void parseInventoryDefs() {
+        String raw = NativeBridge.nativeInventoryDefs();
+        if (raw == null) return;
+        for (String line : raw.split("\n")) {
+            if (line.isBlank()) continue;
+            String id = line.split("\t", 2)[0];
+            Map<String, String> p = YogProps.parse(line);
+            int slotCount = YogProps.parseInt(p, "slot_count", 0);
+            List<float[]> layout = new ArrayList<>();
+            String layoutRaw = p.getOrDefault("layout", "");
+            if (!layoutRaw.isEmpty()) {
+                for (String pair : layoutRaw.split(",")) {
+                    String[] xy = pair.split(":", 2);
+                    if (xy.length == 2) {
+                        try {
+                            layout.add(new float[]{Float.parseFloat(xy[0]), Float.parseFloat(xy[1])});
+                        } catch (NumberFormatException ignored) { }
+                    }
+                }
+            }
+            boolean includePlayerInv = !"0".equals(p.get("include_player_inventory"));
+            float px = 8f, py = 84f;
+            String playerInv = p.getOrDefault("player_inv", "");
+            String[] pxy = playerInv.split(":", 2);
+            if (pxy.length == 2) {
+                try { px = Float.parseFloat(pxy[0]); py = Float.parseFloat(pxy[1]); }
+                catch (NumberFormatException ignored) { }
+            }
+            INVENTORY_DEFS.put(id, new InventoryDefRt(id, slotCount, layout, includePlayerInv, px, py,
+                    p.getOrDefault("background_texture", ""), p.getOrDefault("title", "")));
+        }
+    }
 
     // javafml also supports a single-arg constructor taking the mod's own
     // FMLJavaModLoadingContext — use that instead of the deprecated static
@@ -90,6 +160,7 @@ public class YogHost {
         System.out.println("[yog] Forge host initialised.");
 
         YogNetworkBridge.init();
+        parseInventoryDefs();
 
         var modBus = context.getModEventBus();
         modBus.addListener(this::onRegister);
@@ -107,7 +178,32 @@ public class YogHost {
             registerItems(event);
         } else if (event.getRegistryKey().equals(Registries.CREATIVE_MODE_TAB)) {
             registerTabs(event);
+        } else if (event.getRegistryKey().equals(Registries.BLOCK_ENTITY_TYPE)) {
+            registerInventoryBlockEntityType(event);
+        } else if (event.getRegistryKey().equals(Registries.MENU)) {
+            registerInventoryMenuType(event);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerInventoryBlockEntityType(RegisterEvent event) {
+        if (inventoryBlocks.isEmpty()) return;
+        INVENTORY_BLOCK_ENTITY_TYPE = BlockEntityType.Builder.of(
+                (pos, state) -> {
+                    YogInventoryBlock ib = (YogInventoryBlock) state.getBlock();
+                    return new YogInventoryBlockEntity(pos, state, ib.defId(), ib.slotCount());
+                },
+                inventoryBlocks.toArray(new Block[0])
+        ).build(null);
+        event.register(Registries.BLOCK_ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("yog", "inventory"),
+                () -> INVENTORY_BLOCK_ENTITY_TYPE);
+    }
+
+    private void registerInventoryMenuType(RegisterEvent event) {
+        INVENTORY_MENU_TYPE = net.minecraftforge.common.extensions.IForgeMenuType.create(
+                (IContainerFactory<YogInventoryMenu>) YogInventoryMenu::createClient);
+        event.register(Registries.MENU, ResourceLocation.fromNamespaceAndPath("yog", "inventory"),
+                () -> INVENTORY_MENU_TYPE);
     }
 
     private void onAddPackFinders(AddPackFindersEvent event) {
@@ -144,7 +240,12 @@ public class YogHost {
             }
 
             Block block;
-            if ("1".equals(p.get("connects"))) {
+            if (p.containsKey("inventory_id")) {
+                InventoryDefRt def = INVENTORY_DEFS.get(p.get("inventory_id"));
+                int slotCount = def != null ? def.slotCount : 0;
+                block = new YogInventoryBlock(props, p.get("inventory_id"), slotCount);
+                inventoryBlocks.add(block);
+            } else if ("1".equals(p.get("connects"))) {
                 // Default core = a slim centered post (like a vanilla fence)
                 // unless the mod supplied its own `.shape(...)`.
                 double[] core = {6, 0, 6, 10, 16, 10};

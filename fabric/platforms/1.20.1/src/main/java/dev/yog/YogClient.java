@@ -23,6 +23,12 @@ public class YogClient implements ClientModInitializer {
     public void onInitializeClient() {
         NativeBridge.ensureLoaded();
 
+        // yog-inventory: register the generic Container/Menu screen (see
+        // rust/crates/yog-inventory/DESIGN.md). registerContent() (common init,
+        // runs before onInitializeClient) has already set the type.
+        net.minecraft.client.gui.screen.ingame.HandledScreens.register(
+                YogHost.INVENTORY_SCREEN_HANDLER_TYPE, YogInventoryScreen::new);
+
         // client packets
         String channels = NativeBridge.nativeClientPacketChannels();
         if (channels != null) {

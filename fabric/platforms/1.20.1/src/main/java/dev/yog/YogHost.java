@@ -52,6 +52,10 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.TypedActionResult;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.block.entity.BlockEntity;
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
+import net.minecraft.network.PacketByteBuf;
 
 /**
  * Fabric entry point. Boots the native Yog runtime and forwards server events
@@ -332,9 +336,78 @@ public class YogHost implements ModInitializer {
      */
     /** Parse `id\tkey=value\t...` into a map. First element is the id. */
     
+    // ── yog-inventory (see rust/crates/yog-inventory/DESIGN.md) ────────────────
+
+    /** Parsed `InventoryDef`s, keyed by id — shared by the block entity/menu/screen. */
+    public static final Map<String, InventoryDefRt> INVENTORY_DEFS = new HashMap<>();
+    /** One generic block entity type valid for every block with an `inventory_id`. */
+    public static BlockEntityType<YogInventoryBlockEntity> INVENTORY_BLOCK_ENTITY_TYPE;
+    /** One generic menu type for every `InventoryDef` — the def id is synced as the
+     *  screen-opening data so the client knows which layout/slot-count to build. */
+    public static ExtendedScreenHandlerType<YogInventoryMenu> INVENTORY_SCREEN_HANDLER_TYPE;
+
+    /** Runtime-side mirror of `yog_inventory::InventoryDef` — parsed from `nativeInventoryDefs()`. */
+    public static final class InventoryDefRt {
+        public final String id;
+        public final int slotCount;
+        public final List<float[]> layout;
+        public final boolean includePlayerInventory;
+        public final float playerInvX, playerInvY;
+        public final String backgroundTexture;
+        public final String title;
+
+        InventoryDefRt(String id, int slotCount, List<float[]> layout, boolean includePlayerInventory,
+                       float playerInvX, float playerInvY, String backgroundTexture, String title) {
+            this.id = id;
+            this.slotCount = slotCount;
+            this.layout = layout;
+            this.includePlayerInventory = includePlayerInventory;
+            this.playerInvX = playerInvX;
+            this.playerInvY = playerInvY;
+            this.backgroundTexture = backgroundTexture;
+            this.title = title;
+        }
+    }
+
+    private static void parseInventoryDefs() {
+        String raw = NativeBridge.nativeInventoryDefs();
+        if (raw == null) return;
+        for (String line : raw.split("\n")) {
+            if (line.isBlank()) continue;
+            String id = line.split("\t", 2)[0];
+            Map<String, String> p = YogProps.parse(line);
+            int slotCount = YogProps.parseInt(p, "slot_count", 0);
+            List<float[]> layout = new ArrayList<>();
+            String layoutRaw = p.getOrDefault("layout", "");
+            if (!layoutRaw.isEmpty()) {
+                for (String pair : layoutRaw.split(",")) {
+                    String[] xy = pair.split(":", 2);
+                    if (xy.length == 2) {
+                        try {
+                            layout.add(new float[]{Float.parseFloat(xy[0]), Float.parseFloat(xy[1])});
+                        } catch (NumberFormatException ignored) { }
+                    }
+                }
+            }
+            boolean includePlayerInv = !"0".equals(p.get("include_player_inventory"));
+            float px = 8f, py = 84f;
+            String playerInv = p.getOrDefault("player_inv", "");
+            String[] pxy = playerInv.split(":", 2);
+            if (pxy.length == 2) {
+                try { px = Float.parseFloat(pxy[0]); py = Float.parseFloat(pxy[1]); }
+                catch (NumberFormatException ignored) { }
+            }
+            INVENTORY_DEFS.put(id, new InventoryDefRt(id, slotCount, layout, includePlayerInv, px, py,
+                    p.getOrDefault("background_texture", ""), p.getOrDefault("title", "")));
+        }
+    }
+
     private static void registerContent() {
+        parseInventoryDefs();
+
         // Group items and blocks by namespace for per-mod creative tabs.
         Map<String, List<ItemConvertible>> tabGroups = new LinkedHashMap<>();
+        List<Block> inventoryBlocks = new ArrayList<>();
 
         // Mods register a block's item form as `register_item(same_id, name, tooltip)`
         // alongside `register_block(same_id)` — BlockDef itself carries neither. Collect
@@ -439,7 +512,12 @@ public class YogHost implements ModInitializer {
                 }
 
                 Block block;
-                if ("1".equals(p.get("connects"))) {
+                if (p.containsKey("inventory_id")) {
+                    InventoryDefRt def = INVENTORY_DEFS.get(p.get("inventory_id"));
+                    int slotCount = def != null ? def.slotCount : 0;
+                    block = new YogInventoryBlock(settings, p.get("inventory_id"), slotCount);
+                    inventoryBlocks.add(block);
+                } else if ("1".equals(p.get("connects"))) {
                     double[] core = {6, 0, 6, 10, 16, 10};
                     if (p.containsKey("shape")) {
                         String[] sp = p.get("shape").split(":", 6);
@@ -467,6 +545,23 @@ public class YogHost implements ModInitializer {
                 tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(blockItem);
             }
         }
+
+        // One generic block entity type valid for every inventory-backed block,
+        // and one generic menu type for every InventoryDef (see yog-inventory's DESIGN.md).
+        if (!inventoryBlocks.isEmpty()) {
+            INVENTORY_BLOCK_ENTITY_TYPE = Registry.register(Registries.BLOCK_ENTITY_TYPE,
+                    Identifier.of("yog", "inventory"),
+                    BlockEntityType.Builder.<YogInventoryBlockEntity>create(
+                            (pos, state) -> {
+                                YogInventoryBlock ib = (YogInventoryBlock) state.getBlock();
+                                return new YogInventoryBlockEntity(pos, state, ib.defId(), ib.slotCount());
+                            },
+                            inventoryBlocks.toArray(new Block[0])
+                    ).build(null));
+        }
+        INVENTORY_SCREEN_HANDLER_TYPE = Registry.register(Registries.SCREEN_HANDLER,
+                Identifier.of("yog", "inventory"),
+                new ExtendedScreenHandlerType<>(YogInventoryMenu::createClient));
 
         // Create one creative tab per namespace, using the first item from each as icon.
         for (Map.Entry<String, List<ItemConvertible>> entry : tabGroups.entrySet()) {
