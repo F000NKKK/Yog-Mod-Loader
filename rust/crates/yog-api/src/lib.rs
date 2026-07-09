@@ -65,6 +65,11 @@ macro_rules! export_mod {
                 // yog_abi_version() and abi_version/size checks before this call.
                 let mut registry = unsafe { $crate::Registry::from_raw(api) };
                 <$mod_ty as $crate::Mod>::register(&mut registry);
+
+                // Auto-register all #[yog_export] functions.
+                for (name, ptr) in $crate::__yog_export_registry().lock().unwrap().iter() {
+                    registry.interop().export(name, *ptr as *const ::std::os::raw::c_void);
+                }
             }));
             if outcome.is_err() {
                 $crate::error!("mod {} panicked during register", ::core::stringify!($mod_ty));
@@ -89,6 +94,17 @@ pub fn __current_mod_id() -> Option<String> {
 
 std::thread_local! {
     static CURRENT_MOD_ID: std::cell::RefCell<Option<String>> = std::cell::RefCell::new(None);
+}
+
+// ── Auto-export registry (used by #[yog_export] proc-macro) ──────────────
+
+/// Global registry of `#[yog_export]` functions.
+/// Populated by static initializers before `yog_mod_register` runs.
+#[doc(hidden)]
+pub fn __yog_export_registry() -> &'static std::sync::Mutex<Vec<(&'static str, usize)>> {
+    static REG: std::sync::LazyLock<std::sync::Mutex<Vec<(&'static str, usize)>>> =
+        std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
+    &REG
 }
 
 pub use yog_command::CommandContext;

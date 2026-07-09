@@ -36,9 +36,10 @@ use quote::{format_ident, quote};
 
 /// Marks a function for inter-mod export.
 ///
-/// Generates a `__yog_export_get_NAME` symbol that a future loader scanner
-/// can use to auto-discover exports. For now, the mod must also call
-/// `registry.interop().export("name", fn_ptr)` during `register()`.
+/// Generates:
+/// 1. A static initializer that auto-registers the export (no manual
+///    `registry.interop().export()` needed — `export_mod!` handles it).
+/// 2. A `__yog_export_get_NAME` symbol for future loader-side scanning.
 #[proc_macro_attribute]
 pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = syn::parse_macro_input!(item as syn::ItemFn);
@@ -48,10 +49,23 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let block = &func.block;
     let name_str = name.to_string();
     let getter_name = format_ident!("__yog_export_get_{}", name);
+    let init_name = format_ident!("__yog_export_init_{}", name);
 
     let expanded = quote! {
         #vis #sig #block
 
+        // Static initializer — runs before main(), pushes to export registry.
+        #[doc(hidden)]
+        #[allow(non_upper_case_globals)]
+        static #init_name: u8 = {
+            ::yog_api::__yog_export_registry()
+                .lock()
+                .unwrap()
+                .push((#name_str, #name as usize));
+            0
+        };
+
+        // Getter symbol for future loader-side scanning.
         #[doc(hidden)]
         #[no_mangle]
         pub unsafe extern "C" fn #getter_name(
