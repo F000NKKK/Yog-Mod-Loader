@@ -561,7 +561,7 @@ version = "0.17.0"
 
 [[package]]
 name = "yog-api"
-version = "0.51.0"
+version = "0.52.0"
 dependencies = [
  "yog-abi",
  "yog-book",
@@ -610,18 +610,18 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-core"
-version = "0.2.0"
+version = "0.3.0"
 
 [[package]]
 name = "yog-entity"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "yog-core",
 ]
 
 [[package]]
 name = "yog-event"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "yog-core",
 ]
@@ -652,7 +652,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-player"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "yog-core",
  "yog-entity",
@@ -668,7 +668,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.54.0"
+version = "0.55.0"
 dependencies = [
  "glow",
  "jni",
@@ -699,7 +699,7 @@ dependencies = [
 
 [[package]]
 name = "yog-world"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "yog-core",
 ]

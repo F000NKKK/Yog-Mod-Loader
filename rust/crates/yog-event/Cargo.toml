@@ -1,10 +1,10 @@
 [package]
 name = "yog-event"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog event system — pub/sub for game/server events."
 
 [dependencies]
-yog-core = "0.2"
+yog-core = "0.3"

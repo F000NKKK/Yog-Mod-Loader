@@ -1,11 +1,11 @@
 [package]
 name = "yog-player"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog player access (teleport, give items, health)."
 
 [dependencies]
-yog-core = "0.2"
-yog-entity = "0.2"
+yog-core = "0.3"
+yog-entity = "0.3"

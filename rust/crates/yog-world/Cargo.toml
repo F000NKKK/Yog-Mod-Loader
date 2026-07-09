@@ -1,9 +1,9 @@
 [package]
 name = "yog-world"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog world access — ergonomic block get/set over the Server handle."
 
 [dependencies]
-yog-core = "0.2"
+yog-core = "0.3"

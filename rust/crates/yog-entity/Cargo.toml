@@ -1,10 +1,10 @@
 [package]
 name = "yog-entity"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog entity access — universal handle to any entity by UUID."
 
 [dependencies]
-yog-core = "0.2"
+yog-core = "0.3"
