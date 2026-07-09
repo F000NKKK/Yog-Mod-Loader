@@ -145,9 +145,31 @@ impl<'a> Player<'a> {
 
     // ── inventory ────────────────────────────────────────────────────────────
 
-    /// All occupied slots: `(slot_index, item_id, count)`.
+    /// Main inventory + hotbar (slots 0–35), excluding armor and offhand.
+    /// Each entry: `(slot_index, item_id, count)`.
     pub fn inventory(&self) -> Vec<(u32, String, u32)> {
         self.server.player_inventory(&self.name)
+            .into_iter()
+            .filter(|(slot, _, _)| *slot <= 35)
+            .collect()
+    }
+
+    /// Hotbar only (slots 0–8).
+    pub fn hotbar(&self) -> Vec<(u32, String, u32)> {
+        self.server.player_inventory(&self.name)
+            .into_iter()
+            .filter(|(slot, _, _)| *slot <= 8)
+            .collect()
+    }
+
+    /// Armor slots (36=boots, 37=leggings, 38=chestplate, 39=helmet).
+    /// Returned slot indices are remapped to 0–3.
+    pub fn armor(&self) -> Vec<(u32, String, u32)> {
+        self.server.player_inventory(&self.name)
+            .into_iter()
+            .filter(|(slot, _, _)| *slot >= 36 && *slot <= 39)
+            .map(|(slot, id, count)| (slot - 36, id, count))
+            .collect()
     }
 
     /// Set or clear (count==0) a specific inventory slot.
