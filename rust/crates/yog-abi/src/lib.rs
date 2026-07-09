@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 25;
+pub const ABI_MINOR: u32 = 26;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -351,6 +351,26 @@ pub struct YogBlockDef {
     /// Comma-joined connection compatibility tags — see
     /// `yog_registry::BlockDef::connect_groups`. Empty = no tags.
     pub connect_groups: YogStr,
+    /// Id of a `YogInventoryDef` (registered via `register_inventory`) this
+    /// block is backed by — empty = no inventory (plain block, as before).
+    /// See `yog_inventory`'s DESIGN.md.
+    pub inventory_id: YogStr,
+}
+
+/// An inventory-backed screen definition — see `yog_inventory::InventoryDef`.
+#[repr(C)]
+pub struct YogInventoryDef {
+    pub id:         YogStr,
+    pub slot_count: u32,
+    /// `"x:y,x:y,..."` — one pair per slot, in slot-index order. Empty =
+    /// use the default vanilla-style grid (see `yog_inventory::InventoryDef::default_grid`).
+    pub layout:     YogStr,
+    pub include_player_inventory: bool,
+    pub player_inv_x: f32,
+    pub player_inv_y: f32,
+    /// Empty = default vanilla-style panel texture.
+    pub background_texture: YogStr,
+    pub title: YogStr,
 }
 
 // ── ABI minor 10 client event structs ─────────────────────────────────────────
@@ -662,6 +682,14 @@ pub struct YogServer {
     /// Set (or clear when count==0) a specific inventory slot.
     pub player_set_slot:  unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, slot: u32, item_id: YogStr, count: u32) -> bool,
 
+    // ── inventory-backed block slots (ABI minor 25, yog-inventory) ──────────
+    /// `"item_id\tcount"` for the given slot of the inventory-backed block at
+    /// `pos`, or NONE if the slot is empty / there is no such inventory there.
+    pub get_inventory_slot: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, slot: u32) -> YogOwnedStr,
+    /// Set (or clear when count==0) a specific slot of the inventory-backed
+    /// block at `pos`. Returns false if there is no such inventory there.
+    pub set_inventory_slot: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, slot: u32, item_id: YogStr, count: u32) -> bool,
+
     // ── cross-dimension teleport (ABI minor 3) ────────────────────────────────
     pub player_teleport_dim: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, dim: YogStr, pos: YogVec3) -> bool,
     pub entity_teleport_dim: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, dim: YogStr, pos: YogVec3) -> bool,
@@ -854,6 +882,10 @@ pub struct YogApi {
     /// render thread). Client-side only; a no-op on dedicated servers.
     /// `modal` blocks game input; `pause` pauses a singleplayer game.
     pub ui_open: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr, modal: bool, pause: bool),
+
+    // ── ABI minor 25 — inventory framework (yog-inventory) ──────────────────
+    /// Register a real Container/Menu inventory screen — see `yog_inventory`.
+    pub register_inventory: unsafe extern "C" fn(ctx: *mut c_void, def: *const YogInventoryDef),
 }
 
 unsafe impl Send for YogApi {}

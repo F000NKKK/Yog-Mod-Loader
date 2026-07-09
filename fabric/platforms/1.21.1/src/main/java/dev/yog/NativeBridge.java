@@ -486,6 +486,17 @@ public final class NativeBridge {
         }
     }
 
+    // yog-inventory (phase 2 stub): no BlockEntity backing exists yet
+    // (see rust/crates/yog-inventory/DESIGN.md, phase 3) — always report
+    // "no such inventory" until that lands.
+    public static String getInventorySlot(String dimension, int x, int y, int z, int slot) {
+        return null;
+    }
+
+    public static boolean setInventorySlot(String dimension, int x, int y, int z, int slot, String itemId, int count) {
+        return false;
+    }
+
     public static String playerInventory(String playerName) {
         ServerPlayerEntity p = playerByName(playerName);
         if (p == null) return null;
@@ -986,6 +997,9 @@ public final class NativeBridge {
 
     /** Declared custom blocks as `id\thardness\tresistance` lines. */
     public static native String nativeBlockDefs();
+
+    /** Declared inventory-backed screens (yog-inventory) — see DESIGN.md. */
+    public static native String nativeInventoryDefs();
 
     // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
 

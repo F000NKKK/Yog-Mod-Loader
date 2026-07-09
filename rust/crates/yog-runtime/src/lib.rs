@@ -134,6 +134,7 @@ struct RuntimeHandlers {
     client_packets:     HashMap<String, (*mut c_void, YogPacketFn)>,
     items:              Vec<ItemDef>,
     blocks:             Vec<BlockDef>,
+    inventories:        Vec<yog_inventory::InventoryDef>,
     books:              HashMap<String, String>,
     book_renderers:     Mutex<HashMap<String, yog_book::BookRenderer>>,
     ui_handlers:        HashMap<String, (*mut c_void, yog_abi::YogUIEventFn)>,
@@ -177,7 +178,7 @@ impl RuntimeHandlers {
             ui_handlers: HashMap::new(), ui_render_handlers: HashMap::new(),
             menu_entries: Vec::new(),
             active_uis: Mutex::new(Vec::new()), startup_grants: Vec::new(),
-            blocks: Vec::new(), books: HashMap::new(),
+            blocks: Vec::new(), inventories: Vec::new(), books: HashMap::new(),
             book_renderers: Mutex::new(HashMap::new()),
             startup_granted: Mutex::new(HashMap::new()),
             pending_grants: Mutex::new(Vec::new()),
@@ -680,6 +681,28 @@ unsafe extern "C" fn srv_set_block_nbt(_ctx: *mut c_void, dim: YogStr, pos: YogB
     env.call_static_method("dev/yog/NativeBridge", "setBlockNbt",
         "(Ljava/lang/String;IIILjava/lang/String;)Z",
         &[JValue::Object(&jd), JValue::Int(pos.x), JValue::Int(pos.y), JValue::Int(pos.z), JValue::Object(&js)])
+    .and_then(|v| v.z()).unwrap_or(false)
+}
+
+unsafe extern "C" fn srv_get_inventory_slot(_ctx: *mut c_void, dim: YogStr, pos: yog_abi::YogBlockPos, slot: u32) -> YogOwnedStr {
+    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+    let Some(jd) = ys_to_java(&mut env, dim) else { return YogOwnedStr::NONE };
+    let ret = env.call_static_method("dev/yog/NativeBridge", "getInventorySlot",
+        "(Ljava/lang/String;IIII)Ljava/lang/String;",
+        &[JValue::Object(&jd), JValue::Int(pos.x), JValue::Int(pos.y), JValue::Int(pos.z), JValue::Int(slot as i32)]);
+    match ret.and_then(|v| v.l()) {
+        Ok(obj) => jstring_to_owned(&mut env, obj),
+        _ => YogOwnedStr::NONE,
+    }
+}
+
+unsafe extern "C" fn srv_set_inventory_slot(_ctx: *mut c_void, dim: YogStr, pos: yog_abi::YogBlockPos, slot: u32, item_id: YogStr, count: u32) -> bool {
+    let Some(mut env) = get_env() else { return false };
+    let (Some(jd), Some(ji)) = (ys_to_java(&mut env, dim), ys_to_java(&mut env, item_id)) else { return false };
+    env.call_static_method("dev/yog/NativeBridge", "setInventorySlot",
+        "(Ljava/lang/String;IIIILjava/lang/String;I)Z",
+        &[JValue::Object(&jd), JValue::Int(pos.x), JValue::Int(pos.y), JValue::Int(pos.z),
+          JValue::Int(slot as i32), JValue::Object(&ji), JValue::Int(count as i32)])
     .and_then(|v| v.z()).unwrap_or(false)
 }
 
@@ -1463,6 +1486,21 @@ unsafe extern "C" fn api_register_block(ctx: *mut c_void, def: *const YogBlockDe
         connects:      d.connects,
         connect_groups: if d.connect_groups.is_empty() { Vec::new() }
             else { d.connect_groups.as_str().split(',').map(str::to_owned).collect() },
+        inventory_id:  if d.inventory_id.is_empty() { None } else { Some(d.inventory_id.as_str().to_owned()) },
+    });
+}
+
+unsafe extern "C" fn api_register_inventory(ctx: *mut c_void, def: *const yog_abi::YogInventoryDef) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let d = &*def;
+    handlers.inventories.push(yog_inventory::InventoryDef {
+        id:            d.id.as_str().to_owned(),
+        slot_count:    d.slot_count as usize,
+        layout:        yog_inventory::decode_layout(d.layout.as_str()),
+        include_player_inventory: d.include_player_inventory,
+        player_inv_offset: (d.player_inv_x, d.player_inv_y),
+        background_texture: if d.background_texture.is_empty() { None } else { Some(d.background_texture.as_str().to_owned()) },
+        title:         d.title.as_str().to_owned(),
     });
 }
 
@@ -1653,6 +1691,8 @@ fn build_server_table() -> YogServer {
         game_dir: srv_game_dir,
         get_block_nbt:       srv_get_block_nbt,
         set_block_nbt:       srv_set_block_nbt,
+        get_inventory_slot:  srv_get_inventory_slot,
+        set_inventory_slot:  srv_set_inventory_slot,
         player_inventory:    srv_player_inventory,
         player_set_slot:     srv_player_set_slot,
         player_teleport_dim: srv_player_teleport_dim,
@@ -1727,6 +1767,7 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         mods_list:              api_mods_list,
         free_str:               yog_free_str,
         ui_open:                api_ui_open,
+        register_inventory:     api_register_inventory,
     }
 }
 
@@ -2451,6 +2492,27 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
         if d.slipperiness > 0.0  { parts.push(format!("slipperiness={}", d.slipperiness)); }
         if d.connects            { parts.push("connects=1".into()); }
         if !d.connect_groups.is_empty() { parts.push(format!("connect_groups={}", d.connect_groups.join(","))); }
+        if let Some(inv) = &d.inventory_id { parts.push(format!("inventory_id={inv}")); }
+        parts.join("\t")
+    }).collect::<Vec<_>>().join("\n");
+    env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+}
+
+/// Tab/newline-encoded inventory defs — one line per registered
+/// `InventoryDef` (see `yog_inventory`): `id\tslot_count=N\tlayout=x:y,...
+/// \tinclude_player_inventory=0|1\tplayer_inv=x:y\tbackground_texture=...\ttitle=...`
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeInventoryDefs<'l>(
+    env: JNIEnv<'l>, _class: JClass<'l>,
+) -> jstring {
+    let s = handlers().inventories.iter().map(|d| {
+        let mut parts = vec![d.id.clone()];
+        parts.push(format!("slot_count={}", d.slot_count));
+        parts.push(format!("layout={}", yog_inventory::encode_layout(&d.resolved_layout())));
+        parts.push(format!("include_player_inventory={}", d.include_player_inventory as u8));
+        parts.push(format!("player_inv={}:{}", d.player_inv_offset.0, d.player_inv_offset.1));
+        if let Some(tex) = &d.background_texture { parts.push(format!("background_texture={tex}")); }
+        if !d.title.is_empty() { parts.push(format!("title={}", d.title)); }
         parts.join("\t")
     }).collect::<Vec<_>>().join("\n");
     env.new_string(s).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())

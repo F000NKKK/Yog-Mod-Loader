@@ -16,7 +16,7 @@ use yog_abi::{
     YogExplosionEvent, YogGfxApi, YogItemDef, YogItemPickupEvent, YogKeyPressEvent,
     YogPacketEvent, YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent, YogPlayerMoveEvent,
     YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer, YogStr, YogStartupGrantDef,
-    YogUseBlockEvent, YogUseItemEvent,
+    YogUseBlockEvent, YogUseItemEvent, YogInventoryDef,
 };
 use yog_book::Book;
 use yog_gfx::GfxContext;
@@ -363,6 +363,32 @@ impl Server for CServer {
             (s.set_block_nbt)(s.ctx, YogStr::from_str(dimension),
                 yog_abi::YogBlockPos { x: pos.x, y: pos.y, z: pos.z },
                 YogStr::from_str(snbt))
+        }
+    }
+
+    fn get_inventory_slot(&self, dimension: &str, pos: yog_core::BlockPos, slot: u32) -> Option<(String, u32)> {
+        let s = srv!(self);
+        let owned = unsafe {
+            (s.get_inventory_slot)(s.ctx, YogStr::from_str(dimension),
+                yog_abi::YogBlockPos { x: pos.x, y: pos.y, z: pos.z }, slot)
+        };
+        if owned.is_none() { return None; }
+        let text = unsafe {
+            String::from_utf8(
+                std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()
+            ).unwrap_or_default()
+        };
+        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        let (item_id, count) = text.split_once('\t')?;
+        Some((item_id.to_owned(), count.parse().ok()?))
+    }
+
+    fn set_inventory_slot(&self, dimension: &str, pos: yog_core::BlockPos, slot: u32, item_id: &str, count: u32) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.set_inventory_slot)(s.ctx, YogStr::from_str(dimension),
+                yog_abi::YogBlockPos { x: pos.x, y: pos.y, z: pos.z }, slot,
+                YogStr::from_str(item_id), count)
         }
     }
 
@@ -1172,8 +1198,27 @@ impl Registry {
             shape,
             connects:      def.connects,
             connect_groups: YogStr::from_str(&groups_joined),
+            inventory_id:  def.inventory_id.as_deref().map(YogStr::from_str).unwrap_or(YogStr::EMPTY),
         };
         unsafe { ((*self.api).register_block)(self.ctx(), &c) }
+    }
+
+    /// Register a real Container/Menu inventory screen — see
+    /// `yog_inventory::InventoryDef`. Attach it to a block via
+    /// `BlockDef::inventory(id)`.
+    pub fn register_inventory(&mut self, def: yog_inventory::InventoryDef) {
+        let layout = yog_inventory::encode_layout(&def.resolved_layout());
+        let c = YogInventoryDef {
+            id:            YogStr::from_str(&def.id),
+            slot_count:    def.slot_count as u32,
+            layout:        YogStr::from_str(&layout),
+            include_player_inventory: def.include_player_inventory,
+            player_inv_x:  def.player_inv_offset.0,
+            player_inv_y:  def.player_inv_offset.1,
+            background_texture: def.background_texture.as_deref().map(YogStr::from_str).unwrap_or(YogStr::EMPTY),
+            title:         YogStr::from_str(&def.title),
+        };
+        unsafe { ((*self.api).register_inventory)(self.ctx(), &c) }
     }
 
     // ── startup grants ───────────────────────────────────────────────────────

@@ -479,6 +479,9 @@ pub struct BlockDef {
     /// carry tags purely as a connection *target* (e.g. an ALU accepting a
     /// Digital Cable) without dynamically growing its own shape.
     pub connect_groups: Vec<String>,
+    /// Id of a `YogInventoryDef` this block is backed by — `None` = plain
+    /// block (default). See `yog_inventory`'s DESIGN.md.
+    pub inventory_id: Option<String>,
 }
 
 impl BlockDef {
@@ -496,6 +499,7 @@ impl BlockDef {
             slipperiness: 0.0,
             connects: false,
             connect_groups: Vec::new(),
+            inventory_id: None,
         }
     }
 
@@ -567,6 +571,14 @@ impl BlockDef {
     /// accepts either cable while a Redstone Port only accepts the analog one.
     pub fn connect_groups(mut self, groups: &[&str]) -> Self {
         self.connect_groups = groups.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    /// Back this block with a real Container/Menu inventory screen, whose
+    /// shape/layout was registered separately via `Registry::register_inventory`
+    /// — see `yog_inventory::InventoryDef`. `id` is that def's id.
+    pub fn inventory(mut self, id: impl Into<String>) -> Self {
+        self.inventory_id = Some(id.into());
         self
     }
 }

@@ -249,6 +249,17 @@ pub trait Server {
     /// Returns `false` if there is no block entity at that position.
     fn set_block_nbt(&self, dimension: &str, pos: BlockPos, snbt: &str) -> bool;
 
+    // ── inventory-backed block slots (yog-inventory) ─────────────────────────
+
+    /// `(item_id, count)` of one slot of the inventory-backed block at `pos`
+    /// (see `yog_inventory::InventoryDef`). Returns `None` if the slot is
+    /// empty, or there is no such inventory at that position.
+    fn get_inventory_slot(&self, dimension: &str, pos: BlockPos, slot: u32) -> Option<(String, u32)>;
+
+    /// Set (or clear when `count == 0`) one slot of the inventory-backed
+    /// block at `pos`. Returns `false` if there is no such inventory there.
+    fn set_inventory_slot(&self, dimension: &str, pos: BlockPos, slot: u32, item_id: &str, count: u32) -> bool;
+
     // ── inventory ────────────────────────────────────────────────────────────
 
     /// All occupied inventory slots of an online player.
