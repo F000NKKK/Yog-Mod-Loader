@@ -568,4 +568,32 @@ public final class NativeBridge {
     private static String tsvField(String s) {
         return s == null ? "" : s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
     }
+
+    // ── Inventory bridge (yog-ui ↔ YogInventoryMenu) ──────────────────────────
+
+    /** Currently open inventory menu, set by YogInventoryScreen before render. */
+    public static YogInventoryMenu activeInventoryMenu;
+
+    /** Slot count of the active inventory menu (0 if none open). */
+    public static int getSlotCount() {
+        return activeInventoryMenu != null ? activeInventoryMenu.slots.size() : 0;
+    }
+
+    /** Query one slot: returns {@code "item_id\tcount"} or {@code null} if empty. */
+    public static String getSlotItem(int index) {
+        if (activeInventoryMenu == null || index < 0 || index >= activeInventoryMenu.slots.size()) return null;
+        net.minecraft.world.inventory.Slot slot = activeInventoryMenu.slots.get(index);
+        ItemStack stack = slot.getItem();
+        if (stack.isEmpty()) return null;
+        return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()) + "\t" + stack.getCount();
+    }
+
+    /** Slot pixel position in screen space: {@code "x\ty"}. */
+    public static String getSlotPos(int index) {
+        if (activeInventoryMenu == null || index < 0 || index >= activeInventoryMenu.slots.size()) return null;
+        net.minecraft.world.inventory.Slot slot = activeInventoryMenu.slots.get(index);
+        // Slot.x/y are relative to the guiLeft/guiTop. We return raw values;
+        // yog-ui offsets them by the screen's leftPos/topPos.
+        return slot.x + "\t" + slot.y;
+    }
 }

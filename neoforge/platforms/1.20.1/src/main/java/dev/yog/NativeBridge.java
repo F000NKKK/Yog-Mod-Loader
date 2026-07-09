@@ -567,4 +567,24 @@ public final class NativeBridge {
     private static String tsvField(String s) {
         return s == null ? "" : s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
     }
+
+    public static YogInventoryMenu activeInventoryMenu;
+
+    public static int getSlotCount() {
+        return activeInventoryMenu != null ? activeInventoryMenu.slots.size() : 0;
+    }
+
+    public static String getSlotItem(int index) {
+        if (activeInventoryMenu == null || index < 0 || index >= activeInventoryMenu.slots.size()) return null;
+        net.minecraft.world.inventory.Slot slot = activeInventoryMenu.slots.get(index);
+        net.minecraft.world.item.ItemStack stack = slot.getItem();
+        if (stack.isEmpty()) return null;
+        return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()) + "\t" + stack.getCount();
+    }
+
+    public static String getSlotPos(int index) {
+        if (activeInventoryMenu == null || index < 0 || index >= activeInventoryMenu.slots.size()) return null;
+        net.minecraft.world.inventory.Slot slot = activeInventoryMenu.slots.get(index);
+        return slot.x + "\t" + slot.y;
+    }
 }
