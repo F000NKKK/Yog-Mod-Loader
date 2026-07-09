@@ -130,15 +130,15 @@ public class YogHost {
             ResourceLocation ident = ResourceLocation.tryParse(id);
             if (ident == null) continue;
 
-            Map<String, String> p = parseProps(line);
-            float hardness   = parseFloat(p, "hardness", 1.5f);
-            float resistance = parseFloat(p, "resistance", 6.0f);
+            Map<String, String> p = YogProps.parse(line);
+            float hardness   = YogProps.parseFloat(p, "hardness", 1.5f);
+            float resistance = YogProps.parseFloat(p, "resistance", 6.0f);
 
             BlockBehaviour.Properties props = BlockBehaviour.Properties.of()
                     .strength(hardness, resistance);
 
             if (p.containsKey("light")) {
-                int lv = parseInt(p, "light", 0);
+                int lv = YogProps.parseInt(p, "light", 0);
                 props = props.lightLevel(state -> lv);
             }
             if (p.containsKey("sound")) {
@@ -147,7 +147,7 @@ public class YogHost {
             if ("1".equals(p.get("requires_tool"))) props = props.requiresCorrectToolForDrops();
             if ("1".equals(p.get("no_collision"))) props = props.noCollission();
             if (p.containsKey("slipperiness")) {
-                props = props.friction(parseFloat(p, "slipperiness", 0.6f));
+                props = props.friction(YogProps.parseFloat(p, "slipperiness", 0.6f));
             }
 
             Block block;
@@ -191,7 +191,7 @@ public class YogHost {
                 ResourceLocation ident = ResourceLocation.tryParse(id);
                 if (ident == null) continue;
 
-                Map<String, String> p = parseProps(line);
+                Map<String, String> p = YogProps.parse(line);
 
                 if (registeredBlocks.containsKey(ident)) {
                     // This id belongs to a block — don't register a second, competing
@@ -205,11 +205,11 @@ public class YogHost {
 
                 Item.Properties props = new Item.Properties();
 
-                int maxDamage = parseInt(p, "max_damage", 0);
+                int maxDamage = YogProps.parseInt(p, "max_damage", 0);
                 if (maxDamage > 0) {
                     props = props.durability(maxDamage);
                 } else {
-                    props = props.stacksTo(parseInt(p, "max_stack", 64));
+                    props = props.stacksTo(YogProps.parseInt(p, "max_stack", 64));
                 }
 
                 if ("1".equals(p.get("fire_resistant"))) props = props.fireResistant();
@@ -238,7 +238,7 @@ public class YogHost {
                 event.register(Registries.ITEM, ident, () -> item);
                 tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(item);
 
-                int fuelTicks = parseInt(p, "fuel_ticks", 0);
+                int fuelTicks = YogProps.parseInt(p, "fuel_ticks", 0);
                 if (fuelTicks > 0) FUEL.put(item, fuelTicks);
             }
         }
@@ -561,28 +561,9 @@ public class YogHost {
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private static Map<String, String> parseProps(String line) {
-        String[] parts = line.split("\t", -1);
-        Map<String, String> props = new HashMap<>();
-        for (int i = 1; i < parts.length; i++) {
-            int eq = parts[i].indexOf('=');
-            if (eq > 0) props.put(parts[i].substring(0, eq), parts[i].substring(eq + 1));
-        }
-        return props;
-    }
-
-    private static int parseInt(Map<String, String> p, String key, int def) {
-        String v = p.get(key);
-        if (v == null) return def;
-        try { return Integer.parseInt(v); } catch (NumberFormatException e) { return def; }
-    }
-
-    private static float parseFloat(Map<String, String> p, String key, float def) {
-        String v = p.get(key);
-        if (v == null) return def;
-        try { return Float.parseFloat(v); } catch (NumberFormatException e) { return def; }
-    }
-
+    
+    
+    
     private static SoundType soundType(String name) {
         return switch (name) {
             case "wood" -> SoundType.WOOD;
