@@ -59,7 +59,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeIsUIActive<'l>(
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
     mut env: JNIEnv<'l>, _class: JClass<'l>,
     ui_id: JString<'l>, mx: jfloat, my: jfloat, button: jint,
-) {
+) -> jboolean {
     let id = jstr!(env, ui_id);
     let h = handlers();
     let active = h.active_uis.lock().expect("active_uis");
@@ -69,7 +69,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
         .map(|l| l.id.clone());
     // Only dispatch if click is on the topmost modal layer (or there's no modal)
     if let Some(ref modal_id) = top_modal {
-        if id != *modal_id { return; }
+        if id != *modal_id { return 0; }
     }
     drop(active);
 
@@ -87,11 +87,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
                             h.book_renderers.lock().unwrap().get_mut(&id)
                                 .map(|r| r.handle_event(&ev));
                             yog_logging::info!("book click '{}' → '{}'", &id, &ev);
-                            return;
+                            return 1;
                         }
                     }
                 }
-                return; // book UI consumed the click (no hit)
+                return 1; // book UI consumed the click (no hit on widget, but in book area)
             }
             // ui=None (JSON parse failed) → fall through to generic handler
         }
@@ -99,12 +99,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
 
     // Generic UI handler — forward raw click coords so the mod can hit-test its
     // own stored layout (see Registry::on_ui_render + LAST_LAYOUT pattern).
+    let mut consumed = false;
     if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
         let ev = format!("click:{:.1}:{:.1}", mx, my);
         yog_logging::info!("UI click '{}' → raw {}", id, ev);
         unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev)); }
+        consumed = true; // if a UI handler exists, consider the click consumed
     }
     let _ = button;
+    if consumed { 1 } else { 0 }
 }
 
 #[no_mangle]

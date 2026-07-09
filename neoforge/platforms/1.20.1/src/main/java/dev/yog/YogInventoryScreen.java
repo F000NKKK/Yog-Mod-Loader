@@ -36,7 +36,8 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
     @Override protected void renderLabels(GuiGraphics ctx, int mx, int my) {}
 
     @Override public boolean mouseClicked(double mx, double my, int b) {
-        NativeBridge.nativeUIClick(uiId, (float) mx, (float) my, b);
+        if (NativeBridge.nativeUIClick(uiId, (float) mx, (float) my, b))
+            return true;
         return super.mouseClicked(mx, my, b);
     }
     @Override public boolean mouseReleased(double mx, double my, int b) {

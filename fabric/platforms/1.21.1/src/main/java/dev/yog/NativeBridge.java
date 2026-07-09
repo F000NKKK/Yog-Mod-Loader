@@ -963,7 +963,7 @@ public final class NativeBridge {
     /** Hide / close the UI. */
     public static native void nativeUIHide(String uiId);
     /** Forward a mouse click to Rust. button: 0=left, 1=right, 2=middle. */
-    public static native void nativeUIClick(String uiId, float mx, float my, int button);
+    public static native boolean nativeUIClick(String uiId, float mx, float my, int button);
 
     /** Mouse wheel over a Yog UI screen; dy is the vertical scroll amount. */
     public static native void nativeUIScroll(String uiId, float dy);
