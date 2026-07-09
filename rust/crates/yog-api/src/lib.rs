@@ -5,8 +5,10 @@
 //! `yog_api::*`. Items are available both flat (`yog_api::Registry`) and
 //! namespaced by domain (`yog_api::world::World`).
 
+mod interop;
 mod registry;
 
+pub use interop::Interop;
 pub use registry::{installed_mods, open_ui, server, CServer, Mod, ModInfo, Registry};
 pub use yog_gfx::{GfxContext, core as gfx_core, gl as gfx_gl, draw2d as gfx_draw2d};
 
@@ -20,7 +22,8 @@ pub use std::os::raw::c_void as __c_void;
 ///
 /// Generates the two C-ABI entry points the runtime looks up:
 /// - `yog_abi_version() -> u32`  — version check before loading
-/// - `yog_mod_register(*const YogApi, *mut c_void)` — registration entry point
+/// - `yog_mod_register(*const YogApi, *const c_char)` — registration entry point,
+///   receives the mod's `id` from its manifest
 ///
 /// Put this once at the crate root of a `cdylib` mod:
 ///
@@ -38,8 +41,20 @@ macro_rules! export_mod {
         #[no_mangle]
         pub unsafe extern "C" fn yog_mod_register(
             api: *const $crate::YogApi,
-            _ctx: *mut $crate::__c_void,
+            mod_id_ptr: *const ::std::os::raw::c_char,
         ) {
+            // Parse mod_id from the C string passed by the runtime.
+            let mod_id: &str = if mod_id_ptr.is_null() {
+                "unknown"
+            } else {
+                match ::std::ffi::CStr::from_ptr(mod_id_ptr).to_str() {
+                    Ok(s) => s,
+                    Err(_) => "unknown",
+                }
+            };
+            // Store for interop use (yog_api::interop::current_mod_id()).
+            $crate::__set_current_mod_id(mod_id);
+
             // Catch panics so they never unwind across this `extern "C"` boundary
             // back into the runtime (which would be undefined behaviour).
             let outcome = ::std::panic::catch_unwind(::std::panic::AssertUnwindSafe(|| {
@@ -53,6 +68,24 @@ macro_rules! export_mod {
             }
         }
     };
+}
+
+/// Internal: set by `export_mod!` before calling `Mod::register`.
+/// Used by `yog_api::interop::current_mod_id()` so `Interop::export` knows
+/// which mod is calling.
+#[doc(hidden)]
+pub fn __set_current_mod_id(id: &str) {
+    CURRENT_MOD_ID.with(|cell| cell.replace(Some(id.to_string())));
+}
+
+/// Internal: the current mod's id, set during `yog_mod_register`.
+#[doc(hidden)]
+pub fn __current_mod_id() -> Option<String> {
+    CURRENT_MOD_ID.with(|cell| cell.borrow().clone())
+}
+
+std::thread_local! {
+    static CURRENT_MOD_ID: std::cell::RefCell<Option<String>> = std::cell::RefCell::new(None);
 }
 
 pub use yog_command::CommandContext;

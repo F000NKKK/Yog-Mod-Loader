@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.57.0"
+version = "0.58.0"
 edition.workspace = true
 license.workspace = true
 description = "Yog runtime — native library bridging the Fabric host to Rust mods via JNI."
@@ -17,14 +17,14 @@ crate-type = ["cdylib"]
 # call site to the new API first.
 jni = "0.21"
 
-yog-abi = "0.17"
-yog-api = "0.54"
+yog-abi = "0.18"
+yog-api = "0.55"
 yog-logging = "0.1"
-yog-registry = "0.17"
-yog-ui     = "0.25"
-yog-book   = "0.45"
-yog-gfx    = "0.14"
-yog-inventory = "0.3"
+yog-registry = "0.18"
+yog-ui     = "0.26"
+yog-book   = "0.46"
+yog-gfx    = "0.15"
+yog-inventory = "0.4"
 serde_json = "1"
 
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.

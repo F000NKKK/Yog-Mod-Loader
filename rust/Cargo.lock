@@ -557,11 +557,11 @@ checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
 
 [[package]]
 name = "yog-abi"
-version = "0.17.0"
+version = "0.18.0"
 
 [[package]]
 name = "yog-api"
-version = "0.54.0"
+version = "0.55.0"
 dependencies = [
  "yog-abi",
  "yog-book",
@@ -583,7 +583,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.45.0"
+version = "0.46.0"
 dependencies = [
  "png",
  "serde",
@@ -628,14 +628,14 @@ dependencies = [
 
 [[package]]
 name = "yog-gfx"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "yog-abi",
 ]
 
 [[package]]
 name = "yog-inventory"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -660,7 +660,7 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "serde",
  "yog-abi",
@@ -668,7 +668,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.57.0"
+version = "0.58.0"
 dependencies = [
  "glow",
  "jni",
@@ -691,7 +691,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-ui"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "yog-abi",
  "yog-gfx",

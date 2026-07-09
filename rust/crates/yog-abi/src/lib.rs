@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 26;
+pub const ABI_MINOR: u32 = 27;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -886,6 +886,14 @@ pub struct YogApi {
     // ── ABI minor 25 — inventory framework (yog-inventory) ──────────────────
     /// Register a real Container/Menu inventory screen — see `yog_inventory`.
     pub register_inventory: unsafe extern "C" fn(ctx: *mut c_void, def: *const YogInventoryDef),
+
+    // ── ABI minor 26 — inter-mod communication ─────────────────────────────
+    /// Export a function pointer under `symbol` for the calling mod (`mod_id`).
+    /// Other mods can import it via `interop_import`.
+    pub interop_export: unsafe extern "C" fn(ctx: *mut c_void, mod_id: YogStr, symbol: YogStr, ptr: *const c_void),
+    /// Import a function pointer exported by `mod_id` under `symbol`.
+    /// Returns null if the symbol is not (yet) registered.
+    pub interop_import: unsafe extern "C" fn(ctx: *mut c_void, mod_id: YogStr, symbol: YogStr) -> *const c_void,
 }
 
 unsafe impl Send for YogApi {}

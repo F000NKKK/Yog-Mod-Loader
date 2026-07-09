@@ -47,6 +47,10 @@ static JAVA_VM: OnceLock<JavaVM> = OnceLock::new();
 static LOADED_MODS: Mutex<Vec<Library>> = Mutex::new(Vec::new());
 /// Metadata of loaded .yog mods: [id, name, version, authors, description].
 static MOD_INFOS: Mutex<Vec<[String; 5]>> = Mutex::new(Vec::new());
+/// Inter-mod symbol registry: mod_id → (symbol_name → function pointer).
+/// Filled during `yog_mod_register` (export calls), read during import calls.
+static INTEROP_SYMBOLS: OnceLock<Mutex<HashMap<String, HashMap<String, usize>>>> =
+    OnceLock::new();
 /// Stable server table (populated once in nativeInit, then read-only).
 static SERVER: OnceLock<YogServer> = OnceLock::new();
 /// Stable api table. Mods capture this pointer at registration (yog-api's
@@ -1713,6 +1717,40 @@ fn build_server_table() -> YogServer {
     }
 }
 
+// ── Inter-mod communication ──────────────────────────────────────────────────
+
+unsafe extern "C" fn interop_export_impl(
+    _ctx: *mut c_void,
+    mod_id: YogStr,
+    symbol: YogStr,
+    ptr: *const c_void,
+) {
+    let mod_id = mod_id.as_str();
+    let sym = symbol.as_str();
+    let registry = INTEROP_SYMBOLS.get_or_init(|| Mutex::new(HashMap::new()));
+    registry.lock()
+        .expect("interop symbols lock poisoned")
+        .entry(mod_id.to_string())
+        .or_default()
+        .insert(sym.to_string(), ptr as usize);
+}
+
+unsafe extern "C" fn interop_import_impl(
+    _ctx: *mut c_void,
+    mod_id: YogStr,
+    symbol: YogStr,
+) -> *const c_void {
+    let mod_id = mod_id.as_str();
+    let sym = symbol.as_str();
+    let registry = INTEROP_SYMBOLS.get_or_init(|| Mutex::new(HashMap::new()));
+    registry.lock()
+        .expect("interop symbols lock poisoned")
+        .get(mod_id)
+        .and_then(|m: &HashMap<String, usize>| m.get(sym))
+        .map(|&ptr| ptr as *const c_void)
+        .unwrap_or(std::ptr::null())
+}
+
 fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogApi {
     YogApi {
         abi_version: ABI_VERSION,
@@ -1768,6 +1806,8 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         free_str:               yog_free_str,
         ui_open:                api_ui_open,
         register_inventory:     api_register_inventory,
+        interop_export:         interop_export_impl,
+        interop_import:         interop_import_impl,
     }
 }
 
@@ -1778,7 +1818,8 @@ fn platform_tag() -> String {
 }
 
 type AbiVersionFn   = unsafe extern "C" fn() -> u32;
-type RegisterFn     = unsafe extern "C" fn(*const YogApi, *mut c_void);
+/// Second arg is a null-terminated C string: the mod's `id` from its manifest.
+type RegisterFn     = unsafe extern "C" fn(*const YogApi, *const std::os::raw::c_char);
 
 fn load_mods(dir: &Path, api: &YogApi) {
     let entries = match std::fs::read_dir(dir) {
@@ -1788,29 +1829,79 @@ fn load_mods(dir: &Path, api: &YogApi) {
             return;
         }
     };
-    let mut count = 0u32;
+
+    // First pass: collect (mod_id, dependencies, archive_path)
+    struct ModMeta {
+        id: String,
+        deps: Vec<String>,
+        yog_path: PathBuf,
+    }
+    let mut metas: Vec<ModMeta> = Vec::new();
     for entry in entries.flatten() {
         let path = entry.path();
-        let lib_path = match path.extension().and_then(|e| e.to_str()) {
-            Some("yog") => match extract_yog(&path) {
-                Some(p) => p,
-                None => {
-                    yog_logging::error!("no native for {} in {}", platform_tag(), path.display());
-                    continue;
-                }
-            },
-            Some("so") | Some("dll") | Some("dylib") => path.clone(),
-            _ => continue,
+        if path.extension().and_then(|e| e.to_str()) != Some("yog") { continue; }
+        let info = read_mod_info(&path);
+        let deps = read_mod_deps(&path);
+        metas.push(ModMeta { id: info[0].clone(), deps, yog_path: path });
+    }
+
+    // Topological sort by dependencies (Kahn's algorithm)
+    let ids: Vec<String> = metas.iter().map(|m| m.id.clone()).collect();
+    let deps_list: Vec<Vec<String>> = metas.iter().map(|m| m.deps.clone()).collect();
+    let sorted = match topo_sort_mods(&ids, &deps_list) {
+        Some(v) => v,
+        None => {
+            yog_logging::error!("circular dependency detected — loading in file order");
+            (0..metas.len()).collect()
+        }
+    };
+
+    let mut count = 0u32;
+    for idx in sorted {
+        let meta = &metas[idx];
+        let lib_path = match extract_yog(&meta.yog_path) {
+            Some(p) => p,
+            None => {
+                yog_logging::error!("no native for {} in {}", platform_tag(), meta.yog_path.display());
+                continue;
+            }
         };
-        if load_mod_lib(&lib_path, api) {
+        if load_mod_lib(&lib_path, api, &meta.id) {
             count += 1;
-            MOD_INFOS.lock().expect("mod infos lock poisoned").push(read_mod_info(&path));
+            MOD_INFOS.lock().expect("mod infos lock poisoned").push(read_mod_info(&meta.yog_path));
         }
     }
     yog_logging::info!("loaded {} mod(s) from {}", count, dir.display());
 }
 
-fn load_mod_lib(path: &Path, api: &YogApi) -> bool {
+/// Kahn's algorithm — returns indices in dependency order, or None on cycle.
+fn topo_sort_mods(ids: &[String], deps_list: &[Vec<String>]) -> Option<Vec<usize>> {
+    let n = ids.len();
+    let name_to_idx: HashMap<&str, usize> = ids.iter().enumerate()
+        .map(|(i, id)| (id.as_str(), i)).collect();
+    let mut in_degree = vec![0u32; n];
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (i, deps) in deps_list.iter().enumerate() {
+        for dep in deps {
+            if let Some(&j) = name_to_idx.get(dep.as_str()) {
+                adj[j].push(i);
+                in_degree[i] += 1;
+            }
+        }
+    }
+    let mut queue: Vec<usize> = (0..n).filter(|&i| in_degree[i] == 0).collect();
+    let mut order = Vec::with_capacity(n);
+    while let Some(u) = queue.pop() {
+        order.push(u);
+        for &v in &adj[u] {
+            in_degree[v] -= 1;
+            if in_degree[v] == 0 { queue.push(v); }
+        }
+    }
+    if order.len() == n { Some(order) } else { None }
+}
+
+fn load_mod_lib(path: &Path, api: &YogApi, mod_id: &str) -> bool {
     unsafe {
         let lib = match Library::new(path) {
             Ok(l) => l,
@@ -1829,7 +1920,8 @@ fn load_mod_lib(path: &Path, api: &YogApi) -> bool {
             Ok(s) => s,
             Err(_) => { yog_logging::error!("{} missing yog_mod_register", path.display()); return false; }
         };
-        register(api as *const YogApi, std::ptr::null_mut());
+        let mod_id_c = std::ffi::CString::new(mod_id).unwrap();
+        register(api as *const YogApi, mod_id_c.as_ptr());
         drop(register);
         drop(abi);
         LOADED_MODS.lock().expect("mods lock poisoned").push(lib);
@@ -1887,6 +1979,37 @@ fn read_mod_info(path: &Path) -> [String; 5] {
         }
     }
     info
+}
+
+/// Parse `[dependencies]` section from yog.toml inside a .yog archive.
+fn read_mod_deps(path: &Path) -> Vec<String> {
+    if path.extension().and_then(|e| e.to_str()) != Some("yog") {
+        return Vec::new();
+    }
+    let text = (|| {
+        let file = std::fs::File::open(path).ok()?;
+        let mut archive = zip::ZipArchive::new(file).ok()?;
+        let mut entry = archive.by_name("yog.toml").ok()?;
+        let mut text = String::new();
+        std::io::Read::read_to_string(&mut entry, &mut text).ok()?;
+        Some(text)
+    })();
+    let Some(text) = text else { return Vec::new() };
+    let mut deps = Vec::new();
+    let mut in_deps = false;
+    for line in text.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_deps = line == "[dependencies]";
+            continue;
+        }
+        if !in_deps { continue; }
+        // `mod_id = "1.0"` or `mod_id = "*"` — we only care about the key (mod_id)
+        if let Some((key, _)) = line.split_once('=') {
+            deps.push(key.trim().to_string());
+        }
+    }
+    deps
 }
 
 fn extract_yog(path: &Path) -> Option<PathBuf> {
