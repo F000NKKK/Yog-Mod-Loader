@@ -130,10 +130,10 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let expanded = quote! {
         #vis #sig #block
 
-        // ctor — runs before main(), pushes entry to export registry
+        // ctor static — runs before main(), pushes entry to export registry
         #[doc(hidden)]
-        #[ctor::ctor]
-        fn __yog_export_ctor_{name}() {
+        #[ctor::ctor(unsafe)]
+        static __yog_export_ctor_{name}: u8 = {
             ::yog_api::__yog_export_registry()
                 .lock()
                 .unwrap()
@@ -141,7 +141,8 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     name: #name_str,
                     ptr: #wrap_name as usize,
                 });
-        }
+            0
+        };
 
         // C-ABI wrapper — deserializes input via rkyv, calls fn, serializes output.
         #[doc(hidden)]
@@ -247,10 +248,10 @@ pub fn import(input: TokenStream) -> TokenStream {
         let _init_name = format_ident!("__yog_import_init_{}", name);
 
         let wrapper = quote! {
-            // ctor — runs before main(), pushes entry to import registry
+            // ctor static — runs before main(), pushes entry to import registry
             #[doc(hidden)]
-            #[ctor::ctor]
-            fn __yog_import_ctor_{name}() {
+            #[ctor::ctor(unsafe)]
+            static __yog_import_ctor_{name}: u8 = {
                 ::yog_api::__yog_import_registry()
                     .lock()
                     .unwrap()
@@ -259,7 +260,8 @@ pub fn import(input: TokenStream) -> TokenStream {
                         symbol: #name_str,
                         bind_fn: #bind_name as usize,
                     });
-            }
+                0
+            };
 
             #[allow(non_snake_case)]
             #vis fn #name(#inputs) #output {
