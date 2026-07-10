@@ -83,19 +83,26 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #vis #sig #block
-        // ctor disabled for debugging
-        //use ::ctor::ctor;
-        //
-        //#[ctor(unsafe)]
-        //fn __yog_export_ctor_{name}() {
-        //    ::yog_api::__yog_export_registry()
-        //        .lock()
-        //        .unwrap()
-        //        .push(::yog_api::YogExportEntry {
-        //            name: #name_str,
-        //            ptr: #wrap_name as usize,
-        //        });
-        //}
+
+        // Auto-register via linker section (no ctor dependency needed)
+        #[doc(hidden)]
+        #[used]
+        #[cfg_attr(target_os = "linux", link_section = ".init_array")]
+        #[cfg_attr(target_vendor = "apple", link_section = "__DATA,__mod_init_func,mod_init_funcs")]
+        #[cfg_attr(all(target_os = "windows", any(target_env = "gnu", target_env = "msvc")), link_section = ".CRT$XCU")]
+        static __yog_export_ctor_{name}: extern "C" fn() = {{
+            extern "C" fn init() {{
+                ::yog_api::__yog_export_registry()
+                    .lock()
+                    .unwrap()
+                    .push(::yog_api::YogExportEntry {{
+                        name: #name_str,
+                        ptr: #wrap_name as usize,
+                    }});
+            }}
+            init
+        }};
+        
         #[doc(hidden)]
         #[no_mangle]
         pub unsafe extern "C" fn #wrap_name(
@@ -179,18 +186,25 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
     };
 
     quote! {
-        // ctor disabled for debugging
-        //#[ctor(unsafe)]
-        //fn __yog_import_ctor_{name}() {
-        //    ::yog_api::__yog_import_registry()
-        //        .lock()
-        //        .unwrap()
-        //        .push(::yog_api::YogImportEntry {
-        //            mod_id: #mod_name,
-        //            symbol: #name_str,
-        //            bind_fn: #bind_name as usize,
-        //        });
-        //}
+        // Auto-register via linker section — equivalent to #[ctor::ctor(unsafe)]
+        #[doc(hidden)]
+        #[used]
+        #[cfg_attr(target_os = "linux", link_section = ".init_array")]
+        #[cfg_attr(target_vendor = "apple", link_section = "__DATA,__mod_init_func,mod_init_funcs")]
+        #[cfg_attr(all(target_os = "windows", any(target_env = "gnu", target_env = "msvc")), link_section = ".CRT$XCU")]
+        static __yog_import_ctor_{name}: extern "C" fn() = {{
+            extern "C" fn init() {{
+                ::yog_api::__yog_import_registry()
+                    .lock()
+                    .unwrap()
+                    .push(::yog_api::YogImportEntry {{
+                        mod_id: #mod_name,
+                        symbol: #name_str,
+                        bind_fn: #bind_name as usize,
+                    }});
+            }}
+            init
+        }};
 
         #[allow(non_snake_case)]
         #vis fn #name(#inputs) #output {

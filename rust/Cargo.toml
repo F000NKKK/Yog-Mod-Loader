@@ -50,7 +50,6 @@ proc-macro2 = "1"
 rkyv = { version = "0.8" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-ctor = "1"
 png = "0.18"
 zip = { version = "8.6", default-features = false, features = ["deflate"] }
 jni = "0.21"
