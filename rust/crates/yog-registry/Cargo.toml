@@ -1,14 +1,14 @@
 [package]
 name = "yog-registry"
-version = "0.18.0"
+version = "0.19.0"
 edition = "2021"
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog content registry — register items, blocks, recipes, etc."
 
 [dependencies]
-yog-abi = "0.18"
-serde = { version = "1", features = ["derive"], optional = true }
+yog-abi = "0.19"
+serde = { workspace = true, optional = true }
 
 [features]
 serde = ["dep:serde"]

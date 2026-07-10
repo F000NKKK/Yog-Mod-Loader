@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.72.0"
+version = "0.73.0"
 edition.workspace = true
 license.workspace = true
 description = "Yog runtime — native library bridging the Fabric host to Rust mods via JNI."
@@ -15,20 +15,20 @@ crate-type = ["cdylib"]
 # rewrite of the whole FFI surface this crate uses); don't bump past 0.21.x
 # without migrating every `Java_dev_yog_NativeBridge_*` signature and env
 # call site to the new API first.
-jni = "0.21"
+jni.workspace = true
 
-yog-abi = "0.18"
-yog-api = "0.68"
+yog-abi = "0.19"
+yog-api = "0.69"
 yog-logging = "0.1"
-yog-registry = "0.18"
-yog-ui     = "0.26"
-yog-book   = "0.46"
-yog-gfx    = "0.15"
-yog-inventory = "0.4"
-serde_json = "1"
+yog-registry = "0.19"
+yog-ui     = "0.27"
+yog-book   = "0.47"
+yog-gfx    = "0.16"
+yog-inventory = "0.5"
 
+serde_json.workspace = true
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.
-libloading = "0.9"
-zip = { version = "8", default-features = false, features = ["deflate"] }
+libloading.workspace = true
+zip.workspace = true
 # OpenGL bindings for low-level GPU access (client-side, render thread only).
-glow = "0.17"
+glow.workspace = true

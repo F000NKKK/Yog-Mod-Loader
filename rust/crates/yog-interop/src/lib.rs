@@ -83,20 +83,19 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #vis #sig #block
-
-        use ::ctor::ctor;
-
-        #[ctor(unsafe)]
-        fn __yog_export_ctor_{name}() {
-            ::yog_api::__yog_export_registry()
-                .lock()
-                .unwrap()
-                .push(::yog_api::YogExportEntry {
-                    name: #name_str,
-                    ptr: #wrap_name as usize,
-                });
-        }
-
+        // ctor disabled for debugging
+        //use ::ctor::ctor;
+        //
+        //#[ctor(unsafe)]
+        //fn __yog_export_ctor_{name}() {
+        //    ::yog_api::__yog_export_registry()
+        //        .lock()
+        //        .unwrap()
+        //        .push(::yog_api::YogExportEntry {
+        //            name: #name_str,
+        //            ptr: #wrap_name as usize,
+        //        });
+        //}
         #[doc(hidden)]
         #[no_mangle]
         pub unsafe extern "C" fn #wrap_name(
@@ -107,7 +106,7 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
             let args: #input_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(input_slice)
                 .expect("yog: deser failed");
             let result: #output = #call_fn;
-            let aligned = ::yog_api::rkyv::to_bytes::<_, 256>(&result).unwrap_or_default();
+            let aligned = ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(&result).unwrap_or_default();
             let bytes: Vec<u8> = aligned.to_vec();
             *out_data = bytes.as_ptr() as *mut u8;
             *out_len = bytes.len() as u32;
@@ -169,7 +168,7 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
         quote! { let input_bytes = Vec::new(); }
     } else {
         quote! {
-            let aligned = ::yog_api::rkyv::to_bytes::<_, 256>(&(#(#arg_names),*)).unwrap_or_default();
+            let aligned = ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(&(#(#arg_names),*)).unwrap_or_default();
             let input_bytes: Vec<u8> = aligned.to_vec();
         }
     };
@@ -180,19 +179,18 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
     };
 
     quote! {
-        use ::ctor::ctor;
-
-        #[ctor(unsafe)]
-        fn __yog_import_ctor_{name}() {
-            ::yog_api::__yog_import_registry()
-                .lock()
-                .unwrap()
-                .push(::yog_api::YogImportEntry {
-                    mod_id: #mod_name,
-                    symbol: #name_str,
-                    bind_fn: #bind_name as usize,
-                });
-        }
+        // ctor disabled for debugging
+        //#[ctor(unsafe)]
+        //fn __yog_import_ctor_{name}() {
+        //    ::yog_api::__yog_import_registry()
+        //        .lock()
+        //        .unwrap()
+        //        .push(::yog_api::YogImportEntry {
+        //            mod_id: #mod_name,
+        //            symbol: #name_str,
+        //            bind_fn: #bind_name as usize,
+        //        });
+        //}
 
         #[allow(non_snake_case)]
         #vis fn #name(#inputs) #output {

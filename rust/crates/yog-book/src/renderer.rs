@@ -104,7 +104,7 @@ fn decode_png(data: &[u8]) -> Option<(Vec<u8>, u32, u32)> {
     use png::Decoder;
     let decoder = Decoder::new(std::io::Cursor::new(data));
     let mut reader = decoder.read_info().ok()?;
-    let mut buf = vec![0u8; reader.output_buffer_size()];
+    let mut buf = vec![0u8; reader.output_buffer_size().map(|s| s as usize).unwrap_or(0)];
     let info = reader.next_frame(&mut buf).ok()?;
     let rgba = match info.color_type {
         png::ColorType::Rgba => buf[..info.buffer_size()].to_vec(),
