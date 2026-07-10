@@ -230,7 +230,20 @@ pub fn import(input: TokenStream) -> TokenStream {
             )
         };
 
+        let init_name = format_ident!("__yog_import_init_{}", name);
+
         let wrapper = quote! {
+            // Static initializer — pushes to pending imports registry
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals)]
+            static #init_name: u8 = {
+                ::yog_api::__yog_pending_imports()
+                    .lock()
+                    .unwrap()
+                    .push((#mod_name, #name_str, #bind_name as usize));
+                0
+            };
+
             #[allow(non_snake_case)]
             #vis fn #name(#inputs) #output {
                 #serialize_block

@@ -75,10 +75,24 @@ macro_rules! export_mod {
                 for (name, ptr) in $crate::__yog_export_registry().lock().unwrap().iter() {
                     registry.interop().export(name, *ptr as *const ::std::os::raw::c_void);
                 }
+
+                // Resolve pending imports (may partially succeed — runtime
+                // does a final pass after all mods loaded).
+                $crate::__yog_resolve_pending_imports(&registry);
             }));
             if outcome.is_err() {
                 $crate::error!("mod {} panicked during register", ::core::stringify!($mod_ty));
             }
+        }
+
+        /// Called by the runtime after ALL mods are loaded — resolves any
+        /// imports that weren't satisfied during initial registration.
+        #[no_mangle]
+        pub unsafe extern "C" fn __yog_resolve_imports_final(
+            api: *const $crate::YogApi,
+        ) {
+            let registry = unsafe { $crate::Registry::from_raw(api) };
+            $crate::__yog_resolve_pending_imports(&registry);
         }
     };
 }
@@ -110,6 +124,29 @@ pub fn __yog_export_registry() -> &'static std::sync::Mutex<Vec<(&'static str, u
     static REG: std::sync::LazyLock<std::sync::Mutex<Vec<(&'static str, usize)>>> =
         std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
     &REG
+}
+
+/// Global registry of pending imports — populated by `import!` static initializers,
+/// resolved by `__yog_resolve_imports` when the runtime calls it after all mods loaded.
+#[doc(hidden)]
+pub fn __yog_pending_imports() -> &'static std::sync::Mutex<Vec<(&'static str, &'static str, usize)>> {
+    static REG: std::sync::LazyLock<std::sync::Mutex<Vec<(&'static str, &'static str, usize)>>> =
+        std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
+    &REG
+}
+
+/// Called by `export_mod!` after registration. Iterates pending imports and
+/// resolves them via the interop table. Also exported as `#[no_mangle]` so the
+/// runtime can call it after all mods are loaded (final resolution pass).
+#[doc(hidden)]
+pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
+    let interop = registry.interop();
+    for (mod_id, symbol, bind_fn_ptr) in __yog_pending_imports().lock().unwrap().iter() {
+        if let Some(ptr) = interop.import_raw(mod_id, symbol) {
+            let bind: unsafe extern "C" fn(*const std::ffi::c_void) = std::mem::transmute(*bind_fn_ptr);
+            bind(ptr);
+        }
+    }
 }
 
 pub use yog_command::CommandContext;
