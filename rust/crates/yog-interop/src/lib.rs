@@ -66,7 +66,6 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         return TokenStream::from(quote! {
             #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
             #[archive(check_bytes)]
-            #[archive_attr(derive(::yog_api::rkyv::bytecheck::CheckBytes))]
             #(#attrs)*
             #vis struct #ident #generics #fields
         });
@@ -80,7 +79,6 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         return TokenStream::from(quote! {
             #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
             #[archive(check_bytes)]
-            #[archive_attr(derive(::yog_api::rkyv::bytecheck::CheckBytes))]
             #(#attrs)*
             #vis enum #ident #generics { #variants }
         });

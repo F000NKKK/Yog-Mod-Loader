@@ -723,7 +723,7 @@ version = "0.18.0"
 
 [[package]]
 name = "yog-api"
-version = "0.62.0"
+version = "0.63.0"
 dependencies = [
  "linkme",
  "rkyv",
@@ -800,7 +800,7 @@ dependencies = [
 
 [[package]]
 name = "yog-interop"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -842,7 +842,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.65.0"
+version = "0.66.0"
 dependencies = [
  "glow",
  "jni",
