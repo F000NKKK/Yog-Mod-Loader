@@ -557,6 +557,22 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
         format!("authors      = [{list}]\n")
     };
 
+    // When using local yog-api, also patch yog-interop to use the workspace version
+    let patch = if meta.yog_api_path.is_some() || std::env::var("YOG_API_PATH").is_ok() {
+        // Derive yog-interop path from yog-api: {api_path}/../yog-interop
+        let env_path = std::env::var("YOG_API_PATH").ok();
+        let api_path = meta.yog_api_path.as_deref()
+            .or(env_path.as_deref())
+            .unwrap_or("");
+        let interop_path = std::path::Path::new(api_path).parent()
+            .map(|p| p.join("yog-interop"))
+            .unwrap_or_else(|| std::path::PathBuf::from("crates/yog-interop"));
+        let abs = interop_path.canonicalize().unwrap_or(interop_path);
+        format!("\n[patch.crates-io]\nyog-interop = {{ path = {:?} }}\n", abs.to_string_lossy())
+    } else {
+        String::new()
+    };
+
     let mut deps_lines: Vec<String> = Vec::new();
     for (name, spec) in &meta.dependencies {
         // Heuristic: names with hyphens are Yog mods → add their exports crate instead
@@ -585,9 +601,12 @@ path       = "../src/lib.rs"
 
 [dependencies]
 {api_dep}
+rkyv = "{rkyv_ver}"
+linkme = "0.3"
 {deps}
-"#,
+{patch}"#,
         id           = meta.id,
+        rkyv_ver     = workspace_rkyv_version(),
         lib_name     = to_snake_name(&meta.id),
         version      = meta.version,
         description  = meta.description,
@@ -595,6 +614,7 @@ path       = "../src/lib.rs"
         license      = meta.license,
         api_dep      = meta.api_dep(),
         deps         = deps_lines.join("\n"),
+        patch        = patch,
     )
 }
 

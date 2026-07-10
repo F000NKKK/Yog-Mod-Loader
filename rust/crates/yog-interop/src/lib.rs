@@ -94,7 +94,7 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let block = &func.block;
     let name_str = name.to_string();
     let wrap_name = format_ident!("__yog_wrap_{}", name);
-    let init_name = format_ident!("__yog_export_init_{}", name);
+    let _init_name = format_ident!("__yog_export_init_{}", name);
 
     // Extract input and output types
     let inputs = &func.sig.inputs;
@@ -134,6 +134,14 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let expanded = quote! {
         #vis #sig #block
 
+        // linkme distributed slice entry — auto-registered at mod load
+        #[doc(hidden)]
+        #[linkme::distributed_slice(::yog_api::YOG_EXPORTS)]
+        static __yog_export_ent_{name}: ::yog_api::YogExportEntry = ::yog_api::YogExportEntry {
+            name: #name_str,
+            ptr: #wrap_name as usize,
+        };
+
         // C-ABI wrapper — deserializes input via rkyv, calls fn, serializes output.
         #[doc(hidden)]
         #[no_mangle]
@@ -148,24 +156,14 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
             let args: #input_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(input_slice)
                 .expect("yog: deserialization failed in export wrapper");
             let result: #output = #call_fn;
-            let bytes: Vec<u8> = ::yog_api::rkyv::to_bytes::<_, 256>(&result)
+            let aligned = ::yog_api::rkyv::to_bytes::<_, 256>(&result)
                 .unwrap_or_default();
+            let bytes: Vec<u8> = aligned.to_vec();
             *out_data = bytes.as_ptr() as *mut u8;
             *out_len = bytes.len() as u32;
             *out_cap = bytes.capacity() as u32;
             std::mem::forget(bytes); // caller frees via __yog_free_buffer
         }
-
-        // Static initializer — auto-registers the WRAPPER (not the original).
-        #[doc(hidden)]
-        #[allow(non_upper_case_globals)]
-        static #init_name: u8 = {
-            ::yog_api::__yog_export_registry()
-                .lock()
-                .unwrap()
-                .push((#name_str, #wrap_name as usize));
-            0
-        };
     };
 
     TokenStream::from(expanded)
@@ -231,8 +229,9 @@ pub fn import(input: TokenStream) -> TokenStream {
             quote! { let input_bytes = Vec::new(); }
         } else {
             quote! {
-                let input_bytes = ::yog_api::rkyv::to_bytes::<_, 256>(&(#(#arg_names),*))
+                let aligned = ::yog_api::rkyv::to_bytes::<_, 256>(&(#(#arg_names),*))
                     .unwrap_or_default();
+                let input_bytes: Vec<u8> = aligned.to_vec();
             }
         };
 
@@ -244,18 +243,16 @@ pub fn import(input: TokenStream) -> TokenStream {
             )
         };
 
-        let init_name = format_ident!("__yog_import_init_{}", name);
+        let _init_name = format_ident!("__yog_import_init_{}", name);
 
         let wrapper = quote! {
-            // Static initializer — pushes to pending imports registry
+            // linkme distributed slice entry — auto-resolved by loader
             #[doc(hidden)]
-            #[allow(non_upper_case_globals)]
-            static #init_name: u8 = {
-                ::yog_api::__yog_pending_imports()
-                    .lock()
-                    .unwrap()
-                    .push((#mod_name, #name_str, #bind_name as usize));
-                0
+            #[linkme::distributed_slice(::yog_api::YOG_IMPORTS)]
+            static __yog_import_ent_{name}: ::yog_api::YogImportEntry = ::yog_api::YogImportEntry {
+                mod_id: #mod_name,
+                symbol: #name_str,
+                bind_fn: #bind_name as usize,
             };
 
             #[allow(non_snake_case)]

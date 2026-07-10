@@ -71,9 +71,9 @@ macro_rules! export_mod {
                 let mut registry = unsafe { $crate::Registry::from_raw(api) };
                 <$mod_ty as $crate::Mod>::register(&mut registry);
 
-                // Auto-register all #[yog_export] functions.
-                for (name, ptr) in $crate::__yog_export_registry().lock().unwrap().iter() {
-                    registry.interop().export(name, *ptr as *const ::std::os::raw::c_void);
+                // Auto-register all #[yog_export] functions (via linkme distributed slice).
+                for entry in $crate::YOG_EXPORTS.iter() {
+                    registry.interop().export(entry.name, entry.ptr as *const ::std::os::raw::c_void);
                 }
 
                 // Resolve pending imports (may partially succeed — runtime
@@ -117,23 +117,31 @@ std::thread_local! {
 
 // ── Auto-export registry (used by #[yog_export] proc-macro) ──────────────
 
-/// Global registry of `#[yog_export]` functions.
-/// Populated by static initializers before `yog_mod_register` runs.
+/// An entry in the distributed export slice. Each `#[yog_export]` function
+/// contributes one entry via `#[linkme::distributed_slice]`.
 #[doc(hidden)]
-pub fn __yog_export_registry() -> &'static std::sync::Mutex<Vec<(&'static str, usize)>> {
-    static REG: std::sync::LazyLock<std::sync::Mutex<Vec<(&'static str, usize)>>> =
-        std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
-    &REG
+pub struct YogExportEntry {
+    pub name: &'static str,
+    pub ptr: usize,
 }
 
-/// Global registry of pending imports — populated by `import!` static initializers,
-/// resolved by `__yog_resolve_imports` when the runtime calls it after all mods loaded.
+/// Distributed slice — populated by `#[yog_export]` across all modules.
 #[doc(hidden)]
-pub fn __yog_pending_imports() -> &'static std::sync::Mutex<Vec<(&'static str, &'static str, usize)>> {
-    static REG: std::sync::LazyLock<std::sync::Mutex<Vec<(&'static str, &'static str, usize)>>> =
-        std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
-    &REG
+#[linkme::distributed_slice]
+pub static YOG_EXPORTS: [YogExportEntry] = [..];
+
+/// An entry in the distributed pending-imports slice.
+#[doc(hidden)]
+pub struct YogImportEntry {
+    pub mod_id: &'static str,
+    pub symbol: &'static str,
+    pub bind_fn: usize,
 }
+
+/// Distributed slice — populated by `import!` across all modules.
+#[doc(hidden)]
+#[linkme::distributed_slice]
+pub static YOG_IMPORTS: [YogImportEntry] = [..];
 
 /// Called by `export_mod!` after registration. Iterates pending imports and
 /// resolves them via the interop table. Also exported as `#[no_mangle]` so the
@@ -141,9 +149,9 @@ pub fn __yog_pending_imports() -> &'static std::sync::Mutex<Vec<(&'static str, &
 #[doc(hidden)]
 pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
     let interop = registry.interop();
-    for (mod_id, symbol, bind_fn_ptr) in __yog_pending_imports().lock().unwrap().iter() {
-        if let Some(ptr) = interop.import_raw(mod_id, symbol) {
-            let bind: unsafe extern "C" fn(*const std::ffi::c_void) = std::mem::transmute(*bind_fn_ptr);
+    for entry in YOG_IMPORTS.iter() {
+        if let Some(ptr) = interop.import_raw(entry.mod_id, entry.symbol) {
+            let bind: unsafe extern "C" fn(*const std::ffi::c_void) = std::mem::transmute(entry.bind_fn);
             bind(ptr);
         }
     }
