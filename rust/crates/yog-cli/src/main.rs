@@ -1402,7 +1402,7 @@ crate-type = ["cdylib", "lib"]
                 let cleaned = strip_derive_attrs(&item.source);
                 lib_rs.push_str(&format!(
                     "#[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize, Debug, Clone, PartialEq)]\n\
-                     #[archive(check_bytes(rancor::Error))]\n\
+                     #[::yog_api::rkyv::archive(check_bytes(rancor::Error))]\n\
                      {}\n",
                     cleaned,
                 ));
