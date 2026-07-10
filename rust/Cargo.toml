@@ -47,8 +47,7 @@ license = "AGPL-3.0-only"
 syn = { version = "2", features = ["full", "extra-traits"] }
 quote = "1"
 proc-macro2 = "1"
-rkyv = { version = "0.8", features = ["validation"] }
-postcard = { version = "1", features = ["alloc"] }
+rkyv = { version = "0.8" }
 serde = { version = "1", features = ["derive"] }
 
 [patch.crates-io]

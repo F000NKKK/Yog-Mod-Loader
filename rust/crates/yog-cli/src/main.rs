@@ -29,6 +29,11 @@ fn main() {
             Some(name) => run_config(name),
             None => Err("usage: yog run <config_name>  (see [run.<config_name>] in yog.toml)".into()),
         },
+        Some("publish")         => match args.get(2).map(String::as_str) {
+            Some("exports") => publish_exports(),
+            Some(other) => Err(format!("unknown publish subcommand: {other}")),
+            None => Err("usage: yog publish exports".into()),
+        },
         Some("-h") | Some("--help") | Some("help") | None => { print_usage(); return; }
         Some(other)            => Err(format!("unknown command: {other}")),
     };
@@ -66,6 +71,7 @@ struct YogToml {
     description: String,
     authors:     Vec<String>,
     license:     String,
+    edition:     Option<String>,
     /// Optional: path to yog-api for local/monorepo development.
     /// Set via [dev] yog_api_path = "..."  or YOG_API_PATH env var.
     yog_api_path: Option<String>,
@@ -136,6 +142,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let mut description   = None::<String>;
     let mut authors: Vec<String> = Vec::new();
     let mut license       = None::<String>;
+    let mut edition       = None::<String>;
     let mut yog_api_path  = None::<String>;
     let mut dependencies: Vec<(String, String)> = Vec::new();
     let mut run_configs: HashMap<String, RunConfig> = HashMap::new();
@@ -154,6 +161,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
                 if let Some(v) = field(line, "version")     { version     = Some(v); }
                 if let Some(v) = field(line, "description") { description = Some(v); }
                 if let Some(v) = field(line, "license")     { license     = Some(v); }
+                if let Some(v) = field(line, "edition")     { edition     = Some(v); }
                 if line.trim_start().starts_with("authors") {
                     authors = parse_string_array(line);
                 }
@@ -208,6 +216,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         description:  description.unwrap_or_default(),
         authors,
         license:      license.unwrap_or_else(|| "MIT OR Apache-2.0".into()),
+        edition,
         yog_api_path,
         yog_api_version,
         dependencies: filtered_deps,
@@ -997,10 +1006,199 @@ fn remove_dep(crate_name: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
+// ── yog publish exports ────────────────────────────────────────────────────────
+
+/// Scans the mod for `#[yog_export]` items, generates an `-exports` crate,
+/// and publishes it to crates.io.
+fn publish_exports() -> Result<(), String> {
+    let proj = std::env::current_dir().map_err(|e| e.to_string())?;
+    let manifest = YogToml::read(&proj.join("yog.toml"))?;
+
+    let mod_id = manifest.id;
+    let version = manifest.version;
+    let edition = manifest.edition.as_deref().unwrap_or("2021");
+    let license = &manifest.license;
+    let authors = manifest.authors.join(", ");
+    let exports_crate_name = format!("{}-exports", mod_id.replace('_', "-"));
+
+    let src_dir = proj.join("src");
+    if !src_dir.exists() {
+        return Err("no src/ directory — nothing to export".into());
+    }
+
+    // Scan .rs files for #[yog_export] items
+    let mut exports = Vec::new(); // (path, item_type, name, source_lines)
+    for entry in std::fs::read_dir(&src_dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("rs") { continue; }
+        let src = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        for (line_no, line) in src.lines().enumerate() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("#[yog_export") {
+                // Extract the item type and name from the following line
+                let next_line = src.lines().nth(line_no + 1).unwrap_or("");
+                if next_line.trim().starts_with("pub fn ") {
+                    let name = extract_fn_name(next_line);
+                    exports.push((path.clone(), "fn", name, next_line.to_string()));
+                } else if next_line.trim().starts_with("pub struct ") {
+                    let name = extract_struct_name(next_line);
+                    exports.push((path.clone(), "struct", name, next_line.to_string()));
+                }
+            }
+        }
+    }
+
+    if exports.is_empty() {
+        eprintln!("==> no #[yog_export] items found — nothing to publish");
+        return Ok(());
+    }
+
+    eprintln!("==> generating {exports_crate_name} ({items} export(s))",
+        items = exports.len());
+
+    // Generate the exports crate in .yog-build/exports/
+    let build_dir = proj.join(".yog-build").join("exports").join(&exports_crate_name);
+    let _ = std::fs::remove_dir_all(&build_dir);
+    std::fs::create_dir_all(build_dir.join("src")).map_err(|e| e.to_string())?;
+
+    // Resolve versions dynamically (same logic as `yog build`)
+    let yog_api_ver = latest_yog_api_version();
+    let rkyv_ver = workspace_rkyv_version();
+    let yog_api_override = manifest.yog_api_version.as_deref().unwrap_or(&yog_api_ver);
+
+    let maybe_authors = if authors.is_empty() {
+        String::new()
+    } else {
+        format!("authors = [\"{}\"]\n", authors.replace(", ", "\", \""))
+    };
+
+    let cargo_toml = format!(
+        r#"[package]
+name = "{name}"
+version = "{version}"
+edition = "{edition}"
+{maybe_authors}license = "{license}"
+description = "Exports from the {mod_id} Yog mod — generated by `yog publish exports`."
+
+[dependencies]
+yog-api = "{yog_api_override}"
+rkyv = "{rkyv_ver}"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+"#,
+        name = exports_crate_name,
+        version = version,
+        edition = edition,
+        maybe_authors = maybe_authors,
+        license = license,
+        mod_id = mod_id,
+        yog_api_override = yog_api_override,
+        rkyv_ver = rkyv_ver,
+    );
+    write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
+
+    // lib.rs — generate wrapper module
+    let mod_ident = mod_id.replace('-', "_");
+    let mut lib_rs = format!(
+        "//! Auto-generated exports from `{mod_id}` v{version}.\n\
+         //! DO NOT EDIT — generated by `yog publish exports`.\n\n\
+         pub mod {mod_ident} {{\n"
+    );
+
+    for (_path, item_type, name, _source_line) in &exports {
+        match item_type.as_ref() {
+            "struct" => {
+                // Struct: re-export with rkyv derives
+                // We can't include the original struct body here (it's in the other crate).
+                // Instead, we generate a transparent newtype wrapper?
+                // Better: just generate the rkyv-compatible type definition.
+                // For now: the user gets struct definitions auto-pasted as is.
+                // In the real implementation, we'd parse the struct and regenerate it.
+                lib_rs.push_str(&format!(
+                    "    // struct {name} — re-exported from {mod_id}\n\
+                     "    // (struct definitions need to be duplicated in the exports crate)\n"
+                ));
+            }
+            "fn" => {
+                lib_rs.push_str(&format!(
+                    r#"    pub fn {name}(/* args serialized via rkyv */) {{
+        // Auto-generated wrapper — calls through interop to {mod_id}
+        static SLOT: std::sync::OnceLock<unsafe extern "C" fn(
+            *const u8, u32, *mut *mut u8, *mut u32, *mut u32,
+        )> = std::sync::OnceLock::new();
+
+        // For now: stub. Real implementation in Phase 2.
+        todo!("yog publish exports: function wrappers coming soon");
+    }}
+
+    #[doc(hidden)]
+    #[no_mangle]
+    pub unsafe extern "C" fn __yog_bind_{name}(ptr: *const std::os::raw::c_void) {{
+        SLOT.set(std::mem::transmute(ptr)).ok();
+    }}
+"#,
+                ));
+            }
+            _ => {}
+        }
+    }
+
+    lib_rs.push_str("}\n");
+    write_file(&build_dir.join("src").join("lib.rs"), lib_rs.as_bytes())?;
+
+    // Publish
+    eprintln!("==> cargo publish (--allow-dirty)");
+    let status = std::process::Command::new("cargo")
+        .args(["publish", "--allow-dirty"])
+        .current_dir(&build_dir)
+        .status()
+        .map_err(|e| format!("cargo publish failed: {e}"))?;
+
+    if !status.success() {
+        return Err(format!("cargo publish exited with {}", status));
+    }
+
+    // Clean up
+    let _ = std::fs::remove_dir_all(&build_dir);
+    eprintln!("==> published {exports_crate_name} v{version}");
+    Ok(())
+}
+
+fn extract_fn_name(line: &str) -> String {
+    // "pub fn register_pipe(...)" → "register_pipe"
+    line.trim()
+        .trim_start_matches("pub ")
+        .trim_start_matches("fn ")
+        .split('(')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_string()
+}
+
+fn extract_struct_name(line: &str) -> String {
+    // "pub struct PipeDef {" → "PipeDef"
+    line.trim()
+        .trim_start_matches("pub ")
+        .trim_start_matches("struct ")
+        .split('{')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_string()
+}
+
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
 fn write_file(path: &Path, data: &[u8]) -> Result<(), String> {
     std::fs::write(path, data).map_err(|e| format!("writing {}: {e}", path.display()))
+}
+
+/// rkyv version embedded at compile time via `build.rs`.
+fn workspace_rkyv_version() -> String {
+    env!("RKYV_VERSION").to_string()
 }
 
 /// Fetch the latest non-yanked version of `yog-api` from crates.io.

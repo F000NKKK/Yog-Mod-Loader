@@ -34,51 +34,124 @@ use quote::{format_ident, quote};
 
 // ── #[yog_export] ─────────────────────────────────────────────────────────
 
-/// Marks a function for inter-mod export.
+/// Universal export macro — works on both structs and functions.
 ///
-/// Generates:
-/// 1. A static initializer that auto-registers the export (no manual
-///    `registry.interop().export()` needed — `export_mod!` handles it).
-/// 2. A `__yog_export_get_NAME` symbol for future loader-side scanning.
+/// **On structs**: auto-derives `rkyv::Archive`, `rkyv::Serialize`,
+/// `rkyv::Deserialize`. Equivalent to:
+/// ```ignore
+/// #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+/// #[archive(check_bytes)]
+/// struct MyStruct { ... }
+/// ```
+///
+/// **On functions**: generates a C-ABI wrapper using rkyv zero-copy
+/// serialization + auto-registers the export via `export_mod!`.
+///
+/// Supported fn signatures:
+/// - `fn(InputType) -> OutputType`  (single arg)
+/// - `fn() -> OutputType`          (no arg)
+/// - `fn(InputType)`               (no return)
+/// For multi-arg: `fn((A, B)) -> C`.
+///
+/// No manual `registry.interop().export()` needed.
 #[proc_macro_attribute]
 pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    // Try parsing as a struct first (more common for types)
+    if let Ok(s) = syn::parse2::<syn::ItemStruct>(proc_macro2::TokenStream::from(item.clone())) {
+        let vis = &s.vis;
+        let ident = &s.ident;
+        let generics = &s.generics;
+        let fields = &s.fields;
+        let attrs = &s.attrs;
+        return TokenStream::from(quote! {
+            #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
+            #[archive(check_bytes)]
+            #[archive_attr(derive(::yog_api::rkyv::bytecheck::CheckBytes))]
+            #(#attrs)*
+            #vis struct #ident #generics #fields
+        });
+    }
+
+    // Fall through to function handling
     let func = syn::parse_macro_input!(item as syn::ItemFn);
     let name = &func.sig.ident;
     let vis = &func.vis;
     let sig = &func.sig;
     let block = &func.block;
     let name_str = name.to_string();
-    let getter_name = format_ident!("__yog_export_get_{}", name);
+    let wrap_name = format_ident!("__yog_wrap_{}", name);
     let init_name = format_ident!("__yog_export_init_{}", name);
+
+    // Extract input and output types
+    let inputs = &func.sig.inputs;
+    let output = match &func.sig.output {
+        syn::ReturnType::Default => quote! { () },
+        syn::ReturnType::Type(_, ty) => quote! { #ty },
+    };
+
+    // Build the wrapper body — handles both arg and no-arg cases
+    let call_fn = if inputs.is_empty() {
+        quote! { #name() }
+    } else {
+        // Multi-arg: serialize as tuple, then deserialize and destructure
+        let arg_names: Vec<_> = inputs.iter().map(|arg| {
+            match arg {
+                syn::FnArg::Typed(pat_type) => &pat_type.pat,
+                syn::FnArg::Receiver(_) => unreachable!(),
+            }
+        }).collect();
+        quote! { #name(#(#arg_names),*) }
+    };
+
+    // Extract the single input type (or unit for no-arg fns)
+    let input_type = if inputs.is_empty() {
+        quote! { () }
+    } else {
+        // Take the first (and should be only) argument type
+        match inputs.first().unwrap() {
+            syn::FnArg::Typed(pat_type) => {
+                let ty = &pat_type.ty;
+                quote! { #ty }
+            }
+            _ => quote! { () },
+        }
+    };
 
     let expanded = quote! {
         #vis #sig #block
 
-        // Static initializer — runs before main(), pushes to export registry.
+        // C-ABI wrapper — deserializes input via rkyv, calls fn, serializes output.
+        #[doc(hidden)]
+        #[no_mangle]
+        pub unsafe extern "C" fn #wrap_name(
+            input_ptr: *const u8,
+            input_len: u32,
+            out_data: *mut *mut u8,
+            out_len: *mut u32,
+            out_cap: *mut u32,
+        ) {
+            let input_slice = std::slice::from_raw_parts(input_ptr, input_len as usize);
+            let args: #input_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(input_slice)
+                .expect("yog: deserialization failed in export wrapper");
+            let result: #output = #call_fn;
+            let bytes: Vec<u8> = ::yog_api::rkyv::to_bytes::<_, 256>(&result)
+                .unwrap_or_default();
+            *out_data = bytes.as_ptr() as *mut u8;
+            *out_len = bytes.len() as u32;
+            *out_cap = bytes.capacity() as u32;
+            std::mem::forget(bytes); // caller frees via __yog_free_buffer
+        }
+
+        // Static initializer — auto-registers the WRAPPER (not the original).
         #[doc(hidden)]
         #[allow(non_upper_case_globals)]
         static #init_name: u8 = {
             ::yog_api::__yog_export_registry()
                 .lock()
                 .unwrap()
-                .push((#name_str, #name as usize));
+                .push((#name_str, #wrap_name as usize));
             0
         };
-
-        // Getter symbol for future loader-side scanning.
-        #[doc(hidden)]
-        #[no_mangle]
-        pub unsafe extern "C" fn #getter_name(
-            out_name: *mut *const ::std::os::raw::c_char,
-            out_ptr: *mut *const ::std::os::raw::c_void,
-        ) {
-            if !out_name.is_null() {
-                *out_name = concat!(#name_str, "\0").as_ptr() as *const ::std::os::raw::c_char;
-            }
-            if !out_ptr.is_null() {
-                *out_ptr = #name as *const ::std::os::raw::c_void;
-            }
-        }
     };
 
     TokenStream::from(expanded)
@@ -113,6 +186,25 @@ pub fn import(input: TokenStream) -> TokenStream {
         let inputs = &fn_sig.inputs;
         let output = &fn_sig.output;
 
+        // Extract input type (single arg or unit)
+        let _input_type = if inputs.is_empty() {
+            quote! { () }
+        } else {
+            match inputs.first().unwrap() {
+                syn::FnArg::Typed(pat_type) => {
+                    let ty = &pat_type.ty;
+                    quote! { #ty }
+                }
+                _ => quote! { () },
+            }
+        };
+
+        let output_type = match output {
+            syn::ReturnType::Default => quote! { () },
+            syn::ReturnType::Type(_, ty) => quote! { #ty },
+        };
+
+        // Build arg forwarding for the public function
         let arg_names: Vec<_> = inputs.iter().map(|arg| {
             match arg {
                 syn::FnArg::Typed(pat_type) => &pat_type.pat,
@@ -120,21 +212,54 @@ pub fn import(input: TokenStream) -> TokenStream {
             }
         }).collect();
 
+        // Serialize the arg (or nothing for no-arg fns)
+        let serialize_block = if inputs.is_empty() {
+            quote! { let input_bytes = Vec::new(); }
+        } else {
+            quote! {
+                let input_bytes = ::yog_api::rkyv::to_bytes::<_, 256>(&(#(#arg_names),*))
+                    .unwrap_or_default();
+            }
+        };
+
+        // C-ABI wrapper type — shared by all exports
+        let wrapper_ty = quote! {
+            unsafe extern "C" fn(
+                input_ptr: *const u8, input_len: u32,
+                out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32,
+            )
+        };
+
         let wrapper = quote! {
             #[allow(non_snake_case)]
             #vis fn #name(#inputs) #output {
+                #serialize_block
                 let f = #slot_name.get()
                     .expect(concat!("yog: import '", #mod_name, ":", #name_str, "' not bound — is mod '", #mod_name, "' loaded?"));
-                unsafe { f(#(#arg_names),*) }
+                let mut out_data: *mut u8 = std::ptr::null_mut();
+                let mut out_len: u32 = 0;
+                let mut out_cap: u32 = 0;
+                unsafe {
+                    f(
+                        input_bytes.as_ptr(), input_bytes.len() as u32,
+                        &mut out_data, &mut out_len, &mut out_cap,
+                    );
+                    let output_slice = std::slice::from_raw_parts(out_data, out_len as usize);
+                    let result: #output_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(output_slice)
+                        .expect(concat!("yog: deserialization failed in import '", #mod_name, ":", #name_str, "'"));
+                    // Free the buffer allocated by the export wrapper
+                    let _ = Vec::from_raw_parts(out_data, out_len as usize, out_cap as usize);
+                    result
+                }
             }
 
-            static #slot_name: ::std::sync::OnceLock<unsafe extern "C" fn(#inputs) #output>
+            static #slot_name: ::std::sync::OnceLock<#wrapper_ty>
                 = ::std::sync::OnceLock::new();
 
             #[doc(hidden)]
             #[no_mangle]
             pub unsafe extern "C" fn #bind_name(ptr: *const ::std::os::raw::c_void) {
-                let f: unsafe extern "C" fn(#inputs) #output = ::std::mem::transmute(ptr);
+                let f: #wrapper_ty = ::std::mem::transmute(ptr);
                 #slot_name.set(f).ok();
             }
         };

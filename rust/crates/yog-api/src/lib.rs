@@ -18,6 +18,11 @@ pub use yog_abi::{ABI_VERSION, YogApi};
 /// Inter-mod communication proc-macros.
 pub use yog_interop::{yog_export, import};
 
+/// rkyv — zero-copy serialization for interop. Re-exported so generated
+/// code and mods can use `rkyv::Archive`, `rkyv::Serialize`, `rkyv::Deserialize`
+/// without a direct dependency.
+pub use rkyv;
+
 #[doc(hidden)]
 pub use std::os::raw::c_void as __c_void;
 
