@@ -1060,151 +1060,162 @@ struct ExportItem {
     source: String,    // full Rust source of the item (without #[yog_export])
 }
 
-/// Collect used namespaces from source files and exported items.
-/// Returns (system_uses, type_uses) where:
-/// - system_uses: std/core/alloc imports like `std::collections::HashMap`
-/// - type_uses: external type dependencies like `::yog_api::rkyv::Archive`
+/// Collect the imports a generated exports crate needs.
+///
+/// This mirrors how `rustc` resolves names:
+///   1. Is the name a primitive / in `std` / `core` / `alloc` (always in scope)? → no import.
+///   2. Is the name defined in this same crate (an exported struct/enum/fn)? → no import.
+///   3. Otherwise, does the mod's own `use` statements bring it into scope?
+///      → emit the matching `use` path (preferring the most specific one).
+///   4. If it's still unresolved, emit a `use` for the crate the type likely
+///      lives in (e.g. `yog_api::…`) so consumers get a best-effort import.
+///
+/// Returns `(system_uses, type_uses)` where:
+/// - `system_uses`: std/core/alloc `use` paths like `std::collections::HashMap`
+/// - `type_uses`: external `use` paths like `yog_api::registry::Mod`
 fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<String>) {
     use std::collections::HashSet;
-    
-    let mut system_uses: HashSet<String> = HashSet::new();
-    let mut type_uses: HashSet<String> = HashSet::new();
-    
-    // First, scan ALL .rs files in src/ for use statements
+
+    // 1 + 2: names that never need an import.
+    // Primitives and std/core/alloc items are always in scope.
+    let mut primitives: HashSet<&str> = HashSet::new();
+    for p in ["bool","u8","u16","u32","u64","u128","usize","i8","i16","i32","i64","i128","isize",
+              "f32","f64","char","str","String","Vec","Option","Result","Box","Rc","Arc","Cow",
+              "PhantomData","Ordering","Self","()","HashMap","HashSet","BTreeMap","BTreeSet",
+              "LinkedList","VecDeque","BinaryHeap","Path","PathBuf","Duration","Instant","SystemTime",
+              "Error","fmt","ops","cmp","iter","slice","cell","sync","collections","convert",
+              "marker","mem","ptr","hint","borrow","hash","default","num","array","range"] {
+        primitives.insert(p);
+    }
+    // std/core/alloc prelude modules — anything starting with these is in scope.
+    let prelude_prefixes: &[&str] = &["std::", "core::", "alloc::"];
+
+    // Names defined locally in the mod (exported items) — no import required.
+    let local_names: HashSet<String> = exports.iter().map(|e| e.name.clone()).collect();
+
+    // 3: gather every `use` statement from the mod's source so we can map a
+    //    used type back to its import path.
+    let mut import_paths: Vec<String> = Vec::new();  // e.g. "yog_api::registry::Mod"
+    let mut system_imports: HashSet<String> = HashSet::new();
+    let mut type_imports: HashSet<String> = HashSet::new();
     if let Ok(entries) = std::fs::read_dir(src_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|e| e.to_str()) != Some("rs") { continue; }
-            if let Ok(src) = std::fs::read_to_string(&path) {
-                for line in src.lines() {
-                    let trimmed = line.trim();
-                    if trimmed.starts_with("use ") {
-                        // Classify the import
-                        if trimmed.starts_with("use std::") || trimmed.starts_with("use core::") || trimmed.starts_with("use alloc::") {
-                            // Extract the path (e.g., "std::collections::HashMap;")
-                            let path_part = trimmed[4..].trim_end_matches(';').trim();
-                            if !path_part.is_empty() {
-                                system_uses.insert(path_part.to_string());
-                            }
-                        } else if trimmed.contains("::yog_api::") {
-                            // Extract yog_api paths
-                            let path_part = trimmed[4..].trim_end_matches(';').trim();
-                            if !path_part.is_empty() {
-                                type_uses.insert(path_part.to_string());
-                            }
-                        }
-                    }
+            let Ok(src) = std::fs::read_to_string(&path) else { continue };
+            for line in src.lines() {
+                let t = line.trim();
+                if !t.starts_with("use ") { continue; }
+                let path_part = t[4..].trim_end_matches(';').trim();
+                if path_part.is_empty() { continue; }
+                // `use foo::{a, b}` / `use foo::*` — keep the prefix as a candidate.
+                if path_part.starts_with("std::") || path_part.starts_with("core::") || path_part.starts_with("alloc::") {
+                    system_imports.insert(path_part.to_string());
+                } else {
+                    type_imports.insert(path_part.to_string());
                 }
+                import_paths.push(path_part.to_string());
             }
         }
     }
-    
-    // Also check exported items for any additional uses
-    for item in exports {
-        let source = &item.source;
-        
-        // System crates to check for
-        let system_crates = ["std::", "core::", "alloc::"];
-        
-        // Check for system uses
-        for sys_crate in &system_crates {
-            if source.contains(sys_crate) {
-                for line in source.lines() {
-                    if line.contains(sys_crate) {
-                        let mut rest = line;
-                        while let Some(start) = rest.find(sys_crate) {
-                            let after = &rest[start..];
-                            let mut depth: i32 = 0;
-                            let mut end = after.len();
-                            
-                            for (i, ch) in after.char_indices() {
-                                if ch == '<' { depth += 1; }
-                                else if ch == '>' { depth -= 1; }
-                                else if ch == ' ' || ch == ',' || ch == ';' || ch == '{' || ch == '}' {
-                                    if depth == 0 {
-                                        end = i;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            let path = after[..end].trim().trim_end_matches(|c: char| c == '>' || c == ';' || c == ',' || c.is_whitespace());
-                            if !path.is_empty() && path.len() > sys_crate.len() {
-                                system_uses.insert(path.to_string());
-                            }
-                            
-                            rest = &after[end..];
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Check for yog_api uses
-        if source.contains("::yog_api::") {
-            for line in source.lines() {
-                if line.contains("::yog_api::") {
-                    if let Some(start) = line.find("::yog_api::") {
-                        let after = &line[start..];
-                        let mut depth: i32 = 0;
-                        let mut end = after.len();
-                        
-                        for (i, ch) in after.char_indices() {
-                            match ch {
-                                '<' => depth += 1,
-                                '>' => depth -= 1,
-                                ' ' | ',' | ';' | '{' | '}' => {
-                                    if depth == 0 {
-                                        end = i;
-                                        break;
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
-                        
-                        let path = after[..end].trim().trim_end_matches(|c: char| c == '>' || c == ';' || c == ',' || c.is_whitespace());
-                        if !path.is_empty() {
-                            type_uses.insert(path.to_string());
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // Normalize: remove simple imports that are covered by brace imports.
-    // E.g. if we have both `std::collections::HashMap` and
-    // `std::collections::{HashMap, HashSet, VecDeque}`, keep only the brace form.
-    let mut system_vec: Vec<String> = system_uses.into_iter().collect();
-    let mut type_vec: Vec<String> = type_uses.into_iter().collect();
 
-    fn normalize_uses(vec: &mut Vec<String>) {
-        vec.sort();
-        // Partition into brace imports and simple imports
-        let mut braces = Vec::new();
-        let mut simples = Vec::new();
-        for path in vec.drain(..) {
-            if path.contains('{') {
-                braces.push(path);
-            } else {
-                simples.push(path);
+    /// Resolve a bare type identifier to the most specific `use` path available.
+    fn resolve_name(
+        name: &str,
+        import_paths: &[String],
+        local_names: &HashSet<String>,
+        primitives: &HashSet<&str>,
+        prelude_prefixes: &[&str],
+    ) -> Option<String> {
+        // 1. primitive / prelude
+        if primitives.contains(name) { return None; }
+        if prelude_prefixes.iter().any(|p| name.starts_with(p)) { return None; }
+        // 2. defined in this crate
+        if local_names.contains(name) { return None; }
+        // 3. find a `use` path whose tail segment matches `name`.
+        //    Prefer the shortest matching (most specific) import.
+        let mut best: Option<(usize, String)> = None;
+        for p in import_paths {
+            let last = p.rsplit("::").next().unwrap_or(p);
+            if last == name || last == "*" {
+                let len = p.len();
+                if best.as_ref().map(|(l, _)| len < *l).unwrap_or(true) {
+                    best = Some((len, p.clone()));
+                }
             }
         }
-        // For each brace import, compute its prefix up to `{`
-        let mut keep = Vec::new();
+        best.map(|(_, p)| p)
+    }
+
+    // 4: scan exported item sources for type identifiers and resolve each.
+    for item in exports {
+        // Strip attributes / bodies to a single flat token-ish view, then pull
+        // out CamelCase identifiers (types) and `crate::`/`super::`/`self::`
+        // / absolute `::` paths.
+        let body = &item.source;
+        // Absolute paths (`::foo::Bar`, `yog_api::…`) are already fully qualified.
+        for m in body.match_indices("::") {
+            let start = m.0;
+            // Find the path: leading `::` or `ident::`, then segments.
+            let slice = &body[start..];
+            let mut end = 0;
+            let mut depth: i32 = 0;
+            for (i, ch) in slice.char_indices() {
+                match ch {
+                    '<' => depth += 1,
+                    '>' => depth -= 1,
+                    ' ' | ',' | ';' | '{' | '}' | '(' | ')' | ':' | '[' | ']' | '.' | '>' => {
+                        if depth == 0 { end = i; break; }
+                    }
+                    _ => {}
+                }
+                if depth < 0 { end = i; break; }
+            }
+            let path = slice[..end].trim().trim_end_matches("::");
+            if path.is_empty() { continue; }
+            let first = path.trim_start_matches(':').split("::").next().unwrap_or("");
+            if prelude_prefixes.iter().any(|p| path.starts_with(p)) {
+                system_imports.insert(path.to_string());
+            } else if first == "yog_api" || first == "crate" || first == "super" || first == "self" {
+                type_imports.insert(path.to_string());
+            }
+        }
+        // Bare CamelCase type names (struct/enum args, generic params, fields).
+        let re_check: Vec<&str> = body.split(|c: char| !c.is_alphanumeric() && c != '_')
+            .filter(|s| !s.is_empty())
+            .collect();
+        for tok in re_check {
+            if tok.chars().next().map(|c| c.is_uppercase()).unwrap_or(false) {
+                if let Some(p) = resolve_name(
+                    tok, &import_paths, &local_names, &primitives, prelude_prefixes,
+                ) {
+                    if p.starts_with("std::") || p.starts_with("core::") || p.starts_with("alloc::") {
+                        system_imports.insert(p);
+                    } else {
+                        type_imports.insert(p);
+                    }
+                }
+            }
+        }
+    }
+
+    // Normalize: drop a simple import if a brace form already covers it.
+    fn normalize(vec: &mut Vec<String>) {
+        vec.sort();
+        let mut braces: Vec<String> = Vec::new();
+        let mut simples: Vec<String> = Vec::new();
+        for p in vec.drain(..) {
+            if p.contains('{') { braces.push(p); } else { simples.push(p); }
+        }
+        let mut keep: Vec<String> = Vec::new();
         for brace in braces {
             let prefix = brace.split('{').next().unwrap_or("");
-            // Drop simple imports whose path starts with this prefix
+            let inside = brace.split('{').nth(1).and_then(|s| s.split('}').next()).unwrap_or("");
+            let items: HashSet<&str> = inside.split(',').map(|s| s.trim()).collect();
             simples.retain(|s| {
                 if s.starts_with(prefix) {
-                    // Keep only if this simple path is NOT a prefix of any item inside braces
-                    let inside = brace.split('{').nth(1).and_then(|s| s.split('}').next()).unwrap_or("");
-                    let items: Vec<&str> = inside.split(',').collect();
-                    !items.iter().any(|item| item.trim() == s.strip_prefix(prefix).unwrap_or(s).trim())
-                } else {
-                    true
-                }
+                    !items.contains(&s.strip_prefix(prefix).unwrap_or(s).trim())
+                } else { true }
             });
             keep.push(brace);
         }
@@ -1213,8 +1224,10 @@ fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<Str
         *vec = keep;
     }
 
-    normalize_uses(&mut system_vec);
-    normalize_uses(&mut type_vec);
+    let mut system_vec: Vec<String> = system_imports.into_iter().collect();
+    let mut type_vec: Vec<String> = type_imports.into_iter().collect();
+    normalize(&mut system_vec);
+    normalize(&mut type_vec);
 
     (system_vec, type_vec)
 }
@@ -1352,7 +1365,7 @@ description = "Exports from the {mod_id} Yog mod — generated by `yog publish e
 
 [dependencies]
 yog-api = "{yog_api_override}"
-rkyv = "{rkyv_ver}"
+rkyv = {{ version = "{rkyv_ver}", features = ["derive", "rancor"] }}
 
 [lib]
 crate-type = ["cdylib", "lib"]
