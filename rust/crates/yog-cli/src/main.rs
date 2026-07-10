@@ -29,10 +29,13 @@ fn main() {
             Some(name) => run_config(name),
             None => Err("usage: yog run <config_name>  (see [run.<config_name>] in yog.toml)".into()),
         },
-        Some("publish")         => match args.get(2).map(String::as_str) {
-            Some("exports") => publish_exports(),
-            Some(other) => Err(format!("unknown publish subcommand: {other}")),
-            None => Err("usage: yog publish exports".into()),
+        Some("publish")         => {
+            let dry_run = args.iter().any(|a| a == "--dry-run");
+            match args.get(2).map(String::as_str) {
+                Some("exports") => publish_exports(dry_run),
+                Some(other) => Err(format!("unknown publish subcommand: {other}")),
+                None => Err("usage: yog publish exports [--dry-run]".into()),
+            }
         },
         Some("-h") | Some("--help") | Some("help") | None => { print_usage(); return; }
         Some(other)            => Err(format!("unknown command: {other}")),
@@ -1051,7 +1054,7 @@ fn remove_dep(crate_name: Option<&str>) -> Result<(), String> {
 
 /// Scans the mod for `#[yog_export]` items, generates an `-exports` crate,
 /// and publishes it to crates.io.
-fn publish_exports() -> Result<(), String> {
+fn publish_exports(dry_run: bool) -> Result<(), String> {
     let proj = std::env::current_dir().map_err(|e| e.to_string())?;
     let manifest = YogToml::read(&proj.join("yog.toml"))?;
 
@@ -1241,6 +1244,14 @@ crate-type = ["cdylib", "lib"]
          pub use {mod_ident}::*;\n",
     ));
     write_file(&build_dir.join("src").join("lib.rs"), lib_rs.as_bytes())?;
+
+    if dry_run {
+        eprintln!("==> dry-run: skipping cargo publish");
+        eprintln!("    generated crate is at: {}", build_dir.display());
+        eprintln!("    Run `cargo publish` manually from that directory, or");
+        eprintln!("    re-run without --dry-run to publish automatically.");
+        return Ok(());
+    }
 
     // Publish
     eprintln!("==> cargo publish (--allow-dirty)");
