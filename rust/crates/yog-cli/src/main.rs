@@ -1067,26 +1067,89 @@ fn publish_exports() -> Result<(), String> {
         return Err("no src/ directory — nothing to export".into());
     }
 
-    // Scan .rs files for #[yog_export] items
-    let mut exports = Vec::new(); // (path, item_type, name, source_lines)
+    // Scan .rs files for #[yog_export] items.
+    // Collects the full source of each exported item (struct/enum/fn) including
+    // generics and body by tracking brace depth.
+    #[derive(Debug)]
+    struct ExportItem {
+        kind: String,      // "struct", "enum", "fn"
+        name: String,
+        source: String,    // full Rust source of the item (without #[yog_export])
+    }
+
+    let mut exports: Vec<ExportItem> = Vec::new();
+
     for entry in std::fs::read_dir(&src_dir).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
         if path.extension().and_then(|e| e.to_str()) != Some("rs") { continue; }
         let src = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-        for (line_no, line) in src.lines().enumerate() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("#[yog_export") {
-                // Extract the item type and name from the following line
-                let next_line = src.lines().nth(line_no + 1).unwrap_or("");
-                if next_line.trim().starts_with("pub fn ") {
-                    let name = extract_fn_name(next_line);
-                    exports.push((path.clone(), "fn", name, next_line.to_string()));
-                } else if next_line.trim().starts_with("pub struct ") {
-                    let name = extract_struct_name(next_line);
-                    exports.push((path.clone(), "struct", name, next_line.to_string()));
+        let lines: Vec<&str> = src.lines().collect();
+        let mut i = 0;
+        while i < lines.len() {
+            let trimmed = lines[i].trim();
+            if trimmed == "#[yog_export]" || trimmed.starts_with("#[yog_export(") {
+                i += 1;
+                // Skip outer attributes that may appear between #[yog_export] and the item
+                while i < lines.len() && lines[i].trim() == "#[yog_export]" {
+                    i += 1;
                 }
+                // Collect the item source: pub struct / pub enum / pub fn
+                if i >= lines.len() { break; }
+                let first = lines[i].trim();
+                let kind = if first.starts_with("pub struct ") { "struct" }
+                    else if first.starts_with("pub enum ") { "enum" }
+                    else if first.starts_with("pub fn ") { "fn" }
+                    else { i += 1; continue; };
+
+                // Extract item name from the first line
+                let name = if kind == "fn" {
+                    first.trim_start_matches("pub fn ")
+                        .split('(').next().unwrap_or("")
+                        .trim().to_string()
+                } else if kind == "struct" {
+                    first.trim_start_matches("pub struct ")
+                        .split(&['{', '(', ' ', '<', ';', '\t'][..])
+                        .next().unwrap_or("")
+                        .trim().to_string()
+                } else { // enum
+                    first.trim_start_matches("pub enum ")
+                        .split(&['{', ' ', '<', ';', '\t'][..])
+                        .next().unwrap_or("")
+                        .trim().to_string()
+                };
+
+                if name.is_empty() { i += 1; continue; }
+
+                // Collect lines until the top-level brace block closes
+                let mut depth: i32 = 0;
+                let mut found_open = false;
+                let mut item_lines: Vec<String> = Vec::new();
+                // Start from the first line of the item (current i)
+                let _start_i = i;
+                while i < lines.len() {
+                    let line = lines[i];
+                    item_lines.push(line.to_string());
+                    for ch in line.chars() {
+                        if ch == '{' { depth += 1; found_open = true; }
+                        else if ch == '}' { depth -= 1; }
+                    }
+                    if found_open && depth <= 0 {
+                        item_lines.push(String::new());
+                        i += 1;
+                        break;
+                    }
+                    // Also handle items with no body (empty struct/enum with semicolon)
+                    if !found_open && line.trim().ends_with(';') {
+                        i += 1;
+                        break;
+                    }
+                    i += 1;
+                }
+                let source = item_lines.join("\n");
+                exports.push(ExportItem { kind: kind.to_string(), name, source });
             }
+            i += 1;
         }
     }
 
@@ -1140,53 +1203,43 @@ crate-type = ["cdylib", "lib"]
     );
     write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
 
-    // lib.rs — generate wrapper module
+    // lib.rs — generate wrapper module.
+    // For struct/enum: emit with rkyv derives so consumers get the serialisable types.
+    // For fn: emit a full interop wrapper using the same pattern as `import!`.
     let mod_ident = mod_id.replace('-', "_");
     let mut lib_rs = format!(
         "//! Auto-generated exports from `{mod_id}` v{version}.\n\
-         //! DO NOT EDIT — generated by `yog publish exports`.\n\n\
-         pub mod {mod_ident} {{\n"
+         //! DO NOT EDIT — generated by `yog publish exports`.\n\n"
     );
 
-    for (_path, item_type, name, _source_line) in &exports {
-        match item_type.as_ref() {
-            "struct" => {
-                // Struct: re-export with rkyv derives
-                // We can't include the original struct body here (it's in the other crate).
-                // Instead, we generate a transparent newtype wrapper?
-                // Better: just generate the rkyv-compatible type definition.
-                // For now: the user gets struct definitions auto-pasted as is.
-                // In the real implementation, we'd parse the struct and regenerate it.
+    for item in &exports {
+        match item.kind.as_str() {
+            "struct" | "enum" => {
+                // Reproduce the item with #[derive] for rkyv + serde.
+                // Strip existing #[derive(...)] to avoid duplicates.
+                let cleaned = strip_derive_attrs(&item.source);
                 lib_rs.push_str(&format!(
-                    "    // struct {name} — re-exported from {mod_id}\n\
-                     "    // (struct definitions need to be duplicated in the exports crate)\n"
+                    "#[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize, Debug, Clone, PartialEq)]\n\
+                     {}\n",
+                    cleaned,
                 ));
             }
             "fn" => {
-                lib_rs.push_str(&format!(
-                    r#"    pub fn {name}(/* args serialized via rkyv */) {{
-        // Auto-generated wrapper — calls through interop to {mod_id}
-        static SLOT: std::sync::OnceLock<unsafe extern "C" fn(
-            *const u8, u32, *mut *mut u8, *mut u32, *mut u32,
-        )> = std::sync::OnceLock::new();
-
-        // For now: stub. Real implementation in Phase 2.
-        todo!("yog publish exports: function wrappers coming soon");
-    }}
-
-    #[doc(hidden)]
-    #[no_mangle]
-    pub unsafe extern "C" fn __yog_bind_{name}(ptr: *const std::os::raw::c_void) {{
-        SLOT.set(std::mem::transmute(ptr)).ok();
-    }}
-"#,
-                ));
+                // Parse the function signature to build a proper interop wrapper.
+                // We have the full source of the fn; extract sig and produce:
+                //   pub fn {name}(input_type) -> output_type { rkyv call }
+                //   static __yog_slot_{name}: OnceLock<...>
+                //   #[no_mangle] pub unsafe extern "C" fn __yog_bind_{name}(ptr)
+                let wrapper = generate_fn_wrapper(&item.name, &item.source);
+                lib_rs.push_str(&wrapper);
             }
             _ => {}
         }
     }
-
-    lib_rs.push_str("}\n");
+    lib_rs.push_str(&format!(
+        "/// Convenience re-export of the entire module.\n\
+         pub use {mod_ident}::*;\n",
+    ));
     write_file(&build_dir.join("src").join("lib.rs"), lib_rs.as_bytes())?;
 
     // Publish
@@ -1232,6 +1285,125 @@ fn extract_struct_name(line: &str) -> String {
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
+
+/// Strip `#[derive(...)]` lines from a Rust source item to avoid duplicates
+/// when the generator adds its own derives.
+fn strip_derive_attrs(source: &str) -> String {
+    source.lines()
+        .filter(|line| !line.trim().starts_with("#[derive("))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Generate a full interop wrapper for a `#[yog_export]` function.
+///
+/// Given the source of a function like:
+/// ```rust
+/// pub fn register_pipe(args: RegisterPipeArgs) -> Result<(), String> { ... }
+/// ```
+///
+/// Produces:
+/// ```rust
+/// #![allow(non_snake_case)]
+/// pub fn register_pipe(args: RegisterPipeArgs) -> Result<(), String> {
+///     // rkyv-serialize args, call via C-ABI slot, deserialize result
+/// }
+/// static __yog_slot_register_pipe: OnceLock<...>;
+/// #[no_mangle] pub unsafe extern "C" fn __yog_bind_register_pipe(ptr) { ... }
+/// ```
+fn generate_fn_wrapper(name: &str, source: &str) -> String {
+    // Extract the first line (signature start) to get parameter names and types.
+    let lines: Vec<&str> = source.lines().collect();
+    let sig_line = lines.first().unwrap_or(&"").trim();
+
+    // Parse: "pub fn name(args: ArgType) -> ReturnType"
+    // Find the opening paren to extract the single-arg pattern.
+    let paren_start = sig_line.find('(');
+    let paren_end = sig_line.rfind(')');
+
+    let (input_type, arg_name) = if let (Some(ps), Some(pe)) = (paren_start, paren_end) {
+        let params = sig_line[ps+1..pe].trim();
+        if params.is_empty() {
+            ("()".to_string(), String::new())
+        } else {
+            // Take first param: "args: RegisterPipeArgs" → name="args", type="RegisterPipeArgs"
+            let parts: Vec<&str> = params.splitn(2, ':').collect();
+            if parts.len() == 2 {
+                (parts[1].trim().to_string(), parts[0].trim().to_string())
+            } else {
+                (params.to_string(), String::new())
+            }
+        }
+    } else {
+        ("()".to_string(), String::new())
+    };
+
+    // Extract return type
+    let output_type = if let Some(arrow) = sig_line.find("->") {
+        sig_line[arrow+2..].trim().to_string()
+    } else {
+        "()".to_string()
+    };
+
+    let slot_name = format!("__yog_slot_{}", name);
+    let bind_name = format!("__yog_bind_{}", name);
+
+    // Build the C-ABI function pointer type
+    let wrapper_ty = format!(
+        "unsafe extern \"C\" fn(input_ptr: *const u8, input_len: u32, \
+         out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32)"
+    );
+
+    let serialize_block = if arg_name.is_empty() {
+        "let input_bytes: Vec<u8> = Vec::new();".to_string()
+    } else {
+        format!(
+            "let aligned = ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(\
+                &{arg_name}\
+            ).unwrap_or_default();\n            \
+             let input_bytes: Vec<u8> = aligned.to_vec();"
+        )
+    };
+
+    format!(
+        r#"#[allow(non_snake_case)]
+pub fn {name}({arg_name}: {input_type}) -> {output_type} {{
+    {serialize_block}
+    let f = {slot_name}.get()
+        .expect(concat!("yog: export '", "{name}", "' not bound"));
+    let mut out_data: *mut u8 = std::ptr::null_mut();
+    let mut out_len: u32 = 0;
+    let mut out_cap: u32 = 0;
+    unsafe {{
+        f(input_bytes.as_ptr(), input_bytes.len() as u32,
+          &mut out_data, &mut out_len, &mut out_cap);
+        let output_slice = std::slice::from_raw_parts(out_data, out_len as usize);
+        let result: {output_type} = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(output_slice)
+            .expect(concat!("yog: deser failed in export '", "{name}", "'"));
+        let _ = Vec::from_raw_parts(out_data, out_len as usize, out_cap as usize);
+        result
+    }}
+}}
+
+static {slot_name}: ::std::sync::OnceLock<{wrapper_ty}> = ::std::sync::OnceLock::new();
+
+#[doc(hidden)]
+#[no_mangle]
+pub unsafe extern "C" fn {bind_name}(ptr: *const ::std::os::raw::c_void) {{
+    let f: {wrapper_ty} = ::std::mem::transmute(ptr);
+    {slot_name}.set(f).ok();
+}}
+"#,
+        name = name,
+        arg_name = arg_name,
+        input_type = input_type,
+        output_type = output_type,
+        slot_name = slot_name,
+        wrapper_ty = wrapper_ty,
+        bind_name = bind_name,
+        serialize_block = serialize_block,
+    )
+}
 
 fn write_file(path: &Path, data: &[u8]) -> Result<(), String> {
     std::fs::write(path, data).map_err(|e| format!("writing {}: {e}", path.display()))
