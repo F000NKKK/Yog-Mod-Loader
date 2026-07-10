@@ -1060,16 +1060,46 @@ struct ExportItem {
     source: String,    // full Rust source of the item (without #[yog_export])
 }
 
-/// Collect used namespaces from exported items by analyzing their source code.
+/// Collect used namespaces from source files and exported items.
 /// Returns (system_uses, type_uses) where:
 /// - system_uses: std/core/alloc imports like `std::collections::HashMap`
 /// - type_uses: external type dependencies like `::yog_api::rkyv::Archive`
-fn collect_uses(exports: &[ExportItem]) -> (Vec<String>, Vec<String>) {
+fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<String>) {
     use std::collections::HashSet;
     
     let mut system_uses: HashSet<String> = HashSet::new();
     let mut type_uses: HashSet<String> = HashSet::new();
     
+    // First, scan ALL .rs files in src/ for use statements
+    if let Ok(entries) = std::fs::read_dir(src_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("rs") { continue; }
+            if let Ok(src) = std::fs::read_to_string(&path) {
+                for line in src.lines() {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("use ") {
+                        // Classify the import
+                        if trimmed.starts_with("use std::") || trimmed.starts_with("use core::") || trimmed.starts_with("use alloc::") {
+                            // Extract the path (e.g., "std::collections::HashMap;")
+                            let path_part = trimmed[4..].trim_end_matches(';').trim();
+                            if !path_part.is_empty() {
+                                system_uses.insert(path_part.to_string());
+                            }
+                        } else if trimmed.contains("::yog_api::") {
+                            // Extract yog_api paths
+                            let path_part = trimmed[4..].trim_end_matches(';').trim();
+                            if !path_part.is_empty() {
+                                type_uses.insert(path_part.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Also check exported items for any additional uses
     for item in exports {
         let source = &item.source;
         
@@ -1079,14 +1109,11 @@ fn collect_uses(exports: &[ExportItem]) -> (Vec<String>, Vec<String>) {
         // Check for system uses
         for sys_crate in &system_crates {
             if source.contains(sys_crate) {
-                // Extract the full path (e.g., "std::collections::HashMap")
                 for line in source.lines() {
                     if line.contains(sys_crate) {
-                        // Extract paths containing system crate prefixes
                         let mut rest = line;
                         while let Some(start) = rest.find(sys_crate) {
                             let after = &rest[start..];
-                            // Extract the qualified path
                             let mut depth: i32 = 0;
                             let mut end = after.len();
                             
@@ -1113,7 +1140,7 @@ fn collect_uses(exports: &[ExportItem]) -> (Vec<String>, Vec<String>) {
             }
         }
         
-        // Check for yog_api uses (type dependencies)
+        // Check for yog_api uses
         if source.contains("::yog_api::") {
             for line in source.lines() {
                 if line.contains("::yog_api::") {
@@ -1146,13 +1173,49 @@ fn collect_uses(exports: &[ExportItem]) -> (Vec<String>, Vec<String>) {
         }
     }
     
-    // Convert to sorted vectors for deterministic output
+    // Normalize: remove simple imports that are covered by brace imports.
+    // E.g. if we have both `std::collections::HashMap` and
+    // `std::collections::{HashMap, HashSet, VecDeque}`, keep only the brace form.
     let mut system_vec: Vec<String> = system_uses.into_iter().collect();
     let mut type_vec: Vec<String> = type_uses.into_iter().collect();
-    
-    system_vec.sort();
-    type_vec.sort();
-    
+
+    fn normalize_uses(vec: &mut Vec<String>) {
+        vec.sort();
+        // Partition into brace imports and simple imports
+        let mut braces = Vec::new();
+        let mut simples = Vec::new();
+        for path in vec.drain(..) {
+            if path.contains('{') {
+                braces.push(path);
+            } else {
+                simples.push(path);
+            }
+        }
+        // For each brace import, compute its prefix up to `{`
+        let mut keep = Vec::new();
+        for brace in braces {
+            let prefix = brace.split('{').next().unwrap_or("");
+            // Drop simple imports whose path starts with this prefix
+            simples.retain(|s| {
+                if s.starts_with(prefix) {
+                    // Keep only if this simple path is NOT a prefix of any item inside braces
+                    let inside = brace.split('{').nth(1).and_then(|s| s.split('}').next()).unwrap_or("");
+                    let items: Vec<&str> = inside.split(',').collect();
+                    !items.iter().any(|item| item.trim() == s.strip_prefix(prefix).unwrap_or(s).trim())
+                } else {
+                    true
+                }
+            });
+            keep.push(brace);
+        }
+        keep.extend(simples);
+        keep.sort();
+        *vec = keep;
+    }
+
+    normalize_uses(&mut system_vec);
+    normalize_uses(&mut type_vec);
+
     (system_vec, type_vec)
 }
 
@@ -1256,10 +1319,12 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
     }
 
     // Collect used namespaces from exported items
-    let (system_uses, type_uses) = collect_uses(&exports);
+    let (system_uses, type_uses) = collect_uses(&exports, &src_dir);
 
     eprintln!("==> generating {exports_crate_name} ({items} export(s))",
         items = exports.len());
+    eprintln!("    system_uses: {:?}", system_uses);
+    eprintln!("    type_uses: {:?}", type_uses);
 
     // Generate the exports crate in .yog-build/exports/
     let build_dir = proj.join(".yog-build").join("exports").join(&exports_crate_name);
