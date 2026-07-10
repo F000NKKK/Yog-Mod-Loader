@@ -577,9 +577,23 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
     for (name, spec) in &meta.dependencies {
         // Heuristic: names with hyphens are Yog mods → add their exports crate instead
         // (Runtime reads [dependencies] from embedded yog.toml for load ordering.)
+        // During development we use the `yog_exports` namespace so all mods share a
+        // single import prefix.  The real crate on crates.io is `{name}_exports`.
         if name.contains('-') {
             let exports_name = format!("{}-exports", name);
-            deps_lines.push(format!("{} = {}", exports_name, spec));
+            let dep = if spec.starts_with('{') {
+                // Table-style: insert `package` into the inline table
+                let inner = spec.trim_start_matches('{').trim_end_matches('}').trim();
+                if inner.is_empty() {
+                    format!("yog-exports = {{ package = \"{exports_name}\" }}")
+                } else {
+                    format!("yog-exports = {{ package = \"{exports_name}\", {inner} }}")
+                }
+            } else {
+                // Simple version string
+                format!("yog-exports = {{ package = \"{exports_name}\", version = {spec} }}")
+            };
+            deps_lines.push(dep);
         } else {
             deps_lines.push(format!("{} = {}", name, spec));
         }
@@ -1046,7 +1060,7 @@ fn publish_exports() -> Result<(), String> {
     let edition = manifest.edition.as_deref().unwrap_or("2021");
     let license = &manifest.license;
     let authors = manifest.authors.join(", ");
-    let exports_crate_name = format!("{}-exports", mod_id.replace('_', "-"));
+    let exports_crate_name = format!("{}_exports", mod_id.replace('-', "_"));
 
     let src_dir = proj.join("src");
     if !src_dir.exists() {
