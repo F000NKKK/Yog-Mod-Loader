@@ -56,7 +56,7 @@ use quote::{format_ident, quote};
 /// No manual `registry.interop().export()` needed.
 #[proc_macro_attribute]
 pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    // Try parsing as a struct first (more common for types)
+    // Try parsing as a struct or enum first (more common for types)
     if let Ok(s) = syn::parse2::<syn::ItemStruct>(proc_macro2::TokenStream::from(item.clone())) {
         let vis = &s.vis;
         let ident = &s.ident;
@@ -69,6 +69,20 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
             #[archive_attr(derive(::yog_api::rkyv::bytecheck::CheckBytes))]
             #(#attrs)*
             #vis struct #ident #generics #fields
+        });
+    }
+    if let Ok(e) = syn::parse2::<syn::ItemEnum>(proc_macro2::TokenStream::from(item.clone())) {
+        let vis = &e.vis;
+        let ident = &e.ident;
+        let generics = &e.generics;
+        let variants = &e.variants;
+        let attrs = &e.attrs;
+        return TokenStream::from(quote! {
+            #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
+            #[archive(check_bytes)]
+            #[archive_attr(derive(::yog_api::rkyv::bytecheck::CheckBytes))]
+            #(#attrs)*
+            #vis enum #ident #generics { #variants }
         });
     }
 
