@@ -1052,6 +1052,110 @@ fn remove_dep(crate_name: Option<&str>) -> Result<(), String> {
 
 // ── yog publish exports ────────────────────────────────────────────────────────
 
+/// Item found by the export scanner.
+#[derive(Debug)]
+struct ExportItem {
+    kind: String,      // "struct", "enum", "fn"
+    name: String,
+    source: String,    // full Rust source of the item (without #[yog_export])
+}
+
+/// Collect used namespaces from exported items by analyzing their source code.
+/// Returns (system_uses, type_uses) where:
+/// - system_uses: std/core/alloc imports like `std::collections::HashMap`
+/// - type_uses: external type dependencies like `::yog_api::rkyv::Archive`
+fn collect_uses(exports: &[ExportItem]) -> (Vec<String>, Vec<String>) {
+    use std::collections::HashSet;
+    
+    let mut system_uses: HashSet<String> = HashSet::new();
+    let mut type_uses: HashSet<String> = HashSet::new();
+    
+    for item in exports {
+        let source = &item.source;
+        
+        // System crates to check for
+        let system_crates = ["std::", "core::", "alloc::"];
+        
+        // Check for system uses
+        for sys_crate in &system_crates {
+            if source.contains(sys_crate) {
+                // Extract the full path (e.g., "std::collections::HashMap")
+                for line in source.lines() {
+                    if line.contains(sys_crate) {
+                        // Extract paths containing system crate prefixes
+                        let mut rest = line;
+                        while let Some(start) = rest.find(sys_crate) {
+                            let after = &rest[start..];
+                            // Extract the qualified path
+                            let mut depth: i32 = 0;
+                            let mut end = after.len();
+                            
+                            for (i, ch) in after.char_indices() {
+                                if ch == '<' { depth += 1; }
+                                else if ch == '>' { depth -= 1; }
+                                else if ch == ' ' || ch == ',' || ch == ';' || ch == '{' || ch == '}' {
+                                    if depth == 0 {
+                                        end = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            let path = after[..end].trim().trim_end_matches(|c: char| c == '>' || c == ';' || c == ',' || c.is_whitespace());
+                            if !path.is_empty() && path.len() > sys_crate.len() {
+                                system_uses.insert(path.to_string());
+                            }
+                            
+                            rest = &after[end..];
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Check for yog_api uses (type dependencies)
+        if source.contains("::yog_api::") {
+            for line in source.lines() {
+                if line.contains("::yog_api::") {
+                    if let Some(start) = line.find("::yog_api::") {
+                        let after = &line[start..];
+                        let mut depth: i32 = 0;
+                        let mut end = after.len();
+                        
+                        for (i, ch) in after.char_indices() {
+                            match ch {
+                                '<' => depth += 1,
+                                '>' => depth -= 1,
+                                ' ' | ',' | ';' | '{' | '}' => {
+                                    if depth == 0 {
+                                        end = i;
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        
+                        let path = after[..end].trim().trim_end_matches(|c: char| c == '>' || c == ';' || c == ',' || c.is_whitespace());
+                        if !path.is_empty() {
+                            type_uses.insert(path.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Convert to sorted vectors for deterministic output
+    let mut system_vec: Vec<String> = system_uses.into_iter().collect();
+    let mut type_vec: Vec<String> = type_uses.into_iter().collect();
+    
+    system_vec.sort();
+    type_vec.sort();
+    
+    (system_vec, type_vec)
+}
+
 /// Scans the mod for `#[yog_export]` items, generates an `-exports` crate,
 /// and publishes it to crates.io.
 fn publish_exports(dry_run: bool) -> Result<(), String> {
@@ -1068,16 +1172,6 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
     let src_dir = proj.join("src");
     if !src_dir.exists() {
         return Err("no src/ directory — nothing to export".into());
-    }
-
-    // Scan .rs files for #[yog_export] items.
-    // Collects the full source of each exported item (struct/enum/fn) including
-    // generics and body by tracking brace depth.
-    #[derive(Debug)]
-    struct ExportItem {
-        kind: String,      // "struct", "enum", "fn"
-        name: String,
-        source: String,    // full Rust source of the item (without #[yog_export])
     }
 
     let mut exports: Vec<ExportItem> = Vec::new();
@@ -1161,6 +1255,9 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
         return Ok(());
     }
 
+    // Collect used namespaces from exported items
+    let (system_uses, type_uses) = collect_uses(&exports);
+
     eprintln!("==> generating {exports_crate_name} ({items} export(s))",
         items = exports.len());
 
@@ -1209,11 +1306,28 @@ crate-type = ["cdylib", "lib"]
     // lib.rs — generate wrapper module.
     // For struct/enum: emit with rkyv derives so consumers get the serialisable types.
     // For fn: emit a full interop wrapper using the same pattern as `import!`.
-    let _mod_ident = mod_id.replace('-', "_");
     let mut lib_rs = format!(
         "//! Auto-generated exports from `{mod_id}` v{version}.\n\
          //! DO NOT EDIT — generated by `yog publish exports`.\n\n"
     );
+    
+    // Add system uses (std, core, alloc)
+    if !system_uses.is_empty() {
+        lib_rs.push_str("// System dependencies\n");
+        for u in &system_uses {
+            lib_rs.push_str(&format!("use {};\n", u));
+        }
+        lib_rs.push('\n');
+    }
+    
+    // Add type dependencies (yog_api, rkyv, etc.)
+    if !type_uses.is_empty() {
+        lib_rs.push_str("// Type dependencies\n");
+        for u in &type_uses {
+            lib_rs.push_str(&format!("use {};\n", u));
+        }
+        lib_rs.push('\n');
+    }
 
     for item in &exports {
         match item.kind.as_str() {
@@ -1223,6 +1337,7 @@ crate-type = ["cdylib", "lib"]
                 let cleaned = strip_derive_attrs(&item.source);
                 lib_rs.push_str(&format!(
                     "#[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize, Debug, Clone, PartialEq)]\n\
+                     #[archive(check_bytes(rancor::Error))]\n\
                      {}\n",
                     cleaned,
                 ));
@@ -1266,30 +1381,6 @@ crate-type = ["cdylib", "lib"]
     let _ = std::fs::remove_dir_all(&build_dir);
     eprintln!("==> published {exports_crate_name} v{version}");
     Ok(())
-}
-
-fn extract_fn_name(line: &str) -> String {
-    // "pub fn register_pipe(...)" → "register_pipe"
-    line.trim()
-        .trim_start_matches("pub ")
-        .trim_start_matches("fn ")
-        .split('(')
-        .next()
-        .unwrap_or("")
-        .trim()
-        .to_string()
-}
-
-fn extract_struct_name(line: &str) -> String {
-    // "pub struct PipeDef {" → "PipeDef"
-    line.trim()
-        .trim_start_matches("pub ")
-        .trim_start_matches("struct ")
-        .split('{')
-        .next()
-        .unwrap_or("")
-        .trim()
-        .to_string()
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
