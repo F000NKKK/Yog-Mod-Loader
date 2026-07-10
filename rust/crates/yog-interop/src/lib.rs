@@ -65,7 +65,6 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let attrs = &s.attrs;
         return TokenStream::from(quote! {
             #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
-            #[archive(check_bytes)]
             #(#attrs)*
             #vis struct #ident #generics #fields
         });
@@ -78,7 +77,6 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let attrs = &e.attrs;
         return TokenStream::from(quote! {
             #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
-            #[archive(check_bytes)]
             #(#attrs)*
             #vis enum #ident #generics { #variants }
         });
@@ -132,13 +130,18 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let expanded = quote! {
         #vis #sig #block
 
-        // linkme distributed slice entry — auto-registered at mod load
+        // ctor — runs before main(), pushes entry to export registry
         #[doc(hidden)]
-        #[linkme::distributed_slice(::yog_api::YOG_EXPORTS)]
-        static __yog_export_ent_{name}: ::yog_api::YogExportEntry = ::yog_api::YogExportEntry {
-            name: #name_str,
-            ptr: #wrap_name as usize,
-        };
+        #[ctor::ctor]
+        fn __yog_export_ctor_{name}() {
+            ::yog_api::__yog_export_registry()
+                .lock()
+                .unwrap()
+                .push(::yog_api::YogExportEntry {
+                    name: #name_str,
+                    ptr: #wrap_name as usize,
+                });
+        }
 
         // C-ABI wrapper — deserializes input via rkyv, calls fn, serializes output.
         #[doc(hidden)]
@@ -244,14 +247,19 @@ pub fn import(input: TokenStream) -> TokenStream {
         let _init_name = format_ident!("__yog_import_init_{}", name);
 
         let wrapper = quote! {
-            // linkme distributed slice entry — auto-resolved by loader
+            // ctor — runs before main(), pushes entry to import registry
             #[doc(hidden)]
-            #[linkme::distributed_slice(::yog_api::YOG_IMPORTS)]
-            static __yog_import_ent_{name}: ::yog_api::YogImportEntry = ::yog_api::YogImportEntry {
-                mod_id: #mod_name,
-                symbol: #name_str,
-                bind_fn: #bind_name as usize,
-            };
+            #[ctor::ctor]
+            fn __yog_import_ctor_{name}() {
+                ::yog_api::__yog_import_registry()
+                    .lock()
+                    .unwrap()
+                    .push(::yog_api::YogImportEntry {
+                        mod_id: #mod_name,
+                        symbol: #name_str,
+                        bind_fn: #bind_name as usize,
+                    });
+            }
 
             #[allow(non_snake_case)]
             #vis fn #name(#inputs) #output {
