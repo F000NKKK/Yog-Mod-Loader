@@ -534,7 +534,7 @@ fn build() -> Result<(YogToml, PathBuf), String> {
         // Written as a sibling of the real `src/lib.rs` (not under
         // `.yog-build/`) so its `mod foo;` declarations still resolve.
         write_file(
-            &root.join("src").join("__yog_generated_lib.rs"),
+            &root.join("src").join("lib.designer.rs"),
             facade.as_bytes(),
         )?;
     }
@@ -779,7 +779,7 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
     let lib_path = if meta.mod_dependencies.is_empty() {
         "../src/lib.rs"
     } else {
-        "../src/__yog_generated_lib.rs"
+        "../src/lib.designer.rs"
     };
 
     format!(
@@ -2253,7 +2253,7 @@ fn collect_rs_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
             // Skip the `yog_exports` facade `build()` generates next to
             // `lib.rs` — it's a verbatim copy of the real source, and
             // scanning it too would double every `#[yog_export]` item.
-            && path.file_name().and_then(|n| n.to_str()) != Some("__yog_generated_lib.rs")
+            && path.file_name().and_then(|n| n.to_str()) != Some("lib.designer.rs")
         {
             out.push(path);
         }
