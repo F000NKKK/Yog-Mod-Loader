@@ -1407,12 +1407,8 @@ fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<Str
     let mut import_paths: Vec<String> = Vec::new(); // e.g. "yog_api::registry::Mod"
     let mut system_imports: HashSet<String> = HashSet::new();
     let mut type_imports: HashSet<String> = HashSet::new();
-    if let Ok(entries) = std::fs::read_dir(src_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) != Some("rs") {
-                continue;
-            }
+    if let Ok(files) = collect_rs_files(src_dir) {
+        for path in files {
             let Ok(src) = std::fs::read_to_string(&path) else {
                 continue;
             };
@@ -1623,12 +1619,7 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
 
     let mut exports: Vec<ExportItem> = Vec::new();
 
-    for entry in std::fs::read_dir(&src_dir).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("rs") {
-            continue;
-        }
+    for path in collect_rs_files(&src_dir)? {
         let src = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
         let lines: Vec<&str> = src.lines().collect();
         let mut i = 0;
@@ -2121,6 +2112,22 @@ pub unsafe extern "C" fn {bind_name_fmt}(ptr: *const ::std::os::raw::c_void) {{
 
 fn write_file(path: &Path, data: &[u8]) -> Result<(), String> {
     std::fs::write(path, data).map_err(|e| format!("writing {}: {e}", path.display()))
+}
+
+/// Recursively collect every `.rs` file under `dir`, so `#[yog_export]` items
+/// can live in any module/subfolder — not just flat files directly in `src/`.
+fn collect_rs_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
+    let mut out = Vec::new();
+    for entry in std::fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        if path.is_dir() {
+            out.extend(collect_rs_files(&path)?);
+        } else if path.extension().and_then(|e| e.to_str()) == Some("rs") {
+            out.push(path);
+        }
+    }
+    Ok(out)
 }
 
 /// rkyv version embedded at compile time via `build.rs`.
