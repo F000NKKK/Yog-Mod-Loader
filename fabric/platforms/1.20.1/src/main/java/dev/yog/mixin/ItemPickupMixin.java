@@ -22,15 +22,16 @@ public class ItemPickupMixin {
         String itemId = Registries.ITEM.getId(stack.getItem()).toString();
         int count = stack.getCount();
         String entityUuid = self.getUuidAsString();
+        String dim = self.getWorld().getRegistryKey().getValue().toString();
         boolean allow = NativeBridge.nativeOnItemPickupPre(
                 sp.getName().getString(), sp.getUuidAsString(),
-                itemId, count, entityUuid);
+                itemId, count, entityUuid, dim);
         if (!allow) {
             ci.cancel();
             return;
         }
         NativeBridge.nativeOnItemPickup(
                 sp.getName().getString(), sp.getUuidAsString(),
-                itemId, count, entityUuid);
+                itemId, count, entityUuid, dim);
     }
 }
