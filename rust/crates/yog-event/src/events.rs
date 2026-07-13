@@ -19,6 +19,8 @@ pub struct BlockBreakEvent {
     /// Registry id of the block, e.g. `minecraft:stone`.
     pub block_id: String,
     pub pos: BlockPos,
+    /// Dimension the block was broken in, e.g. `minecraft:overworld`.
+    pub dimension: String,
 }
 
 /// Fired when a player sends a chat message.
@@ -26,6 +28,7 @@ pub struct BlockBreakEvent {
 pub struct ChatEvent {
     pub player_name: String,
     pub message: String,
+    pub dimension: String,
 }
 
 /// Fired when a player joins the server.
@@ -34,6 +37,7 @@ pub struct PlayerJoinEvent {
     pub player_name: String,
     /// Player UUID as a string, e.g. `069a79f4-44e9-4726-a5be-fca90e38aaf5`.
     pub uuid: String,
+    pub dimension: String,
 }
 
 /// Fired when a player leaves the server.
@@ -41,6 +45,7 @@ pub struct PlayerJoinEvent {
 pub struct PlayerLeaveEvent {
     pub player_name: String,
     pub uuid: String,
+    pub dimension: String,
 }
 
 /// Fired when a player right-clicks with an item (server side).
@@ -51,6 +56,7 @@ pub struct UseItemEvent {
     pub item_id: String,
     /// Whether the player was sneaking (shift) during use.
     pub sneaking: bool,
+    pub dimension: String,
 }
 
 /// Fired when a player right-clicks a block (server side).
@@ -60,6 +66,7 @@ pub struct UseBlockEvent {
     /// Registry id of the targeted block, e.g. `minecraft:chest`.
     pub block_id: String,
     pub pos: BlockPos,
+    pub dimension: String,
 }
 
 /// Fired when a player attacks (left-clicks) an entity (server side).
@@ -70,6 +77,7 @@ pub struct AttackEntityEvent {
     pub target_type: String,
     /// Target entity UUID as a string.
     pub target_uuid: String,
+    pub dimension: String,
 }
 
 /// Fired after a living entity takes damage (server side).
@@ -82,6 +90,7 @@ pub struct EntityDamageEvent {
     pub amount: f32,
     /// Identifier of the damage source, e.g. `minecraft:player`, `fall`.
     pub source: String,
+    pub dimension: String,
 }
 
 /// Fired after a living entity dies (server side).
@@ -92,6 +101,7 @@ pub struct EntityDeathEvent {
     pub uuid: String,
     /// Identifier of the killing damage source, e.g. `minecraft:player`.
     pub source: String,
+    pub dimension: String,
 }
 
 /// Fired when a player places a block (server side).
@@ -106,6 +116,7 @@ pub struct PlaceBlockEvent {
     /// Registry id of the block being placed, e.g. `minecraft:stone`.
     pub block_id: String,
     pub pos: BlockPos,
+    pub dimension: String,
 }
 
 /// Fired when any entity is loaded into a world (server side).
@@ -132,6 +143,7 @@ pub struct PlayerDeathEvent {
     pub uuid: String,
     /// Damage source identifier, e.g. `"player"`, `"fall"`.
     pub source: String,
+    pub dimension: String,
 }
 
 /// Fired when a player respawns after death (Post only).
@@ -141,6 +153,8 @@ pub struct PlayerRespawnEvent {
     pub uuid: String,
     /// True if respawning at a bed or respawn anchor; false for world spawn.
     pub at_anchor: bool,
+    /// Dimension respawned into (may differ from where the player died).
+    pub dimension: String,
 }
 
 /// Fired when a player earns an advancement (Post only).
@@ -150,6 +164,7 @@ pub struct AdvancementEvent {
     pub uuid: String,
     /// Namespaced id of the advancement, e.g. `"minecraft:story/mine_stone"`.
     pub advancement_id: String,
+    pub dimension: String,
 }
 
 /// Fired when a player right-clicks (interacts with) an entity (server side).
@@ -165,6 +180,7 @@ pub struct EntityInteractEvent {
     pub entity_uuid: String,
     /// `"main_hand"` or `"off_hand"`.
     pub hand: String,
+    pub dimension: String,
 }
 
 /// Fired when a player takes a crafted item from a crafting output slot (Post only).
@@ -175,6 +191,7 @@ pub struct CraftEvent {
     /// Registry id of the crafted item, e.g. `"minecraft:stick"`.
     pub result_item: String,
     pub result_count: u32,
+    pub dimension: String,
 }
 
 /// Fired when an explosion occurs in a world.
@@ -208,6 +225,7 @@ pub struct ItemPickupEvent {
     pub item_count: u32,
     /// UUID of the item entity that was picked up.
     pub entity_uuid: String,
+    pub dimension: String,
 }
 
 /// Fired every time a player sends a movement packet (very high frequency).
@@ -222,6 +240,7 @@ pub struct PlayerMoveEvent {
     pub z: f64,
     pub yaw: f32,
     pub pitch: f32,
+    pub dimension: String,
 }
 
 /// Fired when a player opens a container screen.
@@ -235,6 +254,7 @@ pub struct ContainerOpenEvent {
     /// Screen handler registry id, e.g. `"minecraft:chest"`.
     /// Empty string for screens not in the registry (e.g. the player inventory).
     pub container_type: String,
+    pub dimension: String,
 }
 
 /// Fired when a player closes a container screen (Post only).
@@ -242,6 +262,7 @@ pub struct ContainerOpenEvent {
 pub struct ContainerCloseEvent {
     pub player_name: String,
     pub player_uuid: String,
+    pub dimension: String,
 }
 
 // ── ABI minor 10 — client-side events ────────────────────────────────────────

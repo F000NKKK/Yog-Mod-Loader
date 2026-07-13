@@ -3540,12 +3540,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreak<'l>(
     x: jint,
     y: jint,
     z: jint,
+    dimension: JString<'l>,
 ) {
-    let (p, b) = (jstr!(env, player), jstr!(env, block));
+    let (p, b, d) = (jstr!(env, player), jstr!(env, block), jstr!(env, dimension));
     let ev = yog_abi::YogBlockBreakEvent {
         player: YogStr::from_str(&p),
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_block_break", || {
@@ -3561,11 +3563,17 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChat<'l>(
     _class: JClass<'l>,
     player: JString<'l>,
     message: JString<'l>,
+    dimension: JString<'l>,
 ) {
-    let (p, m) = (jstr!(env, player), jstr!(env, message));
+    let (p, m, d) = (
+        jstr!(env, player),
+        jstr!(env, message),
+        jstr!(env, dimension),
+    );
     let ev = yog_abi::YogChatEvent {
         player: YogStr::from_str(&p),
         message: YogStr::from_str(&m),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_chat", || {
@@ -3581,11 +3589,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
     _class: JClass<'l>,
     player: JString<'l>,
     uuid: JString<'l>,
+    dimension: JString<'l>,
 ) {
-    let (p, u) = (jstr!(env, player), jstr!(env, uuid));
+    let (p, u, d) = (jstr!(env, player), jstr!(env, uuid), jstr!(env, dimension));
     let ev = yog_abi::YogPlayerEvent {
         player: YogStr::from_str(&p),
         uuid: YogStr::from_str(&u),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_player_join", || {
@@ -3681,11 +3691,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
     _class: JClass<'l>,
     player: JString<'l>,
     uuid: JString<'l>,
+    dimension: JString<'l>,
 ) {
-    let (p, u) = (jstr!(env, player), jstr!(env, uuid));
+    let (p, u, d) = (jstr!(env, player), jstr!(env, uuid), jstr!(env, dimension));
     let ev = yog_abi::YogPlayerEvent {
         player: YogStr::from_str(&p),
         uuid: YogStr::from_str(&u),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_player_leave", || {
@@ -3702,12 +3714,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
     player: JString<'l>,
     item: JString<'l>,
     sneaking: jni::sys::jboolean,
+    dimension: JString<'l>,
 ) {
-    let (p, i) = (jstr!(env, player), jstr!(env, item));
+    let (p, i, d) = (jstr!(env, player), jstr!(env, item), jstr!(env, dimension));
     let ev = yog_abi::YogUseItemEvent {
         player: YogStr::from_str(&p),
         item: YogStr::from_str(&i),
         sneaking: sneaking != 0,
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_use_item", || {
@@ -3724,6 +3738,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItemPre<'l>(
     player: JString<'l>,
     item: JString<'l>,
     sneaking: jni::sys::jboolean,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.use_item.is_empty() {
@@ -3737,10 +3752,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItemPre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = yog_abi::YogUseItemEvent {
         player: YogStr::from_str(&p),
         item: YogStr::from_str(&i),
         sneaking: sneaking != 0,
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -3765,12 +3785,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
     x: jint,
     y: jint,
     z: jint,
+    dimension: JString<'l>,
 ) {
-    let (p, b) = (jstr!(env, player), jstr!(env, block));
+    let (p, b, d) = (jstr!(env, player), jstr!(env, block), jstr!(env, dimension));
     let ev = yog_abi::YogUseBlockEvent {
         player: YogStr::from_str(&p),
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_use_block", || {
@@ -3789,6 +3811,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlockPre<'l>(
     x: jint,
     y: jint,
     z: jint,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.use_block.is_empty() {
@@ -3802,10 +3825,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlockPre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = yog_abi::YogUseBlockEvent {
         player: YogStr::from_str(&p),
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -3828,16 +3856,19 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAttackEntity<'l>(
     player: JString<'l>,
     target_type: JString<'l>,
     target_uuid: JString<'l>,
+    dimension: JString<'l>,
 ) {
-    let (p, tt, tu) = (
+    let (p, tt, tu, d) = (
         jstr!(env, player),
         jstr!(env, target_type),
         jstr!(env, target_uuid),
+        jstr!(env, dimension),
     );
     let ev = yog_abi::YogAttackEntityEvent {
         player: YogStr::from_str(&p),
         target_type: YogStr::from_str(&tt),
         target_uuid: YogStr::from_str(&tu),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_attack_entity", || {
@@ -3855,17 +3886,20 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamage<'l>(
     uuid: JString<'l>,
     amount: jfloat,
     source: JString<'l>,
+    dimension: JString<'l>,
 ) {
-    let (et, u, s) = (
+    let (et, u, s, d) = (
         jstr!(env, entity_type),
         jstr!(env, uuid),
         jstr!(env, source),
+        jstr!(env, dimension),
     );
     let ev = yog_abi::YogEntityDamageEvent {
         entity_type: YogStr::from_str(&et),
         uuid: YogStr::from_str(&u),
         amount,
         source: YogStr::from_str(&s),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_entity_damage", || {
@@ -3882,16 +3916,19 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDeath<'l>(
     entity_type: JString<'l>,
     uuid: JString<'l>,
     source: JString<'l>,
+    dimension: JString<'l>,
 ) {
-    let (et, u, s) = (
+    let (et, u, s, d) = (
         jstr!(env, entity_type),
         jstr!(env, uuid),
         jstr!(env, source),
+        jstr!(env, dimension),
     );
     let ev = yog_abi::YogEntityDeathEvent {
         entity_type: YogStr::from_str(&et),
         uuid: YogStr::from_str(&u),
         source: YogStr::from_str(&s),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_entity_death", || {
@@ -4068,6 +4105,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
     x: jint,
     y: jint,
     z: jint,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.block_break.is_empty() {
@@ -4081,10 +4119,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = yog_abi::YogBlockBreakEvent {
         player: YogStr::from_str(&p),
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -4106,6 +4149,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
     _class: JClass<'l>,
     player: JString<'l>,
     message: JString<'l>,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.chat.is_empty() {
@@ -4119,9 +4163,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = yog_abi::YogChatEvent {
         player: YogStr::from_str(&p),
         message: YogStr::from_str(&m),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -4186,20 +4235,25 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
     args: JString<'l>,
     source: JString<'l>,
     uuid: JString<'l>,
+    dimension: JString<'l>,
 ) -> jstring {
-    let (n, a, s, u) = (
+    let (n, a, s, u, d) = (
         env.get_string(&name).map(String::from).unwrap_or_default(),
         env.get_string(&args).map(String::from).unwrap_or_default(),
         env.get_string(&source)
             .map(String::from)
             .unwrap_or_default(),
         env.get_string(&uuid).map(String::from).unwrap_or_default(),
+        env.get_string(&dimension)
+            .map(String::from)
+            .unwrap_or_default(),
     );
     let ev = yog_abi::YogCommandEvent {
         name: YogStr::from_str(&n),
         args: YogStr::from_str(&a),
         source: YogStr::from_str(&s),
         uuid: YogStr::from_str(&u),
+        dimension: YogStr::from_str(&d),
     };
     let h = handlers();
     let srv = srv_ptr();
@@ -4556,6 +4610,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamagePre<'l>(
     uuid: JString<'l>,
     amount: jfloat,
     source: JString<'l>,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.entity_damage.is_empty() {
@@ -4573,11 +4628,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamagePre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = yog_abi::YogEntityDamageEvent {
         entity_type: YogStr::from_str(&et),
         uuid: YogStr::from_str(&u),
         amount,
         source: YogStr::from_str(&s),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -4602,6 +4662,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlockPre<'l>(
     x: jint,
     y: jint,
     z: jint,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.player_place_block.is_empty() {
@@ -4615,10 +4676,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlockPre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = YogPlaceBlockEvent {
         player: YogStr::from_str(&p),
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -4643,16 +4709,18 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlock<'l>(
     x: jint,
     y: jint,
     z: jint,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.player_place_block.is_empty() {
         return;
     }
-    let (p, b) = (jstr!(env, player), jstr!(env, block));
+    let (p, b, d) = (jstr!(env, player), jstr!(env, block), jstr!(env, dimension));
     let ev = YogPlaceBlockEvent {
         player: YogStr::from_str(&p),
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_player_place_block", || {
@@ -4669,6 +4737,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeathPre<'l>(
     player: JString<'l>,
     uuid: JString<'l>,
     source: JString<'l>,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.player_death.is_empty() {
@@ -4686,10 +4755,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeathPre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = YogPlayerDeathEvent {
         player: YogStr::from_str(&p),
         uuid: YogStr::from_str(&u),
         source: YogStr::from_str(&s),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -4712,16 +4786,23 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeath<'l>(
     player: JString<'l>,
     uuid: JString<'l>,
     source: JString<'l>,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.player_death.is_empty() {
         return;
     }
-    let (p, u, s) = (jstr!(env, player), jstr!(env, uuid), jstr!(env, source));
+    let (p, u, s, d) = (
+        jstr!(env, player),
+        jstr!(env, uuid),
+        jstr!(env, source),
+        jstr!(env, dimension),
+    );
     let ev = YogPlayerDeathEvent {
         player: YogStr::from_str(&p),
         uuid: YogStr::from_str(&u),
         source: YogStr::from_str(&s),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_player_death", || {
@@ -4738,16 +4819,18 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerRespawn<'l>(
     player: JString<'l>,
     uuid: JString<'l>,
     at_anchor: jni::sys::jboolean,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.player_respawn.is_empty() {
         return;
     }
-    let (p, u) = (jstr!(env, player), jstr!(env, uuid));
+    let (p, u, d) = (jstr!(env, player), jstr!(env, uuid), jstr!(env, dimension));
     let ev = YogPlayerRespawnEvent {
         player: YogStr::from_str(&p),
         uuid: YogStr::from_str(&u),
         at_anchor: at_anchor != 0,
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_player_respawn", || {
@@ -4764,20 +4847,23 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAdvancement<'l>(
     player: JString<'l>,
     uuid: JString<'l>,
     advancement: JString<'l>,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.advancement.is_empty() {
         return;
     }
-    let (p, u, a) = (
+    let (p, u, a, d) = (
         jstr!(env, player),
         jstr!(env, uuid),
         jstr!(env, advancement),
+        jstr!(env, dimension),
     );
     let ev = YogAdvancementEvent {
         player: YogStr::from_str(&p),
         uuid: YogStr::from_str(&u),
         advancement: YogStr::from_str(&a),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_advancement", || {
@@ -4796,6 +4882,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteractPre<'l>(
     entity_type: JString<'l>,
     entity_uuid: JString<'l>,
     hand: JString<'l>,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.entity_interact.is_empty() {
@@ -4821,12 +4908,17 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteractPre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = YogEntityInteractEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
         entity_type: YogStr::from_str(&et),
         entity_uuid: YogStr::from_str(&eu),
         hand: YogStr::from_str(&ha),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -4851,16 +4943,18 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteract<'l>(
     entity_type: JString<'l>,
     entity_uuid: JString<'l>,
     hand: JString<'l>,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.entity_interact.is_empty() {
         return;
     }
     let (p, pu) = (jstr!(env, player), jstr!(env, player_uuid));
-    let (et, eu, ha) = (
+    let (et, eu, ha, d) = (
         jstr!(env, entity_type),
         jstr!(env, entity_uuid),
         jstr!(env, hand),
+        jstr!(env, dimension),
     );
     let ev = YogEntityInteractEvent {
         player: YogStr::from_str(&p),
@@ -4868,6 +4962,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteract<'l>(
         entity_type: YogStr::from_str(&et),
         entity_uuid: YogStr::from_str(&eu),
         hand: YogStr::from_str(&ha),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_entity_interact", || {
@@ -4885,21 +4980,24 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemCraft<'l>(
     player_uuid: JString<'l>,
     result_item: JString<'l>,
     result_count: jint,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.item_craft.is_empty() {
         return;
     }
-    let (p, pu, ri) = (
+    let (p, pu, ri, d) = (
         jstr!(env, player),
         jstr!(env, player_uuid),
         jstr!(env, result_item),
+        jstr!(env, dimension),
     );
     let ev = YogCraftEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
         result_item: YogStr::from_str(&ri),
         result_count: result_count as u32,
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_item_craft", || {
@@ -4997,6 +5095,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickupPre<'l>(
     item_id: JString<'l>,
     item_count: jint,
     entity_uuid: JString<'l>,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.item_pickup.is_empty() {
@@ -5018,12 +5117,17 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickupPre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = YogItemPickupEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
         item_id: YogStr::from_str(&ii),
         item_count: item_count as u32,
         entity_uuid: YogStr::from_str(&eu),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -5048,19 +5152,25 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickup<'l>(
     item_id: JString<'l>,
     item_count: jint,
     entity_uuid: JString<'l>,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.item_pickup.is_empty() {
         return;
     }
     let (p, pu) = (jstr!(env, player), jstr!(env, player_uuid));
-    let (ii, eu) = (jstr!(env, item_id), jstr!(env, entity_uuid));
+    let (ii, eu, d) = (
+        jstr!(env, item_id),
+        jstr!(env, entity_uuid),
+        jstr!(env, dimension),
+    );
     let ev = YogItemPickupEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
         item_id: YogStr::from_str(&ii),
         item_count: item_count as u32,
         entity_uuid: YogStr::from_str(&eu),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_item_pickup", || {
@@ -5081,12 +5191,17 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerMove<'l>(
     z: jdouble,
     yaw: jfloat,
     pitch: jfloat,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.player_move.is_empty() {
         return;
     }
-    let (p, pu) = (jstr!(env, player), jstr!(env, player_uuid));
+    let (p, pu, d) = (
+        jstr!(env, player),
+        jstr!(env, player_uuid),
+        jstr!(env, dimension),
+    );
     let ev = YogPlayerMoveEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
@@ -5095,6 +5210,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerMove<'l>(
         z,
         yaw,
         pitch,
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_player_move", || {
@@ -5110,6 +5226,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpenPre<'l>(
     _class: JClass<'l>,
     player: JString<'l>,
     player_uuid: JString<'l>,
+    dimension: JString<'l>,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.container_open.is_empty() {
@@ -5123,10 +5240,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpenPre<'l>(
         Ok(s) => String::from(s),
         Err(_) => return 1,
     };
+    let d = match env.get_string(&dimension) {
+        Ok(s) => String::from(s),
+        Err(_) => return 1,
+    };
     let ev = YogContainerOpenEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
         container_type: YogStr::EMPTY,
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     let mut allow = true;
@@ -5149,20 +5271,23 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpen<'l>(
     player: JString<'l>,
     player_uuid: JString<'l>,
     container_type: JString<'l>,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.container_open.is_empty() {
         return;
     }
-    let (p, pu, ct) = (
+    let (p, pu, ct, d) = (
         jstr!(env, player),
         jstr!(env, player_uuid),
         jstr!(env, container_type),
+        jstr!(env, dimension),
     );
     let ev = YogContainerOpenEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
         container_type: YogStr::from_str(&ct),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_container_open", || {
@@ -5178,15 +5303,21 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerClose<'l>(
     _class: JClass<'l>,
     player: JString<'l>,
     player_uuid: JString<'l>,
+    dimension: JString<'l>,
 ) {
     let h = handlers();
     if h.container_close.is_empty() {
         return;
     }
-    let (p, pu) = (jstr!(env, player), jstr!(env, player_uuid));
+    let (p, pu, d) = (
+        jstr!(env, player),
+        jstr!(env, player_uuid),
+        jstr!(env, dimension),
+    );
     let ev = YogContainerCloseEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
+        dimension: YogStr::from_str(&d),
     };
     let srv = srv_ptr();
     guard("on_container_close", || {

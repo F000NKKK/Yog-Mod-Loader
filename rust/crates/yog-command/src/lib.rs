@@ -15,6 +15,8 @@ pub struct CommandContext {
     pub source: String,
     /// UUID of the executing entity (empty if run from the console).
     pub uuid: String,
+    /// Dimension the source is in, empty for console-run commands (no world).
+    pub dimension: String,
 }
 
 impl CommandContext {

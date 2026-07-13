@@ -922,12 +922,14 @@ trampoline_phased!(
             y: ev.pos.y,
             z: ev.pos.z
         },
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
 trampoline_phased!(trampoline_chat, YogChatEvent, ChatEvent, |ev| ChatEvent {
     player_name: ev.player.as_str().to_owned(),
     message: ev.message.as_str().to_owned(),
+    dimension: ev.dimension.as_str().to_owned(),
 });
 
 trampoline_phased!(
@@ -937,6 +939,7 @@ trampoline_phased!(
     |ev| PlayerJoinEvent {
         player_name: ev.player.as_str().to_owned(),
         uuid: ev.uuid.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -947,6 +950,7 @@ trampoline_phased!(
     |ev| PlayerLeaveEvent {
         player_name: ev.player.as_str().to_owned(),
         uuid: ev.uuid.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -955,6 +959,7 @@ trampoline_phased!(trampoline_use_item, YogUseItemEvent, UseItemEvent, |ev| {
         player_name: ev.player.as_str().to_owned(),
         item_id: ev.item.as_str().to_owned(),
         sneaking: ev.sneaking,
+        dimension: ev.dimension.as_str().to_owned(),
     }
 });
 
@@ -970,6 +975,7 @@ trampoline_phased!(
             y: ev.pos.y,
             z: ev.pos.z
         },
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -981,6 +987,7 @@ trampoline_phased!(
         player_name: ev.player.as_str().to_owned(),
         target_type: ev.target_type.as_str().to_owned(),
         target_uuid: ev.target_uuid.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -993,6 +1000,7 @@ trampoline_phased!(
         uuid: ev.uuid.as_str().to_owned(),
         amount: ev.amount,
         source: ev.source.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1004,6 +1012,7 @@ trampoline_phased!(
         entity_type: ev.entity_type.as_str().to_owned(),
         uuid: ev.uuid.as_str().to_owned(),
         source: ev.source.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1030,6 +1039,7 @@ trampoline_phased!(
             y: ev.pos.y,
             z: ev.pos.z
         },
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1041,6 +1051,7 @@ trampoline_phased!(
         player_name: ev.player.as_str().to_owned(),
         uuid: ev.uuid.as_str().to_owned(),
         source: ev.source.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1052,6 +1063,7 @@ trampoline_phased!(
         player_name: ev.player.as_str().to_owned(),
         uuid: ev.uuid.as_str().to_owned(),
         at_anchor: ev.at_anchor,
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1063,6 +1075,7 @@ trampoline_phased!(
         player_name: ev.player.as_str().to_owned(),
         uuid: ev.uuid.as_str().to_owned(),
         advancement_id: ev.advancement.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1076,6 +1089,7 @@ trampoline_phased!(
         entity_type: ev.entity_type.as_str().to_owned(),
         entity_uuid: ev.entity_uuid.as_str().to_owned(),
         hand: ev.hand.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1085,6 +1099,7 @@ trampoline_phased!(trampoline_craft, YogCraftEvent, CraftEvent, |ev| {
         player_uuid: ev.player_uuid.as_str().to_owned(),
         result_item: ev.result_item.as_str().to_owned(),
         result_count: ev.result_count,
+        dimension: ev.dimension.as_str().to_owned(),
     }
 });
 
@@ -1112,6 +1127,7 @@ trampoline_phased!(
         item_id: ev.item_id.as_str().to_owned(),
         item_count: ev.item_count,
         entity_uuid: ev.entity_uuid.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1127,6 +1143,7 @@ trampoline_phased!(
         z: ev.z,
         yaw: ev.yaw,
         pitch: ev.pitch,
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1138,6 +1155,7 @@ trampoline_phased!(
         player_name: ev.player.as_str().to_owned(),
         player_uuid: ev.player_uuid.as_str().to_owned(),
         container_type: ev.container_type.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1148,6 +1166,7 @@ trampoline_phased!(
     |ev| ContainerCloseEvent {
         player_name: ev.player.as_str().to_owned(),
         player_uuid: ev.player_uuid.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     }
 );
 
@@ -1210,6 +1229,7 @@ unsafe extern "C" fn trampoline_command<F>(
         args: ev.args.as_str().to_owned(),
         source: ev.source.as_str().to_owned(),
         uuid: ev.uuid.as_str().to_owned(),
+        dimension: ev.dimension.as_str().to_owned(),
     };
     *reply_len = 0;
     if let Some(reply) = f(&ctx, &CServer(srv)) {

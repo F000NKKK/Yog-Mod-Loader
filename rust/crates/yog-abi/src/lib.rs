@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 27;
+pub const ABI_MINOR: u32 = 28;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -113,12 +113,15 @@ pub struct YogBlockBreakEvent {
     pub player: YogStr,
     pub block: YogStr,
     pub pos: YogBlockPos,
+    /// Dimension the block was broken in, e.g. `minecraft:overworld`.
+    pub dimension: YogStr,
 }
 
 #[repr(C)]
 pub struct YogChatEvent {
     pub player: YogStr,
     pub message: YogStr,
+    pub dimension: YogStr,
 }
 
 /// Shared by player_join and player_leave.
@@ -126,6 +129,7 @@ pub struct YogChatEvent {
 pub struct YogPlayerEvent {
     pub player: YogStr,
     pub uuid: YogStr,
+    pub dimension: YogStr,
 }
 
 #[repr(C)]
@@ -134,6 +138,7 @@ pub struct YogUseItemEvent {
     pub item: YogStr,
     /// ABI minor 25: whether the player was sneaking (shift) during use.
     pub sneaking: bool,
+    pub dimension: YogStr,
 }
 
 #[repr(C)]
@@ -141,6 +146,7 @@ pub struct YogUseBlockEvent {
     pub player: YogStr,
     pub block: YogStr,
     pub pos: YogBlockPos,
+    pub dimension: YogStr,
 }
 
 #[repr(C)]
@@ -148,6 +154,7 @@ pub struct YogAttackEntityEvent {
     pub player: YogStr,
     pub target_type: YogStr,
     pub target_uuid: YogStr,
+    pub dimension: YogStr,
 }
 
 #[repr(C)]
@@ -156,6 +163,7 @@ pub struct YogEntityDamageEvent {
     pub uuid: YogStr,
     pub amount: f32,
     pub source: YogStr,
+    pub dimension: YogStr,
 }
 
 #[repr(C)]
@@ -163,6 +171,7 @@ pub struct YogEntityDeathEvent {
     pub entity_type: YogStr,
     pub uuid: YogStr,
     pub source: YogStr,
+    pub dimension: YogStr,
 }
 
 #[repr(C)]
@@ -180,6 +189,7 @@ pub struct YogPlayerDeathEvent {
     pub uuid: YogStr,
     /// Damage source identifier, e.g. `"player"`, `"fall"`.
     pub source: YogStr,
+    pub dimension: YogStr,
 }
 
 /// Fired when a player respawns after death.
@@ -189,6 +199,8 @@ pub struct YogPlayerRespawnEvent {
     pub uuid: YogStr,
     /// True if respawning at a bed or anchor, false at world spawn.
     pub at_anchor: bool,
+    /// Dimension respawned into (may differ from where the player died).
+    pub dimension: YogStr,
 }
 
 /// Fired when a player earns an advancement (Post only).
@@ -198,6 +210,7 @@ pub struct YogAdvancementEvent {
     pub uuid: YogStr,
     /// Namespaced id, e.g. `"minecraft:story/mine_stone"`.
     pub advancement: YogStr,
+    pub dimension: YogStr,
 }
 
 /// Fired when a player right-clicks (interacts with) an entity (Pre: before; Post: after).
@@ -210,6 +223,7 @@ pub struct YogEntityInteractEvent {
     pub entity_uuid: YogStr,
     /// `"main_hand"` or `"off_hand"`.
     pub hand: YogStr,
+    pub dimension: YogStr,
 }
 
 /// Fired when a player takes a crafted item from a crafting output slot (Post only).
@@ -219,6 +233,7 @@ pub struct YogCraftEvent {
     pub player_uuid: YogStr,
     pub result_item: YogStr,
     pub result_count: u32,
+    pub dimension: YogStr,
 }
 
 /// Fired when an explosion occurs in a world (Pre: before block destruction; Post: after).
@@ -246,6 +261,7 @@ pub struct YogItemPickupEvent {
     pub item_count: u32,
     /// UUID of the item entity that was picked up.
     pub entity_uuid: YogStr,
+    pub dimension: YogStr,
 }
 
 /// Fired when a player sends a movement packet (Post only; very high frequency).
@@ -258,6 +274,7 @@ pub struct YogPlayerMoveEvent {
     pub z: f64,
     pub yaw: f32,
     pub pitch: f32,
+    pub dimension: YogStr,
 }
 
 /// Fired when a player opens a container screen (Pre: cancellable; Post: informational).
@@ -268,6 +285,7 @@ pub struct YogContainerOpenEvent {
     pub player: YogStr,
     pub player_uuid: YogStr,
     pub container_type: YogStr,
+    pub dimension: YogStr,
 }
 
 /// Fired when a player closes a container screen (Post only).
@@ -275,6 +293,7 @@ pub struct YogContainerOpenEvent {
 pub struct YogContainerCloseEvent {
     pub player: YogStr,
     pub player_uuid: YogStr,
+    pub dimension: YogStr,
 }
 
 /// Fired when a persistent projectile (arrow, trident) hits a target (Pre: cancellable).
@@ -302,6 +321,7 @@ pub struct YogPlaceBlockEvent {
     pub player: YogStr,
     pub block: YogStr,
     pub pos: YogBlockPos,
+    pub dimension: YogStr,
 }
 
 #[repr(C)]
@@ -318,6 +338,8 @@ pub struct YogCommandEvent {
     pub args: YogStr,
     pub source: YogStr,
     pub uuid: YogStr,
+    /// Empty for console-run commands (no world).
+    pub dimension: YogStr,
 }
 
 /// A startup grant definition — items/books to give on first join.
