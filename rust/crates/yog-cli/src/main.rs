@@ -1880,14 +1880,17 @@ fn strip_derive_attrs(source: &str) -> String {
 ///
 /// Given the source of a function like:
 /// ```rust
-/// pub fn register_pipe(args: RegisterPipeArgs) -> Result<(), String> { ... }
+/// pub fn register_pipe(registry: &mut yog_api::Registry, def: PipeDef) -> Result<(), String> { ... }
 /// ```
 ///
-/// Produces:
+/// Produces (a leading `&mut Registry`-shaped parameter is dropped — the
+/// exporting mod reconstructs its own `Registry` from the API pointer it
+/// captured at load time, so callers pass only the remaining, natural
+/// arguments; multiple remaining arguments are tupled for serialization):
 /// ```rust
 /// #![allow(non_snake_case)]
-/// pub fn register_pipe(args: RegisterPipeArgs) -> Result<(), String> {
-///     // rkyv-serialize args, call via C-ABI slot, deserialize result
+/// pub fn register_pipe(__yog_arg0: PipeDef) -> Result<(), String> {
+///     // rkyv-serialize __yog_arg0, call via C-ABI slot, deserialize result
 /// }
 /// static __YOG_SLOT_REGISTER_PIPE: OnceLock<...>;
 /// #[no_mangle] pub unsafe extern "C" fn __yog_bind_register_pipe(ptr) { ... }
@@ -1918,21 +1921,77 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
         None
     });
 
-    let (input_type, arg_name) = if let (Some(ps), Some(pe)) = (paren_start, paren_end) {
-        let params = sig_line[ps + 1..pe].trim();
-        if params.is_empty() {
-            ("()".to_string(), String::new())
-        } else {
-            // Take first param: "args: RegisterPipeArgs" → name="args", type="RegisterPipeArgs"
-            let parts: Vec<&str> = params.splitn(2, ':').collect();
-            if parts.len() == 2 {
-                (parts[1].trim().to_string(), parts[0].trim().to_string())
-            } else {
-                (params.to_string(), String::new())
+    // Split a parameter list on top-level commas (depth-aware: ignores commas
+    // nested inside generics/tuples, e.g. `HashMap<String, f64>`).
+    fn split_params(params: &str) -> Vec<&str> {
+        let mut result = Vec::new();
+        let mut depth: i32 = 0;
+        let mut start = 0;
+        for (i, ch) in params.char_indices() {
+            match ch {
+                '<' | '(' | '[' => depth += 1,
+                '>' | ')' | ']' => depth -= 1,
+                ',' if depth == 0 => {
+                    result.push(params[start..i].trim());
+                    start = i + 1;
+                }
+                _ => {}
             }
         }
-    } else {
-        ("()".to_string(), String::new())
+        let last = params[start..].trim();
+        if !last.is_empty() {
+            result.push(last);
+        }
+        result
+    }
+
+    // Parse every `name: Type` parameter (not just the first).
+    let mut typed_params: Vec<(String, String)> =
+        if let (Some(ps), Some(pe)) = (paren_start, paren_end) {
+            let params = sig_line[ps + 1..pe].trim();
+            split_params(params)
+                .into_iter()
+                .filter_map(|p| {
+                    let parts: Vec<&str> = p.splitn(2, ':').collect();
+                    if parts.len() == 2 {
+                        Some((parts[0].trim().to_string(), parts[1].trim().to_string()))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+    // A leading `&mut Registry`-shaped parameter is never part of the public
+    // signature or the serialized payload — the exporting mod reconstructs
+    // its own `Registry` from the API pointer it captured at load time (see
+    // `yog-interop`'s `#[yog_export]`), so callers never need to supply one.
+    if typed_params
+        .first()
+        .map(|(_, ty)| ty.replace(' ', "").ends_with("Registry"))
+        .unwrap_or(false)
+    {
+        typed_params.remove(0);
+    }
+
+    let arg_names: Vec<String> = (0..typed_params.len())
+        .map(|i| format!("__yog_arg{i}"))
+        .collect();
+    let data_types: Vec<&str> = typed_params.iter().map(|(_, ty)| ty.as_str()).collect();
+
+    let params_sig = arg_names
+        .iter()
+        .zip(data_types.iter())
+        .map(|(n, t)| format!("{n}: {t}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    let tuple_expr = match arg_names.len() {
+        0 => String::new(),
+        1 => arg_names[0].clone(),
+        _ => format!("({})", arg_names.join(", ")),
     };
 
     // Extract return type.
@@ -1982,7 +2041,7 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
     // Escape { and } for use in format! — types like `Result<(), String>` contain
     // curly braces that would be interpreted as format specifiers.
     let output_type_fmt = output_type.replace('{', "{{").replace('}', "}}");
-    let input_type_fmt = input_type.replace('{', "{{").replace('}', "}}");
+    let params_sig_fmt = params_sig.replace('{', "{{").replace('}', "}}");
     let slot_name_fmt = slot_name.replace('{', "{{").replace('}', "}}");
     let bind_name_fmt = bind_name.replace('{', "{{").replace('}', "}}");
 
@@ -1992,12 +2051,12 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
          out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32)"
     );
 
-    let serialize_block = if arg_name.is_empty() {
+    let serialize_block = if tuple_expr.is_empty() {
         "let input_bytes: Vec<u8> = Vec::new();".to_string()
     } else {
         format!(
             "let aligned = ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(\
-                &{arg_name}\
+                &{tuple_expr}\
             ).unwrap_or_default();\n            \
              let input_bytes: Vec<u8> = aligned.to_vec();"
         )
@@ -2005,7 +2064,7 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
 
     format!(
         r#"#[allow(non_snake_case)]
-pub fn {name}({arg_name}: {input_type_fmt}) -> {output_type_fmt} {{
+pub fn {name}({params_sig_fmt}) -> {output_type_fmt} {{
     {serialize_block}
     let f = {slot_name_fmt}.get()
         .expect(concat!("yog: export '", "{name}", "' not bound"));
@@ -2033,8 +2092,7 @@ pub unsafe extern "C" fn {bind_name_fmt}(ptr: *const ::std::os::raw::c_void) {{
 }}
 "#,
         name = name,
-        arg_name = arg_name,
-        input_type_fmt = input_type_fmt,
+        params_sig_fmt = params_sig_fmt,
         output_type_fmt = output_type_fmt,
         slot_name_fmt = slot_name_fmt,
         wrapper_ty = wrapper_ty,
