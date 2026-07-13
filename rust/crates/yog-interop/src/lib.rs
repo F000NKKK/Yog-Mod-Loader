@@ -68,7 +68,10 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
             syn::Type::Reference(r) => &*r.elem,
             other => other,
         };
-        quote! { #ty }.to_string().replace(' ', "").ends_with("Registry")
+        quote! { #ty }
+            .to_string()
+            .replace(' ', "")
+            .ends_with("Registry")
     }
 
     let mut data_params: Vec<&syn::PatType> = func
