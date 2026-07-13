@@ -18,6 +18,7 @@ public class ContainerCloseMixin {
     @Inject(method = "handleContainerClose", at = @At("HEAD"))
     private void yog$onContainerClose(ServerboundContainerClosePacket packet, CallbackInfo ci) {
         NativeBridge.nativeOnContainerClose(
-                player.getName().getString(), player.getStringUUID());
+                player.getName().getString(), player.getStringUUID(),
+                player.level().dimension().location().toString());
     }
 }
