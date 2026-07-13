@@ -24,6 +24,7 @@ public class PlayerMoveMixin {
         float  pitch = packet.getPitch(player.getPitch());
         NativeBridge.nativeOnPlayerMove(
                 player.getName().getString(), player.getUuidAsString(),
-                x, y, z, yaw, pitch);
+                x, y, z, yaw, pitch,
+                player.getWorld().getRegistryKey().getValue().toString());
     }
 }

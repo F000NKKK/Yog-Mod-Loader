@@ -32,6 +32,7 @@ public abstract class AdvancementMixin {
         NativeBridge.nativeOnAdvancement(
                 owner.getName().getString(),
                 owner.getUuidAsString(),
-                advancement.id().toString());
+                advancement.id().toString(),
+                owner.getWorld().getRegistryKey().getValue().toString());
     }
 }

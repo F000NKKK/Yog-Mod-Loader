@@ -24,7 +24,8 @@ public class ContainerOpenMixin {
                                          CallbackInfoReturnable<OptionalInt> cir) {
         ServerPlayerEntity sp = (ServerPlayerEntity)(Object)this;
         boolean allow = NativeBridge.nativeOnContainerOpenPre(
-                sp.getName().getString(), sp.getUuidAsString());
+                sp.getName().getString(), sp.getUuidAsString(),
+                sp.getWorld().getRegistryKey().getValue().toString());
         if (!allow) cir.setReturnValue(OptionalInt.empty());
     }
 
@@ -39,6 +40,7 @@ public class ContainerOpenMixin {
         Identifier typeId = Registries.SCREEN_HANDLER.getId(sp.currentScreenHandler.getType());
         String containerType = typeId != null ? typeId.toString() : "";
         NativeBridge.nativeOnContainerOpen(
-                sp.getName().getString(), sp.getUuidAsString(), containerType);
+                sp.getName().getString(), sp.getUuidAsString(), containerType,
+                sp.getWorld().getRegistryKey().getValue().toString());
     }
 }

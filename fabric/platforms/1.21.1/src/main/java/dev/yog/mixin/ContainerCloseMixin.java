@@ -18,6 +18,7 @@ public class ContainerCloseMixin {
     @Inject(method = "onCloseHandledScreen", at = @At("HEAD"))
     private void yog$onContainerClose(CloseHandledScreenC2SPacket packet, CallbackInfo ci) {
         NativeBridge.nativeOnContainerClose(
-                player.getName().getString(), player.getUuidAsString());
+                player.getName().getString(), player.getUuidAsString(),
+                player.getWorld().getRegistryKey().getValue().toString());
     }
 }
