@@ -764,6 +764,7 @@ dependencies = [
 name = "yog-cli"
 version = "0.19.0"
 dependencies = [
+ "serde_json",
  "zip",
 ]
 

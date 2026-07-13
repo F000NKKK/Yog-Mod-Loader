@@ -533,10 +533,7 @@ fn build() -> Result<(YogToml, PathBuf), String> {
     if let Some(facade) = generate_lib_facade(&meta, &root)? {
         // Written as a sibling of the real `src/lib.rs` (not under
         // `.yog-build/`) so its `mod foo;` declarations still resolve.
-        write_file(
-            &root.join("src").join("lib.designer.rs"),
-            facade.as_bytes(),
-        )?;
+        write_file(&root.join("src").join("lib.designer.rs"), facade.as_bytes())?;
     }
 
     // Restore yog.lock → .yog-build/Cargo.lock so cargo respects pinned versions
@@ -1371,7 +1368,11 @@ fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
 
     let new_text = lines.join("\n") + "\n";
     std::fs::write(&yog_toml_path, new_text).map_err(|e| e.to_string())?;
-    eprintln!("==> added {} to yog.toml [{}]", name, &target_section[1..target_section.len() - 1]);
+    eprintln!(
+        "==> added {} to yog.toml [{}]",
+        name,
+        &target_section[1..target_section.len() - 1]
+    );
     Ok(())
 }
 
@@ -1405,7 +1406,11 @@ fn remove_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
         }
         // Remove lines like: crate-name = "..." or crate-name = { ... },
         // only within the targeted section.
-        if in_section && trimmed.starts_with(name) && trimmed.contains('=') && !trimmed.starts_with('[') {
+        if in_section
+            && trimmed.starts_with(name)
+            && trimmed.contains('=')
+            && !trimmed.starts_with('[')
+        {
             removed = true;
             continue;
         }
