@@ -31,6 +31,7 @@ public abstract class AdvancementMixin {
         NativeBridge.nativeOnAdvancement(
                 player.getName().getString(),
                 player.getStringUUID(),
-                advancement.getId().toString());
+                advancement.getId().toString(),
+                player.level().dimension().location().toString());
     }
 }

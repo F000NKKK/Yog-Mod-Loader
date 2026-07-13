@@ -23,6 +23,7 @@ public class CraftingMixin {
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
         NativeBridge.nativeOnItemCraft(
             sp.getName().getString(), sp.getStringUUID(),
-            itemId, stack.getCount());
+            itemId, stack.getCount(),
+            sp.level().dimension().location().toString());
     }
 }
