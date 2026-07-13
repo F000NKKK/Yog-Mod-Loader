@@ -29,6 +29,7 @@ public class BlockItemPlaceMixin {
         BlockPos pos = context.getClickedPos();
         String blockId = BuiltInRegistries.BLOCK.getKey(((BlockItem) (Object) this).getBlock()).toString();
         NativeBridge.nativeOnPlaceBlock(
-                sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+                sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(),
+                context.getLevel().dimension().location().toString());
     }
 }
