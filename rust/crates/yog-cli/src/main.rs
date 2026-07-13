@@ -531,9 +531,12 @@ fn build() -> Result<(YogToml, PathBuf), String> {
     write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
 
     if let Some(facade) = generate_lib_facade(&meta, &root)? {
-        let src_dir = build_dir.join("src");
-        std::fs::create_dir_all(&src_dir).map_err(|e| e.to_string())?;
-        write_file(&src_dir.join("generated_lib.rs"), facade.as_bytes())?;
+        // Written as a sibling of the real `src/lib.rs` (not under
+        // `.yog-build/`) so its `mod foo;` declarations still resolve.
+        write_file(
+            &root.join("src").join("__yog_generated_lib.rs"),
+            facade.as_bytes(),
+        )?;
     }
 
     // Restore yog.lock → .yog-build/Cargo.lock so cargo respects pinned versions
@@ -768,13 +771,15 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
 
     // With no `[dependencies.exports]` entries there's nothing to facade —
     // point straight at the mod's own `src/lib.rs`. Otherwise `[lib] path`
-    // points at a generated wrapper (see `generate_lib_facade`) that
-    // includes the real `src/lib.rs` verbatim and adds a `yog_exports`
-    // module nesting each mod dependency under its own name.
+    // points at a generated sibling file (see `generate_lib_facade`, written
+    // by `build()` next to the real `src/lib.rs` so `mod foo;` declarations
+    // in the copied content still resolve) that carries the real
+    // `src/lib.rs` content plus a `yog_exports` module nesting each mod
+    // dependency under its own name.
     let lib_path = if meta.mod_dependencies.is_empty() {
         "../src/lib.rs"
     } else {
-        "src/generated_lib.rs"
+        "../src/__yog_generated_lib.rs"
     };
 
     format!(
@@ -825,8 +830,15 @@ rkyv = "{rkyv_ver}"
 /// file"), so any leading `//!` lines are dropped here instead (this is a
 /// generated build artifact, not the author's real `src/lib.rs`).
 ///
+/// The result is written as a **sibling** of the real `src/lib.rs` (see
+/// `build()`), never under `.yog-build/` — `mod foo;` declarations inside
+/// the copied content resolve relative to the file's own directory, so the
+/// generated file must live next to `alu.rs`/`chip.rs`/etc. for those to
+/// still be found; the module's own directory is the only stable answer to
+/// "where do my submodules live" that survives this rewrite.
+///
 /// Returns `None` when there are no mod dependencies — `[lib] path` then
-/// skips this file entirely and points straight at `src/lib.rs`.
+/// points straight at `src/lib.rs`, and no generated file exists at all.
 fn generate_lib_facade(meta: &YogToml, root: &Path) -> Result<Option<String>, String> {
     if meta.mod_dependencies.is_empty() {
         return Ok(None);
@@ -2237,7 +2249,12 @@ fn collect_rs_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
         let path = entry.path();
         if path.is_dir() {
             out.extend(collect_rs_files(&path)?);
-        } else if path.extension().and_then(|e| e.to_str()) == Some("rs") {
+        } else if path.extension().and_then(|e| e.to_str()) == Some("rs")
+            // Skip the `yog_exports` facade `build()` generates next to
+            // `lib.rs` — it's a verbatim copy of the real source, and
+            // scanning it too would double every `#[yog_export]` item.
+            && path.file_name().and_then(|n| n.to_str()) != Some("__yog_generated_lib.rs")
+        {
             out.push(path);
         }
     }
