@@ -59,16 +59,14 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         syn::ReturnType::Type(_, ty) => quote! { #ty },
     };
 
+    // NOTE: only the first parameter is (de)serialized (see `input_type`
+    // below) — `#[yog_export]` fns take a single args struct by convention,
+    // so the call must use the wrapper's deserialized `args` binding, not
+    // the original parameter name (which isn't in scope in the wrapper).
     let call_fn = if inputs.is_empty() {
         quote! { #name() }
     } else {
-        let arg_names: Vec<_> = inputs.iter().map(|arg| {
-            match arg {
-                syn::FnArg::Typed(pat_type) => &pat_type.pat,
-                syn::FnArg::Receiver(_) => unreachable!(),
-            }
-        }).collect();
-        quote! { #name(#(#arg_names),*) }
+        quote! { #name(args) }
     };
 
     let input_type = if inputs.is_empty() {
