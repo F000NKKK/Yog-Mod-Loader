@@ -414,7 +414,8 @@ public class YogHost {
                 java.util.UUID parsed = java.util.UUID.fromString(uuid);
                 ServerPlayer found = server.getPlayerList().getPlayer(parsed);
                 if (found != null) {
-                    NativeBridge.nativeOnPlayerJoin(found.getName().getString(), uuid);
+                    NativeBridge.nativeOnPlayerJoin(found.getName().getString(), uuid,
+                            found.level().dimension().location().toString());
                     toRemove.add(uuid);
                 } else if (retries <= 0) {
                     System.out.println("[yog] player join: " + name + " never appeared after retries");
@@ -474,7 +475,8 @@ public class YogHost {
         String blockId = BuiltInRegistries.BLOCK.getKey(event.getState().getBlock()).toString();
         String playerName = player.getName().getString();
         int x = event.getPos().getX(), y = event.getPos().getY(), z = event.getPos().getZ();
-        if (!NativeBridge.nativeOnBlockBreakPre(playerName, blockId, x, y, z)) {
+        String dim = event.getLevel().dimension().location().toString();
+        if (!NativeBridge.nativeOnBlockBreakPre(playerName, blockId, x, y, z, dim)) {
             event.setCanceled(true);
             return;
         }
@@ -483,7 +485,7 @@ public class YogHost {
         // here, vanilla will destroy the block we just placed.
         // NB: server.execute() runs inline when already on the server thread
         // (BlockableEventLoop), so it would NOT defer — queue for end of tick.
-        POST_TICK.add(() -> NativeBridge.nativeOnBlockBreak(playerName, blockId, x, y, z));
+        POST_TICK.add(() -> NativeBridge.nativeOnBlockBreak(playerName, blockId, x, y, z, dim));
     }
 
     // ── Chat ─────────────────────────────────────────────────────────────────
@@ -492,11 +494,12 @@ public class YogHost {
     public void onChat(ServerChatEvent event) {
         String playerName = event.getPlayer().getName().getString();
         String message = event.getMessage().getString();
-        if (!NativeBridge.nativeOnChatPre(playerName, message)) {
+        String dim = event.getPlayer().level().dimension().location().toString();
+        if (!NativeBridge.nativeOnChatPre(playerName, message, dim)) {
             event.setCanceled(true);
             return;
         }
-        NativeBridge.nativeOnChat(playerName, message);
+        NativeBridge.nativeOnChat(playerName, message, dim);
     }
 
     // ── Player join / leave ──────────────────────────────────────────────────
@@ -514,7 +517,8 @@ public class YogHost {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         String pUuid = player.getStringUUID();
         PENDING_JOINS.remove(pUuid);
-        NativeBridge.nativeOnPlayerLeave(player.getName().getString(), pUuid);
+        NativeBridge.nativeOnPlayerLeave(player.getName().getString(), pUuid,
+                player.level().dimension().location().toString());
     }
 
     // ── Right-click item ─────────────────────────────────────────────────────
@@ -525,11 +529,12 @@ public class YogHost {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         ItemStack stack = sp.getItemInHand(event.getHand());
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
-        if (!NativeBridge.nativeOnUseItemPre(sp.getName().getString(), itemId, sp.isShiftKeyDown())) {
+        String dim = sp.level().dimension().location().toString();
+        if (!NativeBridge.nativeOnUseItemPre(sp.getName().getString(), itemId, sp.isShiftKeyDown(), dim)) {
             event.setCanceled(true);
             return;
         }
-        NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId, sp.isShiftKeyDown());
+        NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId, sp.isShiftKeyDown(), dim);
     }
 
     // ── Right-click block ────────────────────────────────────────────────────
@@ -540,13 +545,14 @@ public class YogHost {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         BlockPos pos = event.getPos();
         String blockId = BuiltInRegistries.BLOCK.getKey(sp.level().getBlockState(pos).getBlock()).toString();
+        String dim = sp.level().dimension().location().toString();
         if (!NativeBridge.nativeOnUseBlockPre(sp.getName().getString(), blockId,
-                pos.getX(), pos.getY(), pos.getZ())) {
+                pos.getX(), pos.getY(), pos.getZ(), dim)) {
             event.setCanceled(true);
             return;
         }
         NativeBridge.nativeOnUseBlock(sp.getName().getString(), blockId,
-                pos.getX(), pos.getY(), pos.getZ());
+                pos.getX(), pos.getY(), pos.getZ(), dim);
 
         // Block placement — Pre (cancellable)
         ItemStack held = sp.getItemInHand(event.getHand());
@@ -554,7 +560,7 @@ public class YogHost {
             BlockPos placed = pos.relative(event.getFace());
             String bid = BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
             if (!NativeBridge.nativeOnPlaceBlockPre(
-                    sp.getName().getString(), bid, placed.getX(), placed.getY(), placed.getZ())) {
+                    sp.getName().getString(), bid, placed.getX(), placed.getY(), placed.getZ(), dim)) {
                 event.setCanceled(true);
             }
         }
@@ -572,11 +578,12 @@ public class YogHost {
         String eType = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString();
         String eUuid = target.getStringUUID();
         String handStr = event.getHand() == InteractionHand.MAIN_HAND ? "main_hand" : "off_hand";
-        if (!NativeBridge.nativeOnEntityInteractPre(pName, pUuid, eType, eUuid, handStr)) {
+        String dim = sp.level().dimension().location().toString();
+        if (!NativeBridge.nativeOnEntityInteractPre(pName, pUuid, eType, eUuid, handStr, dim)) {
             event.setCanceled(true);
             return;
         }
-        NativeBridge.nativeOnEntityInteract(pName, pUuid, eType, eUuid, handStr);
+        NativeBridge.nativeOnEntityInteract(pName, pUuid, eType, eUuid, handStr, dim);
     }
 
     // ── Attack entity ────────────────────────────────────────────────────────
@@ -587,7 +594,8 @@ public class YogHost {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         Entity target = event.getTarget();
         String type = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString();
-        NativeBridge.nativeOnAttackEntity(sp.getName().getString(), type, target.getStringUUID());
+        NativeBridge.nativeOnAttackEntity(sp.getName().getString(), type, target.getStringUUID(),
+                sp.level().dimension().location().toString());
     }
 
     // ── Entity damage / player death ─────────────────────────────────────────
@@ -597,11 +605,12 @@ public class YogHost {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
         String source = event.getSource().getMsgId();
+        String dim = entity.level().dimension().location().toString();
 
         if (entity instanceof ServerPlayer sp && sp.getHealth() - event.getAmount() <= 0.0f) {
             // Damage that would kill the player — Pre (cancellable).
             boolean allow = NativeBridge.nativeOnPlayerDeathPre(
-                    sp.getName().getString(), sp.getStringUUID(), source);
+                    sp.getName().getString(), sp.getStringUUID(), source, dim);
             if (!allow) {
                 event.setCanceled(true);
                 return;
@@ -610,12 +619,12 @@ public class YogHost {
 
         String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         if (!NativeBridge.nativeOnEntityDamagePre(
-                type, entity.getStringUUID(), event.getAmount(), source)) {
+                type, entity.getStringUUID(), event.getAmount(), source, dim)) {
             event.setCanceled(true);
             return;
         }
         NativeBridge.nativeOnEntityDamage(
-                type, entity.getStringUUID(), event.getAmount(), source);
+                type, entity.getStringUUID(), event.getAmount(), source, dim);
     }
 
     // ── Entity spawn ────────────────────────────────────────────────────────
@@ -641,13 +650,14 @@ public class YogHost {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity entity = event.getEntity();
         String source = event.getSource().getMsgId();
+        String dim = entity.level().dimension().location().toString();
         if (entity instanceof ServerPlayer sp) {
             NativeBridge.nativeOnPlayerDeath(
-                    sp.getName().getString(), sp.getStringUUID(), source);
+                    sp.getName().getString(), sp.getStringUUID(), source, dim);
             return;
         }
         String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
-        NativeBridge.nativeOnEntityDeath(type, entity.getStringUUID(), source);
+        NativeBridge.nativeOnEntityDeath(type, entity.getStringUUID(), source, dim);
     }
 
     // ── Player respawn ───────────────────────────────────────────────────────
@@ -657,7 +667,8 @@ public class YogHost {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         if (event.isEndConquered()) return; // dimension-change respawn, not death
         NativeBridge.nativeOnPlayerRespawn(
-                sp.getName().getString(), sp.getStringUUID(), false);
+                sp.getName().getString(), sp.getStringUUID(), false,
+                sp.level().dimension().location().toString());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -744,7 +755,8 @@ public class YogHost {
         CommandSourceStack src = ctx.getSource();
         Entity entity = src.getEntity();
         String uuid = entity != null ? entity.getStringUUID() : "";
-        String reply = NativeBridge.nativeOnCommand(name, args, src.getTextName(), uuid);
+        String dim = src.getLevel().dimension().location().toString();
+        String reply = NativeBridge.nativeOnCommand(name, args, src.getTextName(), uuid, dim);
         if (reply != null && !reply.isEmpty()) {
             src.sendSuccess(() -> Component.literal(reply), false);
         }
