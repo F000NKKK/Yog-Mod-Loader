@@ -10,13 +10,13 @@ mod registry;
 
 pub use interop::Interop;
 pub use registry::{installed_mods, open_ui, server, CServer, Mod, ModInfo, Registry};
-pub use yog_gfx::{GfxContext, core as gfx_core, gl as gfx_gl, draw2d as gfx_draw2d};
+pub use yog_gfx::{core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, GfxContext};
 
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
-pub use yog_abi::{ABI_VERSION, YogApi};
+pub use yog_abi::{YogApi, ABI_VERSION};
 
 /// Inter-mod communication proc-macros.
-pub use yog_interop::{yog_export, import};
+pub use yog_interop::{import, yog_export};
 
 /// rkyv — zero-copy serialization for interop. Re-exported so generated
 /// code and mods can use `rkyv::Archive`, `rkyv::Serialize`, `rkyv::Deserialize`
@@ -77,9 +77,12 @@ macro_rules! export_mod {
                 let mut registry = unsafe { $crate::Registry::from_raw(api) };
                 <$mod_ty as $crate::Mod>::register(&mut registry);
 
-                // Auto-register all #[yog_export] functions (linkme distributed slice).
+                // Auto-register all #[yog_export] functions (populated by
+                // per-function `ctor` constructors at cdylib load time).
                 for entry in $crate::__yog_export_registry().lock().unwrap().iter() {
-                    registry.interop().export(entry.name, entry.ptr as *const ::std::os::raw::c_void);
+                    registry
+                        .interop()
+                        .export(entry.name, entry.ptr as *const ::std::os::raw::c_void);
                 }
 
                 // Resolve pending imports (may partially succeed — runtime
@@ -87,16 +90,17 @@ macro_rules! export_mod {
                 $crate::__yog_resolve_pending_imports(&registry);
             }));
             if outcome.is_err() {
-                $crate::error!("mod {} panicked during register", ::core::stringify!($mod_ty));
+                $crate::error!(
+                    "mod {} panicked during register",
+                    ::core::stringify!($mod_ty)
+                );
             }
         }
 
         /// Called by the runtime after ALL mods are loaded — resolves any
         /// imports that weren't satisfied during initial registration.
         #[no_mangle]
-        pub unsafe extern "C" fn __yog_resolve_imports_final(
-            api: *const $crate::YogApi,
-        ) {
+        pub unsafe extern "C" fn __yog_resolve_imports_final(api: *const $crate::YogApi) {
             let registry = unsafe { $crate::Registry::from_raw(api) };
             $crate::__yog_resolve_pending_imports(&registry);
         }
@@ -124,10 +128,17 @@ std::thread_local! {
 // ── Auto-export registry ─────────────────────────────────────────────────
 
 #[doc(hidden)]
-pub struct YogExportEntry { pub name: &'static str, pub ptr: usize }
+pub struct YogExportEntry {
+    pub name: &'static str,
+    pub ptr: usize,
+}
 
 #[doc(hidden)]
-pub struct YogImportEntry { pub mod_id: &'static str, pub symbol: &'static str, pub bind_fn: usize }
+pub struct YogImportEntry {
+    pub mod_id: &'static str,
+    pub symbol: &'static str,
+    pub bind_fn: usize,
+}
 
 #[doc(hidden)]
 pub fn __yog_export_registry() -> &'static std::sync::Mutex<Vec<YogExportEntry>> {
@@ -151,36 +162,43 @@ pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
     let interop = registry.interop();
     for entry in __yog_import_registry().lock().unwrap().iter() {
         if let Some(ptr) = interop.import_raw(entry.mod_id, entry.symbol) {
-            let bind: unsafe extern "C" fn(*const std::ffi::c_void) = std::mem::transmute(entry.bind_fn);
+            let bind: unsafe extern "C" fn(*const std::ffi::c_void) =
+                std::mem::transmute(entry.bind_fn);
             bind(ptr);
         }
     }
 }
 
+pub use yog_book::{
+    crafting_page, entity_page, image_page, pattern_page, relations_page, smelting_page,
+    spotlight_page, text_page, text_page_titled,
+};
+pub use yog_book::{Book, BookCategory, BookEntry, BookMacro, BookPage, BookRegistry};
+pub use yog_book::{BookFontRegistry, BookRenderer};
 pub use yog_command::CommandContext;
+pub use yog_config::Config;
 pub use yog_core::{BlockPos, Server};
+pub use yog_entity::Entity;
 pub use yog_event::{
     AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ClientTickEvent,
     ContainerCloseEvent, ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent,
-    EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent,
-    ItemPickupEvent, KeyPressEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerJoinEvent,
-    PlayerLeaveEvent, PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent, ScreenEvent,
-    UseBlockEvent, UseItemEvent,
+    EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent, ItemPickupEvent,
+    KeyPressEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerJoinEvent, PlayerLeaveEvent,
+    PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent, ScreenEvent, UseBlockEvent,
+    UseItemEvent,
 };
-pub use yog_entity::Entity;
-pub use yog_network::{Packet, PacketEvent, PacketField};
+pub use yog_inventory::{InventoryDef, SlotLayout};
 #[doc(inline)]
 pub use yog_network::packet;
+pub use yog_network::{Packet, PacketEvent, PacketField};
 pub use yog_player::Player;
-pub use yog_registry::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe, BookRecipe, ItemModifier, AdvancementReward, StartupGrant};
-pub use yog_config::Config;
+pub use yog_registry::{
+    AdvancementReward, BlockDef, BookRecipe, FoodDef, FurnaceRecipe, ItemDef, ItemModifier,
+    ShapedRecipe, ShapelessRecipe, StartupGrant,
+};
 pub use yog_storage::{Storage, StorageScope, Value};
+pub use yog_ui::{widget, Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, UiRoot};
 pub use yog_world::World;
-pub use yog_book::{Book, BookCategory, BookEntry, BookPage, BookMacro, BookRegistry};
-pub use yog_book::{BookRenderer, BookFontRegistry};
-pub use yog_book::{text_page, text_page_titled, spotlight_page, crafting_page, smelting_page, image_page, entity_page, relations_page, pattern_page};
-pub use yog_ui::{UiRoot, LayoutNode, Rect, widget, Align, FlexDir, Dock, FocusStyle};
-pub use yog_inventory::{InventoryDef, SlotLayout};
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
 pub use yog_logging::{error, info, warn};

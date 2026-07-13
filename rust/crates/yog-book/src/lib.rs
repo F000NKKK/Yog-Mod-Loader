@@ -3,19 +3,19 @@
 //! Provides Patchouli-like book data model plus a full GPU renderer on top of
 //! yog-ui and yog-gfx, with SVG icon support and custom TTF/OTF fonts.
 
-pub mod state;
-pub mod theme;
 pub mod font;
-pub mod svg;
 pub mod renderer;
+pub mod state;
+pub mod svg;
+pub mod theme;
 
 use serde::{Deserialize, Serialize};
 use yog_registry::ItemDef;
 
-pub use state::BookViewState;
-pub use theme::BookTheme;
 pub use font::{BookFont, BookFontRegistry};
 pub use renderer::BookRenderer;
+pub use state::BookViewState;
+pub use theme::BookTheme;
 
 // ── Macros ───────────────────────────────────────────────────────────────────
 
@@ -108,18 +108,18 @@ pub enum BookPage {
     /// SVG image page — rasterized at render time via `resvg`.
     Svg {
         /// Raw SVG source string.
-        data:  String,
+        data: String,
         #[serde(default)]
         title: Option<String>,
         #[serde(default)]
-        text:  Option<String>,
+        text: Option<String>,
     },
     /// Text rendered with a custom TTF/OTF font.
     CustomText {
-        text:  String,
+        text: String,
         /// Flattened on the wire: `"font_id": …, "size_px": …`.
         #[serde(flatten)]
-        font:  BookFont,
+        font: BookFont,
         /// ARGB color (0xAARRGGBB).
         color: u32,
     },
@@ -331,42 +331,79 @@ impl BookRegistry {
 // ── Builder helpers ──────────────────────────────────────────────────────────
 
 pub fn text_page(text: impl Into<String>) -> BookPage {
-    BookPage::Text { text: text.into(), title: None }
+    BookPage::Text {
+        text: text.into(),
+        title: None,
+    }
 }
 
 pub fn text_page_titled(title: impl Into<String>, text: impl Into<String>) -> BookPage {
-    BookPage::Text { text: text.into(), title: Some(title.into()) }
+    BookPage::Text {
+        text: text.into(),
+        title: Some(title.into()),
+    }
 }
 
 pub fn spotlight_page(item: ItemDef) -> BookPage {
-    BookPage::Spotlight { item, title: None, text: None }
+    BookPage::Spotlight {
+        item,
+        title: None,
+        text: None,
+    }
 }
 
 pub fn crafting_page(recipe_id: impl Into<String>) -> BookPage {
-    BookPage::Crafting { recipe_id: recipe_id.into(), text: None }
+    BookPage::Crafting {
+        recipe_id: recipe_id.into(),
+        text: None,
+    }
 }
 
 pub fn crafting_page_with_text(recipe_id: impl Into<String>, text: impl Into<String>) -> BookPage {
-    BookPage::Crafting { recipe_id: recipe_id.into(), text: Some(text.into()) }
+    BookPage::Crafting {
+        recipe_id: recipe_id.into(),
+        text: Some(text.into()),
+    }
 }
 
 pub fn smelting_page(recipe_id: impl Into<String>) -> BookPage {
-    BookPage::Smelting { recipe_id: recipe_id.into(), text: None }
+    BookPage::Smelting {
+        recipe_id: recipe_id.into(),
+        text: None,
+    }
 }
 
 pub fn image_page(texture: impl Into<String>) -> BookPage {
-    BookPage::Image { texture: texture.into(), title: None, text: None, border: true }
+    BookPage::Image {
+        texture: texture.into(),
+        title: None,
+        text: None,
+        border: true,
+    }
 }
 
 pub fn entity_page(entity_type: impl Into<String>) -> BookPage {
-    BookPage::Entity { entity_type: entity_type.into(), name: None, text: None }
+    BookPage::Entity {
+        entity_type: entity_type.into(),
+        name: None,
+        text: None,
+    }
 }
 
 pub fn relations_page(entries: Vec<String>) -> BookPage {
-    BookPage::Relations { entries, text: None }
+    BookPage::Relations {
+        entries,
+        text: None,
+    }
 }
 
-pub fn pattern_page(op_id: impl Into<String>, anchor: impl Into<String>, input: impl Into<String>, output: impl Into<String>, text: impl Into<String>) -> BookPage {
+pub fn pattern_page(
+    op_id: impl Into<String>,
+    anchor: impl Into<String>,
+    input: impl Into<String>,
+    output: impl Into<String>,
+    text: impl Into<String>,
+) -> BookPage {
     BookPage::Pattern {
         op_id: op_id.into(),
         anchor: anchor.into(),
@@ -385,33 +422,60 @@ pub mod book_ui {
     /// Build a `UiRoot` from a `Book`.
     /// The UI has: left panel (categories + entries), right panel (pages),
     /// prev/next buttons at bottom.
-    pub fn build_book_ui(book: &Book, selected_cat: usize, selected_entry: usize, current_page: usize) -> UiRoot {
+    pub fn build_book_ui(
+        book: &Book,
+        selected_cat: usize,
+        selected_entry: usize,
+        current_page: usize,
+    ) -> UiRoot {
         let mut cats: Vec<Widget> = Vec::new();
         for (i, cat) in book.categories.iter().enumerate() {
-            let color = if i == selected_cat { 0xFF_FFFF55 } else { 0xFF_CCCCCC };
-            cats.push(widget::button(&cat.name)
-                .color(color)
-                .on_click(format!("cat:{}", i)));
+            let color = if i == selected_cat {
+                0xFF_FFFF55
+            } else {
+                0xFF_CCCCCC
+            };
+            cats.push(
+                widget::button(&cat.name)
+                    .color(color)
+                    .on_click(format!("cat:{}", i)),
+            );
         }
 
         let cat = book.categories.get(selected_cat);
         let mut entries: Vec<Widget> = Vec::new();
         if let Some(cat) = cat {
-            let cat_entries: Vec<&BookEntry> = book.entries.iter()
-                .filter(|e| e.category == cat.id).collect();
+            let cat_entries: Vec<&BookEntry> = book
+                .entries
+                .iter()
+                .filter(|e| e.category == cat.id)
+                .collect();
             for (i, entry) in cat_entries.iter().enumerate() {
-                let color = if i == selected_entry { 0xFF_FFFF55 } else { 0xFF_CCCCCC };
-                let label = if entry.name.len() > 14 { &entry.name[..14] } else { &entry.name };
-                entries.push(widget::button(label)
-                    .color(color)
-                    .on_click(format!("entry:{}", i)));
+                let color = if i == selected_entry {
+                    0xFF_FFFF55
+                } else {
+                    0xFF_CCCCCC
+                };
+                let label = if entry.name.len() > 14 {
+                    &entry.name[..14]
+                } else {
+                    &entry.name
+                };
+                entries.push(
+                    widget::button(label)
+                        .color(color)
+                        .on_click(format!("entry:{}", i)),
+                );
             }
         }
 
         let mut pages: Vec<Widget> = Vec::new();
         if let Some(cat) = cat {
-            let cat_entries: Vec<&BookEntry> = book.entries.iter()
-                .filter(|e| e.category == cat.id).collect();
+            let cat_entries: Vec<&BookEntry> = book
+                .entries
+                .iter()
+                .filter(|e| e.category == cat.id)
+                .collect();
             if let Some(entry) = cat_entries.get(selected_entry) {
                 if let Some(page) = entry.pages.get(current_page) {
                     pages.push(render_page(page));
@@ -419,57 +483,79 @@ pub mod book_ui {
             }
         }
 
-        let nav = widget::panel(FlexDir::Row).gap(4.0)
+        let nav = widget::panel(FlexDir::Row)
+            .gap(4.0)
             .child(widget::button("<").w(28.0).on_click("prev_page"))
-            .child(widget::label(&format!("{}/{}", current_page + 1,
-                cat.map_or(0, |c| {
-                    book.entries.iter().filter(|e| e.category == c.id).nth(selected_entry)
-                        .map_or(0, |e| e.pages.len())
-                }))).color(0xFF_888888).flex(1.0).align(Align::Center))
+            .child(
+                widget::label(&format!(
+                    "{}/{}",
+                    current_page + 1,
+                    cat.map_or(0, |c| {
+                        book.entries
+                            .iter()
+                            .filter(|e| e.category == c.id)
+                            .nth(selected_entry)
+                            .map_or(0, |e| e.pages.len())
+                    })
+                ))
+                .color(0xFF_888888)
+                .flex(1.0)
+                .align(Align::Center),
+            )
             .child(widget::button(">").w(28.0).on_click("next_page"));
 
-        UiRoot::new(&book.id,
-            widget::panel(FlexDir::Row).gap(2.0)
-                .padding(2.0, 2.0, 2.0, 2.0).bg(0xFF_2A1A0E)
+        UiRoot::new(
+            &book.id,
+            widget::panel(FlexDir::Row)
+                .gap(2.0)
+                .padding(2.0, 2.0, 2.0, 2.0)
+                .bg(0xFF_2A1A0E)
                 .child(
-                    widget::panel(FlexDir::Column).w(104.0)
+                    widget::panel(FlexDir::Column)
+                        .w(104.0)
                         .child(widget::label("Categories").color(0xFF_888888))
-                        .child(widget::panel(FlexDir::Column).gap(1.0)
-                            .child_many(cats))
+                        .child(widget::panel(FlexDir::Column).gap(1.0).child_many(cats))
                         .child(widget::label("Entries").color(0xFF_888888))
-                        .child(widget::panel(FlexDir::Column).gap(1.0)
-                            .child_many(entries))
+                        .child(widget::panel(FlexDir::Column).gap(1.0).child_many(entries)),
                 )
                 .child(
-                    widget::panel(FlexDir::Column).flex(1.0).gap(2.0)
-                        .child(widget::panel(FlexDir::Column).flex(1.0)
-                            .child_many(pages))
-                        .child(nav)
-                )
+                    widget::panel(FlexDir::Column)
+                        .flex(1.0)
+                        .gap(2.0)
+                        .child(widget::panel(FlexDir::Column).flex(1.0).child_many(pages))
+                        .child(nav),
+                ),
         )
     }
 
     fn render_page(page: &BookPage) -> Widget {
         match page {
-            BookPage::Text { text, .. } =>
-                widget::label(text).color(0xFF_CCCCAA),
+            BookPage::Text { text, .. } => widget::label(text).color(0xFF_CCCCAA),
             BookPage::Spotlight { item, title, text } => {
                 let mut p = widget::panel(FlexDir::Column).gap(2.0);
-                if let Some(t) = title { p = p.child(widget::label(t).color(0xFF_FFFF55)); }
+                if let Some(t) = title {
+                    p = p.child(widget::label(t).color(0xFF_FFFF55));
+                }
                 p = p.child(widget::item_slot(&item.id));
-                if let Some(t) = text { p = p.child(widget::label(t).color(0xFF_CCCCAA)); }
+                if let Some(t) = text {
+                    p = p.child(widget::label(t).color(0xFF_CCCCAA));
+                }
                 p
             }
             BookPage::Crafting { recipe_id, text } => {
                 let mut p = widget::panel(FlexDir::Column).gap(2.0);
                 p = p.child(widget::label(format!("Crafting: {}", recipe_id)).color(0xFF_888888));
-                if let Some(t) = text { p = p.child(widget::label(t).color(0xFF_CCCCAA)); }
+                if let Some(t) = text {
+                    p = p.child(widget::label(t).color(0xFF_CCCCAA));
+                }
                 p
             }
             BookPage::Smelting { recipe_id, text } => {
                 let mut p = widget::panel(FlexDir::Column).gap(2.0);
                 p = p.child(widget::label(format!("Smelting: {}", recipe_id)).color(0xFF_888888));
-                if let Some(t) = text { p = p.child(widget::label(t).color(0xFF_CCCCAA)); }
+                if let Some(t) = text {
+                    p = p.child(widget::label(t).color(0xFF_CCCCAA));
+                }
                 p
             }
             BookPage::Empty => widget::spacer(),
@@ -483,7 +569,9 @@ pub mod book_ui {
     }
     impl WidgetExt for Widget {
         fn child_many(mut self, children: Vec<Widget>) -> Self {
-            for c in children { self = self.child(c); }
+            for c in children {
+                self = self.child(c);
+            }
             self
         }
     }
@@ -496,7 +584,7 @@ fn esc(s: &str) -> String {
     for ch in s.chars() {
         match ch {
             '\\' => out.push_str("\\\\"),
-            '"'  => out.push_str("\\\""),
+            '"' => out.push_str("\\\""),
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
@@ -513,90 +601,235 @@ impl BookPage {
     pub fn to_json(&self) -> String {
         match self {
             Self::Text { text, title } => {
-                let t = title.as_deref().map(|s| format!(r#","title":"{}""#, esc(s))).unwrap_or_default();
+                let t = title
+                    .as_deref()
+                    .map(|s| format!(r#","title":"{}""#, esc(s)))
+                    .unwrap_or_default();
                 format!(r#"{{"type":"text","text":"{}"{}}}"#, esc(text), t)
             }
             Self::Spotlight { item, title, text } => {
-                let t = title.as_deref().map(|s| format!(r#","title":"{}""#, esc(s))).unwrap_or_default();
-                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
-                format!(r#"{{"type":"spotlight","item":"{id}"{t}{tx}}}"#, id = esc(&item.id))
+                let t = title
+                    .as_deref()
+                    .map(|s| format!(r#","title":"{}""#, esc(s)))
+                    .unwrap_or_default();
+                let tx = text
+                    .as_deref()
+                    .map(|s| format!(r#","text":"{}""#, esc(s)))
+                    .unwrap_or_default();
+                format!(
+                    r#"{{"type":"spotlight","item":"{id}"{t}{tx}}}"#,
+                    id = esc(&item.id)
+                )
             }
             Self::Crafting { recipe_id, text } => {
-                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
-                format!(r#"{{"type":"crafting","recipe":"{}"{}}}"#, esc(recipe_id), tx)
+                let tx = text
+                    .as_deref()
+                    .map(|s| format!(r#","text":"{}""#, esc(s)))
+                    .unwrap_or_default();
+                format!(
+                    r#"{{"type":"crafting","recipe":"{}"{}}}"#,
+                    esc(recipe_id),
+                    tx
+                )
             }
             Self::Smelting { recipe_id, text } => {
-                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
-                format!(r#"{{"type":"smelting","recipe":"{}"{}}}"#, esc(recipe_id), tx)
+                let tx = text
+                    .as_deref()
+                    .map(|s| format!(r#","text":"{}""#, esc(s)))
+                    .unwrap_or_default();
+                format!(
+                    r#"{{"type":"smelting","recipe":"{}"{}}}"#,
+                    esc(recipe_id),
+                    tx
+                )
             }
-            Self::Image { texture, title, text, border } => {
-                let t = title.as_deref().map(|s| format!(r#","title":"{}""#, esc(s))).unwrap_or_default();
-                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
-                format!(r#"{{"type":"image","texture":"{}","border":{}{}{}}}"#,
-                    esc(texture), border, t, tx)
+            Self::Image {
+                texture,
+                title,
+                text,
+                border,
+            } => {
+                let t = title
+                    .as_deref()
+                    .map(|s| format!(r#","title":"{}""#, esc(s)))
+                    .unwrap_or_default();
+                let tx = text
+                    .as_deref()
+                    .map(|s| format!(r#","text":"{}""#, esc(s)))
+                    .unwrap_or_default();
+                format!(
+                    r#"{{"type":"image","texture":"{}","border":{}{}{}}}"#,
+                    esc(texture),
+                    border,
+                    t,
+                    tx
+                )
             }
-            Self::Entity { entity_type, name, text } => {
-                let n = name.as_deref().map(|s| format!(r#","name":"{}""#, esc(s))).unwrap_or_default();
-                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
-                format!(r#"{{"type":"entity","entity":"{}"{}{}}}"#, esc(entity_type), n, tx)
+            Self::Entity {
+                entity_type,
+                name,
+                text,
+            } => {
+                let n = name
+                    .as_deref()
+                    .map(|s| format!(r#","name":"{}""#, esc(s)))
+                    .unwrap_or_default();
+                let tx = text
+                    .as_deref()
+                    .map(|s| format!(r#","text":"{}""#, esc(s)))
+                    .unwrap_or_default();
+                format!(
+                    r#"{{"type":"entity","entity":"{}"{}{}}}"#,
+                    esc(entity_type),
+                    n,
+                    tx
+                )
             }
             Self::Relations { entries, text } => {
-                let e: String = entries.iter().map(|s| format!(r#""{}""#, esc(s))).collect::<Vec<_>>().join(",");
-                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
+                let e: String = entries
+                    .iter()
+                    .map(|s| format!(r#""{}""#, esc(s)))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let tx = text
+                    .as_deref()
+                    .map(|s| format!(r#","text":"{}""#, esc(s)))
+                    .unwrap_or_default();
                 format!(r#"{{"type":"relations","entries":[{}]{}}}"#, e, tx)
             }
             Self::Empty => r#"{"type":"empty"}"#.to_string(),
-            Self::Pattern { op_id, anchor, input, output, text } =>
-                format!(r#"{{"type":"pattern","op_id":"{}","anchor":"{}","input":"{}","output":"{}","text":"{}"}}"#,
-                    esc(op_id), esc(anchor), esc(input), esc(output), esc(text)),
+            Self::Pattern {
+                op_id,
+                anchor,
+                input,
+                output,
+                text,
+            } => format!(
+                r#"{{"type":"pattern","op_id":"{}","anchor":"{}","input":"{}","output":"{}","text":"{}"}}"#,
+                esc(op_id),
+                esc(anchor),
+                esc(input),
+                esc(output),
+                esc(text)
+            ),
             Self::Svg { data, title, text } => {
-                let t = title.as_deref().map(|s| format!(r#","title":"{}""#, esc(s))).unwrap_or_default();
-                let tx = text.as_deref().map(|s| format!(r#","text":"{}""#, esc(s))).unwrap_or_default();
+                let t = title
+                    .as_deref()
+                    .map(|s| format!(r#","title":"{}""#, esc(s)))
+                    .unwrap_or_default();
+                let tx = text
+                    .as_deref()
+                    .map(|s| format!(r#","text":"{}""#, esc(s)))
+                    .unwrap_or_default();
                 format!(r#"{{"type":"svg","data":"{}"{}{}}}"#, esc(data), t, tx)
             }
-            Self::CustomText { text, font, color } =>
-                format!(r#"{{"type":"custom_text","text":"{}","font_id":"{}","size_px":{},"color":{}}}"#,
-                    esc(text), esc(&font.font_id), font.size_px, color),
+            Self::CustomText { text, font, color } => format!(
+                r#"{{"type":"custom_text","text":"{}","font_id":"{}","size_px":{},"color":{}}}"#,
+                esc(text),
+                esc(&font.font_id),
+                font.size_px,
+                color
+            ),
         }
     }
 }
 
 impl BookEntry {
     pub fn to_json(&self) -> String {
-        let pages: String = self.pages.iter().map(|p| p.to_json()).collect::<Vec<_>>().join(",");
-        let icon = self.icon.as_deref().map(|s| format!(r#","icon":"{}""#, esc(s))).unwrap_or_default();
-        let adv = self.advancement.as_deref().map(|s| format!(r#","advancement":"{}""#, esc(s))).unwrap_or_default();
+        let pages: String = self
+            .pages
+            .iter()
+            .map(|p| p.to_json())
+            .collect::<Vec<_>>()
+            .join(",");
+        let icon = self
+            .icon
+            .as_deref()
+            .map(|s| format!(r#","icon":"{}""#, esc(s)))
+            .unwrap_or_default();
+        let adv = self
+            .advancement
+            .as_deref()
+            .map(|s| format!(r#","advancement":"{}""#, esc(s)))
+            .unwrap_or_default();
         format!(
             r#"{{"id":"{}","name":"{}","category":"{}","pages":[{}],"secret":{},"priority":{},"read_by_default":{}{}{}}}"#,
-            esc(&self.id), esc(&self.name), esc(&self.category), pages,
-            self.secret, self.priority, self.read_by_default, icon, adv
+            esc(&self.id),
+            esc(&self.name),
+            esc(&self.category),
+            pages,
+            self.secret,
+            self.priority,
+            self.read_by_default,
+            icon,
+            adv
         )
     }
 }
 
 impl BookCategory {
     pub fn to_json(&self) -> String {
-        let desc = self.description.as_deref().map(|s| format!(r#","description":"{}""#, esc(s))).unwrap_or_default();
-        let icon = self.icon.as_deref().map(|s| format!(r#","icon":"{}""#, esc(s))).unwrap_or_default();
+        let desc = self
+            .description
+            .as_deref()
+            .map(|s| format!(r#","description":"{}""#, esc(s)))
+            .unwrap_or_default();
+        let icon = self
+            .icon
+            .as_deref()
+            .map(|s| format!(r#","icon":"{}""#, esc(s)))
+            .unwrap_or_default();
         format!(
             r#"{{"id":"{}","name":"{}","sortnum":{}{}{}}}"#,
-            esc(&self.id), esc(&self.name), self.sortnum, desc, icon
+            esc(&self.id),
+            esc(&self.name),
+            self.sortnum,
+            desc,
+            icon
         )
     }
 }
 
 impl Book {
     pub fn to_json(&self) -> String {
-        let cats: String = self.categories.iter().map(|c| c.to_json()).collect::<Vec<_>>().join(",");
-        let entries: String = self.entries.iter().map(|e| e.to_json()).collect::<Vec<_>>().join(",");
-        let author = self.author.as_deref().map(|s| format!(r#","author":"{}""#, esc(s))).unwrap_or_default();
-        let tab = self.creative_tab.as_deref().map(|s| format!(r#","creative_tab":"{}""#, esc(s))).unwrap_or_default();
+        let cats: String = self
+            .categories
+            .iter()
+            .map(|c| c.to_json())
+            .collect::<Vec<_>>()
+            .join(",");
+        let entries: String = self
+            .entries
+            .iter()
+            .map(|e| e.to_json())
+            .collect::<Vec<_>>()
+            .join(",");
+        let author = self
+            .author
+            .as_deref()
+            .map(|s| format!(r#","author":"{}""#, esc(s)))
+            .unwrap_or_default();
+        let tab = self
+            .creative_tab
+            .as_deref()
+            .map(|s| format!(r#","creative_tab":"{}""#, esc(s)))
+            .unwrap_or_default();
         format!(
             r#"{{"id":"{}","name":"{}","nameplate_color":"{}","landing_text":"{}","book_texture":"{}","filler_texture":"{}","model":"{}","show_progress":{},"i18n":{},"use_resource_pack":{},"categories":[{}],"entries":[{}]{}{}}}"#,
-            esc(&self.id), esc(&self.name), esc(&self.nameplate_color), esc(&self.landing_text),
-            esc(&self.book_texture), esc(&self.filler_texture), esc(&self.model),
-            self.show_progress, self.i18n, self.use_resource_pack,
-            cats, entries, author, tab
+            esc(&self.id),
+            esc(&self.name),
+            esc(&self.nameplate_color),
+            esc(&self.landing_text),
+            esc(&self.book_texture),
+            esc(&self.filler_texture),
+            esc(&self.model),
+            self.show_progress,
+            self.i18n,
+            self.use_resource_pack,
+            cats,
+            entries,
+            author,
+            tab
         )
     }
 }
@@ -614,12 +847,17 @@ mod wire_format_tests {
             .author("Tester")
             .landing_text("hello")
             .add_category(BookCategory {
-                id: "c1".into(), name: "Cat".into(),
+                id: "c1".into(),
+                name: "Cat".into(),
                 description: Some("d".into()),
-                icon: Some("yog:item/ruby".into()), icon_svg: None, sortnum: 0,
+                icon: Some("yog:item/ruby".into()),
+                icon_svg: None,
+                sortnum: 0,
             })
             .add_entry(BookEntry {
-                id: "e1".into(), name: "Entry".into(), category: "c1".into(),
+                id: "e1".into(),
+                name: "Entry".into(),
+                category: "c1".into(),
                 pages: vec![
                     text_page("plain"),
                     spotlight_page(yog_registry::ItemDef::new("yog:ruby")),
@@ -627,8 +865,12 @@ mod wire_format_tests {
                     smelting_page("yog:r2"),
                     BookPage::Empty,
                 ],
-                icon: Some("yog:ruby".into()), icon_svg: None,
-                secret: false, priority: 0, read_by_default: false, advancement: None,
+                icon: Some("yog:ruby".into()),
+                icon_svg: None,
+                secret: false,
+                priority: 0,
+                read_by_default: false,
+                advancement: None,
             });
 
         let json = book.to_json();

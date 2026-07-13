@@ -75,7 +75,13 @@ impl<'a> Entity<'a> {
         amplifier: u8,
         show_particles: bool,
     ) -> bool {
-        self.server.entity_add_effect(&self.uuid, effect_id, duration_ticks, amplifier, show_particles)
+        self.server.entity_add_effect(
+            &self.uuid,
+            effect_id,
+            duration_ticks,
+            amplifier,
+            show_particles,
+        )
     }
 
     /// Remove a single status effect.
@@ -126,6 +132,7 @@ impl<'a> Entity<'a> {
 
     /// Set the base value of an attribute. Returns `false` if not found.
     pub fn attribute_set(&self, attribute_id: &str, value: f64) -> bool {
-        self.server.entity_attribute_set(&self.uuid, attribute_id, value)
+        self.server
+            .entity_attribute_set(&self.uuid, attribute_id, value)
     }
 }

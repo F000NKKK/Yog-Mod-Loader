@@ -71,13 +71,17 @@ pub enum Value {
 
 impl Value {
     pub fn as_str(&self) -> Option<&str> {
-        if let Value::Str(s) = self { Some(s) } else { None }
+        if let Value::Str(s) = self {
+            Some(s)
+        } else {
+            None
+        }
     }
 
     /// Returns the integer value.  A `Float` is truncated to `i64`.
     pub fn as_int(&self) -> Option<i64> {
         match self {
-            Value::Int(n)   => Some(*n),
+            Value::Int(n) => Some(*n),
             Value::Float(f) => Some(*f as i64),
             _ => None,
         }
@@ -87,31 +91,83 @@ impl Value {
     pub fn as_float(&self) -> Option<f64> {
         match self {
             Value::Float(f) => Some(*f),
-            Value::Int(n)   => Some(*n as f64),
+            Value::Int(n) => Some(*n as f64),
             _ => None,
         }
     }
 
     pub fn as_bool(&self) -> Option<bool> {
-        if let Value::Bool(b) = self { Some(*b) } else { None }
+        if let Value::Bool(b) = self {
+            Some(*b)
+        } else {
+            None
+        }
     }
 
     pub fn as_bytes(&self) -> Option<&[u8]> {
-        if let Value::Bytes(b) = self { Some(b) } else { None }
+        if let Value::Bytes(b) = self {
+            Some(b)
+        } else {
+            None
+        }
     }
 }
 
-impl From<String>  for Value { fn from(s: String)  -> Self { Value::Str(s) } }
-impl From<&str>    for Value { fn from(s: &str)    -> Self { Value::Str(s.to_string()) } }
-impl From<i64>     for Value { fn from(n: i64)     -> Self { Value::Int(n) } }
-impl From<i32>     for Value { fn from(n: i32)     -> Self { Value::Int(n as i64) } }
-impl From<u32>     for Value { fn from(n: u32)     -> Self { Value::Int(n as i64) } }
-impl From<u64>     for Value { fn from(n: u64)     -> Self { Value::Int(n as i64) } }
-impl From<usize>   for Value { fn from(n: usize)   -> Self { Value::Int(n as i64) } }
-impl From<f64>     for Value { fn from(f: f64)     -> Self { Value::Float(f) } }
-impl From<f32>     for Value { fn from(f: f32)     -> Self { Value::Float(f as f64) } }
-impl From<bool>    for Value { fn from(b: bool)    -> Self { Value::Bool(b) } }
-impl From<Vec<u8>> for Value { fn from(b: Vec<u8>) -> Self { Value::Bytes(b) } }
+impl From<String> for Value {
+    fn from(s: String) -> Self {
+        Value::Str(s)
+    }
+}
+impl From<&str> for Value {
+    fn from(s: &str) -> Self {
+        Value::Str(s.to_string())
+    }
+}
+impl From<i64> for Value {
+    fn from(n: i64) -> Self {
+        Value::Int(n)
+    }
+}
+impl From<i32> for Value {
+    fn from(n: i32) -> Self {
+        Value::Int(n as i64)
+    }
+}
+impl From<u32> for Value {
+    fn from(n: u32) -> Self {
+        Value::Int(n as i64)
+    }
+}
+impl From<u64> for Value {
+    fn from(n: u64) -> Self {
+        Value::Int(n as i64)
+    }
+}
+impl From<usize> for Value {
+    fn from(n: usize) -> Self {
+        Value::Int(n as i64)
+    }
+}
+impl From<f64> for Value {
+    fn from(f: f64) -> Self {
+        Value::Float(f)
+    }
+}
+impl From<f32> for Value {
+    fn from(f: f32) -> Self {
+        Value::Float(f as f64)
+    }
+}
+impl From<bool> for Value {
+    fn from(b: bool) -> Self {
+        Value::Bool(b)
+    }
+}
+impl From<Vec<u8>> for Value {
+    fn from(b: Vec<u8>) -> Self {
+        Value::Bytes(b)
+    }
+}
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 
@@ -141,7 +197,11 @@ impl Storage {
 
     /// Open a **per-player** store (keyed by player UUID).
     pub fn open_player(game_dir: &str, mod_id: &str, player_uuid: &str) -> Self {
-        Self::from_path(scope_path(game_dir, mod_id, StorageScope::Player(player_uuid)))
+        Self::from_path(scope_path(
+            game_dir,
+            mod_id,
+            StorageScope::Player(player_uuid),
+        ))
     }
 
     /// Open a **per-dimension** store.
@@ -151,17 +211,29 @@ impl Storage {
 
     /// Open a **per-entity** store (keyed by entity UUID).
     pub fn open_entity(game_dir: &str, mod_id: &str, entity_uuid: &str) -> Self {
-        Self::from_path(scope_path(game_dir, mod_id, StorageScope::Entity(entity_uuid)))
+        Self::from_path(scope_path(
+            game_dir,
+            mod_id,
+            StorageScope::Entity(entity_uuid),
+        ))
     }
 
     /// Open a **per-chunk** store.
     pub fn open_chunk(game_dir: &str, mod_id: &str, dimension: &str, cx: i32, cz: i32) -> Self {
-        Self::from_path(scope_path(game_dir, mod_id, StorageScope::Chunk(dimension, cx, cz)))
+        Self::from_path(scope_path(
+            game_dir,
+            mod_id,
+            StorageScope::Chunk(dimension, cx, cz),
+        ))
     }
 
     fn from_path(path: PathBuf) -> Self {
         let data = load_file(&path);
-        Self { path, data, dirty: false }
+        Self {
+            path,
+            data,
+            dirty: false,
+        }
     }
 
     // ── read ─────────────────────────────────────────────────────────────────
@@ -207,7 +279,9 @@ impl Storage {
 
     pub fn remove(&mut self, key: &str) -> Option<Value> {
         let v = self.data.remove(key);
-        if v.is_some() { self.dirty = true; }
+        if v.is_some() {
+            self.dirty = true;
+        }
         v
     }
 
@@ -220,16 +294,24 @@ impl Storage {
 
     // ── meta ─────────────────────────────────────────────────────────────────
 
-    pub fn len(&self) -> usize { self.data.len() }
-    pub fn is_empty(&self) -> bool { self.data.is_empty() }
-    pub fn is_dirty(&self) -> bool { self.dirty }
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
+    }
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, &Value)> {
         self.data.iter().map(|(k, v)| (k.as_str(), v))
     }
 
     /// Absolute path of the backing file.
-    pub fn path(&self) -> &Path { &self.path }
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
 
     // ── persistence ──────────────────────────────────────────────────────────
 
@@ -271,17 +353,19 @@ fn scope_path(game_dir: &str, mod_id: &str, scope: StorageScope<'_>) -> PathBuf 
     let safe_mod = mod_id.replace([':', '/'], "_");
     let base = Path::new(game_dir).join("yog-data").join(safe_mod);
     match scope {
-        StorageScope::Global          => base.join("global.kv"),
-        StorageScope::Player(uuid)    => base.join("player").join(format!("{uuid}.kv")),
-        StorageScope::World(dim)      => base.join("world").join(format!("{}.kv", dim_safe(dim))),
-        StorageScope::Entity(uuid)    => base.join("entity").join(format!("{uuid}.kv")),
-        StorageScope::Chunk(dim,x,z)  => {
-            base.join("chunk").join(format!("{}_{x}_{z}.kv", dim_safe(dim)))
-        }
+        StorageScope::Global => base.join("global.kv"),
+        StorageScope::Player(uuid) => base.join("player").join(format!("{uuid}.kv")),
+        StorageScope::World(dim) => base.join("world").join(format!("{}.kv", dim_safe(dim))),
+        StorageScope::Entity(uuid) => base.join("entity").join(format!("{uuid}.kv")),
+        StorageScope::Chunk(dim, x, z) => base
+            .join("chunk")
+            .join(format!("{}_{x}_{z}.kv", dim_safe(dim))),
     }
 }
 
-fn dim_safe(dim: &str) -> String { dim.replace([':', '/'], "_") }
+fn dim_safe(dim: &str) -> String {
+    dim.replace([':', '/'], "_")
+}
 
 fn load_file(path: &Path) -> BTreeMap<String, Value> {
     let file = match std::fs::File::open(path) {
@@ -291,10 +375,13 @@ fn load_file(path: &Path) -> BTreeMap<String, Value> {
     let mut map = BTreeMap::new();
     for line in io::BufReader::new(file).lines() {
         let Ok(line) = line else { continue };
-        if line.is_empty() || line.starts_with('#') { continue }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
         let mut cols = line.splitn(3, '\t');
-        let (Some(raw_k), Some(typ), Some(raw_v)) =
-            (cols.next(), cols.next(), cols.next()) else { continue };
+        let (Some(raw_k), Some(typ), Some(raw_v)) = (cols.next(), cols.next(), cols.next()) else {
+            continue;
+        };
         if let Some(v) = parse_value(typ, raw_v) {
             map.insert(str_unescape(raw_k), v);
         }
@@ -309,16 +396,16 @@ fn parse_value(typ: &str, raw: &str) -> Option<Value> {
         "f" => raw.parse::<f64>().ok().map(Value::Float),
         "b" => Some(Value::Bool(raw == "1")),
         "x" => Some(Value::Bytes(hex_decode(raw))),
-        _   => None,
+        _ => None,
     }
 }
 
 fn encode_value(v: &Value) -> (&'static str, String) {
     match v {
-        Value::Str(s)   => ("s", str_escape(s)),
-        Value::Int(n)   => ("i", n.to_string()),
+        Value::Str(s) => ("s", str_escape(s)),
+        Value::Int(n) => ("i", n.to_string()),
         Value::Float(f) => ("f", f.to_string()),
-        Value::Bool(b)  => ("b", if *b { "1" } else { "0" }.to_string()),
+        Value::Bool(b) => ("b", if *b { "1" } else { "0" }.to_string()),
         Value::Bytes(b) => ("x", hex_encode(b)),
     }
 }
@@ -331,7 +418,7 @@ fn str_escape(s: &str) -> String {
             '\t' => out.push_str(r"\t"),
             '\n' => out.push_str(r"\n"),
             '\r' => out.push_str(r"\r"),
-            c    => out.push(c),
+            c => out.push(c),
         }
     }
     out
@@ -344,11 +431,14 @@ fn str_unescape(s: &str) -> String {
         if c == '\\' {
             match chars.next() {
                 Some('\\') => out.push('\\'),
-                Some('t')  => out.push('\t'),
-                Some('n')  => out.push('\n'),
-                Some('r')  => out.push('\r'),
-                Some(c)    => { out.push('\\'); out.push(c); }
-                None       => out.push('\\'),
+                Some('t') => out.push('\t'),
+                Some('n') => out.push('\n'),
+                Some('r') => out.push('\r'),
+                Some(c) => {
+                    out.push('\\');
+                    out.push(c);
+                }
+                None => out.push('\\'),
             }
         } else {
             out.push(c);
@@ -359,10 +449,11 @@ fn str_unescape(s: &str) -> String {
 
 fn hex_encode(b: &[u8]) -> String {
     use std::fmt::Write as FmtWrite;
-    b.iter().fold(String::with_capacity(b.len() * 2), |mut s, byte| {
-        let _ = write!(s, "{byte:02x}");
-        s
-    })
+    b.iter()
+        .fold(String::with_capacity(b.len() * 2), |mut s, byte| {
+            let _ = write!(s, "{byte:02x}");
+            s
+        })
 }
 
 fn hex_decode(s: &str) -> Vec<u8> {

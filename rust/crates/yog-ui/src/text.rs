@@ -47,11 +47,15 @@ pub fn wrap_text(text: &str, max_w: f32, font_scale: f32) -> Vec<String> {
     let mut cur_w = 0.0f32;
 
     for word in text.split(' ') {
-        if word.is_empty() { continue; }
+        if word.is_empty() {
+            continue;
+        }
         let word_w = str_width(word, font_scale);
 
         if cur_w == 0.0 {
-            append_word(&mut lines, &mut cur, &mut cur_w, word, word_w, max_w, font_scale);
+            append_word(
+                &mut lines, &mut cur, &mut cur_w, word, word_w, max_w, font_scale,
+            );
         } else if cur_w + space_w + word_w <= max_w {
             cur.push(' ');
             cur.push_str(word);
@@ -59,7 +63,9 @@ pub fn wrap_text(text: &str, max_w: f32, font_scale: f32) -> Vec<String> {
         } else {
             lines.push(std::mem::take(&mut cur));
             cur_w = 0.0;
-            append_word(&mut lines, &mut cur, &mut cur_w, word, word_w, max_w, font_scale);
+            append_word(
+                &mut lines, &mut cur, &mut cur_w, word, word_w, max_w, font_scale,
+            );
         }
     }
     if cur_w > 0.0 || lines.is_empty() {
@@ -70,8 +76,13 @@ pub fn wrap_text(text: &str, max_w: f32, font_scale: f32) -> Vec<String> {
 
 /// Append a word, hard-breaking if it's wider than one line.
 fn append_word(
-    lines: &mut Vec<String>, cur: &mut String, cur_w: &mut f32,
-    word: &str, word_w: f32, max_w: f32, font_scale: f32,
+    lines: &mut Vec<String>,
+    cur: &mut String,
+    cur_w: &mut f32,
+    word: &str,
+    word_w: f32,
+    max_w: f32,
+    font_scale: f32,
 ) {
     if word_w <= max_w {
         cur.push_str(word);
@@ -108,9 +119,16 @@ pub fn text_height(text: &str, max_w: f32, font_scale: f32) -> f32 {
 /// Split `text` into page-sized chunks that fit within `max_h` pixels.
 /// Each page is a `Vec<String>` of ready-to-render lines.
 pub fn paginate_text(text: &str, max_w: f32, max_h: f32, font_scale: f32) -> Vec<Vec<String>> {
-    let all_lines: Vec<String> = text.split('\n').flat_map(|para| {
-        if para.is_empty() { vec![String::new()] } else { wrap_text(para, max_w, font_scale) }
-    }).collect();
+    let all_lines: Vec<String> = text
+        .split('\n')
+        .flat_map(|para| {
+            if para.is_empty() {
+                vec![String::new()]
+            } else {
+                wrap_text(para, max_w, font_scale)
+            }
+        })
+        .collect();
 
     let line_h = LINE_H * font_scale + LINE_GAP;
     let per_page = ((max_h + LINE_GAP) / line_h).floor() as usize;

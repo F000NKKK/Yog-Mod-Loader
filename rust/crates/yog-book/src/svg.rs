@@ -7,8 +7,8 @@ pub fn rasterize(svg_data: &str, w: u32, h: u32) -> Option<Vec<u8>> {
     #[cfg(feature = "svg")]
     {
         // Requires `resvg = "0.41"` in Cargo.toml + feature "svg" enabled.
-        use ::resvg::usvg::{Options, Tree};
         use ::resvg::tiny_skia::{Pixmap, Transform};
+        use ::resvg::usvg::{Options, Tree};
 
         let opt = Options::default();
         let tree = Tree::from_str(svg_data, &opt).ok()?;

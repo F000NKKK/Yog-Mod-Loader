@@ -95,6 +95,10 @@ all loaders lives in `java-common/`.
 | ✅ 14 | NeoForge host (MC 1.20.1): event-bus host, Mojmap mixins, `RegisterEvent` content registration, `AddPackFindersEvent` packs — verified in-game | — |
 | ✅ 15 | Forge host (MC 1.20.1): standalone source tree, FG6 build, verified in-game | — |
 | ✅ 16 | 1.21.1 ports for all three loaders: typed `CustomPayload` networking, component-based item NBT, `AdvancementEntry`, per-platform mods.toml/version ranges | — |
+| ✅ 17 | Block `connects`/`connect_groups` (fence/pipe-style neighbor connections); mouse drag/release events; `open_ui` bridge for `yog-ui` | 22–23 |
+| ✅ 18 | `register_menu_entry`; entity rotation (`yaw`/`pitch`) + sneaking state exposed | 24–25 |
+| ✅ 19 | Custom inventory/container UI: `yog-inventory` (`InventoryDef`, `SlotLayout`), `registry.register_inventory()` | 26 |
+| ✅ 20 | Inter-mod communication: `yog-interop` (`#[yog_export]`, `import!`), `yog publish exports`, `yog add`/`yog remove` for exports-crate deps, ctor-based auto-registration | 27 |
 
 ## API available now (ABI minor 27+)
 
@@ -788,6 +792,79 @@ registry.on_typed_packet::<SyncCoinsPacket, _>("mymod:coins", |pkt, srv| {
 });
 ```
 
+### Custom inventory / container UI (`yog-inventory`, ABI minor 26)
+
+```rust
+use yog_api::{InventoryDef, SlotLayout};
+
+registry.register_inventory(
+    InventoryDef::new("mymod:sorter", 9)   // container id, slot count
+        .layout(SlotLayout::default_grid(9))  // or a custom Vec<SlotLayout>
+        .include_player_inventory(true)
+        .title("Item Sorter")
+);
+```
+
+### Inter-mod communication (`yog-interop`, ABI minor 27)
+
+Mods normally can't call into each other directly — each is its own `cdylib`
+with no compile-time link between them. `yog-interop` bridges that gap: a mod
+marks the types/functions it wants to expose, `yog` generates a small
+publishable crate from them, and other mods depend on that crate like any
+regular Rust library — the actual call is rkyv-serialized and dispatched
+through the runtime's C-ABI interop table, but it *reads* like a normal
+function call.
+
+**Exporting side** — mark a struct/enum and the function that uses it:
+
+```rust
+use yog_api::yog_export;
+
+#[yog_export]
+#[derive(Debug, Clone, PartialEq)]
+pub struct RegisterPipeArgs {
+    pub api_ptr: usize,
+    pub def: PipeDef,
+}
+
+#[yog_export]
+pub fn register_pipe_interop(args: RegisterPipeArgs) -> Result<(), String> {
+    // ...
+}
+```
+
+No manual registration call is needed: `#[yog_export]` on a function emits a
+constructor (via `ctor`) that self-registers into `yog-api`'s export table
+when the mod's `cdylib` is loaded — `export_mod!` flushes it into
+`registry.interop()` automatically before `Mod::register()`'s pending imports
+are resolved.
+
+Publish the bindings crate once, from the exporting mod's project directory:
+
+```bash
+yog publish exports          # generates + `cargo publish`'s <mod-id>_exports
+yog publish exports --dry-run  # generate only, skip the actual publish
+```
+
+**Consuming side** — add the generated crate as a dependency and call it like
+any normal library:
+
+```bash
+yog add yog-pipes            # yog.toml dependency -> mapped to the exports crate
+```
+
+```rust
+use yog_exports::yog_pipes::{PipeKind, PipeDef, RegisterPipeArgs};
+
+yog_exports::yog_pipes::register_pipe(RegisterPipeArgs {
+    api_ptr: registry.raw_api() as usize,
+    def: PipeDef { /* ... */ },
+}).unwrap();
+```
+
+Manage exports-crate dependencies in `yog.toml` with `yog add <crate>` /
+`yog remove <crate>` — no hand-editing needed.
+
 See `example-mod/src/` for full working usage.
 
 ## Architecture
@@ -836,6 +913,8 @@ yog/
 │       ├── yog-config/          # mod configuration (typed key/value files) [MIT/Apache]
 │       ├── yog-logging/         # logging macros                           [MIT/Apache]
 │       ├── yog-gfx/             # GPU pipeline facade (GfxContext, gl, draw2d) [MIT/Apache]
+│       ├── yog-inventory/       # custom inventory/container UI (InventoryDef) [MIT/Apache]
+│       ├── yog-interop/         # proc-macros for inter-mod calls: #[yog_export], import! [MIT/Apache]
 │       ├── yog-api/             # FACADE + Registry hub + export_mod!      [MIT/Apache]
 │       └── yog-runtime/         # cdylib: JNI bridge + dispatch + loader   [AGPL]
 ├── example-mod/                 # standalone example mod (.yog output)

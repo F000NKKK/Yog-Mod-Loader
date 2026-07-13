@@ -19,7 +19,9 @@ fn main() {
                         }
                     }
                 }
-                if !rkyv_ver.is_empty() { break; }
+                if !rkyv_ver.is_empty() {
+                    break;
+                }
             }
         }
         path = match path.parent() {
@@ -28,6 +30,8 @@ fn main() {
         };
     }
 
-    if rkyv_ver.is_empty() { rkyv_ver = "0.8".into(); }
+    if rkyv_ver.is_empty() {
+        rkyv_ver = "0.8".into();
+    }
     println!("cargo:rustc-env=RKYV_VERSION={rkyv_ver}");
 }

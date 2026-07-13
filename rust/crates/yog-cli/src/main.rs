@@ -20,25 +20,30 @@ use std::process::Command;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let result = match args.get(1).map(String::as_str) {
-        Some("build")          => build().map(|_| ()),
-        Some("new")            => new_mod(args.get(2).map(String::as_str)),
-        Some("setup")          => setup(),
-        Some("add")            => add_dep(args.get(2).map(String::as_str)),
-        Some("remove")         => remove_dep(args.get(2).map(String::as_str)),
-        Some("run")            => match args.get(2) {
+        Some("build") => build().map(|_| ()),
+        Some("new") => new_mod(args.get(2).map(String::as_str)),
+        Some("setup") => setup(),
+        Some("add") => add_dep(args.get(2).map(String::as_str)),
+        Some("remove") => remove_dep(args.get(2).map(String::as_str)),
+        Some("run") => match args.get(2) {
             Some(name) => run_config(name),
-            None => Err("usage: yog run <config_name>  (see [run.<config_name>] in yog.toml)".into()),
+            None => {
+                Err("usage: yog run <config_name>  (see [run.<config_name>] in yog.toml)".into())
+            }
         },
-        Some("publish")         => {
+        Some("publish") => {
             let dry_run = args.iter().any(|a| a == "--dry-run");
             match args.get(2).map(String::as_str) {
                 Some("exports") => publish_exports(dry_run),
                 Some(other) => Err(format!("unknown publish subcommand: {other}")),
                 None => Err("usage: yog publish exports [--dry-run]".into()),
             }
-        },
-        Some("-h") | Some("--help") | Some("help") | None => { print_usage(); return; }
-        Some(other)            => Err(format!("unknown command: {other}")),
+        }
+        Some("-h") | Some("--help") | Some("help") | None => {
+            print_usage();
+            return;
+        }
+        Some(other) => Err(format!("unknown command: {other}")),
     };
     if let Err(e) = result {
         eprintln!("yog: error: {e}");
@@ -68,13 +73,13 @@ fn print_usage() {
 /// Parsed content of a `yog.toml` project file.
 #[derive(Debug)]
 struct YogToml {
-    id:          String,
-    name:        String,
-    version:     String,
+    id: String,
+    name: String,
+    version: String,
     description: String,
-    authors:     Vec<String>,
-    license:     String,
-    edition:     Option<String>,
+    authors: Vec<String>,
+    license: String,
+    edition: Option<String>,
     /// Optional: path to yog-api for local/monorepo development.
     /// Set via [dev] yog_api_path = "..."  or YOG_API_PATH env var.
     yog_api_path: Option<String>,
@@ -120,7 +125,9 @@ impl YogToml {
     fn api_dep(&self) -> String {
         if let Ok(p) = std::env::var("YOG_API_PATH") {
             // Resolve to absolute so it works from any subdirectory
-            let abs = PathBuf::from(&p).canonicalize().unwrap_or_else(|_| PathBuf::from(&p));
+            let abs = PathBuf::from(&p)
+                .canonicalize()
+                .unwrap_or_else(|_| PathBuf::from(&p));
             return format!("yog-api = {{ path = {:?} }}", abs.to_string_lossy());
         }
         if let Some(p) = &self.yog_api_path {
@@ -128,7 +135,8 @@ impl YogToml {
         }
         let version = {
             let env_version = std::env::var("YOG_API_VERSION").ok();
-            self.yog_api_version.as_deref()
+            self.yog_api_version
+                .as_deref()
                 .or(env_version.as_deref())
                 .map(|v| v.to_owned())
                 .unwrap_or_else(|| latest_yog_api_version())
@@ -138,39 +146,55 @@ impl YogToml {
 }
 
 fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
-    let mut section       = "";
-    let mut id            = None::<String>;
-    let mut name          = None::<String>;
-    let mut version       = None::<String>;
-    let mut description   = None::<String>;
+    let mut section = "";
+    let mut id = None::<String>;
+    let mut name = None::<String>;
+    let mut version = None::<String>;
+    let mut description = None::<String>;
     let mut authors: Vec<String> = Vec::new();
-    let mut license       = None::<String>;
-    let mut edition       = None::<String>;
-    let mut yog_api_path  = None::<String>;
+    let mut license = None::<String>;
+    let mut edition = None::<String>;
+    let mut yog_api_path = None::<String>;
     let mut dependencies: Vec<(String, String)> = Vec::new();
     let mut run_configs: HashMap<String, RunConfig> = HashMap::new();
 
     for raw in text.lines() {
         let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
         if line.starts_with('[') {
             section = line.trim_matches(|c| c == '[' || c == ']');
             continue;
         }
         match section {
             "mod" | "package" => {
-                if let Some(v) = field(line, "id")          { id          = Some(v); }
-                if let Some(v) = field(line, "name")        { name        = Some(v); }
-                if let Some(v) = field(line, "version")     { version     = Some(v); }
-                if let Some(v) = field(line, "description") { description = Some(v); }
-                if let Some(v) = field(line, "license")     { license     = Some(v); }
-                if let Some(v) = field(line, "edition")     { edition     = Some(v); }
+                if let Some(v) = field(line, "id") {
+                    id = Some(v);
+                }
+                if let Some(v) = field(line, "name") {
+                    name = Some(v);
+                }
+                if let Some(v) = field(line, "version") {
+                    version = Some(v);
+                }
+                if let Some(v) = field(line, "description") {
+                    description = Some(v);
+                }
+                if let Some(v) = field(line, "license") {
+                    license = Some(v);
+                }
+                if let Some(v) = field(line, "edition") {
+                    edition = Some(v);
+                }
                 if line.trim_start().starts_with("authors") {
                     authors = parse_string_array(line);
                 }
             }
             "dev" => {
-                if let Some(v) = field(line, "yog_api_path") { yog_api_path = Some(v); }
+                if let Some(v) = field(line, "yog_api_path") {
+                    yog_api_path = Some(v);
+                }
             }
             "dependencies" => {
                 if let Some((name, spec)) = parse_dep_line(line) {
@@ -179,17 +203,31 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
             }
             _ if section.starts_with("run.") => {
                 let run_name = &section["run.".len()..];
-                let cfg = run_configs.entry(run_name.to_string())
-                    .or_insert_with(|| RunConfig { name: run_name.to_string(), ..Default::default() });
-                if let Some(v) = field(line, "export_dir") { cfg.export_dir = Some(v); }
-                if let Some(v) = field(line, "command")    { cfg.command    = Some(v); }
-                if let Some(v) = field(line, "cwd")        { cfg.cwd        = Some(v); }
+                let cfg = run_configs
+                    .entry(run_name.to_string())
+                    .or_insert_with(|| RunConfig {
+                        name: run_name.to_string(),
+                        ..Default::default()
+                    });
+                if let Some(v) = field(line, "export_dir") {
+                    cfg.export_dir = Some(v);
+                }
+                if let Some(v) = field(line, "command") {
+                    cfg.command = Some(v);
+                }
+                if let Some(v) = field(line, "cwd") {
+                    cfg.cwd = Some(v);
+                }
                 if line.trim_start().starts_with("args") {
                     cfg.args = parse_string_array(line);
                 }
                 if line.trim_start().starts_with("env") {
-                    cfg.env = parse_string_array(line).into_iter()
-                        .filter_map(|kv| kv.split_once('=').map(|(k, v)| (k.to_string(), v.to_string())))
+                    cfg.env = parse_string_array(line)
+                        .into_iter()
+                        .filter_map(|kv| {
+                            kv.split_once('=')
+                                .map(|(k, v)| (k.to_string(), v.to_string()))
+                        })
                         .collect();
                 }
             }
@@ -214,11 +252,11 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         }
     }
     Ok(YogToml {
-        name:         name.unwrap_or_else(|| id.clone()),
-        version:      version.unwrap_or_else(|| "0.1.0".into()),
-        description:  description.unwrap_or_default(),
+        name: name.unwrap_or_else(|| id.clone()),
+        version: version.unwrap_or_else(|| "0.1.0".into()),
+        description: description.unwrap_or_default(),
         authors,
-        license:      license.unwrap_or_else(|| "MIT OR Apache-2.0".into()),
+        license: license.unwrap_or_else(|| "MIT OR Apache-2.0".into()),
         edition,
         yog_api_path,
         yog_api_version,
@@ -236,7 +274,7 @@ fn parse_dep_line(line: &str) -> Option<(String, String)> {
     }
     let eq_pos = trimmed.find('=')?;
     let name = trimmed[..eq_pos].trim().to_string();
-    let spec = trimmed[eq_pos+1..].trim().to_string();
+    let spec = trimmed[eq_pos + 1..].trim().to_string();
     Some((name, spec))
 }
 
@@ -249,8 +287,12 @@ fn field(line: &str, key: &str) -> Option<String> {
 
 /// Parse `key = ["a", "b"]` into a Vec<String>.
 fn parse_string_array(line: &str) -> Vec<String> {
-    let inner = line.find('[').and_then(|s| line.rfind(']').map(|e| &line[s+1..e]));
-    inner.unwrap_or("").split(',')
+    let inner = line
+        .find('[')
+        .and_then(|s| line.rfind(']').map(|e| &line[s + 1..e]));
+    inner
+        .unwrap_or("")
+        .split(',')
         .map(|s| s.trim().trim_matches('"').to_string())
         .filter(|s| !s.is_empty())
         .collect()
@@ -294,7 +336,7 @@ license     = "MIT OR Apache-2.0"
 # cwd        = "../my-test-instance"
 # env        = ["JAVA_OPTS=-Xmx4G"]
 "#,
-        name    = name,
+        name = name,
         display = to_display_name(name),
     );
     write_file(&root.join("yog.toml"), yog_toml.as_bytes())?;
@@ -315,13 +357,16 @@ impl Mod for {struct_name} {{
 
 yog_api::export_mod!({struct_name});
 "#,
-        name        = name,
+        name = name,
         struct_name = to_struct_name(name),
     );
     write_file(&root.join("src/lib.rs"), lib_rs.as_bytes())?;
 
     // .gitignore
-    write_file(&root.join(".gitignore"), b".yog-build/\ntarget/\nartifacts/\n")?;
+    write_file(
+        &root.join(".gitignore"),
+        b".yog-build/\ntarget/\nartifacts/\n",
+    )?;
 
     eprintln!("==> created {name}/");
     eprintln!("    yog.toml       ← edit mod metadata here");
@@ -332,14 +377,28 @@ yog_api::export_mod!({struct_name});
 }
 
 fn to_display_name(id: &str) -> String {
-    id.replace('-', " ").split_whitespace()
-        .map(|w| { let mut c = w.chars(); c.next().map(|f| f.to_uppercase().to_string()).unwrap_or_default() + c.as_str() })
-        .collect::<Vec<_>>().join(" ")
+    id.replace('-', " ")
+        .split_whitespace()
+        .map(|w| {
+            let mut c = w.chars();
+            c.next()
+                .map(|f| f.to_uppercase().to_string())
+                .unwrap_or_default()
+                + c.as_str()
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn to_struct_name(id: &str) -> String {
     id.split(|c: char| c == '-' || c == '_')
-        .map(|w| { let mut c = w.chars(); c.next().map(|f| f.to_uppercase().to_string()).unwrap_or_default() + c.as_str() })
+        .map(|w| {
+            let mut c = w.chars();
+            c.next()
+                .map(|f| f.to_uppercase().to_string())
+                .unwrap_or_default()
+                + c.as_str()
+        })
         .collect()
 }
 
@@ -352,9 +411,13 @@ fn to_snake_name(id: &str) -> String {
     let mut out = String::with_capacity(id.len());
     for c in id.chars() {
         if c == '-' || c == '_' {
-            if out.chars().last() != Some('_') { out.push('_'); }
+            if out.chars().last() != Some('_') {
+                out.push('_');
+            }
         } else if c.is_uppercase() {
-            if !out.is_empty() && out.chars().last() != Some('_') { out.push('_'); }
+            if !out.is_empty() && out.chars().last() != Some('_') {
+                out.push('_');
+            }
             out.extend(c.to_lowercase());
         } else {
             out.push(c);
@@ -366,14 +429,38 @@ fn to_snake_name(id: &str) -> String {
 // ── yog build ─────────────────────────────────────────────────────────────────
 
 /// A platform Yog can target.
-struct Target { triple: &'static str, tag: &'static str, os: &'static str }
+struct Target {
+    triple: &'static str,
+    tag: &'static str,
+    os: &'static str,
+}
 
 const TARGETS: &[Target] = &[
-    Target { triple: "x86_64-unknown-linux-gnu",  tag: "linux-x86_64",    os: "linux"   },
-    Target { triple: "aarch64-unknown-linux-gnu", tag: "linux-aarch64",   os: "linux"   },
-    Target { triple: "x86_64-pc-windows-gnu",     tag: "windows-x86_64",  os: "windows" },
-    Target { triple: "x86_64-apple-darwin",       tag: "macos-x86_64",    os: "macos"   },
-    Target { triple: "aarch64-apple-darwin",      tag: "macos-aarch64",   os: "macos"   },
+    Target {
+        triple: "x86_64-unknown-linux-gnu",
+        tag: "linux-x86_64",
+        os: "linux",
+    },
+    Target {
+        triple: "aarch64-unknown-linux-gnu",
+        tag: "linux-aarch64",
+        os: "linux",
+    },
+    Target {
+        triple: "x86_64-pc-windows-gnu",
+        tag: "windows-x86_64",
+        os: "windows",
+    },
+    Target {
+        triple: "x86_64-apple-darwin",
+        tag: "macos-x86_64",
+        os: "macos",
+    },
+    Target {
+        triple: "aarch64-apple-darwin",
+        tag: "macos-aarch64",
+        os: "macos",
+    },
 ];
 
 /// Builds and packages the mod in the current directory. Returns the parsed
@@ -396,7 +483,9 @@ fn build() -> Result<(YogToml, PathBuf), String> {
 
     // Resolve yog_api_path relative to project root (Cargo.toml lives one level deeper)
     if let Some(rel) = &meta.yog_api_path {
-        let abs = root.join(rel).canonicalize()
+        let abs = root
+            .join(rel)
+            .canonicalize()
             .unwrap_or_else(|_| root.join(rel));
         meta.yog_api_path = Some(abs.to_string_lossy().into_owned());
     }
@@ -415,22 +504,33 @@ fn build() -> Result<(YogToml, PathBuf), String> {
     }
 
     let builder = Builder::detect();
-    eprintln!("==> building {} {} with `cargo {}`",
-        meta.id, meta.version, builder.subcmd());
+    eprintln!(
+        "==> building {} {} with `cargo {}`",
+        meta.id,
+        meta.version,
+        builder.subcmd()
+    );
 
     let installed = installed_targets();
     let mut bundled: Vec<(String, PathBuf)> = Vec::new();
 
     for t in TARGETS {
         if !installed.iter().any(|s| s == t.triple) {
-            eprintln!("    skip {} (rustup target not installed; run: yog setup)", t.tag);
+            eprintln!(
+                "    skip {} (rustup target not installed; run: yog setup)",
+                t.tag
+            );
             continue;
         }
         match builder.build(&build_dir, t.triple, &root) {
             Ok(()) => {
                 let lib = lib_filename(&meta.id, t.os);
                 // Cargo puts output under project-root/target/<triple>/release/ (we set CARGO_TARGET_DIR)
-                let path = root.join("target").join(t.triple).join("release").join(&lib);
+                let path = root
+                    .join("target")
+                    .join(t.triple)
+                    .join("release")
+                    .join(&lib);
                 if path.exists() {
                     eprintln!("    built {}", t.tag);
                     bundled.push((t.tag.to_string(), path));
@@ -443,7 +543,9 @@ fn build() -> Result<(YogToml, PathBuf), String> {
     }
 
     if bundled.is_empty() {
-        return Err("no platform built — run `yog setup` to install cross-compilation tools".into());
+        return Err(
+            "no platform built — run `yog setup` to install cross-compilation tools".into(),
+        );
     }
 
     // Save Cargo.lock as yog.lock
@@ -498,7 +600,8 @@ fn run_config(config_name: &str) -> Result<(), String> {
         let dir = resolve(&root, export_dir);
         std::fs::create_dir_all(&dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;
         let dest = dir.join(format!("{}.yog", meta.id));
-        std::fs::copy(&artifact, &dest).map_err(|e| format!("copying to {}: {e}", dest.display()))?;
+        std::fs::copy(&artifact, &dest)
+            .map_err(|e| format!("copying to {}: {e}", dest.display()))?;
         eprintln!("==> exported {} -> {}", meta.id, dest.display());
     }
 
@@ -507,7 +610,10 @@ fn run_config(config_name: &str) -> Result<(), String> {
         return Ok(());
     };
 
-    eprintln!("==> launching [run.{config_name}]: {command} {}", cfg.args.join(" "));
+    eprintln!(
+        "==> launching [run.{config_name}]: {command} {}",
+        cfg.args.join(" ")
+    );
     let mut proc = Command::new(command);
     proc.args(&cfg.args);
     if let Some(cwd) = &cfg.cwd {
@@ -517,7 +623,9 @@ fn run_config(config_name: &str) -> Result<(), String> {
         proc.env(k, v);
     }
 
-    let status = proc.status().map_err(|e| format!("failed to launch `{command}`: {e}"))?;
+    let status = proc
+        .status()
+        .map_err(|e| format!("failed to launch `{command}`: {e}"))?;
     if !status.success() {
         return Err(format!("`{command}` exited with {status}"));
     }
@@ -556,7 +664,12 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
     let authors_toml = if meta.authors.is_empty() {
         String::new()
     } else {
-        let list = meta.authors.iter().map(|a| format!("{a:?}")).collect::<Vec<_>>().join(", ");
+        let list = meta
+            .authors
+            .iter()
+            .map(|a| format!("{a:?}"))
+            .collect::<Vec<_>>()
+            .join(", ");
         format!("authors      = [{list}]\n")
     };
     let edition = meta.edition.as_deref().unwrap_or("2021");
@@ -565,14 +678,20 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
     let patch = if meta.yog_api_path.is_some() || std::env::var("YOG_API_PATH").is_ok() {
         // Derive yog-interop path from yog-api: {api_path}/../yog-interop
         let env_path = std::env::var("YOG_API_PATH").ok();
-        let api_path = meta.yog_api_path.as_deref()
+        let api_path = meta
+            .yog_api_path
+            .as_deref()
             .or(env_path.as_deref())
             .unwrap_or("");
-        let interop_path = std::path::Path::new(api_path).parent()
+        let interop_path = std::path::Path::new(api_path)
+            .parent()
             .map(|p| p.join("yog-interop"))
             .unwrap_or_else(|| std::path::PathBuf::from("crates/yog-interop"));
         let abs = interop_path.canonicalize().unwrap_or(interop_path);
-        format!("\n[patch.crates-io]\nyog-interop = {{ path = {:?} }}\n", abs.to_string_lossy())
+        format!(
+            "\n[patch.crates-io]\nyog-interop = {{ path = {:?} }}\n",
+            abs.to_string_lossy()
+        )
     } else {
         String::new()
     };
@@ -622,17 +741,17 @@ path       = "../src/lib.rs"
 rkyv = "{rkyv_ver}"
 {deps}
 {patch}"#,
-        id           = meta.id,
-        rkyv_ver     = workspace_rkyv_version(),
-        lib_name     = to_snake_name(&meta.id),
-        version      = meta.version,
-        edition      = edition,
-        description  = meta.description,
+        id = meta.id,
+        rkyv_ver = workspace_rkyv_version(),
+        lib_name = to_snake_name(&meta.id),
+        version = meta.version,
+        edition = edition,
+        description = meta.description,
         authors_line = authors_toml,
-        license      = meta.license,
-        api_dep      = meta.api_dep(),
-        deps         = deps_lines.join("\n"),
-        patch        = patch,
+        license = meta.license,
+        api_dep = meta.api_dep(),
+        deps = deps_lines.join("\n"),
+        patch = patch,
     )
 }
 
@@ -652,7 +771,9 @@ fn setup() -> Result<(), String> {
     if rust_ok && zig_build_ok {
         eprintln!("==> all good — `yog build` should produce all 5 platforms.");
     } else if rust_ok {
-        eprintln!("==> Rust OK but cross-compilation incomplete. Fix the above, then re-run `yog setup`.");
+        eprintln!(
+            "==> Rust OK but cross-compilation incomplete. Fix the above, then re-run `yog setup`."
+        );
     } else {
         eprintln!("==> Install Rust first, then re-run `yog setup`.");
     }
@@ -661,11 +782,17 @@ fn setup() -> Result<(), String> {
 
 fn check_rust() -> bool {
     eprint!("  [?] Rust / cargo ... ");
-    let ok = Command::new("cargo").arg("--version").output()
-        .map(|o| o.status.success()).unwrap_or(false);
+    let ok = Command::new("cargo")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
     if ok {
-        let ver = Command::new("cargo").arg("--version").output()
-            .ok().and_then(|o| String::from_utf8(o.stdout).ok())
+        let ver = Command::new("cargo")
+            .arg("--version")
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
             .unwrap_or_default();
         eprintln!("OK  ({})", ver.trim());
         true
@@ -679,8 +806,11 @@ fn check_rust() -> bool {
 
 fn check_zigbuild() -> bool {
     eprint!("  [?] cargo-zigbuild ... ");
-    let ok = Command::new("cargo").args(["zigbuild", "--help"])
-        .output().map(|o| o.status.success()).unwrap_or(false);
+    let ok = Command::new("cargo")
+        .args(["zigbuild", "--help"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
     if ok {
         eprintln!("OK");
         true
@@ -693,10 +823,17 @@ fn check_zigbuild() -> bool {
         let input = input.trim().to_lowercase();
         if input.is_empty() || input == "y" {
             eprintln!("       Running: cargo install cargo-zigbuild");
-            let status = Command::new("cargo").args(["install", "cargo-zigbuild"]).status();
+            let status = Command::new("cargo")
+                .args(["install", "cargo-zigbuild"])
+                .status();
             match status {
-                Ok(s) if s.success() => { eprintln!("       cargo-zigbuild installed."); return true; }
-                _ => eprintln!("       Installation failed. Install manually: cargo install cargo-zigbuild"),
+                Ok(s) if s.success() => {
+                    eprintln!("       cargo-zigbuild installed.");
+                    return true;
+                }
+                _ => eprintln!(
+                    "       Installation failed. Install manually: cargo install cargo-zigbuild"
+                ),
             }
         } else {
             eprintln!("       Skipped. Cross-compilation will only work for the host platform.");
@@ -707,11 +844,17 @@ fn check_zigbuild() -> bool {
 
 fn check_zig() -> bool {
     eprint!("  [?] zig ... ");
-    let ok = Command::new("zig").arg("version").output()
-        .map(|o| o.status.success()).unwrap_or(false);
+    let ok = Command::new("zig")
+        .arg("version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
     if ok {
-        let ver = Command::new("zig").arg("version").output()
-            .ok().and_then(|o| String::from_utf8(o.stdout).ok())
+        let ver = Command::new("zig")
+            .arg("version")
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
             .unwrap_or_default();
         eprintln!("OK  ({})", ver.trim());
         true
@@ -736,19 +879,37 @@ fn check_zig() -> bool {
 
 fn try_install_zig() -> bool {
     // snap
-    if Command::new("snap").arg("--version").output().map(|o| o.status.success()).unwrap_or(false) {
+    if Command::new("snap")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    {
         eprintln!("       Running: snap install zig --classic --beta");
-        if Command::new("snap").args(["install", "zig", "--classic", "--beta"])
-            .status().map(|s| s.success()).unwrap_or(false) {
+        if Command::new("snap")
+            .args(["install", "zig", "--classic", "--beta"])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+        {
             eprintln!("       zig installed via snap.");
             return true;
         }
     }
     // brew
-    if Command::new("brew").arg("--version").output().map(|o| o.status.success()).unwrap_or(false) {
+    if Command::new("brew")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    {
         eprintln!("       Running: brew install zig");
-        if Command::new("brew").args(["install", "zig"])
-            .status().map(|s| s.success()).unwrap_or(false) {
+        if Command::new("brew")
+            .args(["install", "zig"])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+        {
             eprintln!("       zig installed via brew.");
             return true;
         }
@@ -760,7 +921,8 @@ fn try_install_zig() -> bool {
 fn check_targets() {
     eprintln!("  [?] rustup cross-compile targets ...");
     let installed = installed_targets();
-    let needed: Vec<&str> = TARGETS.iter()
+    let needed: Vec<&str> = TARGETS
+        .iter()
         .map(|t| t.triple)
         .filter(|triple| !installed.iter().any(|s| s == triple))
         .collect();
@@ -777,8 +939,11 @@ fn check_targets() {
     if input.is_empty() || input == "y" {
         for triple in needed {
             eprint!("       rustup target add {triple} ... ");
-            let ok = Command::new("rustup").args(["target", "add", triple])
-                .status().map(|s| s.success()).unwrap_or(false);
+            let ok = Command::new("rustup")
+                .args(["target", "add", triple])
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false);
             eprintln!("{}", if ok { "done" } else { "FAILED" });
         }
     } else {
@@ -788,15 +953,30 @@ fn check_targets() {
 
 // ── Build internals ───────────────────────────────────────────────────────────
 
-enum Builder { Zig, Cargo }
+enum Builder {
+    Zig,
+    Cargo,
+}
 
 impl Builder {
     fn detect() -> Self {
-        let ok = Command::new("cargo").args(["zigbuild", "--help"])
-            .output().map(|o| o.status.success()).unwrap_or(false);
-        if ok { Builder::Zig } else { Builder::Cargo }
+        let ok = Command::new("cargo")
+            .args(["zigbuild", "--help"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+        if ok {
+            Builder::Zig
+        } else {
+            Builder::Cargo
+        }
     }
-    fn subcmd(&self) -> &'static str { match self { Builder::Zig => "zigbuild", Builder::Cargo => "build" } }
+    fn subcmd(&self) -> &'static str {
+        match self {
+            Builder::Zig => "zigbuild",
+            Builder::Cargo => "build",
+        }
+    }
 
     fn build(&self, build_dir: &Path, triple: &str, root: &Path) -> Result<(), ()> {
         let output = Command::new("cargo")
@@ -806,8 +986,15 @@ impl Builder {
             .output();
         match output {
             Ok(o) => {
-                eprint!("{}", filter_benign_warnings(&String::from_utf8_lossy(&o.stderr)));
-                if o.status.success() { Ok(()) } else { Err(()) }
+                eprint!(
+                    "{}",
+                    filter_benign_warnings(&String::from_utf8_lossy(&o.stderr))
+                );
+                if o.status.success() {
+                    Ok(())
+                } else {
+                    Err(())
+                }
             }
             _ => Err(()),
         }
@@ -846,10 +1033,19 @@ fn filter_benign_warnings(stderr: &str) -> String {
 }
 
 fn installed_targets() -> Vec<String> {
-    Command::new("rustup").args(["target", "list", "--installed"]).output().ok()
+    Command::new("rustup")
+        .args(["target", "list", "--installed"])
+        .output()
+        .ok()
         .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).lines()
-            .map(str::trim).filter(|s| !s.is_empty()).map(String::from).collect())
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -859,8 +1055,8 @@ fn lib_filename(name: &str, os: &str) -> String {
     let stem = to_snake_name(name);
     match os {
         "windows" => format!("{stem}.dll"),
-        "macos"   => format!("lib{stem}.dylib"),
-        _         => format!("lib{stem}.so"),
+        "macos" => format!("lib{stem}.dylib"),
+        _ => format!("lib{stem}.so"),
     }
 }
 
@@ -870,12 +1066,19 @@ fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
     let mut present: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     let mut out: Vec<(String, Vec<u8>)> = Vec::new();
 
-    let mut stack: Vec<PathBuf> = ["assets", "data"].iter()
-        .map(|d| root.join(d)).filter(|p| p.is_dir()).collect();
-    if stack.is_empty() { return out; }
+    let mut stack: Vec<PathBuf> = ["assets", "data"]
+        .iter()
+        .map(|d| root.join(d))
+        .filter(|p| p.is_dir())
+        .collect();
+    if stack.is_empty() {
+        return out;
+    }
 
     while let Some(dir) = stack.pop() {
-        let Ok(entries) = std::fs::read_dir(&dir) else { continue };
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
@@ -901,12 +1104,20 @@ fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
             }
         } else if let Some((ns, name)) = parse_texture(key, "block") {
             for (path, json) in [
-                (format!("assets/{ns}/blockstates/{name}.json"),
-                 format!(r#"{{"variants":{{"":{{"model":"{ns}:block/{name}"}}}}}}"#)),
-                (format!("assets/{ns}/models/block/{name}.json"),
-                 format!(r#"{{"parent":"block/cube_all","textures":{{"all":"{ns}:block/{name}"}}}}"#)),
-                (format!("assets/{ns}/models/item/{name}.json"),
-                 format!(r#"{{"parent":"{ns}:block/{name}"}}"#)),
+                (
+                    format!("assets/{ns}/blockstates/{name}.json"),
+                    format!(r#"{{"variants":{{"":{{"model":"{ns}:block/{name}"}}}}}}"#),
+                ),
+                (
+                    format!("assets/{ns}/models/block/{name}.json"),
+                    format!(
+                        r#"{{"parent":"block/cube_all","textures":{{"all":"{ns}:block/{name}"}}}}"#
+                    ),
+                ),
+                (
+                    format!("assets/{ns}/models/item/{name}.json"),
+                    format!(r#"{{"parent":"{ns}:block/{name}"}}"#),
+                ),
             ] {
                 if present.insert(path.clone()) {
                     generated.push((path, json.into_bytes()));
@@ -920,18 +1131,28 @@ fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
 
 fn parse_texture(entry: &str, kind: &str) -> Option<(String, String)> {
     let parts: Vec<&str> = entry.split('/').collect();
-    if parts.len() == 5 && parts[0] == "assets" && parts[2] == "textures"
-        && parts[3] == kind && parts[4].ends_with(".png")
+    if parts.len() == 5
+        && parts[0] == "assets"
+        && parts[2] == "textures"
+        && parts[3] == kind
+        && parts[4].ends_with(".png")
     {
-        Some((parts[1].to_string(), parts[4].strip_suffix(".png")?.to_string()))
-    } else { None }
+        Some((
+            parts[1].to_string(),
+            parts[4].strip_suffix(".png")?.to_string(),
+        ))
+    } else {
+        None
+    }
 }
 
 // ── Packaging ─────────────────────────────────────────────────────────────────
 
 fn package(
-    out: &Path, meta: &YogToml,
-    bundled: &[(String, PathBuf)], assets: &[(String, Vec<u8>)],
+    out: &Path,
+    meta: &YogToml,
+    bundled: &[(String, PathBuf)],
+    assets: &[(String, Vec<u8>)],
 ) -> Result<(), String> {
     let file = std::fs::File::create(out).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipWriter::new(file);
@@ -939,7 +1160,10 @@ fn package(
         .compression_method(zip::CompressionMethod::Deflated);
 
     for (tag, native) in bundled {
-        let lib_name = native.file_name().and_then(|n| n.to_str()).ok_or("bad native filename")?;
+        let lib_name = native
+            .file_name()
+            .and_then(|n| n.to_str())
+            .ok_or("bad native filename")?;
         let entry = format!("natives/{tag}/{lib_name}");
         let bytes = std::fs::read(native).map_err(|e| e.to_string())?;
         zip.start_file(&entry, opts).map_err(|e| e.to_string())?;
@@ -951,16 +1175,27 @@ fn package(
         zip.write_all(bytes).map_err(|e| e.to_string())?;
     }
 
-    let platforms = bundled.iter().map(|(t, _)| format!("{t:?}")).collect::<Vec<_>>().join(", ");
-    let authors = meta.authors.iter().map(|a| format!("{a:?}")).collect::<Vec<_>>().join(", ");
+    let platforms = bundled
+        .iter()
+        .map(|(t, _)| format!("{t:?}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let authors = meta
+        .authors
+        .iter()
+        .map(|a| format!("{a:?}"))
+        .collect::<Vec<_>>()
+        .join(", ");
     // The full metadata travels inside the archive so the loader can show it
     // (mod list UI etc.) without needing the source project.
     let manifest = format!(
         "id = {:?}\nname = {:?}\nversion = {:?}\ndescription = {:?}\nauthors = [{}]\nlicense = {:?}\nabi = 2\nplatforms = [{platforms}]\n",
         meta.id, meta.name, meta.version, meta.description, authors, meta.license,
     );
-    zip.start_file("yog.toml", opts).map_err(|e| e.to_string())?;
-    zip.write_all(manifest.as_bytes()).map_err(|e| e.to_string())?;
+    zip.start_file("yog.toml", opts)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(manifest.as_bytes())
+        .map_err(|e| e.to_string())?;
     zip.finish().map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -977,7 +1212,7 @@ fn add_dep(crate_name: Option<&str>) -> Result<(), String> {
 
     let text = std::fs::read_to_string(&yog_toml_path).map_err(|e| e.to_string())?;
     let mut lines: Vec<String> = text.lines().map(|s| s.to_string()).collect();
-    
+
     // Check if [dependencies] section exists
     let mut has_deps = false;
     for line in &lines {
@@ -989,7 +1224,11 @@ fn add_dep(crate_name: Option<&str>) -> Result<(), String> {
 
     if !has_deps {
         // Add [dependencies] section before any [dev] section or at the end
-        let insert_idx = lines.iter().position(|l| l.trim().starts_with('[') && l.trim() != "[mod]" && l.trim() != "[package]")
+        let insert_idx = lines
+            .iter()
+            .position(|l| {
+                l.trim().starts_with('[') && l.trim() != "[mod]" && l.trim() != "[package]"
+            })
             .unwrap_or(lines.len());
         lines.insert(insert_idx, "[dependencies]".to_string());
         lines.insert(insert_idx + 1, format!("{} = \"*\"", name));
@@ -1057,9 +1296,9 @@ fn remove_dep(crate_name: Option<&str>) -> Result<(), String> {
 /// Item found by the export scanner.
 #[derive(Debug)]
 struct ExportItem {
-    kind: String,      // "struct", "enum", "fn"
+    kind: String, // "struct", "enum", "fn"
     name: String,
-    source: String,    // full Rust source of the item (without #[yog_export])
+    source: String, // full Rust source of the item (without #[yog_export])
 }
 
 /// Collect the imports a generated exports crate needs.
@@ -1081,12 +1320,69 @@ fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<Str
     // 1 + 2: names that never need an import.
     // Primitives and std/core/alloc items are always in scope.
     let mut primitives: HashSet<&str> = HashSet::new();
-    for p in ["bool","u8","u16","u32","u64","u128","usize","i8","i16","i32","i64","i128","isize",
-              "f32","f64","char","str","String","Vec","Option","Result","Box","Rc","Arc","Cow",
-              "PhantomData","Ordering","Self","()","HashMap","HashSet","BTreeMap","BTreeSet",
-              "LinkedList","VecDeque","BinaryHeap","Path","PathBuf","Duration","Instant","SystemTime",
-              "Error","fmt","ops","cmp","iter","slice","cell","sync","collections","convert",
-              "marker","mem","ptr","hint","borrow","hash","default","num","array","range"] {
+    for p in [
+        "bool",
+        "u8",
+        "u16",
+        "u32",
+        "u64",
+        "u128",
+        "usize",
+        "i8",
+        "i16",
+        "i32",
+        "i64",
+        "i128",
+        "isize",
+        "f32",
+        "f64",
+        "char",
+        "str",
+        "String",
+        "Vec",
+        "Option",
+        "Result",
+        "Box",
+        "Rc",
+        "Arc",
+        "Cow",
+        "PhantomData",
+        "Ordering",
+        "Self",
+        "()",
+        "HashMap",
+        "HashSet",
+        "BTreeMap",
+        "BTreeSet",
+        "LinkedList",
+        "VecDeque",
+        "BinaryHeap",
+        "Path",
+        "PathBuf",
+        "Duration",
+        "Instant",
+        "SystemTime",
+        "Error",
+        "fmt",
+        "ops",
+        "cmp",
+        "iter",
+        "slice",
+        "cell",
+        "sync",
+        "collections",
+        "convert",
+        "marker",
+        "mem",
+        "ptr",
+        "hint",
+        "borrow",
+        "hash",
+        "default",
+        "num",
+        "array",
+        "range",
+    ] {
         primitives.insert(p);
     }
     // std/core/alloc prelude modules — anything starting with these is in scope.
@@ -1097,23 +1393,36 @@ fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<Str
 
     // 3: gather every `use` statement from the mod's source so we can map a
     //    used type back to its import path.
-    let mut import_paths: Vec<String> = Vec::new();  // e.g. "yog_api::registry::Mod"
+    let mut import_paths: Vec<String> = Vec::new(); // e.g. "yog_api::registry::Mod"
     let mut system_imports: HashSet<String> = HashSet::new();
     let mut type_imports: HashSet<String> = HashSet::new();
     if let Ok(entries) = std::fs::read_dir(src_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) != Some("rs") { continue; }
-            let Ok(src) = std::fs::read_to_string(&path) else { continue };
+            if path.extension().and_then(|e| e.to_str()) != Some("rs") {
+                continue;
+            }
+            let Ok(src) = std::fs::read_to_string(&path) else {
+                continue;
+            };
             for line in src.lines() {
                 let t = line.trim();
-                if !t.starts_with("use ") { continue; }
+                if !t.starts_with("use ") {
+                    continue;
+                }
                 let path_part = t[4..].trim_end_matches(';').trim();
-                if path_part.is_empty() { continue; }
+                if path_part.is_empty() {
+                    continue;
+                }
                 // Skip malformed imports like `yog_api::{` without closing brace.
-                if path_part.contains('{') && !path_part.contains('}') { continue; }
+                if path_part.contains('{') && !path_part.contains('}') {
+                    continue;
+                }
                 // `use foo::{a, b}` / `use foo::*` — keep the prefix as a candidate.
-                if path_part.starts_with("std::") || path_part.starts_with("core::") || path_part.starts_with("alloc::") {
+                if path_part.starts_with("std::")
+                    || path_part.starts_with("core::")
+                    || path_part.starts_with("alloc::")
+                {
                     system_imports.insert(path_part.to_string());
                 } else {
                     type_imports.insert(path_part.to_string());
@@ -1132,10 +1441,16 @@ fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<Str
         prelude_prefixes: &[&str],
     ) -> Option<String> {
         // 1. primitive / prelude
-        if primitives.contains(name) { return None; }
-        if prelude_prefixes.iter().any(|p| name.starts_with(p)) { return None; }
+        if primitives.contains(name) {
+            return None;
+        }
+        if prelude_prefixes.iter().any(|p| name.starts_with(p)) {
+            return None;
+        }
         // 2. defined in this crate
-        if local_names.contains(name) { return None; }
+        if local_names.contains(name) {
+            return None;
+        }
         // 3. find a `use` path whose tail segment matches `name`.
         //    Prefer the shortest matching (most specific) import.
         let mut best: Option<(usize, String)> = None;
@@ -1165,35 +1480,59 @@ fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<Str
             let mut end = 0;
             let mut depth: i32 = 0;
             for (i, ch) in slice.char_indices() {
-                    match ch {
-                        '<' => depth += 1,
-                        '>' => depth -= 1,
-                        ' ' | ',' | ';' | '{' | '}' | '(' | ')' | ':' | '[' | ']' | '.' => {
-                            if depth == 0 { end = i; break; }
+                match ch {
+                    '<' => depth += 1,
+                    '>' => depth -= 1,
+                    ' ' | ',' | ';' | '{' | '}' | '(' | ')' | ':' | '[' | ']' | '.' => {
+                        if depth == 0 {
+                            end = i;
+                            break;
                         }
-                        _ => {}
                     }
-                    if depth < 0 { end = i; break; }
+                    _ => {}
+                }
+                if depth < 0 {
+                    end = i;
+                    break;
+                }
             }
             let path = slice[..end].trim().trim_end_matches("::");
-            if path.is_empty() { continue; }
-            let first = path.trim_start_matches(':').split("::").next().unwrap_or("");
+            if path.is_empty() {
+                continue;
+            }
+            let first = path
+                .trim_start_matches(':')
+                .split("::")
+                .next()
+                .unwrap_or("");
             if prelude_prefixes.iter().any(|p| path.starts_with(p)) {
                 system_imports.insert(path.to_string());
-            } else if first == "yog_api" || first == "crate" || first == "super" || first == "self" {
+            } else if first == "yog_api" || first == "crate" || first == "super" || first == "self"
+            {
                 type_imports.insert(path.to_string());
             }
         }
         // Bare CamelCase type names (struct/enum args, generic params, fields).
-        let re_check: Vec<&str> = body.split(|c: char| !c.is_alphanumeric() && c != '_')
+        let re_check: Vec<&str> = body
+            .split(|c: char| !c.is_alphanumeric() && c != '_')
             .filter(|s| !s.is_empty())
             .collect();
         for tok in re_check {
-            if tok.chars().next().map(|c| c.is_uppercase()).unwrap_or(false) {
+            if tok
+                .chars()
+                .next()
+                .map(|c| c.is_uppercase())
+                .unwrap_or(false)
+            {
                 if let Some(p) = resolve_name(
-                    tok, &import_paths, &local_names, &primitives, prelude_prefixes,
+                    tok,
+                    &import_paths,
+                    &local_names,
+                    &primitives,
+                    prelude_prefixes,
                 ) {
-                    if p.starts_with("std::") || p.starts_with("core::") || p.starts_with("alloc::") {
+                    if p.starts_with("std::") || p.starts_with("core::") || p.starts_with("alloc::")
+                    {
                         system_imports.insert(p);
                     } else {
                         type_imports.insert(p);
@@ -1209,17 +1548,27 @@ fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<Str
         let mut braces: Vec<String> = Vec::new();
         let mut simples: Vec<String> = Vec::new();
         for p in vec.drain(..) {
-            if p.contains('{') { braces.push(p); } else { simples.push(p); }
+            if p.contains('{') {
+                braces.push(p);
+            } else {
+                simples.push(p);
+            }
         }
         let mut keep: Vec<String> = Vec::new();
         for brace in braces {
             let prefix = brace.split('{').next().unwrap_or("");
-            let inside = brace.split('{').nth(1).and_then(|s| s.split('}').next()).unwrap_or("");
+            let inside = brace
+                .split('{')
+                .nth(1)
+                .and_then(|s| s.split('}').next())
+                .unwrap_or("");
             let items: HashSet<&str> = inside.split(',').map(|s| s.trim()).collect();
             simples.retain(|s| {
                 if s.starts_with(prefix) {
                     !items.contains(&s.strip_prefix(prefix).unwrap_or(s).trim())
-                } else { true }
+                } else {
+                    true
+                }
             });
             keep.push(brace);
         }
@@ -1259,7 +1608,9 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
     for entry in std::fs::read_dir(&src_dir).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("rs") { continue; }
+        if path.extension().and_then(|e| e.to_str()) != Some("rs") {
+            continue;
+        }
         let src = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
         let lines: Vec<&str> = src.lines().collect();
         let mut i = 0;
@@ -1272,31 +1623,53 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
                     i += 1;
                 }
                 // Collect the item source: pub struct / pub enum / pub fn
-                if i >= lines.len() { break; }
+                if i >= lines.len() {
+                    break;
+                }
                 let first = lines[i].trim();
-                let kind = if first.starts_with("pub struct ") { "struct" }
-                    else if first.starts_with("pub enum ") { "enum" }
-                    else if first.starts_with("pub fn ") { "fn" }
-                    else { i += 1; continue; };
+                let kind = if first.starts_with("pub struct ") {
+                    "struct"
+                } else if first.starts_with("pub enum ") {
+                    "enum"
+                } else if first.starts_with("pub fn ") {
+                    "fn"
+                } else {
+                    i += 1;
+                    continue;
+                };
 
                 // Extract item name from the first line
                 let name = if kind == "fn" {
-                    first.trim_start_matches("pub fn ")
-                        .split('(').next().unwrap_or("")
-                        .trim().to_string()
+                    first
+                        .trim_start_matches("pub fn ")
+                        .split('(')
+                        .next()
+                        .unwrap_or("")
+                        .trim()
+                        .to_string()
                 } else if kind == "struct" {
-                    first.trim_start_matches("pub struct ")
+                    first
+                        .trim_start_matches("pub struct ")
                         .split(&['{', '(', ' ', '<', ';', '\t'][..])
-                        .next().unwrap_or("")
-                        .trim().to_string()
-                } else { // enum
-                    first.trim_start_matches("pub enum ")
+                        .next()
+                        .unwrap_or("")
+                        .trim()
+                        .to_string()
+                } else {
+                    // enum
+                    first
+                        .trim_start_matches("pub enum ")
                         .split(&['{', ' ', '<', ';', '\t'][..])
-                        .next().unwrap_or("")
-                        .trim().to_string()
+                        .next()
+                        .unwrap_or("")
+                        .trim()
+                        .to_string()
                 };
 
-                if name.is_empty() { i += 1; continue; }
+                if name.is_empty() {
+                    i += 1;
+                    continue;
+                }
 
                 // Collect lines until the top-level brace block closes
                 let mut depth: i32 = 0;
@@ -1308,8 +1681,12 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
                     let line = lines[i];
                     item_lines.push(line.to_string());
                     for ch in line.chars() {
-                        if ch == '{' { depth += 1; found_open = true; }
-                        else if ch == '}' { depth -= 1; }
+                        if ch == '{' {
+                            depth += 1;
+                            found_open = true;
+                        } else if ch == '}' {
+                            depth -= 1;
+                        }
                     }
                     if found_open && depth <= 0 {
                         item_lines.push(String::new());
@@ -1324,7 +1701,11 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
                     i += 1;
                 }
                 let source = item_lines.join("\n");
-                exports.push(ExportItem { kind: kind.to_string(), name, source });
+                exports.push(ExportItem {
+                    kind: kind.to_string(),
+                    name,
+                    source,
+                });
             }
             i += 1;
         }
@@ -1338,13 +1719,18 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
     // Collect used namespaces from exported items
     let (system_uses, type_uses) = collect_uses(&exports, &src_dir);
 
-    eprintln!("==> generating {exports_crate_name} ({items} export(s))",
-        items = exports.len());
+    eprintln!(
+        "==> generating {exports_crate_name} ({items} export(s))",
+        items = exports.len()
+    );
     eprintln!("    system_uses: {:?}", system_uses);
     eprintln!("    type_uses: {:?}", type_uses);
 
     // Generate the exports crate in .yog-build/exports/
-    let build_dir = proj.join(".yog-build").join("exports").join(&exports_crate_name);
+    let build_dir = proj
+        .join(".yog-build")
+        .join("exports")
+        .join(&exports_crate_name);
     let _ = std::fs::remove_dir_all(&build_dir);
     std::fs::create_dir_all(build_dir.join("src")).map_err(|e| e.to_string())?;
 
@@ -1393,7 +1779,7 @@ crate-type = ["cdylib", "lib"]
          //! DO NOT EDIT — generated by `yog publish exports`.\n\n\
          #![allow(unused_imports)]\n\n"
     );
-    
+
     // Add system uses (std, core, alloc)
     if !system_uses.is_empty() {
         lib_rs.push_str("// System dependencies\n");
@@ -1402,7 +1788,7 @@ crate-type = ["cdylib", "lib"]
         }
         lib_rs.push('\n');
     }
-    
+
     // Add type dependencies (yog_api, rkyv, etc.)
     // Filter out crate-internal imports and duplicates of exported items
     let exported_names: HashSet<String> = exports.iter().map(|e| e.name.clone()).collect();
@@ -1431,7 +1817,7 @@ crate-type = ["cdylib", "lib"]
                 // Reproduce the item with #[derive] for rkyv + serde.
                 // Strip existing #[derive(...)] to avoid duplicates.
                 let cleaned = strip_derive_attrs(&item.source);
-                 lib_rs.push_str(&format!(
+                lib_rs.push_str(&format!(
                      "#[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize, Debug, Clone, PartialEq)]\n\
                       {}\n",
                      cleaned,
@@ -1483,7 +1869,8 @@ crate-type = ["cdylib", "lib"]
 /// Strip `#[derive(...)]` lines from a Rust source item to avoid duplicates
 /// when the generator adds its own derives.
 fn strip_derive_attrs(source: &str) -> String {
-    source.lines()
+    source
+        .lines()
         .filter(|line| !line.trim().starts_with("#[derive("))
         .collect::<Vec<_>>()
         .join("\n")
@@ -1519,7 +1906,12 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
         for (i, ch) in after.char_indices() {
             match ch {
                 '(' => depth += 1,
-                ')' => { depth -= 1; if depth == 0 { return Some(ps + i); } }
+                ')' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(ps + i);
+                    }
+                }
                 _ => {}
             }
         }
@@ -1527,7 +1919,7 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
     });
 
     let (input_type, arg_name) = if let (Some(ps), Some(pe)) = (paren_start, paren_end) {
-        let params = sig_line[ps+1..pe].trim();
+        let params = sig_line[ps + 1..pe].trim();
         if params.is_empty() {
             ("()".to_string(), String::new())
         } else {
@@ -1555,7 +1947,7 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
             match arrow_rel {
                 Some(rel) => {
                     let arrow = pe + rel;
-                    let rest: &str = sig_line[arrow+2..].trim();
+                    let rest: &str = sig_line[arrow + 2..].trim();
                     // Take until `{` or `;` handling angle bracket balance
                     let mut depth: i32 = 0;
                     let mut end = 0;
@@ -1566,8 +1958,12 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
                             '{' | ';' => break,
                             _ => {}
                         }
-                        if depth < 0 { break; }
-                        if ch == '=' { break; }
+                        if depth < 0 {
+                            break;
+                        }
+                        if ch == '=' {
+                            break;
+                        }
                         end = i + ch.len_utf8();
                     }
                     rest[..end].trim().to_string()
@@ -1668,8 +2064,9 @@ fn latest_yog_api_version() -> String {
                 .next()
                 .and_then(|l| {
                     let mut parts = l.split_whitespace();
-                    parts.next();                              // skip crate name (e.g. "yog-api")
-                    if parts.next() == Some("=") {            // skip the "=" separator
+                    parts.next(); // skip crate name (e.g. "yog-api")
+                    if parts.next() == Some("=") {
+                        // skip the "=" separator
                         parts.next().map(|v| v.trim_matches('"').to_owned())
                     } else {
                         None

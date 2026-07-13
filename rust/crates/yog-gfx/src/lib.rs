@@ -51,8 +51,8 @@
 //! ```
 
 pub mod core;
-pub mod gl;
 pub mod draw2d;
+pub mod gl;
 
 use yog_abi::YogGfxApi;
 
@@ -68,10 +68,14 @@ unsafe impl Sync for GfxContext {}
 
 impl GfxContext {
     #[doc(hidden)]
-    pub unsafe fn from_raw(raw: *const YogGfxApi) -> Self { Self(raw) }
+    pub unsafe fn from_raw(raw: *const YogGfxApi) -> Self {
+        Self(raw)
+    }
 
     #[inline]
-    fn api(&self) -> &YogGfxApi { unsafe { &*self.0 } }
+    fn api(&self) -> &YogGfxApi {
+        unsafe { &*self.0 }
+    }
 
     // ── Frame info ────────────────────────────────────────────────────────────
 
@@ -82,24 +86,34 @@ impl GfxContext {
     }
 
     /// Partial-tick interpolation factor (0.0–1.0).
-    pub fn delta_tick(&self) -> f32 { self.api().delta_tick }
+    pub fn delta_tick(&self) -> f32 {
+        self.api().delta_tick
+    }
 
     /// View-projection matrix in camera-relative space (column-major, 16 × f32).
     /// Zeros during `on_hud_render`; filled during `on_world_render`.
-    pub fn view_proj(&self) -> [f32; 16] { self.api().view_proj }
+    pub fn view_proj(&self) -> [f32; 16] {
+        self.api().view_proj
+    }
 
     /// Camera world-space position.  All zeros during `on_hud_render`.
-    pub fn camera_pos(&self) -> [f32; 3] { self.api().camera_pos }
+    pub fn camera_pos(&self) -> [f32; 3] {
+        self.api().camera_pos
+    }
 
     /// Local player world-space position (eye height).  All zeros during `on_hud_render`.
     /// Use this to anchor geometry to the player; differs from `camera_pos` in third-person.
-    pub fn player_pos(&self) -> [f32; 3] { self.api().player_pos }
+    pub fn player_pos(&self) -> [f32; 3] {
+        self.api().player_pos
+    }
 
     // ── GPU buffer ───────────────────────────────────────────────────────────
 
     /// Allocate a new GPU buffer (VBO or EBO). Returns handle 0 on failure.
     pub fn create_buffer(&self) -> gl::Buffer {
-        gl::Buffer { handle: unsafe { (self.api().buf_create)() } }
+        gl::Buffer {
+            handle: unsafe { (self.api().buf_create)() },
+        }
     }
 
     /// Delete a buffer allocated by `create_buffer`.
@@ -111,7 +125,9 @@ impl GfxContext {
 
     /// Allocate a new vertex array object. Returns handle 0 on failure.
     pub fn create_vao(&self) -> gl::VertexArray {
-        gl::VertexArray { handle: unsafe { (self.api().vao_create)() } }
+        gl::VertexArray {
+            handle: unsafe { (self.api().vao_create)() },
+        }
     }
 
     /// Delete a vertex array allocated by `create_vao`.
@@ -133,7 +149,11 @@ impl GfxContext {
                 &mut handle,
             )
         };
-        if ok && handle != 0 { Ok(gl::ShaderProgram { handle }) } else { Err(()) }
+        if ok && handle != 0 {
+            Ok(gl::ShaderProgram { handle })
+        } else {
+            Err(())
+        }
     }
 
     /// Delete a shader program.
@@ -146,14 +166,18 @@ impl GfxContext {
     /// Upload RGBA8 pixel data as a new GPU texture.
     /// `linear`: `true` = bilinear filter, `false` = nearest.
     pub fn create_texture_rgba(&self, w: u32, h: u32, pixels: &[u8], linear: bool) -> gl::Texture {
-        gl::Texture { handle: unsafe { (self.api().tex_create)(w, h, pixels.as_ptr(), linear) } }
+        gl::Texture {
+            handle: unsafe { (self.api().tex_create)(w, h, pixels.as_ptr(), linear) },
+        }
     }
 
     /// Get the GL texture handle that Minecraft uses for an identifier
     /// (e.g. `"minecraft:textures/gui/icons.png"`).  Returns handle 0 if not found.
     pub fn texture_from_mc(&self, id: &str) -> gl::Texture {
         use yog_abi::YogStr;
-        gl::Texture { handle: unsafe { (self.api().tex_from_mc)(YogStr::from_str(id)) } }
+        gl::Texture {
+            handle: unsafe { (self.api().tex_from_mc)(YogStr::from_str(id)) },
+        }
     }
 
     /// Delete a texture.
@@ -170,8 +194,12 @@ impl GfxContext {
 
     /// Draw primitives using a vertex array (no index buffer).
     pub fn draw_arrays(
-        &self, vao: &gl::VertexArray, prog: &gl::ShaderProgram,
-        mode: core::DrawMode, first: u32, count: u32,
+        &self,
+        vao: &gl::VertexArray,
+        prog: &gl::ShaderProgram,
+        mode: core::DrawMode,
+        first: u32,
+        count: u32,
     ) {
         unsafe { (self.api().draw_arrays)(vao.handle, prog.handle, mode as u8, first, count) }
     }
@@ -179,11 +207,23 @@ impl GfxContext {
     /// Draw primitives via an index buffer.
     /// `u32_indices`: `true` = `u32` indices, `false` = `u16` indices.
     pub fn draw_elements(
-        &self, vao: &gl::VertexArray, ebo: &gl::Buffer, prog: &gl::ShaderProgram,
-        mode: core::DrawMode, count: u32, u32_indices: bool,
+        &self,
+        vao: &gl::VertexArray,
+        ebo: &gl::Buffer,
+        prog: &gl::ShaderProgram,
+        mode: core::DrawMode,
+        count: u32,
+        u32_indices: bool,
     ) {
         unsafe {
-            (self.api().draw_elements)(vao.handle, ebo.handle, prog.handle, mode as u8, count, u32_indices)
+            (self.api().draw_elements)(
+                vao.handle,
+                ebo.handle,
+                prog.handle,
+                mode as u8,
+                count,
+                u32_indices,
+            )
         }
     }
 
@@ -219,5 +259,7 @@ impl GfxContext {
 
     /// Access the 2D drawing helpers (text, rectangles, MC textures).
     /// These only work during `on_hud_render`.
-    pub fn draw2d(&self) -> draw2d::Draw2D<'_> { draw2d::Draw2D::new(self) }
+    pub fn draw2d(&self) -> draw2d::Draw2D<'_> {
+        draw2d::Draw2D::new(self)
+    }
 }

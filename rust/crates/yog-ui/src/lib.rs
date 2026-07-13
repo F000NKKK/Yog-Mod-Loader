@@ -22,7 +22,7 @@ pub mod slot_cache;
 pub mod text;
 pub mod widget;
 
-pub use layout::{Align, FlexDir, LayoutNode, Rect, set_focus};
+pub use layout::{set_focus, Align, FlexDir, LayoutNode, Rect};
 pub use widget::{Dock, FocusStyle, Widget};
 
 use yog_gfx::GfxContext;
@@ -37,7 +37,12 @@ pub struct UiRoot {
 
 impl UiRoot {
     pub fn new(id: impl Into<String>, root: Widget) -> Self {
-        Self { id: id.into(), root, layout_root: LayoutNode::default(), needs_layout: true }
+        Self {
+            id: id.into(),
+            root,
+            layout_root: LayoutNode::default(),
+            needs_layout: true,
+        }
     }
 
     /// Recalculate layout. Call after changing the tree or on window resize.

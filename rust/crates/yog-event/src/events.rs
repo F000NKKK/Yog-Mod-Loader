@@ -7,7 +7,10 @@ use yog_core::BlockPos;
 /// In `Pre` phase the handler's return value may cancel the action.
 /// In `Post` phase the return value is ignored.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EventPhase { Pre, Post }
+pub enum EventPhase {
+    Pre,
+    Post,
+}
 
 /// Fired when a player breaks a block (server side).
 #[derive(Debug, Clone)]
@@ -217,7 +220,7 @@ pub struct PlayerMoveEvent {
     pub x: f64,
     pub y: f64,
     pub z: f64,
-    pub yaw:   f32,
+    pub yaw: f32,
     pub pitch: f32,
 }
 
@@ -260,10 +263,10 @@ pub struct HudRenderEvent {
 #[derive(Debug, Clone)]
 pub struct KeyPressEvent {
     /// GLFW key code (e.g. 69 = E). See `org.lwjgl.glfw.GLFW`.
-    pub key_code:  i32,
+    pub key_code: i32,
     pub scan_code: i32,
     /// 0 = release, 1 = press, 2 = repeat.
-    pub action:    i32,
+    pub action: i32,
     /// Modifier bitmask: 1=Shift, 2=Ctrl, 4=Alt, 8=Super.
     pub modifiers: i32,
 }

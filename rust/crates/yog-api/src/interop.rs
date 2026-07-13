@@ -60,7 +60,11 @@ impl Interop {
             let mid = yog_abi::YogStr::from_str(mod_id);
             let sym = yog_abi::YogStr::from_str(symbol);
             let ptr = (api.interop_import)(api.ctx, mid, sym);
-            if ptr.is_null() { None } else { Some(ptr) }
+            if ptr.is_null() {
+                None
+            } else {
+                Some(ptr)
+            }
         }
     }
 

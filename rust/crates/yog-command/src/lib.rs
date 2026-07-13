@@ -30,12 +30,18 @@ impl CommandContext {
 
     /// Arguments split on `\t` — for typed commands registered with a schema.
     pub fn typed_args(&self) -> Vec<&str> {
-        if self.args.is_empty() { vec![] } else { self.args.split('\t').collect() }
+        if self.args.is_empty() {
+            vec![]
+        } else {
+            self.args.split('\t').collect()
+        }
     }
 
     /// The raw string of typed argument at `idx`, or `None` if out of range.
     pub fn arg_str(&self, idx: usize) -> Option<&str> {
-        if self.args.is_empty() { return None; }
+        if self.args.is_empty() {
+            return None;
+        }
         self.args.split('\t').nth(idx)
     }
 

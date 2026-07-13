@@ -160,13 +160,7 @@ pub trait Server {
 
     /// Play a sound at the named player's current position. All players nearby
     /// (including the target) hear it. Returns `false` if the player is offline.
-    fn play_sound_to_player(
-        &self,
-        player: &str,
-        sound_id: &str,
-        volume: f32,
-        pitch: f32,
-    ) -> bool;
+    fn play_sound_to_player(&self, player: &str, sound_id: &str, volume: f32, pitch: f32) -> bool;
 
     // ── title / actionbar ───────────────────────────────────────────────────
 
@@ -254,11 +248,23 @@ pub trait Server {
     /// `(item_id, count)` of one slot of the inventory-backed block at `pos`
     /// (see `yog_inventory::InventoryDef`). Returns `None` if the slot is
     /// empty, or there is no such inventory at that position.
-    fn get_inventory_slot(&self, dimension: &str, pos: BlockPos, slot: u32) -> Option<(String, u32)>;
+    fn get_inventory_slot(
+        &self,
+        dimension: &str,
+        pos: BlockPos,
+        slot: u32,
+    ) -> Option<(String, u32)>;
 
     /// Set (or clear when `count == 0`) one slot of the inventory-backed
     /// block at `pos`. Returns `false` if there is no such inventory there.
-    fn set_inventory_slot(&self, dimension: &str, pos: BlockPos, slot: u32, item_id: &str, count: u32) -> bool;
+    fn set_inventory_slot(
+        &self,
+        dimension: &str,
+        pos: BlockPos,
+        slot: u32,
+        item_id: &str,
+        count: u32,
+    ) -> bool;
 
     // ── inventory ────────────────────────────────────────────────────────────
 
@@ -298,10 +304,14 @@ pub trait Server {
     fn spawn_particles(
         &self,
         dimension: &str,
-        x: f64, y: f64, z: f64,
+        x: f64,
+        y: f64,
+        z: f64,
         particle_type: &str,
         count: i32,
-        dx: f64, dy: f64, dz: f64,
+        dx: f64,
+        dy: f64,
+        dz: f64,
         speed: f64,
     ) -> bool;
 
@@ -342,5 +352,6 @@ pub trait Server {
 
     /// Replace inventory `slot`. Pass `count == 0` to clear the slot.
     /// `snbt` is merged into the new item's NBT (pass `""` for no NBT).
-    fn set_slot_item(&self, player: &str, slot: u32, item_id: &str, count: u32, snbt: &str) -> bool;
+    fn set_slot_item(&self, player: &str, slot: u32, item_id: &str, count: u32, snbt: &str)
+        -> bool;
 }

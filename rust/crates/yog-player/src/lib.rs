@@ -23,7 +23,11 @@ impl<'a> Player<'a> {
     /// Bind to the player called `name`. Entity-level ops that require a UUID
     /// will return `None`/`false`; use [`Player::with_uuid`] to unlock them.
     pub fn new(server: &'a dyn Server, name: impl Into<String>) -> Self {
-        Self { server, name: name.into(), uuid: None }
+        Self {
+            server,
+            name: name.into(),
+            uuid: None,
+        }
     }
 
     /// Bind to the player with both `name` and `uuid` (full functionality).
@@ -32,7 +36,11 @@ impl<'a> Player<'a> {
         name: impl Into<String>,
         uuid: impl Into<String>,
     ) -> Self {
-        Self { server, name: name.into(), uuid: Some(uuid.into()) }
+        Self {
+            server,
+            name: name.into(),
+            uuid: Some(uuid.into()),
+        }
     }
 
     pub fn name(&self) -> &str {
@@ -83,7 +91,8 @@ impl<'a> Player<'a> {
 
     /// Set health; returns `false` if UUID unknown.
     pub fn set_health(&self, health: f32) -> bool {
-        self.entity().map_or(false, |e: Entity<'_>| e.set_health(health))
+        self.entity()
+            .map_or(false, |e: Entity<'_>| e.set_health(health))
     }
 
     /// Kill/remove this player entity; returns `false` if UUID unknown.
@@ -100,7 +109,8 @@ impl<'a> Player<'a> {
         stay: i32,
         fadeout: i32,
     ) -> bool {
-        self.server.send_title(&self.name, title, subtitle, fadein, stay, fadeout)
+        self.server
+            .send_title(&self.name, title, subtitle, fadein, stay, fadeout)
     }
 
     /// Send a message to the action-bar (above hotbar).
@@ -120,7 +130,8 @@ impl<'a> Player<'a> {
 
     /// Play a sound at this player's position (audible to nearby players too).
     pub fn play_sound(&self, sound_id: &str, volume: f32, pitch: f32) -> bool {
-        self.server.play_sound_to_player(&self.name, sound_id, volume, pitch)
+        self.server
+            .play_sound_to_player(&self.name, sound_id, volume, pitch)
     }
 
     pub fn add_effect(
@@ -136,11 +147,13 @@ impl<'a> Player<'a> {
     }
 
     pub fn remove_effect(&self, effect_id: &str) -> bool {
-        self.entity().map_or(false, |e: Entity<'_>| e.remove_effect(effect_id))
+        self.entity()
+            .map_or(false, |e: Entity<'_>| e.remove_effect(effect_id))
     }
 
     pub fn clear_effects(&self) -> bool {
-        self.entity().map_or(false, |e: Entity<'_>| e.clear_effects())
+        self.entity()
+            .map_or(false, |e: Entity<'_>| e.clear_effects())
     }
 
     // ── inventory ────────────────────────────────────────────────────────────
@@ -148,7 +161,8 @@ impl<'a> Player<'a> {
     /// Main inventory + hotbar (slots 0–35), excluding armor and offhand.
     /// Each entry: `(slot_index, item_id, count)`.
     pub fn inventory(&self) -> Vec<(u32, String, u32)> {
-        self.server.player_inventory(&self.name)
+        self.server
+            .player_inventory(&self.name)
             .into_iter()
             .filter(|(slot, _, _)| *slot <= 35)
             .collect()
@@ -156,7 +170,8 @@ impl<'a> Player<'a> {
 
     /// Hotbar only (slots 0–8).
     pub fn hotbar(&self) -> Vec<(u32, String, u32)> {
-        self.server.player_inventory(&self.name)
+        self.server
+            .player_inventory(&self.name)
             .into_iter()
             .filter(|(slot, _, _)| *slot <= 8)
             .collect()
@@ -165,7 +180,8 @@ impl<'a> Player<'a> {
     /// Armor slots (36=boots, 37=leggings, 38=chestplate, 39=helmet).
     /// Returned slot indices are remapped to 0–3.
     pub fn armor(&self) -> Vec<(u32, String, u32)> {
-        self.server.player_inventory(&self.name)
+        self.server
+            .player_inventory(&self.name)
             .into_iter()
             .filter(|(slot, _, _)| *slot >= 36 && *slot <= 39)
             .map(|(slot, id, count)| (slot - 36, id, count))
@@ -174,7 +190,8 @@ impl<'a> Player<'a> {
 
     /// Set or clear (count==0) a specific inventory slot.
     pub fn set_slot(&self, slot: u32, item_id: &str, count: u32) -> bool {
-        self.server.player_set_slot(&self.name, slot, item_id, count)
+        self.server
+            .player_set_slot(&self.name, slot, item_id, count)
     }
 
     // ── cross-dimension teleport ─────────────────────────────────────────────

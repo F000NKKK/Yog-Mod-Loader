@@ -33,10 +33,8 @@ impl Buffer {
     /// The byte representation of `T` must be well-defined (no padding traps,
     /// no floats encoding NaN, etc.). Use `#[repr(C)]` structs or primitive types.
     pub unsafe fn upload<T: Sized>(&self, ctx: &GfxContext, data: &[T], dynamic: bool) {
-        let bytes = std::slice::from_raw_parts(
-            data.as_ptr() as *const u8,
-            std::mem::size_of_val(data),
-        );
+        let bytes =
+            std::slice::from_raw_parts(data.as_ptr() as *const u8, std::mem::size_of_val(data));
         self.upload_bytes(ctx, bytes, dynamic);
     }
 
@@ -67,14 +65,26 @@ impl VertexArray {
     /// - `stride`: byte distance between consecutive vertices in `vbo`.
     /// - `offset`: byte offset of this attribute within each vertex.
     pub fn attrib(
-        &self, ctx: &GfxContext, vbo: &Buffer,
-        index: u32, components: u8, dtype: DataType,
-        normalized: bool, stride: u32, offset: u32,
+        &self,
+        ctx: &GfxContext,
+        vbo: &Buffer,
+        index: u32,
+        components: u8,
+        dtype: DataType,
+        normalized: bool,
+        stride: u32,
+        offset: u32,
     ) {
         unsafe {
             (ctx.api().vao_attrib)(
-                self.handle, vbo.handle, index, components,
-                dtype as u8, normalized, stride, offset,
+                self.handle,
+                vbo.handle,
+                index,
+                components,
+                dtype as u8,
+                normalized,
+                stride,
+                offset,
             )
         }
     }
@@ -114,7 +124,9 @@ impl ShaderProgram {
     }
     /// Upload a column-major 4×4 matrix (16 contiguous `f32` values).
     pub fn uniform_mat4(&self, ctx: &GfxContext, name: &str, col_major: &[f32; 16]) {
-        unsafe { (ctx.api().prog_uniform_mat4)(self.handle, YogStr::from_str(name), col_major.as_ptr()) }
+        unsafe {
+            (ctx.api().prog_uniform_mat4)(self.handle, YogStr::from_str(name), col_major.as_ptr())
+        }
     }
 }
 

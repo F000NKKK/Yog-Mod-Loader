@@ -30,7 +30,7 @@ impl Config {
     /// `:` and `/` in `mod_id` are replaced with `_` in the filename.
     pub fn load(game_dir: &str, mod_id: &str) -> Self {
         let safe = mod_id.replace([':', '/'], "_");
-        let dir  = Path::new(game_dir).join("yog-config");
+        let dir = Path::new(game_dir).join("yog-config");
         let path = dir.join(format!("{safe}.cfg"));
         let data = Self::parse(&path).unwrap_or_default();
         Self { path, data }
@@ -42,7 +42,9 @@ impl Config {
         for line in io::BufReader::new(file).lines() {
             let line = line?;
             let t = line.trim();
-            if t.is_empty() || t.starts_with('#') { continue; }
+            if t.is_empty() || t.starts_with('#') {
+                continue;
+            }
             if let Some((k, v)) = t.split_once('=') {
                 map.insert(k.trim().to_string(), v.trim().to_string());
             }
@@ -85,8 +87,8 @@ impl Config {
     /// Truthy: `true`, `yes`, `1`, `on`. Falsy: `false`, `no`, `0`, `off`.
     pub fn get_bool(&self, key: &str) -> Option<bool> {
         match self.get(key)?.trim().to_lowercase().as_str() {
-            "true" | "yes" | "1" | "on"  => Some(true),
-            "false"| "no"  | "0" | "off" => Some(false),
+            "true" | "yes" | "1" | "on" => Some(true),
+            "false" | "no" | "0" | "off" => Some(false),
             _ => None,
         }
     }
@@ -131,13 +133,21 @@ impl Config {
 
     /// Save only if the config file does not yet exist (write defaults on first run).
     pub fn save_defaults(&self) -> io::Result<()> {
-        if !self.path.exists() { self.save() } else { Ok(()) }
+        if !self.path.exists() {
+            self.save()
+        } else {
+            Ok(())
+        }
     }
 
     /// Number of stored entries.
-    pub fn len(&self) -> usize { self.data.len() }
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
 
-    pub fn is_empty(&self) -> bool { self.data.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
         self.data.iter().map(|(k, v)| (k.as_str(), v.as_str()))

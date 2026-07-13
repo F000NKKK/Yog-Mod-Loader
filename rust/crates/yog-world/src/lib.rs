@@ -55,7 +55,8 @@ impl<'a> World<'a> {
 
     /// Start or stop rain. `duration_ticks = 0` picks a server-default duration.
     pub fn set_weather(&self, raining: bool, duration_ticks: i32) -> bool {
-        self.server.world_set_weather(&self.dimension, raining, duration_ticks)
+        self.server
+            .world_set_weather(&self.dimension, raining, duration_ticks)
     }
 
     /// Number of loaded entities of `entity_type` (e.g. `"minecraft:zombie"`)

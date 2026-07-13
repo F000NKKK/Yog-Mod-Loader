@@ -73,7 +73,10 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! { () }
     } else {
         match inputs.first().unwrap() {
-            syn::FnArg::Typed(pat_type) => { let ty = &pat_type.ty; quote! { #ty } }
+            syn::FnArg::Typed(pat_type) => {
+                let ty = &pat_type.ty;
+                quote! { #ty }
+            }
             _ => quote! { () },
         }
     };
@@ -125,10 +128,15 @@ pub fn import(input: TokenStream) -> TokenStream {
 
     for item in &import_block.items {
         match item {
-            ImportItem::Func(func) => { items.extend(generate_import_fn(func, mod_name)); }
+            ImportItem::Func(func) => {
+                items.extend(generate_import_fn(func, mod_name));
+            }
             ImportItem::Struct(s) => {
-                let vis = &s.vis; let ident = &s.ident; let generics = &s.generics;
-                let fields = &s.fields; let attrs = &s.attrs;
+                let vis = &s.vis;
+                let ident = &s.ident;
+                let generics = &s.generics;
+                let fields = &s.fields;
+                let attrs = &s.attrs;
                 items.extend(quote! {
                     #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
                     #(#attrs)* #vis struct #ident #generics #fields
@@ -158,9 +166,13 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
         syn::ReturnType::Type(_, ty) => quote! { #ty },
     };
 
-    let arg_names: Vec<_> = inputs.iter().map(|arg| {
-        match arg { syn::FnArg::Typed(pat_type) => &pat_type.pat, _ => unreachable!() }
-    }).collect();
+    let arg_names: Vec<_> = inputs
+        .iter()
+        .map(|arg| match arg {
+            syn::FnArg::Typed(pat_type) => &pat_type.pat,
+            _ => unreachable!(),
+        })
+        .collect();
 
     let serialize_block = if inputs.is_empty() {
         quote! { let input_bytes = Vec::new(); }
@@ -207,21 +219,36 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
 
 // ── Parse helpers ────────────────────────────────────────────────────────
 
-struct ImportBlock { mod_name: String, items: Vec<ImportItem> }
-enum ImportItem { Func(syn::ItemFn), Struct(syn::ItemStruct) }
+struct ImportBlock {
+    mod_name: String,
+    items: Vec<ImportItem>,
+}
+enum ImportItem {
+    Func(syn::ItemFn),
+    Struct(syn::ItemStruct),
+}
 
 impl syn::parse::Parse for ImportBlock {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let from_kw: syn::Ident = input.parse()?;
-        if from_kw != "from" { return Err(syn::Error::new(from_kw.span(), "expected `from`")); }
+        if from_kw != "from" {
+            return Err(syn::Error::new(from_kw.span(), "expected `from`"));
+        }
         let lit: syn::LitStr = input.parse()?;
         let mod_name = lit.value();
-        let content; syn::braced!(content in input);
+        let content;
+        syn::braced!(content in input);
         let mut items = Vec::new();
         while !content.is_empty() {
-            if let Ok(f) = content.parse::<syn::ItemFn>() { items.push(ImportItem::Func(f)); let _ = content.parse::<syn::Token![;]>(); }
-            else if let Ok(s) = content.parse::<syn::ItemStruct>() { items.push(ImportItem::Struct(s)); let _ = content.parse::<syn::Token![;]>(); }
-            else { break; }
+            if let Ok(f) = content.parse::<syn::ItemFn>() {
+                items.push(ImportItem::Func(f));
+                let _ = content.parse::<syn::Token![;]>();
+            } else if let Ok(s) = content.parse::<syn::ItemStruct>() {
+                items.push(ImportItem::Struct(s));
+                let _ = content.parse::<syn::Token![;]>();
+            } else {
+                break;
+            }
         }
         Ok(ImportBlock { mod_name, items })
     }

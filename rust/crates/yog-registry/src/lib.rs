@@ -32,7 +32,11 @@ pub struct FoodDef {
 
 impl FoodDef {
     pub fn new(nutrition: u32, saturation: f32) -> Self {
-        Self { nutrition, saturation, can_always_eat: false }
+        Self {
+            nutrition,
+            saturation,
+            can_always_eat: false,
+        }
     }
 
     pub fn can_always_eat(mut self) -> Self {
@@ -129,16 +133,22 @@ impl ItemDef {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct ShapedRecipe {
-    pub id:     String,
+    pub id: String,
     pub output: String,
-    pub count:  u32,
-    rows:       Vec<String>,
-    keys:       Vec<(char, String)>,
+    pub count: u32,
+    rows: Vec<String>,
+    keys: Vec<(char, String)>,
 }
 
 impl ShapedRecipe {
     pub fn new(id: impl Into<String>, output: impl Into<String>, count: u32) -> Self {
-        Self { id: id.into(), output: output.into(), count, rows: Vec::new(), keys: Vec::new() }
+        Self {
+            id: id.into(),
+            output: output.into(),
+            count,
+            rows: Vec::new(),
+            keys: Vec::new(),
+        }
     }
 
     pub fn row(mut self, pattern: impl Into<String>) -> Self {
@@ -153,11 +163,15 @@ impl ShapedRecipe {
 
     /// Generate the Minecraft 1.20 recipe JSON for this recipe.
     pub fn to_json(&self) -> String {
-        let pattern: String = self.rows.iter()
+        let pattern: String = self
+            .rows
+            .iter()
             .map(|r| format!("\"{}\"", r))
             .collect::<Vec<_>>()
             .join(",");
-        let keys: String = self.keys.iter()
+        let keys: String = self
+            .keys
+            .iter()
             .map(|(ch, item)| format!("\"{}\":{{\"item\":\"{}\"}}", ch, item))
             .collect::<Vec<_>>()
             .join(",");
@@ -177,15 +191,20 @@ impl ShapedRecipe {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct ShapelessRecipe {
-    pub id:          String,
-    pub output:      String,
-    pub count:       u32,
+    pub id: String,
+    pub output: String,
+    pub count: u32,
     pub ingredients: Vec<String>,
 }
 
 impl ShapelessRecipe {
     pub fn new(id: impl Into<String>, output: impl Into<String>, count: u32) -> Self {
-        Self { id: id.into(), output: output.into(), count, ingredients: Vec::new() }
+        Self {
+            id: id.into(),
+            output: output.into(),
+            count,
+            ingredients: Vec::new(),
+        }
     }
 
     pub fn ingredient(mut self, item_id: impl Into<String>) -> Self {
@@ -194,7 +213,9 @@ impl ShapelessRecipe {
     }
 
     pub fn to_json(&self) -> String {
-        let ingr: String = self.ingredients.iter()
+        let ingr: String = self
+            .ingredients
+            .iter()
             .map(|i| format!("{{\"item\":\"{}\"}}", i))
             .collect::<Vec<_>>()
             .join(",");
@@ -213,12 +234,12 @@ impl ShapelessRecipe {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct FurnaceRecipe {
-    pub id:         String,
-    pub input:      String,
-    pub output:     String,
-    pub count:      u32,
+    pub id: String,
+    pub input: String,
+    pub output: String,
+    pub count: u32,
     pub experience: f32,
-    pub cook_time:  u32,
+    pub cook_time: u32,
 }
 
 impl FurnaceRecipe {
@@ -228,7 +249,14 @@ impl FurnaceRecipe {
         output: impl Into<String>,
         count: u32,
     ) -> Self {
-        Self { id: id.into(), input: input.into(), output: output.into(), count, experience: 0.1, cook_time: 200 }
+        Self {
+            id: id.into(),
+            input: input.into(),
+            output: output.into(),
+            count,
+            experience: 0.1,
+            cook_time: 200,
+        }
     }
 
     pub fn experience(mut self, xp: f32) -> Self {
@@ -268,7 +296,11 @@ pub struct BookRecipe {
 
 impl BookRecipe {
     pub fn new(id: impl Into<String>, book: impl Into<String>) -> Self {
-        Self { id: id.into(), book: book.into(), ingredients: Vec::new() }
+        Self {
+            id: id.into(),
+            book: book.into(),
+            ingredients: Vec::new(),
+        }
     }
 
     pub fn ingredient(mut self, item_id: impl Into<String>) -> Self {
@@ -277,7 +309,9 @@ impl BookRecipe {
     }
 
     pub fn to_json(&self) -> String {
-        let ingr: String = self.ingredients.iter()
+        let ingr: String = self
+            .ingredients
+            .iter()
             .map(|i| format!("{{\"item\":\"{}\"}}", i))
             .collect::<Vec<_>>()
             .join(",");
@@ -307,7 +341,11 @@ pub struct ItemModifier {
 
 impl ItemModifier {
     pub fn new(id: impl Into<String>, function: impl Into<String>) -> Self {
-        Self { id: id.into(), function: function.into(), parameters: std::collections::HashMap::new() }
+        Self {
+            id: id.into(),
+            function: function.into(),
+            parameters: std::collections::HashMap::new(),
+        }
     }
 
     pub fn param(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
@@ -316,13 +354,20 @@ impl ItemModifier {
     }
 
     pub fn to_json(&self) -> String {
-        let params: String = self.parameters.iter()
+        let params: String = self
+            .parameters
+            .iter()
             .map(|(k, v)| format!("\"{}\":{}", k, v))
             .collect::<Vec<_>>()
             .join(",");
         format!(
             "{{\"function\":\"{}\",{}}}",
-            self.function, if params.is_empty() { String::new() } else { params }
+            self.function,
+            if params.is_empty() {
+                String::new()
+            } else {
+                params
+            }
         )
     }
 }
@@ -342,7 +387,12 @@ pub struct StartupGrant {
 
 impl StartupGrant {
     pub fn new(id: impl Into<String>) -> Self {
-        Self { id: id.into(), items: Vec::new(), book: None, command: None }
+        Self {
+            id: id.into(),
+            items: Vec::new(),
+            book: None,
+            command: None,
+        }
     }
 
     pub fn item(mut self, item_id: impl Into<String>) -> Self {
@@ -361,7 +411,11 @@ impl StartupGrant {
     }
 
     pub fn to_json(&self) -> String {
-        let items: Vec<String> = self.items.iter().map(|i| format!("{{\"item\":\"{}\"}}", i)).collect();
+        let items: Vec<String> = self
+            .items
+            .iter()
+            .map(|i| format!("{{\"item\":\"{}\"}}", i))
+            .collect();
         let mut entries = String::new();
         if !items.is_empty() {
             entries.push_str(&format!("[{}]", items.join(",")));
@@ -387,7 +441,11 @@ impl StartupGrant {
         }
         format!(
             "{{\"type\":\"yog:startup_grant\",\"entries\":{},\"id\":\"{}\"}}",
-            if entries.is_empty() { "[]".to_string() } else { entries },
+            if entries.is_empty() {
+                "[]".to_string()
+            } else {
+                entries
+            },
             self.id
         )
     }
@@ -408,7 +466,12 @@ pub struct AdvancementReward {
 
 impl AdvancementReward {
     pub fn new(id: impl Into<String>) -> Self {
-        Self { id: id.into(), item: "minecraft:written_book".into(), nbt: None, book: None }
+        Self {
+            id: id.into(),
+            item: "minecraft:written_book".into(),
+            nbt: None,
+            book: None,
+        }
     }
 
     pub fn item(mut self, item: impl Into<String>) -> Self {
@@ -424,14 +487,23 @@ impl AdvancementReward {
     pub fn book(mut self, book: impl Into<String>) -> Self {
         let book_str: String = book.into();
         self.book = Some(book_str.clone());
-        self.nbt = Some(format!("{{yog_book:\"{}\",title:\"Yog Book\",author:\"Yog\"}}", book_str));
+        self.nbt = Some(format!(
+            "{{yog_book:\"{}\",title:\"Yog Book\",author:\"Yog\"}}",
+            book_str
+        ));
         self
     }
 
     pub fn to_json(&self) -> String {
-        let nbt_part = self.nbt.as_ref().map(|n| format!("{{\"function\":\"set_nbt\",\"tag\":{}}}", n));
+        let nbt_part = self
+            .nbt
+            .as_ref()
+            .map(|n| format!("{{\"function\":\"set_nbt\",\"tag\":{}}}", n));
         let entries = if let Some(nbt_part) = nbt_part {
-            format!("[{{\"type\":\"item\",\"name\":\"{}\",\"functions\":[{}]}}]", self.item, nbt_part)
+            format!(
+                "[{{\"type\":\"item\",\"name\":\"{}\",\"functions\":[{}]}}]",
+                self.item, nbt_part
+            )
         } else {
             format!("[{{\"type\":\"item\",\"name\":\"{}\"}}]", self.item)
         };

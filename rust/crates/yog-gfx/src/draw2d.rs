@@ -13,7 +13,9 @@ use crate::GfxContext;
 pub struct Draw2D<'ctx>(&'ctx GfxContext);
 
 impl<'ctx> Draw2D<'ctx> {
-    pub(crate) fn new(ctx: &'ctx GfxContext) -> Self { Self(ctx) }
+    pub(crate) fn new(ctx: &'ctx GfxContext) -> Self {
+        Self(ctx)
+    }
 
     /// Draw a text string at GUI position `(x, y)`.
     /// `color` is `0xAARRGGBB`. `shadow` adds a drop-shadow.
@@ -42,11 +44,16 @@ impl<'ctx> Draw2D<'ctx> {
     /// - `(w, h)`: region size in pixels
     /// - `(tw, th)`: full texture size in pixels
     pub fn mc_texture(
-        &self, id: &str,
-        x: f32, y: f32,
-        u0: f32, v0: f32,
-        w: f32, h: f32,
-        tw: f32, th: f32,
+        &self,
+        id: &str,
+        x: f32,
+        y: f32,
+        u0: f32,
+        v0: f32,
+        w: f32,
+        h: f32,
+        tw: f32,
+        th: f32,
     ) {
         let a = self.0.api();
         unsafe { (a.draw2d_mc_tex)(YogStr::from_str(id), x, y, u0, v0, w, h, tw, th) }

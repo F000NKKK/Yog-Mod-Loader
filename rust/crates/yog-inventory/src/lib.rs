@@ -122,7 +122,10 @@ impl InventoryDef {
             .map(|i| {
                 let col = (i % COLS) as f32;
                 let row = (i / COLS) as f32;
-                SlotLayout { x: 8.0 + col * SLOT_SIZE, y: 18.0 + row * SLOT_SIZE }
+                SlotLayout {
+                    x: 8.0 + col * SLOT_SIZE,
+                    y: 18.0 + row * SLOT_SIZE,
+                }
             })
             .collect()
     }
@@ -132,14 +135,25 @@ impl InventoryDef {
 /// wire format used when handing the layout to the Java host (mirrors how
 /// `BlockDef::connect_groups` is comma-joined for its ABI struct).
 pub fn encode_layout(layout: &[SlotLayout]) -> String {
-    layout.iter().map(|s| format!("{}:{}", s.x, s.y)).collect::<Vec<_>>().join(",")
+    layout
+        .iter()
+        .map(|s| format!("{}:{}", s.x, s.y))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 /// Inverse of [`encode_layout`]. Malformed entries are skipped.
 pub fn decode_layout(s: &str) -> Vec<SlotLayout> {
-    if s.is_empty() { return Vec::new(); }
-    s.split(',').filter_map(|pair| {
-        let (x, y) = pair.split_once(':')?;
-        Some(SlotLayout { x: x.parse().ok()?, y: y.parse().ok()? })
-    }).collect()
+    if s.is_empty() {
+        return Vec::new();
+    }
+    s.split(',')
+        .filter_map(|pair| {
+            let (x, y) = pair.split_once(':')?;
+            Some(SlotLayout {
+                x: x.parse().ok()?,
+                y: y.parse().ok()?,
+            })
+        })
+        .collect()
 }

@@ -3,52 +3,81 @@
 //! Then add `mod ui_jni;` to lib.rs.
 
 use crate::{handlers, UiLayer};
-use jni::{JNIEnv, objects::JClass, objects::JString, objects::JValue, sys::*};
+use jni::{objects::JClass, objects::JString, objects::JValue, sys::*, JNIEnv};
 use yog_abi::YogStr;
 
 macro_rules! jstr {
     ($env:expr, $s:expr) => {
-        match $env.get_string(&$s) { Ok(s) => String::from(s), Err(_) => return Default::default() }
+        match $env.get_string(&$s) {
+            Ok(s) => String::from(s),
+            Err(_) => return Default::default(),
+        }
     };
 }
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>, ui_id: JString<'l>,
-    parent_id: JString<'l>, modal: jboolean, pause_game: jboolean, _w: jint, _h: jint,
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    parent_id: JString<'l>,
+    modal: jboolean,
+    pause_game: jboolean,
+    _w: jint,
+    _h: jint,
 ) {
     let id = jstr!(env, ui_id);
     let parent = jstr!(env, parent_id);
-    let parent = if parent.is_empty() { None } else { Some(parent) };
+    let parent = if parent.is_empty() {
+        None
+    } else {
+        Some(parent)
+    };
     let mut active = handlers().active_uis.lock().expect("active_uis");
     active.retain(|l| l.id != id);
     let layer = UiLayer {
-        id: id.clone(), parent, modal: modal != 0, pause_game: pause_game != 0,
-        visible: true, enabled: true,
+        id: id.clone(),
+        parent,
+        modal: modal != 0,
+        pause_game: pause_game != 0,
+        visible: true,
+        enabled: true,
         z_index: active.iter().map(|l| l.z_index).max().unwrap_or(0) + 1,
     };
     active.push(layer);
     active.sort_by_key(|l| l.z_index);
-    yog_logging::info!("UI show: {} modal={} pause={} layers={}", id, modal != 0, pause_game != 0, active.len());
+    yog_logging::info!(
+        "UI show: {} modal={} pause={} layers={}",
+        id,
+        modal != 0,
+        pause_game != 0,
+        active.len()
+    );
 }
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIHide<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>, ui_id: JString<'l>,
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
 ) {
     let id = jstr!(env, ui_id);
     let mut active = handlers().active_uis.lock().expect("active_uis");
     // Remove layer and all children
-    let ids_to_remove: Vec<String> = active.iter()
+    let ids_to_remove: Vec<String> = active
+        .iter()
         .filter(|l| l.id == id || l.parent.as_deref() == Some(&id))
-        .map(|l| l.id.clone()).collect();
+        .map(|l| l.id.clone())
+        .collect();
     active.retain(|l| !ids_to_remove.contains(&l.id));
     yog_logging::info!("UI hide: {} (layers left: {})", id, active.len());
 }
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeIsUIActive<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>, ui_id: JString<'l>,
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
 ) -> jboolean {
     let id = jstr!(env, ui_id);
     let active = handlers().active_uis.lock().expect("active_uis");
@@ -57,19 +86,27 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeIsUIActive<'l>(
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>,
-    ui_id: JString<'l>, mx: jfloat, my: jfloat, button: jint,
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    mx: jfloat,
+    my: jfloat,
+    button: jint,
 ) -> jboolean {
     let id = jstr!(env, ui_id);
     let h = handlers();
     let active = h.active_uis.lock().expect("active_uis");
     // Find topmost modal layer that contains this click
-    let top_modal = active.iter().rev()
+    let top_modal = active
+        .iter()
+        .rev()
         .find(|l| l.visible && l.modal)
         .map(|l| l.id.clone());
     // Only dispatch if click is on the topmost modal layer (or there's no modal)
     if let Some(ref modal_id) = top_modal {
-        if id != *modal_id { return 0; }
+        if id != *modal_id {
+            return 0;
+        }
     }
     drop(active);
 
@@ -84,7 +121,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
                         if let Some(event) = &hit.on_click {
                             let ev = event.clone();
                             drop(renderers);
-                            h.book_renderers.lock().unwrap().get_mut(&id)
+                            h.book_renderers
+                                .lock()
+                                .unwrap()
+                                .get_mut(&id)
                                 .map(|r| r.handle_event(&ev));
                             yog_logging::info!("book click '{}' → '{}'", &id, &ev);
                             return 1;
@@ -103,57 +143,82 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
     if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
         let ev = format!("click:{:.1}:{:.1}", mx, my);
         yog_logging::info!("UI click '{}' → raw {}", id, ev);
-        unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev)); }
+        unsafe {
+            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+        }
         consumed = true; // if a UI handler exists, consider the click consumed
     }
     let _ = button;
-    if consumed { 1 } else { 0 }
+    if consumed {
+        1
+    } else {
+        0
+    }
 }
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIScroll<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>,
-    ui_id: JString<'l>, dy: jfloat,
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    dy: jfloat,
 ) {
     let id = jstr!(env, ui_id);
     let h = handlers();
     // Forward as a generic UI event; the mod applies its own scroll offset.
     if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
         let ev = format!("scroll:{:.2}", dy);
-        unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev)); }
+        unsafe {
+            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+        }
     }
 }
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIDrag<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>,
-    ui_id: JString<'l>, mx: jfloat, my: jfloat,
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    mx: jfloat,
+    my: jfloat,
 ) {
     let id = jstr!(env, ui_id);
     let h = handlers();
     if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
         let ev = format!("drag:{:.1}:{:.1}", mx, my);
-        unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev)); }
+        unsafe {
+            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+        }
     }
 }
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRelease<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>,
-    ui_id: JString<'l>, mx: jfloat, my: jfloat,
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    mx: jfloat,
+    my: jfloat,
 ) {
     let id = jstr!(env, ui_id);
     let h = handlers();
     if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
         let ev = format!("release:{:.1}:{:.1}", mx, my);
-        unsafe { handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev)); }
+        unsafe {
+            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+        }
     }
 }
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>,
-    ui_id: JString<'l>, key: jint, _scan: jint, _mods: jint, action: jint,
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    key: jint,
+    _scan: jint,
+    _mods: jint,
+    action: jint,
 ) {
     let id = jstr!(env, ui_id);
     yog_logging::info!("UI key: {} key={} action={}", id, key, action);
@@ -161,8 +226,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
 
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
-    mut env: JNIEnv<'l>, _class: JClass<'l>,
-    ui_id: JString<'l>, screen_w: jint, screen_h: jint,
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    screen_w: jint,
+    screen_h: jint,
 ) {
     let id = jstr!(env, ui_id);
 
@@ -172,10 +240,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
         let mut slots = Vec::with_capacity(n as usize);
         for i in 0..n {
             let item = inv_slot_item(&mut env, i);
-            let pos  = inv_slot_pos(&mut env, i).unwrap_or((0, 0));
+            let pos = inv_slot_pos(&mut env, i).unwrap_or((0, 0));
             slots.push(yog_ui::slot_cache::SlotData {
                 item_id: item.as_ref().map(|(id, _)| id.clone()).unwrap_or_default(),
-                count:   item.map(|(_, c)| c as u32).unwrap_or(0),
+                count: item.map(|(_, c)| c as u32).unwrap_or(0),
                 x: pos.0,
                 y: pos.1,
             });
@@ -185,9 +253,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 
     let h = crate::handlers();
     let mut gfx = crate::GFX_FN_TABLE;
-    gfx.screen_w    = screen_w;
-    gfx.screen_h    = screen_h;
-    gfx.delta_tick  = 1.0;
+    gfx.screen_w = screen_w;
+    gfx.screen_h = screen_h;
+    gfx.delta_tick = 1.0;
     gfx.scale_factor = 1.0;
     let ctx = unsafe { yog_gfx::GfxContext::from_raw(&gfx as *const _) };
     let sw = screen_w as f32;
@@ -208,10 +276,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 
     // Generic on_ui_render callbacks — run AFTER renderBackground(), so they appear
     // on top of the screen darkening (unlike on_hud_render which runs before screens).
-    let render_cbs: Vec<_> = h.ui_render_handlers
-        .get(&id)
-        .cloned()
-        .unwrap_or_default();
+    let render_cbs: Vec<_> = h.ui_render_handlers.get(&id).cloned().unwrap_or_default();
     for (ud, f) in render_cbs {
         unsafe { f(ud, &gfx as *const _) };
     }
@@ -222,27 +287,42 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 /// Number of slots in the currently open inventory screen (0 if none).
 pub fn inv_slot_count(env: &mut JNIEnv) -> i32 {
     env.call_static_method("dev/yog/NativeBridge", "getSlotCount", "()I", &[])
-        .and_then(|v| v.i()).unwrap_or(0)
+        .and_then(|v| v.i())
+        .unwrap_or(0)
 }
 
 /// Query one slot: returns `Some((item_id, count))` or `None` if empty.
 /// `item_id` is a namespaced string like `"minecraft:diamond"`.
 pub fn inv_slot_item(env: &mut JNIEnv, index: i32) -> Option<(String, i32)> {
-    let ret = env.call_static_method("dev/yog/NativeBridge", "getSlotItem",
-        "(I)Ljava/lang/String;", &[JValue::Int(index)]).ok()?;
+    let ret = env
+        .call_static_method(
+            "dev/yog/NativeBridge",
+            "getSlotItem",
+            "(I)Ljava/lang/String;",
+            &[JValue::Int(index)],
+        )
+        .ok()?;
     let obj = ret.l().ok()?;
     let jstr = JString::from(obj);
     let s = env.get_string(&jstr).ok()?;
     let s: String = s.into();
-    if s.is_empty() { return None; }
+    if s.is_empty() {
+        return None;
+    }
     let (id, count) = s.split_once('\t')?;
     Some((id.to_owned(), count.parse().ok()?))
 }
 
 /// Pixel position of a slot (relative to screen, already including guiLeft/guiTop).
 pub fn inv_slot_pos(env: &mut JNIEnv, index: i32) -> Option<(i32, i32)> {
-    let ret = env.call_static_method("dev/yog/NativeBridge", "getSlotPos",
-        "(I)Ljava/lang/String;", &[JValue::Int(index)]).ok()?;
+    let ret = env
+        .call_static_method(
+            "dev/yog/NativeBridge",
+            "getSlotPos",
+            "(I)Ljava/lang/String;",
+            &[JValue::Int(index)],
+        )
+        .ok()?;
     let obj = ret.l().ok()?;
     let jstr = JString::from(obj);
     let s = env.get_string(&jstr).ok()?;
@@ -255,10 +335,13 @@ pub fn inv_slot_pos(env: &mut JNIEnv, index: i32) -> Option<(i32, i32)> {
 /// Java side parses this and injects buttons into vanilla screens.
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeMenuEntries<'l>(
-    env: JNIEnv<'l>, _class: JClass<'l>,
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
 ) -> jstring {
     let h = handlers();
-    let lines: Vec<String> = h.menu_entries.iter()
+    let lines: Vec<String> = h
+        .menu_entries
+        .iter()
         .map(|(label, ui_id)| format!("{}\t{}", label, ui_id))
         .collect();
     let out = lines.join("\n");

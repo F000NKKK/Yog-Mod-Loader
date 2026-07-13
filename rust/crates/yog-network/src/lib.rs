@@ -56,7 +56,9 @@ macro_rules! impl_fixed {
             }
             fn read_from(buf: &[u8], pos: &mut usize) -> Option<Self> {
                 let end = pos.checked_add($N)?;
-                if end > buf.len() { return None; }
+                if end > buf.len() {
+                    return None;
+                }
                 let v = Self::from_le_bytes(buf[*pos..end].try_into().ok()?);
                 *pos = end;
                 Some(v)
@@ -73,7 +75,9 @@ impl_fixed!(f32, 4);
 impl_fixed!(f64, 8);
 
 impl PacketField for bool {
-    fn write_to(&self, buf: &mut Vec<u8>) { buf.push(*self as u8); }
+    fn write_to(&self, buf: &mut Vec<u8>) {
+        buf.push(*self as u8);
+    }
     fn read_from(buf: &[u8], pos: &mut usize) -> Option<Self> {
         let b = *buf.get(*pos)?;
         *pos += 1;
@@ -90,7 +94,9 @@ impl PacketField for String {
     fn read_from(buf: &[u8], pos: &mut usize) -> Option<Self> {
         let len = u32::read_from(buf, pos)? as usize;
         let end = pos.checked_add(len)?;
-        if end > buf.len() { return None; }
+        if end > buf.len() {
+            return None;
+        }
         let s = std::str::from_utf8(&buf[*pos..end]).ok()?.to_owned();
         *pos = end;
         Some(s)
@@ -105,7 +111,9 @@ impl PacketField for Vec<u8> {
     fn read_from(buf: &[u8], pos: &mut usize) -> Option<Self> {
         let len = u32::read_from(buf, pos)? as usize;
         let end = pos.checked_add(len)?;
-        if end > buf.len() { return None; }
+        if end > buf.len() {
+            return None;
+        }
         let v = buf[*pos..end].to_vec();
         *pos = end;
         Some(v)
