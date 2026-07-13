@@ -53,7 +53,7 @@ linkme = "0.3"
 serde_json = "1"
 png = "0.18"
 zip = { version = "8.6", default-features = false, features = ["deflate"] }
-jni = "0.21"
+jni = "0.22"
 libloading = "0.9"
 glow = "0.17"
 ctor = "1.0"
