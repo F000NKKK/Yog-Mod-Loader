@@ -53,33 +53,81 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let wrap_name = format_ident!("__yog_wrap_{}", name);
     let ctor_name = format_ident!("__yog_ctor_register_{}", name);
 
-    let inputs = &func.sig.inputs;
     let output = match &func.sig.output {
         syn::ReturnType::Default => quote! { () },
         syn::ReturnType::Type(_, ty) => quote! { #ty },
     };
 
-    // NOTE: only the first parameter is (de)serialized (see `input_type`
-    // below) — `#[yog_export]` fns take a single args struct by convention,
-    // so the call must use the wrapper's deserialized `args` binding, not
-    // the original parameter name (which isn't in scope in the wrapper).
-    let call_fn = if inputs.is_empty() {
-        quote! { #name() }
-    } else {
-        quote! { #name(args) }
+    // A leading `&mut Registry`-shaped parameter is never serialized across
+    // the interop boundary — every mod is handed the same global `YogApi`
+    // table, so the exporting mod reconstructs its own `Registry` from the
+    // API pointer it captured during its own `yog_mod_register`, instead of
+    // requiring callers to thread an `api_ptr` field through by hand.
+    fn is_registry_ty(ty: &syn::Type) -> bool {
+        let ty = match ty {
+            syn::Type::Reference(r) => &*r.elem,
+            other => other,
+        };
+        quote! { #ty }.to_string().replace(' ', "").ends_with("Registry")
+    }
+
+    let mut data_params: Vec<&syn::PatType> = func
+        .sig
+        .inputs
+        .iter()
+        .filter_map(|arg| match arg {
+            syn::FnArg::Typed(pt) => Some(pt),
+            syn::FnArg::Receiver(_) => None,
+        })
+        .collect();
+
+    let has_registry_param = data_params
+        .first()
+        .map(|pt| is_registry_ty(&pt.ty))
+        .unwrap_or(false);
+    if has_registry_param {
+        data_params.remove(0);
+    }
+
+    let data_types: Vec<&syn::Type> = data_params.iter().map(|pt| &*pt.ty).collect();
+    let arg_idents: Vec<syn::Ident> = (0..data_types.len())
+        .map(|i| format_ident!("__yog_arg{}", i))
+        .collect();
+
+    let data_type = match data_types.len() {
+        0 => quote! { () },
+        1 => {
+            let t = data_types[0];
+            quote! { #t }
+        }
+        _ => quote! { (#(#data_types),*) },
     };
 
-    let input_type = if inputs.is_empty() {
-        quote! { () }
-    } else {
-        match inputs.first().unwrap() {
-            syn::FnArg::Typed(pat_type) => {
-                let ty = &pat_type.ty;
-                quote! { #ty }
-            }
-            _ => quote! { () },
+    let destructure = match arg_idents.len() {
+        0 => quote! {},
+        1 => {
+            let a = &arg_idents[0];
+            quote! { let #a = __yog_data; }
         }
+        _ => quote! { let (#(#arg_idents),*) = __yog_data; },
     };
+
+    let registry_setup = if has_registry_param {
+        quote! {
+            let mut __yog_registry = unsafe {
+                ::yog_api::Registry::from_raw(::yog_api::__current_api_ptr() as *const ::yog_api::YogApi)
+            };
+        }
+    } else {
+        quote! {}
+    };
+
+    let mut call_args: Vec<proc_macro2::TokenStream> = Vec::new();
+    if has_registry_param {
+        call_args.push(quote! { &mut __yog_registry });
+    }
+    call_args.extend(arg_idents.iter().map(|a| quote! { #a }));
+    let call_fn = quote! { #name(#(#call_args),*) };
 
     let expanded = quote! {
         #vis #sig #block
@@ -91,8 +139,10 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
             out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32,
         ) {
             let input_slice = std::slice::from_raw_parts(input_ptr, input_len as usize);
-            let args: #input_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(input_slice)
+            let __yog_data: #data_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(input_slice)
                 .expect("yog: deser failed");
+            #destructure
+            #registry_setup
             let result: #output = #call_fn;
             let aligned = ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(&result).unwrap_or_default();
             let bytes: Vec<u8> = aligned.to_vec();

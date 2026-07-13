@@ -68,6 +68,11 @@ macro_rules! export_mod {
             };
             // Store for interop use (yog_api::interop::current_mod_id()).
             $crate::__set_current_mod_id(mod_id);
+            // Every mod is handed the same global `YogApi` table, so any
+            // mod's own pointer works for reconstructing a `Registry` inside
+            // an exported function later — even when called from a thread
+            // that never ran `yog_mod_register` itself.
+            $crate::__set_current_api_ptr(api as usize);
 
             // Catch panics so they never unwind across this `extern "C"` boundary
             // back into the runtime (which would be undefined behaviour).
@@ -120,6 +125,23 @@ pub fn __set_current_mod_id(id: &str) {
 pub fn __current_mod_id() -> Option<String> {
     CURRENT_MOD_ID.with(|cell| cell.borrow().clone())
 }
+
+/// Internal: the global `YogApi` pointer, set by every mod's `yog_mod_register`
+/// (it's the same singleton table for the whole process). Process-wide (not
+/// thread-local) because `#[yog_export]`-generated wrappers read it whenever
+/// an exported function is *called*, which may happen on any thread, long
+/// after the loading thread's `yog_mod_register` returned.
+#[doc(hidden)]
+pub fn __set_current_api_ptr(ptr: usize) {
+    API_PTR.store(ptr, std::sync::atomic::Ordering::Release);
+}
+
+#[doc(hidden)]
+pub fn __current_api_ptr() -> usize {
+    API_PTR.load(std::sync::atomic::Ordering::Acquire)
+}
+
+static API_PTR: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 std::thread_local! {
     static CURRENT_MOD_ID: std::cell::RefCell<Option<String>> = std::cell::RefCell::new(None);
