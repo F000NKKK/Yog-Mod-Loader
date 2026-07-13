@@ -96,7 +96,7 @@ all loaders lives in `java-common/`.
 | ✅ 15 | Forge host (MC 1.20.1): standalone source tree, FG6 build, verified in-game | — |
 | ✅ 16 | 1.21.1 ports for all three loaders: typed `CustomPayload` networking, component-based item NBT, `AdvancementEntry`, per-platform mods.toml/version ranges | — |
 
-## API available now (ABI minor 21+)
+## API available now (ABI minor 27+)
 
 ### Events
 

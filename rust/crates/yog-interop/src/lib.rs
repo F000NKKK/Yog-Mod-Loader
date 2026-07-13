@@ -102,7 +102,7 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         // Runs when this mod's `cdylib` is loaded, before the runtime calls
         // `yog_mod_register` — populates the auto-export registry so mod
         // authors don't need to call `registry.interop().export(...)` by hand.
-        #[::yog_api::ctor::ctor(unsafe)]
+        #[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
         #[doc(hidden)]
         fn #ctor_name() {
             ::yog_api::__yog_export_registry().lock().unwrap().push(
@@ -144,7 +144,9 @@ pub fn import(input: TokenStream) -> TokenStream {
 fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenStream {
     let name = &func.sig.ident;
     let name_str = name.to_string();
-    let slot_name = format_ident!("__yog_slot_{}", name);
+    // Statics use SCREAMING_SNAKE_CASE per Rust convention; the bind fn stays
+    // snake_case since it's a function, not a static.
+    let slot_name = format_ident!("__YOG_SLOT_{}", name_str.to_uppercase());
     let bind_name = format_ident!("__yog_bind_{}", name);
     let fn_sig = &func.sig;
     let vis = &func.vis;

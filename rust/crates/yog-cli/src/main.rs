@@ -1441,7 +1441,7 @@ crate-type = ["cdylib", "lib"]
                 // Parse the function signature to build a proper interop wrapper.
                 // We have the full source of the fn; extract sig and produce:
                 //   pub fn {name}(input_type) -> output_type { rkyv call }
-                //   static __yog_slot_{name}: OnceLock<...>
+                //   static __YOG_SLOT_{NAME}: OnceLock<...>
                 //   #[no_mangle] pub unsafe extern "C" fn __yog_bind_{name}(ptr)
                 let wrapper = generate_fn_wrapper(&item.name, &item.source);
                 lib_rs.push_str(&wrapper);
@@ -1502,7 +1502,7 @@ fn strip_derive_attrs(source: &str) -> String {
 /// pub fn register_pipe(args: RegisterPipeArgs) -> Result<(), String> {
 ///     // rkyv-serialize args, call via C-ABI slot, deserialize result
 /// }
-/// static __yog_slot_register_pipe: OnceLock<...>;
+/// static __YOG_SLOT_REGISTER_PIPE: OnceLock<...>;
 /// #[no_mangle] pub unsafe extern "C" fn __yog_bind_register_pipe(ptr) { ... }
 /// ```
 fn generate_fn_wrapper(name: &str, source: &str) -> String {
@@ -1578,7 +1578,9 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
         None => "()".to_string(),
     };
 
-    let slot_name = format!("__yog_slot_{}", name);
+    // Statics use SCREAMING_SNAKE_CASE per Rust convention; the bind fn stays
+    // snake_case since it's a function, not a static.
+    let slot_name = format!("__YOG_SLOT_{}", name.to_uppercase());
     let bind_name = format!("__yog_bind_{}", name);
 
     // Escape { and } for use in format! — types like `Result<(), String>` contain
