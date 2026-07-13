@@ -79,6 +79,12 @@ struct YogToml {
     description: String,
     authors: Vec<String>,
     license: String,
+    /// License for the generated `yog publish exports` bindings crate.
+    /// Defaults to "MIT OR Apache-2.0" regardless of the mod's own license
+    /// (AGPL propagating onto every consumer's dependency tree would kill
+    /// adoption of the exports crate) — set `[mod] exports_license = "..."`
+    /// to opt into matching the mod's own license instead.
+    exports_license: Option<String>,
     edition: Option<String>,
     /// Optional: path to yog-api for local/monorepo development.
     /// Set via [dev] yog_api_path = "..."  or YOG_API_PATH env var.
@@ -153,6 +159,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let mut description = None::<String>;
     let mut authors: Vec<String> = Vec::new();
     let mut license = None::<String>;
+    let mut exports_license = None::<String>;
     let mut edition = None::<String>;
     let mut yog_api_path = None::<String>;
     let mut dependencies: Vec<(String, String)> = Vec::new();
@@ -183,6 +190,9 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
                 }
                 if let Some(v) = field(line, "license") {
                     license = Some(v);
+                }
+                if let Some(v) = field(line, "exports_license") {
+                    exports_license = Some(v);
                 }
                 if let Some(v) = field(line, "edition") {
                     edition = Some(v);
@@ -257,6 +267,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         description: description.unwrap_or_default(),
         authors,
         license: license.unwrap_or_else(|| "MIT OR Apache-2.0".into()),
+        exports_license,
         edition,
         yog_api_path,
         yog_api_version,
@@ -1594,7 +1605,14 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
     let mod_id = manifest.id;
     let version = manifest.version;
     let edition = manifest.edition.as_deref().unwrap_or("2021");
-    let license = &manifest.license;
+    // Exports crates default to MIT OR Apache-2.0 regardless of the mod's own
+    // license — an AGPL mod (like this CLI's own Yog-Pipes) would otherwise
+    // force every consumer's dependency tree under AGPL too, which kills
+    // adoption. `[mod] exports_license = "..."` opts into a different license.
+    let license = manifest
+        .exports_license
+        .clone()
+        .unwrap_or_else(|| "MIT OR Apache-2.0".to_string());
     let authors = manifest.authors.join(", ");
     let exports_crate_name = format!("{}_exports", mod_id.replace('-', "_"));
 
