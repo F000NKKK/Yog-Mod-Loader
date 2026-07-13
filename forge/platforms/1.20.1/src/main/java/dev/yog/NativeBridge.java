@@ -452,29 +452,29 @@ public final class NativeBridge {
     // (same as Fabric — JNI stubs implemented in Rust)
 
     public static native void nativeInit(String modsDir);
-    public static native void nativeOnBlockBreak(String player, String block, int x, int y, int z);
-    public static native void nativeOnChat(String player, String message);
-    public static native void nativeOnPlayerJoin(String player, String uuid);
-    public static native void nativeOnPlayerLeave(String player, String uuid);
-    public static native void nativeOnUseItem(String player, String item, boolean sneaking);
-    public static native void nativeOnUseBlock(String player, String block, int x, int y, int z);
+    public static native void nativeOnBlockBreak(String player, String block, int x, int y, int z, String dimension);
+    public static native void nativeOnChat(String player, String message, String dimension);
+    public static native void nativeOnPlayerJoin(String player, String uuid, String dimension);
+    public static native void nativeOnPlayerLeave(String player, String uuid, String dimension);
+    public static native void nativeOnUseItem(String player, String item, boolean sneaking, String dimension);
+    public static native void nativeOnUseBlock(String player, String block, int x, int y, int z, String dimension);
 
     /** Cancel-check for item use (before). Returns true = allow, false = cancel. */
-    public static native boolean nativeOnUseItemPre(String player, String item, boolean sneaking);
+    public static native boolean nativeOnUseItemPre(String player, String item, boolean sneaking, String dimension);
 
     /** Cancel-check for block use / right-click (before). Returns true = allow, false = cancel. */
     public static native boolean nativeOnUseBlockPre(
-            String player, String block, int x, int y, int z);
-    public static native void nativeOnAttackEntity(String player, String targetType, String targetUuid);
-    public static native void nativeOnEntityDamage(String entityType, String uuid, float amount, String source);
-    public static native void nativeOnEntityDeath(String entityType, String uuid, String source);
+            String player, String block, int x, int y, int z, String dimension);
+    public static native void nativeOnAttackEntity(String player, String targetType, String targetUuid, String dimension);
+    public static native void nativeOnEntityDamage(String entityType, String uuid, float amount, String source, String dimension);
+    public static native void nativeOnEntityDeath(String entityType, String uuid, String source, String dimension);
     public static native void nativeOnTick();
     public static native void nativeOnServerStarted(String worldDir);
     public static native void nativeOnServerStopping();
     public static native String nativeCommandNames();
     public static native String nativeTypedCommandSchemas();
-    public static native boolean nativeOnBlockBreakPre(String player, String block, int x, int y, int z);
-    public static native boolean nativeOnChatPre(String player, String message);
+    public static native boolean nativeOnBlockBreakPre(String player, String block, int x, int y, int z, String dimension);
+    public static native boolean nativeOnChatPre(String player, String message, String dimension);
     public static native String nativeRecipeJsons();
     public static native String nativeBookJson(String bookId);
     public static native void nativeUIShow(String uiId, String parentId, boolean modal, boolean pauseGame, int screenW, int screenH);
@@ -503,7 +503,7 @@ public final class NativeBridge {
     public static native void nativeUIRender(String uiId, int screenW, int screenH);
     public static native boolean nativeIsUIActive(String uiId);
     public static native String nativeMenuEntries();
-    public static native String nativeOnCommand(String name, String args, String source, String uuid);
+    public static native String nativeOnCommand(String name, String args, String source, String uuid, String dimension);
     public static native String nativeItemDefs();
     public static native String nativeBlockDefs();
 
@@ -515,24 +515,24 @@ public final class NativeBridge {
     public static native String nativeClientPacketChannels();
     public static native void nativeOnEntitySpawn(String entityType, String uuid, String dimension);
     public static native boolean nativeOnEntitySpawnPre(String entityType, String uuid, String dimension);
-    public static native boolean nativeOnEntityDamagePre(String entityType, String uuid, float amount, String source);
-    public static native boolean nativeOnPlaceBlockPre(String player, String block, int x, int y, int z);
-    public static native void nativeOnPlaceBlock(String player, String block, int x, int y, int z);
-    public static native boolean nativeOnPlayerDeathPre(String player, String uuid, String source);
-    public static native void nativeOnPlayerDeath(String player, String uuid, String source);
-    public static native void nativeOnPlayerRespawn(String player, String uuid, boolean atAnchor);
-    public static native void nativeOnAdvancement(String player, String uuid, String advancement);
-    public static native boolean nativeOnEntityInteractPre(String player, String playerUuid, String entityType, String entityUuid, String hand);
-    public static native void nativeOnEntityInteract(String player, String playerUuid, String entityType, String entityUuid, String hand);
-    public static native void nativeOnItemCraft(String player, String playerUuid, String resultItem, int resultCount);
+    public static native boolean nativeOnEntityDamagePre(String entityType, String uuid, float amount, String source, String dimension);
+    public static native boolean nativeOnPlaceBlockPre(String player, String block, int x, int y, int z, String dimension);
+    public static native void nativeOnPlaceBlock(String player, String block, int x, int y, int z, String dimension);
+    public static native boolean nativeOnPlayerDeathPre(String player, String uuid, String source, String dimension);
+    public static native void nativeOnPlayerDeath(String player, String uuid, String source, String dimension);
+    public static native void nativeOnPlayerRespawn(String player, String uuid, boolean atAnchor, String dimension);
+    public static native void nativeOnAdvancement(String player, String uuid, String advancement, String dimension);
+    public static native boolean nativeOnEntityInteractPre(String player, String playerUuid, String entityType, String entityUuid, String hand, String dimension);
+    public static native void nativeOnEntityInteract(String player, String playerUuid, String entityType, String entityUuid, String hand, String dimension);
+    public static native void nativeOnItemCraft(String player, String playerUuid, String resultItem, int resultCount, String dimension);
     public static native boolean nativeOnExplosionPre(String dimension, double x, double y, double z, float power, String causeUuid);
     public static native void nativeOnExplosion(String dimension, double x, double y, double z, float power, String causeUuid);
-    public static native boolean nativeOnItemPickupPre(String player, String playerUuid, String itemId, int itemCount, String entityUuid);
-    public static native void nativeOnItemPickup(String player, String playerUuid, String itemId, int itemCount, String entityUuid);
-    public static native void nativeOnPlayerMove(String player, String playerUuid, double x, double y, double z, float yaw, float pitch);
-    public static native boolean nativeOnContainerOpenPre(String player, String playerUuid);
-    public static native void nativeOnContainerOpen(String player, String playerUuid, String containerType);
-    public static native void nativeOnContainerClose(String player, String playerUuid);
+    public static native boolean nativeOnItemPickupPre(String player, String playerUuid, String itemId, int itemCount, String entityUuid, String dimension);
+    public static native void nativeOnItemPickup(String player, String playerUuid, String itemId, int itemCount, String entityUuid, String dimension);
+    public static native void nativeOnPlayerMove(String player, String playerUuid, double x, double y, double z, float yaw, float pitch, String dimension);
+    public static native boolean nativeOnContainerOpenPre(String player, String playerUuid, String dimension);
+    public static native void nativeOnContainerOpen(String player, String playerUuid, String containerType, String dimension);
+    public static native void nativeOnContainerClose(String player, String playerUuid, String dimension);
     public static native boolean nativeOnProjectileHitPre(String projectileType, String projectileUuid, String shooterUuid, String hitType, String hitEntityUuid, double x, double y, double z, String dimension);
     public static native void nativeOnProjectileHit(String projectileType, String projectileUuid, String shooterUuid, String hitType, String hitEntityUuid, double x, double y, double z, String dimension);
     public static native void nativeOnClientTick();
