@@ -399,7 +399,7 @@ yog_api::export_mod!({struct_name});
     // .gitignore
     write_file(
         &root.join(".gitignore"),
-        b".yog-build/\ntarget/\nartifacts/\n",
+        b".yog-build/\ntarget/\nartifacts/\n*.designer.rs\n",
     )?;
 
     eprintln!("==> created {name}/");
@@ -551,6 +551,8 @@ fn build() -> Result<(YogToml, PathBuf), String> {
     }
 
     configure_editor(&root).map_err(|e| format!("configuring .vscode/settings.json: {e}"))?;
+    ensure_gitignore_entry(&root, "*.designer.rs")
+        .map_err(|e| format!("updating .gitignore: {e}"))?;
 
     // Restore yog.lock → .yog-build/Cargo.lock so cargo respects pinned versions
     let yog_lock = root.join("yog.lock");
@@ -882,9 +884,9 @@ fn generate_lib_facade(meta: &YogToml, root: &Path) -> Result<Option<String>, St
 /// is easy to mistake for a second, unrelated source file. Both are fixed by
 /// merging two settings into `.vscode/settings.json`:
 /// - `rust-analyzer.linkedProjects` — points it at the generated Cargo.toml.
-/// - `explorer.fileNesting.patterns` — nests `lib.designer.rs` under
-///   `lib.rs` in the file tree, the same relationship VS's WinForms
-///   designer has with its code-behind file.
+/// - `explorer.fileNesting.patterns` — `*.rs -> ${capture}.designer.rs`
+///   nests any `x.designer.rs` under its `x.rs` in the file tree, the same
+///   relationship VS's WinForms designer has with its code-behind file.
 ///
 /// Merges into whatever the author already has — an existing `.vscode/
 /// settings.json` (their own editor prefs) is read and only these two keys
@@ -923,12 +925,32 @@ fn configure_editor(root: &Path) -> Result<(), String> {
         .entry("explorer.fileNesting.patterns")
         .or_insert_with(|| serde_json::json!({}));
     if let Some(map) = patterns.as_object_mut() {
-        map.entry("lib.rs".to_string())
-            .or_insert(serde_json::json!("lib.designer.rs"));
+        map.entry("*.rs".to_string())
+            .or_insert(serde_json::json!("${capture}.designer.rs"));
     }
 
     let pretty = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
     write_file(&settings_path, (pretty + "\n").as_bytes())
+}
+
+/// Make sure `.gitignore` at the project root has `pattern` as its own
+/// line — appends it (creating the file if missing) without touching
+/// anything already there. Used to keep generated build artifacts
+/// (`lib.designer.rs`) out of git even for projects that existed before
+/// `yog build` started generating them.
+fn ensure_gitignore_entry(root: &Path, pattern: &str) -> Result<(), String> {
+    let path = root.join(".gitignore");
+    let text = std::fs::read_to_string(&path).unwrap_or_default();
+    if text.lines().any(|l| l.trim() == pattern) {
+        return Ok(());
+    }
+    let mut updated = text;
+    if !updated.is_empty() && !updated.ends_with('\n') {
+        updated.push('\n');
+    }
+    updated.push_str(pattern);
+    updated.push('\n');
+    write_file(&path, updated.as_bytes())
 }
 
 // ── yog setup ────────────────────────────────────────────────────────────────
