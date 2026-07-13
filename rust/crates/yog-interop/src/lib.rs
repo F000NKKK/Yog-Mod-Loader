@@ -1,9 +1,9 @@
 //! Proc-macros for Yog inter-mod communication.
 //!
-//! `#[yog_export]` on fn: generates C-ABI wrapper. Register manually:
-//! ```ignore
-//! registry.interop().export("fname", __yog_wrap_fname as *const c_void);
-//! ```
+//! `#[yog_export]` on fn: generates a C-ABI wrapper and a `ctor` constructor
+//! that registers it into `yog_api`'s auto-export registry when the mod's
+//! `cdylib` is loaded — `export_mod!` flushes that registry into
+//! `registry.interop().export(...)` automatically, no manual call needed.
 //!
 //! `import!` macro: generates Rust wrapper + binding slot.
 
@@ -12,12 +12,10 @@ use quote::{format_ident, quote};
 
 // ── #[yog_export] ─────────────────────────────────────────────────────────
 
-/// Marks a function for inter-mod export. Generates a C-ABI wrapper.
-/// Auto-registration TBD (ctor/linkme debugging in progress).
-/// For now, register manually in `Mod::register()`:
-/// ```ignore
-/// registry.interop().export("fname", __yog_wrap_fname as *const c_void);
-/// ```
+/// Marks a function for inter-mod export. Generates a C-ABI wrapper plus a
+/// `ctor` constructor that self-registers into `yog_api`'s auto-export
+/// registry — `export_mod!` picks it up automatically, no manual
+/// `registry.interop().export(...)` call needed.
 #[proc_macro_attribute]
 pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Try parsing as a struct or enum first (auto rkyv derives)
@@ -53,6 +51,7 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let block = &func.block;
     let name_str = name.to_string();
     let wrap_name = format_ident!("__yog_wrap_{}", name);
+    let ctor_name = format_ident!("__yog_ctor_register_{}", name);
 
     let inputs = &func.sig.inputs;
     let output = match &func.sig.output {
@@ -100,6 +99,17 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
             *out_len = bytes.len() as u32;
             *out_cap = bytes.capacity() as u32;
             std::mem::forget(bytes);
+        }
+
+        // Runs when this mod's `cdylib` is loaded, before the runtime calls
+        // `yog_mod_register` — populates the auto-export registry so mod
+        // authors don't need to call `registry.interop().export(...)` by hand.
+        #[::yog_api::ctor::ctor(unsafe)]
+        #[doc(hidden)]
+        fn #ctor_name() {
+            ::yog_api::__yog_export_registry().lock().unwrap().push(
+                ::yog_api::YogExportEntry { name: #name_str, ptr: #wrap_name as usize }
+            );
         }
     };
 

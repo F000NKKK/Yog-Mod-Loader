@@ -56,6 +56,7 @@ zip = { version = "8.6", default-features = false, features = ["deflate"] }
 jni = "0.21"
 libloading = "0.9"
 glow = "0.17"
+ctor = "1.0"
 
 [patch.crates-io]
 yog-abi      = { path = "crates/yog-abi" }

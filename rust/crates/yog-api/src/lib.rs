@@ -23,6 +23,12 @@ pub use yog_interop::{yog_export, import};
 /// without a direct dependency.
 pub use rkyv;
 
+/// Re-exported so `#[yog_export]`-generated code can emit `#[::yog_api::ctor::ctor(unsafe)]`
+/// without mods needing a direct `ctor` dependency. Constructors run when the
+/// mod's `cdylib` is loaded — guaranteed to complete before the runtime calls
+/// `yog_mod_register`, so the export registry is fully populated by then.
+pub use ctor;
+
 #[doc(hidden)]
 pub use std::os::raw::c_void as __c_void;
 

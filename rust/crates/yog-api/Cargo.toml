@@ -29,4 +29,4 @@ yog-inventory = "0.6"
 
 
 rkyv.workspace = true
-linkme = "0.3"
+ctor.workspace = true
