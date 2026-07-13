@@ -1905,9 +1905,12 @@ fn strip_derive_attrs(source: &str) -> String {
 /// #[no_mangle] pub unsafe extern "C" fn __yog_bind_register_pipe(ptr) { ... }
 /// ```
 fn generate_fn_wrapper(name: &str, source: &str) -> String {
-    // Extract the first line (signature start) to get parameter names and types.
-    let lines: Vec<&str> = source.lines().collect();
-    let sig_line = lines.first().unwrap_or(&"").trim();
+    // Flatten the whole source into one line before parsing — a signature
+    // may wrap across several lines (one param per line is common rustfmt
+    // output), and looking at only the first line would silently drop
+    // every parameter after the first line break.
+    let sig_line = source.lines().map(str::trim).collect::<Vec<_>>().join(" ");
+    let sig_line = sig_line.as_str();
 
     // Parse: "pub fn name(args: ArgType) -> ReturnType"
     // Find the opening paren and its matching close paren
