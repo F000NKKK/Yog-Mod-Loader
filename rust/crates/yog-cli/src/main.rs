@@ -91,8 +91,16 @@ struct YogToml {
     yog_api_path: Option<String>,
     /// Optional: pin yog-api version as "yog_api = \"X.Y\"" in [dependencies].
     yog_api_version: Option<String>,
-    /// User-declared dependencies from [dependencies] section.
+    /// User-declared dependencies from [dependencies] section — plain
+    /// crates.io crates, used exactly as written.
     dependencies: Vec<(String, String)>,
+    /// Other Yog mods this mod depends on, from `[dependencies.exports]`.
+    /// Each entry `name = spec` maps to that mod's generated exports crate:
+    /// `{name} = { package = "{name}-exports", ...spec }` — so mod code
+    /// imports it under its own name (`use {name}::...`), same as a direct
+    /// dependency, and two mod dependencies never collide under a shared
+    /// alias (unlike the old name-contains-hyphen heuristic this replaced).
+    mod_dependencies: Vec<(String, String)>,
     /// Named dev-instance launch configs from `[run.<name>]` sections.
     run_configs: Vec<RunConfig>,
 }
@@ -163,6 +171,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let mut edition = None::<String>;
     let mut yog_api_path = None::<String>;
     let mut dependencies: Vec<(String, String)> = Vec::new();
+    let mut mod_dependencies: Vec<(String, String)> = Vec::new();
     let mut run_configs: HashMap<String, RunConfig> = HashMap::new();
 
     for raw in text.lines() {
@@ -209,6 +218,11 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
             "dependencies" => {
                 if let Some((name, spec)) = parse_dep_line(line) {
                     dependencies.push((name, spec));
+                }
+            }
+            "dependencies.exports" => {
+                if let Some((name, spec)) = parse_dep_line(line) {
+                    mod_dependencies.push((name, spec));
                 }
             }
             _ if section.starts_with("run.") => {
@@ -272,6 +286,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         yog_api_path,
         yog_api_version,
         dependencies: filtered_deps,
+        mod_dependencies,
         run_configs,
         id,
     })
