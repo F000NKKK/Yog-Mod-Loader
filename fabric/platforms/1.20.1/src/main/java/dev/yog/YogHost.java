@@ -100,13 +100,15 @@ public class YogHost implements ModInitializer {
         // Block break — pre (cancellable) then after (observe).
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
             String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
+            String dim = world.getRegistryKey().getValue().toString();
             return NativeBridge.nativeOnBlockBreakPre(
-                    player.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+                    player.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim);
         });
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
             String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
+            String dim = world.getRegistryKey().getValue().toString();
             NativeBridge.nativeOnBlockBreak(
-                    player.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+                    player.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim);
 
             // Phase 6: drop inventory contents so items survive block breaking.
             if (blockEntity instanceof YogInventoryBlockEntity inv && !inv.isEmpty()) {
@@ -118,12 +120,14 @@ public class YogHost implements ModInitializer {
         // Chat — pre (cancellable).
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) ->
                 NativeBridge.nativeOnChatPre(
-                        sender.getName().getString(), message.getContent().getString()));
+                        sender.getName().getString(), message.getContent().getString(),
+                        sender.getWorld().getRegistryKey().getValue().toString()));
 
         // Chat — after (observe).
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) ->
                 NativeBridge.nativeOnChat(
-                        sender.getName().getString(), message.getContent().getString()));
+                        sender.getName().getString(), message.getContent().getString(),
+                        sender.getWorld().getRegistryKey().getValue().toString()));
 
         // Player join / leave.
         // We don't call nativeOnPlayerJoin immediately because ServerPlayConnectionEvents.JOIN
@@ -139,7 +143,8 @@ public class YogHost implements ModInitializer {
             String pUuid = handler.player.getUuidAsString();
             PENDING_JOINS.remove(pUuid); // cancel pending join if player disconnects before we process it
             NativeBridge.nativeOnPlayerLeave(
-                    handler.player.getName().getString(), pUuid);
+                    handler.player.getName().getString(), pUuid,
+                    handler.player.getWorld().getRegistryKey().getValue().toString());
         });
 
         // Item use (right-click), server side only.
@@ -147,10 +152,11 @@ public class YogHost implements ModInitializer {
             if (!world.isClient && player instanceof ServerPlayerEntity sp) {
                 ItemStack stack = sp.getStackInHand(hand);
                 String itemId = Registries.ITEM.getId(stack.getItem()).toString();
+                String dim = world.getRegistryKey().getValue().toString();
                 boolean allow = NativeBridge.nativeOnUseItemPre(
-                        sp.getName().getString(), itemId, sp.isSneaking());
+                        sp.getName().getString(), itemId, sp.isSneaking(), dim);
                 if (!allow) return TypedActionResult.fail(stack);
-                NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId, sp.isSneaking());
+                NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId, sp.isSneaking(), dim);
             }
             return TypedActionResult.pass(player.getStackInHand(hand));
         });
@@ -160,11 +166,12 @@ public class YogHost implements ModInitializer {
             if (!world.isClient && player instanceof ServerPlayerEntity sp) {
                 net.minecraft.util.math.BlockPos pos = hitResult.getBlockPos();
                 String blockId = Registries.BLOCK.getId(world.getBlockState(pos).getBlock()).toString();
+                String dim = world.getRegistryKey().getValue().toString();
                 boolean allow = NativeBridge.nativeOnUseBlockPre(
-                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim);
                 if (!allow) return ActionResult.FAIL;
                 NativeBridge.nativeOnUseBlock(
-                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ());
+                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim);
             }
             return ActionResult.PASS;
         });
@@ -179,7 +186,8 @@ public class YogHost implements ModInitializer {
                     String blockId = Registries.BLOCK.getId(bi.getBlock()).toString();
                     if (!NativeBridge.nativeOnPlaceBlockPre(
                             sp.getName().getString(), blockId,
-                            placed.getX(), placed.getY(), placed.getZ())) {
+                            placed.getX(), placed.getY(), placed.getZ(),
+                            world.getRegistryKey().getValue().toString())) {
                         return ActionResult.FAIL;
                     }
                 }
@@ -195,9 +203,10 @@ public class YogHost implements ModInitializer {
                 String eType    = net.minecraft.registry.Registries.ENTITY_TYPE.getId(entity.getType()).toString();
                 String eUuid    = entity.getUuidAsString();
                 String handStr  = hand == net.minecraft.util.Hand.MAIN_HAND ? "main_hand" : "off_hand";
-                boolean allow = NativeBridge.nativeOnEntityInteractPre(pName, pUuid, eType, eUuid, handStr);
+                String dim      = world.getRegistryKey().getValue().toString();
+                boolean allow = NativeBridge.nativeOnEntityInteractPre(pName, pUuid, eType, eUuid, handStr, dim);
                 if (!allow) return ActionResult.FAIL;
-                NativeBridge.nativeOnEntityInteract(pName, pUuid, eType, eUuid, handStr);
+                NativeBridge.nativeOnEntityInteract(pName, pUuid, eType, eUuid, handStr, dim);
             }
             return ActionResult.PASS;
         });
@@ -207,7 +216,8 @@ public class YogHost implements ModInitializer {
             if (!world.isClient && player instanceof ServerPlayerEntity sp) {
                 String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
                 NativeBridge.nativeOnAttackEntity(
-                        sp.getName().getString(), type, entity.getUuidAsString());
+                        sp.getName().getString(), type, entity.getUuidAsString(),
+                        world.getRegistryKey().getValue().toString());
             }
             return ActionResult.PASS;
         });
@@ -215,11 +225,12 @@ public class YogHost implements ModInitializer {
         // Living-entity damage — pre (cancellable) then observe.
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
+            String dim = entity.getWorld().getRegistryKey().getValue().toString();
             boolean allow = NativeBridge.nativeOnEntityDamagePre(
-                    type, entity.getUuidAsString(), amount, source.getName());
+                    type, entity.getUuidAsString(), amount, source.getName(), dim);
             if (allow) {
                 NativeBridge.nativeOnEntityDamage(
-                        type, entity.getUuidAsString(), amount, source.getName());
+                        type, entity.getUuidAsString(), amount, source.getName(), dim);
             }
             return allow;
         });
@@ -243,17 +254,19 @@ public class YogHost implements ModInitializer {
             if (entity instanceof ServerPlayerEntity) return; // handled separately below
             String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
             NativeBridge.nativeOnEntityDeath(
-                    type, entity.getUuidAsString(), source.getName());
+                    type, entity.getUuidAsString(), source.getName(),
+                    entity.getWorld().getRegistryKey().getValue().toString());
         });
 
         // Player death — pre (cancellable) and post.
         ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity sp)) return true;
+            String dim = sp.getWorld().getRegistryKey().getValue().toString();
             boolean allow = NativeBridge.nativeOnPlayerDeathPre(
-                    sp.getName().getString(), sp.getUuidAsString(), source.getName());
+                    sp.getName().getString(), sp.getUuidAsString(), source.getName(), dim);
             if (!allow) return false;
             NativeBridge.nativeOnPlayerDeath(
-                    sp.getName().getString(), sp.getUuidAsString(), source.getName());
+                    sp.getName().getString(), sp.getUuidAsString(), source.getName(), dim);
             return true;
         });
 
@@ -261,7 +274,8 @@ public class YogHost implements ModInitializer {
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
             if (alive) return; // dimension-change respawn, not death respawn
             NativeBridge.nativeOnPlayerRespawn(
-                    newPlayer.getName().getString(), newPlayer.getUuidAsString(), false);
+                    newPlayer.getName().getString(), newPlayer.getUuidAsString(), false,
+                    newPlayer.getWorld().getRegistryKey().getValue().toString());
         });
 
         // End-of-tick (20×/second).
@@ -275,7 +289,8 @@ public class YogHost implements ModInitializer {
                     java.util.UUID parsed = java.util.UUID.fromString(uuid);
                     ServerPlayerEntity found = server.getPlayerManager().getPlayer(parsed);
                     if (found != null) {
-                        NativeBridge.nativeOnPlayerJoin(found.getName().getString(), uuid);
+                        NativeBridge.nativeOnPlayerJoin(found.getName().getString(), uuid,
+                                found.getWorld().getRegistryKey().getValue().toString());
                         toRemove.add(uuid);
                     } else if (retries <= 0) {
                         System.out.println("[yog] player join: " + name + " never appeared after retries");
@@ -671,7 +686,8 @@ public class YogHost implements ModInitializer {
         ServerCommandSource src = ctx.getSource();
         net.minecraft.entity.Entity entity = src.getEntity();
         String uuid = entity != null ? entity.getUuidAsString() : "";
-        String reply = NativeBridge.nativeOnCommand(name, args, src.getName(), uuid);
+        String dim = src.getWorld().getRegistryKey().getValue().toString();
+        String reply = NativeBridge.nativeOnCommand(name, args, src.getName(), uuid, dim);
         if (reply != null && !reply.isEmpty()) {
             src.sendFeedback(() -> Text.literal(reply), false);
         }
