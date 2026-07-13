@@ -23,8 +23,16 @@ fn main() {
         Some("build") => build().map(|_| ()),
         Some("new") => new_mod(args.get(2).map(String::as_str)),
         Some("setup") => setup(),
-        Some("add") => add_dep(args.get(2).map(String::as_str)),
-        Some("remove") => remove_dep(args.get(2).map(String::as_str)),
+        Some("add") => {
+            let is_mod = args[2..].iter().any(|a| a == "--mod");
+            let name = args[2..].iter().find(|a| a.as_str() != "--mod");
+            add_dep(name.map(String::as_str), is_mod)
+        }
+        Some("remove") => {
+            let is_mod = args[2..].iter().any(|a| a == "--mod");
+            let name = args[2..].iter().find(|a| a.as_str() != "--mod");
+            remove_dep(name.map(String::as_str), is_mod)
+        }
         Some("run") => match args.get(2) {
             Some(name) => run_config(name),
             None => {
@@ -722,30 +730,34 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
         String::new()
     };
 
+    // Plain crates.io dependencies from [dependencies] — used exactly as
+    // written, never guessed at.
     let mut deps_lines: Vec<String> = Vec::new();
     for (name, spec) in &meta.dependencies {
-        // Heuristic: names with hyphens are Yog mods → add their exports crate instead
-        // (Runtime reads [dependencies] from embedded yog.toml for load ordering.)
-        // During development we use the `yog_exports` namespace so all mods share a
-        // single import prefix.  The real crate on crates.io is `{name}_exports`.
-        if name.contains('-') {
-            let exports_name = format!("{}-exports", name);
-            let dep = if spec.starts_with('{') {
-                // Table-style: insert `package` into the inline table
-                let inner = spec.trim_start_matches('{').trim_end_matches('}').trim();
-                if inner.is_empty() {
-                    format!("yog-exports = {{ package = \"{exports_name}\" }}")
-                } else {
-                    format!("yog-exports = {{ package = \"{exports_name}\", {inner} }}")
-                }
+        deps_lines.push(format!("{} = {}", name, spec));
+    }
+
+    // Other Yog mods this mod depends on, from [dependencies.exports].
+    // Each maps to that mod's generated exports crate — package name must
+    // match `publish_exports`'s own `{sanitized_id}_exports` naming exactly
+    // (underscores, not hyphens: that's the literal name published to
+    // crates.io). Each dependency keeps its own name as the local alias
+    // (`{name} = { package = ... }`), so mod code imports it the same way
+    // as a direct dependency (`use {name}::...`) and two mod dependencies
+    // never collide under one shared alias.
+    for (name, spec) in &meta.mod_dependencies {
+        let exports_name = format!("{}_exports", name.replace('-', "_"));
+        let dep = if spec.starts_with('{') {
+            let inner = spec.trim_start_matches('{').trim_end_matches('}').trim();
+            if inner.is_empty() {
+                format!("{name} = {{ package = \"{exports_name}\" }}")
             } else {
-                // Simple version string
-                format!("yog-exports = {{ package = \"{exports_name}\", version = {spec} }}")
-            };
-            deps_lines.push(dep);
+                format!("{name} = {{ package = \"{exports_name}\", {inner} }}")
+            }
         } else {
-            deps_lines.push(format!("{} = {}", name, spec));
-        }
+            format!("{name} = {{ package = \"{exports_name}\", version = {spec} }}")
+        };
+        deps_lines.push(dep);
     }
 
     format!(
@@ -1228,60 +1240,68 @@ fn package(
 
 // ── yog add / remove ──────────────────────────────────────────────────────────
 
-fn add_dep(crate_name: Option<&str>) -> Result<(), String> {
-    let name = crate_name.ok_or("usage: yog add <crate>")?;
+fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
+    let usage = if is_mod {
+        "usage: yog add --mod <yog-mod-id>"
+    } else {
+        "usage: yog add <crate>"
+    };
+    let name = crate_name.ok_or(usage)?;
     let root = std::env::current_dir().map_err(|e| e.to_string())?;
     let yog_toml_path = root.join("yog.toml");
     if !yog_toml_path.exists() {
         return Err("no yog.toml found in the current directory".into());
     }
 
+    // `[dependencies]` (plain crates.io crates) and `[dependencies.exports]`
+    // (other Yog mods, mapped to their generated exports crate) are
+    // distinct sections — match the exact header, not a substring, so
+    // "dependencies" never also matches "dependencies.exports" or vice versa.
+    let target_section = if is_mod {
+        "[dependencies.exports]"
+    } else {
+        "[dependencies]"
+    };
+
     let text = std::fs::read_to_string(&yog_toml_path).map_err(|e| e.to_string())?;
     let mut lines: Vec<String> = text.lines().map(|s| s.to_string()).collect();
 
-    // Check if [dependencies] section exists
-    let mut has_deps = false;
-    for line in &lines {
-        if line.trim().starts_with('[') && line.trim().contains("dependencies") {
-            has_deps = true;
-            break;
-        }
-    }
+    let has_section = lines.iter().any(|l| l.trim() == target_section);
 
-    if !has_deps {
-        // Add [dependencies] section before any [dev] section or at the end
+    if !has_section {
+        // Add the section before any [dev] section or at the end
         let insert_idx = lines
             .iter()
             .position(|l| {
                 l.trim().starts_with('[') && l.trim() != "[mod]" && l.trim() != "[package]"
             })
             .unwrap_or(lines.len());
-        lines.insert(insert_idx, "[dependencies]".to_string());
+        lines.insert(insert_idx, target_section.to_string());
         lines.insert(insert_idx + 1, format!("{} = \"*\"", name));
     } else {
-        // Find [dependencies] and add the crate
-        let mut in_deps = false;
+        // Find the section and add the crate at its end
+        let mut in_section = false;
+        let mut inserted = false;
         for i in 0..lines.len() {
             let trimmed = lines[i].trim();
-            if trimmed.starts_with('[') && !trimmed.contains("dependencies") {
-                if in_deps {
-                    // We passed the end of [dependencies]
+            if trimmed.starts_with('[') {
+                if in_section && trimmed != target_section {
                     lines.insert(i, format!("{} = \"*\"", name));
+                    inserted = true;
                     break;
                 }
-            } else if trimmed == "[dependencies]" {
-                in_deps = true;
+                in_section = trimmed == target_section;
             }
         }
-        if !in_deps {
-            // [dependencies] was at the end
+        if !inserted {
+            // The section was at the end of the file
             lines.push(format!("{} = \"*\"", name));
         }
     }
 
     let new_text = lines.join("\n") + "\n";
     std::fs::write(&yog_toml_path, new_text).map_err(|e| e.to_string())?;
-    eprintln!("==> added {} to yog.toml", name);
+    eprintln!("==> added {} to yog.toml [{}]", name, &target_section[1..target_section.len() - 1]);
     Ok(())
 }
 
