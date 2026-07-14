@@ -56,18 +56,6 @@ pub mod gl;
 
 use yog_abi::YogGfxApi;
 
-/// One inventory slot's content, snapshotted for this render frame — see
-/// [`GfxContext::inv_slot`].
-#[derive(Debug, Clone, Default)]
-pub struct InvSlotData {
-    /// `"namespace:item_id"` — empty string if the slot is empty.
-    pub item_id: String,
-    pub count: u32,
-    /// Screen-space pixel position.
-    pub x: i32,
-    pub y: i32,
-}
-
 /// Handle to the GPU and draw capabilities for a single render frame.
 ///
 /// Valid only within an `on_hud_render` or `on_world_render` callback.
@@ -117,34 +105,6 @@ impl GfxContext {
     /// Use this to anchor geometry to the player; differs from `camera_pos` in third-person.
     pub fn player_pos(&self) -> [f32; 3] {
         self.api().player_pos
-    }
-
-    // ── Inventory slots (for `yog-ui`'s `inv_slot` widget) ───────────────────
-
-    /// Number of slots snapshotted this frame from the currently-open
-    /// inventory screen (0 if none is open).
-    pub fn inv_slot_count(&self) -> usize {
-        self.api().inv_slot_count as usize
-    }
-
-    /// Slot `index`'s content this frame, or `None` if out of range.
-    /// `item_id` is empty if the slot itself is empty.
-    pub fn inv_slot(&self, index: usize) -> Option<InvSlotData> {
-        if index >= self.inv_slot_count() {
-            return None;
-        }
-        let raw = &self.api().inv_slots[index];
-        let item_id = if raw.item_id.is_empty() {
-            String::new()
-        } else {
-            unsafe { raw.item_id.as_str() }.to_owned()
-        };
-        Some(InvSlotData {
-            item_id,
-            count: raw.count,
-            x: raw.x,
-            y: raw.y,
-        })
     }
 
     // ── GPU buffer ───────────────────────────────────────────────────────────

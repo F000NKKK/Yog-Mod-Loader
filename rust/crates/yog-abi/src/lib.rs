@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 30;
+pub const ABI_MINOR: u32 = 29;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -656,45 +656,6 @@ pub struct YogGfxApi {
     /// ("minecraft:crafting_table"); `size` is the on-screen size in GUI px
     /// (16 = inventory size). Only valid during `on_hud_render`.
     pub draw2d_item: unsafe extern "C" fn(id: YogStr, x: f32, y: f32, size: f32),
-
-    // ── appended in ABI minor 30 ──────────────────────────────────────────────
-    /// Snapshot of the currently-open inventory screen's slots (custom slots +
-    /// player inventory), refreshed fresh into this per-call struct before
-    /// `on_ui_render` handlers run — the first `inv_slot_count` entries of
-    /// `inv_slots` are valid, the rest are unspecified. Backing `item_id`
-    /// strings are valid only for the duration of the render call, same as
-    /// every other per-frame field on this struct (`player_pos`, `screen_w`, ...).
-    ///
-    /// This rides in the per-call struct, not a module-level cache, because a
-    /// plain Rust `static` does not cross the cdylib boundary between the
-    /// runtime and a mod's own dynamic library — each gets its own copy.
-    pub inv_slot_count: u32,
-    pub inv_slots: [YogInvSlotRaw; MAX_INV_SLOTS],
-}
-
-/// Capacity of [`YogGfxApi::inv_slots`] — covers the largest realistic
-/// inventory screen (a mod's own slots + player main inventory + hotbar).
-pub const MAX_INV_SLOTS: usize = 64;
-
-/// One inventory slot's render data for [`YogGfxApi::inv_slots`].
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct YogInvSlotRaw {
-    /// Empty (`len == 0`) if the slot itself is empty.
-    pub item_id: YogStr,
-    pub count: u32,
-    /// Screen-space pixel position.
-    pub x: i32,
-    pub y: i32,
-}
-
-impl YogInvSlotRaw {
-    pub const EMPTY: Self = Self {
-        item_id: YogStr::EMPTY,
-        count: 0,
-        x: 0,
-        y: 0,
-    };
 }
 
 unsafe impl Send for YogGfxApi {}

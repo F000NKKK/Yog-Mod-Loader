@@ -25,8 +25,12 @@ pub enum WidgetKind {
     Button(String),
     /// Minecraft item icon (static, known at build time).
     ItemSlot(String),
-    /// Dynamic inventory slot — queries slot data at render time via JNI.
-    InvSlot(usize),
+    /// Inventory-slot decoration: an item icon plus a stack-count overlay,
+    /// both supplied as plain data at tree-build time (like every other
+    /// widget here) — this crate has no notion of "the currently open menu"
+    /// or how to query it; that's the caller's job (see `yog-inventory`).
+    /// Empty `item_id` draws an empty slot box.
+    InvSlot { item_id: String, count: u32 },
     /// Minecraft texture blit (via `draw2d_mc_tex`).
     McImage { id: String, img_w: f32, img_h: f32 },
     /// Invisible spacer.
@@ -249,8 +253,16 @@ pub fn button(text: impl Into<String>) -> Widget {
 pub fn item_slot(item_id: impl Into<String>) -> Widget {
     Widget::new(WidgetKind::ItemSlot(item_id.into()))
 }
-pub fn inv_slot(index: usize) -> Widget {
-    Widget::new(WidgetKind::InvSlot(index)).w(18.0).h(18.0)
+/// An inventory-slot decoration (icon + stack-count overlay) for `item_id`
+/// (empty string = empty slot) with `count` items. Purely decorative — real
+/// drag-and-drop still goes through the vanilla `Slot` this overlays.
+pub fn inv_slot(item_id: impl Into<String>, count: u32) -> Widget {
+    Widget::new(WidgetKind::InvSlot {
+        item_id: item_id.into(),
+        count,
+    })
+    .w(18.0)
+    .h(18.0)
 }
 pub fn mc_image(id: impl Into<String>, img_w: f32, img_h: f32) -> Widget {
     Widget::new(WidgetKind::McImage {

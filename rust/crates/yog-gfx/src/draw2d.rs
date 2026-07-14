@@ -5,7 +5,7 @@
 
 use yog_abi::YogStr;
 
-use crate::{GfxContext, InvSlotData};
+use crate::GfxContext;
 
 /// 2D drawing helpers, valid only within `on_hud_render`.
 ///
@@ -68,16 +68,5 @@ impl<'ctx> Draw2D<'ctx> {
     pub fn item(&self, id: &str, x: f32, y: f32, size: f32) {
         let a = self.0.api();
         unsafe { (a.draw2d_item)(YogStr::from_str(id), x, y, size) }
-    }
-
-    /// Number of slots snapshotted this frame from the currently-open
-    /// inventory screen (0 if none is open). See [`GfxContext::inv_slot_count`].
-    pub fn inv_slot_count(&self) -> usize {
-        self.0.inv_slot_count()
-    }
-
-    /// Slot `index`'s content this frame. See [`GfxContext::inv_slot`].
-    pub fn inv_slot(&self, index: usize) -> Option<InvSlotData> {
-        self.0.inv_slot(index)
     }
 }
