@@ -12,6 +12,7 @@ members = [
     "crates/yog-registry",
     "crates/yog-network",
     "crates/yog-command",
+    "crates/yog-dimensions",
     # infrastructure (permissive)
     "crates/yog-logging",
     "crates/yog-storage",
@@ -68,6 +69,7 @@ yog-player   = { path = "crates/yog-player" }
 yog-registry = { path = "crates/yog-registry" }
 yog-network  = { path = "crates/yog-network" }
 yog-command  = { path = "crates/yog-command" }
+yog-dimensions = { path = "crates/yog-dimensions" }
 yog-logging  = { path = "crates/yog-logging" }
 yog-storage  = { path = "crates/yog-storage" }
 yog-config   = { path = "crates/yog-config" }

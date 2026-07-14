@@ -50,9 +50,23 @@ public final class YogDimensions {
         return provider().allDimensions();
     }
 
-    /** Register a new custom dimension definition to be created at server startup. */
-    public static void register(YogDimensionDef def) {
-        provider().register(def);
+    /**
+     * Declare a custom dimension's type at mod-init time — see
+     * {@link YogDimensionProvider#declare(YogDimensionDef)}. Does not create
+     * a world by itself; call {@link #create(String)} whenever the world
+     * should actually come into existence.
+     */
+    public static void declare(YogDimensionDef def) {
+        provider().declare(def);
+    }
+
+    /**
+     * Materialize the world for a previously-{@link #declare}d dimension id.
+     * Safe to call at any point while the server is running — see
+     * {@link YogDimensionProvider#create(String)}.
+     */
+    public static YogDimension create(String id) {
+        return provider().create(id);
     }
 
     /** Get a dimension type by its registry id. */

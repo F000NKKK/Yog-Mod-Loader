@@ -21,6 +21,7 @@ use yog_abi::{
 use yog_book::Book;
 use yog_command::CommandContext;
 use yog_core::Server;
+use yog_dimensions::{ChunkWriter, YogDimensionDef};
 use yog_event::{
     AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ClientTickEvent,
     ContainerCloseEvent, ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent,
@@ -1845,6 +1846,42 @@ impl Registry {
         unsafe { ((*self.api).register_book)(self.ctx(), id, j) }
     }
 
+    /// Register a custom dimension's *type* (sky, lighting, physics, ...).
+    ///
+    /// Must be called from `register()` — the same mod-init window as
+    /// blocks/items — so the host can declare the dimension before
+    /// Minecraft's registries freeze. See the `yog-dimensions` crate docs;
+    /// pair with [`Registry::register_chunk_generator`] to actually
+    /// generate terrain for it.
+    pub fn register_dimension(&mut self, def: &YogDimensionDef) {
+        let json = def.to_json();
+        let id = YogStr::from_str(&def.id);
+        let j = YogStr::from_str(&json);
+        unsafe { ((*self.api).register_dimension_json)(self.ctx(), id, j) }
+    }
+
+    /// Register a chunk generator for a dimension previously declared via
+    /// [`Registry::register_dimension`]. `generator` is called once per
+    /// chunk column that needs generating in that dimension — write
+    /// whatever terrain logic you want using the [`ChunkWriter`] handle
+    /// (combine as many noise layers as you like; this crate doesn't
+    /// prescribe a generation style).
+    pub fn register_chunk_generator<F>(&mut self, dimension_id: &str, generator: F)
+    where
+        F: Fn(&ChunkWriter) + Send + Sync + 'static,
+    {
+        let ud = Self::leak(generator);
+        let id = YogStr::from_str(dimension_id);
+        unsafe {
+            ((*self.api).register_chunk_generator)(
+                self.ctx(),
+                id,
+                ud,
+                trampoline_chunk_generator::<F>,
+            )
+        }
+    }
+
     /// Register a menu entry — the host renders a button on vanilla screens
     /// (TitleScreen on Fabric, ModListScreen on Forge/NeoForge) that opens `ui_id`.
     /// `label` is the human-readable button text (e.g. "Yog Mods").
@@ -2008,6 +2045,17 @@ unsafe extern "C" fn trampoline_ui_event<F>(
     let ui = unsafe { ui_id.as_str() };
     let ev = unsafe { event_id.as_str() };
     f(ui, ev);
+}
+
+unsafe extern "C" fn trampoline_chunk_generator<F>(
+    ud: *mut c_void,
+    writer: *const yog_abi::YogChunkWriterApi,
+) where
+    F: Fn(&ChunkWriter) + Send + Sync + 'static,
+{
+    let f = &*(ud as *const F);
+    let writer = unsafe { ChunkWriter::from_raw(writer) };
+    f(&writer);
 }
 
 // ── Mod trait ─────────────────────────────────────────────────────────────────

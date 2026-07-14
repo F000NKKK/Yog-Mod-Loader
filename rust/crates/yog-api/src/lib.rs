@@ -200,6 +200,7 @@ pub use yog_book::{BookFontRegistry, BookRenderer};
 pub use yog_command::CommandContext;
 pub use yog_config::Config;
 pub use yog_core::{BlockPos, Server};
+pub use yog_dimensions::{ChunkWriter, YogDimensionDef, YogDimensionTypeDef};
 pub use yog_entity::Entity;
 pub use yog_event::{
     AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ClientTickEvent,
@@ -263,6 +264,11 @@ pub mod network {
 /// Commands.
 pub mod command {
     pub use yog_command::*;
+}
+
+/// Custom dimensions — dimension-type definitions and runtime chunk generation.
+pub mod dimension {
+    pub use yog_dimensions::*;
 }
 
 /// Persistent key-value storage for mod data.

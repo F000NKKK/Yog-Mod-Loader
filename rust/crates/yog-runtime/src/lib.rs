@@ -139,6 +139,11 @@ struct RuntimeHandlers {
     inventories: Vec<yog_inventory::InventoryDef>,
     books: HashMap<String, String>,
     book_renderers: Mutex<HashMap<String, yog_book::BookRenderer>>,
+    /// Declared dimension-type defs: id -> `YogDimensionDef` JSON. Actual
+    /// `LevelStem`/`ServerLevel` creation is a host (Java) responsibility —
+    /// see `yog-dimensions` crate docs.
+    dimensions: HashMap<String, String>,
+    chunk_generators: HashMap<String, (*mut c_void, yog_abi::YogChunkGeneratorFn)>,
     ui_handlers: HashMap<String, (*mut c_void, yog_abi::YogUIEventFn)>,
     ui_render_handlers: HashMap<String, Vec<(*mut c_void, YogHudRenderFn)>>,
     menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
@@ -204,6 +209,8 @@ impl RuntimeHandlers {
             inventories: Vec::new(),
             books: HashMap::new(),
             book_renderers: Mutex::new(HashMap::new()),
+            dimensions: HashMap::new(),
+            chunk_generators: HashMap::new(),
             startup_granted: Mutex::new(HashMap::new()),
             pending_grants: Mutex::new(Vec::new()),
             scheduler: Mutex::new(SchedulerState::new()),
@@ -2896,6 +2903,26 @@ unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_j
     }
 }
 
+unsafe extern "C" fn api_register_dimension_json(ctx: *mut c_void, id: YogStr, json: YogStr) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let id = unsafe { id.as_str().to_owned() };
+    let json = unsafe { json.as_str().to_owned() };
+    yog_logging::info!("registered dimension type: {}", id);
+    handlers.dimensions.insert(id, json);
+}
+
+unsafe extern "C" fn api_register_chunk_generator(
+    ctx: *mut c_void,
+    id: YogStr,
+    ud: *mut c_void,
+    h: yog_abi::YogChunkGeneratorFn,
+) {
+    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let id = unsafe { id.as_str().to_owned() };
+    yog_logging::info!("registered chunk generator for dimension: {}", id);
+    handlers.chunk_generators.insert(id, (ud, h));
+}
+
 unsafe extern "C" fn api_register_ui(
     ctx: *mut c_void,
     ui_id: YogStr,
@@ -3186,6 +3213,8 @@ fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogAp
         register_inventory: api_register_inventory,
         interop_export: interop_export_impl,
         interop_import: interop_import_impl,
+        register_dimension_json: api_register_dimension_json,
+        register_chunk_generator: api_register_chunk_generator,
     }
 }
 

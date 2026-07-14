@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 28;
+pub const ABI_MINOR: u32 = 29;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -949,6 +949,39 @@ pub struct YogServer {
 unsafe impl Send for YogServer {}
 unsafe impl Sync for YogServer {}
 
+// ── Chunk generator callback (ABI minor 29) ───────────────────────────────────
+
+/// Per-callback context handed to a registered chunk generator (see
+/// `YogApi::register_chunk_generator`) — mirrors `YogGfxApi`'s pattern of
+/// bundling per-call context with the function pointer(s) needed to act on
+/// it. Valid only for the duration of the generator callback.
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct YogChunkWriterApi {
+    /// Chunk X coordinate (in chunks, not blocks).
+    pub chunk_x: i32,
+    /// Chunk Z coordinate (in chunks, not blocks).
+    pub chunk_z: i32,
+    /// Minimum build height (world Y) for this dimension.
+    pub min_y: i32,
+    /// Total world height for this dimension.
+    pub height: i32,
+    /// Opaque host-side handle for the chunk currently being generated.
+    pub ctx: *mut c_void,
+    /// Set a block within this chunk column. `x`/`z` are local (0..16)
+    /// chunk-relative coordinates; `y` is world-absolute.
+    pub set_block:
+        unsafe extern "C" fn(ctx: *mut c_void, x: i32, y: i32, z: i32, block_id: YogStr) -> bool,
+}
+
+unsafe impl Send for YogChunkWriterApi {}
+unsafe impl Sync for YogChunkWriterApi {}
+
+/// Called by the host once per chunk column that needs generating in the
+/// registered dimension. `writer` is valid only for the duration of the call.
+pub type YogChunkGeneratorFn =
+    unsafe extern "C" fn(ud: *mut c_void, writer: *const YogChunkWriterApi);
+
 // ── Registration table (passed to yog_mod_register) ──────────────────────────
 
 /// Passed to `yog_mod_register`. Call the function pointers here to register
@@ -1129,6 +1162,18 @@ pub struct YogApi {
     /// Returns null if the symbol is not (yet) registered.
     pub interop_import:
         unsafe extern "C" fn(ctx: *mut c_void, mod_id: YogStr, symbol: YogStr) -> *const c_void,
+
+    // ── ABI minor 29 — custom dimensions ────────────────────────────────────
+    /// Register a dimension-type definition (id + `YogDimensionTypeDef` JSON).
+    /// Must be called at mod-init time (same window as blocks/items) — the
+    /// host registers a `LevelStem`/`DimensionType` entry before the
+    /// registry freezes. See `yog-dimensions` crate.
+    pub register_dimension_json: unsafe extern "C" fn(ctx: *mut c_void, id: YogStr, json: YogStr),
+    /// Register a chunk generator for a previously-declared dimension `id`.
+    /// `handler` is called once per chunk column that needs generating —
+    /// see `YogChunkWriterApi`/`YogChunkGeneratorFn`.
+    pub register_chunk_generator:
+        unsafe extern "C" fn(ctx: *mut c_void, id: YogStr, ud: *mut c_void, h: YogChunkGeneratorFn),
 }
 
 unsafe impl Send for YogApi {}
