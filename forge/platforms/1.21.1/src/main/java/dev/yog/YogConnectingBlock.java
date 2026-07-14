@@ -1,5 +1,7 @@
 package dev.yog;
 
+import dev.yog.block.YogConnectingLogic;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;

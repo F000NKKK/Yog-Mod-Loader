@@ -1,5 +1,8 @@
 package dev.yog;
 
+import dev.yog.block.YogConnectingLogic;
+import dev.yog.util.YogProps;
+
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;

@@ -1,4 +1,4 @@
-package dev.yog;
+package dev.yog.util;
 
 import java.util.HashMap;
 import java.util.Map;

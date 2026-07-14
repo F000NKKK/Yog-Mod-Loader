@@ -1,4 +1,4 @@
-package dev.yog;
+package dev.yog.ui;
 
 import com.google.gson.*;
 import java.util.*;

@@ -1,4 +1,4 @@
-package dev.yog;
+package dev.yog.block;
 
 import java.util.ArrayList;
 import java.util.Arrays;
