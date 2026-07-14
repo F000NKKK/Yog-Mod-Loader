@@ -148,10 +148,9 @@ public class YogPackProvider implements ResourcePackProvider {
         String lines = NativeBridge.nativeDimensionJsons();
         if (lines == null || lines.isBlank()) return;
         com.google.gson.Gson gson = new com.google.gson.Gson();
-        for (String line : lines.split("
-")) {
+        for (String line : lines.split("\n")) {
             if (line.isBlank()) continue;
-            String[] parts = line.split("	", 2);
+            String[] parts = line.split("\t", 2);
             if (parts.length < 2) continue;
             String id = parts[0];
             try {
