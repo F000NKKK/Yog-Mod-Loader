@@ -4232,6 +4232,25 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeRecipeJsons<'l>(
 }
 
 #[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeDimensionJsons<'l>(
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) -> jstring {
+    // One line per declared dimension: `id \t def_json`. The host converts
+    // `def_json` (our YogDimensionDef shape) into vanilla dimension_type /
+    // dimension datapack JSON — see `yog-dimensions` crate docs.
+    let s = handlers()
+        .dimensions
+        .iter()
+        .map(|(id, json)| format!("{}\t{}", id, json))
+        .collect::<Vec<_>>()
+        .join("\n");
+    env.new_string(s)
+        .map(|s| s.into_raw())
+        .unwrap_or(std::ptr::null_mut())
+}
+
+#[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeTypedCommandSchemas<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,

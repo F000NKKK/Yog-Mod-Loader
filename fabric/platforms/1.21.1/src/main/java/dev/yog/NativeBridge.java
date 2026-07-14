@@ -954,6 +954,7 @@ public final class NativeBridge {
 
     /** Recipe JSONs: `namespace\tname\tJSON` per line. */
     public static native String nativeRecipeJsons();
+    public static native String nativeDimensionJsons();
 
     /** Get the JSON of a registered book by its id (e.g. "yog:example_guide"). */
     public static native String nativeBookJson(String bookId);

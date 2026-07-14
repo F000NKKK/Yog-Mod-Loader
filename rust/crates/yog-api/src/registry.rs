@@ -1846,13 +1846,20 @@ impl Registry {
         unsafe { ((*self.api).register_book)(self.ctx(), id, j) }
     }
 
-    /// Register a custom dimension's *type* (sky, lighting, physics, ...).
+    /// Register (or patch) a dimension's *type* (sky, lighting, physics, ...).
+    ///
+    /// `def.id` need not be a new custom id — pass a vanilla id
+    /// (`"minecraft:overworld"`, `"minecraft:the_nether"`,
+    /// `"minecraft:the_end"`) to patch that dimension's type/generator
+    /// instead of creating a new one (e.g. to replace the overworld's
+    /// terrain with your own generator type).
     ///
     /// Must be called from `register()` — the same mod-init window as
-    /// blocks/items — so the host can declare the dimension before
+    /// blocks/items — so the host can declare/patch the dimension before
     /// Minecraft's registries freeze. See the `yog-dimensions` crate docs;
-    /// pair with [`Registry::register_chunk_generator`] to actually
-    /// generate terrain for it.
+    /// set `def.generator_type` (via [`YogDimensionDef::generator_type`]) to
+    /// pick a generator type registered with
+    /// [`Registry::register_chunk_generator`].
     pub fn register_dimension(&mut self, def: &YogDimensionDef) {
         let json = def.to_json();
         let id = YogStr::from_str(&def.id);
@@ -1860,18 +1867,23 @@ impl Registry {
         unsafe { ((*self.api).register_dimension_json)(self.ctx(), id, j) }
     }
 
-    /// Register a chunk generator for a dimension previously declared via
-    /// [`Registry::register_dimension`]. `generator` is called once per
-    /// chunk column that needs generating in that dimension — write
-    /// whatever terrain logic you want using the [`ChunkWriter`] handle
-    /// (combine as many noise layers as you like; this crate doesn't
-    /// prescribe a generation style).
-    pub fn register_chunk_generator<F>(&mut self, dimension_id: &str, generator: F)
+    /// Register a named, reusable chunk-generator type under
+    /// `generator_type_id` (e.g. `"mymod:custom_terrain"`) — analogous to
+    /// how Biomes O'Plenty registers selectable world-type presets. Any
+    /// dimension (custom or vanilla) can opt into this generator via
+    /// [`YogDimensionDef::generator_type`]; the platform host may also list
+    /// registered generator type ids as options on the world-creation screen.
+    ///
+    /// `generator` is called once per chunk column that needs generating in
+    /// any dimension using this type — write whatever terrain logic you want
+    /// using the [`ChunkWriter`] handle (combine as many noise layers as you
+    /// like; this crate doesn't prescribe a generation style).
+    pub fn register_chunk_generator<F>(&mut self, generator_type_id: &str, generator: F)
     where
         F: Fn(&ChunkWriter) + Send + Sync + 'static,
     {
         let ud = Self::leak(generator);
-        let id = YogStr::from_str(dimension_id);
+        let id = YogStr::from_str(generator_type_id);
         unsafe {
             ((*self.api).register_chunk_generator)(
                 self.ctx(),

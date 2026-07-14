@@ -476,6 +476,7 @@ public final class NativeBridge {
     public static native boolean nativeOnBlockBreakPre(String player, String block, int x, int y, int z, String dimension);
     public static native boolean nativeOnChatPre(String player, String message, String dimension);
     public static native String nativeRecipeJsons();
+    public static native String nativeDimensionJsons();
     public static native String nativeBookJson(String bookId);
     public static native void nativeUIShow(String uiId, String parentId, boolean modal, boolean pauseGame, int screenW, int screenH);
     public static native void nativeUIHide(String uiId);

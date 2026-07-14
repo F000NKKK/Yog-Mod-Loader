@@ -5,14 +5,30 @@
 //! mod-init time through `Registry::register_dimension` (in `yog-api`), the
 //! same lifecycle window as blocks/items/recipes.
 //!
+//! **`id` isn't limited to new custom dimensions** — passing a vanilla id
+//! (`"minecraft:overworld"`, `"minecraft:the_nether"`, `"minecraft:the_end"`)
+//! patches that dimension's type/generator instead of creating a new one.
+//! This is how a mod replaces or tweaks the overworld's terrain, not just
+//! adds side dimensions.
+//!
 //! Chunk *generation* is intentionally **not** a fixed preset/config here —
 //! there's no single "noise" or "flat" style that covers every mod's needs,
 //! and real generators often layer several algorithms together. Instead,
-//! mods write their own generator as a plain closure registered via
-//! `Registry::register_chunk_generator`, called once per chunk column with a
+//! mods write their own generator as a plain closure and register it under a
+//! **named, reusable generator type** via `Registry::register_chunk_generator`
+//! (e.g. `"mymod:custom_terrain"`) — called once per chunk column with a
 //! [`ChunkWriter`] handle the closure uses to place blocks however it likes
 //! (composing whatever noise functions or logic it wants — that's the mod's
 //! own code, not this crate's concern).
+//!
+//! Because generator types are named and independent of any one dimension, a
+//! [`YogDimensionDef`] just *references* one by id via
+//! [`YogDimensionDef::generator_type`] — the same generator type can back
+//! several dimensions, and (like Biomes O'Plenty's world-type presets) the
+//! platform host can list every registered generator type as a selectable
+//! option on the world-creation screen, letting a player pick which
+//! registered generator the overworld (or a custom dimension) uses for a
+//! new world.
 
 use std::collections::HashMap;
 
@@ -180,17 +196,25 @@ impl YogDimensionTypeDef {
 // ── Dimension definition ─────────────────────────────────────────────────────
 
 /// A dimension definition — what a mod registers to create a custom
-/// dimension. Serialized to JSON and sent across the ABI via
-/// `Registry::register_dimension` (in `yog-api`), which the Java host parses
-/// to register a `LevelStem`/`DimensionType` entry at mod-init time.
+/// dimension, or to patch an existing (including vanilla) one. Serialized
+/// to JSON and sent across the ABI via `Registry::register_dimension` (in
+/// `yog-api`), which the Java host parses to register (or patch) a
+/// `LevelStem`/`DimensionType` entry at mod-init time.
 ///
 /// The actual `ServerLevel` (world data) is created lazily at runtime — see
 /// the crate-level docs and `Registry::register_chunk_generator`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct YogDimensionDef {
+    /// Registry id. A new id (e.g. `"mymod:my_dim"`) creates a custom
+    /// dimension; a vanilla id (`"minecraft:overworld"`, etc.) patches that
+    /// dimension's type/generator instead.
     pub id: String,
     pub dimension_type: YogDimensionTypeDef,
+    /// Id of a generator type registered via `Registry::register_chunk_generator`
+    /// (e.g. `"mymod:custom_terrain"`) that this dimension should use. `None`
+    /// keeps the dimension's existing/vanilla generator.
+    pub generator_type: Option<String>,
     /// Extra platform/metadata mods want the host to know about (arbitrary
     /// JSON-string values), for anything not modeled by `dimension_type`.
     pub extra: HashMap<String, String>,
@@ -201,6 +225,7 @@ impl Default for YogDimensionDef {
         Self {
             id: String::new(),
             dimension_type: YogDimensionTypeDef::default(),
+            generator_type: None,
             extra: HashMap::new(),
         }
     }
@@ -218,6 +243,13 @@ impl YogDimensionDef {
     /// Replace the dimension type properties.
     pub fn dimension_type(mut self, dimension_type: YogDimensionTypeDef) -> Self {
         self.dimension_type = dimension_type;
+        self
+    }
+
+    /// Use the generator type registered under this id (see
+    /// `Registry::register_chunk_generator`).
+    pub fn generator_type(mut self, generator_type_id: impl Into<String>) -> Self {
+        self.generator_type = Some(generator_type_id.into());
         self
     }
 
@@ -292,6 +324,7 @@ mod tests {
                     .ultrawarm(true)
                     .effects("nether"),
             )
+            .generator_type("mymod:custom_terrain")
             .with_extra("note", "test");
 
         let json = def.to_json();
@@ -299,6 +332,15 @@ mod tests {
         assert_eq!(back.id, "mymod:my_dim");
         assert!(back.dimension_type.ultrawarm);
         assert_eq!(back.dimension_type.effects, "nether");
+        assert_eq!(back.generator_type.as_deref(), Some("mymod:custom_terrain"));
         assert_eq!(back.extra.get("note").map(String::as_str), Some("test"));
+    }
+
+    #[test]
+    fn dimension_def_can_target_a_vanilla_id_to_patch_it() {
+        let def =
+            YogDimensionDef::new("minecraft:overworld").generator_type("mymod:custom_terrain");
+        assert_eq!(def.id, "minecraft:overworld");
+        assert_eq!(def.generator_type.as_deref(), Some("mymod:custom_terrain"));
     }
 }

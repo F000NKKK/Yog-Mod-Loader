@@ -101,6 +101,9 @@ public class YogPackProvider implements RepositorySource {
         // Inject mod-registered recipes as JSON files inside the data pack.
         injectRecipes(out);
 
+        // Inject mod-declared dimensions as vanilla dimension_type/dimension JSON.
+        injectDimensions(out);
+
         // pack_format 15 = MC 1.20.1, valid for both resources and data.
         Files.writeString(out.resolve("pack.mcmeta"),
                 "{\"pack\":{\"pack_format\":15,\"description\":\"Yog mods\"}}");
@@ -127,5 +130,97 @@ public class YogPackProvider implements RepositorySource {
                 System.err.println("[yog] failed to write recipe " + namespace + ":" + name + ": " + e);
             }
         }
+    }
+
+    /**
+     * Convert mod-declared {@code YogDimensionDef} JSON (our shape — see the
+     * {@code yog-dimensions} Rust crate) into vanilla {@code dimension_type}
+     * / {@code dimension} datapack JSON. Writing to a vanilla id (e.g.
+     * {@code minecraft:overworld}) patches that dimension instead of adding
+     * a new one, since this pack loads at TOP priority.
+     *
+     * <p>Custom generator types ({@code generator_type} in the def) aren't
+     * wired up on the Java side yet (needs a registered {@code ChunkGenerator}
+     * codec forwarding to the native per-chunk callback) — falls back to a
+     * plain vanilla noise generator so the world still loads correctly in
+     * the meantime.
+     */
+    private static void injectDimensions(Path packRoot) {
+        String lines = NativeBridge.nativeDimensionJsons();
+        if (lines == null || lines.isBlank()) return;
+        com.google.gson.Gson gson = new com.google.gson.Gson();
+        for (String line : lines.split("
+")) {
+            if (line.isBlank()) continue;
+            String[] parts = line.split("	", 2);
+            if (parts.length < 2) continue;
+            String id = parts[0];
+            try {
+                int colon = id.indexOf(':');
+                String namespace = colon > 0 ? id.substring(0, colon) : "yog";
+                String name = colon > 0 ? id.substring(colon + 1) : id;
+
+                com.google.gson.JsonObject def = gson.fromJson(parts[1], com.google.gson.JsonObject.class);
+                com.google.gson.JsonObject dt = def.has("dimension_type")
+                        ? def.getAsJsonObject("dimension_type") : new com.google.gson.JsonObject();
+
+                com.google.gson.JsonObject dimensionType = new com.google.gson.JsonObject();
+                dimensionType.addProperty("ultrawarm", jbool(dt, "ultrawarm", false));
+                dimensionType.addProperty("natural", jbool(dt, "natural", true));
+                dimensionType.addProperty("coordinate_scale", jnum(dt, "coordinate_scale", 1.0));
+                dimensionType.addProperty("has_skylight", jbool(dt, "has_sky_light", true));
+                dimensionType.addProperty("has_ceiling", jbool(dt, "has_ceiling", false));
+                dimensionType.addProperty("ambient_light", jnum(dt, "ambient_light", 0.0));
+                dimensionType.addProperty("bed_works", !jbool(dt, "beds_explode", false));
+                dimensionType.addProperty("respawn_anchor_works", !jbool(dt, "respawn_anchors_explode", false));
+                dimensionType.addProperty("min_y", (int) jnum(dt, "min_y", -64));
+                dimensionType.addProperty("height", (int) jnum(dt, "height", 384));
+                dimensionType.addProperty("logical_height", (int) jnum(dt, "logical_height", 384));
+                dimensionType.addProperty("infiniburn", "#minecraft:infiniburn_overworld");
+                dimensionType.addProperty("effects", jstr(dt, "effects", "minecraft:overworld"));
+                dimensionType.addProperty("piglin_safe", jbool(dt, "piglin_safe", false));
+                dimensionType.addProperty("has_raids", true);
+                dimensionType.addProperty("monster_spawn_block_light_limit", 0);
+                dimensionType.addProperty("monster_spawn_light_level", 7);
+
+                if (def.has("generator_type") && !def.get("generator_type").isJsonNull()) {
+                    System.err.println("[yog] dimension '" + id + "': custom generator type '"
+                            + def.get("generator_type").getAsString()
+                            + "' isn't wired up on this host build yet - using a vanilla noise generator instead.");
+                }
+                com.google.gson.JsonObject biomeSource = new com.google.gson.JsonObject();
+                biomeSource.addProperty("type", "minecraft:fixed");
+                biomeSource.addProperty("biome", "minecraft:plains");
+                com.google.gson.JsonObject generator = new com.google.gson.JsonObject();
+                generator.addProperty("type", "minecraft:noise");
+                generator.addProperty("settings", "minecraft:overworld");
+                generator.add("biome_source", biomeSource);
+
+                com.google.gson.JsonObject dimension = new com.google.gson.JsonObject();
+                dimension.addProperty("type", namespace + ":" + name);
+                dimension.add("generator", generator);
+
+                Path dtPath = packRoot.resolve("data").resolve(namespace).resolve("dimension_type").resolve(name + ".json");
+                Path dPath = packRoot.resolve("data").resolve(namespace).resolve("dimension").resolve(name + ".json");
+                Files.createDirectories(dtPath.getParent());
+                Files.createDirectories(dPath.getParent());
+                Files.writeString(dtPath, gson.toJson(dimensionType));
+                Files.writeString(dPath, gson.toJson(dimension));
+            } catch (Exception e) {
+                System.err.println("[yog] failed to inject dimension '" + id + "': " + e);
+            }
+        }
+    }
+
+    private static boolean jbool(com.google.gson.JsonObject o, String key, boolean def) {
+        return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsBoolean() : def;
+    }
+
+    private static double jnum(com.google.gson.JsonObject o, String key, double def) {
+        return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsDouble() : def;
+    }
+
+    private static String jstr(com.google.gson.JsonObject o, String key, String def) {
+        return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsString() : def;
     }
 }
