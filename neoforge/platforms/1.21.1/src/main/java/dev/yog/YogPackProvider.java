@@ -148,11 +148,11 @@ public class YogPackProvider implements RepositorySource {
      * {@code minecraft:overworld}) patches that dimension instead of adding
      * a new one, since this pack loads at TOP priority.
      *
-     * <p>Custom generator types ({@code generator_type} in the def) aren't
-     * wired up on the Java side yet (needs a registered {@code ChunkGenerator}
-     * codec forwarding to the native per-chunk callback) — falls back to a
-     * plain vanilla noise generator so the world still loads correctly in
-     * the meantime.
+     * <p>Custom generator types ({@code generator_type} in the def) reference
+     * {@code yog:callback_generator} (see {@code YogCallbackChunkGenerator}),
+     * which forwards each chunk to the native per-chunk callback. Dimensions
+     * without a {@code generator_type} fall back to a plain vanilla noise
+     * generator.
      */
     private static void injectDimensions(Path packRoot) {
         String lines = NativeBridge.nativeDimensionJsons();
@@ -191,18 +191,21 @@ public class YogPackProvider implements RepositorySource {
                 dimensionType.addProperty("monster_spawn_block_light_limit", 0);
                 dimensionType.addProperty("monster_spawn_light_level", 7);
 
-                if (def.has("generator_type") && !def.get("generator_type").isJsonNull()) {
-                    System.err.println("[yog] dimension '" + id + "': custom generator type '"
-                            + def.get("generator_type").getAsString()
-                            + "' isn't wired up on this host build yet - using a vanilla noise generator instead.");
-                }
                 com.google.gson.JsonObject biomeSource = new com.google.gson.JsonObject();
                 biomeSource.addProperty("type", "minecraft:fixed");
                 biomeSource.addProperty("biome", "minecraft:plains");
                 com.google.gson.JsonObject generator = new com.google.gson.JsonObject();
-                generator.addProperty("type", "minecraft:noise");
-                generator.addProperty("settings", "minecraft:overworld");
-                generator.add("biome_source", biomeSource);
+                if (def.has("generator_type") && !def.get("generator_type").isJsonNull()) {
+                    generator.addProperty("type", "yog:callback_generator");
+                    generator.addProperty("generator_type_id", def.get("generator_type").getAsString());
+                    generator.addProperty("min_y", (int) jnum(dt, "min_y", -64));
+                    generator.addProperty("height", (int) jnum(dt, "height", 384));
+                    generator.add("biome_source", biomeSource);
+                } else {
+                    generator.addProperty("type", "minecraft:noise");
+                    generator.addProperty("settings", "minecraft:overworld");
+                    generator.add("biome_source", biomeSource);
+                }
 
                 com.google.gson.JsonObject dimension = new com.google.gson.JsonObject();
                 dimension.addProperty("type", namespace + ":" + name);
