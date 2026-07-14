@@ -234,23 +234,29 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 ) {
     let id = jstr!(env, ui_id);
 
-    // Snapshot inventory slot data for InvSlot widgets directly into the
-    // per-call `gfx` struct — NOT a module-level cache (a plain Rust `static`
-    // in `yog-ui` cannot cross the cdylib boundary between this runtime and a
-    // mod's own dynamic library; each gets its own separate copy).
-    let n = (inv_slot_count(&mut env).max(0) as usize).min(yog_abi::MAX_INV_SLOTS);
-    let mut slot_item_ids: Vec<String> = Vec::with_capacity(n);
-    let mut inv_slots = [yog_abi::YogInvSlotRaw::EMPTY; yog_abi::MAX_INV_SLOTS];
-    for i in 0..n {
-        let item = inv_slot_item(&mut env, i as i32);
-        let pos = inv_slot_pos(&mut env, i as i32).unwrap_or((0, 0));
-        slot_item_ids.push(item.as_ref().map(|(id, _)| id.clone()).unwrap_or_default());
-        inv_slots[i].count = item.map(|(_, c)| c as u32).unwrap_or(0);
-        inv_slots[i].x = pos.0;
-        inv_slots[i].y = pos.1;
-    }
-    for i in 0..n {
-        inv_slots[i].item_id = YogStr::from_str(&slot_item_ids[i]);
+    // Build a fresh snapshot of the currently-open inventory screen's slots
+    // and push it into every loaded mod (see `yog_inventory::current_slot`)
+    // — a plain Rust `static` in `yog-inventory` can't cross the cdylib
+    // boundary between this runtime and a mod's own dynamic library, so each
+    // mod gets the data via its own exported `yog_inventory_set_snapshot`
+    // symbol instead, resolved the same way `yog_mod_register` is.
+    let n = (inv_slot_count(&mut env).max(0) as usize).min(yog_inventory::MAX_SNAPSHOT_SLOTS);
+    if n > 0 {
+        let mut slot_item_ids: Vec<String> = Vec::with_capacity(n);
+        let mut snapshot = yog_inventory::YogInvSnapshotRaw::EMPTY;
+        snapshot.slot_count = n as u32;
+        for i in 0..n {
+            let item = inv_slot_item(&mut env, i as i32);
+            let pos = inv_slot_pos(&mut env, i as i32).unwrap_or((0, 0));
+            slot_item_ids.push(item.as_ref().map(|(id, _)| id.clone()).unwrap_or_default());
+            snapshot.slots[i].count = item.map(|(_, c)| c as u32).unwrap_or(0);
+            snapshot.slots[i].x = pos.0;
+            snapshot.slots[i].y = pos.1;
+        }
+        for i in 0..n {
+            snapshot.slots[i].item_id = YogStr::from_str(&slot_item_ids[i]);
+        }
+        push_inventory_snapshot(&snapshot);
     }
 
     let h = crate::handlers();
@@ -259,8 +265,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     gfx.screen_h = screen_h;
     gfx.delta_tick = 1.0;
     gfx.scale_factor = 1.0;
-    gfx.inv_slot_count = n as u32;
-    gfx.inv_slots = inv_slots;
     let ctx = unsafe { yog_gfx::GfxContext::from_raw(&gfx as *const _) };
     let sw = screen_w as f32;
     let sh = screen_h as f32;
@@ -283,6 +287,22 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     let render_cbs: Vec<_> = h.ui_render_handlers.get(&id).cloned().unwrap_or_default();
     for (ud, f) in render_cbs {
         unsafe { f(ud, &gfx as *const _) };
+    }
+}
+
+/// Hand `snapshot` to every loaded mod's own copy of `yog-inventory`'s
+/// module-level static, via each mod's exported `yog_inventory_set_snapshot`
+/// symbol (present only in mods that depend on `yog-inventory`; missing on
+/// others, which is fine — just skip them).
+fn push_inventory_snapshot(snapshot: &yog_inventory::YogInvSnapshotRaw) {
+    type SetSnapshotFn = unsafe extern "C" fn(*const yog_inventory::YogInvSnapshotRaw);
+    let libs = crate::LOADED_MODS.lock().expect("mods lock poisoned");
+    for lib in libs.iter() {
+        unsafe {
+            if let Ok(f) = lib.get::<SetSnapshotFn>(b"yog_inventory_set_snapshot") {
+                f(snapshot as *const _);
+            }
+        }
     }
 }
 
