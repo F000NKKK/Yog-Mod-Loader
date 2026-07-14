@@ -956,6 +956,16 @@ public final class NativeBridge {
     public static native String nativeRecipeJsons();
     public static native String nativeDimensionJsons();
 
+    /**
+     * Ask the mod-registered generator type {@code generatorTypeId} to fill
+     * chunk ({@code chunkX}, {@code chunkZ}). Blocks until the native
+     * callback returns; every block it places arrives via a nested call
+     * back into {@link YogCallbackChunkGenerator#setBlockInGeneratingChunk}
+     * on this same thread (see {@code yog-dimensions}' {@code ChunkWriter}).
+     */
+    public static native void nativeGenerateChunk(
+            String generatorTypeId, int chunkX, int chunkZ, int minY, int height);
+
     /** Get the JSON of a registered book by its id (e.g. "yog:example_guide"). */
     public static native String nativeBookJson(String bookId);
 

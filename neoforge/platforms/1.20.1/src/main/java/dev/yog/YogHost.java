@@ -183,7 +183,14 @@ public class YogHost {
             registerInventoryBlockEntityType(event);
         } else if (event.getRegistryKey().equals(Registries.MENU)) {
             registerInventoryMenuType(event);
+        } else if (event.getRegistryKey().equals(Registries.CHUNK_GENERATOR)) {
+            registerChunkGenerators(event);
         }
+    }
+
+    private void registerChunkGenerators(RegisterEvent event) {
+        event.register(Registries.CHUNK_GENERATOR, new ResourceLocation("yog", "callback_generator"),
+                () -> YogCallbackChunkGenerator.CODEC);
     }
 
     private void onAddPackFinders(AddPackFindersEvent event) {

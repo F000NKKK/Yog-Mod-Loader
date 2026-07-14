@@ -446,6 +446,8 @@ public class YogHost implements ModInitializer {
     /** Parse `id\tkey=value\t...` into a map. First element is the id. */
     
     private static void registerContent() {
+        YogCallbackChunkGenerator.registerCodec();
+
         parseInventoryDefs();
 
         // Group items and blocks by namespace for per-mod creative tabs.

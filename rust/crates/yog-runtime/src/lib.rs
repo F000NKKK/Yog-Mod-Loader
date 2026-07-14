@@ -4250,6 +4250,68 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeDimensionJsons<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
+/// Called by a registered chunk-generator closure (via `ChunkWriter::set_block`)
+/// to place one block in the chunk currently being generated. Calls back
+/// into `YogCallbackChunkGenerator.setBlockInGeneratingChunk` on the Java
+/// side — same thread, since the whole round trip is synchronous.
+unsafe extern "C" fn chunk_writer_set_block(
+    _ctx: *mut c_void,
+    x: i32,
+    y: i32,
+    z: i32,
+    block_id: YogStr,
+) -> bool {
+    let Some(mut env) = get_env() else {
+        return false;
+    };
+    let Some(jb) = ys_to_java(&mut env, block_id) else {
+        return false;
+    };
+    env.call_static_method(
+        "dev/yog/NativeBridge",
+        "setBlockInGeneratingChunk",
+        "(IIILjava/lang/String;)Z",
+        &[
+            JValue::Int(x),
+            JValue::Int(y),
+            JValue::Int(z),
+            JValue::Object(&jb),
+        ],
+    )
+    .and_then(|v| v.z())
+    .unwrap_or(false)
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeGenerateChunk<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    generator_type_id: JString<'l>,
+    chunk_x: jint,
+    chunk_z: jint,
+    min_y: jint,
+    height: jint,
+) {
+    let id: String = match env.get_string(&generator_type_id) {
+        Ok(s) => String::from(s),
+        Err(_) => return,
+    };
+    let Some((ud, cb)) = handlers().chunk_generators.get(&id).copied() else {
+        return;
+    };
+    let writer = yog_abi::YogChunkWriterApi {
+        chunk_x,
+        chunk_z,
+        min_y,
+        height,
+        ctx: std::ptr::null_mut(),
+        set_block: chunk_writer_set_block,
+    };
+    guard("chunk_generator", || unsafe {
+        cb(ud, &writer as *const _);
+    });
+}
+
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeTypedCommandSchemas<'l>(
     env: JNIEnv<'l>,

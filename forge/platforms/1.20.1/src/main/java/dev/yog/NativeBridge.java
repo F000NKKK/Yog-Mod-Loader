@@ -477,6 +477,16 @@ public final class NativeBridge {
     public static native boolean nativeOnChatPre(String player, String message, String dimension);
     public static native String nativeRecipeJsons();
     public static native String nativeDimensionJsons();
+
+    /**
+     * Ask the mod-registered generator type {@code generatorTypeId} to fill
+     * chunk ({@code chunkX}, {@code chunkZ}). Blocks until the native
+     * callback returns; every block it places arrives via a nested call
+     * back into {@link YogCallbackChunkGenerator#setBlockInGeneratingChunk}
+     * on this same thread (see {@code yog-dimensions}' {@code ChunkWriter}).
+     */
+    public static native void nativeGenerateChunk(
+            String generatorTypeId, int chunkX, int chunkZ, int minY, int height);
     public static native String nativeBookJson(String bookId);
     public static native void nativeUIShow(String uiId, String parentId, boolean modal, boolean pauseGame, int screenW, int screenH);
     public static native void nativeUIHide(String uiId);
