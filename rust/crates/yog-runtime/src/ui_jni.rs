@@ -240,10 +240,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     // boundary between this runtime and a mod's own dynamic library, so each
     // mod gets the data via its own exported `yog_inventory_set_snapshot`
     // symbol instead, resolved the same way `yog_mod_register` is.
+    // `slot_item_ids` and `snapshot` must outlive the `render_cbs` loop below
+    // (not just this `if`) — mods read through the pointer we hand them via
+    // `push_inventory_snapshot` for the rest of this function's duration.
     let n = (inv_slot_count(&mut env).max(0) as usize).min(yog_inventory::MAX_SNAPSHOT_SLOTS);
+    let mut slot_item_ids: Vec<String> = Vec::with_capacity(n);
+    let mut snapshot = yog_inventory::YogInvSnapshotRaw::EMPTY;
     if n > 0 {
-        let mut slot_item_ids: Vec<String> = Vec::with_capacity(n);
-        let mut snapshot = yog_inventory::YogInvSnapshotRaw::EMPTY;
         snapshot.slot_count = n as u32;
         for i in 0..n {
             let item = inv_slot_item(&mut env, i as i32);
