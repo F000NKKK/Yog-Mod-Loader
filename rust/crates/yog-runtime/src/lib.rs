@@ -2584,8 +2584,6 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
     draw2d_text: gfx_draw2d_text,
     draw2d_mc_tex: gfx_draw2d_mc_tex,
     draw2d_item: gfx_draw2d_item,
-    inv_slot_count: 0,
-    inv_slots: [yog_abi::YogInvSlotRaw::EMPTY; yog_abi::MAX_INV_SLOTS],
 };
 
 // ── YogApi registration functions ─────────────────────────────────────────────
