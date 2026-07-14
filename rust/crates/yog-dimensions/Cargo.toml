@@ -1,12 +1,12 @@
 [package]
 name = "yog-dimensions"
-version = "0.4.0"
+version = "0.5.0"
 edition.workspace = true
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog custom dimensions — dimension-type definitions and runtime chunk generation."
 
 [dependencies]
-yog-abi = "0.22"
+yog-abi = "0.23"
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

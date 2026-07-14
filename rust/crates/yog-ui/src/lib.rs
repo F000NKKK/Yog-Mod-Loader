@@ -18,7 +18,6 @@
 
 pub mod layout;
 mod render;
-pub mod slot_cache;
 pub mod text;
 pub mod widget;
 

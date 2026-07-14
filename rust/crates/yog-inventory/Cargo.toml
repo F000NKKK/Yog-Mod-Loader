@@ -1,12 +1,12 @@
 [package]
 name = "yog-inventory"
-version = "0.8.0"
+version = "0.9.0"
 edition.workspace = true
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog inventory framework — real Container/Menu screens (vanilla-style or fully custom) for Yog mods"
 
 [dependencies]
-yog-abi = "0.22"
+yog-abi = "0.23"
 serde.workspace      = true
 serde_json.workspace = true

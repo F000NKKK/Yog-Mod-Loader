@@ -234,21 +234,23 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 ) {
     let id = jstr!(env, ui_id);
 
-    // Pre-fetch inventory slot data for InvSlot widgets.
-    let n = inv_slot_count(&mut env);
-    if n > 0 {
-        let mut slots = Vec::with_capacity(n as usize);
-        for i in 0..n {
-            let item = inv_slot_item(&mut env, i);
-            let pos = inv_slot_pos(&mut env, i).unwrap_or((0, 0));
-            slots.push(yog_ui::slot_cache::SlotData {
-                item_id: item.as_ref().map(|(id, _)| id.clone()).unwrap_or_default(),
-                count: item.map(|(_, c)| c as u32).unwrap_or(0),
-                x: pos.0,
-                y: pos.1,
-            });
-        }
-        yog_ui::slot_cache::set_slot_cache(slots);
+    // Snapshot inventory slot data for InvSlot widgets directly into the
+    // per-call `gfx` struct — NOT a module-level cache (a plain Rust `static`
+    // in `yog-ui` cannot cross the cdylib boundary between this runtime and a
+    // mod's own dynamic library; each gets its own separate copy).
+    let n = (inv_slot_count(&mut env).max(0) as usize).min(yog_abi::MAX_INV_SLOTS);
+    let mut slot_item_ids: Vec<String> = Vec::with_capacity(n);
+    let mut inv_slots = [yog_abi::YogInvSlotRaw::EMPTY; yog_abi::MAX_INV_SLOTS];
+    for i in 0..n {
+        let item = inv_slot_item(&mut env, i as i32);
+        let pos = inv_slot_pos(&mut env, i as i32).unwrap_or((0, 0));
+        slot_item_ids.push(item.as_ref().map(|(id, _)| id.clone()).unwrap_or_default());
+        inv_slots[i].count = item.map(|(_, c)| c as u32).unwrap_or(0);
+        inv_slots[i].x = pos.0;
+        inv_slots[i].y = pos.1;
+    }
+    for i in 0..n {
+        inv_slots[i].item_id = YogStr::from_str(&slot_item_ids[i]);
     }
 
     let h = crate::handlers();
@@ -257,6 +259,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     gfx.screen_h = screen_h;
     gfx.delta_tick = 1.0;
     gfx.scale_factor = 1.0;
+    gfx.inv_slot_count = n as u32;
+    gfx.inv_slots = inv_slots;
     let ctx = unsafe { yog_gfx::GfxContext::from_raw(&gfx as *const _) };
     let sw = screen_w as f32;
     let sh = screen_h as f32;

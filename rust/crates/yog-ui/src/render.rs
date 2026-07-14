@@ -133,7 +133,7 @@ pub fn render_node(d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
             d2d.rect(ix, iy, ix + 1.0, iy + sz, 0xFF_373737);
             d2d.rect(ix + sz - 1.0, iy, ix + sz, iy + sz, 0xFF_FFFFFF);
             // Item icon + count
-            if let Some(sd) = crate::slot_cache::get_slot(*index) {
+            if let Some(sd) = d2d.inv_slot(*index) {
                 if !sd.item_id.is_empty() {
                     if let Some((ns, name)) = sd.item_id.split_once(':') {
                         d2d.mc_texture(
