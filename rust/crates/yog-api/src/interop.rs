@@ -35,7 +35,11 @@ impl Interop {
     ///
     /// The mod's ID is automatically determined from the manifest (passed
     /// to `yog_mod_register` by the runtime).
-    pub fn export(&self, symbol: &str, ptr: *const c_void) {
+    ///
+    /// # Safety
+    /// `ptr` must point to a valid function of the ABI expected by whoever
+    /// later imports and calls it under this `symbol`.
+    pub unsafe fn export(&self, symbol: &str, ptr: *const c_void) {
         let mod_id = crate::__current_mod_id().unwrap_or_else(|| "unknown".into());
         unsafe {
             let api = &*self.api;
@@ -54,7 +58,11 @@ impl Interop {
     /// ```
     ///
     /// Returns `None` if the symbol has not been exported (yet).
-    pub fn import_raw(&self, mod_id: &str, symbol: &str) -> Option<*const c_void> {
+    ///
+    /// # Safety
+    /// The returned pointer, if any, must be cast back to the exact function
+    /// signature the exporting mod registered it under before being called.
+    pub unsafe fn import_raw(&self, mod_id: &str, symbol: &str) -> Option<*const c_void> {
         unsafe {
             let api = &*self.api;
             let mid = yog_abi::YogStr::from_str(mod_id);
@@ -69,8 +77,11 @@ impl Interop {
     }
 
     /// Convenience: parse `"mod_id:symbol"` and import.
-    pub fn import(&self, qualified: &str) -> Option<*const c_void> {
+    ///
+    /// # Safety
+    /// Same requirement as [`Interop::import_raw`].
+    pub unsafe fn import(&self, qualified: &str) -> Option<*const c_void> {
         let (mod_id, symbol) = qualified.split_once(':')?;
-        self.import_raw(mod_id, symbol)
+        unsafe { self.import_raw(mod_id, symbol) }
     }
 }

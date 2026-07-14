@@ -39,6 +39,7 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -475,7 +476,7 @@ public class YogHost {
         String blockId = BuiltInRegistries.BLOCK.getKey(event.getState().getBlock()).toString();
         String playerName = player.getName().getString();
         int x = event.getPos().getX(), y = event.getPos().getY(), z = event.getPos().getZ();
-        String dim = event.getLevel().dimension().location().toString();
+        String dim = ((Level) event.getLevel()).dimension().location().toString();
         if (!NativeBridge.nativeOnBlockBreakPre(playerName, blockId, x, y, z, dim)) {
             event.setCanceled(true);
             return;
@@ -635,7 +636,7 @@ public class YogHost {
         Entity entity = event.getEntity();
         String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         String uuid = entity.getStringUUID();
-        String dim = event.getLevel().dimension().location().toString();
+        String dim = ((Level) event.getLevel()).dimension().location().toString();
         if (!NativeBridge.nativeOnEntitySpawnPre(type, uuid, dim)) {
             event.setCanceled(true);
             return;
