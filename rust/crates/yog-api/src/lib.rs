@@ -220,7 +220,7 @@ pub use yog_registry::{
     ShapedRecipe, ShapelessRecipe, StartupGrant,
 };
 pub use yog_storage::{Storage, StorageScope, Value};
-pub use yog_ui::{widget, Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, UiRoot};
+pub use yog_ui::{widget, Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, UiRoot, Units};
 pub use yog_world::World;
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).

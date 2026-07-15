@@ -63,8 +63,8 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
     let has_children = !w.children.is_empty();
 
     // Determine own size
-    let mut ww = if s.w > 0.0 { s.w.min(max_w) } else { max_w };
-    let mut hh = if s.h > 0.0 { s.h.min(max_h) } else { max_h };
+    let mut ww = s.w.resolve(max_w).map(|v| v.min(max_w)).unwrap_or(max_w);
+    let mut hh = s.h.resolve(max_h).map(|v| v.min(max_h)).unwrap_or(max_h);
 
     if !has_children {
         // Leaf: size to content (text, item slot, spacer)
@@ -101,11 +101,11 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
             }
         }
         // Explicit width/height always wins over content sizing.
-        if s.w > 0.0 {
-            ww = s.w.min(max_w);
+        if let Some(v) = s.w.resolve(max_w) {
+            ww = v.min(max_w);
         }
-        if s.h > 0.0 {
-            hh = s.h.min(max_h);
+        if let Some(v) = s.h.resolve(max_h) {
+            hh = v.min(max_h);
         }
     }
 
@@ -288,14 +288,14 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
     }
 
     // Auto-size: shrink to content
-    if s.w <= 0.0 {
+    if s.w.is_auto() {
         let cw: f32 = child_nodes
             .iter()
             .map(|c| c.rect.x - x + c.rect.w)
             .fold(0.0f32, f32::max);
         node.rect.w = (cw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
     }
-    if s.h <= 0.0 {
+    if s.h.is_auto() {
         let ch: f32 = child_nodes
             .iter()
             .map(|c| c.rect.y - y + c.rect.h)

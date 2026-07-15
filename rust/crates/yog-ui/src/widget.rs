@@ -73,11 +73,56 @@ impl Default for FocusStyle {
     }
 }
 
+/// A size value — either a fixed pixel amount, a CSS-style percentage of the
+/// parent's own resolved content size (0.0–100.0), or `Auto` (size to
+/// content/available space, this crate's original behaviour).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Units {
+    Auto,
+    Px(f32),
+    /// Percent of the parent's resolved content size along the same axis.
+    Percent(f32),
+}
+
+impl Default for Units {
+    fn default() -> Self {
+        Units::Auto
+    }
+}
+
+impl From<f32> for Units {
+    /// `0.0` maps to `Auto` (matches this crate's original `0.0 = auto` convention,
+    /// so every existing `.w(18.0)`/`.h(0.0)` call keeps meaning exactly what it did).
+    fn from(v: f32) -> Self {
+        if v <= 0.0 {
+            Units::Auto
+        } else {
+            Units::Px(v)
+        }
+    }
+}
+
+impl Units {
+    /// Resolve against `avail` (the parent's resolved content size on this
+    /// axis). `None` for `Auto` — caller falls back to its own auto-sizing.
+    pub fn resolve(self, avail: f32) -> Option<f32> {
+        match self {
+            Units::Auto => None,
+            Units::Px(v) => Some(v),
+            Units::Percent(p) => Some(avail * p / 100.0),
+        }
+    }
+
+    pub fn is_auto(self) -> bool {
+        matches!(self, Units::Auto)
+    }
+}
+
 /// Visual and layout style for a widget.
 #[derive(Debug, Clone)]
 pub struct Style {
-    pub w: f32, // explicit width; 0 = auto
-    pub h: f32, // explicit height; 0 = auto
+    pub w: Units, // explicit width; Auto = size to content/available space
+    pub h: Units, // explicit height; Auto = size to content/available space
     pub min_w: f32,
     pub min_h: f32,
     pub flex: f32,        // grow factor inside flex container (main axis)
@@ -102,8 +147,8 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         Self {
-            w: 0.0,
-            h: 0.0,
+            w: Units::Auto,
+            h: Units::Auto,
             min_w: 4.0,
             min_h: 4.0,
             flex: 0.0,
@@ -157,12 +202,14 @@ impl Widget {
         self
     }
 
-    pub fn w(mut self, w: f32) -> Self {
-        self.style.w = w;
+    /// Accepts a plain px value (`0.0` = auto) or a [`Units`] directly —
+    /// e.g. `.w(18.0)` or `.w(Units::Percent(60.0))`.
+    pub fn w(mut self, w: impl Into<Units>) -> Self {
+        self.style.w = w.into();
         self
     }
-    pub fn h(mut self, h: f32) -> Self {
-        self.style.h = h;
+    pub fn h(mut self, h: impl Into<Units>) -> Self {
+        self.style.h = h.into();
         self
     }
     pub fn min_w(mut self, v: f32) -> Self {

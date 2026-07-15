@@ -22,7 +22,7 @@ pub mod text;
 pub mod widget;
 
 pub use layout::{set_focus, Align, FlexDir, LayoutNode, Rect};
-pub use widget::{Dock, FocusStyle, Widget};
+pub use widget::{Dock, FocusStyle, Units, Widget};
 
 use yog_gfx::GfxContext;
 
