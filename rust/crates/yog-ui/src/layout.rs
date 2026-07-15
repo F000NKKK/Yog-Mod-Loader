@@ -324,6 +324,17 @@ pub fn hit_test(node: &LayoutNode, mx: f32, my: f32) -> Option<&LayoutNode> {
     }
 }
 
+/// Find the resolved rect of the (first) node tagged `id` (see `Widget::id`).
+/// Meant for baking a widget tree's computed positions into some other
+/// system at "measure time" (e.g. a mod reporting real-slot pixel offsets to
+/// its host) — a WinForms-style measure-then-use pass, not a per-frame call.
+pub fn find_by_id(node: &LayoutNode, id: &str) -> Option<Rect> {
+    if node.id.as_deref() == Some(id) {
+        return Some(node.rect);
+    }
+    node.children.iter().find_map(|c| find_by_id(c, id))
+}
+
 /// Walk tree and set `focused = true` on the node whose id matches, false on all others.
 pub fn set_focus(node: &mut LayoutNode, focused_id: Option<&str>) {
     node.focused = focused_id.is_some() && node.id.as_deref() == focused_id;

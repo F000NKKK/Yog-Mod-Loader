@@ -725,7 +725,7 @@ version = "0.25.0"
 
 [[package]]
 name = "yog-api"
-version = "0.84.0"
+version = "0.85.0"
 dependencies = [
  "ctor",
  "rkyv",
@@ -751,7 +751,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.53.0"
+version = "0.54.0"
 dependencies = [
  "png",
  "serde",
@@ -855,7 +855,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.90.0"
+version = "0.91.0"
 dependencies = [
  "glow",
  "jni",
@@ -878,7 +878,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-ui"
-version = "0.33.0"
+version = "0.34.0"
 dependencies = [
  "yog-abi",
  "yog-gfx",

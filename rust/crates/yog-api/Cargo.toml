@@ -1,6 +1,6 @@
 [package]
 name = "yog-api"
-version = "0.84.0"
+version = "0.85.0"
 edition.workspace = true
 authors.workspace = true
 # Permissive ON PURPOSE: mods link this crate, so AGPL here would force every
@@ -24,8 +24,8 @@ yog-interop = "0.21"
 yog-storage = "0.1"
 yog-config  = "0.1"
 yog-gfx     = "0.22"
-yog-ui      = "0.33"
-yog-book = "0.53"
+yog-ui      = "0.34"
+yog-book = "0.54"
 yog-inventory = "0.11"
 
 

@@ -61,4 +61,10 @@ impl UiRoot {
     pub fn hit_test(&self, mx: f32, my: f32) -> Option<&LayoutNode> {
         layout::hit_test(&self.layout_root, mx, my)
     }
+
+    /// Resolved rect of the (first) node tagged `id` — see [`layout::find_by_id`].
+    /// Call after [`Self::layout`].
+    pub fn find_rect(&self, id: &str) -> Option<Rect> {
+        layout::find_by_id(&self.layout_root, id)
+    }
 }
