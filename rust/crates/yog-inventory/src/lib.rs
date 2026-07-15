@@ -48,6 +48,13 @@ pub struct InventoryDef {
     /// `None` = default vanilla-style panel texture.
     pub background_texture: Option<String>,
     pub title: String,
+    /// Screen size to center the container on — `None` uses the vanilla
+    /// default (176×166). Set this when a custom `on_ui_render` overlay
+    /// draws decoration at a different size, so the real vanilla `Slot`s
+    /// (positioned by `layout`/`player_inv_offset` relative to the
+    /// container's top-left corner) land under that decoration instead of
+    /// the two disagreeing about where the top-left corner even is.
+    pub background_size: Option<(f32, f32)>,
 }
 
 impl InventoryDef {
@@ -60,6 +67,7 @@ impl InventoryDef {
             player_inv_offset: DEFAULT_PLAYER_INV_OFFSET,
             background_texture: None,
             title: String::new(),
+            background_size: None,
         }
     }
 
@@ -96,6 +104,15 @@ impl InventoryDef {
     /// vanilla-style panel.
     pub fn background_texture(mut self, path: impl Into<String>) -> Self {
         self.background_texture = Some(path.into());
+        self
+    }
+
+    /// Size (in GUI pixels) a custom `on_ui_render` overlay draws its
+    /// decoration at — used to center the real vanilla container on the
+    /// same footprint so its `Slot`s land under that decoration. Leave
+    /// unset to keep the vanilla default 176×166 centering.
+    pub fn background_size(mut self, w: f32, h: f32) -> Self {
+        self.background_size = Some((w, h));
         self
     }
 

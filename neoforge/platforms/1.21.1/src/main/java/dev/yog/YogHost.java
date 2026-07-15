@@ -110,9 +110,11 @@ public class YogHost {
         public final float playerInvX, playerInvY;
         public final String backgroundTexture;
         public final String title;
+        public final float backgroundW, backgroundH;
 
         InventoryDefRt(String id, int slotCount, List<float[]> layout, boolean includePlayerInventory,
-                       float playerInvX, float playerInvY, String backgroundTexture, String title) {
+                       float playerInvX, float playerInvY, String backgroundTexture, String title,
+                       float backgroundW, float backgroundH) {
             this.id = id;
             this.slotCount = slotCount;
             this.layout = layout;
@@ -121,6 +123,8 @@ public class YogHost {
             this.playerInvY = playerInvY;
             this.backgroundTexture = backgroundTexture;
             this.title = title;
+            this.backgroundW = backgroundW;
+            this.backgroundH = backgroundH;
         }
     }
 
@@ -152,8 +156,15 @@ public class YogHost {
                 try { px = Float.parseFloat(pxy[0]); py = Float.parseFloat(pxy[1]); }
                 catch (NumberFormatException ignored) { }
             }
+            float bgW = 0f, bgH = 0f;
+            String bgSize = p.getOrDefault("background_size", "");
+            String[] bgWh = bgSize.split(":", 2);
+            if (bgWh.length == 2) {
+                try { bgW = Float.parseFloat(bgWh[0]); bgH = Float.parseFloat(bgWh[1]); }
+                catch (NumberFormatException ignored) { }
+            }
             INVENTORY_DEFS.put(id, new InventoryDefRt(id, slotCount, layout, includePlayerInv, px, py,
-                    p.getOrDefault("background_texture", ""), p.getOrDefault("title", "")));
+                    p.getOrDefault("background_texture", ""), p.getOrDefault("title", ""), bgW, bgH));
         }
     }
 

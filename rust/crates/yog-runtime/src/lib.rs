@@ -2801,6 +2801,11 @@ unsafe extern "C" fn api_register_inventory(
             Some(d.background_texture.as_str().to_owned())
         },
         title: d.title.as_str().to_owned(),
+        background_size: if d.background_w > 0.0 && d.background_h > 0.0 {
+            Some((d.background_w, d.background_h))
+        } else {
+            None
+        },
     });
 }
 
@@ -4538,6 +4543,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInventoryDefs<'l>(
             }
             if !d.title.is_empty() {
                 parts.push(format!("title={}", d.title));
+            }
+            if let Some((w, h)) = d.background_size {
+                parts.push(format!("background_size={w}:{h}"));
             }
             parts.join("\t")
         })

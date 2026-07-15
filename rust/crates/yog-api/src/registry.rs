@@ -1812,6 +1812,8 @@ impl Registry {
                 .map(YogStr::from_str)
                 .unwrap_or(YogStr::EMPTY),
             title: YogStr::from_str(&def.title),
+            background_w: def.background_size.map(|(w, _)| w).unwrap_or(0.0),
+            background_h: def.background_size.map(|(_, h)| h).unwrap_or(0.0),
         };
         unsafe { ((*self.api).register_inventory)(self.ctx(), &c) }
     }

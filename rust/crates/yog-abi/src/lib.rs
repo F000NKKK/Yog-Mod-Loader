@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 31;
+pub const ABI_MINOR: u32 = 32;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -406,6 +406,14 @@ pub struct YogInventoryDef {
     /// Empty = default vanilla-style panel texture.
     pub background_texture: YogStr,
     pub title: YogStr,
+    /// Screen size to center the container on — `0.0` (either field) means
+    /// "use the vanilla default (176×166)". Set this to whatever a custom
+    /// `on_ui_render` overlay actually occupies so the real vanilla `Slot`s
+    /// (positioned by `layout`/`player_inv_x/y` relative to `guiLeft`/`guiTop`)
+    /// land under the matching decoration the overlay draws, instead of the
+    /// two disagreeing about where the container's top-left corner is.
+    pub background_w: f32,
+    pub background_h: f32,
 }
 
 // ── ABI minor 10 client event structs ─────────────────────────────────────────

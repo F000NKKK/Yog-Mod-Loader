@@ -12,8 +12,15 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screen.ingame.H
         this.uiId = "yog:inv/" + handler.defId;
         YogHost.InventoryDefRt def = YogHost.INVENTORY_DEFS.get(handler.defId);
         if (def != null) {
-            this.backgroundWidth  = Math.max(176, this.backgroundWidth);
-            this.backgroundHeight = Math.max(166, this.backgroundHeight);
+            // A custom `on_ui_render` overlay may draw its decoration at a
+            // different footprint than vanilla's 176x166 default — when it
+            // does (`background_size` set), match it here so the real
+            // vanilla `Slot`s (offset from this screen's `x`/`y`, computed
+            // from backgroundWidth/Height in `init()`) land under that
+            // decoration instead of the two disagreeing about where the
+            // container's top-left corner is.
+            this.backgroundWidth  = def.backgroundW > 0 ? (int) def.backgroundW : Math.max(176, this.backgroundWidth);
+            this.backgroundHeight = def.backgroundH > 0 ? (int) def.backgroundH : Math.max(166, this.backgroundHeight);
             this.titleX = 8; this.titleY = 6;
             if (def.includePlayerInventory) {
                 this.playerInventoryTitleX = (int) def.playerInvX;
