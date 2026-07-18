@@ -142,7 +142,7 @@ impl SymbolTable {
             let f = frame.function?;
             let name = match f.demangle() {
                 Ok(demangled) => demangled.into_owned(),
-                Err(_) => String::from_utf8_lossy(&f.raw_name().ok()?).into_owned(),
+                Err(_) => f.raw_name().ok()?.into_owned(),
             };
             Some(name)
         });
@@ -174,7 +174,7 @@ impl SymbolTable {
                 }
                 let Some(file_entry) = row.file(line_header) else { continue };
                 let Ok(path_name) = self.dwarf.attr_string(&unit, file_entry.path_name()) else { continue };
-                let path_str = path_name.to_string_lossy();
+                let Ok(path_str) = path_name.to_string_lossy() else { continue };
                 if Path::new(path_str.as_ref()).ends_with(want_file) {
                     addrs.push(row.address());
                 }
