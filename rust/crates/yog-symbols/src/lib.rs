@@ -17,12 +17,16 @@
 //! address), which means walking the DWARF line program ourselves anyway.
 
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
+use std::sync::Arc;
 
-use gimli::{EndianRcSlice, Reader as _, RunTimeEndian};
+use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSymbol, SymbolKind};
 
-type R = EndianRcSlice<RunTimeEndian>;
+// `Arc`, not `Rc`: a `SymbolTable` needs to be `Send + Sync` so host apps
+// (e.g. Yog-IDLE's Tauri backend) can hold one behind a `Mutex` in shared
+// state without fighting the type system — this is a read-mostly, rarely
+// cloned reader, so atomic refcounting costs nothing that matters here.
+type R = EndianArcSlice<RunTimeEndian>;
 
 #[derive(Debug)]
 pub enum SymbolError {
@@ -106,12 +110,12 @@ impl SymbolTable {
                 Some(section) => section.uncompressed_data()?.into_owned(),
                 None => Vec::new(),
             };
-            Ok(EndianRcSlice::new(Rc::from(data.into_boxed_slice()), endian))
+            Ok(EndianArcSlice::new(Arc::from(data.into_boxed_slice()), endian))
         };
 
         // `gimli::Dwarf<R>` isn't `Clone` here, and `addr2line::Context`
         // takes ownership of the one it's given — load the sections twice
-        // (cheap: a handful of small `Rc<[u8]>` allocations) rather than
+        // (cheap: a handful of small `Arc<[u8]>` allocations) rather than
         // fight that, so `SymbolTable` still keeps its own `Dwarf` for the
         // breakpoint line-program walk in `resolve_breakpoint`.
         let dwarf = gimli::Dwarf::load(load_section)?;
