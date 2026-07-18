@@ -3410,46 +3410,63 @@ fn topo_sort_mods(ids: &[String], deps_list: &[Vec<String>]) -> Option<Vec<usize
     }
 }
 
-fn load_mod_lib(path: &Path, api: &YogApi, mod_id: &str) -> bool {
-    unsafe {
-        let lib = match Library::new(path) {
-            Ok(l) => l,
-            Err(e) => {
-                yog_logging::error!("failed to load {}: {}", path.display(), e);
-                return false;
-            }
-        };
-        let abi: Symbol<AbiVersionFn> = match lib.get(b"yog_abi_version") {
-            Ok(s) => s,
-            Err(_) => {
-                yog_logging::error!("{} is not a Yog mod (no yog_abi_version)", path.display());
-                return false;
-            }
-        };
-        let mod_abi = abi();
-        if mod_abi != ABI_VERSION {
-            yog_logging::error!(
-                "{}: ABI {} incompatible with runtime ABI {}",
-                path.display(),
-                mod_abi,
-                ABI_VERSION
-            );
-            return false;
+/// Loads `path` as a fresh generation of `mod_id` via the shared
+/// `HotReloader`, validates its ABI, and calls its `yog_mod_register` —
+/// tagging every handler it registers with the returned `LoadedModule` (see
+/// `current_registration()`). On any failure the module (if it got as far
+/// as being tracked by the `HotReloader`) is retired immediately: nothing
+/// can be executing inside a library that never successfully registered,
+/// so this always hard-unloads right away rather than lingering.
+fn load_mod_lib(path: &Path, api: &YogApi, mod_id: &str) -> Option<LoadedModule> {
+    let module = match unsafe { hot_reloader().load_initial(mod_id, path) } {
+        Ok(m) => m,
+        Err(e) => {
+            yog_logging::error!("failed to load {}: {}", path.display(), e);
+            return None;
         }
-        let register: Symbol<RegisterFn> = match lib.get(b"yog_mod_register") {
-            Ok(s) => s,
-            Err(_) => {
-                yog_logging::error!("{} missing yog_mod_register", path.display());
-                return false;
-            }
-        };
-        let mod_id_c = std::ffi::CString::new(mod_id).unwrap();
-        register(api as *const YogApi, mod_id_c.as_ptr());
-        drop(register);
-        drop(abi);
-        LOADED_MODS.lock().expect("mods lock poisoned").push(lib);
+    };
+
+    let abi = module.with_library(|lib| unsafe {
+        let abi: Symbol<AbiVersionFn> = lib.get(b"yog_abi_version").ok()?;
+        Some(abi())
+    });
+    match abi.flatten() {
+        Some(v) if v == ABI_VERSION => {}
+        Some(v) => {
+            yog_logging::error!("{}: ABI {} incompatible with runtime ABI {}", path.display(), v, ABI_VERSION);
+            module.retire(|| {});
+            return None;
+        }
+        None => {
+            yog_logging::error!("{} is not a Yog mod (no yog_abi_version)", path.display());
+            module.retire(|| {});
+            return None;
+        }
     }
-    true
+
+    if let Err(e) = invoke_mod_register(&module, api, mod_id) {
+        yog_logging::error!("{}: {}", path.display(), e);
+        module.retire(|| {});
+        return None;
+    }
+
+    Some(module)
+}
+
+/// Calls a loaded module's `yog_mod_register`, tagging everything it
+/// registers with `module` via `CURRENT_REGISTRATION` for the duration of
+/// the call — used for both a mod's initial load and a later hot-reload.
+fn invoke_mod_register(module: &LoadedModule, api: &YogApi, mod_id: &str) -> Result<(), String> {
+    module
+        .with_library(|lib| unsafe {
+            let register: Symbol<RegisterFn> = lib.get(b"yog_mod_register").map_err(|_| "missing yog_mod_register".to_string())?;
+            let mod_id_c = std::ffi::CString::new(mod_id).unwrap();
+            *CURRENT_REGISTRATION.lock().unwrap() = Some(module.clone());
+            register(api as *const YogApi, mod_id_c.as_ptr());
+            *CURRENT_REGISTRATION.lock().unwrap() = None;
+            Ok(())
+        })
+        .unwrap_or_else(|| Err("module was unloaded before registration could run".to_string()))
 }
 
 /// Metadata for a mod file: [id, name, version, authors, description].
