@@ -915,7 +915,7 @@ version = "0.3.0"
 
 [[package]]
 name = "yog-debugger"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "nix",
  "serde_json",
@@ -1028,7 +1028,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-symbols"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "addr2line",
  "gimli",

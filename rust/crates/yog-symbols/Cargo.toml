@@ -1,6 +1,6 @@
 [package]
 name = "yog-symbols"
-version = "0.1.0"
+version = "0.2.0"
 edition.workspace = true
 license.workspace = true
 description = "DWARF symbol resolution for Yog mod natives — address<->source-location lookups used by yog-debugger and yog-hot-reload."
