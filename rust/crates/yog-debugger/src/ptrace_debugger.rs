@@ -6,10 +6,26 @@
 
 use std::collections::HashMap;
 
+use iced_x86::{Decoder, DecoderOptions, Mnemonic};
 use nix::sys::ptrace;
 use nix::sys::signal::Signal;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::Pid;
+use yog_symbols::{SourceLocation, SymbolTable};
+
+/// Which flavour of source-level step to perform — modelled on Visual
+/// Studio's F10/F11/Shift+F11.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StepKind {
+    /// F11 — descend into called user code (skips back out of library code
+    /// with no source line, so you don't get lost inside `std`/formatting).
+    Into,
+    /// F10 — advance to the next source line in the current function,
+    /// running any calls to completion rather than descending into them.
+    Over,
+    /// Shift+F11 — run until the current function returns to its caller.
+    Out,
+}
 
 #[derive(Debug)]
 pub enum DebugError {
