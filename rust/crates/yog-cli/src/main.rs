@@ -19,9 +19,17 @@ use std::process::Command;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let debugging_symbols = args.iter().any(|a| a == "--debugging-symbols");
     let result = match args.get(1).map(String::as_str) {
-        Some("build") => build(debugging_symbols).map(|_| ()),
+        // `yog build` — stripped, no debug info (the default, unchanged).
+        // `yog build debug` — same build, but with DWARF debug info kept
+        // in the packaged native instead of stripped, for `yog-symbols`/
+        // `yog-debugger` to load. Still a `--release` cargo build either
+        // way — "debug" here names what ships in the artifact, not the
+        // cargo profile.
+        Some("build") => {
+            let debug = args.get(2).map(String::as_str) == Some("debug");
+            build(debug).map(|_| ())
+        }
         Some("new") => new_mod(args.get(2).map(String::as_str)),
         Some("setup") => setup(),
         Some("add") => {
@@ -34,12 +42,13 @@ fn main() {
             let name = args[2..].iter().find(|a| a.as_str() != "--mod");
             remove_dep(name.map(String::as_str), is_mod)
         }
-        Some("run") => match args.get(2) {
-            Some(name) => run_config(name, debugging_symbols),
-            None => {
-                Err("usage: yog run <config_name> [--debugging-symbols]  (see [run.<config_name>] in yog.toml)".into())
+        Some("run") => {
+            let debug = args[2..].iter().any(|a| a == "--debug");
+            match args[2..].iter().find(|a| !a.starts_with("--")) {
+                Some(name) => run_config(name, debug),
+                None => Err("usage: yog run <config_name> [--debug]  (see [run.<config_name>] in yog.toml)".into()),
             }
-        },
+        }
         Some("publish") => {
             let dry_run = args.iter().any(|a| a == "--dry-run");
             match args.get(2).map(String::as_str) {
@@ -509,9 +518,10 @@ const TARGETS: &[Target] = &[
 /// `yog.toml` metadata and the path to the produced `.yog` artifact, so
 /// callers like `run_config` can reuse them without re-parsing/rebuilding.
 ///
-/// `debugging_symbols`: still a `--release` build (same output layout
-/// `package()` expects), but with debug info retained instead of stripped —
-/// for `yog-symbols`/`yog-debugger` to have something to load. No separate
+/// `debugging_symbols` (`yog build debug` / `yog run <name> --debug` at the
+/// CLI surface): still a `--release` build (same output layout `package()`
+/// expects), but with debug info retained instead of stripped — for
+/// `yog-symbols`/`yog-debugger` to have something to load. No separate
 /// artifact layout: the native this produces is simply larger and
 /// symbol-ful, packaged the same way.
 fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
