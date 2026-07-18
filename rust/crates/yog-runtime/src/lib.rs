@@ -109,38 +109,48 @@ pub struct UiLayer {
     pub z_index: i32,
 }
 
+// Every callback table below is tagged with the `LoadedModule` that
+// registered it (see `current_registration()`), so a hot-reload's dispatch
+// sites can skip a retiring module's stale entries (`LoadedModule::
+// is_retiring()`) before they're physically swept by `RuntimeModuleRegistry
+// ::purge`. Content registries — `items`/`blocks`/`inventories`/`books`/
+// `recipes`/`dimensions`/`startup_grants`/`menu_entries` — are deliberately
+// NOT tagged: they're one-time definitions copied into Minecraft's own
+// registries at startup, not callbacks invoked later, and Minecraft itself
+// has no live registry-unregister mechanism to hot-reload them against
+// regardless of what this crate does.
 struct RuntimeHandlers {
-    block_break: Vec<(*mut c_void, YogBlockBreakFn)>,
-    chat: Vec<(*mut c_void, YogChatFn)>,
-    player_join: Vec<(*mut c_void, YogPlayerFn)>,
-    player_leave: Vec<(*mut c_void, YogPlayerFn)>,
-    use_item: Vec<(*mut c_void, YogUseItemFn)>,
-    use_block: Vec<(*mut c_void, YogUseBlockFn)>,
-    attack_entity: Vec<(*mut c_void, YogAttackEntityFn)>,
-    entity_damage: Vec<(*mut c_void, YogEntityDamageFn)>,
-    entity_death: Vec<(*mut c_void, YogEntityDeathFn)>,
-    entity_spawn: Vec<(*mut c_void, YogEntitySpawnFn)>,
-    player_place_block: Vec<(*mut c_void, YogPlaceBlockFn)>,
-    player_death: Vec<(*mut c_void, YogPlayerDeathFn)>,
-    player_respawn: Vec<(*mut c_void, YogPlayerRespawnFn)>,
-    advancement: Vec<(*mut c_void, YogAdvancementFn)>,
-    entity_interact: Vec<(*mut c_void, YogEntityInteractFn)>,
-    item_craft: Vec<(*mut c_void, YogCraftFn)>,
-    explosion: Vec<(*mut c_void, YogExplosionFn)>,
-    item_pickup: Vec<(*mut c_void, YogItemPickupFn)>,
-    player_move: Vec<(*mut c_void, YogPlayerMoveFn)>,
-    container_open: Vec<(*mut c_void, YogContainerOpenFn)>,
-    container_close: Vec<(*mut c_void, YogContainerCloseFn)>,
-    projectile_hit: Vec<(*mut c_void, YogProjectileHitFn)>,
-    client_tick: Vec<(*mut c_void, YogClientFn)>,
-    hud_render: Vec<(*mut c_void, YogHudRenderFn)>,
-    world_render: Vec<(*mut c_void, YogWorldRenderFn)>,
-    key_press: Vec<(*mut c_void, YogKeyPressFn)>,
-    screen_open: Vec<(*mut c_void, YogScreenFn)>,
-    screen_close: Vec<(*mut c_void, YogScreenFn)>,
-    server_tick: Vec<(*mut c_void, YogServerFn)>,
-    server_started: Vec<(*mut c_void, YogServerFn)>,
-    server_stopping: Vec<(*mut c_void, YogServerFn)>,
+    block_break: Vec<(LoadedModule, *mut c_void, YogBlockBreakFn)>,
+    chat: Vec<(LoadedModule, *mut c_void, YogChatFn)>,
+    player_join: Vec<(LoadedModule, *mut c_void, YogPlayerFn)>,
+    player_leave: Vec<(LoadedModule, *mut c_void, YogPlayerFn)>,
+    use_item: Vec<(LoadedModule, *mut c_void, YogUseItemFn)>,
+    use_block: Vec<(LoadedModule, *mut c_void, YogUseBlockFn)>,
+    attack_entity: Vec<(LoadedModule, *mut c_void, YogAttackEntityFn)>,
+    entity_damage: Vec<(LoadedModule, *mut c_void, YogEntityDamageFn)>,
+    entity_death: Vec<(LoadedModule, *mut c_void, YogEntityDeathFn)>,
+    entity_spawn: Vec<(LoadedModule, *mut c_void, YogEntitySpawnFn)>,
+    player_place_block: Vec<(LoadedModule, *mut c_void, YogPlaceBlockFn)>,
+    player_death: Vec<(LoadedModule, *mut c_void, YogPlayerDeathFn)>,
+    player_respawn: Vec<(LoadedModule, *mut c_void, YogPlayerRespawnFn)>,
+    advancement: Vec<(LoadedModule, *mut c_void, YogAdvancementFn)>,
+    entity_interact: Vec<(LoadedModule, *mut c_void, YogEntityInteractFn)>,
+    item_craft: Vec<(LoadedModule, *mut c_void, YogCraftFn)>,
+    explosion: Vec<(LoadedModule, *mut c_void, YogExplosionFn)>,
+    item_pickup: Vec<(LoadedModule, *mut c_void, YogItemPickupFn)>,
+    player_move: Vec<(LoadedModule, *mut c_void, YogPlayerMoveFn)>,
+    container_open: Vec<(LoadedModule, *mut c_void, YogContainerOpenFn)>,
+    container_close: Vec<(LoadedModule, *mut c_void, YogContainerCloseFn)>,
+    projectile_hit: Vec<(LoadedModule, *mut c_void, YogProjectileHitFn)>,
+    client_tick: Vec<(LoadedModule, *mut c_void, YogClientFn)>,
+    hud_render: Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>,
+    world_render: Vec<(LoadedModule, *mut c_void, YogWorldRenderFn)>,
+    key_press: Vec<(LoadedModule, *mut c_void, YogKeyPressFn)>,
+    screen_open: Vec<(LoadedModule, *mut c_void, YogScreenFn)>,
+    screen_close: Vec<(LoadedModule, *mut c_void, YogScreenFn)>,
+    server_tick: Vec<(LoadedModule, *mut c_void, YogServerFn)>,
+    server_started: Vec<(LoadedModule, *mut c_void, YogServerFn)>,
+    server_stopping: Vec<(LoadedModule, *mut c_void, YogServerFn)>,
     /// All handlers registered under one command name, in registration order.
     /// `schema` is `None` for a plain `on_command` (bare, zero-argument)
     /// registration and `Some(schema)` for `on_typed_command`. Kept as a
@@ -150,10 +160,10 @@ struct RuntimeHandlers {
     /// earlier ones (see `nativeOnCommand`, which tries each entry whose
     /// schema's arg count matches the actual invocation, in order, until one
     /// produces a reply).
-    commands: HashMap<String, Vec<(Option<String>, *mut c_void, YogCommandFn)>>,
+    commands: HashMap<String, Vec<(LoadedModule, Option<String>, *mut c_void, YogCommandFn)>>,
     recipes: Vec<(String, String, String)>,
-    packets: HashMap<String, (*mut c_void, YogPacketFn)>,
-    client_packets: HashMap<String, (*mut c_void, YogPacketFn)>,
+    packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
+    client_packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
     items: Vec<ItemDef>,
     blocks: Vec<BlockDef>,
     inventories: Vec<yog_inventory::InventoryDef>,
@@ -163,9 +173,9 @@ struct RuntimeHandlers {
     /// `LevelStem`/`ServerLevel` creation is a host (Java) responsibility —
     /// see `yog-dimensions` crate docs.
     dimensions: HashMap<String, String>,
-    chunk_generators: HashMap<String, (*mut c_void, yog_abi::YogChunkGeneratorFn)>,
-    ui_handlers: HashMap<String, (*mut c_void, yog_abi::YogUIEventFn)>,
-    ui_render_handlers: HashMap<String, Vec<(*mut c_void, YogHudRenderFn)>>,
+    chunk_generators: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogChunkGeneratorFn)>,
+    ui_handlers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogUIEventFn)>,
+    ui_render_handlers: HashMap<String, Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>>,
     menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
     pub active_uis: Mutex<Vec<UiLayer>>,
     startup_grants: Vec<yog_registry::StartupGrant>,
@@ -244,11 +254,13 @@ struct SchedulerState {
 }
 
 struct OnceTask {
+    module: LoadedModule,
     delay_remaining: u64,
     ud: *mut c_void,
     f: YogScheduledFn,
 }
 struct RepeatingTask {
+    module: LoadedModule,
     period: u64,
     ticks_left: u64,
     ud: *mut c_void,
