@@ -37,3 +37,33 @@ pub fn find_module_base(pid: Pid, module_path: &Path) -> Option<u64> {
     }
     None
 }
+
+/// Like [`find_module_base`], but matches a mapping whose filename merely
+/// *starts with* `prefix` — for natives whose exact on-disk name isn't
+/// predictable from outside (`yog-runtime`'s `extract_yog` embeds its own
+/// pid in the extracted filename: `yog-<mod-yog-stem>-<pid>.<ext>`). Pass
+/// e.g. `"yog-my-mod-"` to find that mod's extracted native regardless of
+/// the embedded pid.
+pub fn find_module_base_by_prefix(pid: Pid, prefix: &str) -> Option<u64> {
+    let maps = std::fs::read_to_string(format!("/proc/{}/maps", pid.as_raw())).ok()?;
+
+    for line in maps.lines() {
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        if fields.len() < 6 {
+            continue;
+        }
+        let path = fields[5..].join(" ");
+        if path.is_empty() {
+            continue;
+        }
+
+        let file_name = Path::new(&path).file_name().and_then(|f| f.to_str());
+        if !file_name.is_some_and(|f| f.starts_with(prefix)) {
+            continue;
+        }
+
+        let start_hex = fields[0].split('-').next()?;
+        return u64::from_str_radix(start_hex, 16).ok();
+    }
+    None
+}

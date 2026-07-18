@@ -12,6 +12,8 @@ pub mod dap;
 pub mod source_breakpoints;
 
 #[cfg(target_os = "linux")]
+pub mod discovery;
+#[cfg(target_os = "linux")]
 pub mod maps;
 #[cfg(target_os = "linux")]
 pub mod ptrace_debugger;
