@@ -118,6 +118,10 @@ struct YogToml {
 #[derive(Debug, Default, Clone)]
 struct RunConfig {
     name: String,
+    /// Optional human-readable label (`name = "..."` inside `[run.X]`), for
+    /// editors to show/edit instead of the raw dotted section-key id. Falls
+    /// back to `name` (the id) when absent.
+    display_name: Option<String>,
     /// Directory the built `.yog` gets copied into (e.g. an instance's `yog-mods/`).
     /// Relative paths resolve against the mod project root.
     export_dir: Option<String>,
@@ -241,6 +245,9 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
                         name: run_name.to_string(),
                         ..Default::default()
                     });
+                if let Some(v) = field(line, "name") {
+                    cfg.display_name = Some(v);
+                }
                 if let Some(v) = field(line, "export_dir") {
                     cfg.export_dir = Some(v);
                 }
