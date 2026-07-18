@@ -6119,4 +6119,5 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
     });
 }
 
+mod control_socket;
 mod ui_jni;
