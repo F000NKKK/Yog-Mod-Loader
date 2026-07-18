@@ -43,8 +43,19 @@ use yog_registry::{BlockDef, FoodDef, ItemDef};
 
 /// Cached JVM handle for any-thread callbacks.
 static JAVA_VM: OnceLock<JavaVM> = OnceLock::new();
-/// Loaded mod libraries — kept alive so the code pages stay mapped.
-static LOADED_MODS: Mutex<Vec<Library>> = Mutex::new(Vec::new());
+/// Loaded mod libraries, keyed by mod id — owns the safe `dlopen`/`dlclose`
+/// swap lifecycle (see `yog-hot-reload`) instead of a flat keep-alive `Vec`,
+/// so a reload can find "the current generation of this mod" and safely
+/// retire the previous one.
+static HOT_RELOADER: OnceLock<HotReloader<RuntimeModuleRegistry>> = OnceLock::new();
+/// The mod currently inside its own `yog_mod_register` call. Every `api_*`
+/// registration function reads this to tag what it stores with a
+/// `LoadedModule` handle, instead of requiring mods to pass a mod id
+/// through the stable C ABI (an ABI break, and edits to every mod's
+/// source). Valid because a mod's entire registration always happens
+/// synchronously inside one `yog_mod_register` call — see `load_mod_lib`
+/// and `Java_dev_yog_NativeBridge_nativeHotReload`.
+static CURRENT_REGISTRATION: Mutex<Option<LoadedModule>> = Mutex::new(None);
 /// Metadata of loaded .yog mods: [id, name, version, authors, description].
 static MOD_INFOS: Mutex<Vec<[String; 5]>> = Mutex::new(Vec::new());
 /// Inter-mod symbol registry: mod_id → (symbol_name → function pointer).
@@ -54,12 +65,20 @@ static INTEROP_SYMBOLS: OnceLock<Mutex<HashMap<String, HashMap<String, usize>>>>
 static SERVER: OnceLock<YogServer> = OnceLock::new();
 /// Stable api table. Mods capture this pointer at registration (yog-api's
 /// `installed_mods()` calls through it later, e.g. from UI render) — so it
-/// must outlive `nativeInit`, not live on its stack. NB: `ctx` inside points
-/// at the pre-move handlers Box and is only valid during registration; late
-/// api calls must not dereference it (api_mods_list doesn't).
+/// must outlive `nativeInit`, not live on its stack. `ctx` inside points at
+/// `HANDLERS`' own `RwLock`, published *before* any mod registers (unlike
+/// the old design, where it pointed at a temporary pre-move `Box` that
+/// went stale the instant `nativeInit` finished) — so it stays valid for a
+/// hot-reload's later re-registration too.
 static API_TABLE: OnceLock<YogApi> = OnceLock::new();
-/// All registered handlers + content (populated during mod loading, then read-only).
-static HANDLERS: OnceLock<RuntimeHandlers> = OnceLock::new();
+/// All registered handlers + content. A `RwLock`, not a plain value: unlike
+/// the original one-shot-then-immutable design, a hot-reload needs to
+/// append fresh entries for a reloaded mod after this has long been
+/// published. Read sites (`handlers()`) take a read guard; registration
+/// (initial or reload) takes a write guard — both deref straight through to
+/// `RuntimeHandlers`, so existing `handlers().field` call sites are
+/// unaffected by this type change.
+static HANDLERS: OnceLock<RwLock<RuntimeHandlers>> = OnceLock::new();
 
 // ── OpenGL context (client-side, render thread only) ─────────────────────────
 
@@ -250,8 +269,12 @@ impl SchedulerState {
     }
 }
 
-fn handlers() -> &'static RuntimeHandlers {
-    HANDLERS.get().expect("yog: nativeInit not called yet")
+fn handlers() -> std::sync::RwLockReadGuard<'static, RuntimeHandlers> {
+    HANDLERS.get().expect("yog: nativeInit not called yet").read().expect("handlers lock poisoned")
+}
+
+fn current_registration() -> LoadedModule {
+    CURRENT_REGISTRATION.lock().unwrap().clone().expect("a yog-runtime api_* function was called outside of yog_mod_register")
 }
 
 // ── JNI helpers ──────────────────────────────────────────────────────────────
