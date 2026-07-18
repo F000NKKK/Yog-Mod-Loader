@@ -289,6 +289,71 @@ fn current_registration() -> LoadedModule {
     CURRENT_REGISTRATION.lock().unwrap().clone().expect("a yog-runtime api_* function was called outside of yog_mod_register")
 }
 
+fn hot_reloader() -> &'static HotReloader<RuntimeModuleRegistry> {
+    HOT_RELOADER.get().expect("yog: nativeInit not called yet")
+}
+
+/// The `yog-hot-reload` host contract: `retarget` needs no work here because
+/// `LoadedModule::is_retiring()` already makes a superseded generation's
+/// dispatch-table entries inert (every `handlers().<field>` loop checks it)
+/// the instant `HotReloader::reload` calls `retire` on the old module —
+/// well before this is even invoked. `purge` is the actual safety-net
+/// sweep, dropping every entry tagged with a retired generation right
+/// before its library is hard-unloaded.
+struct RuntimeModuleRegistry;
+
+impl ModuleRegistry for RuntimeModuleRegistry {
+    fn retarget(&self, _mod_id: &str, _from: ModuleGeneration, _to: ModuleGeneration) {}
+
+    fn purge(&self, generation: ModuleGeneration) {
+        let Some(lock) = HANDLERS.get() else { return };
+        let mut h = lock.write().expect("handlers lock poisoned");
+        h.block_break.retain(|(m, ..)| m.generation() != generation);
+        h.chat.retain(|(m, ..)| m.generation() != generation);
+        h.player_join.retain(|(m, ..)| m.generation() != generation);
+        h.player_leave.retain(|(m, ..)| m.generation() != generation);
+        h.use_item.retain(|(m, ..)| m.generation() != generation);
+        h.use_block.retain(|(m, ..)| m.generation() != generation);
+        h.attack_entity.retain(|(m, ..)| m.generation() != generation);
+        h.entity_damage.retain(|(m, ..)| m.generation() != generation);
+        h.entity_death.retain(|(m, ..)| m.generation() != generation);
+        h.entity_spawn.retain(|(m, ..)| m.generation() != generation);
+        h.player_place_block.retain(|(m, ..)| m.generation() != generation);
+        h.player_death.retain(|(m, ..)| m.generation() != generation);
+        h.player_respawn.retain(|(m, ..)| m.generation() != generation);
+        h.advancement.retain(|(m, ..)| m.generation() != generation);
+        h.entity_interact.retain(|(m, ..)| m.generation() != generation);
+        h.item_craft.retain(|(m, ..)| m.generation() != generation);
+        h.explosion.retain(|(m, ..)| m.generation() != generation);
+        h.item_pickup.retain(|(m, ..)| m.generation() != generation);
+        h.player_move.retain(|(m, ..)| m.generation() != generation);
+        h.container_open.retain(|(m, ..)| m.generation() != generation);
+        h.container_close.retain(|(m, ..)| m.generation() != generation);
+        h.projectile_hit.retain(|(m, ..)| m.generation() != generation);
+        h.client_tick.retain(|(m, ..)| m.generation() != generation);
+        h.hud_render.retain(|(m, ..)| m.generation() != generation);
+        h.world_render.retain(|(m, ..)| m.generation() != generation);
+        h.key_press.retain(|(m, ..)| m.generation() != generation);
+        h.screen_open.retain(|(m, ..)| m.generation() != generation);
+        h.screen_close.retain(|(m, ..)| m.generation() != generation);
+        h.server_tick.retain(|(m, ..)| m.generation() != generation);
+        h.server_started.retain(|(m, ..)| m.generation() != generation);
+        h.server_stopping.retain(|(m, ..)| m.generation() != generation);
+        for entries in h.commands.values_mut() {
+            entries.retain(|(m, ..)| m.generation() != generation);
+        }
+        h.packets.retain(|_, (m, ..)| m.generation() != generation);
+        h.client_packets.retain(|_, (m, ..)| m.generation() != generation);
+        h.chunk_generators.retain(|_, (m, ..)| m.generation() != generation);
+        h.ui_handlers.retain(|_, (m, ..)| m.generation() != generation);
+        for entries in h.ui_render_handlers.values_mut() {
+            entries.retain(|(m, ..)| m.generation() != generation);
+        }
+        h.scheduler.lock().expect("scheduler poisoned").once_tasks.retain(|t| t.module.generation() != generation);
+        h.scheduler.lock().expect("scheduler poisoned").repeating_tasks.retain(|t| t.module.generation() != generation);
+    }
+}
+
 // ── JNI helpers ──────────────────────────────────────────────────────────────
 
 fn guard(label: &str, f: impl FnOnce()) {
@@ -3219,7 +3284,7 @@ unsafe extern "C" fn interop_import_impl(
         .unwrap_or(std::ptr::null())
 }
 
-fn build_api_table(ctx: *mut RuntimeHandlers, server: *const YogServer) -> YogApi {
+fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer) -> YogApi {
     YogApi {
         abi_version: ABI_VERSION,
         size: std::mem::size_of::<YogApi>() as u32,
