@@ -3703,6 +3703,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
         load_mods(Path::new(&dir), api);
     });
 
+    control_socket::start_if_requested();
+
     yog_logging::info!("runtime initialised — the gate is open.");
 }
 
