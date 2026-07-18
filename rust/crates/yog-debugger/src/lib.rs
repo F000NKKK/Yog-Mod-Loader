@@ -19,7 +19,7 @@ pub mod maps;
 pub mod ptrace_debugger;
 
 #[cfg(target_os = "linux")]
-pub use ptrace_debugger::{DebugError, Debugger, StopReason};
+pub use ptrace_debugger::{DebugError, Debugger, StepKind, StopReason};
 pub use source_breakpoints::{SourceBreakpoint, SourceBreakpoints};
 
 #[cfg(target_os = "linux")]
