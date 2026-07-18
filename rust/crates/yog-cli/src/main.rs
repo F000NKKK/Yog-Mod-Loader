@@ -19,8 +19,9 @@ use std::process::Command;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    let debugging_symbols = args.iter().any(|a| a == "--debugging-symbols");
     let result = match args.get(1).map(String::as_str) {
-        Some("build") => build().map(|_| ()),
+        Some("build") => build(debugging_symbols).map(|_| ()),
         Some("new") => new_mod(args.get(2).map(String::as_str)),
         Some("setup") => setup(),
         Some("add") => {
@@ -34,9 +35,9 @@ fn main() {
             remove_dep(name.map(String::as_str), is_mod)
         }
         Some("run") => match args.get(2) {
-            Some(name) => run_config(name),
+            Some(name) => run_config(name, debugging_symbols),
             None => {
-                Err("usage: yog run <config_name>  (see [run.<config_name>] in yog.toml)".into())
+                Err("usage: yog run <config_name> [--debugging-symbols]  (see [run.<config_name>] in yog.toml)".into())
             }
         },
         Some("publish") => {
@@ -507,7 +508,13 @@ const TARGETS: &[Target] = &[
 /// Builds and packages the mod in the current directory. Returns the parsed
 /// `yog.toml` metadata and the path to the produced `.yog` artifact, so
 /// callers like `run_config` can reuse them without re-parsing/rebuilding.
-fn build() -> Result<(YogToml, PathBuf), String> {
+///
+/// `debugging_symbols`: still a `--release` build (same output layout
+/// `package()` expects), but with debug info retained instead of stripped —
+/// for `yog-symbols`/`yog-debugger` to have something to load. No separate
+/// artifact layout: the native this produces is simply larger and
+/// symbol-ful, packaged the same way.
+fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
     let root = std::env::current_dir().map_err(|e| e.to_string())?;
     let yog_toml_path = root.join("yog.toml");
     if !yog_toml_path.exists() {
@@ -587,7 +594,7 @@ fn build() -> Result<(YogToml, PathBuf), String> {
             );
             continue;
         }
-        match builder.build(&build_dir, t.triple, &root) {
+        match builder.build(&build_dir, t.triple, &root, debugging_symbols) {
             Ok(()) => {
                 let lib = lib_filename(&meta.id, t.os);
                 // Cargo puts output under project-root/target/<triple>/release/ (we set CARGO_TARGET_DIR)
@@ -639,7 +646,7 @@ fn build() -> Result<(YogToml, PathBuf), String> {
 /// Build, optionally export the artifact into a dev instance's mod folder,
 /// then optionally launch a configured command (e.g. the instance's server
 /// or client launcher) — driven by a `[run.<config_name>]` section.
-fn run_config(config_name: &str) -> Result<(), String> {
+fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> {
     let root = std::env::current_dir().map_err(|e| e.to_string())?;
     let yog_toml_path = root.join("yog.toml");
     if !yog_toml_path.exists() {
@@ -659,7 +666,7 @@ fn run_config(config_name: &str) -> Result<(), String> {
         })?
         .clone();
 
-    let (meta, artifact) = build()?;
+    let (meta, artifact) = build(debugging_symbols)?;
 
     if let Some(export_dir) = &cfg.export_dir {
         let dir = resolve(&root, export_dir);
@@ -688,9 +695,15 @@ fn run_config(config_name: &str) -> Result<(), String> {
         proc.env(k, v);
     }
 
-    let status = proc
-        .status()
-        .map_err(|e| format!("failed to launch `{command}`: {e}"))?;
+    // `spawn` (not `status`) so the PID is available before the process
+    // exits — a stable, greppable line an external debugger (`yog-debugger`,
+    // Yog-IDLE) can read to know what to attach to.
+    let mut child = proc.spawn().map_err(|e| format!("failed to launch `{command}`: {e}"))?;
+    eprintln!("==> launched pid {}", child.id());
+
+    let status = child
+        .wait()
+        .map_err(|e| format!("failed waiting on `{command}`: {e}"))?;
     if !status.success() {
         return Err(format!("`{command}` exited with {status}"));
     }
@@ -1183,12 +1196,19 @@ impl Builder {
         }
     }
 
-    fn build(&self, build_dir: &Path, triple: &str, root: &Path) -> Result<(), ()> {
-        let output = Command::new("cargo")
-            .current_dir(build_dir)
+    fn build(&self, build_dir: &Path, triple: &str, root: &Path, debugging_symbols: bool) -> Result<(), ()> {
+        let mut cmd = Command::new("cargo");
+        cmd.current_dir(build_dir)
             .env("CARGO_TARGET_DIR", root.join("target"))
-            .args([self.subcmd(), "--release", "--target", triple])
-            .output();
+            .args([self.subcmd(), "--release", "--target", triple]);
+        if debugging_symbols {
+            // Still `--release` (same output layout/perf characteristics
+            // `package()` already expects) — just keep debug info instead
+            // of stripping it, so `yog-symbols` has something real to load.
+            cmd.env("CARGO_PROFILE_RELEASE_DEBUG", "true");
+            cmd.env("CARGO_PROFILE_RELEASE_STRIP", "none");
+        }
+        let output = cmd.output();
         match output {
             Ok(o) => {
                 eprint!(

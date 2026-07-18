@@ -915,7 +915,7 @@ version = "0.3.0"
 
 [[package]]
 name = "yog-debugger"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "nix",
  "serde_json",
@@ -955,7 +955,7 @@ dependencies = [
 
 [[package]]
 name = "yog-hot-reload"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "libloading",
 ]
@@ -1004,7 +1004,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.93.0"
+version = "0.94.0"
 dependencies = [
  "glow",
  "jni",

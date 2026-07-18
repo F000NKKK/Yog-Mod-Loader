@@ -33,7 +33,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
     } else {
         Some(parent)
     };
-    let mut active = handlers().active_uis.lock().expect("active_uis");
+    let h = handlers();
+    let mut active = h.active_uis.lock().expect("active_uis");
     active.retain(|l| l.id != id);
     let layer = UiLayer {
         id: id.clone(),
@@ -62,7 +63,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIHide<'l>(
     ui_id: JString<'l>,
 ) {
     let id = jstr!(env, ui_id);
-    let mut active = handlers().active_uis.lock().expect("active_uis");
+    let h = handlers();
+    let mut active = h.active_uis.lock().expect("active_uis");
     // Remove layer and all children
     let ids_to_remove: Vec<String> = active
         .iter()
@@ -80,7 +82,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeIsUIActive<'l>(
     ui_id: JString<'l>,
 ) -> jboolean {
     let id = jstr!(env, ui_id);
-    let active = handlers().active_uis.lock().expect("active_uis");
+    let h = handlers();
+    let active = h.active_uis.lock().expect("active_uis");
     active.iter().any(|l| l.id == id && l.visible) as jboolean
 }
 
@@ -140,13 +143,17 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
     // Generic UI handler — forward raw click coords so the mod can hit-test its
     // own stored layout (see Registry::on_ui_render + LAST_LAYOUT pattern).
     let mut consumed = false;
-    if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
-        let ev = format!("click:{:.1}:{:.1}", mx, my);
-        yog_logging::info!("UI click '{}' → raw {}", id, ev);
-        unsafe {
-            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
+        if !module.is_retiring() {
+            if let Some(_call) = module.enter() {
+                let ev = format!("click:{:.1}:{:.1}", mx, my);
+                yog_logging::info!("UI click '{}' → raw {}", id, ev);
+                unsafe {
+                    handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+                }
+                consumed = true; // if a UI handler exists, consider the click consumed
+            }
         }
-        consumed = true; // if a UI handler exists, consider the click consumed
     }
     let _ = button;
     if consumed {
@@ -166,10 +173,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIScroll<'l>(
     let id = jstr!(env, ui_id);
     let h = handlers();
     // Forward as a generic UI event; the mod applies its own scroll offset.
-    if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
-        let ev = format!("scroll:{:.2}", dy);
-        unsafe {
-            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
+        if !module.is_retiring() {
+            if let Some(_call) = module.enter() {
+                let ev = format!("scroll:{:.2}", dy);
+                unsafe {
+                    handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+                }
+            }
         }
     }
 }
@@ -184,10 +195,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIDrag<'l>(
 ) {
     let id = jstr!(env, ui_id);
     let h = handlers();
-    if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
-        let ev = format!("drag:{:.1}:{:.1}", mx, my);
-        unsafe {
-            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
+        if !module.is_retiring() {
+            if let Some(_call) = module.enter() {
+                let ev = format!("drag:{:.1}:{:.1}", mx, my);
+                unsafe {
+                    handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+                }
+            }
         }
     }
 }
@@ -202,10 +217,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRelease<'l>(
 ) {
     let id = jstr!(env, ui_id);
     let h = handlers();
-    if let Some((ud, handler)) = h.ui_handlers.get(&id).copied() {
-        let ev = format!("release:{:.1}:{:.1}", mx, my);
-        unsafe {
-            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
+        if !module.is_retiring() {
+            if let Some(_call) = module.enter() {
+                let ev = format!("release:{:.1}:{:.1}", mx, my);
+                unsafe {
+                    handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
+                }
+            }
         }
     }
 }

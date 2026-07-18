@@ -2928,7 +2928,7 @@ unsafe extern "C" fn api_schedule_once(
     h: YogScheduledFn,
 ) {
     let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+    let handlers = handlers_lock.write().expect("handlers lock poisoned");
     handlers
         .scheduler
         .lock()
@@ -2949,7 +2949,7 @@ unsafe extern "C" fn api_schedule_repeating(
     h: YogScheduledFn,
 ) {
     let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+    let handlers = handlers_lock.write().expect("handlers lock poisoned");
     handlers
         .scheduler
         .lock()
@@ -3704,6 +3704,70 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     });
 
     yog_logging::info!("runtime initialised — the gate is open.");
+}
+
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeHotReload<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    mod_id: JString<'l>,
+    new_yog_path: JString<'l>,
+) -> jni::sys::jboolean {
+    let Ok(mod_id) = env.get_string(&mod_id).map(String::from) else { return 0 };
+    let Ok(yog_path) = env.get_string(&new_yog_path).map(String::from) else { return 0 };
+    let ok = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| trigger_hot_reload(&mod_id, Path::new(&yog_path)))).unwrap_or(false);
+    ok as jni::sys::jboolean
+}
+
+/// Rebuilds and re-registers `mod_id` from a freshly built `.yog` at
+/// `new_yog_path`: extracts the current platform's native, loads it as a
+/// new generation via the shared `HotReloader` (which retires the previous
+/// generation per its hybrid soft/hard-unload policy — hard-unloaded right
+/// away if nothing's mid-call, deferred otherwise), then calls its
+/// `yog_mod_register` again so its handlers get tagged under the new
+/// generation. How this actually gets triggered — a keybind, a file-watch,
+/// an IDE-driven socket — is a separate, later concern; this only needs to
+/// work correctly once called.
+fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
+    let Some(native_path) = extract_yog(new_yog_path) else {
+        yog_logging::error!("hot-reload {}: no native for {} in {}", mod_id, platform_tag(), new_yog_path.display());
+        return false;
+    };
+
+    let api = API_TABLE.get().expect("yog: nativeInit not called yet");
+
+    let module = match unsafe { hot_reloader().reload(mod_id, &native_path) } {
+        Ok(m) => m,
+        Err(e) => {
+            yog_logging::error!("hot-reload {}: failed to load {}: {}", mod_id, native_path.display(), e);
+            return false;
+        }
+    };
+
+    let abi = module.with_library(|lib| unsafe {
+        let abi: Symbol<AbiVersionFn> = lib.get(b"yog_abi_version").ok()?;
+        Some(abi())
+    });
+    match abi.flatten() {
+        Some(v) if v == ABI_VERSION => {}
+        other => {
+            yog_logging::error!(
+                "hot-reload {}: ABI {:?} incompatible with runtime ABI {} — mod has no active handlers until a compatible reload succeeds",
+                mod_id,
+                other,
+                ABI_VERSION
+            );
+            return false;
+        }
+    }
+
+    if let Err(e) = invoke_mod_register(&module, api, mod_id) {
+        yog_logging::error!("hot-reload {}: {}", mod_id, e);
+        return false;
+    }
+
+    yog_logging::info!("hot-reloaded mod {}", mod_id);
+    true
 }
 
 #[no_mangle]
@@ -4567,11 +4631,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
         let Some(regs) = h.commands.get(&n) else {
             return String::new();
         };
-        for (schema, ud, f) in regs {
+        for (module, schema, ud, f) in regs {
             let expected_argc = schema.as_ref().map_or(0, |s| s.split_whitespace().count());
             if expected_argc != actual_argc {
                 continue;
             }
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else { continue };
             let mut buf = [0u8; 4096];
             let mut reply_len: u32 = 0;
             unsafe {
@@ -4767,7 +4835,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPacket<'l>(
     let h = handlers();
     let srv = srv_ptr();
     guard("on_packet", || {
-        if let Some((ud, f)) = h.packets.get(&ch) {
+        if let Some((module, ud, f)) = h.packets.get(&ch) {
+            if module.is_retiring() {
+                return;
+            }
+            let Some(_call) = module.enter() else { return };
             unsafe { f(*ud, srv, &ev) };
         }
     });
@@ -4794,7 +4866,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientPacket<'l>(
     let h = handlers();
     let srv = srv_ptr();
     guard("on_client_packet", || {
-        if let Some((ud, f)) = h.client_packets.get(&ch) {
+        if let Some((module, ud, f)) = h.client_packets.get(&ch) {
+            if module.is_retiring() {
+                return;
+            }
+            let Some(_call) = module.enter() else { return };
             unsafe { f(*ud, srv, &ev) };
         }
     });
