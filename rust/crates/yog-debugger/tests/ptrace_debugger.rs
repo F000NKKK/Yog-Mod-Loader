@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use yog_debugger::maps::find_module_base;
-use yog_debugger::ptrace_debugger::{Debugger, StopReason};
+use yog_debugger::ptrace_debugger::{Debugger, StepKind, StopReason};
 use yog_symbols::SymbolTable;
 
 fn build_fixture() -> PathBuf {
