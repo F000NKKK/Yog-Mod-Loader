@@ -1,0 +1,13 @@
+[package]
+name = "yog-debugger"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "ptrace-based native debugger for Yog mods, speaking the Debug Adapter Protocol (DAP)."
+
+[dependencies]
+yog-symbols = { path = "../yog-symbols" }
+yog-hot-reload = { path = "../yog-hot-reload" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nix.workspace = true
