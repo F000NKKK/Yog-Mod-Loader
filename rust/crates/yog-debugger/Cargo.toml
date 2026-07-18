@@ -6,8 +6,9 @@ license.workspace = true
 description = "ptrace-based native debugger for Yog mods, speaking the Debug Adapter Protocol (DAP)."
 
 [dependencies]
-yog-symbols = { path = "../yog-symbols" }
-yog-hot-reload = { path = "../yog-hot-reload" }
+yog-symbols = "0.1"
+yog-hot-reload = "0.1"
+serde_json.workspace = true
 
 [target.'cfg(target_os = "linux")'.dependencies]
 nix.workspace = true

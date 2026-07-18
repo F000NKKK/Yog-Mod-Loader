@@ -857,7 +857,7 @@ version = "0.25.0"
 
 [[package]]
 name = "yog-api"
-version = "0.86.0"
+version = "0.87.0"
 dependencies = [
  "ctor",
  "rkyv",
@@ -918,6 +918,7 @@ name = "yog-debugger"
 version = "0.1.0"
 dependencies = [
  "nix",
+ "serde_json",
  "yog-hot-reload",
  "yog-symbols",
 ]
@@ -1003,7 +1004,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.92.0"
+version = "0.93.0"
 dependencies = [
  "glow",
  "jni",

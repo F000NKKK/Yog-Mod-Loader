@@ -87,3 +87,5 @@ yog-gfx      = { path = "crates/yog-gfx" }
 yog-ui       = { path = "crates/yog-ui" }
 yog-inventory = { path = "crates/yog-inventory" }
 yog-interop   = { path = "crates/yog-interop" }
+yog-symbols    = { path = "crates/yog-symbols" }
+yog-hot-reload = { path = "crates/yog-hot-reload" }
