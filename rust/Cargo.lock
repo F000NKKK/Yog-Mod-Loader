@@ -1014,6 +1014,7 @@ dependencies = [
  "yog-api",
  "yog-book",
  "yog-gfx",
+ "yog-hot-reload",
  "yog-inventory",
  "yog-logging",
  "yog-registry",

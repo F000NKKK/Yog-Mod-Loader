@@ -25,6 +25,7 @@ yog-ui     = "0.35"
 yog-book   = "0.55"
 yog-gfx    = "0.22"
 yog-inventory = "0.11"
+yog-hot-reload = "0.1"
 
 serde_json.workspace = true
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.

@@ -288,7 +288,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     // Generic on_ui_render callbacks — run AFTER renderBackground(), so they appear
     // on top of the screen darkening (unlike on_hud_render which runs before screens).
     let render_cbs: Vec<_> = h.ui_render_handlers.get(&id).cloned().unwrap_or_default();
-    for (ud, f) in render_cbs {
+    for (module, ud, f) in render_cbs {
+        if module.is_retiring() {
+            continue;
+        }
+        let Some(_call) = module.enter() else { continue };
         unsafe { f(ud, &gfx as *const _) };
     }
 }
@@ -299,13 +303,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 /// others, which is fine — just skip them).
 fn push_inventory_snapshot(snapshot: &yog_inventory::YogInvSnapshotRaw) {
     type SetSnapshotFn = unsafe extern "C" fn(*const yog_inventory::YogInvSnapshotRaw);
-    let libs = crate::LOADED_MODS.lock().expect("mods lock poisoned");
-    for lib in libs.iter() {
-        unsafe {
+    for (_id, module) in crate::hot_reloader().all_active() {
+        if module.is_retiring() {
+            continue;
+        }
+        let Some(_call) = module.enter() else { continue };
+        module.with_library(|lib| unsafe {
             if let Ok(f) = lib.get::<SetSnapshotFn>(b"yog_inventory_set_snapshot") {
                 f(snapshot as *const _);
             }
-        }
+        });
     }
 }
 

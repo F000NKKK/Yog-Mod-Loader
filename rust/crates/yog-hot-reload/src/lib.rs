@@ -250,6 +250,11 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
         self.loaded.lock().unwrap().get(mod_id).cloned()
     }
 
+    /// Every currently-active module, keyed by mod id.
+    pub fn all_active(&self) -> Vec<(String, LoadedModule)> {
+        self.loaded.lock().unwrap().iter().map(|(id, module)| (id.clone(), module.clone())).collect()
+    }
+
     /// The host's [`ModuleRegistry`] implementation.
     pub fn registry(&self) -> &R {
         &self.registry

@@ -2980,7 +2980,7 @@ unsafe extern "C" fn api_register_chunk_generator(
     let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let id = unsafe { id.as_str().to_owned() };
     yog_logging::info!("registered chunk generator for dimension: {}", id);
-    handlers.chunk_generators.insert(id, (ud, h));
+    handlers.chunk_generators.insert(id, (current_registration(), ud, h));
 }
 
 unsafe extern "C" fn api_register_ui(
@@ -2993,7 +2993,7 @@ unsafe extern "C" fn api_register_ui(
     let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
     let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let id = unsafe { ui_id.as_str().to_owned() };
-    handlers.ui_handlers.insert(id.clone(), (ud, h));
+    handlers.ui_handlers.insert(id.clone(), (current_registration(), ud, h));
     yog_logging::info!("registered UI handler: {}", id);
 }
 
@@ -3010,7 +3010,7 @@ unsafe extern "C" fn api_on_ui_render(
         .ui_render_handlers
         .entry(id)
         .or_default()
-        .push((ud, h));
+        .push((current_registration(), ud, h));
 }
 
 /// Strip TSV separators so one mod can't corrupt the line format.
