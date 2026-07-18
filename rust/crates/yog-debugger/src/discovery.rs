@@ -76,3 +76,21 @@ pub fn find_descendant_with_module(root_pid: Pid, needle: &str) -> Option<Pid> {
     }
     None
 }
+
+/// Scans every process visible to this user for one with a mapping whose
+/// filename contains `needle` — no ancestry check at all, unlike
+/// [`find_descendant_with_module`]. Needed because a launcher wrapper isn't
+/// always a genuine ancestor of the process it "launches": Gradle's daemon
+/// model in particular means `./gradlew runClient` commonly just talks to
+/// an *already-running*, long-lived daemon over a socket — the JVM that
+/// actually loads `yog-runtime` may be parented to that daemon (started by
+/// some earlier, unrelated `gradlew` invocation), never to the `./gradlew`
+/// process this session spawned, so no amount of walking that process's
+/// descendants would ever find it. This is a deliberately broader,
+/// last-resort fallback for exactly that case — call it only after
+/// [`find_descendant_with_module`] has failed, since matching by loaded
+/// module name alone (not ancestry) could in principle pick up an
+/// unrelated concurrently-running Yog instance if more than one exists.
+pub fn find_process_with_module(needle: &str) -> Option<Pid> {
+    all_pids().into_iter().find(|&pid| has_mapping_containing(pid, needle)).map(Pid::from_raw)
+}
