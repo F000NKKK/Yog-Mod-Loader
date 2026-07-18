@@ -16,13 +16,14 @@ use std::collections::HashMap;
 use std::num::NonZeroU32;
 use std::os::raw::c_void;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Mutex, OnceLock, RwLock};
 
 use glow::HasContext;
 use jni::objects::{JByteArray, JClass, JFloatArray, JObject, JString, JValue};
 use jni::sys::{jdouble, jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
-use libloading::{Library, Symbol};
+use libloading::Symbol;
+use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
 use yog_abi::{
     YogAdvancementEvent, YogAdvancementFn, YogApi, YogAttackEntityFn, YogBlockBreakFn, YogBlockDef,
@@ -2593,7 +2594,8 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
 macro_rules! api_event {
     ($name:ident, $field:ident, $fn_ty:ty) => {
         unsafe extern "C" fn $name(ctx: *mut c_void, ud: *mut c_void, h: $fn_ty) {
-            let handlers = &mut *(ctx as *mut RuntimeHandlers);
+            let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+            let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
             handlers.$field.push((ud, h));
         }
     };
@@ -2641,7 +2643,8 @@ unsafe extern "C" fn api_on_packet(
     ud: *mut c_void,
     h: YogPacketFn,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     handlers
         .packets
         .insert(channel.as_str().to_owned(), (ud, h));
@@ -2653,7 +2656,8 @@ unsafe extern "C" fn api_on_client_packet(
     ud: *mut c_void,
     h: YogPacketFn,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     handlers
         .client_packets
         .insert(channel.as_str().to_owned(), (ud, h));
@@ -2665,7 +2669,8 @@ unsafe extern "C" fn api_register_command(
     ud: *mut c_void,
     h: YogCommandFn,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     handlers
         .commands
         .entry(name.as_str().to_owned())
@@ -2680,7 +2685,8 @@ unsafe extern "C" fn api_register_typed_command(
     ud: *mut c_void,
     h: YogCommandFn,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let n = name.as_str().to_owned();
     handlers
         .commands
@@ -2695,7 +2701,8 @@ unsafe extern "C" fn api_register_recipe_json(
     name: YogStr,
     json: YogStr,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let ns = namespace.as_str().to_owned();
     let n = name.as_str().to_owned();
     let j = json.as_str().to_owned();
@@ -2708,7 +2715,8 @@ unsafe extern "C" fn api_register_recipe_json(
 }
 
 unsafe extern "C" fn api_register_item(ctx: *mut c_void, def: *const YogItemDef) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let d = &*def;
     let food = if d.food_nutrition > 0 {
         Some(FoodDef {
@@ -2740,7 +2748,8 @@ unsafe extern "C" fn api_register_item(ctx: *mut c_void, def: *const YogItemDef)
 }
 
 unsafe extern "C" fn api_register_block(ctx: *mut c_void, def: *const YogBlockDef) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let d = &*def;
     handlers.blocks.push(BlockDef {
         id: d.id.as_str().to_owned(),
@@ -2787,7 +2796,8 @@ unsafe extern "C" fn api_register_inventory(
     ctx: *mut c_void,
     def: *const yog_abi::YogInventoryDef,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let d = &*def;
     handlers.inventories.push(yog_inventory::InventoryDef {
         id: d.id.as_str().to_owned(),
@@ -2815,7 +2825,8 @@ unsafe extern "C" fn api_schedule_once(
     ud: *mut c_void,
     h: YogScheduledFn,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     handlers
         .scheduler
         .lock()
@@ -2834,7 +2845,8 @@ unsafe extern "C" fn api_schedule_repeating(
     ud: *mut c_void,
     h: YogScheduledFn,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     handlers
         .scheduler
         .lock()
@@ -2852,7 +2864,8 @@ unsafe extern "C" fn api_register_startup_grant(
     ctx: *mut c_void,
     grant: *const YogStartupGrantDef,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let g = &*grant;
     let items: Vec<String> = if g.items.is_empty() {
         Vec::new()
@@ -2884,7 +2897,8 @@ unsafe extern "C" fn api_register_startup_grant(
 }
 
 unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_json: YogStr) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let id = unsafe { book_id.as_str().to_owned() };
     let json = unsafe { book_json.as_str().to_owned() };
     handlers.books.insert(id.clone(), json.clone());
@@ -2909,7 +2923,8 @@ unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_j
 }
 
 unsafe extern "C" fn api_register_dimension_json(ctx: *mut c_void, id: YogStr, json: YogStr) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let id = unsafe { id.as_str().to_owned() };
     let json = unsafe { json.as_str().to_owned() };
     yog_logging::info!("registered dimension type: {}", id);
@@ -2922,7 +2937,8 @@ unsafe extern "C" fn api_register_chunk_generator(
     ud: *mut c_void,
     h: yog_abi::YogChunkGeneratorFn,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let id = unsafe { id.as_str().to_owned() };
     yog_logging::info!("registered chunk generator for dimension: {}", id);
     handlers.chunk_generators.insert(id, (ud, h));
@@ -2935,7 +2951,8 @@ unsafe extern "C" fn api_register_ui(
     ud: *mut c_void,
     h: yog_abi::YogUIEventFn,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let id = unsafe { ui_id.as_str().to_owned() };
     handlers.ui_handlers.insert(id.clone(), (ud, h));
     yog_logging::info!("registered UI handler: {}", id);
@@ -2947,7 +2964,8 @@ unsafe extern "C" fn api_on_ui_render(
     ud: *mut c_void,
     h: YogHudRenderFn,
 ) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let id = unsafe { ui_id.as_str().to_owned() };
     handlers
         .ui_render_handlers
@@ -3022,7 +3040,8 @@ unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
 }
 
 unsafe extern "C" fn api_register_menu_entry(ctx: *mut c_void, label: YogStr, ui_id: YogStr) {
-    let handlers = &mut *(ctx as *mut RuntimeHandlers);
+    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let l = unsafe { label.as_str().to_owned() };
     let u = unsafe { ui_id.as_str().to_owned() };
     handlers.menu_entries.push((l, u));
