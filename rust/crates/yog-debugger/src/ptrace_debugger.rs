@@ -45,6 +45,12 @@ impl std::fmt::Display for DebugError {
 
 impl std::error::Error for DebugError {}
 
+/// Whether a stop means the tracee is gone (exited or killed) — a stepping
+/// loop must bail immediately rather than trying to read its registers.
+fn is_terminal(reason: &StopReason) -> bool {
+    matches!(reason, StopReason::Exited(_) | StopReason::Killed(_))
+}
+
 impl From<nix::Error> for DebugError {
     fn from(e: nix::Error) -> Self {
         DebugError::Ptrace(e)
@@ -201,6 +207,152 @@ impl Debugger {
 
     pub fn registers(&self) -> Result<nix::libc::user_regs_struct, DebugError> {
         Ok(ptrace::getregs(self.pid)?)
+    }
+
+    /// The source location `rip` currently maps to, or `None` if the current
+    /// instruction is in code with no line info (a library, or a
+    /// compiler-generated stub). `base` is the mod native's load address —
+    /// see `crate::maps::find_module_base_by_prefix`.
+    pub fn source_location(&self, symbols: &SymbolTable, base: u64) -> Option<SourceLocation> {
+        let rip = self.registers().ok()?.rip;
+        let offset = rip.checked_sub(base)?;
+        symbols.resolve_addr(offset)
+    }
+
+    /// A comparable (file, line) key for "are we still on the same source
+    /// line" checks during stepping — line 0 (no line) collapses to `None`.
+    fn line_key(&self, symbols: &SymbolTable, base: u64) -> Option<(std::path::PathBuf, u32)> {
+        let loc = self.source_location(symbols, base)?;
+        if loc.line == 0 {
+            return None;
+        }
+        Some((loc.file, loc.line))
+    }
+
+    /// Reads `buf.len()` bytes of the tracee's memory at `addr`, substituting
+    /// back the original instruction bytes for any breakpoints armed within
+    /// the window — so a downstream `0xCC` never corrupts the decode of the
+    /// instruction we're actually looking at.
+    fn read_code(&self, addr: u64, buf: &mut [u8]) -> Result<(), DebugError> {
+        let mut i = 0;
+        while i < buf.len() {
+            let word = self.peek(addr + i as u64)?;
+            let bytes = word.to_ne_bytes();
+            let take = (buf.len() - i).min(bytes.len());
+            buf[i..i + take].copy_from_slice(&bytes[..take]);
+            i += bytes.len();
+        }
+        for (&bp_addr, &orig) in &self.breakpoints {
+            if bp_addr >= addr && bp_addr < addr + buf.len() as u64 {
+                buf[(bp_addr - addr) as usize] = orig;
+            }
+        }
+        Ok(())
+    }
+
+    /// Decodes the instruction at `rip`, returning `(is_call, length)`.
+    /// Falls back to `(false, 1)` on unreadable/undecodable memory — a
+    /// caller then just single-steps a byte's worth conservatively.
+    fn decode_at(&self, rip: u64) -> (bool, u64) {
+        let mut buf = [0u8; 16];
+        if self.read_code(rip, &mut buf).is_err() {
+            return (false, 1);
+        }
+        let mut decoder = Decoder::with_ip(64, &buf, rip, DecoderOptions::NONE);
+        let insn = decoder.decode();
+        if insn.is_invalid() {
+            return (false, 1);
+        }
+        (matches!(insn.mnemonic(), Mnemonic::Call), insn.len() as u64)
+    }
+
+    /// Runs until `addr` is reached (via a temporary breakpoint) — used to
+    /// step over a call by returning to the instruction after it. Stops
+    /// early and reports it if a *user* breakpoint is hit along the way.
+    fn run_to(&mut self, addr: u64) -> Result<StopReason, DebugError> {
+        let was_user_bp = self.breakpoints.contains_key(&addr);
+        if !was_user_bp {
+            self.set_breakpoint(addr)?;
+        }
+        let reason = self.continue_()?;
+        match reason {
+            StopReason::Breakpoint(hit) if hit == addr && !was_user_bp => {
+                self.clear_breakpoint(addr)?;
+                Ok(StopReason::Signal(Signal::SIGTRAP))
+            }
+            StopReason::Breakpoint(_) => {
+                if !was_user_bp {
+                    self.clear_breakpoint(addr)?;
+                }
+                Ok(reason)
+            }
+            other => {
+                if !was_user_bp {
+                    let _ = self.clear_breakpoint(addr);
+                }
+                Ok(other)
+            }
+        }
+    }
+
+    /// A source-level step (F10/F11/Shift+F11) — see [`StepKind`]. Keeps
+    /// executing single instructions (skipping over calls per `kind`) until
+    /// the source line changes appropriately, a user breakpoint is hit, or
+    /// the tracee exits. `symbols`/`base` resolve `rip` to a source line.
+    pub fn source_step(&mut self, kind: StepKind, symbols: &SymbolTable, base: u64) -> Result<StopReason, DebugError> {
+        let start = self.line_key(symbols, base);
+        let start_sp = self.registers()?.rsp;
+        // A generous ceiling so a pathological step (e.g. into a huge
+        // library call whose return we somehow miss) can't spin forever —
+        // reaching it just stops where we are, same as any other trap.
+        const MAX_STEPS: usize = 5_000_000;
+
+        for _ in 0..MAX_STEPS {
+            let rip = self.registers()?.rip;
+            let (is_call, len) = self.decode_at(rip);
+
+            let reason = if is_call && kind == StepKind::Over {
+                self.run_to(rip + len)?
+            } else if is_call && kind == StepKind::Into {
+                let stepped = self.single_step()?;
+                if is_terminal(&stepped) {
+                    return Ok(stepped);
+                }
+                // If we descended into code with no source line (a library
+                // call), run straight back out to the instruction after the
+                // call rather than crawling through it instruction by
+                // instruction — matches VS's "step into stays in your code".
+                if self.line_key(symbols, base).is_none() {
+                    let back = self.run_to(rip + len)?;
+                    if is_terminal(&back) || matches!(back, StopReason::Breakpoint(_)) {
+                        return Ok(back);
+                    }
+                }
+                StopReason::Signal(Signal::SIGTRAP)
+            } else {
+                self.single_step()?
+            };
+
+            match reason {
+                StopReason::Exited(_) | StopReason::Killed(_) => return Ok(reason),
+                StopReason::Breakpoint(_) => return Ok(reason),
+                StopReason::Signal(Signal::SIGTRAP) => {}
+                StopReason::Signal(other) => return Ok(StopReason::Signal(other)),
+            }
+
+            let cur = self.line_key(symbols, base);
+            let cur_sp = self.registers()?.rsp;
+            let stop = match kind {
+                // Stack grows down: a strictly *higher* rsp means we've
+                // returned into a shallower frame.
+                StepKind::Out => cur_sp > start_sp && cur.is_some(),
+                StepKind::Into | StepKind::Over => cur.is_some() && cur != start,
+            };
+            if stop {
+                return Ok(StopReason::Signal(Signal::SIGTRAP));
+            }
+        }
+        Ok(StopReason::Signal(Signal::SIGTRAP))
     }
 
     /// Frame-pointer-walk backtrace: return addresses only, in innermost-
