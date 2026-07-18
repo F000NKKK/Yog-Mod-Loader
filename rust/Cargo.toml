@@ -66,6 +66,7 @@ object = "0.39"
 gimli = "0.34"
 addr2line = "0.27"
 nix = { version = "0.31", features = ["ptrace", "signal", "process"] }
+iced-x86 = { version = "1.21", default-features = false, features = ["std", "decoder", "instr_info"] }
 
 [patch.crates-io]
 yog-abi      = { path = "crates/yog-abi" }

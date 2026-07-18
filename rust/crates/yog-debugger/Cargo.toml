@@ -12,3 +12,4 @@ serde_json.workspace = true
 
 [target.'cfg(target_os = "linux")'.dependencies]
 nix.workspace = true
+iced-x86.workspace = true
