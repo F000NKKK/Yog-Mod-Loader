@@ -2624,14 +2624,16 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
 
 // ── YogApi registration functions ─────────────────────────────────────────────
 //
-// ctx is *mut RuntimeHandlers (cast from *mut c_void).
+// ctx is *const RwLock<RuntimeHandlers> (cast from *mut c_void) — see
+// `current_registration()` for how each entry gets tagged with the
+// `LoadedModule` that's registering it.
 
 macro_rules! api_event {
     ($name:ident, $field:ident, $fn_ty:ty) => {
         unsafe extern "C" fn $name(ctx: *mut c_void, ud: *mut c_void, h: $fn_ty) {
             let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
             let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-            handlers.$field.push((ud, h));
+            handlers.$field.push((current_registration(), ud, h));
         }
     };
 }
@@ -2682,7 +2684,7 @@ unsafe extern "C" fn api_on_packet(
     let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     handlers
         .packets
-        .insert(channel.as_str().to_owned(), (ud, h));
+        .insert(channel.as_str().to_owned(), (current_registration(), ud, h));
 }
 
 unsafe extern "C" fn api_on_client_packet(
@@ -2695,7 +2697,7 @@ unsafe extern "C" fn api_on_client_packet(
     let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     handlers
         .client_packets
-        .insert(channel.as_str().to_owned(), (ud, h));
+        .insert(channel.as_str().to_owned(), (current_registration(), ud, h));
 }
 
 unsafe extern "C" fn api_register_command(
@@ -2710,7 +2712,7 @@ unsafe extern "C" fn api_register_command(
         .commands
         .entry(name.as_str().to_owned())
         .or_default()
-        .push((None, ud, h));
+        .push((current_registration(), None, ud, h));
 }
 
 unsafe extern "C" fn api_register_typed_command(
@@ -2727,7 +2729,7 @@ unsafe extern "C" fn api_register_typed_command(
         .commands
         .entry(n)
         .or_default()
-        .push((Some(schema.as_str().to_owned()), ud, h));
+        .push((current_registration(), Some(schema.as_str().to_owned()), ud, h));
 }
 
 unsafe extern "C" fn api_register_recipe_json(
@@ -2868,6 +2870,7 @@ unsafe extern "C" fn api_schedule_once(
         .expect("scheduler poisoned")
         .once_tasks
         .push(OnceTask {
+            module: current_registration(),
             delay_remaining: delay_ticks,
             ud,
             f: h,
@@ -2888,6 +2891,7 @@ unsafe extern "C" fn api_schedule_repeating(
         .expect("scheduler poisoned")
         .repeating_tasks
         .push(RepeatingTask {
+            module: current_registration(),
             period: period_ticks,
             ticks_left: period_ticks,
             ud,
