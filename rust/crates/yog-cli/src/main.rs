@@ -74,13 +74,16 @@ fn print_usage() {
         "yog — Yog mod build tool\n\n\
          Usage: yog <command> [args]\n\n\
          Commands:\n\
-         \x20 new <name>        Create a new mod project in ./<name>/\n\
-         \x20 build             Compile the current mod and package it as artifacts/<id>.yog\n\
-         \x20 setup             Check and install build dependencies (Rust, Zig, targets)\n\
-         \x20 add <crate>       Add a Rust dependency to yog.toml\n\
-         \x20 remove <crate>    Remove a dependency from yog.toml\n\
-         \x20 run <config>      Build, export, and launch a [run.<config>] dev instance\n\
-         \x20 help              Show this message\n\n\
+         \x20 new <name>          Create a new mod project in ./<name>/\n\
+         \x20 build               Compile the current mod and package it as artifacts/<id>.yog\n\
+         \x20 build debug         Same, but keep debug info in the native (for yog-debugger)\n\
+         \x20 setup               Check and install build dependencies (Rust, Zig, targets)\n\
+         \x20 add <crate>         Add a Rust dependency to yog.toml\n\
+         \x20 remove <crate>      Remove a dependency from yog.toml\n\
+         \x20 run <config>        Build, export, and launch a [run.<config>] dev instance\n\
+         \x20 run <config> --debug  Same, built with debug info kept (see `build debug`)\n\
+         \x20 publish exports     Publish this mod's exported API to crates.io\n\
+         \x20 help                Show this message\n\n\
          Mod projects use yog.toml instead of Cargo.toml.\n\
          Cross-compilation requires cargo-zigbuild + zig (yog setup installs them)."
     );
