@@ -4482,9 +4482,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeGenerateChunk<'l>(
         Ok(s) => String::from(s),
         Err(_) => return,
     };
-    let Some((ud, cb)) = handlers().chunk_generators.get(&id).copied() else {
+    let Some((module, ud, cb)) = handlers().chunk_generators.get(&id).cloned() else {
         return;
     };
+    if module.is_retiring() {
+        return;
+    }
+    let Some(_call) = module.enter() else { return };
     let writer = yog_abi::YogChunkWriterApi {
         chunk_x,
         chunk_z,
@@ -4510,7 +4514,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeTypedCommandSchemas<'l>(
     let mut lines = Vec::new();
     for (name, regs) in handlers().commands.iter() {
         let mut seen = std::collections::HashSet::new();
-        for (schema, _, _) in regs {
+        for (_module, schema, _, _) in regs {
             if let Some(schema) = schema {
                 if seen.insert(schema.as_str()) {
                     lines.push(format!("{}\t{}", name, schema));
