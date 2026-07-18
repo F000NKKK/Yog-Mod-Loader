@@ -115,6 +115,18 @@ impl LoadedModule {
         self.0.library.lock().unwrap().is_some()
     }
 
+    /// Whether this generation has been superseded by a newer one — `true`
+    /// from the moment `retire` is called, even if the physical `dlclose`
+    /// is still deferred (a call may be in flight). Callers dispatching a
+    /// *new* call should check this first and skip modules for which it's
+    /// `true`, rather than only relying on [`is_loaded`](Self::is_loaded):
+    /// a retiring-but-still-loaded module is exactly the state where
+    /// starting a fresh call would work today but is no longer correct
+    /// policy — the whole point of retiring is to stop starting new calls.
+    pub fn is_retiring(&self) -> bool {
+        self.0.retiring.load(Ordering::SeqCst)
+    }
+
     /// Looks up a symbol while the module is still loaded. Returns `None`
     /// once it has been unloaded, instead of the dangling-pointer crash
     /// calling into a `dlclose`'d library would otherwise cause.
