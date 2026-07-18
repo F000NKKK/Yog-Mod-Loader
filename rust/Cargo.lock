@@ -915,7 +915,7 @@ version = "0.3.0"
 
 [[package]]
 name = "yog-debugger"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "nix",
  "serde_json",
