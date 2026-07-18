@@ -3332,7 +3332,7 @@ fn load_mods(dir: &Path, api: &YogApi) {
         }
     };
 
-    let mut count = 0u32;
+    let mut loaded: Vec<LoadedModule> = Vec::new();
     for idx in sorted {
         let meta = &metas[idx];
         let lib_path = match extract_yog(&meta.yog_path) {
@@ -3346,32 +3346,31 @@ fn load_mods(dir: &Path, api: &YogApi) {
                 continue;
             }
         };
-        if load_mod_lib(&lib_path, api, &meta.id) {
-            count += 1;
+        if let Some(module) = load_mod_lib(&lib_path, api, &meta.id) {
+            loaded.push(module);
             MOD_INFOS
                 .lock()
                 .expect("mod infos lock poisoned")
                 .push(read_mod_info(&meta.yog_path));
         }
     }
-    yog_logging::info!("loaded {} mod(s) from {}", count, dir.display());
+    yog_logging::info!("loaded {} mod(s) from {}", loaded.len(), dir.display());
 
     // Final import resolution pass — after all mods loaded, each mod's pending
     // imports can be resolved against the now-complete interop table.
-    resolve_all_imports(api);
+    resolve_all_imports(api, &loaded);
 }
 
 /// After all mods loaded, call `__yog_resolve_imports_final` on each library
 /// to resolve any imports that weren't satisfied during initial registration.
-fn resolve_all_imports(api: &YogApi) {
-    let libs = LOADED_MODS.lock().expect("mods lock poisoned");
-    for lib in libs.iter() {
-        unsafe {
+fn resolve_all_imports(api: &YogApi, loaded: &[LoadedModule]) {
+    for module in loaded {
+        module.with_library(|lib| unsafe {
             type ResolveFn = unsafe extern "C" fn(*const YogApi);
             if let Ok(resolve) = lib.get::<ResolveFn>(b"__yog_resolve_imports_final") {
                 resolve(api as *const YogApi);
             }
-        }
+        });
     }
 }
 
