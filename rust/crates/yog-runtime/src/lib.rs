@@ -3701,7 +3701,13 @@ fn extract_yog(path: &Path) -> Option<PathBuf> {
         .and_then(|e| e.to_str())
         .unwrap_or("bin");
     let stem = path.file_stem()?.to_string_lossy().into_owned();
-    let out = std::env::temp_dir().join(format!("yog-{}-{}.{}", stem, std::process::id(), ext));
+    // A fresh name per extraction: a hot reload must never truncate the
+    // library the game still has mapped, and `dlopen` of an already-loaded
+    // path would just hand back the old module.
+    static EXTRACTIONS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let n = EXTRACTIONS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let out =
+        std::env::temp_dir().join(format!("yog-{}-{}-{}.{}", stem, std::process::id(), n, ext));
     let mut entry = archive.by_name(&entry_name).ok()?;
     let mut out_file = std::fs::File::create(&out).ok()?;
     std::io::copy(&mut entry, &mut out_file).ok()?;
