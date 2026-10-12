@@ -24,6 +24,18 @@ pub struct Tagged {
     pub _marker: PhantomData<u8>,
 }
 
+pub struct Holder {
+    pub items: Vec<Point>,
+    pub boxed: Box<Point>,
+    pub pair: (u8, Point),
+}
+
+static LIMITS: [u32; 3] = [7, 8, 9];
+
+mod config {
+    pub static SCALE: i32 = -3;
+}
+
 #[derive(Debug)]
 pub enum Shape {
     Circle { radius: f64 },
@@ -64,6 +76,12 @@ fn inspect(count: u32, label: &str) -> usize {
     let tagged = Tagged { id: 3, _marker: PhantomData };
     let mu = MaybeUninit::new(64u32);
     let md = ManuallyDrop::new(16u16);
+    let holder = Holder {
+        items: vec![Point { x: 1, y: 2 }, Point { x: 3, y: 4 }],
+        boxed: Box::new(Point { x: 9, y: 8 }),
+        pair: (1, Point { x: 5, y: 6 }),
+    };
+    let idx = 1usize;
     let total = {
         let inner = 100u64;
         inner + count as u64 // LOCALS_HERE
@@ -71,7 +89,7 @@ fn inspect(count: u32, label: &str) -> usize {
     black_box((
         &neg, &flag, &ch, &ratio, &s, &v, &shape, &circle, &none, &some, &slice, &tuple, &r,
         &label, &cell, &refcell, &once, &empty_once, &once_cell, &rc, &rc2, &arc, &nn, &pinned,
-        &tagged, &mu, &md,
+        &tagged, &mu, &md, &holder, &idx, &LIMITS, &config::SCALE,
     ));
     total as usize + label.len()
 }

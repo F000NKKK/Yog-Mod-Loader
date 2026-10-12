@@ -16,6 +16,11 @@
 //!   debugger's Variables view. Registers and memory are supplied by the
 //!   caller ([`FrameRegs`], [`TargetMemory`]); nothing here uses `ptrace`.
 //!
+//! - "what does this expression evaluate to" — [`SymbolTable::evaluate`]
+//!   for Watch windows and DataTips, with [`SymbolTable::local_nodes`] /
+//!   [`SymbolTable::expand`] for views that expand values one level at a
+//!   time.
+//!
 //! - "who called this frame" — [`SymbolTable::unwind`] /
 //!   [`SymbolTable::backtrace`], from the native's call frame info, so
 //!   stacks walk through the frame-pointer-less standard library.
@@ -25,6 +30,7 @@
 //! address -> line, and breakpoint placement needs the reverse (line ->
 //! address), which means walking the DWARF line program ourselves anyway.
 
+mod eval;
 mod format;
 mod locals;
 mod unwind;
@@ -35,6 +41,7 @@ use std::sync::{Arc, OnceLock};
 use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSymbol, SymbolKind};
 
+pub use eval::{EvalError, ValueNode, ValueRef};
 pub use locals::{x86_64, FrameRegs, LocalVar, TargetMemory, Value, VarKind};
 
 // `Arc`, not `Rc`: a `SymbolTable` needs to be `Send + Sync` so host apps
@@ -107,6 +114,9 @@ pub struct SymbolTable {
     functions: Vec<FunctionSymbol>,
     /// Parsed compilation units, built on the first locals lookup.
     units: OnceLock<Vec<locals::UnitInfo>>,
+    /// Statics by qualified name, built on the first watch expression
+    /// that isn't a local.
+    globals: OnceLock<Vec<eval::GlobalVar>>,
     /// Sorted addresses where a line-table row with `is_stmt` starts, built
     /// on the first [`Self::is_statement_start`].
     statements: OnceLock<Vec<u64>>,
@@ -205,6 +215,7 @@ impl SymbolTable {
             ctx,
             functions,
             units: OnceLock::new(),
+            globals: OnceLock::new(),
             statements: OnceLock::new(),
             eh_frame,
             debug_frame,

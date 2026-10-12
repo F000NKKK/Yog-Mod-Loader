@@ -8,6 +8,10 @@ use std::cell::Cell;
 
 use gimli::{AttributeValue, DebuggingInformationEntry, Reader as _, UnitOffset};
 
+mod nav;
+
+pub(crate) use nav::Slot;
+
 use crate::locals::{unit_ref, Place, TargetMemory, UnitInfo, Value, UNAVAILABLE};
 use crate::{SymbolTable, R};
 
@@ -45,6 +49,14 @@ struct Variant {
     member: Member,
 }
 
+enum VariantPick {
+    Found(Variant),
+    /// A discriminant wider than 64 bits.
+    Unsupported,
+    /// No variant matches this raw discriminant.
+    Unknown(u64),
+}
+
 impl<'a> Formatter<'a> {
     pub(crate) fn new(
         table: &'a SymbolTable,
@@ -56,6 +68,22 @@ impl<'a> Formatter<'a> {
             info,
             mem,
             budget: Cell::new(NODE_BUDGET),
+        }
+    }
+
+    /// A formatter with its own, smaller node budget — for one row of a
+    /// lazily expanded view, where only the row's one-line summary is kept.
+    pub(crate) fn with_budget(
+        table: &'a SymbolTable,
+        info: &'a UnitInfo,
+        mem: &'a dyn TargetMemory,
+        budget: usize,
+    ) -> Self {
+        Formatter {
+            table,
+            info,
+            mem,
+            budget: Cell::new(budget),
         }
     }
 
@@ -179,7 +207,7 @@ impl<'a> Formatter<'a> {
         Some((elem, count))
     }
 
-    fn qualified_name(&self, off: Off, entry: &Die) -> String {
+    pub(crate) fn qualified_name(&self, off: Off, entry: &Die) -> String {
         let mut parts = vec![self.name_of(entry).unwrap_or_else(|| "<anon>".into())];
         let parents = self.info.parents();
         let mut cur = off.0;
@@ -733,6 +761,39 @@ impl<'a> Formatter<'a> {
         place: &Place,
         depth: usize,
     ) -> Option<(String, Vec<Value>)> {
+        let variant = match self.active_variant(vp, place)? {
+            VariantPick::Found(v) => v,
+            VariantPick::Unsupported => {
+                return Some(("<enum: unsupported discriminant>".into(), Vec::new()));
+            }
+            VariantPick::Unknown(raw) => {
+                return Some((format!("<unknown variant {raw}>"), Vec::new()));
+            }
+        };
+
+        let name = variant.member.name.clone();
+        let Some(vty) = variant.member.ty else {
+            return Some((name, Vec::new()));
+        };
+        let fields = self.members(vty);
+        if fields.is_empty() {
+            return Some((name, Vec::new()));
+        }
+        let base = place.offset(variant.member.offset);
+        let (summary, children) = self.format_fields(&fields, &base, depth, &name);
+        let tuple = fields.iter().all(|m| m.name.starts_with("__"));
+        let value = if tuple {
+            format!("{name}{summary}")
+        } else {
+            format!("{name} {summary}")
+        };
+        Some((value, children))
+    }
+
+    /// The variant of the Rust enum whose `DW_TAG_variant_part` is `vp`
+    /// that the value at `place` holds; `None` if the discriminant can't
+    /// be read.
+    fn active_variant(&self, vp: &Die, place: &Place) -> Option<VariantPick> {
         let parts = self.children(vp.offset());
         let discr = match vp
             .attr_value(gimli::DW_AT_discr)
@@ -743,14 +804,14 @@ impl<'a> Formatter<'a> {
                 let size = m.ty.and_then(|t| self.byte_size(t)).unwrap_or(0);
                 if size > 8 {
                     // 128-bit discriminants: not decoded.
-                    return Some(("<enum: unsupported discriminant>".into(), Vec::new()));
+                    return Some(VariantPick::Unsupported);
                 }
                 Some((self.read_uint(&place.offset(m.offset), size)?, size))
             }
             None => None,
         };
 
-        let variants: Vec<Variant> = parts
+        let mut variants: Vec<Variant> = parts
             .iter()
             .filter(|e| e.tag() == gimli::DW_TAG_variant)
             .filter_map(|v| {
@@ -772,33 +833,15 @@ impl<'a> Formatter<'a> {
                 let m = mask(size);
                 variants
                     .iter()
-                    .find(|v| v.discr_value.is_some_and(|d| d & m == value & m))
-                    .or_else(|| variants.iter().find(|v| v.discr_value.is_none()))
+                    .position(|v| v.discr_value.is_some_and(|d| d & m == value & m))
+                    .or_else(|| variants.iter().position(|v| v.discr_value.is_none()))
             }
-            None => variants.first(),
+            None => (!variants.is_empty()).then_some(0),
         };
-        let Some(variant) = chosen else {
-            let raw = discr.map(|d| d.0).unwrap_or_default();
-            return Some((format!("<unknown variant {raw}>"), Vec::new()));
-        };
-
-        let name = variant.member.name.clone();
-        let Some(vty) = variant.member.ty else {
-            return Some((name, Vec::new()));
-        };
-        let fields = self.members(vty);
-        if fields.is_empty() {
-            return Some((name, Vec::new()));
-        }
-        let base = place.offset(variant.member.offset);
-        let (summary, children) = self.format_fields(&fields, &base, depth, &name);
-        let tuple = fields.iter().all(|m| m.name.starts_with("__"));
-        let value = if tuple {
-            format!("{name}{summary}")
-        } else {
-            format!("{name} {summary}")
-        };
-        Some((value, children))
+        Some(match chosen {
+            Some(i) => VariantPick::Found(variants.swap_remove(i)),
+            None => VariantPick::Unknown(discr.map(|d| d.0).unwrap_or_default()),
+        })
     }
 
     /// `(data pointer, len)` of an `alloc::vec::Vec<T>` at `place`.

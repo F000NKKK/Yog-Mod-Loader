@@ -187,7 +187,7 @@ impl UnitInfo {
 }
 
 /// Where a variable's bytes live once its location has been evaluated.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Place {
     /// In target memory at this absolute address.
     Mem(u64),
@@ -267,7 +267,7 @@ impl SymbolTable {
         })
     }
 
-    fn unit_for_pc(&self, pc: u64) -> Option<usize> {
+    pub(crate) fn unit_for_pc(&self, pc: u64) -> Option<usize> {
         self.units()
             .iter()
             .position(|u| u.ranges.iter().any(|r| r.begin <= pc && pc < r.end))
@@ -584,7 +584,7 @@ impl SymbolTable {
         None
     }
 
-    fn locate(
+    pub(crate) fn locate(
         &self,
         info: &UnitInfo,
         entry: &DebuggingInformationEntry<R>,
@@ -628,7 +628,7 @@ impl SymbolTable {
         let frame_base = OnceLock::new();
         let get_frame_base =
             || *frame_base.get_or_init(|| self.frame_base(info, subprogram, frame));
-        let Some(pieces) = self.evaluate(info, expr, frame, &get_frame_base) else {
+        let Some(pieces) = self.evaluate_location(info, expr, frame, &get_frame_base) else {
             return Located::Unavailable;
         };
         assemble(pieces, frame)
@@ -644,7 +644,7 @@ impl SymbolTable {
         let Some(AttributeValue::Exprloc(expr)) = entry.attr_value(gimli::DW_AT_frame_base) else {
             return None;
         };
-        let pieces = self.evaluate(info, expr, frame, &|| None)?;
+        let pieces = self.evaluate_location(info, expr, frame, &|| None)?;
         match pieces.first()?.location {
             Location::Register { register } => frame.regs.get(register.0),
             Location::Address { address } => Some(address),
@@ -692,7 +692,7 @@ impl SymbolTable {
         frame.regs.fp().map(|fp| fp.wrapping_add(16))
     }
 
-    fn evaluate(
+    fn evaluate_location(
         &self,
         info: &UnitInfo,
         expr: gimli::Expression<R>,

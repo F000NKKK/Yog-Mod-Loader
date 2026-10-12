@@ -116,6 +116,8 @@ fn lists_locals_and_parameters_at_a_line() {
             "tagged",
             "mu",
             "md",
+            "holder",
+            "idx",
             "inner",
         ],
         "{vars:#?}"
@@ -254,7 +256,7 @@ mod live {
     use nix::sys::signal::Signal;
     use nix::sys::wait::{waitpid, WaitStatus};
     use nix::unistd::Pid;
-    use yog_symbols::{FrameRegs, TargetMemory, Value};
+    use yog_symbols::{FrameRegs, TargetMemory, Value, ValueNode};
 
     struct ProcMem(File);
 
@@ -301,7 +303,18 @@ mod live {
     /// what `read_locals` makes of the stopped frame, plus the same read
     /// with all memory unreadable. `None` if the line has no code (an
     /// optimized build may fold it away).
-    fn stop_and_read(exe: &Path) -> Option<(Vec<Value>, Vec<Value>)> {
+    /// The fixture, stopped under ptrace at the marker line.
+    struct Stopped {
+        table: SymbolTable,
+        regs: FrameRegs,
+        base: u64,
+        mem: ProcMem,
+        _traced: Traced,
+    }
+
+    /// Runs the fixture under ptrace up to the marker line. `None` if the
+    /// line has no code (an optimized build may fold it away).
+    fn stop(exe: &Path) -> Option<Stopped> {
         let table = SymbolTable::load(exe).unwrap();
         let offsets = table.resolve_breakpoint(&format!("{FIXTURE}.rs"), marker_line());
         if offsets.is_empty() {
@@ -348,7 +361,23 @@ mod live {
             r.r12, r.r13, r.r14, r.r15, pc,
         ]);
         let mem = ProcMem(File::open(format!("/proc/{pid}/mem")).unwrap());
+        Some(Stopped {
+            table,
+            regs,
+            base,
+            mem,
+            _traced: traced,
+        })
+    }
 
+    fn stop_and_read(exe: &Path) -> Option<(Vec<Value>, Vec<Value>)> {
+        let Stopped {
+            table,
+            regs,
+            base,
+            mem,
+            _traced,
+        } = stop(exe)?;
         let values = table.read_locals(&regs, base, &mem);
 
         struct NoMem;
@@ -424,6 +453,126 @@ mod live {
         );
         let (values, _) = stop_and_read(&exe).expect("marker line has code at -O0");
         check_exact(&values);
+    }
+
+    fn eval(s: &Stopped, expr: &str) -> Result<ValueNode, String> {
+        s.table
+            .evaluate(expr, &s.regs, s.base, &s.mem, 0)
+            .map_err(|e| e.to_string())
+    }
+
+    fn value_of(s: &Stopped, expr: &str) -> String {
+        match eval(s, expr) {
+            Ok(node) => node.value,
+            Err(e) => panic!("`{expr}`: {e}"),
+        }
+    }
+
+    #[test]
+    fn evaluates_watch_expressions() {
+        let exe = build("eval");
+        let s = stop(&exe).expect("marker line has code at -O0");
+        let v = |e: &str| value_of(&s, e);
+        assert_eq!(v("x"), "42");
+        assert_eq!(v(" p.y "), "-4");
+        assert_eq!(eval(&s, "p.y").unwrap().name, "p.y");
+        assert_eq!(eval(&s, "p.y").unwrap().type_name, "i32");
+        assert_eq!(v("shape.1.x"), "5");
+        assert_eq!(v("circle.radius"), "2.0");
+        assert_eq!(v("v[2]"), "3");
+        assert_eq!(v("arr[idx]"), "20");
+        assert_eq!(v("arr[0x2]"), "30");
+        assert_eq!(v("*r"), "42");
+        assert_eq!(v("slice[0]"), "20");
+        assert_eq!(v("tuple.1"), "-1");
+        assert_eq!(v("refcell[1]"), "5");
+        assert_eq!(v("*rc"), "\"shared\"");
+        assert_eq!(v("*arc"), "31");
+        assert_eq!(v("*pinned"), "12");
+        assert_eq!(v("*nn"), "42");
+        assert_eq!(v("holder.items[1].y"), "4");
+        assert_eq!(v("holder.items.len"), "2");
+        assert_eq!(v("holder.boxed.x"), "9");
+        assert_eq!(v("(*holder.boxed).y"), "8");
+        assert_eq!(v("holder.pair.1.x"), "5");
+        assert_eq!(v("holder.pair.0"), "1");
+        assert_eq!(v("s"), "\"hi\"");
+        assert_eq!(v("7"), "7");
+        assert_eq!(v("LIMITS[2]"), "9");
+        assert_eq!(v("locals::LIMITS"), "[7, 8, 9]");
+        assert_eq!(v("config::SCALE"), "-3");
+        assert_eq!(v("SCALE"), "-3");
+
+        let err = |e: &str| eval(&s, e).unwrap_err();
+        assert!(err("v[3]").contains("out of bounds"), "{}", err("v[3]"));
+        assert!(err("nope").contains("cannot find value `nope`"));
+        assert!(err("p.z").contains("no field `z`"));
+        assert!(err("*x").contains("cannot be dereferenced"));
+        assert!(err("x[0]").contains("cannot index"));
+        assert!(err("label[0]").contains("cannot index"));
+        assert!(err("p +").contains("unexpected"));
+        assert!(eval(&s, "shape.radius").is_err());
+    }
+
+    /// Every row of the lazily expanded Locals tree, three levels deep:
+    /// its `expr` evaluates back to the same value, and top-level rows
+    /// agree with the eagerly formatted view.
+    #[test]
+    fn expands_lazily_and_round_trips_row_expressions() {
+        let exe = build("expand");
+        let s = stop(&exe).expect("marker line has code at -O0");
+        let nodes = s.table.local_nodes(&s.regs, s.base, &s.mem, 0);
+        let eager = s.table.read_locals(&s.regs, s.base, &s.mem);
+        assert_eq!(nodes.len(), eager.len());
+        for (lazy, full) in nodes.iter().zip(&eager) {
+            assert_eq!(lazy.name, full.name);
+            assert_eq!(lazy.value, full.value, "{}", lazy.name);
+            assert_eq!(lazy.type_name, full.type_name, "{}", lazy.name);
+            assert_eq!(
+                lazy.children.is_some(),
+                !full.children.is_empty(),
+                "{}",
+                lazy.name
+            );
+        }
+
+        let names = |n: &[ValueNode]| n.iter().map(|c| c.name.clone()).collect::<Vec<_>>();
+        let node = |name: &str| nodes.iter().find(|n| n.name == name).unwrap().clone();
+        let open = |n: &ValueNode| s.table.expand(n.children.as_ref().unwrap(), &s.mem);
+        let holder = open(&node("holder"));
+        assert_eq!(names(&holder), ["items", "boxed", "pair"]);
+        let items = open(&holder[0]);
+        assert_eq!(names(&items), ["[0]", "[1]"]);
+        assert_eq!(items[1].expr, "holder.items[1]");
+        assert_eq!(items[1].value, "{x: 3, y: 4}");
+        let boxed = open(&holder[1]);
+        assert_eq!(boxed[0].expr, "*holder.boxed");
+        assert_eq!(open(&boxed[0])[1].expr, "(*holder.boxed).y");
+        assert_eq!(names(&open(&node("shape"))), ["0", "1"]);
+        assert!(node("x").children.is_none());
+        assert!(node("s").children.is_none());
+
+        let mut checked = 0;
+        let mut queue: Vec<(ValueNode, usize)> = nodes.into_iter().map(|n| (n, 0)).collect();
+        while let Some((n, depth)) = queue.pop() {
+            if n.value.starts_with('<') {
+                continue;
+            }
+            let again = eval(&s, &n.expr).unwrap_or_else(|e| panic!("`{}`: {e}", n.expr));
+            assert_eq!(again.value, n.value, "`{}`", n.expr);
+            checked += 1;
+            if depth < 3 {
+                if let Some(c) = &n.children {
+                    queue.extend(
+                        s.table
+                            .expand(c, &s.mem)
+                            .into_iter()
+                            .map(|c| (c, depth + 1)),
+                    );
+                }
+            }
+        }
+        assert!(checked > 60, "{checked}");
     }
 
     /// Optimized code: location lists and `DW_AT_const_value`s. Only values
