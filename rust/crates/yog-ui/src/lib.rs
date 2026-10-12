@@ -18,10 +18,12 @@
 
 pub mod layout;
 mod render;
+pub mod scroll;
 pub mod text;
 pub mod widget;
 
 pub use layout::{set_focus, Align, FlexDir, LayoutNode, Rect};
+pub use scroll::ScrollState;
 pub use widget::{Dock, FocusStyle, Units, Widget};
 
 use yog_gfx::GfxContext;
@@ -66,5 +68,11 @@ impl UiRoot {
     /// Call after [`Self::layout`].
     pub fn find_rect(&self, id: &str) -> Option<Rect> {
         layout::find_by_id(&self.layout_root, id)
+    }
+
+    /// Laid-out node of the (first) widget tagged `id` — rect plus scroll
+    /// state, see [`layout::find_node`]. Call after [`Self::layout`].
+    pub fn find_node(&self, id: &str) -> Option<&LayoutNode> {
+        layout::find_node(&self.layout_root, id)
     }
 }

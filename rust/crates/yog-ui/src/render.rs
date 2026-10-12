@@ -33,7 +33,7 @@ fn fill(d2d: &Draw2D, clip: Option<Rect>, x0: f32, y0: f32, x1: f32, y1: f32, co
     d2d.rect(r.x, r.y, r.x + r.w, r.y + r.h, color);
 }
 
-/// Whether a `w`×`h` box at `(x, y)` lies inside `clip` vertically (text
+/// Whether a box spanning `y..y + h` lies inside `clip` vertically (text
 /// lines and item icons can't be cut, so they're drawn whole or not at all).
 /// Half a pixel of slack absorbs rounding.
 fn fits(clip: Option<Rect>, y: f32, h: f32) -> bool {
@@ -264,5 +264,32 @@ fn text_lines(t: &str, s: &crate::widget::Style, avail_w: f32) -> Vec<String> {
         vec![t.to_owned()]
     } else {
         text::wrap_text(t, avail_w, s.font_scale)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ellipsize_fits_the_width() {
+        assert_eq!(ellipsize("short", 100.0, 1.0), "short");
+        let cut = ellipsize("A rather long description line", 60.0, 1.0);
+        assert!(cut.ends_with("..."), "{cut}");
+        assert!(text::str_width(&cut, 1.0) <= 60.0, "{cut}");
+    }
+
+    #[test]
+    fn fits_checks_the_clip_vertically() {
+        let clip = Some(Rect {
+            x: 0.0,
+            y: 10.0,
+            w: 100.0,
+            h: 20.0,
+        });
+        assert!(fits(clip, 10.0, 9.0));
+        assert!(!fits(clip, 5.0, 9.0));
+        assert!(!fits(clip, 25.0, 9.0));
+        assert!(fits(None, -100.0, 9.0));
     }
 }
