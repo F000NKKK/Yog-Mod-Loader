@@ -158,7 +158,9 @@ mod session {
             let debugger = self.debugger.as_mut().ok_or("not attached")?;
             match debugger.continue_().map_err(|e| e.to_string())? {
                 StopReason::Exited(_) | StopReason::Killed(_) => Ok(()),
-                StopReason::Breakpoint(_) | StopReason::Signal(_) => Ok(()),
+                StopReason::Breakpoint(_) | StopReason::Signal(_) | StopReason::Interrupted => {
+                    Ok(())
+                }
             }
         }
 

@@ -14,7 +14,7 @@ fn build_fixture() -> PathBuf {
         PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("libyog_debugger_discovery_fixture.so");
 
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
-        .args(["--crate-type=cdylib", "-o"])
+        .args(["--crate-type=cdylib", "-A", "dead_code", "-o"])
         .arg(&out)
         .arg(&src)
         .status()

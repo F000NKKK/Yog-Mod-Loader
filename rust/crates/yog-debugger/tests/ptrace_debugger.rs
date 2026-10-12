@@ -4,17 +4,22 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use yog_debugger::maps::find_module_base;
-use yog_debugger::ptrace_debugger::{Debugger, StopReason};
+use yog_debugger::ptrace_debugger::{interrupt, Debugger, StopReason};
 use yog_symbols::SymbolTable;
 
 fn build_fixture() -> PathBuf {
+    build("fixture")
+}
+
+fn build(name: &str) -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let src = manifest_dir.join("tests/fixtures/fixture.rs");
-    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("yog_debugger_fixture_bin");
+    let src = manifest_dir.join(format!("tests/fixtures/{name}.rs"));
+    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_debugger_{name}_bin"));
 
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
         .args([
             "--crate-type=bin",
+            "--edition=2024",
             "-C",
             "debuginfo=2",
             "-C",
@@ -95,4 +100,67 @@ impl Drop for KillOnDrop {
         let _ = self.0.kill();
         let _ = self.0.wait();
     }
+}
+
+/// `let mut total = x;` inside `work()` in tests/fixtures/threads.rs.
+const THREADS_WORK_LINE: u32 = 17;
+
+/// Breakpoints in code every worker thread runs: hits must come from
+/// threads other than the leader, the main thread's own (handled) SIGUSR1
+/// stream must pass through untouched, an `interrupt` must surface as
+/// `Interrupted`, and the process must keep running after detach.
+#[test]
+fn traces_every_thread_and_forwards_signals() {
+    let exe = build("threads");
+    let child = Command::new(&exe)
+        .spawn()
+        .expect("spawning threads fixture");
+    let mut child = KillOnDrop(child);
+    let pid = child.0.id() as i32;
+    // Let the workers start so attach has to pick up existing threads.
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
+    let symbols = SymbolTable::load(&exe).expect("loading fixture debug info");
+    let offsets = symbols.resolve_breakpoint("threads.rs", THREADS_WORK_LINE);
+    assert!(
+        !offsets.is_empty(),
+        "no address for threads.rs:{THREADS_WORK_LINE}"
+    );
+
+    let mut debugger = Debugger::attach(pid).expect("attaching");
+    assert!(debugger.threads().len() >= 5, "expected leader + 4 workers");
+    let base = find_module_base(debugger.pid(), &exe).expect("module base");
+    let addr = base + offsets[0];
+    debugger.set_breakpoint(addr).expect("arming breakpoint");
+
+    let mut hit_threads = std::collections::HashSet::new();
+    for _ in 0..20 {
+        let stop = debugger.continue_().expect("continuing");
+        assert_eq!(stop, StopReason::Breakpoint(addr));
+        assert_eq!(debugger.registers().unwrap().rip, addr);
+        hit_threads.insert(debugger.current_thread());
+    }
+    assert!(
+        !hit_threads.contains(&debugger.pid()),
+        "only workers run work()"
+    );
+    assert!(hit_threads.len() > 1, "expected hits on several threads");
+
+    debugger
+        .clear_breakpoint(addr)
+        .expect("clearing breakpoint");
+    let interrupter = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        interrupt(pid);
+    });
+    let stop = debugger.continue_().expect("running until interrupted");
+    interrupter.join().unwrap();
+    assert_eq!(stop, StopReason::Interrupted);
+
+    debugger.detach().expect("detaching");
+    std::thread::sleep(std::time::Duration::from_millis(200));
+    assert!(
+        child.0.try_wait().expect("polling fixture").is_none(),
+        "fixture died after detach"
+    );
 }
