@@ -160,7 +160,10 @@ mod tests {
         assert!(s.handle("scroll:10", &v, 30.0));
         assert_eq!(s.offset, 0.0);
         // Knob: 100 * 100 / 300 = 33.3 px tall at the top of the track (x 94..100).
-        assert!(!s.handle("click:50:10", &v, 30.0), "content click isn't ours");
+        assert!(
+            !s.handle("click:50:10", &v, 30.0),
+            "content click isn't ours"
+        );
         assert!(s.handle("click:97:10", &v, 30.0));
         assert!(s.is_dragging());
         assert!(s.handle("drag:97:200", &v, 30.0));

@@ -15,6 +15,7 @@
 mod yui;
 
 use std::collections::{HashMap, HashSet};
+use std::fmt::Write as _;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -831,24 +832,17 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
     };
     let edition = meta.edition.as_deref().unwrap_or("2021");
 
-    // When using local yog-api, also patch yog-interop to use the workspace version
+    // With a local yog-api, its sibling yog-* crates (yog-ui, yog-gfx,
+    // yog-interop, ...) come from the same checkout too — the local API may
+    // need versions of them that aren't on crates.io yet.
     let patch = if meta.yog_api_path.is_some() || std::env::var("YOG_API_PATH").is_ok() {
-        // Derive yog-interop path from yog-api: {api_path}/../yog-interop
         let env_path = std::env::var("YOG_API_PATH").ok();
         let api_path = meta
             .yog_api_path
             .as_deref()
             .or(env_path.as_deref())
             .unwrap_or("");
-        let interop_path = std::path::Path::new(api_path)
-            .parent()
-            .map(|p| p.join("yog-interop"))
-            .unwrap_or_else(|| std::path::PathBuf::from("crates/yog-interop"));
-        let abs = interop_path.canonicalize().unwrap_or(interop_path);
-        format!(
-            "\n[patch.crates-io]\nyog-interop = {{ path = {:?} }}\n",
-            abs.to_string_lossy()
-        )
+        local_api_patch(Path::new(api_path))
     } else {
         String::new()
     };
@@ -928,6 +922,56 @@ rkyv = "{rkyv_ver}"
         patch = patch,
         lib_path = lib_path,
     )
+}
+
+/// The `yog-*` crates a yog-api `Cargo.toml` depends on, in order.
+fn yog_dependencies(cargo_toml: &str) -> Vec<String> {
+    let mut in_deps = false;
+    let mut out = Vec::new();
+    for line in cargo_toml.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_deps = line == "[dependencies]";
+            continue;
+        }
+        if !in_deps {
+            continue;
+        }
+        let Some((name, _)) = line.split_once('=') else {
+            continue;
+        };
+        let name = name.trim();
+        if name.starts_with("yog-") && !out.iter().any(|n| n == name) {
+            out.push(name.to_string());
+        }
+    }
+    out
+}
+
+/// `[patch.crates-io]` pointing every yog-* dependency of the local yog-api
+/// at `api_path`'s sibling crate directory (always including yog-interop,
+/// whose proc-macros generated code must match).
+fn local_api_patch(api_path: &Path) -> String {
+    let crates_dir = api_path
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("crates"));
+    let mut names = std::fs::read_to_string(api_path.join("Cargo.toml"))
+        .map(|t| yog_dependencies(&t))
+        .unwrap_or_default();
+    if !names.iter().any(|n| n == "yog-interop") {
+        names.push("yog-interop".into());
+    }
+    let mut out = String::from("\n[patch.crates-io]\n");
+    for name in names {
+        let dir = crates_dir.join(&name);
+        if !dir.join("Cargo.toml").is_file() && name != "yog-interop" {
+            continue;
+        }
+        let abs = dir.canonicalize().unwrap_or(dir);
+        let _ = writeln!(out, "{name} = {{ path = {:?} }}", abs.to_string_lossy());
+    }
+    out
 }
 
 /// Generate the `yog_exports` facade module: the mod's real `src/lib.rs`
@@ -2694,6 +2738,12 @@ fn latest_yog_api_version() -> String {
 #[cfg(test)]
 mod tests {
     use super::{filter_benign_warnings, DoctorReport};
+
+    #[test]
+    fn yog_dependencies_reads_the_dependencies_table() {
+        let toml = "[package]\nname = \"yog-api\"\n\n[dependencies]\nyog-abi  = \"0.25\"\nyog-ui = { version = \"0.35\" }\nserde = \"1\"\n\n[dev-dependencies]\nyog-test = \"1\"\n";
+        assert_eq!(super::yog_dependencies(toml), ["yog-abi", "yog-ui"]);
+    }
 
     #[test]
     fn doctor_json_is_valid() {

@@ -234,7 +234,7 @@ pub fn parse_xml(src: &str) -> Result<Element, String> {
 
 // ── Screen model ──────────────────────────────────────────────────────────────
 
-const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row"];
+const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView"];
 const LEAVES: &[&str] = &[
     "Label", "Button", "ItemSlot", "InvSlot", "Image", "Spacer",
 ];
@@ -256,6 +256,7 @@ const COMMON_ATTRS: &[&str] = &[
     "font_scale",
     "shadow",
     "no_wrap",
+    "ellipsis",
     "focus_style",
     "focus_color",
     "enabled",
@@ -444,6 +445,7 @@ impl Gen {
         let mut expr = match kind {
             "Screen" | "Canvas" | "Column" => "widget::panel(FlexDir::Column)".to_string(),
             "Row" => "widget::panel(FlexDir::Row)".to_string(),
+            "ScrollView" => "widget::scroll_view()".to_string(),
             "Label" => format!("widget::label({:?})", text()),
             "Button" => format!("widget::button({:?})", text()),
             "ItemSlot" => format!("widget::item_slot({:?})", el.attr("item").unwrap_or_default()),
@@ -532,6 +534,7 @@ impl Gen {
                 }
                 "shadow" | "enabled" => call(format!("{key}({})", boolean(el, key, v)?)),
                 "no_wrap" if boolean(el, key, v)? => call("no_wrap()".to_string()),
+                "ellipsis" if boolean(el, key, v)? => call("ellipsis()".to_string()),
                 _ => {} // kind-specific, handled above (or Screen metadata)
             }
         }
@@ -711,6 +714,15 @@ pub fn click(event: &str) -> Option<String> {{
     last.as_ref()?.hit_test(x, y)?.on_click.clone()
 }}
 
+/// Runs `f` on the layout drawn by the last [`render`] — for reading
+/// rects and scroll state (`UiRoot::find_node`) when handling UI events.
+/// `None` before the first render.
+#[allow(dead_code)]
+pub fn with_last<R>(f: impl FnOnce(&::yog_api::ui::UiRoot) -> R) -> Option<R> {{
+    let last = __YUI_LAST.lock().ok()?;
+    last.as_ref().map(f)
+}}
+
 /// Opens the screen (modal: {modal}, pauses the game: {pause}).
 #[allow(dead_code)]
 pub fn open() {{
@@ -787,6 +799,9 @@ mod tests {
     <InvSlot item="minecraft:diamond" count="3"/>
     <Spacer flex="1"/>
   </Row>
+  <ScrollView id="list" x="0" y="100" w="80" h="40">
+    <Label text="A long line" ellipsis="true"/>
+  </ScrollView>
 </Screen>
 "##;
 
@@ -794,7 +809,7 @@ mod tests {
     fn parses_the_subset() {
         let root = parse_xml(SAMPLE).unwrap();
         assert_eq!(root.name, "Screen");
-        assert_eq!(root.children.len(), 3);
+        assert_eq!(root.children.len(), 4);
         assert_eq!(root.children[0].attr("text"), Some("Main & Menu"));
         assert_eq!(root.children[2].children[0].attr("count"), Some("3"));
         assert_eq!(root.children[1].line, 5);
@@ -814,6 +829,9 @@ mod tests {
         assert!(code.contains(r#"pub const MYMOD_PLAY: &str = "mymod:play";"#));
         assert!(code.contains(r#"pub const TITLE: &str = "title";"#));
         assert!(code.contains(".padding(8.0, 8.0, 8.0, 8.0)"));
+        assert!(code.contains("widget::scroll_view()"));
+        assert!(code.contains(".ellipsis()"));
+        assert!(code.contains("pub fn with_last<R>"));
         // Children of a Row aren't positioned unless they say so.
         assert!(!code.contains("widget::spacer()\n                .at("));
     }

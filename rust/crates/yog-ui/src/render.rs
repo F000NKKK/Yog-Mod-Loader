@@ -33,6 +33,10 @@ fn fill(d2d: &Draw2D, clip: Option<Rect>, x0: f32, y0: f32, x1: f32, y1: f32, co
     d2d.rect(r.x, r.y, r.x + r.w, r.y + r.h, color);
 }
 
+fn fill_rect(d2d: &Draw2D, clip: Option<Rect>, r: Rect, color: u32) {
+    fill(d2d, clip, r.x, r.y, r.x + r.w, r.y + r.h, color);
+}
+
 /// Whether a box spanning `y..y + h` lies inside `clip` vertically (text
 /// lines and item icons can't be cut, so they're drawn whole or not at all).
 /// Half a pixel of slack absorbs rounding.
@@ -250,8 +254,8 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
     }
 
     if let Some((track, knob)) = node.scrollbar_rects() {
-        fill(d2d, clip, track.x, track.y, track.x + track.w, track.y + track.h, TRACK_COLOR);
-        fill(d2d, clip, knob.x, knob.y, knob.x + knob.w, knob.y + knob.h, KNOB_COLOR);
+        fill_rect(d2d, clip, track, TRACK_COLOR);
+        fill_rect(d2d, clip, knob, KNOB_COLOR);
     }
 }
 
