@@ -130,6 +130,12 @@ pub struct LocalVar {
     pub type_name: String,
     pub kind: VarKind,
     pub decl_line: Option<u32>,
+    /// Whether the pc lies inside the variable's lexical scope. `false`
+    /// for a variable declared in the frame's innermost block that isn't
+    /// live yet — e.g. stopped on `let x = ...;` itself, since rustc's
+    /// scope for `x` only starts once the initializer has run. Such
+    /// variables read back as `<not in scope>` rather than garbage.
+    pub in_scope: bool,
     pub(crate) unit: usize,
     pub(crate) die: UnitOffset<usize>,
     pub(crate) ty: Option<UnitOffset<usize>>,
@@ -151,6 +157,7 @@ pub struct Value {
 
 pub(crate) const OPTIMIZED_OUT: &str = "<optimized out>";
 pub(crate) const UNAVAILABLE: &str = "<unavailable>";
+pub(crate) const NOT_IN_SCOPE: &str = "<not in scope>";
 
 /// One compilation unit, parsed on first use.
 pub(crate) struct UnitInfo {
@@ -266,16 +273,30 @@ impl SymbolTable {
             .position(|u| u.ranges.iter().any(|r| r.begin <= pc && pc < r.end))
     }
 
-    /// Parameters and local variables visible at `pc_offset` (module
-    /// relative, like [`SymbolTable::resolve_addr`]): the parameters of the
-    /// innermost function instance containing the pc (an inlined call
-    /// counts as its own function, as in gdb), then its variables from the
-    /// outermost to the innermost enclosing lexical block. A variable
-    /// shadowed by a same-named one in an inner block is omitted.
+    /// Parameters and local variables of the innermost function instance
+    /// containing `pc_offset` (module relative, like
+    /// [`SymbolTable::resolve_addr`]); an inlined call counts as its own
+    /// function, as in gdb. Same as [`SymbolTable::locals_in_frame`] with
+    /// `inline_depth` 0.
+    pub fn locals(&self, pc_offset: u64) -> Vec<LocalVar> {
+        self.locals_in_frame(pc_offset, 0)
+    }
+
+    /// Parameters and local variables of one function instance containing
+    /// `pc_offset`: `inline_depth` 0 is the innermost (an inlined call, if
+    /// the pc is in one), 1 its caller, and so on out to the out-of-line
+    /// function — the same order as [`SymbolTable::resolve_inlined`].
+    ///
+    /// Returns the parameters, then the variables in scope from the
+    /// outermost to the innermost enclosing lexical block (a variable
+    /// shadowed by a same-named one in an inner block is omitted), then
+    /// the variables declared further down the innermost block that aren't
+    /// live yet ([`LocalVar::in_scope`] `false`; names already listed are
+    /// skipped). Empty if the pc has no such frame.
     ///
     /// For outer frames of a backtrace, pass `return_address - 1` so the
     /// lookup lands inside the call instruction's scope.
-    pub fn locals(&self, pc_offset: u64) -> Vec<LocalVar> {
+    pub fn locals_in_frame(&self, pc_offset: u64, inline_depth: usize) -> Vec<LocalVar> {
         let Some(unit_idx) = self.unit_for_pc(pc_offset) else {
             return Vec::new();
         };
@@ -292,14 +313,28 @@ impl SymbolTable {
             return Vec::new();
         };
 
-        let scopes = &walk.scopes[walk.func_start.min(walk.scopes.len())..];
+        // The scopes of the requested function instance: from its own
+        // subprogram/inlined_subroutine to just before the next one in.
+        let starts: Vec<usize> = (0..walk.path.len())
+            .filter(|&i| walk.path[i].is_function)
+            .collect();
+        let Some(pos) = starts.len().checked_sub(inline_depth + 1) else {
+            return Vec::new();
+        };
+        let begin = starts[pos];
+        let end = starts.get(pos + 1).copied().unwrap_or(walk.path.len());
+        let scopes = &walk.path[begin..end];
+
+        let describe = |die, kind, in_scope| {
+            self.describe_var(unit_idx, info, die, kind, subprogram, in_scope)
+        };
         // Inner scopes shadow outer ones: walk inside-out, keep first seen.
         let mut seen = HashSet::new();
         let mut keep: Vec<Vec<LocalVar>> = Vec::with_capacity(scopes.len());
         for scope in scopes.iter().rev() {
             let mut kept = Vec::new();
-            for &(kind, die) in scope.iter().rev() {
-                let Some(var) = self.describe_var(unit_idx, info, die, kind, subprogram) else {
+            for &(kind, die) in scope.vars.iter().rev() {
+                let Some(var) = describe(die, kind, true) else {
                     continue;
                 };
                 if seen.insert(var.name.clone()) {
@@ -314,6 +349,25 @@ impl SymbolTable {
         let (mut params, locals): (Vec<_>, Vec<_>) =
             all.into_iter().partition(|v| v.kind == VarKind::Parameter);
         params.extend(locals);
+
+        // Declared but not live yet: rustc opens a nested lexical block per
+        // `let`, starting after its initializer, so these hang below the
+        // innermost scope containing the pc.
+        let mut pending = Vec::new();
+        if let Some(innermost) = scopes.last() {
+            if let Ok(mut tree) = info.unit.entries_tree(Some(innermost.offset)) {
+                if let Ok(node) = tree.root() {
+                    let _ = collect_block_vars(node, false, &mut pending);
+                }
+            }
+        }
+        for die in pending {
+            if let Some(var) = describe(die, VarKind::Local, false) {
+                if seen.insert(var.name.clone()) {
+                    params.push(var);
+                }
+            }
+        }
         params
     }
 
@@ -325,8 +379,21 @@ impl SymbolTable {
         load_base: u64,
         mem: &dyn TargetMemory,
     ) -> Vec<Value> {
+        self.read_locals_in_frame(regs, load_base, mem, 0)
+    }
+
+    /// [`SymbolTable::locals_in_frame`] at the frame's pc, each read with
+    /// [`SymbolTable::read_local`]. For the callers of an inlined call:
+    /// they share the physical frame's registers.
+    pub fn read_locals_in_frame(
+        &self,
+        regs: &FrameRegs,
+        load_base: u64,
+        mem: &dyn TargetMemory,
+        inline_depth: usize,
+    ) -> Vec<Value> {
         let pc_offset = regs.pc().wrapping_sub(load_base);
-        self.locals(pc_offset)
+        self.locals_in_frame(pc_offset, inline_depth)
             .iter()
             .map(|var| self.read_local(var, regs, load_base, mem))
             .collect()
@@ -336,7 +403,9 @@ impl SymbolTable {
     /// pc is absolute; `load_base` is the module's runtime load bias, so
     /// `regs.pc() - load_base` is the module-relative pc) and formats its
     /// value. Never panics on bad memory or DWARF: unreadable parts come
-    /// back as `<unavailable>`, absent ones as `<optimized out>`.
+    /// back as `<unavailable>`, absent ones as `<optimized out>`, and a
+    /// variable that isn't live yet ([`LocalVar::in_scope`] `false`) as
+    /// `<not in scope>` without being read.
     pub fn read_local(
         &self,
         var: &LocalVar,
@@ -344,6 +413,9 @@ impl SymbolTable {
         load_base: u64,
         mem: &dyn TargetMemory,
     ) -> Value {
+        if !var.in_scope {
+            return leaf(var, NOT_IN_SCOPE);
+        }
         let frame = Frame {
             regs,
             mem,
@@ -379,7 +451,7 @@ impl SymbolTable {
         in_function: bool,
         walk: &mut Walk,
     ) -> gimli::Result<bool> {
-        let my_scope = walk.scopes.len().checked_sub(1);
+        let my_scope = walk.path.len().checked_sub(1);
         let mut children = node.children();
         while let Some(child) = children.next()? {
             let entry = child.entry();
@@ -390,8 +462,8 @@ impl SymbolTable {
                     } else {
                         VarKind::Local
                     };
-                    if let Some(scope) = my_scope.and_then(|i| walk.scopes.get_mut(i)) {
-                        scope.push((kind, entry.offset()));
+                    if let Some(scope) = my_scope.and_then(|i| walk.path.get_mut(i)) {
+                        scope.vars.push((kind, entry.offset()));
                     }
                 }
                 gimli::DW_TAG_subprogram
@@ -410,10 +482,11 @@ impl SymbolTable {
                     if entry.tag() == gimli::DW_TAG_subprogram {
                         walk.subprogram = Some(entry.offset());
                     }
-                    walk.scopes.push(Vec::new());
-                    if is_function_scope {
-                        walk.func_start = walk.scopes.len() - 1;
-                    }
+                    walk.path.push(Scope {
+                        offset: entry.offset(),
+                        is_function: is_function_scope,
+                        vars: Vec::new(),
+                    });
                     self.walk_scope(info, child, pc, true, walk)?;
                     if !in_function {
                         // Found the function containing the pc; nothing
@@ -453,6 +526,7 @@ impl SymbolTable {
         die: UnitOffset<usize>,
         kind: VarKind,
         subprogram: UnitOffset<usize>,
+        in_scope: bool,
     ) -> Option<LocalVar> {
         let entry = info.unit.entry(die).ok()?;
         let name_attr = self.attr_with_origin(info, &entry, gimli::DW_AT_name)?;
@@ -476,6 +550,7 @@ impl SymbolTable {
             type_name: fmt.type_name(ty),
             kind,
             decl_line,
+            in_scope,
             unit: unit_idx,
             die,
             ty,
@@ -730,10 +805,39 @@ fn assemble(pieces: Vec<gimli::Piece<R>>, frame: &Frame<'_>) -> Located {
 
 #[derive(Default)]
 struct Walk {
+    /// The concrete (out-of-line) subprogram containing the pc.
     subprogram: Option<UnitOffset<usize>>,
-    scopes: Vec<Vec<(VarKind, UnitOffset<usize>)>>,
-    /// Index into `scopes` of the innermost function instance.
-    func_start: usize,
+    /// Every scope containing the pc, outermost first.
+    path: Vec<Scope>,
+}
+
+/// A `DW_TAG_subprogram` / `inlined_subroutine` / `lexical_block`
+/// containing the pc, with the parameters and variables declared directly
+/// in it.
+struct Scope {
+    offset: UnitOffset<usize>,
+    /// Subprogram or inlined call: starts a new function instance.
+    is_function: bool,
+    vars: Vec<(VarKind, UnitOffset<usize>)>,
+}
+
+/// Variables in the lexical blocks below `node` (pre-order, i.e.
+/// declaration order), not counting `node`'s own and not descending into
+/// nested function instances (inlined calls).
+fn collect_block_vars(
+    node: gimli::EntriesTreeNode<'_, '_, R>,
+    nested: bool,
+    out: &mut Vec<UnitOffset<usize>>,
+) -> gimli::Result<()> {
+    let mut children = node.children();
+    while let Some(child) = children.next()? {
+        match child.entry().tag() {
+            gimli::DW_TAG_variable if nested => out.push(child.entry().offset()),
+            gimli::DW_TAG_lexical_block => collect_block_vars(child, true, out)?,
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 enum PieceData {
