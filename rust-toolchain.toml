@@ -1,3 +1,11 @@
 [toolchain]
 channel = "1.99"
 components = ["rustfmt", "clippy"]
+# Every platform a `.yog` bundles natives for; rustup installs missing ones on first use.
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-pc-windows-gnu",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+]
