@@ -1,6 +1,8 @@
 //! Type-aware formatting of a located variable into a bounded [`Value`]
 //! tree, with Rust-specific pretty forms for `&str`, slices, `String`,
-//! `Vec<T>`, `Box<T>` and enums with variant parts.
+//! `Vec<T>`, `Box<T>`, enums with variant parts, and the std wrappers a
+//! user doesn't want to click through (`Cell`, `RefCell`, `OnceLock`,
+//! `Rc`/`Arc`, `NonNull`, `PhantomData`...).
 
 use std::cell::Cell;
 
@@ -289,7 +291,7 @@ impl<'a> Formatter<'a> {
         place: &Place,
         depth: usize,
     ) -> Value {
-        let type_name = self.type_name(ty);
+        let type_name = short_type_name(&self.type_name(ty));
         let mut out = Value {
             name,
             type_name,
@@ -553,8 +555,132 @@ impl<'a> Formatter<'a> {
                 return Some(self.format_pointer("", ptr, pointee, depth));
             }
         }
+        if let Some(wrapped) = self.format_wrapper(off, &qualified, &members, place, depth) {
+            return Some(wrapped);
+        }
 
         Some(self.format_fields(&members, place, depth, &short))
+    }
+
+    /// std wrappers shown as what they wrap; `None` to fall back to the
+    /// plain field view (unknown type, or a layout this doesn't recognize).
+    fn format_wrapper(
+        &self,
+        off: Off,
+        qualified: &str,
+        members: &[Member],
+        place: &Place,
+        depth: usize,
+    ) -> Option<(String, Vec<Value>)> {
+        let base = qualified.split('<').next().unwrap_or(qualified);
+        let member = |n: &str| members.iter().find(|m| m.name == n);
+        match base {
+            "core::cell::UnsafeCell"
+            | "core::cell::SyncUnsafeCell"
+            | "core::cell::Cell"
+            | "core::cell::RefCell"
+            | "core::mem::maybe_uninit::MaybeUninit"
+            | "core::mem::manually_drop::ManuallyDrop"
+            | "core::mem::maybe_dangling::MaybeDangling"
+            | "core::pin::Pin" => {
+                // `value` for the cells and `MaybeUninit` (a union whose
+                // other member is the `()` "uninit" view); otherwise the
+                // one field with data.
+                let inner = member("value").or_else(|| {
+                    let mut data = members.iter().filter(|m| !self.is_zero_sized(m.ty));
+                    match (data.next(), data.next()) {
+                        (Some(only), None) => Some(only),
+                        _ => None,
+                    }
+                })?;
+                Some(self.unwrap_member(inner, place, depth))
+            }
+            "core::ptr::non_null::NonNull" | "core::ptr::unique::Unique" => {
+                let (ptr, pointee) = self.find_pointer(off, place, 0)?;
+                Some(self.format_pointer("", ptr, pointee, depth))
+            }
+            "core::marker::PhantomData" | "core::marker::PhantomPinned" => {
+                Some((base.rsplit("::").next()?.to_string(), Vec::new()))
+            }
+            "core::cell::once::OnceCell" => {
+                let (value, children) = self.unwrap_member(member("inner")?, place, depth);
+                Some(unwrap_option(value, children))
+            }
+            "std::sync::once_lock::OnceLock" => {
+                let value = member("value")?;
+                let complete = member("once")
+                    .and_then(|once| self.first_uint(once.ty?, &place.offset(once.offset), 0))
+                    // Both `Once` implementations (futex and queue) keep the
+                    // state in the low two bits; 3 is COMPLETE.
+                    .map(|state| state & 3 == 3);
+                match complete {
+                    Some(false) => Some(("<uninit>".into(), Vec::new())),
+                    // Initialized, or a state this can't read: show the slot.
+                    _ => Some(self.unwrap_member(value, place, depth)),
+                }
+            }
+            "alloc::rc::Rc" | "alloc::sync::Arc" => {
+                let (ptr, inner_ty) = self.find_pointer(off, place, 0)?;
+                if ptr == 0 {
+                    return Some(("null".into(), Vec::new()));
+                }
+                let (inner_off, _) = self.peel(inner_ty?)?;
+                let inner = self.members(inner_off);
+                let field = |n: &str| inner.iter().find(|m| m.name == n);
+                let strong = field("strong")?;
+                let data = field("value").or_else(|| field("data"))?;
+                let count = self.first_uint(strong.ty?, &Place::Mem(ptr + strong.offset), 0);
+                let count = count.map_or_else(|| "?".into(), |n| n.to_string());
+                let (value, children) =
+                    self.unwrap_member(data, &Place::Mem(ptr), depth);
+                Some((format!("{value} (strong={count})"), children))
+            }
+            _ => None,
+        }
+    }
+
+    /// `member` of the struct at `place`, formatted at the struct's own
+    /// depth (the wrapper doesn't count as a nesting level).
+    fn unwrap_member(&self, member: &Member, place: &Place, depth: usize) -> (String, Vec<Value>) {
+        let inner = self.format(
+            member.name.clone(),
+            member.ty,
+            &place.offset(member.offset),
+            depth,
+        );
+        (inner.value, inner.children)
+    }
+
+    /// The first integer reachable through leading struct members (an
+    /// atomic's or `Cell`'s payload).
+    fn first_uint(&self, ty: Off, place: &Place, depth: usize) -> Option<u64> {
+        if depth > 8 {
+            return None;
+        }
+        let (off, entry) = self.peel(ty)?;
+        match entry.tag() {
+            gimli::DW_TAG_base_type => {
+                self.read_uint(place, Self::udata(&entry, gimli::DW_AT_byte_size)?)
+            }
+            gimli::DW_TAG_structure_type | gimli::DW_TAG_union_type => {
+                let first = self.members(off).into_iter().next()?;
+                self.first_uint(first.ty?, &place.offset(first.offset), depth + 1)
+            }
+            _ => None,
+        }
+    }
+
+    fn is_zero_sized(&self, ty: Option<Off>) -> bool {
+        ty.and_then(|t| self.byte_size(t)) == Some(0)
+    }
+
+    fn is_phantom(&self, ty: Option<Off>) -> bool {
+        ty.and_then(|t| self.peel(t)).is_some_and(|(off, e)| {
+            e.tag() == gimli::DW_TAG_structure_type
+                && self
+                    .qualified_name(off, &e)
+                    .starts_with("core::marker::Phantom")
+        })
     }
 
     /// Generic struct/tuple/union: one child per member.
@@ -565,6 +691,7 @@ impl<'a> Formatter<'a> {
         depth: usize,
         short_name: &str,
     ) -> (String, Vec<Value>) {
+        let members: Vec<&Member> = members.iter().filter(|m| !self.is_phantom(m.ty)).collect();
         if members.is_empty() {
             return (short_name.to_string(), Vec::new());
         }
@@ -722,6 +849,43 @@ impl<'a> Formatter<'a> {
             None => UNAVAILABLE.into(),
         }
     }
+}
+
+/// `Some(x)` -> `x`, `None` -> `<uninit>` (`OnceCell`'s slot).
+fn unwrap_option(value: String, mut children: Vec<Value>) -> (String, Vec<Value>) {
+    if value == "None" {
+        return ("<uninit>".into(), Vec::new());
+    }
+    if value.starts_with("Some(") && children.len() == 1 {
+        let inner = children.remove(0);
+        return (inner.value, inner.children);
+    }
+    (value, children)
+}
+
+/// Display form of a type name: the allocator parameter and the paths of
+/// the most common std types dropped (`Vec<u8>`, not
+/// `alloc::vec::Vec<u8, alloc::alloc::Global>`).
+pub(crate) fn short_type_name(name: &str) -> String {
+    const PREFIXES: [(&str, &str); 12] = [
+        ("alloc::vec::Vec<", "Vec<"),
+        ("alloc::string::String", "String"),
+        ("alloc::boxed::Box<", "Box<"),
+        ("alloc::rc::Rc<", "Rc<"),
+        ("alloc::sync::Arc<", "Arc<"),
+        ("core::option::Option<", "Option<"),
+        ("core::result::Result<", "Result<"),
+        ("core::cell::Cell<", "Cell<"),
+        ("core::cell::RefCell<", "RefCell<"),
+        ("core::cell::once::OnceCell<", "OnceCell<"),
+        ("std::sync::once_lock::OnceLock<", "OnceLock<"),
+        ("core::ptr::non_null::NonNull<", "NonNull<"),
+    ];
+    let mut out = name.replace(", alloc::alloc::Global", "");
+    for (long, short) in PREFIXES {
+        out = out.replace(long, short);
+    }
+    out
 }
 
 fn mask(size: u64) -> u64 {

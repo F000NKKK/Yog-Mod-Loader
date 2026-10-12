@@ -362,7 +362,7 @@ impl SymbolTable {
                 let fmt = crate::format::Formatter::new(self, info, mem);
                 let mut value = fmt.format(var.name.clone(), var.ty, &place, 0);
                 if value.type_name.is_empty() {
-                    value.type_name = var.type_name.clone();
+                    value.type_name = crate::format::short_type_name(&var.type_name);
                 }
                 value
             }
@@ -805,7 +805,7 @@ pub(crate) fn unit_ref(info: &UnitInfo, v: AttributeValue<R>) -> Option<UnitOffs
 fn leaf(var: &LocalVar, value: &str) -> Value {
     Value {
         name: var.name.clone(),
-        type_name: var.type_name.clone(),
+        type_name: crate::format::short_type_name(&var.type_name),
         value: value.to_string(),
         children: Vec::new(),
     }
