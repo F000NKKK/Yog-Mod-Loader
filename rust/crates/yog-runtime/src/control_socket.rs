@@ -76,8 +76,12 @@ mod unix {
     /// (`SO_PEERCRED`), and only a client running as our own user counts —
     /// it could `ptrace` us without Yama anyway. Without Yama, `prctl`
     /// fails with `EINVAL`: nothing to lift then.
+    ///
+    /// Returns whether the peer may now trace us — reported in `ready` as
+    /// `ptracer`, so the client can tell an outdated runtime (no field) from
+    /// a policy that really refuses it.
     #[cfg(target_os = "linux")]
-    fn allow_peer_to_trace(stream: &UnixStream) {
+    fn allow_peer_to_trace(stream: &UnixStream) -> bool {
         use std::os::fd::AsRawFd;
 
         let mut cred = libc::ucred {
@@ -98,20 +102,23 @@ mod unix {
         };
         // SAFETY: `getuid` has no preconditions.
         if rc != 0 || cred.pid <= 0 || cred.uid != unsafe { libc::getuid() } {
-            return;
+            return false;
         }
         // SAFETY: plain `prctl` call with integer arguments.
         let rc = unsafe { libc::prctl(libc::PR_SET_PTRACER, cred.pid as libc::c_ulong, 0, 0, 0) };
-        if rc != 0 {
-            let err = std::io::Error::last_os_error();
-            if err.raw_os_error() != Some(libc::EINVAL) {
-                yog_logging::warn!(
-                    "control socket: PR_SET_PTRACER({}) failed: {}",
-                    cred.pid,
-                    err
-                );
-            }
+        if rc == 0 {
+            return true;
         }
+        let err = std::io::Error::last_os_error();
+        if err.raw_os_error() == Some(libc::EINVAL) {
+            return true;
+        }
+        yog_logging::warn!(
+            "control socket: PR_SET_PTRACER({}) failed: {}",
+            cred.pid,
+            err
+        );
+        false
     }
 
     fn write_line(stream: &mut UnixStream, json: &serde_json::Value) {
@@ -131,11 +138,14 @@ mod unix {
 
     fn handle_client(mut stream: UnixStream) {
         #[cfg(target_os = "linux")]
-        allow_peer_to_trace(&stream);
+        let ptracer = allow_peer_to_trace(&stream);
+        #[cfg(not(target_os = "linux"))]
+        let ptracer = false;
         let ready = serde_json::json!({
             "event": "ready",
             "pid": std::process::id(),
             "mods": mod_list_json(),
+            "ptracer": ptracer,
         });
         write_line(&mut stream, &ready);
 
