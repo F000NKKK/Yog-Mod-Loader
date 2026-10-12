@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.util.YogDataLayout;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -27,6 +28,9 @@ import net.neoforged.fml.loading.FMLPaths;
  * are exposed, but for our runtime-loaded mods.
  */
 public class YogPackProvider implements RepositorySource {
+    /** MC 1.21+ uses singular datapack dir names (loot_table, tags/item, ...). */
+    private static final boolean SINGULAR_DATA_DIRS = true;
+
     private final PackType type;
 
     public YogPackProvider(PackType type) {
@@ -94,6 +98,8 @@ public class YogPackProvider implements RepositorySource {
                         if (e.isDirectory() || !(n.startsWith("assets/") || n.startsWith("data/"))) {
                             continue;
                         }
+                        // Accept both pre-1.21 plural and 1.21+ singular datapack dir names.
+                        n = YogDataLayout.remapDataPath(n, SINGULAR_DATA_DIRS);
                         Path target = out.resolve(n).normalize();
                         if (!target.startsWith(out)) {
                             continue; // zip-slip guard
@@ -113,9 +119,11 @@ public class YogPackProvider implements RepositorySource {
         // Inject mod-declared dimensions as vanilla dimension_type/dimension JSON.
         injectDimensions(out);
 
-        // pack_format 34 = MC 1.21.1, valid for both resources and data.
+        // MC 1.21.1: data pack format 48, resource pack format 34. The same
+        // directory backs both pack types, so declare the main format for data
+        // and a supported range that covers resources too.
         Files.writeString(out.resolve("pack.mcmeta"),
-                "{\"pack\":{\"pack_format\":15,\"description\":\"Yog mods\"}}");
+                "{\"pack\":{\"pack_format\":48,\"supported_formats\":[34,48],\"description\":\"Yog mods\"}}");
         return out;
     }
 
@@ -131,7 +139,7 @@ public class YogPackProvider implements RepositorySource {
             String json     = parts[2];
             try {
                 Path target = packRoot
-                        .resolve("data").resolve(namespace).resolve("recipes")
+                        .resolve("data").resolve(namespace).resolve(YogDataLayout.recipeDir(SINGULAR_DATA_DIRS))
                         .resolve(name + ".json");
                 Files.createDirectories(target.getParent());
                 Files.writeString(target, json);

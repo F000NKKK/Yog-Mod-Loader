@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.util.YogDataLayout;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -23,6 +24,9 @@ import net.minecraftforge.fml.loading.FMLPaths;
  * are exposed, but for our runtime-loaded mods.
  */
 public class YogPackProvider implements RepositorySource {
+    /** MC 1.20.x uses plural datapack dir names (loot_tables, tags/items, ...). */
+    private static final boolean SINGULAR_DATA_DIRS = false;
+
     private final PackType type;
 
     public YogPackProvider(PackType type) {
@@ -85,6 +89,8 @@ public class YogPackProvider implements RepositorySource {
                         if (e.isDirectory() || !(n.startsWith("assets/") || n.startsWith("data/"))) {
                             continue;
                         }
+                        // Accept both pre-1.21 plural and 1.21+ singular datapack dir names.
+                        n = YogDataLayout.remapDataPath(n, SINGULAR_DATA_DIRS);
                         Path target = out.resolve(n).normalize();
                         if (!target.startsWith(out)) {
                             continue; // zip-slip guard
@@ -122,7 +128,7 @@ public class YogPackProvider implements RepositorySource {
             String json     = parts[2];
             try {
                 Path target = packRoot
-                        .resolve("data").resolve(namespace).resolve("recipes")
+                        .resolve("data").resolve(namespace).resolve(YogDataLayout.recipeDir(SINGULAR_DATA_DIRS))
                         .resolve(name + ".json");
                 Files.createDirectories(target.getParent());
                 Files.writeString(target, json);
