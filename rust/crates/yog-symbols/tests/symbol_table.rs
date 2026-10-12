@@ -79,3 +79,40 @@ fn lists_exported_functions() {
         "functions: {names:?}"
     );
 }
+
+/// What an IDE passes: the absolute path of the open file — while the
+/// DWARF says `../…` relative to the build dir, because `yog build`
+/// compiles from `.yog-build/` with `path = "../src/lib.rs"`.
+#[test]
+fn absolute_path_matches_a_dotdot_relative_compile() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
+        .join(format!("libyog_symbols_fixture_dotdot.{}", cdylib_ext()));
+    let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
+        .current_dir(manifest_dir.join("tests"))
+        .args([
+            "--crate-type=cdylib",
+            "-C",
+            "debuginfo=2",
+            "-C",
+            "strip=none",
+            "-o",
+        ])
+        .arg(&out)
+        .arg("../tests/fixtures/fixture.rs")
+        .status()
+        .expect("failed to invoke rustc for fixture build");
+    assert!(status.success(), "rustc failed to build the fixture cdylib");
+    let table = SymbolTable::load(&out).expect("loading fixture symbol table");
+
+    let source = manifest_dir.join("tests/fixtures/fixture.rs");
+    let addrs = table.resolve_breakpoint(source.to_str().unwrap(), 8);
+    assert!(!addrs.is_empty(), "absolute path didn't match");
+    assert!(
+        table
+            .resolve_breakpoint(manifest_dir.join("other/fixture.rs").to_str().unwrap(), 8)
+            .is_empty(),
+        "a different absolute path must not match"
+    );
+    assert_eq!(table.resolve_addr(addrs[0]).unwrap().file, source);
+}
