@@ -1246,16 +1246,28 @@ impl Builder {
     }
 }
 
-/// Drop the benign "xcrun … MacOSX.sdk failed" warning block that rustc emits
-/// when cross-linking Apple targets without a macOS SDK (zig handles the
-/// actual linking), along with the matching cargo "generated 1 warning" line.
+/// Warnings that come from the zig cross-linking toolchain itself, not from
+/// the mod's code, and that the mod author can't act on:
+/// - "xcrun … MacOSX.sdk failed" — rustc probing for a macOS SDK when
+///   cross-linking Apple targets (zig handles the actual linking).
+/// - "linker stderr: ignoring deprecated linker optimization setting" —
+///   rustc always passes `-Wl,-O1` to gnu-flavored linkers; zig's ld (0.16+)
+///   ignores it and says so on every link.
+fn is_benign_warning(t: &str) -> bool {
+    t.starts_with("warning:")
+        && ((t.contains("xcrun") && t.contains("failed"))
+            || (t.contains("linker stderr") && t.contains("deprecated linker optimization setting")))
+}
+
+/// Drop each [`is_benign_warning`] block, along with the matching cargo
+/// "generated 1 warning" line.
 fn filter_benign_warnings(stderr: &str) -> String {
     let mut out = String::new();
     let mut in_block = false;
     let mut suppressed = 0usize;
     for line in stderr.lines() {
         let t = line.trim_start();
-        if t.starts_with("warning:") && t.contains("xcrun") && t.contains("failed") {
+        if is_benign_warning(t) {
             in_block = true;
             suppressed += 1;
             continue;
@@ -2449,5 +2461,36 @@ fn latest_yog_api_version() -> String {
                 .unwrap_or_else(|| "0.5".into())
         }
         _ => "0.5".into(), // fallback when cargo search fails (offline, etc.)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::filter_benign_warnings;
+
+    #[test]
+    fn drops_zig_linker_optimization_warning() {
+        let stderr = "\
+warning: linker stderr: ignoring deprecated linker optimization setting '1'
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `yog-pipes` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 0.03s
+";
+        assert_eq!(
+            filter_benign_warnings(stderr),
+            "    Finished `release` profile [optimized] target(s) in 0.03s\n"
+        );
+    }
+
+    #[test]
+    fn keeps_real_warnings() {
+        let stderr = "\
+warning: unused variable: `x`
+  --> src/lib.rs:1:5
+warning: `my-mod` (lib) generated 1 warning
+";
+        assert_eq!(filter_benign_warnings(stderr), stderr);
     }
 }
