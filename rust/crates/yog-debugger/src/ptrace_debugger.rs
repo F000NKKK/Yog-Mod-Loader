@@ -15,7 +15,20 @@ use nix::sys::wait::{waitpid, WaitPidFlag, WaitStatus};
 use nix::unistd::Pid;
 use yog_symbols::{FrameRegs, SourceLocation, SymbolTable, TargetMemory};
 
-use crate::user_location;
+use crate::{is_library_source, user_location};
+
+type LineKey = (std::path::PathBuf, u32);
+
+/// Where a step currently is.
+enum Position {
+    /// On a line of user code.
+    User(LineKey),
+    /// In user code, on a compiler-generated row without a line.
+    NoLine,
+    /// In library code (`std`, a dependency), or in code with no line info
+    /// at all (outside the module, a stub).
+    Foreign,
+}
 
 /// Which flavour of source-level step to perform — modelled on Visual
 /// Studio's F10/F11/Shift+F11.
@@ -642,10 +655,34 @@ impl Debugger {
     /// line" checks during stepping: the innermost *user* line at `rip`
     /// (see [`user_location`]) — `None` in library code or code without
     /// lines, which stepping never stops in.
-    fn line_key(&self, symbols: &SymbolTable, base: u64) -> Option<(std::path::PathBuf, u32)> {
-        let rip = self.registers().ok()?.rip;
-        let loc = user_location(symbols, rip.checked_sub(base)?)?;
-        Some((loc.file, loc.line))
+    fn line_key(&self, symbols: &SymbolTable, base: u64) -> Option<LineKey> {
+        match self.position(symbols, base) {
+            Position::User(key) => Some(key),
+            Position::NoLine | Position::Foreign => None,
+        }
+    }
+
+    /// What kind of code `rip` is in, for stepping.
+    fn position(&self, symbols: &SymbolTable, base: u64) -> Position {
+        let Some(offset) = self
+            .registers()
+            .ok()
+            .and_then(|r| r.rip.checked_sub(base))
+        else {
+            return Position::Foreign;
+        };
+        let chain = symbols.resolve_inlined(offset);
+        if let Some(loc) = chain
+            .iter()
+            .find(|loc| loc.line != 0 && !is_library_source(&loc.file))
+        {
+            return Position::User((loc.file.clone(), loc.line));
+        }
+        if chain.is_empty() || chain.iter().any(|loc| is_library_source(&loc.file)) {
+            Position::Foreign
+        } else {
+            Position::NoLine
+        }
     }
 
     /// Reads `buf.len()` bytes of the tracee's memory at `addr`, substituting
@@ -789,8 +826,11 @@ impl Debugger {
             // (`OnceLock::get_or_init`), or tail-jumped into a library.
             // Crawling through that an instruction at a time is what made
             // such a step look hung.
-            let Some(cur) = self.line_key(symbols, base) else {
-                return self.leave_foreign_code(symbols, base);
+            let cur = match self.position(symbols, base) {
+                Position::User(key) => key,
+                // A compiler-generated row (line 0) of user code: keep going.
+                Position::NoLine => continue,
+                Position::Foreign => return self.leave_foreign_code(symbols, base),
             };
             // Only where a statement begins: mid-statement rows are the
             // compiler interleaving lines, not the code moving on.
