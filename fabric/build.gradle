@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.6-SNAPSHOT'
+    id 'fabric-loom' version '1.7-SNAPSHOT'
     id 'java'
 }
 
@@ -85,4 +85,6 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version as String))
     }
+    // Loom remaps a sources jar alongside the mod jar and warns without one.
+    withSourcesJar()
 }
