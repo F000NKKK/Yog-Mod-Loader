@@ -196,7 +196,9 @@ fn process_exiting(pid: Pid) -> bool {
         return true;
     };
     // `pid (comm) S ...` — `comm` may itself contain spaces or parentheses.
-    let state = stat.rsplit_once(')').and_then(|(_, rest)| rest.trim_start().chars().next());
+    let state = stat
+        .rsplit_once(')')
+        .and_then(|(_, rest)| rest.trim_start().chars().next());
     matches!(state, Some('Z' | 'X') | None)
 }
 
@@ -564,7 +566,9 @@ impl Debugger {
                 return Ok(Step::Vanished);
             };
             match status {
-                WaitStatus::Exited(_, code) => return Ok(self.thread_gone(tid, StopReason::Exited(code))),
+                WaitStatus::Exited(_, code) => {
+                    return Ok(self.thread_gone(tid, StopReason::Exited(code)))
+                }
                 WaitStatus::Signaled(_, sig, _) => {
                     return Ok(self.thread_gone(tid, StopReason::Killed(sig)));
                 }
@@ -935,8 +939,7 @@ impl Debugger {
     /// [`continue_`](Self::continue_) — and like it, returns
     /// [`StopReason::Interrupted`] for any [`interrupt`], pause request or
     /// not. What's left of such a step is just that run: resume it with
-    /// `continue_`. (Should the stepped thread not be stopped, a step
-    /// simply continues.)
+    /// `continue_` — or `source_step` again, which knows and does the same.
     pub fn source_step(
         &mut self,
         kind: StepKind,

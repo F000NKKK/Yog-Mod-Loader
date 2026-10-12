@@ -413,7 +413,11 @@ fn ticks_session(tag: &str) -> (KillOnDrop, Debugger, SymbolTable, u64, u64) {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/ticks.rs"),
     )
     .unwrap();
-    let first = src.lines().position(|l| l.contains("// TICK_FIRST")).unwrap() as u32 + 1;
+    let first = src
+        .lines()
+        .position(|l| l.contains("// TICK_FIRST"))
+        .unwrap() as u32
+        + 1;
 
     let child = KillOnDrop(Command::new(&exe).spawn().expect("spawning ticks fixture"));
     let symbols = SymbolTable::load(&exe).expect("loading fixture debug info");
@@ -471,7 +475,9 @@ fn interrupted_free_run_step_resumes_cleanly() {
 
     let (child, mut debugger, symbols, base, addr) = ticks_session("ticks_interrupt");
     let pid = child.0.id() as i32;
-    debugger.clear_breakpoint(addr).expect("clearing breakpoint");
+    debugger
+        .clear_breakpoint(addr)
+        .expect("clearing breakpoint");
 
     let stepped = debugger.current_thread();
     let edit = std::thread::spawn(move || {
@@ -509,8 +515,5 @@ fn killed_while_paused_reports_the_exit() {
     let (mut child, mut debugger, _symbols, _base, _addr) = ticks_session("ticks_killed");
     child.0.kill().expect("killing the fixture");
     let stop = debugger.continue_().expect("continuing after the kill");
-    assert_eq!(
-        stop,
-        StopReason::Killed(nix::sys::signal::Signal::SIGKILL)
-    );
+    assert_eq!(stop, StopReason::Killed(nix::sys::signal::Signal::SIGKILL));
 }
