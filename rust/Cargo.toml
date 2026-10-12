@@ -42,6 +42,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.99"
 authors = ["F000NK, Yog Team, Voluntas Progressus"]
 # Default for the protected engine (runtime + host). The mod-author-facing
 # `yog-api` and the example mod override this with a permissive license so the
@@ -49,7 +50,7 @@ authors = ["F000NK, Yog Team, Voluntas Progressus"]
 license = "AGPL-3.0-only"
 
 [workspace.dependencies]
-syn = { version = "2", features = ["full", "extra-traits"] }
+syn = { version = "3", features = ["full", "extra-traits"] }
 quote = "1"
 proc-macro2 = "1"
 rkyv = { version = "0.8" }

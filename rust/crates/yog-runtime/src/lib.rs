@@ -282,11 +282,19 @@ impl SchedulerState {
 }
 
 fn handlers() -> std::sync::RwLockReadGuard<'static, RuntimeHandlers> {
-    HANDLERS.get().expect("yog: nativeInit not called yet").read().expect("handlers lock poisoned")
+    HANDLERS
+        .get()
+        .expect("yog: nativeInit not called yet")
+        .read()
+        .expect("handlers lock poisoned")
 }
 
 fn current_registration() -> LoadedModule {
-    CURRENT_REGISTRATION.lock().unwrap().clone().expect("a yog-runtime api_* function was called outside of yog_mod_register")
+    CURRENT_REGISTRATION
+        .lock()
+        .unwrap()
+        .clone()
+        .expect("a yog-runtime api_* function was called outside of yog_mod_register")
 }
 
 fn hot_reloader() -> &'static HotReloader<RuntimeModuleRegistry> {
@@ -311,46 +319,73 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         h.block_break.retain(|(m, ..)| m.generation() != generation);
         h.chat.retain(|(m, ..)| m.generation() != generation);
         h.player_join.retain(|(m, ..)| m.generation() != generation);
-        h.player_leave.retain(|(m, ..)| m.generation() != generation);
+        h.player_leave
+            .retain(|(m, ..)| m.generation() != generation);
         h.use_item.retain(|(m, ..)| m.generation() != generation);
         h.use_block.retain(|(m, ..)| m.generation() != generation);
-        h.attack_entity.retain(|(m, ..)| m.generation() != generation);
-        h.entity_damage.retain(|(m, ..)| m.generation() != generation);
-        h.entity_death.retain(|(m, ..)| m.generation() != generation);
-        h.entity_spawn.retain(|(m, ..)| m.generation() != generation);
-        h.player_place_block.retain(|(m, ..)| m.generation() != generation);
-        h.player_death.retain(|(m, ..)| m.generation() != generation);
-        h.player_respawn.retain(|(m, ..)| m.generation() != generation);
+        h.attack_entity
+            .retain(|(m, ..)| m.generation() != generation);
+        h.entity_damage
+            .retain(|(m, ..)| m.generation() != generation);
+        h.entity_death
+            .retain(|(m, ..)| m.generation() != generation);
+        h.entity_spawn
+            .retain(|(m, ..)| m.generation() != generation);
+        h.player_place_block
+            .retain(|(m, ..)| m.generation() != generation);
+        h.player_death
+            .retain(|(m, ..)| m.generation() != generation);
+        h.player_respawn
+            .retain(|(m, ..)| m.generation() != generation);
         h.advancement.retain(|(m, ..)| m.generation() != generation);
-        h.entity_interact.retain(|(m, ..)| m.generation() != generation);
+        h.entity_interact
+            .retain(|(m, ..)| m.generation() != generation);
         h.item_craft.retain(|(m, ..)| m.generation() != generation);
         h.explosion.retain(|(m, ..)| m.generation() != generation);
         h.item_pickup.retain(|(m, ..)| m.generation() != generation);
         h.player_move.retain(|(m, ..)| m.generation() != generation);
-        h.container_open.retain(|(m, ..)| m.generation() != generation);
-        h.container_close.retain(|(m, ..)| m.generation() != generation);
-        h.projectile_hit.retain(|(m, ..)| m.generation() != generation);
+        h.container_open
+            .retain(|(m, ..)| m.generation() != generation);
+        h.container_close
+            .retain(|(m, ..)| m.generation() != generation);
+        h.projectile_hit
+            .retain(|(m, ..)| m.generation() != generation);
         h.client_tick.retain(|(m, ..)| m.generation() != generation);
         h.hud_render.retain(|(m, ..)| m.generation() != generation);
-        h.world_render.retain(|(m, ..)| m.generation() != generation);
+        h.world_render
+            .retain(|(m, ..)| m.generation() != generation);
         h.key_press.retain(|(m, ..)| m.generation() != generation);
         h.screen_open.retain(|(m, ..)| m.generation() != generation);
-        h.screen_close.retain(|(m, ..)| m.generation() != generation);
+        h.screen_close
+            .retain(|(m, ..)| m.generation() != generation);
         h.server_tick.retain(|(m, ..)| m.generation() != generation);
-        h.server_started.retain(|(m, ..)| m.generation() != generation);
-        h.server_stopping.retain(|(m, ..)| m.generation() != generation);
+        h.server_started
+            .retain(|(m, ..)| m.generation() != generation);
+        h.server_stopping
+            .retain(|(m, ..)| m.generation() != generation);
         for entries in h.commands.values_mut() {
             entries.retain(|(m, ..)| m.generation() != generation);
         }
         h.packets.retain(|_, (m, ..)| m.generation() != generation);
-        h.client_packets.retain(|_, (m, ..)| m.generation() != generation);
-        h.chunk_generators.retain(|_, (m, ..)| m.generation() != generation);
-        h.ui_handlers.retain(|_, (m, ..)| m.generation() != generation);
+        h.client_packets
+            .retain(|_, (m, ..)| m.generation() != generation);
+        h.chunk_generators
+            .retain(|_, (m, ..)| m.generation() != generation);
+        h.ui_handlers
+            .retain(|_, (m, ..)| m.generation() != generation);
         for entries in h.ui_render_handlers.values_mut() {
             entries.retain(|(m, ..)| m.generation() != generation);
         }
-        h.scheduler.lock().expect("scheduler poisoned").once_tasks.retain(|t| t.module.generation() != generation);
-        h.scheduler.lock().expect("scheduler poisoned").repeating_tasks.retain(|t| t.module.generation() != generation);
+        h.scheduler
+            .lock()
+            .expect("scheduler poisoned")
+            .once_tasks
+            .retain(|t| t.module.generation() != generation);
+        h.scheduler
+            .lock()
+            .expect("scheduler poisoned")
+            .repeating_tasks
+            .retain(|t| t.module.generation() != generation);
     }
 }
 
@@ -2790,11 +2825,12 @@ unsafe extern "C" fn api_register_typed_command(
     let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
     let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let n = name.as_str().to_owned();
-    handlers
-        .commands
-        .entry(n)
-        .or_default()
-        .push((current_registration(), Some(schema.as_str().to_owned()), ud, h));
+    handlers.commands.entry(n).or_default().push((
+        current_registration(),
+        Some(schema.as_str().to_owned()),
+        ud,
+        h,
+    ));
 }
 
 unsafe extern "C" fn api_register_recipe_json(
@@ -3045,7 +3081,9 @@ unsafe extern "C" fn api_register_chunk_generator(
     let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let id = unsafe { id.as_str().to_owned() };
     yog_logging::info!("registered chunk generator for dimension: {}", id);
-    handlers.chunk_generators.insert(id, (current_registration(), ud, h));
+    handlers
+        .chunk_generators
+        .insert(id, (current_registration(), ud, h));
 }
 
 unsafe extern "C" fn api_register_ui(
@@ -3058,7 +3096,9 @@ unsafe extern "C" fn api_register_ui(
     let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
     let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
     let id = unsafe { ui_id.as_str().to_owned() };
-    handlers.ui_handlers.insert(id.clone(), (current_registration(), ud, h));
+    handlers
+        .ui_handlers
+        .insert(id.clone(), (current_registration(), ud, h));
     yog_logging::info!("registered UI handler: {}", id);
 }
 
@@ -3498,7 +3538,12 @@ fn load_mod_lib(path: &Path, api: &YogApi, mod_id: &str) -> Option<LoadedModule>
     match abi.flatten() {
         Some(v) if v == ABI_VERSION => {}
         Some(v) => {
-            yog_logging::error!("{}: ABI {} incompatible with runtime ABI {}", path.display(), v, ABI_VERSION);
+            yog_logging::error!(
+                "{}: ABI {} incompatible with runtime ABI {}",
+                path.display(),
+                v,
+                ABI_VERSION
+            );
             module.retire(|| {});
             return None;
         }
@@ -3524,7 +3569,9 @@ fn load_mod_lib(path: &Path, api: &YogApi, mod_id: &str) -> Option<LoadedModule>
 fn invoke_mod_register(module: &LoadedModule, api: &YogApi, mod_id: &str) -> Result<(), String> {
     module
         .with_library(|lib| unsafe {
-            let register: Symbol<RegisterFn> = lib.get(b"yog_mod_register").map_err(|_| "missing yog_mod_register".to_string())?;
+            let register: Symbol<RegisterFn> = lib
+                .get(b"yog_mod_register")
+                .map_err(|_| "missing yog_mod_register".to_string())?;
             let mod_id_c = std::ffi::CString::new(mod_id).unwrap();
             *CURRENT_REGISTRATION.lock().unwrap() = Some(module.clone());
             register(api as *const YogApi, mod_id_c.as_ptr());
@@ -3715,9 +3762,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeHotReload<'l>(
     mod_id: JString<'l>,
     new_yog_path: JString<'l>,
 ) -> jni::sys::jboolean {
-    let Ok(mod_id) = env.get_string(&mod_id).map(String::from) else { return 0 };
-    let Ok(yog_path) = env.get_string(&new_yog_path).map(String::from) else { return 0 };
-    let ok = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| trigger_hot_reload(&mod_id, Path::new(&yog_path)))).unwrap_or(false);
+    let Ok(mod_id) = env.get_string(&mod_id).map(String::from) else {
+        return 0;
+    };
+    let Ok(yog_path) = env.get_string(&new_yog_path).map(String::from) else {
+        return 0;
+    };
+    let ok = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        trigger_hot_reload(&mod_id, Path::new(&yog_path))
+    }))
+    .unwrap_or(false);
     ok as jni::sys::jboolean
 }
 
@@ -3732,7 +3786,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeHotReload<'l>(
 /// work correctly once called.
 fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
     let Some(native_path) = extract_yog(new_yog_path) else {
-        yog_logging::error!("hot-reload {}: no native for {} in {}", mod_id, platform_tag(), new_yog_path.display());
+        yog_logging::error!(
+            "hot-reload {}: no native for {} in {}",
+            mod_id,
+            platform_tag(),
+            new_yog_path.display()
+        );
         return false;
     };
 
@@ -3741,7 +3800,12 @@ fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
     let module = match unsafe { hot_reloader().reload(mod_id, &native_path) } {
         Ok(m) => m,
         Err(e) => {
-            yog_logging::error!("hot-reload {}: failed to load {}: {}", mod_id, native_path.display(), e);
+            yog_logging::error!(
+                "hot-reload {}: failed to load {}: {}",
+                mod_id,
+                native_path.display(),
+                e
+            );
             return false;
         }
     };
@@ -3793,8 +3857,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreak<'l>(
     let srv = srv_ptr();
     guard("on_block_break", || {
         for (module, ud, f) in &handlers().block_break {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -3821,8 +3889,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChat<'l>(
     let srv = srv_ptr();
     guard("on_chat", || {
         for (module, ud, f) in &handlers().chat {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -3845,8 +3917,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
     let srv = srv_ptr();
     guard("on_player_join", || {
         for (module, ud, f) in &handlers().player_join {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -3949,8 +4025,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
     let srv = srv_ptr();
     guard("on_player_leave", || {
         for (module, ud, f) in &handlers().player_leave {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -3975,8 +4055,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
     let srv = srv_ptr();
     guard("on_use_item", || {
         for (module, ud, f) in &handlers().use_item {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -4017,8 +4101,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItemPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.use_item {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -4050,8 +4138,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
     let srv = srv_ptr();
     guard("on_use_block", || {
         for (module, ud, f) in &handlers().use_block {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -4094,8 +4186,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlockPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.use_block {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -4130,8 +4226,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAttackEntity<'l>(
     let srv = srv_ptr();
     guard("on_attack_entity", || {
         for (module, ud, f) in &handlers().attack_entity {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -4163,8 +4263,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamage<'l>(
     let srv = srv_ptr();
     guard("on_entity_damage", || {
         for (module, ud, f) in &handlers().entity_damage {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -4194,8 +4298,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDeath<'l>(
     let srv = srv_ptr();
     guard("on_entity_death", || {
         for (module, ud, f) in &handlers().entity_death {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -4210,8 +4318,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
     let srv = srv_ptr();
     guard("on_tick", || {
         for (module, ud, f) in &h.server_tick {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv) };
         }
     });
@@ -4239,7 +4351,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
             if module.is_retiring() {
                 continue;
             }
-            let Some(_call) = module.enter() else { continue };
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             guard("schedule_once", || unsafe { f(ud, srv) });
         }
     }
@@ -4261,7 +4375,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
             if module.is_retiring() {
                 continue;
             }
-            let Some(_call) = module.enter() else { continue };
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             guard("schedule_repeating", || unsafe { f(ud, srv) });
         }
     }
@@ -4335,8 +4451,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
     let srv = srv_ptr();
     guard("on_server_started", || {
         for (module, ud, f) in &handlers().server_started {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv) };
         }
     });
@@ -4350,8 +4470,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStopping<'l>(
     let srv = srv_ptr();
     guard("on_server_stopping", || {
         for (module, ud, f) in &handlers().server_stopping {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv) };
         }
     });
@@ -4410,8 +4534,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.block_break {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -4455,8 +4583,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.chat {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -4641,7 +4773,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
             if module.is_retiring() {
                 continue;
             }
-            let Some(_call) = module.enter() else { continue };
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             let mut buf = [0u8; 4096];
             let mut reply_len: u32 = 0;
             unsafe {
@@ -4935,8 +5069,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawn<'l>(
     let srv = srv_ptr();
     guard("on_entity_spawn", || {
         for (module, ud, f) in &h.entity_spawn {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -4975,8 +5113,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawnPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.entity_spawn {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -5028,8 +5170,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamagePre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.entity_damage {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -5077,8 +5223,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlockPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.player_place_block {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -5114,8 +5264,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlock<'l>(
     let srv = srv_ptr();
     guard("on_player_place_block", || {
         for (module, ud, f) in &h.player_place_block {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5160,8 +5314,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeathPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.player_death {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -5200,8 +5358,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeath<'l>(
     let srv = srv_ptr();
     guard("on_player_death", || {
         for (module, ud, f) in &h.player_death {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5230,8 +5392,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerRespawn<'l>(
     let srv = srv_ptr();
     guard("on_player_respawn", || {
         for (module, ud, f) in &h.player_respawn {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5265,8 +5431,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAdvancement<'l>(
     let srv = srv_ptr();
     guard("on_advancement", || {
         for (module, ud, f) in &h.advancement {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5323,8 +5493,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteractPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.entity_interact {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -5368,8 +5542,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteract<'l>(
     let srv = srv_ptr();
     guard("on_entity_interact", || {
         for (module, ud, f) in &h.entity_interact {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5405,8 +5583,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemCraft<'l>(
     let srv = srv_ptr();
     guard("on_item_craft", || {
         for (module, ud, f) in &h.item_craft {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5447,8 +5629,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosionPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.explosion {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -5486,8 +5672,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosion<'l>(
     let srv = srv_ptr();
     guard("on_explosion", || {
         for (module, ud, f) in &h.explosion {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5542,8 +5732,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickupPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.item_pickup {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -5586,8 +5780,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickup<'l>(
     let srv = srv_ptr();
     guard("on_item_pickup", || {
         for (module, ud, f) in &h.item_pickup {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5628,8 +5826,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerMove<'l>(
     let srv = srv_ptr();
     guard("on_player_move", || {
         for (module, ud, f) in &h.player_move {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5669,8 +5871,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpenPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.container_open {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -5709,8 +5915,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpen<'l>(
     let srv = srv_ptr();
     guard("on_container_open", || {
         for (module, ud, f) in &h.container_open {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5741,8 +5951,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerClose<'l>(
     let srv = srv_ptr();
     guard("on_container_close", || {
         for (module, ud, f) in &h.container_close {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5805,8 +6019,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnProjectileHitPre<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.projectile_hit {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, srv, &ev, 0) } {
                 allow = false;
                 break;
@@ -5852,8 +6070,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnProjectileHit<'l>(
     let srv = srv_ptr();
     guard("on_projectile_hit", || {
         for (module, ud, f) in &h.projectile_hit {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, srv, &ev, 1) };
         }
     });
@@ -5872,8 +6094,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientTick<'l>(
     }
     guard("on_client_tick", || {
         for (module, ud, f) in &h.client_tick {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud) };
         }
     });
@@ -5972,8 +6198,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     if !h.hud_render.is_empty() {
         guard("on_hud_render", || {
             for (module, ud, f) in &h.hud_render {
-                if module.is_retiring() { continue; }
-                let Some(_call) = module.enter() else { continue };
+                if module.is_retiring() {
+                    continue;
+                }
+                let Some(_call) = module.enter() else {
+                    continue;
+                };
                 unsafe { f(*ud, &gfx) };
             }
         });
@@ -6032,8 +6262,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
     gfx.player_pos = [player_x, player_y, player_z];
     guard("on_world_render", || {
         for (module, ud, f) in &h.world_render {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, &gfx) };
         }
     });
@@ -6061,8 +6295,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnKeyPress<'l>(
     let mut allow = true;
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (module, ud, f) in &h.key_press {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             if !unsafe { f(*ud, &ev) } {
                 allow = false;
                 break;
@@ -6089,8 +6327,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenOpen<'l>(
     };
     guard("on_screen_open", || {
         for (module, ud, f) in &h.screen_open {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, YogStr::from_str(&sc)) };
         }
     });
@@ -6112,8 +6354,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
     };
     guard("on_screen_close", || {
         for (module, ud, f) in &h.screen_close {
-            if module.is_retiring() { continue; }
-            let Some(_call) = module.enter() else { continue };
+            if module.is_retiring() {
+                continue;
+            }
+            let Some(_call) = module.enter() else {
+                continue;
+            };
             unsafe { f(*ud, YogStr::from_str(&sc)) };
         }
     });

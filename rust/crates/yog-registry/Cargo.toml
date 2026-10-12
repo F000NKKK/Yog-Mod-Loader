@@ -2,6 +2,7 @@
 name = "yog-registry"
 version = "0.25.0"
 edition = "2021"
+rust-version.workspace = true
 authors.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog content registry — register items, blocks, recipes, etc."

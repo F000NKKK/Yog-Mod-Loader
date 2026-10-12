@@ -46,7 +46,10 @@ fn main() {
             let debug = args[2..].iter().any(|a| a == "--debug");
             match args[2..].iter().find(|a| !a.starts_with("--")) {
                 Some(name) => run_config(name, debug),
-                None => Err("usage: yog run <config_name> [--debug]  (see [run.<config_name>] in yog.toml)".into()),
+                None => Err(
+                    "usage: yog run <config_name> [--debug]  (see [run.<config_name>] in yog.toml)"
+                        .into(),
+                ),
             }
         }
         Some("publish") => {
@@ -85,7 +88,8 @@ fn print_usage() {
          \x20 publish exports     Publish this mod's exported API to crates.io\n\
          \x20 help                Show this message\n\n\
          Mod projects use yog.toml instead of Cargo.toml.\n\
-         Cross-compilation requires cargo-zigbuild + zig (yog setup installs them)."
+         Cross-compilation requires cargo-zigbuild + zig (yog setup installs them).\n\
+         Set YOG_TARGETS=linux-x86_64 (comma-separated tags/triples) to build only those platforms."
     );
 }
 
@@ -597,9 +601,15 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
     );
 
     let installed = installed_targets();
+    let selected = selected_targets();
     let mut bundled: Vec<(String, PathBuf)> = Vec::new();
 
     for t in TARGETS {
+        if let Some(sel) = &selected {
+            if !sel.iter().any(|s| s == t.tag || s == t.triple) {
+                continue;
+            }
+        }
         if !installed.iter().any(|s| s == t.triple) {
             eprintln!(
                 "    skip {} (rustup target not installed; run: yog setup)",
@@ -711,7 +721,9 @@ fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> 
     // `spawn` (not `status`) so the PID is available before the process
     // exits — a stable, greppable line an external debugger (`yog-debugger`,
     // Yog-IDLE) can read to know what to attach to.
-    let mut child = proc.spawn().map_err(|e| format!("failed to launch `{command}`: {e}"))?;
+    let mut child = proc
+        .spawn()
+        .map_err(|e| format!("failed to launch `{command}`: {e}"))?;
     eprintln!("==> launched pid {}", child.id());
 
     let status = child
@@ -1209,7 +1221,13 @@ impl Builder {
         }
     }
 
-    fn build(&self, build_dir: &Path, triple: &str, root: &Path, debugging_symbols: bool) -> Result<(), ()> {
+    fn build(
+        &self,
+        build_dir: &Path,
+        triple: &str,
+        root: &Path,
+        debugging_symbols: bool,
+    ) -> Result<(), ()> {
         let mut cmd = Command::new("cargo");
         cmd.current_dir(build_dir)
             .env("CARGO_TARGET_DIR", root.join("target"))
@@ -1239,16 +1257,29 @@ impl Builder {
     }
 }
 
-/// Drop the benign "xcrun … MacOSX.sdk failed" warning block that rustc emits
-/// when cross-linking Apple targets without a macOS SDK (zig handles the
-/// actual linking), along with the matching cargo "generated 1 warning" line.
+/// Warnings that come from the zig cross-linking toolchain itself, not from
+/// the mod's code, and that the mod author can't act on:
+/// - "xcrun … MacOSX.sdk failed" — rustc probing for a macOS SDK when
+///   cross-linking Apple targets (zig handles the actual linking).
+/// - "linker stderr: ignoring deprecated linker optimization setting" —
+///   rustc always passes `-Wl,-O1` to gnu-flavored linkers; zig's ld (0.16+)
+///   ignores it and says so on every link.
+fn is_benign_warning(t: &str) -> bool {
+    t.starts_with("warning:")
+        && ((t.contains("xcrun") && t.contains("failed"))
+            || (t.contains("linker stderr")
+                && t.contains("deprecated linker optimization setting")))
+}
+
+/// Drop each [`is_benign_warning`] block, along with the matching cargo
+/// "generated 1 warning" line.
 fn filter_benign_warnings(stderr: &str) -> String {
     let mut out = String::new();
     let mut in_block = false;
     let mut suppressed = 0usize;
     for line in stderr.lines() {
         let t = line.trim_start();
-        if t.starts_with("warning:") && t.contains("xcrun") && t.contains("failed") {
+        if is_benign_warning(t) {
             in_block = true;
             suppressed += 1;
             continue;
@@ -1268,6 +1299,21 @@ fn filter_benign_warnings(stderr: &str) -> String {
         out.push('\n');
     }
     out
+}
+
+/// `YOG_TARGETS` — comma-separated platform tags or triples
+/// (e.g. `linux-x86_64`) to restrict `yog build` to. Unset or empty means
+/// every installed target. A dev loop only needs the host platform; release
+/// builds should leave it unset so the `.yog` stays multi-platform.
+fn selected_targets() -> Option<Vec<String>> {
+    let raw = std::env::var("YOG_TARGETS").ok()?;
+    let list: Vec<String> = raw
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(String::from)
+        .collect();
+    (!list.is_empty()).then_some(list)
 }
 
 fn installed_targets() -> Vec<String> {
@@ -2427,5 +2473,36 @@ fn latest_yog_api_version() -> String {
                 .unwrap_or_else(|| "0.5".into())
         }
         _ => "0.5".into(), // fallback when cargo search fails (offline, etc.)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::filter_benign_warnings;
+
+    #[test]
+    fn drops_zig_linker_optimization_warning() {
+        let stderr = "\
+warning: linker stderr: ignoring deprecated linker optimization setting '1'
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `yog-pipes` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 0.03s
+";
+        assert_eq!(
+            filter_benign_warnings(stderr),
+            "    Finished `release` profile [optimized] target(s) in 0.03s\n"
+        );
+    }
+
+    #[test]
+    fn keeps_real_warnings() {
+        let stderr = "\
+warning: unused variable: `x`
+  --> src/lib.rs:1:5
+warning: `my-mod` (lib) generated 1 warning
+";
+        assert_eq!(filter_benign_warnings(stderr), stderr);
     }
 }

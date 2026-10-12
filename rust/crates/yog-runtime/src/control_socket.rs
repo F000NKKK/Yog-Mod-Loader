@@ -25,7 +25,9 @@ use std::path::Path;
 /// after `load_mods` has finished (so the `ready` message's mod list is
 /// complete) — see `nativeInit`.
 pub fn start_if_requested() {
-    let Ok(path) = std::env::var("YOG_CONTROL_SOCKET") else { return };
+    let Ok(path) = std::env::var("YOG_CONTROL_SOCKET") else {
+        return;
+    };
 
     // A crashed previous run can leave the socket file behind; bind fails
     // on an existing path otherwise.
@@ -79,13 +81,22 @@ fn handle_client(mut stream: UnixStream) {
     };
 
     for line in reader.lines().map_while(Result::ok) {
-        let Ok(cmd) = serde_json::from_str::<serde_json::Value>(&line) else { continue };
+        let Ok(cmd) = serde_json::from_str::<serde_json::Value>(&line) else {
+            continue;
+        };
         match cmd.get("cmd").and_then(|c| c.as_str()) {
             Some("hot_reload") => {
-                let mod_id = cmd.get("mod_id").and_then(|v| v.as_str()).unwrap_or_default();
-                let yog_path = cmd.get("yog_path").and_then(|v| v.as_str()).unwrap_or_default();
+                let mod_id = cmd
+                    .get("mod_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let yog_path = cmd
+                    .get("yog_path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
                 let ok = crate::trigger_hot_reload(mod_id, Path::new(yog_path));
-                let response = serde_json::json!({ "event": "hot-reload-done", "mod_id": mod_id, "ok": ok });
+                let response =
+                    serde_json::json!({ "event": "hot-reload-done", "mod_id": mod_id, "ok": ok });
                 write_line(&mut stream, &response);
             }
             Some("list_mods") => {

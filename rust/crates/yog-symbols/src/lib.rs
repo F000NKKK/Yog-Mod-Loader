@@ -110,7 +110,10 @@ impl SymbolTable {
                 Some(section) => section.uncompressed_data()?.into_owned(),
                 None => Vec::new(),
             };
-            Ok(EndianArcSlice::new(Arc::from(data.into_boxed_slice()), endian))
+            Ok(EndianArcSlice::new(
+                Arc::from(data.into_boxed_slice()),
+                endian,
+            ))
         };
 
         // `gimli::Dwarf<R>` isn't `Clone` here, and `addr2line::Context`
@@ -129,11 +132,18 @@ impl SymbolTable {
                 if name.is_empty() {
                     return None;
                 }
-                Some(FunctionSymbol { name, address: s.address() })
+                Some(FunctionSymbol {
+                    name,
+                    address: s.address(),
+                })
             })
             .collect();
 
-        Ok(SymbolTable { dwarf, ctx, functions })
+        Ok(SymbolTable {
+            dwarf,
+            ctx,
+            functions,
+        })
     }
 
     /// Resolves a runtime address (already translated to an offset within
@@ -141,15 +151,20 @@ impl SymbolTable {
     /// subtract the module's load base first) to a source location.
     pub fn resolve_addr(&self, addr: u64) -> Option<SourceLocation> {
         let location = self.ctx.find_location(addr).ok().flatten()?;
-        let function = self.ctx.find_frames(addr).skip_all_loads().ok().and_then(|mut frames| {
-            let frame = frames.next().ok().flatten()?;
-            let f = frame.function?;
-            let name = match f.demangle() {
-                Ok(demangled) => demangled.into_owned(),
-                Err(_) => f.raw_name().ok()?.into_owned(),
-            };
-            Some(name)
-        });
+        let function = self
+            .ctx
+            .find_frames(addr)
+            .skip_all_loads()
+            .ok()
+            .and_then(|mut frames| {
+                let frame = frames.next().ok().flatten()?;
+                let f = frame.function?;
+                let name = match f.demangle() {
+                    Ok(demangled) => demangled.into_owned(),
+                    Err(_) => f.raw_name().ok()?.into_owned(),
+                };
+                Some(name)
+            });
 
         Some(SourceLocation {
             file: PathBuf::from(location.file.unwrap_or("")),
@@ -168,17 +183,27 @@ impl SymbolTable {
 
         let mut units = self.dwarf.units();
         while let Ok(Some(header)) = units.next() {
-            let Ok(unit) = self.dwarf.unit(header) else { continue };
-            let Some(program) = unit.line_program.clone() else { continue };
+            let Ok(unit) = self.dwarf.unit(header) else {
+                continue;
+            };
+            let Some(program) = unit.line_program.clone() else {
+                continue;
+            };
             let mut rows = program.rows();
             while let Ok(Some((line_header, row))) = rows.next_row() {
                 let Some(row_line) = row.line() else { continue };
                 if row_line.get() as u32 != line {
                     continue;
                 }
-                let Some(file_entry) = row.file(line_header) else { continue };
-                let Ok(path_name) = self.dwarf.attr_string(&unit, file_entry.path_name()) else { continue };
-                let Ok(path_str) = path_name.to_string_lossy() else { continue };
+                let Some(file_entry) = row.file(line_header) else {
+                    continue;
+                };
+                let Ok(path_name) = self.dwarf.attr_string(&unit, file_entry.path_name()) else {
+                    continue;
+                };
+                let Ok(path_str) = path_name.to_string_lossy() else {
+                    continue;
+                };
                 if Path::new(path_str.as_ref()).ends_with(want_file) {
                     addrs.push(row.address());
                 }

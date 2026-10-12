@@ -41,7 +41,10 @@ struct RecordingRegistry {
 
 impl ModuleRegistry for RecordingRegistry {
     fn retarget(&self, mod_id: &str, from: ModuleGeneration, to: ModuleGeneration) {
-        self.retargets.lock().unwrap().push((mod_id.to_string(), from, to));
+        self.retargets
+            .lock()
+            .unwrap()
+            .push((mod_id.to_string(), from, to));
     }
 
     fn purge(&self, generation: ModuleGeneration) {
@@ -59,19 +62,36 @@ fn defers_hard_unload_until_in_flight_call_completes() {
     let old_generation = old_module.generation();
 
     // Simulate a call still executing inside the old module while reload happens.
-    let guard = old_module.enter().expect("old module should still be loaded");
+    let guard = old_module
+        .enter()
+        .expect("old module should still be loaded");
 
     let new_module = unsafe { reloader.reload("test-mod", &v2) }.expect("reloading to v2");
     let new_generation = new_module.generation();
 
-    assert_eq!(reloader.active("test-mod").unwrap().generation(), new_generation);
-    assert_eq!(reloader.registry_retargets(), vec![("test-mod".to_string(), old_generation, new_generation)]);
-    assert!(old_module.is_loaded(), "old module must stay loaded while a call is in flight");
-    assert!(reloader.registry_purges().is_empty(), "purge must not run before it's safe to unload");
+    assert_eq!(
+        reloader.active("test-mod").unwrap().generation(),
+        new_generation
+    );
+    assert_eq!(
+        reloader.registry_retargets(),
+        vec![("test-mod".to_string(), old_generation, new_generation)]
+    );
+    assert!(
+        old_module.is_loaded(),
+        "old module must stay loaded while a call is in flight"
+    );
+    assert!(
+        reloader.registry_purges().is_empty(),
+        "purge must not run before it's safe to unload"
+    );
 
     drop(guard);
 
-    assert!(!old_module.is_loaded(), "old module should hard-unload once the in-flight call finishes");
+    assert!(
+        !old_module.is_loaded(),
+        "old module should hard-unload once the in-flight call finishes"
+    );
     assert_eq!(reloader.registry_purges(), vec![old_generation]);
 }
 
@@ -86,7 +106,10 @@ fn hard_unloads_immediately_when_nothing_is_in_flight() {
 
     unsafe { reloader.reload("immediate-mod", &v2) }.expect("reloading to v2");
 
-    assert!(!old_module.is_loaded(), "with nothing in flight, unload should happen right away");
+    assert!(
+        !old_module.is_loaded(),
+        "with nothing in flight, unload should happen right away"
+    );
     assert_eq!(reloader.registry_purges(), vec![old_generation]);
 }
 
