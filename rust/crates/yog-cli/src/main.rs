@@ -9,7 +9,10 @@
 //!   yog build        — compile + package the current mod
 //!   yog setup        — check/install build dependencies
 //!   yog doctor       — report build dependencies (read-only; `--json` for tools)
+//!   yog ui gen [..]  — generate `*.designer.rs` from `.yui` screen files
 //!   yog help         — show usage
+
+mod yui;
 
 use std::collections::{HashMap, HashSet};
 use std::io::Write as _;
@@ -74,6 +77,10 @@ fn main() {
                 None => Err("usage: yog publish exports [--dry-run]".into()),
             }
         }
+        Some("ui") => match args.get(2).map(String::as_str) {
+            Some("gen") => ui_gen(&args[3..]),
+            _ => Err("usage: yog ui gen [file.yui ...]  (no files: every src/**/*.yui)".into()),
+        },
         Some("-h") | Some("--help") | Some("help") | None => {
             print_usage();
             return;
@@ -102,6 +109,7 @@ fn print_usage() {
          \x20 run <config>        Build, export, and launch a [run.<config>] dev instance\n\
          \x20 run <config> --debug  Same, built with debug info kept (see `build debug`)\n\
          \x20 publish exports     Publish this mod's exported API to crates.io\n\
+         \x20 ui gen [files]      Generate *.designer.rs from .yui screen files (build does this too)\n\
          \x20 help                Show this message\n\n\
          Mod projects use yog.toml instead of Cargo.toml.\n\
          Cross-compilation requires cargo-zigbuild + zig (yog setup installs them).\n\
@@ -594,6 +602,11 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
         }
     }
 
+    let screens = yui::generate_all(&root)?;
+    if screens > 0 {
+        eprintln!("    generated {screens} screen designer file(s) from .yui");
+    }
+
     configure_editor(&root).map_err(|e| format!("configuring .vscode/settings.json: {e}"))?;
     ensure_gitignore_entry(&root, "*.designer.rs")
         .map_err(|e| format!("updating .gitignore: {e}"))?;
@@ -683,6 +696,26 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
     let tags: Vec<&str> = bundled.iter().map(|(t, _)| t.as_str()).collect();
     eprintln!("==> packaged {} [{}]", out.display(), tags.join(", "));
     Ok((meta, out))
+}
+
+// ── yog ui gen ────────────────────────────────────────────────────────────────
+
+/// `yog ui gen [files...]` — regenerates the `.designer.rs` of the given
+/// `.yui` screen files, or of every `src/**/*.yui` in the current project.
+/// `yog build` does the same before compiling; this is for editors (Yog-IDLE
+/// runs it on save) and for checking a screen file without a build.
+fn ui_gen(files: &[String]) -> Result<(), String> {
+    let files: Vec<PathBuf> = if files.is_empty() {
+        let root = std::env::current_dir().map_err(|e| e.to_string())?;
+        yui::find_yui_files(&root.join("src"))
+    } else {
+        files.iter().map(PathBuf::from).collect()
+    };
+    for file in &files {
+        let out = yui::generate_file(file)?;
+        eprintln!("==> {} -> {}", file.display(), out.display());
+    }
+    Ok(())
 }
 
 // ── yog run ───────────────────────────────────────────────────────────────────
