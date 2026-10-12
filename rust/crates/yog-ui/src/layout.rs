@@ -135,10 +135,11 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
     };
     // Returns true if this child consumes main-axis space in the normal forward pass.
     let in_flow = |child: &Widget| -> bool {
-        !matches!(
-            (dir, child.style.dock),
-            (FlexDir::Row, Dock::Right) | (FlexDir::Column, Dock::Bottom)
-        )
+        child.style.pos.is_none()
+            && !matches!(
+                (dir, child.style.dock),
+                (FlexDir::Row, Dock::Right) | (FlexDir::Column, Dock::Bottom)
+            )
     };
 
     // Measure children
@@ -155,6 +156,15 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
             focused: child.focused,
             ..Default::default()
         };
+        // Absolutely positioned: measured against what's left of the content
+        // box past its offset, placed after the flow passes.
+        if let Some((px, py)) = child.style.pos {
+            let mw = (content_w - px).max(0.0);
+            let mh = (content_h - py).max(0.0);
+            layout_widget(child, &mut cn, 0.0, 0.0, mw, mh);
+            child_nodes.push(cn);
+            continue;
+        }
         // Determine measurement constraints based on Dock + direction.
         let (cmw, cmh) = match (dir, dock) {
             // Fill: constrain both axes so text can wrap to container dimensions.
@@ -247,7 +257,7 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
         y + s.pad[0] + content_h
     };
     for (i, child) in w.children.iter().enumerate() {
-        if in_flow(child) {
+        if in_flow(child) || child.style.pos.is_some() {
             continue;
         }
         let dock = child.style.dock;
@@ -281,6 +291,19 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
                 };
             rpos -= s.gap;
         }
+        if !child.children.is_empty() {
+            layout_widget(child, cn, cn.rect.x, cn.rect.y, cn.rect.w, cn.rect.h);
+        }
+    }
+
+    // --- Absolutely positioned children (see `Style::pos`) ---
+    for (i, child) in w.children.iter().enumerate() {
+        let Some((px, py)) = child.style.pos else {
+            continue;
+        };
+        let cn = &mut child_nodes[i];
+        cn.rect.x = x + s.pad[3] + px;
+        cn.rect.y = y + s.pad[0] + py;
         if !child.children.is_empty() {
             layout_widget(child, cn, cn.rect.x, cn.rect.y, cn.rect.w, cn.rect.h);
         }
@@ -339,5 +362,68 @@ pub fn set_focus(node: &mut LayoutNode, focused_id: Option<&str>) {
     node.focused = focused_id.is_some() && node.id.as_deref() == focused_id;
     for child in &mut node.children {
         set_focus(child, focused_id);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::widget::{self, Units};
+
+    #[test]
+    fn positioned_children_leave_the_flow() {
+        let root = widget::panel(FlexDir::Column)
+            .w(200.0)
+            .h(100.0)
+            .padding(4.0, 4.0, 4.0, 4.0)
+            .child(widget::spacer().min_w(10.0).min_h(10.0))
+            .child(widget::button("Hi").w(40.0).h(20.0).at(50.0, 30.0))
+            .child(widget::spacer().min_w(10.0).min_h(10.0));
+        let node = compute(&root, 400.0, 400.0);
+        let r = node.children[1].rect;
+        assert_eq!((r.x, r.y, r.w, r.h), (54.0, 34.0, 40.0, 20.0));
+        // The flow children stack as if the positioned one weren't there.
+        assert_eq!(node.children[0].rect.y, 4.0);
+        assert_eq!(node.children[2].rect.y, 4.0 + 10.0 + 2.0);
+    }
+
+    #[test]
+    fn positioned_container_lays_out_its_children_in_place() {
+        let root = widget::panel(FlexDir::Column)
+            .w(Units::Percent(100.0))
+            .h(Units::Percent(100.0))
+            .child(
+                widget::panel(FlexDir::Row)
+                    .w(100.0)
+                    .h(20.0)
+                    .gap(0.0)
+                    .at(10.0, 20.0)
+                    .child(widget::spacer().min_w(30.0).min_h(5.0))
+                    .child(widget::spacer().min_w(30.0).min_h(5.0)),
+            );
+        let node = compute(&root, 320.0, 240.0);
+        let panel = &node.children[0];
+        assert_eq!((panel.rect.x, panel.rect.y), (10.0, 20.0));
+        assert_eq!(panel.children[1].rect.x, 40.0);
+        assert_eq!(panel.children[1].rect.y, 20.0);
+    }
+
+    #[test]
+    fn auto_sized_parent_grows_to_fit_positioned_children() {
+        let root = widget::panel(FlexDir::Column)
+            .child(widget::spacer().min_w(10.0).min_h(10.0).at(30.0, 40.0));
+        let node = compute(&root, 300.0, 300.0);
+        assert_eq!((node.rect.w, node.rect.h), (40.0, 50.0));
+    }
+
+    #[test]
+    fn find_mut_and_set_text() {
+        let mut root = widget::panel(FlexDir::Column).child(widget::label("a").id("title"));
+        assert!(root.find_mut("title").unwrap().set_text("b"));
+        match &root.children[0].kind {
+            crate::widget::WidgetKind::Label(t) => assert_eq!(t, "b"),
+            _ => unreachable!(),
+        }
+        assert!(root.find_mut("missing").is_none());
     }
 }

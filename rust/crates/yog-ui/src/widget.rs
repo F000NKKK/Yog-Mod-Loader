@@ -132,6 +132,12 @@ pub struct Style {
     /// Patchouli, where such text overflows its box horizontally rather than
     /// wrapping onto a second line.
     pub no_wrap: bool,
+    /// Absolute position `(x, y)` inside the parent's content box (inside its
+    /// padding) — WPF `Canvas` / WinForms `Location` style. A positioned
+    /// widget is taken out of the parent's flex flow: it takes no main-axis
+    /// space, ignores `flex`/`dock`, and is drawn in tree order (later
+    /// siblings on top). `None` (default) = normal flex positioning.
+    pub pos: Option<(f32, f32)>,
 }
 
 impl Default for Style {
@@ -154,6 +160,7 @@ impl Default for Style {
             focus_style: FocusStyle::default(),
             focus_color: 0,
             no_wrap: false,
+            pos: None,
         }
     }
 }
@@ -266,6 +273,38 @@ impl Widget {
         self.focused = v;
         self
     }
+    /// Position absolutely at `(x, y)` inside the parent's content box — see [`Style::pos`].
+    pub fn at(mut self, x: f32, y: f32) -> Self {
+        self.style.pos = Some((x, y));
+        self
+    }
+    /// Adds every widget in `children`, in order.
+    pub fn children(mut self, children: impl IntoIterator<Item = Widget>) -> Self {
+        self.children.extend(children);
+        self
+    }
+
+    /// The first widget in this subtree (depth-first, self included) whose
+    /// [`Widget::id`] is `id` — for changing a built tree before laying it
+    /// out (dynamic text, enabled state, ...).
+    pub fn find_mut(&mut self, id: &str) -> Option<&mut Widget> {
+        if self.id.as_deref() == Some(id) {
+            return Some(self);
+        }
+        self.children.iter_mut().find_map(|c| c.find_mut(id))
+    }
+
+    /// Replaces the text of a label or button; `false` for any other kind.
+    pub fn set_text(&mut self, text: impl Into<String>) -> bool {
+        match &mut self.kind {
+            WidgetKind::Label(t) | WidgetKind::Button(t) => {
+                *t = text.into();
+                true
+            }
+            _ => false,
+        }
+    }
+
     pub fn padding(mut self, top: f32, right: f32, bottom: f32, left: f32) -> Self {
         self.style.pad = [top, right, bottom, left];
         self
