@@ -769,9 +769,9 @@ impl Debugger {
                 StepKind::Into | StepKind::Over => {
                     cur.is_some()
                         && cur != start
-                        && self.registers().is_ok_and(|r| {
-                            symbols.is_statement_start(r.rip.wrapping_sub(base))
-                        })
+                        && self
+                            .registers()
+                            .is_ok_and(|r| symbols.is_statement_start(r.rip.wrapping_sub(base)))
                 }
             };
             if stop {

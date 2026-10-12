@@ -239,7 +239,9 @@ fn step_over_walks_lines_and_returns_to_the_caller() {
         debugger.continue_().expect("continuing"),
         StopReason::Breakpoint(addr)
     );
-    debugger.clear_breakpoint(addr).expect("clearing breakpoint");
+    debugger
+        .clear_breakpoint(addr)
+        .expect("clearing breakpoint");
 
     let mut lines = Vec::new();
     for _ in 0..3 {

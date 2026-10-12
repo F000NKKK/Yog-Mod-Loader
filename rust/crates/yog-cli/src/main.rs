@@ -1347,7 +1347,13 @@ fn install_targets(targets: &[&Target]) {
     }
     let list: Vec<&str> = targets.iter().map(|t| t.triple).collect();
     let ok = Command::new("rustup")
-        .args(["toolchain", "install", RUST_TOOLCHAIN, "--profile", "minimal"])
+        .args([
+            "toolchain",
+            "install",
+            RUST_TOOLCHAIN,
+            "--profile",
+            "minimal",
+        ])
         .args(["--target", &list.join(",")])
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
@@ -1361,7 +1367,13 @@ fn install_targets(targets: &[&Target]) {
 
 fn installed_targets() -> Vec<String> {
     Command::new("rustup")
-        .args(["target", "list", "--installed", "--toolchain", RUST_TOOLCHAIN])
+        .args([
+            "target",
+            "list",
+            "--installed",
+            "--toolchain",
+            RUST_TOOLCHAIN,
+        ])
         .output()
         .ok()
         .filter(|o| o.status.success())
