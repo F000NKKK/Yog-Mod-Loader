@@ -2,6 +2,7 @@
 name = "yog-interop"
 version = "0.21.0"
 edition = "2021"
+rust-version.workspace = true
 authors = ["Yog Team"]
 license = "MIT OR Apache-2.0"
 description = "Yog inter-mod communication — proc-macros for #[yog_export] and #[yog_import]"

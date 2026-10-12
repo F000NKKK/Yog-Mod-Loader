@@ -2,6 +2,7 @@
 name = "yog-symbols"
 version = "0.2.0"
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 description = "DWARF symbol resolution for Yog mod natives — address<->source-location lookups used by yog-debugger and yog-hot-reload."
 

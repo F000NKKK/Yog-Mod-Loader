@@ -42,6 +42,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.99"
 authors = ["F000NK, Yog Team, Voluntas Progressus"]
 # Default for the protected engine (runtime + host). The mod-author-facing
 # `yog-api` and the example mod override this with a permissive license so the
