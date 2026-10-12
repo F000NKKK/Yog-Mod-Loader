@@ -967,7 +967,7 @@ dependencies = [
  "nix",
  "serde_json",
  "yog-hot-reload",
- "yog-symbols",
+ "yog-symbols 0.2.0",
 ]
 
 [[package]]
@@ -1076,9 +1076,21 @@ version = "0.1.0"
 [[package]]
 name = "yog-symbols"
 version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d85a329e03175339ec01ac61684437e4d0a8bf3897c7bc5c5b351a4d18e9f342"
 dependencies = [
  "addr2line",
  "gimli",
+ "object 0.39.1",
+]
+
+[[package]]
+name = "yog-symbols"
+version = "0.3.0"
+dependencies = [
+ "addr2line",
+ "gimli",
+ "nix",
  "object 0.39.1",
 ]
 

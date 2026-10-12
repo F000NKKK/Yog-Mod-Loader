@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use gimli::{AttributeValue, DebuggingInformationEntry, UnitOffset};
+use gimli::{AttributeValue, DebuggingInformationEntry, Reader as _, UnitOffset};
 
 use crate::locals::{Place, TargetMemory, UNAVAILABLE, UnitInfo, Value, unit_ref};
 use crate::{R, SymbolTable};
@@ -500,23 +500,25 @@ impl<'a> Formatter<'a> {
         }
 
         let qualified = self.qualified_name(off, entry);
-        if qualified == "alloc::string::String"
-            && let Some(vec) = member("vec")
-            && let Some((ptr, len)) = self.vec_parts(vec.ty?, &place.offset(vec.offset))
-        {
-            return Some((self.read_string(ptr, len), Vec::new()));
+        if qualified == "alloc::string::String" {
+            if let Some((ptr, len)) = member("vec")
+                .and_then(|vec| self.vec_parts(vec.ty?, &place.offset(vec.offset)))
+            {
+                return Some((self.read_string(ptr, len), Vec::new()));
+            }
         }
-        if qualified.starts_with("alloc::vec::Vec<")
-            && let Some(elem) = self.template_param(off, "T")
-            && let Some((ptr, len)) = self.vec_parts(off, place)
-        {
-            let stride = self.byte_size(elem)?;
-            return Some(self.format_elements(elem, &Place::Mem(ptr), stride, len, depth, true));
+        if qualified.starts_with("alloc::vec::Vec<") {
+            if let (Some(elem), Some((ptr, len))) =
+                (self.template_param(off, "T"), self.vec_parts(off, place))
+            {
+                let stride = self.byte_size(elem)?;
+                return Some(self.format_elements(elem, &Place::Mem(ptr), stride, len, depth, true));
+            }
         }
-        if qualified.starts_with("alloc::boxed::Box<")
-            && let Some((ptr, pointee)) = self.find_pointer(off, place, 0)
-        {
-            return Some(self.format_pointer("", ptr, pointee, depth));
+        if qualified.starts_with("alloc::boxed::Box<") {
+            if let Some((ptr, pointee)) = self.find_pointer(off, place, 0) {
+                return Some(self.format_pointer("", ptr, pointee, depth));
+            }
         }
 
         Some(self.format_fields(&members, place, depth, &short))

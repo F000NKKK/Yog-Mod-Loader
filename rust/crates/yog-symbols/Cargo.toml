@@ -1,6 +1,6 @@
 [package]
 name = "yog-symbols"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -13,3 +13,6 @@ crate-type = ["lib"]
 object.workspace = true
 gimli.workspace = true
 addr2line.workspace = true
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+nix.workspace = true

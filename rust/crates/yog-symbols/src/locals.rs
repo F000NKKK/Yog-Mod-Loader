@@ -11,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
 use gimli::{
-    AttributeValue, DebuggingInformationEntry, EvaluationResult, Location, UnitOffset,
+    AttributeValue, Reader as _, DebuggingInformationEntry, EvaluationResult, Location, UnitOffset,
     UnwindSection as _,
 };
 
@@ -413,7 +413,9 @@ impl SymbolTable {
                         walk.func_start = walk.scopes.len() - 1;
                     }
                     self.walk_scope(info, child, pc, true, walk)?;
-                    if entry_tag_is_outermost(in_function) {
+                    if !in_function {
+                        // Found the function containing the pc; nothing
+                        // else in the unit can matter.
                         return Ok(true);
                     }
                 }
@@ -552,7 +554,7 @@ impl SymbolTable {
         let Some(pieces) = self.evaluate(info, expr, frame, &get_frame_base) else {
             return Located::Unavailable;
         };
-        self.assemble(info, pieces, frame)
+        assemble(pieces, frame)
     }
 
     fn frame_base(
@@ -586,27 +588,29 @@ impl SymbolTable {
             gimli::CfaRule::Expression(_) => None,
         };
         let mut ctx = gimli::UnwindContext::new();
-        if let Some((eh_frame, bases)) = &self.eh_frame
-            && let Ok(row) = eh_frame.unwind_info_for_address(
+        if let Some((eh_frame, bases)) = &self.eh_frame {
+            if let Ok(row) = eh_frame.unwind_info_for_address(
                 bases,
                 &mut ctx,
                 frame.pc,
                 gimli::EhFrame::cie_from_offset,
-            )
-            && let Some(cfa) = from_rule(row.cfa())
-        {
-            return Some(cfa);
+            ) {
+                if let Some(cfa) = from_rule(row.cfa()) {
+                    return Some(cfa);
+                }
+            }
         }
-        if let Some(debug_frame) = &self.debug_frame
-            && let Ok(row) = debug_frame.unwind_info_for_address(
+        if let Some(debug_frame) = &self.debug_frame {
+            if let Ok(row) = debug_frame.unwind_info_for_address(
                 &gimli::BaseAddresses::default(),
                 &mut ctx,
                 frame.pc,
                 gimli::DebugFrame::cie_from_offset,
-            )
-            && let Some(cfa) = from_rule(row.cfa())
-        {
-            return Some(cfa);
+            ) {
+                if let Some(cfa) = from_rule(row.cfa()) {
+                    return Some(cfa);
+                }
+            }
         }
         frame.regs.fp().map(|fp| fp.wrapping_add(16))
     }
@@ -671,13 +675,9 @@ impl SymbolTable {
         Some(eval.result())
     }
 
-    fn assemble(
-        &self,
-        info: &UnitInfo,
-        pieces: Vec<gimli::Piece<R>>,
-        frame: &Frame<'_>,
-    ) -> Located {
-        let _ = info;
+}
+
+fn assemble(pieces: Vec<gimli::Piece<R>>, frame: &Frame<'_>) -> Located {
         if pieces.is_empty() {
             return Located::OptimizedOut;
         }
@@ -725,13 +725,6 @@ impl SymbolTable {
         } else {
             Located::OptimizedOut
         }
-    }
-}
-
-/// Only true for the outermost call: once the top-level walk has descended
-/// into the subprogram containing the pc there is nothing left to find.
-fn entry_tag_is_outermost(in_function: bool) -> bool {
-    !in_function
 }
 
 #[derive(Default)]
@@ -786,7 +779,6 @@ fn value_bytes(value: gimli::Value) -> Vec<u8> {
 }
 
 fn const_bytes(v: AttributeValue<R>) -> Option<Vec<u8>> {
-    use gimli::Reader as _;
     Some(match v {
         AttributeValue::Block(r) => r.to_slice().ok()?.into_owned(),
         AttributeValue::Data1(x) => vec![x],

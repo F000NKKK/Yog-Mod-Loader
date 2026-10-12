@@ -11,16 +11,26 @@
 //!   [`SymbolTable::resolve_breakpoint`], used to turn an IDE's file:line
 //!   breakpoint request into something `yog-debugger` can `ptrace` onto.
 //!
+//! - "what locals and parameters are visible here, and what are their
+//!   values" — [`SymbolTable::locals`] / [`SymbolTable::read_local`], for a
+//!   debugger's Variables view. Registers and memory are supplied by the
+//!   caller ([`FrameRegs`], [`TargetMemory`]); nothing here uses `ptrace`.
+//!
 //! Deliberately built on `gimli`/`object`/`addr2line` directly rather than a
 //! single higher-level helper: `addr2line`'s own convenience API only goes
 //! address -> line, and breakpoint placement needs the reverse (line ->
 //! address), which means walking the DWARF line program ourselves anyway.
 
+mod format;
+mod locals;
+
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSymbol, SymbolKind};
+
+pub use locals::{FrameRegs, LocalVar, TargetMemory, Value, VarKind, x86_64};
 
 // `Arc`, not `Rc`: a `SymbolTable` needs to be `Send + Sync` so host apps
 // (e.g. Yog-IDLE's Tauri backend) can hold one behind a `Mutex` in shared
@@ -90,6 +100,11 @@ pub struct SymbolTable {
     dwarf: gimli::Dwarf<R>,
     ctx: addr2line::Context<R>,
     functions: Vec<FunctionSymbol>,
+    /// Parsed compilation units, built on the first locals lookup.
+    units: OnceLock<Vec<locals::UnitInfo>>,
+    /// Call frame info for `DW_OP_call_frame_cfa` frame bases.
+    eh_frame: Option<(gimli::EhFrame<R>, gimli::BaseAddresses)>,
+    debug_frame: Option<gimli::DebugFrame<R>>,
 }
 
 impl SymbolTable {
@@ -139,10 +154,43 @@ impl SymbolTable {
             })
             .collect();
 
+        let address_size = if object.is_64() { 8 } else { 4 };
+        let section_reader = |name: &str| -> Option<(R, u64)> {
+            let section = object.section_by_name(name)?;
+            let data = section.uncompressed_data().ok()?.into_owned();
+            if data.is_empty() {
+                return None;
+            }
+            Some((
+                EndianArcSlice::new(Arc::from(data.into_boxed_slice()), endian),
+                section.address(),
+            ))
+        };
+        let eh_frame = section_reader(".eh_frame").map(|(data, addr)| {
+            let mut eh_frame = gimli::EhFrame::from(data);
+            eh_frame.set_address_size(address_size);
+            let mut bases = gimli::BaseAddresses::default().set_eh_frame(addr);
+            if let Some(text) = object.section_by_name(".text") {
+                bases = bases.set_text(text.address());
+            }
+            if let Some(got) = object.section_by_name(".got") {
+                bases = bases.set_got(got.address());
+            }
+            (eh_frame, bases)
+        });
+        let debug_frame = section_reader(".debug_frame").map(|(data, _)| {
+            let mut debug_frame = gimli::DebugFrame::from(data);
+            debug_frame.set_address_size(address_size);
+            debug_frame
+        });
+
         Ok(SymbolTable {
             dwarf,
             ctx,
             functions,
+            units: OnceLock::new(),
+            eh_frame,
+            debug_frame,
         })
     }
 
