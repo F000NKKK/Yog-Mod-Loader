@@ -23,6 +23,7 @@
 
 mod format;
 mod locals;
+mod unwind;
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
@@ -108,6 +109,8 @@ pub struct SymbolTable {
     /// Call frame info for `DW_OP_call_frame_cfa` frame bases.
     eh_frame: Option<(gimli::EhFrame<R>, gimli::BaseAddresses)>,
     debug_frame: Option<gimli::DebugFrame<R>>,
+    /// Address ranges of the executable sections (module-relative).
+    code: Vec<(u64, u64)>,
 }
 
 impl SymbolTable {
@@ -187,6 +190,12 @@ impl SymbolTable {
             debug_frame
         });
 
+        let code = object
+            .sections()
+            .filter(|s| s.kind() == object::SectionKind::Text && s.size() > 0)
+            .map(|s| (s.address(), s.address() + s.size()))
+            .collect();
+
         Ok(SymbolTable {
             dwarf,
             ctx,
@@ -195,6 +204,7 @@ impl SymbolTable {
             statements: OnceLock::new(),
             eh_frame,
             debug_frame,
+            code,
         })
     }
 
