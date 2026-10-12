@@ -848,6 +848,40 @@ mod tests {
         assert!(generate(bad_color, "x.yui").unwrap_err().contains("#RRGGBB"));
     }
 
+    /// What the IDE's Format Document writes (Visual Studio's XAML layout):
+    /// one attribute per line, comments among the children, ` />`.
+    #[test]
+    fn parses_formatted_markup() {
+        let src = r##"<?xml version="1.0" encoding="utf-8"?>
+<Screen id="mymod:main"
+        width="176"
+        height="166"
+        bg="#C0101010">
+    <!-- the title -->
+    <Label id="title"
+           x="8"
+           y="6"
+           text="Main"
+           no_wrap="true" />
+
+    <Row x="8" y="70" w="160">
+        <!--
+          a multi-line comment
+        -->
+        <Spacer flex="1" />
+    </Row>
+</Screen>
+"##;
+        let root = parse_xml(src).unwrap();
+        assert_eq!(root.attr("height"), Some("166"));
+        assert_eq!(root.children.len(), 2);
+        assert_eq!(root.children[0].attr("no_wrap"), Some("true"));
+        assert_eq!(root.children[0].line, 7);
+        assert_eq!(root.children[1].children.len(), 1);
+        let code = generate(src, "main.yui").unwrap();
+        assert!(code.contains(".at(8.0, 6.0)"));
+    }
+
     #[test]
     fn const_names() {
         assert_eq!(const_name("mymod:btn-play"), "MYMOD_BTN_PLAY");
