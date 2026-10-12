@@ -43,12 +43,30 @@ fn build_with(tag: &str, extra: &[&str]) -> PathBuf {
 }
 
 fn marker_line() -> u32 {
+    line_of(MARKER)
+}
+
+fn line_of(marker: &str) -> u32 {
     let src = std::fs::read_to_string(fixture_src()).unwrap();
     let idx = src
         .lines()
-        .position(|l| l.contains(MARKER) && !l.trim_start().starts_with("//"))
-        .expect("marker line in fixture");
+        .position(|l| l.contains(marker) && !l.trim_start().starts_with("//"))
+        .unwrap_or_else(|| panic!("{marker} line in fixture"));
     idx as u32 + 1
+}
+
+fn addrs_of(table: &SymbolTable, marker: &str) -> Vec<u64> {
+    let line = line_of(marker);
+    let addrs = table.resolve_breakpoint(&format!("{FIXTURE}.rs"), line);
+    assert!(!addrs.is_empty(), "no address for {FIXTURE}.rs:{line}");
+    addrs
+}
+
+/// `name:in_scope` pairs, for compact assertions.
+fn scoped(vars: &[LocalVar]) -> Vec<String> {
+    vars.iter()
+        .map(|v| format!("{}:{}", v.name, v.in_scope))
+        .collect()
 }
 
 fn names(vars: &[LocalVar]) -> Vec<&str> {
@@ -131,6 +149,79 @@ fn lists_locals_and_parameters_at_a_line() {
         .unwrap() as u32
         + 1;
     assert_eq!(vars[2].decl_line, Some(x_line));
+    // `total`'s block is a sibling of `inner`'s, not below it: not listed.
+    assert!(vars.iter().all(|v| v.in_scope), "{vars:#?}");
+}
+
+/// Stopped on `let lines = ...;` the variable isn't in scope yet (rustc
+/// opens its lexical block after the initializer) but is still listed, as
+/// not live; on the next line it's live.
+#[test]
+fn lists_variables_declared_but_not_yet_live() {
+    let exe = build("pending");
+    let table = SymbolTable::load(&exe).unwrap();
+
+    for addr in addrs_of(&table, "// PENDING_HERE") {
+        let vars = table.locals(addr);
+        assert_eq!(
+            scoped(&vars),
+            [
+                "len:true",
+                "expanded:true",
+                "row_w:true",
+                "lines:false",
+                "padded:false"
+            ],
+            "at {addr:#x}"
+        );
+        let blind = table.read_local(&vars[3], &yog_symbols::FrameRegs::new(addr, 0, 0), 0, &NoMem);
+        assert_eq!(blind.value, "<not in scope>");
+        assert_eq!(blind.type_name, "f32");
+    }
+
+    let live = addrs_of(&table, "// LIVE_HERE");
+    let vars = table.locals(live[0]);
+    assert_eq!(
+        scoped(&vars),
+        [
+            "len:true",
+            "expanded:true",
+            "row_w:true",
+            "lines:true",
+            "padded:true"
+        ]
+    );
+}
+
+/// Inside an inlined call: depth 0 is the inlined function's own frame,
+/// depth 1 its caller's (with the caller's not-yet-assigned `r`/`after`
+/// pending), and past the outermost there's nothing.
+#[test]
+fn locals_per_inlined_frame() {
+    let exe = build("inline");
+    let table = SymbolTable::load(&exe).unwrap();
+    let addr = addrs_of(&table, "// INLINE_HERE")[0];
+
+    let frames = table.resolve_inlined(addr);
+    assert!(frames.len() >= 2, "{frames:#?}");
+    assert!(frames[1].function.as_deref().unwrap_or("").ends_with("caller"));
+
+    assert_eq!(table.locals(addr), table.locals_in_frame(addr, 0));
+    assert_eq!(scoped(&table.locals_in_frame(addr, 0)), ["a:true", "doubled:true"]);
+    assert_eq!(
+        scoped(&table.locals_in_frame(addr, 1)),
+        ["b:true", "before:true", "r:false", "after:false"]
+    );
+    assert!(table.locals_in_frame(addr, 2).is_empty());
+    assert_eq!(table.locals_in_frame(addr, 1)[0].kind, VarKind::Parameter);
+}
+
+struct NoMem;
+
+impl yog_symbols::TargetMemory for NoMem {
+    fn read(&self, _: u64, _: &mut [u8]) -> bool {
+        false
+    }
 }
 
 #[test]

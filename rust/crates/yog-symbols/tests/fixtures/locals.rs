@@ -76,9 +76,39 @@ fn inspect(count: u32, label: &str) -> usize {
     total as usize + label.len()
 }
 
+/// Like a UI layout helper: `lines` only comes into scope after its own
+/// `let` line, so a stop on that line must still list it (not yet live).
+#[inline(never)]
+fn row_height(len: usize, expanded: bool, row_w: f32) -> f32 {
+    if !expanded {
+        return 10.0;
+    }
+    let lines = black_box(len / (row_w as usize).max(1)) as f32; // PENDING_HERE
+    let padded = lines * 2.0 + 6.0;
+    black_box(padded) // LIVE_HERE
+}
+
+/// Forced inline even at -O0, so the marker line sits in an
+/// `inlined_subroutine` inside `caller`.
+#[inline(always)]
+fn helper(a: u32) -> u32 {
+    let doubled = black_box(a.wrapping_mul(2));
+    black_box(doubled) // INLINE_HERE
+}
+
+#[inline(never)]
+fn caller(b: u32) -> u32 {
+    let before = black_box(b + 1);
+    let r = helper(before);
+    let after = black_box(r + 1);
+    after
+}
+
 fn main() {
     let n = black_box(5u32);
     let out = inspect(n, "label!");
     black_box(out);
+    black_box(row_height(black_box(40), black_box(true), black_box(8.0)));
+    black_box(caller(black_box(3)));
     let _ = black_box(Shape::Empty);
 }
