@@ -6,8 +6,8 @@ use std::cell::Cell;
 
 use gimli::{AttributeValue, DebuggingInformationEntry, Reader as _, UnitOffset};
 
-use crate::locals::{Place, TargetMemory, UNAVAILABLE, UnitInfo, Value, unit_ref};
-use crate::{R, SymbolTable};
+use crate::locals::{unit_ref, Place, TargetMemory, UnitInfo, Value, UNAVAILABLE};
+use crate::{SymbolTable, R};
 
 /// Nesting below a top-level variable that still gets expanded children.
 const MAX_DEPTH: usize = 3;
@@ -44,7 +44,11 @@ struct Variant {
 }
 
 impl<'a> Formatter<'a> {
-    pub(crate) fn new(table: &'a SymbolTable, info: &'a UnitInfo, mem: &'a dyn TargetMemory) -> Self {
+    pub(crate) fn new(
+        table: &'a SymbolTable,
+        info: &'a UnitInfo,
+        mem: &'a dyn TargetMemory,
+    ) -> Self {
         Formatter {
             table,
             info,
@@ -134,9 +138,7 @@ impl<'a> Formatter<'a> {
         self.children(off)
             .iter()
             .filter(|e| e.tag() == gimli::DW_TAG_member)
-            .filter(|e| {
-                !e.has_attr(gimli::DW_AT_external) && !e.has_attr(gimli::DW_AT_declaration)
-            })
+            .filter(|e| !e.has_attr(gimli::DW_AT_external) && !e.has_attr(gimli::DW_AT_declaration))
             .map(|e| self.member(e))
             .collect()
     }
@@ -280,7 +282,13 @@ impl<'a> Formatter<'a> {
         Some(u64::from_le_bytes(buf))
     }
 
-    pub(crate) fn format(&self, name: String, ty: Option<Off>, place: &Place, depth: usize) -> Value {
+    pub(crate) fn format(
+        &self,
+        name: String,
+        ty: Option<Off>,
+        place: &Place,
+        depth: usize,
+    ) -> Value {
         let type_name = self.type_name(ty);
         let mut out = Value {
             name,
@@ -392,7 +400,12 @@ impl<'a> Formatter<'a> {
         if !derefable {
             return (hex, Vec::new());
         }
-        let child = self.format(format!("*{name}"), Some(pointee), &Place::Mem(ptr), depth + 1);
+        let child = self.format(
+            format!("*{name}"),
+            Some(pointee),
+            &Place::Mem(ptr),
+            depth + 1,
+        );
         if child.children.is_empty() && child.value != UNAVAILABLE {
             (format!("{hex} {{{}}}", child.value), vec![child])
         } else {
@@ -419,10 +432,16 @@ impl<'a> Formatter<'a> {
         Some((format!("{raw} (unknown variant)"), Vec::new()))
     }
 
-    fn format_array(&self, entry: &Die, place: &Place, depth: usize) -> Option<(String, Vec<Value>)> {
+    fn format_array(
+        &self,
+        entry: &Die,
+        place: &Place,
+        depth: usize,
+    ) -> Option<(String, Vec<Value>)> {
         let (elem, count) = self.array_shape(entry)?;
         let elem = elem?;
-        let stride = Self::udata(entry, gimli::DW_AT_byte_stride).or_else(|| self.byte_size(elem))?;
+        let stride =
+            Self::udata(entry, gimli::DW_AT_byte_stride).or_else(|| self.byte_size(elem))?;
         Some(self.format_elements(elem, place, stride, count, depth, false))
     }
 
@@ -494,15 +513,22 @@ impl<'a> Formatter<'a> {
                     .and_then(|(_, e)| self.ty_of(&e));
                 if let Some(elem) = elem {
                     let stride = self.byte_size(elem)?;
-                    return Some(self.format_elements(elem, &Place::Mem(ptr), stride, n, depth, true));
+                    return Some(self.format_elements(
+                        elem,
+                        &Place::Mem(ptr),
+                        stride,
+                        n,
+                        depth,
+                        true,
+                    ));
                 }
             }
         }
 
         let qualified = self.qualified_name(off, entry);
         if qualified == "alloc::string::String" {
-            if let Some((ptr, len)) = member("vec")
-                .and_then(|vec| self.vec_parts(vec.ty?, &place.offset(vec.offset)))
+            if let Some((ptr, len)) =
+                member("vec").and_then(|vec| self.vec_parts(vec.ty?, &place.offset(vec.offset)))
             {
                 return Some((self.read_string(ptr, len), Vec::new()));
             }
@@ -512,7 +538,14 @@ impl<'a> Formatter<'a> {
                 (self.template_param(off, "T"), self.vec_parts(off, place))
             {
                 let stride = self.byte_size(elem)?;
-                return Some(self.format_elements(elem, &Place::Mem(ptr), stride, len, depth, true));
+                return Some(self.format_elements(
+                    elem,
+                    &Place::Mem(ptr),
+                    stride,
+                    len,
+                    depth,
+                    true,
+                ));
             }
         }
         if qualified.starts_with("alloc::boxed::Box<") {
@@ -567,7 +600,12 @@ impl<'a> Formatter<'a> {
     /// the (possibly niche-encoded) discriminant, and one `DW_TAG_variant`
     /// per variant (the dataful variant of a niche layout has no
     /// `DW_AT_discr_value`).
-    fn format_rust_enum(&self, vp: &Die, place: &Place, depth: usize) -> Option<(String, Vec<Value>)> {
+    fn format_rust_enum(
+        &self,
+        vp: &Die,
+        place: &Place,
+        depth: usize,
+    ) -> Option<(String, Vec<Value>)> {
         let parts = self.children(vp.offset());
         let discr = match vp
             .attr_value(gimli::DW_AT_discr)
@@ -594,7 +632,9 @@ impl<'a> Formatter<'a> {
                     .into_iter()
                     .find(|e| e.tag() == gimli::DW_TAG_member)?;
                 Some(Variant {
-                    discr_value: v.attr_value(gimli::DW_AT_discr_value).and_then(|a| attr_u64(&a)),
+                    discr_value: v
+                        .attr_value(gimli::DW_AT_discr_value)
+                        .and_then(|a| attr_u64(&a)),
                     member: self.member(&member),
                 })
             })
@@ -657,9 +697,10 @@ impl<'a> Formatter<'a> {
             gimli::DW_TAG_pointer_type | gimli::DW_TAG_reference_type => {
                 Some((self.read_uint(place, PTR_SIZE)?, self.ty_of(&entry)))
             }
-            gimli::DW_TAG_structure_type => self.members(off).into_iter().find_map(|m| {
-                self.find_pointer(m.ty?, &place.offset(m.offset), depth + 1)
-            }),
+            gimli::DW_TAG_structure_type => self
+                .members(off)
+                .into_iter()
+                .find_map(|m| self.find_pointer(m.ty?, &place.offset(m.offset), depth + 1)),
             _ => None,
         }
     }
@@ -684,7 +725,11 @@ impl<'a> Formatter<'a> {
 }
 
 fn mask(size: u64) -> u64 {
-    if size >= 8 { !0 } else { (1u64 << (size * 8)) - 1 }
+    if size >= 8 {
+        !0
+    } else {
+        (1u64 << (size * 8)) - 1
+    }
 }
 
 fn attr_u64(v: &AttributeValue<R>) -> Option<u64> {

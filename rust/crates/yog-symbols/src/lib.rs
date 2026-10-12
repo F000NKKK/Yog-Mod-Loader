@@ -30,7 +30,7 @@ use std::sync::{Arc, OnceLock};
 use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSymbol, SymbolKind};
 
-pub use locals::{FrameRegs, LocalVar, TargetMemory, Value, VarKind, x86_64};
+pub use locals::{x86_64, FrameRegs, LocalVar, TargetMemory, Value, VarKind};
 
 // `Arc`, not `Rc`: a `SymbolTable` needs to be `Send + Sync` so host apps
 // (e.g. Yog-IDLE's Tauri backend) can hold one behind a `Mutex` in shared

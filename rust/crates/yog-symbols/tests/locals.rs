@@ -18,19 +18,22 @@ fn fixture_src() -> PathBuf {
 /// builds into its own output path so tests running in parallel never
 /// race on the same file.
 fn build(tag: &str) -> PathBuf {
-    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
-        .join(format!("yog_symbols_{FIXTURE}_{tag}_bin"));
+    build_with(tag, &["-C", "opt-level=0"])
+}
+
+fn build_with(tag: &str, extra: &[&str]) -> PathBuf {
+    let out =
+        PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_symbols_{FIXTURE}_{tag}_bin"));
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
         .args([
             "--crate-type=bin",
             "--edition=2024",
             "-g",
             "-C",
-            "opt-level=0",
-            "-C",
             "strip=none",
-            "-o",
         ])
+        .args(extra)
+        .arg("-o")
         .arg(&out)
         .arg(fixture_src())
         .status()
@@ -111,7 +114,7 @@ mod live {
 
     use nix::sys::ptrace;
     use nix::sys::signal::Signal;
-    use nix::sys::wait::{WaitStatus, waitpid};
+    use nix::sys::wait::{waitpid, WaitStatus};
     use nix::unistd::Pid;
     use yog_symbols::{FrameRegs, TargetMemory, Value};
 
@@ -156,14 +159,18 @@ mod live {
         find(&value.children, name)
     }
 
-    #[test]
-    fn reads_live_values_at_a_breakpoint() {
-        let exe = build("live");
-        let table = SymbolTable::load(&exe).unwrap();
+    /// Runs the fixture under ptrace up to the marker line and returns
+    /// what `read_locals` makes of the stopped frame, plus the same read
+    /// with all memory unreadable. `None` if the line has no code (an
+    /// optimized build may fold it away).
+    fn stop_and_read(exe: &Path) -> Option<(Vec<Value>, Vec<Value>)> {
+        let table = SymbolTable::load(exe).unwrap();
         let offsets = table.resolve_breakpoint(&format!("{FIXTURE}.rs"), marker_line());
-        assert!(!offsets.is_empty());
+        if offsets.is_empty() {
+            return None;
+        }
 
-        let mut cmd = Command::new(&exe);
+        let mut cmd = Command::new(exe);
         // SAFETY: only async-signal-safe work (a single ptrace syscall)
         // between fork and exec.
         unsafe {
@@ -178,7 +185,7 @@ mod live {
             WaitStatus::Stopped(_, Signal::SIGTRAP) => {}
             other => panic!("unexpected first stop: {other:?}"),
         }
-        let base = load_base(pid, &exe);
+        let base = load_base(pid, exe);
 
         // int3 on every address of the marker line; whichever runs first wins.
         for &off in &offsets {
@@ -195,7 +202,10 @@ mod live {
 
         let r = ptrace::getregs(pid).unwrap();
         let pc = r.rip - 1;
-        assert!(offsets.contains(&(pc - base)), "stopped at unexpected {pc:#x}");
+        assert!(
+            offsets.contains(&(pc - base)),
+            "stopped at unexpected {pc:#x}"
+        );
         let regs = FrameRegs::from_dwarf_order([
             r.rax, r.rdx, r.rcx, r.rbx, r.rsi, r.rdi, r.rbp, r.rsp, r.r8, r.r9, r.r10, r.r11,
             r.r12, r.r13, r.r14, r.r15, pc,
@@ -203,8 +213,19 @@ mod live {
         let mem = ProcMem(File::open(format!("/proc/{pid}/mem")).unwrap());
 
         let values = table.read_locals(&regs, base, &mem);
-        let v = |n: &str| find(&values, n).value.clone();
 
+        struct NoMem;
+        impl TargetMemory for NoMem {
+            fn read(&self, _: u64, _: &mut [u8]) -> bool {
+                false
+            }
+        }
+        let blind = table.read_locals(&regs, base, &NoMem);
+        Some((values, blind))
+    }
+
+    fn check_exact(values: &[Value]) {
+        let v = |n: &str| find(values, n).value.clone();
         assert_eq!(v("count"), "5");
         assert_eq!(v("label"), "\"label!\"");
         assert_eq!(v("x"), "42");
@@ -214,11 +235,11 @@ mod live {
         assert_eq!(v("ratio"), "1.5");
         assert_eq!(v("s"), "\"hi\"");
         assert_eq!(v("v"), "len=3 [1, 2, 3]");
-        assert_eq!(child(find(&values, "v"), "[2]").value, "3");
+        assert_eq!(child(find(values, "v"), "[2]").value, "3");
         assert_eq!(v("p"), "{x: 3, y: -4}");
-        assert_eq!(child(find(&values, "p"), "y").value, "-4");
+        assert_eq!(child(find(values, "p"), "y").value, "-4");
         assert_eq!(v("shape"), "Rect({x: 3, y: -4}, {x: 5, y: 6})");
-        assert_eq!(child(child(find(&values, "shape"), "1"), "x").value, "5");
+        assert_eq!(child(child(find(values, "shape"), "1"), "x").value, "5");
         assert_eq!(v("circle"), "Circle {radius: 2.0}");
         assert_eq!(v("none"), "None");
         assert_eq!(v("some"), "Some(9)");
@@ -226,18 +247,55 @@ mod live {
         assert_eq!(v("slice"), "len=2 [20, 30]");
         assert_eq!(v("tuple"), "(7, -1)");
         assert!(v("r").ends_with(" {42}"), "{}", v("r"));
-        assert_eq!(child(find(&values, "r"), "*r").value, "42");
+        assert_eq!(child(find(values, "r"), "*r").value, "42");
         assert_eq!(v("inner"), "100");
+    }
 
+    #[test]
+    fn reads_live_values_at_a_breakpoint() {
+        let exe = build("live");
+        let (values, blind) = stop_and_read(&exe).expect("marker line has code at -O0");
+        check_exact(&values);
         // Bad memory must degrade, not panic.
-        struct NoMem;
-        impl TargetMemory for NoMem {
-            fn read(&self, _: u64, _: &mut [u8]) -> bool {
-                false
-            }
-        }
-        let blind = table.read_locals(&regs, base, &NoMem);
         assert_eq!(find(&blind, "x").value, "<unavailable>");
         assert_eq!(blind.len(), values.len());
+    }
+
+    /// Same, with `rbp`-based frames (different `DW_AT_frame_base`).
+    #[test]
+    fn reads_live_values_with_frame_pointers() {
+        let exe = build_with(
+            "live_fp",
+            &["-C", "opt-level=0", "-C", "force-frame-pointers=yes"],
+        );
+        let (values, _) = stop_and_read(&exe).expect("marker line has code at -O0");
+        check_exact(&values);
+    }
+
+    /// Optimized code: location lists and `DW_AT_const_value`s. Only values
+    /// that stay meaningful under reordering are checked (at -O2 the marker
+    /// line's code runs after `s`/`v` are already dropped — gdb reads the
+    /// same freed bytes there); everything else must merely not panic.
+    #[test]
+    fn optimized_build_reads_or_degrades() {
+        let exe = build_with("live_opt", &["-C", "opt-level=2"]);
+        let Some((values, _)) = stop_and_read(&exe) else {
+            return;
+        };
+        let ok = |name: &str, want: &str| {
+            if let Some(v) = values.iter().find(|v| v.name == name) {
+                assert!(
+                    v.value == want || v.value.starts_with('<'),
+                    "{name} = {:?}",
+                    v.value
+                );
+            }
+        };
+        ok("count", "5");
+        ok("x", "42");
+        ok("neg", "-7");
+        ok("flag", "true");
+        ok("ch", "'Z'");
+        ok("ratio", "1.5");
     }
 }

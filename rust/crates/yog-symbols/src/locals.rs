@@ -11,11 +11,11 @@ use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
 use gimli::{
-    AttributeValue, Reader as _, DebuggingInformationEntry, EvaluationResult, Location, UnitOffset,
+    AttributeValue, DebuggingInformationEntry, EvaluationResult, Location, Reader as _, UnitOffset,
     UnwindSection as _,
 };
 
-use crate::{R, SymbolTable};
+use crate::{SymbolTable, R};
 
 /// Read access to the stopped target's memory, implemented by the caller
 /// (e.g. via `process_vm_readv` or `/proc/<pid>/mem`). Addresses are
@@ -192,7 +192,9 @@ impl Place {
     pub(crate) fn offset(&self, by: u64) -> Place {
         match self {
             Place::Mem(addr) => Place::Mem(addr.wrapping_add(by)),
-            Place::Bytes(bytes, off) => Place::Bytes(bytes.clone(), off.saturating_add(by as usize)),
+            Place::Bytes(bytes, off) => {
+                Place::Bytes(bytes.clone(), off.saturating_add(by as usize))
+            }
         }
     }
 
@@ -548,9 +550,8 @@ impl SymbolTable {
         };
 
         let frame_base = OnceLock::new();
-        let get_frame_base = || {
-            *frame_base.get_or_init(|| self.frame_base(info, subprogram, frame))
-        };
+        let get_frame_base =
+            || *frame_base.get_or_init(|| self.frame_base(info, subprogram, frame));
         let Some(pieces) = self.evaluate(info, expr, frame, &get_frame_base) else {
             return Located::Unavailable;
         };
@@ -674,57 +675,56 @@ impl SymbolTable {
         }
         Some(eval.result())
     }
-
 }
 
 fn assemble(pieces: Vec<gimli::Piece<R>>, frame: &Frame<'_>) -> Located {
-        if pieces.is_empty() {
-            return Located::OptimizedOut;
+    if pieces.is_empty() {
+        return Located::OptimizedOut;
+    }
+    if pieces.len() == 1 && pieces[0].size_in_bits.is_none() {
+        return match location_bytes(&pieces[0].location, frame, None) {
+            PieceData::Mem(addr) => Located::Place(Place::Mem(addr)),
+            PieceData::Bytes(b) => Located::Place(Place::Bytes(b.into(), 0)),
+            PieceData::Empty => Located::OptimizedOut,
+            PieceData::Unavailable => Located::Unavailable,
+        };
+    }
+    let mut out = Vec::new();
+    let mut any = false;
+    for piece in &pieces {
+        let Some(bits) = piece.size_in_bits else {
+            return Located::Unavailable;
+        };
+        let len = bits.div_ceil(8) as usize;
+        if len > 1 << 16 {
+            return Located::Unavailable;
         }
-        if pieces.len() == 1 && pieces[0].size_in_bits.is_none() {
-            return match location_bytes(&pieces[0].location, frame, None) {
-                PieceData::Mem(addr) => Located::Place(Place::Mem(addr)),
-                PieceData::Bytes(b) => Located::Place(Place::Bytes(b.into(), 0)),
-                PieceData::Empty => Located::OptimizedOut,
-                PieceData::Unavailable => Located::Unavailable,
-            };
-        }
-        let mut out = Vec::new();
-        let mut any = false;
-        for piece in &pieces {
-            let Some(bits) = piece.size_in_bits else {
-                return Located::Unavailable;
-            };
-            let len = bits.div_ceil(8) as usize;
-            if len > 1 << 16 {
-                return Located::Unavailable;
+        let bytes = match location_bytes(&piece.location, frame, Some(len)) {
+            PieceData::Mem(addr) => {
+                let mut buf = vec![0u8; len];
+                if !frame.mem.read(addr, &mut buf) {
+                    return Located::Unavailable;
+                }
+                any = true;
+                buf
             }
-            let bytes = match location_bytes(&piece.location, frame, Some(len)) {
-                PieceData::Mem(addr) => {
-                    let mut buf = vec![0u8; len];
-                    if !frame.mem.read(addr, &mut buf) {
-                        return Located::Unavailable;
-                    }
-                    any = true;
-                    buf
-                }
-                PieceData::Bytes(mut b) => {
-                    let shift = piece.bit_offset.unwrap_or(0) / 8;
-                    b.drain(..(shift as usize).min(b.len()));
-                    b.resize(len, 0);
-                    any = true;
-                    b
-                }
-                PieceData::Empty => vec![0; len],
-                PieceData::Unavailable => return Located::Unavailable,
-            };
-            out.extend_from_slice(&bytes[..len.min(bytes.len())]);
-        }
-        if any {
-            Located::Place(Place::Bytes(out.into(), 0))
-        } else {
-            Located::OptimizedOut
-        }
+            PieceData::Bytes(mut b) => {
+                let shift = piece.bit_offset.unwrap_or(0) / 8;
+                b.drain(..(shift as usize).min(b.len()));
+                b.resize(len, 0);
+                any = true;
+                b
+            }
+            PieceData::Empty => vec![0; len],
+            PieceData::Unavailable => return Located::Unavailable,
+        };
+        out.extend_from_slice(&bytes[..len.min(bytes.len())]);
+    }
+    if any {
+        Located::Place(Place::Bytes(out.into(), 0))
+    } else {
+        Located::OptimizedOut
+    }
 }
 
 #[derive(Default)]

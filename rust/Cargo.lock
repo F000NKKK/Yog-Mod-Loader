@@ -1055,6 +1055,7 @@ version = "0.95.0"
 dependencies = [
  "glow",
  "jni",
+ "libc",
  "libloading",
  "serde_json",
  "yog-abi",

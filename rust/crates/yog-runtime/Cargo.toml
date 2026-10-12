@@ -34,3 +34,7 @@ libloading.workspace = true
 zip.workspace = true
 # OpenGL bindings for low-level GPU access (client-side, render thread only).
 glow.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# `prctl(PR_SET_PTRACER)` + `SO_PEERCRED` — see `control_socket::allow_peer_to_trace`.
+libc = "0.2"
