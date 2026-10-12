@@ -21,6 +21,33 @@ pub struct Rect {
     pub h: f32,
 }
 
+/// Width of the strip a [`scrollbar`](crate::widget::Style::scrollbar)
+/// container reserves on its right edge.
+pub const SCROLLBAR_W: f32 = 6.0;
+/// Shortest a scrollbar knob gets.
+pub const MIN_KNOB_H: f32 = 16.0;
+
+impl Rect {
+    /// Whether `(px, py)` lies inside (edges included).
+    pub fn contains(&self, px: f32, py: f32) -> bool {
+        px >= self.x && py >= self.y && px <= self.x + self.w && py <= self.y + self.h
+    }
+
+    /// The overlap of two rects; `None` when they don't overlap.
+    pub fn intersect(&self, o: &Rect) -> Option<Rect> {
+        let x0 = self.x.max(o.x);
+        let y0 = self.y.max(o.y);
+        let x1 = (self.x + self.w).min(o.x + o.w);
+        let y1 = (self.y + self.h).min(o.y + o.h);
+        (x1 > x0 && y1 > y0).then(|| Rect {
+            x: x0,
+            y: y0,
+            w: x1 - x0,
+            h: y1 - y0,
+        })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct LayoutNode {
     pub rect: Rect,
@@ -29,6 +56,54 @@ pub struct LayoutNode {
     pub children: Vec<LayoutNode>,
     pub enabled: bool,
     pub focused: bool,
+    /// Height of everything inside — children plus padding — before
+    /// scrolling. Larger than `rect.h` when the children overflow.
+    pub content_h: f32,
+    /// Effective vertical scroll offset: the widget's
+    /// [`scroll_y`](crate::widget::Style::scroll_y) clamped to
+    /// `0..=`[`Self::max_scroll`]. Children are already shifted by it.
+    pub scroll_y: f32,
+    /// The widget clips its children (see `Style::clip`).
+    pub clip: bool,
+    /// The widget shows a scrollbar on overflow (see `Style::scrollbar`).
+    pub scrollbar: bool,
+}
+
+impl LayoutNode {
+    /// How far the children can scroll: `content_h - rect.h`, at least 0.
+    pub fn max_scroll(&self) -> f32 {
+        (self.content_h - self.rect.h).max(0.0)
+    }
+
+    /// Scrollbar track and knob rects — `None` unless the widget has a
+    /// scrollbar and its content overflows.
+    pub fn scrollbar_rects(&self) -> Option<(Rect, Rect)> {
+        let max = self.max_scroll();
+        if !self.scrollbar || max <= 0.0 {
+            return None;
+        }
+        let r = self.rect;
+        let track = Rect {
+            x: r.x + r.w - SCROLLBAR_W,
+            y: r.y,
+            w: SCROLLBAR_W,
+            h: r.h,
+        };
+        let knob_h = (r.h * r.h / self.content_h).max(MIN_KNOB_H).min(r.h);
+        let knob = Rect {
+            y: r.y + (r.h - knob_h) * (self.scroll_y / max),
+            h: knob_h,
+            ..track
+        };
+        Some((track, knob))
+    }
+
+    fn translate_y(&mut self, dy: f32) {
+        self.rect.y += dy;
+        for c in &mut self.children {
+            c.translate_y(dy);
+        }
+    }
 }
 
 impl Default for LayoutNode {
@@ -40,6 +115,10 @@ impl Default for LayoutNode {
             children: Vec::new(),
             enabled: true,
             focused: false,
+            content_h: 0.0,
+            scroll_y: 0.0,
+            clip: false,
+            scrollbar: false,
         }
     }
 }
@@ -110,6 +189,10 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
     }
 
     node.rect = Rect { x, y, w: ww, h: hh };
+    node.content_h = hh;
+    node.scroll_y = 0.0;
+    node.clip = s.clip;
+    node.scrollbar = s.scrollbar;
 
     if !has_children {
         return;
@@ -121,7 +204,8 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
     } else {
         FlexDir::Column
     };
-    let content_w = ww - s.pad[1] - s.pad[3];
+    let bar_w = if s.scrollbar { SCROLLBAR_W } else { 0.0 };
+    let content_w = (ww - s.pad[1] - s.pad[3] - bar_w).max(0.0);
     let content_h = hh - s.pad[0] - s.pad[2];
 
     // Helpers for Dock
@@ -315,23 +399,34 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
             .iter()
             .map(|c| c.rect.x - x + c.rect.w)
             .fold(0.0f32, f32::max);
-        node.rect.w = (cw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
+        node.rect.w = (cw + s.pad[1] + s.pad[3] + bar_w).max(s.min_w).min(max_w);
     }
+    let ch: f32 = child_nodes
+        .iter()
+        .map(|c| c.rect.y - y + c.rect.h)
+        .fold(0.0f32, f32::max);
     if s.h.is_auto() {
-        let ch: f32 = child_nodes
-            .iter()
-            .map(|c| c.rect.y - y + c.rect.h)
-            .fold(0.0f32, f32::max);
         node.rect.h = (ch + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
+    }
+
+    // Scrolling: children positioned from the content's top, then shifted up.
+    // (`ch` already includes the top padding: child y is relative to `y`.)
+    node.content_h = ch + s.pad[2];
+    node.scroll_y = s.scroll_y.clamp(0.0, node.max_scroll());
+    if node.scroll_y > 0.0 {
+        for c in &mut child_nodes {
+            c.translate_y(-node.scroll_y);
+        }
     }
 
     node.children = child_nodes;
 }
 
 /// Hit-test: find deepest clickable, enabled node at (mx, my).
+/// Children only count where they're inside their parent's rect, so rows
+/// scrolled out of a clipping container can't be clicked.
 pub fn hit_test(node: &LayoutNode, mx: f32, my: f32) -> Option<&LayoutNode> {
-    let r = &node.rect;
-    if mx < r.x || my < r.y || mx > r.x + r.w || my > r.y + r.h {
+    if !node.rect.contains(mx, my) {
         return None;
     }
     for child in node.children.iter().rev() {
@@ -355,6 +450,15 @@ pub fn find_by_id(node: &LayoutNode, id: &str) -> Option<Rect> {
         return Some(node.rect);
     }
     node.children.iter().find_map(|c| find_by_id(c, id))
+}
+
+/// The (first) node tagged `id` — its rect plus scrolling state
+/// ([`LayoutNode::scroll_y`], [`LayoutNode::scrollbar_rects`], ...).
+pub fn find_node<'a>(node: &'a LayoutNode, id: &str) -> Option<&'a LayoutNode> {
+    if node.id.as_deref() == Some(id) {
+        return Some(node);
+    }
+    node.children.iter().find_map(|c| find_node(c, id))
 }
 
 /// Walk tree and set `focused = true` on the node whose id matches, false on all others.

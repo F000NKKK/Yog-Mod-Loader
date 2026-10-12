@@ -138,6 +138,20 @@ pub struct Style {
     /// space, ignores `flex`/`dock`, and is drawn in tree order (later
     /// siblings on top). `None` (default) = normal flex positioning.
     pub pos: Option<(f32, f32)>,
+    /// Labels/buttons: a single line (implies `no_wrap`) cut with `...` when
+    /// wider than the box, instead of overflowing it.
+    pub ellipsis: bool,
+    /// Containers: children are drawn (and hit) only inside this widget's
+    /// rect — anything scrolled or overflowing past it is cut off.
+    pub clip: bool,
+    /// Containers: vertical scroll offset of the children in GUI pixels
+    /// (0 = top). Layout clamps it to the content — the effective value is
+    /// [`LayoutNode::scroll_y`](crate::LayoutNode::scroll_y).
+    pub scroll_y: f32,
+    /// Containers: reserve a strip on the right edge and draw a vertical
+    /// scrollbar there whenever the content overflows (see
+    /// [`ScrollState`](crate::ScrollState) for driving it).
+    pub scrollbar: bool,
 }
 
 impl Default for Style {
@@ -161,6 +175,10 @@ impl Default for Style {
             focus_color: 0,
             no_wrap: false,
             pos: None,
+            ellipsis: false,
+            clip: false,
+            scroll_y: 0.0,
+            scrollbar: false,
         }
     }
 }
@@ -278,6 +296,27 @@ impl Widget {
         self.style.pos = Some((x, y));
         self
     }
+    /// Single line, cut with `...` when too wide — see [`Style::ellipsis`].
+    pub fn ellipsis(mut self) -> Self {
+        self.style.no_wrap = true;
+        self.style.ellipsis = true;
+        self
+    }
+    /// Clip children to this widget's rect — see [`Style::clip`].
+    pub fn clip(mut self, v: bool) -> Self {
+        self.style.clip = v;
+        self
+    }
+    /// Vertical scroll offset of the children — see [`Style::scroll_y`].
+    pub fn scroll_y(mut self, v: f32) -> Self {
+        self.style.scroll_y = v;
+        self
+    }
+    /// Draw a vertical scrollbar on overflow — see [`Style::scrollbar`].
+    pub fn scrollbar(mut self, v: bool) -> Self {
+        self.style.scrollbar = v;
+        self
+    }
     /// Adds every widget in `children`, in order.
     pub fn children(mut self, children: impl IntoIterator<Item = Widget>) -> Self {
         self.children.extend(children);
@@ -319,6 +358,12 @@ impl Widget {
 
 pub fn panel(dir: FlexDir) -> Widget {
     Widget::new(WidgetKind::Panel(dir))
+}
+/// A vertically scrolling column: clips its children, scrolls them by
+/// [`Widget::scroll_y`] and draws a scrollbar when they overflow — WPF's
+/// `ScrollViewer` around a `StackPanel`. Give it a fixed (or flex) height.
+pub fn scroll_view() -> Widget {
+    panel(FlexDir::Column).clip(true).scrollbar(true)
 }
 pub fn label(text: impl Into<String>) -> Widget {
     Widget::new(WidgetKind::Label(text.into()))
