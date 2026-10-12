@@ -102,6 +102,9 @@ pub struct SymbolTable {
     functions: Vec<FunctionSymbol>,
     /// Parsed compilation units, built on the first locals lookup.
     units: OnceLock<Vec<locals::UnitInfo>>,
+    /// Sorted addresses where a line-table row with `is_stmt` starts, built
+    /// on the first [`Self::is_statement_start`].
+    statements: OnceLock<Vec<u64>>,
     /// Call frame info for `DW_OP_call_frame_cfa` frame bases.
     eh_frame: Option<(gimli::EhFrame<R>, gimli::BaseAddresses)>,
     debug_frame: Option<gimli::DebugFrame<R>>,
@@ -189,6 +192,7 @@ impl SymbolTable {
             ctx,
             functions,
             units: OnceLock::new(),
+            statements: OnceLock::new(),
             eh_frame,
             debug_frame,
         })
@@ -294,6 +298,36 @@ impl SymbolTable {
         let name = self.dwarf.attr_string(unit, file_entry.path_name()).ok()?;
         path.push(name.to_string_lossy().ok()?.as_ref());
         Some(normalize_path(&path))
+    }
+
+    /// Whether `addr` (an offset within this native) is where a statement
+    /// begins — a line-table row marked `is_stmt`, which is where a debugger
+    /// should stop a source-level step. Rows without it are the middle of a
+    /// statement the compiler interleaved with another; stopping there is
+    /// what makes optimized code's steps bounce between lines.
+    pub fn is_statement_start(&self, addr: u64) -> bool {
+        let statements = self.statements.get_or_init(|| {
+            let mut addrs = Vec::new();
+            let mut units = self.dwarf.units();
+            while let Ok(Some(header)) = units.next() {
+                let Ok(unit) = self.dwarf.unit(header) else {
+                    continue;
+                };
+                let Some(program) = unit.line_program.clone() else {
+                    continue;
+                };
+                let mut rows = program.rows();
+                while let Ok(Some((_, row))) = rows.next_row() {
+                    if row.is_stmt() && !row.end_sequence() {
+                        addrs.push(row.address());
+                    }
+                }
+            }
+            addrs.sort_unstable();
+            addrs.dedup();
+            addrs
+        });
+        statements.binary_search(&addr).is_ok()
     }
 
     /// Every global function symbol in the native's own symbol table.

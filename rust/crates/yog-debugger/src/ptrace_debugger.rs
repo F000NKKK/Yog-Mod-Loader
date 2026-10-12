@@ -764,7 +764,15 @@ impl Debugger {
                 // Stack grows down: a strictly *higher* rsp means we've
                 // returned into a shallower frame.
                 StepKind::Out => cur_sp > start_sp && cur.is_some(),
-                StepKind::Into | StepKind::Over => cur.is_some() && cur != start,
+                // Only where a statement begins: mid-statement rows are
+                // the compiler interleaving lines, not the code moving on.
+                StepKind::Into | StepKind::Over => {
+                    cur.is_some()
+                        && cur != start
+                        && self.registers().is_ok_and(|r| {
+                            symbols.is_statement_start(r.rip.wrapping_sub(base))
+                        })
+                }
             };
             if stop {
                 return Ok(StopReason::Signal(Signal::SIGTRAP));

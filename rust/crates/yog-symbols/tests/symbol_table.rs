@@ -65,6 +65,20 @@ fn resolves_breakpoint_and_address_round_trip() {
 }
 
 #[test]
+fn a_line_starts_at_a_statement() {
+    let fixture = build_fixture("statements");
+    let table = SymbolTable::load(&fixture).expect("loading fixture symbol table");
+
+    let addrs = table.resolve_breakpoint("fixture.rs", 8);
+    assert!(
+        addrs.iter().any(|&a| table.is_statement_start(a)),
+        "no statement starts at fixture.rs:8 ({addrs:x?})"
+    );
+    // Not a row at all — the byte after the line's first instruction.
+    assert!(!table.is_statement_start(addrs[0] + 1) || addrs.contains(&(addrs[0] + 1)));
+}
+
+#[test]
 fn lists_exported_functions() {
     let fixture = build_fixture("functions");
     let table = SymbolTable::load(&fixture).expect("loading fixture symbol table");

@@ -208,3 +208,43 @@ fn traces_every_thread_and_forwards_signals() {
         "fixture died after detach"
     );
 }
+
+/// F10 walks `work()` line by line, and off its last line lands on the
+/// caller's next statement rather than mid-line or lost in code without
+/// lines.
+#[test]
+fn step_over_walks_lines_and_returns_to_the_caller() {
+    use yog_debugger::StepKind;
+
+    let exe = build_fixture();
+    let child = Command::new(&exe)
+        .spawn()
+        .expect("spawning fixture process");
+    let _child = KillOnDrop(child);
+    let pid = _child.0.id() as i32;
+
+    let symbols = SymbolTable::load(&exe).expect("loading fixture's own debug info");
+    let mut debugger = Debugger::attach(pid).expect("attaching to fixture process");
+    let base = find_module_base(debugger.pid(), &exe).expect("fixture load base");
+    let addr = base + symbols.resolve_breakpoint("fixture.rs", 26)[0];
+    debugger.set_breakpoint(addr).expect("arming breakpoint");
+    assert_eq!(
+        debugger.continue_().expect("continuing"),
+        StopReason::Breakpoint(addr)
+    );
+    debugger.clear_breakpoint(addr).expect("clearing breakpoint");
+
+    let mut lines = Vec::new();
+    for _ in 0..2 {
+        debugger
+            .source_step(StepKind::Over, &symbols, base)
+            .expect("stepping over");
+        let location = debugger
+            .source_location(&symbols, base)
+            .expect("stopped somewhere with lines");
+        lines.push(location.line);
+    }
+    // 27 `total`, then back in `main` on the statement after the call.
+    assert_eq!(lines, [27, 33]);
+    debugger.detach().expect("detaching");
+}

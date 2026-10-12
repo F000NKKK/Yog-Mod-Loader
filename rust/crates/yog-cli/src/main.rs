@@ -523,10 +523,11 @@ const TARGETS: &[Target] = &[
 ///
 /// `debugging_symbols` (`yog build debug` / `yog run <name> --debug` at the
 /// CLI surface): still a `--release` build (same output layout `package()`
-/// expects), but with debug info retained instead of stripped — for
-/// `yog-symbols`/`yog-debugger` to have something to load. No separate
-/// artifact layout: the native this produces is simply larger and
-/// symbol-ful, packaged the same way.
+/// expects), but unoptimized and with debug info retained instead of
+/// stripped — for `yog-symbols`/`yog-debugger` to have something to load
+/// and step through line by line. No separate artifact layout: the native
+/// this produces is simply larger, slower and symbol-ful, packaged the same
+/// way.
 fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
     let root = std::env::current_dir().map_err(|e| e.to_string())?;
     let yog_toml_path = root.join("yog.toml");
@@ -1228,11 +1229,16 @@ impl Builder {
             .env("CARGO_TARGET_DIR", root.join("target"))
             .args([self.subcmd(), "--release", "--target", triple]);
         if debugging_symbols {
-            // Still `--release` (same output layout/perf characteristics
-            // `package()` already expects) — just keep debug info instead
-            // of stripping it, so `yog-symbols` has something real to load.
+            // Still `--release` (the output layout `package()` expects), but
+            // a debug build in all but name: debug info kept, and nothing
+            // optimized — inlining and instruction scheduling make a
+            // debugger's line steps hop between files and back.
             cmd.env("CARGO_PROFILE_RELEASE_DEBUG", "true");
             cmd.env("CARGO_PROFILE_RELEASE_STRIP", "none");
+            cmd.env("CARGO_PROFILE_RELEASE_OPT_LEVEL", "0");
+            cmd.env("CARGO_PROFILE_RELEASE_LTO", "false");
+            cmd.env("CARGO_PROFILE_RELEASE_CODEGEN_UNITS", "256");
+            cmd.env("CARGO_PROFILE_RELEASE_INCREMENTAL", "true");
         }
         let output = cmd.output();
         match output {
