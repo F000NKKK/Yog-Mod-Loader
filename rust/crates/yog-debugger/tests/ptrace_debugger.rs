@@ -260,8 +260,8 @@ fn step_over_walks_lines_and_returns_to_the_caller() {
 }
 
 /// Just My Code: F10 off the end of a closure that `std` called
-/// (`OnceLock::get_or_init`) lands on the next statement of the user
-/// function that called into `std` — never in `std`'s own sources.
+/// (`OnceLock::get_or_init`) lands back in the user function that called
+/// into `std` — never in `std`'s own sources on the way.
 #[test]
 fn step_over_leaves_std_for_the_user_caller() {
     use yog_debugger::{is_library_source, StepKind};
@@ -277,7 +277,11 @@ fn step_over_leaves_std_for_the_user_caller() {
             .unwrap() as u32
             + 1
     };
-    let (body, after) = (line_of("// CLOSURE_BODY"), line_of("// AFTER_INIT"));
+    let (init, body, after) = (
+        line_of("get_or_init("),
+        line_of("// CLOSURE_BODY"),
+        line_of("// AFTER_INIT"),
+    );
 
     let child = Command::new(&exe).spawn().expect("spawning jmc fixture");
     let _child = KillOnDrop(child);
@@ -292,7 +296,9 @@ fn step_over_leaves_std_for_the_user_caller() {
         debugger.continue_().expect("continuing"),
         StopReason::Breakpoint(addr)
     );
-    debugger.clear_breakpoint(addr).expect("clearing breakpoint");
+    debugger
+        .clear_breakpoint(addr)
+        .expect("clearing breakpoint");
 
     // The CFI backtrace reaches `compute` through `std`'s frames.
     let frames = debugger
@@ -302,10 +308,7 @@ fn step_over_leaves_std_for_the_user_caller() {
         .iter()
         .filter_map(|f| symbols.resolve_addr(f.pc() - base)?.function)
         .collect();
-    assert!(
-        names.iter().any(|n| n.ends_with("::compute")),
-        "{names:#?}"
-    );
+    assert!(names.iter().any(|n| n.ends_with("::compute")), "{names:#?}");
 
     let mut seen = Vec::new();
     for _ in 0..4 {
@@ -331,11 +334,73 @@ fn step_over_leaves_std_for_the_user_caller() {
     }
     let (line, function) = seen.last().unwrap();
     assert!(
-        function.as_deref().is_some_and(|f| f.ends_with("::compute")),
+        function
+            .as_deref()
+            .is_some_and(|f| f.ends_with("::compute")),
         "never got back to `compute`: {seen:?}"
     );
-    // On to the caller's next statement, as after any return.
-    assert_eq!(*line, after, "{seen:?}");
+    // Back on the call's line (its result is still being stored), or past it.
+    assert!(*line == init || *line == after, "{seen:?}");
     debugger.detach().expect("detaching");
 }
 
+/// Break All reaches a step that runs over a call that never returns: with
+/// the pause request raised, `source_step` gives up with `Interrupted`.
+#[test]
+fn pause_request_interrupts_a_step_over_a_blocking_call() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use yog_debugger::StepKind;
+
+    let exe = build_as("blocking", "blocking_pause");
+    let src = std::fs::read_to_string(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/blocking.rs"),
+    )
+    .unwrap();
+    let call = src.lines().position(|l| l.contains("// CALL")).unwrap() as u32 + 1;
+
+    let child = Command::new(&exe)
+        .spawn()
+        .expect("spawning blocking fixture");
+    let _child = KillOnDrop(child);
+    let pid = _child.0.id() as i32;
+
+    let symbols = SymbolTable::load(&exe).expect("loading fixture debug info");
+    let mut debugger = Debugger::attach(pid).expect("attaching");
+    let base = find_module_base(debugger.pid(), &exe).expect("fixture load base");
+    let addr = base + symbols.resolve_breakpoint("blocking.rs", call)[0];
+    debugger.set_breakpoint(addr).expect("arming breakpoint");
+    assert_eq!(
+        debugger.continue_().expect("continuing"),
+        StopReason::Breakpoint(addr)
+    );
+
+    let pause = Arc::new(AtomicBool::new(false));
+    debugger.set_pause_request(pause.clone());
+
+    // A breakpoint edit's interrupt (no pause request) doesn't end the step...
+    let edit = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        interrupt(pid);
+    });
+    // ...Break All does.
+    let flag = pause.clone();
+    let breaker = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(600));
+        flag.store(true, Ordering::SeqCst);
+        interrupt(pid);
+    });
+    let started = std::time::Instant::now();
+    let stop = debugger
+        .source_step(StepKind::Over, &symbols, base)
+        .expect("stepping over");
+    edit.join().unwrap();
+    breaker.join().unwrap();
+    assert_eq!(stop, StopReason::Interrupted);
+    assert!(started.elapsed() >= std::time::Duration::from_millis(500));
+
+    pause.store(false, Ordering::SeqCst);
+    debugger.pause().expect("pausing");
+    assert_ne!(debugger.registers().expect("registers").rip, 0);
+    debugger.detach().expect("detaching");
+}

@@ -664,11 +664,7 @@ impl Debugger {
 
     /// What kind of code `rip` is in, for stepping.
     fn position(&self, symbols: &SymbolTable, base: u64) -> Position {
-        let Some(offset) = self
-            .registers()
-            .ok()
-            .and_then(|r| r.rip.checked_sub(base))
-        else {
+        let Some(offset) = self.registers().ok().and_then(|r| r.rip.checked_sub(base)) else {
             return Position::Foreign;
         };
         let chain = symbols.resolve_inlined(offset);
