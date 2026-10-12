@@ -63,7 +63,7 @@ jni = "0.21"
 libloading = "0.9"
 glow = "0.17"
 ctor = "1"
-object = "0.39"
+object = "0.40"
 gimli = "0.34"
 addr2line = "0.27"
 nix = { version = "0.31", features = ["ptrace", "signal", "process"] }
