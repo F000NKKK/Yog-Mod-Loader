@@ -1,5 +1,8 @@
 package dev.yog.util;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.util.Map;
 
 /**
@@ -76,6 +79,57 @@ public final class YogDataLayout {
     /** Name of the recipe directory for the running game version. */
     public static String recipeDir(boolean singularDirs) {
         return singularDirs ? "recipe" : "recipes";
+    }
+
+    /** {@code true} for {@code data/<ns>/recipe/**.json} (after {@link #remapDataPath}). */
+    public static boolean isRecipePath(String path) {
+        String[] parts = path.split("/", 4);
+        return parts.length == 4 && parts[0].equals("data")
+                && (parts[2].equals("recipe") || parts[2].equals("recipes"))
+                && path.endsWith(".json");
+    }
+
+    /**
+     * Upgrade a 1.20-style recipe JSON to the 1.20.5+ item stack shape that
+     * 1.21 requires: {@code "result":{"item":X,"count":N}} becomes
+     * {@code {"id":X,"count":N}}, and a bare {@code "result":"X"} (smelting,
+     * stonecutting — with its top-level {@code "count"}) becomes an object.
+     * Ingredients keep {@code "item"} — that changed only in 1.21.2.
+     * Anything already in the new shape or unparseable is returned as is.
+     */
+    public static String upgradeRecipeJson(String json) {
+        JsonObject root;
+        try {
+            JsonElement parsed = JsonParser.parseString(json);
+            if (!parsed.isJsonObject()) {
+                return json;
+            }
+            root = parsed.getAsJsonObject();
+        } catch (RuntimeException e) {
+            return json;
+        }
+        JsonElement result = root.get("result");
+        if (result == null) {
+            return json;
+        }
+        if (result.isJsonPrimitive() && result.getAsJsonPrimitive().isString()) {
+            JsonObject stack = new JsonObject();
+            stack.addProperty("id", result.getAsString());
+            JsonElement count = root.remove("count");
+            if (count != null) {
+                stack.add("count", count);
+            }
+            root.add("result", stack);
+        } else if (result.isJsonObject()) {
+            JsonObject stack = result.getAsJsonObject();
+            if (stack.has("id") || !stack.has("item")) {
+                return json;
+            }
+            stack.add("id", stack.remove("item"));
+        } else {
+            return json;
+        }
+        return root.toString();
     }
 
     private static Map<String, String> invert(Map<String, String> m) {

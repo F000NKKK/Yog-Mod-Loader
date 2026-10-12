@@ -3,6 +3,7 @@ package dev.yog;
 import dev.yog.util.YogDataLayout;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -106,7 +107,13 @@ public class YogPackProvider implements RepositorySource {
                         }
                         Files.createDirectories(target.getParent());
                         try (InputStream in = zip.getInputStream(e)) {
-                            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                            if (YogDataLayout.isRecipePath(n)) {
+                                // 1.20-format recipe results don't parse on 1.21.
+                                String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                                Files.writeString(target, YogDataLayout.upgradeRecipeJson(json));
+                            } else {
+                                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                            }
                         }
                     }
                 }
@@ -142,7 +149,7 @@ public class YogPackProvider implements RepositorySource {
                         .resolve("data").resolve(namespace).resolve(YogDataLayout.recipeDir(SINGULAR_DATA_DIRS))
                         .resolve(name + ".json");
                 Files.createDirectories(target.getParent());
-                Files.writeString(target, json);
+                Files.writeString(target, YogDataLayout.upgradeRecipeJson(json));
             } catch (IOException e) {
                 System.err.println("[yog] failed to write recipe " + namespace + ":" + name + ": " + e);
             }
