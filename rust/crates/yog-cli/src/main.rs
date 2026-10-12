@@ -85,7 +85,8 @@ fn print_usage() {
          \x20 publish exports     Publish this mod's exported API to crates.io\n\
          \x20 help                Show this message\n\n\
          Mod projects use yog.toml instead of Cargo.toml.\n\
-         Cross-compilation requires cargo-zigbuild + zig (yog setup installs them)."
+         Cross-compilation requires cargo-zigbuild + zig (yog setup installs them).\n\
+         Set YOG_TARGETS=linux-x86_64 (comma-separated tags/triples) to build only those platforms."
     );
 }
 
@@ -597,9 +598,15 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
     );
 
     let installed = installed_targets();
+    let selected = selected_targets();
     let mut bundled: Vec<(String, PathBuf)> = Vec::new();
 
     for t in TARGETS {
+        if let Some(sel) = &selected {
+            if !sel.iter().any(|s| s == t.tag || s == t.triple) {
+                continue;
+            }
+        }
         if !installed.iter().any(|s| s == t.triple) {
             eprintln!(
                 "    skip {} (rustup target not installed; run: yog setup)",
@@ -1268,6 +1275,21 @@ fn filter_benign_warnings(stderr: &str) -> String {
         out.push('\n');
     }
     out
+}
+
+/// `YOG_TARGETS` — comma-separated platform tags or triples
+/// (e.g. `linux-x86_64`) to restrict `yog build` to. Unset or empty means
+/// every installed target. A dev loop only needs the host platform; release
+/// builds should leave it unset so the `.yog` stays multi-platform.
+fn selected_targets() -> Option<Vec<String>> {
+    let raw = std::env::var("YOG_TARGETS").ok()?;
+    let list: Vec<String> = raw
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(String::from)
+        .collect();
+    (!list.is_empty()).then_some(list)
 }
 
 fn installed_targets() -> Vec<String> {
