@@ -16,6 +16,10 @@
 //!   debugger's Variables view. Registers and memory are supplied by the
 //!   caller ([`FrameRegs`], [`TargetMemory`]); nothing here uses `ptrace`.
 //!
+//! - "who called this frame" — [`SymbolTable::unwind`] /
+//!   [`SymbolTable::backtrace`], from the native's call frame info, so
+//!   stacks walk through the frame-pointer-less standard library.
+//!
 //! Deliberately built on `gimli`/`object`/`addr2line` directly rather than a
 //! single higher-level helper: `addr2line`'s own convenience API only goes
 //! address -> line, and breakpoint placement needs the reverse (line ->

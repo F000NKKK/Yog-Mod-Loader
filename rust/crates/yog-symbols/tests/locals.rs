@@ -67,8 +67,38 @@ fn lists_locals_and_parameters_at_a_line() {
     assert_eq!(
         names(&vars),
         [
-            "count", "label", "x", "neg", "flag", "ch", "ratio", "s", "v", "p", "shape", "circle",
-            "none", "some", "arr", "slice", "tuple", "r", "inner",
+            "count",
+            "label",
+            "x",
+            "neg",
+            "flag",
+            "ch",
+            "ratio",
+            "s",
+            "v",
+            "p",
+            "shape",
+            "circle",
+            "none",
+            "some",
+            "arr",
+            "slice",
+            "tuple",
+            "r",
+            "cell",
+            "refcell",
+            "once",
+            "empty_once",
+            "once_cell",
+            "rc",
+            "rc2",
+            "arc",
+            "nn",
+            "pinned",
+            "tagged",
+            "mu",
+            "md",
+            "inner",
         ],
         "{vars:#?}"
     );
@@ -94,7 +124,13 @@ fn lists_locals_and_parameters_at_a_line() {
     assert_eq!(ty("slice"), "&[u16]");
     assert_eq!(ty("tuple"), "(u8, i16)");
     assert_eq!(ty("r"), "&i32");
-    assert_eq!(vars[2].decl_line, Some(24));
+    let src = std::fs::read_to_string(fixture_src()).unwrap();
+    let x_line = src
+        .lines()
+        .position(|l| l.contains("let x: i32 = 42;"))
+        .unwrap() as u32
+        + 1;
+    assert_eq!(vars[2].decl_line, Some(x_line));
 }
 
 #[test]
@@ -248,6 +284,23 @@ mod live {
         assert!(v("r").ends_with(" {42}"), "{}", v("r"));
         assert_eq!(child(find(values, "r"), "*r").value, "42");
         assert_eq!(v("inner"), "100");
+
+        // std wrappers collapse to what they hold.
+        assert_eq!(v("cell"), "11");
+        assert_eq!(v("refcell"), "len=2 [4, 5]");
+        assert_eq!(find(values, "refcell").type_name, "RefCell<Vec<u8>>");
+        assert_eq!(find(values, "s").type_name, "String");
+        assert_eq!(v("once"), "77");
+        assert_eq!(v("empty_once"), "<uninit>");
+        assert_eq!(v("once_cell"), "8");
+        assert_eq!(v("rc"), "\"shared\" (strong=2)");
+        assert_eq!(v("arc"), "31 (strong=1)");
+        assert!(v("nn").ends_with(" {42}"), "{}", v("nn"));
+        assert!(v("pinned").ends_with(" {12}"), "{}", v("pinned"));
+        assert_eq!(v("tagged"), "{id: 3}");
+        assert_eq!(find(values, "tagged").children.len(), 1);
+        assert_eq!(v("mu"), "64");
+        assert_eq!(v("md"), "16");
     }
 
     #[test]

@@ -4,12 +4,24 @@
 // this file for the marker rather than hard-coded, so edits above it don't
 // silently break the test.
 
+use std::cell::{Cell, OnceCell, RefCell};
 use std::hint::black_box;
+use std::marker::PhantomData;
+use std::mem::{ManuallyDrop, MaybeUninit};
+use std::pin::Pin;
+use std::ptr::NonNull;
+use std::rc::Rc;
+use std::sync::{Arc, OnceLock};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Point {
     pub x: i32,
     pub y: i32,
+}
+
+pub struct Tagged {
+    pub id: u32,
+    pub _marker: PhantomData<u8>,
 }
 
 #[derive(Debug)]
@@ -37,13 +49,29 @@ fn inspect(count: u32, label: &str) -> usize {
     let slice: &[u16] = &arr[1..];
     let tuple = (7u8, -1i16);
     let r = &x;
+    let cell = Cell::new(11i32);
+    let refcell = RefCell::new(vec![4u8, 5]);
+    let once: OnceLock<u32> = OnceLock::new();
+    once.get_or_init(|| 77);
+    let empty_once: OnceLock<u32> = OnceLock::new();
+    let once_cell: OnceCell<u8> = OnceCell::new();
+    let _ = once_cell.set(8);
+    let rc = Rc::new(String::from("shared"));
+    let rc2 = Rc::clone(&rc);
+    let arc = Arc::new(31i32);
+    let nn = NonNull::from(&x);
+    let pinned: Pin<Box<i32>> = Box::pin(12);
+    let tagged = Tagged { id: 3, _marker: PhantomData };
+    let mu = MaybeUninit::new(64u32);
+    let md = ManuallyDrop::new(16u16);
     let total = {
         let inner = 100u64;
         inner + count as u64 // LOCALS_HERE
     };
     black_box((
         &neg, &flag, &ch, &ratio, &s, &v, &shape, &circle, &none, &some, &slice, &tuple, &r,
-        &label,
+        &label, &cell, &refcell, &once, &empty_once, &once_cell, &rc, &rc2, &arc, &nn, &pinned,
+        &tagged, &mu, &md,
     ));
     total as usize + label.len()
 }

@@ -16,9 +16,16 @@ use yog_symbols::{FrameRegs, SymbolTable, TargetMemory};
 
 fn build(tag: &str) -> PathBuf {
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/unwind.rs");
-    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_symbols_unwind_{tag}_bin"));
+    let out =
+        PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_symbols_unwind_{tag}_bin"));
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
-        .args(["--crate-type=bin", "--edition=2024", "-g", "-C", "strip=none"])
+        .args([
+            "--crate-type=bin",
+            "--edition=2024",
+            "-g",
+            "-C",
+            "strip=none",
+        ])
         .args(["-C", "force-frame-pointers=no", "-C", "opt-level=1"])
         .arg("-o")
         .arg(&out)
@@ -100,12 +107,20 @@ fn backtrace_walks_frames_without_frame_pointers() {
             .position(|n| n.rsplit("::").next() == Some(name))
             .unwrap_or_else(|| panic!("no `{name}` in {names:#?}"))
     };
-    let (c, b, a, main) = (position("c"), position("b"), position("a"), position("main"));
+    let (c, b, a, main) = (
+        position("c"),
+        position("b"),
+        position("a"),
+        position("main"),
+    );
     assert!(c < b && b < a && a < main, "{names:#?}");
     assert_eq!(c, 0, "{names:#?}");
 
     // Every outer frame resolves to the line of its call.
-    let src = std::fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/unwind.rs")).unwrap();
+    let src = std::fs::read_to_string(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/unwind.rs"),
+    )
+    .unwrap();
     let line_of = |needle: &str| src.lines().position(|l| l.contains(needle)).unwrap() as u32 + 1;
     let line = |i: usize| table.resolve_addr(frames[i].pc() - base).unwrap().line;
     assert_eq!(line(b), line_of("black_box(c("));

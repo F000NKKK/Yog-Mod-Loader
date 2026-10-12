@@ -611,8 +611,9 @@ impl<'a> Formatter<'a> {
                 let complete = member("once")
                     .and_then(|once| self.first_uint(once.ty?, &place.offset(once.offset), 0))
                     // Both `Once` implementations (futex and queue) keep the
-                    // state in the low two bits; 3 is COMPLETE.
-                    .map(|state| state & 3 == 3);
+                    // state in the low two bits; COMPLETE is 0 (since Rust
+                    // 1.80, when INCOMPLETE became 3).
+                    .map(|state| state & 3 == 0);
                 match complete {
                     Some(false) => Some(("<uninit>".into(), Vec::new())),
                     // Initialized, or a state this can't read: show the slot.
@@ -631,8 +632,7 @@ impl<'a> Formatter<'a> {
                 let data = field("value").or_else(|| field("data"))?;
                 let count = self.first_uint(strong.ty?, &Place::Mem(ptr + strong.offset), 0);
                 let count = count.map_or_else(|| "?".into(), |n| n.to_string());
-                let (value, children) =
-                    self.unwrap_member(data, &Place::Mem(ptr), depth);
+                let (value, children) = self.unwrap_member(data, &Place::Mem(ptr), depth);
                 Some((format!("{value} (strong={count})"), children))
             }
             _ => None,
