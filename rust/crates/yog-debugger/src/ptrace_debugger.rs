@@ -705,6 +705,11 @@ impl Debugger {
         symbols: &SymbolTable,
         base: u64,
     ) -> Result<StopReason, DebugError> {
+        // Paused somewhere we have no lines for (a Break All landing in the
+        // JVM): there's nothing to step through, only a way back to code.
+        if self.source_location(symbols, base).is_none() {
+            return self.leave_foreign_code(symbols, base);
+        }
         let start = self.line_key(symbols, base);
         let start_sp = self.registers()?.rsp;
         // A generous ceiling so a pathological step (e.g. into a huge
@@ -745,6 +750,14 @@ impl Debugger {
                 StopReason::Signal(other) => return Ok(StopReason::Signal(other)),
             }
 
+            // Stepped off the end of the code we have lines for — returned
+            // into the JVM that called the mod, or tail-jumped into a
+            // library. Crawling through that an instruction at a time is
+            // what made such a step look hung.
+            if self.source_location(symbols, base).is_none() {
+                return self.leave_foreign_code(symbols, base);
+            }
+
             let cur = self.line_key(symbols, base);
             let cur_sp = self.registers()?.rsp;
             let stop = match kind {
@@ -758,6 +771,26 @@ impl Debugger {
             }
         }
         Ok(StopReason::Signal(Signal::SIGTRAP))
+    }
+
+    /// Gets back from code without line info, like Visual Studio's Just My
+    /// Code: runs to the nearest caller that has lines (stopping there), or —
+    /// when nothing up the stack does, as when a JNI entry point returns to
+    /// Java — simply continues until the next breakpoint.
+    fn leave_foreign_code(
+        &mut self,
+        symbols: &SymbolTable,
+        base: u64,
+    ) -> Result<StopReason, DebugError> {
+        let caller = self.backtrace(64)?.into_iter().skip(1).find(|&ret| {
+            ret.checked_sub(base + 1)
+                .and_then(|offset| symbols.resolve_addr(offset))
+                .is_some_and(|loc| loc.line != 0)
+        });
+        match caller {
+            Some(ret) => self.run_to(ret),
+            None => self.continue_(),
+        }
     }
 
     /// Frame-pointer-walk backtrace: return addresses only, in innermost-
