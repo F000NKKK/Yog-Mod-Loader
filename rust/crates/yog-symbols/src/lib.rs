@@ -215,7 +215,7 @@ impl SymbolTable {
             });
 
         Some(SourceLocation {
-            file: PathBuf::from(location.file.unwrap_or("")),
+            file: normalize_path(Path::new(location.file.unwrap_or(""))),
             line: location.line.unwrap_or(0),
             column: location.column,
             function,
@@ -223,10 +223,14 @@ impl SymbolTable {
     }
 
     /// Every runtime address the DWARF line program associates with `line`
-    /// in a file whose path ends with `file` (matched on trailing path
-    /// components so callers can pass just a filename or a partial path).
+    /// in `file`. An absolute `file` (what an IDE passes) must be the same
+    /// file — line-table paths are resolved against the unit's
+    /// `DW_AT_comp_dir` and normalized first, since `yog build` compiles from
+    /// `.yog-build/` with sources at `../src/`. A relative `file` matches on
+    /// trailing path components, so callers can pass just a filename or a
+    /// partial path.
     pub fn resolve_breakpoint(&self, file: &str, line: u32) -> Vec<u64> {
-        let want_file = Path::new(file);
+        let want_file = normalize_path(Path::new(file));
         let mut addrs = Vec::new();
 
         let mut units = self.dwarf.units();
@@ -237,6 +241,11 @@ impl SymbolTable {
             let Some(program) = unit.line_program.clone() else {
                 continue;
             };
+            let comp_dir = unit
+                .comp_dir
+                .as_ref()
+                .and_then(|d| d.to_string_lossy().ok())
+                .map(|d| PathBuf::from(d.as_ref()));
             let mut rows = program.rows();
             while let Ok(Some((line_header, row))) = rows.next_row() {
                 let Some(row_line) = row.line() else { continue };
@@ -246,13 +255,17 @@ impl SymbolTable {
                 let Some(file_entry) = row.file(line_header) else {
                     continue;
                 };
-                let Ok(path_name) = self.dwarf.attr_string(&unit, file_entry.path_name()) else {
+                let Some(row_file) =
+                    self.line_file_path(&unit, line_header, file_entry, comp_dir.as_deref())
+                else {
                     continue;
                 };
-                let Ok(path_str) = path_name.to_string_lossy() else {
-                    continue;
+                let matches = if want_file.is_absolute() {
+                    row_file == want_file
+                } else {
+                    row_file.ends_with(&want_file)
                 };
-                if Path::new(path_str.as_ref()).ends_with(want_file) {
+                if matches {
                     addrs.push(row.address());
                 }
             }
@@ -263,8 +276,49 @@ impl SymbolTable {
         addrs
     }
 
+    /// A line-table file entry's full, normalized path: `comp_dir` /
+    /// include directory / file name (a later absolute part replaces what
+    /// came before it, as `PathBuf::push` does).
+    fn line_file_path(
+        &self,
+        unit: &gimli::Unit<R>,
+        header: &gimli::LineProgramHeader<R>,
+        file_entry: &gimli::FileEntry<R>,
+        comp_dir: Option<&Path>,
+    ) -> Option<PathBuf> {
+        let mut path = comp_dir.map(Path::to_path_buf).unwrap_or_default();
+        if let Some(dir) = file_entry.directory(header) {
+            let dir = self.dwarf.attr_string(unit, dir).ok()?;
+            path.push(dir.to_string_lossy().ok()?.as_ref());
+        }
+        let name = self.dwarf.attr_string(unit, file_entry.path_name()).ok()?;
+        path.push(name.to_string_lossy().ok()?.as_ref());
+        Some(normalize_path(&path))
+    }
+
     /// Every global function symbol in the native's own symbol table.
     pub fn functions(&self) -> impl Iterator<Item = &FunctionSymbol> {
         self.functions.iter()
     }
+}
+
+/// Lexically resolves `.` and `..` — DWARF paths like
+/// `<mod>/.yog-build/../src/lib.rs` must compare equal to the
+/// `<mod>/src/lib.rs` an editor has open. No filesystem access (the paths
+/// may not exist on this machine).
+fn normalize_path(path: &Path) -> PathBuf {
+    use std::path::Component;
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !out.pop() {
+                    out.push("..");
+                }
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
 }
