@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use yog_debugger::maps::find_module_base;
-use yog_debugger::ptrace_debugger::{Debugger, StepKind, StopReason};
+use yog_debugger::ptrace_debugger::{Debugger, StopReason};
 use yog_symbols::SymbolTable;
 
 fn build_fixture() -> PathBuf {
@@ -36,17 +36,18 @@ fn build_fixture() -> PathBuf {
 #[test]
 fn attaches_and_hits_a_real_breakpoint() {
     let exe = build_fixture();
-    let mut child = Command::new(&exe)
+    let child = Command::new(&exe)
         .spawn()
         .expect("spawning fixture process");
-    let pid = child.id() as i32;
+    let _child = KillOnDrop(child);
+    let pid = _child.0.id() as i32;
 
     let symbols = SymbolTable::load(&exe).expect("loading fixture's own debug info");
     // `let mut total: i64 = 0;` inside `work()` — see tests/fixtures/fixture.rs.
-    let offsets = symbols.resolve_breakpoint("fixture.rs", 11);
+    let offsets = symbols.resolve_breakpoint("fixture.rs", TOTAL_LINE);
     assert!(
         !offsets.is_empty(),
-        "expected at least one address for fixture.rs:11"
+        "expected at least one address for fixture.rs:{TOTAL_LINE}"
     );
 
     let mut debugger = Debugger::attach(pid).expect("attaching to fixture process");
@@ -66,7 +67,7 @@ fn attaches_and_hits_a_real_breakpoint() {
     let location = symbols
         .resolve_addr(addr - base)
         .expect("resolving the hit address back to source");
-    assert_eq!(location.line, 11);
+    assert_eq!(location.line, TOTAL_LINE);
 
     let backtrace = debugger.backtrace(16).expect("walking the backtrace");
     assert!(!backtrace.is_empty());
@@ -79,7 +80,19 @@ fn attaches_and_hits_a_real_breakpoint() {
         .clear_breakpoint(addr)
         .expect("clearing breakpoint");
     debugger.detach().expect("detaching");
+}
 
-    let _ = child.kill();
-    let _ = child.wait();
+/// `let mut total: i64 = 0;` inside `work()` in tests/fixtures/fixture.rs.
+const TOTAL_LINE: u32 = 24;
+
+/// Kills the fixture when the test ends — including when an assertion
+/// fails — so a failing run doesn't leave it running (and holding the test
+/// harness's output pipe open).
+struct KillOnDrop(std::process::Child);
+
+impl Drop for KillOnDrop {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
 }

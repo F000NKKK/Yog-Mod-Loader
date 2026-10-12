@@ -1,10 +1,10 @@
 // Compiled at test time via `rustc` — a throwaway process for the debugger
 // to attach to, set breakpoints against, and step through. Line numbers
 // here are load-bearing: the tests reference them directly. Key lines:
-//   21  `let mut total: i64 = 0;`  (plain breakpoint target)
-//   22  `total += inner(3);`       (a call — step-over vs step-into)
-//   23  `total += 5;`              (where step-over from 22 lands)
-//   11-14 body of `inner`          (where step-into from 22 lands)
+//   24  `let mut total: i64 = 0;`  (plain breakpoint target)
+//   25  `total += inner(3);`       (a call — step-over vs step-into)
+//   26  `total += 5;`              (where step-over from 25 lands)
+//   15-17 body of `inner`          (where step-into from 25 lands)
 // Keep this layout stable when editing.
 
 use std::sync::atomic::{AtomicI64, Ordering};
