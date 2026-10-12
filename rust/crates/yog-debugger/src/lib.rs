@@ -22,6 +22,38 @@ pub mod ptrace_debugger;
 pub use ptrace_debugger::{interrupt, thread_name, DebugError, Debugger, StepKind, StopReason};
 pub use source_breakpoints::{SourceBreakpoint, SourceBreakpoints};
 
+use std::path::Path;
+
+use yog_symbols::{SourceLocation, SymbolTable};
+
+/// Whether `path` (a DWARF source path) belongs to the Rust toolchain or a
+/// dependency rather than the user's own code: `std` (`/rustc/<commit>/...`
+/// or an installed `rust-src`) and crates from the cargo registry or git.
+/// Stepping skips such code, like Visual Studio's Just My Code.
+pub fn is_library_source(path: &Path) -> bool {
+    let path = path.to_string_lossy().replace('\\', "/");
+    path.starts_with("/rustc/")
+        || [
+            "/.cargo/registry/",
+            "/.cargo/git/",
+            "/.rustup/",
+            "/lib/rustlib/src/",
+        ]
+        .iter()
+        .any(|dir| path.contains(dir))
+}
+
+/// The innermost location at `offset` (module-relative) that is user code
+/// — has a line and isn't [`is_library_source`] — looking through inlined
+/// calls, so `std` code inlined into a user function counts as that
+/// function's line. `None` in library code or code without lines.
+pub fn user_location(symbols: &SymbolTable, offset: u64) -> Option<SourceLocation> {
+    symbols
+        .resolve_inlined(offset)
+        .into_iter()
+        .find(|loc| loc.line != 0 && !is_library_source(&loc.file))
+}
+
 #[cfg(target_os = "linux")]
 mod session {
     use std::path::PathBuf;

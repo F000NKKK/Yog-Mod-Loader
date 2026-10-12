@@ -62,6 +62,11 @@ fn resolves_breakpoint_and_address_round_trip() {
         "unexpected file: {:?}",
         location.file
     );
+
+    // Not inlined at -O0: the chain is just the function itself.
+    let chain = table.resolve_inlined(addrs[0]);
+    assert_eq!(chain.len(), 1, "{chain:#?}");
+    assert_eq!(chain[0], location);
 }
 
 #[test]

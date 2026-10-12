@@ -240,6 +240,35 @@ impl SymbolTable {
         })
     }
 
+    /// Like [`Self::resolve_addr`], but one location per inlined call at
+    /// `addr`, innermost first: the inlined function's own line, then each
+    /// caller's call site, ending with the out-of-line function. Lets a
+    /// debugger treat `std` code inlined into user code as part of the
+    /// user's line rather than as a separate place.
+    pub fn resolve_inlined(&self, addr: u64) -> Vec<SourceLocation> {
+        let mut out = Vec::new();
+        let Ok(mut frames) = self.ctx.find_frames(addr).skip_all_loads() else {
+            return out;
+        };
+        while let Ok(Some(frame)) = frames.next() {
+            let function = frame.function.as_ref().and_then(|f| match f.demangle() {
+                Ok(demangled) => Some(demangled.into_owned()),
+                Err(_) => Some(f.raw_name().ok()?.into_owned()),
+            });
+            let location = frame.location.as_ref();
+            out.push(SourceLocation {
+                file: normalize_path(Path::new(location.and_then(|l| l.file).unwrap_or(""))),
+                line: location.and_then(|l| l.line).unwrap_or(0),
+                column: location.and_then(|l| l.column),
+                function,
+            });
+            if out.len() >= 64 {
+                break;
+            }
+        }
+        out
+    }
+
     /// Every runtime address the DWARF line program associates with `line`
     /// in `file`. An absolute `file` (what an IDE passes) must be the same
     /// file — line-table paths are resolved against the unit's

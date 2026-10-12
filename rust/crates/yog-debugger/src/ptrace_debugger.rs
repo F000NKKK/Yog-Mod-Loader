@@ -5,13 +5,17 @@
 //! the attached process.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
 use nix::sys::ptrace;
 use nix::sys::signal::Signal;
 use nix::sys::wait::{waitpid, WaitPidFlag, WaitStatus};
 use nix::unistd::Pid;
-use yog_symbols::{SourceLocation, SymbolTable};
+use yog_symbols::{FrameRegs, SourceLocation, SymbolTable, TargetMemory};
+
+use crate::user_location;
 
 /// Which flavour of source-level step to perform — modelled on Visual
 /// Studio's F10/F11/Shift+F11.
@@ -129,6 +133,9 @@ pub struct Debugger {
     /// Which threads (by name) [`pause`](Debugger::pause) stops; all when
     /// unset.
     pause_filter: Option<PauseFilter>,
+    /// Set by the host (see [`Debugger::set_pause_request`]) when an
+    /// [`interrupt`] means Break All rather than a breakpoint edit.
+    pause_request: Option<Arc<AtomicBool>>,
 }
 
 type PauseFilter = Box<dyn Fn(&str) -> bool + Send>;
@@ -168,6 +175,7 @@ impl Debugger {
             ever_armed: HashSet::new(),
             pending_rearm: None,
             pause_filter: None,
+            pause_request: None,
         };
         ptrace::seize(pid, ptrace::Options::PTRACE_O_TRACECLONE)?;
         debugger.threads.insert(pid, Thread::default());
@@ -298,6 +306,24 @@ impl Debugger {
     /// audio and other housekeeping threads keep going.
     pub fn set_pause_filter(&mut self, filter: impl Fn(&str) -> bool + Send + 'static) {
         self.pause_filter = Some(Box::new(filter));
+    }
+
+    /// A flag the host raises (before calling [`interrupt`]) to make an
+    /// in-progress [`source_step`](Self::source_step) give up and return
+    /// [`StopReason::Interrupted`] — a step can run for as long as the code
+    /// it steps over (a call that blocks, or a step that turned into a free
+    /// run back to Java), and Break All must still reach it. Interrupts
+    /// without the flag (breakpoint edits) are absorbed by the step and the
+    /// host's queued work waits for it to finish. The host clears the flag
+    /// once it has handled the pause.
+    pub fn set_pause_request(&mut self, flag: Arc<AtomicBool>) {
+        self.pause_request = Some(flag);
+    }
+
+    fn pause_requested(&self) -> bool {
+        self.pause_request
+            .as_ref()
+            .is_some_and(|f| f.load(Ordering::SeqCst))
     }
 
     /// Turns an [`StopReason::Interrupted`] (only the leader stopped) into
@@ -613,12 +639,12 @@ impl Debugger {
     }
 
     /// A comparable (file, line) key for "are we still on the same source
-    /// line" checks during stepping — line 0 (no line) collapses to `None`.
+    /// line" checks during stepping: the innermost *user* line at `rip`
+    /// (see [`user_location`]) — `None` in library code or code without
+    /// lines, which stepping never stops in.
     fn line_key(&self, symbols: &SymbolTable, base: u64) -> Option<(std::path::PathBuf, u32)> {
-        let loc = self.source_location(symbols, base)?;
-        if loc.line == 0 {
-            return None;
-        }
+        let rip = self.registers().ok()?.rip;
+        let loc = user_location(symbols, rip.checked_sub(base)?)?;
         Some((loc.file, loc.line))
     }
 
@@ -678,7 +704,9 @@ impl Debugger {
                 Err(e) => break Err(e),
             };
             match reason {
-                // Breakpoint edits wait for the step to finish.
+                // Break All gets through; breakpoint edits wait for the
+                // step to finish.
+                StopReason::Interrupted if self.pause_requested() => break Ok(reason),
                 StopReason::Interrupted => {}
                 StopReason::Breakpoint(hit) if hit == addr && !was_user_bp => {
                     let here = self.registers().map(|r| r.rsp).unwrap_or(0);
@@ -705,19 +733,23 @@ impl Debugger {
         symbols: &SymbolTable,
         base: u64,
     ) -> Result<StopReason, DebugError> {
-        // Paused somewhere we have no lines for (a Break All landing in the
-        // JVM): there's nothing to step through, only a way back to code.
-        if self.source_location(symbols, base).is_none() {
+        // Paused outside user code (a Break All landing in the JVM or in
+        // `std`): there's nothing to step through, only a way back to it.
+        let Some(start) = self.line_key(symbols, base) else {
             return self.leave_foreign_code(symbols, base);
+        };
+        if kind == StepKind::Out {
+            return self.step_out(symbols, base);
         }
-        let start = self.line_key(symbols, base);
-        let start_sp = self.registers()?.rsp;
         // A generous ceiling so a pathological step (e.g. into a huge
         // library call whose return we somehow miss) can't spin forever —
         // reaching it just stops where we are, same as any other trap.
         const MAX_STEPS: usize = 5_000_000;
 
         for _ in 0..MAX_STEPS {
+            if self.pause_requested() {
+                return Ok(StopReason::Interrupted);
+            }
             let rip = self.registers()?.rip;
             let (is_call, len) = self.decode_at(rip);
 
@@ -728,13 +760,15 @@ impl Debugger {
                 if is_terminal(&stepped) {
                     return Ok(stepped);
                 }
-                // If we descended into code with no source line (a library
-                // call), run straight back out to the instruction after the
-                // call rather than crawling through it instruction by
-                // instruction — matches VS's "step into stays in your code".
+                // If we descended into library code (std, a dependency, or
+                // anything without lines), run straight back out to the
+                // instruction after the call rather than crawling through
+                // it instruction by instruction — VS's Just My Code.
                 if self.line_key(symbols, base).is_none() {
                     let back = self.run_to(rip + len)?;
-                    if is_terminal(&back) || matches!(back, StopReason::Breakpoint(_)) {
+                    if is_terminal(&back)
+                        || matches!(back, StopReason::Breakpoint(_) | StopReason::Interrupted)
+                    {
                         return Ok(back);
                     }
                 }
@@ -745,35 +779,25 @@ impl Debugger {
 
             match reason {
                 StopReason::Exited(_) | StopReason::Killed(_) => return Ok(reason),
-                StopReason::Breakpoint(_) => return Ok(reason),
-                StopReason::Signal(Signal::SIGTRAP) | StopReason::Interrupted => {}
+                StopReason::Breakpoint(_) | StopReason::Interrupted => return Ok(reason),
+                StopReason::Signal(Signal::SIGTRAP) => {}
                 StopReason::Signal(other) => return Ok(StopReason::Signal(other)),
             }
 
-            // Stepped off the end of the code we have lines for — returned
-            // into the JVM that called the mod, or tail-jumped into a
-            // library. Crawling through that an instruction at a time is
-            // what made such a step look hung.
-            if self.source_location(symbols, base).is_none() {
+            // Stepped off the end of user code — returned into the JVM that
+            // called the mod, into the `std` function that called a closure
+            // (`OnceLock::get_or_init`), or tail-jumped into a library.
+            // Crawling through that an instruction at a time is what made
+            // such a step look hung.
+            let Some(cur) = self.line_key(symbols, base) else {
                 return self.leave_foreign_code(symbols, base);
-            }
-
-            let cur = self.line_key(symbols, base);
-            let cur_sp = self.registers()?.rsp;
-            let stop = match kind {
-                // Stack grows down: a strictly *higher* rsp means we've
-                // returned into a shallower frame.
-                StepKind::Out => cur_sp > start_sp && cur.is_some(),
-                // Only where a statement begins: mid-statement rows are
-                // the compiler interleaving lines, not the code moving on.
-                StepKind::Into | StepKind::Over => {
-                    cur.is_some()
-                        && cur != start
-                        && self
-                            .registers()
-                            .is_ok_and(|r| symbols.is_statement_start(r.rip.wrapping_sub(base)))
-                }
             };
+            // Only where a statement begins: mid-statement rows are the
+            // compiler interleaving lines, not the code moving on.
+            let stop = cur != start
+                && self
+                    .registers()
+                    .is_ok_and(|r| symbols.is_statement_start(r.rip.wrapping_sub(base)));
             if stop {
                 return Ok(StopReason::Signal(Signal::SIGTRAP));
             }
@@ -781,24 +805,73 @@ impl Debugger {
         Ok(StopReason::Signal(Signal::SIGTRAP))
     }
 
-    /// Gets back from code without line info, like Visual Studio's Just My
-    /// Code: runs to the nearest caller that has lines (stopping there), or —
-    /// when nothing up the stack does, as when a JNI entry point returns to
-    /// Java — simply continues until the next breakpoint.
+    /// Shift+F11: runs to the return address of the current frame (found by
+    /// CFI), then on out of any library code to the nearest user caller.
+    fn step_out(&mut self, symbols: &SymbolTable, base: u64) -> Result<StopReason, DebugError> {
+        let frames = self.backtrace_with(symbols, base, 2)?;
+        let Some(caller) = frames.get(1) else {
+            return self.continue_();
+        };
+        let back = self.run_to(caller.pc().wrapping_add(1))?;
+        if back != StopReason::Signal(Signal::SIGTRAP) {
+            return Ok(back);
+        }
+        if self.line_key(symbols, base).is_none() {
+            return self.leave_foreign_code(symbols, base);
+        }
+        Ok(back)
+    }
+
+    /// Gets back from library code (or code without lines), like Visual
+    /// Studio's Just My Code: runs to the nearest caller in user code
+    /// (stopping there, right after its call), or — when nothing up the
+    /// stack is user code, as when a JNI entry point returns to Java —
+    /// simply continues until the next breakpoint.
     fn leave_foreign_code(
         &mut self,
         symbols: &SymbolTable,
         base: u64,
     ) -> Result<StopReason, DebugError> {
-        let caller = self.backtrace(64)?.into_iter().skip(1).find(|&ret| {
-            ret.checked_sub(base + 1)
-                .and_then(|offset| symbols.resolve_addr(offset))
-                .is_some_and(|loc| loc.line != 0)
-        });
+        let caller = self
+            .backtrace_with(symbols, base, 64)?
+            .into_iter()
+            .skip(1)
+            .find(|frame| {
+                frame
+                    .pc()
+                    .checked_sub(base)
+                    .and_then(|offset| user_location(symbols, offset))
+                    .is_some()
+            });
         match caller {
-            Some(ret) => self.run_to(ret),
+            Some(frame) => self.run_to(frame.pc().wrapping_add(1)),
             None => self.continue_(),
         }
+    }
+
+    /// The current thread's full register set as `yog-symbols` frame 0.
+    pub fn frame_regs(&self) -> Result<FrameRegs, DebugError> {
+        let r = self.registers()?;
+        Ok(FrameRegs::from_dwarf_order([
+            r.rax, r.rdx, r.rcx, r.rbx, r.rsi, r.rdi, r.rbp, r.rsp, r.r8, r.r9, r.r10, r.r11,
+            r.r12, r.r13, r.r14, r.r15, r.rip,
+        ]))
+    }
+
+    /// Backtrace of the current thread through the mod's call frame info
+    /// (see [`SymbolTable::backtrace`]): innermost first, at most `max`
+    /// frames, each with every register CFI could recover — outer frames'
+    /// pc is their return address minus one, ready for
+    /// [`SymbolTable::resolve_addr`] / [`SymbolTable::read_locals`]. Walks
+    /// through the frame-pointer-less `std` that [`Self::backtrace`] can't.
+    pub fn backtrace_with(
+        &self,
+        symbols: &SymbolTable,
+        base: u64,
+        max: usize,
+    ) -> Result<Vec<FrameRegs>, DebugError> {
+        let regs = self.frame_regs()?;
+        Ok(symbols.backtrace(&regs, base, &PeekMemory(self), max))
     }
 
     /// Frame-pointer-walk backtrace: return addresses only, in innermost-
@@ -806,11 +879,8 @@ impl Debugger {
     /// chain. Callers resolve each address through `yog-symbols` after
     /// subtracting the relevant module's load base.
     ///
-    /// This is the simple, robust technique (same fallback gdb uses) — it
-    /// relies on Rust's debug builds keeping `rbp` frame pointers. A CFI
-    /// (`.eh_frame`) based unwinder would also work for frame-pointer-
-    /// omitted release builds, and is a reasonable future upgrade, not
-    /// needed for this pass's debug-build-only use case.
+    /// Relies on frame pointers, which the prebuilt `std` doesn't keep —
+    /// prefer [`Self::backtrace_with`], which unwinds by CFI.
     pub fn backtrace(&self, max_frames: usize) -> Result<Vec<u64>, DebugError> {
         let regs = self.registers()?;
         let mut frames = vec![regs.rip];
@@ -829,5 +899,20 @@ impl Debugger {
         }
 
         Ok(frames)
+    }
+}
+
+/// Tracee memory a word at a time through `PTRACE_PEEKDATA`.
+struct PeekMemory<'a>(&'a Debugger);
+
+impl TargetMemory for PeekMemory<'_> {
+    fn read(&self, addr: u64, buf: &mut [u8]) -> bool {
+        for (i, chunk) in buf.chunks_mut(8).enumerate() {
+            let Ok(word) = self.0.peek(addr.wrapping_add(i as u64 * 8)) else {
+                return false;
+            };
+            chunk.copy_from_slice(&word.to_ne_bytes()[..chunk.len()]);
+        }
+        true
     }
 }
