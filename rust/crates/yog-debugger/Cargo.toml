@@ -1,13 +1,13 @@
 [package]
 name = "yog-debugger"
-version = "0.8.1"
+version = "0.8.2"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 description = "ptrace-based native debugger for Yog mods, speaking the Debug Adapter Protocol (DAP)."
 
 [dependencies]
-yog-symbols = "0.3.1"
+yog-symbols = "0.3.2"
 yog-hot-reload = "0.2"
 serde_json.workspace = true
 

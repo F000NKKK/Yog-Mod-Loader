@@ -208,12 +208,14 @@ mod session {
 
         fn stack_trace(&mut self) -> Result<Vec<StackFrameInfo>, String> {
             let debugger = self.debugger.as_ref().ok_or("not attached")?;
-            let addrs = debugger.backtrace(64).map_err(|e| e.to_string())?;
-            Ok(addrs
+            let frames = debugger
+                .backtrace_with(&self.symbols, self.module_base, 64)
+                .map_err(|e| e.to_string())?;
+            Ok(frames
                 .into_iter()
                 .enumerate()
-                .filter_map(|(i, addr)| {
-                    let mut frame = self.resolve_stop_location(addr)?;
+                .filter_map(|(i, regs)| {
+                    let mut frame = self.resolve_stop_location(regs.pc())?;
                     frame.id = i as i64;
                     Some(frame)
                 })
