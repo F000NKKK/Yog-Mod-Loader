@@ -404,3 +404,113 @@ fn pause_request_interrupts_a_step_over_a_blocking_call() {
     assert_ne!(debugger.registers().expect("registers").rip, 0);
     debugger.detach().expect("detaching");
 }
+
+/// Attaches to a fresh `ticks` fixture with a breakpoint on `tick`'s first
+/// line, stopped at its first hit.
+fn ticks_session(tag: &str) -> (KillOnDrop, Debugger, SymbolTable, u64, u64) {
+    let exe = build_as("ticks", tag);
+    let src = std::fs::read_to_string(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/ticks.rs"),
+    )
+    .unwrap();
+    let first = src.lines().position(|l| l.contains("// TICK_FIRST")).unwrap() as u32 + 1;
+
+    let child = KillOnDrop(Command::new(&exe).spawn().expect("spawning ticks fixture"));
+    let symbols = SymbolTable::load(&exe).expect("loading fixture debug info");
+    let mut debugger = Debugger::attach(child.0.id() as i32).expect("attaching");
+    let base = find_module_base(debugger.pid(), &exe).expect("fixture load base");
+    let addr = base + symbols.resolve_breakpoint("ticks.rs", first)[0];
+    debugger.set_breakpoint(addr).expect("arming breakpoint");
+    assert_eq!(
+        debugger.continue_().expect("continuing"),
+        StopReason::Breakpoint(addr)
+    );
+    (child, debugger, symbols, base, addr)
+}
+
+/// Stepping off the end of a function nothing in user code called runs on
+/// to the next hit — on a new thread, the stepped one having exited — and
+/// the session keeps working from there, hit after hit.
+#[test]
+fn step_off_a_thread_entry_runs_on_to_the_next_hit() {
+    use yog_debugger::StepKind;
+
+    let (_child, mut debugger, symbols, base, addr) = ticks_session("ticks_step_off");
+    for round in 0..3 {
+        let first = debugger.current_thread();
+        let mut stop = None;
+        for _ in 0..10 {
+            let reason = debugger
+                .source_step(StepKind::Over, &symbols, base)
+                .unwrap_or_else(|e| panic!("stepping (round {round}): {e}"));
+            if reason != StopReason::Signal(nix::sys::signal::Signal::SIGTRAP) {
+                stop = Some(reason);
+                break;
+            }
+        }
+        assert_eq!(stop, Some(StopReason::Breakpoint(addr)));
+        assert_ne!(debugger.current_thread(), first, "a new tick thread hit it");
+        assert_eq!(debugger.registers().expect("registers").rip, addr);
+    }
+    for _ in 0..3 {
+        assert_eq!(
+            debugger.continue_().expect("continuing"),
+            StopReason::Breakpoint(addr)
+        );
+    }
+    debugger.detach().expect("detaching");
+}
+
+/// The regression behind "debugging works only once": a step that turned
+/// into a free run, interrupted by a breakpoint edit (no pause request),
+/// left the host resuming the *step* — whose thread was long gone — and
+/// every register read failed with `ESRCH`. Resuming must just run on.
+#[test]
+fn interrupted_free_run_step_resumes_cleanly() {
+    use yog_debugger::StepKind;
+
+    let (child, mut debugger, symbols, base, addr) = ticks_session("ticks_interrupt");
+    let pid = child.0.id() as i32;
+    debugger.clear_breakpoint(addr).expect("clearing breakpoint");
+
+    let stepped = debugger.current_thread();
+    let edit = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        interrupt(pid);
+    });
+    // Shift+F11 out of `tick` lands in `std`, with no user caller: a free run.
+    let stop = debugger
+        .source_step(StepKind::Out, &symbols, base)
+        .expect("stepping out");
+    edit.join().unwrap();
+    assert_eq!(stop, StopReason::Interrupted);
+    assert!(
+        !debugger.threads().contains(&stepped),
+        "the stepped thread exited during the run"
+    );
+
+    // The edit itself: arm the breakpoint again while interrupted.
+    debugger.set_breakpoint(addr).expect("re-arming breakpoint");
+    let stop = debugger
+        .source_step(StepKind::Over, &symbols, base)
+        .expect("resuming the interrupted step");
+    assert_eq!(stop, StopReason::Breakpoint(addr));
+    assert_eq!(
+        debugger.continue_().expect("continuing"),
+        StopReason::Breakpoint(addr)
+    );
+    debugger.detach().expect("detaching");
+}
+
+/// A process killed while paused at a breakpoint ends the session as an
+/// exit, not as a `ptrace` error.
+#[test]
+fn killed_while_paused_reports_the_exit() {
+    let (mut child, mut debugger, _symbols, _base, _addr) = ticks_session("ticks_killed");
+    child.0.kill().expect("killing the fixture");
+    let stop = debugger.continue_().expect("continuing after the kill");
+    assert_eq!(
+        stop,
+        StopReason::Killed(nix::sys::signal::Signal::SIGKILL)
+    );
+}

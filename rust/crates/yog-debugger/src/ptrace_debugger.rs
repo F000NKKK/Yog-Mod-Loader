@@ -185,6 +185,17 @@ pub fn thread_name(pid: Pid, tid: Pid) -> String {
         .unwrap_or_default()
 }
 
+/// Whether `pid`'s process is on its way out: its leader a zombie (it is
+/// one until every other thread has been reaped) or gone altogether.
+fn process_exiting(pid: Pid) -> bool {
+    let Ok(stat) = std::fs::read_to_string(format!("/proc/{pid}/stat")) else {
+        return true;
+    };
+    // `pid (comm) S ...` — `comm` may itself contain spaces or parentheses.
+    let state = stat.rsplit_once(')').and_then(|(_, rest)| rest.trim_start().chars().next());
+    matches!(state, Some('Z' | 'X') | None)
+}
+
 fn task_ids(pid: Pid) -> Vec<Pid> {
     let Ok(dir) = std::fs::read_dir(format!("/proc/{pid}/task")) else {
         return Vec::new();
@@ -475,21 +486,48 @@ impl Debugger {
         Ok(Some(step))
     }
 
-    /// Writes the `0xCC` back at `addr` — through the leader if no thread
-    /// is stopped to write through any more (the one that was vanished).
+    /// Writes the `0xCC` back at `addr` — through `/proc/<pid>/mem` if no
+    /// thread is stopped to write through any more (the one that was paused
+    /// there vanished). A process too far gone to write to is left to the
+    /// run that follows, which reports its end.
     fn rearm(&mut self, addr: u64) -> Result<(), DebugError> {
         if !self.threads.values().any(|t| t.stopped) {
-            let pid = self.pid;
-            self.stop_threads(|tid| tid == pid)?;
+            use std::os::unix::fs::FileExt;
+            if let Ok(mem) = std::fs::OpenOptions::new()
+                .write(true)
+                .open(format!("/proc/{}/mem", self.pid))
+            {
+                let _ = mem.write_all_at(&[0xCC], addr);
+            }
+            return Ok(());
         }
         let result = self
             .peek(addr)
             .and_then(|word| self.poke(addr, (word & !0xffi64) | 0xCC));
         match result {
-            // Nothing left to write through: the process is going away,
-            // which the run that follows reports.
             Err(DebugError::Ptrace(e)) if vanished(&e) => Ok(()),
             other => other,
+        }
+    }
+
+    /// `waitpid` on one thread — except that a leader whose process is
+    /// exiting never reports while other threads are still unreaped (which
+    /// only waiting on *them* does), so that returns `None` instead of
+    /// blocking forever.
+    fn wait_thread(&self, tid: Pid) -> nix::Result<Option<WaitStatus>> {
+        if tid != self.pid {
+            return waitpid(tid, wait_flags()).map(Some);
+        }
+        loop {
+            match waitpid(tid, wait_flags().map(|f| f | WaitPidFlag::WNOHANG))? {
+                WaitStatus::StillAlive => {
+                    if process_exiting(self.pid) {
+                        return Ok(None);
+                    }
+                    std::thread::sleep(std::time::Duration::from_micros(200));
+                }
+                status => return Ok(Some(status)),
+            }
         }
     }
 
@@ -513,7 +551,10 @@ impl Debugger {
                 Err(e) => return Err(e.into()),
             }
             self.mark(tid, false);
-            match waitpid(tid, wait_flags())? {
+            let Some(status) = self.wait_thread(tid)? else {
+                return Ok(Step::Vanished);
+            };
+            match status {
                 WaitStatus::Exited(_, code) => return Ok(self.thread_gone(tid, StopReason::Exited(code))),
                 WaitStatus::Signaled(_, sig, _) => {
                     return Ok(self.thread_gone(tid, StopReason::Killed(sig)));
@@ -601,8 +642,10 @@ impl Debugger {
         }
         let mut waiting = running;
         while let Some(tid) = waiting.pop() {
-            let status = match waitpid(tid, wait_flags()) {
-                Ok(s) => s,
+            let status = match self.wait_thread(tid) {
+                Ok(Some(s)) => s,
+                // The process is exiting: nothing to stop.
+                Ok(None) => continue,
                 // Already reaped / not ours anymore.
                 Err(_) => {
                     self.threads.remove(&tid);
@@ -850,8 +893,13 @@ impl Debugger {
             };
             match reason {
                 // Break All gets through; breakpoint edits wait for the
-                // step to finish.
-                StopReason::Interrupted if self.pause_requested() => break Ok(reason),
+                // step to finish — unless the stepping thread is gone, which
+                // leaves this an ordinary run the edits mustn't wait on.
+                StopReason::Interrupted
+                    if self.pause_requested() || !self.threads.contains_key(&origin) =>
+                {
+                    break Ok(reason)
+                }
                 StopReason::Interrupted => {}
                 StopReason::Breakpoint(hit) if hit == addr && !was_user_bp => {
                     let here = self.registers().map(|r| r.rsp).unwrap_or(0);
@@ -872,6 +920,14 @@ impl Debugger {
     /// executing single instructions (skipping over calls per `kind`) until
     /// the source line changes appropriately, a user breakpoint is hit, or
     /// the tracee exits. `symbols`/`base` resolve `rip` to a source line.
+    ///
+    /// A step that leaves user code with no user caller to return to (a JNI
+    /// entry point returning to Java) turns into a free run, like
+    /// [`continue_`](Self::continue_) — and like it, returns
+    /// [`StopReason::Interrupted`] for any [`interrupt`], pause request or
+    /// not. What's left of such a step is just that run: resume it with
+    /// `continue_`. (Should the stepped thread not be stopped, a step
+    /// simply continues.)
     pub fn source_step(
         &mut self,
         kind: StepKind,
