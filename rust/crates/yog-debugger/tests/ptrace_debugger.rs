@@ -258,3 +258,83 @@ fn step_over_walks_lines_and_returns_to_the_caller() {
     assert_eq!(lines, [27, 28, 33]);
     debugger.detach().expect("detaching");
 }
+
+/// Just My Code: F10 off the end of a closure that `std` called
+/// (`OnceLock::get_or_init`) lands back in the user function that called
+/// into `std` — never in `std`'s own sources on the way.
+#[test]
+fn step_over_leaves_std_for_the_user_caller() {
+    use yog_debugger::{is_library_source, StepKind};
+
+    let exe = build_as("jmc", "jmc_steps");
+    let src = std::fs::read_to_string(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/jmc.rs"),
+    )
+    .unwrap();
+    let line_of = |marker: &str| {
+        src.lines()
+            .position(|l| l.contains(marker) && !l.trim_start().starts_with("//"))
+            .unwrap() as u32
+            + 1
+    };
+    let (body, after) = (line_of("// CLOSURE_BODY"), line_of("// AFTER_INIT"));
+
+    let child = Command::new(&exe).spawn().expect("spawning jmc fixture");
+    let _child = KillOnDrop(child);
+    let pid = _child.0.id() as i32;
+
+    let symbols = SymbolTable::load(&exe).expect("loading fixture debug info");
+    let mut debugger = Debugger::attach(pid).expect("attaching");
+    let base = find_module_base(debugger.pid(), &exe).expect("fixture load base");
+    let addr = base + symbols.resolve_breakpoint("jmc.rs", body)[0];
+    debugger.set_breakpoint(addr).expect("arming breakpoint");
+    assert_eq!(
+        debugger.continue_().expect("continuing"),
+        StopReason::Breakpoint(addr)
+    );
+    debugger.clear_breakpoint(addr).expect("clearing breakpoint");
+
+    // The CFI backtrace reaches `compute` through `std`'s frames.
+    let frames = debugger
+        .backtrace_with(&symbols, base, 64)
+        .expect("backtrace");
+    let names: Vec<String> = frames
+        .iter()
+        .filter_map(|f| symbols.resolve_addr(f.pc() - base)?.function)
+        .collect();
+    assert!(
+        names.iter().any(|n| n.ends_with("::compute")),
+        "{names:#?}"
+    );
+
+    let mut seen = Vec::new();
+    for _ in 0..4 {
+        let stop = debugger
+            .source_step(StepKind::Over, &symbols, base)
+            .expect("stepping over");
+        assert_eq!(stop, StopReason::Signal(nix::sys::signal::Signal::SIGTRAP));
+        let location = debugger
+            .source_location(&symbols, base)
+            .expect("stopped somewhere with lines");
+        assert!(
+            !is_library_source(&location.file),
+            "stopped in library code: {location:?} after {seen:?}"
+        );
+        let in_compute = location
+            .function
+            .as_deref()
+            .is_some_and(|f| f.ends_with("::compute"));
+        seen.push((location.line, location.function));
+        if in_compute {
+            break;
+        }
+    }
+    let (line, function) = seen.last().unwrap();
+    assert!(
+        function.as_deref().is_some_and(|f| f.ends_with("::compute")),
+        "never got back to `compute`: {seen:?}"
+    );
+    assert!(*line < after + 1, "{seen:?}");
+    debugger.detach().expect("detaching");
+}
+
