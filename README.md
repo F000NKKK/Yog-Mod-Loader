@@ -865,7 +865,8 @@ yog_exports::yog_pipes::register_pipe(RegisterPipeArgs {
 Manage exports-crate dependencies in `yog.toml` with `yog add <crate>` /
 `yog remove <crate>` — no hand-editing needed.
 
-See `example-mod/src/` for full working usage.
+See [Yog-Pipes](https://github.com/F000NKKK/Yog-Pipes), [Yog-Modlist](https://github.com/F000NKKK/Yog-Modlist) and
+[HexMod-Yog](https://github.com/F000NKKK/HexMod-Yog) for complete, working mods.
 
 ## Architecture
 
@@ -917,7 +918,6 @@ yog/
 │       ├── yog-interop/         # proc-macros for inter-mod calls: #[yog_export], import! [MIT/Apache]
 │       ├── yog-api/             # FACADE + Registry hub + export_mod!      [MIT/Apache]
 │       └── yog-runtime/         # cdylib: JNI bridge + dispatch + loader   [AGPL]
-├── example-mod/                 # standalone example mod (.yog output)
 └── fabric/                      # Fabric host mod (Java)                   [AGPL]
     ├── build.gradle             # adds platforms/<mc-version>/ to sourceSets
     ├── gradle.properties        # active MC version + Yarn / loader / fabric-api pins
@@ -961,11 +961,10 @@ yog/
 
 ```bash
 cargo install cargo-zigbuild
-rustup target add aarch64-unknown-linux-gnu x86_64-pc-windows-gnu \
-                  x86_64-apple-darwin aarch64-apple-darwin
 ```
 
-Without them only your local platform is bundled (the rest are skipped with a note).
+The Rust toolchain and every target are pinned in `rust-toolchain.toml`;
+rustup installs them on first use.
 
 **First run:**
 ```bash
@@ -973,12 +972,10 @@ Without them only your local platform is bundled (the rest are skipped with a no
 # -> set eula=true in fabric/run/eula.txt, then run again
 ```
 
-Break a block / chat / run `/hello`. The Rust mod reacts:
+Drop `.yog` mods into `fabric/run/yog-mods/`; the log confirms they loaded:
 ```
 [yog] runtime initialised — the gate is open.
 [yog] loaded 1 mod(s) from .../yog-mods
-[yog] [example-mod] server started — Yog is awake.
-[yog] [example-mod] Steve broke minecraft:stone at (10, 64, -3)
 ```
 
 ## Writing a mod

@@ -30,7 +30,6 @@ So:
 | `yog-runtime` (cdylib engine) | **AGPL-3.0-only** | the valuable engine; no closed forks |
 | Fabric host (`dev.yog`, Java) | **AGPL-3.0-only** | part of the loader |
 | `yog-api` (mods depend on this) | **MIT OR Apache-2.0** | mods may use any license |
-| `yog-example-mod` | **MIT OR Apache-2.0** | copy-paste template |
 
 A competitor can't rebuild a closed loader from the permissive API alone — the
 real work lives in the AGPL runtime/host.
@@ -40,7 +39,7 @@ real work lives in the AGPL runtime/host.
 - **`LICENSE`** — AGPL-3.0 text. This is the repo's primary license (GitHub
   detects the project as AGPL), governing the loader as distributed.
 - **`LICENSE-MIT`**, **`LICENSE-APACHE`** — the permissive carve-out that applies
-  to `yog-api` and `yog-example-mod`, per the table above.
+  to `yog-api`, per the table above.
 
 ## Open questions to finalise
 

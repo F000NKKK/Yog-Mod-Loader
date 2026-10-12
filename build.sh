@@ -206,21 +206,6 @@ build_rust() {
     echo "    embedded runtime for: ${built[*]}"
 }
 
-# Build the example mod into a .yog and stage it in each loader's dev mods dir.
-build_example() {
-    echo "==> build example-mod (.yog)"
-    cargo build --release -p yog-cli --manifest-path "$ROOT/rust/Cargo.toml"
-    ( cd "$ROOT/example-mod" && "$ROOT/rust/target/release/yog" build )
-    local l
-    for l in "${LOADERS[@]}"; do
-        mkdir -p "$ROOT/$l/run/yog-mods"
-        # Refresh only the example mod — leave other staged .yog mods
-        # (e.g. yog-modlist under development) alone.
-        rm -f "$ROOT/$l/run/yog-mods/example-mod.yog"
-        cp "$ROOT/example-mod/artifacts/"*.yog "$ROOT/$l/run/yog-mods/" 2>/dev/null || true
-    done
-}
-
 # Gradle keeps build/ outputs from the previously selected MC platform; on a
 # platform switch the stale expanded resources (mods.toml with the old version
 # range) would leak into the next build/run. Clean when the platform changes.
@@ -252,7 +237,7 @@ build_loader() {
 build_target() {
     case "$1" in
         rust) build_rust ;;
-        all)  build_rust; build_example; local l; for l in "${LOADERS[@]}"; do build_loader "$l"; done ;;
+        all)  build_rust; local l; for l in "${LOADERS[@]}"; do build_loader "$l"; done ;;
         *)    require_loader "$1"; build_rust; build_loader "$1" ;;
     esac
 }
@@ -276,7 +261,6 @@ cmd_run() {
     local loader="$1"
     if [ "$NO_BUILD" -eq 0 ]; then
         build_rust
-        build_example
     else
         echo "==> run: $loader — skipping build (--no-build)"
     fi
@@ -341,7 +325,6 @@ cmd_publish() {
     [ -n "${1:-}" ] || die "publish needs a target: a loader (${LOADERS[*]}) or 'all'"
     CONFIG="Release"
     build_rust      # embeds all-platform natives into the loader jars
-    build_example   # the example .yog mod
 
     if [ "$1" = "all" ]; then
         local l v
@@ -362,9 +345,7 @@ cmd_publish() {
         publish_loader "$1" "${MC_VERSION:-$(grep '^minecraft_version=' "$ROOT/$1/gradle.properties" | cut -d= -f2)}"
     fi
 
-    mkdir -p "$ROOT/artifacts/mods"
-    cp "$ROOT/example-mod/artifacts/"*.yog "$ROOT/artifacts/mods/" 2>/dev/null || true
-    echo "==> published to artifacts/ (self-contained jars + .yog mods)"
+    echo "==> published to artifacts/ (self-contained jars)"
 }
 
 # ── dispatch ─────────────────────────────────────────────────────────────────
