@@ -74,6 +74,23 @@ impl From<nix::Error> for DebugError {
     }
 }
 
+/// `ESRCH`: the thread a request named isn't in a ptrace-stop any more —
+/// in practice it was killed (the process exiting) between reporting a
+/// stop and the request. One such thread mustn't end the whole session:
+/// its exit is still reported by `waitpid` later, like any other thread's.
+fn vanished(e: &nix::Error) -> bool {
+    *e == nix::errno::Errno::ESRCH
+}
+
+/// What became of single-stepping one thread.
+enum Step {
+    /// The step completed (`Signal(SIGTRAP)`), or the process ended.
+    Stopped(StopReason),
+    /// The thread exited (or was killed) instead of completing the step;
+    /// it's no longer tracked, and `current` moved to another thread.
+    Vanished,
+}
+
 /// Why the tracee stopped running, after a `cont`/`single_step`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StopReason {
@@ -138,11 +155,12 @@ pub struct Debugger {
     /// recognised as ours rather than delivered (which would kill the JVM).
     ever_armed: HashSet<u64>,
     /// Set right after a breakpoint hit: the address whose original byte is
-    /// currently (temporarily) restored so the tracee sits paused exactly
-    /// at the breakpoint for inspection. The next `continue_`/`single_step`
-    /// must step over it and re-arm the `0xCC` before doing anything else,
-    /// or the same breakpoint would never fire again.
-    pending_rearm: Option<u64>,
+    /// currently (temporarily) restored so the thread that hit it sits
+    /// paused exactly at the breakpoint for inspection, and that thread.
+    /// The next `continue_`/`single_step` must step *that thread* over it
+    /// and re-arm the `0xCC` before doing anything else, or the same
+    /// breakpoint would never fire again.
+    pending_rearm: Option<(u64, Pid)>,
     /// Which threads (by name) [`pause`](Debugger::pause) stops; all when
     /// unset.
     pause_filter: Option<PauseFilter>,
@@ -247,14 +265,17 @@ impl Debugger {
 
     pub fn detach(&mut self) -> Result<(), DebugError> {
         // Only stopped tracees can be detached (or have memory patched).
-        self.stop_threads(|_| true)?;
+        // Best effort past this point: a failure here (the process dying
+        // under us) must not leave the rest of the threads traced.
+        let stopped = self.stop_threads(|_| true);
         for addr in self.breakpoints.keys().copied().collect::<Vec<_>>() {
             let _ = self.clear_breakpoint(addr);
         }
+        self.pending_rearm = None;
         for (tid, thread) in self.threads.drain() {
             let _ = ptrace::detach(tid, thread.pending_signal);
         }
-        Ok(())
+        stopped
     }
 
     /// A stopped thread to read/write memory through (the address space is
@@ -303,7 +324,7 @@ impl Debugger {
             // original byte is already restored in memory — poking it
             // again is harmless, but there's no longer anything to step
             // over before the next continue/step.
-            if self.pending_rearm == Some(addr) {
+            if self.pending_rearm.is_some_and(|(a, _)| a == addr) {
                 self.pending_rearm = None;
             } else {
                 let word = self.peek(addr)?;
@@ -365,6 +386,17 @@ impl Debugger {
             .filter(|tid| self.threads.get(tid).is_some_and(|t| t.stopped))
             .collect();
         stopped.sort_by_key(|t| t.as_raw());
+        // The thread paused on a breakpoint is about to be let go: it has
+        // to leave the breakpoint (re-armed) first, like on a continue.
+        if let Some((_, tid)) = self.pending_rearm {
+            if !wanted.contains(&tid) {
+                if let Some(Step::Stopped(reason)) = self.step_over_pending_breakpoint()? {
+                    if is_terminal(&reason) {
+                        return Ok(());
+                    }
+                }
+            }
+        }
         if !stopped.contains(&self.current) {
             self.current = stopped.first().copied().unwrap_or(pid);
         }
@@ -386,72 +418,114 @@ impl Debugger {
     /// Resumes every thread and runs until a breakpoint, an [`interrupt`],
     /// or the process ending.
     pub fn continue_(&mut self) -> Result<StopReason, DebugError> {
-        if let Some(reason) = self.step_over_pending_breakpoint()? {
-            return Ok(reason);
+        if let Some(Step::Stopped(reason)) = self.step_over_pending_breakpoint()? {
+            if is_terminal(&reason) {
+                return Ok(reason);
+            }
         }
+        self.run_free()
+    }
+
+    /// Resumes every stopped thread and runs until the next stop worth
+    /// reporting — [`continue_`](Self::continue_) without the breakpoint
+    /// step-over.
+    fn run_free(&mut self) -> Result<StopReason, DebugError> {
         self.resume_all()?;
         self.run_until_stop()
     }
 
     /// Executes one machine instruction on the current thread; the others
     /// stay as they are. Right after a breakpoint hit, that instruction is the
-    /// one the breakpoint sits on.
+    /// one the breakpoint sits on. If the thread exits instead, the process
+    /// simply runs on, as after [`continue_`](Self::continue_).
     pub fn single_step(&mut self) -> Result<StopReason, DebugError> {
-        if self.pending_rearm.is_some() {
-            return Ok(self
-                .step_over_pending_breakpoint()?
-                .unwrap_or(StopReason::Signal(Signal::SIGTRAP)));
+        let step = match self.step_over_pending_breakpoint()? {
+            Some(step) => step,
+            None => self.step_thread(self.current)?,
+        };
+        match step {
+            Step::Stopped(reason) => Ok(reason),
+            Step::Vanished => self.run_free(),
         }
-        self.step_current()
     }
 
-    /// If we're paused right at a breakpoint (its original byte temporarily
-    /// restored for inspection), execute that one real instruction and
-    /// re-arm the `0xCC` before doing anything else the caller asked for —
-    /// otherwise the same address could never trap again. `Some` only if
-    /// the process ended during the step.
-    fn step_over_pending_breakpoint(&mut self) -> Result<Option<StopReason>, DebugError> {
-        let Some(addr) = self.pending_rearm.take() else {
+    /// If a thread is paused right at a breakpoint (its original byte
+    /// temporarily restored for inspection), execute that one real
+    /// instruction on it and re-arm the `0xCC` before doing anything else
+    /// the caller asked for — otherwise the same address could never trap
+    /// again. `None` if nothing was pending.
+    fn step_over_pending_breakpoint(&mut self) -> Result<Option<Step>, DebugError> {
+        let Some((addr, tid)) = self.pending_rearm.take() else {
             return Ok(None);
         };
-        let reason = self.step_current()?;
-        if matches!(reason, StopReason::Exited(_) | StopReason::Killed(_)) {
-            return Ok(Some(reason));
+        let step = if self.is_stopped(tid) {
+            self.step_thread(tid)?
+        } else {
+            // Gone already (killed while paused there).
+            Step::Vanished
+        };
+        if let Step::Stopped(reason) = &step {
+            if is_terminal(reason) {
+                return Ok(Some(step));
+            }
         }
         if self.breakpoints.contains_key(&addr) {
-            let word = self.peek(addr)?;
-            self.poke(addr, (word & !0xffi64) | 0xCC)?;
+            self.rearm(addr)?;
         }
-        Ok(None)
+        Ok(Some(step))
     }
 
-    /// One instruction on `current`, absorbing stops that aren't the step
+    /// Writes the `0xCC` back at `addr` — through the leader if no thread
+    /// is stopped to write through any more (the one that was vanished).
+    fn rearm(&mut self, addr: u64) -> Result<(), DebugError> {
+        if !self.threads.values().any(|t| t.stopped) {
+            let pid = self.pid;
+            self.stop_threads(|tid| tid == pid)?;
+        }
+        let result = self
+            .peek(addr)
+            .and_then(|word| self.poke(addr, (word & !0xffi64) | 0xCC));
+        match result {
+            // Nothing left to write through: the process is going away,
+            // which the run that follows reports.
+            Err(DebugError::Ptrace(e)) if vanished(&e) => Ok(()),
+            other => other,
+        }
+    }
+
+    /// One instruction on `tid`, absorbing stops that aren't the step
     /// itself: a signal arriving mid-step is delivered on the retried step
     /// (entering the handler, like gdb), a stale interrupt stop is retried.
-    fn step_current(&mut self) -> Result<StopReason, DebugError> {
-        let tid = self.current;
+    fn step_thread(&mut self, tid: Pid) -> Result<Step, DebugError> {
         let mut signal = self
             .threads
             .get_mut(&tid)
             .and_then(|t| t.pending_signal.take());
         loop {
-            ptrace::step(tid, signal.take())?;
+            match ptrace::step(tid, signal.take()) {
+                Ok(()) => {}
+                // Killed while stopped: its exit is reaped later, by
+                // whatever runs next.
+                Err(e) if vanished(&e) => {
+                    self.forget_thread(tid);
+                    return Ok(Step::Vanished);
+                }
+                Err(e) => return Err(e.into()),
+            }
             self.mark(tid, false);
             match waitpid(tid, wait_flags())? {
-                WaitStatus::Exited(_, code) => {
-                    return Ok(self.thread_gone(tid, StopReason::Exited(code)))
-                }
+                WaitStatus::Exited(_, code) => return Ok(self.thread_gone(tid, StopReason::Exited(code))),
                 WaitStatus::Signaled(_, sig, _) => {
                     return Ok(self.thread_gone(tid, StopReason::Killed(sig)));
                 }
                 WaitStatus::Stopped(_, Signal::SIGTRAP) => {
                     self.mark(tid, true);
-                    return Ok(StopReason::Signal(Signal::SIGTRAP));
+                    return Ok(Step::Stopped(StopReason::Signal(Signal::SIGTRAP)));
                 }
                 WaitStatus::Stopped(_, Signal::SIGSTOP) => {}
                 WaitStatus::Stopped(_, sig) => signal = Some(sig),
                 WaitStatus::PtraceEvent(_, _, event) if event == nix::libc::PTRACE_EVENT_CLONE => {
-                    self.adopt_clone(tid)?;
+                    self.adopt_clone(tid);
                 }
                 _ => {}
             }
@@ -459,14 +533,30 @@ impl Debugger {
     }
 
     /// A thread exiting isn't the process exiting unless it's the leader.
-    fn thread_gone(&mut self, tid: Pid, reason: StopReason) -> StopReason {
-        self.threads.remove(&tid);
+    fn thread_gone(&mut self, tid: Pid, reason: StopReason) -> Step {
+        self.forget_thread(tid);
         if tid == self.pid || self.threads.is_empty() {
-            reason
+            Step::Stopped(reason)
         } else {
-            // The stepping thread itself ended; fall back to the leader.
-            self.current = self.pid;
-            StopReason::Signal(Signal::SIGTRAP)
+            Step::Vanished
+        }
+    }
+
+    /// Stops tracking `tid`; if it was current, another stopped thread
+    /// (else the leader) takes over.
+    fn forget_thread(&mut self, tid: Pid) {
+        // A `pending_rearm` naming it stays: the breakpoint still needs its
+        // `0xCC` back (see `step_over_pending_breakpoint`).
+        self.threads.remove(&tid);
+        if self.current == tid {
+            let pid = self.pid;
+            self.current = self
+                .threads
+                .iter()
+                .filter(|(_, t)| t.stopped)
+                .map(|(&t, _)| t)
+                .min_by_key(|&t| (t != pid, t.as_raw()))
+                .unwrap_or(pid);
         }
     }
 
@@ -475,11 +565,13 @@ impl Debugger {
     }
 
     /// `tid` reported a clone event: track the new thread (it starts in a
-    /// ptrace-stop of its own, which `run_until_stop` resumes).
-    fn adopt_clone(&mut self, tid: Pid) -> Result<(), DebugError> {
-        let child = Pid::from_raw(ptrace::getevent(tid)? as i32);
+    /// ptrace-stop of its own, which `run_until_stop` resumes). If `tid`
+    /// vanished before saying which thread it made, the child is still
+    /// picked up from its own first stop.
+    fn adopt_clone(&mut self, tid: Pid) -> Option<Pid> {
+        let child = Pid::from_raw(ptrace::getevent(tid).ok()? as i32);
         self.threads.entry(child).or_default();
-        Ok(())
+        Some(child)
     }
 
     fn resume_all(&mut self) -> Result<(), DebugError> {
@@ -521,10 +613,12 @@ impl Debugger {
                 WaitStatus::Exited(..) | WaitStatus::Signaled(..) => {
                     self.threads.remove(&tid);
                 }
-                WaitStatus::Stopped(_, Signal::SIGTRAP) => {
-                    self.rewind_if_trapped(tid)?;
-                    self.mark(tid, true);
-                }
+                WaitStatus::Stopped(_, Signal::SIGTRAP) => match self.rewind_if_trapped(tid) {
+                    Ok(_) => self.mark(tid, true),
+                    // Killed meanwhile; its exit is reaped later.
+                    Err(DebugError::Ptrace(e)) if vanished(&e) => self.mark(tid, false),
+                    Err(e) => return Err(e),
+                },
                 // Our own `interrupt` — swallowed, never delivered.
                 WaitStatus::Stopped(_, Signal::SIGSTOP) => self.mark(tid, true),
                 WaitStatus::Stopped(_, sig) => {
@@ -534,12 +628,11 @@ impl Debugger {
                 }
                 WaitStatus::PtraceEvent(_, _, event) => {
                     if event == nix::libc::PTRACE_EVENT_CLONE {
-                        let child = Pid::from_raw(ptrace::getevent(tid)? as i32);
-                        if let std::collections::hash_map::Entry::Vacant(e) =
-                            self.threads.entry(child)
-                        {
-                            e.insert(Thread::default());
-                            waiting.push(child);
+                        let known = self.threads.keys().copied().collect::<HashSet<_>>();
+                        if let Some(child) = self.adopt_clone(tid) {
+                            if !known.contains(&child) {
+                                waiting.push(child);
+                            }
                         }
                     }
                     self.mark(tid, true);
@@ -573,20 +666,20 @@ impl Debugger {
             let Some(tid) = status.pid() else { continue };
             match status {
                 WaitStatus::Exited(_, code) => {
-                    self.threads.remove(&tid);
+                    self.forget_thread(tid);
                     if tid == self.pid {
                         return Ok(StopReason::Exited(code));
                     }
                 }
                 WaitStatus::Signaled(_, sig, _) => {
-                    self.threads.remove(&tid);
+                    self.forget_thread(tid);
                     if tid == self.pid {
                         return Ok(StopReason::Killed(sig));
                     }
                 }
                 WaitStatus::PtraceEvent(_, _, event) => {
                     if event == nix::libc::PTRACE_EVENT_CLONE {
-                        self.adopt_clone(tid)?;
+                        self.adopt_clone(tid);
                     } else {
                         // A new thread's first stop, a stale interrupt, or
                         // a group-stop: just keep it running.
@@ -596,20 +689,35 @@ impl Debugger {
                 }
                 WaitStatus::Stopped(_, Signal::SIGTRAP) => {
                     self.mark(tid, true);
-                    match self.rewind_if_trapped(tid)? {
+                    let trapped = match self.rewind_if_trapped(tid) {
+                        Ok(trapped) => trapped,
+                        // Killed right after trapping (the process
+                        // exiting): its exit comes next.
+                        Err(DebugError::Ptrace(e)) if vanished(&e) => {
+                            self.mark(tid, false);
+                            continue;
+                        }
+                        Err(e) => return Err(e),
+                    };
+                    match trapped {
                         Some(addr) if self.breakpoints.contains_key(&addr) => {
-                            return self.report_breakpoint(tid, addr);
+                            match self.report_breakpoint(tid, addr) {
+                                Err(DebugError::Ptrace(e)) if vanished(&e) => {
+                                    self.mark(tid, false);
+                                }
+                                reported => return reported,
+                            }
                         }
                         // A breakpoint cleared before this trap surfaced:
                         // rewound onto the original instruction, carry on.
                         Some(_) => {
                             self.mark(tid, false);
-                            ptrace::cont(tid, None)?;
+                            let _ = ptrace::cont(tid, None);
                         }
                         // Not ours — the tracee's own SIGTRAP.
                         None => {
                             self.mark(tid, false);
-                            ptrace::cont(tid, Signal::SIGTRAP)?;
+                            let _ = ptrace::cont(tid, Signal::SIGTRAP);
                         }
                     }
                 }
@@ -626,14 +734,18 @@ impl Debugger {
     }
 
     fn report_breakpoint(&mut self, tid: Pid, addr: u64) -> Result<StopReason, DebugError> {
-        self.current = tid;
         // Restore the real instruction byte, but do NOT step past it yet —
         // the thread stays genuinely paused at `addr` until the next
         // continue/step, so backtraces/inspection see the real location.
         let original_byte = self.breakpoints[&addr];
-        let word = self.peek(addr)?;
-        self.poke(addr, (word & !0xffi64) | original_byte as i64)?;
-        self.pending_rearm = Some(addr);
+        let word = ptrace::read(tid, addr as ptrace::AddressType)?;
+        ptrace::write(
+            tid,
+            addr as ptrace::AddressType,
+            (word & !0xffi64) | original_byte as i64,
+        )?;
+        self.current = tid;
+        self.pending_rearm = Some((addr, tid));
         Ok(StopReason::Breakpoint(addr))
     }
 
@@ -766,6 +878,13 @@ impl Debugger {
         symbols: &SymbolTable,
         base: u64,
     ) -> Result<StopReason, DebugError> {
+        // The thread to step isn't stopped: this is a step that had already
+        // turned into a free run (see `leave_foreign_code`), resumed after
+        // an interrupt broke into it, or its thread is gone. Either way all
+        // that's left is to run on.
+        if !self.is_stopped(self.current) {
+            return self.continue_();
+        }
         // Paused outside user code (a Break All landing in the JVM or in
         // `std`): there's nothing to step through, only a way back to it.
         let Some(start) = self.line_key(symbols, base) else {
@@ -790,7 +909,8 @@ impl Debugger {
                 self.run_to(rip + len)?
             } else if is_call && kind == StepKind::Into {
                 let stepped = self.single_step()?;
-                if is_terminal(&stepped) {
+                // Ended, or the thread exited and the process ran on.
+                if stepped != StopReason::Signal(Signal::SIGTRAP) {
                     return Ok(stepped);
                 }
                 // If we descended into library code (std, a dependency, or
