@@ -22,7 +22,9 @@ fn parent_pid(pid: i32) -> Option<i32> {
 
 /// Every currently-visible pid, by listing `/proc`.
 fn all_pids() -> Vec<i32> {
-    let Ok(entries) = std::fs::read_dir("/proc") else { return Vec::new() };
+    let Ok(entries) = std::fs::read_dir("/proc") else {
+        return Vec::new();
+    };
     entries
         .flatten()
         .filter_map(|e| e.file_name().to_str().and_then(|s| s.parse::<i32>().ok()))
@@ -33,14 +35,19 @@ fn all_pids() -> Vec<i32> {
 /// containing `needle` (e.g. `"yog_runtime"` to match `libyog_runtime.so`
 /// regardless of platform-specific prefix/extension).
 fn has_mapping_containing(pid: i32, needle: &str) -> bool {
-    let Ok(maps) = std::fs::read_to_string(format!("/proc/{pid}/maps")) else { return false };
+    let Ok(maps) = std::fs::read_to_string(format!("/proc/{pid}/maps")) else {
+        return false;
+    };
     maps.lines().any(|line| {
         let fields: Vec<&str> = line.split_whitespace().collect();
         if fields.len() < 6 {
             return false;
         }
         let path = fields[5..].join(" ");
-        Path::new(&path).file_name().and_then(|f| f.to_str()).is_some_and(|f| f.contains(needle))
+        Path::new(&path)
+            .file_name()
+            .and_then(|f| f.to_str())
+            .is_some_and(|f| f.contains(needle))
     })
 }
 
@@ -92,5 +99,8 @@ pub fn find_descendant_with_module(root_pid: Pid, needle: &str) -> Option<Pid> {
 /// module name alone (not ancestry) could in principle pick up an
 /// unrelated concurrently-running Yog instance if more than one exists.
 pub fn find_process_with_module(needle: &str) -> Option<Pid> {
-    all_pids().into_iter().find(|&pid| has_mapping_containing(pid, needle)).map(Pid::from_raw)
+    all_pids()
+        .into_iter()
+        .find(|&pid| has_mapping_containing(pid, needle))
+        .map(Pid::from_raw)
 }

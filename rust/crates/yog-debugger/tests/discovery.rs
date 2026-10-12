@@ -10,7 +10,8 @@ use yog_debugger::discovery::find_descendant_with_module;
 fn build_fixture() -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let src = manifest_dir.join("tests/fixtures/fixture.rs");
-    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("libyog_debugger_discovery_fixture.so");
+    let out =
+        PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("libyog_debugger_discovery_fixture.so");
 
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
         .args(["--crate-type=cdylib", "-o"])
@@ -43,7 +44,10 @@ fn finds_module_through_an_intermediate_wrapper() {
     // start walking /proc for it.
     let deadline = Instant::now() + Duration::from_secs(5);
     let sleep_pid: i32 = loop {
-        let out = Command::new("pgrep").args(["-P", &wrapper.id().to_string()]).output().expect("pgrep");
+        let out = Command::new("pgrep")
+            .args(["-P", &wrapper.id().to_string()])
+            .output()
+            .expect("pgrep");
         let text = String::from_utf8_lossy(&out.stdout);
         if let Some(pid) = text.lines().next().and_then(|l| l.trim().parse().ok()) {
             break pid;
@@ -58,6 +62,10 @@ fn finds_module_through_an_intermediate_wrapper() {
     let _ = Command::new("kill").arg(sleep_pid.to_string()).status();
     let _ = wrapper.wait();
 
-    assert_eq!(found, Some(Pid::from_raw(sleep_pid)), "should find the wrapper's child, not the wrapper itself");
+    assert_eq!(
+        found,
+        Some(Pid::from_raw(sleep_pid)),
+        "should find the wrapper's child, not the wrapper itself"
+    );
     assert_ne!(found.unwrap().as_raw(), wrapper.id() as i32);
 }

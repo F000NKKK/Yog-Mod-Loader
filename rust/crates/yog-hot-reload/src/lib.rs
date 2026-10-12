@@ -94,7 +94,10 @@ impl LoadedModule {
     /// Inherits `libloading::Library::new`'s safety requirements: the
     /// native's load-time initializers (and later, its registered
     /// callbacks) must not violate Rust's invariants.
-    pub unsafe fn load(path: &Path, generation: ModuleGeneration) -> Result<Self, libloading::Error> {
+    pub unsafe fn load(
+        path: &Path,
+        generation: ModuleGeneration,
+    ) -> Result<Self, libloading::Error> {
         let library = unsafe { Library::new(path) }?;
         Ok(LoadedModule(Arc::new(Inner {
             generation,
@@ -204,17 +207,28 @@ pub struct HotReloader<R: ModuleRegistry> {
 
 impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
     pub fn new(registry: R) -> Self {
-        HotReloader { registry: Arc::new(registry), generations: GenerationAllocator::new(), loaded: Mutex::new(HashMap::new()) }
+        HotReloader {
+            registry: Arc::new(registry),
+            generations: GenerationAllocator::new(),
+            loaded: Mutex::new(HashMap::new()),
+        }
     }
 
     /// The first load of a mod — nothing to retarget/retire yet.
     ///
     /// # Safety
     /// See [`LoadedModule::load`].
-    pub unsafe fn load_initial(&self, mod_id: impl Into<String>, path: &Path) -> Result<LoadedModule, libloading::Error> {
+    pub unsafe fn load_initial(
+        &self,
+        mod_id: impl Into<String>,
+        path: &Path,
+    ) -> Result<LoadedModule, libloading::Error> {
         let generation = self.generations.next();
         let module = unsafe { LoadedModule::load(path, generation)? };
-        self.loaded.lock().unwrap().insert(mod_id.into(), module.clone());
+        self.loaded
+            .lock()
+            .unwrap()
+            .insert(mod_id.into(), module.clone());
         Ok(module)
     }
 
@@ -224,7 +238,11 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
     ///
     /// # Safety
     /// See [`LoadedModule::load`].
-    pub unsafe fn reload(&self, mod_id: &str, new_path: &Path) -> Result<LoadedModule, libloading::Error> {
+    pub unsafe fn reload(
+        &self,
+        mod_id: &str,
+        new_path: &Path,
+    ) -> Result<LoadedModule, libloading::Error> {
         let new_generation = self.generations.next();
         let new_module = unsafe { LoadedModule::load(new_path, new_generation)? };
 
@@ -237,7 +255,8 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
 
         if let Some(old_module) = old_module {
             let old_generation = old_module.generation();
-            self.registry.retarget(mod_id, old_generation, new_generation);
+            self.registry
+                .retarget(mod_id, old_generation, new_generation);
             let registry = self.registry.clone();
             old_module.retire(move || registry.purge(old_generation));
         }
@@ -252,7 +271,12 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
 
     /// Every currently-active module, keyed by mod id.
     pub fn all_active(&self) -> Vec<(String, LoadedModule)> {
-        self.loaded.lock().unwrap().iter().map(|(id, module)| (id.clone(), module.clone())).collect()
+        self.loaded
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(id, module)| (id.clone(), module.clone()))
+            .collect()
     }
 
     /// The host's [`ModuleRegistry`] implementation.

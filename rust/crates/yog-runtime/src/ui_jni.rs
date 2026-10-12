@@ -311,7 +311,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
         if module.is_retiring() {
             continue;
         }
-        let Some(_call) = module.enter() else { continue };
+        let Some(_call) = module.enter() else {
+            continue;
+        };
         unsafe { f(ud, &gfx as *const _) };
     }
 }
@@ -326,7 +328,9 @@ fn push_inventory_snapshot(snapshot: &yog_inventory::YogInvSnapshotRaw) {
         if module.is_retiring() {
             continue;
         }
-        let Some(_call) = module.enter() else { continue };
+        let Some(_call) = module.enter() else {
+            continue;
+        };
         module.with_library(|lib| unsafe {
             if let Ok(f) = lib.get::<SetSnapshotFn>(b"yog_inventory_set_snapshot") {
                 f(snapshot as *const _);

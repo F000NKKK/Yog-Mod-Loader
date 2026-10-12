@@ -46,7 +46,10 @@ fn main() {
             let debug = args[2..].iter().any(|a| a == "--debug");
             match args[2..].iter().find(|a| !a.starts_with("--")) {
                 Some(name) => run_config(name, debug),
-                None => Err("usage: yog run <config_name> [--debug]  (see [run.<config_name>] in yog.toml)".into()),
+                None => Err(
+                    "usage: yog run <config_name> [--debug]  (see [run.<config_name>] in yog.toml)"
+                        .into(),
+                ),
             }
         }
         Some("publish") => {
@@ -718,7 +721,9 @@ fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> 
     // `spawn` (not `status`) so the PID is available before the process
     // exits — a stable, greppable line an external debugger (`yog-debugger`,
     // Yog-IDLE) can read to know what to attach to.
-    let mut child = proc.spawn().map_err(|e| format!("failed to launch `{command}`: {e}"))?;
+    let mut child = proc
+        .spawn()
+        .map_err(|e| format!("failed to launch `{command}`: {e}"))?;
     eprintln!("==> launched pid {}", child.id());
 
     let status = child
@@ -1216,7 +1221,13 @@ impl Builder {
         }
     }
 
-    fn build(&self, build_dir: &Path, triple: &str, root: &Path, debugging_symbols: bool) -> Result<(), ()> {
+    fn build(
+        &self,
+        build_dir: &Path,
+        triple: &str,
+        root: &Path,
+        debugging_symbols: bool,
+    ) -> Result<(), ()> {
         let mut cmd = Command::new("cargo");
         cmd.current_dir(build_dir)
             .env("CARGO_TARGET_DIR", root.join("target"))
@@ -1256,7 +1267,8 @@ impl Builder {
 fn is_benign_warning(t: &str) -> bool {
     t.starts_with("warning:")
         && ((t.contains("xcrun") && t.contains("failed"))
-            || (t.contains("linker stderr") && t.contains("deprecated linker optimization setting")))
+            || (t.contains("linker stderr")
+                && t.contains("deprecated linker optimization setting")))
 }
 
 /// Drop each [`is_benign_warning`] block, along with the matching cargo

@@ -46,11 +46,20 @@ fn resolves_breakpoint_and_address_round_trip() {
 
     // `fixture_add`'s `let sum = a + b;` line (see tests/fixtures/fixture.rs).
     let addrs = table.resolve_breakpoint("fixture.rs", 8);
-    assert!(!addrs.is_empty(), "expected at least one address for fixture.rs:8");
+    assert!(
+        !addrs.is_empty(),
+        "expected at least one address for fixture.rs:8"
+    );
 
-    let location = table.resolve_addr(addrs[0]).expect("resolving the breakpoint address back to a location");
+    let location = table
+        .resolve_addr(addrs[0])
+        .expect("resolving the breakpoint address back to a location");
     assert_eq!(location.line, 8);
-    assert!(location.file.ends_with("fixture.rs"), "unexpected file: {:?}", location.file);
+    assert!(
+        location.file.ends_with("fixture.rs"),
+        "unexpected file: {:?}",
+        location.file
+    );
 }
 
 #[test]
@@ -59,6 +68,12 @@ fn lists_exported_functions() {
     let table = SymbolTable::load(&fixture).expect("loading fixture symbol table");
 
     let names: Vec<&str> = table.functions().map(|f| f.name.as_str()).collect();
-    assert!(names.iter().any(|n| n.contains("fixture_add")), "functions: {names:?}");
-    assert!(names.iter().any(|n| n.contains("fixture_greet")), "functions: {names:?}");
+    assert!(
+        names.iter().any(|n| n.contains("fixture_add")),
+        "functions: {names:?}"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("fixture_greet")),
+        "functions: {names:?}"
+    );
 }

@@ -90,7 +90,11 @@ impl Debugger {
         let pid = Pid::from_raw(pid);
         ptrace::attach(pid)?;
         waitpid(pid, None)?;
-        Ok(Debugger { pid, breakpoints: HashMap::new(), pending_rearm: None })
+        Ok(Debugger {
+            pid,
+            breakpoints: HashMap::new(),
+            pending_rearm: None,
+        })
     }
 
     pub fn pid(&self) -> Pid {
@@ -163,7 +167,9 @@ impl Debugger {
     /// re-arm the `0xCC` before doing anything else the caller asked for —
     /// otherwise the same address could never trap again.
     fn step_over_pending_breakpoint(&mut self) -> Result<(), DebugError> {
-        let Some(addr) = self.pending_rearm.take() else { return Ok(()) };
+        let Some(addr) = self.pending_rearm.take() else {
+            return Ok(());
+        };
         ptrace::step(self.pid, None)?;
         match waitpid(self.pid, None)? {
             WaitStatus::Exited(..) | WaitStatus::Signaled(..) => return Ok(()),
@@ -299,7 +305,12 @@ impl Debugger {
     /// executing single instructions (skipping over calls per `kind`) until
     /// the source line changes appropriately, a user breakpoint is hit, or
     /// the tracee exits. `symbols`/`base` resolve `rip` to a source line.
-    pub fn source_step(&mut self, kind: StepKind, symbols: &SymbolTable, base: u64) -> Result<StopReason, DebugError> {
+    pub fn source_step(
+        &mut self,
+        kind: StepKind,
+        symbols: &SymbolTable,
+        base: u64,
+    ) -> Result<StopReason, DebugError> {
         let start = self.line_key(symbols, base);
         let start_sp = self.registers()?.rsp;
         // A generous ceiling so a pathological step (e.g. into a huge
@@ -372,7 +383,9 @@ impl Debugger {
 
         while bp != 0 && frames.len() < max_frames {
             let Ok(saved_bp) = self.peek(bp) else { break };
-            let Ok(return_addr) = self.peek(bp.wrapping_add(8)) else { break };
+            let Ok(return_addr) = self.peek(bp.wrapping_add(8)) else {
+                break;
+            };
             if return_addr == 0 {
                 break;
             }

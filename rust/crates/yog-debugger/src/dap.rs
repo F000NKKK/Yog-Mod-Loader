@@ -30,7 +30,12 @@ pub fn read_message<R: BufRead>(reader: &mut R) -> std::io::Result<Option<Value>
             content_length = value.trim().parse().ok();
         }
     }
-    let len = content_length.ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "missing Content-Length header"))?;
+    let len = content_length.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "missing Content-Length header",
+        )
+    })?;
     let mut body = vec![0u8; len];
     reader.read_exact(&mut body)?;
     let value = serde_json::from_slice(&body)?;
@@ -82,13 +87,23 @@ impl<S: DebugSession> Server<S> {
         Server { session, seq: 1 }
     }
 
-    pub fn run<R: BufRead, W: Write>(&mut self, mut reader: R, mut writer: W) -> std::io::Result<()> {
+    pub fn run<R: BufRead, W: Write>(
+        &mut self,
+        mut reader: R,
+        mut writer: W,
+    ) -> std::io::Result<()> {
         loop {
-            let Some(message) = read_message(&mut reader)? else { break };
+            let Some(message) = read_message(&mut reader)? else {
+                break;
+            };
             if message.get("type").and_then(Value::as_str) != Some("request") {
                 continue;
             }
-            let command = message.get("command").and_then(Value::as_str).unwrap_or("").to_string();
+            let command = message
+                .get("command")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string();
             let request_seq = message.get("seq").and_then(Value::as_i64).unwrap_or(0);
             let arguments = message.get("arguments").cloned().unwrap_or(Value::Null);
 
@@ -106,21 +121,38 @@ impl<S: DebugSession> Server<S> {
             "initialize" => (true, json!({ "supportsConfigurationDoneRequest": true })),
             "attach" => result_body(self.session.attach(arguments), Value::Null),
             "setBreakpoints" => {
-                let path = arguments.get("source").and_then(|s| s.get("path")).and_then(Value::as_str).unwrap_or("").to_string();
+                let path = arguments
+                    .get("source")
+                    .and_then(|s| s.get("path"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string();
                 let lines: Vec<u32> = arguments
                     .get("breakpoints")
                     .and_then(Value::as_array)
-                    .map(|entries| entries.iter().filter_map(|bp| bp.get("line").and_then(Value::as_u64)).map(|l| l as u32).collect())
+                    .map(|entries| {
+                        entries
+                            .iter()
+                            .filter_map(|bp| bp.get("line").and_then(Value::as_u64))
+                            .map(|l| l as u32)
+                            .collect()
+                    })
                     .unwrap_or_default();
                 match self.session.set_breakpoints(&path, &lines) {
                     Ok(verified) => {
-                        let breakpoints: Vec<Value> = verified.iter().map(|line| json!({ "verified": true, "line": line })).collect();
+                        let breakpoints: Vec<Value> = verified
+                            .iter()
+                            .map(|line| json!({ "verified": true, "line": line }))
+                            .collect();
                         (true, json!({ "breakpoints": breakpoints }))
                     }
                     Err(e) => (false, json!({ "error": e })),
                 }
             }
-            "continue" => result_body(self.session.continue_(), json!({ "allThreadsContinued": true })),
+            "continue" => result_body(
+                self.session.continue_(),
+                json!({ "allThreadsContinued": true }),
+            ),
             "next" => result_body(self.session.next(), Value::Null),
             "stepIn" => result_body(self.session.step_in(), Value::Null),
             "stackTrace" => match self.session.stack_trace() {
@@ -130,20 +162,38 @@ impl<S: DebugSession> Server<S> {
                         .map(|f| json!({ "id": f.id, "name": f.name, "line": f.line, "column": f.column, "source": { "path": f.file } }))
                         .collect();
                     let total = stack_frames.len();
-                    (true, json!({ "stackFrames": stack_frames, "totalFrames": total }))
+                    (
+                        true,
+                        json!({ "stackFrames": stack_frames, "totalFrames": total }),
+                    )
                 }
                 Err(e) => (false, json!({ "error": e })),
             },
             "threads" => {
-                let threads: Vec<Value> = self.session.threads().into_iter().map(|(id, name)| json!({ "id": id, "name": name })).collect();
+                let threads: Vec<Value> = self
+                    .session
+                    .threads()
+                    .into_iter()
+                    .map(|(id, name)| json!({ "id": id, "name": name }))
+                    .collect();
                 (true, json!({ "threads": threads }))
             }
             "disconnect" => result_body(self.session.disconnect(), Value::Null),
-            other => (false, json!({ "error": format!("unsupported DAP command: {other}") })),
+            other => (
+                false,
+                json!({ "error": format!("unsupported DAP command: {other}") }),
+            ),
         }
     }
 
-    fn send_response<W: Write>(&mut self, writer: &mut W, request_seq: i64, command: &str, success: bool, body: Value) -> std::io::Result<()> {
+    fn send_response<W: Write>(
+        &mut self,
+        writer: &mut W,
+        request_seq: i64,
+        command: &str,
+        success: bool,
+        body: Value,
+    ) -> std::io::Result<()> {
         let seq = self.seq;
         self.seq += 1;
         let message = json!({

@@ -27,7 +27,8 @@ pub fn find_module_base(pid: Pid, module_path: &Path) -> Option<u64> {
         }
 
         let mapped = Path::new(&path);
-        let matches = canonical.as_deref().is_some_and(|c| c == mapped) || file_name.is_some_and(|f| mapped.file_name() == Some(f));
+        let matches = canonical.as_deref().is_some_and(|c| c == mapped)
+            || file_name.is_some_and(|f| mapped.file_name() == Some(f));
         if !matches {
             continue;
         }

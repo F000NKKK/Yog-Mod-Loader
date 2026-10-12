@@ -50,17 +50,33 @@ impl SourceBreakpoints {
         file: &str,
         line: u32,
     ) -> Result<(), DebugError> {
-        let addr = symbols.resolve_breakpoint(file, line).into_iter().next().map(|offset| module_base + offset);
+        let addr = symbols
+            .resolve_breakpoint(file, line)
+            .into_iter()
+            .next()
+            .map(|offset| module_base + offset);
         if let Some(addr) = addr {
             debugger.set_breakpoint(addr)?;
         }
-        self.breakpoints.push(SourceBreakpoint { mod_id: mod_id.to_string(), file: file.to_string(), line, generation, addr });
+        self.breakpoints.push(SourceBreakpoint {
+            mod_id: mod_id.to_string(),
+            file: file.to_string(),
+            line,
+            generation,
+            addr,
+        });
         Ok(())
     }
 
     /// Removes every breakpoint tracked for `file`/`line` within `mod_id`,
     /// clearing the armed INT3 in `debugger` if one was set.
-    pub fn clear(&mut self, debugger: &mut Debugger, mod_id: &str, file: &str, line: u32) -> Result<(), DebugError> {
+    pub fn clear(
+        &mut self,
+        debugger: &mut Debugger,
+        mod_id: &str,
+        file: &str,
+        line: u32,
+    ) -> Result<(), DebugError> {
         let mut remaining = Vec::with_capacity(self.breakpoints.len());
         for bp in self.breakpoints.drain(..) {
             if bp.mod_id == mod_id && bp.file == file && bp.line == line {
@@ -91,7 +107,11 @@ impl SourceBreakpoints {
             if let Some(old_addr) = bp.addr.take() {
                 debugger.clear_breakpoint(old_addr)?;
             }
-            let new_addr = new_symbols.resolve_breakpoint(&bp.file, bp.line).into_iter().next().map(|offset| new_base + offset);
+            let new_addr = new_symbols
+                .resolve_breakpoint(&bp.file, bp.line)
+                .into_iter()
+                .next()
+                .map(|offset| new_base + offset);
             if let Some(addr) = new_addr {
                 debugger.set_breakpoint(addr)?;
             }

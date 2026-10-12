@@ -50,7 +50,11 @@ mod session {
     }
 
     impl YogDebugSession {
-        pub fn new(mod_id: impl Into<String>, native_path: PathBuf, generation: ModuleGeneration) -> Result<Self, yog_symbols::SymbolError> {
+        pub fn new(
+            mod_id: impl Into<String>,
+            native_path: PathBuf,
+            generation: ModuleGeneration,
+        ) -> Result<Self, yog_symbols::SymbolError> {
             let symbols = SymbolTable::load(&native_path)?;
             Ok(YogDebugSession {
                 mod_id: mod_id.into(),
@@ -66,12 +70,23 @@ mod session {
         /// Call after a `yog-hot-reload` `HotReloader::reload` for this
         /// session's mod succeeds: reloads the new native's symbols and
         /// rebinds every tracked breakpoint against them.
-        pub fn rebind_after_reload(&mut self, new_native_path: PathBuf, new_generation: ModuleGeneration) -> Result<(), String> {
+        pub fn rebind_after_reload(
+            &mut self,
+            new_native_path: PathBuf,
+            new_generation: ModuleGeneration,
+        ) -> Result<(), String> {
             let debugger = self.debugger.as_mut().ok_or("not attached")?;
             let new_symbols = SymbolTable::load(&new_native_path).map_err(|e| e.to_string())?;
-            let new_base = find_module_base(debugger.pid(), &new_native_path).ok_or("could not locate new native's load address")?;
+            let new_base = find_module_base(debugger.pid(), &new_native_path)
+                .ok_or("could not locate new native's load address")?;
             self.breakpoints
-                .rebind_after_reload(debugger, &self.mod_id, new_generation, new_base, &new_symbols)
+                .rebind_after_reload(
+                    debugger,
+                    &self.mod_id,
+                    new_generation,
+                    new_base,
+                    &new_symbols,
+                )
                 .map_err(|e| e.to_string())?;
             self.native_path = new_native_path;
             self.symbols = new_symbols;
@@ -95,14 +110,21 @@ mod session {
 
     impl DebugSession for YogDebugSession {
         fn attach(&mut self, arguments: &Value) -> Result<(), String> {
-            let pid = arguments.get("pid").and_then(Value::as_i64).ok_or("attach requires an integer \"pid\"")? as i32;
+            let pid = arguments
+                .get("pid")
+                .and_then(Value::as_i64)
+                .ok_or("attach requires an integer \"pid\"")? as i32;
             let debugger = Debugger::attach(pid).map_err(|e| e.to_string())?;
             self.module_base = find_module_base(debugger.pid(), &self.native_path).ok_or("could not locate the mod's native in the target process's memory map — has it loaded yet?")?;
             self.debugger = Some(debugger);
             Ok(())
         }
 
-        fn set_breakpoints(&mut self, source_path: &str, lines: &[u32]) -> Result<Vec<u32>, String> {
+        fn set_breakpoints(
+            &mut self,
+            source_path: &str,
+            lines: &[u32],
+        ) -> Result<Vec<u32>, String> {
             let debugger = self.debugger.as_mut().ok_or("not attached")?;
             // Clear every breakpoint currently tracked for this file, then
             // re-add exactly the requested lines — matches DAP's
@@ -110,12 +132,22 @@ mod session {
             // semantics.
             let previous: Vec<u32> = debugger_lines_for(&self.breakpoints, source_path);
             for line in previous {
-                self.breakpoints.clear(debugger, &self.mod_id, source_path, line).map_err(|e| e.to_string())?;
+                self.breakpoints
+                    .clear(debugger, &self.mod_id, source_path, line)
+                    .map_err(|e| e.to_string())?;
             }
             let mut verified = Vec::new();
             for &line in lines {
                 self.breakpoints
-                    .set(debugger, &self.mod_id, self.generation, self.module_base, &self.symbols, source_path, line)
+                    .set(
+                        debugger,
+                        &self.mod_id,
+                        self.generation,
+                        self.module_base,
+                        &self.symbols,
+                        source_path,
+                        line,
+                    )
                     .map_err(|e| e.to_string())?;
                 verified.push(line);
             }
@@ -170,7 +202,12 @@ mod session {
     }
 
     fn debugger_lines_for(breakpoints: &SourceBreakpoints, source_path: &str) -> Vec<u32> {
-        breakpoints.all().iter().filter(|bp| bp.file == source_path).map(|bp| bp.line).collect()
+        breakpoints
+            .all()
+            .iter()
+            .filter(|bp| bp.file == source_path)
+            .map(|bp| bp.line)
+            .collect()
     }
 }
 
