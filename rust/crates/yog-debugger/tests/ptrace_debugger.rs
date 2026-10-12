@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use yog_debugger::maps::find_module_base;
-use yog_debugger::ptrace_debugger::{interrupt, Debugger, StopReason};
+use yog_debugger::ptrace_debugger::{interrupt, thread_name, Debugger, StopReason};
 use yog_symbols::SymbolTable;
 
 fn build_fixture() -> PathBuf {
@@ -138,6 +138,11 @@ fn traces_every_thread_and_forwards_signals() {
         let stop = debugger.continue_().expect("continuing");
         assert_eq!(stop, StopReason::Breakpoint(addr));
         assert_eq!(debugger.registers().unwrap().rip, addr);
+        // Non-stop: only the thread that hit it is stopped.
+        assert!(
+            !debugger.is_stopped(debugger.pid()),
+            "the main thread kept running"
+        );
         hit_threads.insert(debugger.current_thread());
     }
     assert!(
@@ -157,7 +162,7 @@ fn traces_every_thread_and_forwards_signals() {
     interrupter.join().unwrap();
     assert_eq!(stop, StopReason::Interrupted);
 
-    // Break All: every thread stops and can be inspected.
+    // Break All with no filter: every thread stops and can be inspected.
     debugger.pause().expect("pausing");
     for tid in debugger.threads() {
         debugger
@@ -165,6 +170,29 @@ fn traces_every_thread_and_forwards_signals() {
             .expect("every thread is stopped");
         assert_ne!(debugger.registers().expect("registers").rip, 0);
     }
+    let interrupter = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        interrupt(pid);
+    });
+    assert_eq!(
+        debugger.continue_().expect("resuming"),
+        StopReason::Interrupted
+    );
+    interrupter.join().unwrap();
+
+    // Break All with a filter: only the workers stop, the leader runs on.
+    debugger.set_pause_filter(|name| name.starts_with("worker-"));
+    debugger.pause().expect("pausing workers");
+    let leader = debugger.pid();
+    assert!(!debugger.is_stopped(leader), "the leader was let go");
+    let workers: Vec<_> = debugger
+        .threads()
+        .into_iter()
+        .filter(|&tid| thread_name(leader, tid).starts_with("worker-"))
+        .collect();
+    assert_eq!(workers.len(), 4);
+    assert!(workers.iter().all(|&tid| debugger.is_stopped(tid)));
+    assert!(workers.contains(&debugger.current_thread()));
     let interrupter = std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(200));
         interrupt(pid);

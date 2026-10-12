@@ -29,12 +29,14 @@ const SIGUSR1: i32 = 10;
 fn main() {
     unsafe { signal(SIGUSR1, on_usr1) };
     for t in 0..4u64 {
-        std::thread::spawn(move || {
-            loop {
-                std::hint::black_box(work(t));
-                std::thread::sleep(Duration::from_millis(2));
-            }
-        });
+        let worker = move || loop {
+            std::hint::black_box(work(t));
+            std::thread::sleep(Duration::from_millis(2));
+        };
+        std::thread::Builder::new()
+            .name(format!("worker-{t}"))
+            .spawn(worker)
+            .unwrap();
     }
     while HANDLED.load(Ordering::SeqCst) < u64::MAX {
         unsafe { raise(SIGUSR1) };

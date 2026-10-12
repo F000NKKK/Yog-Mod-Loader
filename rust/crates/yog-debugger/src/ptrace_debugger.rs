@@ -105,8 +105,9 @@ struct Thread {
 /// traced (threads created later are picked up automatically), signals the
 /// tracee uses internally — the JVM relies on SIGSEGV for safepoints and
 /// implicit null checks — are passed straight back to it, and a breakpoint
-/// hit on any thread stops all of them (but the audio threads — see
-/// [`KEEP_RUNNING_PREFIXES`]).
+/// hit stops only the thread that hit it — the rest of the process (its
+/// sound, its server thread, ...) keeps running, like gdb's non-stop mode.
+/// [`pause`](Debugger::pause) stops only the threads its filter selects.
 pub struct Debugger {
     pid: Pid,
     threads: HashMap<Pid, Thread>,
@@ -125,7 +126,12 @@ pub struct Debugger {
     /// must step over it and re-arm the `0xCC` before doing anything else,
     /// or the same breakpoint would never fire again.
     pending_rearm: Option<u64>,
+    /// Which threads (by name) [`pause`](Debugger::pause) stops; all when
+    /// unset.
+    pause_filter: Option<PauseFilter>,
 }
+
+type PauseFilter = Box<dyn Fn(&str) -> bool + Send>;
 
 /// `__WALL` so clone()d threads are reported; `__WNOTHREAD` so a
 /// `waitpid(-1)` only reaps this thread's own children/tracees and never
@@ -134,25 +140,11 @@ fn wait_flags() -> Option<WaitPidFlag> {
     Some(WaitPidFlag::__WALL | WaitPidFlag::__WNOTHREAD)
 }
 
-/// Threads a pause leaves running: the audio client threads the game links
-/// in (PipeWire, PulseAudio, OpenAL Soft) talk to the system sound server in
-/// real time. A stopped one stalls the shared PipeWire graph — every other
-/// app's sound with it (Spotify pausing, say) — and they never run mod code,
-/// so there's nothing to inspect in them anyway.
-const KEEP_RUNNING_PREFIXES: &[&str] = &[
-    "data-loop",
-    "module-rt",
-    "pwe",
-    "pw-",
-    "threaded-ml",
-    "alsoft",
-];
-
-fn keeps_running(pid: Pid, tid: Pid) -> bool {
-    std::fs::read_to_string(format!("/proc/{pid}/task/{tid}/comm")).is_ok_and(|name| {
-        let name = name.trim().to_ascii_lowercase();
-        KEEP_RUNNING_PREFIXES.iter().any(|p| name.starts_with(p))
-    })
+/// A thread's name (`comm`, as `ps -L` shows it) — empty if it's gone.
+pub fn thread_name(pid: Pid, tid: Pid) -> String {
+    std::fs::read_to_string(format!("/proc/{pid}/task/{tid}/comm"))
+        .map(|n| n.trim_end().to_string())
+        .unwrap_or_default()
 }
 
 fn task_ids(pid: Pid) -> Vec<Pid> {
@@ -165,7 +157,7 @@ fn task_ids(pid: Pid) -> Vec<Pid> {
 }
 
 impl Debugger {
-    /// Attaches to every thread of `pid` and leaves them all stopped.
+    /// Attaches to every thread of `pid`, leaving only the leader stopped.
     pub fn attach(pid: i32) -> Result<Self, DebugError> {
         let pid = Pid::from_raw(pid);
         let mut debugger = Debugger {
@@ -175,6 +167,7 @@ impl Debugger {
             breakpoints: HashMap::new(),
             ever_armed: HashSet::new(),
             pending_rearm: None,
+            pause_filter: None,
         };
         ptrace::seize(pid, ptrace::Options::PTRACE_O_TRACECLONE)?;
         debugger.threads.insert(pid, Thread::default());
@@ -195,7 +188,9 @@ impl Debugger {
                 }
             }
         }
-        debugger.stop_all(false)?;
+        // Only the leader: enough to read/patch memory (breakpoints) through,
+        // and the rest of the process never notices the attach.
+        debugger.stop_threads(|tid| tid == pid)?;
         Ok(debugger)
     }
 
@@ -216,7 +211,7 @@ impl Debugger {
     }
 
     /// Makes `tid` the thread registers/backtraces/steps refer to. Only
-    /// valid while it's stopped (after a breakpoint, everything is).
+    /// valid while it's stopped (see [`is_stopped`](Self::is_stopped)).
     pub fn select_thread(&mut self, tid: Pid) -> Result<(), DebugError> {
         match self.threads.get(&tid) {
             Some(t) if t.stopped => {
@@ -231,7 +226,7 @@ impl Debugger {
 
     pub fn detach(&mut self) -> Result<(), DebugError> {
         // Only stopped tracees can be detached (or have memory patched).
-        self.stop_all(true)?;
+        self.stop_threads(|_| true)?;
         for addr in self.breakpoints.keys().copied().collect::<Vec<_>>() {
             let _ = self.clear_breakpoint(addr);
         }
@@ -298,16 +293,55 @@ impl Debugger {
         Ok(())
     }
 
+    /// Which threads [`pause`](Self::pause) stops, by name (see
+    /// [`thread_name`]) — e.g. only the ones that run mod code, so a game's
+    /// audio and other housekeeping threads keep going.
+    pub fn set_pause_filter(&mut self, filter: impl Fn(&str) -> bool + Send + 'static) {
+        self.pause_filter = Some(Box::new(filter));
+    }
+
     /// Turns an [`StopReason::Interrupted`] (only the leader stopped) into
-    /// a full pause, like a debugger's Break All: every thread is brought to
-    /// a stop so any of them can be inspected and stepped. The next
-    /// [`continue_`](Self::continue_) resumes them all.
+    /// Break All: the threads the pause filter selects are brought to a
+    /// stop so they can be inspected and stepped; any others that are
+    /// stopped (the leader, usually) are let go again. The first selected
+    /// thread becomes current — or the leader stays stopped as current if
+    /// no thread matches. The next [`continue_`](Self::continue_) resumes
+    /// them all.
     pub fn pause(&mut self) -> Result<(), DebugError> {
-        self.stop_all(false)?;
-        if !self.threads.get(&self.current).is_some_and(|t| t.stopped) {
-            self.current = self.pid;
+        let pid = self.pid;
+        let wanted: HashSet<Pid> = self
+            .threads
+            .keys()
+            .copied()
+            .filter(|&tid| {
+                self.pause_filter
+                    .as_ref()
+                    .is_none_or(|f| f(&thread_name(pid, tid)))
+            })
+            .collect();
+        self.stop_threads(|tid| wanted.contains(&tid))?;
+        let mut stopped: Vec<Pid> = wanted
+            .iter()
+            .copied()
+            .filter(|tid| self.threads.get(tid).is_some_and(|t| t.stopped))
+            .collect();
+        stopped.sort_by_key(|t| t.as_raw());
+        if !stopped.contains(&self.current) {
+            self.current = stopped.first().copied().unwrap_or(pid);
+        }
+        let current = self.current;
+        for (&tid, thread) in self.threads.iter_mut() {
+            if thread.stopped && tid != current && !wanted.contains(&tid) {
+                let _ = ptrace::cont(tid, thread.pending_signal.take());
+                thread.stopped = false;
+            }
         }
         Ok(())
+    }
+
+    /// Whether `tid` is stopped (inspectable) right now.
+    pub fn is_stopped(&self, tid: Pid) -> bool {
+        self.threads.get(&tid).is_some_and(|t| t.stopped)
     }
 
     /// Resumes every thread and runs until a breakpoint, an [`interrupt`],
@@ -321,7 +355,7 @@ impl Debugger {
     }
 
     /// Executes one machine instruction on the current thread; the others
-    /// stay stopped. Right after a breakpoint hit, that instruction is the
+    /// stay as they are. Right after a breakpoint hit, that instruction is the
     /// one the breakpoint sits on.
     pub fn single_step(&mut self) -> Result<StopReason, DebugError> {
         if self.pending_rearm.is_some() {
@@ -420,17 +454,15 @@ impl Debugger {
         Ok(())
     }
 
-    /// Brings every running thread to a ptrace-stop — except the
-    /// [`KEEP_RUNNING_PREFIXES`] ones, unless `everything` (detaching needs
-    /// them stopped too). A thread that had already trapped on a breakpoint
-    /// is rewound onto it, so it simply traps again (and gets reported) once
-    /// resumed.
-    fn stop_all(&mut self, everything: bool) -> Result<(), DebugError> {
-        let pid = self.pid;
+    /// Brings the running threads `want` selects to a ptrace-stop (threads
+    /// born meanwhile from one of them too). A thread that had already
+    /// trapped on a breakpoint is rewound onto it, so it simply traps again
+    /// (and gets reported) once resumed.
+    fn stop_threads(&mut self, want: impl Fn(Pid) -> bool) -> Result<(), DebugError> {
         let running: Vec<Pid> = self
             .threads
             .iter()
-            .filter(|(&tid, t)| !t.stopped && (everything || !keeps_running(pid, tid)))
+            .filter(|(&tid, t)| !t.stopped && want(tid))
             .map(|(&tid, _)| tid)
             .collect();
         for &tid in &running {
@@ -556,7 +588,6 @@ impl Debugger {
 
     fn report_breakpoint(&mut self, tid: Pid, addr: u64) -> Result<StopReason, DebugError> {
         self.current = tid;
-        self.stop_all(false)?;
         // Restore the real instruction byte, but do NOT step past it yet —
         // the thread stays genuinely paused at `addr` until the next
         // continue/step, so backtraces/inspection see the real location.
