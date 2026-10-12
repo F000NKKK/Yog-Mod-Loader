@@ -47,6 +47,10 @@ Options:
                                         <loader>/versions/<version>.properties.
   -h, --help
 
+Environment:
+  YOG_TARGETS=linux-x86_64              only build these runtime platforms
+                                        (comma-separated tags or triples)
+
 Examples:
   ./build.sh build
   ./build.sh run fabric --client
@@ -176,6 +180,10 @@ build_rust() {
     built=()
     for spec in "${RUNTIME_TARGETS[@]}"; do
         IFS='|' read -r triple tag os <<<"$spec"
+        # YOG_TARGETS (comma-separated tags/triples) narrows this, same as `yog build`.
+        if [ -n "${YOG_TARGETS:-}" ] && [[ ",${YOG_TARGETS// /}," != *",$tag,"* && ",${YOG_TARGETS// /}," != *",$triple,"* ]]; then
+            continue
+        fi
         if ! grep -qx "$triple" <<<"$installed"; then
             echo "    skip $tag (target not installed)"
             continue
