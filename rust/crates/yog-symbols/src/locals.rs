@@ -423,7 +423,8 @@ impl SymbolTable {
                 }
                 _ if !in_function && entry.has_children() => {
                     // Namespaces, impl blocks, types holding methods...
-                    if self.walk_scope(info, child, pc, false, walk)? {
+                    let found = self.walk_scope(info, child, pc, false, walk)?;
+                    if found {
                         return Ok(true);
                     }
                 }

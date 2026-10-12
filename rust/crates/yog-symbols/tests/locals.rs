@@ -127,12 +127,12 @@ mod live {
     }
 
     /// Kills and reaps the traced child however the test exits.
-    struct Traced(Pid);
+    struct Traced(std::process::Child);
 
     impl Drop for Traced {
         fn drop(&mut self) {
-            let _ = nix::sys::signal::kill(self.0, Signal::SIGKILL);
-            let _ = waitpid(self.0, None);
+            let _ = self.0.kill();
+            let _ = self.0.wait();
         }
     }
 
@@ -176,9 +176,8 @@ mod live {
         unsafe {
             cmd.pre_exec(|| ptrace::traceme().map_err(std::io::Error::from));
         }
-        let spawned = cmd.spawn().expect("spawning fixture");
-        let pid = Pid::from_raw(spawned.id() as i32);
-        let _guard = Traced(pid);
+        let traced = Traced(cmd.spawn().expect("spawning fixture"));
+        let pid = Pid::from_raw(traced.0.id() as i32);
 
         // Stopped at exec (SIGTRAP) — the image and its mappings exist.
         match waitpid(pid, None).unwrap() {

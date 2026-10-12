@@ -6,11 +6,13 @@ use yog_symbols::SymbolTable;
 /// Compiles `tests/fixtures/fixture.rs` into a real cdylib with DWARF debug
 /// info via `rustc` directly (no nested Cargo project — this is a throwaway
 /// fixture, not a crate we ship), returning the path to the built library.
-fn build_fixture() -> PathBuf {
+/// Each test passes its own `tag` so parallel tests never build into (and
+/// race on) the same output file.
+fn build_fixture(tag: &str) -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let src = manifest_dir.join("tests/fixtures/fixture.rs");
     let out_dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR"));
-    let out = out_dir.join(format!("libyog_symbols_fixture.{}", cdylib_ext()));
+    let out = out_dir.join(format!("libyog_symbols_fixture_{tag}.{}", cdylib_ext()));
 
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
         .args([
@@ -41,7 +43,7 @@ fn cdylib_ext() -> &'static str {
 
 #[test]
 fn resolves_breakpoint_and_address_round_trip() {
-    let fixture = build_fixture();
+    let fixture = build_fixture("round_trip");
     let table = SymbolTable::load(&fixture).expect("loading fixture symbol table");
 
     // `fixture_add`'s `let sum = a + b;` line (see tests/fixtures/fixture.rs).
@@ -64,7 +66,7 @@ fn resolves_breakpoint_and_address_round_trip() {
 
 #[test]
 fn lists_exported_functions() {
-    let fixture = build_fixture();
+    let fixture = build_fixture("functions");
     let table = SymbolTable::load(&fixture).expect("loading fixture symbol table");
 
     let names: Vec<&str> = table.functions().map(|f| f.name.as_str()).collect();
