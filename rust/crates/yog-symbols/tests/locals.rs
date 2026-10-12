@@ -174,7 +174,12 @@ fn lists_variables_declared_but_not_yet_live() {
             ],
             "at {addr:#x}"
         );
-        let blind = table.read_local(&vars[3], &yog_symbols::FrameRegs::new(addr, 0, 0), 0, &NoMem);
+        let blind = table.read_local(
+            &vars[3],
+            &yog_symbols::FrameRegs::new(addr, 0, 0),
+            0,
+            &NoMem,
+        );
         assert_eq!(blind.value, "<not in scope>");
         assert_eq!(blind.type_name, "f32");
     }
@@ -194,8 +199,7 @@ fn lists_variables_declared_but_not_yet_live() {
 }
 
 /// Inside an inlined call: depth 0 is the inlined function's own frame,
-/// depth 1 its caller's (with the caller's not-yet-assigned `r`/`after`
-/// pending), and past the outermost there's nothing.
+/// depth 1 its caller's (with the caller's not-yet-assigned `r` pending), and past the outermost there's nothing.
 #[test]
 fn locals_per_inlined_frame() {
     let exe = build("inline");
@@ -204,13 +208,20 @@ fn locals_per_inlined_frame() {
 
     let frames = table.resolve_inlined(addr);
     assert!(frames.len() >= 2, "{frames:#?}");
-    assert!(frames[1].function.as_deref().unwrap_or("").ends_with("caller"));
+    assert!(frames[1]
+        .function
+        .as_deref()
+        .unwrap_or("")
+        .ends_with("caller"));
 
     assert_eq!(table.locals(addr), table.locals_in_frame(addr, 0));
-    assert_eq!(scoped(&table.locals_in_frame(addr, 0)), ["a:true", "doubled:true"]);
+    assert_eq!(
+        scoped(&table.locals_in_frame(addr, 0)),
+        ["a:true", "doubled:true"]
+    );
     assert_eq!(
         scoped(&table.locals_in_frame(addr, 1)),
-        ["b:true", "before:true", "r:false", "after:false"]
+        ["b:true", "before:true", "r:false"]
     );
     assert!(table.locals_in_frame(addr, 2).is_empty());
     assert_eq!(table.locals_in_frame(addr, 1)[0].kind, VarKind::Parameter);

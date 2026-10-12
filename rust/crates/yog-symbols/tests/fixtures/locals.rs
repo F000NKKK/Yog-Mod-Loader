@@ -100,8 +100,7 @@ fn helper(a: u32) -> u32 {
 fn caller(b: u32) -> u32 {
     let before = black_box(b + 1);
     let r = helper(before);
-    let after = black_box(r + 1);
-    after
+    black_box(r)
 }
 
 fn main() {

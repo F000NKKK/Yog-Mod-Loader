@@ -295,6 +295,11 @@ impl SymbolTable {
                 .map(|d| PathBuf::from(d.as_ref()));
             let mut rows = program.rows();
             while let Ok(Some((line_header, row))) = rows.next_row() {
+                // The end-of-sequence row carries the last line but its
+                // address is one past the code (often the next function).
+                if row.end_sequence() {
+                    continue;
+                }
                 let Some(row_line) = row.line() else { continue };
                 if row_line.get() as u32 != line {
                     continue;
