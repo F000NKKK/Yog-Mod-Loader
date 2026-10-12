@@ -20,10 +20,9 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     ignore:
-      # Gradle 9 needs newer Loom/ForgeGradle/NeoGradle majors; those move
-      # together by hand, not one wrapper bump at a time.
+      # The wrapper is pinned to what Loom/ForgeGradle/NeoGradle support for
+      # our MC versions; it moves together with them by hand.
       - dependency-name: "gradle-wrapper"
-        update-types: ["version-update:semver-major"]
     groups:
       gradle:
         patterns:
@@ -38,10 +37,9 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     ignore:
-      # Gradle 9 needs newer Loom/ForgeGradle/NeoGradle majors; those move
-      # together by hand, not one wrapper bump at a time.
+      # The wrapper is pinned to what Loom/ForgeGradle/NeoGradle support for
+      # our MC versions; it moves together with them by hand.
       - dependency-name: "gradle-wrapper"
-        update-types: ["version-update:semver-major"]
     groups:
       gradle:
         patterns:
@@ -56,10 +54,9 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     ignore:
-      # Gradle 9 needs newer Loom/ForgeGradle/NeoGradle majors; those move
-      # together by hand, not one wrapper bump at a time.
+      # The wrapper is pinned to what Loom/ForgeGradle/NeoGradle support for
+      # our MC versions; it moves together with them by hand.
       - dependency-name: "gradle-wrapper"
-        update-types: ["version-update:semver-major"]
     groups:
       gradle:
         patterns:
