@@ -276,6 +276,18 @@ impl Debugger {
         Ok(())
     }
 
+    /// Turns an [`StopReason::Interrupted`] (only the leader stopped) into
+    /// a full pause, like a debugger's Break All: every thread is brought to
+    /// a stop so any of them can be inspected and stepped. The next
+    /// [`continue_`](Self::continue_) resumes them all.
+    pub fn pause(&mut self) -> Result<(), DebugError> {
+        self.stop_all()?;
+        if !self.threads.get(&self.current).is_some_and(|t| t.stopped) {
+            self.current = self.pid;
+        }
+        Ok(())
+    }
+
     /// Resumes every thread and runs until a breakpoint, an [`interrupt`],
     /// or the process ending.
     pub fn continue_(&mut self) -> Result<StopReason, DebugError> {

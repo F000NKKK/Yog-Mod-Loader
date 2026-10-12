@@ -157,6 +157,22 @@ fn traces_every_thread_and_forwards_signals() {
     interrupter.join().unwrap();
     assert_eq!(stop, StopReason::Interrupted);
 
+    // Break All: every thread stops and can be inspected.
+    debugger.pause().expect("pausing");
+    for tid in debugger.threads() {
+        debugger
+            .select_thread(tid)
+            .expect("every thread is stopped");
+        assert_ne!(debugger.registers().expect("registers").rip, 0);
+    }
+    let interrupter = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        interrupt(pid);
+    });
+    let stop = debugger.continue_().expect("resuming after pause");
+    interrupter.join().unwrap();
+    assert_eq!(stop, StopReason::Interrupted);
+
     debugger.detach().expect("detaching");
     std::thread::sleep(std::time::Duration::from_millis(200));
     assert!(
