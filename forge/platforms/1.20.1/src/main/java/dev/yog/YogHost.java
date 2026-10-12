@@ -73,6 +73,7 @@ import net.minecraftforge.server.ServerLifecycleHooks;
  * to it via {@link NativeBridge}. "The Gate and the Key."
  */
 @Mod("yog")
+@SuppressWarnings("deprecation") // BuiltInRegistries is the vanilla registry; Forge only nudges towards its wrappers
 public class YogHost {
     /** Callbacks deferred to the end of the current server tick. */
     private static final java.util.concurrent.ConcurrentLinkedQueue<Runnable> POST_TICK =

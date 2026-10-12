@@ -46,6 +46,7 @@ import net.minecraft.world.level.levelgen.blending.Blender;
  * spawning are no-ops — the mod's closure is responsible for all terrain via
  * {@code ChunkWriter::set_block}.
  */
+@SuppressWarnings("deprecation") // BuiltInRegistries is the vanilla registry; Forge only nudges towards its wrappers
 public class YogCallbackChunkGenerator extends ChunkGenerator {
     public static final Codec<YogCallbackChunkGenerator> CODEC = RecordCodecBuilder.create(inst -> inst.group(
                     BiomeSource.CODEC.fieldOf("biome_source").forGetter(g -> g.biomeSource),

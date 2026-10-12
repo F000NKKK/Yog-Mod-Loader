@@ -42,6 +42,7 @@ public class YogInventoryBlock extends Block implements EntityBlock {
         return new YogInventoryBlockEntity(pos, state, defId, slotCount);
     }
 
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (level.isClientSide) return InteractionResult.SUCCESS;
@@ -69,6 +70,7 @@ public class YogInventoryBlock extends Block implements EntityBlock {
         super.playerWillDestroy(level, pos, state, player);
     }
 
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
         List<ItemStack> drops = super.getDrops(state, builder);
@@ -81,6 +83,7 @@ public class YogInventoryBlock extends Block implements EntityBlock {
         return drops;
     }
 
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
         ItemStack stack = super.getCloneItemStack(level, pos, state);

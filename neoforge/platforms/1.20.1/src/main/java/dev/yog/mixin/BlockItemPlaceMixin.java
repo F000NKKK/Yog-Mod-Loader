@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Pre phase is handled in YogHost via RightClickBlock, which can cancel placement.
  */
 @Mixin(BlockItem.class)
+@SuppressWarnings("deprecation") // BuiltInRegistries is the vanilla registry; Forge only nudges towards its wrappers
 public class BlockItemPlaceMixin {
 
     @Inject(method = "place", at = @At("RETURN"))

@@ -35,6 +35,7 @@ public class YogInventoryBlock extends Block implements BlockEntityProvider {
         return new YogInventoryBlockEntity(pos, state, defId, slotCount);
     }
 
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
         if (world.isClient) return ActionResult.SUCCESS;

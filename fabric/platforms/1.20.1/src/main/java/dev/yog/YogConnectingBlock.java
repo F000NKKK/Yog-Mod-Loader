@@ -62,6 +62,7 @@ public class YogConnectingBlock extends Block {
                 .with(DOWN,  connectsTo(world, pos, Direction.DOWN));
     }
 
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public BlockState getStateForNeighborUpdate(BlockState state, Direction dir, BlockState neighborState,
                                                  WorldAccess world, BlockPos pos, BlockPos neighborPos) {
@@ -95,11 +96,13 @@ public class YogConnectingBlock extends Block {
         return shape;
     }
 
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext ctx) {
         return computeShape(state);
     }
 
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext ctx) {
         return computeShape(state);

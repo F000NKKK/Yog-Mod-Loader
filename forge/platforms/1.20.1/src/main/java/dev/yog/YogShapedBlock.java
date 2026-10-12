@@ -19,11 +19,13 @@ public class YogShapedBlock extends Block {
         this.shape = box(x1, y1, z1, x2, y2, z2);
     }
 
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
         return shape;
     }
 
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
         return shape;

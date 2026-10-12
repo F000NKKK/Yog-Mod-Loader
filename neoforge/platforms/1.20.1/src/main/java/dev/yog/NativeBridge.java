@@ -55,6 +55,7 @@ import java.util.Map;
  * Calls into Rust go through the {@code native} methods; calls back from Rust into
  * the game are static methods invoked over JNI.
  */
+@SuppressWarnings("deprecation") // BuiltInRegistries is the vanilla registry; Forge only nudges towards its wrappers
 public final class NativeBridge {
     private static boolean loaded = false;
     private static volatile MinecraftServer server;

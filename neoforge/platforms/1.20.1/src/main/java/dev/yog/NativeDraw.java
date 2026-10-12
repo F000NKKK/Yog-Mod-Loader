@@ -19,6 +19,7 @@ import org.lwjgl.opengl.GL13;
 /**
  * Client-only HUD draw helpers called from Rust via JNI during on_hud_render.
  */
+@SuppressWarnings("deprecation") // BuiltInRegistries is the vanilla registry; Forge only nudges towards its wrappers
 public final class NativeDraw {
     private NativeDraw() {}
 
