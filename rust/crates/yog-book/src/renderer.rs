@@ -162,7 +162,7 @@ fn decode_png(data: &[u8]) -> Option<(Vec<u8>, u32, u32)> {
     use png::Decoder;
     let decoder = Decoder::new(std::io::Cursor::new(data));
     let mut reader = decoder.read_info().ok()?;
-    let mut buf = vec![0u8; reader.output_buffer_size().map(|s| s as usize).unwrap_or(0)];
+    let mut buf = vec![0u8; reader.output_buffer_size().unwrap_or(0)];
     let info = reader.next_frame(&mut buf).ok()?;
     let rgba = match info.color_type {
         png::ColorType::Rgba => buf[..info.buffer_size()].to_vec(),
@@ -231,10 +231,10 @@ impl BookGl {
         w: u32,
         h: u32,
     ) -> Option<&(gl::Texture, u32, u32)> {
-        if !self.svg_tex.contains_key(&hash) {
+        if let std::collections::hash_map::Entry::Vacant(e) = self.svg_tex.entry(hash) {
             let pixels = svg::rasterize(data, w, h)?;
             let tex = ctx.create_texture_rgba(w, h, &pixels, true);
-            self.svg_tex.insert(hash, (tex, w, h));
+            e.insert((tex, w, h));
         }
         self.svg_tex.get(&hash)
     }
@@ -333,7 +333,7 @@ impl BookGl {
         color: u32,
     ) {
         let hash = font_hash(ttf);
-        if !self.font_atlas.contains_key(&hash) {
+        if let std::collections::hash_map::Entry::Vacant(e) = self.font_atlas.entry(hash) {
             if let Some(atlas) = FontAtlas::build(ttf, size_px) {
                 let tex = ctx.create_texture_rgba(
                     atlas.atlas_size,
@@ -341,7 +341,7 @@ impl BookGl {
                     &atlas.pixels,
                     true,
                 );
-                self.font_atlas.insert(hash, (tex, atlas));
+                e.insert((tex, atlas));
             }
         }
         // Get raw pointers so the borrow of self.font_atlas ends before we call
@@ -652,10 +652,7 @@ impl BookRenderer {
 
         // Render at Patchouli-native size (272×180 GUI pixels). Scale DOWN only
         // if the screen is smaller; never scale up (MC font is designed for 1×).
-        let scale = ((sw - 16.0) / BK_W)
-            .min((sh - 16.0) / BK_H)
-            .min(1.0)
-            .max(0.4);
+        let scale = ((sw - 16.0) / BK_W).min((sh - 16.0) / BK_H).clamp(0.4, 1.0);
         let bw = BK_W * scale;
         let bh = BK_H * scale;
         let bx = (sw - bw) / 2.0;

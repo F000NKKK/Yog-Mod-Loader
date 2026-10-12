@@ -57,9 +57,10 @@ pub enum Dock {
 }
 
 /// How a focused widget shows its focus indicator.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum FocusStyle {
     /// 1px outline using `focus_color` (default, amber).
+    #[default]
     Outline,
     /// Solid background fill using `focus_color`.
     Fill,
@@ -67,27 +68,16 @@ pub enum FocusStyle {
     None,
 }
 
-impl Default for FocusStyle {
-    fn default() -> Self {
-        FocusStyle::Outline
-    }
-}
-
 /// A size value — either a fixed pixel amount, a CSS-style percentage of the
 /// parent's own resolved content size (0.0–100.0), or `Auto` (size to
 /// content/available space, this crate's original behaviour).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Units {
+    #[default]
     Auto,
     Px(f32),
     /// Percent of the parent's resolved content size along the same axis.
     Percent(f32),
-}
-
-impl Default for Units {
-    fn default() -> Self {
-        Units::Auto
-    }
 }
 
 impl From<f32> for Units {

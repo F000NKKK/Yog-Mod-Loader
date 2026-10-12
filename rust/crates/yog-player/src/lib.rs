@@ -92,12 +92,12 @@ impl<'a> Player<'a> {
     /// Set health; returns `false` if UUID unknown.
     pub fn set_health(&self, health: f32) -> bool {
         self.entity()
-            .map_or(false, |e: Entity<'_>| e.set_health(health))
+            .is_some_and(|e: Entity<'_>| e.set_health(health))
     }
 
     /// Kill/remove this player entity; returns `false` if UUID unknown.
     pub fn kill(&self) -> bool {
-        self.entity().map_or(false, |e: Entity<'_>| e.kill())
+        self.entity().is_some_and(|e: Entity<'_>| e.kill())
     }
 
     /// Send a title+subtitle screen to this player.
@@ -141,19 +141,18 @@ impl<'a> Player<'a> {
         amplifier: u8,
         show_particles: bool,
     ) -> bool {
-        self.entity().map_or(false, |e: Entity<'_>| {
+        self.entity().is_some_and(|e: Entity<'_>| {
             e.add_effect(effect_id, duration_ticks, amplifier, show_particles)
         })
     }
 
     pub fn remove_effect(&self, effect_id: &str) -> bool {
         self.entity()
-            .map_or(false, |e: Entity<'_>| e.remove_effect(effect_id))
+            .is_some_and(|e: Entity<'_>| e.remove_effect(effect_id))
     }
 
     pub fn clear_effects(&self) -> bool {
-        self.entity()
-            .map_or(false, |e: Entity<'_>| e.clear_effects())
+        self.entity().is_some_and(|e: Entity<'_>| e.clear_effects())
     }
 
     // ── inventory ────────────────────────────────────────────────────────────

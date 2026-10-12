@@ -182,7 +182,7 @@ impl YogToml {
                 .as_deref()
                 .or(env_version.as_deref())
                 .map(|v| v.to_owned())
-                .unwrap_or_else(|| latest_yog_api_version())
+                .unwrap_or_else(latest_yog_api_version)
         };
         format!("yog-api = {:?}", version)
     }
@@ -297,11 +297,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let mut yog_api_version = None;
     let mut filtered_deps = Vec::new();
     for (name, spec) in dependencies {
-        if name == "yog_api_version" {
-            yog_api_version = Some(spec.trim_matches('"').to_string());
-        } else if name == "yog-api" {
-            yog_api_version = Some(spec.trim_matches('"').to_string());
-        } else if name == "yog_api" {
+        if matches!(name.as_str(), "yog_api_version" | "yog-api" | "yog_api") {
             yog_api_version = Some(spec.trim_matches('"').to_string());
         } else {
             filtered_deps.push((name, spec));
@@ -429,7 +425,7 @@ yog_api::export_mod!({struct_name});
     eprintln!("==> created {name}/");
     eprintln!("    yog.toml       ← edit mod metadata here");
     eprintln!("    src/lib.rs     ← write your mod here");
-    eprintln!("");
+    eprintln!();
     eprintln!("Next: cd {name} && yog build");
     Ok(())
 }
@@ -449,7 +445,7 @@ fn to_display_name(id: &str) -> String {
 }
 
 fn to_struct_name(id: &str) -> String {
-    id.split(|c: char| c == '-' || c == '_')
+    id.split(['-', '_'])
         .map(|w| {
             let mut c = w.chars();
             c.next()
@@ -469,11 +465,11 @@ fn to_snake_name(id: &str) -> String {
     let mut out = String::with_capacity(id.len());
     for c in id.chars() {
         if c == '-' || c == '_' {
-            if out.chars().last() != Some('_') {
+            if !out.ends_with('_') {
                 out.push('_');
             }
         } else if c.is_uppercase() {
-            if !out.is_empty() && out.chars().last() != Some('_') {
+            if !out.is_empty() && !out.ends_with('_') {
                 out.push('_');
             }
             out.extend(c.to_lowercase());
@@ -1010,7 +1006,7 @@ fn setup() -> Result<(), String> {
         check_targets();
     }
 
-    eprintln!("");
+    eprintln!();
     if rust_ok && zig_build_ok {
         eprintln!("==> all good — `yog build` should produce all 5 platforms.");
     } else if rust_ok {
@@ -1109,10 +1105,8 @@ fn check_zig() -> bool {
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).ok();
         let input = input.trim().to_lowercase();
-        if input.is_empty() || input == "y" {
-            if try_install_zig() {
-                return true;
-            }
+        if (input.is_empty() || input == "y") && try_install_zig() {
+            return true;
         }
         eprintln!("       Download zig from: https://ziglang.org/download/");
         eprintln!("       Extract, add to PATH, then re-run `yog setup`.");
@@ -1797,11 +1791,11 @@ fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<Str
                 match ch {
                     '<' => depth += 1,
                     '>' => depth -= 1,
-                    ' ' | ',' | ';' | '{' | '}' | '(' | ')' | ':' | '[' | ']' | '.' => {
-                        if depth == 0 {
-                            end = i;
-                            break;
-                        }
+                    ' ' | ',' | ';' | '{' | '}' | '(' | ')' | ':' | '[' | ']' | '.'
+                        if depth == 0 =>
+                    {
+                        end = i;
+                        break;
                     }
                     _ => {}
                 }
@@ -2365,10 +2359,9 @@ fn generate_fn_wrapper(name: &str, source: &str) -> String {
     let bind_name_fmt = bind_name.replace('{', "{{").replace('}', "}}");
 
     // Build the C-ABI function pointer type
-    let wrapper_ty = format!(
-        "unsafe extern \"C\" fn(input_ptr: *const u8, input_len: u32, \
+    let wrapper_ty = "unsafe extern \"C\" fn(input_ptr: *const u8, input_len: u32, \
          out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32)"
-    );
+        .to_string();
 
     let serialize_block = if tuple_expr.is_empty() {
         "let input_bytes: Vec<u8> = Vec::new();".to_string()

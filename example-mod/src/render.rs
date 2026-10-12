@@ -3,14 +3,12 @@
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+use yog_api::ui::{layout, LayoutNode};
 use yog_api::{
-    GfxContext,
-    gfx_core::{DataType, DrawMode, blend},
+    gfx_core::{blend, DataType, DrawMode},
     gfx_gl::{Buffer, ShaderProgram, VertexArray},
-    BookRenderer,
-    Registry,
+    BookRenderer, GfxContext, Registry,
 };
-use yog_api::ui::{LayoutNode, layout};
 
 // ── GLSL (world renderer) ────────────────────────────────────────────────────
 
@@ -64,7 +62,6 @@ const PLUMBOB: &[f32] = {
     ]
 };
 
-
 const SPRING_K: f32 = 200.0;
 const SPRING_D: f32 = 28.0;
 const ROT_SPEED: f32 = 1.2;
@@ -72,50 +69,84 @@ const ROT_SPEED: f32 = 1.2;
 // ── WorldRenderer ─────────────────────────────────────────────────────────────
 
 struct WorldRenderer {
-    prog: Option<ShaderProgram>, quad_vbo: Option<Buffer>, quad_vao: Option<VertexArray>,
-    plumb_vbo: Option<Buffer>, plumb_vao: Option<VertexArray>,
-    start: Option<Instant>, last: Option<Instant>,
-    plumb_pos: Option<[f32; 3]>, plumb_vel: [f32; 3],
+    prog: Option<ShaderProgram>,
+    quad_vbo: Option<Buffer>,
+    quad_vao: Option<VertexArray>,
+    plumb_vbo: Option<Buffer>,
+    plumb_vao: Option<VertexArray>,
+    start: Option<Instant>,
+    last: Option<Instant>,
+    plumb_pos: Option<[f32; 3]>,
+    plumb_vel: [f32; 3],
 }
 
 impl WorldRenderer {
-    const fn new() -> Self { Self {
-        prog: None, quad_vbo: None, quad_vao: None,
-        plumb_vbo: None, plumb_vao: None,
-        start: None, last: None, plumb_pos: None, plumb_vel: [0.0; 3],
-    }}
+    const fn new() -> Self {
+        Self {
+            prog: None,
+            quad_vbo: None,
+            quad_vao: None,
+            plumb_vbo: None,
+            plumb_vao: None,
+            start: None,
+            last: None,
+            plumb_pos: None,
+            plumb_vel: [0.0; 3],
+        }
+    }
 
     fn init(&mut self, ctx: &GfxContext) {
-        let prog = match ctx.create_shader(VERT, FRAG) { Ok(p) => p, Err(()) => return };
-        let quad: &[f32] = &[-0.5,0.0,0.5, 0.5,0.0,0.5, 0.5,0.0,-0.5, -0.5,0.0,0.5, 0.5,0.0,-0.5, -0.5,0.0,-0.5];
-        let qv = ctx.create_buffer(); unsafe { qv.upload(ctx, quad, false) };
-        let qa = ctx.create_vao(); qa.attrib(ctx, &qv, 0, 3, DataType::F32, false, 12, 0);
-        let pv = ctx.create_buffer(); unsafe { pv.upload(ctx, PLUMBOB, false) };
+        let prog = match ctx.create_shader(VERT, FRAG) {
+            Ok(p) => p,
+            Err(()) => return,
+        };
+        let quad: &[f32] = &[
+            -0.5, 0.0, 0.5, 0.5, 0.0, 0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, -0.5,
+            0.0, -0.5,
+        ];
+        let qv = ctx.create_buffer();
+        unsafe { qv.upload(ctx, quad, false) };
+        let qa = ctx.create_vao();
+        qa.attrib(ctx, &qv, 0, 3, DataType::F32, false, 12, 0);
+        let pv = ctx.create_buffer();
+        unsafe { pv.upload(ctx, PLUMBOB, false) };
         let pa = ctx.create_vao();
-        pa.attrib(ctx, &pv, 0, 3, DataType::F32, false, 24, 0);   // aPos
-        pa.attrib(ctx, &pv, 1, 3, DataType::F32, false, 24, 12);  // aBary
+        pa.attrib(ctx, &pv, 0, 3, DataType::F32, false, 24, 0); // aPos
+        pa.attrib(ctx, &pv, 1, 3, DataType::F32, false, 24, 12); // aBary
         let now = Instant::now();
-        self.prog = Some(prog); self.quad_vbo = Some(qv); self.quad_vao = Some(qa);
-        self.plumb_vbo = Some(pv); self.plumb_vao = Some(pa);
-        self.start = Some(now); self.last = Some(now);
+        self.prog = Some(prog);
+        self.quad_vbo = Some(qv);
+        self.quad_vao = Some(qa);
+        self.plumb_vbo = Some(pv);
+        self.plumb_vao = Some(pa);
+        self.start = Some(now);
+        self.last = Some(now);
     }
 
     fn render(&mut self, ctx: &GfxContext) {
-        if self.prog.is_none() { self.init(ctx); }
-        let Some(prog) = self.prog.as_ref() else { return };
+        if self.prog.is_none() {
+            self.init(ctx);
+        }
+        let Some(prog) = self.prog.as_ref() else {
+            return;
+        };
         let now = Instant::now();
-        let dt = self.last.map_or(0.0, |t| t.elapsed().as_secs_f32().min(0.1));
+        let dt = self
+            .last
+            .map_or(0.0, |t| t.elapsed().as_secs_f32().min(0.1));
         let t = self.start.map_or(0.0, |s| s.elapsed().as_secs_f32());
         self.last = Some(now);
-        let cam = ctx.camera_pos(); let p = ctx.player_pos();
+        let cam = ctx.camera_pos();
+        let p = ctx.player_pos();
         let target = [p[0], p[1] + 1.8, p[2]];
         let pos = self.plumb_pos.get_or_insert(target);
         for i in 0..3 {
             let force = (target[i] - pos[i]) * SPRING_K - self.plumb_vel[i] * SPRING_D;
-            self.plumb_vel[i] += force * dt; pos[i] += self.plumb_vel[i] * dt;
+            self.plumb_vel[i] += force * dt;
+            pos[i] += self.plumb_vel[i] * dt;
         }
         let pw = *pos;
-        let off = [pw[0]-cam[0], pw[1]-cam[1], pw[2]-cam[2]-0.0];
+        let off = [pw[0] - cam[0], pw[1] - cam[1], pw[2] - cam[2] - 0.0];
         let rot = (t * ROT_SPEED) % std::f32::consts::TAU;
         let vp = ctx.view_proj();
         ctx.set_depth(true, false);
@@ -123,7 +154,13 @@ impl WorldRenderer {
         prog.uniform_mat4(ctx, "uViewProj", &vp);
         if let Some(vao) = self.quad_vao.as_ref() {
             prog.uniform_1f(ctx, "uRotY", 0.0);
-            prog.uniform_3f(ctx, "uOffset", 0.0-cam[0], 65.0-cam[1], 0.0-cam[2]-0.0);
+            prog.uniform_3f(
+                ctx,
+                "uOffset",
+                0.0 - cam[0],
+                65.0 - cam[1],
+                0.0 - cam[2] - 0.0,
+            );
             prog.uniform_4f(ctx, "uColor", 1.0, 0.2, 0.2, 0.7);
             ctx.draw_arrays(vao, prog, DrawMode::Triangles, 0, 6);
         }
@@ -131,26 +168,51 @@ impl WorldRenderer {
             prog.uniform_1f(ctx, "uRotY", rot);
             prog.uniform_3f(ctx, "uOffset", off[0], off[1], off[2]);
             prog.uniform_4f(ctx, "uColor", 0.1, 0.9, 0.2, 0.92);
-            ctx.draw_arrays(vao, prog, DrawMode::Triangles, 0, (PLUMBOB.len()/3) as u32);
+            ctx.draw_arrays(
+                vao,
+                prog,
+                DrawMode::Triangles,
+                0,
+                (PLUMBOB.len() / 3) as u32,
+            );
         }
-        ctx.set_blend(false, 0, 0); ctx.set_depth(false, false);
+        ctx.set_blend(false, 0, 0);
+        ctx.set_depth(false, false);
     }
 }
 
 // ── FrameTimer ────────────────────────────────────────────────────────────────
 
-struct FrameTimer { buf: [f32; 500], sum: f64, idx: usize, filled: bool, last: Option<Instant> }
+struct FrameTimer {
+    buf: [f32; 500],
+    sum: f64,
+    idx: usize,
+    filled: bool,
+    last: Option<Instant>,
+}
 impl FrameTimer {
-    const fn new() -> Self { Self { buf: [0.0; 500], sum: 0.0, idx: 0, filled: false, last: None } }
+    const fn new() -> Self {
+        Self {
+            buf: [0.0; 500],
+            sum: 0.0,
+            idx: 0,
+            filled: false,
+            last: None,
+        }
+    }
     fn tick(&mut self) -> f32 {
         let now = Instant::now();
-        let dt = self.last.map_or(0.016, |t| t.elapsed().as_secs_f32().min(0.5));
+        let dt = self
+            .last
+            .map_or(0.016, |t| t.elapsed().as_secs_f32().min(0.5));
         self.last = Some(now);
         self.sum -= self.buf[self.idx] as f64;
         self.buf[self.idx] = dt;
         self.sum += dt as f64;
         self.idx = (self.idx + 1) % 500;
-        if self.idx == 0 { self.filled = true; }
+        if self.idx == 0 {
+            self.filled = true;
+        }
         let n = if self.filled { 500 } else { self.idx.max(1) };
         (self.sum / n as f64) as f32
     }
@@ -160,7 +222,7 @@ impl FrameTimer {
 
 struct BookState {
     renderer: BookRenderer,
-    layout:   Option<LayoutNode>,
+    layout: Option<LayoutNode>,
 }
 
 impl BookState {
@@ -169,10 +231,19 @@ impl BookState {
         // Feed recipes to the renderer so Crafting/Smelting pages draw the
         // actual grid instead of a placeholder.
         let (shaped, shapeless, furnace) = crate::content::recipes();
-        for r in shaped    { renderer.add_recipe(r.id.clone(), &r.to_json()); }
-        for r in shapeless { renderer.add_recipe(r.id.clone(), &r.to_json()); }
-        for r in furnace   { renderer.add_recipe(r.id.clone(), &r.to_json()); }
-        Self { renderer, layout: None }
+        for r in shaped {
+            renderer.add_recipe(r.id.clone(), &r.to_json());
+        }
+        for r in shapeless {
+            renderer.add_recipe(r.id.clone(), &r.to_json());
+        }
+        for r in furnace {
+            renderer.add_recipe(r.id.clone(), &r.to_json());
+        }
+        Self {
+            renderer,
+            layout: None,
+        }
     }
 }
 
@@ -182,15 +253,17 @@ pub fn register(registry: &mut Registry) {
     // ── Book UI ───────────────────────────────────────────────────────────────
     let book = Arc::new(Mutex::new(None::<BookState>));
     let book_render = book.clone();
-    let book_click  = book;
+    let book_click = book;
 
     registry.on_ui_render("yog:example_guide", move |ctx: &GfxContext| {
-        let (sw, sh) = { let s = ctx.screen_size(); (s.0 as f32, s.1 as f32) };
+        let (sw, sh) = {
+            let s = ctx.screen_size();
+            (s.0 as f32, s.1 as f32)
+        };
         let mut lock = book_render.lock().unwrap();
         let state = lock.get_or_insert_with(BookState::new);
         state.renderer.render(ctx, sw, sh);
-        state.layout = state.renderer.ui.as_ref()
-            .map(|u| u.layout_root.clone());
+        state.layout = state.renderer.ui.as_ref().map(|u| u.layout_root.clone());
     });
 
     registry.register_ui("yog:example_guide", move |_ui_id, event| {
@@ -207,25 +280,26 @@ pub fn register(registry: &mut Registry) {
                             .and_then(|hit| hit.on_click.clone())
                     };
                     if let Some(ev) = click_ev {
-                        book_click.lock().unwrap()
-                            .as_mut()
-                            .map(|s| s.renderer.handle_event(&ev));
+                        if let Some(s) = book_click.lock().unwrap().as_mut() {
+                            s.renderer.handle_event(&ev);
+                        }
                     }
                     return;
                 }
             }
         }
         // Direct event string (keyboard shortcuts, etc.)
-        book_click.lock().unwrap()
-            .as_mut()
-            .map(|s| s.renderer.handle_event(event));
+        if let Some(s) = book_click.lock().unwrap().as_mut() {
+            s.renderer.handle_event(event);
+        }
     });
 
     // ── HUD: FPS counter ──────────────────────────────────────────────────────
     let timer = Mutex::new(FrameTimer::new());
     registry.on_hud_render(move |ctx: &GfxContext| {
         let avg_ms = timer.lock().unwrap().tick() * 1000.0;
-        ctx.draw2d().text(&format!("{:.1} ms", avg_ms), 4.0, 4.0, 0xFF_00FF00, true);
+        ctx.draw2d()
+            .text(&format!("{:.1} ms", avg_ms), 4.0, 4.0, 0xFF_00FF00, true);
     });
 
     // ── World renderer ────────────────────────────────────────────────────────

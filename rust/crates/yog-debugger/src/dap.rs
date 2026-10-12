@@ -92,10 +92,7 @@ impl<S: DebugSession> Server<S> {
         mut reader: R,
         mut writer: W,
     ) -> std::io::Result<()> {
-        loop {
-            let Some(message) = read_message(&mut reader)? else {
-                break;
-            };
+        while let Some(message) = read_message(&mut reader)? {
             if message.get("type").and_then(Value::as_str) != Some("request") {
                 continue;
             }

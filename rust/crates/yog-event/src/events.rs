@@ -109,7 +109,7 @@ pub struct EntityDeathEvent {
 /// Passed to handlers registered via `Registry::on_player_place_block` with an
 /// [`EventPhase`] argument:
 /// - `Pre`  — fires before placement; return `false` to cancel.
-/// - `Post` — fires after placement (requires mixin support; not yet wired).
+/// - `Post` — fires after the block has been placed.
 #[derive(Debug, Clone)]
 pub struct PlaceBlockEvent {
     pub player_name: String,
@@ -135,7 +135,7 @@ pub struct EntitySpawnEvent {
 /// Fired when a player dies.
 ///
 /// - `Pre`  — fires before death is processed; return `false` to prevent death
-///            (entity survives at 0.5 HP).
+///   (entity survives at 0.5 HP).
 /// - `Post` — fires after the player has died.
 #[derive(Debug, Clone)]
 pub struct PlayerDeathEvent {
@@ -197,7 +197,7 @@ pub struct CraftEvent {
 /// Fired when an explosion occurs in a world.
 ///
 /// - `Pre`  — fires before block destruction; return `false` to cancel
-///            (blocks and entities are unaffected).
+///   (blocks and entities are unaffected).
 /// - `Post` — fires after the explosion has taken effect.
 #[derive(Debug, Clone)]
 pub struct ExplosionEvent {

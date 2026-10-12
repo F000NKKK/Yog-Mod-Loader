@@ -73,11 +73,9 @@ impl BookViewState {
                 self.list_spread -= 1;
                 return true;
             }
-        } else if ev == "next_list" {
-            if self.list_spread + 1 < self.list_spread_count(book) {
-                self.list_spread += 1;
-                return true;
-            }
+        } else if ev == "next_list" && self.list_spread + 1 < self.list_spread_count(book) {
+            self.list_spread += 1;
+            return true;
         }
         false
     }
@@ -101,7 +99,7 @@ impl BookViewState {
         if total <= ENTRIES_FIRST {
             return 1;
         }
-        1 + (total - ENTRIES_FIRST + ENTRIES_PER - 1) / ENTRIES_PER
+        1 + (total - ENTRIES_FIRST).div_ceil(ENTRIES_PER)
     }
 
     /// Absolute index of the first entry on the current list spread.

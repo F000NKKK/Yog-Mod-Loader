@@ -5,9 +5,9 @@
 //!
 //! Architecture:
 //!   - `YogServer`  — a `#[repr(C)]` table of standalone JNI-calling functions
-//!                    that mods call to mutate the world.
+//!     that mods call to mutate the world.
 //!   - `YogApi`     — a `#[repr(C)]` table of registration functions; mods call
-//!                    them inside `yog_mod_register` to subscribe to events.
+//!     them inside `yog_mod_register` to subscribe to events.
 //!   - `RuntimeHandlers` — the runtime's internal event/handler storage.
 //!     Filled during `nativeInit` (write), read-only after. The scheduler sub-
 //!     state uses an inner `Mutex` for safe addition during event dispatch.
@@ -109,6 +109,10 @@ pub struct UiLayer {
     pub z_index: i32,
 }
 
+/// One command registration: owning module, typed-args schema (if any),
+/// user data and callback.
+type CommandEntry = (LoadedModule, Option<String>, *mut c_void, YogCommandFn);
+
 // Every callback table below is tagged with the `LoadedModule` that
 // registered it (see `current_registration()`), so a hot-reload's dispatch
 // sites can skip a retiring module's stale entries (`LoadedModule::
@@ -160,7 +164,7 @@ struct RuntimeHandlers {
     /// earlier ones (see `nativeOnCommand`, which tries each entry whose
     /// schema's arg count matches the actual invocation, in order, until one
     /// produces a reply).
-    commands: HashMap<String, Vec<(LoadedModule, Option<String>, *mut c_void, YogCommandFn)>>,
+    commands: HashMap<String, Vec<CommandEntry>>,
     recipes: Vec<(String, String, String)>,
     packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
     client_packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
@@ -419,7 +423,7 @@ fn get_env() -> Option<jni::AttachGuard<'static>> {
 
 unsafe extern "C" fn yog_free_str(ptr: *mut u8, len: u32) {
     if !ptr.is_null() {
-        drop(Box::from_raw(std::slice::from_raw_parts_mut(
+        drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(
             ptr,
             len as usize,
         )));
@@ -1764,10 +1768,7 @@ unsafe extern "C" fn srv_world_entity_count(
         "(Ljava/lang/String;Ljava/lang/String;)I",
         &[JValue::Object(&jd), JValue::Object(&jet)],
     );
-    match ret.and_then(|v| v.i()) {
-        Ok(n) => n,
-        _ => -1,
-    }
+    ret.and_then(|v| v.i()).unwrap_or(-1)
 }
 
 unsafe extern "C" fn srv_game_dir(_ctx: *mut c_void) -> YogOwnedStr {
@@ -3638,7 +3639,7 @@ fn read_mod_info(path: &Path) -> [String; 5] {
                 let list = value.trim_start_matches('[').trim_end_matches(']');
                 let authors: Vec<String> = list
                     .split(',')
-                    .map(|a| unquote(a))
+                    .map(unquote)
                     .filter(|a| !a.is_empty())
                     .collect();
                 info[3] = tsv_clean(&authors.join(", "));

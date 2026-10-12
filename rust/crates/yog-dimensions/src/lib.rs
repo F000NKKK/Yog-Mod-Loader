@@ -205,6 +205,7 @@ impl YogDimensionTypeDef {
 /// the crate-level docs and `Registry::register_chunk_generator`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct YogDimensionDef {
     /// Registry id. A new id (e.g. `"mymod:my_dim"`) creates a custom
     /// dimension; a vanilla id (`"minecraft:overworld"`, etc.) patches that
@@ -218,17 +219,6 @@ pub struct YogDimensionDef {
     /// Extra platform/metadata mods want the host to know about (arbitrary
     /// JSON-string values), for anything not modeled by `dimension_type`.
     pub extra: HashMap<String, String>,
-}
-
-impl Default for YogDimensionDef {
-    fn default() -> Self {
-        Self {
-            id: String::new(),
-            dimension_type: YogDimensionTypeDef::default(),
-            generator_type: None,
-            extra: HashMap::new(),
-        }
-    }
 }
 
 impl YogDimensionDef {

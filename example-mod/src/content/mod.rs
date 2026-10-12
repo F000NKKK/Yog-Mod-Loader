@@ -1,6 +1,9 @@
 //! Custom items and blocks declared by this mod.
 
-use yog_api::{BlockDef, FoodDef, FurnaceRecipe, ItemDef, Registry, ShapedRecipe, ShapelessRecipe, StartupGrant};
+use yog_api::{
+    BlockDef, FoodDef, FurnaceRecipe, ItemDef, Registry, ShapedRecipe, ShapelessRecipe,
+    StartupGrant,
+};
 
 /// All recipes as `(id, recipe JSON)` — used both for registration and for
 /// the guide book's crafting page rendering.
@@ -14,13 +17,17 @@ pub fn recipes() -> (Vec<ShapedRecipe>, Vec<ShapelessRecipe>, Vec<FurnaceRecipe>
     ];
     let shapeless = vec![
         // Ruby block → 4 rubies.
-        ShapelessRecipe::new("yog:rubies_from_block", "yog:ruby", 4)
-            .ingredient("yog:ruby_block"),
+        ShapelessRecipe::new("yog:rubies_from_block", "yog:ruby", 4).ingredient("yog:ruby_block"),
     ];
     let furnace = vec![
         // Smelt ember_coal from regular coal (just a demo).
-        FurnaceRecipe::new("yog:ember_coal_smelting", "minecraft:coal", "yog:ember_coal", 1)
-            .experience(0.5),
+        FurnaceRecipe::new(
+            "yog:ember_coal_smelting",
+            "minecraft:coal",
+            "yog:ember_coal",
+            1,
+        )
+        .experience(0.5),
     ];
     (shaped, shapeless, furnace)
 }
@@ -71,9 +78,15 @@ pub fn register(registry: &mut Registry) {
     // ── Recipes ──────────────────────────────────────────────────────────────
 
     let (shaped, shapeless, furnace) = recipes();
-    for r in shaped    { registry.add_shaped_recipe(r); }
-    for r in shapeless { registry.add_shapeless_recipe(r); }
-    for r in furnace   { registry.add_furnace_recipe(r); }
+    for r in shaped {
+        registry.add_shaped_recipe(r);
+    }
+    for r in shapeless {
+        registry.add_shapeless_recipe(r);
+    }
+    for r in furnace {
+        registry.add_furnace_recipe(r);
+    }
 
     // ── Guide book ─────────────────────────────────────────────────────────────
 
@@ -86,7 +99,6 @@ pub fn register(registry: &mut Registry) {
 
     // Give the guide book to every new player on first join.
     registry.register_startup_grant(
-        StartupGrant::new("yog:example_guide_grant")
-            .item("yog:example_guide"),
+        StartupGrant::new("yog:example_guide_grant").item("yog:example_guide"),
     );
 }

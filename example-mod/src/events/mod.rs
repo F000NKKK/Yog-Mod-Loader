@@ -12,45 +12,47 @@ use yog_api::{
 };
 
 pub fn register(registry: &mut Registry) {
-    registry.on_block_break(|e, phase, srv| {
-        match phase {
-            EventPhase::Pre => {
-                let allow = e.block_id != "minecraft:bedrock";
-                if !allow {
-                    info!("[example-mod] blocked {} from breaking bedrock", e.player_name);
-                }
-                allow
-            }
-            EventPhase::Post => {
+    registry.on_block_break(|e, phase, srv| match phase {
+        EventPhase::Pre => {
+            let allow = e.block_id != "minecraft:bedrock";
+            if !allow {
                 info!(
-                    "[example-mod] {} broke {} at ({}, {}, {})",
-                    e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
+                    "[example-mod] blocked {} from breaking bedrock",
+                    e.player_name
                 );
-                World::new(srv, "minecraft:overworld").set_block(e.pos, "minecraft:glass");
-                true
             }
+            allow
+        }
+        EventPhase::Post => {
+            info!(
+                "[example-mod] {} broke {} at ({}, {}, {})",
+                e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
+            );
+            World::new(srv, "minecraft:overworld").set_block(e.pos, "minecraft:glass");
+            true
         }
     });
 
-    registry.on_chat(|e, phase, _srv| {
-        match phase {
-            EventPhase::Pre => {
-                let allow = !e.message.starts_with("!block ");
-                if !allow {
-                    info!("[example-mod] suppressed message from {}", e.player_name);
-                }
-                allow
+    registry.on_chat(|e, phase, _srv| match phase {
+        EventPhase::Pre => {
+            let allow = !e.message.starts_with("!block ");
+            if !allow {
+                info!("[example-mod] suppressed message from {}", e.player_name);
             }
-            EventPhase::Post => {
-                info!("[example-mod] <{}> {}", e.player_name, e.message);
-                true
-            }
+            allow
+        }
+        EventPhase::Post => {
+            info!("[example-mod] <{}> {}", e.player_name, e.message);
+            true
         }
     });
 
     registry.on_player_join(|e, _phase, srv| {
         info!("[example-mod] {} joined ({})", e.player_name, e.uuid);
-        srv.broadcast(&format!("Welcome, {}! (greeted by a Rust mod)", e.player_name));
+        srv.broadcast(&format!(
+            "Welcome, {}! (greeted by a Rust mod)",
+            e.player_name
+        ));
         true
     });
 
@@ -76,85 +78,91 @@ pub fn register(registry: &mut Registry) {
     });
 
     registry.on_attack_entity(|e, _phase, srv| {
-        info!("[example-mod] {} attacked {} ({})", e.player_name, e.target_type, e.target_uuid);
-        srv.broadcast(&format!("{} is fighting a {}!", e.player_name, e.target_type));
+        info!(
+            "[example-mod] {} attacked {} ({})",
+            e.player_name, e.target_type, e.target_uuid
+        );
+        srv.broadcast(&format!(
+            "{} is fighting a {}!",
+            e.player_name, e.target_type
+        ));
         true
     });
 
-    registry.on_entity_damage(|e, phase, _srv| {
-        match phase {
-            EventPhase::Pre => {
-                let is_player_fall =
-                    e.entity_type == "minecraft:player" && e.source.contains("fall");
-                if is_player_fall {
-                    info!("[example-mod] cancelled fall damage for player {}", e.uuid);
-                }
-                !is_player_fall
+    registry.on_entity_damage(|e, phase, _srv| match phase {
+        EventPhase::Pre => {
+            let is_player_fall = e.entity_type == "minecraft:player" && e.source.contains("fall");
+            if is_player_fall {
+                info!("[example-mod] cancelled fall damage for player {}", e.uuid);
             }
-            EventPhase::Post => {
-                info!(
-                    "[example-mod] {} took {:.1} damage from {}",
-                    e.entity_type, e.amount, e.source
-                );
-                true
-            }
+            !is_player_fall
+        }
+        EventPhase::Post => {
+            info!(
+                "[example-mod] {} took {:.1} damage from {}",
+                e.entity_type, e.amount, e.source
+            );
+            true
         }
     });
 
     registry.on_entity_death(|e, _phase, srv| {
-        info!("[example-mod] {} died (source: {})", e.entity_type, e.source);
+        info!(
+            "[example-mod] {} died (source: {})",
+            e.entity_type, e.source
+        );
         srv.broadcast(&format!("A {} has perished.", e.entity_type));
         true
     });
 
-    registry.on_entity_spawn(|e: &EntitySpawnEvent, phase, _srv| {
-        match phase {
-            EventPhase::Pre => {
-                let allow = e.entity_type != "minecraft:creeper";
-                if !allow {
-                    info!("[example-mod] cancelled creeper spawn in {}", e.dimension);
-                }
-                allow
+    registry.on_entity_spawn(|e: &EntitySpawnEvent, phase, _srv| match phase {
+        EventPhase::Pre => {
+            let allow = e.entity_type != "minecraft:creeper";
+            if !allow {
+                info!("[example-mod] cancelled creeper spawn in {}", e.dimension);
             }
-            EventPhase::Post => {
-                info!(
-                    "[example-mod] entity spawned: {} ({}) in {}",
-                    e.entity_type, e.uuid, e.dimension
-                );
-                true
-            }
+            allow
+        }
+        EventPhase::Post => {
+            info!(
+                "[example-mod] entity spawned: {} ({}) in {}",
+                e.entity_type, e.uuid, e.dimension
+            );
+            true
         }
     });
 
-    registry.on_player_place_block(|e: &PlaceBlockEvent, phase, _srv| {
-        match phase {
-            EventPhase::Pre => {
-                info!(
-                    "[example-mod] {} placing {} at ({}, {}, {})",
-                    e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
-                );
-                true
-            }
-            EventPhase::Post => true,
+    registry.on_player_place_block(|e: &PlaceBlockEvent, phase, _srv| match phase {
+        EventPhase::Pre => {
+            info!(
+                "[example-mod] {} placing {} at ({}, {}, {})",
+                e.player_name, e.block_id, e.pos.x, e.pos.y, e.pos.z
+            );
+            true
         }
+        EventPhase::Post => true,
     });
 
-    registry.on_player_death(|e: &PlayerDeathEvent, phase, srv| {
-        match phase {
-            EventPhase::Pre => {
-                info!("[example-mod] {} is dying (source: {})", e.player_name, e.source);
-                true
-            }
-            EventPhase::Post => {
-                srv.broadcast(&format!("{} died ({}). F.", e.player_name, e.source));
-                true
-            }
+    registry.on_player_death(|e: &PlayerDeathEvent, phase, srv| match phase {
+        EventPhase::Pre => {
+            info!(
+                "[example-mod] {} is dying (source: {})",
+                e.player_name, e.source
+            );
+            true
+        }
+        EventPhase::Post => {
+            srv.broadcast(&format!("{} died ({}). F.", e.player_name, e.source));
+            true
         }
     });
 
     registry.on_player_respawn(|e: &PlayerRespawnEvent, _phase, srv| {
         srv.broadcast(&format!("Welcome back, {}!", e.player_name));
-        info!("[example-mod] {} respawned (anchor: {})", e.player_name, e.at_anchor);
+        info!(
+            "[example-mod] {} respawned (anchor: {})",
+            e.player_name, e.at_anchor
+        );
         true
     });
 
@@ -163,26 +171,24 @@ pub fn register(registry: &mut Registry) {
             "[example-mod] {} earned advancement {}",
             e.player_name, e.advancement_id
         );
-        srv.broadcast(&format!(
-            "{} earned: {}",
-            e.player_name, e.advancement_id
-        ));
+        srv.broadcast(&format!("{} earned: {}", e.player_name, e.advancement_id));
         true
     });
 
-    registry.on_entity_interact(|e: &EntityInteractEvent, phase, srv| {
-        match phase {
-            EventPhase::Pre => {
-                info!(
-                    "[example-mod] {} interacting with {} ({}) using {}",
-                    e.player_name, e.entity_type, e.entity_uuid, e.hand
-                );
-                true
-            }
-            EventPhase::Post => {
-                srv.broadcast(&format!("{} interacted with a {}.", e.player_name, e.entity_type));
-                true
-            }
+    registry.on_entity_interact(|e: &EntityInteractEvent, phase, srv| match phase {
+        EventPhase::Pre => {
+            info!(
+                "[example-mod] {} interacting with {} ({}) using {}",
+                e.player_name, e.entity_type, e.entity_uuid, e.hand
+            );
+            true
+        }
+        EventPhase::Post => {
+            srv.broadcast(&format!(
+                "{} interacted with a {}.",
+                e.player_name, e.entity_type
+            ));
+            true
         }
     });
 
@@ -194,28 +200,29 @@ pub fn register(registry: &mut Registry) {
         true
     });
 
-    registry.on_explosion(|e: &ExplosionEvent, phase, srv| {
-        match phase {
-            EventPhase::Pre => {
-                info!(
-                    "[example-mod] explosion at ({:.1}, {:.1}, {:.1}) power={} in {}",
-                    e.x, e.y, e.z, e.power, e.dimension
-                );
-                true
-            }
-            EventPhase::Post => {
-                srv.broadcast(&format!(
-                    "Explosion! ({:.0}, {:.0}, {:.0}) power={}",
-                    e.x, e.y, e.z, e.power
-                ));
-                true
-            }
+    registry.on_explosion(|e: &ExplosionEvent, phase, srv| match phase {
+        EventPhase::Pre => {
+            info!(
+                "[example-mod] explosion at ({:.1}, {:.1}, {:.1}) power={} in {}",
+                e.x, e.y, e.z, e.power, e.dimension
+            );
+            true
+        }
+        EventPhase::Post => {
+            srv.broadcast(&format!(
+                "Explosion! ({:.0}, {:.0}, {:.0}) power={}",
+                e.x, e.y, e.z, e.power
+            ));
+            true
         }
     });
 
     registry.on_item_pickup(|e: &ItemPickupEvent, phase, _srv| {
         if phase == EventPhase::Post {
-            info!("[example-mod] {} picked up {}x {}", e.player_name, e.item_count, e.item_id);
+            info!(
+                "[example-mod] {} picked up {}x {}",
+                e.player_name, e.item_count, e.item_id
+            );
         }
         true
     });
@@ -224,15 +231,21 @@ pub fn register(registry: &mut Registry) {
         // Only log occasionally to avoid spam (1 in 400 = ~every 20 seconds at 20hz)
         static MOVE_COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let n = MOVE_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        if n % 400 == 0 {
-            info!("[example-mod] {} at ({:.1}, {:.1}, {:.1})", e.player_name, e.x, e.y, e.z);
+        if n.is_multiple_of(400) {
+            info!(
+                "[example-mod] {} at ({:.1}, {:.1}, {:.1})",
+                e.player_name, e.x, e.y, e.z
+            );
         }
         true
     });
 
     registry.on_container_open(|e: &ContainerOpenEvent, phase, _srv| {
         if phase == EventPhase::Post {
-            info!("[example-mod] {} opened container: {}", e.player_name, e.container_type);
+            info!(
+                "[example-mod] {} opened container: {}",
+                e.player_name, e.container_type
+            );
         }
         true
     });
@@ -242,30 +255,35 @@ pub fn register(registry: &mut Registry) {
         true
     });
 
-    registry.on_projectile_hit(|e: &ProjectileHitEvent, phase, srv| {
-        match phase {
-            EventPhase::Pre => {
-                info!(
-                    "[example-mod] {} hit {} ({}) at ({:.1}, {:.1}, {:.1})",
-                    e.projectile_type, e.hit_type,
-                    if e.hit_entity_uuid.is_empty() { "block" } else { &e.hit_entity_uuid },
-                    e.x, e.y, e.z
-                );
-                true
+    registry.on_projectile_hit(|e: &ProjectileHitEvent, phase, srv| match phase {
+        EventPhase::Pre => {
+            info!(
+                "[example-mod] {} hit {} ({}) at ({:.1}, {:.1}, {:.1})",
+                e.projectile_type,
+                e.hit_type,
+                if e.hit_entity_uuid.is_empty() {
+                    "block"
+                } else {
+                    &e.hit_entity_uuid
+                },
+                e.x,
+                e.y,
+                e.z
+            );
+            true
+        }
+        EventPhase::Post => {
+            if e.hit_type == "entity" {
+                srv.broadcast(&format!("{} arrow hit entity!", e.projectile_type));
             }
-            EventPhase::Post => {
-                if e.hit_type == "entity" {
-                    srv.broadcast(&format!("{} arrow hit entity!", e.projectile_type));
-                }
-                true
-            }
+            true
         }
     });
 
     registry.on_tick(|srv| {
         static TICKS: AtomicU64 = AtomicU64::new(0);
         let n = TICKS.fetch_add(1, Ordering::Relaxed) + 1;
-        if n % 1200 == 0 {
+        if n.is_multiple_of(1200) {
             srv.broadcast(&format!("Yog: {} minute(s) elapsed.", n / 1200));
         }
     });

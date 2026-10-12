@@ -1,0 +1,3 @@
+# FFI tables and immediate-mode render helpers take many plain parameters by
+# design; bundling them into structs would only obscure the C ABI.
+too-many-arguments-threshold = 14

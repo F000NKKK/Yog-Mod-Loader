@@ -124,11 +124,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
                         if let Some(event) = &hit.on_click {
                             let ev = event.clone();
                             drop(renderers);
-                            h.book_renderers
-                                .lock()
-                                .unwrap()
-                                .get_mut(&id)
-                                .map(|r| r.handle_event(&ev));
+                            if let Some(r) = h.book_renderers.lock().unwrap().get_mut(&id) {
+                                r.handle_event(&ev)
+                            }
                             yog_logging::info!("book click '{}' → '{}'", &id, &ev);
                             return 1;
                         }
@@ -275,8 +273,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
             snapshot.slots[i].x = pos.0;
             snapshot.slots[i].y = pos.1;
         }
-        for i in 0..n {
-            snapshot.slots[i].item_id = YogStr::from_str(&slot_item_ids[i]);
+        for (slot, id) in snapshot.slots.iter_mut().zip(&slot_item_ids) {
+            slot.item_id = YogStr::from_str(id);
         }
         push_inventory_snapshot(&snapshot);
     }

@@ -135,11 +135,10 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
     };
     // Returns true if this child consumes main-axis space in the normal forward pass.
     let in_flow = |child: &Widget| -> bool {
-        match (dir, child.style.dock) {
-            (FlexDir::Row, Dock::Right) => false,
-            (FlexDir::Column, Dock::Bottom) => false,
-            _ => true,
-        }
+        !matches!(
+            (dir, child.style.dock),
+            (FlexDir::Row, Dock::Right) | (FlexDir::Column, Dock::Bottom)
+        )
     };
 
     // Measure children

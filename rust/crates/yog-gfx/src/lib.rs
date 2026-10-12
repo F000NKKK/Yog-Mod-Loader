@@ -139,6 +139,7 @@ impl GfxContext {
 
     /// Compile and link a GLSL shader program.
     /// Returns `Err(())` and logs on compile/link failure.
+    #[allow(clippy::result_unit_err)] // public API; the log carries the details
     pub fn create_shader(&self, vert_src: &str, frag_src: &str) -> Result<gl::ShaderProgram, ()> {
         use yog_abi::YogStr;
         let mut handle = 0u32;

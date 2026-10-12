@@ -35,6 +35,8 @@ impl YogStr {
         len: 0,
     };
 
+    /// Borrow `s` — not `FromStr`, which can't return a borrowing value.
+    #[allow(clippy::should_implement_trait)]
     #[inline]
     pub fn from_str(s: &str) -> Self {
         Self {
@@ -48,8 +50,10 @@ impl YogStr {
         self.len == 0 || self.ptr.is_null()
     }
 
-    /// SAFETY: `ptr` must be valid UTF-8 of `len` bytes for at least the
-    /// duration of the call that provided this `YogStr`.
+    /// # Safety
+    ///
+    /// `ptr` must be valid UTF-8 of `len` bytes for at least the duration of
+    /// the call that provided this `YogStr`.
     #[inline]
     pub unsafe fn as_str<'a>(self) -> &'a str {
         if self.ptr.is_null() || self.len == 0 {

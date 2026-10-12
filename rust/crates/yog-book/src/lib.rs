@@ -487,7 +487,7 @@ pub mod book_ui {
             .gap(4.0)
             .child(widget::button("<").w(28.0).on_click("prev_page"))
             .child(
-                widget::label(&format!(
+                widget::label(format!(
                     "{}/{}",
                     current_page + 1,
                     cat.map_or(0, |c| {

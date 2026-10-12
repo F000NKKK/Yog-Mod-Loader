@@ -1397,6 +1397,11 @@ unsafe impl Sync for Registry {}
 
 impl Registry {
     /// Build from the pointer passed by the runtime. Only called by `export_mod!`.
+    ///
+    /// # Safety
+    ///
+    /// `api` must point to the runtime's `YogApi` table, valid for the rest of
+    /// the process.
     pub unsafe fn from_raw(api: *const YogApi) -> Self {
         GLOBAL_API.store(api as *mut YogApi, std::sync::atomic::Ordering::Release);
         Self { api }
@@ -1737,7 +1742,7 @@ impl Registry {
         // before returning (the runtime stores owned Strings).
         let food_nutrition = def.food.as_ref().map_or(0, |f| f.nutrition);
         let food_saturation = def.food.as_ref().map_or(0.0, |f| f.saturation);
-        let food_always_eat = def.food.as_ref().map_or(false, |f| f.can_always_eat);
+        let food_always_eat = def.food.as_ref().is_some_and(|f| f.can_always_eat);
         let c = YogItemDef {
             id: YogStr::from_str(&def.id),
             max_stack: def.max_stack as u32,

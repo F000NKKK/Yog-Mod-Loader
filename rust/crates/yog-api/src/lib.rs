@@ -144,7 +144,7 @@ pub fn __current_api_ptr() -> usize {
 static API_PTR: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 std::thread_local! {
-    static CURRENT_MOD_ID: std::cell::RefCell<Option<String>> = std::cell::RefCell::new(None);
+    static CURRENT_MOD_ID: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
 }
 
 // ── Auto-export registry ─────────────────────────────────────────────────
