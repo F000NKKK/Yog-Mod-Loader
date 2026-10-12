@@ -8,6 +8,7 @@
 //!   yog new <name>   — scaffold a new mod project
 //!   yog build        — compile + package the current mod
 //!   yog setup        — check/install build dependencies
+//!   yog doctor       — report build dependencies (read-only; `--json` for tools)
 //!   yog help         — show usage
 
 use std::collections::{HashMap, HashSet};
@@ -32,6 +33,19 @@ fn main() {
         }
         Some("new") => new_mod(args.get(2).map(String::as_str)),
         Some("setup") => setup(),
+        Some("doctor") => {
+            let report = doctor();
+            if args[2..].iter().any(|a| a == "--json") {
+                println!("{}", report.to_json());
+            } else {
+                report.print();
+            }
+            Ok(())
+        }
+        Some("-V") | Some("--version") | Some("version") => {
+            println!("yog {}", env!("CARGO_PKG_VERSION"));
+            return;
+        }
         Some("add") => {
             let is_mod = args[2..].iter().any(|a| a == "--mod");
             let name = args[2..].iter().find(|a| a.as_str() != "--mod");
@@ -81,6 +95,8 @@ fn print_usage() {
          \x20 build               Compile the current mod and package it as artifacts/<id>.yog\n\
          \x20 build debug         Same, but keep debug info in the native (for yog-debugger)\n\
          \x20 setup               Check and install build dependencies (Rust, Zig, targets)\n\
+         \x20 doctor [--json]     Report build dependencies without changing anything\n\
+         \x20 version             Print the yog CLI version\n\
          \x20 add <crate>         Add a Rust dependency to yog.toml\n\
          \x20 remove <crate>      Remove a dependency from yog.toml\n\
          \x20 run <config>        Build, export, and launch a [run.<config>] dev instance\n\
@@ -1188,6 +1204,118 @@ fn check_targets() {
         .filter(|triple| !installed.iter().any(|s| s == *triple))
         .count();
     eprintln!("       {}", if missing == 0 { "done" } else { "FAILED" });
+}
+
+// ── yog doctor ───────────────────────────────────────────────────────────────
+
+/// What `yog doctor` found — the same checks as `yog setup`, but read-only
+/// and non-interactive, so IDEs (Yog-IDLE) can show it and install what's
+/// missing themselves. `--json` is the machine-readable form; its keys are
+/// a stable contract.
+struct DoctorReport {
+    cli_version: &'static str,
+    rust_toolchain: &'static str,
+    cargo: Option<String>,
+    rustup: Option<String>,
+    cargo_zigbuild: bool,
+    zig: Option<String>,
+    /// `(tag, triple, installed)` for every platform a `.yog` bundles.
+    targets: Vec<(&'static str, &'static str, bool)>,
+}
+
+fn first_line_of(program: &str, args: &[&str]) -> Option<String> {
+    let out = Command::new(program).args(args).output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    Some(text.lines().next().unwrap_or("").trim().to_string())
+}
+
+fn doctor() -> DoctorReport {
+    let installed = installed_targets();
+    DoctorReport {
+        cli_version: env!("CARGO_PKG_VERSION"),
+        rust_toolchain: RUST_TOOLCHAIN,
+        cargo: first_line_of("cargo", &["--version"]),
+        rustup: first_line_of("rustup", &["--version"]),
+        cargo_zigbuild: Command::new("cargo")
+            .args(["zigbuild", "--help"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false),
+        zig: first_line_of("zig", &["version"]),
+        targets: TARGETS
+            .iter()
+            .map(|t| (t.tag, t.triple, installed.iter().any(|s| s == t.triple)))
+            .collect(),
+    }
+}
+
+/// A JSON string literal (the report only holds tool version lines).
+fn json_str(s: &str) -> String {
+    serde_json::Value::String(s.to_string()).to_string()
+}
+
+fn json_opt(s: &Option<String>) -> String {
+    s.as_deref().map_or_else(|| "null".to_string(), json_str)
+}
+
+impl DoctorReport {
+    fn to_json(&self) -> String {
+        let targets: Vec<String> = self
+            .targets
+            .iter()
+            .map(|(tag, triple, installed)| {
+                format!(
+                    "{{\"tag\":{},\"triple\":{},\"installed\":{installed}}}",
+                    json_str(tag),
+                    json_str(triple)
+                )
+            })
+            .collect();
+        format!(
+            "{{\"cli_version\":{},\"rust_toolchain\":{},\"cargo\":{},\"rustup\":{},\"cargo_zigbuild\":{},\"zig\":{},\"targets\":[{}]}}",
+            json_str(self.cli_version),
+            json_str(self.rust_toolchain),
+            json_opt(&self.cargo),
+            json_opt(&self.rustup),
+            self.cargo_zigbuild,
+            json_opt(&self.zig),
+            targets.join(",")
+        )
+    }
+
+    fn print(&self) {
+        let show = |name: &str, v: &Option<String>| match v {
+            Some(v) => println!("  [ok] {name:<16} {v}"),
+            None => println!("  [--] {name:<16} not found"),
+        };
+        println!(
+            "yog {} (mods build with Rust {})",
+            self.cli_version, self.rust_toolchain
+        );
+        show("cargo", &self.cargo);
+        show("rustup", &self.rustup);
+        println!(
+            "  [{}] {:<16} {}",
+            if self.cargo_zigbuild { "ok" } else { "--" },
+            "cargo-zigbuild",
+            if self.cargo_zigbuild {
+                "installed"
+            } else {
+                "not found"
+            }
+        );
+        show("zig", &self.zig);
+        for (tag, triple, installed) in &self.targets {
+            println!(
+                "  [{}] {tag:<16} {triple}",
+                if *installed { "ok" } else { "--" }
+            );
+        }
+        println!("Run `yog setup` to install what's missing.");
+    }
 }
 
 // ── Build internals ───────────────────────────────────────────────────────────
@@ -2532,7 +2660,25 @@ fn latest_yog_api_version() -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::filter_benign_warnings;
+    use super::{filter_benign_warnings, DoctorReport};
+
+    #[test]
+    fn doctor_json_is_valid() {
+        let report = DoctorReport {
+            cli_version: "1.2.3",
+            rust_toolchain: "1.99",
+            cargo: Some("cargo 1.99.0 (abc \"q\")".into()),
+            rustup: None,
+            cargo_zigbuild: true,
+            zig: None,
+            targets: vec![("linux-x86_64", "x86_64-unknown-linux-gnu", true)],
+        };
+        let v: serde_json::Value = serde_json::from_str(&report.to_json()).unwrap();
+        assert_eq!(v["cli_version"], "1.2.3");
+        assert_eq!(v["cargo"], "cargo 1.99.0 (abc \"q\")");
+        assert!(v["rustup"].is_null());
+        assert_eq!(v["targets"][0]["installed"], true);
+    }
 
     #[test]
     fn drops_zig_linker_optimization_warning() {
