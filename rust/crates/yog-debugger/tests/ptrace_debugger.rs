@@ -12,9 +12,16 @@ fn build_fixture() -> PathBuf {
 }
 
 fn build(name: &str) -> PathBuf {
+    build_as(name, name)
+}
+
+/// Builds fixture `name` to its own output `tag` — tests run in parallel,
+/// and one rebuilding a binary another is running breaks the latter's
+/// module lookup (the mapping turns `(deleted)`).
+fn build_as(name: &str, tag: &str) -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let src = manifest_dir.join(format!("tests/fixtures/{name}.rs"));
-    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_debugger_{name}_bin"));
+    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_debugger_{tag}_bin"));
 
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
         .args([
@@ -216,7 +223,7 @@ fn traces_every_thread_and_forwards_signals() {
 fn step_over_walks_lines_and_returns_to_the_caller() {
     use yog_debugger::StepKind;
 
-    let exe = build_fixture();
+    let exe = build_as("fixture", "fixture_steps");
     let child = Command::new(&exe)
         .spawn()
         .expect("spawning fixture process");
@@ -235,7 +242,7 @@ fn step_over_walks_lines_and_returns_to_the_caller() {
     debugger.clear_breakpoint(addr).expect("clearing breakpoint");
 
     let mut lines = Vec::new();
-    for _ in 0..2 {
+    for _ in 0..3 {
         debugger
             .source_step(StepKind::Over, &symbols, base)
             .expect("stepping over");
@@ -244,7 +251,8 @@ fn step_over_walks_lines_and_returns_to_the_caller() {
             .expect("stopped somewhere with lines");
         lines.push(location.line);
     }
-    // 27 `total`, then back in `main` on the statement after the call.
-    assert_eq!(lines, [27, 33]);
+    // 27 `total`, 28 the closing brace, then back in `main` on the
+    // statement after the call.
+    assert_eq!(lines, [27, 28, 33]);
     debugger.detach().expect("detaching");
 }
