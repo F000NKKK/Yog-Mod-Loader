@@ -260,8 +260,8 @@ fn step_over_walks_lines_and_returns_to_the_caller() {
 }
 
 /// Just My Code: F10 off the end of a closure that `std` called
-/// (`OnceLock::get_or_init`) lands back in the user function that called
-/// into `std` — never in `std`'s own sources on the way.
+/// (`OnceLock::get_or_init`) lands on the next statement of the user
+/// function that called into `std` — never in `std`'s own sources.
 #[test]
 fn step_over_leaves_std_for_the_user_caller() {
     use yog_debugger::{is_library_source, StepKind};
@@ -334,7 +334,8 @@ fn step_over_leaves_std_for_the_user_caller() {
         function.as_deref().is_some_and(|f| f.ends_with("::compute")),
         "never got back to `compute`: {seen:?}"
     );
-    assert!(*line < after + 1, "{seen:?}");
+    // On to the caller's next statement, as after any return.
+    assert_eq!(*line, after, "{seen:?}");
     debugger.detach().expect("detaching");
 }
 

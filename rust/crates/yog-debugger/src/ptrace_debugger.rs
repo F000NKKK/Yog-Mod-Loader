@@ -830,7 +830,19 @@ impl Debugger {
                 Position::User(key) => key,
                 // A compiler-generated row (line 0) of user code: keep going.
                 Position::NoLine => continue,
-                Position::Foreign => return self.leave_foreign_code(symbols, base),
+                Position::Foreign => {
+                    // Back in the user caller (mid-statement, right after
+                    // its call), where stepping goes on as after any
+                    // return; anything else ends the step.
+                    let back = self.leave_foreign_code(symbols, base)?;
+                    if back != StopReason::Signal(Signal::SIGTRAP) {
+                        return Ok(back);
+                    }
+                    match self.line_key(symbols, base) {
+                        Some(key) => key,
+                        None => return Ok(back),
+                    }
+                }
             };
             // Only where a statement begins: mid-statement rows are the
             // compiler interleaving lines, not the code moving on.
