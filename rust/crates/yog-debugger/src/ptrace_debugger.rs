@@ -167,6 +167,10 @@ pub struct Debugger {
     /// Set by the host (see [`Debugger::set_pause_request`]) when an
     /// [`interrupt`] means Break All rather than a breakpoint edit.
     pause_request: Option<Arc<AtomicBool>>,
+    /// The last [`source_step`](Debugger::source_step) had turned into a
+    /// free run when an [`interrupt`] broke into it: there's no step left
+    /// to resume, only that run.
+    step_ran_free: bool,
 }
 
 type PauseFilter = Box<dyn Fn(&str) -> bool + Send>;
@@ -218,6 +222,7 @@ impl Debugger {
             pending_rearm: None,
             pause_filter: None,
             pause_request: None,
+            step_ran_free: false,
         };
         ptrace::seize(pid, ptrace::Options::PTRACE_O_TRACECLONE)?;
         debugger.threads.insert(pid, Thread::default());
@@ -379,6 +384,7 @@ impl Debugger {
     /// no thread matches. The next [`continue_`](Self::continue_) resumes
     /// them all.
     pub fn pause(&mut self) -> Result<(), DebugError> {
+        self.step_ran_free = false;
         let pid = self.pid;
         let wanted: HashSet<Pid> = self
             .threads
@@ -429,20 +435,23 @@ impl Debugger {
     /// Resumes every thread and runs until a breakpoint, an [`interrupt`],
     /// or the process ending.
     pub fn continue_(&mut self) -> Result<StopReason, DebugError> {
+        self.step_ran_free = false;
         if let Some(Step::Stopped(reason)) = self.step_over_pending_breakpoint()? {
             if is_terminal(&reason) {
                 return Ok(reason);
             }
         }
-        self.run_free()
-    }
-
-    /// Resumes every stopped thread and runs until the next stop worth
-    /// reporting — [`continue_`](Self::continue_) without the breakpoint
-    /// step-over.
-    fn run_free(&mut self) -> Result<StopReason, DebugError> {
         self.resume_all()?;
         self.run_until_stop()
+    }
+
+    /// What's left of a step with nothing more to step through: a run
+    /// until the next breakpoint, as [`continue_`](Self::continue_) — and
+    /// if an interrupt breaks into it, still that run once resumed.
+    fn run_on(&mut self) -> Result<StopReason, DebugError> {
+        let reason = self.continue_()?;
+        self.step_ran_free = reason == StopReason::Interrupted;
+        Ok(reason)
     }
 
     /// Executes one machine instruction on the current thread; the others
@@ -456,7 +465,7 @@ impl Debugger {
         };
         match step {
             Step::Stopped(reason) => Ok(reason),
-            Step::Vanished => self.run_free(),
+            Step::Vanished => self.run_on(),
         }
     }
 
@@ -895,10 +904,10 @@ impl Debugger {
                 // Break All gets through; breakpoint edits wait for the
                 // step to finish — unless the stepping thread is gone, which
                 // leaves this an ordinary run the edits mustn't wait on.
-                StopReason::Interrupted
-                    if self.pause_requested() || !self.threads.contains_key(&origin) =>
-                {
-                    break Ok(reason)
+                StopReason::Interrupted if self.pause_requested() => break Ok(reason),
+                StopReason::Interrupted if !self.threads.contains_key(&origin) => {
+                    self.step_ran_free = true;
+                    break Ok(reason);
                 }
                 StopReason::Interrupted => {}
                 StopReason::Breakpoint(hit) if hit == addr && !was_user_bp => {
@@ -934,12 +943,12 @@ impl Debugger {
         symbols: &SymbolTable,
         base: u64,
     ) -> Result<StopReason, DebugError> {
-        // The thread to step isn't stopped: this is a step that had already
-        // turned into a free run (see `leave_foreign_code`), resumed after
-        // an interrupt broke into it, or its thread is gone. Either way all
-        // that's left is to run on.
-        if !self.is_stopped(self.current) {
-            return self.continue_();
+        // A step that had already turned into a free run (see
+        // `leave_foreign_code`), resumed after an interrupt broke into it —
+        // its thread may well be gone — or a thread that isn't stopped:
+        // all that's left is to run on.
+        if std::mem::take(&mut self.step_ran_free) || !self.is_stopped(self.current) {
+            return self.run_on();
         }
         // Paused outside user code (a Break All landing in the JVM or in
         // `std`): there's nothing to step through, only a way back to it.
@@ -1034,7 +1043,7 @@ impl Debugger {
     fn step_out(&mut self, symbols: &SymbolTable, base: u64) -> Result<StopReason, DebugError> {
         let frames = self.backtrace_with(symbols, base, 2)?;
         let Some(caller) = frames.get(1) else {
-            return self.continue_();
+            return self.run_on();
         };
         let back = self.run_to(caller.pc().wrapping_add(1))?;
         if back != StopReason::Signal(Signal::SIGTRAP) {
@@ -1069,7 +1078,7 @@ impl Debugger {
             });
         match caller {
             Some(frame) => self.run_to(frame.pc().wrapping_add(1)),
-            None => self.continue_(),
+            None => self.run_on(),
         }
     }
 
