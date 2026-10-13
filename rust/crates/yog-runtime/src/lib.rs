@@ -19,9 +19,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock, RwLock};
 
 use glow::HasContext;
-use jni::objects::{JByteArray, JClass, JFloatArray, JObject, JString, JValue};
+use jni::objects::{JByteArray, JClass, JFloatArray, JString};
 use jni::sys::{jdouble, jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
+use jcall::{jcall, JArg};
 use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
@@ -412,13 +413,41 @@ macro_rules! jstr {
     };
 }
 
-/// Convert a `YogStr` into a Java String. Caller must ensure `s` is valid UTF-8.
-unsafe fn ys_to_java<'l>(env: &mut JNIEnv<'l>, s: YogStr) -> Option<jni::objects::JString<'l>> {
-    env.new_string(s.as_str()).ok()
-}
-
 fn get_env() -> Option<jni::AttachGuard<'static>> {
     JAVA_VM.get()?.attach_current_thread().ok()
+}
+
+/// `<class>.<name>(args...)` on this thread's env, `Option<R>` — see
+/// [`jcall!`]; `None` without a JVM too.
+macro_rules! host {
+    ($class:literal, $name:literal, [$($arg:expr),* $(,)?]) => {
+        match get_env() {
+            Some(mut env) => jcall!(&mut env, $class, $name, [$($arg),*]),
+            None => None,
+        }
+    };
+}
+
+/// `NativeBridge.<name>(args...)` — see [`host!`].
+macro_rules! bridge {
+    ($name:literal, [$($arg:expr),* $(,)?]) => {
+        host!("dev/yog/NativeBridge", $name, [$($arg),*])
+    };
+}
+
+/// A host string reply handed to a mod (`None`/`null` → [`YogOwnedStr::NONE`]).
+fn owned(s: Option<String>) -> YogOwnedStr {
+    s.map_or(YogOwnedStr::NONE, YogOwnedStr::from_string)
+}
+
+/// The first `N` tab-separated values of a host reply.
+fn parse_tsv<T: std::str::FromStr, const N: usize>(s: &str) -> Option<[T; N]> {
+    let values: Vec<T> = s
+        .split('\t')
+        .take(N)
+        .map(|v| v.parse().ok())
+        .collect::<Option<_>>()?;
+    values.try_into().ok()
 }
 
 // ── Free-str allocator used by YogOwnedStr ────────────────────────────────────
@@ -432,30 +461,12 @@ unsafe extern "C" fn yog_free_str(ptr: *mut u8, len: u32) {
     }
 }
 
-fn jstring_to_owned(env: &mut JNIEnv, obj: jni::objects::JObject) -> YogOwnedStr {
-    if obj.as_raw().is_null() {
-        return YogOwnedStr::NONE;
-    }
-    match env.get_string(&JString::from(obj)) {
-        Ok(s) => YogOwnedStr::from_string(String::from(s)),
-        Err(_) => YogOwnedStr::NONE,
-    }
-}
-
 // ── YogServer standalone functions (one per action) ───────────────────────────
 //
 // ctx is unused here — all state is in the JAVA_VM static.
 
 unsafe extern "C" fn srv_broadcast(_ctx: *mut c_void, msg: YogStr) {
-    let Some(mut env) = get_env() else { return };
-    if let Some(jmsg) = ys_to_java(&mut env, msg) {
-        let _ = env.call_static_method(
-            "dev/yog/NativeBridge",
-            "broadcast",
-            "(Ljava/lang/String;)V",
-            &[JValue::Object(&jmsg)],
-        );
-    }
+    let _: Option<()> = bridge!("broadcast", [S(msg)]);
 }
 
 unsafe extern "C" fn srv_get_block(
@@ -463,27 +474,7 @@ unsafe extern "C" fn srv_get_block(
     dim: YogStr,
     pos: YogBlockPos,
 ) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let (Some(jd),) = (ys_to_java(&mut env, dim),) else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "getBlock",
-        "(Ljava/lang/String;III)Ljava/lang/String;",
-        &[
-            JValue::Object(&jd),
-            JValue::Int(pos.x),
-            JValue::Int(pos.y),
-            JValue::Int(pos.z),
-        ],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("getBlock", [S(dim), I(pos.x), I(pos.y), I(pos.z)]))
 }
 
 unsafe extern "C" fn srv_set_block(
@@ -492,45 +483,12 @@ unsafe extern "C" fn srv_set_block(
     pos: YogBlockPos,
     block: YogStr,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jd), Some(jb)) = (ys_to_java(&mut env, dim), ys_to_java(&mut env, block)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "setBlock",
-        "(Ljava/lang/String;IIILjava/lang/String;)Z",
-        &[
-            JValue::Object(&jd),
-            JValue::Int(pos.x),
-            JValue::Int(pos.y),
-            JValue::Int(pos.z),
-            JValue::Object(&jb),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("setBlock", [S(dim), I(pos.x), I(pos.y), I(pos.z), S(block)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_world_time(_ctx: *mut c_void, dim: YogStr, out: *mut i64) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(jd) = ys_to_java(&mut env, dim) else {
-        return false;
-    };
-    match env
-        .call_static_method(
-            "dev/yog/NativeBridge",
-            "worldTime",
-            "(Ljava/lang/String;)J",
-            &[JValue::Object(&jd)],
-        )
-        .and_then(|v| v.j())
-    {
-        Ok(v) if v != i64::MIN => {
+    match bridge!("worldTime", [S(dim)]) {
+        Some(v) if v != i64::MIN => {
             *out = v;
             true
         }
@@ -539,37 +497,11 @@ unsafe extern "C" fn srv_world_time(_ctx: *mut c_void, dim: YogStr, out: *mut i6
 }
 
 unsafe extern "C" fn srv_set_time(_ctx: *mut c_void, dim: YogStr, time: i64) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(jd) = ys_to_java(&mut env, dim) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "worldSetTime",
-        "(Ljava/lang/String;J)Z",
-        &[JValue::Object(&jd), JValue::Long(time)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("worldSetTime", [S(dim), J(time)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_is_raining(_ctx: *mut c_void, dim: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(jd) = ys_to_java(&mut env, dim) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "worldIsRaining",
-        "(Ljava/lang/String;)Z",
-        &[JValue::Object(&jd)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("worldIsRaining", [S(dim)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_set_weather(
@@ -578,24 +510,7 @@ unsafe extern "C" fn srv_set_weather(
     raining: bool,
     dur: i32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(jd) = ys_to_java(&mut env, dim) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "worldSetWeather",
-        "(Ljava/lang/String;ZI)Z",
-        &[
-            JValue::Object(&jd),
-            JValue::Bool(raining as u8),
-            JValue::Int(dur),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("worldSetWeather", [S(dim), Z(raining), I(dur)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_give_item(
@@ -604,46 +519,11 @@ unsafe extern "C" fn srv_give_item(
     item: YogStr,
     count: u32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(ji)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, item)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "giveItem",
-        "(Ljava/lang/String;Ljava/lang/String;I)Z",
-        &[
-            JValue::Object(&jp),
-            JValue::Object(&ji),
-            JValue::Int(count as i32),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("giveItem", [S(player), S(item), I(count as i32)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_player_teleport(_ctx: *mut c_void, player: YogStr, pos: YogVec3) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(jp) = ys_to_java(&mut env, player) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "teleport",
-        "(Ljava/lang/String;DDD)Z",
-        &[
-            JValue::Object(&jp),
-            JValue::Double(pos.x),
-            JValue::Double(pos.y),
-            JValue::Double(pos.z),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("teleport", [S(player), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_send_to_player(
@@ -653,28 +533,7 @@ unsafe extern "C" fn srv_send_to_player(
     data: *const u8,
     len: u32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(jc)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, channel)) else {
-        return false;
-    };
-    let payload = std::slice::from_raw_parts(data, len as usize);
-    let Ok(jdata) = env.byte_array_from_slice(payload) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "sendToPlayer",
-        "(Ljava/lang/String;Ljava/lang/String;[B)Z",
-        &[
-            JValue::Object(&jp),
-            JValue::Object(&jc),
-            JValue::Object(&jdata),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("sendToPlayer", [S(player), S(channel), Bytes(std::slice::from_raw_parts(data, len as usize))]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_send_to_server(
@@ -683,58 +542,15 @@ unsafe extern "C" fn srv_send_to_server(
     data: *const u8,
     len: u32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(jc) = ys_to_java(&mut env, channel) else {
-        return false;
-    };
-    let payload = std::slice::from_raw_parts(data, len as usize);
-    let Ok(jdata) = env.byte_array_from_slice(payload) else {
-        return false;
-    };
-    let result = env.call_static_method(
-        "dev/yog/YogClient",
-        "sendToServer",
-        "(Ljava/lang/String;[B)Z",
-        &[JValue::Object(&jc), JValue::Object(&jdata)],
-    );
-    let _ = env.exception_clear();
-    result.and_then(|v| v.z()).unwrap_or(false)
+    host!("dev/yog/YogClient", "sendToServer", [S(channel), Bytes(std::slice::from_raw_parts(data, len as usize))]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_kick_player(_ctx: *mut c_void, player: YogStr, reason: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(jr)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, reason)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "kickPlayer",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&jp), JValue::Object(&jr)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("kickPlayer", [S(player), S(reason)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_set_gamemode(_ctx: *mut c_void, player: YogStr, mode: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(jg)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, mode)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "setGamemode",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&jp), JValue::Object(&jg)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("setGamemode", [S(player), S(mode)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_send_title(
@@ -746,48 +562,11 @@ unsafe extern "C" fn srv_send_title(
     stay: i32,
     fo: i32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(jt), Some(js)) = (
-        ys_to_java(&mut env, player),
-        ys_to_java(&mut env, title),
-        ys_to_java(&mut env, sub),
-    ) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "sendTitle",
-        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)Z",
-        &[
-            JValue::Object(&jp),
-            JValue::Object(&jt),
-            JValue::Object(&js),
-            JValue::Int(fi),
-            JValue::Int(stay),
-            JValue::Int(fo),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("sendTitle", [S(player), S(title), S(sub), I(fi), I(stay), I(fo)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_send_actionbar(_ctx: *mut c_void, player: YogStr, msg: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(jm)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, msg)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "sendActionbar",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&jp), JValue::Object(&jm)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("sendActionbar", [S(player), S(msg)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_play_sound(
@@ -798,28 +577,7 @@ unsafe extern "C" fn srv_play_sound(
     vol: f32,
     pitch: f32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jd), Some(js)) = (ys_to_java(&mut env, dim), ys_to_java(&mut env, sound)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "playSound",
-        "(Ljava/lang/String;DDDLjava/lang/String;FF)Z",
-        &[
-            JValue::Object(&jd),
-            JValue::Double(pos.x),
-            JValue::Double(pos.y),
-            JValue::Double(pos.z),
-            JValue::Object(&js),
-            JValue::Float(vol),
-            JValue::Float(pitch),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("playSound", [S(dim), D(pos.x), D(pos.y), D(pos.z), S(sound), F(vol), F(pitch)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_play_sound_player(
@@ -829,47 +587,11 @@ unsafe extern "C" fn srv_play_sound_player(
     vol: f32,
     pitch: f32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(js)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, sound)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "playSoundToPlayer",
-        "(Ljava/lang/String;Ljava/lang/String;FF)Z",
-        &[
-            JValue::Object(&jp),
-            JValue::Object(&js),
-            JValue::Float(vol),
-            JValue::Float(pitch),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("playSoundToPlayer", [S(player), S(sound), F(vol), F(pitch)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_teleport(_ctx: *mut c_void, uuid: YogStr, pos: YogVec3) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityTeleport",
-        "(Ljava/lang/String;DDD)Z",
-        &[
-            JValue::Object(&ju),
-            JValue::Double(pos.x),
-            JValue::Double(pos.y),
-            JValue::Double(pos.z),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entityTeleport", [S(uuid), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_rotation(
@@ -877,46 +599,19 @@ unsafe extern "C" fn srv_entity_rotation(
     uuid: YogStr,
     out: *mut YogVec3,
 ) -> bool {
-    let Some(mut env) = get_env() else {
+    let Some(s): Option<String> = bridge!("entityRotation", [S(uuid)]) else {
         return false;
     };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityRotation",
-        "(Ljava/lang/String;)Ljava/lang/String;",
-        &[JValue::Object(&ju)],
-    );
-    let obj = match ret.and_then(|v| v.l()) {
-        Ok(o) => o,
-        Err(_) => {
-            env.exception_clear().ok();
-            return false;
+    match parse_tsv::<f64, 2>(&s) {
+        Some([yaw, pitch]) => {
+            *out = YogVec3 {
+                x: yaw,
+                y: pitch,
+                z: 0.0,
+            };
+            true
         }
-    };
-    if obj.as_raw().is_null() {
-        return false;
-    }
-    let s: String = match env.get_string(&JString::from(obj)) {
-        Ok(s) => String::from(s),
-        Err(_) => return false,
-    };
-    let mut it = s.split('\t');
-    let (yaw, pitch) = (it.next(), it.next());
-    if let (Some(yaw), Some(pitch)) = (
-        yaw.and_then(|v| v.parse().ok()),
-        pitch.and_then(|v| v.parse().ok()),
-    ) {
-        *out = YogVec3 {
-            x: yaw,
-            y: pitch,
-            z: 0.0,
-        };
-        true
-    } else {
-        false
+        None => false,
     }
 }
 
@@ -925,60 +620,21 @@ unsafe extern "C" fn srv_entity_position(
     uuid: YogStr,
     out: *mut YogVec3,
 ) -> bool {
-    let Some(mut env) = get_env() else {
+    let Some(s): Option<String> = bridge!("entityPosition", [S(uuid)]) else {
         return false;
     };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityPosition",
-        "(Ljava/lang/String;)Ljava/lang/String;",
-        &[JValue::Object(&ju)],
-    );
-    let obj = match ret.and_then(|v| v.l()) {
-        Ok(o) => o,
-        Err(_) => return false,
-    };
-    if obj.as_raw().is_null() {
-        return false;
-    }
-    let s: String = match env.get_string(&JString::from(obj)) {
-        Ok(s) => String::from(s),
-        Err(_) => return false,
-    };
-    let mut it = s.split('\t');
-    let (x, y, z) = (it.next(), it.next(), it.next());
-    if let (Some(x), Some(y), Some(z)) = (
-        x.and_then(|v| v.parse().ok()),
-        y.and_then(|v| v.parse().ok()),
-        z.and_then(|v| v.parse().ok()),
-    ) {
-        *out = YogVec3 { x, y, z };
-        true
-    } else {
-        false
+    match parse_tsv::<f64, 3>(&s) {
+        Some([x, y, z]) => {
+            *out = YogVec3 { x, y, z };
+            true
+        }
+        None => false,
     }
 }
 
 unsafe extern "C" fn srv_entity_health(_ctx: *mut c_void, uuid: YogStr, out: *mut f32) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    match env
-        .call_static_method(
-            "dev/yog/NativeBridge",
-            "entityHealth",
-            "(Ljava/lang/String;)D",
-            &[JValue::Object(&ju)],
-        )
-        .and_then(|v| v.d())
-    {
-        Ok(v) if !v.is_nan() => {
+    match bridge!("entityHealth", [S(uuid)]) {
+        Some(v) if !f64::is_nan(v) => {
             *out = v as f32;
             true
         }
@@ -987,37 +643,11 @@ unsafe extern "C" fn srv_entity_health(_ctx: *mut c_void, uuid: YogStr, out: *mu
 }
 
 unsafe extern "C" fn srv_entity_set_health(_ctx: *mut c_void, uuid: YogStr, hp: f32) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entitySetHealth",
-        "(Ljava/lang/String;D)Z",
-        &[JValue::Object(&ju), JValue::Double(hp as f64)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entitySetHealth", [S(uuid), D(hp as f64)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_kill(_ctx: *mut c_void, uuid: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityKill",
-        "(Ljava/lang/String;)Z",
-        &[JValue::Object(&ju)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entityKill", [S(uuid)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_spawn_entity(
@@ -1026,28 +656,7 @@ unsafe extern "C" fn srv_spawn_entity(
     dim: YogStr,
     pos: YogVec3,
 ) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let (Some(jt), Some(jd)) = (ys_to_java(&mut env, type_id), ys_to_java(&mut env, dim)) else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "spawnEntity",
-        "(Ljava/lang/String;Ljava/lang/String;DDD)Ljava/lang/String;",
-        &[
-            JValue::Object(&jt),
-            JValue::Object(&jd),
-            JValue::Double(pos.x),
-            JValue::Double(pos.y),
-            JValue::Double(pos.z),
-        ],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("spawnEntity", [S(type_id), S(dim), D(pos.x), D(pos.y), D(pos.z)]))
 }
 
 unsafe extern "C" fn srv_entity_add_effect(
@@ -1058,60 +667,15 @@ unsafe extern "C" fn srv_entity_add_effect(
     amp: u8,
     particles: bool,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ju), Some(je)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, fx)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityAddEffect",
-        "(Ljava/lang/String;Ljava/lang/String;IIZ)Z",
-        &[
-            JValue::Object(&ju),
-            JValue::Object(&je),
-            JValue::Int(dur),
-            JValue::Int(amp as i32),
-            JValue::Bool(particles as u8),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entityAddEffect", [S(uuid), S(fx), I(dur), I(amp as i32), Z(particles)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_remove_effect(_ctx: *mut c_void, uuid: YogStr, fx: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ju), Some(je)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, fx)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityRemoveEffect",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&ju), JValue::Object(&je)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entityRemoveEffect", [S(uuid), S(fx)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_clear_effects(_ctx: *mut c_void, uuid: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityClearEffects",
-        "(Ljava/lang/String;)Z",
-        &[JValue::Object(&ju)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entityClearEffects", [S(uuid)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_velocity(
@@ -1119,40 +683,15 @@ unsafe extern "C" fn srv_entity_velocity(
     uuid: YogStr,
     out: *mut YogVec3,
 ) -> bool {
-    let Some(mut env) = get_env() else {
+    let Some(s): Option<String> = bridge!("entityVelocity", [S(uuid)]) else {
         return false;
     };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityVelocity",
-        "(Ljava/lang/String;)Ljava/lang/String;",
-        &[JValue::Object(&ju)],
-    );
-    let obj = match ret.and_then(|v| v.l()) {
-        Ok(o) => o,
-        Err(_) => return false,
-    };
-    if obj.as_raw().is_null() {
-        return false;
-    }
-    let s: String = match env.get_string(&JString::from(obj)) {
-        Ok(s) => String::from(s),
-        Err(_) => return false,
-    };
-    let mut it = s.split('\t');
-    let (x, y, z) = (it.next(), it.next(), it.next());
-    if let (Some(x), Some(y), Some(z)) = (
-        x.and_then(|v| v.parse().ok()),
-        y.and_then(|v| v.parse().ok()),
-        z.and_then(|v| v.parse().ok()),
-    ) {
-        *out = YogVec3 { x, y, z };
-        true
-    } else {
-        false
+    match parse_tsv::<f64, 3>(&s) {
+        Some([x, y, z]) => {
+            *out = YogVec3 { x, y, z };
+            true
+        }
+        None => false,
     }
 }
 
@@ -1161,25 +700,7 @@ unsafe extern "C" fn srv_entity_set_velocity(
     uuid: YogStr,
     vel: YogVec3,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entitySetVelocity",
-        "(Ljava/lang/String;DDD)Z",
-        &[
-            JValue::Object(&ju),
-            JValue::Double(vel.x),
-            JValue::Double(vel.y),
-            JValue::Double(vel.z),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entitySetVelocity", [S(uuid), D(vel.x), D(vel.y), D(vel.z)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_add_velocity(
@@ -1187,59 +708,15 @@ unsafe extern "C" fn srv_entity_add_velocity(
     uuid: YogStr,
     vel: YogVec3,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityAddVelocity",
-        "(Ljava/lang/String;DDD)Z",
-        &[
-            JValue::Object(&ju),
-            JValue::Double(vel.x),
-            JValue::Double(vel.y),
-            JValue::Double(vel.z),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entityAddVelocity", [S(uuid), D(vel.x), D(vel.y), D(vel.z)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_has_item_tag(_ctx: *mut c_void, item: YogStr, tag: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ji), Some(jt)) = (ys_to_java(&mut env, item), ys_to_java(&mut env, tag)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "hasItemTag",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&ji), JValue::Object(&jt)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("hasItemTag", [S(item), S(tag)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_has_block_tag(_ctx: *mut c_void, block: YogStr, tag: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jb), Some(jt)) = (ys_to_java(&mut env, block), ys_to_java(&mut env, tag)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "hasBlockTag",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&jb), JValue::Object(&jt)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("hasBlockTag", [S(block), S(tag)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_drop_loot(
@@ -1248,26 +725,7 @@ unsafe extern "C" fn srv_drop_loot(
     dim: YogStr,
     pos: YogVec3,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jt), Some(jd)) = (ys_to_java(&mut env, table), ys_to_java(&mut env, dim)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "dropLoot",
-        "(Ljava/lang/String;Ljava/lang/String;DDD)Z",
-        &[
-            JValue::Object(&jt),
-            JValue::Object(&jd),
-            JValue::Double(pos.x),
-            JValue::Double(pos.y),
-            JValue::Double(pos.z),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("dropLoot", [S(table), S(dim), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_scoreboard_get(
@@ -1276,22 +734,8 @@ unsafe extern "C" fn srv_scoreboard_get(
     player: YogStr,
     out: *mut i32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jo), Some(jp)) = (ys_to_java(&mut env, obj), ys_to_java(&mut env, player)) else {
-        return false;
-    };
-    match env
-        .call_static_method(
-            "dev/yog/NativeBridge",
-            "scoreboardGet",
-            "(Ljava/lang/String;Ljava/lang/String;)I",
-            &[JValue::Object(&jo), JValue::Object(&jp)],
-        )
-        .and_then(|v| v.i())
-    {
-        Ok(v) if v != i32::MIN => {
+    match bridge!("scoreboardGet", [S(obj), S(player)]) {
+        Some(v) if v != i32::MIN => {
             *out = v;
             true
         }
@@ -1305,20 +749,7 @@ unsafe extern "C" fn srv_scoreboard_set(
     player: YogStr,
     score: i32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jo), Some(jp)) = (ys_to_java(&mut env, obj), ys_to_java(&mut env, player)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "scoreboardSet",
-        "(Ljava/lang/String;Ljava/lang/String;I)Z",
-        &[JValue::Object(&jo), JValue::Object(&jp), JValue::Int(score)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("scoreboardSet", [S(obj), S(player), I(score)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_scoreboard_add(
@@ -1328,22 +759,8 @@ unsafe extern "C" fn srv_scoreboard_add(
     delta: i32,
     out: *mut i32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jo), Some(jp)) = (ys_to_java(&mut env, obj), ys_to_java(&mut env, player)) else {
-        return false;
-    };
-    match env
-        .call_static_method(
-            "dev/yog/NativeBridge",
-            "scoreboardAdd",
-            "(Ljava/lang/String;Ljava/lang/String;I)I",
-            &[JValue::Object(&jo), JValue::Object(&jp), JValue::Int(delta)],
-        )
-        .and_then(|v| v.i())
-    {
-        Ok(v) if v != i32::MIN => {
+    match bridge!("scoreboardAdd", [S(obj), S(player), I(delta)]) {
+        Some(v) if v != i32::MIN => {
             *out = v;
             true
         }
@@ -1358,64 +775,15 @@ unsafe extern "C" fn srv_bossbar_create(
     color: YogStr,
     style: YogStr,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ji), Some(jt), Some(jc), Some(js)) = (
-        ys_to_java(&mut env, id),
-        ys_to_java(&mut env, title),
-        ys_to_java(&mut env, color),
-        ys_to_java(&mut env, style),
-    ) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "bossbarCreate",
-        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z",
-        &[
-            JValue::Object(&ji),
-            JValue::Object(&jt),
-            JValue::Object(&jc),
-            JValue::Object(&js),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("bossbarCreate", [S(id), S(title), S(color), S(style)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_bossbar_remove(_ctx: *mut c_void, id: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ji) = ys_to_java(&mut env, id) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "bossbarRemove",
-        "(Ljava/lang/String;)Z",
-        &[JValue::Object(&ji)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("bossbarRemove", [S(id)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_bossbar_set_title(_ctx: *mut c_void, id: YogStr, title: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ji), Some(jt)) = (ys_to_java(&mut env, id), ys_to_java(&mut env, title)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "bossbarSetTitle",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&ji), JValue::Object(&jt)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("bossbarSetTitle", [S(id), S(title)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_bossbar_set_progress(
@@ -1423,54 +791,15 @@ unsafe extern "C" fn srv_bossbar_set_progress(
     id: YogStr,
     progress: f32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ji) = ys_to_java(&mut env, id) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "bossbarSetProgress",
-        "(Ljava/lang/String;F)Z",
-        &[JValue::Object(&ji), JValue::Float(progress)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("bossbarSetProgress", [S(id), F(progress)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_bossbar_set_color(_ctx: *mut c_void, id: YogStr, color: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ji), Some(jc)) = (ys_to_java(&mut env, id), ys_to_java(&mut env, color)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "bossbarSetColor",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&ji), JValue::Object(&jc)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("bossbarSetColor", [S(id), S(color)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_bossbar_add_player(_ctx: *mut c_void, id: YogStr, player: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ji), Some(jp)) = (ys_to_java(&mut env, id), ys_to_java(&mut env, player)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "bossbarAddPlayer",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&ji), JValue::Object(&jp)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("bossbarAddPlayer", [S(id), S(player)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_bossbar_remove_player(
@@ -1478,37 +807,11 @@ unsafe extern "C" fn srv_bossbar_remove_player(
     id: YogStr,
     player: YogStr,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ji), Some(jp)) = (ys_to_java(&mut env, id), ys_to_java(&mut env, player)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "bossbarRemovePlayer",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&ji), JValue::Object(&jp)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("bossbarRemovePlayer", [S(id), S(player)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_bossbar_set_visible(_ctx: *mut c_void, id: YogStr, visible: bool) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(ji) = ys_to_java(&mut env, id) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "bossbarSetVisible",
-        "(Ljava/lang/String;Z)Z",
-        &[JValue::Object(&ji), JValue::Bool(visible as u8)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("bossbarSetVisible", [S(id), Z(visible)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_get_block_nbt(
@@ -1516,27 +819,7 @@ unsafe extern "C" fn srv_get_block_nbt(
     dim: YogStr,
     pos: YogBlockPos,
 ) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let Some(jd) = ys_to_java(&mut env, dim) else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "getBlockNbt",
-        "(Ljava/lang/String;III)Ljava/lang/String;",
-        &[
-            JValue::Object(&jd),
-            JValue::Int(pos.x),
-            JValue::Int(pos.y),
-            JValue::Int(pos.z),
-        ],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("getBlockNbt", [S(dim), I(pos.x), I(pos.y), I(pos.z)]))
 }
 
 unsafe extern "C" fn srv_set_block_nbt(
@@ -1545,26 +828,7 @@ unsafe extern "C" fn srv_set_block_nbt(
     pos: YogBlockPos,
     snbt: YogStr,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jd), Some(js)) = (ys_to_java(&mut env, dim), ys_to_java(&mut env, snbt)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "setBlockNbt",
-        "(Ljava/lang/String;IIILjava/lang/String;)Z",
-        &[
-            JValue::Object(&jd),
-            JValue::Int(pos.x),
-            JValue::Int(pos.y),
-            JValue::Int(pos.z),
-            JValue::Object(&js),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("setBlockNbt", [S(dim), I(pos.x), I(pos.y), I(pos.z), S(snbt)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_get_inventory_slot(
@@ -1573,28 +837,7 @@ unsafe extern "C" fn srv_get_inventory_slot(
     pos: yog_abi::YogBlockPos,
     slot: u32,
 ) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let Some(jd) = ys_to_java(&mut env, dim) else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "getInventorySlot",
-        "(Ljava/lang/String;IIII)Ljava/lang/String;",
-        &[
-            JValue::Object(&jd),
-            JValue::Int(pos.x),
-            JValue::Int(pos.y),
-            JValue::Int(pos.z),
-            JValue::Int(slot as i32),
-        ],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("getInventorySlot", [S(dim), I(pos.x), I(pos.y), I(pos.z), I(slot as i32)]))
 }
 
 unsafe extern "C" fn srv_set_inventory_slot(
@@ -1605,47 +848,11 @@ unsafe extern "C" fn srv_set_inventory_slot(
     item_id: YogStr,
     count: u32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jd), Some(ji)) = (ys_to_java(&mut env, dim), ys_to_java(&mut env, item_id)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "setInventorySlot",
-        "(Ljava/lang/String;IIIILjava/lang/String;I)Z",
-        &[
-            JValue::Object(&jd),
-            JValue::Int(pos.x),
-            JValue::Int(pos.y),
-            JValue::Int(pos.z),
-            JValue::Int(slot as i32),
-            JValue::Object(&ji),
-            JValue::Int(count as i32),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("setInventorySlot", [S(dim), I(pos.x), I(pos.y), I(pos.z), I(slot as i32), S(item_id), I(count as i32)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_player_inventory(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let Some(jp) = ys_to_java(&mut env, player) else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "playerInventory",
-        "(Ljava/lang/String;)Ljava/lang/String;",
-        &[JValue::Object(&jp)],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("playerInventory", [S(player)]))
 }
 
 unsafe extern "C" fn srv_player_set_slot(
@@ -1655,25 +862,7 @@ unsafe extern "C" fn srv_player_set_slot(
     item_id: YogStr,
     count: u32,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(ji)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, item_id)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "playerSetSlot",
-        "(Ljava/lang/String;ILjava/lang/String;I)Z",
-        &[
-            JValue::Object(&jp),
-            JValue::Int(slot as i32),
-            JValue::Object(&ji),
-            JValue::Int(count as i32),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("playerSetSlot", [S(player), I(slot as i32), S(item_id), I(count as i32)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_player_teleport_dim(
@@ -1682,26 +871,7 @@ unsafe extern "C" fn srv_player_teleport_dim(
     dim: YogStr,
     pos: YogVec3,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(jd)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, dim)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "teleportToDim",
-        "(Ljava/lang/String;Ljava/lang/String;DDD)Z",
-        &[
-            JValue::Object(&jp),
-            JValue::Object(&jd),
-            JValue::Double(pos.x),
-            JValue::Double(pos.y),
-            JValue::Double(pos.z),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("teleportToDim", [S(player), S(dim), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_teleport_dim(
@@ -1710,42 +880,11 @@ unsafe extern "C" fn srv_entity_teleport_dim(
     dim: YogStr,
     pos: YogVec3,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ju), Some(jd)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, dim)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityTeleportToDim",
-        "(Ljava/lang/String;Ljava/lang/String;DDD)Z",
-        &[
-            JValue::Object(&ju),
-            JValue::Object(&jd),
-            JValue::Double(pos.x),
-            JValue::Double(pos.y),
-            JValue::Double(pos.z),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entityTeleportToDim", [S(uuid), S(dim), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_online_players(_ctx: *mut c_void) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "onlinePlayers",
-        "()Ljava/lang/String;",
-        &[],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("onlinePlayers", []))
 }
 
 unsafe extern "C" fn srv_world_entity_count(
@@ -1753,76 +892,19 @@ unsafe extern "C" fn srv_world_entity_count(
     dim: YogStr,
     entity_type: YogStr,
 ) -> i32 {
-    let Some(mut env) = get_env() else { return -1 };
-    let d = dim.as_str();
-    let et = entity_type.as_str();
-    let jd = match env.new_string(d) {
-        Ok(s) => s,
-        Err(_) => return -1,
-    };
-    let jet = match env.new_string(et) {
-        Ok(s) => s,
-        Err(_) => return -1,
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "worldEntityCount",
-        "(Ljava/lang/String;Ljava/lang/String;)I",
-        &[JValue::Object(&jd), JValue::Object(&jet)],
-    );
-    ret.and_then(|v| v.i()).unwrap_or(-1)
+    bridge!("worldEntityCount", [S(dim), S(entity_type)]).unwrap_or(-1)
 }
 
 unsafe extern "C" fn srv_game_dir(_ctx: *mut c_void) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "gameDir",
-        "()Ljava/lang/String;",
-        &[],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("gameDir", []))
 }
 
 unsafe extern "C" fn srv_entity_get_nbt(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let Some(ju) = ys_to_java(&mut env, uuid) else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityGetNbt",
-        "(Ljava/lang/String;)Ljava/lang/String;",
-        &[JValue::Object(&ju)],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("entityGetNbt", [S(uuid)]))
 }
 
 unsafe extern "C" fn srv_entity_set_nbt(_ctx: *mut c_void, uuid: YogStr, snbt: YogStr) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ju), Some(js)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, snbt)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entitySetNbt",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&ju), JValue::Object(&js)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entitySetNbt", [S(uuid), S(snbt)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_spawn_particles(
@@ -1836,33 +918,10 @@ unsafe extern "C" fn srv_spawn_particles(
     dz: f64,
     speed: f64,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jd), Some(jp)) = (
-        ys_to_java(&mut env, dim),
-        ys_to_java(&mut env, particle_type),
-    ) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
+    bridge!(
         "spawnParticles",
-        "(Ljava/lang/String;DDDLjava/lang/String;IDDDD)Z",
-        &[
-            JValue::Object(&jd),
-            JValue::Double(pos.x),
-            JValue::Double(pos.y),
-            JValue::Double(pos.z),
-            JValue::Object(&jp),
-            JValue::Int(count),
-            JValue::Double(dx),
-            JValue::Double(dy),
-            JValue::Double(dz),
-            JValue::Double(speed),
-        ],
+        [S(dim), D(pos.x), D(pos.y), D(pos.z), S(particle_type), I(count), D(dx), D(dy), D(dz), D(speed)]
     )
-    .and_then(|v| v.z())
     .unwrap_or(false)
 }
 
@@ -1871,20 +930,7 @@ unsafe extern "C" fn srv_entity_attribute_get(
     uuid: YogStr,
     attr: YogStr,
 ) -> f64 {
-    let Some(mut env) = get_env() else {
-        return f64::NAN;
-    };
-    let (Some(ju), Some(ja)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, attr)) else {
-        return f64::NAN;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityAttributeGet",
-        "(Ljava/lang/String;Ljava/lang/String;)D",
-        &[JValue::Object(&ju), JValue::Object(&ja)],
-    )
-    .and_then(|v| v.d())
-    .unwrap_or(f64::NAN)
+    bridge!("entityAttributeGet", [S(uuid), S(attr)]).unwrap_or(f64::NAN)
 }
 
 unsafe extern "C" fn srv_entity_attribute_set(
@@ -1893,43 +939,11 @@ unsafe extern "C" fn srv_entity_attribute_set(
     attr: YogStr,
     value: f64,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(ju), Some(ja)) = (ys_to_java(&mut env, uuid), ys_to_java(&mut env, attr)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "entityAttributeSet",
-        "(Ljava/lang/String;Ljava/lang/String;D)Z",
-        &[
-            JValue::Object(&ju),
-            JValue::Object(&ja),
-            JValue::Double(value),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("entityAttributeSet", [S(uuid), S(attr), D(value)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_get_held_item_nbt(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let Some(jp) = ys_to_java(&mut env, player) else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "getHeldItemNbt",
-        "(Ljava/lang/String;)Ljava/lang/String;",
-        &[JValue::Object(&jp)],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("getHeldItemNbt", [S(player)]))
 }
 
 unsafe extern "C" fn srv_set_held_item_nbt(
@@ -1937,39 +951,11 @@ unsafe extern "C" fn srv_set_held_item_nbt(
     player: YogStr,
     snbt: YogStr,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(js)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, snbt)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "setHeldItemNbt",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&jp), JValue::Object(&js)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("setHeldItemNbt", [S(player), S(snbt)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_get_offhand_item_nbt(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let Some(jp) = ys_to_java(&mut env, player) else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "getOffhandItemNbt",
-        "(Ljava/lang/String;)Ljava/lang/String;",
-        &[JValue::Object(&jp)],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("getOffhandItemNbt", [S(player)]))
 }
 
 unsafe extern "C" fn srv_set_offhand_item_nbt(
@@ -1977,20 +963,7 @@ unsafe extern "C" fn srv_set_offhand_item_nbt(
     player: YogStr,
     snbt: YogStr,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(js)) = (ys_to_java(&mut env, player), ys_to_java(&mut env, snbt)) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "setOffhandItemNbt",
-        "(Ljava/lang/String;Ljava/lang/String;)Z",
-        &[JValue::Object(&jp), JValue::Object(&js)],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("setOffhandItemNbt", [S(player), S(snbt)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_get_slot_item(
@@ -1998,22 +971,7 @@ unsafe extern "C" fn srv_get_slot_item(
     player: YogStr,
     slot: u32,
 ) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let Some(jp) = ys_to_java(&mut env, player) else {
-        return YogOwnedStr::NONE;
-    };
-    let ret = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "getSlotItem",
-        "(Ljava/lang/String;I)Ljava/lang/String;",
-        &[JValue::Object(&jp), JValue::Int(slot as i32)],
-    );
-    match ret.and_then(|v| v.l()) {
-        Ok(obj) => jstring_to_owned(&mut env, obj),
-        _ => YogOwnedStr::NONE,
-    }
+    owned(bridge!("getSlotItem", [S(player), I(slot as i32)]))
 }
 
 unsafe extern "C" fn srv_set_slot_item(
@@ -2024,30 +982,7 @@ unsafe extern "C" fn srv_set_slot_item(
     count: u32,
     snbt: YogStr,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let (Some(jp), Some(ji), Some(js)) = (
-        ys_to_java(&mut env, player),
-        ys_to_java(&mut env, item_id),
-        ys_to_java(&mut env, snbt),
-    ) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/NativeBridge",
-        "setSlotItem",
-        "(Ljava/lang/String;ILjava/lang/String;ILjava/lang/String;)Z",
-        &[
-            JValue::Object(&jp),
-            JValue::Int(slot as i32),
-            JValue::Object(&ji),
-            JValue::Int(count as i32),
-            JValue::Object(&js),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    bridge!("setSlotItem", [S(player), I(slot as i32), S(item_id), I(count as i32), S(snbt)]).unwrap_or(false)
 }
 
 // ── ABI minor 14 — low-level GPU pipeline ────────────────────────────────────
@@ -2470,19 +1405,7 @@ unsafe extern "C" fn gfx_tex_bind(unit: u32, handle: u32) {
 }
 
 unsafe extern "C" fn gfx_tex_from_mc(id: YogStr) -> u32 {
-    let Some(mut env) = get_env() else { return 0 };
-    let Some(ji) = ys_to_java(&mut env, id) else {
-        return 0;
-    };
-    env.call_static_method(
-        "dev/yog/NativeDraw",
-        "getMcTextureId",
-        "(Ljava/lang/String;)I",
-        &[JValue::Object(&ji)],
-    )
-    .and_then(|v| v.i())
-    .map(|id| id as u32)
-    .unwrap_or(0)
+    host!("dev/yog/NativeDraw", "getMcTextureId", [S(id)]).map_or(0, |id: i32| id as u32)
 }
 
 // ── Draw calls ────────────────────────────────────────────────────────────────
@@ -2573,19 +1496,7 @@ unsafe extern "C" fn gfx_set_viewport(x: i32, y: i32, w: i32, h: i32) {
 // ── 2D convenience (JNI — uses MC's DrawContext / text renderer) ──────────────
 
 unsafe extern "C" fn gfx_draw2d_rect(x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method(
-        "dev/yog/NativeDraw",
-        "drawRect",
-        "(FFFFI)V",
-        &[
-            JValue::Float(x1),
-            JValue::Float(y1),
-            JValue::Float(x2),
-            JValue::Float(y2),
-            JValue::Int(color as i32),
-        ],
-    );
+    let _: Option<()> = host!("dev/yog/NativeDraw", "drawRect", [F(x1), F(y1), F(x2), F(y2), I(color as i32)]);
 }
 
 unsafe extern "C" fn gfx_draw2d_gradient(
@@ -2596,38 +1507,11 @@ unsafe extern "C" fn gfx_draw2d_gradient(
     top: u32,
     bottom: u32,
 ) {
-    let Some(mut env) = get_env() else { return };
-    let _ = env.call_static_method(
-        "dev/yog/NativeDraw",
-        "drawGradientRect",
-        "(FFFFII)V",
-        &[
-            JValue::Float(x1),
-            JValue::Float(y1),
-            JValue::Float(x2),
-            JValue::Float(y2),
-            JValue::Int(top as i32),
-            JValue::Int(bottom as i32),
-        ],
-    );
+    let _: Option<()> = host!("dev/yog/NativeDraw", "drawGradientRect", [F(x1), F(y1), F(x2), F(y2), I(top as i32), I(bottom as i32)]);
 }
 
 unsafe extern "C" fn gfx_draw2d_text(text: YogStr, x: f32, y: f32, color: u32, shadow: bool) {
-    let Some(mut env) = get_env() else { return };
-    if let Some(jt) = ys_to_java(&mut env, text) {
-        let _ = env.call_static_method(
-            "dev/yog/NativeDraw",
-            "drawText",
-            "(Ljava/lang/String;FFIZ)V",
-            &[
-                JValue::Object(&jt),
-                JValue::Float(x),
-                JValue::Float(y),
-                JValue::Int(color as i32),
-                JValue::Bool(shadow as u8),
-            ],
-        );
-    }
+    let _: Option<()> = host!("dev/yog/NativeDraw", "drawText", [S(text), F(x), F(y), I(color as i32), Z(shadow)]);
 }
 
 unsafe extern "C" fn gfx_draw2d_text_font(
@@ -2638,64 +1522,15 @@ unsafe extern "C" fn gfx_draw2d_text_font(
     color: u32,
     shadow: bool,
 ) {
-    let Some(mut env) = get_env() else { return };
-    let (Some(jt), Some(jf)) = (ys_to_java(&mut env, text), ys_to_java(&mut env, font)) else {
-        return;
-    };
-    let _ = env.call_static_method(
-        "dev/yog/NativeDraw",
-        "drawTextFont",
-        "(Ljava/lang/String;Ljava/lang/String;FFIZ)V",
-        &[
-            JValue::Object(&jt),
-            JValue::Object(&jf),
-            JValue::Float(x),
-            JValue::Float(y),
-            JValue::Int(color as i32),
-            JValue::Bool(shadow as u8),
-        ],
-    );
+    let _: Option<()> = host!("dev/yog/NativeDraw", "drawTextFont", [S(text), S(font), F(x), F(y), I(color as i32), Z(shadow)]);
 }
 
 unsafe extern "C" fn gfx_text_width(text: YogStr, font: YogStr) -> f32 {
-    let Some(mut env) = get_env() else { return 0.0 };
-    let (Some(jt), Some(jf)) = (ys_to_java(&mut env, text), ys_to_java(&mut env, font)) else {
-        return 0.0;
-    };
-    match env.call_static_method(
-        "dev/yog/NativeDraw",
-        "textWidth",
-        "(Ljava/lang/String;Ljava/lang/String;)F",
-        &[JValue::Object(&jt), JValue::Object(&jf)],
-    ) {
-        Ok(v) => v.f().unwrap_or(0.0),
-        Err(_) => {
-            env.exception_clear().ok();
-            0.0
-        }
-    }
+    host!("dev/yog/NativeDraw", "textWidth", [S(text), S(font)]).unwrap_or(0.0)
 }
 
 unsafe extern "C" fn gfx_draw2d_item(id: YogStr, x: f32, y: f32, size: f32) {
-    let Some(mut env) = get_env() else { return };
-    if let Some(ji) = ys_to_java(&mut env, id) {
-        if env
-            .call_static_method(
-                "dev/yog/NativeDraw",
-                "drawItem",
-                "(Ljava/lang/String;FFF)V",
-                &[
-                    JValue::Object(&ji),
-                    JValue::Float(x),
-                    JValue::Float(y),
-                    JValue::Float(size),
-                ],
-            )
-            .is_err()
-        {
-            env.exception_clear().ok();
-        }
-    }
+    let _: Option<()> = host!("dev/yog/NativeDraw", "drawItem", [S(id), F(x), F(y), F(size)]);
 }
 
 // ── Static GFX function table (function pointers only — per-frame data filled at call time) ──
@@ -3151,49 +1986,17 @@ fn tsv_clean(v: &str) -> String {
 }
 
 unsafe extern "C" fn api_ui_open(_ctx: *mut c_void, ui_id: YogStr, modal: bool, pause: bool) {
-    let id = ui_id.as_str().to_string();
-    if id.is_empty() {
+    if ui_id.as_str().is_empty() {
         return;
     }
-    let Some(mut env) = get_env() else { return };
-    let Ok(jid) = env.new_string(&id) else { return };
-    let jid_obj: JObject = jid.into();
     // Java side schedules onto the render thread; no-op on dedicated servers.
-    if env
-        .call_static_method(
-            "dev/yog/NativeBridge",
-            "openUI",
-            "(Ljava/lang/String;ZZ)V",
-            &[
-                JValue::Object(&jid_obj),
-                JValue::Bool(modal as u8),
-                JValue::Bool(pause as u8),
-            ],
-        )
-        .is_err()
-    {
-        env.exception_clear().ok();
-    }
+    let _: Option<()> = bridge!("openUI", [S(ui_id), Z(modal), Z(pause)]);
 }
 
 unsafe extern "C" fn api_ui_close(_ctx: *mut c_void, ui_id: YogStr) {
-    let id = ui_id.as_str().to_string();
-    let Some(mut env) = get_env() else { return };
-    let Ok(jid) = env.new_string(&id) else { return };
-    let jid_obj: JObject = jid.into();
     // Java side defers onto the render thread (after the current event) and
     // checks the open screen is that Yog UI; no-op on dedicated servers.
-    if env
-        .call_static_method(
-            "dev/yog/NativeBridge",
-            "closeUI",
-            "(Ljava/lang/String;)V",
-            &[JValue::Object(&jid_obj)],
-        )
-        .is_err()
-    {
-        env.exception_clear().ok();
-    }
+    let _: Option<()> = bridge!("closeUI", [S(ui_id)]);
 }
 
 unsafe extern "C" fn api_ui_consume_event(_ctx: *mut c_void) {
@@ -3210,24 +2013,7 @@ fn translate(key: &str) -> Option<String> {
     if key.is_empty() {
         return None;
     }
-    let mut env = get_env()?;
-    let jkey: JObject = env.new_string(key).ok()?.into();
-    let result = env.call_static_method(
-        "dev/yog/NativeBridge",
-        "translate",
-        "(Ljava/lang/String;)Ljava/lang/String;",
-        &[JValue::Object(&jkey)],
-    );
-    let text = match result.and_then(|v| v.l()) {
-        Ok(obj) if !obj.as_raw().is_null() => env.get_string(&obj.into()).ok().map(String::from),
-        Ok(_) => None,
-        Err(_) => {
-            env.exception_clear().ok();
-            None
-        }
-    };
-    let _ = env.delete_local_ref(jkey);
-    text
+    unsafe { bridge!("translate", [S(YogStr::from_str(key))]) }
 }
 
 unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
@@ -3248,26 +2034,10 @@ unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
         ));
     }
     // Loader-side (Java) mods, if the host provides them.
-    if let Some(mut env) = get_env() {
-        if let Ok(val) = env.call_static_method(
-            "dev/yog/NativeBridge",
-            "listPlatformMods",
-            "()Ljava/lang/String;",
-            &[],
-        ) {
-            if let Ok(obj) = val.l() {
-                if !obj.as_raw().is_null() {
-                    if let Ok(js) = env.get_string(&obj.into()) {
-                        for line in String::from(js).lines() {
-                            if !line.trim().is_empty() {
-                                lines.push(format!("platform\t{line}"));
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            env.exception_clear().ok();
+    let platform: Option<String> = bridge!("listPlatformMods", []);
+    for line in platform.iter().flat_map(|s| s.lines()) {
+        if !line.trim().is_empty() {
+            lines.push(format!("platform\t{line}"));
         }
     }
     YogOwnedStr::from_string(lines.join("\n"))
@@ -3306,96 +2076,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBookJson<'l>(
 // Each of these forwards to a `NativeBridge` static of the same shape; the JNI
 // signature is derived from the argument list so the two cannot drift apart.
 
-#[derive(Clone, Copy)]
-enum JArg {
-    S(YogStr),
-    D(f64),
-    F(f32),
-    I(i32),
-    Z(bool),
-}
-
-/// JNI method descriptor for `args`, returning `ret` (`"Z"` or a String).
-fn bridge_sig(args: &[JArg], ret: &str) -> String {
-    let mut sig = String::from("(");
-    for a in args {
-        sig.push_str(match a {
-            JArg::S(_) => "Ljava/lang/String;",
-            JArg::D(_) => "D",
-            JArg::F(_) => "F",
-            JArg::I(_) => "I",
-            JArg::Z(_) => "Z",
-        });
-    }
-    sig.push(')');
-    sig.push_str(ret);
-    sig
-}
-
-/// Call `NativeBridge.<name>(args)`; `None` if the JVM is unavailable or the
-/// call threw (the exception is cleared).
-unsafe fn bridge_call<'l>(
-    env: &mut JNIEnv<'l>,
-    name: &str,
-    args: &[JArg],
-    ret: &str,
-) -> Option<jni::objects::JValueOwned<'l>> {
-    let mut strs = Vec::new();
-    for a in args {
-        if let JArg::S(s) = a {
-            strs.push(ys_to_java(env, *s)?);
-        }
-    }
-    let mut next_str = strs.iter();
-    let mut vals: Vec<JValue> = Vec::with_capacity(args.len());
-    for a in args {
-        vals.push(match *a {
-            JArg::S(_) => JValue::Object(next_str.next()?),
-            JArg::D(d) => JValue::Double(d),
-            JArg::F(f) => JValue::Float(f),
-            JArg::I(i) => JValue::Int(i),
-            JArg::Z(z) => JValue::Bool(z as u8),
-        });
-    }
-    let sig = bridge_sig(args, ret);
-    match env.call_static_method("dev/yog/NativeBridge", name, &sig, &vals) {
-        Ok(v) => Some(v),
-        Err(_) => {
-            let _ = env.exception_clear();
-            None
-        }
-    }
-}
-
-unsafe fn bridge_bool(name: &str, args: &[JArg]) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    bridge_call(&mut env, name, args, "Z")
-        .and_then(|v| v.z().ok())
-        .unwrap_or(false)
-}
-
-unsafe fn bridge_str(name: &str, args: &[JArg]) -> YogOwnedStr {
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    match bridge_call(&mut env, name, args, "Ljava/lang/String;").and_then(|v| v.l().ok()) {
-        Some(obj) => jstring_to_owned(&mut env, obj),
-        None => YogOwnedStr::NONE,
-    }
-}
-
-fn vec_args(v: YogVec3) -> [JArg; 3] {
+fn vec_args(v: YogVec3) -> [JArg<'static>; 3] {
     [JArg::D(v.x), JArg::D(v.y), JArg::D(v.z)]
 }
 
-fn pos_args(p: YogBlockPos) -> [JArg; 3] {
+fn pos_args(p: YogBlockPos) -> [JArg<'static>; 3] {
     [JArg::I(p.x), JArg::I(p.y), JArg::I(p.z)]
 }
 
 unsafe extern "C" fn srv_entity_info(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
-    bridge_str("entityInfo", &[JArg::S(uuid)])
+    owned(bridge!("entityInfo", [JArg::S(uuid)]))
 }
 
 unsafe extern "C" fn srv_entities_in_box(
@@ -3406,7 +2096,7 @@ unsafe extern "C" fn srv_entities_in_box(
 ) -> YogOwnedStr {
     let [a, b, c] = vec_args(min);
     let [d, e, f] = vec_args(max);
-    bridge_str("entitiesInBox", &[JArg::S(dim), a, b, c, d, e, f])
+    owned(bridge!("entitiesInBox", [JArg::S(dim), a, b, c, d, e, f]))
 }
 
 unsafe extern "C" fn srv_raycast_block(
@@ -3417,7 +2107,7 @@ unsafe extern "C" fn srv_raycast_block(
 ) -> YogOwnedStr {
     let [a, b, c] = vec_args(from);
     let [d, e, f] = vec_args(to);
-    bridge_str("raycastBlock", &[JArg::S(dim), a, b, c, d, e, f])
+    owned(bridge!("raycastBlock", [JArg::S(dim), a, b, c, d, e, f]))
 }
 
 unsafe extern "C" fn srv_raycast_entity(
@@ -3429,10 +2119,7 @@ unsafe extern "C" fn srv_raycast_entity(
 ) -> YogOwnedStr {
     let [a, b, c] = vec_args(from);
     let [d, e, f] = vec_args(to);
-    bridge_str(
-        "raycastEntity",
-        &[JArg::S(dim), a, b, c, d, e, f, JArg::S(exclude)],
-    )
+    owned(bridge!("raycastEntity", [JArg::S(dim), a, b, c, d, e, f, JArg::S(exclude)]))
 }
 
 unsafe extern "C" fn srv_block_info(
@@ -3441,7 +2128,7 @@ unsafe extern "C" fn srv_block_info(
     pos: YogBlockPos,
 ) -> YogOwnedStr {
     let [x, y, z] = pos_args(pos);
-    bridge_str("blockInfo", &[JArg::S(dim), x, y, z])
+    owned(bridge!("blockInfo", [JArg::S(dim), x, y, z]))
 }
 
 unsafe extern "C" fn srv_break_block(
@@ -3452,10 +2139,7 @@ unsafe extern "C" fn srv_break_block(
     breaker: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge_bool(
-        "breakBlock",
-        &[JArg::S(dim), x, y, z, JArg::Z(drop), JArg::S(breaker)],
-    )
+    bridge!("breakBlock", [JArg::S(dim), x, y, z, JArg::Z(drop), JArg::S(breaker)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_place_block_from_slot(
@@ -3466,15 +2150,12 @@ unsafe extern "C" fn srv_place_block_from_slot(
     pos: YogBlockPos,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge_bool(
-        "placeBlockFromSlot",
-        &[JArg::S(player), JArg::I(slot as i32), JArg::S(dim), x, y, z],
-    )
+    bridge!("placeBlockFromSlot", [JArg::S(player), JArg::I(slot as i32), JArg::S(dim), x, y, z]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_bonemeal(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge_bool("bonemeal", &[JArg::S(dim), x, y, z])
+    bridge!("bonemeal", [JArg::S(dim), x, y, z]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_explode(
@@ -3486,9 +2167,7 @@ unsafe extern "C" fn srv_explode(
     source: YogStr,
 ) -> bool {
     let [x, y, z] = vec_args(pos);
-    bridge_bool(
-        "explode",
-        &[
+    bridge!("explode", [
             JArg::S(dim),
             x,
             y,
@@ -3496,12 +2175,11 @@ unsafe extern "C" fn srv_explode(
             JArg::F(power),
             JArg::Z(fire),
             JArg::S(source),
-        ],
-    )
+        ]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_tellraw(_ctx: *mut c_void, player: YogStr, json: YogStr) -> bool {
-    bridge_bool("tellraw", &[JArg::S(player), JArg::S(json)])
+    bridge!("tellraw", [JArg::S(player), JArg::S(json)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_damage(
@@ -3511,15 +2189,12 @@ unsafe extern "C" fn srv_entity_damage(
     damage_type: YogStr,
     attacker: YogStr,
 ) -> bool {
-    bridge_bool(
-        "entityDamage",
-        &[
+    bridge!("entityDamage", [
             JArg::S(uuid),
             JArg::F(amount),
             JArg::S(damage_type),
             JArg::S(attacker),
-        ],
-    )
+        ]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_set_fire_ticks(
@@ -3527,11 +2202,11 @@ unsafe extern "C" fn srv_entity_set_fire_ticks(
     uuid: YogStr,
     ticks: i32,
 ) -> bool {
-    bridge_bool("entitySetFireTicks", &[JArg::S(uuid), JArg::I(ticks)])
+    bridge!("entitySetFireTicks", [JArg::S(uuid), JArg::I(ticks)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_player_add_xp(_ctx: *mut c_void, player: YogStr, amount: i32) -> bool {
-    bridge_bool("playerAddXp", &[JArg::S(player), JArg::I(amount)])
+    bridge!("playerAddXp", [JArg::S(player), JArg::I(amount)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_player_set_may_fly(
@@ -3539,11 +2214,11 @@ unsafe extern "C" fn srv_player_set_may_fly(
     player: YogStr,
     may_fly: bool,
 ) -> bool {
-    bridge_bool("playerSetMayFly", &[JArg::S(player), JArg::Z(may_fly)])
+    bridge!("playerSetMayFly", [JArg::S(player), JArg::Z(may_fly)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_player_info(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
-    bridge_str("playerInfo", &[JArg::S(player)])
+    owned(bridge!("playerInfo", [JArg::S(player)]))
 }
 
 unsafe extern "C" fn srv_spawn_item(
@@ -3557,9 +2232,7 @@ unsafe extern "C" fn srv_spawn_item(
 ) -> YogOwnedStr {
     let [a, b, c] = vec_args(pos);
     let [d, e, f] = vec_args(vel);
-    bridge_str(
-        "spawnItem",
-        &[
+    owned(bridge!("spawnItem", [
             JArg::S(dim),
             a,
             b,
@@ -3570,16 +2243,15 @@ unsafe extern "C" fn srv_spawn_item(
             JArg::S(item_id),
             JArg::I(count as i32),
             JArg::S(snbt),
-        ],
-    )
+        ]))
 }
 
 unsafe extern "C" fn srv_item_entity_stack(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
-    bridge_str("itemEntityStack", &[JArg::S(uuid)])
+    owned(bridge!("itemEntityStack", [JArg::S(uuid)]))
 }
 
 unsafe extern "C" fn srv_actionbar_json(_ctx: *mut c_void, player: YogStr, json: YogStr) -> bool {
-    bridge_bool("actionbarJson", &[JArg::S(player), JArg::S(json)])
+    bridge!("actionbarJson", [JArg::S(player), JArg::S(json)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_use_item_on_block(
@@ -3591,9 +2263,7 @@ unsafe extern "C" fn srv_use_item_on_block(
     player: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge_bool(
-        "useItemOnBlock",
-        &[
+    bridge!("useItemOnBlock", [
             JArg::S(dim),
             x,
             y,
@@ -3601,8 +2271,7 @@ unsafe extern "C" fn srv_use_item_on_block(
             JArg::I(face as i32),
             JArg::S(item_id),
             JArg::S(player),
-        ],
-    )
+        ]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_pour_fluid(
@@ -3612,10 +2281,7 @@ unsafe extern "C" fn srv_pour_fluid(
     bucket_item_id: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge_bool(
-        "pourFluid",
-        &[JArg::S(dim), x, y, z, JArg::S(bucket_item_id)],
-    )
+    bridge!("pourFluid", [JArg::S(dim), x, y, z, JArg::S(bucket_item_id)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_has_entity_tag(
@@ -3623,11 +2289,11 @@ unsafe extern "C" fn srv_has_entity_tag(
     entity_type: YogStr,
     tag: YogStr,
 ) -> bool {
-    bridge_bool("hasEntityTag", &[JArg::S(entity_type), JArg::S(tag)])
+    bridge!("hasEntityTag", [JArg::S(entity_type), JArg::S(tag)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_item_block(_ctx: *mut c_void, item_id: YogStr) -> YogOwnedStr {
-    bridge_str("itemBlock", &[JArg::S(item_id)])
+    owned(bridge!("itemBlock", [JArg::S(item_id)]))
 }
 
 unsafe extern "C" fn srv_place_feature(
@@ -3637,10 +2303,7 @@ unsafe extern "C" fn srv_place_feature(
     feature_id: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge_bool(
-        "placeFeature",
-        &[JArg::S(dim), x, y, z, JArg::S(feature_id)],
-    )
+    bridge!("placeFeature", [JArg::S(dim), x, y, z, JArg::S(feature_id)]).unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_item_entity_set_stack(
@@ -3650,15 +2313,12 @@ unsafe extern "C" fn srv_item_entity_set_stack(
     count: u32,
     snbt: YogStr,
 ) -> bool {
-    bridge_bool(
-        "itemEntitySetStack",
-        &[
+    bridge!("itemEntitySetStack", [
             JArg::S(uuid),
             JArg::S(item_id),
             JArg::I(count as i32),
             JArg::S(snbt),
-        ],
-    )
+        ]).unwrap_or(false)
 }
 
 // ── Table constructors ────────────────────────────────────────────────────────
@@ -5139,25 +3799,7 @@ unsafe extern "C" fn chunk_writer_set_block(
     z: i32,
     block_id: YogStr,
 ) -> bool {
-    let Some(mut env) = get_env() else {
-        return false;
-    };
-    let Some(jb) = ys_to_java(&mut env, block_id) else {
-        return false;
-    };
-    env.call_static_method(
-        "dev/yog/YogCallbackChunkGenerator",
-        "setBlockInGeneratingChunk",
-        "(IIILjava/lang/String;)Z",
-        &[
-            JValue::Int(x),
-            JValue::Int(y),
-            JValue::Int(z),
-            JValue::Object(&jb),
-        ],
-    )
-    .and_then(|v| v.z())
-    .unwrap_or(false)
+    host!("dev/yog/YogCallbackChunkGenerator", "setBlockInGeneratingChunk", [I(x), I(y), I(z), S(block_id)]).unwrap_or(false)
 }
 
 #[no_mangle]
@@ -6599,6 +5241,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientTick<'l>(
     });
 }
 
+/// The host's GL function pointer for `sym` (0 if it has none).
+fn gl_proc_address(sym: &str) -> usize {
+    let ptr: Option<i64> = unsafe { bridge!("glProcAddress", [S(YogStr::from_str(sym))]) };
+    ptr.unwrap_or(0) as usize
+}
+
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeGlInit<'l>(
     _env: JNIEnv<'l>,
@@ -6611,61 +5259,23 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeGlInit<'l>(
     let mut raw_prog_binary: usize = 0;
     let gl = unsafe {
         glow::Context::from_loader_function(|sym| {
-            let Some(mut env) = get_env() else {
-                return std::ptr::null();
-            };
-            let jsym = match env.new_string(sym) {
-                Ok(s) => s,
-                Err(_) => return std::ptr::null(),
-            };
-            let jsym_obj: JObject = jsym.into();
-            let val = env.call_static_method(
-                "dev/yog/NativeBridge",
-                "glProcAddress",
-                "(Ljava/lang/String;)J",
-                &[JValue::Object(&jsym_obj)],
-            );
-            let ptr = match val.and_then(|v| v.j()) {
-                Ok(p) if p != 0 => p as usize as *const _,
-                _ => std::ptr::null(),
-            };
+            let ptr = gl_proc_address(sym);
             // Capture extension pointers while the loader runs.
             match sym {
-                "glGetProgramBinary" => raw_get_binary = ptr as usize,
-                "glProgramBinary" => raw_prog_binary = ptr as usize,
+                "glGetProgramBinary" => raw_get_binary = ptr,
+                "glProgramBinary" => raw_prog_binary = ptr,
                 _ => {}
             }
-            ptr
+            ptr as *const _
         })
     };
     let _ = GL.set(GlCtx(gl));
-    let _ = GL_GET_PROGRAM_BINARY.set(if raw_get_binary != 0 {
-        Some(raw_get_binary)
-    } else {
-        None
-    });
-    let _ = GL_PROGRAM_BINARY.set(if raw_prog_binary != 0 {
-        Some(raw_prog_binary)
-    } else {
-        None
-    });
+    let _ = GL_GET_PROGRAM_BINARY.set((raw_get_binary != 0).then_some(raw_get_binary));
+    let _ = GL_PROGRAM_BINARY.set((raw_prog_binary != 0).then_some(raw_prog_binary));
     // `glGetProgramiv` is a core function; always available.  We look it up once here
     // to avoid depending on glow internals for the PROGRAM_BINARY_LENGTH query.
-    if let Some(mut env) = get_env() {
-        if let Ok(jsym) = env.new_string("glGetProgramiv") {
-            let jsym_obj: JObject = jsym.into();
-            if let Ok(jv) = env.call_static_method(
-                "dev/yog/NativeBridge",
-                "glProcAddress",
-                "(Ljava/lang/String;)J",
-                &[JValue::Object(&jsym_obj)],
-            ) {
-                if let Ok(ptr) = jv.j() {
-                    let _ = GL_GET_PROGRAM_IV.set(if ptr != 0 { Some(ptr as usize) } else { None });
-                }
-            }
-        }
-    }
+    let get_program_iv = gl_proc_address("glGetProgramiv");
+    let _ = GL_GET_PROGRAM_IV.set((get_program_iv != 0).then_some(get_program_iv));
 }
 
 #[no_mangle]

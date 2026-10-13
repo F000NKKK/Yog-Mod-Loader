@@ -175,7 +175,15 @@ pub fn compute(widget: &Widget, avail_w: f32, avail_h: f32) -> LayoutNode {
     let mut node = new_node(widget);
     if widget.visible {
         layout_widget(
-            widget, &mut node, 0.0, 0.0, avail_w, avail_h, avail_w, avail_h,
+            widget,
+            &mut node,
+            0.0,
+            0.0,
+            avail_w,
+            avail_h,
+            avail_w,
+            avail_h,
+            Depth::Full,
         );
     }
     node
@@ -209,9 +217,42 @@ fn new_node(w: &Widget) -> LayoutNode {
     }
 }
 
-/// Measure `w` and lay out its subtree at `(x, y)`. `max_w`/`max_h` cap its
-/// size (`UNBOUNDED` = no cap: size to content); `basis_w`/`basis_h` are the
+/// How much of a subtree a layout call settles.
+#[derive(Clone, Copy, PartialEq)]
+enum Depth {
+    /// Only the widget's own size (and its children's rects, which that
+    /// size depends on) — grandchildren are left stale. Every measure is
+    /// followed by an [`arrange`], which lays the subtree out for real;
+    /// recursing here too would redo each level twice (2^depth work).
+    Size,
+    /// The whole subtree, final.
+    Full,
+}
+
+/// Measure `w` (see [`Depth`]) at `(x, y)`. `max_w`/`max_h` cap its size
+/// (`UNBOUNDED` = no cap: size to content); `basis_w`/`basis_h` are the
 /// parent's content box that percent sizes resolve against.
+fn measure(
+    w: &Widget,
+    node: &mut LayoutNode,
+    max_w: f32,
+    max_h: f32,
+    basis_w: f32,
+    basis_h: f32,
+) {
+    layout_widget(
+        w,
+        node,
+        0.0,
+        0.0,
+        max_w,
+        max_h,
+        basis_w,
+        basis_h,
+        Depth::Size,
+    );
+}
+
 #[allow(clippy::too_many_arguments)]
 fn layout_widget(
     w: &Widget,
@@ -222,6 +263,7 @@ fn layout_widget(
     max_h: f32,
     basis_w: f32,
     basis_h: f32,
+    depth: Depth,
 ) {
     let s = &w.style;
     let has_children = is_container(w);
@@ -314,7 +356,7 @@ fn layout_widget(
             max_w,
             max_h,
         };
-        layout_children(w, node, Some(shrink));
+        layout_children(w, node, Some(shrink), depth);
     }
 }
 
@@ -325,7 +367,7 @@ fn arrange(w: &Widget, node: &mut LayoutNode, x: f32, y: f32) {
     node.rect.y = y;
     node.content_h = node.rect.h;
     if is_container(w) {
-        layout_children(w, node, None);
+        layout_children(w, node, None, Depth::Full);
     }
 }
 
@@ -343,11 +385,23 @@ struct Shrink {
     max_h: f32,
 }
 
+/// Places a measured child at `(x, y)`: [`arrange`]s it, or with
+/// [`Depth::Size`] only moves its rect.
+fn place(child: &Widget, cn: &mut LayoutNode, x: f32, y: f32, depth: Depth) {
+    match depth {
+        Depth::Full => arrange(child, cn, x, y),
+        Depth::Size => {
+            cn.rect.x = x;
+            cn.rect.y = y;
+        }
+    }
+}
+
 /// Flex layout of `w`'s children inside `node.rect` (size and position
 /// already set). With `shrink`, auto axes then fit the content.
-fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
+fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>, depth: Depth) {
     if let WidgetKind::Grid(spec) = &w.kind {
-        return grid::layout(w, spec, node, shrink);
+        return grid::layout(w, spec, node, shrink, depth);
     }
     let s = &w.style;
     let Rect { x, y, w: ww, h: hh } = node.rect;
@@ -480,7 +534,7 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         if let Some((px, py)) = child.style.pos {
             let mw = less(content_w, px + m[1] + m[3]);
             let mh = less(content_h, py + m[0] + m[2]);
-            layout_widget(child, &mut cn, 0.0, 0.0, mw, mh, content_w, content_h);
+            measure(child, &mut cn, mw, mh, content_w, content_h);
             child_nodes.push(cn);
             continue;
         }
@@ -498,7 +552,7 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         {
             measure_aligned(child, &mut cn, cmw, cmh, content_w, content_h);
         } else {
-            layout_widget(child, &mut cn, 0.0, 0.0, cmw, cmh, content_w, content_h);
+            measure(child, &mut cn, cmw, cmh, content_w, content_h);
         }
         let ef = effective_flex(child);
         // A growing child with an auto main size starts from its min size,
@@ -583,7 +637,7 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
             pos += cn.rect.h + mt + s.gap;
             p
         };
-        arrange(child, cn, cx, cy);
+        place(child, cn, cx, cy, depth);
     }
 
     // --- Reverse pass: position Dock::Right / Dock::Bottom children from the far edge ---
@@ -646,7 +700,7 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
             )
         };
         rpos -= ml + s.gap;
-        arrange(child, cn, cx, cy);
+        place(child, cn, cx, cy, depth);
     }
 
     // --- Absolutely positioned children (see `Style::pos`) ---
@@ -659,11 +713,12 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         }
         let m = child.style.margin;
         let cn = &mut child_nodes[i];
-        arrange(
+        place(
             child,
             cn,
             x + s.pad[3] + px + m[3],
             y + s.pad[0] + py + m[0],
+            depth,
         );
     }
 
@@ -682,12 +737,12 @@ fn measure_aligned(
     basis_h: f32,
 ) {
     if bounded(max_w) && w.style.w.is_auto() {
-        layout_widget(w, node, 0.0, 0.0, UNBOUNDED, max_h, basis_w, basis_h);
+        measure(w, node, UNBOUNDED, max_h, basis_w, basis_h);
         if node.rect.w <= max_w {
             return;
         }
     }
-    layout_widget(w, node, 0.0, 0.0, max_w, max_h, basis_w, basis_h);
+    measure(w, node, max_w, max_h, basis_w, basis_h);
 }
 
 /// Margin `side` of a visible child (a collapsed one has none).

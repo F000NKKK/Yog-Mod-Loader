@@ -349,17 +349,15 @@ impl SymbolTable {
             return Vec::new();
         };
         let mut walk = Walk {
-            subprogram: Some(function),
+            subprogram: function,
             path: vec![Scope {
                 offset: function,
                 is_function: true,
                 vars: Vec::new(),
             }],
         };
-        let _ = self.walk_scope(info, root, pc_offset, true, &mut walk);
-        let Some(subprogram) = walk.subprogram else {
-            return Vec::new();
-        };
+        let _ = self.walk_scope(info, root, pc_offset, &mut walk);
+        let subprogram = walk.subprogram;
 
         // The scopes of the requested function instance: from its own
         // subprogram/inlined_subroutine to just before the next one in.
@@ -491,20 +489,21 @@ impl SymbolTable {
         }
     }
 
+    /// Collects the scopes below `node` (a function scope) that contain
+    /// `pc`, with the variables declared directly in each, into `walk`.
     fn walk_scope(
         &self,
         info: &UnitInfo,
         node: gimli::EntriesTreeNode<'_, '_, R>,
         pc: u64,
-        in_function: bool,
         walk: &mut Walk,
-    ) -> gimli::Result<bool> {
+    ) -> gimli::Result<()> {
         let my_scope = walk.path.len().checked_sub(1);
         let mut children = node.children();
         while let Some(child) = children.next()? {
             let entry = child.entry();
             match entry.tag() {
-                gimli::DW_TAG_formal_parameter | gimli::DW_TAG_variable if in_function => {
+                gimli::DW_TAG_formal_parameter | gimli::DW_TAG_variable => {
                     let kind = if entry.tag() == gimli::DW_TAG_formal_parameter {
                         VarKind::Parameter
                     } else {
@@ -517,42 +516,23 @@ impl SymbolTable {
                 gimli::DW_TAG_subprogram
                 | gimli::DW_TAG_lexical_block
                 | gimli::DW_TAG_inlined_subroutine => {
-                    let is_function_scope = matches!(
-                        entry.tag(),
-                        gimli::DW_TAG_subprogram | gimli::DW_TAG_inlined_subroutine
-                    );
-                    if entry.tag() == gimli::DW_TAG_lexical_block && !in_function {
-                        continue;
-                    }
                     if !self.die_contains(info, entry, pc) {
                         continue;
                     }
                     if entry.tag() == gimli::DW_TAG_subprogram {
-                        walk.subprogram = Some(entry.offset());
+                        walk.subprogram = entry.offset();
                     }
                     walk.path.push(Scope {
                         offset: entry.offset(),
-                        is_function: is_function_scope,
+                        is_function: entry.tag() != gimli::DW_TAG_lexical_block,
                         vars: Vec::new(),
                     });
-                    self.walk_scope(info, child, pc, true, walk)?;
-                    if !in_function {
-                        // Found the function containing the pc; nothing
-                        // else in the unit can matter.
-                        return Ok(true);
-                    }
-                }
-                _ if !in_function && entry.has_children() => {
-                    // Namespaces, impl blocks, types holding methods...
-                    let found = self.walk_scope(info, child, pc, false, walk)?;
-                    if found {
-                        return Ok(true);
-                    }
+                    self.walk_scope(info, child, pc, walk)?;
                 }
                 _ => {}
             }
         }
-        Ok(false)
+        Ok(())
     }
 
     fn die_contains(&self, info: &UnitInfo, entry: &DebuggingInformationEntry<R>, pc: u64) -> bool {
@@ -851,10 +831,9 @@ fn assemble(pieces: Vec<gimli::Piece<R>>, frame: &Frame<'_>) -> Located {
     }
 }
 
-#[derive(Default)]
 struct Walk {
     /// The concrete (out-of-line) subprogram containing the pc.
-    subprogram: Option<UnitOffset<usize>>,
+    subprogram: UnitOffset<usize>,
     /// Every scope containing the pc, outermost first.
     path: Vec<Scope>,
 }

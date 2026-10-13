@@ -3,10 +3,12 @@ package dev.yog;
 import static dev.yog.util.YogProps.flag01;
 import static dev.yog.util.YogProps.tsvField;
 
+import dev.yog.util.YogEntityFlags;
 import dev.yog.util.YogNativeRuntime;
 import java.util.Locale;
 import java.util.UUID;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LevelEvent;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -193,10 +195,13 @@ public final class NativeBridge {
         return w != null && w.isRaining();
     }
 
+    /** Rain / clear spell length when the caller passes no duration (5 minutes). */
+    private static final int DEFAULT_WEATHER_TICKS = 6000;
+
     public static boolean worldSetWeather(String dimension, boolean raining, int durationTicks) {
         ServerLevel w = worldFor(dimension);
         if (w == null) return false;
-        int dur = durationTicks > 0 ? durationTicks : 6000;
+        int dur = durationTicks > 0 ? durationTicks : DEFAULT_WEATHER_TICKS;
         w.setWeatherParameters(raining ? 0 : dur, raining ? dur : 0, false, false);
         return true;
     }
@@ -451,19 +456,19 @@ public final class NativeBridge {
             Entity e = entityByUuid(uuid);
             if (e == null) return null;
             int flags = 0;
-            if (e instanceof LivingEntity) flags |= 1;
-            if (e instanceof Player) flags |= 2;
+            if (e instanceof LivingEntity) flags |= YogEntityFlags.LIVING;
+            if (e instanceof Player) flags |= YogEntityFlags.PLAYER;
             if (e instanceof net.minecraft.world.entity.animal.Animal
-                    || e instanceof net.minecraft.world.entity.animal.WaterAnimal) flags |= 4;
-            if (e instanceof net.minecraft.world.entity.monster.Enemy) flags |= 8;
-            if (e instanceof ItemEntity) flags |= 16;
-            if (e instanceof net.minecraft.world.entity.Mob) flags |= 32;
-            if (e instanceof net.minecraft.world.entity.decoration.ArmorStand) flags |= 64;
-            if (e.isAlive()) flags |= 128;
-            if (e.isSpectator()) flags |= 256;
+                    || e instanceof net.minecraft.world.entity.animal.WaterAnimal) flags |= YogEntityFlags.ANIMAL;
+            if (e instanceof net.minecraft.world.entity.monster.Enemy) flags |= YogEntityFlags.MONSTER;
+            if (e instanceof ItemEntity) flags |= YogEntityFlags.ITEM;
+            if (e instanceof net.minecraft.world.entity.Mob) flags |= YogEntityFlags.MOB;
+            if (e instanceof net.minecraft.world.entity.decoration.ArmorStand) flags |= YogEntityFlags.ARMOR_STAND;
+            if (e.isAlive()) flags |= YogEntityFlags.ALIVE;
+            if (e.isSpectator()) flags |= YogEntityFlags.SPECTATOR;
             if (e instanceof net.minecraft.world.entity.boss.EnderDragonPart
-                    || e instanceof net.minecraftforge.entity.PartEntity<?>) flags |= 512;
-            if (e instanceof net.minecraft.world.entity.npc.Villager) flags |= 1024;
+                    || e instanceof net.minecraftforge.entity.PartEntity<?>) flags |= YogEntityFlags.PART;
+            if (e instanceof net.minecraft.world.entity.npc.Villager) flags |= YogEntityFlags.VILLAGER;
             return BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()) + "\t"
                     + e.level().dimension().location() + "\t"
                     + e.getX() + "\t" + e.getY() + "\t" + e.getZ() + "\t"
@@ -609,7 +614,7 @@ public final class NativeBridge {
             BlockPos pos = new BlockPos(x, y, z);
             boolean ok = BoneMealItem.growCrop(new ItemStack(Items.BONE_MEAL), w, pos)
                     || BoneMealItem.growWaterPlant(new ItemStack(Items.BONE_MEAL), w, pos, null);
-            if (ok) w.levelEvent(1505, pos, 0);
+            if (ok) w.levelEvent(LevelEvent.PARTICLES_AND_SOUND_PLANT_GROWTH, pos, 0);
             return ok;
         } catch (Throwable t) {
             return false;

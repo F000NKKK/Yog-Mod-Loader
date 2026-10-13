@@ -18,7 +18,7 @@
 //! `halign`/`valign` with its own measured size, capped to the cell.
 
 use super::{
-    arrange, bounded, layout_widget, less, measure_aligned, new_node, GridLines, LayoutNode, Rect,
+    bounded, less, measure, measure_aligned, new_node, place, Depth, GridLines, LayoutNode, Rect,
     Shrink, SCROLLBAR_W, UNBOUNDED,
 };
 use crate::widget::{GridLength, GridSpec, HAlign, Track, VAlign, Widget};
@@ -199,7 +199,13 @@ fn size_axis(
 
 /// Lays out a grid's children inside `node.rect` (size set, maybe
 /// unbounded along an axis being measured).
-pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink: Option<Shrink>) {
+pub(super) fn layout(
+    w: &Widget,
+    spec: &GridSpec,
+    node: &mut LayoutNode,
+    shrink: Option<Shrink>,
+    depth: Depth,
+) {
     let s = &w.style;
     // Arranging after a measure: that measure's floors (see `size_axis`).
     let (floor_rows, floor_cols) = match (&shrink, node.grid.take()) {
@@ -264,9 +270,7 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
         let m = c.style.margin;
         let cap_h = less(measure_cap(rows, rsp, content_h, sp.r0, sp.r1), m[0] + m[2]);
         let mut tmp = new_node(c);
-        layout_widget(
-            c, &mut tmp, 0.0, 0.0, UNBOUNDED, cap_h, UNBOUNDED, UNBOUNDED,
-        );
+        measure(c, &mut tmp, UNBOUNDED, cap_h, UNBOUNDED, UNBOUNDED);
         items.push((sp.c0, sp.c1, tmp.rect.w + m[1] + m[3]));
     }
     let col_size = size_axis(cols, content_w, csp, &mut items, &floor_cols);
@@ -281,7 +285,7 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
         let m = c.style.margin;
         let cell_w = less(extent(&col_size, csp, sp.c0, sp.c1), m[1] + m[3]);
         let mut tmp = new_node(c);
-        layout_widget(c, &mut tmp, 0.0, 0.0, cell_w, UNBOUNDED, cell_w, UNBOUNDED);
+        measure(c, &mut tmp, cell_w, UNBOUNDED, cell_w, UNBOUNDED);
         items.push((sp.r0, sp.r1, tmp.rect.h + m[0] + m[2]));
     }
     let row_size = size_axis(rows, content_h, rsp, &mut items, &floor_rows);
@@ -354,12 +358,13 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
                 );
                 let mw = less(cw.unwrap_or(total_w), px + m[1] + m[3]);
                 let mh = less(ch.unwrap_or(total_h), py + m[0] + m[2]);
-                layout_widget(c, &mut cn, 0.0, 0.0, mw, mh, content_w, content_h);
-                arrange(
+                measure(c, &mut cn, mw, mh, content_w, content_h);
+                place(
                     c,
                     &mut cn,
                     x + s.pad[3] + px + m[3],
                     y + s.pad[0] + py + m[0],
+                    depth,
                 );
             }
             child_nodes.push(cn);
@@ -371,7 +376,7 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
         let inner_h = (cell_h - m[0] - m[2]).max(0.0);
         let halign = c.style.halign.unwrap_or(HAlign::Stretch);
         if halign == HAlign::Stretch {
-            layout_widget(c, &mut cn, 0.0, 0.0, inner_w, inner_h, inner_w, inner_h);
+            measure(c, &mut cn, inner_w, inner_h, inner_w, inner_h);
         } else {
             measure_aligned(c, &mut cn, inner_w, inner_h, inner_w, inner_h);
         }
@@ -400,7 +405,7 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
         cn.rect.h = cn.rect.h.min(inner_h);
         let cx = col_x[sp.c0] + m[3] + (inner_w - cn.rect.w) * fx;
         let cy = row_y[sp.r0] + m[0] + (inner_h - cn.rect.h) * fy;
-        arrange(c, &mut cn, cx, cy);
+        place(c, &mut cn, cx, cy, depth);
         child_nodes.push(cn);
     }
 

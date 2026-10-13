@@ -3,6 +3,7 @@ package dev.yog;
 import static dev.yog.util.YogProps.flag01;
 import static dev.yog.util.YogProps.tsvField;
 
+import dev.yog.util.YogEntityFlags;
 import dev.yog.util.YogNativeRuntime;
 import java.util.Locale;
 import net.fabricmc.loader.api.FabricLoader;
@@ -247,6 +248,9 @@ public final class NativeBridge {
         return w != null && w.isRaining();
     }
 
+    /** Rain / clear spell length when the caller passes no duration (5 minutes). */
+    private static final int DEFAULT_WEATHER_TICKS = 6000;
+
     /**
      * Start or stop rain. {@code durationTicks == 0} picks a server default.
      * Internally calls {@link net.minecraft.server.world.ServerWorld#setWeather}.
@@ -255,7 +259,7 @@ public final class NativeBridge {
     public static boolean worldSetWeather(String dimension, boolean raining, int durationTicks) {
         ServerWorld w = worldFor(dimension);
         if (w == null) return false;
-        int dur = durationTicks > 0 ? durationTicks : 6000;
+        int dur = durationTicks > 0 ? durationTicks : DEFAULT_WEATHER_TICKS;
         if (raining) {
             w.setWeather(0, dur, true, false);
         } else {
@@ -877,18 +881,18 @@ public final class NativeBridge {
             Entity e = entityByUuid(uuid);
             if (e == null) return null;
             int flags = 0;
-            if (e instanceof LivingEntity) flags |= 1;
-            if (e instanceof PlayerEntity) flags |= 2;
+            if (e instanceof LivingEntity) flags |= YogEntityFlags.LIVING;
+            if (e instanceof PlayerEntity) flags |= YogEntityFlags.PLAYER;
             if (e instanceof net.minecraft.entity.passive.AnimalEntity
-                    || e instanceof net.minecraft.entity.mob.WaterCreatureEntity) flags |= 4;
-            if (e instanceof net.minecraft.entity.mob.Monster) flags |= 8;
-            if (e instanceof ItemEntity) flags |= 16;
-            if (e instanceof net.minecraft.entity.mob.MobEntity) flags |= 32;
-            if (e instanceof net.minecraft.entity.decoration.ArmorStandEntity) flags |= 64;
-            if (e.isAlive()) flags |= 128;
-            if (e.isSpectator()) flags |= 256;
-            if (e instanceof net.minecraft.entity.boss.dragon.EnderDragonPart) flags |= 512;
-            if (e instanceof net.minecraft.entity.passive.VillagerEntity) flags |= 1024;
+                    || e instanceof net.minecraft.entity.mob.WaterCreatureEntity) flags |= YogEntityFlags.ANIMAL;
+            if (e instanceof net.minecraft.entity.mob.Monster) flags |= YogEntityFlags.MONSTER;
+            if (e instanceof ItemEntity) flags |= YogEntityFlags.ITEM;
+            if (e instanceof net.minecraft.entity.mob.MobEntity) flags |= YogEntityFlags.MOB;
+            if (e instanceof net.minecraft.entity.decoration.ArmorStandEntity) flags |= YogEntityFlags.ARMOR_STAND;
+            if (e.isAlive()) flags |= YogEntityFlags.ALIVE;
+            if (e.isSpectator()) flags |= YogEntityFlags.SPECTATOR;
+            if (e instanceof net.minecraft.entity.boss.dragon.EnderDragonPart) flags |= YogEntityFlags.PART;
+            if (e instanceof net.minecraft.entity.passive.VillagerEntity) flags |= YogEntityFlags.VILLAGER;
             return Registries.ENTITY_TYPE.getId(e.getType()) + "\t"
                     + e.getWorld().getRegistryKey().getValue() + "\t"
                     + e.getX() + "\t" + e.getY() + "\t" + e.getZ() + "\t"

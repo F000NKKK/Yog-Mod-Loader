@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -67,11 +66,6 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
         this.generatorTypeId = generatorTypeId;
         this.minY = minY;
         this.height = height;
-    }
-
-    /** Register {@link #CODEC} under {@code yog:callback_generator}. Call once at mod-init. */
-    public static void registerCodec() {
-        Registry.register(BuiltInRegistries.CHUNK_GENERATOR, new ResourceLocation("yog", "callback_generator"), CODEC);
     }
 
     @Override
