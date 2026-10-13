@@ -11,54 +11,57 @@
   <rect x="0.5" y="0.5" width="959" height="299" rx="14" fill="url(#bg)" stroke="#30363d"/>
 
   <!-- Column 1: the mod project -->
-  <rect x="24" y="28" width="268" height="244" rx="10" fill="#1f2a37" stroke="#3b82f6"/>
-  <text x="40" y="56" fill="#e6edf3" font-size="17" font-weight="600">📁 Your mod</text>
+  <rect x="24" y="28" width="300" height="244" rx="10" fill="#1f2a37" stroke="#3b82f6"/>
+  <text x="40" y="56" fill="#e6edf3" font-size="17" font-weight="600">Your mod</text>
   <g font-family="Cascadia Code, Consolas, monospace" font-size="13" fill="#c9d1d9">
     <text x="40" y="90"><tspan fill="#79c0ff">yog.toml</tspan></text>
-    <text x="176" y="90" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">manifest</text>
+    <text x="196" y="90" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">manifest</text>
     <text x="40" y="122"><tspan fill="#79c0ff">src/*.rs</tspan></text>
-    <text x="176" y="122" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">Rust code</text>
+    <text x="196" y="122" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">Rust code</text>
     <text x="40" y="154"><tspan fill="#79c0ff">src/*.yui</tspan></text>
-    <text x="176" y="154" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">screens</text>
+    <text x="196" y="154" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">screens</text>
     <text x="40" y="186"><tspan fill="#79c0ff">resources/*.yres</tspan></text>
-    <text x="176" y="206" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">texts, images</text>
-    <text x="40" y="238"><tspan fill="#79c0ff">content/*.yblock</tspan></text>
-    <text x="176" y="258" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">blocks, items</text>
+    <text x="196" y="186" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">texts, images</text>
+    <text x="40" y="218"><tspan fill="#79c0ff">content/*.yblock</tspan></text>
+    <text x="196" y="218" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">blocks, items</text>
+    <text x="40" y="250"><tspan fill="#79c0ff">assets/ data/</tspan></text>
+    <text x="196" y="250" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">extra files</text>
   </g>
 
   <!-- Arrow 1 -->
-  <line x1="298" y1="150" x2="370" y2="150" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
-  <text x="334" y="138" fill="#f0b429" font-size="13" text-anchor="middle" font-family="Cascadia Code, Consolas, monospace">yog build</text>
+  <line x1="330" y1="150" x2="398" y2="150" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="364" y="138" fill="#f0b429" font-size="13" text-anchor="middle" font-family="Cascadia Code, Consolas, monospace">yog build</text>
 
   <!-- Column 2: the .yog package -->
-  <rect x="376" y="28" width="250" height="244" rx="10" fill="#2a2238" stroke="#a371f7"/>
-  <text x="392" y="56" fill="#e6edf3" font-size="17" font-weight="600">📦 my-mod.yog</text>
+  <rect x="404" y="28" width="236" height="244" rx="10" fill="#2a2238" stroke="#a371f7"/>
+  <text x="420" y="56" fill="#e6edf3" font-size="17" font-weight="600">my-mod.yog</text>
   <g font-family="Cascadia Code, Consolas, monospace" font-size="12.5" fill="#c9d1d9">
-    <text x="392" y="88" fill="#d2a8ff">natives/</text>
-    <text x="408" y="108">linux-x86_64</text>
-    <text x="408" y="126">linux-aarch64</text>
-    <text x="408" y="144">windows-x86_64</text>
-    <text x="408" y="162">macos-x86_64</text>
-    <text x="408" y="180">macos-aarch64</text>
-    <text x="392" y="208" fill="#d2a8ff">assets/ data/</text>
-    <text x="392" y="226" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">models, textures, lang files</text>
-    <text x="392" y="254" fill="#d2a8ff">yog.toml</text>
+    <text x="420" y="88" fill="#d2a8ff">natives/</text>
+    <text x="436" y="108">linux-x86_64</text>
+    <text x="436" y="126">linux-aarch64</text>
+    <text x="436" y="144">windows-x86_64</text>
+    <text x="436" y="162">macos-x86_64</text>
+    <text x="436" y="180">macos-aarch64</text>
+    <text x="420" y="208" fill="#d2a8ff">assets/ data/</text>
+    <text x="420" y="226" fill="#8b949e" font-family="Segoe UI, Helvetica, Arial, sans-serif">models, textures, lang files</text>
+    <text x="420" y="254" fill="#d2a8ff">yog.toml</text>
   </g>
 
   <!-- Arrow 2 -->
-  <line x1="632" y1="150" x2="704" y2="150" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
-  <text x="668" y="138" fill="#f0b429" font-size="13" text-anchor="middle" font-family="Cascadia Code, Consolas, monospace">yog-mods/</text>
+  <line x1="646" y1="150" x2="712" y2="150" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="679" y="138" fill="#f0b429" font-size="12" text-anchor="middle" font-family="Cascadia Code, Consolas, monospace">yog-mods/</text>
 
   <!-- Column 3: the loader -->
-  <rect x="710" y="28" width="226" height="244" rx="10" fill="#1d2f23" stroke="#3fb950"/>
-  <text x="726" y="56" fill="#e6edf3" font-size="17" font-weight="600">🗝️ Yog loader</text>
+  <rect x="718" y="28" width="218" height="244" rx="10" fill="#1d2f23" stroke="#3fb950"/>
+  <text x="734" y="56" fill="#e6edf3" font-size="17" font-weight="600">Yog loader</text>
   <g font-size="13.5" fill="#c9d1d9">
-    <text x="726" y="92">Fabric</text>
-    <text x="726" y="114">NeoForge</text>
-    <text x="726" y="136">Forge</text>
-    <text x="726" y="170" fill="#8b949e">Minecraft</text>
-    <text x="726" y="190">1.20.1 · 1.21.1</text>
-    <text x="726" y="226" fill="#8b949e">one jar, every OS:</text>
-    <text x="726" y="246">runtime picks the native</text>
+    <text x="734" y="92">Fabric</text>
+    <text x="734" y="114">NeoForge</text>
+    <text x="734" y="136">Forge</text>
+    <text x="734" y="170" fill="#8b949e">Minecraft</text>
+    <text x="734" y="190">1.20.1 · 1.21.1</text>
+    <text x="734" y="226" fill="#8b949e">one jar for every OS;</text>
+    <text x="734" y="246">the runtime picks</text>
+    <text x="734" y="264">the right native</text>
   </g>
 </svg>
