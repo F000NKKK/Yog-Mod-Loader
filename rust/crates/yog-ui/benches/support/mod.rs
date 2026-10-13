@@ -15,7 +15,7 @@ pub const SIZES: [usize; 3] = [10, 100, 1000];
 
 const ROW_NODES: usize = 6;
 
-/// A list row as in a mod list: icon, name + wrapped description, a
+/// A list row: icon, name + wrapped description, a
 /// growing spacer and a button — 6 nodes.
 pub fn list_row(i: usize) -> Widget {
     widget::panel(FlexDir::Row)
