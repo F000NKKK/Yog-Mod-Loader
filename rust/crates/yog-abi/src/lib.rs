@@ -1330,6 +1330,39 @@ pub struct YogApi {
     /// specifiers (`%s`, `%1$s`) come back as-is. Free with `free_str`.
     /// Client-side; a dedicated server only knows `en_us`.
     pub translate: unsafe extern "C" fn(ctx: *mut c_void, key: YogStr) -> YogOwnedStr,
+
+    // ── ABI minor 1 — client: screen flags, sounds, held items, keys ────────
+    /// Like `ui_open`, with [`ui_flags`] bits: `MODAL`, `PAUSE`,
+    /// `NO_BACKGROUND` (no dimmed/blurred world behind the screen).
+    /// Client-side only.
+    pub ui_open_flags: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr, flags: u32),
+    /// Play sound event `sound_id` for the local player only: at the
+    /// player's position, or (`looping`) as a loop that follows the player
+    /// until `client_stop_sound`. Returns a handle (0 = failed).
+    pub client_play_sound: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        sound_id: YogStr,
+        volume: f32,
+        pitch: f32,
+        looping: bool,
+    ) -> u32,
+    /// Stop a sound started by `client_play_sound` (0 or unknown: no-op).
+    pub client_stop_sound: unsafe extern "C" fn(ctx: *mut c_void, handle: u32),
+    /// Item id in the local player's main hand (`off_hand` false) or off
+    /// hand, `YogOwnedStr::NONE` for air or no player. Free with `free_str`.
+    pub client_held_item: unsafe extern "C" fn(ctx: *mut c_void, off_hand: bool) -> YogOwnedStr,
+    /// Whether GLFW key `key` is held down right now (client window).
+    pub client_key_down: unsafe extern "C" fn(ctx: *mut c_void, key: i32) -> bool,
+}
+
+/// Flag bits for [`YogApi::ui_open_flags`].
+pub mod ui_flags {
+    /// Blocks game input (what `ui_open`'s `modal` does).
+    pub const MODAL: u32 = 1;
+    /// Pauses a singleplayer game.
+    pub const PAUSE: u32 = 1 << 1;
+    /// Draws no background behind the screen: the world stays visible.
+    pub const NO_BACKGROUND: u32 = 1 << 2;
 }
 
 unsafe impl Send for YogApi {}

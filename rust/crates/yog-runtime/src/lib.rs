@@ -3742,6 +3742,11 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         ui_close: api_ui_close,
         ui_consume_event: api_ui_consume_event,
         translate: api_translate,
+        ui_open_flags: client_api::api_ui_open_flags,
+        client_play_sound: client_api::api_client_play_sound,
+        client_stop_sound: client_api::api_client_stop_sound,
+        client_held_item: client_api::api_client_held_item,
+        client_key_down: client_api::api_client_key_down,
     }
 }
 
@@ -6735,6 +6740,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
     });
 }
 
+mod client_api;
 mod control_socket;
 mod images;
 mod ui_jni;
