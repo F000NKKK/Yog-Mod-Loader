@@ -188,9 +188,15 @@ Rules:
 - `#[view_model]` on the **struct**:
   - assigns each field a bit (`Mask`, a `u64`; more than 64 fields is a compile error suggesting
     grouping them into a sub-struct);
-  - adds one hidden field, `__yk: yog_kit::VmCore` (memo cache, validation errors, the
-    frozen flag). A struct literal therefore needs `..Default::default()`. Both mods already
-    construct their VMs that way or through `Default`;
+  - adds **no fields**: the struct stays exactly as written, so plain struct literals work
+    (Q2). The runtime state (memo cache, validation errors, the frozen flag) lives in a
+    `VmCore` owned by the host next to the VM (`VmCell<V> { vm: V, core: VmCore }`). While the
+    host runs a binding pass, a command, a handler or a validation pass, it installs the core as
+    the *current core* (a scoped thread-local pointer, one read per access). Generated code
+    (`#[computed]`, `errors()`, `is_valid()`) reaches it through `yog_kit::core::current()`.
+    Outside the host (a VM built in a plain unit test) there is no current core: computed values
+    are recomputed and validation rules run directly on the fields, which gives the same results
+    without caching;
   - implements `ViewModel`.
 - `#[view_model]` on **each inherent `impl` block** of the VM: every method is analysed (§3.2)
   and helper attributes are collected: `#[command]`, `#[computed]`, `#[on]`, `#[recv]`,
@@ -284,7 +290,8 @@ free at the widget level.
 
 `#[computed] fn x(&self) -> T` (with `T: Send + 'static`) is rewritten to return `&T`:
 
-- During a binding pass (VM frozen), the first call computes and caches the value in `VmCore`.
+- During a binding pass (VM frozen), the first call computes and caches the value in the host's
+  `VmCore` (the current core, §3.1).
   Later calls in the same pass and later passes return the cache until `dirty ∩ R(x) ≠ ∅`.
 - Outside a pass (inside commands, handlers or tests) the value is always recomputed into a
   per-call scratch arena that the host clears after the call. A computed value can't be stale
@@ -706,7 +713,8 @@ impl WaypointVm {
 - Built-in rules: `non_empty`, `min_len`, `max_len`, `range`, `matches = "regex"` (behind a
   feature), and `custom = path`. Messages are `Text`, from yog-kit's built-in strings, which
   follow the game language.
-- Errors live in `VmCore`, keyed by field bit. A field's rules re-run when the field's bit is
+- Errors live in the host's `VmCore` (the current core, §3.1), keyed by field bit. `self.errors()`
+  and `self.is_valid()` read them from there; without a host they evaluate the rules directly. A field's rules re-run when the field's bit is
   dirty or when a custom rule's read mask is. Conversion errors (§5.3) are stored under the field
   too.
 - **Touched semantics**: errors are reported for a field after its first edit, or after
@@ -1539,14 +1547,15 @@ it.
    (writes through opaque `&mut self` helpers outside the impl) fall back to "all fields dirty", which the
    `Slot` diff keeps correct; the debug shadow re-evaluation flags them. Was: static masks (recommended), or
    runtime signals (`Prop<T>` fields with `.get()/.set()`)?
-2. **Q2 Hidden field**: `#[view_model]` adds `__yk: VmCore`, so struct literals need
-   `..Default::default()`. Acceptable, or should the core live in the host (no computed memo
-   inside commands, validation errors not readable from the VM)?
+2. **Q2 Hidden field — decided: no hidden field.** The core lives in the host and generated code
+   reaches it through a scoped current-core pointer (§3.1), so struct literals stay plain and
+   computed memo and `errors()`/`is_valid()` still work from inside the VM. Was: `__yk: VmCore` in
+   the struct (literals need `..Default::default()`), or the core in the host without those.
 3. **Q3 Gestures**: in markup only (recommended), or also `#[command(key = "Ctrl+S")]` in Rust?
-4. **Q4 Async**: is a built-in mini executor in yog-kit wanted (recommended: it enables
+4. **Q4 Async — decided: yes, built-in mini executor.** Was: is a built-in mini executor in yog-kit wanted (recommended: it enables
    `await dialog`, `Rpc` and `background`), or callbacks only?
 5. **Q5 `Fallback=` → `??`**: OK to delete `Fallback=` outright (no-backward-compat)?
-6. **Q6 Binding grammar**: add `&&`, `||`, `<`/`>`, `??`, `[i]` and tuple literals (recommended),
+6. **Q6 Binding grammar — decided: yes.** Was: add `&&`, `||`, `<`/`>`, `??`, `[i]` and tuple literals (recommended),
    given v1 deliberately refused them?
 7. **Q7 Screens without `x:ViewModel`**: compile them as `Vm = ()` (recommended), or require a VM?
 8. **Q8 `CollectionView`** (incremental filter/sort over `ObsVec`): needed now, or after real
