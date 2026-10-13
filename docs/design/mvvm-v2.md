@@ -1570,7 +1570,7 @@ it.
     field-level deltas from the start?
 13. **Q13 Messages to closed screens**: deliver by default (recommended, so VMs stay current) or
     only to open screens?
-14. **Q14 Settings screens**: generate a whole config screen from `#[derive(Config)]` (recommended),
+14. **Q14 Settings screens — decided: yes, generate and hook into the platform config button.** Was: generate a whole config screen from `#[derive(Config)]` (recommended),
     and hook it into the platform's mod-list config button (Fabric ModMenu, Forge/NeoForge) where
     possible?
 15. **Q15 Container menus in `.yui`** (`<Menu>` + `<Slot>`s generating `InventoryDef`): is markup the

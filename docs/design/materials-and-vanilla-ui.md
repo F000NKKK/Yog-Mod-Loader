@@ -177,7 +177,7 @@ A **material** says what to draw and how. It has one schema for every use. Each 
 
 Layers are what let one material id mean the right thing on every version. On 1.21.1 `minecraft:gui/text_field` is a nine-slice sprite. On 1.20.1 it is `fill` + `frame`, which is exactly what vanilla 1.20.1 `EditBox` does with `fill()` calls (§7.2).
 
-**States** are `hover`, `pressed`, `focused`, `selected`, `checked` and `disabled`, plus combinations joined with `+` (`"checked+hover"`). They map 1:1 to `yog_ui::StateFlags`.
+**States** are `hover`, `pressed`, `focused`, `selected`, `checked`, `disabled` and `invalid` (a failed validation, bit 6 `INVALID`, mvvm-v2 Q10), plus combinations joined with `+` (`"checked+hover"`). They map 1:1 to `yog_ui::StateFlags`.
 - **Resolution:** among the declared states whose flags are all set on the widget, the one with the **most flags** wins. A tie goes to the one declared later.
 - A state object is a partial material that patches the base. `"inherit": "<state>"` copies another state's patch.
 - `disabled` beats everything else, because the host never sets hover on disabled widgets anyway.
@@ -723,7 +723,7 @@ A theme is a style sheet: control defaults plus named classes, attachable at any
 }
 ```
 
-- **Selectors:** `Type`, `.class`, `Type.class`, each with an optional state suffix (`:hover`, `:pressed`, `:focused`, `:disabled`, `:checked`, `:selected`). There are no descendant or child combinators: scope comes from where a theme is attached, not from selectors. That keeps resolution static and cheap.
+- **Selectors:** `Type`, `.class`, `Type.class`, each with an optional state suffix (`:hover`, `:pressed`, `:focused`, `:disabled`, `:checked`, `:selected`, `:invalid`). There are no descendant or child combinators: scope comes from where a theme is attached, not from selectors. That keeps resolution static and cheap.
 - **Properties** are exactly the `.yui` attributes of the type (`bg`, `color`, `shadow`, `padding`, `h`, `font_scale`, `background`, `focus_style`, …), with the same value grammar: colors, `@` refs, paint refs with full namespaces (D10). A user component's own properties are allowed under its type name (`"IotaRow": { "accent": "#FF…" }`).
 - `based_on` chains: `hexcasting:ui/themes/slate_dark` can be based on `hexcasting:ui/themes/slate`.
 
