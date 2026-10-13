@@ -61,10 +61,18 @@ fn slots_come_from_the_layout() {
     assert_eq!(def.id, "test:bench");
     assert_eq!(def.slot_count, 2);
     // Item corners, 1px inside the frames.
-    assert_eq!(def.layout, [SlotLayout { x: 37.0, y: 9.0 }, SlotLayout { x: 9.0, y: 9.0 }]);
+    assert_eq!(def.layout, [SlotLayout { x: 41.0, y: 9.0 }, SlotLayout { x: 9.0, y: 9.0 }]);
     assert!(def.include_player_inventory);
-    assert_eq!(def.player_inv_offset, (9.0, 69.0));
+    assert_eq!(def.player_inv_offset, (9.0, 71.0));
     assert_eq!(def.background_size, Some((176.0, 166.0)));
+}
+
+#[test]
+fn the_player_inventory_is_the_vanilla_grid() {
+    let mut ui = yog_api::ui::UiRoot::new("t", widget::player_inventory());
+    ui.layout(400.0, 400.0);
+    let r = ui.find_rect(widget::PLAYER_INVENTORY_ID).unwrap();
+    assert_eq!((r.w, r.h), (9.0 * 18.0, 4.0 * 18.0 + widget::HOTBAR_GAP));
 }
 
 #[test]

@@ -987,9 +987,10 @@ pub fn slot(index: usize) -> Widget {
 /// The player's inventory on an inventory screen: 3 rows of 9, then the
 /// hotbar [`HOTBAR_GAP`] below — frames for the real slots, like [`slot`].
 pub fn player_inventory() -> Widget {
-    let row = || (0..9).fold(panel(FlexDir::Row), |r, _| r.child(inv_slot("", 0)));
+    let row = || (0..9).fold(panel(FlexDir::Row).gap(0.0), |r, _| r.child(inv_slot("", 0)));
     panel(FlexDir::Column)
         .id(PLAYER_INVENTORY_ID)
+        .gap(0.0)
         .child(row())
         .child(row())
         .child(row())
