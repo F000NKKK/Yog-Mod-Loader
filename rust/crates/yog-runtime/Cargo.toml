@@ -18,11 +18,11 @@ crate-type = ["cdylib"]
 # call site to the new API first.
 jni.workspace = true
 
-yog-abi = "0.28"
-yog-api = "0.92"
+yog-abi = "0.28.1"
+yog-api = "0.92.1"
 yog-logging = "0.1"
 yog-registry = "0.28"
-yog-ui     = "0.40"
+yog-ui     = "0.40.1"
 yog-book   = "0.60"
 yog-gfx    = "0.25"
 yog-inventory = "0.14"

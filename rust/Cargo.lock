@@ -879,11 +879,11 @@ checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
 
 [[package]]
 name = "yog-abi"
-version = "0.28.0"
+version = "0.28.1"
 
 [[package]]
 name = "yog-api"
-version = "0.92.0"
+version = "0.92.1"
 dependencies = [
  "ctor",
  "rkyv",
@@ -938,7 +938,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-core"
-version = "0.3.0"
+version = "0.3.1"
 
 [[package]]
 name = "yog-debugger"
@@ -1008,7 +1008,7 @@ dependencies = [
 
 [[package]]
 name = "yog-kit"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "yog-api",
 ]
@@ -1023,7 +1023,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-player"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "yog-core",
  "yog-entity",
@@ -1074,7 +1074,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ui"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "yog-abi",
  "yog-gfx",
