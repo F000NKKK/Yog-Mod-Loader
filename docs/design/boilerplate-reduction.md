@@ -23,7 +23,7 @@ of hand-written lines removed from mods. Lines of generated code are not counted
 
 | # | Finding | Where today | Proposal | Saves now | Saves as mods grow |
 |---|---|---|---|---|---|
-| 1 | One HexMod action is spread over 5 places: enum, key table, VM `match` arm, name `match`, `.yres` | `protocol.rs`, `casting/vm.rs`, `ui/casting_screen.rs` | table macro `actions!` + typed stack args (`FromIota`/`IntoIota`) | ~60 of 67 lines in `vm::execute`, plus about 40 in the tables | **largest**: about 15 lines per action × the ~250 Hex Casting patterns ≈ 3–4k lines |
+| 1 | One HexMod action is spread over 5 places: enum, key table, VM `match` arm, name `match`, `.yres` | `protocol.rs`, `casting/vm.rs`, `ui/casting_screen.rs` | one `#[yog_api::register(ACTIONS)]` fn per action (D4) + typed stack args (`FromIota`/`IntoIota`) | ~60 of 67 lines in `vm::execute`, plus about 40 in the tables | **largest**: about 15 lines per action × the ~250 Hex Casting patterns ≈ 3–4k lines |
 | 2 | Hand-written byte and text codecs (3 already, plus 1 being written now) | Pipes `persist.rs` (~100), Hex `protocol.rs` (~75), `iota/mod.rs` (~60), the new `wire.rs` (191) | `#[derive(Codec)]` in yog-api; it replaces `packet!` / `PacketField` | ~420 | every mod that saves or sends anything |
 | 3 | Untyped network channels: `&str` constants, `&[u8]` payloads, decode inside each handler | Hex `protocol.rs`, `events/mod.rs`, `casting_screen.rs` | typed `C2S<P>` / `S2C<P>` channel constants + `registry.on(CHANNEL, …)` | ~25 | ~6 lines per packet |
 | 4 | World and player state kept by hand: statics, poisoned-lock helpers, clear-on-stop, a world-dir finder, autosave, a versioned blob | Pipes `persist.rs` (370 incl. tests), `graph.rs` / `handler.rs` / `pipe.rs` statics; Hex `vm.rs` STACKS / NAME2UUID | ready-made `WorldData<T>`, `PlayerData<T>`, `ServerState<T>`; API gaps `Server::world_dir`, player uuid on packets | ~300 | any mod with saved state (Hex stacks are not saved today) |
@@ -142,15 +142,38 @@ The typed mishaps (`BadIota`, `NotEnoughArgs`) replace the per-pattern ones (`Ex
 `StackEmpty`, `NeedTwo`, `NothingToReveal`). This also matches upstream Hex Casting, which
 words mishaps from the argument index and the expected type.
 
-**Variant for cross-file registration.** If actions should live in many files
-(`actions/math.rs`, `actions/spells/*.rs`) with an attribute on each function, add a
-generic loader facility: `#[yog_api::collect(ACTIONS)] static X: ActionDef = …`, built on
-`ctor` like `content!`. Nothing in it is Hex-specific. The attribute form
-(`#[action("aa")] fn compass(cx, e: EntityRef) -> Result<Vec3, Mishap>`) needs a proc-macro
-crate. Mods can't have one today, because `yog build` generates a single cdylib crate. The
-recommendation is the `macro_rules!` table first. Add `collect` only if one table becomes
-too long. Great-spell tables, per-file groups and per-group `actions!` invocations can be
-merged by a second macro, `action_set![math::ACTIONS, spells::ACTIONS]`.
+**Decided (D4, 2026-10-13): cross-file registration through a universal
+`#[yog_api::register]`.** Actions live where they belong (`actions/math.rs`,
+`actions/spells/*.rs`), one attributed function each; no central table to edit:
+
+```rust
+// casting/actions.rs: the collection, declared once by the mod
+yog_api::collection!(pub ACTIONS: ActionDef);
+
+// casting/actions/nav.rs
+/// Compass' Purification: entity -> its position.
+#[yog_api::register(ACTIONS, sig = "aa")]
+fn compass_purification(cx: &mut CastCx, e: EntityRef) -> Result<Vec3, Mishap> {
+    e.position(cx).ok_or(Mishap::EntityGone)
+}
+```
+
+The attribute is **generic for any registrable item** and knows nothing about Hex: it works on
+a `static`, a `const`, a `fn` or a type, and adds the item to a named, typed collection
+(`collection!(NAME: T)`). For a `fn`, the extra attribute arguments and the function are
+handed to `T`'s constructor (`impl Register<F> for ActionDef`, the same pattern as axum
+handlers), so the typed-argument extraction (`FromIota`, `NotEnoughArgs`, stack restore,
+`BadIota`), the `Action` enum, `signature()` / `from_signature()` and the `Tr` names are
+mod-side code, generated from the collection by the mod's own `ActionDef` impl. Collection
+happens **at build time**: `yog build` sees every `#[register]` in the crate and emits the
+collection as a `&'static [T]` (and, for enum-like collections, a generated id enum and a
+`match`-based lookup), so there is no runtime `ctor` and no per-load scan. The attribute is a
+proc-macro in `yog-macros`, so mods don't need their own proc-macro crate (they still can't
+have one, since `yog build` generates a single cdylib). The same attribute serves other
+registrable things (screens, events, commands, recipes) wherever an explicit
+`registry.xxx(...)` call is boilerplate; the explicit calls stay for run-time decisions
+(capability rule). Until `#[register]` ships, the `actions!` table above is the mod-local
+stop-gap, and it is written so each row moves 1:1 into an attributed fn.
 
 **Savings.** `vm.rs::execute` 67 → ~8 lines. Tables and name `match`es: −40. Each future
 action: ~1–4 lines instead of ~15–20.
@@ -662,7 +685,7 @@ Raw `data/` JSON is no replacement: the format differs between MC 1.20 and 1.21 
 
 | Crate | Add | Delete (no shims) |
 |---|---|---|
-| `yog-macros` (rename of `yog-interop`) | `#[derive(Codec)]` (incl. `#[codec(zero_copy)]` → `View<'a>`), `#[derive(Tr)]`, `#[main]`, `#[collect]`, `#[yog_export]` on top of `Codec` | rkyv derives (if D1 = b) |
+| `yog-macros` (rename of `yog-interop`) | `#[derive(Codec)]` (incl. `#[codec(zero_copy)]` → `View<'a>`), `#[derive(Tr)]`, `#[main]`, `#[register]` + `collection!` (build-time collected, D4), `#[yog_export]` on top of `Codec` | rkyv derives (if D1 = b) |
 | `yog-api` | `Codec` / `Writer` / `Reader`, `C2S` / `S2C` + `registry.on(..)`, `net::Raw`, `PacketCx` / `PlayerRef`, `ServerState` / `WorldData` / `PlayerData`, `Text`, `DimPos`, `Recipe` (incl. `Recipe::Json`), `Interop::call`, `registry.on::<E>` / `before::<E>`, `testing::TempDir` | `on_packet` / `on_client_packet` / `on_typed_packet`, raw `&[u8]` senders, 25 × `on_xxx`, `add_*_recipe`, `resources!` / `ui_components!` / `content!` (folded into `#[main]`) |
 | `yog-network` | — | `packet!`, `PacketField`, `Packet` (replaced by `Codec`) |
 | `yog-book` | builders, auto sort order | public struct-literal construction |
@@ -829,7 +852,9 @@ match.
 Each stage can ship on its own. The arrows are hard dependencies.
 
 **Stage 0: mod-local, no loader release (can start now).**
-- Hex: the `actions!` table macro (F1) with hand-generated `key` / `name`. Delete the dead
+- Hex: the `actions!` table macro (F1) with hand-generated `key` / `name`, as the stop-gap
+  until `#[yog_api::register]` (D4, Stage 4 with `#[main]`) lands; then each row becomes
+  an attributed fn. Delete the dead
   scaffolding (iota registry, `ActionRegistry`, `casting::Mishap`). The gameplay agent owns
   these files, so hand them the design rather than editing.
 - Pipes: the `build_tooltip` table, a `PipeDef` builder.
@@ -849,7 +874,7 @@ Each stage can ship on its own. The arrows are hard dependencies.
 Stages 1–2. It is best done together with the internal table macro, because the same table
 generates both the public `Event` impls and the runtime/ABI glue.
 
-**Stage 4: entry point and screens (F8), plus F12.** Depends on the `yog-macros` rename from
+**Stage 4: entry point and screens (F8), `#[register]` + `collection!` (D4), plus F12.** Depends on the `yog-macros` rename from
 Stage 1. Touches the yog-cli templates and Yog-IDLE scaffolding (same template source).
 
 **Stage 5: yog-cli data work, independent of everything else.**
@@ -889,9 +914,13 @@ Each stage ends with: bump the crates involved (breaking, as policy allows), pub
 - **D3 — decided (2026-10-13): a `.ybook` file, now.** The book is its own content file
   with a WYSIWYG designer in Yog-IDLE (like the `.yui` screen designer) that shows the
   rendered book while editing; the Rust builders are not the authoring path.
-- **D4.** HexMod actions: a `macro_rules!` table inside the mod (no loader dependency), or a
-  loader-level `#[collect]` + attribute form (needs proc-macro support for mods, or a generic
-  yog-api attribute)? Recommended: the table now.
+- **D4 — decided (2026-10-13): universal `#[yog_api::register]`.** A generic attribute for
+  any registrable item (static / const / fn / type) that adds it to a typed
+  `collection!(NAME: T)`, collected at build time by `yog build` into a `&'static [T]`;
+  it lives in `yog-macros`, so mods need no proc-macro crate. Nothing Hex-specific in the
+  loader: HexMod's `ActionDef` decides what an action is. See F1. Was: a `macro_rules!`
+  table inside the mod, or a loader-level `#[collect]` + attribute form? Recommended: the
+  table now.
 - **D5 — decided (2026-10-13): one source file per id; no `_list`/`variants` files.** Variations
   of one block or item (same id, differing by block state / properties, e.g. a `color` or `facing`
   property) live in that one file, as `states` already do. Entries with different ids always get
