@@ -136,12 +136,12 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #vis #sig #block
 
         #[doc(hidden)]
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn #wrap_name(
             input_ptr: *const u8, input_len: u32,
             out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32,
         ) {
-            let input_slice = std::slice::from_raw_parts(input_ptr, input_len as usize);
+            let input_slice = unsafe { std::slice::from_raw_parts(input_ptr, input_len as usize) };
             let __yog_data: #data_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(input_slice)
                 .expect("yog: deser failed");
             #destructure
@@ -149,9 +149,11 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
             let result: #output = #call_fn;
             let aligned = ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(&result).unwrap_or_default();
             let bytes: Vec<u8> = aligned.to_vec();
-            *out_data = bytes.as_ptr() as *mut u8;
-            *out_len = bytes.len() as u32;
-            *out_cap = bytes.capacity() as u32;
+            unsafe {
+                *out_data = bytes.as_ptr() as *mut u8;
+                *out_len = bytes.len() as u32;
+                *out_cap = bytes.capacity() as u32;
+            }
             std::mem::forget(bytes);
         }
 
@@ -262,9 +264,9 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
 
         static #slot_name: ::std::sync::OnceLock<#wrapper_ty> = ::std::sync::OnceLock::new();
 
-        #[doc(hidden)] #[no_mangle]
+        #[doc(hidden)] #[unsafe(no_mangle)]
         pub unsafe extern "C" fn #bind_name(ptr: *const ::std::os::raw::c_void) {
-            let f: #wrapper_ty = ::std::mem::transmute(ptr);
+            let f: #wrapper_ty = unsafe { ::std::mem::transmute(ptr) };
             #slot_name.set(f).ok();
         }
     }

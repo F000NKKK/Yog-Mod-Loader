@@ -56,12 +56,12 @@ pub use yog_abi::{YogGfxApi as __YogGfxApi, YogStr as __YogStr};
 #[macro_export]
 macro_rules! export_mod {
     ($mod_ty:ty) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub extern "C" fn yog_abi_version() -> u32 {
             $crate::ABI_VERSION
         }
 
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn yog_mod_register(
             api: *const $crate::YogApi,
             mod_id_ptr: *const ::std::os::raw::c_char,
@@ -70,7 +70,8 @@ macro_rules! export_mod {
             let mod_id: &str = if mod_id_ptr.is_null() {
                 "unknown"
             } else {
-                match ::std::ffi::CStr::from_ptr(mod_id_ptr).to_str() {
+                // SAFETY: a non-null id is a NUL-terminated string from the runtime.
+                match unsafe { ::std::ffi::CStr::from_ptr(mod_id_ptr) }.to_str() {
                     Ok(s) => s,
                     Err(_) => "unknown",
                 }
@@ -124,14 +125,14 @@ macro_rules! export_mod {
 
         /// Called by the runtime after ALL mods are loaded — resolves any
         /// imports that weren't satisfied during initial registration.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn __yog_resolve_imports_final(api: *const $crate::YogApi) {
             let registry = unsafe { $crate::Registry::from_raw(api) };
             $crate::__yog_resolve_pending_imports(&registry);
         }
 
         /// Yog-IDLE's screen designer: the version of the protocol below.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub extern "C" fn yog_ui_designer_abi() -> u32 {
             $crate::ui::component::designer::ABI
         }
@@ -140,7 +141,7 @@ macro_rules! export_mod {
         /// and draws them (see `yog_ui::component::designer`). Never called
         /// in game — only by the designer host, which loads the mod's
         /// library built for the developer's machine.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn yog_ui_designer(
             request: $crate::__YogStr,
             gfx: *const $crate::__YogGfxApi,
@@ -263,7 +264,7 @@ pub fn __yog_import_registry() -> &'static std::sync::Mutex<Vec<YogImportEntry>>
 }
 
 /// Called by `export_mod!` after registration. Iterates pending imports and
-/// resolves them via the interop table. Also exported as `#[no_mangle]` so the
+/// resolves them via the interop table. Also exported as `#[unsafe(no_mangle)]` so the
 /// runtime can call it after all mods are loaded (final resolution pass).
 #[doc(hidden)]
 pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
