@@ -473,37 +473,19 @@ struct Gen {
     ids: Vec<String>,
     /// The mod's id (from `yog.toml`), for `mod:` image sources.
     mod_id: Option<String>,
-    /// `line N: ...` warnings (deprecated attributes, raw texture paths).
+    /// `line N: ...` warnings.
     warnings: Vec<String>,
 }
 
 impl Gen {
     /// `widget::image(...)` for an `<Image>`: its `source` checked and
-    /// `mod:` resolved, plus `stretch`/`uv`/`tint` (and the deprecated
-    /// `texture`/`tex_w`/`tex_h`).
+    /// `mod:` resolved, plus `stretch`/`uv`/`tint`.
     fn image(&mut self, el: &Element) -> Result<String, String> {
         let line = el.line;
-        let source = match (el.attr("source"), el.attr("texture")) {
-            (Some(s), Some(_)) => {
-                self.warnings.push(format!(
-                    "line {line}: <Image> has both source and texture; texture (deprecated) is ignored"
-                ));
-                s
-            }
-            (Some(s), None) => s,
-            (None, Some(t)) => {
-                self.warnings.push(format!(
-                    "line {line}: <Image> texture=\"...\" is deprecated — write source=\"...\""
-                ));
-                t
-            }
-            (None, None) => {
-                return Err(format!(
-                    "line {line}: <Image> needs a source (e.g. source=\"item:apple\")"
-                ))
-            }
-        };
-        let source = source.trim();
+        let source = el
+            .attr("source")
+            .ok_or_else(|| format!("line {line}: <Image> needs a source (e.g. source=\"item:apple\")"))?
+            .trim();
         let resolved;
         let source = match source.strip_prefix('@') {
             Some(name) => {
@@ -538,7 +520,7 @@ impl Gen {
             }
             ImageSource::Texture(_) => {
                 if let Some(alias) = yog_gfx::image::suggest_alias(source) {
-                    self.warnings.push(format!(
+                    return Err(format!(
                         "line {line}: <Image> source=\"{source}\" is a raw resource path, which \
                          changes between Minecraft versions — write source=\"{alias}\""
                     ));
@@ -577,21 +559,6 @@ impl Gen {
         }
         if let Some(v) = el.attr("tint") {
             let _ = write!(expr, ".tint(0x{:08X})", color_attr(el, "tint", v)?);
-        }
-        // The old texture-size attributes: the default size, when w/h aren't given.
-        for (key, size) in [("tex_w", "w"), ("tex_h", "h")] {
-            if let Some(v) = el.attr(key) {
-                let n = number(el, key, v)?;
-                if el.attr(size).is_none() {
-                    let _ = write!(expr, ".{size}({})", f(n));
-                }
-            }
-        }
-        if el.attr("tex_w").is_some() || el.attr("tex_h").is_some() {
-            self.warnings.push(format!(
-                "line {line}: <Image> tex_w/tex_h are deprecated — the image's size comes from its \
-                 source; size the element with w/h"
-            ));
         }
         Ok(expr)
     }
@@ -1094,8 +1061,7 @@ pub fn generated_path(root: &Path, name: &str) -> PathBuf {
 
 /// Generates `.yog-build/generated/<name>.g.rs` for one `.yui` file of the
 /// project at `root` — only rewritten when the output changed, so cargo
-/// doesn't rebuild for nothing. A `foo.designer.rs` left next to the `.yui`
-/// by an older yog is deleted: it's stale, and nothing may include it.
+/// doesn't rebuild for nothing.
 pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
     let src = std::fs::read_to_string(yui).map_err(|e| format!("{}: {e}", yui.display()))?;
     let name = include_name(root, yui);
@@ -1115,49 +1081,7 @@ pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
         }
         std::fs::write(&out, code).map_err(|e| format!("{}: {e}", out.display()))?;
     }
-    let legacy = yui.with_extension("designer.rs");
-    if legacy.is_file() {
-        std::fs::remove_file(&legacy).map_err(|e| format!("{}: {e}", legacy.display()))?;
-        eprintln!(
-            "    removed {} (screen code is generated into {GENERATED_DIR}/ now)",
-            legacy.display()
-        );
-    }
     Ok(out)
-}
-
-/// Code-behind still written for the old layout — `include!("foo.designer.rs")`
-/// of a screen — as `file:line: message` errors saying what to write instead.
-pub fn legacy_includes(root: &Path) -> Vec<String> {
-    let mut errors = Vec::new();
-    for file in find_files(&root.join("src"), "rs") {
-        let Ok(text) = std::fs::read_to_string(&file) else {
-            continue;
-        };
-        for (i, line) in text.lines().enumerate() {
-            let Some(start) = line.find("include!(\"") else {
-                continue;
-            };
-            let arg = &line[start + "include!(\"".len()..];
-            let Some(end) = arg.find('"') else { continue };
-            let Some(stem) = arg[..end].strip_suffix(".designer.rs") else {
-                continue;
-            };
-            let yui = file.parent().unwrap_or(root).join(format!("{stem}.yui"));
-            if !yui.is_file() {
-                continue;
-            }
-            errors.push(format!(
-                "{}:{}: `include!(\"{stem}.designer.rs\")` — .yui screen code is \
-                 generated into {GENERATED_DIR}/ now; replace it with \
-                 `yog_api::ui_include!(\"{}\");` (yog-api 0.88+)",
-                file.strip_prefix(root).unwrap_or(&file).display(),
-                i + 1,
-                include_name(root, &yui),
-            ));
-        }
-    }
-    errors
 }
 
 /// Every `*.<ext>` file under `dir`, recursively.
@@ -1183,9 +1107,8 @@ pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
     find_files(dir, "yui")
 }
 
-/// `yog build`'s step: regenerates every `src/**/*.yui`'s `.g.rs`, drops
-/// generated files whose `.yui` is gone, and fails on code-behind that
-/// still includes an old `.designer.rs`.
+/// `yog build`'s step: regenerates every `src/**/*.yui`'s `.g.rs` and drops
+/// generated files whose `.yui` is gone.
 pub fn generate_all(root: &Path) -> Result<usize, String> {
     let files = find_yui_files(&root.join("src"));
     let mut wanted = Vec::new();
@@ -1206,10 +1129,6 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
         {
             let _ = std::fs::remove_file(&stale);
         }
-    }
-    let legacy = legacy_includes(root);
-    if !legacy.is_empty() {
-        return Err(legacy.join("\n"));
     }
     Ok(files.len())
 }
@@ -1279,21 +1198,17 @@ mod tests {
     }
 
     #[test]
-    fn raw_textures_still_work_with_a_warning() {
-        let (code, warnings) = generate_for(
-            &screen(r#"<Image w="156" h="29" texture="minecraft:textures/item/apple.png" tex_w="16" tex_h="16"/>"#),
+    fn raw_texture_paths_are_errors_naming_the_alias() {
+        let err = generate_for(
+            &screen(r#"<Image source="minecraft:textures/item/apple.png"/>"#),
             "s",
             None,
         )
-        .unwrap();
-        assert!(
-            code.contains(r#"widget::image("minecraft:textures/item/apple.png")"#),
-            "{code}"
-        );
-        assert!(!code.contains(".w(16"), "w/h win over tex_w/tex_h: {code}");
-        let all = warnings.join("\n");
-        assert!(all.contains("deprecated"), "{all}");
-        assert!(all.contains(r#"source="item:apple""#), "{all}");
+        .unwrap_err();
+        assert!(err.contains(r#"source="item:apple""#), "{err}");
+        assert!(generate_for(&screen(r#"<Image texture="item:apple"/>"#), "s", None)
+            .unwrap_err()
+            .contains("no attribute `texture`"));
     }
 
     const SAMPLE: &str = r##"<?xml version="1.0" encoding="utf-8"?>
@@ -1413,28 +1328,18 @@ mod tests {
     }
 
     #[test]
-    fn generated_paths_and_migration() {
+    fn generated_paths() {
         let dir = std::env::temp_dir().join(format!("yog-yui-test-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("src/screens")).unwrap();
         std::fs::write(dir.join("yog.toml"), "").unwrap();
         let yui = dir.join("src/screens/opts.yui");
         std::fs::write(&yui, r#"<Screen id="a:b"/>"#).unwrap();
-        std::fs::write(dir.join("src/screens/opts.designer.rs"), "// old").unwrap();
-        let code_behind = dir.join("src/screens/opts.rs");
-        std::fs::write(&code_behind, "include!(\"opts.designer.rs\");\n").unwrap();
         assert_eq!(project_root(&yui).as_deref(), Some(dir.as_path()));
         assert_eq!(include_name(&dir, &yui), "screens/opts");
-        let err = generate_all(&dir).unwrap_err();
-        assert!(
-            err.contains("opts.rs:1") && err.contains(r#"ui_include!("screens/opts")"#),
-            "{err}"
-        );
+        assert_eq!(generate_all(&dir).unwrap(), 1);
         let generated = dir.join(".yog-build/generated/screens/opts.g.rs");
         assert!(generated.is_file());
-        assert!(!dir.join("src/screens/opts.designer.rs").exists());
-        std::fs::write(&code_behind, "yog_api::ui_include!(\"screens/opts\");\n").unwrap();
-        assert_eq!(generate_all(&dir).unwrap(), 1);
         std::fs::remove_file(&yui).unwrap();
         generate_all(&dir).unwrap();
         assert!(!generated.exists());
