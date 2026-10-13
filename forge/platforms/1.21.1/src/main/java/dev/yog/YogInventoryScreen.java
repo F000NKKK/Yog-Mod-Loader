@@ -8,6 +8,7 @@ import net.minecraft.world.entity.player.Inventory;
 public class YogInventoryScreen extends net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<YogInventoryMenu> {
     /** The inventory screen's UI id — its `InventoryDef` id. */
     final String uiId;
+    private int lastMx = Integer.MIN_VALUE, lastMy = Integer.MIN_VALUE;
 
     public YogInventoryScreen(YogInventoryMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -34,6 +35,11 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
 
     @Override public void render(GuiGraphics ctx, int mx, int my, float delta) {
         NativeBridge.activeInventoryMenu = this.menu;
+        if (mx != lastMx || my != lastMy) {
+            lastMx = mx;
+            lastMy = my;
+            NativeBridge.nativeUIMove(uiId, mx, my);
+        }
         // The screen's markup is the background; the game draws the real
         // slots' items, the hover, the carried stack and the tooltip over it.
         super.render(ctx, mx, my, delta);
@@ -64,6 +70,10 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
     @Override public boolean mouseScrolled(double mx, double my, double h, double v) {
         NativeBridge.nativeUIScroll(uiId, (float) v);
         return true;
+    }
+    @Override public boolean charTyped(char chr, int modifiers) {
+        if (NativeBridge.nativeUIChar(uiId, chr, modifiers)) return true;
+        return super.charTyped(chr, modifiers);
     }
     @Override public boolean keyPressed(int k, int s, int m) {
         // A key the screen used (typing in a text box) doesn't close it.
