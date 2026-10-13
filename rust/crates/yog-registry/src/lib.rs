@@ -133,10 +133,18 @@ fn split_id<'a>(id: &'a str, default_ns: &'a str) -> (&'a str, &'a str) {
 }
 
 /// `{"item":"a"},{"item":"b"}` — an ingredient list's JSON body.
+/// A recipe ingredient: `ns:item` → `{"item":…}`, `#ns:tag` → `{"tag":…}`.
+fn ingredient_json(id: &str) -> String {
+    match id.strip_prefix('#') {
+        Some(tag) => format!("{{\"tag\":\"{tag}\"}}"),
+        None => format!("{{\"item\":\"{id}\"}}"),
+    }
+}
+
 fn item_list_json(items: &[String]) -> String {
     items
         .iter()
-        .map(|i| format!("{{\"item\":\"{i}\"}}"))
+        .map(|i| ingredient_json(i))
         .collect::<Vec<_>>()
         .join(",")
 }
@@ -175,6 +183,7 @@ impl ShapedRecipe {
         self
     }
 
+    /// What `symbol` stands for: an item id, or `#ns:tag` for an item tag.
     pub fn key(mut self, symbol: char, item_id: impl Into<String>) -> Self {
         self.keys.push((symbol, item_id.into()));
         self
@@ -191,7 +200,7 @@ impl ShapedRecipe {
         let keys: String = self
             .keys
             .iter()
-            .map(|(ch, item)| format!("\"{ch}\":{{\"item\":\"{item}\"}}"))
+            .map(|(ch, item)| format!("\"{ch}\":{}", ingredient_json(item)))
             .collect::<Vec<_>>()
             .join(",");
         format!(
@@ -226,6 +235,7 @@ impl ShapelessRecipe {
         }
     }
 
+    /// An item id, or `#ns:tag` for an item tag.
     pub fn ingredient(mut self, item_id: impl Into<String>) -> Self {
         self.ingredients.push(item_id.into());
         self
@@ -286,8 +296,8 @@ impl FurnaceRecipe {
 
     pub fn to_json(&self) -> String {
         format!(
-            "{{\"type\":\"minecraft:smelting\",\"ingredient\":{{\"item\":\"{}\"}},\"result\":\"{}\",\"experience\":{},\"cookingtime\":{}}}",
-            self.input, self.output, self.experience, self.cook_time
+            "{{\"type\":\"minecraft:smelting\",\"ingredient\":{},\"result\":\"{}\",\"experience\":{},\"cookingtime\":{}}}",
+            ingredient_json(&self.input), self.output, self.experience, self.cook_time
         )
     }
 
@@ -661,5 +671,20 @@ impl BlockDef {
     pub fn inventory(mut self, id: impl Into<String>) -> Self {
         self.inventory_id = Some(id.into());
         self
+    }
+}
+
+#[cfg(test)]
+mod recipe_tests {
+    use super::*;
+
+    #[test]
+    fn tags_are_tag_ingredients() {
+        let shaped = ShapedRecipe::new("m:a", "m:b", 1).row("D").key('D', "#c:dusts").to_json();
+        assert!(shaped.contains(r#""D":{"tag":"c:dusts"}"#), "{shaped}");
+        let shapeless = ShapelessRecipe::new("m:a", "m:b", 1).ingredient("minecraft:paper").ingredient("#minecraft:logs").to_json();
+        assert!(shapeless.contains(r#"[{"item":"minecraft:paper"},{"tag":"minecraft:logs"}]"#), "{shapeless}");
+        let smelt = FurnaceRecipe::new("m:a", "#c:ores", "m:b", 1).to_json();
+        assert!(smelt.contains(r#""ingredient":{"tag":"c:ores"}"#), "{smelt}");
     }
 }
