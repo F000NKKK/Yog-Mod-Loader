@@ -88,6 +88,7 @@ impl ::yog_kit::View for View {
         anchor: ::yog_kit::Anchor::Center,
         modal: true,
         pause: false,
+        live: false,
     };
 
     fn build() -> (Self, ::yog_api::ui::Widget, ::yog_kit::Parts) {

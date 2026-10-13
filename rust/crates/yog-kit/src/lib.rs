@@ -124,6 +124,10 @@ pub struct ScreenMeta {
     pub anchor: Anchor,
     pub modal: bool,
     pub pause: bool,
+    /// Re-evaluates the bindings every frame (`<Screen live="true">`): for
+    /// a screen showing state that changes outside its own commands (a
+    /// server tick, a packet). Inventory screens always are.
+    pub live: bool,
 }
 
 /// Input for a view's [`View::dispatch`], produced by the host.

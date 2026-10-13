@@ -27,6 +27,7 @@ impl yog_kit::View for View {
         anchor: Anchor::Center,
         modal: true,
         pause: false,
+        live: false,
     };
 
     fn build() -> (Self, Widget, Parts) {

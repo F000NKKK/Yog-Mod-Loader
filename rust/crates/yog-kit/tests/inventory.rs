@@ -20,6 +20,7 @@ impl yog_kit::View for Inv {
         anchor: Anchor::Center,
         modal: true,
         pause: false,
+        live: false,
     };
     fn build() -> (Self, Widget, Parts) {
         let root = widget::panel(FlexDir::Column)

@@ -318,7 +318,7 @@ const COMMON_ATTRS: &[&str] = &[
 
 fn kind_attrs(kind: &str) -> &'static [&'static str] {
     match kind {
-        "Screen" => &["width", "height", "anchor", "modal", "pause"],
+        "Screen" => &["width", "height", "anchor", "modal", "pause", "live"],
         "Label" | "Button" => &["text"],
         "TextBox" => &[
             "text",

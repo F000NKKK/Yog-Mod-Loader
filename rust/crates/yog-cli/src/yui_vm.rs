@@ -1541,6 +1541,11 @@ pub fn generate(
         .map(|v| yui::boolean(root, "pause", v))
         .transpose()?
         .unwrap_or(false);
+    let live = root
+        .attr("live")
+        .map(|v| yui::boolean(root, "live", v))
+        .transpose()?
+        .unwrap_or(false);
 
     let mut g = VmGen {
         file: format!("{name}.yui"),
@@ -1622,6 +1627,7 @@ pub mod ids {{
         anchor: ::yog_kit::Anchor::{anchor},
         modal: {modal},
         pause: {pause},
+        live: {live},
     }};
 
     fn build() -> (Self, ::yog_api::ui::Widget, ::yog_kit::Parts) {{

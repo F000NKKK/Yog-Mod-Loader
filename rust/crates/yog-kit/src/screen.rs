@@ -220,6 +220,7 @@ impl<W: View> Screen<W> {
         }));
         lock(&SCREENS).push(W::META);
         lock(&HANDLES).push((TypeId::of::<W>(), Box::new(handle.clone())));
+        lock(&host).every_frame = W::META.live;
         // Opened by the game with the block it belongs to, not by `open()`.
         if let Some(def) = inventory_of::<W>() {
             registry.register_inventory(def);
