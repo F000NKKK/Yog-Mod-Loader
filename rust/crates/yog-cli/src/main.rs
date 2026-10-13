@@ -2361,37 +2361,51 @@ fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<Str
         }
     }
 
-    // Normalize: drop a simple import if a brace form already covers it.
+    // Normalize: merge every `a::b::{X, Y}` / `a::b::X` into one import per
+    // module path, so a name pulled in by several files is imported once.
     fn normalize(vec: &mut Vec<String>) {
-        vec.sort();
-        let mut braces: Vec<String> = Vec::new();
-        let mut simples: Vec<String> = Vec::new();
+        let mut groups: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
+            Default::default();
+        let mut nested: Vec<String> = Vec::new();
         for p in vec.drain(..) {
-            if p.contains('{') {
-                braces.push(p);
+            let p = p.trim().to_string();
+            if let Some((prefix, rest)) = p.split_once("::{") {
+                let inside = rest.strip_suffix('}').unwrap_or(rest);
+                if inside.contains('{') {
+                    nested.push(p);
+                    continue;
+                }
+                let set = groups.entry(prefix.to_string()).or_default();
+                set.extend(
+                    inside
+                        .split(',')
+                        .map(|s| s.trim())
+                        .filter(|s| !s.is_empty())
+                        .map(str::to_string),
+                );
+            } else if let Some((prefix, item)) = p.rsplit_once("::") {
+                groups
+                    .entry(prefix.to_string())
+                    .or_default()
+                    .insert(item.to_string());
             } else {
-                simples.push(p);
+                nested.push(p);
             }
         }
-        let mut keep: Vec<String> = Vec::new();
-        for brace in braces {
-            let prefix = brace.split('{').next().unwrap_or("");
-            let inside = brace
-                .split('{')
-                .nth(1)
-                .and_then(|s| s.split('}').next())
-                .unwrap_or("");
-            let items: HashSet<&str> = inside.split(',').map(|s| s.trim()).collect();
-            simples.retain(|s| {
-                if s.starts_with(prefix) {
-                    !items.contains(&s.strip_prefix(prefix).unwrap_or(s).trim())
+        let mut keep: Vec<String> = groups
+            .into_iter()
+            .map(|(prefix, items)| {
+                if items.len() == 1 {
+                    format!("{prefix}::{}", items.into_iter().next().unwrap())
                 } else {
-                    true
+                    let items: Vec<String> = items.into_iter().collect();
+                    format!("{prefix}::{{{}}}", items.join(", "))
                 }
-            });
-            keep.push(brace);
-        }
-        keep.extend(simples);
+            })
+            .collect();
+        nested.sort();
+        nested.dedup();
+        keep.extend(nested);
         keep.sort();
         *vec = keep;
     }
