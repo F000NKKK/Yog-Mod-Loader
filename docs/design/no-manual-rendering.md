@@ -14,8 +14,9 @@ This builds on, and in places overrides, decisions recorded elsewhere:
   marker layers, parameters and path effects (§5). Its §12.2 sentence "the pattern grid, stroke glow stays in the
   `HexGrid` surface with its SDF shader" is **withdrawn**.
 - [mvvm-v2.md](mvvm-v2.md): `#[view_model]`, `#[on(E)]`, `#[recv]`, `open_on=`/`close_when=`, conditional
-  styles. Its §12.8 (`SurfaceView`, `source="{x:Bind grid}"`) and decision **Q16** ("VM-owned surfaces are the
-  normal way") are **superseded**: there are no surfaces (R2). Its "animations are out of scope" (§7) is replaced
+  styles. Its §12.8 (`SurfaceView`, `source="{x:Bind grid}"`) **stays** as the shape of the optional `Surface` (R2,
+  Q1 decided); its decision **Q16** is narrowed: a VM-owned surface is the way to do custom drawing *when* custom
+  drawing is needed (3D viewports and the like), not the normal way to build a screen. Its "animations are out of scope" (§7) is replaced
   by §7 here.
 - [ybook.md](ybook.md): B5 (custom page types are `.yui` components; the loader's `Pattern` page is deleted) and
   B7 (yog-book draws only through yog-ui/draw2d/materials) stay. Its §3.4/§6.5 plan for a Hex-side `HexPattern`
@@ -30,7 +31,7 @@ This builds on, and in places overrides, decisions recorded elsewhere:
 | # | Decision | Why |
 |---|---|---|
 | R1 | **A mod contains no drawing code.** No GL handles, no shaders, no vertex buffers, no `draw2d_*` calls, no tessellation, no pixel-coordinate math for drawing, no per-frame paint callbacks. Everything a mod shows is declared: `.yui` markup bound to view-model data, `.ymat` materials, `.ytheme` styles, and content files (`.yitem`, `.yblock`, `.yparticle`, `.yoverlay`). | The user's rule. It is also what makes every screen previewable in IDLE (only declared drawing can be recorded) and what lets one mod binary look right on every MC version and loader. |
-| R2 | **`Surface` is deleted, not kept as an escape hatch.** `yog_ui::Surface`, the id registry, `<Surface>`, mvvm-v2's planned `SurfaceView`, `Registry::on_hud_render`/`on_world_render`/`on_ui_render`, and the `yog_api::{gfx_gl, gfx_core, gfx_draw2d, gfx_image, GfxContext}` re-exports go. When a mod needs something that cannot be declared, the answer is a new **generic** primitive in the loader, never a hole in the API. | An escape hatch is where the hand-written GL came from (§1). No-backward-compat rule: delete outright. |
+| R2 | **`Surface` stays as an optional, advanced element; it is never required** (Q1, decided by the user: "useful for 3D rendering into the surface and so on"). It becomes VM-owned (mvvm-v2 §12.8: `<Surface source="{x:Bind view}"/>`, no global id registry, no `static Mutex`), and the gfx API (`GfxContext`, 2D and 3D) is reachable **only** inside `Surface::paint`, not re-exported at the top of `yog_api`. Inside a surface a mod gets, besides raw draw calls, a high-level 3D scene API (camera, lights, drawing blocks, items, entities and model/`.ymat` assets) so 3D viewports need no GLSL. Everything the declarative elements cover (2D shapes, lattices, text, pointer input, animation) must use them: a port or a new screen never draws 2D UI in a surface. `Registry::on_hud_render`/`on_world_render`/`on_ui_render` are still deleted (HUD → `<Hud>`, world → `.yoverlay`/decals). In IDLE a surface shows a placeholder, or the live picture through the designer host when the mod library is built. | HexMod's 1 250 lines of GL came from 2D drawing that had no declarative path; shapes, Lattice and materials give it one, so the surface is left for what can't be declared (3D previews, model viewers, minimaps). |
 | R3 | **Vector shapes are `.yui` elements**: `Line`, `Polyline`, `Polygon`, `Path`, `Ellipse`, `Marker`. Their geometry binds to VM data (`points="{x:Bind wip()}"`); their look is a material or plain stroke/fill attributes. | WPF/WinUI `Shape`s in Yog's markup. A pattern stroke is a polyline, a grid dot is a marker. |
 | R4 | **Materials gain vector layers**: `stroke`, `fill` for shapes, `markers`, plus **parameters** (`@stroke`, `@seed`, …), a closed **color/number expression set** (`mix`, `lighten`, `darken`, `alpha`, `min`, `max`, arithmetic), and generic **path effects** (`jitter`, `separate_revisits`, `trim_end`). | Hex's "glow" is two strokes (wide + lightened core) with a tail→head gradient; its "zappy" line is a noise displacement path effect. Both are style, so they belong in a material, not in Rust. Skia's `PathEffect` and SVG markers are the precedents. |
 | R5 | **`<Lattice>` is a coordinate-system container** (hex pointy/flat, square). Children are positioned in lattice coordinates, the cell size can be fixed, area-based (`cell="area:512"`) or fit-to-content; pointer events report the nearest lattice point and the fractional position in cell units; `<Lattice.Dots>` draws lattice points with a proximity parameter. `yog_api::geom::{hex, square}` provides the matching pure math (neighbours, directions, nearest point). | Removes `coord_to_px`/`px_to_coord`/`hex_size`/`range_around` from mod code. An axial hex lattice is generic geometry (strategy games, tile pickers), not Hex Casting logic. |
@@ -98,11 +99,11 @@ materials (materials doc §12.3).
 
 | Where | What | Fate |
 |---|---|---|
-| `yog-api/src/lib.rs:18-20` | Re-exports `gfx_core`, `gfx_draw2d`, `gfx_gl`, `gfx_image`, `GfxContext` to every mod | Deleted (R2). |
+| `yog-api/src/lib.rs:18-20` | Re-exports `gfx_core`, `gfx_draw2d`, `gfx_gl`, `gfx_image`, `GfxContext` to every mod | Moved under `yog_api::ui::surface`, reachable from `Surface::paint` only (R2). |
 | `yog-gfx/src/lib.rs:1-289`, `gl/mod.rs` | Public buffers, VAOs, GLSL programs, textures, draw calls, blend/depth/scissor/viewport; doc example teaches mods to write shaders | GL half deleted; `draw2d` becomes loader-internal (§11). |
 | `yog-gfx/src/draw2d.rs` | `Draw2D` text/rect/gradient/item/image calls | Internal to yog-ui/yog-book; not re-exported. |
-| `yog-ui/src/surface.rs:47-97` | `Surface` trait (`paint(&self, gfx, rect)`, `pointer`, `scroll`) + global `static SURFACES: Mutex` registry | Deleted. |
-| `yog-cli/src/yui.rs:253, 298, 545-566, 729` | `<Surface source=…>` element and diagnostics | Deleted; `<Surface>` becomes a build error pointing at §4/§6. |
+| `yog-ui/src/surface.rs:47-97` | `Surface` trait (`paint(&self, gfx, rect)`, `pointer`, `scroll`) + global `static SURFACES: Mutex` registry | Kept and made VM-owned (`&mut self`, bound with `source="{x:Bind …}"`); the global registry is deleted (R2). |
+| `yog-cli/src/yui.rs:253, 298, 545-566, 729` | `<Surface source=…>` element and diagnostics | `source` becomes a binding; a string id is an error. |
 | `yog-kit/tests/surface.rs` | Surface pointer capture tests | Rewritten against element pointer events (§9). |
 | `yog-api/src/registry.rs:2268-2310` | `on_ui_render` ("clicks are forwarded as `click:X:Y` … hit-test on your own stored layout"), `on_hud_render`, `on_world_render` with a raw `GfxContext` | Deleted. HUD → `<Hud>` (§10.5); world → `.yoverlay`/decals (§10.3-10.4). |
 | `yog-book/src/renderer.rs:37-385` | `BookGl`: its own GLSL program, vertex format, PNG decoding, texture uploads, quads | Already deleted by ybook B7; restated here because it is the last in-tree user of the GL ABI. |
@@ -587,11 +588,10 @@ yog-ui gains `shape`, `tessellate` (the generalized `drawLineSeq`, fills via ear
 
 | Removed | Replacement |
 |---|---|
-| `yog_ui::Surface`, `surface::{register, unregister, get}`, `WidgetKind::Surface`, `<Surface>` | shapes (§4), `Lattice` (§6), element events (§9) |
-| mvvm-v2 §12.8 `SurfaceView`, `source="{x:Bind field}"`, `output=` (never implemented) | same |
+| `surface::{register, unregister, get}` (the global surface registry) | VM-owned `<Surface source="{x:Bind …}">` (R2) |
 | `Registry::on_hud_render`, `on_world_render`, `on_ui_render` | `<Hud>`, `.yoverlay`, decals; screens are `.yui` |
-| `yog_api::{gfx_gl, gfx_core, gfx_draw2d, gfx_image, GfxContext}` | none for mods |
-| GL half of `YogGfxApi`; `view_proj`/`camera_pos`/`player_pos` | `draw2d_triangles`; overlays get positions from the host |
+| top-level `yog_api::{gfx_gl, gfx_core, gfx_draw2d, gfx_image, GfxContext}` | the same API inside `Surface::paint` only (R2) |
+| `view_proj`/`camera_pos`/`player_pos` for world overlays | overlays get positions from the host; the GL half of `YogGfxApi` stays for surfaces (R2) |
 | ybook §3.4 `HexPattern` widget, §6.5 `draw2d_quad` | `Lattice` + `Polyline` + material; `draw2d_triangles` |
 | boilerplate F12 `surface::shared::<T>()` | nothing to share |
 | HexMod `render_lib.rs`, `noise.rs`, `pattern_render.rs`, `GridSurface`, `SESSION`, `spawn_dust`, `DUST_SYNTAX` | §13 |
@@ -809,7 +809,7 @@ Each stage ships on its own: crates bumped (breaking where noted), published, th
 | **N0** Geometry core | `yog_api::geom`; yog-ui shapes (`Line`, `Polyline`, `Polygon`, `Path`, `Ellipse`, `Marker`) with attribute styling; the stroker (generalized `drawLineSeq`), fills, markers; `draw2d_triangles` in the ABI (minor), runtime, Java hosts (all loaders × versions), IDLE recorder + rasterizer; `opacity`, `transform`; yui codegen + IDLE `yui.ts` for the new elements; golden-image tests | — |
 | **N1** Stroke materials | `.ymat` `params`, expressions, `stroke`/`fill`/`markers` layers, `path_effects` (`separate_revisits`, `jitter`, `trim_end`), `minecraft:simplex` noise in yog-ui; `material=`/`param.*` on shapes; theme classes setting params; build validation | materials doc S1–S4 (material pipeline, `materials.json`) |
 | **N2** Lattice, input, animation | `<Lattice>`, `Lattice.Dots`, `cell`/`fit` modes, lattice pointer args; element pointer/wheel events with `$e`, `$input`, `$index`; `<Animate>` + clock; `Label` trim/scale | mvvm-v2 M-stages for commands with arguments |
-| **N3** HexMod casting screen + deletions | Migrate §13.1; delete `render_lib.rs`, `noise.rs`, `pattern_render.rs`, `GridSurface`. Then **delete** `Surface`, `<Surface>`, `on_*_render`, gfx re-exports, the GL ABI half (`ABI_VERSION` bump), mvvm-v2 §12.8 from its plan; `yog check` lint (R13) | N0–N2, mvvm-v2 M9b (open_on/close_when) |
+| **N3** HexMod casting screen + deletions | Migrate §13.1; delete `render_lib.rs`, `noise.rs`, `pattern_render.rs`, `GridSurface`. Then make `Surface` VM-owned and delete its global registry, `on_*_render` and the top-level gfx re-exports; add the surface 3D scene API (R2); `yog check` lint (R13) | N0–N2, mvvm-v2 M9b (open_on/close_when) |
 | **N4** Book and tooltips | `PatternPage` per §13.2 (with ybook's stages); `.yitem` `tooltip` components; `PatternTooltip` | ybook custom pages, N3 |
 | **N5** Particles | `.yparticle`, `particles::emit`, host particle registration per loader/version; HexMod's conjure particle and pigment colors; delete `spawn_dust`/`DUST_SYNTAX` | — (can run in parallel with N1–N4) |
 | **N6** Item data looks | `.yitem` `bar`, `variants` (+ `data:` refs mapped per version) | — |
@@ -819,14 +819,19 @@ Each stage ships on its own: crates bumped (breaking where noted), published, th
 
 ## 15. Open questions (with recommendations)
 
-1. **Q1 Keep a hidden `Surface` escape hatch?** *Recommendation: no.* Every manual-GL file in the workspace came
-   through it. A gap found later is a loader feature request (generic primitive), handled like N0–N7.
+1. **Q1 Keep `Surface`? — decided: yes, as an optional advanced element** (the user: useful for 3D rendering
+   and the like). See R2: VM-owned, gfx only inside `paint`, a high-level 3D scene API, and 2D UI must use the
+   declarative elements.
 2. **Q2 Zappy fidelity — decided: exact.** The `jitter` parameters (§5.2) describe
    `makeZappy` completely with Minecraft's simplex noise, so the port matches the original (port-faithfully) and the
    effect is still generic.
-3. **Q3 Mod-registered path effects (pure Rust functions point list → point list)?** *Recommendation: no.* It
-   reopens per-mod geometry code and makes the designer depend on a compiled mod for every preview. If a second
-   real effect is needed, add it to the loader.
+3. **Q3 Mod-registered path effects — decided: allowed.** A mod declares one with
+   `#[yog_api::path_effect("ns:id")] fn f(points: &[Vec2], params: &P, t: f32) -> Vec<Vec2>` (`P: Codec`, its
+   fields become the effect's `.ymat` params); the attribute registers it, like behaviours. It is pure geometry —
+   no draw calls — so it stays inside the "no manual rendering" rule. `.ymat` uses it like a built-in
+   (`"path_effects": [{ "ns:id": {…} }]`). IDLE previews it through the designer host when the mod library is
+   built, otherwise draws the path without that effect and marks it. Built-in effects stay preferred: a common
+   effect is still a candidate for the loader.
 4. **Q4 Where to tessellate: yog-ui (mod side) or the runtime?** *Recommendation: yog-ui.* One ABI function, and
    the IDLE recorder gets final triangles. The cost is code size in each mod, which is small.
 5. **Q5 Anti-aliasing — decided: off by default, configurable** (per stroke in `.ymat`, and per theme/mod default) (the original draws aliased triangles); `antialias:
