@@ -836,7 +836,10 @@ Each stage ends with: bump the crates involved (breaking, as policy allows), pub
   favour of `_list` files? Or must every item still have its own file, as now, for the
   IDE's tree view? Recommended: keep one file per entry (an empty `{}` is fine), with
   directory `_defaults`.
-- **D6.** Should `PlayerData` / `WorldData` save automatically (registered through `ctor`), or
-  be registered explicitly with `registry.persist(&X)`? Recommended: automatic.
+- **D6 — decided (2026-10-13): automatic, with an explicit stable key.** Declaring
+  `static X: WorldData<T> = WorldData::new("key")` is all a mod does: it registers itself and is
+  loaded/saved with the world; there is no `registry.persist`. The key is mandatory (it names
+  the save entry, so renaming the Rust item doesn't lose data); `T: Codec + Default`. A
+  `X.mark_dirty()`-free model: mutation goes through `X.update(|t| …)`, which marks dirty.
 - **D7.** Should Fabric switch from Yarn to official Mojang mappings? That would let all 6 Java
   hosts share one source tree. Without it, only forge+neoforge share code (I3 a+b).
