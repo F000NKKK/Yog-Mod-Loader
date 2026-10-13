@@ -1603,7 +1603,7 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
     let version = manifest.version;
     let edition = manifest.edition.as_deref().unwrap_or("2021");
     // Exports crates default to MIT OR Apache-2.0 regardless of the mod's own
-    // license — an AGPL mod (like this CLI's own Yog-Pipes) would otherwise
+    // license — an AGPL mod would otherwise
     // force every consumer's dependency tree under AGPL too, which kills
     // adoption. `[mod] exports_license = "..."` opts into a different license.
     let license = manifest
@@ -1728,7 +1728,7 @@ warning: linker stderr: ignoring deprecated linker optimization setting '1'
   |
   = note: `#[warn(linker_messages)]` on by default
 
-warning: `yog-pipes` (lib) generated 1 warning
+warning: `example` (lib) generated 1 warning
     Finished `release` profile [optimized] target(s) in 0.03s
 ";
         assert_eq!(

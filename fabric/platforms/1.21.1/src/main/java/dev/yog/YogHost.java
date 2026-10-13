@@ -358,7 +358,7 @@ public class YogHost implements ModInitializer {
             // different arg counts) — each is registered separately; Brigadier
             // merges repeated `dispatcher.register()` calls that share a root
             // literal name into one command-tree node, so this produces one
-            // "vlsi" node with a sibling branch per distinct arg shape, instead
+            // root node with a sibling branch per distinct arg shape, instead
             // of collapsing them all down to whichever schema was seen last.
             java.util.Set<String> typedNames = new java.util.HashSet<>();
             String schemaLines = NativeBridge.nativeTypedCommandSchemas();

@@ -93,7 +93,7 @@ pub enum BookPage {
     },
     /// Empty separator.
     Empty,
-    /// Custom pattern page for Hexcasting-style mods (like `hexcasting:pattern`).
+    /// Custom mod-defined page (e.g. `example:pattern`).
     Pattern {
         op_id: String,
         #[serde(default)]

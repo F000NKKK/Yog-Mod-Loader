@@ -333,7 +333,7 @@ impl BookRecipe {
 #[derive(Debug, Clone)]
 pub struct ItemModifier {
     pub id: String,
-    /// Modifier function identifier, e.g. "yog:set_count" or "hexcasting:amethyst_shard_reducer".
+    /// Modifier function identifier, e.g. "yog:set_count" or "example:shard_reducer".
     pub function: String,
     /// Parameters as JSON object.
     pub parameters: std::collections::HashMap<String, String>,
@@ -637,8 +637,8 @@ impl BlockDef {
 
     /// Connection compatibility tags — two blocks link up (for
     /// `connects_to_neighbors` arm growth, and as valid connection targets
-    /// generally) when their tag sets share at least one entry. Example: for
-    /// Yog-VLSI, `analog_cable` and `redstone_port` both carry `"analog"`;
+    /// generally) when their tag sets share at least one entry. Example:
+    /// `analog_cable` and `redstone_port` both carry `"analog"`;
     /// `digital_cable` carries `"digital"`; an ALU block carries both, so it
     /// accepts either cable while a Redstone Port only accepts the analog one.
     pub fn connect_groups(mut self, groups: &[&str]) -> Self {

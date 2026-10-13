@@ -275,8 +275,8 @@ fn parse_string_array(line: &str) -> Vec<String> {
 }
 
 /// Cargo derives a lib crate name from the package `name` by turning `-` into
-/// `_`, but keeps case — so a mod `id` like "HexMod-Yog" becomes the invalid
-/// `HexMod_Yog` and rustc warns on every build. `id` is a free-form project
+/// `_`, but keeps case — so a mod `id` like "My-Mod" becomes the invalid
+/// `My_Mod` and rustc warns on every build. `id` is a free-form project
 /// identifier (not required to be a valid Rust ident), so the generated
 /// wrapper pins `[lib] name` to a proper snake_case form instead.
 pub fn to_snake_name(id: &str) -> String {

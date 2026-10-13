@@ -1293,7 +1293,7 @@ pub struct YogApi {
     /// Register a button/link that the host renders on vanilla screens
     /// (TitleScreen on Fabric, ModListScreen on Forge/NeoForge).
     /// `label` is the human-readable button text (e.g. "Yog Mods").
-    /// `ui_id` is the Yog UI to open when clicked (e.g. "yog:modlist").
+    /// `ui_id` is the Yog UI to open when clicked (e.g. "example:menu").
     pub register_menu_entry: unsafe extern "C" fn(ctx: *mut c_void, label: YogStr, ui_id: YogStr),
 
     // ── ABI minor 23 — installed mods listing ───────────────────────────────

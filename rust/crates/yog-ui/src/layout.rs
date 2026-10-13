@@ -1092,7 +1092,7 @@ mod tests {
 
     #[test]
     fn long_list_deep_inside_a_grown_row_does_not_push_siblings_out() {
-        // The Modlist screen: header, a flex row holding a 100%-high column
+        // A list screen: header, a flex row holding a 100%-high column
         // with a growing scroll view of many rows, and a footer.
         let mut list = widget::scroll_view().flex(1.0).w(pct(100.0));
         for _ in 0..60 {

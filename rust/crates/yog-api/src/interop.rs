@@ -12,8 +12,8 @@
 //! registry.interop().export("register_pipe", register_pipe_impl as *const c_void);
 //!
 //! // Mod B imports:
-//! type RegisterPipeFn = unsafe extern "C" fn(api: *const YogApi, ...);
-//! let func: RegisterPipeFn = registry.interop().import("yog-pipes:register_pipe").unwrap();
+//! type RegisterThingFn = unsafe extern "C" fn(api: *const YogApi, ...);
+//! let func: RegisterThingFn = registry.interop().import("other_mod:register_thing").unwrap();
 //! unsafe { func(api_ptr, ...) };
 //! ```
 
@@ -54,7 +54,7 @@ impl Interop {
     /// Use the qualified form `"mod_id:symbol"`:
     ///
     /// ```ignore
-    /// let ptr: *const c_void = interop.import("yog-pipes:register_pipe").unwrap();
+    /// let ptr: *const c_void = interop.import("other_mod:register_thing").unwrap();
     /// ```
     ///
     /// Returns `None` if the symbol has not been exported (yet).

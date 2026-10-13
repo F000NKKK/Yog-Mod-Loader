@@ -8,7 +8,7 @@ use std::collections::HashMap;
 /// The actual TTF bytes live in `BookFontRegistry` (registered separately).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BookFont {
-    /// Font registry ID (e.g. `"hexcasting:display_font"`).
+    /// Font registry ID (e.g. `"example:display_font"`).
     pub font_id: String,
     /// Render size in pixels (e.g. 14.0).
     pub size_px: f32,

@@ -51,14 +51,44 @@ const ADVANCE_CACHE_CAP: usize = 8192;
 
 struct HostMetrics {
     width: Option<TextWidthFn>,
-    /// `(font, char)` → advance; MC advances are additive, so per-char
+    /// font → char → advance; MC advances are additive, so per-char
     /// widths sum to the string's width.
-    cache: Option<HashMap<(String, char), f32>>,
+    cache: Option<HashMap<String, HashMap<char, f32>>>,
+    /// Advances in `cache`, all fonts together.
+    cached: usize,
+}
+
+impl HostMetrics {
+    /// Advance of `c` in the non-default `font` as the host measures it
+    /// (cached); `None` without a host.
+    fn advance(&mut self, c: char, font: &str) -> Option<f32> {
+        let width = self.width?;
+        let cache = self.cache.get_or_insert_with(HashMap::new);
+        if let Some(w) = cache.get(font).and_then(|m| m.get(&c)) {
+            return Some(*w);
+        }
+        let mut buf = [0u8; 4];
+        let s: &str = c.encode_utf8(&mut buf);
+        let w = unsafe {
+            width(
+                yog_abi::YogStr::from_str(s),
+                yog_abi::YogStr::from_str(font),
+            )
+        };
+        if self.cached > ADVANCE_CACHE_CAP {
+            cache.clear();
+            self.cached = 0;
+        }
+        cache.entry(font.to_owned()).or_default().insert(c, w);
+        self.cached += 1;
+        Some(w)
+    }
 }
 
 static HOST: Mutex<HostMetrics> = Mutex::new(HostMetrics {
     width: None,
     cache: None,
+    cached: 0,
 });
 
 /// Lets non-default fonts be measured by the host's text renderer (see the
@@ -76,30 +106,10 @@ pub fn char_width_in(c: char, font: &str) -> f32 {
     if is_default_font(font) {
         return char_width(c);
     }
-    let Ok(mut h) = HOST.lock() else {
-        return char_width(c);
-    };
-    let Some(width) = h.width else {
-        return char_width(c);
-    };
-    let cache = h.cache.get_or_insert_with(HashMap::new);
-    if let Some(w) = cache.get(&(font.to_owned(), c)) {
-        return *w;
-    }
-    let mut buf = [0u8; 4];
-    let s: &str = c.encode_utf8(&mut buf);
-    let w = unsafe {
-        width(
-            yog_abi::YogStr::from_str(s),
-            yog_abi::YogStr::from_str(font),
-        )
-    };
-    let cache = h.cache.get_or_insert_with(HashMap::new);
-    if cache.len() > ADVANCE_CACHE_CAP {
-        cache.clear();
-    }
-    cache.insert((font.to_owned(), c), w);
-    w
+    HOST.lock()
+        .ok()
+        .and_then(|mut h| h.advance(c, font))
+        .unwrap_or_else(|| char_width(c))
 }
 
 /// Pixel width of a string at the given font scale.
@@ -112,7 +122,13 @@ pub fn str_width_in(s: &str, font_scale: f32, font: &str) -> f32 {
     if is_default_font(font) {
         return str_width(s, font_scale);
     }
-    s.chars().map(|c| char_width_in(c, font)).sum::<f32>() * font_scale
+    let Ok(mut h) = HOST.lock() else {
+        return str_width(s, font_scale);
+    };
+    s.chars()
+        .map(|c| h.advance(c, font).unwrap_or_else(|| char_width(c)))
+        .sum::<f32>()
+        * font_scale
 }
 
 /// Break `text` into lines that fit within `max_w` pixels at `font_scale`.

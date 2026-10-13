@@ -2249,7 +2249,7 @@ impl Registry {
     /// Register a menu entry — the host renders a button on vanilla screens
     /// (TitleScreen on Fabric, ModListScreen on Forge/NeoForge) that opens `ui_id`.
     /// `label` is the human-readable button text (e.g. "Yog Mods").
-    /// `ui_id` is the UI to open when clicked (e.g. "yog:modlist").
+    /// `ui_id` is the UI to open when clicked (e.g. "example:menu").
     /// See [`installed_mods`]. During `register()` the list only contains
     /// mods loaded before this one.
     pub fn installed_mods(&self) -> Vec<ModInfo> {
