@@ -27,7 +27,7 @@ The project has **no backward compatibility**. Everything in §12 is deleted, no
 | B6 | **No Rust for a book.** `yog build` compiles the files to `yog/books/<book>.json` inside the `.yog`, and the runtime loads it like `yog/materials.json`. The book item is declared in the manifest. Typed handles (`books::thehexbook::patterns::MATH`) are generated for code that wants to open the book. | A book is data. Loading data from the `.yog` also allows reloading a book in a running game without the code ABI match that hot reload needs. |
 | B7 | **yog-book becomes a pure layout and draw library on yog-ui + draw2d + materials.** Its raw-GL path (`BookGl`, embedded PNG decoding, the SVG and fontdue stubs) is deleted. The runtime links it. Mods no longer do. | Only draw2d calls can be recorded by the IDE's recording `YogGfxApi`. With that, the designer draws the book with **the same crate and the same code** as the game. |
 | B8 | **The designer renders in Rust, not with a TypeScript port.** `src-tauri` links yog-book and draws through the existing recorder and rasterizer (Minecraft font and textures, vanilla pack). It returns the picture plus a hit map (pages, text runs, links, slots). | A TS port (as `layout.ts` is for `.yui`) would be a second implementation of text flow and Patchouli's page geometry, and would drift. The `.yui` designer only needs `layout.ts` for instant drag feedback, and books have no free-form dragging. |
-| B9 | **Text flows.** A `text` page whose text does not fit continues on as many extra pages as needed, laid out at run time with the game's font in the current language. `"flow": false` gives Patchouli's clipping. | Translations are longer than English (Russian by about 20–30%). Patchouli forces authors to split pages by hand per language, which is what Hex's `page1..page10` keys are. |
+| B9 | **Text flows.** A `text` page whose text does not fit continues on as many extra pages as needed, laid out at run time with the game's font in the current language. `"flow": false` gives Patchouli's clipping. The default is set per book (`"flow"` in the manifest, `true` if absent) and can be overridden on a category, an entry or a single page; the nearest setting wins (Q2). | Translations are longer than English (Russian by about 20–30%). Patchouli forces authors to split pages by hand per language, which is what Hex's `page1..page10` keys are. |
 | B10 | **Patchouli import** (`yog import patchouli`) converts a Patchouli book (book.json, categories, entries, templates, lang JSON / flattened JSON5) to `.ybook`/`.yentry`/`.yres`, and writes component stubs for custom page types. HexMod's book is migrated with it from the original Hex Casting sources. | Porting mods is a main use case for Yog. The Hex book is the real test: 447 pages and 6 custom page types. |
 
 ---
@@ -144,6 +144,7 @@ entry order are what a reorder changes. Keeping them in one place makes a drag-r
   },
 
   "show_progress": false,                        // unread markers and the completion counter (§6.7)
+  "flow": true,                                  // book-wide default for text pages; a category, entry or page can override (B9)
   "macros": {                                    // applied after Patchouli's built-in macros (§4.3)
     "$(thing)": "$(#8d6acc)",
     "$(action)": "$(#fc77be)",
@@ -219,7 +220,7 @@ or a list. Lists and tags cycle once per second, as in Patchouli.
 
 | Type | Fields | Drawn as (Patchouli's geometry) |
 |---|---|---|
-| `text` | `text`, `title?`, `flow?` (default `true`) | Body text. The entry title header is on the entry's first page, and `title` is a header on later pages. Overflow continues on extra pages (B9). |
+| `text` | `text`, `title?`, `flow?` (default: inherited from entry → category → book, `true`) | Body text. The entry title header is on the entry's first page, and `title` is a header on later pages. Overflow continues on extra pages (B9). |
 | `spotlight` | `item`, `title?`, `text?`, `link_recipe?` | Item in the spotlight frame, title (default: item name), text below. |
 | `crafting` | `recipe` (id or list of ids), `recipe2?`, `title?`, `text?` | 3×3 grid + output, shapeless marker, one or two recipes per page. A list cycles (this covers Hex's `crafting_multi`). |
 | `smelting` | `recipe`, `recipe2?`, `text?` | Input, station icon, output. The station follows the recipe type: furnace, blast furnace, smoker or campfire. |
@@ -954,7 +955,7 @@ mods updated in the same change. Building and running the game is done with the 
 
 1. **Q1 Location — decided: `content/books/`.** Was: `content/books/` (proposed, the same scan and explorer node as blocks/items), or a top-level
    `books/` next to `content/`, `textures/`, `materials/`?
-2. **Q2 Flow by default:** should text pages continue onto new pages automatically (proposed for new books), or
+2. **Q2 Flow by default — decided: flow on by default, configurable per book, category, entry and page.** Was: should text pages continue onto new pages automatically (proposed for new books), or
    should clipping with an overflow warning stay the default as in Patchouli?
 3. **Q3 Markup — decided: Patchouli's `$(…)`.** Was: keep Patchouli's `$(…)` (proposed), or use a Markdown-like syntax (`**bold**`,
    `[text](patterns/math#add)`) with the importer converting? Markdown reads better in diffs, but breaks verbatim
