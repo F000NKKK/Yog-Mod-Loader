@@ -31,14 +31,34 @@ pub enum WidgetKind {
     /// or how to query it; that's the caller's job (see `yog-inventory`).
     /// Empty `item_id` draws an empty slot box.
     InvSlot { item_id: String, count: u32 },
-    /// Minecraft texture blit (via `draw2d_mc_tex`).
+    /// Minecraft texture blit (via `draw2d_mc_tex`) of a raw resource path,
+    /// drawn scaled into the widget. Prefer [`WidgetKind::Image`].
     McImage { id: String, img_w: f32, img_h: f32 },
+    /// An image from a Yog image source (`item:apple`, `sprite:button`,
+    /// `mymod:gui/logo`, ...) — see [`Image`] and [`image`].
+    Image(Image),
     /// Invisible spacer.
     Spacer,
     /// Single-line text input — see [`TextBox`] and
     /// [`TextBoxState`](crate::TextBoxState), which owns the text and drives it.
     TextBox(TextBox),
 }
+
+/// An image widget's data — see [`image`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct Image {
+    /// A Yog image source (see [`yog_gfx::image`]).
+    pub source: String,
+    /// How the image fills the widget (default [`Stretch::Uniform`]).
+    pub stretch: Stretch,
+    /// The part of the image drawn, `[u, v, w, h]` in the image's pixels
+    /// (`None` = all of it). Textures only — items and sprites are whole.
+    pub region: Option<[f32; 4]>,
+    /// Color multiplier, `0xAARRGGBB` (`0xFFFFFFFF` = none; items ignore it).
+    pub tint: u32,
+}
+
+pub use yog_gfx::image::Stretch;
 
 /// A text box's content and editing state, as drawn this frame. Built by
 /// [`text_box`] (text, placeholder, max length, event names); the caret,
@@ -393,6 +413,27 @@ impl Widget {
         }
         self
     }
+    /// Image: how it fills the widget (WPF's `Stretch`).
+    pub fn stretch(mut self, stretch: Stretch) -> Self {
+        if let WidgetKind::Image(i) = &mut self.kind {
+            i.stretch = stretch;
+        }
+        self
+    }
+    /// Image: draw only `[u, v, w, h]` of it (texture pixels).
+    pub fn region(mut self, region: [f32; 4]) -> Self {
+        if let WidgetKind::Image(i) = &mut self.kind {
+            i.region = Some(region);
+        }
+        self
+    }
+    /// Image: multiply its colors by `tint` (`0xAARRGGBB`).
+    pub fn tint(mut self, tint: u32) -> Self {
+        if let WidgetKind::Image(i) = &mut self.kind {
+            i.tint = tint;
+        }
+        self
+    }
     /// Adds every widget in `children`, in order.
     pub fn children(mut self, children: impl IntoIterator<Item = Widget>) -> Self {
         self.children.extend(children);
@@ -466,6 +507,8 @@ pub fn inv_slot(item_id: impl Into<String>, count: u32) -> Widget {
     .w(18.0)
     .h(18.0)
 }
+/// A raw Minecraft texture (`"minecraft:textures/..."`), `img_w × img_h`
+/// pixels, stretched over the widget. Version-dependent: prefer [`image`].
 pub fn mc_image(id: impl Into<String>, img_w: f32, img_h: f32) -> Widget {
     Widget::new(WidgetKind::McImage {
         id: id.into(),
@@ -474,6 +517,19 @@ pub fn mc_image(id: impl Into<String>, img_w: f32, img_h: f32) -> Widget {
     })
     .w(img_w)
     .h(img_h)
+}
+/// An image from a Yog image source — `"item:apple"`, `"block:stone"`,
+/// `"sprite:button"`, `"mymod:gui/logo"` (see [`yog_gfx::image`]) — the
+/// host resolves it for its Minecraft version. Sized to the image's natural
+/// size (16×16 until the host told it) unless given `w`/`h`; scaled into the
+/// widget per [`Widget::stretch`] (default `Uniform`), nearest-neighbour.
+pub fn image(source: impl Into<String>) -> Widget {
+    Widget::new(WidgetKind::Image(Image {
+        source: source.into(),
+        stretch: Stretch::Uniform,
+        region: None,
+        tint: 0xFFFF_FFFF,
+    }))
 }
 pub fn spacer() -> Widget {
     Widget::new(WidgetKind::Spacer)
