@@ -15,6 +15,11 @@ use crate::{Anchor, Cx, Parts, ScreenHandle, View, ViewEvent, ViewModel};
 
 /// Pixels per mouse-wheel notch.
 const WHEEL_STEP: f32 = 16.0;
+/// Rows PgUp/PgDn move in a list whose row height or viewport is unknown.
+const FALLBACK_PAGE: u32 = 5;
+/// [`Host::log`] entries for a close / back request.
+pub(crate) const LOG_CLOSE: &str = "close";
+const LOG_BACK: &str = "back";
 
 /// A scroller's visible window during an update.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -194,7 +199,7 @@ impl<W: View> Host<W> {
         let id = W::META.id;
         match req {
             Request::Close => {
-                self.log.push("close".into());
+                self.log.push(LOG_CLOSE.into());
                 if self.live {
                     yog_api::close_ui(id);
                 }
@@ -206,7 +211,7 @@ impl<W: View> Host<W> {
                 }
             }
             Request::Back => {
-                self.log.push("back".into());
+                self.log.push(LOG_BACK.into());
                 if !self.live || !screen::go_back() {
                     self.request(Request::Close);
                 }
@@ -500,29 +505,8 @@ impl<W: View> Host<W> {
                 if matches!(ev, UiEvent::Release { .. }) {
                     self.pressed = None;
                 }
-                let mut used = false;
-                for i in 0..self.parts.scrollers.len() {
-                    let Some(node) = self.node(&self.parts.scrollers[i].path).cloned() else {
-                        continue;
-                    };
-                    if self.parts.scrollers[i]
-                        .state
-                        .handle_event(&ev, &node, WHEEL_STEP)
-                    {
-                        used = true;
-                        self.dirty = true;
-                    }
-                }
-                for i in 0..self.parts.text_boxes.len() {
-                    let Some(node) = self.node(&self.parts.text_boxes[i].path).cloned() else {
-                        continue;
-                    };
-                    used |= self.parts.text_boxes[i]
-                        .state
-                        .handle_event(&ev, &node)
-                        .consumed();
-                }
-                used
+                let used = self.feed_scrollers(&ev, false);
+                self.feed_text_boxes(&ev).is_some() | used
             }
             UiEvent::Key { key, mods } => self.key(key, mods, &ev),
             UiEvent::Char(_) => self.text_input(&ev),
@@ -562,12 +546,11 @@ impl<W: View> Host<W> {
         let Some(i) = target else {
             return false;
         };
-        let Some(node) = self.node(&self.parts.scrollers[i].path).cloned() else {
+        let s = &mut self.parts.scrollers[i];
+        let Some(node) = layout::node_at(&self.ui.layout_root, &with_root(&s.path)) else {
             return false;
         };
-        self.parts.scrollers[i]
-            .state
-            .handle_event(ev, &node, WHEEL_STEP);
+        s.state.handle_event(ev, node, WHEEL_STEP);
         self.dirty = true;
         true
     }
@@ -575,32 +558,10 @@ impl<W: View> Host<W> {
     fn click(&mut self, x: f32, y: f32, ev: &UiEvent<'_>) -> bool {
         self.mouse = Some((x, y));
         self.hover = self.hit(x, y);
-        for i in 0..self.parts.scrollers.len() {
-            let Some(node) = self.node(&self.parts.scrollers[i].path).cloned() else {
-                continue;
-            };
-            if self.parts.scrollers[i]
-                .state
-                .handle_event(ev, &node, WHEEL_STEP)
-            {
-                self.dirty = true;
-                return true;
-            }
+        if self.feed_scrollers(ev, true) {
+            return true;
         }
-        let mut clicked_box = None;
-        for i in 0..self.parts.text_boxes.len() {
-            let Some(node) = self.node(&self.parts.text_boxes[i].path).cloned() else {
-                continue;
-            };
-            if self.parts.text_boxes[i]
-                .state
-                .handle_event(ev, &node)
-                .consumed()
-            {
-                clicked_box = Some(i);
-            }
-        }
-        if let Some(i) = clicked_box {
+        if let Some(i) = self.feed_text_boxes(ev) {
             self.focus = Some(self.parts.text_boxes[i].path.clone());
             self.focus_visible = false;
             return true;
@@ -627,6 +588,41 @@ impl<W: View> Host<W> {
         self.focus_visible = false;
         self.activate(&path);
         true
+    }
+
+    /// Feeds a pointer event to the scrollers (stopping at the first taker
+    /// when `first`); true if any used it.
+    fn feed_scrollers(&mut self, ev: &UiEvent<'_>, first: bool) -> bool {
+        let root = &self.ui.layout_root;
+        let mut used = false;
+        for s in &mut self.parts.scrollers {
+            let Some(node) = layout::node_at(root, &with_root(&s.path)) else {
+                continue;
+            };
+            if s.state.handle_event(ev, node, WHEEL_STEP) {
+                used = true;
+                if first {
+                    break;
+                }
+            }
+        }
+        self.dirty |= used;
+        used
+    }
+
+    /// Feeds a pointer event to every text box; the last one that took it.
+    fn feed_text_boxes(&mut self, ev: &UiEvent<'_>) -> Option<usize> {
+        let root = &self.ui.layout_root;
+        let mut taker = None;
+        for (i, b) in self.parts.text_boxes.iter_mut().enumerate() {
+            let Some(node) = layout::node_at(root, &with_root(&b.path)) else {
+                continue;
+            };
+            if b.state.handle_event(ev, node).consumed() {
+                taker = Some(i);
+            }
+        }
+        taker
     }
 
     // ── surfaces ────────────────────────────────────────────────────────────
@@ -658,14 +654,7 @@ impl<W: View> Host<W> {
         let WidgetKind::Surface(id) = &w.kind else {
             return None;
         };
-        let r = self.node(path)?.rect;
-        let pad = w.effective_style().pad;
-        let rect = Rect {
-            x: r.x + pad[3],
-            y: r.y + pad[0],
-            w: (r.w - pad[1] - pad[3]).max(0.0),
-            h: (r.h - pad[0] - pad[2]).max(0.0),
-        };
+        let rect = self.node(path)?.rect.inset(w.effective_style().pad);
         Some((surface::get(id)?, rect))
     }
 
@@ -725,10 +714,11 @@ impl<W: View> Host<W> {
         let Some(i) = self.focused_box() else {
             return false;
         };
-        let Some(node) = self.node(&self.parts.text_boxes[i].path).cloned() else {
+        let b = &mut self.parts.text_boxes[i];
+        let Some(node) = layout::node_at(&self.ui.layout_root, &with_root(&b.path)) else {
             return false;
         };
-        let r = self.parts.text_boxes[i].state.handle_event(ev, &node);
+        let r = b.state.handle_event(ev, node);
         let text = || self.parts.text_boxes[i].state.text().to_owned();
         match r {
             TextBoxEvent::Changed => {
@@ -767,7 +757,7 @@ impl<W: View> Host<W> {
                     return true;
                 }
                 if self.live && screen::go_back() {
-                    self.log.push("back".into());
+                    self.log.push(LOG_BACK.into());
                     return true;
                 }
                 false
@@ -815,7 +805,7 @@ impl<W: View> Host<W> {
                     .map_or(0.0, |n| n.rect.h);
                 ((view_h / ih.max(1.0)) as u32).max(1)
             }
-            _ => 5,
+            _ => FALLBACK_PAGE,
         };
         let new = match (key, list.selected) {
             (keys::HOME, _) => 0,

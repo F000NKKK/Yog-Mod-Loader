@@ -14,7 +14,7 @@ use yog_api::ui::event::keys;
 use yog_api::ui::widget::WidgetKind;
 use yog_api::ui::{LayoutNode, Rect, StateFlags, UiRoot, Widget};
 
-use crate::host::{find_path, Host};
+use crate::host::{find_path, Host, LOG_CLOSE};
 use crate::{ScreenHandle, View};
 
 /// A screen hosted for tests.
@@ -22,12 +22,15 @@ pub struct TestHost<W: View> {
     host: Host<W>,
 }
 
+/// The GUI size (w, h) a new [`TestHost`] starts at.
+const DEFAULT_SIZE: (f32, f32) = (427.0, 240.0);
+
 impl<W: View> TestHost<W> {
     /// The screen with `vm`, sized 427 × 240 (a common GUI size) — not
     /// opened yet (see [`Self::open`]).
     pub fn new(vm: W::Vm) -> Self {
         let mut host = Host::new(vm, ScreenHandle::new(W::META), false);
-        host.size = (427.0, 240.0);
+        host.size = DEFAULT_SIZE;
         Self { host }
     }
 
@@ -217,6 +220,6 @@ impl<W: View> TestHost<W> {
 
     /// The screen asked to close.
     pub fn closed(&self) -> bool {
-        self.host.log.iter().any(|r| r == "close")
+        self.host.log.iter().any(|r| r == LOG_CLOSE)
     }
 }
