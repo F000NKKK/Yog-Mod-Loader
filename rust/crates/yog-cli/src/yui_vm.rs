@@ -910,7 +910,7 @@ impl VmGen<'_> {
                 };
                 let field = match attr {
                     "bg" | "color" | "focus_color" => {
-                        let c = yui::color(v).ok_or_else(|| format!("line {}: {k}=\"{v}\": expected #RRGGBB or #AARRGGBB", el.line))?;
+                        let c = yui::color_attr(el, k, v)?;
                         format!("{attr}: ::std::option::Option::Some(0x{c:08X})")
                     }
                     "shadow" => format!("shadow: ::std::option::Option::Some({})", yui::boolean(el, k, v)?),

@@ -370,11 +370,9 @@ pub fn color(value: &str) -> Option<u32> {
 
 /// A color attribute: a literal (see [`color`]) or `@<Set>.<name>`, a color
 /// of `resources/<Set>.yres` (see [`set_resource_refs`]).
-fn color_attr(el: &Element, key: &str, value: &str) -> Result<u32, String> {
+pub(crate) fn color_attr(el: &Element, key: &str, value: &str) -> Result<u32, String> {
     if let Some(reference) = value.trim().strip_prefix('@') {
-        return RESOURCE_REFS
-            .with(|r| r.borrow().colors.get(reference).copied())
-            .ok_or_else(|| {
+        return resource_color(reference).ok_or_else(|| {
                 format!(
                     "line {}: <{}> {key}=\"{value}\": no color `{reference}` in resources/*.yres",
                     el.line, el.name
@@ -387,6 +385,16 @@ fn color_attr(el: &Element, key: &str, value: &str) -> Result<u32, String> {
             el.line, el.name
         )
     })
+}
+
+/// Whether `@<Set>.<name>` names a text of the mod's `.yres` resources.
+fn is_resource_text(reference: &str) -> bool {
+    RESOURCE_REFS.with(|r| r.borrow().texts.contains_key(reference.trim()))
+}
+
+/// The color `@<Set>.<name>` names in the mod's `.yres` resources.
+fn resource_color(reference: &str) -> Option<u32> {
+    RESOURCE_REFS.with(|r| r.borrow().colors.get(reference.trim()).copied())
 }
 
 fn f(v: f32) -> String {
@@ -537,6 +545,11 @@ fn component_expr(el: &Element) -> String {
                 return format!("({k:?}, &*{rust})");
             }
             match v.strip_prefix('@') {
+                // A `.yres` color (for a color property): its value.
+                Some(rest) if !is_resource_text(rest) && resource_color(rest).is_some() => {
+                    let c = resource_color(rest).unwrap_or_default();
+                    format!("({k:?}, \"#{c:08X}\")")
+                }
                 Some(rest) if !rest.trim().is_empty() => format!("({k:?}, &*{})", text_expr(v)),
                 _ => format!("({k:?}, {v:?})"),
             }

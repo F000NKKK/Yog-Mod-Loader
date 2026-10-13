@@ -161,7 +161,7 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                 if kind == "choice" && options.is_empty() {
                     return err(child, "a choice needs options=\"a, b, c\"");
                 }
-                let default =
+                let mut default =
                     child
                         .attr("default")
                         .map(str::to_string)
@@ -191,11 +191,10 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                             format_args!("default=\"{default}\": expected true or false"),
                         )
                     }
-                    "color" if yui::color(&default).is_none() => {
-                        return err(
-                            child,
-                            format_args!("default=\"{default}\": expected #RRGGBB or #AARRGGBB"),
-                        )
+                    "color" => {
+                        // A literal or a `.yres` color, stored as its value.
+                        let c = yui::color_attr(child, "default", &default)?;
+                        default = format!("#{c:08X}");
                     }
                     "choice" if !options.contains(&default) => {
                         return err(
