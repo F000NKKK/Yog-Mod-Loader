@@ -126,6 +126,7 @@ type CommandEntry = (LoadedModule, Option<String>, *mut c_void, YogCommandFn);
 // registries at startup, not callbacks invoked later, and Minecraft itself
 // has no live registry-unregister mechanism to hot-reload them against
 // regardless of what this crate does.
+#[derive(Default)]
 struct RuntimeHandlers {
     block_break: Vec<(LoadedModule, *mut c_void, YogBlockBreakFn)>,
     chat: Vec<(LoadedModule, *mut c_void, YogChatFn)>,
@@ -198,63 +199,7 @@ struct RuntimeHandlers {
 unsafe impl Send for RuntimeHandlers {}
 unsafe impl Sync for RuntimeHandlers {}
 
-impl RuntimeHandlers {
-    fn new() -> Self {
-        Self {
-            block_break: Vec::new(),
-            chat: Vec::new(),
-            player_join: Vec::new(),
-            player_leave: Vec::new(),
-            use_item: Vec::new(),
-            use_block: Vec::new(),
-            attack_entity: Vec::new(),
-            entity_damage: Vec::new(),
-            entity_death: Vec::new(),
-            entity_spawn: Vec::new(),
-            player_place_block: Vec::new(),
-            player_death: Vec::new(),
-            player_respawn: Vec::new(),
-            advancement: Vec::new(),
-            entity_interact: Vec::new(),
-            item_craft: Vec::new(),
-            explosion: Vec::new(),
-            item_pickup: Vec::new(),
-            player_move: Vec::new(),
-            container_open: Vec::new(),
-            container_close: Vec::new(),
-            projectile_hit: Vec::new(),
-            client_tick: Vec::new(),
-            hud_render: Vec::new(),
-            world_render: Vec::new(),
-            key_press: Vec::new(),
-            screen_open: Vec::new(),
-            screen_close: Vec::new(),
-            server_tick: Vec::new(),
-            server_started: Vec::new(),
-            server_stopping: Vec::new(),
-            commands: HashMap::new(),
-            recipes: Vec::new(),
-            packets: HashMap::new(),
-            client_packets: HashMap::new(),
-            items: Vec::new(),
-            ui_handlers: HashMap::new(),
-            ui_render_handlers: HashMap::new(),
-            menu_entries: Vec::new(),
-            active_uis: Mutex::new(Vec::new()),
-            startup_grants: Vec::new(),
-            blocks: Vec::new(),
-            inventories: Vec::new(),
-            books: HashMap::new(),
-            book_renderers: Mutex::new(HashMap::new()),
-            dimensions: HashMap::new(),
-            chunk_generators: HashMap::new(),
-            startup_granted: Mutex::new(HashMap::new()),
-            pending_grants: Mutex::new(Vec::new()),
-            scheduler: Mutex::new(SchedulerState::new()),
-        }
-    }
-}
-
+#[derive(Default)]
 struct SchedulerState {
     once_tasks: Vec<OnceTask>,
     repeating_tasks: Vec<RepeatingTask>,
@@ -278,15 +223,6 @@ unsafe impl Send for SchedulerState {}
 unsafe impl Sync for SchedulerState {}
 unsafe impl Send for OnceTask {}
 unsafe impl Send for RepeatingTask {}
-
-impl SchedulerState {
-    fn new() -> Self {
-        Self {
-            once_tasks: Vec::new(),
-            repeating_tasks: Vec::new(),
-        }
-    }
-}
 
 /// A mod callback, tagged with the module that registered it.
 type Entry<F> = (LoadedModule, *mut c_void, F);
@@ -526,11 +462,16 @@ fn guard(label: &str, f: impl FnOnce()) {
     }
 }
 
+/// Reads a Java string, returning `$or` (default: `Default::default()`)
+/// from the enclosing function when it can't be read.
 macro_rules! jstr {
     ($env:expr, $s:expr) => {
+        jstr!($env, $s, Default::default())
+    };
+    ($env:expr, $s:expr, $or:expr) => {
         match $env.get_string(&$s) {
             Ok(s) => String::from(s),
-            Err(_) => return Default::default(),
+            Err(_) => return $or,
         }
     };
 }
@@ -2293,10 +2234,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBookJson<'l>(
     _class: JClass<'l>,
     book_id: JString<'l>,
 ) -> jstring {
-    let id = match env.get_string(&book_id) {
-        Ok(s) => String::from(s),
-        Err(_) => return std::ptr::null_mut(),
-    };
+    let id = jstr!(env, book_id, std::ptr::null_mut());
     let json = handlers()
         .books
         .get(&id)
@@ -3163,7 +3101,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     // design (a temporary heap `Box` moved into `HANDLERS` only after
     // `nativeInit` returned, silently invalidating the `ctx` pointer any
     // later re-registration — e.g. a hot-reload — would have needed).
-    let handlers_lock = HANDLERS.get_or_init(|| RwLock::new(RuntimeHandlers::new()));
+    let handlers_lock = HANDLERS.get_or_init(|| RwLock::new(RuntimeHandlers::default()));
     let handlers_ptr = handlers_lock as *const RwLock<RuntimeHandlers>;
 
     let api: &'static YogApi = API_TABLE.get_or_init(|| build_api_table(handlers_ptr, server_ptr));
@@ -3469,18 +3407,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItemPre<'l>(
     if h.use_item.is_empty() {
         return 1;
     }
-    let p = match env.get_string(&player) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let i = match env.get_string(&item) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let p = jstr!(env, player, 1);
+    let i = jstr!(env, item, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = yog_abi::YogUseItemEvent {
         player: YogStr::from_str(&p),
         item: YogStr::from_str(&i),
@@ -3530,18 +3459,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlockPre<'l>(
     if h.use_block.is_empty() {
         return 1;
     }
-    let p = match env.get_string(&player) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let b = match env.get_string(&block) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let p = jstr!(env, player, 1);
+    let b = jstr!(env, block, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = yog_abi::YogUseBlockEvent {
         player: YogStr::from_str(&p),
         block: YogStr::from_str(&b),
@@ -3820,18 +3740,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
     if h.block_break.is_empty() {
         return 1;
     }
-    let p = match env.get_string(&player) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let b = match env.get_string(&block) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let p = jstr!(env, player, 1);
+    let b = jstr!(env, block, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = yog_abi::YogBlockBreakEvent {
         player: YogStr::from_str(&p),
         block: YogStr::from_str(&b),
@@ -3854,18 +3765,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
     if h.chat.is_empty() {
         return 1;
     }
-    let p = match env.get_string(&player) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let m = match env.get_string(&message) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let p = jstr!(env, player, 1);
+    let m = jstr!(env, message, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = yog_abi::YogChatEvent {
         player: YogStr::from_str(&p),
         message: YogStr::from_str(&m),
@@ -4347,18 +4249,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawnPre<'l>(
     if h.entity_spawn.is_empty() {
         return 1;
     }
-    let et = match env.get_string(&entity_type) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let u = match env.get_string(&uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let et = jstr!(env, entity_type, 1);
+    let u = jstr!(env, uuid, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = yog_abi::YogEntitySpawnEvent {
         entity_type: YogStr::from_str(&et),
         uuid: YogStr::from_str(&u),
@@ -4382,22 +4275,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamagePre<'l>(
     if h.entity_damage.is_empty() {
         return 1;
     }
-    let et = match env.get_string(&entity_type) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let u = match env.get_string(&uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let s = match env.get_string(&source) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let et = jstr!(env, entity_type, 1);
+    let u = jstr!(env, uuid, 1);
+    let s = jstr!(env, source, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = yog_abi::YogEntityDamageEvent {
         entity_type: YogStr::from_str(&et),
         uuid: YogStr::from_str(&u),
@@ -4424,18 +4305,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlockPre<'l>(
     if h.player_place_block.is_empty() {
         return 1;
     }
-    let p = match env.get_string(&player) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let b = match env.get_string(&block) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let p = jstr!(env, player, 1);
+    let b = jstr!(env, block, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = YogPlaceBlockEvent {
         player: YogStr::from_str(&p),
         block: YogStr::from_str(&b),
@@ -4487,22 +4359,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeathPre<'l>(
     if h.player_death.is_empty() {
         return 1;
     }
-    let p = match env.get_string(&player) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let u = match env.get_string(&uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let s = match env.get_string(&source) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let p = jstr!(env, player, 1);
+    let u = jstr!(env, uuid, 1);
+    let s = jstr!(env, source, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = YogPlayerDeathEvent {
         player: YogStr::from_str(&p),
         uuid: YogStr::from_str(&u),
@@ -4616,30 +4476,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteractPre<'l>(
     if h.entity_interact.is_empty() {
         return 1;
     }
-    let p = match env.get_string(&player) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let pu = match env.get_string(&player_uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let et = match env.get_string(&entity_type) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let eu = match env.get_string(&entity_uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let ha = match env.get_string(&hand) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let p = jstr!(env, player, 1);
+    let pu = jstr!(env, player_uuid, 1);
+    let et = jstr!(env, entity_type, 1);
+    let eu = jstr!(env, entity_uuid, 1);
+    let ha = jstr!(env, hand, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = YogEntityInteractEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
@@ -4736,14 +4578,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosionPre<'l>(
     if h.explosion.is_empty() {
         return 1;
     }
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let cu = match env.get_string(&cause_uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let d = jstr!(env, dimension, 1);
+    let cu = jstr!(env, cause_uuid, 1);
     let ev = YogExplosionEvent {
         dimension: YogStr::from_str(&d),
         x,
@@ -4803,26 +4639,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickupPre<'l>(
     if h.item_pickup.is_empty() {
         return 1;
     }
-    let p = match env.get_string(&player) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let pu = match env.get_string(&player_uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let ii = match env.get_string(&item_id) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let eu = match env.get_string(&entity_uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let p = jstr!(env, player, 1);
+    let pu = jstr!(env, player_uuid, 1);
+    let ii = jstr!(env, item_id, 1);
+    let eu = jstr!(env, entity_uuid, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = YogItemPickupEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
@@ -4920,18 +4741,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpenPre<'l>(
     if h.container_open.is_empty() {
         return 1;
     }
-    let p = match env.get_string(&player) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let pu = match env.get_string(&player_uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let d = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let p = jstr!(env, player, 1);
+    let pu = jstr!(env, player_uuid, 1);
+    let d = jstr!(env, dimension, 1);
     let ev = YogContainerOpenEvent {
         player: YogStr::from_str(&p),
         player_uuid: YogStr::from_str(&pu),
@@ -5019,30 +4831,12 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnProjectileHitPre<'l>(
     if h.projectile_hit.is_empty() {
         return 1;
     }
-    let pt = match env.get_string(&projectile_type) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let pu = match env.get_string(&projectile_uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let su = match env.get_string(&shooter_uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let ht = match env.get_string(&hit_type) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let heu = match env.get_string(&hit_entity_uuid) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
-    let dim = match env.get_string(&dimension) {
-        Ok(s) => String::from(s),
-        Err(_) => return 1,
-    };
+    let pt = jstr!(env, projectile_type, 1);
+    let pu = jstr!(env, projectile_uuid, 1);
+    let su = jstr!(env, shooter_uuid, 1);
+    let ht = jstr!(env, hit_type, 1);
+    let heu = jstr!(env, hit_entity_uuid, 1);
+    let dim = jstr!(env, dimension, 1);
     let ev = YogProjectileHitEvent {
         projectile_type: YogStr::from_str(&pt),
         projectile_uuid: YogStr::from_str(&pu),
