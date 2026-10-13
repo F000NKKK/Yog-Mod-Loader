@@ -14,7 +14,7 @@ pub use lang::{format_translation, tr, tr_args, translation};
 pub use registry::{
     close_ui, installed_mods, open_ui, server, CServer, Mod, ModInfo, Registry, UiHandled,
 };
-pub use yog_gfx::{core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, GfxContext};
+pub use yog_gfx::{core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image, GfxContext};
 
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
 pub use yog_abi::{YogApi, ABI_VERSION};
@@ -224,7 +224,7 @@ pub use yog_registry::{
     ShapedRecipe, ShapelessRecipe, StartupGrant,
 };
 pub use yog_storage::{Storage, StorageScope, Value};
-pub use yog_ui::{widget, Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, UiRoot, Units};
+pub use yog_ui::{widget, Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, Stretch, UiRoot, Units};
 pub use yog_world::World;
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
