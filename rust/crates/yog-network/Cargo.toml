@@ -7,3 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Yog networking — raw-byte packets over channels (no NBT on the wire)."
 
 [dependencies]
+
+[dev-dependencies]
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "codec"
+harness = false

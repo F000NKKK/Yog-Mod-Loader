@@ -46,33 +46,58 @@ pub struct PacketEvent {
 pub trait PacketField: Sized {
     fn write_to(&self, buf: &mut Vec<u8>);
     fn read_from(buf: &[u8], pos: &mut usize) -> Option<Self>;
+    /// Exact number of bytes [`write_to`](Self::write_to) appends; lets
+    /// [`packet!`] allocate the buffer once. A low estimate is still correct,
+    /// just slower.
+    fn encoded_len(&self) -> usize {
+        0
+    }
+}
+
+/// Byte width of the length prefix in front of strings and byte blobs.
+const LEN_PREFIX: usize = std::mem::size_of::<u32>();
+
+/// The next `len` bytes at `*pos`, advancing past them.
+#[inline]
+fn take<'a>(buf: &'a [u8], pos: &mut usize, len: usize) -> Option<&'a [u8]> {
+    let end = pos.checked_add(len)?;
+    let bytes = buf.get(*pos..end)?;
+    *pos = end;
+    Some(bytes)
+}
+
+/// A `u32`-length-prefixed byte run at `*pos`.
+#[inline]
+fn take_prefixed<'a>(buf: &'a [u8], pos: &mut usize) -> Option<&'a [u8]> {
+    let len = u32::read_from(buf, pos)? as usize;
+    take(buf, pos, len)
+}
+
+fn write_prefixed(bytes: &[u8], buf: &mut Vec<u8>) {
+    (bytes.len() as u32).write_to(buf);
+    buf.extend_from_slice(bytes);
 }
 
 macro_rules! impl_fixed {
-    ($T:ty, $N:literal) => {
+    ($($T:ty),*) => {$(
         impl PacketField for $T {
             fn write_to(&self, buf: &mut Vec<u8>) {
                 buf.extend_from_slice(&self.to_le_bytes());
             }
             fn read_from(buf: &[u8], pos: &mut usize) -> Option<Self> {
-                let end = pos.checked_add($N)?;
-                if end > buf.len() {
-                    return None;
-                }
-                let v = Self::from_le_bytes(buf[*pos..end].try_into().ok()?);
-                *pos = end;
-                Some(v)
+                const N: usize = std::mem::size_of::<$T>();
+                let bytes: [u8; N] = buf.get(*pos..pos.checked_add(N)?)?.try_into().ok()?;
+                *pos += N;
+                Some(Self::from_le_bytes(bytes))
+            }
+            fn encoded_len(&self) -> usize {
+                std::mem::size_of::<$T>()
             }
         }
-    };
+    )*};
 }
 
-impl_fixed!(i32, 4);
-impl_fixed!(i64, 8);
-impl_fixed!(u32, 4);
-impl_fixed!(u64, 8);
-impl_fixed!(f32, 4);
-impl_fixed!(f64, 8);
+impl_fixed!(i32, i64, u32, u64, f32, f64);
 
 impl PacketField for bool {
     fn write_to(&self, buf: &mut Vec<u8>) {
@@ -83,40 +108,34 @@ impl PacketField for bool {
         *pos += 1;
         Some(b != 0)
     }
+    fn encoded_len(&self) -> usize {
+        1
+    }
 }
 
 impl PacketField for String {
     fn write_to(&self, buf: &mut Vec<u8>) {
-        let bytes = self.as_bytes();
-        (bytes.len() as u32).write_to(buf);
-        buf.extend_from_slice(bytes);
+        write_prefixed(self.as_bytes(), buf);
     }
     fn read_from(buf: &[u8], pos: &mut usize) -> Option<Self> {
-        let len = u32::read_from(buf, pos)? as usize;
-        let end = pos.checked_add(len)?;
-        if end > buf.len() {
-            return None;
-        }
-        let s = std::str::from_utf8(&buf[*pos..end]).ok()?.to_owned();
-        *pos = end;
-        Some(s)
+        std::str::from_utf8(take_prefixed(buf, pos)?)
+            .ok()
+            .map(str::to_owned)
+    }
+    fn encoded_len(&self) -> usize {
+        LEN_PREFIX + self.len()
     }
 }
 
 impl PacketField for Vec<u8> {
     fn write_to(&self, buf: &mut Vec<u8>) {
-        (self.len() as u32).write_to(buf);
-        buf.extend_from_slice(self);
+        write_prefixed(self, buf);
     }
     fn read_from(buf: &[u8], pos: &mut usize) -> Option<Self> {
-        let len = u32::read_from(buf, pos)? as usize;
-        let end = pos.checked_add(len)?;
-        if end > buf.len() {
-            return None;
-        }
-        let v = buf[*pos..end].to_vec();
-        *pos = end;
-        Some(v)
+        take_prefixed(buf, pos).map(<[u8]>::to_vec)
+    }
+    fn encoded_len(&self) -> usize {
+        LEN_PREFIX + self.len()
     }
 }
 
@@ -162,7 +181,9 @@ macro_rules! packet {
 
         impl $crate::Packet for $Name {
             fn encode(&self) -> ::std::vec::Vec<u8> {
-                let mut buf = ::std::vec::Vec::new();
+                let mut buf = ::std::vec::Vec::with_capacity(
+                    0 $( + $crate::PacketField::encoded_len(&self.$field) )*
+                );
                 $( $crate::PacketField::write_to(&self.$field, &mut buf); )*
                 buf
             }
@@ -175,4 +196,49 @@ macro_rules! packet {
             }
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    packet! {
+        struct Mixed {
+            a: bool,
+            b: i32,
+            c: f64,
+            s: String,
+            v: Vec<u8>,
+        }
+    }
+
+    #[test]
+    fn round_trip_and_exact_capacity() {
+        let p = Mixed {
+            a: true,
+            b: -7,
+            c: 1.5,
+            s: "hé".into(),
+            v: vec![1, 2, 3],
+        };
+        let bytes = p.encode();
+        assert_eq!(bytes.len(), bytes.capacity());
+        let d = Mixed::decode(&bytes).unwrap();
+        assert!(d.a && d.b == -7 && d.c == 1.5 && d.s == "hé" && d.v == [1, 2, 3]);
+    }
+
+    #[test]
+    fn truncated_input_is_rejected() {
+        let bytes = Mixed {
+            a: false,
+            b: 1,
+            c: 2.0,
+            s: "x".into(),
+            v: vec![9; 8],
+        }
+        .encode();
+        for cut in 0..bytes.len() {
+            assert!(Mixed::decode(&bytes[..cut]).is_none(), "cut at {cut}");
+        }
+    }
 }
