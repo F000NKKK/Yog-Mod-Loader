@@ -1282,6 +1282,9 @@ version = "0.1.0"
 [[package]]
 name = "yog-core"
 version = "0.3.2"
+dependencies = [
+ "criterion",
+]
 
 [[package]]
 name = "yog-debugger"
@@ -1363,6 +1366,9 @@ version = "0.1.0"
 [[package]]
 name = "yog-network"
 version = "0.1.0"
+dependencies = [
+ "criterion",
+]
 
 [[package]]
 name = "yog-player"
