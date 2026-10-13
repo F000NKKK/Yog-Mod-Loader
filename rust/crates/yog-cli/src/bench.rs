@@ -34,8 +34,7 @@ pub const BENCH_DIR: &str = "benches";
 /// The generated `main`s, under the project root.
 pub const GENERATED_DIR: &str = ".yog-build/generated/benches";
 /// criterion, added to `[dev-dependencies]` unless yog.toml lists its own.
-const CRITERION: &str =
-    r#"criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }"#;
+const CRITERION: &str = r#"criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }"#;
 /// The marker attribute, as written in a benchmark file.
 const ATTRIBUTE: &str = "#[yog_api::bench]";
 
@@ -70,7 +69,8 @@ pub fn discover(root: &Path) -> Result<Vec<BenchFile>, String> {
         let Some(name) = path.file_stem().and_then(|s| s.to_str()) else {
             continue;
         };
-        let source = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let source =
+            std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         let functions = functions(&source).map_err(|e| format!("{BENCH_DIR}/{name}.rs: {e}"))?;
         if !functions.is_empty() {
             files.push(BenchFile {
@@ -88,7 +88,10 @@ pub fn functions(source: &str) -> Result<Vec<(String, Takes)>, String> {
     let mut out = Vec::new();
     let mut rest = source;
     while let Some(at) = rest.find(ATTRIBUTE) {
-        let line = source[..source.len() - rest.len() + at].lines().count().max(1);
+        let line = source[..source.len() - rest.len() + at]
+            .lines()
+            .count()
+            .max(1);
         rest = &rest[at + ATTRIBUTE.len()..];
         let Some(fn_at) = rest.find("fn ") else {
             return Err(format!("line {line}: {ATTRIBUTE} must be on a function"));
@@ -124,7 +127,10 @@ pub fn main_source(file: &BenchFile) -> String {
     for (function, takes) in &file.functions {
         calls.push_str(&match takes {
             Takes::Bencher => {
-                format!("    c.bench_function(\"{}/{function}\", bench::{function});\n", file.name)
+                format!(
+                    "    c.bench_function(\"{}/{function}\", bench::{function});\n",
+                    file.name
+                )
             }
             Takes::Criterion => format!("    bench::{function}(&mut c);\n"),
         });
@@ -173,7 +179,11 @@ pub fn cargo_sections(meta: &YogToml, files: &[BenchFile]) -> String {
     for (name, spec) in &meta.dev_dependencies {
         out.push_str(&format!("{name} = {spec}\n"));
     }
-    if !meta.dev_dependencies.iter().any(|(name, _)| name == "criterion") {
+    if !meta
+        .dev_dependencies
+        .iter()
+        .any(|(name, _)| name == "criterion")
+    {
         out.push_str(CRITERION);
         out.push('\n');
     }
@@ -215,7 +225,10 @@ mod tests {
     fn main_runs_each_function() {
         let file = BenchFile {
             name: "casting".into(),
-            functions: vec![("parse".into(), Takes::Bencher), ("vm".into(), Takes::Criterion)],
+            functions: vec![
+                ("parse".into(), Takes::Bencher),
+                ("vm".into(), Takes::Criterion),
+            ],
         };
         let main = main_source(&file);
         assert!(main.contains("#[path = \"../../../benches/casting.rs\"]"));
