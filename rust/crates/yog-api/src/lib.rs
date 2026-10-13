@@ -88,6 +88,16 @@ macro_rules! export_mod {
                 let mut registry = unsafe { $crate::Registry::from_raw(api) };
                 <$mod_ty as $crate::Mod>::register(&mut registry);
 
+                // Blocks and items of `content/**/*.yblock|*.yitem`
+                // (`yog_api::content!()`, self-registered by `ctor`).
+                let content: ::std::vec::Vec<fn(&mut $crate::Registry)> = $crate::__yog_content_registrars()
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone();
+                for register in content {
+                    register(&mut registry);
+                }
+
                 // Auto-register all #[yog_export] functions (populated by
                 // per-function `ctor` constructors at cdylib load time).
                 for entry in $crate::__yog_export_registry().lock().unwrap().iter() {
@@ -213,6 +223,14 @@ pub struct YogImportEntry {
 pub fn __yog_export_registry() -> &'static std::sync::Mutex<Vec<YogExportEntry>> {
     static REG: std::sync::LazyLock<std::sync::Mutex<Vec<YogExportEntry>>> =
         std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
+    &REG
+}
+
+/// The `register` functions of `yog_api::content!()` — run by
+/// `export_mod!` after `Mod::register`.
+#[doc(hidden)]
+pub fn __yog_content_registrars() -> &'static std::sync::Mutex<Vec<fn(&mut Registry)>> {
+    static REG: std::sync::Mutex<Vec<fn(&mut Registry)>> = std::sync::Mutex::new(Vec::new());
     &REG
 }
 
@@ -380,6 +398,34 @@ macro_rules! resources {
     () => {
         pub mod res {
             include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/resources.g.rs"));
+        }
+    };
+}
+
+/// Pulls the mod's blocks and items — `content/**/*.yblock` and `*.yitem`,
+/// made in Yog-IDLE's model editor — in as module `content`, and registers
+/// them (every file without `"register": "manual"`) right after
+/// `Mod::register`:
+///
+/// ```ignore
+/// // src/lib.rs — that's all it takes
+/// yog_api::content!();
+///
+/// // Ids and definitions, for code that needs them:
+/// use crate::content::{Blocks, Items};
+/// let id: &str = Blocks::RUBY_ORE;                 // "mymod:ruby_ore"
+/// registry.register_item(Items::ruby().max_stack(16)); // a "manual" one, tweaked
+/// ```
+///
+/// `yog build`, `yog check` and `yog content check` generate
+/// `.yog-build/generated/yog-content.g.rs` — never committed, never stale.
+/// The models, blockstates, loot tables, tags and lang entries go into the
+/// `.yog` as assets. See Yog-IDLE's `docs/blocks-items.md`.
+#[macro_export]
+macro_rules! content {
+    () => {
+        pub mod content {
+            include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/yog-content.g.rs"));
         }
     };
 }

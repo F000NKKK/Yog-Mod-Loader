@@ -1427,6 +1427,11 @@ fn rust_source(entries: &[Entry]) -> String {
         };
     }
     code.push_str("}\n");
+    if entries.iter().any(|e| e.auto) {
+        code.push_str(
+            "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",
+        );
+    }
     code
 }
 
