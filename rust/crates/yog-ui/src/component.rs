@@ -270,6 +270,11 @@ pub mod bind {
         v.into()
     }
 
+    /// `count` of an `InvSlot`.
+    pub fn count<T: BindNumber>(v: T) -> u32 {
+        v.to_f32().max(0.0) as u32
+    }
+
     /// `gap`, `flex`, `min_w`, `min_h`, `font_scale`.
     pub fn number<T: BindNumber>(v: T) -> f32 {
         v.to_f32()
@@ -296,6 +301,11 @@ pub mod bind {
     impl BindColor for &str {
         fn to_argb(self) -> u32 {
             super::parse_color(self).unwrap_or(0xFF_FFFFFF)
+        }
+    }
+    impl BindColor for &&str {
+        fn to_argb(self) -> u32 {
+            (*self).to_argb()
         }
     }
     impl BindColor for &String {
@@ -351,6 +361,16 @@ pub mod bind {
             } else {
                 Units::Px(v.parse().unwrap_or(0.0))
             }
+        }
+    }
+    impl BindUnits for &Units {
+        fn to_units(self) -> Units {
+            *self
+        }
+    }
+    impl BindUnits for &&str {
+        fn to_units(self) -> Units {
+            (*self).to_units()
         }
     }
     impl BindUnits for &String {

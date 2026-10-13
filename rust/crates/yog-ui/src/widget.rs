@@ -696,6 +696,24 @@ impl Widget {
         self
     }
 
+    /// Replaces an image's source or a slot's item id (other kinds: no-op).
+    pub fn with_source(mut self, source: impl Into<String>) -> Self {
+        match &mut self.kind {
+            WidgetKind::Image(i) => i.source = source.into(),
+            WidgetKind::ItemSlot(id) | WidgetKind::InvSlot { item_id: id, .. } => *id = source.into(),
+            _ => {}
+        }
+        self
+    }
+
+    /// Replaces an inventory slot's stack count (other kinds: no-op).
+    pub fn with_count(mut self, n: u32) -> Self {
+        if let WidgetKind::InvSlot { count, .. } = &mut self.kind {
+            *count = n;
+        }
+        self
+    }
+
     pub fn padding(mut self, top: f32, right: f32, bottom: f32, left: f32) -> Self {
         self.style.pad = [top, right, bottom, left];
         self

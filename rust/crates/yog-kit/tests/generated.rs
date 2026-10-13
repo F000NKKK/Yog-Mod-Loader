@@ -63,68 +63,70 @@ impl Vm {
     }
 }
 
+/// The generated screen, as `ui_include!` pulls it into a code-behind;
+/// the tests live next to it like a code-behind's `#[cfg(test)]` module.
 mod list {
-    use super::Vm;
+    use super::*;
     include!("fixtures/list.g.rs");
-}
 
-fn host() -> TestHost<list::View> {
-    let mut h = TestHost::<list::View>::new(Vm::default());
-    h.open();
-    h
-}
+    fn host() -> TestHost<View> {
+        let mut h = TestHost::<View>::new(Vm::default());
+        h.open();
+        h
+    }
 
-#[test]
-fn binds_and_virtualizes() {
-    let h = host();
-    assert_eq!(h.text("count").as_deref(), Some("100 shown"));
-    assert_eq!(h.text("details").as_deref(), Some("item 0"));
-    assert!(h.is_visible("details"));
-    let list = h.widget("list").unwrap();
-    assert!(list.children.len() < 20, "{} children", list.children.len());
-    assert!(list.children[1].state.contains(StateFlags::SELECTED));
-    assert_eq!(list::ID, "test:list");
-    assert_eq!(list::ids::ROW_LABEL, "row_label");
-}
+    #[test]
+    fn binds_and_virtualizes() {
+        let h = host();
+        assert_eq!(h.text("count").as_deref(), Some("100 shown"));
+        assert_eq!(h.text("details").as_deref(), Some("item 0"));
+        assert!(h.is_visible("details"));
+        let list = h.widget("list").unwrap();
+        assert!(list.children.len() < 20, "{} children", list.children.len());
+        assert!(list.children[1].state.contains(StateFlags::SELECTED));
+        assert_eq!(ID, "test:list");
+        assert_eq!(ids::ROW_LABEL, "row_label");
+    }
 
-#[test]
-fn commands_toggles_and_text() {
-    let mut h = host();
-    h.click_id("even");
-    assert!(h.vm().only_even);
-    assert!(h.state("even").contains(StateFlags::CHECKED));
-    assert_eq!(h.text("count").as_deref(), Some("50 shown"));
-    h.type_into("search", "8");
-    assert_eq!(h.vm().search, "8");
-    assert_eq!(h.text("count").as_deref(), Some("14 shown"));
-    h.click_id("close");
-    assert!(h.closed());
-}
+    #[test]
+    fn commands_toggles_and_text() {
+        let mut h = host();
+        h.click_id("even");
+        assert!(h.vm().only_even);
+        assert!(h.state("even").contains(StateFlags::CHECKED));
+        assert_eq!(h.text("count").as_deref(), Some("50 shown"));
+        h.type_into("search", "8");
+        assert_eq!(h.vm().search, "8");
+        assert_eq!(h.text("count").as_deref(), Some("14 shown"));
+        h.click_id("close");
+        assert!(h.closed());
+    }
 
-#[test]
-fn list_selection_item_commands_and_empty() {
-    let mut h = host();
-    let mut row = h.path("list");
-    row.push(2);
-    h.click_path(&row);
-    assert_eq!(h.vm().selected.as_deref(), Some("item 1"));
-    assert_eq!(h.text("details").as_deref(), Some("item 1"));
-    assert!(!h.is_visible("details"), "odd item: visible bound to even");
-    h.key(keys::DOWN);
-    assert_eq!(h.vm().selected.as_deref(), Some("item 2"));
+    #[test]
+    fn list_selection_item_commands_and_empty() {
+        let mut h = host();
+        let mut row = h.path("list");
+        row.push(2);
+        h.click_path(&row);
+        assert_eq!(h.vm().selected.as_deref(), Some("item 1"));
+        assert_eq!(h.text("details").as_deref(), Some("item 1"));
+        assert!(!h.is_visible("details"), "odd item: visible bound to even");
+        h.key(keys::DOWN);
+        assert_eq!(h.vm().selected.as_deref(), Some("item 2"));
 
-    // the row's remove button: an item command with the item's name
-    let mut btn = h.path("list");
-    btn.extend([1, 1]);
-    h.click_path(&btn);
-    assert_eq!(h.vm().items.len(), 99);
-    assert!(!h.vm().items.iter().any(|e| e.name == "item 0"));
+        // the row's remove button: an item command with the item's name
+        let mut btn = h.path("list");
+        btn.extend([1, 1]);
+        h.click_path(&btn);
+        assert_eq!(h.vm().items.len(), 99);
+        assert!(!h.vm().items.iter().any(|e| e.name == "item 0"));
 
-    h.key(keys::END);
-    assert!(h.scroll_offset(0) > 0.0);
-    h.type_into("search", "zzz");
-    assert_eq!(h.scroll_offset(0), 0.0);
-    assert!(h.is_visible("empty"));
-    assert_eq!(h.text("empty").as_deref(), Some("nothing"));
-    assert!(h.widget("details").is_none());
+        h.key(keys::END);
+        assert!(h.scroll_offset(0) > 0.0);
+        h.type_into("search", "zzz");
+        assert_eq!(h.scroll_offset(0), 0.0);
+        assert!(h.is_visible("empty"));
+        assert_eq!(h.text("empty").as_deref(), Some("nothing"));
+        assert!(h.widget("details").is_none());
+    }
 }

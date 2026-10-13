@@ -411,9 +411,14 @@ fn component_expr(el: &Element) -> String {
         .attrs
         .iter()
         .filter(|(k, _)| !COMMON_ATTRS.contains(&k.as_str()))
-        .map(|(k, v)| match v.strip_prefix('@') {
-            Some(rest) if !rest.trim().is_empty() => format!("({k:?}, &*{})", text_expr(v)),
-            _ => format!("({k:?}, {v:?})"),
+        .map(|(k, v)| {
+            if let Some(rust) = v.strip_prefix(RAW_VALUE) {
+                return format!("({k:?}, &*{rust})");
+            }
+            match v.strip_prefix('@') {
+                Some(rest) if !rest.trim().is_empty() => format!("({k:?}, &*{})", text_expr(v)),
+                _ => format!("({k:?}, {v:?})"),
+            }
         })
         .collect();
     format!("::yog_api::ui::component::build({:?}, &[{}])", el.name, props.join(", "))
@@ -736,6 +741,11 @@ impl Gen {
     }
 }
 
+/// Prefix of a custom component property's value that is a Rust
+/// expression (a `String`) rather than text — set by the component
+/// generator for bound properties; never in a `.yui`.
+pub(crate) const RAW_VALUE: &str = "\u{1}rs:";
+
 /// Attribute-name prefix of a raw builder call (`__rs0="action(...)"`)
 /// that the view-model generator attaches to elements; never in a `.yui`.
 pub(crate) const RAW_CALL: &str = "__rs";
@@ -774,6 +784,9 @@ pub fn generate_for(
     mod_id: Option<&str>,
 ) -> Result<(String, Vec<String>), String> {
     let root = parse_xml(src)?;
+    if root.name == "Component" {
+        return crate::yui_component::generate(&root, name, mod_id);
+    }
     if root.attr("x:ViewModel").is_some() {
         return crate::yui_vm::generate(&root, name, mod_id);
     }

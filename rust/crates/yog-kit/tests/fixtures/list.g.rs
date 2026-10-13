@@ -37,7 +37,7 @@ pub mod ids {
 /// Item template 0 (list.yui:21).
 #[doc(hidden)]
 #[allow(non_camel_case_types)]
-pub struct __T0 {
+struct __T0 {
     b0: ::yog_kit::bind::Slot<String>,
 }
 
@@ -71,7 +71,7 @@ fn __E0() -> ::yog_api::ui::Widget {
 /// Item template 1 (list.yui:33).
 #[doc(hidden)]
 #[allow(non_camel_case_types)]
-pub struct __T1 {
+struct __T1 {
     b0: ::yog_kit::bind::Slot<String>,
     b1: ::yog_kit::bind::Slot<bool>,
 }
@@ -86,8 +86,9 @@ impl __T1 {
 }
 
 /// The compiled view of this screen — hosted by `yog_kit::Screen`.
-#[allow(private_interfaces)]
-pub struct View {
+/// Private like the view model it names; tests in the code-behind
+/// module drive it with `yog_kit::testing::TestHost<View>`.
+struct View {
     b0: ::yog_kit::bind::Slot<String>,
     b1: ::yog_kit::bind::Slot<String>,
     b2: ::yog_kit::bind::Slot<bool>,
@@ -97,7 +98,6 @@ pub struct View {
     l2: ::yog_kit::items::ItemsHost<__T1>,
 }
 
-#[allow(private_interfaces)]
 impl ::yog_kit::View for View {
     type Vm = Vm;
     const META: ::yog_kit::ScreenMeta = ::yog_kit::ScreenMeta {
@@ -218,7 +218,7 @@ impl ::yog_kit::View for View {
                 vm.search = text;
             }
             ::yog_kit::ViewEvent::Action(::yog_api::ui::Action { owner: 0, slot: 1, .. }) => {
-                vm.only_even = !vm.only_even; 
+                vm.only_even = !vm.only_even;
             }
             ::yog_kit::ViewEvent::Action(::yog_api::ui::Action { owner: 1, slot: 0, index }) => {
                 let __args = ::std::iter::IntoIterator::into_iter(vm.visible()).enumerate().nth(index as usize).map(|(index, item)| { let _ = (&index, &item); (::std::clone::Clone::clone(&(item.name)),) });

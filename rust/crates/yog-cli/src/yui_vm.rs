@@ -1057,7 +1057,7 @@ impl VmGen<'_> {
             } else {
                 format!("::yog_kit::ViewEvent::Action(::yog_api::ui::Action {{ owner: {owner}, slot: {slot}, index }})")
             };
-            self.dispatch.push((pat, body));
+            self.dispatch.push((pat, body.trim_end().to_string()));
             if screen {
                 let _ = writeln!(self.parts, "        parts.focusable({});", path_lit(path));
             }
@@ -1187,7 +1187,7 @@ impl VmGen<'_> {
             .collect();
         let _ = write!(
             self.templates,
-            "/// Item template {t} ({}:{}).\n#[doc(hidden)]\n#[allow(non_camel_case_types)]\npub struct __T{t} {{\n{fields}}}\n\nimpl __T{t} {{\n    fn build() -> (Self, ::yog_api::ui::Widget) {{\n        #[allow(unused_imports)]\n        use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};\n        (Self {{ {inits}}}, {texpr})\n    }}\n}}\n\n",
+            "/// Item template {t} ({}:{}).\n#[doc(hidden)]\n#[allow(non_camel_case_types)]\nstruct __T{t} {{\n{fields}}}\n\nimpl __T{t} {{\n    fn build() -> (Self, ::yog_api::ui::Widget) {{\n        #[allow(unused_imports)]\n        use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};\n        (Self {{ {inits}}}, {texpr})\n    }}\n}}\n\n",
             self.file, template.line
         );
 
@@ -1438,7 +1438,7 @@ pub mod ids {{
     out.push_str(&g.templates);
 
     // View struct.
-    out.push_str("/// The compiled view of this screen — hosted by `yog_kit::Screen`.\n#[allow(private_interfaces)]\npub struct View {\n");
+    out.push_str("/// The compiled view of this screen — hosted by `yog_kit::Screen`.\n/// Private like the view model it names; tests in the code-behind\n/// module drive it with `yog_kit::testing::TestHost<View>`.\nstruct View {\n");
     for (n, ty, _) in &g.view_fields {
         let _ = writeln!(out, "    {n}: {ty},");
     }
@@ -1446,8 +1446,7 @@ pub mod ids {{
 
     let _ = write!(
         out,
-        r#"#[allow(private_interfaces)]
-impl ::yog_kit::View for View {{
+        r#"impl ::yog_kit::View for View {{
     type Vm = {vm};
     const META: ::yog_kit::ScreenMeta = ::yog_kit::ScreenMeta {{
         id: ID,
@@ -1637,7 +1636,7 @@ mod tests {
             </ContentPresenter>"##)
         .unwrap();
         for want in [
-            "pub struct __T0 {",
+            "struct __T0 {",
             "fn __E0() -> ::yog_api::ui::Widget",
             "l1: ::yog_kit::items::ItemsHost<__T0>,",
             "::yog_kit::items::ItemsHost::new(1, &[0], ::std::option::Option::Some(12.0), ::std::option::Option::Some(0), true)",
