@@ -46,13 +46,13 @@ This is a read-only design. Nothing was modified. It assumes the in-flight work 
 ```
 yog-abi ── yog-gfx ── yog-ui (widget tree, layout, render; + Action, visible, StateFlags/StylePatch,
    │                    │       UiEvent parser, hit_path/at_mut, ScrollState/TextBoxState unchanged)
-   └──────────── yog-api (Registry, tr, open_ui/close_ui, ui_include!, NEW: res support types + resources!())
+   └──────────── yog-api (Registry, tr, open_ui/close_ui, ui_include!, resources_include!, tr/tr_args)
                           │
                        yog-kit (NEW: ViewModel, View trait, Screen<V> host, Slot/Update, Cx, ScreenHandle,
                                 ItemsHost (lists/templates/virtualization), focus/keyboard, scroll routing,
                                 overlays/dialogs, Navigator, testing::TestHost)
 yog-cli (codegen, no runtime dep): src/yui/{xml,model,binding,resources,gen_legacy,gen_vm,sourcemap,schema}.rs,
-         src/yres.rs (resources → res.g.rs + lang JSON + assets), src/templates.rs (+ templates/ dir),
+         src/yres.rs (resources → generated/resources/<Set>.g.rs + lang JSON + assets; already implemented), src/templates.rs (+ templates/ dir),
          cargo diagnostic remapping
 Yog-IDLE: designer (TS + src-tauri/src/designer/markup.rs), binding editor, sample data, .yres editor,
           New Project / New Item from `yog templates`
@@ -64,7 +64,7 @@ Java hosts + yog-runtime/ui_jni.rs: emit move/open/close event strings
 | Concern | Location | Why |
 |---|---|---|
 | Action ids, visibility, state flags, style patches, path access, event parsing | yog-ui | Pure widget concerns. Usable without kit (book, inventory). |
-| `.yres` runtime types (`Image`, `Sound`), `resources!()` | yog-api | Every mod uses resources: metadata, items, UI. |
+| `.yres` support: `resources_include!`, `tr`/`tr_args` | yog-api | Every mod uses resources: metadata, items, UI. |
 | Screen hosting, binding runtime, lists, focus, dialogs, navigation | yog-kit (depends on yog-api) | Opt-in framework. Versioned separately from yog-api. |
 | `.yui` → View code, `.yres` → `res.g.rs`, templates, diagnostics | yog-cli | Compile-time only. |
 | Proc-macros | none in v1 (`yog-kit-macros` reserved) | Codegen covers it. |
@@ -326,7 +326,7 @@ Built-in dialogs are written in `.yui` inside yog-kit (`src/dialogs/{message,con
 | Form | Meaning |
 |---|---|
 | `literal` | As today. |
-| `@Set.name` | Typed resource from `resources/Set.yres`: string, image, color, number or style. Compiled to `crate::res::Set::name()`. |
+| `@Set.name` | Typed resource from `resources/Set.yres`: string, image, color, number or style. Compiled to the generated accessor (`Set::name()` from `resources_include!`). |
 | `@name` (no dot) | Screen-local resource (`<Screen.Resources>`). |
 | `@mod-id.raw.key` | Raw translation key (legacy; the first segment isn't a resource set). |
 | `@@text` | Literal starting with `@`. |
@@ -411,73 +411,36 @@ Styles are inlined at codegen. Explicit attributes override the style. `based_on
 
 ## 6. Resources: `.yres` (resx-like, typed)
 
-**Files:**
-- `resources/<Set>.yres`, where `Set` is PascalCase and becomes the accessor type name.
-- Per-culture overrides: `resources/<Set>.<culture>.yres`, e.g. `Strings.ru_ru.yres`. They may override String and Image entries.
-- The neutral culture comes from `[resources] neutral = "en_us"` in yog.toml (default `en_us`).
+**Implemented separately; the authoritative spec is [`Yog-IDLE/docs/yres.md`](../../../Yog-IDLE/docs/yres.md).** This section only summarizes what yog-kit relies on.
 
-**Format:**
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<Resources>
-    <String name="mod_name" comment="Shown in mod lists">Yog Mod List</String>
-    <String name="count" comment="%s = number of mods">%s mods</String>
-    <String name="ruby" for="item:ruby">Ruby</String>          <!-- also emits item.<modid>.ruby -->
-    <String name="title" key="yog-modlist.screen.title">Yog Mods</String>  <!-- keep an existing key -->
-    <Image  name="logo" src="icons/logo.png"/>                 <!-- path relative to resources/ -->
-    <Image  name="ruby" src="textures/ruby.png" for="item:ruby"/>  <!-- → assets/<ns>/textures/item/ruby.png -->
-    <Color  name="accent">#FFD700</Color>
-    <Number name="row_height">24</Number>
-    <Sound  name="click" src="sounds/click.ogg"/>               <!-- + sounds.json entry <modid>:click -->
-    <File   name="license" src="../LICENSE"/>                   <!-- embedded with include_bytes! -->
-    <Style  name="Button" target="Button" bg="#FF555555" hover:bg="#FF777777"/>  <!-- UI styles, usable as @Theme.Button -->
-</Resources>
-```
-Mixing entry types in one file is allowed.
+**Files:** `resources/**/<Set>.yres` (neutral culture = `en_us`) plus culture variants `<Set>.<locale>.yres` (e.g. `Strings.ru_ru.yres`; texts only). `Set` is an identifier, unique in the mod, and becomes the accessor type name.
 
-**Build** (`yog-cli/src/yres.rs`, run by build, check and `yog ui gen`):
-1. **Lang JSON.** Generated into `assets/<modid>/lang/<culture>.json`. The default key is `<modid>.<set_lower>.<name>`, or the `key=` override. `for="item:x"` / `for="block:x"` also emit `item.<modid>.x` / `block.<modid>.x`.
-   - `.ylang` files (in flight) keep working. Duplicate keys between `.ylang` and `.yres` are an error.
-   - `yog res import-ylang` converts `lang/*.ylang` to `resources/Strings*.yres`, using `key=` to keep existing keys.
-2. **Assets.** Images are copied to `assets/<modid>/textures/res/<set_lower>/<name>.png`. Entries with `for=` go to the item/block texture path, so the existing auto-model generation (main.rs ~1752) applies. Sounds produce `sounds.json`.
-3. **`.yog-build/generated/res.g.rs`,** included at crate root by `yog_api::resources!();`, which expands to `pub mod res { include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/res.g.rs")); }`:
-```rust
-pub struct Strings;
-impl Strings {
-    pub const MOD_NAME: &'static str = "yog-modlist.strings.mod_name";   // keys, for APIs taking keys
-    /// "Yog Mod List" — resources/Strings.yres:3
-    pub fn mod_name() -> String { ::yog_api::tr(Self::MOD_NAME) }
-    /// "%s mods" — arity from the neutral culture's specifiers
-    pub fn count(a1: impl ::std::fmt::Display) -> String { ::yog_api::tr_args(Self::COUNT, &[&a1]) }
+**Format:** one JSON object; entry name → value. A value is a string (a text) or an object `{ "value", "type", "comment", "key", "texture", "event", "subtitle" }`; `type` is `string` (default), `image`, `file`, `sound`, `color`, `number`, `bool`:
+```json
+{
+  "mod_name": "Mod List",
+  "screen.title": { "value": "Yog Mods", "comment": "Title of the mod list screen" },
+  "mods_count": { "value": "{count} mods", "comment": "{count}: number of mods" },
+  "logo": { "type": "image", "value": "images/logo.png" },
+  "accent": { "type": "color", "value": "#FF8800" },
+  "rows_per_page": { "type": "number", "value": 20 },
+  "show_badges": { "type": "bool", "value": true }
 }
-pub struct Icons;
-impl Icons { pub const fn logo() -> ::yog_api::res::Image { ::yog_api::res::Image::new("yog-modlist:textures/res/icons/logo.png", 16, 16) } }
-pub struct Colors; impl Colors { pub const fn accent() -> u32 { 0xFFFFD700 } }
-// Number → const fn returning f64/i64; Sound → ::yog_api::res::Sound; File → &'static [u8]
 ```
-4. **Checks:** names are valid identifiers; `src` files exist; culture files carry no unknown names (warning); per-culture specifier counts match (warning).
 
-**yog-api additions** (`src/res.rs`):
-- `pub struct Image { pub id: &'static str, pub w: u32, pub h: u32 }`, which `impl Display` as `res:` alias text.
-- `pub struct Sound(&'static str)` with `play()` once the sound API exists.
-- `pub struct Color(u32)`.
-- `macro_rules! resources`.
+**Placeholders:** `{name}` or `{0}`, `{1}` (one style per text); compiled to `%1$s`… in lang JSON. The accessor takes one `impl Display` per placeholder, in order of first appearance.
 
-**Image alias:** `res:<modid>:<path>` resolves to the texture id. yog-ui's in-flight alias resolver gains this prefix. In `.yui`, `texture="@Icons.logo"` compiles to `crate::res::Icons::logo().id`, and the default `w`/`h` come from the PNG size, which yog-cli reads at build time.
+**Translation keys:** `key` if given, otherwise by set: `Items` → `item.<modid>.<name>`, `Blocks` → `block.<modid>.<name>`, `Entities` → `entity.<modid>.<name>`, any other set → `<modid>.<name>`. So item/block display names need no lang file and no `for=` attribute.
 
-**yog.toml.** `name`, `description` and `icon` accept `@Set.name`. At packaging, yog-cli resolves them:
-- the neutral value goes into the manifest;
-- the other cultures go into `name_localized` / `description_localized` maps;
-- the icon is packaged at `icon.png`.
+**Build:** texts → `assets/<modid>/lang/<locale>.json`; images → `assets/<modid>/textures/<path relative to resources/>.png` (or `texture`); sounds → `assets/<modid>/sounds/…` + generated `sounds.json`; files → `assets/<modid>/<path>`.
 
-Hosts ignore unknown manifest keys. Verify this in the loader's manifest parser.
+**Generated code:** `.yog-build/generated/resources/<Set>.g.rs`, pulled in with `yog_api::resources_include!("Strings");` (typically in `src/res.rs`). Each set is a `pub struct <Set>;` with, per entry: texts → `fn name(args…) -> String` (looked up each call via `yog_api::tr`/`tr_args`) and `const NAME_KEY: &str`; images → `const fn name() -> &'static str` (image source `<modid>:<texture>`); files/sounds → resource/event ids; colors → `const NAME: u32`; numbers → `i64`/`f64` consts; bools → `bool` consts.
 
-**Items and blocks:**
-- `registry.register_item(ItemDef::new("ruby"))`, with `name: None`. The display name comes from the `for=` lang entry and the texture from `for=` Image.
-- If a host currently shows `ItemDef.name` literally when it is `Some`, or falls back to the raw id when it is `None`, the host must fall back to the translatable `item.<ns>.<id>`. That is a Java-only fix; verify it in P0.
-- **Menu entries:** `register_menu_entry(&Strings::menu_button(), ID)` is resolved at registration, in the startup language. That is acceptable for now.
+**yog.toml:** `[mod] name`/`description` may be `@Strings.x`, `icon` may be `@Icons.x`; the manifest gets the neutral texts plus `name_key`/`description_key`.
 
----
+**What yog-kit adds on top:**
+- In `.yui`, `@<Set>.<name>` (already supported for `text`/`placeholder`/`texture`) compiles to the generated accessor; in bindings, accessors are plain functions: `{x:Bind Strings::mods_count(n)}`.
+- Screen-local resources (`<Screen.Resources>`: colors, styles) stay in `.yui`. Shared UI styles in `.yres` are a possible later entry type (`style`); not in the current format.
 
 ## 7. Generated code shape
 
@@ -626,7 +589,7 @@ Template bodies are inlined into the screen's `update`/`dispatch`, so `item`'s t
 
 ## 8. Yog-Modlist rewritten
 
-**Tree:** `resources/Strings.yres`, `resources/Strings.ru_ru.yres`, `resources/Icons.yres` (+ `icons/logo.png`), `src/lib.rs`, `src/mod_list.yui`, `src/mod_list.rs`, `src/mod_list.sample.json`. `lang/*.ylang` is removed by `yog res import-ylang`.
+**Tree:** `resources/Strings.yres`, `resources/Strings.ru_ru.yres`, `resources/Icons.yres` (+ `icons/logo.png`), `src/lib.rs`, `src/res.rs`, `src/mod_list.yui`, `src/mod_list.rs`, `src/mod_list.sample.json`. Any earlier `lang/*.ylang` files are replaced by these `.yres` files.
 
 `yog.toml` (excerpt):
 ```toml
@@ -640,35 +603,34 @@ version = "0.3.0"
 yog-kit = "0.1"
 ```
 
-`resources/Strings.yres` (excerpt; `key=` keeps the existing lang keys so translations carry over):
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<Resources>
-    <String name="mod_name">Yog Mod List</String>
-    <String name="mod_description">In-game mod list browser.</String>
-    <String name="menu_button" key="yog-modlist.menu.button">Yog Mods</String>
-    <String name="title" key="yog-modlist.screen.title">Yog Mods</String>
-    <String name="count" key="yog-modlist.screen.count" comment="%s = installed mods">%s mods</String>
-    <String name="count_filtered" key="yog-modlist.screen.count_filtered">%s of %s mods</String>
-    <String name="close" key="yog-modlist.screen.close">Close</String>
-    <String name="search_placeholder" key="yog-modlist.search.placeholder">Search mods…</String>
-    <String name="filter_all" key="yog-modlist.filter.all">All</String>
-    <String name="filter_yog" key="yog-modlist.filter.yog">Yog</String>
-    <String name="filter_platform" key="yog-modlist.filter.platform">Platform</String>
-    <String name="list_empty" key="yog-modlist.list.empty">No mods</String>
-    <String name="list_no_matches" key="yog-modlist.list.no_matches">Nothing matches the search</String>
-    <String name="badge_yog" key="yog-modlist.badge.yog">[Yog]</String>
-    <String name="badge_platform" key="yog-modlist.badge.platform">[MC]</String>
-    <String name="row_version" key="yog-modlist.row.version">v%s</String>
-    <String name="source_yog" key="yog-modlist.source.yog">Yog mod</String>
-    <String name="source_platform" key="yog-modlist.source.platform">Platform mod</String>
-    <String name="details_version" key="yog-modlist.details.version">Version %s</String>
-    <String name="details_authors" key="yog-modlist.details.authors">by %s</String>
-    <String name="details_authors_unknown" key="yog-modlist.details.authors_unknown">by unknown</String>
-    <String name="details_id" key="yog-modlist.details.id">id: %s</String>
-    <String name="details_no_description" key="yog-modlist.details.no_description">No description.</String>
-    <String name="details_none_selected" key="yog-modlist.details.none_selected">No mod selected</String>
-</Resources>
+`resources/Strings.yres` (excerpt; `key` keeps the existing lang keys so translations carry over):
+```json
+{
+  "mod_name": "Yog Mod List",
+  "mod_description": "In-game mod list browser.",
+  "menu_button": { "value": "Yog Mods", "key": "yog-modlist.menu.button" },
+  "title": { "value": "Yog Mods", "key": "yog-modlist.screen.title" },
+  "count": { "value": "{count} mods", "key": "yog-modlist.screen.count", "comment": "{count}: installed mods" },
+  "count_filtered": { "value": "{shown} of {total} mods", "key": "yog-modlist.screen.count_filtered" },
+  "close": { "value": "Close", "key": "yog-modlist.screen.close" },
+  "search_placeholder": { "value": "Search mods…", "key": "yog-modlist.search.placeholder" },
+  "filter_all": { "value": "All", "key": "yog-modlist.filter.all" },
+  "filter_yog": { "value": "Yog", "key": "yog-modlist.filter.yog" },
+  "filter_platform": { "value": "Platform", "key": "yog-modlist.filter.platform" },
+  "list_empty": { "value": "No mods", "key": "yog-modlist.list.empty" },
+  "list_no_matches": { "value": "Nothing matches the search", "key": "yog-modlist.list.no_matches" },
+  "badge_yog": { "value": "[Yog]", "key": "yog-modlist.badge.yog" },
+  "badge_platform": { "value": "[MC]", "key": "yog-modlist.badge.platform" },
+  "row_version": { "value": "v{version}", "key": "yog-modlist.row.version" },
+  "source_yog": { "value": "Yog mod", "key": "yog-modlist.source.yog" },
+  "source_platform": { "value": "Platform mod", "key": "yog-modlist.source.platform" },
+  "details_version": { "value": "Version {version}", "key": "yog-modlist.details.version" },
+  "details_authors": { "value": "by {authors}", "key": "yog-modlist.details.authors" },
+  "details_authors_unknown": { "value": "by unknown", "key": "yog-modlist.details.authors_unknown" },
+  "details_id": { "value": "id: {id}", "key": "yog-modlist.details.id" },
+  "details_no_description": { "value": "No description.", "key": "yog-modlist.details.no_description" },
+  "details_none_selected": { "value": "No mod selected", "key": "yog-modlist.details.none_selected" }
+}
 ```
 
 `src/mod_list.yui`:
@@ -899,7 +861,7 @@ Bindings that receive a template-root path are passed by reference: `Strings::de
 `src/lib.rs`:
 ```rust
 mod mod_list;
-yog_api::resources!();
+mod res;   // src/res.rs: yog_api::resources_include!("Strings"); yog_api::resources_include!("Icons");
 
 use yog_api::{info, Mod, Registry};
 use res::Strings;
@@ -953,8 +915,7 @@ description = "A .yui screen with its view model; bindings are generated into .y
 extension = ".yui"; base_name = "screen"
 [[file]]   src = "screen.yui"   dest = "src/{{dir}}{{stem}}.yui"
 [[file]]   src = "screen.rs"    dest = "src/{{dir}}{{stem}}.rs"
-[[append]] dest = "resources/Strings.yres" before = "</Resources>"
-           text = "    <String name=\"{{stem}}_title\">{{Stem}}</String>\n"
+[[json_entry]] dest = "resources/Strings.yres" name = "{{stem}}_title" value = "{{Stem}}"   # inserted into the JSON object
 [lib_rs]   mods = ["{{stem}}"]  register = ["{{stem}}::register(registry);"]
 ```
 `lib.rs` edits use syn to locate the last `mod` item and the body of `fn register` in `impl Mod`. This is the same approach as IDLE's `designer/codebehind.rs`; that logic moves to a small shared module in yog-cli. If parsing fails, the edit falls back to a printed hint.
@@ -968,12 +929,12 @@ my-mod/
 ├─ README.md
 ├─ .gitignore                # .yog-build/  target/  artifacts/  *.designer.rs
 ├─ resources/
-│  ├─ Strings.yres           # mod_name, mod_description, menu_button, title, clicks(%s), add, reset, close
+│  ├─ Strings.yres           # mod_name, mod_description, menu_button, title, clicks ({count}), add, reset, close
 │  ├─ Strings.ru_ru.yres     # the same names, Russian values (example culture)
-│  ├─ Icons.yres             # <Image name="logo" src="icons/logo.png"/>
+│  ├─ Icons.yres             # { "logo": { "type": "image", "value": "icons/logo.png" } }
 │  └─ icons/logo.png         # 16×16 placeholder, embedded bytes in the template
 └─ src/
-   ├─ lib.rs                 # mod main_screen; resources!(); register + menu entry
+   ├─ lib.rs                 # mod main_screen; mod res; register + menu entry
    ├─ main_screen.yui        # Image @Icons.logo, @Strings.title, {x:Bind Strings::clicks(count)}, 3 commands, hover: states
    ├─ main_screen.rs         # MainVm { count } + increment/reset/can_reset, tests with TestHost
    └─ main_screen.sample.json
@@ -982,7 +943,7 @@ my-mod/
 `src/lib.rs`:
 ```rust
 mod main_screen;
-yog_api::resources!();
+mod res;   // src/res.rs: yog_api::resources_include!("Strings"); yog_api::resources_include!("Icons");
 
 use yog_api::{Mod, Registry};
 use res::Strings;
@@ -1067,7 +1028,7 @@ mod tests {
 - `lib.rs` calls `content::register`.
 - The main screen shows a ruby `ItemSlot item="{{mod_id}}:ruby"`.
 
-**`empty`.** yog.toml with resources, `resources/Strings.yres` + `Strings.ru_ru.yres` + `Icons.yres` (+ logo), and `lib.rs` with `resources!()` and an empty register. It has no screen and no yog-kit dependency.
+**`empty`.** yog.toml with resources, `resources/Strings.yres` + `Strings.ru_ru.yres` + `Icons.yres` (+ logo), `src/res.rs` with `resources_include!` per set, and `lib.rs` with an empty register. It has no screen and no yog-kit dependency.
 
 ### Item templates (Add → New Item, and `yog item new`)
 
@@ -1111,7 +1072,7 @@ It is reachable from the File menu and from `EmptyEditorState`.
 - **Screens without `x:ViewModel`** generate byte-identical output to today, through `gen_legacy.rs`. A golden test pins this, and existing code-behind keeps working.
 - **VM screens** still emit `ID`, `ids`, `open()`, `close()`. `build/render_with/click/with_last` are not emitted because the host owns them. `ViewModel::customize` and `cx.focus(ids::X)` remain as escape hatches.
 - **Incremental migration.** Add `x:ViewModel`, keep `on_click="name"` strings (they route to `ViewModel::on_event`), then convert to `command=` one by one. `yog ui migrate <file>` rewrites `on_click="x"` to `command="{x:Bind x()}"` and prints VM method stubs.
-- **`@mod.key` raw keys** keep working. `yog res import-ylang` moves `.ylang` files to `.yres` with `key=` overrides.
+- **`@mod.key` raw keys** keep working. `.ylang` files are superseded by `.yres` (existing keys kept via the `key` field).
 - **Reserved names** in VM-screen modules: `View`, `ID`, `WIDTH`, `HEIGHT`, `ids`, `register`, `register_with`, `handle`, `open`, `close`, `__T*`, `__E*`, `__HANDLE`.
 - **yog-ui struct changes** are additive fields with defaults. They break only external struct-literal construction of `Widget`/`LayoutNode`; none is known (grep the repos before release). Bump the minor version.
 - **Host event strings.** `move`, `open` and `close` are new prefixes. Old handlers ignore them: `ScrollState::handle` returns false, `click()` returns None, and TextBoxState ignores them.
@@ -1239,11 +1200,7 @@ It is reachable from the File menu and from `EmptyEditorState`.
 - `crates/yog-kit/src/{lib.rs, view.rs (ViewModel, View, ScreenMeta, Anchor, ViewEvent), host.rs (Screen, render/on_event/frame, anchoring = today's root_with logic), handle.rs, cx.rs, bind.rs, update.rs, parts.rs (scrollers, textboxes, focus order), input.rs (routing, focus, keyboard), testing.rs, codegen.rs}`.
 - A hand-written `View` in `tests/manual_view.rs` proves the runtime before codegen exists.
 
-**P4: Resources**
-- `yog-cli/src/yres.rs` (parse, lang JSON, assets, `res.g.rs`, yog.toml `@` resolution).
-- `main.rs` build/check/package hooks; `yog res import-ylang`.
-- `yog-api/src/res.rs` + `resources!` in `lib.rs`.
-- yog-ui alias resolver `res:`.
+**P4: Resources — done separately** (see `Yog-IDLE/docs/yres.md`): `yog-cli/src/yres.rs`, `yog res check`, `yog_api::resources_include!`, `tr`/`tr_args`, yog.toml `@` resolution. Remaining for yog-kit: `@Set.name` in bindings and styles, and the image-source alias in yog-ui if not already covered by the alias agent.
 
 **P5: yog-cli VM codegen (no templates yet)**
 - Split `src/yui.rs` into `src/yui/{mod.rs, xml.rs, model.rs, binding.rs, resources.rs (screen-local + .yres lookup), gen_legacy.rs (moved verbatim), gen_vm.rs, sourcemap.rs}`. Golden-test that legacy output is unchanged before adding anything.
