@@ -1,6 +1,10 @@
 package dev.yog;
 
 import dev.yog.util.YogInventoryDef;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.tag.TagKey;
+import net.minecraft.util.Identifier;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
@@ -49,7 +53,10 @@ public class YogInventoryMenu extends ScreenHandler {
         if (def != null) {
             for (int i = 0; i < def.slotCount; i++) {
                 float[] xy = i < def.layout.size() ? def.layout.get(i) : new float[]{8f + (i % 9) * 18f, 18f + (i / 9) * 18f};
-                this.addSlot(new Slot(inv, i, (int) xy[0], (int) xy[1]));
+                String[] accepts = i < def.accepts.size() ? def.accepts.get(i) : new String[0];
+                this.addSlot(accepts.length == 0
+                        ? new Slot(inv, i, (int) xy[0], (int) xy[1])
+                        : new FilteredSlot(inv, i, (int) xy[0], (int) xy[1], accepts));
             }
             if (def.includePlayerInventory) {
                 addPlayerInventorySlots(playerInv, def.playerInvX, def.playerInvY);
@@ -101,5 +108,29 @@ public class YogInventoryMenu extends ScreenHandler {
     public void onClosed(PlayerEntity player) {
         super.onClosed(player);
         inventory.onClose(player);
+    }
+
+    /** A container slot that takes only the items and {@code #tags} its {@code <Slot accepts>} names. */
+    private static final class FilteredSlot extends Slot {
+        private final String[] accepts;
+
+        FilteredSlot(Inventory inv, int index, int x, int y, String[] accepts) {
+            super(inv, index, x, y);
+            this.accepts = accepts;
+        }
+
+        @Override
+        public boolean canInsert(ItemStack stack) {
+            String item = Registries.ITEM.getId(stack.getItem()).toString();
+            for (String a : accepts) {
+                if (a.startsWith("#")) {
+                    Identifier tag = Identifier.tryParse(a.substring(1));
+                    if (tag != null && stack.isIn(TagKey.of(RegistryKeys.ITEM, tag))) return true;
+                } else if (a.equals(item)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

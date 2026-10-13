@@ -1,6 +1,10 @@
 package dev.yog;
 
 import dev.yog.util.YogInventoryDef;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -48,7 +52,10 @@ public class YogInventoryMenu extends AbstractContainerMenu {
         if (def != null) {
             for (int i = 0; i < def.slotCount; i++) {
                 float[] xy = i < def.layout.size() ? def.layout.get(i) : new float[]{8f + (i % 9) * 18f, 18f + (i / 9) * 18f};
-                this.addSlot(new Slot(inv, i, (int) xy[0], (int) xy[1]));
+                String[] accepts = i < def.accepts.size() ? def.accepts.get(i) : new String[0];
+                this.addSlot(accepts.length == 0
+                        ? new Slot(inv, i, (int) xy[0], (int) xy[1])
+                        : new FilteredSlot(inv, i, (int) xy[0], (int) xy[1], accepts));
             }
             if (def.includePlayerInventory) {
                 addPlayerInventorySlots(playerInv, def.playerInvX, def.playerInvY);
@@ -100,5 +107,29 @@ public class YogInventoryMenu extends AbstractContainerMenu {
     public void removed(Player player) {
         super.removed(player);
         inventory.stopOpen(player);
+    }
+
+    /** A container slot that takes only the items and {@code #tags} its {@code <Slot accepts>} names. */
+    private static final class FilteredSlot extends Slot {
+        private final String[] accepts;
+
+        FilteredSlot(Container inv, int index, int x, int y, String[] accepts) {
+            super(inv, index, x, y);
+            this.accepts = accepts;
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            String item = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            for (String a : accepts) {
+                if (a.startsWith("#")) {
+                    ResourceLocation tag = ResourceLocation.tryParse(a.substring(1));
+                    if (tag != null && stack.is(TagKey.create(Registries.ITEM, tag))) return true;
+                } else if (a.equals(item)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

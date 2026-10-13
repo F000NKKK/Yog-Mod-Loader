@@ -18,18 +18,21 @@ public final class YogInventoryDef {
     public final String id;
     public final int slotCount;
     public final List<float[]> layout;
+    /** Per slot (by index, parallel to {@link #layout}): the item ids and {@code #tags} it takes; empty = anything. */
+    public final List<String[]> accepts;
     public final boolean includePlayerInventory;
     public final float playerInvX, playerInvY;
     public final String backgroundTexture;
     public final String title;
     public final float backgroundW, backgroundH;
 
-    YogInventoryDef(String id, int slotCount, List<float[]> layout, boolean includePlayerInventory,
+    YogInventoryDef(String id, int slotCount, List<float[]> layout, List<String[]> accepts, boolean includePlayerInventory,
                     float playerInvX, float playerInvY, String backgroundTexture, String title,
                     float backgroundW, float backgroundH) {
         this.id = id;
         this.slotCount = slotCount;
         this.layout = layout;
+        this.accepts = accepts;
         this.includePlayerInventory = includePlayerInventory;
         this.playerInvX = playerInvX;
         this.playerInvY = playerInvY;
@@ -49,11 +52,16 @@ public final class YogInventoryDef {
             Map<String, String> p = YogProps.parse(line);
             int slotCount = YogProps.parseInt(p, "slot_count", 0);
             List<float[]> layout = new ArrayList<>();
+            List<String[]> accepts = new ArrayList<>();
             String layoutRaw = p.getOrDefault("layout", "");
             if (!layoutRaw.isEmpty()) {
-                for (String pair : layoutRaw.split(",")) {
-                    float[] xy = parsePair(pair);
-                    if (xy != null) layout.add(xy);
+                // "x:y" or "x:y:id|#tag|..." per slot.
+                for (String entry : layoutRaw.split(",")) {
+                    String[] parts = entry.split(":", 3);
+                    float[] xy = parts.length >= 2 ? parsePair(parts[0] + ":" + parts[1]) : null;
+                    if (xy == null) continue;
+                    layout.add(xy);
+                    accepts.add(parts.length == 3 && !parts[2].isEmpty() ? parts[2].split("\\|") : new String[0]);
                 }
             }
             boolean includePlayerInv = !"0".equals(p.get("include_player_inventory"));
@@ -61,7 +69,7 @@ public final class YogInventoryDef {
             if (playerInv == null) playerInv = new float[]{DEFAULT_PLAYER_INV_X, DEFAULT_PLAYER_INV_Y};
             float[] bgSize = parsePair(p.getOrDefault("background_size", ""));
             if (bgSize == null) bgSize = new float[]{0f, 0f};
-            defs.put(id, new YogInventoryDef(id, slotCount, layout, includePlayerInv, playerInv[0], playerInv[1],
+            defs.put(id, new YogInventoryDef(id, slotCount, layout, accepts, includePlayerInv, playerInv[0], playerInv[1],
                     p.getOrDefault("background_texture", ""), p.getOrDefault("title", ""), bgSize[0], bgSize[1]));
         }
         return defs;

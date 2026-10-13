@@ -329,7 +329,7 @@ fn kind_attrs(kind: &str) -> &'static [&'static str] {
         ],
         "ItemSlot" => &["item"],
         "InvSlot" => &["item", "count"],
-        "Slot" => &["index"],
+        "Slot" => &["index", "accepts"],
         "Image" => &["source", "stretch", "uv", "tint"],
         "Surface" => &["source"],
         _ => &[],
@@ -826,7 +826,29 @@ impl Gen {
                         el.line
                     )
                 })?;
-                format!("widget::slot({index})")
+                let accepts: Vec<&str> = el
+                    .attr("accepts")
+                    .unwrap_or_default()
+                    .split(|c: char| c.is_whitespace() || c == ',')
+                    .filter(|a| !a.is_empty())
+                    .collect();
+                for a in &accepts {
+                    let id = a.strip_prefix('#').unwrap_or(a);
+                    let ok = id.split_once(':').is_some_and(|(ns, path)| {
+                        !ns.is_empty() && !path.is_empty() && valid_resource_id(ns) && valid_resource_id(path)
+                    });
+                    if !ok {
+                        return Err(format!(
+                            "line {}: <Slot> accepts=\"{a}\": expected an item id (minecraft:redstone) or an item tag (#c:dusts), with its namespace",
+                            el.line
+                        ));
+                    }
+                }
+                if accepts.is_empty() {
+                    format!("widget::slot({index})")
+                } else {
+                    format!("widget::slot_accepting({index}, &{accepts:?})")
+                }
             }
             "PlayerInventory" => "widget::player_inventory()".to_string(),
             "Image" => self.image(el)?,
@@ -949,6 +971,11 @@ impl Gen {
         }
         Ok(expr)
     }
+}
+
+/// Lower case a-z, 0-9, `_`, `-`, `.`, `/` — a resource id's namespace or path.
+fn valid_resource_id(s: &str) -> bool {
+    s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "_-./".contains(c))
 }
 
 /// Whether a `bg` value is an image (`sprite:panel`, `mymod:gui/frame`,
@@ -1497,6 +1524,10 @@ mod tests {
         .0;
         assert!(code.contains("widget::slot(2)"), "{code}");
         assert!(code.contains("widget::player_inventory()"), "{code}");
+        let code = generate_for(&screen(r#"<Slot index="1" accepts="minecraft:redstone #c:dusts"/>"#), "s", None).unwrap().0;
+        assert!(code.contains(r##"widget::slot_accepting(1, &["minecraft:redstone", "#c:dusts"])"##), "{code}");
+        let err = generate_for(&screen(r#"<Slot index="1" accepts="redstone"/>"#), "s", None).unwrap_err();
+        assert!(err.contains("with its namespace"), "{err}");
         let err = generate_for(&screen(r#"<Slot index="first"/>"#), "s", None).unwrap_err();
         assert!(err.contains("expected the container slot's number"), "{err}");
     }
