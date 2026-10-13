@@ -1679,15 +1679,17 @@ mod tests {
     #[test]
     fn kit_fixture() {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../yog-kit/tests/fixtures");
-        let src = std::fs::read_to_string(dir.join("list.yui")).unwrap();
-        let (code, warnings) = crate::yui::generate_for(&src, "list", None).unwrap();
-        assert!(warnings.is_empty(), "{warnings:?}");
-        let out = dir.join("list.g.rs");
-        if std::env::var_os("UPDATE_GOLDEN").is_some() {
-            std::fs::write(&out, &code).unwrap();
+        for name in ["list", "grid"] {
+            let src = std::fs::read_to_string(dir.join(format!("{name}.yui"))).unwrap();
+            let (code, warnings) = crate::yui::generate_for(&src, name, None).unwrap();
+            assert!(warnings.is_empty(), "{warnings:?}");
+            let out = dir.join(format!("{name}.g.rs"));
+            if std::env::var_os("UPDATE_GOLDEN").is_some() {
+                std::fs::write(&out, &code).unwrap();
+            }
+            let want = std::fs::read_to_string(&out).unwrap_or_default();
+            assert!(want == code, "{} is stale; rerun with UPDATE_GOLDEN=1", out.display());
         }
-        let want = std::fs::read_to_string(&out).unwrap_or_default();
-        assert!(want == code, "{} is stale; rerun with UPDATE_GOLDEN=1", out.display());
     }
 
     #[test]

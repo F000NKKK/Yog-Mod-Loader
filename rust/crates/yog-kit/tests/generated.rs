@@ -130,3 +130,48 @@ mod list {
         assert!(h.widget("details").is_none());
     }
 }
+
+/// The `<Grid>` fixture: a WPF-style grid with bound children.
+mod grid {
+    use super::*;
+    include!("fixtures/grid.g.rs");
+
+    fn host() -> TestHost<View> {
+        let mut h = TestHost::<View>::new(Vm::default());
+        h.size(200.0, 120.0).open();
+        h
+    }
+
+    #[test]
+    fn cells_rows_and_bindings() {
+        let mut h = host();
+        assert_eq!(h.text("title").as_deref(), Some("100 shown"));
+        let title = h.rect("title").unwrap();
+        let list = h.rect("list").unwrap();
+        let details = h.rect("presenter").unwrap();
+        let close = h.rect("close").unwrap();
+        // Auto header (one line, centred over both columns), `*` middle row,
+        // 20 px footer; 80 px + `*` columns.
+        assert_eq!((list.x, list.w), (0.0, 80.0));
+        assert_eq!(list.y, title.y + title.h + 2.0);
+        assert_eq!(list.y + list.h + 2.0 + 20.0, 120.0);
+        assert_eq!((details.x, details.y, details.w), (84.0, list.y + 4.0, 112.0));
+        assert_eq!((close.x, close.y, close.w, close.h), (160.0, 100.0, 40.0, 20.0));
+        assert!(title.x > 0.0 && title.x + title.w < 200.0);
+        // The long list stays inside its row and virtualizes.
+        assert!(h.widget("list").unwrap().children.len() < 20);
+        assert_eq!(h.text("details").as_deref(), Some("item 0"));
+
+        let mut row = h.path("list");
+        row.push(2);
+        h.click_path(&row);
+        assert_eq!(h.text("details").as_deref(), Some("item 1"));
+        let mut btn = h.path("list");
+        btn.extend([1, 1]);
+        h.click_path(&btn);
+        assert_eq!(h.vm().items.len(), 99);
+        assert_eq!(h.text("title").as_deref(), Some("99 shown"));
+        h.click_id("close");
+        assert!(h.closed());
+    }
+}

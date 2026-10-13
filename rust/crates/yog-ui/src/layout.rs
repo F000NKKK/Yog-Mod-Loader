@@ -492,7 +492,14 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
             (FlexDir::Column, _) => (content_w, UNBOUNDED),
         };
         let (cmw, cmh) = (less(cmw, m[1] + m[3]), less(cmh, m[0] + m[2]));
-        layout_widget(child, &mut cn, 0.0, 0.0, cmw, cmh, content_w, content_h);
+        if dir == FlexDir::Column
+            && child.style.dock != Dock::Fill
+            && matches!(self_place(child), Some(Some(_)))
+        {
+            measure_aligned(child, &mut cn, cmw, cmh, content_w, content_h);
+        } else {
+            layout_widget(child, &mut cn, 0.0, 0.0, cmw, cmh, content_w, content_h);
+        }
         let ef = effective_flex(child);
         // A growing child with an auto main size starts from its min size,
         // not its content (WPF star sizing / CSS `flex: 1 1 0`): it gets
@@ -661,6 +668,26 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
     }
 
     finish(w, node, child_nodes, shrink, bar_w);
+}
+
+/// Measures `w` aligned (not stretched) across a `max_w` slot: at its
+/// content width — text takes the width it needs instead of wrapping at
+/// (and filling) the slot — unless that's wider than the slot.
+fn measure_aligned(
+    w: &Widget,
+    node: &mut LayoutNode,
+    max_w: f32,
+    max_h: f32,
+    basis_w: f32,
+    basis_h: f32,
+) {
+    if bounded(max_w) && w.style.w.is_auto() {
+        layout_widget(w, node, 0.0, 0.0, UNBOUNDED, max_h, basis_w, basis_h);
+        if node.rect.w <= max_w {
+            return;
+        }
+    }
+    layout_widget(w, node, 0.0, 0.0, max_w, max_h, basis_w, basis_h);
 }
 
 /// Margin `side` of a visible child (a collapsed one has none).

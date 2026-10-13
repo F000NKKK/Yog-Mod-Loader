@@ -1,0 +1,29 @@
+<!-- yog-kit codegen fixture for <Grid>: regenerated and checked by
+     yog-cli's tests (UPDATE_GOLDEN=1 cargo test -p yog-cli), compiled and
+     driven by yog-kit/tests/generated.rs. -->
+<Screen id="test:grid" width="200" height="120" x:ViewModel="Vm">
+    <Grid w="100%" h="100%" rows="Auto,*,20" row_spacing="2">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition width="80"/>
+            <ColumnDefinition width="*" min_width="40"/>
+        </Grid.ColumnDefinitions>
+        <Label x:Name="title" Grid.ColumnSpan="2" text="{x:Bind count_text()}" halign="center"/>
+        <ListView x:Name="list" Grid.Row="1" items="{x:Bind visible()}" key="{x:Bind name}"
+                  selected="{x:Bind selected_id(), BindBack=select}" item_height="10">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="Entry">
+                    <Grid columns="*,10" h="10">
+                        <Label x:Name="row_label" text="{x:Bind name}"/>
+                        <Button x:Name="row_remove" Grid.Column="1" text="x" command="{x:Bind vm.remove(name)}"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <ContentPresenter x:Name="presenter" Grid.Row="1" Grid.Column="1" margin="4" content="{x:Bind selected()}">
+            <DataTemplate>
+                <Label x:Name="details" text="{x:Bind name}"/>
+            </DataTemplate>
+        </ContentPresenter>
+        <Button x:Name="close" Grid.Row="2" Grid.Column="1" w="40" halign="right" text="Close" command="{x:Bind cx.close()}"/>
+    </Grid>
+</Screen>

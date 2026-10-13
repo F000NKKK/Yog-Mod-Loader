@@ -18,8 +18,8 @@
 //! `halign`/`valign` with its own measured size, capped to the cell.
 
 use super::{
-    arrange, bounded, layout_widget, less, new_node, GridLines, LayoutNode, Rect, Shrink,
-    SCROLLBAR_W, UNBOUNDED,
+    arrange, bounded, layout_widget, less, measure_aligned, new_node, GridLines, LayoutNode, Rect,
+    Shrink, SCROLLBAR_W, UNBOUNDED,
 };
 use crate::widget::{GridLength, GridSpec, HAlign, Track, VAlign, Widget};
 
@@ -369,8 +369,12 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
         let cell_h = extent(&row_size, rsp, sp.r0, sp.r1);
         let inner_w = (cell_w - m[1] - m[3]).max(0.0);
         let inner_h = (cell_h - m[0] - m[2]).max(0.0);
-        layout_widget(c, &mut cn, 0.0, 0.0, inner_w, inner_h, inner_w, inner_h);
         let halign = c.style.halign.unwrap_or(HAlign::Stretch);
+        if halign == HAlign::Stretch {
+            layout_widget(c, &mut cn, 0.0, 0.0, inner_w, inner_h, inner_w, inner_h);
+        } else {
+            measure_aligned(c, &mut cn, inner_w, inner_h, inner_w, inner_h);
+        }
         let valign = c.style.valign.unwrap_or(VAlign::Stretch);
         // Stretch fills the cell unless the size is explicit — then it's
         // centred, like WPF.
