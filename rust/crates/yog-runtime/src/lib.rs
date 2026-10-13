@@ -3301,6 +3301,250 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBookJson<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
+// ── World queries & effects (ABI minor 1) ────────────────────────────────────
+//
+// Each of these forwards to a `NativeBridge` static of the same shape; the JNI
+// signature is derived from the argument list so the two cannot drift apart.
+
+#[derive(Clone, Copy)]
+enum JArg {
+    S(YogStr),
+    D(f64),
+    F(f32),
+    I(i32),
+    Z(bool),
+}
+
+/// JNI method descriptor for `args`, returning `ret` (`"Z"` or a String).
+fn bridge_sig(args: &[JArg], ret: &str) -> String {
+    let mut sig = String::from("(");
+    for a in args {
+        sig.push_str(match a {
+            JArg::S(_) => "Ljava/lang/String;",
+            JArg::D(_) => "D",
+            JArg::F(_) => "F",
+            JArg::I(_) => "I",
+            JArg::Z(_) => "Z",
+        });
+    }
+    sig.push(')');
+    sig.push_str(ret);
+    sig
+}
+
+/// Call `NativeBridge.<name>(args)`; `None` if the JVM is unavailable or the
+/// call threw (the exception is cleared).
+unsafe fn bridge_call<'l>(
+    env: &mut JNIEnv<'l>,
+    name: &str,
+    args: &[JArg],
+    ret: &str,
+) -> Option<jni::objects::JValueOwned<'l>> {
+    let mut strs = Vec::new();
+    for a in args {
+        if let JArg::S(s) = a {
+            strs.push(ys_to_java(env, *s)?);
+        }
+    }
+    let mut next_str = strs.iter();
+    let mut vals: Vec<JValue> = Vec::with_capacity(args.len());
+    for a in args {
+        vals.push(match *a {
+            JArg::S(_) => JValue::Object(next_str.next()?),
+            JArg::D(d) => JValue::Double(d),
+            JArg::F(f) => JValue::Float(f),
+            JArg::I(i) => JValue::Int(i),
+            JArg::Z(z) => JValue::Bool(z as u8),
+        });
+    }
+    let sig = bridge_sig(args, ret);
+    match env.call_static_method("dev/yog/NativeBridge", name, &sig, &vals) {
+        Ok(v) => Some(v),
+        Err(_) => {
+            let _ = env.exception_clear();
+            None
+        }
+    }
+}
+
+unsafe fn bridge_bool(name: &str, args: &[JArg]) -> bool {
+    let Some(mut env) = get_env() else {
+        return false;
+    };
+    bridge_call(&mut env, name, args, "Z")
+        .and_then(|v| v.z().ok())
+        .unwrap_or(false)
+}
+
+unsafe fn bridge_str(name: &str, args: &[JArg]) -> YogOwnedStr {
+    let Some(mut env) = get_env() else {
+        return YogOwnedStr::NONE;
+    };
+    match bridge_call(&mut env, name, args, "Ljava/lang/String;").and_then(|v| v.l().ok()) {
+        Some(obj) => jstring_to_owned(&mut env, obj),
+        None => YogOwnedStr::NONE,
+    }
+}
+
+fn vec_args(v: YogVec3) -> [JArg; 3] {
+    [JArg::D(v.x), JArg::D(v.y), JArg::D(v.z)]
+}
+
+fn pos_args(p: YogBlockPos) -> [JArg; 3] {
+    [JArg::I(p.x), JArg::I(p.y), JArg::I(p.z)]
+}
+
+unsafe extern "C" fn srv_entity_info(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
+    bridge_str("entityInfo", &[JArg::S(uuid)])
+}
+
+unsafe extern "C" fn srv_entities_in_box(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    min: YogVec3,
+    max: YogVec3,
+) -> YogOwnedStr {
+    let [a, b, c] = vec_args(min);
+    let [d, e, f] = vec_args(max);
+    bridge_str("entitiesInBox", &[JArg::S(dim), a, b, c, d, e, f])
+}
+
+unsafe extern "C" fn srv_raycast_block(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    from: YogVec3,
+    to: YogVec3,
+) -> YogOwnedStr {
+    let [a, b, c] = vec_args(from);
+    let [d, e, f] = vec_args(to);
+    bridge_str("raycastBlock", &[JArg::S(dim), a, b, c, d, e, f])
+}
+
+unsafe extern "C" fn srv_raycast_entity(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    from: YogVec3,
+    to: YogVec3,
+    exclude: YogStr,
+) -> YogOwnedStr {
+    let [a, b, c] = vec_args(from);
+    let [d, e, f] = vec_args(to);
+    bridge_str("raycastEntity", &[JArg::S(dim), a, b, c, d, e, f, JArg::S(exclude)])
+}
+
+unsafe extern "C" fn srv_block_info(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr {
+    let [x, y, z] = pos_args(pos);
+    bridge_str("blockInfo", &[JArg::S(dim), x, y, z])
+}
+
+unsafe extern "C" fn srv_break_block(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    pos: YogBlockPos,
+    drop: bool,
+    breaker: YogStr,
+) -> bool {
+    let [x, y, z] = pos_args(pos);
+    bridge_bool("breakBlock", &[JArg::S(dim), x, y, z, JArg::Z(drop), JArg::S(breaker)])
+}
+
+unsafe extern "C" fn srv_place_block_from_slot(
+    _ctx: *mut c_void,
+    player: YogStr,
+    slot: u32,
+    dim: YogStr,
+    pos: YogBlockPos,
+) -> bool {
+    let [x, y, z] = pos_args(pos);
+    bridge_bool(
+        "placeBlockFromSlot",
+        &[JArg::S(player), JArg::I(slot as i32), JArg::S(dim), x, y, z],
+    )
+}
+
+unsafe extern "C" fn srv_bonemeal(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> bool {
+    let [x, y, z] = pos_args(pos);
+    bridge_bool("bonemeal", &[JArg::S(dim), x, y, z])
+}
+
+unsafe extern "C" fn srv_explode(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    pos: YogVec3,
+    power: f32,
+    fire: bool,
+    source: YogStr,
+) -> bool {
+    let [x, y, z] = vec_args(pos);
+    bridge_bool(
+        "explode",
+        &[JArg::S(dim), x, y, z, JArg::F(power), JArg::Z(fire), JArg::S(source)],
+    )
+}
+
+unsafe extern "C" fn srv_send_message(_ctx: *mut c_void, player: YogStr, msg: YogStr) -> bool {
+    bridge_bool("sendMessage", &[JArg::S(player), JArg::S(msg)])
+}
+
+unsafe extern "C" fn srv_entity_damage(
+    _ctx: *mut c_void,
+    uuid: YogStr,
+    amount: f32,
+    source: YogStr,
+) -> bool {
+    bridge_bool("entityDamage", &[JArg::S(uuid), JArg::F(amount), JArg::S(source)])
+}
+
+unsafe extern "C" fn srv_entity_set_fire_ticks(_ctx: *mut c_void, uuid: YogStr, ticks: i32) -> bool {
+    bridge_bool("entitySetFireTicks", &[JArg::S(uuid), JArg::I(ticks)])
+}
+
+unsafe extern "C" fn srv_player_add_xp(_ctx: *mut c_void, player: YogStr, amount: i32) -> bool {
+    bridge_bool("playerAddXp", &[JArg::S(player), JArg::I(amount)])
+}
+
+unsafe extern "C" fn srv_player_set_may_fly(_ctx: *mut c_void, player: YogStr, may_fly: bool) -> bool {
+    bridge_bool("playerSetMayFly", &[JArg::S(player), JArg::Z(may_fly)])
+}
+
+unsafe extern "C" fn srv_player_info(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
+    bridge_str("playerInfo", &[JArg::S(player)])
+}
+
+unsafe extern "C" fn srv_spawn_item(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    pos: YogVec3,
+    vel: YogVec3,
+    item_id: YogStr,
+    count: u32,
+    snbt: YogStr,
+) -> YogOwnedStr {
+    let [a, b, c] = vec_args(pos);
+    let [d, e, f] = vec_args(vel);
+    bridge_str(
+        "spawnItem",
+        &[JArg::S(dim), a, b, c, d, e, f, JArg::S(item_id), JArg::I(count as i32), JArg::S(snbt)],
+    )
+}
+
+unsafe extern "C" fn srv_item_entity_stack(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
+    bridge_str("itemEntityStack", &[JArg::S(uuid)])
+}
+
+unsafe extern "C" fn srv_item_entity_set_stack(
+    _ctx: *mut c_void,
+    uuid: YogStr,
+    item_id: YogStr,
+    count: u32,
+    snbt: YogStr,
+) -> bool {
+    bridge_bool(
+        "itemEntitySetStack",
+        &[JArg::S(uuid), JArg::S(item_id), JArg::I(count as i32), JArg::S(snbt)],
+    )
+}
+
 // ── Table constructors ────────────────────────────────────────────────────────
 
 fn build_server_table() -> YogServer {
@@ -3375,6 +3619,24 @@ fn build_server_table() -> YogServer {
         set_offhand_item_nbt: srv_set_offhand_item_nbt,
         get_slot_item: srv_get_slot_item,
         set_slot_item: srv_set_slot_item,
+        entity_info: srv_entity_info,
+        entities_in_box: srv_entities_in_box,
+        raycast_block: srv_raycast_block,
+        raycast_entity: srv_raycast_entity,
+        block_info: srv_block_info,
+        break_block: srv_break_block,
+        place_block_from_slot: srv_place_block_from_slot,
+        bonemeal: srv_bonemeal,
+        explode: srv_explode,
+        send_message: srv_send_message,
+        entity_damage: srv_entity_damage,
+        entity_set_fire_ticks: srv_entity_set_fire_ticks,
+        player_add_xp: srv_player_add_xp,
+        player_set_may_fly: srv_player_set_may_fly,
+        player_info: srv_player_info,
+        spawn_item: srv_spawn_item,
+        item_entity_stack: srv_item_entity_stack,
+        item_entity_set_stack: srv_item_entity_set_stack,
     }
 }
 

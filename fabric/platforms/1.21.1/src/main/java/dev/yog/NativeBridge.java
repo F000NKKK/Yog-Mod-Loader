@@ -49,6 +49,29 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.GameMode;
+import com.mojang.brigadier.StringReader;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.command.argument.BlockArgumentParser;
+import net.minecraft.command.argument.BlockStateArgument;
+import net.minecraft.command.argument.ParticleEffectArgumentType;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.BoneMealItem;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.item.Items;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldEvents;
 
 /**
  * Bridge between the Fabric host and the native Yog runtime ({@code libyog_runtime}).
@@ -807,6 +830,353 @@ public final class NativeBridge {
         e.refreshPositionAndAngles(x, y, z, e.getYaw(), e.getPitch());
         w.spawnEntity(e);
         return e.getUuidAsString();
+    }
+
+    // ── world / entity queries & actions (Hex-style ops) ────────────────────
+
+    private static String flag01(boolean b) {
+        return b ? "1" : "0";
+    }
+
+    /** Entity by uuid, or null for null / "" / unknown. */
+    private static Entity optionalEntity(String uuid) {
+        return uuid == null || uuid.isEmpty() ? null : entityByUuid(uuid);
+    }
+
+    /** Item stack from id + count + optional custom-data snbt; null if the id is unknown. */
+    private static ItemStack buildStack(String itemId, int count, String snbt) {
+        Identifier id = Identifier.tryParse(itemId);
+        if (id == null || count <= 0 || !Registries.ITEM.containsId(id)) return null;
+        ItemStack stack = new ItemStack(Registries.ITEM.get(id), count);
+        if (snbt != null && !snbt.isEmpty()) {
+            try {
+                NbtCompound nbt = StringNbtReader.parse(snbt);
+                if (!nbt.isEmpty()) {
+                    stack.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                            net.minecraft.component.type.NbtComponent.of(nbt));
+                }
+            } catch (Exception ignored) {}
+        }
+        return stack;
+    }
+
+    /** Custom-data snbt of a stack, same format as getSlotItem ("{}" if none). */
+    private static String stackSnbt(ItemStack stack) {
+        return stack.getOrDefault(net.minecraft.component.DataComponentTypes.CUSTOM_DATA,
+                net.minecraft.component.type.NbtComponent.DEFAULT).copyNbt().toString();
+    }
+
+    /** "type\tdim\tx\ty\tz\teyeHeight\twidth\theight\tflags\tname", or null. */
+    public static String entityInfo(String uuid) {
+        try {
+            Entity e = entityByUuid(uuid);
+            if (e == null) return null;
+            int flags = 0;
+            if (e instanceof LivingEntity) flags |= 1;
+            if (e instanceof PlayerEntity) flags |= 2;
+            if (e instanceof net.minecraft.entity.passive.AnimalEntity
+                    || e instanceof net.minecraft.entity.mob.WaterCreatureEntity) flags |= 4;
+            if (e instanceof net.minecraft.entity.mob.Monster) flags |= 8;
+            if (e instanceof ItemEntity) flags |= 16;
+            if (e instanceof net.minecraft.entity.mob.MobEntity) flags |= 32;
+            if (e instanceof net.minecraft.entity.decoration.ArmorStandEntity) flags |= 64;
+            if (e.isAlive()) flags |= 128;
+            if (e.isSpectator()) flags |= 256;
+            if (e instanceof net.minecraft.entity.boss.dragon.EnderDragonPart) flags |= 512;
+            if (e instanceof net.minecraft.entity.passive.VillagerEntity) flags |= 1024;
+            return Registries.ENTITY_TYPE.getId(e.getType()) + "\t"
+                    + e.getWorld().getRegistryKey().getValue() + "\t"
+                    + e.getX() + "\t" + e.getY() + "\t" + e.getZ() + "\t"
+                    + e.getStandingEyeHeight() + "\t" + e.getWidth() + "\t" + e.getHeight() + "\t"
+                    + flags + "\t" + tsvField(e.getName().getString());
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** UUIDs (newline-separated) of entities intersecting the box; null if dim unknown. */
+    public static String entitiesInBox(String dim, double x0, double y0, double z0, double x1, double y1, double z1) {
+        try {
+            ServerWorld w = worldFor(dim);
+            if (w == null) return null;
+            StringBuilder sb = new StringBuilder();
+            for (Entity e : w.getOtherEntities(null, new Box(x0, y0, z0, x1, y1, z1), o -> true)) {
+                if (sb.length() > 0) sb.append('\n');
+                sb.append(e.getUuidAsString());
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** "x\ty\tz\tface\thx\thy\thz" of the first block hit, or null on miss. */
+    public static String raycastBlock(String dim, double fx, double fy, double fz, double tx, double ty, double tz) {
+        try {
+            ServerWorld w = worldFor(dim);
+            if (w == null) return null;
+            BlockHitResult hit = w.raycast(new RaycastContext(new Vec3d(fx, fy, fz), new Vec3d(tx, ty, tz),
+                    RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, ShapeContext.absent()));
+            if (hit == null || hit.getType() == HitResult.Type.MISS) return null;
+            BlockPos p = hit.getBlockPos();
+            Vec3d h = hit.getPos();
+            return p.getX() + "\t" + p.getY() + "\t" + p.getZ() + "\t" + hit.getSide().getId()
+                    + "\t" + h.x + "\t" + h.y + "\t" + h.z;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** UUID of the nearest entity hit along from→to (ProjectileUtil semantics), or null. */
+    public static String raycastEntity(String dim, double fx, double fy, double fz,
+            double tx, double ty, double tz, String excludeUuid) {
+        try {
+            ServerWorld w = worldFor(dim);
+            if (w == null) return null;
+            Entity ex = optionalEntity(excludeUuid);
+            Vec3d from = new Vec3d(fx, fy, fz);
+            Vec3d to = new Vec3d(tx, ty, tz);
+            Box area = new Box(fx, fy, fz, tx, ty, tz).expand(1.0);
+            Entity best = null;
+            double bestDist = Double.MAX_VALUE;
+            for (Entity c : w.getOtherEntities(ex, area, o -> !o.isSpectator() && o.canHit())) {
+                if (ex != null && c.getRootVehicle() == ex.getRootVehicle()) continue;
+                Box box = c.getBoundingBox().expand(c.getTargetingMargin());
+                if (box.contains(from)) {
+                    if (bestDist > 0.0) {
+                        best = c;
+                        bestDist = 0.0;
+                    }
+                    continue;
+                }
+                java.util.Optional<Vec3d> clip = box.raycast(from, to);
+                if (clip.isPresent()) {
+                    double d = from.squaredDistanceTo(clip.get());
+                    if (d < bestDist) {
+                        best = c;
+                        bestDist = d;
+                    }
+                }
+            }
+            return best == null ? null : best.getUuidAsString();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** "state\thardness\treplaceable\tair\tfluid\tsource\tredstone\tinWorld", or null. */
+    public static String blockInfo(String dim, int x, int y, int z) {
+        try {
+            ServerWorld w = worldFor(dim);
+            if (w == null) return null;
+            BlockPos pos = new BlockPos(x, y, z);
+            BlockState st = w.getBlockState(pos);
+            FluidState fs = st.getFluidState();
+            String fluid = fs.isEmpty() ? "" : Registries.FLUID.getId(fs.getFluid()).toString();
+            boolean inWorld = w.isInBuildLimit(pos) && w.getWorldBorder().contains(pos);
+            return BlockArgumentParser.stringifyBlockState(st) + "\t"
+                    + st.getHardness(w, pos) + "\t"
+                    + flag01(st.isReplaceable()) + "\t"
+                    + flag01(st.isAir()) + "\t"
+                    + fluid + "\t"
+                    + flag01(!fs.isEmpty() && fs.isStill()) + "\t"
+                    + w.getReceivedRedstonePower(pos) + "\t"
+                    + flag01(inWorld);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Break the block (dropping items if `drop`); false for air / unbreakable blocks. */
+    public static boolean breakBlock(String dim, int x, int y, int z, boolean drop, String breakerUuid) {
+        try {
+            ServerWorld w = worldFor(dim);
+            if (w == null) return false;
+            BlockPos pos = new BlockPos(x, y, z);
+            BlockState st = w.getBlockState(pos);
+            if (st.isAir() || st.getHardness(w, pos) < 0) return false;
+            return w.breakBlock(pos, drop, optionalEntity(breakerUuid));
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Place the BlockItem from the player's inventory slot at a replaceable position. */
+    public static boolean placeBlockFromSlot(String player, int slot, String dim, int x, int y, int z) {
+        try {
+            ServerPlayerEntity p = playerByName(player);
+            ServerWorld w = worldFor(dim);
+            if (p == null || w == null || p.getServerWorld() != w) return false;
+            PlayerInventory inv = p.getInventory();
+            if (slot < 0 || slot >= inv.size()) return false;
+            ItemStack stack = inv.getStack(slot);
+            if (stack.isEmpty() || !(stack.getItem() instanceof BlockItem bi)) return false;
+            BlockPos pos = new BlockPos(x, y, z);
+            if (!w.getBlockState(pos).isReplaceable()) return false;
+            BlockHitResult hit = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+            ActionResult r = bi.place(new ItemPlacementContext(p, Hand.MAIN_HAND, stack, hit));
+            return r.isAccepted();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Apply bone meal at the position (crops / saplings / grass, or water plants). */
+    public static boolean bonemeal(String dim, int x, int y, int z) {
+        try {
+            ServerWorld w = worldFor(dim);
+            if (w == null) return false;
+            BlockPos pos = new BlockPos(x, y, z);
+            boolean ok = BoneMealItem.useOnFertilizable(new ItemStack(Items.BONE_MEAL), w, pos)
+                    || BoneMealItem.useOnGround(new ItemStack(Items.BONE_MEAL), w, pos, null);
+            if (ok) w.syncWorldEvent(WorldEvents.BONE_MEAL_USED, pos, 15);
+            return ok;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean explode(String dim, double x, double y, double z, float power, boolean fire, String sourceUuid) {
+        try {
+            ServerWorld w = worldFor(dim);
+            if (w == null) return false;
+            w.createExplosion(optionalEntity(sourceUuid), x, y, z, power, fire, World.ExplosionSourceType.TNT);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean sendMessage(String player, String message) {
+        try {
+            ServerPlayerEntity p = playerByName(player);
+            if (p == null) return false;
+            p.sendMessage(Text.literal(message), false);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Damage an entity; source = player attack / mob attack / magic depending on sourceUuid. */
+    public static boolean entityDamage(String uuid, float amount, String sourceUuid) {
+        try {
+            Entity e = entityByUuid(uuid);
+            if (e == null) return false;
+            Entity src = optionalEntity(sourceUuid);
+            DamageSource ds;
+            if (src instanceof PlayerEntity sp) {
+                ds = e.getDamageSources().playerAttack(sp);
+            } else if (src instanceof LivingEntity sl) {
+                ds = e.getDamageSources().mobAttack(sl);
+            } else {
+                ds = e.getDamageSources().magic();
+            }
+            return e.damage(ds, amount);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean entitySetFireTicks(String uuid, int ticks) {
+        try {
+            Entity e = entityByUuid(uuid);
+            if (e == null) return false;
+            e.setFireTicks(ticks);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean playerAddXp(String player, int amount) {
+        try {
+            ServerPlayerEntity p = playerByName(player);
+            if (p == null) return false;
+            p.addExperience(amount);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Grant / revoke flight; revoking leaves creative / spectator players untouched. */
+    public static boolean playerSetMayFly(String player, boolean mayFly) {
+        try {
+            ServerPlayerEntity p = playerByName(player);
+            if (p == null) return false;
+            GameMode gm = p.interactionManager.getGameMode();
+            if (!mayFly && (gm.isCreative() || gm == GameMode.SPECTATOR)) return true;
+            p.getAbilities().allowFlying = mayFly;
+            if (!mayFly) p.getAbilities().flying = false;
+            p.sendAbilitiesUpdate();
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** "uuid\tgamemode\tselectedSlot\txpLevel\txpTotal\tair\tmayFly\tflying", or null. */
+    public static String playerInfo(String player) {
+        try {
+            ServerPlayerEntity p = playerByName(player);
+            if (p == null) return null;
+            return p.getUuidAsString() + "\t"
+                    + p.interactionManager.getGameMode().getName() + "\t"
+                    + p.getInventory().selectedSlot + "\t"
+                    + p.experienceLevel + "\t"
+                    + p.totalExperience + "\t"
+                    + p.getAir() + "\t"
+                    + flag01(p.getAbilities().allowFlying) + "\t"
+                    + flag01(p.getAbilities().flying);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Spawn an item entity with the given velocity; returns its uuid or null. */
+    public static String spawnItem(String dim, double x, double y, double z,
+            double vx, double vy, double vz, String itemId, int count, String snbt) {
+        try {
+            ServerWorld w = worldFor(dim);
+            if (w == null) return null;
+            ItemStack stack = buildStack(itemId, count, snbt);
+            if (stack == null || stack.isEmpty()) return null;
+            ItemEntity ie = new ItemEntity(w, x, y, z, stack);
+            ie.setVelocity(vx, vy, vz);
+            if (!w.spawnEntity(ie)) return null;
+            return ie.getUuidAsString();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** "itemId\tcount\tsnbt" of an item entity's stack, or null. */
+    public static String itemEntityStack(String uuid) {
+        try {
+            if (!(entityByUuid(uuid) instanceof ItemEntity ie)) return null;
+            ItemStack stack = ie.getStack();
+            return Registries.ITEM.getId(stack.getItem()) + "\t" + stack.getCount() + "\t" + stackSnbt(stack);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Replace an item entity's stack; count <= 0 or empty id discards the entity. */
+    public static boolean itemEntitySetStack(String uuid, String itemId, int count, String snbt) {
+        try {
+            if (!(entityByUuid(uuid) instanceof ItemEntity ie)) return false;
+            if (count <= 0 || itemId == null || itemId.isEmpty()) {
+                ie.discard();
+                return true;
+            }
+            ItemStack stack = buildStack(itemId, count, snbt);
+            if (stack == null) return false;
+            ie.setStack(stack);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     private static Entity entityByUuid(String uuidStr) {
