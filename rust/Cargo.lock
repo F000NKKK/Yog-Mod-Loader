@@ -903,7 +903,7 @@ version = "0.25.0"
 
 [[package]]
 name = "yog-api"
-version = "0.87.2"
+version = "0.87.3"
 dependencies = [
  "ctor",
  "rkyv",
@@ -1086,7 +1086,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ui"
-version = "0.35.2"
+version = "0.35.3"
 dependencies = [
  "yog-abi",
  "yog-gfx",
