@@ -1,7 +1,7 @@
 //! `yog publish exports` codegen: scanning sources for `#[yog_export]`
 //! items, resolving their imports, generating the crate's `lib.rs`.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
 use yog_cli::exports;
 

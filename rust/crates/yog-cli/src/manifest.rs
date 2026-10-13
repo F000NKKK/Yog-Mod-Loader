@@ -15,7 +15,7 @@ pub const DEPS_SECTION: &str = "[dependencies]";
 /// Other Yog mods' exports crates.
 pub const EXPORT_DEPS_SECTION: &str = "[dependencies.exports]";
 /// Rust edition when `[mod] edition` is absent.
-pub const DEFAULT_EDITION: &str = "2021";
+pub const DEFAULT_EDITION: &str = "2024";
 /// License of a mod, and of its exports crate, when none is given.
 pub const DEFAULT_LICENSE: &str = "MIT OR Apache-2.0";
 /// `yog-api` version when crates.io can't be asked (offline, etc.).

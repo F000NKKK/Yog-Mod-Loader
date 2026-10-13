@@ -21,13 +21,23 @@ pub fn yres_set(n: usize) -> (String, String) {
         let sep = if i + 1 == n { "" } else { "," };
         match i % 5 {
             0 => {
-                let _ = writeln!(neutral, "  \"entry_{i}\": {{ \"type\": \"image\", \"value\": \"img/entry_{i}.png\" }}{sep}");
+                let _ = writeln!(
+                    neutral,
+                    "  \"entry_{i}\": {{ \"type\": \"image\", \"value\": \"img/entry_{i}.png\" }}{sep}"
+                );
             }
             1 => {
-                let _ = writeln!(neutral, "  \"entry_{i}\": {{ \"type\": \"color\", \"value\": \"#FF{:06X}\", \"comment\": \"Color {i}\" }}{sep}", i * 2654435 % 0xFFFFFF);
+                let _ = writeln!(
+                    neutral,
+                    "  \"entry_{i}\": {{ \"type\": \"color\", \"value\": \"#FF{:06X}\", \"comment\": \"Color {i}\" }}{sep}",
+                    i * 2654435 % 0xFFFFFF
+                );
             }
             2 => {
-                let _ = writeln!(neutral, "  \"entry_{i}\": {{ \"value\": \"Entry {i}: {{count}} things\", \"comment\": \"Text with a placeholder\" }}{sep}");
+                let _ = writeln!(
+                    neutral,
+                    "  \"entry_{i}\": {{ \"value\": \"Entry {i}: {{count}} things\", \"comment\": \"Text with a placeholder\" }}{sep}"
+                );
             }
             _ => {
                 let _ = writeln!(neutral, "  \"entry_{i}\": \"Entry number {i}\"{sep}");

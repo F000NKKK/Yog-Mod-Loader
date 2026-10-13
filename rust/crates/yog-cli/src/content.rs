@@ -23,8 +23,8 @@ pub mod json;
 pub use import::import_command;
 
 use crate::yres;
-use json::{num_value, J, V};
-use serde_json::{json, Map, Value};
+use json::{J, V, num_value};
+use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -447,16 +447,16 @@ impl Ctx<'_> {
                 return None;
             }
             let target = format!("assets/{}/textures/{rel}.png", self.ns);
-            if let Some(other) = self.textures.insert(target.clone(), file.clone()) {
-                if other != file {
-                    self.err(
-                        j.line,
-                        format!(
-                            "{what}: {target} also comes from {}",
-                            display(self.root, &other)
-                        ),
-                    );
-                }
+            if let Some(other) = self.textures.insert(target.clone(), file.clone())
+                && other != file
+            {
+                self.err(
+                    j.line,
+                    format!(
+                        "{what}: {target} also comes from {}",
+                        display(self.root, &other)
+                    ),
+                );
             }
             let meta = self
                 .root
@@ -650,11 +650,13 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
     }
 
     // `particle` — the break/run particles. Default: the first texture.
-    if !textures.contains_key("particle") && !tpl.is_some_and(|t| t.has_particle) && !raw_parent {
-        if let Some(first) = slots.first() {
-            let v = textures[first].clone();
-            textures.insert("particle".into(), v);
-        }
+    if !textures.contains_key("particle")
+        && !tpl.is_some_and(|t| t.has_particle)
+        && !raw_parent
+        && let Some(first) = slots.first()
+    {
+        let v = textures[first].clone();
+        textures.insert("particle".into(), v);
     }
     if !textures.is_empty() {
         out.insert("textures".into(), Value::Object(textures));
@@ -680,28 +682,28 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
             cx.unknown_keys(t, &w, &["rotation", "translation", "scale"]);
             let mut m = Map::new();
             for (key, lim) in [("rotation", 360.0), ("translation", 80.0), ("scale", 4.0)] {
-                if let Some(v) = t.get(key) {
-                    if let Some(v3) = cx.vec::<3>(v, &format!("{w}.{key}"), -lim, lim) {
-                        m.insert(
-                            key.into(),
-                            Value::Array(v3.iter().map(|n| num_value(*n)).collect()),
-                        );
-                    }
+                if let Some(v) = t.get(key)
+                    && let Some(v3) = cx.vec::<3>(v, &format!("{w}.{key}"), -lim, lim)
+                {
+                    m.insert(
+                        key.into(),
+                        Value::Array(v3.iter().map(|n| num_value(*n)).collect()),
+                    );
                 }
             }
             display.insert(slot.clone(), Value::Object(m));
         }
         out.insert("display".into(), Value::Object(display));
     }
-    if let Some(ao) = j.get("ambient_occlusion") {
-        if let Some(b) = cx.boolean(ao, &format!("{what}.ambient_occlusion")) {
-            out.insert("ambientocclusion".into(), Value::Bool(b));
-        }
+    if let Some(ao) = j.get("ambient_occlusion")
+        && let Some(b) = cx.boolean(ao, &format!("{what}.ambient_occlusion"))
+    {
+        out.insert("ambientocclusion".into(), Value::Bool(b));
     }
-    if let Some(gl) = j.get("gui_light") {
-        if let Some(s) = cx.one_of(gl, &format!("{what}.gui_light"), &["front", "side"]) {
-            out.insert("gui_light".into(), Value::String(s));
-        }
+    if let Some(gl) = j.get("gui_light")
+        && let Some(s) = cx.one_of(gl, &format!("{what}.gui_light"), &["front", "side"])
+    {
+        out.insert("gui_light".into(), Value::String(s));
     }
     Some(Model {
         json: Value::Object(out),
@@ -753,10 +755,10 @@ fn element(
         let angle = r
             .get("angle")
             .and_then(|a| cx.number(a, &format!("{w}.angle"), -45.0, 45.0));
-        if let Some(a) = angle {
-            if (a / 22.5).fract() != 0.0 {
-                cx.err(r.line, format!("{w}.angle is {a} — Minecraft rotates elements by -45, -22.5, 0, 22.5 or 45 degrees"));
-            }
+        if let Some(a) = angle
+            && (a / 22.5).fract() != 0.0
+        {
+            cx.err(r.line, format!("{w}.angle is {a} — Minecraft rotates elements by -45, -22.5, 0, 22.5 or 45 degrees"));
         }
         let origin = match r.get("origin") {
             Some(o) => cx.vec::<3>(o, &format!("{w}.origin"), -16.0, 32.0),
@@ -774,22 +776,20 @@ fn element(
             );
             rot.insert("axis".into(), Value::String(axis));
             rot.insert("angle".into(), num_value(angle));
-            if let Some(rs) = r.get("rescale") {
-                if let Some(b) = cx.boolean(rs, &format!("{w}.rescale")) {
-                    if b {
-                        rot.insert("rescale".into(), Value::Bool(true));
-                    }
-                }
+            if let Some(rs) = r.get("rescale")
+                && let Some(b) = cx.boolean(rs, &format!("{w}.rescale"))
+                && b
+            {
+                rot.insert("rescale".into(), Value::Bool(true));
             }
             out.insert("rotation".into(), Value::Object(rot));
         }
     }
-    if let Some(s) = j.get("shade") {
-        if let Some(b) = cx.boolean(s, &format!("{what}.shade")) {
-            if !b {
-                out.insert("shade".into(), Value::Bool(false));
-            }
-        }
+    if let Some(s) = j.get("shade")
+        && let Some(b) = cx.boolean(s, &format!("{what}.shade"))
+        && !b
+    {
+        out.insert("shade".into(), Value::Bool(false));
     }
     let mut faces = Map::new();
     match j.get("faces") {
@@ -830,13 +830,13 @@ fn element(
                         }
                     }
                 }
-                if let Some(uv) = face.get("uv") {
-                    if let Some(uv) = cx.vec::<4>(uv, &format!("{w}.uv"), 0.0, 16.0) {
-                        fo.insert(
-                            "uv".into(),
-                            Value::Array(uv.iter().map(|n| num_value(*n)).collect()),
-                        );
-                    }
+                if let Some(uv) = face.get("uv")
+                    && let Some(uv) = cx.vec::<4>(uv, &format!("{w}.uv"), 0.0, 16.0)
+                {
+                    fo.insert(
+                        "uv".into(),
+                        Value::Array(uv.iter().map(|n| num_value(*n)).collect()),
+                    );
                 }
                 if let Some(r) = face.get("rotation") {
                     match r.num() {
@@ -848,17 +848,16 @@ fn element(
                         _ => cx.err(r.line, format!("{w}.rotation must be 0, 90, 180 or 270")),
                     }
                 }
-                if let Some(c) = face.get("cullface") {
-                    if let Some(c) = cx.one_of(c, &format!("{w}.cullface"), &DIRECTIONS) {
-                        fo.insert("cullface".into(), Value::String(c));
-                    }
+                if let Some(c) = face.get("cullface")
+                    && let Some(c) = cx.one_of(c, &format!("{w}.cullface"), &DIRECTIONS)
+                {
+                    fo.insert("cullface".into(), Value::String(c));
                 }
-                if let Some(t) = face.get("tint") {
-                    if let Some(n) = cx.number(t, &format!("{w}.tint"), -1.0, 255.0) {
-                        if n >= 0.0 {
-                            fo.insert("tintindex".into(), num_value(n.floor()));
-                        }
-                    }
+                if let Some(t) = face.get("tint")
+                    && let Some(n) = cx.number(t, &format!("{w}.tint"), -1.0, 255.0)
+                    && n >= 0.0
+                {
+                    fo.insert("tintindex".into(), num_value(n.floor()));
                 }
                 faces.insert(dir.clone(), Value::Object(fo));
             }
@@ -916,10 +915,10 @@ fn variant(model: &str, x: f64, y: f64, uvlock: bool, weight: Option<f64>) -> Va
     if uvlock {
         v.insert("uvlock".into(), Value::Bool(true));
     }
-    if let Some(w) = weight {
-        if w != 1.0 {
-            v.insert("weight".into(), num_value(w));
-        }
+    if let Some(w) = weight
+        && w != 1.0
+    {
+        v.insert("weight".into(), num_value(w));
     }
     Value::Object(v)
 }
@@ -957,10 +956,10 @@ fn compile_file(
     };
     let known: Vec<&str> = common.iter().chain(specific).copied().collect();
     cx.unknown_keys(j, &format!("a .y{}", kind.word()), &known);
-    if let Some(f) = j.get("format") {
-        if f.num() != Some(1.0) {
-            cx.err(f.line, "format must be 1 (this yog understands format 1)");
-        }
+    if let Some(f) = j.get("format")
+        && f.num() != Some(1.0)
+    {
+        cx.err(f.line, "format must be 1 (this yog understands format 1)");
     }
     let (ns, p) = entry_id(cx, j, path, mod_ns)?;
     cx.ns = ns.clone();
@@ -1528,7 +1527,11 @@ fn rust_source(entries: &[Entry]) -> String {
         let _ = writeln!(
             code,
             "\n/// The {} of `content/`: the id and a [`::yog_api::{def}`] of each.\n#[allow(dead_code)]\npub struct {set};\n\n#[allow(dead_code, clippy::all)]\nimpl {set} {{",
-            if kind == Kind::Block { "blocks" } else { "items" }
+            if kind == Kind::Block {
+                "blocks"
+            } else {
+                "items"
+            }
         );
         let mut used: HashMap<String, usize> = HashMap::new();
         for e in mine {
@@ -1780,11 +1783,11 @@ pub fn merge_outputs(
             };
             let mut changed = false;
             for (from, to) in &compiled.lang_aliases {
-                if let Some(text) = map.get(from).cloned() {
-                    if !map.contains_key(to) {
-                        map.insert(to.clone(), text);
-                        changed = true;
-                    }
+                if let Some(text) = map.get(from).cloned()
+                    && !map.contains_key(to)
+                {
+                    map.insert(to.clone(), text);
+                    changed = true;
                 }
             }
             if changed {
@@ -1928,10 +1931,11 @@ mod tests {
             loot["pools"][0]["entries"][0]["functions"][0]["count"]["max"],
             json!(3)
         );
-        assert!(c
-            .outputs
-            .iter()
-            .any(|(p, _)| p == "assets/mymod/textures/block/ruby_ore.png"));
+        assert!(
+            c.outputs
+                .iter()
+                .any(|(p, _)| p == "assets/mymod/textures/block/ruby_ore.png")
+        );
         let src = c.source.as_ref().unwrap();
         assert!(
             src.contains("pub const RUBY_ORE: &'static str = \"mymod:ruby_ore\";"),

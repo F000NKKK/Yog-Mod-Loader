@@ -274,7 +274,7 @@ impl Parser<'_> {
                     return Err(format!(
                         "line {}: unterminated string (strings can't span lines — use \\n)",
                         self.line
-                    ))
+                    ));
                 }
                 b'\\' => {
                     let Some(e) = self.peek() else {
@@ -295,7 +295,7 @@ impl Parser<'_> {
                             return Err(format!(
                                 "line {}: invalid escape `\\{}`",
                                 self.line, other as char
-                            ))
+                            ));
                         }
                     };
                     let mut buf = [0u8; 4];
@@ -305,7 +305,7 @@ impl Parser<'_> {
                     return Err(format!(
                         "line {}: control character in a string — escape it",
                         self.line
-                    ))
+                    ));
                 }
                 c => out.push(c),
             }
@@ -398,7 +398,7 @@ impl Parser<'_> {
                     other => {
                         return Err(format!(
                             "line {field_line}: {name:?}: unknown field `{other}` (value, type, comment, key, texture, event, subtitle)"
-                        ))
+                        ));
                     }
                 }
                 seen.push(field);
@@ -567,7 +567,7 @@ fn segments(text: &str) -> Result<Vec<Segment>, String> {
                         Some('}') => break,
                         Some(c) => arg.push(c),
                         None => {
-                            return Err("`{` without `}` (write `{{` for a literal brace)".into())
+                            return Err("`{` without `}` (write `{{` for a literal brace)".into());
                         }
                     }
                 }
@@ -617,7 +617,9 @@ fn params(segs: &[Segment]) -> Result<Vec<String>, String> {
         nums.dedup();
         for (i, n) in nums.iter().enumerate() {
             if *n != i {
-                return Err(format!("placeholder {{{i}}} is missing (numbered placeholders start at {{0}}, no gaps)"));
+                return Err(format!(
+                    "placeholder {{{i}}} is missing (numbered placeholders start at {{0}}, no gaps)"
+                ));
             }
             out.push(n.to_string());
         }
@@ -1099,14 +1101,14 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                         }
                         _ => (format!("assets/{mod_id}/{rel}"), format!("{mod_id}:{rel}")),
                     };
-                    if let Some(other) = bundled.insert(target.clone(), full.clone()) {
-                        if other != full {
-                            errors.push(format!(
-                                "{at}: {:?} goes to {target}, like {}",
-                                e.name,
-                                display(root, &other)
-                            ));
-                        }
+                    if let Some(other) = bundled.insert(target.clone(), full.clone())
+                        && other != full
+                    {
+                        errors.push(format!(
+                            "{at}: {:?} goes to {target}, like {}",
+                            e.name,
+                            display(root, &other)
+                        ));
                     }
                     let _ = writeln!(
                         code,

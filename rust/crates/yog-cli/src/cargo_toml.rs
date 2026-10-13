@@ -1,7 +1,7 @@
 //! The generated `.yog-build/Cargo.toml` and the `lib.designer.rs` facade.
 
 use crate::manifest::{
-    to_snake_name, workspace_rkyv_version, YogToml, DEFAULT_EDITION, DEPS_SECTION, DESIGNER_FILE,
+    DEFAULT_EDITION, DEPS_SECTION, DESIGNER_FILE, YogToml, to_snake_name, workspace_rkyv_version,
 };
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};

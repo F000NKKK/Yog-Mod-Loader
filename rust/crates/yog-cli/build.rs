@@ -9,19 +9,20 @@ fn main() {
 
     for _ in 0..5 {
         let candidate = path.join("Cargo.toml");
-        if candidate.exists() {
-            if let Ok(content) = std::fs::read_to_string(&candidate) {
-                for line in content.lines() {
-                    let line = line.trim();
-                    if line.starts_with("rkyv = ") && rkyv_ver.is_empty() {
-                        if let Some(ver) = line.split('"').nth(1) {
-                            rkyv_ver = ver.to_string();
-                        }
-                    }
+        if candidate.exists()
+            && let Ok(content) = std::fs::read_to_string(&candidate)
+        {
+            for line in content.lines() {
+                let line = line.trim();
+                if line.starts_with("rkyv = ")
+                    && rkyv_ver.is_empty()
+                    && let Some(ver) = line.split('"').nth(1)
+                {
+                    rkyv_ver = ver.to_string();
                 }
-                if !rkyv_ver.is_empty() {
-                    break;
-                }
+            }
+            if !rkyv_ver.is_empty() {
+                break;
             }
         }
         path = match path.parent() {

@@ -31,7 +31,7 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use crate::yui::{self, err, Element, RAW_CALL, RAW_VALUE, UI_USE};
+use crate::yui::{self, Element, RAW_CALL, RAW_VALUE, UI_USE, err};
 
 /// Index of the components without a code-behind, included by `ui_components!()`.
 pub const INDEX_FILE: &str = ".yog-build/generated/components.g.rs";
@@ -176,19 +176,19 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                         return err(
                             child,
                             format_args!("default=\"{default}\": expected a number"),
-                        )
+                        );
                     }
                     "int" if default.trim().parse::<i64>().is_err() => {
                         return err(
                             child,
                             format_args!("default=\"{default}\": expected a whole number"),
-                        )
+                        );
                     }
                     "bool" if !matches!(default.trim(), "true" | "false") => {
                         return err(
                             child,
                             format_args!("default=\"{default}\": expected true or false"),
-                        )
+                        );
                     }
                     "color" => {
                         // A literal or a `.yres` color, stored as its value.
@@ -199,7 +199,7 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                         return err(
                             child,
                             format_args!("default=\"{default}\" isn't one of the options"),
-                        )
+                        );
                     }
                     _ => {}
                 }
@@ -216,7 +216,7 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                 return err(
                     child,
                     "a component has one body element (wrap several in a Column, Row or Canvas)",
-                )
+                );
             }
             _ => body = Some(child),
         }
@@ -284,7 +284,7 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
                 return err(
                     el,
                     format_args!("{key}=\"{value}\": `{key}` can't be bound"),
-                )
+                );
             }
         };
         out.attrs.push((format!("{RAW_CALL}{counter}"), call));
@@ -336,12 +336,17 @@ pub fn generate(
             return err(
                 root,
                 format_args!("toolbox=\"{v}\": expected true or false"),
-            )
+            );
         }
     };
     let icon = root.attr("icon").unwrap_or_default().trim();
     if !icon.is_empty() && !icon.starts_with('@') && !icon.contains(':') {
-        return err(root, format_args!("icon=\"{icon}\": expected an image source (item:apple, sprite:button, mod:gui/logo) or @Icons.name"));
+        return err(
+            root,
+            format_args!(
+                "icon=\"{icon}\": expected an image source (item:apple, sprite:button, mod:gui/logo) or @Icons.name"
+            ),
+        );
     }
     let (props, body) = declarations(root)?;
     let Some(body) = body else {
@@ -518,13 +523,13 @@ pub fn write_index(root: &Path) -> Result<PathBuf, String> {
 mod tests {
     use super::*;
 
-    fn gen(src: &str) -> Result<String, String> {
+    fn codegen(src: &str) -> Result<String, String> {
         generate(&yui::parse_xml(src)?, "ui/stat_bar", None).map(|(c, _)| c)
     }
 
     #[test]
     fn generates_a_component() {
-        let code = gen(r##"<Component description="A bar." icon="@Icons.bar" category="Bars" design_w="120" design_h="10" d:bg="#FF000000">
+        let code = codegen(r##"<Component description="A bar." icon="@Icons.bar" category="Bars" design_w="120" design_h="10" d:bg="#FF000000">
             <Property name="label" default="HP" doc="Left text" category="Text"/>
             <Property name="value" type="number" default="0.5"/>
             <Property name="fill" type="color" default="#FF55FF55"/>
@@ -572,7 +577,7 @@ mod tests {
         let mut refs = crate::yres::Refs::default();
         refs.colors.insert("Colors.fill".into(), 0xFF01_0203);
         crate::yui::set_resource_refs(&refs);
-        let code = gen(
+        let code = codegen(
             r#"<Component><Property name="fill" type="color" default="@Colors.fill"/><Row bg="@Colors.fill"/></Component>"#,
         );
         let screen = crate::yui::generate_for(
@@ -649,7 +654,7 @@ mod tests {
                 "cx",
             ),
         ] {
-            let e = gen(src).unwrap_err();
+            let e = codegen(src).unwrap_err();
             assert!(e.contains(msg), "{src}: {e}");
         }
     }

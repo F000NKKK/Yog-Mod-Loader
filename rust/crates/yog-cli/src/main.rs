@@ -15,11 +15,10 @@
 //!   yog help         — show usage
 
 use yog_cli::cargo_toml::{generate_cargo_toml, generate_lib_facade};
-use yog_cli::exports::{self, collect_rs_files, ExportItem};
+use yog_cli::exports::{self, ExportItem, collect_rs_files};
 use yog_cli::manifest::{
-    latest_yog_api_version, project_root, to_snake_name, workspace_rkyv_version, YogToml,
     BUILD_DIR, DEFAULT_EDITION, DEFAULT_LICENSE, DEPS_SECTION, DESIGNER_FILE, EXPORT_DEPS_SECTION,
-    MANIFEST,
+    MANIFEST, YogToml, latest_yog_api_version, project_root, to_snake_name, workspace_rkyv_version,
 };
 use yog_cli::{content, yres, yui, yui_component};
 
@@ -750,15 +749,15 @@ fn resolve(root: &Path, path: &str) -> PathBuf {
 
 /// Replace a leading `~` with the value of `$HOME`.
 fn expand_tilde(path: &str) -> String {
-    if path == "~" {
-        if let Ok(home) = std::env::var("HOME") {
-            return home;
-        }
+    if path == "~"
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return home;
     }
-    if path.starts_with("~/") {
-        if let Ok(home) = std::env::var("HOME") {
-            return home + &path[1..];
-        }
+    if path.starts_with("~/")
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return home + &path[1..];
     }
     path.to_string()
 }
@@ -1167,11 +1166,7 @@ impl Builder {
                     "{}",
                     filter_benign_warnings(&String::from_utf8_lossy(&o.stderr))
                 );
-                if o.status.success() {
-                    Ok(())
-                } else {
-                    Err(())
-                }
+                if o.status.success() { Ok(()) } else { Err(()) }
             }
             _ => Err(()),
         }
@@ -1640,7 +1635,7 @@ fn write_file(path: &Path, data: &[u8]) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{filter_benign_warnings, DoctorReport};
+    use super::{DoctorReport, filter_benign_warnings};
 
     #[test]
     fn doctor_json_is_valid() {

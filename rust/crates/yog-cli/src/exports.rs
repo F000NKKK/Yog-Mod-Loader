@@ -321,13 +321,12 @@ pub fn collect_uses(exports: &[ExportItem], sources: &[String]) -> (Vec<String>,
                 .next()
                 .map(|c| c.is_uppercase())
                 .unwrap_or(false)
+                && let Some(p) = resolve_name(tok, &import_paths, &local_names, &primitives)
             {
-                if let Some(p) = resolve_name(tok, &import_paths, &local_names, &primitives) {
-                    if is_system(&p) {
-                        system_imports.insert(p);
-                    } else {
-                        type_imports.insert(p);
-                    }
+                if is_system(&p) {
+                    system_imports.insert(p);
+                } else {
+                    type_imports.insert(p);
                 }
             }
         }

@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use crate::yui::{self, err, Element, RAW_CALL, RAW_VALUE, UI_USE};
+use crate::yui::{self, Element, RAW_CALL, RAW_VALUE, UI_USE, err};
 
 /// The codegen version checked by `yog_kit::__codegen::require`.
 const CODEGEN: u32 = 1;
@@ -119,7 +119,7 @@ fn lex(src: &str) -> Result<Vec<Tok>, String> {
             _ => {
                 return Err(format!(
                     "unexpected `{c}` (bindings allow paths, calls, literals, !, == and !=; use a view-model method for anything else)"
-                ))
+                ));
             }
         }
     }
@@ -336,7 +336,7 @@ impl Ex {
                             ("cx", _) => return Err("`cx` is only available in commands".into()),
                             ("item" | "index", Scope::Template) => n.clone(),
                             ("item" | "index", Scope::Screen) => {
-                                return Err(format!("`{n}` is only available in item templates"))
+                                return Err(format!("`{n}` is only available in item templates"));
                             }
                             (_, Scope::Screen) => format!("vm.{n}"),
                             (_, Scope::Template) => format!("item.{n}"),
@@ -610,7 +610,7 @@ impl VmGen<'_> {
                             return err(
                                 el,
                                 format!("{k}=\"{v}\": no resource `{name}` in <Screen.Resources>"),
-                            )
+                            );
                         }
                     }
                 }
@@ -817,7 +817,10 @@ impl VmGen<'_> {
                 };
                 let rooted = matches!(head, Head::Ident(n, None) if n == "vm" || n == "cx");
                 let Some(last) = segs.last().filter(|s| s.args.is_some() && rooted) else {
-                    return err(el, "commands in item templates call the view model: write vm.method(...) (or cx....)");
+                    return err(
+                        el,
+                        "commands in item templates call the view model: write vm.method(...) (or cx....)",
+                    );
                 };
                 let args = last.args.clone().unwrap_or_default();
                 let mut call = e.clone();
@@ -902,19 +905,39 @@ impl VmGen<'_> {
                 continue;
             }
             if matches!(k, "on_click" | "on_change" | "on_submit") {
-                return err(el, format!("{k}: view-model screens use command=\"{{x:Bind method()}}\" (and Mode=TwoWay text) instead"));
+                return err(
+                    el,
+                    format!(
+                        "{k}: view-model screens use command=\"{{x:Bind method()}}\" (and Mode=TwoWay text) instead"
+                    ),
+                );
             }
             if let Some((state, attr)) = k.split_once(':') {
                 let Some((_, flag)) = STATES.iter().find(|(s, _)| *s == state) else {
-                    return err(el, format!("unknown attribute prefix `{state}:` (states: hover, pressed, focused, selected, checked, disabled)"));
+                    return err(
+                        el,
+                        format!(
+                            "unknown attribute prefix `{state}:` (states: hover, pressed, focused, selected, checked, disabled)"
+                        ),
+                    );
                 };
                 let field = match attr {
                     "bg" | "color" | "focus_color" => {
                         let c = yui::color_attr(el, k, v)?;
                         format!("{attr}: ::std::option::Option::Some(0x{c:08X})")
                     }
-                    "shadow" => format!("shadow: ::std::option::Option::Some({})", yui::boolean(el, k, v)?),
-                    _ => return err(el, format!("{k}: only paint attributes (bg, color, shadow, focus_color) take a state prefix")),
+                    "shadow" => format!(
+                        "shadow: ::std::option::Option::Some({})",
+                        yui::boolean(el, k, v)?
+                    ),
+                    _ => {
+                        return err(
+                            el,
+                            format!(
+                                "{k}: only paint attributes (bg, color, shadow, focus_color) take a state prefix"
+                            ),
+                        );
+                    }
                 };
                 match patches.iter_mut().find(|(f, _)| f == flag) {
                     Some((_, fs)) => fs.push(field),
@@ -942,7 +965,7 @@ impl VmGen<'_> {
             match k {
                 "command" => return err(el, "command needs {x:Bind method(...)}"),
                 "items" | "content" | "key" | "selected" => {
-                    return err(el, format!("{k} needs a binding: {k}=\"{{x:Bind ...}}\""))
+                    return err(el, format!("{k} needs a binding: {k}=\"{{x:Bind ...}}\""));
                 }
                 "item_height" | "orientation" if is_list => {
                     list_attrs.insert(k.into(), v.clone());
@@ -1037,7 +1060,10 @@ impl VmGen<'_> {
                         Some(format!("{} = text;", e.emit(Scope::Screen, false)?))
                     }
                     (None, Mode::TwoWay, _) => {
-                        return err(el, "Mode=TwoWay needs a field (text=\"{x:Bind search, Mode=TwoWay}\") or BindBack=method")
+                        return err(
+                            el,
+                            "Mode=TwoWay needs a field (text=\"{x:Bind search, Mode=TwoWay}\") or BindBack=method",
+                        );
                     }
                     _ => None,
                 };
@@ -1085,7 +1111,7 @@ impl VmGen<'_> {
                         return err(
                             el,
                             "checked Mode=TwoWay needs a bool field or BindBack=method",
-                        )
+                        );
                     }
                 }
             }
@@ -1093,9 +1119,13 @@ impl VmGen<'_> {
                 body.push_str(&self.command(el, c, ctx.scope, items)?);
             }
             let pat = if owner == 0 {
-                format!("::yog_kit::ViewEvent::Action(::yog_api::ui::Action {{ owner: 0, slot: {slot}, .. }})")
+                format!(
+                    "::yog_kit::ViewEvent::Action(::yog_api::ui::Action {{ owner: 0, slot: {slot}, .. }})"
+                )
             } else {
-                format!("::yog_kit::ViewEvent::Action(::yog_api::ui::Action {{ owner: {owner}, slot: {slot}, index }})")
+                format!(
+                    "::yog_kit::ViewEvent::Action(::yog_api::ui::Action {{ owner: {owner}, slot: {slot}, index }})"
+                )
             };
             self.dispatch.push((pat, body.trim_end().to_string()));
             if screen {
@@ -1288,7 +1318,14 @@ impl VmGen<'_> {
                 Some("ItemTemplate" | "ContentTemplate") => template = Some(Self::only_child(c)?),
                 Some("Empty") => empty = Some(Self::only_child(c)?),
                 _ if c.name == "DataTemplate" => template = Some(Self::only_child(c)?),
-                _ => return err(c, format!("isn't allowed in <{name}> (expected <{name}.ItemTemplate> or <{name}.Empty>)")),
+                _ => {
+                    return err(
+                        c,
+                        format!(
+                            "isn't allowed in <{name}> (expected <{name}.ItemTemplate> or <{name}.Empty>)"
+                        ),
+                    );
+                }
             }
         }
         let Some(template) = template else {
@@ -1430,7 +1467,7 @@ impl VmGen<'_> {
                     )
                 }
                 (None, Mode::TwoWay, _) => {
-                    return err(el, "selected Mode=TwoWay needs a field or BindBack=method")
+                    return err(el, "selected Mode=TwoWay needs a field or BindBack=method");
                 }
                 _ => String::new(),
             };
@@ -1666,7 +1703,7 @@ pub fn close() {{
 mod tests {
     use super::*;
 
-    fn gen(body: &str) -> Result<String, String> {
+    fn codegen(body: &str) -> Result<String, String> {
         let src = format!(
             r#"<Screen id="t:s" width="200" height="100" x:ViewModel="Vm">{body}</Screen>"#
         );
@@ -1699,14 +1736,18 @@ mod tests {
         assert_eq!(e("item", Scope::Template), "item");
         assert_eq!(e("1.5", Scope::Screen), "1.5");
         assert!(parse_expr("a < b").is_err());
-        assert!(parse_expr("cx.close()")
-            .unwrap()
-            .emit(Scope::Screen, false)
-            .is_err());
-        assert!(parse_expr("index")
-            .unwrap()
-            .emit(Scope::Screen, false)
-            .is_err());
+        assert!(
+            parse_expr("cx.close()")
+                .unwrap()
+                .emit(Scope::Screen, false)
+                .is_err()
+        );
+        assert!(
+            parse_expr("index")
+                .unwrap()
+                .emit(Scope::Screen, false)
+                .is_err()
+        );
     }
 
     #[test]
@@ -1716,7 +1757,8 @@ mod tests {
         refs.colors.insert("Colors.hot".into(), 0xFF44_5566);
         refs.colors.insert("Colors.tint".into(), 0x8077_8899);
         crate::yui::set_resource_refs(&refs);
-        let code = gen(r##"
+        let code = codegen(
+            r##"
             <Screen.Resources>
                 <Color x:Key="Accent" value="@Colors.accent"/>
                 <Style x:Key="Btn" target="Button" bg="@Colors.accent" hover:bg="@Colors.hot"/>
@@ -1725,8 +1767,9 @@ mod tests {
                 <Label text="a" color="@Accent" selected:color="@Accent" disabled:bg="@Colors.hot"/>
                 <Button style="@Btn" text="b"/>
                 <Image source="item:air" tint="@Colors.tint"/>
-            </Column>"##);
-        let missing = gen(r#"<Label text="a" hover:bg="@Colors.nope"/>"#);
+            </Column>"##,
+        );
+        let missing = codegen(r#"<Label text="a" hover:bg="@Colors.nope"/>"#);
         crate::yui::set_resource_refs(&crate::yres::Refs::default());
         let code = code.unwrap();
         for want in [
@@ -1744,7 +1787,7 @@ mod tests {
 
     #[test]
     fn bindings_commands_and_parts() {
-        let code = gen(r##"
+        let code = codegen(r##"
             <Screen.Resources>
                 <Color x:Key="Accent" value="#FFD700"/>
                 <Style x:Key="Btn" target="Button" w="40" h="14" bg="#FF333333" hover:bg="#FF444444"/>
@@ -1798,11 +1841,13 @@ mod tests {
 
     #[test]
     fn bound_sources() {
-        let code = gen(r##"
+        let code = codegen(
+            r##"
             <Column>
                 <Surface w="10" h="10" source="{x:Bind grid_id()}"/>
                 <Image w="10" h="10" source="{x:Bind icon}"/>
-            </Column>"##)
+            </Column>"##,
+        )
         .unwrap();
         for want in [
             r#"widget::surface("yog:none")"#,
@@ -1816,7 +1861,7 @@ mod tests {
 
     #[test]
     fn component_properties() {
-        let code = gen(r##"
+        let code = codegen(r##"
             <Column>
                 <StatBar id="hp" w="80" label="HP" value="{x:Bind hp}" fill="{x:Bind color()}" visible="{x:Bind alive}"/>
                 <ListView h="40" items="{x:Bind rows}" key="{x:Bind id}">
@@ -1837,12 +1882,13 @@ mod tests {
         ] {
             assert!(code.contains(want), "missing {want}\n{code}");
         }
-        assert!(gen(r#"<StatBar value="{x:Bind hp, Mode=TwoWay}"/>"#).is_err());
+        assert!(codegen(r#"<StatBar value="{x:Bind hp, Mode=TwoWay}"/>"#).is_err());
     }
 
     #[test]
     fn lists() {
-        let code = gen(r##"
+        let code = codegen(
+            r##"
             <ListView w="100%" h="80" items="{x:Bind visible()}" key="{x:Bind id}"
                       selected="{x:Bind selected_id(), BindBack=select}" item_height="12">
                 <ListView.ItemTemplate>
@@ -1859,7 +1905,8 @@ mod tests {
             </ListView>
             <ContentPresenter content="{x:Bind selected()}">
                 <DataTemplate><Label text="{x:Bind Strings::v(version)}"/></DataTemplate>
-            </ContentPresenter>"##)
+            </ContentPresenter>"##,
+        )
         .unwrap();
         for want in [
             "struct __T0 {",
@@ -1890,7 +1937,7 @@ mod tests {
 
     #[test]
     fn errors() {
-        let e = |b: &str| gen(b).unwrap_err();
+        let e = |b: &str| codegen(b).unwrap_err();
         assert!(e(r#"<Button on_click="x"/>"#).contains("command="),);
         assert!(e(r#"<Label w="{x:Bind a}" hover:w="3"/>"#).contains("paint attributes"));
         assert!(e(r#"<TextBox text="{x:Bind name(), Mode=TwoWay}"/>"#).contains("TwoWay"));

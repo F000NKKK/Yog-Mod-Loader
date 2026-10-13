@@ -25,7 +25,7 @@
 //! checks all of this and turns it into builder calls (raw-call attributes),
 //! so the screen, view-model and component generators need no Grid logic.
 
-use crate::yui::{err, Element, RAW_CALL};
+use crate::yui::{Element, RAW_CALL, err};
 
 const ATTACHED: &[&str] = &["Grid.Row", "Grid.Column", "Grid.RowSpan", "Grid.ColumnSpan"];
 
@@ -176,7 +176,10 @@ pub fn normalize(el: &mut Element) -> Result<(), String> {
             "Grid.RowDefinitions" => Some(true),
             "Grid.ColumnDefinitions" => Some(false),
             n if n.starts_with("Grid.") => {
-                return err(&child, "isn't a Grid property (expected <Grid.RowDefinitions> or <Grid.ColumnDefinitions>)")
+                return err(
+                    &child,
+                    "isn't a Grid property (expected <Grid.RowDefinitions> or <Grid.ColumnDefinitions>)",
+                );
             }
             _ => None,
         };
@@ -296,7 +299,10 @@ pub fn normalize(el: &mut Element) -> Result<(), String> {
             if start >= n {
                 return err(
                     child,
-                    format_args!("{key}=\"{start}\" is past the grid's last {what} (it has {}, numbered from 0)", plural(n, what)),
+                    format_args!(
+                        "{key}=\"{start}\" is past the grid's last {what} (it has {}, numbered from 0)",
+                        plural(n, what)
+                    ),
                 );
             }
             if start + span > n {
@@ -334,7 +340,7 @@ fn push_calls(el: &mut Element, calls: Vec<String>, tag: &str) {
 mod tests {
     use crate::yui;
 
-    fn gen(body: &str) -> Result<String, String> {
+    fn codegen(body: &str) -> Result<String, String> {
         yui::generate(
             &format!("<Screen id=\"m:s\" width=\"100\" height=\"100\">{body}</Screen>"),
             "s",
@@ -343,7 +349,7 @@ mod tests {
 
     #[test]
     fn compact_and_element_forms() {
-        let code = gen(
+        let code = codegen(
             r#"<Grid rows="Auto, *, 26" row_spacing="2" column_spacing="4">
                  <Grid.ColumnDefinitions>
                    <ColumnDefinition width="2*" min_width="80"/>
@@ -380,7 +386,7 @@ mod tests {
 
     #[test]
     fn errors() {
-        let e = |body: &str| gen(body).unwrap_err();
+        let e = |body: &str| codegen(body).unwrap_err();
         assert!(e(r#"<Grid rows="abc"/>"#).contains("`abc` isn't a row size"));
         assert!(e(r#"<Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/></Grid.RowDefinitions></Grid>"#)
             .contains("lowercase: height"));
@@ -388,8 +394,10 @@ mod tests {
             r#"<Grid><Grid.RowDefinitions><RowDefinition height="x"/></Grid.RowDefinitions></Grid>"#
         )
         .contains("height=\"x\""));
-        assert!(e(r#"<Grid rows="*,*"><Label Grid.Row="2"/></Grid>"#)
-            .contains("past the grid's last row (it has 2 rows"));
+        assert!(
+            e(r#"<Grid rows="*,*"><Label Grid.Row="2"/></Grid>"#)
+                .contains("past the grid's last row (it has 2 rows")
+        );
         assert!(
             e(r#"<Grid columns="*,*"><Label Grid.Column="1" Grid.ColumnSpan="2"/></Grid>"#)
                 .contains("Grid.ColumnSpan=\"2\" from column 1")

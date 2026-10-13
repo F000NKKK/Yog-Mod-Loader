@@ -8,8 +8,8 @@
 //! - `yog import bbmodel <file.bbmodel> [--id <name>] [--item]` — a
 //!   Blockbench project in the Java block/item format, textures included.
 
-use super::json::{to_pretty, J, V};
-use super::{template, valid_namespace, valid_path, TEMPLATES};
+use super::json::{J, V, to_pretty};
+use super::{TEMPLATES, template, valid_namespace, valid_path};
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 use std::io::Read as _;
@@ -68,7 +68,9 @@ pub fn import_command(args: &[String]) -> Result<(), String> {
     if target.written.is_empty() {
         return Err("nothing imported".into());
     }
-    eprintln!("    `yog content check` validates them; register with `yog_api::content!();` in src/lib.rs");
+    eprintln!(
+        "    `yog content check` validates them; register with `yog_api::content!();` in src/lib.rs"
+    );
     Ok(())
 }
 
@@ -81,14 +83,13 @@ fn read_mod_id(root: &Path) -> Result<String, String> {
         let t = line.trim();
         if t.starts_with('[') {
             in_mod = t == "[mod]";
-        } else if in_mod {
-            if let Some(v) = t
+        } else if in_mod
+            && let Some(v) = t
                 .strip_prefix("id")
                 .map(str::trim_start)
                 .and_then(|r| r.strip_prefix('='))
-            {
-                return Ok(v.trim().trim_matches('"').to_string());
-            }
+        {
+            return Ok(v.trim().trim_matches('"').to_string());
         }
     }
     Err("yog.toml has no [mod] id".into())
@@ -190,10 +191,10 @@ impl Pack {
                 continue;
             }
             let name = entry.name().map_err(|e| e.to_string())?.replace('\\', "/");
-            if prefix.is_none() {
-                if let Some(at) = name.find("assets/") {
-                    prefix = Some(name[..at].to_string());
-                }
+            if prefix.is_none()
+                && let Some(at) = name.find("assets/")
+            {
+                prefix = Some(name[..at].to_string());
             }
             if !name.ends_with(".json") && !name.ends_with(".png") && !name.ends_with(".mcmeta") {
                 continue;
@@ -390,17 +391,17 @@ fn convert_model(
         }
         if let Some(Value::Object(tx)) = m.get("textures") {
             for (k, v) in tx {
-                if !textures.iter().any(|(s, _)| s == k) {
-                    if let Some(s) = v.as_str() {
-                        textures.push((k.clone(), s.to_string()));
-                    }
+                if !textures.iter().any(|(s, _)| s == k)
+                    && let Some(s) = v.as_str()
+                {
+                    textures.push((k.clone(), s.to_string()));
                 }
             }
         }
-        if elements.is_none() {
-            if let Some(Value::Array(e)) = m.get("elements") {
-                elements = Some(e.clone());
-            }
+        if elements.is_none()
+            && let Some(Value::Array(e)) = m.get("elements")
+        {
+            elements = Some(e.clone());
         }
         if let Some(Value::Object(d)) = m.get("display") {
             for (k, v) in d {
@@ -429,13 +430,12 @@ fn convert_model(
             }
             return Err(format!("{id}: built-in model {p} can't be imported"));
         }
-        if elements.is_none() {
-            if let Some(tpl) = template_of(p) {
-                if !tpl.sprite || item {
-                    parent = Some(tpl.name.to_string());
-                    break;
-                }
-            }
+        if elements.is_none()
+            && let Some(tpl) = template_of(p)
+            && (!tpl.sprite || item)
+        {
+            parent = Some(tpl.name.to_string());
+            break;
         }
         current = full_id(p);
     }
@@ -478,12 +478,11 @@ fn convert_model(
         tex.set(slot, J::string(value));
     }
     // Templates already define `particle` — drop a duplicate of a slot.
-    if let Some(tpl) = parent.as_deref().and_then(template) {
-        if tpl.has_particle {
-            if let V::Obj(m) = &mut tex.v {
-                m.retain(|(k, _)| k != "particle");
-            }
-        }
+    if let Some(tpl) = parent.as_deref().and_then(template)
+        && tpl.has_particle
+        && let V::Obj(m) = &mut tex.v
+    {
+        m.retain(|(k, _)| k != "particle");
     }
     if !tex.members().is_empty() {
         out.set("textures", tex);
@@ -779,7 +778,11 @@ fn import_pack(t: &mut Target, pack: &Pack, model: Option<&str>, all: bool) -> R
         }
         return Err(format!(
             "pick one with --model <id>, or --all for every block (blockstate) and item. The pack has:{}",
-            if list.is_empty() { "\n  (no models)".to_string() } else { list }
+            if list.is_empty() {
+                "\n  (no models)".to_string()
+            } else {
+                list
+            }
         ));
     }
     let mut failed = Vec::new();
@@ -840,11 +843,7 @@ fn sanitize(name: &str) -> String {
         }
     }
     let s = s.trim_matches('_').to_string();
-    if s.is_empty() {
-        "texture".into()
-    } else {
-        s
-    }
+    if s.is_empty() { "texture".into() } else { s }
 }
 
 fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> Result<(), String> {

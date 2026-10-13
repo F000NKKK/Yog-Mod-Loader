@@ -689,7 +689,7 @@ impl Gen {
                 None => {
                     return Err(format!(
                         "line {line}: <Surface> source=\"{source}\": mod: needs the mod id (no yog.toml found)"
-                    ))
+                    ));
                 }
             },
             None => source.to_string(),
@@ -735,10 +735,12 @@ impl Gen {
                 None => {
                     return Err(format!(
                         "line {line}: <Image> source=\"{source}\": mod: needs the mod id (no yog.toml found)"
-                    ))
+                    ));
                 }
             },
-            ImageSource::Sprite(name) if !name.contains(':') && yog_gfx::image::sprite(&name).is_none() => {
+            ImageSource::Sprite(name)
+                if !name.contains(':') && yog_gfx::image::sprite(&name).is_none() =>
+            {
                 let names: Vec<&str> = yog_gfx::image::SPRITES.iter().map(|s| s.name).collect();
                 return Err(format!(
                     "line {line}: <Image> source=\"{source}\": unknown sprite (known: {})",
@@ -766,7 +768,7 @@ impl Gen {
                 _ => {
                     return Err(format!(
                         "line {line}: <Image> stretch=\"{v}\": expected None, Fill, Uniform or UniformToFill"
-                    ))
+                    ));
                 }
             };
             let _ = write!(expr, ".stretch(::yog_api::ui::Stretch::{s})");
@@ -993,9 +995,9 @@ pub(crate) fn static_widget(
     depth: usize,
     mod_id: Option<&str>,
 ) -> Result<(String, Vec<String>), String> {
-    let mut gen = Gen::new(mod_id);
-    let expr = gen.widget(el, in_canvas, depth)?;
-    Ok((expr, gen.ids.into_vec()))
+    let mut codegen = Gen::new(mod_id);
+    let expr = codegen.widget(el, in_canvas, depth)?;
+    Ok((expr, codegen.ids.into_vec()))
 }
 
 /// Generates the `.g.rs` source for a `.yui` document. `name` is the screen's
@@ -1049,11 +1051,11 @@ pub fn generate_for(
         .transpose()?
         .unwrap_or(false);
 
-    let mut gen = Gen::new(mod_id);
+    let mut codegen = Gen::new(mod_id);
     // The screen's own id is the UI id, not a widget id.
     let mut content_root = root.clone();
     content_root.attrs.retain(|(k, _)| k != "id");
-    let body = gen.widget(&content_root, false, 0)?;
+    let body = codegen.widget(&content_root, false, 0)?;
 
     let (ax, ay) = match anchor {
         "top_left" => ("0.0", "0.0"),
@@ -1211,8 +1213,8 @@ pub fn close() {{
 "#,
         width = f(width),
         height = f(height),
-        events = str_consts(gen.events.as_slice()),
-        ids = str_consts(gen.ids.as_slice()),
+        events = str_consts(codegen.events.as_slice()),
+        ids = str_consts(codegen.ids.as_slice()),
     );
     // Plain screens have nothing to warn about (yet); view-model screens do.
     Ok((out, Vec::new()))
@@ -1410,12 +1412,14 @@ mod tests {
         assert!(generate_for(&screen(r#"<Image source="mod:gui/logo"/>"#), "s", None).is_err());
         assert!(generate_for(&screen(r#"<Image source="sprite:nope"/>"#), "s", None).is_err());
         assert!(generate_for(&screen(r#"<Image/>"#), "s", None).is_err());
-        assert!(generate_for(
-            &screen(r#"<Image source="item:apple" stretch="big"/>"#),
-            "s",
-            None
-        )
-        .is_err());
+        assert!(
+            generate_for(
+                &screen(r#"<Image source="item:apple" stretch="big"/>"#),
+                "s",
+                None
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1492,9 +1496,11 @@ mod tests {
         assert!(generate("<Column/>", "x.yui").is_err());
         assert!(generate("<Screen/>", "x.yui").unwrap_err().contains("id"));
         let bad_color = "<Screen id=\"a:b\" bg=\"red\"/>";
-        assert!(generate(bad_color, "x.yui")
-            .unwrap_err()
-            .contains("#RRGGBB"));
+        assert!(
+            generate(bad_color, "x.yui")
+                .unwrap_err()
+                .contains("#RRGGBB")
+        );
     }
 
     /// What the IDE's Format Document writes (Visual Studio's XAML layout):
