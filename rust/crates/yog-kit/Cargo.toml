@@ -1,6 +1,6 @@
 [package]
 name = "yog-kit"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -11,4 +11,4 @@ keywords = ["minecraft", "yog", "ui", "mvvm"]
 categories = ["gui", "game-development"]
 
 [dependencies]
-yog-api = "0.91"
+yog-api = "0.92"

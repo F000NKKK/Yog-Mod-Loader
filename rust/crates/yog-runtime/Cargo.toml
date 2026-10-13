@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.99.0"
+version = "0.100.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -19,11 +19,11 @@ crate-type = ["cdylib"]
 jni.workspace = true
 
 yog-abi = "0.28"
-yog-api = "0.91"
+yog-api = "0.92"
 yog-logging = "0.1"
 yog-registry = "0.28"
-yog-ui     = "0.39"
-yog-book   = "0.59"
+yog-ui     = "0.40"
+yog-book   = "0.60"
 yog-gfx    = "0.25"
 yog-inventory = "0.14"
 yog-hot-reload = "0.2"
