@@ -117,6 +117,17 @@ public final class NativeBridge {
      */
     public static boolean setBlock(String dimension, int x, int y, int z, String blockId) {
         ServerWorld w = worldFor(dimension);
+        if (w != null && blockId != null && (blockId.indexOf('[') >= 0 || blockId.indexOf('{') >= 0)) {
+            // Full /setblock syntax: id[prop=value,...]{nbt}
+            try {
+                BlockArgumentParser.BlockResult r =
+                        BlockArgumentParser.block(Registries.BLOCK.getReadOnlyWrapper(), blockId, true);
+                return new BlockStateArgument(r.blockState(), r.properties().keySet(), r.nbt())
+                        .setBlockState(w, new BlockPos(x, y, z), 3);
+            } catch (Throwable ignored) {
+                // fall back to the plain id lookup below
+            }
+        }
         Identifier id = Identifier.tryParse(blockId);
         if (w == null || id == null || !Registries.BLOCK.containsId(id)) {
             return false;
@@ -673,14 +684,25 @@ public final class NativeBridge {
             String dimension, double x, double y, double z,
             String particleTypeId, int count,
             double dx, double dy, double dz, double speed) {
-        ServerWorld w = worldFor(dimension);
-        if (w == null) return false;
-        Identifier id = Identifier.tryParse(particleTypeId);
-        if (id == null) return false;
-        net.minecraft.particle.ParticleType<?> type = Registries.PARTICLE_TYPE.get(id);
-        if (!(type instanceof net.minecraft.particle.ParticleEffect effect)) return false;
-        w.spawnParticles(effect, x, y, z, count, dx, dy, dz, speed);
-        return true;
+        try {
+            ServerWorld w = worldFor(dimension);
+            if (w == null) return false;
+            if (particleTypeId.indexOf(' ') >= 0 || particleTypeId.indexOf('{') >= 0) {
+                // Particle with options, /particle syntax (e.g. "minecraft:dust{color:[1,0,0],scale:1}")
+                net.minecraft.particle.ParticleEffect parsed = ParticleEffectArgumentType.readParameters(
+                        new StringReader(particleTypeId), w.getRegistryManager());
+                w.spawnParticles(parsed, x, y, z, count, dx, dy, dz, speed);
+                return true;
+            }
+            Identifier id = Identifier.tryParse(particleTypeId);
+            if (id == null) return false;
+            net.minecraft.particle.ParticleType<?> type = Registries.PARTICLE_TYPE.get(id);
+            if (!(type instanceof net.minecraft.particle.ParticleEffect effect)) return false;
+            w.spawnParticles(effect, x, y, z, count, dx, dy, dz, speed);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     public static double entityAttributeGet(String uuid, String attributeId) {
