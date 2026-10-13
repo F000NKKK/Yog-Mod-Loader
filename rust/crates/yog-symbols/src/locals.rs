@@ -165,6 +165,9 @@ pub(crate) struct UnitInfo {
     ranges: Vec<gimli::Range>,
     /// child offset -> parent offset, built lazily for qualified type names.
     parents: OnceLock<HashMap<usize, usize>>,
+    /// Out-of-line functions with their code ranges, in DIE order, built on
+    /// the first locals lookup in this unit.
+    functions: OnceLock<Vec<(gimli::Range, UnitOffset<usize>)>>,
 }
 
 impl UnitInfo {
@@ -261,10 +264,45 @@ impl SymbolTable {
                     unit,
                     ranges,
                     parents: OnceLock::new(),
+                    functions: OnceLock::new(),
                 });
             }
             out
         })
+    }
+
+    /// The outermost `DW_TAG_subprogram` containing `pc` in `info`'s unit —
+    /// where [`SymbolTable::walk_scope`] starts — from an index of every
+    /// function's ranges, so a lookup doesn't rescan the whole unit.
+    fn function_for_pc(&self, info: &UnitInfo, pc: u64) -> Option<UnitOffset<usize>> {
+        let functions = info.functions.get_or_init(|| {
+            let mut out = Vec::new();
+            let mut cursor = info.unit.entries();
+            // Depth of the function being skipped over, if inside one:
+            // nested functions are found by the scope walk itself.
+            let mut inside: Option<isize> = None;
+            while let Ok(Some(entry)) = cursor.next_dfs() {
+                let depth = entry.depth();
+                if inside.is_some_and(|d| depth > d) {
+                    continue;
+                }
+                inside = None;
+                if entry.tag() != gimli::DW_TAG_subprogram {
+                    continue;
+                }
+                inside = Some(depth);
+                if let Ok(mut ranges) = self.dwarf.die_ranges(&info.unit, entry) {
+                    while let Ok(Some(range)) = ranges.next() {
+                        out.push((range, entry.offset()));
+                    }
+                }
+            }
+            out
+        });
+        functions
+            .iter()
+            .find(|(r, _)| r.begin <= pc && pc < r.end)
+            .map(|&(_, offset)| offset)
     }
 
     pub(crate) fn unit_for_pc(&self, pc: u64) -> Option<usize> {
@@ -301,14 +339,24 @@ impl SymbolTable {
             return Vec::new();
         };
         let info = &self.units()[unit_idx];
-        let mut walk = Walk::default();
-        let Ok(mut tree) = info.unit.entries_tree(None) else {
+        let Some(function) = self.function_for_pc(info, pc_offset) else {
+            return Vec::new();
+        };
+        let Ok(mut tree) = info.unit.entries_tree(Some(function)) else {
             return Vec::new();
         };
         let Ok(root) = tree.root() else {
             return Vec::new();
         };
-        let _ = self.walk_scope(info, root, pc_offset, false, &mut walk);
+        let mut walk = Walk {
+            subprogram: Some(function),
+            path: vec![Scope {
+                offset: function,
+                is_function: true,
+                vars: Vec::new(),
+            }],
+        };
+        let _ = self.walk_scope(info, root, pc_offset, true, &mut walk);
         let Some(subprogram) = walk.subprogram else {
             return Vec::new();
         };
