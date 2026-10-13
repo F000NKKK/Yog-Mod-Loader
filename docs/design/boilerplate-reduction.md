@@ -388,10 +388,9 @@ After:
 ```json
 // content/items/staff/_defaults.yitem
 { "item": { "stack_size": 1 }, "model": { "parent": "handheld" } }
-// content/items/staff/oak.yitem: empty object, or delete the file and list ids:
+// content/items/staff/oak.yitem: one file per id (D5); an empty object is enough
 {}
-// content/items/staff/_list.yitem (optional): one line per item
-{ "entries": ["oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "crimson", "warped", "mangrove", "edified", "quenched"] }
+// content/items/staff/spruce.yitem, birch.yitem, …: likewise `{}`
 ```
 
 **Savings:** ~1400 of 2261 JSON lines (estimate: about 70% of each file is restated path,

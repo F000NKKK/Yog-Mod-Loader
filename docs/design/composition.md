@@ -166,6 +166,9 @@ iterate only the instances the host told us are loaded.
   `content/patches/minecraft/pumpkin_pie.yitem` →
   `{"behaviors": {"hexcasting:iota_holder_pie": {}}}`. Host-class behaviours cannot be patched
   onto foreign ids (the Java class is fixed at registration) — build error.
+  Foreign/vanilla objects carry no per-object hook bit, so the runtime dispatches hooks of
+  patched behaviours from the host's global event hooks, filtered by id through the patch
+  table in Rust (no extra JNI per mod). The behaviour's code is the same as on own ids.
 
 Items and entities use the same key (`.yitem`, later `.yentity`).
 
