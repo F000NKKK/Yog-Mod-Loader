@@ -4,6 +4,33 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+/// The manifest's file name, in the project root.
+pub const MANIFEST: &str = "yog.toml";
+/// Where `yog build` generates the cargo project, under the project root.
+pub const BUILD_DIR: &str = ".yog-build";
+/// `src/` facade over `[dependencies.exports]` crates (see `cargo_toml`).
+pub const DESIGNER_FILE: &str = "lib.designer.rs";
+/// Plain crates.io dependencies.
+pub const DEPS_SECTION: &str = "[dependencies]";
+/// Other Yog mods' exports crates.
+pub const EXPORT_DEPS_SECTION: &str = "[dependencies.exports]";
+/// Rust edition when `[mod] edition` is absent.
+pub const DEFAULT_EDITION: &str = "2021";
+/// License of a mod, and of its exports crate, when none is given.
+pub const DEFAULT_LICENSE: &str = "MIT OR Apache-2.0";
+/// `yog-api` version when crates.io can't be asked (offline, etc.).
+const FALLBACK_API_VERSION: &str = "0.5";
+
+/// The current directory, if it's a mod project (has a `yog.toml`).
+pub fn project_root() -> Result<PathBuf, String> {
+    let root = std::env::current_dir().map_err(|e| e.to_string())?;
+    if root.join(MANIFEST).is_file() {
+        Ok(root)
+    } else {
+        Err(format!("no {MANIFEST} found in the current directory"))
+    }
+}
+
 /// Parsed content of a `yog.toml` project file.
 #[derive(Debug)]
 pub struct YogToml {
@@ -230,7 +257,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         description_key: None,
         icon,
         authors,
-        license: license.unwrap_or_else(|| "MIT OR Apache-2.0".into()),
+        license: license.unwrap_or_else(|| DEFAULT_LICENSE.into()),
         exports_license,
         edition,
         yog_api_path,
@@ -323,8 +350,8 @@ pub fn latest_yog_api_version() -> String {
                         None
                     }
                 })
-                .unwrap_or_else(|| "0.5".into())
+                .unwrap_or_else(|| FALLBACK_API_VERSION.into())
         }
-        _ => "0.5".into(), // fallback when cargo search fails (offline, etc.)
+        _ => FALLBACK_API_VERSION.into(),
     }
 }

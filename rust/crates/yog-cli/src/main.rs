@@ -16,7 +16,11 @@
 
 use yog_cli::cargo_toml::{generate_cargo_toml, generate_lib_facade};
 use yog_cli::exports::{self, collect_rs_files, ExportItem};
-use yog_cli::manifest::{latest_yog_api_version, to_snake_name, workspace_rkyv_version, YogToml};
+use yog_cli::manifest::{
+    latest_yog_api_version, project_root, to_snake_name, workspace_rkyv_version, YogToml,
+    BUILD_DIR, DEFAULT_EDITION, DEFAULT_LICENSE, DEPS_SECTION, DESIGNER_FILE, EXPORT_DEPS_SECTION,
+    MANIFEST,
+};
 use yog_cli::{content, yres, yui, yui_component};
 
 use std::fmt::Write as _;
@@ -182,7 +186,7 @@ license     = "MIT OR Apache-2.0"
         name = name,
         display = to_display_name(name),
     );
-    write_file(&root.join("yog.toml"), yog_toml.as_bytes())?;
+    write_file(&root.join(MANIFEST), yog_toml.as_bytes())?;
 
     // src/lib.rs
     let lib_rs = format!(
@@ -282,17 +286,6 @@ const TARGETS: &[Target] = &[
     },
 ];
 
-/// Builds and packages the mod in the current directory. Returns the parsed
-/// `yog.toml` metadata and the path to the produced `.yog` artifact, so
-/// callers like `run_config` can reuse them without re-parsing/rebuilding.
-///
-/// `debugging_symbols` (`yog build debug` / `yog run <name> --debug` at the
-/// CLI surface): still a `--release` build (same output layout `package()`
-/// expects), but unoptimized and with debug info retained instead of
-/// stripped — for `yog-symbols`/`yog-debugger` to have something to load
-/// and step through line by line. No separate artifact layout: the native
-/// this produces is simply larger, slower and symbol-ful, packaged the same
-/// way.
 /// A mod project made ready for cargo: `.yog-build/` (Cargo.toml, generated
 /// `.yui` screen code, toolchain, lock) written, translations compiled.
 struct Prepared {
@@ -308,11 +301,8 @@ struct Prepared {
 /// regenerates `.yog-build/` from `yog.toml` and `src/**/*.yui`, and checks
 /// the translations.
 fn prepare() -> Result<Prepared, String> {
-    let root = std::env::current_dir().map_err(|e| e.to_string())?;
-    let yog_toml_path = root.join("yog.toml");
-    if !yog_toml_path.exists() {
-        return Err("no yog.toml found in the current directory".into());
-    }
+    let root = project_root()?;
+    let yog_toml_path = root.join(MANIFEST);
 
     // Enforce: never create Cargo.toml in the mod root
     let root_cargo = root.join("Cargo.toml");
@@ -349,12 +339,12 @@ fn prepare() -> Result<Prepared, String> {
     content::write_source(&root, &content)?;
 
     // Generate .yog-build/Cargo.toml from yog.toml
-    let build_dir = root.join(".yog-build");
+    let build_dir = root.join(BUILD_DIR);
     std::fs::create_dir_all(&build_dir).map_err(|e| e.to_string())?;
     let cargo_toml = generate_cargo_toml(&meta);
     write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
 
-    let designer_path = root.join("src").join("lib.designer.rs");
+    let designer_path = root.join("src").join(DESIGNER_FILE);
     match generate_lib_facade(&meta, &root)? {
         Some(facade) => {
             // Written as a sibling of the real `src/lib.rs` (not under
@@ -458,6 +448,17 @@ fn designer_lib() -> Result<(), String> {
     Ok(())
 }
 
+/// Builds and packages the mod in the current directory. Returns the parsed
+/// `yog.toml` metadata and the path to the produced `.yog` artifact, so
+/// callers like `run_config` can reuse them without re-parsing/rebuilding.
+///
+/// `debugging_symbols` (`yog build debug` / `yog run <name> --debug` at the
+/// CLI surface): still a `--release` build (same output layout `package()`
+/// expects), but unoptimized and with debug info retained instead of
+/// stripped — for `yog-symbols`/`yog-debugger` to have something to load
+/// and step through line by line. No separate artifact layout: the native
+/// this produces is simply larger, slower and symbol-ful, packaged the same
+/// way.
 fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
     let Prepared {
         root,
@@ -569,10 +570,7 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
 /// (Yog-IDLE runs it on save) and for checking a screen without a build.
 fn ui_gen(files: &[String]) -> Result<(), String> {
     if files.is_empty() {
-        let root = std::env::current_dir().map_err(|e| e.to_string())?;
-        if !root.join("yog.toml").is_file() {
-            return Err("no yog.toml found in the current directory".into());
-        }
+        let root = project_root()?;
         load_resource_refs(&root);
         for file in yui::find_yui_files(&root.join("src")) {
             let out = yui::generate_file(&root, &file)?;
@@ -600,7 +598,7 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
 /// (`text="@Strings.title"`). Broken resources are reported but don't stop
 /// the screen from generating — `yog build` fails on them anyway.
 fn load_resource_refs(root: &Path) {
-    let refs = YogToml::read(&root.join("yog.toml"))
+    let refs = YogToml::read(&root.join(MANIFEST))
         .and_then(|meta| yres::compile(root, &meta.id))
         .map(|c| c.refs)
         .unwrap_or_else(|e| {
@@ -616,8 +614,8 @@ fn load_resource_refs(root: &Path) {
 /// without building: errors with file:line, untranslated texts per locale,
 /// and fresh accessors in `.yog-build/generated/resources/`.
 fn res_check() -> Result<(), String> {
-    let root = std::env::current_dir().map_err(|e| e.to_string())?;
-    let mut meta = YogToml::read(&root.join("yog.toml"))?;
+    let root = project_root()?;
+    let mut meta = YogToml::read(&root.join(MANIFEST))?;
     let compiled = yres::compile(&root, &meta.id)?;
     yres::write_sources(&root, &compiled)?;
     resolve_metadata(&mut meta, &compiled.refs)?;
@@ -642,8 +640,8 @@ fn res_check() -> Result<(), String> {
 /// and `*.yitem`, without building: errors with file:line, a fresh
 /// `.yog-build/generated/yog-content.g.rs`.
 fn content_check() -> Result<(), String> {
-    let root = std::env::current_dir().map_err(|e| e.to_string())?;
-    let meta = YogToml::read(&root.join("yog.toml"))?;
+    let root = project_root()?;
+    let meta = YogToml::read(&root.join(MANIFEST))?;
     let refs = yres::compile(&root, &meta.id)
         .map(|c| c.refs)
         .unwrap_or_else(|e| {
@@ -688,11 +686,8 @@ fn resolve_metadata(meta: &mut YogToml, refs: &yres::Refs) -> Result<(), String>
 /// then optionally launch a configured command (e.g. the instance's server
 /// or client launcher) — driven by a `[run.<config_name>]` section.
 fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> {
-    let root = std::env::current_dir().map_err(|e| e.to_string())?;
-    let yog_toml_path = root.join("yog.toml");
-    if !yog_toml_path.exists() {
-        return Err("no yog.toml found in the current directory".into());
-    }
+    let root = project_root()?;
+    let yog_toml_path = root.join(MANIFEST);
     let meta = YogToml::read(&yog_toml_path)?;
 
     let cfg = meta.run_configs.iter().find(|c| c.name == config_name)
@@ -882,19 +877,8 @@ fn setup() -> Result<(), String> {
 
 fn check_rust() -> bool {
     eprint!("  [?] Rust / cargo ... ");
-    let ok = Command::new("cargo")
-        .arg("--version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
-    if ok {
-        let ver = Command::new("cargo")
-            .arg("--version")
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .unwrap_or_default();
-        eprintln!("OK  ({})", ver.trim());
+    if let Some(ver) = first_line_of("cargo", &["--version"]) {
+        eprintln!("OK  ({ver})");
         true
     } else {
         eprintln!("NOT FOUND");
@@ -906,12 +890,7 @@ fn check_rust() -> bool {
 
 fn check_zigbuild() -> bool {
     eprint!("  [?] cargo-zigbuild ... ");
-    let ok = Command::new("cargo")
-        .args(["zigbuild", "--help"])
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
-    if ok {
+    if has_zigbuild() {
         eprintln!("OK");
         true
     } else {
@@ -944,19 +923,8 @@ fn check_zigbuild() -> bool {
 
 fn check_zig() -> bool {
     eprint!("  [?] zig ... ");
-    let ok = Command::new("zig")
-        .arg("version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
-    if ok {
-        let ver = Command::new("zig")
-            .arg("version")
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .unwrap_or_default();
-        eprintln!("OK  ({})", ver.trim());
+    if let Some(ver) = first_line_of("zig", &["version"]) {
+        eprintln!("OK  ({ver})");
         true
     } else {
         eprintln!("NOT FOUND");
@@ -1059,6 +1027,15 @@ struct DoctorReport {
     targets: Vec<(&'static str, &'static str, bool)>,
 }
 
+/// Whether `cargo zigbuild` is installed.
+fn has_zigbuild() -> bool {
+    Command::new("cargo")
+        .args(["zigbuild", "--help"])
+        .output()
+        .is_ok_and(|o| o.status.success())
+}
+
+/// The first line `program args` prints, if it runs and succeeds.
 fn first_line_of(program: &str, args: &[&str]) -> Option<String> {
     let out = Command::new(program).args(args).output().ok()?;
     if !out.status.success() {
@@ -1075,11 +1052,7 @@ fn doctor() -> DoctorReport {
         rust_toolchain: RUST_TOOLCHAIN,
         cargo: first_line_of("cargo", &["--version"]),
         rustup: first_line_of("rustup", &["--version"]),
-        cargo_zigbuild: Command::new("cargo")
-            .args(["zigbuild", "--help"])
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false),
+        cargo_zigbuild: has_zigbuild(),
         zig: first_line_of("zig", &["version"]),
         targets: TARGETS
             .iter()
@@ -1163,12 +1136,7 @@ enum Builder {
 
 impl Builder {
     fn detect() -> Self {
-        let ok = Command::new("cargo")
-            .args(["zigbuild", "--help"])
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false);
-        if ok {
+        if has_zigbuild() {
             Builder::Zig
         } else {
             Builder::Cargo
@@ -1456,8 +1424,7 @@ fn package(
             let _ = writeln!(manifest, "{field} = {v:?}");
         }
     }
-    zip.start_file("yog.toml", opts)
-        .map_err(|e| e.to_string())?;
+    zip.start_file(MANIFEST, opts).map_err(|e| e.to_string())?;
     zip.write_all(manifest.as_bytes())
         .map_err(|e| e.to_string())?;
     zip.finish().map_err(|e| e.to_string())?;
@@ -1466,28 +1433,32 @@ fn package(
 
 // ── yog add / remove ──────────────────────────────────────────────────────────
 
-fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
-    let usage = if is_mod {
-        "usage: yog add --mod <yog-mod-id>"
+/// `yog add`/`yog remove`'s operand, the `yog.toml` it edits and the
+/// section: `[dependencies]` (plain crates.io crates) or
+/// `[dependencies.exports]` (other Yog mods, mapped to their generated
+/// exports crate) — matched by exact header, never as a substring.
+fn dep_edit<'a>(
+    verb: &str,
+    crate_name: Option<&'a str>,
+    is_mod: bool,
+) -> Result<(&'a str, PathBuf, &'static str), String> {
+    let name = crate_name.ok_or_else(|| {
+        if is_mod {
+            format!("usage: yog {verb} --mod <yog-mod-id>")
+        } else {
+            format!("usage: yog {verb} <crate>")
+        }
+    })?;
+    let section = if is_mod {
+        EXPORT_DEPS_SECTION
     } else {
-        "usage: yog add <crate>"
+        DEPS_SECTION
     };
-    let name = crate_name.ok_or(usage)?;
-    let root = std::env::current_dir().map_err(|e| e.to_string())?;
-    let yog_toml_path = root.join("yog.toml");
-    if !yog_toml_path.exists() {
-        return Err("no yog.toml found in the current directory".into());
-    }
+    Ok((name, project_root()?.join(MANIFEST), section))
+}
 
-    // `[dependencies]` (plain crates.io crates) and `[dependencies.exports]`
-    // (other Yog mods, mapped to their generated exports crate) are
-    // distinct sections — match the exact header, not a substring, so
-    // "dependencies" never also matches "dependencies.exports" or vice versa.
-    let target_section = if is_mod {
-        "[dependencies.exports]"
-    } else {
-        "[dependencies]"
-    };
+fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
+    let (name, yog_toml_path, target_section) = dep_edit("add", crate_name, is_mod)?;
 
     let text = std::fs::read_to_string(&yog_toml_path).map_err(|e| e.to_string())?;
     let mut lines: Vec<String> = text.lines().map(|s| s.to_string()).collect();
@@ -1534,22 +1505,7 @@ fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
 }
 
 fn remove_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
-    let usage = if is_mod {
-        "usage: yog remove --mod <yog-mod-id>"
-    } else {
-        "usage: yog remove <crate>"
-    };
-    let name = crate_name.ok_or(usage)?;
-    let target_section = if is_mod {
-        "[dependencies.exports]"
-    } else {
-        "[dependencies]"
-    };
-    let root = std::env::current_dir().map_err(|e| e.to_string())?;
-    let yog_toml_path = root.join("yog.toml");
-    if !yog_toml_path.exists() {
-        return Err("no yog.toml found in the current directory".into());
-    }
+    let (name, yog_toml_path, target_section) = dep_edit("remove", crate_name, is_mod)?;
 
     let text = std::fs::read_to_string(&yog_toml_path).map_err(|e| e.to_string())?;
     let mut lines: Vec<String> = Vec::new();
@@ -1562,11 +1518,12 @@ fn remove_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
             in_section = trimmed == target_section;
         }
         // Remove lines like: crate-name = "..." or crate-name = { ... },
-        // only within the targeted section.
+        // only within the targeted section and only `name` itself (not
+        // every crate whose name it prefixes).
         if in_section
-            && trimmed.starts_with(name)
-            && trimmed.contains('=')
-            && !trimmed.starts_with('[')
+            && trimmed
+                .split_once('=')
+                .is_some_and(|(key, _)| key.trim() == name)
         {
             removed = true;
             continue;
@@ -1590,12 +1547,12 @@ fn remove_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
 /// Scans the mod for `#[yog_export]` items, generates an `-exports` crate,
 /// and publishes it to crates.io.
 fn publish_exports(dry_run: bool) -> Result<(), String> {
-    let proj = std::env::current_dir().map_err(|e| e.to_string())?;
-    let manifest = YogToml::read(&proj.join("yog.toml"))?;
+    let proj = project_root()?;
+    let manifest = YogToml::read(&proj.join(MANIFEST))?;
 
     let mod_id = manifest.id;
     let version = manifest.version;
-    let edition = manifest.edition.as_deref().unwrap_or("2021");
+    let edition = manifest.edition.as_deref().unwrap_or(DEFAULT_EDITION);
     // Exports crates default to MIT OR Apache-2.0 regardless of the mod's own
     // license — an AGPL mod would otherwise
     // force every consumer's dependency tree under AGPL too, which kills
@@ -1603,7 +1560,7 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
     let license = manifest
         .exports_license
         .clone()
-        .unwrap_or_else(|| "MIT OR Apache-2.0".to_string());
+        .unwrap_or_else(|| DEFAULT_LICENSE.to_string());
     let authors = manifest.authors.join(", ");
     let exports_crate_name = format!("{}_exports", mod_id.replace('-', "_"));
 

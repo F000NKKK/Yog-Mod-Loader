@@ -1,6 +1,8 @@
 //! The generated `.yog-build/Cargo.toml` and the `lib.designer.rs` facade.
 
-use crate::manifest::{to_snake_name, workspace_rkyv_version, YogToml};
+use crate::manifest::{
+    to_snake_name, workspace_rkyv_version, YogToml, DEFAULT_EDITION, DEPS_SECTION, DESIGNER_FILE,
+};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
@@ -17,7 +19,7 @@ pub fn generate_cargo_toml(meta: &YogToml) -> String {
             .join(", ");
         format!("authors      = [{list}]\n")
     };
-    let edition = meta.edition.as_deref().unwrap_or("2021");
+    let edition = meta.edition.as_deref().unwrap_or(DEFAULT_EDITION);
 
     // With a local yog-api, its sibling yog-* crates (yog-ui, yog-gfx,
     // yog-interop, ...) come from the same checkout too — the local API may
@@ -84,9 +86,9 @@ pub fn generate_cargo_toml(meta: &YogToml) -> String {
     // `src/lib.rs` content plus a `yog_exports` module nesting each mod
     // dependency under its own name.
     let lib_path = if meta.mod_dependencies.is_empty() {
-        "../src/lib.rs"
+        "../src/lib.rs".to_string()
     } else {
-        "../src/lib.designer.rs"
+        format!("../src/{DESIGNER_FILE}")
     };
 
     format!(
@@ -130,7 +132,7 @@ pub fn yog_dependencies(cargo_toml: &str) -> Vec<String> {
     for line in cargo_toml.lines() {
         let line = line.trim();
         if line.starts_with('[') {
-            in_deps = line == "[dependencies]";
+            in_deps = line == DEPS_SECTION;
             continue;
         }
         if !in_deps {

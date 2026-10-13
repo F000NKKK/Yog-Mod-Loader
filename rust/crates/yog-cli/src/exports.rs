@@ -1,6 +1,7 @@
 //! `yog publish exports` — the `-exports` crate generated from a mod's
 //! `#[yog_export]` items.
 
+use crate::manifest::DESIGNER_FILE;
 use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -615,14 +616,7 @@ pub unsafe extern "C" fn {bind_name_fmt}(ptr: *const ::std::os::raw::c_void) {{
     let f: {wrapper_ty} = ::std::mem::transmute(ptr);
     {slot_name_fmt}.set(f).ok();
 }}
-"#,
-        name = name,
-        params_sig_fmt = params_sig_fmt,
-        output_type_fmt = output_type_fmt,
-        slot_name_fmt = slot_name_fmt,
-        wrapper_ty = wrapper_ty,
-        bind_name_fmt = bind_name_fmt,
-        serialize_block = serialize_block,
+"#
     )
 }
 
@@ -639,7 +633,7 @@ pub fn collect_rs_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
             // Skip the `yog_exports` facade `build()` generates next to
             // `lib.rs` — it's a verbatim copy of the real source, and
             // scanning it too would double every `#[yog_export]` item.
-            && path.file_name().and_then(|n| n.to_str()) != Some("lib.designer.rs")
+            && path.file_name().and_then(|n| n.to_str()) != Some(DESIGNER_FILE)
         {
             out.push(path);
         }
