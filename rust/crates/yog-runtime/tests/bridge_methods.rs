@@ -54,9 +54,6 @@ fn list_len(s: &str) -> Option<usize> {
         if !c.is_whitespace() && depth >= 0 {
             any = true;
         }
-        match c {
-            _ => {}
-        }
     }
     None
 }
