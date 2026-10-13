@@ -1263,7 +1263,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.31.0"
+version = "0.31.1"
 dependencies = [
  "criterion",
  "serde_json",

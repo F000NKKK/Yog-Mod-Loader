@@ -484,6 +484,7 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
     install_targets(&wanted);
     let installed = installed_targets();
     let mut bundled: Vec<(String, PathBuf)> = Vec::new();
+    let mut failed = 0;
 
     for t in wanted {
         if !installed.iter().any(|s| s == t.triple) {
@@ -509,14 +510,19 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
                     eprintln!("    skip {} (built but output not found: {})", t.tag, lib);
                 }
             }
-            Err(_) => eprintln!("    skip {} (build failed)", t.tag),
+            Err(_) => {
+                failed += 1;
+                eprintln!("    skip {} (build failed)", t.tag);
+            }
         }
     }
 
     if bundled.is_empty() {
-        return Err(
-            "no platform built — run `yog setup` to install cross-compilation tools".into(),
-        );
+        return Err(if failed > 0 {
+            "no platform built — the build failed (errors above)".into()
+        } else {
+            "no platform built — run `yog setup` to install cross-compilation tools".into()
+        });
     }
 
     // Save Cargo.lock as yog.lock
