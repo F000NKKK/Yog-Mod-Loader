@@ -220,7 +220,8 @@ breaks the export ABI between mods, which is acceptable under the no-compat rule
 recommendation is (b).
 
 **Savings:** ~420 lines in mods now (including `wire.rs`). `packet!` / `PacketField` are
-deleted.
+deleted. (Capability rule: `Codec` is a public trait, so a hand-written `impl Codec` remains the
+way to keep any custom byte layout; `to_bytes`/`from_bytes` interoperate with raw `&[u8]` payloads.)
 **ABI/semver:** yog-network and yog-api get a major bump. With (b), the interop wire format
 changes and every mod that exports anything must be rebuilt.
 
@@ -272,7 +273,10 @@ which exist only because `PacketEvent` (`yog-network/src/lib.rs:30`) carries the
 nothing else.
 
 `on_packet`, `on_client_packet`, `on_typed_packet` and `PacketEvent` are deleted from the
-public API. The raw form is kept as `registry.on_raw(…)` for interop with non-Yog mods.
+public API. The raw form is kept (capability rule) for interop with non-Yog mods and for
+channels whose payload is not `Codec`: `registry.on_raw(ch, |bytes: &[u8], cx: &PacketCx| …)` and
+`registry.on_client_raw(ch, |bytes| …)` on any channel id, plus the raw senders
+`Server::send_to_player` / `send_to_server` with `&[u8]`.
 
 **Savings:** ~25 lines now and ~6 per future packet. The class of bugs where a handler is
 registered on the wrong side goes away.
@@ -517,7 +521,9 @@ The scaffolding template (`yog-cli/src/main.rs:462`) shrinks to match.
 Screens: the generated `register()` (`yui_vm.rs:1588`) also self-registers through the
 `ctor` registrar, using `Default` for the view model. `register_with(vm)` remains for custom
 construction. A `<Screen menu_entry="@Strings.menu_button">` attribute replaces
-`register_menu_entry`. The "initializing / ready" `info!` lines are dropped; the runtime
+`register_menu_entry` as the default; `registry.register_menu_entry(label, ui_id)` stays for
+entries decided at run time (conditional, computed label, a screen not declared in `.yui`)
+(capability rule). The "initializing / ready" `info!` lines are dropped; the runtime
 already logs each mod load.
 
 **Savings:** ~15 lines per mod, plus 1–3 per screen.
@@ -570,7 +576,9 @@ Book::new("hexcasting:thehexbook", B::BOOK_NAME_KEY).author("F000NK, Yog Team").
 compiled like `.yblock` (0 Rust, and the IDE could edit it). The recommendation is builders
 plus key arrays now, and `.ybook` once Yog-IDLE has a book editor.
 **Semver:** yog-book minor (additive builders). Removing the public struct literals would be
-a major bump; do that.
+a major bump; do that. (Capability rule: whatever D3 makes the authoring path, the builders stay
+public, so a mod can still build or extend a book in code at run time, e.g. from config or
+loaded content.)
 
 ### F11. Yog-Pipes duplicates yog-api
 
@@ -580,6 +588,10 @@ a major bump; do that.
   with `registry.add_recipe(r)`. It generates the id (`<output>_<kind>[_n]`, the policy now
   hand-written at `recipe.rs:40-55`). `PipeDef.recipe: Vec<yog_api::Recipe>`. That saves
   ~100 lines and deletes `add_shaped_recipe` / `add_shapeless_recipe` / `add_furnace_recipe`.
+  (Capability rule: `Recipe` covers every type `.yrecipe` does (F13), plus
+  `Recipe::Json { id, json }` passed through to the host's existing `register_recipe_json`, so
+  code can register any recipe type, including other mods' types; today only the three typed
+  helpers are public.)
 - **`handler.rs::dispatch` (`handler.rs:58-97`)** transmutes an interop pointer to the C-ABI
   wrapper signature and frees the output buffer by hand. Fix:
   `Interop::call::<In: Codec, Out: Codec>(mod_id, symbol, &input) -> Option<Out>` in
@@ -638,8 +650,8 @@ Raw `data/` JSON is no replacement: the format differs between MC 1.20 and 1.21 
 - **Static analyzer as a fallback.** When the mod library doesn't build yet, `yog check` scans `src/` with `syn`
   for registration calls with literal ids (`add_shaped_recipe`, `recipe(ns, name, …)`, item/block defs) and
   fills the same `registry.json` with ids only, marked `static`.
-- Deletes from mods: Pipes' consumer recipe code, `registry.add_*_recipe` calls for static recipes. The
-  `add_*_recipe` API stays only for recipes built at run time.
+- Deletes from mods: Pipes' consumer recipe code, `registry.add_*_recipe` calls for static recipes.
+  `registry.add_recipe(Recipe)` (F11) stays for recipes built at run time (capability rule).
 
 ---
 
@@ -648,10 +660,10 @@ Raw `data/` JSON is no replacement: the format differs between MC 1.20 and 1.21 
 | Crate | Add | Delete (no shims) |
 |---|---|---|
 | `yog-macros` (rename of `yog-interop`) | `#[derive(Codec)]`, `#[derive(Tr)]`, `#[main]`, `#[collect]`, `#[yog_export]` on top of `Codec` | rkyv derives (if D1 = b) |
-| `yog-api` | `Codec` / `Writer` / `Reader`, `C2S` / `S2C` + `registry.on(..)`, `PacketCx` / `PlayerRef`, `ServerState` / `WorldData` / `PlayerData`, `Text`, `DimPos`, `Recipe`, `Interop::call`, `registry.on::<E>` / `before::<E>`, `testing::TempDir` | `on_packet` / `on_client_packet` / `on_typed_packet`, 25 × `on_xxx`, `add_*_recipe`, `resources!` / `ui_components!` / `content!` (folded into `#[main]`) |
+| `yog-api` | `Codec` / `Writer` / `Reader`, `C2S` / `S2C` + `registry.on(..)`, `on_raw` / `on_client_raw`, `PacketCx` / `PlayerRef`, `ServerState` / `WorldData` / `PlayerData`, `Text`, `DimPos`, `Recipe` (incl. `Recipe::Json`), `Interop::call`, `registry.on::<E>` / `before::<E>`, `testing::TempDir` | `on_packet` / `on_client_packet` / `on_typed_packet`, 25 × `on_xxx`, `add_*_recipe`, `resources!` / `ui_components!` / `content!` (folded into `#[main]`) |
 | `yog-network` | — | `packet!`, `PacketField`, `Packet` (replaced by `Codec`) |
 | `yog-book` | builders, auto sort order | public struct-literal construction |
-| `yog-kit` | generated `update()`, self-registering screens, `menu_entry=`, `TestHost::opened` | explicit `screen::register` calls in mods |
+| `yog-kit` | generated `update()`, self-registering screens, `menu_entry=`, `TestHost::opened` | explicit `screen::register` calls in mods (`register_with(vm)` and `register_menu_entry` stay for run-time cases) |
 | `yog-cli` | content conventions + `_defaults` / `extends`, numbered `.yres` arrays, `[run.matrix]`, an always-present set of generated files | — |
 | `yog-abi` / runtime | uuid on packet callbacks, `on_world_save`, `Server::world_dir`, `send_message(Text)`, phase-specific event registration | — |
 
