@@ -1554,15 +1554,15 @@ it.
 3. **Q3 Gestures**: in markup only (recommended), or also `#[command(key = "Ctrl+S")]` in Rust?
 4. **Q4 Async — decided: yes, built-in mini executor.** Was: is a built-in mini executor in yog-kit wanted (recommended: it enables
    `await dialog`, `Rpc` and `background`), or callbacks only?
-5. **Q5 `Fallback=` → `??`**: OK to delete `Fallback=` outright (no-backward-compat)?
+5. **Q5 `Fallback=` → `??` — decided: yes, delete `Fallback=`.** Was: OK to delete `Fallback=` outright (no-backward-compat)?
 6. **Q6 Binding grammar — decided: yes.** Was: add `&&`, `||`, `<`/`>`, `??`, `[i]` and tuple literals (recommended),
    given v1 deliberately refused them?
-7. **Q7 Screens without `x:ViewModel`**: compile them as `Vm = ()` (recommended), or require a VM?
+7. **Q7 Screens without `x:ViewModel` — decided: compile as `Vm = ()`.** Was: compile them as `Vm = ()` (recommended), or require a VM?
 8. **Q8 `CollectionView`** (incremental filter/sort over `ObsVec`): needed now, or after real
    lists get large?
 9. **Q9 Component VMs** (`x:ViewModel` on `<Component>`): include in M7, or keep components
    stateless?
-10. **Q10 `invalid` state**: agree to add bit 6 (`INVALID`) to `StateFlags` and an `invalid`
+10. **Q10 `invalid` state — decided: yes (bit 6 + `.ymat` `invalid`).** Was: agree to add bit 6 (`INVALID`) to `StateFlags` and an `invalid`
     state to `.ymat`, coordinated with the materials design?
 11. **Q11 Hot reload**: carry VM state across hot reload when the VM is `Codec`
     (`#[view_model(reload)]`)?
