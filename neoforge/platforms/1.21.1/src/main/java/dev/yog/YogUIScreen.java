@@ -10,6 +10,8 @@ public class YogUIScreen extends Screen {
     private final String uiId;
     private final boolean modal;
     private final boolean pauseGame;
+    /** Last cursor position sent as a `move:` event. */
+    private int lastMx = Integer.MIN_VALUE, lastMy = Integer.MIN_VALUE;
 
     public YogUIScreen(String uiId, boolean modal, boolean pauseGame) {
         super(Component.literal(uiId));
@@ -22,6 +24,11 @@ public class YogUIScreen extends Screen {
     public YogUIScreen(String uiId) { this(uiId, true, false); }
 
     @Override public void render(GuiGraphics ctx, int mx, int my, float delta) {
+        if (mx != lastMx || my != lastMy) {
+            lastMx = mx;
+            lastMy = my;
+            NativeBridge.nativeUIMove(uiId, mx, my);
+        }
         super.renderBackground(ctx, mx, my, delta);
         ctx.flush();
         NativeDraw.hudDrawContext = ctx;
@@ -72,8 +79,13 @@ public class YogUIScreen extends Screen {
     @Override public boolean isPauseScreen() { return pauseGame; }
 
     @Override public void onClose() {
-        NativeBridge.nativeUIHide(uiId);
         super.onClose();
+    }
+
+    /** Leaving the screen any way (Esc, a button, another screen opening): the mod gets `close`. */
+    @Override public void removed() {
+        NativeBridge.nativeUIHide(uiId);
+        super.removed();
     }
 
     /** Closes the open screen if it's the Yog UI uiId ("" = any Yog UI). */

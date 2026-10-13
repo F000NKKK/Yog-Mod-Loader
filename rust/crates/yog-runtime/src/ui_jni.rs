@@ -24,8 +24,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
     parent_id: JString<'l>,
     modal: jboolean,
     pause_game: jboolean,
-    _w: jint,
-    _h: jint,
+    w: jint,
+    h: jint,
 ) {
     let id = jstr!(env, ui_id);
     let parent = jstr!(env, parent_id);
@@ -55,6 +55,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
         pause_game != 0,
         active.len()
     );
+    drop(active);
+    // Lifecycle event for the screen's own handler (yog-kit's `on_open`).
+    dispatch(&id, &format!("open:{w}:{h}"));
 }
 
 #[no_mangle]
@@ -74,6 +77,41 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIHide<'l>(
         .collect();
     active.retain(|l| !ids_to_remove.contains(&l.id));
     yog_logging::info!("UI hide: {} (layers left: {})", id, active.len());
+    drop(active);
+    // Lifecycle event for the screens' own handlers (yog-kit's `on_close`).
+    for closed in &ids_to_remove {
+        dispatch(closed, "close");
+    }
+}
+
+/// Sends `ev` to the `register_ui` handler of `id`, if any (result ignored).
+fn dispatch(id: &str, ev: &str) {
+    let h = handlers();
+    let Some((module, ud, handler)) = h.ui_handlers.get(id).cloned() else {
+        return;
+    };
+    if module.is_retiring() {
+        return;
+    }
+    if let Some(_call) = module.enter() {
+        unsafe {
+            handler(ud, YogStr::from_str(id), YogStr::from_str(ev));
+        }
+    }
+}
+
+/// The cursor moved over a Yog UI screen — forwarded as `move:X:Y` (hover
+/// states, wheel routing).
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIMove<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    mx: jfloat,
+    my: jfloat,
+) {
+    let id = jstr!(env, ui_id);
+    dispatch(&id, &format!("move:{mx:.1}:{my:.1}"));
 }
 
 #[no_mangle]

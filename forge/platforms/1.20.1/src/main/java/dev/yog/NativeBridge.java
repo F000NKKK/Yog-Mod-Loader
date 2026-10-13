@@ -521,6 +521,8 @@ public final class NativeBridge {
 
     /** Mouse dragged over a Yog UI screen (any button held). */
     public static native void nativeUIDrag(String uiId, float mx, float my);
+    /** The cursor moved over a Yog UI screen (`move:X:Y`). */
+    public static native void nativeUIMove(String uiId, float mx, float my);
 
     /** Mouse button released over a Yog UI screen. */
     public static native void nativeUIRelease(String uiId, float mx, float my);
