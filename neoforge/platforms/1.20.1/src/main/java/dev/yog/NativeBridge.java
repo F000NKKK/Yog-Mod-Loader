@@ -47,6 +47,24 @@ import net.minecraft.core.BlockPos;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
+import net.minecraft.commands.arguments.blocks.BlockInput;
+import net.minecraft.commands.arguments.blocks.BlockStateParser;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.BoneMealItem;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.fml.loading.FMLPaths;
 import java.util.Map;
 
@@ -83,6 +101,17 @@ public final class NativeBridge {
 
     public static boolean setBlock(String dimension, int x, int y, int z, String blockId) {
         ServerLevel w = worldFor(dimension);
+        if (w != null && blockId != null && (blockId.indexOf('[') >= 0 || blockId.indexOf('{') >= 0)) {
+            // Full /setblock syntax: id[prop=value,...]{nbt}
+            try {
+                BlockStateParser.BlockResult r =
+                        BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK.asLookup(), blockId, true);
+                return new BlockInput(r.blockState(), r.properties().keySet(), r.nbt())
+                        .place(w, new BlockPos(x, y, z), 3);
+            } catch (Throwable ignored) {
+                // fall back to the plain id lookup below
+            }
+        }
         ResourceLocation id = ResourceLocation.tryParse(blockId);
         if (w == null || id == null || !BuiltInRegistries.BLOCK.containsKey(id)) return false;
         Block block = BuiltInRegistries.BLOCK.get(id);
@@ -389,6 +418,350 @@ public final class NativeBridge {
         e.moveTo(x, y, z, e.getYRot(), e.getXRot());
         w.addFreshEntity(e);
         return e.getStringUUID();
+    }
+
+    // ── world / entity queries & actions (Hex-style ops) ────────────────────
+
+    private static String flag01(boolean b) {
+        return b ? "1" : "0";
+    }
+
+    /** Entity by uuid, or null for null / "" / unknown. */
+    private static Entity optionalEntity(String uuid) {
+        return uuid == null || uuid.isEmpty() ? null : entityByUuid(uuid);
+    }
+
+    /** Item stack from id + count + optional snbt tag; null if the id is unknown. */
+    private static ItemStack buildStack(String itemId, int count, String snbt) {
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        if (id == null || count <= 0 || !BuiltInRegistries.ITEM.containsKey(id)) return null;
+        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(id), count);
+        if (snbt != null && !snbt.isEmpty()) {
+            try {
+                CompoundTag nbt = TagParser.parseTag(snbt);
+                if (!nbt.isEmpty()) stack.setTag(nbt);
+            } catch (Exception ignored) {}
+        }
+        return stack;
+    }
+
+    /** Snbt of a stack's tag ("{}" if none). */
+    private static String stackSnbt(ItemStack stack) {
+        return stack.hasTag() ? stack.getTag().toString() : "{}";
+    }
+
+    /** "type\tdim\tx\ty\tz\teyeHeight\twidth\theight\tflags\tname", or null. */
+    public static String entityInfo(String uuid) {
+        try {
+            Entity e = entityByUuid(uuid);
+            if (e == null) return null;
+            int flags = 0;
+            if (e instanceof LivingEntity) flags |= 1;
+            if (e instanceof Player) flags |= 2;
+            if (e instanceof net.minecraft.world.entity.animal.Animal
+                    || e instanceof net.minecraft.world.entity.animal.WaterAnimal) flags |= 4;
+            if (e instanceof net.minecraft.world.entity.monster.Enemy) flags |= 8;
+            if (e instanceof ItemEntity) flags |= 16;
+            if (e instanceof net.minecraft.world.entity.Mob) flags |= 32;
+            if (e instanceof net.minecraft.world.entity.decoration.ArmorStand) flags |= 64;
+            if (e.isAlive()) flags |= 128;
+            if (e.isSpectator()) flags |= 256;
+            if (e instanceof net.minecraft.world.entity.boss.EnderDragonPart
+                    || e instanceof net.minecraftforge.entity.PartEntity<?>) flags |= 512;
+            if (e instanceof net.minecraft.world.entity.npc.Villager) flags |= 1024;
+            return BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()) + "\t"
+                    + e.level().dimension().location() + "\t"
+                    + e.getX() + "\t" + e.getY() + "\t" + e.getZ() + "\t"
+                    + e.getEyeHeight() + "\t" + e.getBbWidth() + "\t" + e.getBbHeight() + "\t"
+                    + flags + "\t" + tsvField(e.getName().getString());
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** UUIDs (newline-separated) of entities intersecting the box; null if dim unknown. */
+    public static String entitiesInBox(String dim, double x0, double y0, double z0, double x1, double y1, double z1) {
+        try {
+            ServerLevel w = worldFor(dim);
+            if (w == null) return null;
+            StringBuilder sb = new StringBuilder();
+            for (Entity e : w.getEntities((Entity) null, new AABB(x0, y0, z0, x1, y1, z1), o -> true)) {
+                if (sb.length() > 0) sb.append('\n');
+                sb.append(e.getStringUUID());
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** "x\ty\tz\tface\thx\thy\thz" of the first block hit, or null on miss. */
+    public static String raycastBlock(String dim, double fx, double fy, double fz, double tx, double ty, double tz) {
+        try {
+            ServerLevel w = worldFor(dim);
+            if (w == null) return null;
+            BlockHitResult hit = w.clip(new ClipContext(new Vec3(fx, fy, fz), new Vec3(tx, ty, tz),
+                    ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, (Entity) null));
+            if (hit == null || hit.getType() == HitResult.Type.MISS) return null;
+            BlockPos p = hit.getBlockPos();
+            Vec3 h = hit.getLocation();
+            return p.getX() + "\t" + p.getY() + "\t" + p.getZ() + "\t" + hit.getDirection().get3DDataValue()
+                    + "\t" + h.x + "\t" + h.y + "\t" + h.z;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** UUID of the nearest entity hit along from→to (ProjectileUtil semantics), or null. */
+    public static String raycastEntity(String dim, double fx, double fy, double fz,
+            double tx, double ty, double tz, String excludeUuid) {
+        try {
+            ServerLevel w = worldFor(dim);
+            if (w == null) return null;
+            Entity ex = optionalEntity(excludeUuid);
+            Vec3 from = new Vec3(fx, fy, fz);
+            Vec3 to = new Vec3(tx, ty, tz);
+            AABB area = new AABB(fx, fy, fz, tx, ty, tz).inflate(1.0);
+            Entity best = null;
+            double bestDist = Double.MAX_VALUE;
+            for (Entity c : w.getEntities(ex, area, o -> !o.isSpectator() && o.isPickable())) {
+                if (ex != null && c.getRootVehicle() == ex.getRootVehicle()) continue;
+                AABB box = c.getBoundingBox().inflate(c.getPickRadius());
+                if (box.contains(from)) {
+                    if (bestDist > 0.0) {
+                        best = c;
+                        bestDist = 0.0;
+                    }
+                    continue;
+                }
+                java.util.Optional<Vec3> clip = box.clip(from, to);
+                if (clip.isPresent()) {
+                    double d = from.distanceToSqr(clip.get());
+                    if (d < bestDist) {
+                        best = c;
+                        bestDist = d;
+                    }
+                }
+            }
+            return best == null ? null : best.getStringUUID();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** "state\thardness\treplaceable\tair\tfluid\tsource\tredstone\tinWorld", or null. */
+    public static String blockInfo(String dim, int x, int y, int z) {
+        try {
+            ServerLevel w = worldFor(dim);
+            if (w == null) return null;
+            BlockPos pos = new BlockPos(x, y, z);
+            BlockState st = w.getBlockState(pos);
+            FluidState fs = st.getFluidState();
+            String fluid = fs.isEmpty() ? "" : BuiltInRegistries.FLUID.getKey(fs.getType()).toString();
+            boolean inWorld = w.isInWorldBounds(pos) && w.getWorldBorder().isWithinBounds(pos);
+            return BlockStateParser.serialize(st) + "\t"
+                    + st.getDestroySpeed(w, pos) + "\t"
+                    + flag01(st.canBeReplaced()) + "\t"
+                    + flag01(st.isAir()) + "\t"
+                    + fluid + "\t"
+                    + flag01(!fs.isEmpty() && fs.isSource()) + "\t"
+                    + w.getBestNeighborSignal(pos) + "\t"
+                    + flag01(inWorld);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Break the block (dropping items if `drop`); false for air / unbreakable blocks. */
+    public static boolean breakBlock(String dim, int x, int y, int z, boolean drop, String breakerUuid) {
+        try {
+            ServerLevel w = worldFor(dim);
+            if (w == null) return false;
+            BlockPos pos = new BlockPos(x, y, z);
+            BlockState st = w.getBlockState(pos);
+            if (st.isAir() || st.getDestroySpeed(w, pos) < 0) return false;
+            return w.destroyBlock(pos, drop, optionalEntity(breakerUuid));
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Place the BlockItem from the player's inventory slot at a replaceable position. */
+    public static boolean placeBlockFromSlot(String player, int slot, String dim, int x, int y, int z) {
+        try {
+            ServerPlayer p = playerByName(player);
+            ServerLevel w = worldFor(dim);
+            if (p == null || w == null || p.serverLevel() != w) return false;
+            Inventory inv = p.getInventory();
+            if (slot < 0 || slot >= inv.items.size()) return false;
+            ItemStack stack = inv.items.get(slot);
+            if (stack.isEmpty() || !(stack.getItem() instanceof BlockItem bi)) return false;
+            BlockPos pos = new BlockPos(x, y, z);
+            if (!w.getBlockState(pos).canBeReplaced()) return false;
+            BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+            InteractionResult r = bi.place(new BlockPlaceContext(p, InteractionHand.MAIN_HAND, stack, hit));
+            return r.consumesAction();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Apply bone meal at the position (crops / saplings / grass, or water plants). */
+    public static boolean bonemeal(String dim, int x, int y, int z) {
+        try {
+            ServerLevel w = worldFor(dim);
+            if (w == null) return false;
+            BlockPos pos = new BlockPos(x, y, z);
+            boolean ok = BoneMealItem.growCrop(new ItemStack(Items.BONE_MEAL), w, pos)
+                    || BoneMealItem.growWaterPlant(new ItemStack(Items.BONE_MEAL), w, pos, null);
+            if (ok) w.levelEvent(1505, pos, 0);
+            return ok;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean explode(String dim, double x, double y, double z, float power, boolean fire, String sourceUuid) {
+        try {
+            ServerLevel w = worldFor(dim);
+            if (w == null) return false;
+            w.explode(optionalEntity(sourceUuid), x, y, z, power, fire, Level.ExplosionInteraction.TNT);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean sendMessage(String player, String message) {
+        try {
+            ServerPlayer p = playerByName(player);
+            if (p == null) return false;
+            p.sendSystemMessage(Component.literal(message));
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Damage an entity; source = player attack / mob attack / magic depending on sourceUuid. */
+    public static boolean entityDamage(String uuid, float amount, String sourceUuid) {
+        try {
+            Entity e = entityByUuid(uuid);
+            if (e == null) return false;
+            Entity src = optionalEntity(sourceUuid);
+            DamageSource ds;
+            if (src instanceof Player sp) {
+                ds = e.damageSources().playerAttack(sp);
+            } else if (src instanceof LivingEntity sl) {
+                ds = e.damageSources().mobAttack(sl);
+            } else {
+                ds = e.damageSources().magic();
+            }
+            return e.hurt(ds, amount);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean entitySetFireTicks(String uuid, int ticks) {
+        try {
+            Entity e = entityByUuid(uuid);
+            if (e == null) return false;
+            e.setRemainingFireTicks(ticks);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean playerAddXp(String player, int amount) {
+        try {
+            ServerPlayer p = playerByName(player);
+            if (p == null) return false;
+            p.giveExperiencePoints(amount);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Grant / revoke flight; revoking leaves creative / spectator players untouched. */
+    public static boolean playerSetMayFly(String player, boolean mayFly) {
+        try {
+            ServerPlayer p = playerByName(player);
+            if (p == null) return false;
+            GameType gm = p.gameMode.getGameModeForPlayer();
+            if (!mayFly && (gm.isCreative() || gm == GameType.SPECTATOR)) return true;
+            p.getAbilities().mayfly = mayFly;
+            if (!mayFly) p.getAbilities().flying = false;
+            p.onUpdateAbilities();
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** "uuid\tgamemode\tselectedSlot\txpLevel\txpTotal\tair\tmayFly\tflying", or null. */
+    public static String playerInfo(String player) {
+        try {
+            ServerPlayer p = playerByName(player);
+            if (p == null) return null;
+            return p.getStringUUID() + "\t"
+                    + p.gameMode.getGameModeForPlayer().getName() + "\t"
+                    + p.getInventory().selected + "\t"
+                    + p.experienceLevel + "\t"
+                    + p.totalExperience + "\t"
+                    + p.getAirSupply() + "\t"
+                    + flag01(p.getAbilities().mayfly) + "\t"
+                    + flag01(p.getAbilities().flying);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Spawn an item entity with the given velocity; returns its uuid or null. */
+    public static String spawnItem(String dim, double x, double y, double z,
+            double vx, double vy, double vz, String itemId, int count, String snbt) {
+        try {
+            ServerLevel w = worldFor(dim);
+            if (w == null) return null;
+            ItemStack stack = buildStack(itemId, count, snbt);
+            if (stack == null || stack.isEmpty()) return null;
+            ItemEntity ie = new ItemEntity(w, x, y, z, stack);
+            ie.setDeltaMovement(vx, vy, vz);
+            if (!w.addFreshEntity(ie)) return null;
+            return ie.getStringUUID();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** "itemId\tcount\tsnbt" of an item entity's stack, or null. */
+    public static String itemEntityStack(String uuid) {
+        try {
+            if (!(entityByUuid(uuid) instanceof ItemEntity ie)) return null;
+            ItemStack stack = ie.getItem();
+            return BuiltInRegistries.ITEM.getKey(stack.getItem()) + "\t" + stack.getCount() + "\t" + stackSnbt(stack);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Replace an item entity's stack; count <= 0 or empty id discards the entity. */
+    public static boolean itemEntitySetStack(String uuid, String itemId, int count, String snbt) {
+        try {
+            if (!(entityByUuid(uuid) instanceof ItemEntity ie)) return false;
+            if (count <= 0 || itemId == null || itemId.isEmpty()) {
+                ie.discard();
+                return true;
+            }
+            ItemStack stack = buildStack(itemId, count, snbt);
+            if (stack == null) return false;
+            ie.setItem(stack);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     private static Entity entityByUuid(String uuidStr) {

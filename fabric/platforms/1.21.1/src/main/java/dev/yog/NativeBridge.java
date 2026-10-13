@@ -922,7 +922,7 @@ public final class NativeBridge {
             ServerWorld w = worldFor(dim);
             if (w == null) return null;
             StringBuilder sb = new StringBuilder();
-            for (Entity e : w.getOtherEntities(null, new Box(x0, y0, z0, x1, y1, z1), o -> true)) {
+            for (Entity e : w.getOtherEntities((Entity) null, new Box(x0, y0, z0, x1, y1, z1), o -> true)) {
                 if (sb.length() > 0) sb.append('\n');
                 sb.append(e.getUuidAsString());
             }
