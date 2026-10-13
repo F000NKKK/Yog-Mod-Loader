@@ -712,7 +712,9 @@ fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> 
         let dest = dir.join(format!("{}.yog", meta.id));
         std::fs::copy(&artifact, &dest)
             .map_err(|e| format!("copying to {}: {e}", dest.display()))?;
+        write_file(&source_marker(&dir, &meta.id), root.display().to_string().as_bytes())?;
         eprintln!("==> exported {} -> {}", meta.id, dest.display());
+        refresh_exported(&dir, &meta.id, debugging_symbols);
     }
 
     let Some(command) = &cfg.command else {
@@ -748,6 +750,62 @@ fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> 
         return Err(format!("`{command}` exited with {status}"));
     }
     Ok(())
+}
+
+/// `<id>.source` beside an exported `<id>.yog`: the project it was built
+/// from, so the next `yog run` into that folder can rebuild it.
+fn source_marker(dir: &Path, id: &str) -> PathBuf {
+    dir.join(format!("{id}.source"))
+}
+
+/// Rebuilds every other mod `yog run` exported into `dir` (the ones with a
+/// `<id>.source`) and re-exports it — mods from an older build would carry
+/// an older ABI, and the runtime refuses those. A mod that fails to build
+/// keeps its old artifact (with a warning); the run goes on.
+fn refresh_exported(dir: &Path, current: &str, debugging_symbols: bool) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let mut others: Vec<(String, PathBuf)> = entries
+        .flatten()
+        .filter_map(|e| {
+            let path = e.path();
+            let id = path.file_name()?.to_str()?.strip_suffix(".source")?.to_string();
+            if id == current || !dir.join(format!("{id}.yog")).is_file() {
+                return None;
+            }
+            let source = std::fs::read_to_string(&path).ok()?;
+            Some((id, PathBuf::from(source.trim())))
+        })
+        .collect();
+    others.sort();
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    for (id, source) in others {
+        if !source.join(MANIFEST).is_file() {
+            eprintln!(
+                "warning: {id}: {} is no longer a mod project — keeping the exported {id}.yog",
+                source.display()
+            );
+            continue;
+        }
+        eprintln!("==> refreshing {id} ({})", source.display());
+        let mut cmd = Command::new(&exe);
+        cmd.arg("build").current_dir(&source);
+        if debugging_symbols {
+            cmd.arg("debug");
+        }
+        let built = cmd.status().is_ok_and(|s| s.success());
+        let artifact = source.join("artifacts").join(format!("{id}.yog"));
+        if !built || !artifact.is_file() {
+            eprintln!("warning: {id} didn't build — keeping its previous {id}.yog");
+            continue;
+        }
+        if let Err(e) = std::fs::copy(&artifact, dir.join(format!("{id}.yog"))) {
+            eprintln!("warning: {id}: copying {}: {e}", artifact.display());
+        }
+    }
 }
 
 /// Resolve a possibly-relative path against the project root.
