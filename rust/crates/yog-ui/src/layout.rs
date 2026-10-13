@@ -1,5 +1,7 @@
 use crate::text;
-use crate::widget::{Action, Dock, Units, Widget, WidgetKind};
+use crate::widget::{Action, Dock, HAlign, Units, VAlign, Widget, WidgetKind};
+
+mod grid;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FlexDir {
@@ -197,7 +199,7 @@ fn layout_widget(
     basis_h: f32,
 ) {
     let s = &w.style;
-    let has_children = !w.children.is_empty();
+    let has_children = is_container(w);
     let explicit_w = resolve_size(s.w, basis_w).map(|v| v.min(max_w));
     let explicit_h = resolve_size(s.h, basis_h).map(|v| v.min(max_h));
 
@@ -239,7 +241,7 @@ fn layout_widget(
             }
             // Panel with no children: the available space, or its min size
             // along an unbounded axis.
-            WidgetKind::Panel(_) => {
+            WidgetKind::Panel(_) | WidgetKind::Grid(_) => {
                 if !bounded(ww) {
                     ww = s.min_w;
                 }
@@ -296,9 +298,14 @@ fn arrange(w: &Widget, node: &mut LayoutNode, x: f32, y: f32) {
     node.rect.x = x;
     node.rect.y = y;
     node.content_h = node.rect.h;
-    if !w.children.is_empty() {
+    if is_container(w) {
         layout_children(w, node, None);
     }
+}
+
+/// Lays out children (a grid does even with none: its tracks size it).
+fn is_container(w: &Widget) -> bool {
+    !w.children.is_empty() || matches!(w.kind, WidgetKind::Grid(_))
 }
 
 /// Which axes of a container size to its content after its children are
@@ -313,6 +320,9 @@ struct Shrink {
 /// Flex layout of `w`'s children inside `node.rect` (size and position
 /// already set). With `shrink`, auto axes then fit the content.
 fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
+    if let WidgetKind::Grid(spec) = &w.kind {
+        return grid::layout(w, spec, node, shrink);
+    }
     let s = &w.style;
     let Rect {
         x,
@@ -347,14 +357,49 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         FlexDir::Row => f.h,
         FlexDir::Column => f.w,
     });
-    let cross_offset = |content: f32, size: f32| -> f32 {
+    // A child's own cross-axis placement (`halign` in a Column, `valign` in
+    // a Row): `Some(None)` = stretch, `Some(Some(a))` = aligned, `None` =
+    // the container's `align`.
+    let self_place = |child: &Widget| -> Option<Option<Align>> {
+        match dir {
+            FlexDir::Column => child.style.halign.map(|a| match a {
+                HAlign::Left => Some(Align::Start),
+                HAlign::Center => Some(Align::Center),
+                HAlign::Right => Some(Align::End),
+                HAlign::Stretch => None,
+            }),
+            FlexDir::Row => child.style.valign.map(|a| match a {
+                VAlign::Top => Some(Align::Start),
+                VAlign::Center => Some(Align::Center),
+                VAlign::Bottom => Some(Align::End),
+                VAlign::Stretch => None,
+            }),
+        }
+    };
+    // Offset of a child `size` long (margins included) across `content`.
+    let cross_offset = |child: &Widget, content: f32, size: f32| -> f32 {
         if !cross_bounded || cross_shrinks {
             return 0.0;
         }
-        match s.align {
+        match self_place(child).flatten().unwrap_or(s.align) {
             Align::Center => (content - size) / 2.0,
             Align::End => content - size,
             Align::Start => 0.0,
+        }
+    };
+    // Margins along the main axis (leading, total) and across it (leading, total).
+    let main_m = |c: &Widget| -> (f32, f32) {
+        let m = c.style.margin;
+        match dir {
+            FlexDir::Row => (m[3], m[1] + m[3]),
+            FlexDir::Column => (m[0], m[0] + m[2]),
+        }
+    };
+    let cross_m = |c: &Widget| -> (f32, f32) {
+        let m = c.style.margin;
+        match dir {
+            FlexDir::Row => (m[0], m[0] + m[2]),
+            FlexDir::Column => (m[3], m[1] + m[3]),
         }
     };
 
@@ -376,12 +421,17 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
                 (FlexDir::Row, Dock::Right) | (FlexDir::Column, Dock::Bottom)
             )
     };
-    let stretches = |dock: Dock| -> bool {
+    let stretches = |child: &Widget| -> bool {
+        let dock = child.style.dock;
+        let auto_cross = match dir {
+            FlexDir::Row => child.style.h.is_auto(),
+            FlexDir::Column => child.style.w.is_auto(),
+        };
         cross_bounded
-            && match dir {
+            && (match dir {
                 FlexDir::Row => matches!(dock, Dock::Fill | Dock::Left | Dock::Right),
                 FlexDir::Column => matches!(dock, Dock::Fill | Dock::Top | Dock::Bottom),
-            }
+            } || (auto_cross && self_place(child) == Some(None)))
     };
 
     // Measure children
@@ -402,20 +452,13 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
             child_nodes.push(cn);
             continue;
         }
+        let m = child.style.margin;
         // Absolutely positioned: measured against what's left of the content
         // box past its offset (percent sizes: against the whole content box),
         // placed after the flow passes.
         if let Some((px, py)) = child.style.pos {
-            let mw = if bounded(content_w) {
-                (content_w - px).max(0.0)
-            } else {
-                UNBOUNDED
-            };
-            let mh = if bounded(content_h) {
-                (content_h - py).max(0.0)
-            } else {
-                UNBOUNDED
-            };
+            let mw = less(content_w, px + m[1] + m[3]);
+            let mh = less(content_h, py + m[0] + m[2]);
             layout_widget(child, &mut cn, 0.0, 0.0, mw, mh, content_w, content_h);
             child_nodes.push(cn);
             continue;
@@ -427,6 +470,7 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
             (FlexDir::Row, _) => (UNBOUNDED, content_h),
             (FlexDir::Column, _) => (content_w, UNBOUNDED),
         };
+        let (cmw, cmh) = (less(cmw, m[1] + m[3]), less(cmh, m[0] + m[2]));
         layout_widget(child, &mut cn, 0.0, 0.0, cmw, cmh, content_w, content_h);
         let ef = effective_flex(child);
         // A growing child with an auto main size starts from its min size,
@@ -442,10 +486,11 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         }
         // Flow and far-edge (Dock::Right / Dock::Bottom) children alike
         // take main-axis space.
-        used_main += match dir {
-            FlexDir::Row => cn.rect.w,
-            FlexDir::Column => cn.rect.h,
-        };
+        used_main += main_m(child).1
+            + match dir {
+                FlexDir::Row => cn.rect.w,
+                FlexDir::Column => cn.rect.h,
+            };
         if in_flow(child) {
             total_flex += ef;
         }
@@ -484,22 +529,30 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         } else {
             0.0
         };
-        let stretch = stretches(child.style.dock);
+        let stretch = stretches(child);
+        let (ml, mt) = main_m(child);
+        let (cl, ct) = cross_m(child);
         let (cx, cy) = if dir == FlexDir::Row {
             cn.rect.w += grow;
             if stretch {
-                cn.rect.h = content_h;
+                cn.rect.h = (content_h - ct).max(0.0);
             }
-            let p = (x + pos, y + s.pad[0] + cross_offset(content_h, cn.rect.h));
-            pos += cn.rect.w + s.gap;
+            let p = (
+                x + pos + ml,
+                y + s.pad[0] + cl + cross_offset(child, content_h, cn.rect.h + ct),
+            );
+            pos += cn.rect.w + mt + s.gap;
             p
         } else {
             cn.rect.h += grow;
             if stretch {
-                cn.rect.w = content_w;
+                cn.rect.w = (content_w - ct).max(0.0);
             }
-            let p = (x + s.pad[3] + cross_offset(content_w, cn.rect.w), y + pos);
-            pos += cn.rect.h + s.gap;
+            let p = (
+                x + s.pad[3] + cl + cross_offset(child, content_w, cn.rect.w + ct),
+                y + pos + ml,
+            );
+            pos += cn.rect.h + mt + s.gap;
             p
         };
         arrange(child, cn, cx, cy);
@@ -519,9 +572,12 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
             .iter()
             .zip(&child_nodes)
             .filter(|(c, _)| c.visible && !in_flow(c) && c.style.pos.is_none())
-            .map(|(_, n)| match dir {
-                FlexDir::Row => n.rect.w,
-                FlexDir::Column => n.rect.h,
+            .map(|(c, n)| {
+                main_m(c).1
+                    + match dir {
+                        FlexDir::Row => n.rect.w,
+                        FlexDir::Column => n.rect.h,
+                    }
             })
             .collect();
         let span: f32 =
@@ -537,21 +593,31 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
             continue;
         }
         let cn = &mut child_nodes[i];
-        let stretch = stretches(child.style.dock);
+        let stretch = stretches(child);
+        let (ml, mt) = main_m(child);
+        let (cl, ct) = cross_m(child);
+        // The trailing margin first (it's on the far side).
+        rpos -= mt - ml;
         let (cx, cy) = if dir == FlexDir::Row {
             if stretch {
-                cn.rect.h = content_h;
+                cn.rect.h = (content_h - ct).max(0.0);
             }
             rpos -= cn.rect.w;
-            (rpos, y + s.pad[0] + cross_offset(content_h, cn.rect.h))
+            (
+                rpos,
+                y + s.pad[0] + cl + cross_offset(child, content_h, cn.rect.h + ct),
+            )
         } else {
             if stretch {
-                cn.rect.w = content_w;
+                cn.rect.w = (content_w - ct).max(0.0);
             }
             rpos -= cn.rect.h;
-            (x + s.pad[3] + cross_offset(content_w, cn.rect.w), rpos)
+            (
+                x + s.pad[3] + cl + cross_offset(child, content_w, cn.rect.w + ct),
+                rpos,
+            )
         };
-        rpos -= s.gap;
+        rpos -= ml + s.gap;
         arrange(child, cn, cx, cy);
     }
 
@@ -563,21 +629,59 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         if !child.visible {
             continue;
         }
+        let m = child.style.margin;
         let cn = &mut child_nodes[i];
-        arrange(child, cn, x + s.pad[3] + px, y + s.pad[0] + py);
+        arrange(
+            child,
+            cn,
+            x + s.pad[3] + px + m[3],
+            y + s.pad[0] + py + m[0],
+        );
     }
 
-    // Auto-size (measure pass only): shrink to content
-    let ch: f32 = child_nodes
-        .iter()
-        .map(|c| c.rect.y - y + c.rect.h)
-        .fold(0.0f32, f32::max);
+    finish(w, node, child_nodes, shrink, bar_w);
+}
+
+/// Margin `side` of a visible child (a collapsed one has none).
+fn vis_margin(c: &Widget, side: usize) -> f32 {
+    if c.visible {
+        c.style.margin[side]
+    } else {
+        0.0
+    }
+}
+
+/// `v` less `by` (at least 0); unbounded stays unbounded.
+fn less(v: f32, by: f32) -> f32 {
+    if bounded(v) {
+        (v - by).max(0.0)
+    } else {
+        UNBOUNDED
+    }
+}
+
+/// The end of a container's layout: with `shrink`, auto axes fit the
+/// children (margins included); then the content height and scrolling.
+fn finish(
+    w: &Widget,
+    node: &mut LayoutNode,
+    mut child_nodes: Vec<LayoutNode>,
+    shrink: Option<Shrink>,
+    bar_w: f32,
+) {
+    let s = &w.style;
+    let Rect { x, y, .. } = node.rect;
+    let extent = |f: &dyn Fn(&Widget, &LayoutNode) -> f32| -> f32 {
+        w.children
+            .iter()
+            .zip(&child_nodes)
+            .map(|(c, n)| f(c, n))
+            .fold(0.0f32, f32::max)
+    };
+    let ch = extent(&|c, n| n.rect.y - y + n.rect.h + vis_margin(c, 2));
     if let Some(fit) = shrink {
         if fit.w {
-            let cw: f32 = child_nodes
-                .iter()
-                .map(|c| c.rect.x - x + c.rect.w)
-                .fold(0.0f32, f32::max);
+            let cw = extent(&|c, n| n.rect.x - x + n.rect.w + vis_margin(c, 1));
             node.rect.w = (cw + s.pad[1] + bar_w).max(s.min_w).min(fit.max_w);
         }
         if fit.h {

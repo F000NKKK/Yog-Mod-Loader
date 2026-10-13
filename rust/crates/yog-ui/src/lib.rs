@@ -33,7 +33,8 @@ pub use layout::{hit_path, node_at, set_focus, Align, FlexDir, LayoutNode, Rect}
 pub use scroll::ScrollState;
 pub use textbox::{TextBoxEvent, TextBoxState};
 pub use widget::{
-    Action, Dock, FocusStyle, StateFlags, StateStyles, Stretch, StylePatch, Units, Widget,
+    Action, Cell, Dock, FocusStyle, GridLength, GridSpec, HAlign, StateFlags, StateStyles, Stretch,
+    StylePatch, Track, Units, VAlign, Widget,
 };
 
 use yog_gfx::GfxContext;

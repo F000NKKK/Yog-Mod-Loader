@@ -138,6 +138,11 @@ pub struct StateStyles {
 pub enum WidgetKind {
     /// Container — arranges children according to `flex_dir`.
     Panel(FlexDir),
+    /// Container — WPF's `Grid`: rows and columns sized in pixels, to
+    /// content (`Auto`) or as shares of the rest (`*`); each child sits in
+    /// the cell(s) its [`Style::cell`] names — see [`grid`] and
+    /// [`GridSpec`].
+    Grid(Box<GridSpec>),
     /// Static or dynamic text label.
     Label(String),
     /// Clickable button with text.
@@ -158,6 +163,128 @@ pub enum WidgetKind {
     /// Single-line text input — see [`TextBox`] and
     /// [`TextBoxState`](crate::TextBoxState), which owns the text and drives it.
     TextBox(TextBox),
+}
+
+/// How a grid row or column is sized — WPF's `GridLength`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GridLength {
+    /// Fits its content: the largest child in it (`Auto`).
+    Auto,
+    /// A fixed size in GUI pixels (`26`).
+    Px(f32),
+    /// A share of the space the other rows/columns leave (`*` = `Star(1.0)`,
+    /// `2*` = `Star(2.0)`). Along an axis being measured for content (an
+    /// auto-sized grid in a scroll view, ...) it acts as [`Self::Auto`].
+    Star(f32),
+}
+
+impl GridLength {
+    /// `*`.
+    pub const STAR: Self = Self::Star(1.0);
+}
+
+/// One row or column of a [`GridSpec`]: its size and the limits on it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Track {
+    pub size: GridLength,
+    /// Never smaller than this (WPF's `MinHeight`/`MinWidth`).
+    pub min: f32,
+    /// Never larger than this (`f32::INFINITY` = no limit).
+    pub max: f32,
+}
+
+impl Track {
+    pub const fn new(size: GridLength) -> Self {
+        Self {
+            size,
+            min: 0.0,
+            max: f32::INFINITY,
+        }
+    }
+    /// `Auto`.
+    pub const fn auto() -> Self {
+        Self::new(GridLength::Auto)
+    }
+    /// A fixed `px`.
+    pub const fn px(px: f32) -> Self {
+        Self::new(GridLength::Px(px))
+    }
+    /// `weight*`.
+    pub const fn star(weight: f32) -> Self {
+        Self::new(GridLength::Star(weight))
+    }
+    pub const fn min(mut self, v: f32) -> Self {
+        self.min = v;
+        self
+    }
+    pub const fn max(mut self, v: f32) -> Self {
+        self.max = v;
+        self
+    }
+}
+
+impl From<GridLength> for Track {
+    fn from(size: GridLength) -> Self {
+        Self::new(size)
+    }
+}
+
+/// A grid's rows, columns and the space between them. No rows (columns)
+/// = one `*` row (column), like WPF.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct GridSpec {
+    pub rows: Vec<Track>,
+    pub cols: Vec<Track>,
+    /// Space between rows (WinUI's `RowSpacing`).
+    pub row_spacing: f32,
+    /// Space between columns (WinUI's `ColumnSpacing`).
+    pub col_spacing: f32,
+}
+
+/// The grid cell(s) a widget occupies — WPF's `Grid.Row`, `Grid.Column`,
+/// `Grid.RowSpan`, `Grid.ColumnSpan`. Only a [`grid`] reads it; out-of-range
+/// values are clamped to the grid (like WPF).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Cell {
+    pub row: u16,
+    pub col: u16,
+    /// Rows spanned, at least 1.
+    pub row_span: u16,
+    /// Columns spanned, at least 1.
+    pub col_span: u16,
+}
+
+impl Default for Cell {
+    fn default() -> Self {
+        Self {
+            row: 0,
+            col: 0,
+            row_span: 1,
+            col_span: 1,
+        }
+    }
+}
+
+/// Where a widget sits horizontally in the space its parent gives it — WPF's
+/// `HorizontalAlignment`. In a grid cell `None` means `Stretch`; in a
+/// Column it overrides the parent's `align` for this child.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HAlign {
+    Left,
+    Center,
+    Right,
+    /// Fill the width (unless the widget has an explicit `w`).
+    Stretch,
+}
+
+/// Where a widget sits vertically — WPF's `VerticalAlignment`; see [`HAlign`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VAlign {
+    Top,
+    Center,
+    Bottom,
+    /// Fill the height (unless the widget has an explicit `h`).
+    Stretch,
 }
 
 /// An image widget's data — see [`image`].
@@ -293,6 +420,14 @@ pub struct Style {
     pub gap: f32,         // spacing between children
     pub pad: [f32; 4],    // top, right, bottom, left — space INSIDE the border
     pub margin: [f32; 4], // top, right, bottom, left — space OUTSIDE the border
+    /// The grid cell(s) it occupies inside a [`grid`] — see [`Cell`].
+    pub cell: Cell,
+    /// Horizontal placement in its slot (grid cell, or a Column's width) —
+    /// see [`HAlign`]. `None` = the parent's default.
+    pub halign: Option<HAlign>,
+    /// Vertical placement in its slot (grid cell, or a Row's height) — see
+    /// [`VAlign`]. `None` = the parent's default.
+    pub valign: Option<VAlign>,
     pub bg: u32,          // background colour 0xAARRGGBB; 0 = transparent
     pub color: u32,       // text colour
     pub align: Align,
@@ -344,6 +479,9 @@ impl Default for Style {
             gap: 2.0,
             pad: [0.0; 4],
             margin: [0.0; 4],
+            cell: Cell::default(),
+            halign: None,
+            valign: None,
             bg: 0,
             color: 0xFF_CCCCAA,
             align: Align::Start,
@@ -722,12 +860,85 @@ impl Widget {
         self.style.margin = [top, right, bottom, left];
         self
     }
+
+    /// Puts it in grid cell `(row, col)` (spanning one row and column) —
+    /// WPF's `Grid.Row` / `Grid.Column`. See [`Self::span`].
+    pub fn cell(mut self, row: u16, col: u16) -> Self {
+        self.style.cell.row = row;
+        self.style.cell.col = col;
+        self
+    }
+    /// Spans `rows` × `cols` grid cells from its [`Self::cell`] — WPF's
+    /// `Grid.RowSpan` / `Grid.ColumnSpan` (0 counts as 1).
+    pub fn span(mut self, rows: u16, cols: u16) -> Self {
+        self.style.cell.row_span = rows.max(1);
+        self.style.cell.col_span = cols.max(1);
+        self
+    }
+    /// Horizontal placement in its slot — see [`HAlign`].
+    pub fn halign(mut self, v: HAlign) -> Self {
+        self.style.halign = Some(v);
+        self
+    }
+    /// Vertical placement in its slot — see [`VAlign`].
+    pub fn valign(mut self, v: VAlign) -> Self {
+        self.style.valign = Some(v);
+        self
+    }
+
+    /// Grid: its rows (no rows = one `*` row).
+    pub fn rows(mut self, rows: impl IntoIterator<Item = impl Into<Track>>) -> Self {
+        if let WidgetKind::Grid(g) = &mut self.kind {
+            g.rows = rows.into_iter().map(Into::into).collect();
+        }
+        self
+    }
+    /// Grid: its columns (no columns = one `*` column).
+    pub fn cols(mut self, cols: impl IntoIterator<Item = impl Into<Track>>) -> Self {
+        if let WidgetKind::Grid(g) = &mut self.kind {
+            g.cols = cols.into_iter().map(Into::into).collect();
+        }
+        self
+    }
+    /// Grid: space between rows.
+    pub fn row_spacing(mut self, v: f32) -> Self {
+        if let WidgetKind::Grid(g) = &mut self.kind {
+            g.row_spacing = v;
+        }
+        self
+    }
+    /// Grid: space between columns.
+    pub fn col_spacing(mut self, v: f32) -> Self {
+        if let WidgetKind::Grid(g) = &mut self.kind {
+            g.col_spacing = v;
+        }
+        self
+    }
 }
 
 // ── Widget constructors ───────────────────────────────────────────────────────
 
 pub fn panel(dir: FlexDir) -> Widget {
     Widget::new(WidgetKind::Panel(dir))
+}
+/// WPF's `Grid`: a container of rows and columns — give it [`Widget::rows`]
+/// and [`Widget::cols`] ([`Track`]s: pixels, `Auto` or `*` shares) and put
+/// each child in a cell with [`Widget::cell`] / [`Widget::span`]. A child
+/// fills its cell unless it has [`Widget::halign`] / [`Widget::valign`] (or
+/// an explicit size); [`Widget::margin`] insets it.
+///
+/// ```
+/// use yog_ui::widget::{self, GridLength, Track};
+/// let ui = widget::grid()
+///     .rows([Track::auto(), Track::star(1.0), Track::px(20.0)])
+///     .cols([GridLength::Px(80.0), GridLength::STAR])
+///     .child(widget::label("Title").cell(0, 0).span(1, 2))
+///     .child(widget::scroll_view().cell(1, 0))
+///     .child(widget::label("Details").cell(1, 1))
+///     .child(widget::button("OK").cell(2, 1));
+/// ```
+pub fn grid() -> Widget {
+    Widget::new(WidgetKind::Grid(Box::default()))
 }
 /// A vertically scrolling column: clips its children, scrolls them by
 /// [`Widget::scroll_y`] and draws a scrollbar when they overflow — WPF's

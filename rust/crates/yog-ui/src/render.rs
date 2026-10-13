@@ -104,8 +104,8 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
     }
 
     match &widget.kind {
-        WidgetKind::Panel(_) => {
-            // Panel just draws children
+        WidgetKind::Panel(_) | WidgetKind::Grid(_) => {
+            // Containers just draw their children
         }
         WidgetKind::Label(t) => {
             let avail_w = (r.w - s.pad[1] - s.pad[3]).max(0.0);
