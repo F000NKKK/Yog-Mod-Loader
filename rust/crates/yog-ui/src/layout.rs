@@ -30,6 +30,16 @@ pub const SCROLLBAR_W: f32 = 6.0;
 pub const MIN_KNOB_H: f32 = 16.0;
 
 impl Rect {
+    /// The rect shrunk by `pad` (top, right, bottom, left), never negative.
+    pub fn inset(&self, pad: [f32; 4]) -> Rect {
+        Rect {
+            x: self.x + pad[3],
+            y: self.y + pad[0],
+            w: (self.w - pad[1] - pad[3]).max(0.0),
+            h: (self.h - pad[0] - pad[2]).max(0.0),
+        }
+    }
+
     /// Whether `(px, py)` lies inside (edges included).
     pub fn contains(&self, px: f32, py: f32) -> bool {
         px >= self.x && py >= self.y && px <= self.x + self.w && py <= self.y + self.h

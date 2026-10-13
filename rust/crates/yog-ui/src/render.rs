@@ -186,11 +186,11 @@ fn render_clipped(
                 }
             }
         }
-        WidgetKind::Image(image) => crate::image::render(d2d, image, content_box(r, s), clip),
+        WidgetKind::Image(image) => crate::image::render(d2d, image, r.inset(s.pad), clip),
         WidgetKind::Spacer => {} // invisible
         WidgetKind::Surface(id) => {
             if let Some(surface) = crate::surface::get(id) {
-                surface.paint(gfx, content_box(r, s));
+                surface.paint(gfx, r.inset(s.pad));
             }
         }
         WidgetKind::TextBox(tb) => render_text_box(d2d, tb, s, *r, clip, node.focused),
@@ -244,16 +244,6 @@ fn draw_lines(
         let line_w = text::str_width_in(line, s.font_scale, &s.font);
         let tx = r.x + s.pad[3] + place(avail_w - line_w);
         draw_text(d2d, line, &s.font, tx, ly, s.color, s.text_shadow);
-    }
-}
-
-/// `r` without the widget's padding.
-fn content_box(r: &Rect, s: &Style) -> Rect {
-    Rect {
-        x: r.x + s.pad[3],
-        y: r.y + s.pad[0],
-        w: (r.w - s.pad[1] - s.pad[3]).max(0.0),
-        h: (r.h - s.pad[0] - s.pad[2]).max(0.0),
     }
 }
 
