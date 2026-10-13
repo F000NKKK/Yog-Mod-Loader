@@ -11,7 +11,7 @@ use std::fmt::Write as _;
 use crate::yui::{self, Element, RAW_CALL, RAW_VALUE, UI_USE, err};
 
 /// The codegen version checked by `yog_kit::__codegen::require`.
-const CODEGEN: u32 = 1;
+const CODEGEN: u32 = 2;
 
 const STATES: &[(&str, &str)] = &[
     ("hover", "HOVER"),
