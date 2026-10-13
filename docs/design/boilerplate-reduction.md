@@ -662,7 +662,7 @@ Raw `data/` JSON is no replacement: the format differs between MC 1.20 and 1.21 
 
 | Crate | Add | Delete (no shims) |
 |---|---|---|
-| `yog-macros` (rename of `yog-interop`) | `#[derive(Codec)]`, `#[derive(Tr)]`, `#[main]`, `#[collect]`, `#[yog_export]` on top of `Codec` | rkyv derives (if D1 = b) |
+| `yog-macros` (rename of `yog-interop`) | `#[derive(Codec)]` (incl. `#[codec(zero_copy)]` → `View<'a>`), `#[derive(Tr)]`, `#[main]`, `#[collect]`, `#[yog_export]` on top of `Codec` | rkyv derives (if D1 = b) |
 | `yog-api` | `Codec` / `Writer` / `Reader`, `C2S` / `S2C` + `registry.on(..)`, `net::Raw`, `PacketCx` / `PlayerRef`, `ServerState` / `WorldData` / `PlayerData`, `Text`, `DimPos`, `Recipe` (incl. `Recipe::Json`), `Interop::call`, `registry.on::<E>` / `before::<E>`, `testing::TempDir` | `on_packet` / `on_client_packet` / `on_typed_packet`, raw `&[u8]` senders, 25 × `on_xxx`, `add_*_recipe`, `resources!` / `ui_components!` / `content!` (folded into `#[main]`) |
 | `yog-network` | — | `packet!`, `PacketField`, `Packet` (replaced by `Codec`) |
 | `yog-book` | builders, auto sort order | public struct-literal construction |
@@ -867,8 +867,23 @@ Each stage ends with: bump the crates involved (breaking, as policy allows), pub
 
 ## 5. Decisions for the user
 
-- **D1 — decided (2026-10-13): yes.** Interop serialization (`#[yog_export]`) moves from rkyv
-  to `Codec`: one universal format for interop, network and saves; rkyv is removed.
+- **D1 — decided (2026-10-13): yes; revised the same day (capability rule).** Interop
+  serialization (`#[yog_export]`) moves onto `Codec`: one derive and one format for interop,
+  network and saves, and rkyv is no longer something mods see or depend on. **Zero-copy access
+  is kept** as a `Codec` mode, not dropped with rkyv (user: keep every capability, as fast as
+  possible):
+  - `#[derive(Codec)] #[codec(zero_copy)]` additionally generates `T::View<'a>`: a validated,
+    aligned view over `&'a [u8]` with lazy field getters (`view.items().get(i)`, `&str`/`&[u8]`
+    borrowed, no allocation). It is accepted wherever `T` is: `#[yog_export]` parameters
+    (`fn f(big: View<'_, Chunk>)`), packets (`registry.on(CH, |v: View<Report>, cx| …)`),
+    storage reads. Validation runs once per buffer; access after that is pointer arithmetic.
+  - Plain `Codec` decoding also avoids copies where it can: borrowed decode
+    (`Decode<'a>` for `&'a str`, `&'a [u8]`, `Cow`), length-prefixed bulk copies for
+    `Vec<primitive>`, no per-field allocation, and `encode_into(&mut Vec<u8>)` reusing buffers.
+  - The interop call path passes the encoded buffer straight across the C ABI (no re-copy
+    into an aligned `Vec` as `handler.rs` does today); the callee decodes or views it in place.
+  - Whether `zero_copy` is implemented on top of rkyv internally or with an own layout is an
+    implementation detail of `yog-macros`; the public surface is `Codec` + `View`.
 - **D2 — decided (2026-10-13): generic.** Events are `registry.on::<BlockBreak>()` /
   `before::<…>()`; the named `after_x` / `before_x` forms are not added.
 - **D3 — decided (2026-10-13): a `.ybook` file, now.** The book is its own content file

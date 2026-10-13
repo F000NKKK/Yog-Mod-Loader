@@ -496,12 +496,40 @@ state through `MenuSync` (mvvm §12.4/§12.7) — no hand-written open/sync code
   (→ `yog:connect`, `yog:inventory` in content, or `.behavior(..)`/`attach` from Rust for
   code-registered blocks, §3.2 — capability rule); `"register": "manual"` only where still needed.
 - Content: singular `"behavior"` key, `"connect_groups"` top-level key, F5 `"extends"`.
-- yog-api: materials' `BlockBehavior::new(..)` builder; `Storage::open_chunk` (per-position KV
-  was only ever a BE substitute) — Q8.
+- yog-api: materials' `BlockBehavior::new(..)` builder; `Storage::open_chunk` — Q8, replaced
+  by chunk attachments (§8a), not removed without a replacement.
 - Yog-Pipes: `register_pipe`, `pipe_def`, `is_pipe_block`, `pipe_groups`, `PipeDef`,
   `bind_handler(mod, symbol)`, `handler.rs` unsafe dispatch, `persist.rs`, explosion
   revalidation handler.
 - Pattern (docs/templates): "global handler + `if id == ..`" for object-specific logic.
+
+
+### 8a. Chunk attachments (replaces `Storage::open_chunk`)
+
+Per-object state belongs to behaviours (C4). Data that has no own block — on vanilla blocks,
+in air, per-chunk metadata (pollution, claimed area, a scan cache) — goes into **chunk
+attachments**:
+
+```rust
+#[derive(Codec, Default)] struct Aura { level: u16 }
+let aura = chunk.data::<Aura>();                     // one value per chunk
+let marks = chunk.at::<Mark>(pos);                    // sparse per-position values
+marks.set(Mark { by: player.uuid() }); marks.remove();
+for (pos, m) in chunk.all::<Mark>() { … }
+```
+
+- **Saved with the chunk**, in the chunk's own data (Fabric/NeoForge attachments, Forge
+  capability), so they load, unload, copy with structures and survive exactly like the
+  chunk — no separate KV files, no orphaned entries (the akashic bug class goes away).
+- **Fast:** values live Rust-side in a per-chunk slot map keyed by type id; per-position data
+  is a sparse map keyed by the packed section-local position (`u16`), so lookups are a hash
+  probe without JNI. Decoding is lazy (first access after load); writes only set a dirty
+  bit, and encoding (`Codec`, `zero_copy` views for large blobs) happens once at chunk save.
+  Unloaded chunks drop their slots after save.
+- **Events:** `on_chunk_load::<T>` / `on_chunk_unload::<T>` for mods that index attachments;
+  removal of the block at a position does not clear `at::<T>(pos)` (that data is not owned by
+  a block) unless the mod registers `clear_on_block_change`.
+- Typed, namespaced by the mod's type (two mods can't collide), versioned through `Codec`.
 
 ## 9. Staged plan
 
@@ -527,7 +555,7 @@ state through `MenuSync` (mvvm §12.4/§12.7) — no hand-written open/sync code
 | Q5 | Cross-mod capabilities via exported traits — **decided: yes, as recommended** | **Yes**, through the runtime with Codec args; no raw symbol binding. |
 | Q6 | Item state format | One `yog:<behavior id>` component per stateful behaviour (Codec bytes); 1.20.1 → NBT tag of the same name. |
 | Q7 | When to do entities (C5) | After Hex/Pipes migrations; players use F4 `PlayerData` meanwhile. |
-| Q8 | Delete `Storage::open_chunk`? — **decided: yes, as recommended** | **Yes** once C2 lands, unless a non-positional chunk use case appears. |
+| Q8 | Delete `Storage::open_chunk`? — **decided: replace with chunk attachments (§8a)** (capability rule: data on vanilla blocks, in air and per-chunk metadata must stay possible; user: keep every capability, as fast as possible) | — |
 | Q9 | Hook ordering beyond declaration order (priorities) | **No** priorities; declaration order + `before`/`on` globals is enough. |
 | Q10 | Keep global events at all? — **decided: yes, as recommended** | **Yes**, for cross-cutting concerns (logging, protection, "any item use"); object-specific logic must use behaviours (lint in yog-cli: global handler whose body starts with an id compare → hint). |
 | Q11 | Mod-defined host classes (custom Java superclass) | Only via the generic built-in set (§4.6 table) + declarative rules; mods never ship Java. |

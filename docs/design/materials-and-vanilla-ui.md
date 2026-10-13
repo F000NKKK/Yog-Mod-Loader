@@ -1191,7 +1191,7 @@ ABI: S0, S3, S3a and S4 each append to `YogApi`/`YogGfxApi`/`YogBlockDef`, so th
 | Q1 Pack storage | Extract to the user cache by default; *read from jar* is an environment setting (IDLE Settings › Environment, `YOG_VANILLA_MODE`). Auto-download from piston-meta is allowed (`--offline` disables it). §3.2 |
 | Q2 Reports | In v1, on by default (`--no-reports`), using the per-version JDK. §3.1, §3.2 |
 | Q3 Default namespace | None: every reference is explicitly namespaced, no short alias. §2.3, D10 |
-| Q4 Flat look | Deleted. D6 |
+| Q4 Flat look | Built-in flat look deleted; a flat look stays possible as a `.ytheme` on `yog:bare` (confirmed 2026-10-13, capability rule). D6 |
 | Q5 Mod-wide restyle | `.ytheme` with scoped cascade (mod, screen, component, subtree). §6.6, D11 |
 | Q6 Modlist filters | Vanilla tabs (`TabBar`). §12.1 |
 | Q7 Glass-like culling | Block behaviour (`minecraft:transparent`, …), not material. §4.6, D12 |
