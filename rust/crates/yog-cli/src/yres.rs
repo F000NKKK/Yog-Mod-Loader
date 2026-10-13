@@ -10,9 +10,9 @@
 //!   a hand-written one), `{name}`/`{0}` placeholders turned into `%1$s`;
 //! - bundles image/file/sound entries' files under `assets/<mod id>/...`,
 //!   plus a `sounds.json` for the sounds;
-//! - generates `.yog-build/generated/res.g.rs` — a type per set with a
-//!   typed accessor per entry, pulled in as `crate::res` by
-//!   `yog_api::resources!();`;
+//! - generates `.yog-build/generated/resources/<Set>.g.rs` — a type per
+//!   set with a typed accessor per entry — and `resources.g.rs` including
+//!   them, pulled in as `crate::res` by `yog_api::resources!();`;
 //! - resolves `@<Set>.<name>` references for `.yui` screens and `yog.toml`.
 
 use std::collections::{BTreeMap, HashMap};
