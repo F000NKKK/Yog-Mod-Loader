@@ -49,11 +49,29 @@ impl Element {
 struct Parser<'a> {
     src: &'a str,
     pos: usize,
+    /// The last [`Parser::line`] answer: (position, line there) — the
+    /// parser only moves forward, so lines are counted from there on.
+    line_at: std::cell::Cell<(usize, usize)>,
 }
 
 impl<'a> Parser<'a> {
+    fn new(src: &'a str) -> Self {
+        Parser {
+            src,
+            pos: 0,
+            line_at: std::cell::Cell::new((0, 1)),
+        }
+    }
+
     fn line(&self) -> usize {
-        self.src[..self.pos].matches('\n').count() + 1
+        let (at, line) = self.line_at.get();
+        let (from, line) = if self.pos >= at { (at, line) } else { (0, 1) };
+        let line = line + self.src.as_bytes()[from..self.pos]
+            .iter()
+            .filter(|&&b| b == b'\n')
+            .count();
+        self.line_at.set((self.pos, line));
+        line
     }
 
     fn err<T>(&self, msg: impl std::fmt::Display) -> Result<T, String> {
@@ -225,7 +243,7 @@ fn unescape(raw: &str) -> Result<String, String> {
 /// Parses an XML document (the subset `.yui` uses) into its root element.
 pub fn parse_xml(src: &str) -> Result<Element, String> {
     let src = src.strip_prefix('\u{feff}').unwrap_or(src);
-    let mut p = Parser { src, pos: 0 };
+    let mut p = Parser::new(src);
     p.skip_misc()?;
     let root = p.element()?;
     p.skip_misc()?;
