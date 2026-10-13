@@ -597,7 +597,7 @@ description = "@Strings.mod_description"
 icon = "@Icons.logo"
 version = "0.3.0"
 [dependencies]
-yog-kit = "0.1"
+yog-kit = "0.2"
 ```
 
 `resources/Strings.yres` (excerpt; `key` keeps the existing lang keys so translations carry over):

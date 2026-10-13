@@ -1,6 +1,7 @@
 //! yog-ui — retained-mode UI framework for Yog mods.
 //!
-//! Flexbox-inspired layout engine + GPU rendering via [`yog-gfx`].
+//! Flexbox-inspired layout engine and a WPF-style [`grid`](widget::grid)
+//! (rows/columns: pixels, `Auto`, `*`) + GPU rendering via [`yog-gfx`].
 //! Use for custom inventories, guide books, tooltips, HUD overlays.
 //!
 //! # Quick start
