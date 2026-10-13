@@ -31,7 +31,7 @@ impl yog_kit::View for Inv {
                     .h(Units::Px(60.0))
                     .child(widget::slot(1))
                     .child(widget::spacer().w(Units::Px(10.0)))
-                    .child(widget::slot(0)),
+                    .child(widget::slot_accepting(0, &["minecraft:redstone", "#c:dusts"])),
             )
             .child(widget::player_inventory());
         (Inv, root, Parts::new())
@@ -61,7 +61,13 @@ fn slots_come_from_the_layout() {
     assert_eq!(def.id, "test:bench");
     assert_eq!(def.slot_count, 2);
     // Item corners, 1px inside the frames.
-    assert_eq!(def.layout, [SlotLayout { x: 41.0, y: 9.0 }, SlotLayout { x: 9.0, y: 9.0 }]);
+    assert_eq!(
+        def.layout,
+        [
+            SlotLayout { accepts: vec!["minecraft:redstone".into(), "#c:dusts".into()], ..SlotLayout::at(41.0, 9.0) },
+            SlotLayout::at(9.0, 9.0),
+        ]
+    );
     assert!(def.include_player_inventory);
     assert_eq!(def.player_inv_offset, (9.0, 71.0));
     assert_eq!(def.background_size, Some((176.0, 166.0)));

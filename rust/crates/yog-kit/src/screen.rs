@@ -246,9 +246,16 @@ pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
     use yog_api::ui::widget::{PLAYER_INVENTORY_ID, SLOT_ID_PREFIX};
     use yog_api::ui::{UiRoot, Widget};
 
-    fn slots(w: &Widget, out: &mut Vec<usize>) {
-        if let Some(i) = w.id.as_deref().and_then(|id| id.strip_prefix(SLOT_ID_PREFIX)) {
-            out.extend(i.parse::<usize>().ok());
+    /// Each slot: (index, its id, what it accepts).
+    fn slots(w: &Widget, out: &mut Vec<(usize, String, Vec<String>)>) {
+        if let Some(id) = w.id.as_deref()
+            && let Some(rest) = id.strip_prefix(SLOT_ID_PREFIX)
+        {
+            let (index, accepts) = rest.split_once('=').unwrap_or((rest, ""));
+            if let Ok(i) = index.parse::<usize>() {
+                let accepts = accepts.split('|').filter(|a| !a.is_empty()).map(str::to_owned).collect();
+                out.push((i, id.to_owned(), accepts));
+            }
         }
         for c in &w.children {
             slots(c, out);
@@ -256,24 +263,27 @@ pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
     }
 
     let (_, content, _) = W::build();
-    let mut indices = Vec::new();
-    slots(&content, &mut indices);
+    let mut found = Vec::new();
+    slots(&content, &mut found);
     let mut ui = UiRoot::new(W::META.id, content);
     ui.layout(W::META.w, W::META.h);
     // A real slot's position is its item's corner, inside the 18px frame.
     let corner = |id: &str| ui.find_rect(id).map(|r| (r.x + 1.0, r.y + 1.0));
     let player = corner(PLAYER_INVENTORY_ID);
-    if indices.is_empty() && player.is_none() {
+    if found.is_empty() && player.is_none() {
         return None;
     }
-    let count = indices.iter().max().map_or(0, |m| m + 1);
+    let count = found.iter().map(|(i, ..)| i + 1).max().unwrap_or(0);
     let defaults = yog_api::InventoryDef::default_grid(count);
     let layout = (0..count)
-        .map(|i| match corner(&format!("{SLOT_ID_PREFIX}{i}")) {
-            Some((x, y)) => yog_api::SlotLayout { x, y },
-            None => {
-                yog_api::warn!("{}: no <Slot index=\"{i}\"> — it goes to the default grid", W::META.id);
-                defaults[i]
+        .map(|i| {
+            let slot = found.iter().find(|(j, ..)| *j == i);
+            match slot.and_then(|(_, id, accepts)| Some((corner(id)?, accepts))) {
+                Some(((x, y), accepts)) => yog_api::SlotLayout { x, y, accepts: accepts.clone() },
+                None => {
+                    yog_api::warn!("{}: no <Slot index=\"{i}\"> — it goes to the default grid", W::META.id);
+                    defaults[i].clone()
+                }
             }
         })
         .collect();

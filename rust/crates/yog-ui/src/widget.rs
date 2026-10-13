@@ -985,7 +985,8 @@ pub fn inv_slot(item_id: impl Into<String>, count: u32) -> Widget {
     .w(SLOT_SIZE)
     .h(SLOT_SIZE)
 }
-/// Id prefix of a [`slot`]: `yog:slot:<index>`.
+/// Id prefix of a [`slot`]: `yog:slot:<index>`, and `=<accepts>` (`|`-joined)
+/// for a [`slot_accepting`].
 pub const SLOT_ID_PREFIX: &str = "yog:slot:";
 /// Id of a [`player_inventory`].
 pub const PLAYER_INVENTORY_ID: &str = "yog:player_inventory";
@@ -997,6 +998,14 @@ pub const HOTBAR_GAP: f32 = 4.0;
 /// Where it lands in the layout is where the slot is.
 pub fn slot(index: usize) -> Widget {
     inv_slot("", 0).id(format!("{SLOT_ID_PREFIX}{index}"))
+}
+/// A [`slot`] that only takes `accepts`: item ids (`minecraft:redstone`)
+/// and item tags (`#c:dusts`).
+pub fn slot_accepting(index: usize, accepts: &[&str]) -> Widget {
+    if accepts.is_empty() {
+        return slot(index);
+    }
+    inv_slot("", 0).id(format!("{SLOT_ID_PREFIX}{index}={}", accepts.join("|")))
 }
 /// The player's inventory on an inventory screen: 3 rows of 9, then the
 /// hotbar [`HOTBAR_GAP`] below — frames for the real slots, like [`slot`].
