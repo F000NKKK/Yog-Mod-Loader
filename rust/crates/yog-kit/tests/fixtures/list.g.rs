@@ -208,7 +208,7 @@ impl ::yog_kit::View for View {
         }
     }
 
-    #[allow(unused_variables, clippy::let_unit_value, clippy::single_match)]
+    #[allow(unused_variables, clippy::let_unit_value, clippy::single_match, clippy::match_single_binding)]
     fn dispatch(&mut self, vm: &mut Vm, cx: &mut ::yog_kit::Cx<'_, Vm>, ev: ::yog_kit::ViewEvent) {
         match ev {
             ::yog_kit::ViewEvent::Action(::yog_api::ui::Action { owner: 0, slot: 0, .. }) => {

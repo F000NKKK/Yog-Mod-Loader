@@ -1703,7 +1703,7 @@ pub mod ids {{
     fn update(&mut self, root: &mut ::yog_api::ui::Widget, vm: &{vm}, u: &mut ::yog_kit::Update) {{
 {update}    }}
 
-    #[allow(unused_variables, clippy::let_unit_value, clippy::single_match)]
+    #[allow(unused_variables, clippy::let_unit_value, clippy::single_match, clippy::match_single_binding)]
     fn dispatch(&mut self, vm: &mut {vm}, cx: &mut ::yog_kit::Cx<'_, {vm}>, ev: ::yog_kit::ViewEvent) {{
         match ev {{
 "#,
