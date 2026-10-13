@@ -24,8 +24,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
     parent_id: JString<'l>,
     modal: jboolean,
     pause_game: jboolean,
-    w: jint,
-    h: jint,
+    screen_w: jint,
+    screen_h: jint,
 ) {
     let id = jstr!(env, ui_id);
     let parent = jstr!(env, parent_id);
@@ -57,7 +57,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
     );
     drop(active);
     // Lifecycle event for the screen's own handler (yog-kit's `on_open`).
-    dispatch(&id, &format!("open:{w}:{h}"));
+    dispatch(&id, &format!("open:{screen_w}:{screen_h}"));
 }
 
 #[no_mangle]

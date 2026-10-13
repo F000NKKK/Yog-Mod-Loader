@@ -18,7 +18,17 @@ public class YogUIScreen extends Screen {
         this.uiId = uiId;
         this.modal = modal;
         this.pauseGame = pauseGame;
-        NativeBridge.nativeUIShow(uiId, "", modal, pauseGame, width, height);
+    }
+
+    /** Shown once the screen is current (after the previous one's `removed()`), with its real size. */
+    private boolean shown;
+
+    @Override protected void init() {
+        super.init();
+        if (!shown) {
+            shown = true;
+            NativeBridge.nativeUIShow(uiId, "", modal, pauseGame, width, height);
+        }
     }
 
     public YogUIScreen(String uiId) { this(uiId, true, false); }
