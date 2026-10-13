@@ -35,6 +35,7 @@ of hand-written lines removed from mods. Lines of generated code are not counted
 | 10 | Book written as struct literals plus page-key lists | Hex `book.rs` (124) | `BookEntry` / `BookCategory` builders + numbered-key arrays from `.yres` (or a `.ybook` content file) | ~80 | ~10 lines per entry |
 | 11 | Pipes duplicates parts of yog-api: recipes, models, unsafe C-ABI interop calls, struct literals | `recipe.rs` (110), `handler.rs::dispatch` (40), `model.rs`, examples | `yog_api::Recipe` enum (exportable), `Interop::call`, `PipeDef` builder | ~200 | — |
 | 12 | View-model glue: `if let Some(h) = handle()`, trivial getters, `TestHost` setup | `casting_screen.rs`, `mod_list.rs`, tests | generated `update()`, binding fields directly, `TestHost::opened` | ~35 | small |
+| 13a | Recipes written in Rust, because raw `data/` JSON differs between MC versions | Pipes `recipe.rs`, copper-pipes example | `.yrecipe` content files generated per MC version + build-time registration snapshot (F13) | ~50 | every recipe becomes a small content file |
 | 13 | Internal: one new event is ~24 files and ~30 edit sites; one host call is 4 Rust layers + 6 Java copies; one def field is ~10 sites + 6 Java files | `yog-abi`, `yog-runtime`, `registry.rs`, the Java hosts | `yog_events!` / `server_api!` tables, defs as a serialized string, a shared Java tree (§3) | ~6k Rust + ~9-12k Java | each new event becomes 1 table row |
 
 Also found during the audit (bugs and dead code, not boilerplate). These need an owner and
@@ -610,6 +611,35 @@ a major bump; do that.
   `testing::TempDir`.
 - `GridSurface::shared()` (`hex_grid.rs:104-117`): `OnceLock` + `surface::register`. Add
   `yog_api::ui::surface::shared::<T>(id, init) -> Arc<T>`. Small.
+
+### F13. Declarative recipes (`.yrecipe`) and the registration snapshot
+
+Recipes are the next thing every content mod writes in Rust (Pipes' `recipe.rs`, the copper-pipes example).
+Raw `data/` JSON is no replacement: the format differs between MC 1.20 and 1.21 (`result.item` vs `result.id`,
+`recipe/` vs `recipes/`).
+
+- **`content/recipes/**/*.yrecipe`**, JSON with comments like `.yblock`. Types: `shaped`, `shapeless`, the
+  cooking family (`smelting`, `blasting`, `smoking`, `campfire`), `stonecutting`, `smithing`, plus any
+  `"type": "<ns>:<id>"` passed through. Ids always carry a namespace. The recipe id is `<modid>:<file stem>`.
+  `"result": "<ns>:<id>"` or `{ "item", "count" }`; `"key"` and ingredients accept items and `#tags`.
+  Conditions reuse the content `"mc"` / `"mod"` conditions.
+- **Generator, not code.** `yog build` writes the recipe JSON for every targeted MC version into the `.yog`
+  (`data/<ns>/recipe(s)/…` in each version's format). No Rust, no `register_recipe_json` call. Ids of items and
+  tags are checked against the mod, its dependencies and the vanilla packs. `recipes.g.rs` gives typed handles
+  (`recipes::COPPER_PIPE`) for code and book references.
+- **Registration snapshot** for what code still registers (generated or truly dynamic recipes, and items, blocks,
+  tags registered in code). `yog build` loads the built mod library and calls its `register` against a
+  *recording* registry: nothing is registered, every call is recorded, host queries (config, loaded mods, MC
+  version) answer with defaults for the targeted version. The result goes to `.yog/registry.json`. It is generic
+  loader infrastructure (yog-runtime's registry recorder), with no knowledge of any mod.
+  - Users: the book designer's recipe pages (ybook Q7), build-time validation of every id reference (books,
+    `.yui`, `.yrecipe`), IDE autocomplete and the content explorer's *Generated* section.
+  - A registration that depends on world state can't be captured; such ids are marked "computed in game".
+- **Static analyzer as a fallback.** When the mod library doesn't build yet, `yog check` scans `src/` with `syn`
+  for registration calls with literal ids (`add_shaped_recipe`, `recipe(ns, name, …)`, item/block defs) and
+  fills the same `registry.json` with ids only, marked `static`.
+- Deletes from mods: Pipes' consumer recipe code, `registry.add_*_recipe` calls for static recipes. The
+  `add_*_recipe` API stays only for recipes built at run time.
 
 ---
 

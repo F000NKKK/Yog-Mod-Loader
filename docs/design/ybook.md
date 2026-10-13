@@ -532,7 +532,9 @@ Storage is split by whether the data can affect the game (Q8):
 - At load the runtime maps renamed ids through `vanilla/renames.toml` (`minecraft:scute` → `turtle_scute`), like
   typed handles do.
 - **Recipes.**
-  - Mod recipes come from `register_recipe_json` (as today), and from `data/<ns>/recipe(s)/*.json` in the `.yog`.
+  - Mod recipes come from `.yrecipe` files (boilerplate F13), from `register_recipe_json` for run-time recipes,
+    and from `data/<ns>/recipe(s)/*.json` in the `.yog`. The designer and build validation see all of them
+    through `.yog/registry.json` (Q7).
   - Vanilla recipes come from the client's recipe manager (new host query `recipe_json(id)`). It is complete on
     1.20.1/1.21.1. 1.21.2+ no longer syncs all recipes to the client, so a server→client fetch will be needed there,
     which is noted as a risk.
@@ -967,7 +969,11 @@ mods updated in the same change. Building and running the game is done with the 
    page, so it would be a different layout)?
 6. **Q6 Entity and multiblock pages — decided: both in the first release.** Was: is `entity` (needed for Hex's brainsweep pages) wanted in the first
    release? Can `multiblock` wait for a mod that needs it?
-7. **Q7 Code-registered recipes in the designer:** show the fallback (proposed), or have the designer host run the
+7. **Q7 Code-registered recipes in the designer — decided: no fallback-only.** Static recipes are `.yrecipe`
+   files (boilerplate F13), which the designer reads directly. Code-registered ones come from the build's
+   registration snapshot (`.yog/registry.json`, recorded by running `register` against a recording registry), with
+   a static `syn` scan as a fallback when the mod doesn't build; only world-dependent recipes show the placeholder,
+   marked "computed in game". Was: show the fallback (proposed), or have the designer host run the
    mod's `register` against a recording registry to capture them?
 8. **Q8 Read progress — decided: on the server per player; the client keeps only state that cannot affect the game (§6.7).** Was: client-global per book (proposed), per world/server, or synced from the server like
    advancements?
