@@ -7,6 +7,13 @@ designer recorder, and the mods HexMod-Yog, Yog-Modlist and Yog-Pipes.
 The user's request: *"Completely eliminate manual graphics via OpenGL in all mods. yog-api and yog-cli must be
 sufficient for everything needed, without manual rendering and manual hacks."*
 
+**Capability rule (the user, 2026-10-13): nothing mods could do before may become impossible.** Rendering 3D
+entities, the sky, weather, world overlays, HUD and anything else the old hooks allowed stays available. This
+design makes the declarative path the default for everything it covers and removes *hacks* (globals, raw symbol
+tables, string-forwarded clicks), but every low-level capability keeps an equal or stronger replacement (R2, R14).
+"No manual rendering" means: no mod has to draw by hand for UI, content looks and effects; it does not mean a mod
+can't.
+
 This builds on, and in places overrides, decisions recorded elsewhere:
 
 - [materials-and-vanilla-ui.md](materials-and-vanilla-ui.md): `.ymat` materials, `.ytheme`, brushes,
@@ -31,7 +38,7 @@ This builds on, and in places overrides, decisions recorded elsewhere:
 | # | Decision | Why |
 |---|---|---|
 | R1 | **A mod contains no drawing code.** No GL handles, no shaders, no vertex buffers, no `draw2d_*` calls, no tessellation, no pixel-coordinate math for drawing, no per-frame paint callbacks. Everything a mod shows is declared: `.yui` markup bound to view-model data, `.ymat` materials, `.ytheme` styles, and content files (`.yitem`, `.yblock`, `.yparticle`, `.yoverlay`). | The user's rule. It is also what makes every screen previewable in IDLE (only declared drawing can be recorded) and what lets one mod binary look right on every MC version and loader. |
-| R2 | **`Surface` stays as an optional, advanced element; it is never required** (Q1, decided by the user: "useful for 3D rendering into the surface and so on"). It becomes VM-owned (mvvm-v2 §12.8: `<Surface source="{x:Bind view}"/>`, no global id registry, no `static Mutex`), and the gfx API (`GfxContext`, 2D and 3D) is reachable **only** inside `Surface::paint`, not re-exported at the top of `yog_api`. Inside a surface a mod gets, besides raw draw calls, a high-level 3D scene API (camera, lights, drawing blocks, items, entities and model/`.ymat` assets) so 3D viewports need no GLSL. Everything the declarative elements cover (2D shapes, lattices, text, pointer input, animation) must use them: a port or a new screen never draws 2D UI in a surface. `Registry::on_hud_render`/`on_world_render`/`on_ui_render` are still deleted (HUD → `<Hud>`, world → `.yoverlay`/decals). In IDLE a surface shows a placeholder, or the live picture through the designer host when the mod library is built. | HexMod's 1 250 lines of GL came from 2D drawing that had no declarative path; shapes, Lattice and materials give it one, so the surface is left for what can't be declared (3D previews, model viewers, minimaps). |
+| R2 | **`Surface` stays as an optional, advanced element; it is never required** (Q1, decided by the user: "useful for 3D rendering into the surface and so on"). It becomes VM-owned (mvvm-v2 §12.8: `<Surface source="{x:Bind view}"/>`, no global id registry, no `static Mutex`), and the gfx API (`GfxContext`, 2D and 3D, including GL) is available inside `Surface::paint` (and in render stages, R14) through `yog_api::render`. Inside a surface a mod gets, besides raw draw calls, a high-level 3D scene API (camera, lights, drawing blocks, items, entities and model/`.ymat` assets) so 3D viewports need no GLSL. Everything the declarative elements cover (2D shapes, lattices, text, pointer input, animation) must use them: a port or a new screen never draws 2D UI in a surface. The raw world/HUD hooks are replaced by typed render stages with the same power (R14). In IDLE a surface shows a placeholder, or the live picture through the designer host when the mod library is built. | HexMod's 1 250 lines of GL came from 2D drawing that had no declarative path; shapes, Lattice and materials give it one, so the surface is left for what can't be declared (3D previews, model viewers, minimaps). |
 | R3 | **Vector shapes are `.yui` elements**: `Line`, `Polyline`, `Polygon`, `Path`, `Ellipse`, `Marker`. Their geometry binds to VM data (`points="{x:Bind wip()}"`); their look is a material or plain stroke/fill attributes. | WPF/WinUI `Shape`s in Yog's markup. A pattern stroke is a polyline, a grid dot is a marker. |
 | R4 | **Materials gain vector layers**: `stroke`, `fill` for shapes, `markers`, plus **parameters** (`@stroke`, `@seed`, …), a closed **color/number expression set** (`mix`, `lighten`, `darken`, `alpha`, `min`, `max`, arithmetic), and generic **path effects** (`jitter`, `separate_revisits`, `trim_end`). | Hex's "glow" is two strokes (wide + lightened core) with a tail→head gradient; its "zappy" line is a noise displacement path effect. Both are style, so they belong in a material, not in Rust. Skia's `PathEffect` and SVG markers are the precedents. |
 | R5 | **`<Lattice>` is a coordinate-system container** (hex pointy/flat, square). Children are positioned in lattice coordinates, the cell size can be fixed, area-based (`cell="area:512"`) or fit-to-content; pointer events report the nearest lattice point and the fractional position in cell units; `<Lattice.Dots>` draws lattice points with a proximity parameter. `yog_api::geom::{hex, square}` provides the matching pure math (neighbours, directions, nearest point). | Removes `coord_to_px`/`px_to_coord`/`hex_size`/`range_around` from mod code. An axial hex lattice is generic geometry (strategy games, tile pickers), not Hex Casting logic. |
@@ -42,7 +49,8 @@ This builds on, and in places overrides, decisions recorded elsewhere:
 | R10 | **Item and block appearance driven by data is content.** `.yitem` gets `bar` (durability-style bar from item data), `variants` (model/texture chosen by item data), and `tooltip` components (a `.yui` component rendered inside the vanilla tooltip). `.yblock` gets `decals`: a `.yui` component drawn on a block face, bound to block-entity data, rendered to a cached texture. | Covers Hex's media bars, filled/empty cyphers and foci, pattern tooltips on scrolls/slates, and patterns on slates and akashic bookshelves, all without a renderer in the mod. |
 | R11 | **World overlays and HUD layers are content plus data**: `.yoverlay` (a 3D wireframe/billboard shape with spin, bob, see-through and a color parameter) shown with `overlay::show(kind, pos, params)`; `<Hud>` roots in `.yui` for crosshair/corner HUD panels bound to a VM. | Hex's sentinel and scrying-lens readouts. Both are generic: waypoints, markers, info HUDs. |
 | R12 | **The loader stays generic.** Nothing in this document knows about patterns, iotas, media or pigments. Hex's constants (colors, zappy parameters, sizes) live in HexMod's `.ymat`/`.ytheme`/content files. | The user's rule (loader-generic-only). |
-| R13 | **`yog check` enforces it**: a mod whose generated `Cargo.toml` would depend on `yog-gfx`/`yog-abi` directly, or whose code uses `extern "C"` draw tables, is an error. | Once the APIs are gone, the only way back to manual drawing is a direct dependency on internals. |
+| R13 | **`yog check` guides, it doesn't forbid**: a mod that depends on `yog-gfx`/`yog-abi` directly gets a warning pointing at `yog_api::render` (the same API, stable), and `extern "C"` draw tables are a warning. | Capability rule: low-level drawing stays possible; only the unstable route to it is discouraged. |
+| R14 | **Typed render stages replace `on_world_render`/`on_hud_render`/`on_ui_render`, with full power.** `#[yog_api::render(stage = …)] fn f(cx: &mut RenderCx)` for `Sky`, `Clouds`, `Weather`, `WorldOpaque`, `WorldTranslucent`, `AfterEntities`, `AfterParticles`, `Hand`, `Hud`, `ScreenBackground`, `ScreenForeground`; per-object renderers as behaviours: `yog:entity_renderer`, `yog:block_entity_renderer`, `yog:item_renderer` (custom 3D item/BE/entity models drawn in code), and `yog:dimension_effects` (sky, fog, clouds per dimension). `RenderCx` gives the full gfx API (GL buffers, shaders, textures, blend/depth), camera/view-projection/partial tick, and the high-level 3D scene API from R2 (draw blocks, items, entities, models, `.ymat` materials). Registration is generated by the attribute; no globals. | Everything `on_world_render`/`on_hud_render` and the GL ABI allowed stays possible, plus more (dimension sky, per-entity renderers); the hooks only lose their untyped, global form. |
 
 ---
 
@@ -99,13 +107,13 @@ materials (materials doc §12.3).
 
 | Where | What | Fate |
 |---|---|---|
-| `yog-api/src/lib.rs:18-20` | Re-exports `gfx_core`, `gfx_draw2d`, `gfx_gl`, `gfx_image`, `GfxContext` to every mod | Moved under `yog_api::ui::surface`, reachable from `Surface::paint` only (R2). |
+| `yog-api/src/lib.rs:18-20` | Re-exports `gfx_core`, `gfx_draw2d`, `gfx_gl`, `gfx_image`, `GfxContext` to every mod | Moved to `yog_api::render` (R2, R14). |
 | `yog-gfx/src/lib.rs:1-289`, `gl/mod.rs` | Public buffers, VAOs, GLSL programs, textures, draw calls, blend/depth/scissor/viewport; doc example teaches mods to write shaders | GL half deleted; `draw2d` becomes loader-internal (§11). |
 | `yog-gfx/src/draw2d.rs` | `Draw2D` text/rect/gradient/item/image calls | Internal to yog-ui/yog-book; not re-exported. |
 | `yog-ui/src/surface.rs:47-97` | `Surface` trait (`paint(&self, gfx, rect)`, `pointer`, `scroll`) + global `static SURFACES: Mutex` registry | Kept and made VM-owned (`&mut self`, bound with `source="{x:Bind …}"`); the global registry is deleted (R2). |
 | `yog-cli/src/yui.rs:253, 298, 545-566, 729` | `<Surface source=…>` element and diagnostics | `source` becomes a binding; a string id is an error. |
 | `yog-kit/tests/surface.rs` | Surface pointer capture tests | Rewritten against element pointer events (§9). |
-| `yog-api/src/registry.rs:2268-2310` | `on_ui_render` ("clicks are forwarded as `click:X:Y` … hit-test on your own stored layout"), `on_hud_render`, `on_world_render` with a raw `GfxContext` | Deleted. HUD → `<Hud>` (§10.5); world → `.yoverlay`/decals (§10.3-10.4). |
+| `yog-api/src/registry.rs:2268-2310` | `on_ui_render` ("clicks are forwarded as `click:X:Y` … hit-test on your own stored layout"), `on_hud_render`, `on_world_render` with a raw `GfxContext` | Replaced by typed render stages and renderer behaviours with the same gfx power (R14); declarative `<Hud>`/`.yoverlay`/decals are the default for what they cover. `on_ui_render`'s string-forwarded clicks go (screens are `.yui`, custom drawing in `Surface`). |
 | `yog-book/src/renderer.rs:37-385` | `BookGl`: its own GLSL program, vertex format, PNG decoding, texture uploads, quads | Already deleted by ybook B7; restated here because it is the last in-tree user of the GL ABI. |
 | `yog-book` `BookPage::Pattern` (`lib.rs:97`, `renderer.rs:1672`) | A Hex page type in the loader (draws only labels) | Already deleted by ybook B5. |
 | `Yog-IDLE/src-tauri/src/designer/gfx.rs:146-204` | The recorder's GL half is inert: anything drawn through GL is invisible in the designer | Becomes moot: there is no GL half (§11). |
@@ -573,10 +581,11 @@ carry `bar`/`variants`/`tooltip`/`decals` from the compiled content (no per-call
 **Runtime-internal**: decal render-to-texture (the runtime drives yog-ui into an FBO through the host), the
 `<Hud>` pass, tooltip components.
 
-**Deleted from the ABI** (an `ABI_VERSION` bump, not a minor): the GL half of `YogGfxApi` (`buf_*`, `vao_*`,
-`prog_*`, `tex_create/delete/bind`, `draw_arrays`, `draw_elements`, `set_blend`, `set_depth`, `set_viewport`,
-`view_proj`, `camera_pos`, `player_pos`), and `on_hud_render`, `on_world_render`, `on_ui_render` from `YogApi`.
-yog-book's `BookGl` (ybook B7) was the last in-tree user.
+**Kept in the ABI** (capability rule): the GL half of `YogGfxApi` (`buf_*`, `vao_*`, `prog_*`, textures, draw
+calls, blend/depth/viewport, `view_proj`, `camera_pos`, `player_pos`), used by `Surface::paint` and the render
+stages (R14). **Changed** (an `ABI_VERSION` bump): `on_hud_render`/`on_world_render`/`on_ui_render` become one
+`render_stage(stage, ...)` dispatch plus renderer registration for entities, block entities, items and dimension
+effects.
 
 **Crates**: yog-gfx keeps `GfxContext` + `draw2d` for yog-ui and yog-book only; yog-api stops re-exporting it.
 yog-ui gains `shape`, `tessellate` (the generalized `drawLineSeq`, fills via ear clipping, markers), `effects`
@@ -589,9 +598,8 @@ yog-ui gains `shape`, `tessellate` (the generalized `drawLineSeq`, fills via ear
 | Removed | Replacement |
 |---|---|
 | `surface::{register, unregister, get}` (the global surface registry) | VM-owned `<Surface source="{x:Bind …}">` (R2) |
-| `Registry::on_hud_render`, `on_world_render`, `on_ui_render` | `<Hud>`, `.yoverlay`, decals; screens are `.yui` |
-| top-level `yog_api::{gfx_gl, gfx_core, gfx_draw2d, gfx_image, GfxContext}` | the same API inside `Surface::paint` only (R2) |
-| `view_proj`/`camera_pos`/`player_pos` for world overlays | overlays get positions from the host; the GL half of `YogGfxApi` stays for surfaces (R2) |
+| `Registry::on_hud_render`, `on_world_render`, `on_ui_render` (untyped, global) | typed render stages and renderer behaviours (R14); `<Hud>`, `.yoverlay`, decals as the declarative default |
+| top-level `yog_api::{gfx_gl, gfx_core, gfx_draw2d, gfx_image, GfxContext}` re-exports | `yog_api::render` (same API, reached through `RenderCx` / `Surface::paint`) |
 | ybook §3.4 `HexPattern` widget, §6.5 `draw2d_quad` | `Lattice` + `Polyline` + material; `draw2d_triangles` |
 | boilerplate F12 `surface::shared::<T>()` | nothing to share |
 | HexMod `render_lib.rs`, `noise.rs`, `pattern_render.rs`, `GridSurface`, `SESSION`, `spawn_dust`, `DUST_SYNTAX` | §13 |
@@ -809,7 +817,7 @@ Each stage ships on its own: crates bumped (breaking where noted), published, th
 | **N0** Geometry core | `yog_api::geom`; yog-ui shapes (`Line`, `Polyline`, `Polygon`, `Path`, `Ellipse`, `Marker`) with attribute styling; the stroker (generalized `drawLineSeq`), fills, markers; `draw2d_triangles` in the ABI (minor), runtime, Java hosts (all loaders × versions), IDLE recorder + rasterizer; `opacity`, `transform`; yui codegen + IDLE `yui.ts` for the new elements; golden-image tests | — |
 | **N1** Stroke materials | `.ymat` `params`, expressions, `stroke`/`fill`/`markers` layers, `path_effects` (`separate_revisits`, `jitter`, `trim_end`), `minecraft:simplex` noise in yog-ui; `material=`/`param.*` on shapes; theme classes setting params; build validation | materials doc S1–S4 (material pipeline, `materials.json`) |
 | **N2** Lattice, input, animation | `<Lattice>`, `Lattice.Dots`, `cell`/`fit` modes, lattice pointer args; element pointer/wheel events with `$e`, `$input`, `$index`; `<Animate>` + clock; `Label` trim/scale | mvvm-v2 M-stages for commands with arguments |
-| **N3** HexMod casting screen + deletions | Migrate §13.1; delete `render_lib.rs`, `noise.rs`, `pattern_render.rs`, `GridSurface`. Then make `Surface` VM-owned and delete its global registry, `on_*_render` and the top-level gfx re-exports; add the surface 3D scene API (R2); `yog check` lint (R13) | N0–N2, mvvm-v2 M9b (open_on/close_when) |
+| **N3** HexMod casting screen + deletions | Migrate §13.1; delete `render_lib.rs`, `noise.rs`, `pattern_render.rs`, `GridSurface`. Then make `Surface` VM-owned and delete its global registry; replace `on_*_render` with typed render stages and renderer behaviours (R14); add the 3D scene API (R2); `yog check` warnings (R13) | N0–N2, mvvm-v2 M9b (open_on/close_when) |
 | **N4** Book and tooltips | `PatternPage` per §13.2 (with ybook's stages); `.yitem` `tooltip` components; `PatternTooltip` | ybook custom pages, N3 |
 | **N5** Particles | `.yparticle`, `particles::emit`, host particle registration per loader/version; HexMod's conjure particle and pigment colors; delete `spawn_dust`/`DUST_SYNTAX` | — (can run in parallel with N1–N4) |
 | **N6** Item data looks | `.yitem` `bar`, `variants` (+ `data:` refs mapped per version) | — |
@@ -852,10 +860,11 @@ Each stage ships on its own: crates bumped (breaking where noted), published, th
     refs, comparisons and `!= null` for item content. No conditionals or user functions.
 11. **Q11 Style tables (pattern and iota colors) in the theme?** *Recommendation: yes*, as §13.1 shows: they
     are pure style, and the theme lets resource packs and IDLE edit them. The VM exposes the enum; `class=` maps it.
-12. **Q12 Lint severity for direct `yog-gfx`/`yog-abi` dependencies.** *Recommendation: error.* With the APIs
-    removed, a direct dependency can only mean manual drawing against internals.
-13. **Q13 `world_render` for debugging tools (e.g. Yog's own debugger overlays)?** *Recommendation:* those are
-    loader code and may use runtime internals; nothing is exposed to mods.
+12. **Q12 Lint severity for direct `yog-gfx`/`yog-abi` dependencies — decided by the capability rule: warning**
+    (R13); the stable route is `yog_api::render`.
+13. **Q13 World rendering for mods — decided by the capability rule: yes, full power** through typed stages and
+    renderer behaviours (R14), including sky, weather, dimension effects and custom entity/block-entity/item
+    renderers.
 
 ---
 
