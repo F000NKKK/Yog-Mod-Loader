@@ -330,7 +330,7 @@ impl {ty} {{
     }}
 
     /// The component's widget tree for these values.
-    #[allow(unused_variables, clippy::needless_borrow)]
+    #[allow(unused_variables, clippy::needless_borrow, clippy::needless_borrows_for_generic_args)]
     pub fn view(&self) -> ::yog_api::ui::Widget {{
         #[allow(unused_imports)]
         use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};
