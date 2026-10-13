@@ -105,6 +105,10 @@ public class YogUIScreen extends Screen {
                 && (uiId.isEmpty() || s.uiId.equals(uiId))) {
             s.onClose();
         }
+        if (Minecraft.getInstance().screen instanceof YogInventoryScreen s
+                && (uiId.isEmpty() || s.uiId.equals(uiId))) {
+            s.onClose();
+        }
     }
 
     public static void open(String uiId, boolean modal, boolean pause) {

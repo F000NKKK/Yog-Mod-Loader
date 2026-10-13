@@ -6,11 +6,12 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.text.Text;
 
 public class YogInventoryScreen extends net.minecraft.client.gui.screen.ingame.HandledScreen<YogInventoryMenu> {
-    private final String uiId;
+    /** The inventory screen's UI id — its `InventoryDef` id. */
+    final String uiId;
 
     public YogInventoryScreen(YogInventoryMenu handler, PlayerInventory inv, Text title) {
         super(handler, inv, title);
-        this.uiId = "yog:inv/" + handler.defId;
+        this.uiId = handler.defId;
         YogInventoryDef def = YogHost.INVENTORY_DEFS.get(handler.defId);
         if (def != null) {
             // A custom `on_ui_render` overlay may draw its decoration at a
@@ -33,14 +34,18 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screen.ingame.H
 
     @Override public void render(DrawContext ctx, int mx, int my, float delta) {
         NativeBridge.activeInventoryMenu = this.handler;
+        // The screen's markup is the background; the game draws the real
+        // slots' items, the hover, the carried stack and the tooltip over it.
+        super.render(ctx, mx, my, delta);
+        this.drawMouseoverTooltip(ctx, mx, my);
+    }
+
+    @Override protected void drawBackground(DrawContext ctx, float d, int mx, int my) {
         NativeDraw.hudDrawContext = ctx;
         NativeBridge.nativeUIRender(uiId, this.width, this.height);
         NativeDraw.hudDrawContext = null;
         NativeDraw.syncGlState();
-        this.drawMouseoverTooltip(ctx, mx, my);
     }
-
-    @Override protected void drawBackground(DrawContext ctx, float d, int mx, int my) {}
     @Override protected void drawForeground(DrawContext ctx, int mx, int my) {}
 
     @Override public boolean mouseClicked(double mx, double my, int b) {
@@ -61,7 +66,8 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screen.ingame.H
         return true;
     }
     @Override public boolean keyPressed(int k, int s, int m) {
-        NativeBridge.nativeUIKey(uiId, k, s, m, 1);
+        // A key the screen used (typing in a text box) doesn't close it.
+        if (NativeBridge.nativeUIKey(uiId, k, s, m, 1)) return true;
         return super.keyPressed(k, s, m);
     }
     @Override public void close() {
