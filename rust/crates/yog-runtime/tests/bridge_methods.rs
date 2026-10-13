@@ -193,3 +193,42 @@ fn argument_count() {
     assert_eq!(list_len("[]"), Some(0));
     assert_eq!(list_len("[S(x),\n]"), Some(1));
 }
+
+/// The other direction: every `native` method a host's `NativeBridge`
+/// declares is exported by the runtime (a missing one is an
+/// `UnsatisfiedLinkError` the first time the game calls it).
+#[test]
+fn every_native_method_is_exported() {
+    let root = repo();
+    if !root.join("fabric").is_dir() {
+        return;
+    }
+    let src = runtime_sources();
+    let mut missing = BTreeSet::new();
+    let mut seen = 0;
+    for host in HOSTS {
+        let Ok(platforms) = fs::read_dir(root.join(host).join("platforms")) else {
+            continue;
+        };
+        for p in platforms {
+            let file = p.unwrap().path().join("src/main/java/dev/yog/NativeBridge.java");
+            let Ok(java) = fs::read_to_string(&file) else {
+                continue;
+            };
+            for line in java.lines() {
+                let Some(rest) = line.split(" static native ").nth(1) else {
+                    continue;
+                };
+                let Some(name) = rest.split('(').next().and_then(|s| s.split_whitespace().last()) else {
+                    continue;
+                };
+                seen += 1;
+                if !src.contains(&format!("fn Java_dev_yog_NativeBridge_{name}")) {
+                    missing.insert(format!("{}: {name}", file.display()));
+                }
+            }
+        }
+    }
+    assert!(seen > 100, "found only {seen} native methods — parser broken?");
+    assert!(missing.is_empty(), "native methods with no runtime export:\n{}", missing.into_iter().collect::<Vec<_>>().join("\n"));
+}

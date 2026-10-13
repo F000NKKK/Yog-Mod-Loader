@@ -1,6 +1,6 @@
 //! UI system JNI — layer management, show/hide, hit-test, event dispatch.
 
-use crate::handlers;
+use crate::{UiLayer, handlers};
 use jni::{JNIEnv, objects::JClass, objects::JString, sys::*};
 
 use crate::jcall::jcall;
@@ -20,6 +20,71 @@ fn dispatch(id: &str, ev: &str) {
         unsafe {
             handler(ud, YogStr::from_str(id), YogStr::from_str(ev));
         }
+    }
+}
+
+/// A Yog UI screen (or inventory screen) opened: a new top layer, and
+/// `open:W:H` for its handler (yog-kit's `on_open`).
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    parent_id: JString<'l>,
+    modal: jboolean,
+    pause_game: jboolean,
+    screen_w: jint,
+    screen_h: jint,
+) {
+    let id = jstr!(env, ui_id);
+    let parent = jstr!(env, parent_id);
+    let parent = (!parent.is_empty()).then_some(parent);
+    let h = handlers();
+    let mut active = h.active_uis.lock().expect("active_uis");
+    active.retain(|l| l.id != id);
+    let layer = UiLayer {
+        id: id.clone(),
+        parent,
+        modal: modal != 0,
+        pause_game: pause_game != 0,
+        visible: true,
+        enabled: true,
+        z_index: active.iter().map(|l| l.z_index).max().unwrap_or(0) + 1,
+    };
+    active.push(layer);
+    active.sort_by_key(|l| l.z_index);
+    yog_logging::info!(
+        "UI show: {} modal={} pause={} layers={}",
+        id,
+        modal != 0,
+        pause_game != 0,
+        active.len()
+    );
+    drop(active);
+    dispatch(&id, &format!("open:{screen_w}:{screen_h}"));
+}
+
+/// A Yog UI screen closed: it and its child layers go, each handler gets
+/// `close` (yog-kit's `on_close`).
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIHide<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+) {
+    let id = jstr!(env, ui_id);
+    let h = handlers();
+    let mut active = h.active_uis.lock().expect("active_uis");
+    let closed: Vec<String> = active
+        .iter()
+        .filter(|l| l.id == id || l.parent.as_deref() == Some(&id))
+        .map(|l| l.id.clone())
+        .collect();
+    active.retain(|l| !closed.contains(&l.id));
+    yog_logging::info!("UI hide: {} (layers left: {})", id, active.len());
+    drop(active);
+    for c in &closed {
+        dispatch(c, "close");
     }
 }
 
