@@ -68,14 +68,7 @@ impl Server for CServer {
                 },
             )
         };
-        if owned.is_none() {
-            return None;
-        }
-        let result = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .ok()
-        };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        let result = take_owned(s.free_str, owned);
         result
     }
 
@@ -199,14 +192,7 @@ impl Server for CServer {
                 yog_abi::YogVec3 { x, y, z },
             )
         };
-        if owned.is_none() {
-            return None;
-        }
-        let result = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .ok()
-        };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        let result = take_owned(s.free_str, owned);
         result
     }
 
@@ -384,14 +370,9 @@ impl Server for CServer {
     fn game_dir(&self) -> String {
         let s = srv!(self);
         let owned = unsafe { (s.game_dir)(s.ctx) };
-        if owned.is_none() {
+        let Some(result) = take_owned(s.free_str, owned) else {
             return String::new();
-        }
-        let result = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .unwrap_or_default()
         };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
         result
     }
 
@@ -535,14 +516,9 @@ impl Server for CServer {
     fn online_players(&self) -> Vec<String> {
         let s = srv!(self);
         let owned = unsafe { (s.online_players)(s.ctx) };
-        if owned.is_none() {
+        let Some(text) = take_owned(s.free_str, owned) else {
             return Vec::new();
-        }
-        let text = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .unwrap_or_default()
         };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
         if text.is_empty() {
             Vec::new()
         } else {
@@ -563,14 +539,7 @@ impl Server for CServer {
                 },
             )
         };
-        if owned.is_none() {
-            return None;
-        }
-        let result = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .ok()
-        };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        let result = take_owned(s.free_str, owned);
         result
     }
 
@@ -609,14 +578,9 @@ impl Server for CServer {
                 slot,
             )
         };
-        if owned.is_none() {
+        let Some(text) = take_owned(s.free_str, owned) else {
             return None;
-        }
-        let text = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .unwrap_or_default()
         };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
         let (item_id, count) = text.split_once('\t')?;
         Some((item_id.to_owned(), count.parse().ok()?))
     }
@@ -649,14 +613,9 @@ impl Server for CServer {
     fn player_inventory(&self, player: &str) -> Vec<(u32, String, u32)> {
         let s = srv!(self);
         let owned = unsafe { (s.player_inventory)(s.ctx, YogStr::from_str(player)) };
-        if owned.is_none() {
+        let Some(text) = take_owned(s.free_str, owned) else {
             return Vec::new();
-        }
-        let text = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .unwrap_or_default()
         };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
         text.lines()
             .filter_map(|line| {
                 let mut it = line.split('\t');
@@ -719,14 +678,7 @@ impl Server for CServer {
     fn entity_get_nbt(&self, uuid: &str) -> Option<String> {
         let s = srv!(self);
         let owned = unsafe { (s.entity_get_nbt)(s.ctx, YogStr::from_str(uuid)) };
-        if owned.is_none() {
-            return None;
-        }
-        let result = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .ok()
-        };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        let result = take_owned(s.free_str, owned);
         result
     }
 
@@ -795,14 +747,7 @@ impl Server for CServer {
     fn get_held_item_nbt(&self, player: &str) -> Option<String> {
         let s = srv!(self);
         let owned = unsafe { (s.get_held_item_nbt)(s.ctx, YogStr::from_str(player)) };
-        if owned.is_none() {
-            return None;
-        }
-        let result = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .ok()
-        };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        let result = take_owned(s.free_str, owned);
         result
     }
 
@@ -814,14 +759,7 @@ impl Server for CServer {
     fn get_offhand_item_nbt(&self, player: &str) -> Option<String> {
         let s = srv!(self);
         let owned = unsafe { (s.get_offhand_item_nbt)(s.ctx, YogStr::from_str(player)) };
-        if owned.is_none() {
-            return None;
-        }
-        let result = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .ok()
-        };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
+        let result = take_owned(s.free_str, owned);
         result
     }
 
@@ -833,14 +771,9 @@ impl Server for CServer {
     fn get_slot_item(&self, player: &str, slot: u32) -> Option<(String, u32, String)> {
         let s = srv!(self);
         let owned = unsafe { (s.get_slot_item)(s.ctx, YogStr::from_str(player), slot) };
-        if owned.is_none() {
+        let Some(text) = take_owned(s.free_str, owned) else {
             return None;
-        }
-        let text = unsafe {
-            String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-                .unwrap_or_default()
         };
-        unsafe { (s.free_str)(owned.ptr, owned.len) };
         let mut it = text.splitn(3, '\t');
         let item_id = it.next()?.to_owned();
         let count: u32 = it.next()?.parse().ok()?;
@@ -1157,13 +1090,7 @@ impl Server for CServer {
 
 /// Copy a runtime-owned string out and free it; `None` for NONE.
 fn take_owned(s: &YogServer, owned: yog_abi::YogOwnedStr) -> Option<String> {
-    if owned.is_none() {
-        return None;
-    }
-    let text = unsafe {
-        String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()).ok()
-    };
-    unsafe { (s.free_str)(owned.ptr, owned.len) };
+    let text = take_owned(s.free_str, owned);
     text
 }
 

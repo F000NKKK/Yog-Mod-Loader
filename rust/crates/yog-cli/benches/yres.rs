@@ -1,24 +1,30 @@
-//! `.yres` resources: parsing one file, compiling a mod's whole set.
+//! `.yres` resources: parsing a set, compiling a mod's resources.
 
 mod common;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::hint::black_box;
 use yog_cli::yres;
 
 fn bench(c: &mut Criterion) {
-    let lang = common::read(&common::fixture("hexmod/resources/Lang.yres"));
-    c.bench_function("yres/parse/Lang", |b| {
-        b.iter(|| yres::parse(black_box(&lang)).unwrap())
-    });
-
-    for (name, id) in [("hexmod", "hexcasting"), ("modlist", "yog-modlist")] {
-        let root = common::mod_root(name);
-        c.bench_function(&format!("yres/compile/{name}"), |b| {
-            b.iter(|| yres::compile(black_box(&root), id).unwrap())
+    let mut parse = c.benchmark_group("yres/parse");
+    for n in common::SIZES {
+        let (neutral, _) = common::yres_set(n);
+        parse.bench_with_input(BenchmarkId::from_parameter(n), &neutral, |b, text| {
+            b.iter(|| yres::parse(black_box(text)).unwrap())
         });
-        let _ = std::fs::remove_dir_all(&root);
     }
+    parse.finish();
+
+    let mut compile = c.benchmark_group("yres/compile");
+    for n in common::SIZES {
+        let root = common::mod_root(n);
+        compile.bench_with_input(BenchmarkId::from_parameter(n), &root, |b, root| {
+            b.iter(|| yres::compile(black_box(root), common::MOD_ID).unwrap())
+        });
+        common::remove(&root);
+    }
+    compile.finish();
 }
 
 criterion_group!(benches, bench);

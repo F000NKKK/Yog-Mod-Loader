@@ -269,7 +269,7 @@ pub(super) fn layout(
         }
         let m = c.style.margin;
         let cap_h = less(measure_cap(rows, rsp, content_h, sp.r0, sp.r1), m[0] + m[2]);
-        let mut tmp = new_node(c);
+        let mut tmp = LayoutNode::default();
         measure(c, &mut tmp, UNBOUNDED, cap_h, UNBOUNDED, UNBOUNDED);
         items.push((sp.c0, sp.c1, tmp.rect.w + m[1] + m[3]));
     }
@@ -284,7 +284,7 @@ pub(super) fn layout(
         }
         let m = c.style.margin;
         let cell_w = less(extent(&col_size, csp, sp.c0, sp.c1), m[1] + m[3]);
-        let mut tmp = new_node(c);
+        let mut tmp = LayoutNode::default();
         measure(c, &mut tmp, cell_w, UNBOUNDED, cell_w, UNBOUNDED);
         items.push((sp.r0, sp.r1, tmp.rect.h + m[0] + m[2]));
     }
