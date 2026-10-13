@@ -226,7 +226,7 @@ or a list. Lists and tags cycle once per second, as in Patchouli.
 | `stonecutting`, `smithing` | `recipe`, `recipe2?`, `text?` | As Patchouli. |
 | `image` | `images` (texture ids, cycled by arrows), `title?`, `border?`, `text?` | 106×106 picture area. A texture is a Texture (materials D1), so `.png.mcmeta` animation works. |
 | `entity` | `entity`, `scale?`, `offset?`, `rotate?`, `default_rotation?`, `name?`, `text?` | The living entity, rotating (§6.6). |
-| `multiblock` | `name`, `multiblock` (`pattern` + `mapping`, Patchouli's format) or `structure` (a structure id), `enable_visualize?`, `text?` | An isometric preview of the structure (§6.6, late stage). |
+| `multiblock` | `name`, `multiblock` (`pattern` + `mapping`, Patchouli's format) or `structure` (a structure id), `enable_visualize?`, `text?` | An isometric preview of the structure (§6.6, first release). |
 | `link` | `url`, `link_text`, `text?` | A button that opens the URL through vanilla's "open link?" confirmation. |
 | `relations` | `entries`, `title?`, `text?` | A list of entry links. |
 | `empty` | `filler?` (default `true`) | The skin's filler picture, or nothing. |
@@ -504,7 +504,7 @@ draws a placeholder box with the type id, and logs once.
   instance once per type and renders it with `InventoryScreen.renderEntityInInventory`. This is a new ABI entry
   on all six hosts.
 - `multiblock` needs block-state rendering into the GUI with a rotation: `draw2d_blocks(json, x, y, scale, yaw)`.
-  It is a late stage (Hex does not use it), and is listed as an open question.
+  Both ship in the first release (Q6), in stage B7.
 
 ### 6.7 Progress
 
@@ -909,11 +909,12 @@ APIs change, and the crates are published when each stage lands.
 | **B4** Custom pages | `<Component book_page>`, `book_text` property type, `BookText`/`BookHeader`/`BookItem`, generated `register_book_page`, ABI `register_book_page`/`book_*`/`draw2d_quad`, runtime dispatch, designer host support, Toolbox *<mod> Pages* | B2, B3; boilerplate F8 for self-registration (or an interim generated call in `content!()`) | yog-cli, yog-ui, yog-kit, yog-runtime, yog-abi, Yog-IDLE |
 | **B5** Patchouli import | `yog import patchouli`, flattened JSON5, template → component stubs, report; IDLE *Import Patchouli book…* | B1, B4 (stubs target its grammar) | yog-cli, Yog-IDLE |
 | **B6** HexMod book | import, `PatternPage` (+ `HexPattern` widget on `draw2d_quad`), skin, delete the old code and files, translation decision (Q4) | B4, B5; boilerplate F1 for op_id lookup | HexMod-Yog |
-| **B7** Entities | `draw2d_entity` (6 hosts), `entity` page, `<Entity>` element, Hex `BrainsweepPage` | B2 | yog-abi, yog-runtime, Java ×6, yog-ui, HexMod-Yog |
+| **B7** Entities + multiblocks | `draw2d_entity` and `draw2d_blocks` (6 hosts), `entity` and `multiblock` pages (isometric preview with rotation), `<Entity>` element, Hex `BrainsweepPage` | B2 | yog-abi, yog-runtime, Java ×6, yog-ui, HexMod-Yog |
 | **B8** Materials skin | `mat:yog:book/*` overlay materials, skin parts, item tooltips through `draw2d_item_tooltip` | materials S4 | vanilla/, yog-book |
-| **B9** Extras | `extends` (addon books), progress/unread, item→entry mappings (Patchouli's shift-on-tooltip), `$(i:…)` inline icons, `multiblock` (`draw2d_blocks`), search | B2 | all |
+| **B9** Extras | `extends` (addon books), progress/unread, item→entry mappings (Patchouli's shift-on-tooltip), `$(i:…)` inline icons, search | B2 | all |
 
-Critical path to "Hex's book in the designer and in game": B0 → B1 → B2 → B4 → B5 → B6. B3 can start right after
+Critical path to "Hex's book in the designer and in game": B0 → B1 → B2 → B4 → B5 → B7 → B6 (entity and
+multiblock pages are part of the first release, Q6). B3 can start right after
 B1 and runs in parallel with B2. Every stage ends with the crates involved bumped and published, and the three
 mods updated in the same change. Building and running the game is done with the user's permission.
 
@@ -951,7 +952,7 @@ mods updated in the same change. Building and running the game is done with the 
 5. **Q5 Default skin — decided: the Patchouli-like brown two-page book.** Was: the Patchouli-like brown two-page book (proposed; it is what Hex and every ported book
    expect), or a vanilla-looking skin built from `minecraft:gui/book` (vanilla's book screen is a single 146×180
    page, so it would be a different layout)?
-6. **Q6 Entity and multiblock pages:** is `entity` (needed for Hex's brainsweep pages) wanted in the first
+6. **Q6 Entity and multiblock pages — decided: both in the first release.** Was: is `entity` (needed for Hex's brainsweep pages) wanted in the first
    release? Can `multiblock` wait for a mod that needs it?
 7. **Q7 Code-registered recipes in the designer:** show the fallback (proposed), or have the designer host run the
    mod's `register` against a recording registry to capture them?
