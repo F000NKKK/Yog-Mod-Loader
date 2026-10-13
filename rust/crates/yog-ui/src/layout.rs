@@ -142,10 +142,10 @@ impl Default for LayoutNode {
 ///   parent's final size is known.
 /// - `flex` (and `Dock::Fill`) grows a child into the parent's free main-axis
 ///   space; the grown size sticks and the child's own children lay out
-///   against it. A growing [`clip`](crate::widget::Style::clip) container
-///   (e.g. a `scroll_view`) with an auto main size starts from its min size
-///   instead of its content, so it fills exactly the free space and scrolls
-///   the rest.
+///   against it. A growing child with an auto main size starts from its min
+///   size instead of its content (like WPF star sizing), so it fills exactly
+///   the free space — a `scroll_view` scrolls the rest, and nothing nested
+///   inside can push the child's siblings out of the parent.
 pub fn compute(widget: &Widget, avail_w: f32, avail_h: f32) -> LayoutNode {
     let mut node = new_node(widget);
     if widget.visible {
@@ -427,8 +427,11 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         };
         layout_widget(child, &mut cn, 0.0, 0.0, cmw, cmh, content_w, content_h);
         let ef = effective_flex(child);
-        // A growing clip container starts from its min size, not its content.
-        if ef > 0.0 && child.style.clip && main_bounded && in_flow(child) {
+        // A growing child with an auto main size starts from its min size,
+        // not its content (WPF star sizing / CSS `flex: 1 1 0`): it gets
+        // exactly its share of the free space, so a long list nested deep
+        // inside can't push its siblings out of the parent.
+        if ef > 0.0 && main_bounded && in_flow(child) {
             match dir {
                 FlexDir::Row if child.style.w.is_auto() => cn.rect.w = child.style.min_w,
                 FlexDir::Column if child.style.h.is_auto() => cn.rect.h = child.style.min_h,
@@ -874,6 +877,43 @@ mod tests {
         assert_eq!(r(&grown.children[1]).2, 200.0 - 50.0 - 10.0);
         // ... and the right-docked one hugs the grown panel's far edge.
         assert_eq!(r(&grown.children[2]), (190.0, 20.0, 10.0, 180.0));
+    }
+
+    #[test]
+    fn long_list_deep_inside_a_grown_row_does_not_push_siblings_out() {
+        // The Modlist screen: header, a flex row holding a 100%-high column
+        // with a growing scroll view of many rows, and a footer.
+        let mut list = widget::scroll_view().flex(1.0).w(pct(100.0));
+        for _ in 0..60 {
+            list = list.child(widget::spacer().h(25.0));
+        }
+        let root = widget::panel(FlexDir::Column)
+            .w(400.0)
+            .h(252.0)
+            .gap(0.0)
+            .child(widget::spacer().h(20.0))
+            .child(
+                widget::panel(FlexDir::Row)
+                    .flex(1.0)
+                    .w(pct(100.0))
+                    .child(
+                        widget::panel(FlexDir::Column)
+                            .w(pct(50.0))
+                            .h(pct(100.0))
+                            .child(widget::spacer().h(16.0))
+                            .child(list),
+                    ),
+            )
+            .child(widget::spacer().h(26.0));
+        let node = compute(&root, 400.0, 252.0);
+        assert_eq!(r(&node.children[1]), (0.0, 20.0, 400.0, 206.0));
+        let footer = r(&node.children[2]);
+        assert_eq!((footer.1, footer.3), (226.0, 26.0));
+        let column = &node.children[1].children[0];
+        assert_eq!(column.rect.h, 206.0);
+        let list = &column.children[1];
+        assert!(list.rect.y + list.rect.h <= 226.0, "{:?}", list.rect);
+        assert!(list.content_h > list.rect.h);
     }
 
     #[test]
