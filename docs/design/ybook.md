@@ -509,7 +509,17 @@ draws a placeholder box with the type id, and logs once.
 ### 6.7 Progress
 
 With `show_progress`, entries not opened yet get Patchouli's "unread" sparkle, and the landing page shows
-`n/m entries read`. Read state is client side, in `<game dir>/yog/books/<book>.json`.
+`n/m entries read`.
+
+Storage is split by whether the data can affect the game (Q8):
+
+- **Server, per player** — everything that can influence gameplay: read entries and any state conditions can
+  depend on. It is saved with the world as player data (boilerplate D6 `PlayerData`, keyed `yog:books`), synced to
+  the client on join and on change. Opening an entry sends `entry_read(book, entry)` to the server; the server
+  validates that the entry is unlocked for that player. On a singleplayer world the integrated server stores it
+  the same way.
+- **Client, `<game dir>/yog/books/<book>.json`** — only what cannot affect the game: last opened entry and page,
+  navigation history, bookmarks, UI preferences.
 
 ### 6.8 Versions and vanilla refs
 
@@ -956,7 +966,7 @@ mods updated in the same change. Building and running the game is done with the 
    release? Can `multiblock` wait for a mod that needs it?
 7. **Q7 Code-registered recipes in the designer:** show the fallback (proposed), or have the designer host run the
    mod's `register` against a recording registry to capture them?
-8. **Q8 Read progress:** client-global per book (proposed), per world/server, or synced from the server like
+8. **Q8 Read progress — decided: on the server per player; the client keeps only state that cannot affect the game (§6.7).** Was: client-global per book (proposed), per world/server, or synced from the server like
    advancements?
-9. **Q9 Addon books (`extends`):** needed in the first release (only once Hex addons are ported), or later?
+9. **Q9 Addon books (`extends`) — decided: not in the first release.** Was: needed in the first release (only once Hex addons are ported), or later?
 10. **Q10 `$(c:/command)`:** is click-to-run-command wanted (with a confirmation), or should it stay unsupported?
