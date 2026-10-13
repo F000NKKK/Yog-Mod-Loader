@@ -5,6 +5,7 @@
 //! `yog_api::*`. Items are available both flat (`yog_api::Registry`) and
 //! namespaced by domain (`yog_api::world::World`).
 
+pub mod client;
 mod interop;
 mod lang;
 mod registry;
