@@ -1823,7 +1823,7 @@ mod tests {
             </Column>"##)
         .unwrap();
         for want in [
-            "const _: () = ::yog_kit::__codegen::require(1);",
+            "const _: () = ::yog_kit::__codegen::require(2);",
             "type Vm = Vm;",
             ".color(0xFFFFD700)",
             r#".id("count")"#,
