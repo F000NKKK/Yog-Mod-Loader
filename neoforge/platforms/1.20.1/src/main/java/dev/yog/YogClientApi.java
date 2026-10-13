@@ -65,6 +65,7 @@ public final class YogClientApi {
         }
     }
 
+    @SuppressWarnings("deprecation") // BuiltInRegistries is the vanilla registry; Forge only nudges towards its wrappers
     public static String heldItem(boolean offHand) {
         try {
             LocalPlayer p = Minecraft.getInstance().player;

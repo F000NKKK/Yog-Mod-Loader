@@ -615,7 +615,7 @@ public final class NativeBridge {
             ServerLevel w = worldFor(dim);
             if (w == null) return false;
             BlockPos pos = new BlockPos(x, y, z);
-            boolean ok = BoneMealItem.growCrop(new ItemStack(Items.BONE_MEAL), w, pos)
+            boolean ok = BoneMealItem.applyBonemeal(new ItemStack(Items.BONE_MEAL), w, pos, null)
                     || BoneMealItem.growWaterPlant(new ItemStack(Items.BONE_MEAL), w, pos, null);
             if (ok) w.levelEvent(1505, pos, 15);
             return ok;
@@ -700,6 +700,7 @@ public final class NativeBridge {
     }
 
     /** Grant / revoke flight; revoking leaves creative / spectator players untouched. */
+    @SuppressWarnings("deprecation") // Abilities.mayfly is still the vanilla flag; NeoForge only adds the CREATIVE_FLIGHT attribute on top
     public static boolean playerSetMayFly(String player, boolean mayFly) {
         try {
             ServerPlayer p = playerByName(player);
@@ -716,6 +717,7 @@ public final class NativeBridge {
     }
 
     /** "uuid\tgamemode\tselectedSlot\txpLevel\txpTotal\tair\tmayFly\tflying", or null. */
+    @SuppressWarnings("deprecation") // Abilities.mayfly is still the vanilla flag; NeoForge only adds the CREATIVE_FLIGHT attribute on top
     public static String playerInfo(String player) {
         try {
             ServerPlayer p = playerByName(player);
@@ -1108,7 +1110,7 @@ public final class NativeBridge {
             if (!(BuiltInRegistries.ITEM.get(id) instanceof net.minecraft.world.item.BucketItem bucket)) return false;
             BlockPos pos = new BlockPos(x, y, z);
             BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
-            return bucket.emptyContents(null, w, pos, hit);
+            return bucket.emptyContents(null, w, pos, hit, null);
         } catch (Throwable t) {
             return false;
         }
