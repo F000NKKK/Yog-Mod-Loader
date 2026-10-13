@@ -502,7 +502,7 @@ fn target(kind: &str, attr: &str) -> Option<Target> {
         "text" if matches!(kind, "Label" | "Button" | "TextBox") => Target::Text,
         "placeholder" if kind == "TextBox" => Target::Placeholder,
         "item" if matches!(kind, "ItemSlot" | "InvSlot") => Target::Item,
-        "source" if kind == "Image" => Target::Source,
+        "source" if matches!(kind, "Image" | "Surface") => Target::Source,
         "count" if kind == "InvSlot" => Target::Count,
         "bg" => Target::Color("bg"),
         "color" => Target::Color("color"),
@@ -1071,6 +1071,14 @@ impl VmGen<'_> {
             self.list(ctx, el, &mut bindings, &list_attrs, path, scroller)?;
         }
 
+        if bindings.iter().any(|(k, _)| k == "source") {
+            // A valid stand-in for the static checks; the binding sets it.
+            match kind {
+                "Image" => out.attrs.push(("source".into(), "item:air".into())),
+                "Surface" => out.attrs.push(("source".into(), "yog:none".into())),
+                _ => {}
+            }
+        }
         for (k, b) in &bindings {
             if matches!(k.as_str(), "items" | "content" | "key" | "selected") {
                 continue;
@@ -1612,6 +1620,24 @@ mod tests {
             assert!(code.contains(want), "missing {want}\n{code}");
         }
         assert!(!code.contains("text=") || code.contains("// @yui"), "{code}");
+    }
+
+    #[test]
+    fn bound_sources() {
+        let code = gen(r##"
+            <Column>
+                <Surface w="10" h="10" source="{x:Bind grid_id()}"/>
+                <Image w="10" h="10" source="{x:Bind icon}"/>
+            </Column>"##)
+        .unwrap();
+        for want in [
+            r#"widget::surface("yog:none")"#,
+            r#"widget::image("item:air")"#,
+            "::yog_kit::bind::set_source(root.at_path_mut(&[0, 0]), ",
+            "::yog_kit::bind::set_source(root.at_path_mut(&[0, 1]), ",
+        ] {
+            assert!(code.contains(want), "missing {want}\n{code}");
+        }
     }
 
     #[test]

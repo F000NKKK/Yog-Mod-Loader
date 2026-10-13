@@ -182,7 +182,7 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
     let kind = el.name.as_str();
     let builtin = matches!(
         kind,
-        "Canvas" | "Column" | "Row" | "ScrollView" | "Grid" | "Label" | "Button" | "TextBox" | "ItemSlot" | "InvSlot" | "Image" | "Spacer"
+        "Canvas" | "Column" | "Row" | "ScrollView" | "Grid" | "Label" | "Button" | "TextBox" | "ItemSlot" | "InvSlot" | "Image" | "Spacer" | "Surface"
     );
     if kind == "Component" || kind == "Screen" {
         return err(el, "can't be inside a component");
@@ -206,6 +206,10 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
         let call = match key.as_str() {
             "text" if matches!(kind, "Label" | "Button" | "TextBox") => format!("with_text({conv}::text(&({e})))"),
             "placeholder" if kind == "TextBox" => format!("placeholder({conv}::text(&({e})))"),
+            "source" if kind == "Surface" => {
+                out.attrs.push(("source".into(), "yog:none".into()));
+                format!("with_source({conv}::text(&({e})))")
+            }
             "source" if kind == "Image" => {
                 // A valid stand-in for the static checks; replaced at build.
                 out.attrs.push(("source".into(), "item:air".into()));

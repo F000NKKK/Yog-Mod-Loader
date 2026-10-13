@@ -239,7 +239,7 @@ pub fn parse_xml(src: &str) -> Result<Element, String> {
 
 const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView", "Grid"];
 const LEAVES: &[&str] = &[
-    "Label", "Button", "TextBox", "ItemSlot", "InvSlot", "Image", "Spacer",
+    "Label", "Button", "TextBox", "ItemSlot", "InvSlot", "Image", "Spacer", "Surface",
 ];
 const COMMON_ATTRS: &[&str] = &[
     "id",
@@ -284,6 +284,7 @@ fn kind_attrs(kind: &str) -> &'static [&'static str] {
         "ItemSlot" => &["item"],
         "InvSlot" => &["item", "count"],
         "Image" => &["source", "stretch", "uv", "tint"],
+        "Surface" => &["source"],
         _ => &[],
     }
 }
@@ -526,6 +527,34 @@ struct Gen {
 }
 
 impl Gen {
+    /// `widget::surface(...)` for a `<Surface>`: the id its drawing is
+    /// registered under (`ns:path`; `mod:path` = the mod's namespace).
+    fn surface(&mut self, el: &Element) -> Result<String, String> {
+        let line = el.line;
+        let source = el
+            .attr("source")
+            .ok_or_else(|| format!("line {line}: <Surface> needs a source (the id its code registers, e.g. source=\"mod:grid\")"))?
+            .trim();
+        let id = match source.strip_prefix("mod:") {
+            Some(path) => match &self.mod_id {
+                Some(m) => format!("{m}:{path}"),
+                None => {
+                    return Err(format!(
+                        "line {line}: <Surface> source=\"{source}\": mod: needs the mod id (no yog.toml found)"
+                    ))
+                }
+            },
+            None => source.to_string(),
+        };
+        if !id.contains(':') || !crate::content::valid_id(&id) {
+            return Err(format!(
+                "line {line}: <Surface> source=\"{source}\": expected <namespace>:<name> or mod:<name> \
+                 (lower case a-z, 0-9, `_`, `-`, `.`, `/`)"
+            ));
+        }
+        Ok(format!("widget::surface({id:?})"))
+    }
+
     /// `widget::image(...)` for an `<Image>`: its `source` checked and
     /// `mod:` resolved, plus `stretch`/`uv`/`tint`.
     fn image(&mut self, el: &Element) -> Result<String, String> {
@@ -676,6 +705,7 @@ impl Gen {
                 )
             }
             "Image" => self.image(el)?,
+            "Surface" => self.surface(el)?,
             _ if is_component => component_expr(el),
             _ => "widget::spacer()".to_string(),
         };
@@ -1228,6 +1258,18 @@ mod tests {
         assert!(!code.contains(".value("), "{code}");
         assert!(generate_for(&screen(r#"<statBar/>"#), "s", None).is_err());
         assert!(generate_for(&screen(r#"<StatBar><Label/></StatBar>"#), "s", None).is_err());
+    }
+
+    #[test]
+    fn surfaces() {
+        let (code, _) = generate_for(&screen(r#"<Surface w="100" h="50" source="mod:grid"/>"#), "s", Some("hexcasting")).unwrap();
+        assert!(code.contains(r#"widget::surface("hexcasting:grid")"#), "{code}");
+        let (code, _) = generate_for(&screen(r#"<Surface source="other:pad"/>"#), "s", None).unwrap();
+        assert!(code.contains(r#"widget::surface("other:pad")"#), "{code}");
+        assert!(generate_for(&screen(r#"<Surface/>"#), "s", None).is_err());
+        assert!(generate_for(&screen(r#"<Surface source="pad"/>"#), "s", None).is_err());
+        assert!(generate_for(&screen(r#"<Surface source="mod:pad"/>"#), "s", None).is_err());
+        assert!(generate_for(&screen(r#"<Surface source="a:b" text="x"/>"#), "s", None).is_err());
     }
 
     #[test]
