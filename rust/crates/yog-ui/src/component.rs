@@ -1,49 +1,34 @@
 //! Custom components — a mod's own reusable widgets, used from `.yui`
-//! markup like the built-in elements (the user controls of WPF/WinForms).
+//! markup like the built-in elements (the user controls of WPF).
 //!
-//! A component is a function from its properties to a [`Widget`] tree,
-//! plus a description of those properties (name, type, default, doc) that
-//! Yog-IDLE's screen designer shows in its toolbox and property grid:
-//!
-//! ```ignore
-//! use yog_api::ui::component::{Component, Prop, Props};
-//! use yog_api::ui::{widget, FlexDir, Units, Widget};
-//!
-//! pub struct StatBar;
-//!
-//! impl Component for StatBar {
-//!     const NAME: &'static str = "StatBar";
-//!     const DOC: &'static str = "A labelled progress bar.";
-//!     const PROPS: &'static [Prop] = &[
-//!         Prop::text("label", "HP"),
-//!         Prop::number("value", "0.5").doc("Filled fraction, 0..1"),
-//!         Prop::color("fill", "#FF55FF55"),
-//!         Prop::event("on_select"),
-//!     ];
-//!     fn build(p: &Props) -> Widget {
-//!         widget::panel(FlexDir::Row)
-//!             .child(widget::label(p.text("label")))
-//!             .child(widget::spacer().w(Units::Px(p.number("value") * 60.0)).h(Units::Px(6.0)).bg(p.color("fill")))
-//!     }
-//! }
-//!
-//! yog_api::ui_component!(StatBar);
-//! ```
+//! A component is a `.yui` file with a `<Component>` root: its properties
+//! and events declared in markup, its body bound to them with
+//! `{x:Bind ...}`, and an optional code-behind `.rs` for methods the
+//! bindings call (see Yog-IDLE's `docs/yui.md`, "Components"):
 //!
 //! ```xml
-//! <StatBar x="8" y="8" w="120" label="Mana" value="0.3" fill="#FF5555FF"/>
+//! <Component name="StatBar" doc="A labelled progress bar." width="120" height="10">
+//!     <Property name="label" type="text" default="HP"/>
+//!     <Property name="value" type="number" default="0.5" doc="Filled fraction, 0..1"/>
+//!     <Row w="100%" gap="4">
+//!         <Label text="{x:Bind label}"/>
+//!         <Spacer w="{x:Bind bar_w()}" h="6" bg="#FF55FF55"/>
+//!     </Row>
+//! </Component>
 //! ```
 //!
-//! `yog build` turns such an element into `component::build("StatBar",
-//! &[("label", "Mana"), ...])` followed by the usual builder calls for the
-//! common attributes (`x`, `y`, `w`, `h`, `bg`, `on_click`, ...) — so only
-//! the component's own properties reach [`Component::build`], as strings,
-//! read back typed through [`Props`].
+//! `yog build` generates the [`Component`] implementation from it (a struct
+//! with one typed field per property, `NAME`, `DOC`, `PROPS`, `build`) and
+//! registers it (`yog_api::ui_component!`) — this module is that code's
+//! runtime: the registry, [`Props`] (the instance's attribute values, read
+//! back typed), [`bind`] (binding conversions) and [`designer`], Yog-IDLE's
+//! door into a mod built for the host machine.
 //!
-//! [`designer`] is the screen designer's door into a mod: the designer host
-//! (a process of Yog-IDLE's) loads the mod's library built for the host
-//! machine and calls `yog_ui_designer` (exported by `export_mod!`) to list
-//! the components and draw them through a recording `YogGfxApi`.
+//! A screen uses a component like any element:
+//! `<StatBar x="8" y="8" w="120" label="Mana" value="0.3"/>` becomes
+//! `component::build("StatBar", &[("label", "Mana"), ("value", "0.3")])`
+//! followed by the builder calls for the common attributes (`x`, `y`, `w`,
+//! `h`, `bg`, `on_click`, ...).
 
 use std::collections::HashMap;
 use std::sync::{Mutex, PoisonError};
@@ -134,7 +119,8 @@ impl Prop {
     }
 }
 
-/// A custom component: see the [module docs](self).
+/// A custom component — implemented by the code `yog build` generates
+/// from a `<Component>` `.yui` (see the [module docs](self)).
 pub trait Component {
     /// The `.yui` element name (`<StatBar …/>`), PascalCase.
     const NAME: &'static str;
@@ -259,6 +245,118 @@ impl Props {
     /// A choice / event / image value, trimmed.
     pub fn word(&self, name: &str) -> &str {
         self.get(name).map(str::trim).unwrap_or_default()
+    }
+}
+
+/// Conversions of `{x:Bind ...}` values to what a bound attribute takes
+/// (generated component code calls these).
+pub mod bind {
+    use std::fmt::Display;
+
+    use crate::Units;
+
+    /// `text`, `placeholder`, image sources, nested component properties.
+    pub fn text<T: Display + ?Sized>(v: &T) -> String {
+        v.to_string()
+    }
+
+    /// `bg`, `color`, `focus_color`, `tint`: `0xAARRGGBB`, or a `.yui` color string.
+    pub fn color<T: BindColor>(v: T) -> u32 {
+        v.to_argb()
+    }
+
+    /// `enabled`, `visible`, `shadow`.
+    pub fn flag(v: impl Into<bool>) -> bool {
+        v.into()
+    }
+
+    /// `gap`, `flex`, `min_w`, `min_h`, `font_scale`.
+    pub fn number<T: BindNumber>(v: T) -> f32 {
+        v.to_f32()
+    }
+
+    /// `w`, `h`: a number of pixels, [`Units`], or a `.yui` size string (`"50%"`, `"auto"`).
+    pub fn units<T: BindUnits>(v: T) -> Units {
+        v.to_units()
+    }
+
+    pub trait BindColor {
+        fn to_argb(self) -> u32;
+    }
+    impl BindColor for u32 {
+        fn to_argb(self) -> u32 {
+            self
+        }
+    }
+    impl BindColor for &u32 {
+        fn to_argb(self) -> u32 {
+            *self
+        }
+    }
+    impl BindColor for &str {
+        fn to_argb(self) -> u32 {
+            super::parse_color(self).unwrap_or(0xFF_FFFFFF)
+        }
+    }
+    impl BindColor for &String {
+        fn to_argb(self) -> u32 {
+            self.as_str().to_argb()
+        }
+    }
+    impl BindColor for String {
+        fn to_argb(self) -> u32 {
+            self.as_str().to_argb()
+        }
+    }
+
+    pub trait BindNumber {
+        fn to_f32(self) -> f32;
+    }
+    macro_rules! numbers {
+        ($($t:ty),*) => {$(
+            impl BindNumber for $t {
+                fn to_f32(self) -> f32 {
+                    self as f32
+                }
+            }
+            impl BindNumber for &$t {
+                fn to_f32(self) -> f32 {
+                    *self as f32
+                }
+            }
+        )*};
+    }
+    numbers!(f32, f64, i32, i64, u32, u64, usize);
+
+    pub trait BindUnits {
+        fn to_units(self) -> Units;
+    }
+    impl<T: BindNumber> BindUnits for T {
+        fn to_units(self) -> Units {
+            Units::Px(self.to_f32())
+        }
+    }
+    impl BindUnits for Units {
+        fn to_units(self) -> Units {
+            self
+        }
+    }
+    impl BindUnits for &str {
+        fn to_units(self) -> Units {
+            let v = self.trim();
+            if v.is_empty() || v == "auto" {
+                Units::Auto
+            } else if let Some(p) = v.strip_suffix('%') {
+                Units::Percent(p.trim().parse().unwrap_or(0.0))
+            } else {
+                Units::Px(v.parse().unwrap_or(0.0))
+            }
+        }
+    }
+    impl BindUnits for &String {
+        fn to_units(self) -> Units {
+            self.as_str().to_units()
+        }
     }
 }
 

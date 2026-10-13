@@ -1,0 +1,37 @@
+<!-- yog-kit codegen fixture: regenerated and checked by yog-cli's tests
+     (UPDATE_GOLDEN=1 cargo test -p yog-cli to rewrite list.g.rs),
+     compiled and driven by yog-kit/tests/generated.rs. -->
+<Screen id="test:list" width="200" height="120" x:ViewModel="Vm">
+    <Screen.Resources>
+        <Color x:Key="Accent" value="#FFFFD700"/>
+        <Style x:Key="Btn" target="Button" w="30" h="10" hover:bg="#FF444444"/>
+    </Screen.Resources>
+    <Column w="200" h="120">
+        <Row h="12">
+            <Label x:Name="count" text="{x:Bind count_text()}" color="@Accent"/>
+            <Button x:Name="close" style="@Btn" text="Close" command="{x:Bind cx.close()}"/>
+        </Row>
+        <TextBox x:Name="search" w="100%" h="12" text="{x:Bind search, Mode=TwoWay}"/>
+        <ToggleButton x:Name="even" style="@Btn" text="Even" checked="{x:Bind only_even, Mode=TwoWay}"/>
+        <ListView x:Name="list" w="100%" h="50" items="{x:Bind visible()}" key="{x:Bind name}"
+                  selected="{x:Bind selected_id(), BindBack=select}" item_height="10"
+                  scroll_key="{x:Bind scroll_key()}">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="Entry">
+                    <Row w="100%" h="10" selected:bg="#FF333366">
+                        <Label x:Name="row_label" text="{x:Bind name}"/>
+                        <Button x:Name="row_remove" text="x" w="10" h="10" command="{x:Bind vm.remove(name)}"/>
+                    </Row>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+            <ListView.Empty>
+                <Label x:Name="empty" text="{x:Bind empty_text()}"/>
+            </ListView.Empty>
+        </ListView>
+        <ContentPresenter x:Name="presenter" content="{x:Bind selected()}">
+            <DataTemplate>
+                <Label x:Name="details" text="{x:Bind name}" visible="{x:Bind even}"/>
+            </DataTemplate>
+        </ContentPresenter>
+    </Column>
+</Screen>

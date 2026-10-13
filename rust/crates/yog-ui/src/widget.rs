@@ -690,6 +690,12 @@ impl Widget {
         }
     }
 
+    /// [`set_text`](Self::set_text) as a builder call.
+    pub fn with_text(mut self, text: impl Into<String>) -> Self {
+        self.set_text(text);
+        self
+    }
+
     pub fn padding(mut self, top: f32, right: f32, bottom: f32, left: f32) -> Self {
         self.style.pad = [top, right, bottom, left];
         self

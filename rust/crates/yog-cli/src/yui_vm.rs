@@ -1675,6 +1675,22 @@ mod tests {
         assert!(e(r#"<Label text="{x:Bind index}"/>"#).contains("item templates"));
     }
 
+    /// The yog-kit fixture's committed `.g.rs` matches the generator
+    /// (`UPDATE_GOLDEN=1` rewrites it); yog-kit compiles and runs it.
+    #[test]
+    fn kit_fixture() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../yog-kit/tests/fixtures");
+        let src = std::fs::read_to_string(dir.join("list.yui")).unwrap();
+        let (code, warnings) = crate::yui::generate_for(&src, "list", None).unwrap();
+        assert!(warnings.is_empty(), "{warnings:?}");
+        let out = dir.join("list.g.rs");
+        if std::env::var_os("UPDATE_GOLDEN").is_some() {
+            std::fs::write(&out, &code).unwrap();
+        }
+        let want = std::fs::read_to_string(&out).unwrap_or_default();
+        assert!(want == code, "{} is stale; rerun with UPDATE_GOLDEN=1", out.display());
+    }
+
     #[test]
     fn legacy_screens_unchanged() {
         let src = r#"<Screen id="t:s"><Label text="@t.k" on_click="go"/></Screen>"#;
