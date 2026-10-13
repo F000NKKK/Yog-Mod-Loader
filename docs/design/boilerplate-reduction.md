@@ -273,10 +273,14 @@ which exist only because `PacketEvent` (`yog-network/src/lib.rs:30`) carries the
 nothing else.
 
 `on_packet`, `on_client_packet`, `on_typed_packet` and `PacketEvent` are deleted from the
-public API. The raw form is kept (capability rule) for interop with non-Yog mods and for
-channels whose payload is not `Codec`: `registry.on_raw(ch, |bytes: &[u8], cx: &PacketCx| …)` and
-`registry.on_client_raw(ch, |bytes| …)` on any channel id, plus the raw senders
-`Server::send_to_player` / `send_to_server` with `&[u8]`.
+public API. **Every packet is typed; there is no separate raw API.** As in IP, where the
+protocol number says how to read the payload, the channel id is the type tag and `P` is its
+codec. Untyped bytes are just one more payload type: `yog_api::net::Raw` (a `Vec<u8>` whose
+`Codec` is the identity), so `C2S<Raw>` / `S2C<Raw>` go through the same `registry.on(..)` /
+`on_client(..)` and `send` as everything else. Capability rule: nothing is lost. A foreign
+format (a non-Yog mod's channel, a vanilla custom payload) is either a hand-written
+`impl Codec` (preferred: the layout is described once) or `Raw` on any channel id when the
+mod really wants the bytes. `on_raw`, `on_client_raw` and the `&[u8]` senders are not kept.
 
 **Savings:** ~25 lines now and ~6 per future packet. The class of bugs where a handler is
 registered on the wrong side goes away.
@@ -659,7 +663,7 @@ Raw `data/` JSON is no replacement: the format differs between MC 1.20 and 1.21 
 | Crate | Add | Delete (no shims) |
 |---|---|---|
 | `yog-macros` (rename of `yog-interop`) | `#[derive(Codec)]`, `#[derive(Tr)]`, `#[main]`, `#[collect]`, `#[yog_export]` on top of `Codec` | rkyv derives (if D1 = b) |
-| `yog-api` | `Codec` / `Writer` / `Reader`, `C2S` / `S2C` + `registry.on(..)`, `on_raw` / `on_client_raw`, `PacketCx` / `PlayerRef`, `ServerState` / `WorldData` / `PlayerData`, `Text`, `DimPos`, `Recipe` (incl. `Recipe::Json`), `Interop::call`, `registry.on::<E>` / `before::<E>`, `testing::TempDir` | `on_packet` / `on_client_packet` / `on_typed_packet`, 25 × `on_xxx`, `add_*_recipe`, `resources!` / `ui_components!` / `content!` (folded into `#[main]`) |
+| `yog-api` | `Codec` / `Writer` / `Reader`, `C2S` / `S2C` + `registry.on(..)`, `net::Raw`, `PacketCx` / `PlayerRef`, `ServerState` / `WorldData` / `PlayerData`, `Text`, `DimPos`, `Recipe` (incl. `Recipe::Json`), `Interop::call`, `registry.on::<E>` / `before::<E>`, `testing::TempDir` | `on_packet` / `on_client_packet` / `on_typed_packet`, raw `&[u8]` senders, 25 × `on_xxx`, `add_*_recipe`, `resources!` / `ui_components!` / `content!` (folded into `#[main]`) |
 | `yog-network` | — | `packet!`, `PacketField`, `Packet` (replaced by `Codec`) |
 | `yog-book` | builders, auto sort order | public struct-literal construction |
 | `yog-kit` | generated `update()`, self-registering screens, `menu_entry=`, `TestHost::opened` | explicit `screen::register` calls in mods (`register_with(vm)` and `register_menu_entry` stay for run-time cases) |
