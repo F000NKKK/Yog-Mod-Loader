@@ -35,13 +35,21 @@ use libloading::Library;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ModuleGeneration(u64);
 
+/// The first generation handed out; 0 is never a valid generation.
+const FIRST_GENERATION: u64 = 1;
+
 /// Hands out strictly increasing [`ModuleGeneration`]s.
-#[derive(Default)]
 pub struct GenerationAllocator(AtomicU64);
+
+impl Default for GenerationAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl GenerationAllocator {
     pub fn new() -> Self {
-        Self(AtomicU64::new(1))
+        Self(AtomicU64::new(FIRST_GENERATION))
     }
 
     pub fn next(&self) -> ModuleGeneration {
@@ -148,11 +156,10 @@ impl LoadedModule {
             return None;
         }
         self.0.active.fetch_add(1, Ordering::SeqCst);
-        // Re-check: a retirement could have raced us between the loaded
-        // check and the increment. `try_unload` is idempotent and safe to
-        // invoke here too, so either this guard legitimately delays
-        // unloading, or it's dropped by the caller immediately and unload
-        // proceeds right after.
+        // A retirement may race us between the loaded check and the
+        // increment; that's fine — either this guard legitimately delays
+        // unloading, or the caller drops it and its `try_unload` (which is
+        // idempotent) performs the unload right after.
         Some(CallGuard(self.0.clone()))
     }
 
@@ -246,12 +253,11 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
         let new_generation = self.generations.next();
         let new_module = unsafe { LoadedModule::load(new_path, new_generation)? };
 
-        let old_module = {
-            let mut loaded = self.loaded.lock().unwrap();
-            let old = loaded.get(mod_id).cloned();
-            loaded.insert(mod_id.to_string(), new_module.clone());
-            old
-        };
+        let old_module = self
+            .loaded
+            .lock()
+            .unwrap()
+            .insert(mod_id.to_string(), new_module.clone());
 
         if let Some(old_module) = old_module {
             let old_generation = old_module.generation();
