@@ -1451,6 +1451,21 @@ mod tests {
         );
     }
 
+    #[test]
+    fn inventory_slots() {
+        let code = generate_for(
+            &screen(r#"<Column><Slot index="2"/><PlayerInventory/></Column>"#),
+            "s",
+            None,
+        )
+        .unwrap()
+        .0;
+        assert!(code.contains("widget::slot(2)"), "{code}");
+        assert!(code.contains("widget::player_inventory()"), "{code}");
+        let err = generate_for(&screen(r#"<Slot index="first"/>"#), "s", None).unwrap_err();
+        assert!(err.contains("expected the container slot's number"), "{err}");
+    }
+
     const SAMPLE: &str = r##"<?xml version="1.0" encoding="utf-8"?>
 <!-- a comment -->
 <Screen id="mymod:main" width="176" height="166" bg="#C0101010" padding="8">
