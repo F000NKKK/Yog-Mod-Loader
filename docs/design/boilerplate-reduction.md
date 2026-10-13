@@ -822,10 +822,10 @@ Each stage ends with: bump the crates involved (breaking, as policy allows), pub
 
 ## 5. Decisions for the user
 
-- **D1.** Should interop serialization (`#[yog_export]`) move from rkyv to `Codec`, giving one
-  format for interop, network and saves? Recommended: yes.
-- **D2.** Events as `registry.on::<BlockBreak>()` / `before::<…>()` (generic), or named
-  `after_block_break` / `before_block_break`? Recommended: generic.
+- **D1 — decided (2026-10-13): yes.** Interop serialization (`#[yog_export]`) moves from rkyv
+  to `Codec`: one universal format for interop, network and saves; rkyv is removed.
+- **D2 — decided (2026-10-13): generic.** Events are `registry.on::<BlockBreak>()` /
+  `before::<…>()`; the named `after_x` / `before_x` forms are not added.
 - **D3.** The book as builders in Rust, or as a `.ybook` content file? Recommended: builders
   now, `.ybook` later.
 - **D4.** HexMod actions: a `macro_rules!` table inside the mod (no loader dependency), or a
