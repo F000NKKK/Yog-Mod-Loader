@@ -1194,7 +1194,7 @@ mod tests {
     #[test]
     fn custom_components() {
         let (code, _) = generate_for(
-            &screen(r#"<StatBar x="4" w="80" label="@@hp" value="0.5" on_select="pick" bg="#FF000000"/>"#),
+            &screen(r##"<StatBar x="4" w="80" label="@@hp" value="0.5" on_select="pick" bg="#FF000000"/>"##),
             "s",
             None,
         )
