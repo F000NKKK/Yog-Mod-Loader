@@ -11,4 +11,4 @@ keywords = ["minecraft", "yog", "ui", "mvvm"]
 categories = ["gui", "game-development"]
 
 [dependencies]
-yog-api = "0.89"
+yog-api = "0.90"
