@@ -812,7 +812,10 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
     }
     for file in files.iter().map(PathBuf::from) {
         let root = yui::project_root(&file).ok_or_else(|| {
-            format!("{}: not inside a yog project (no yog.toml above it)", file.display())
+            format!(
+                "{}: not inside a yog project (no yog.toml above it)",
+                file.display()
+            )
         })?;
         load_resource_refs(&root);
         let out = yui::generate_file(&root, &file)?;

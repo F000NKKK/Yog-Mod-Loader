@@ -328,14 +328,15 @@ macro_rules! ui_include {
 /// let logo = Icons::logo();                   // an image source, "mymod:images/logo"
 /// ```
 ///
-/// `yog build`, `yog check` and `yog res check` generate
-/// `.yog-build/generated/res.g.rs` from `resources/**/*.yres` (see
+/// `yog build`, `yog check` and `yog res check` generate one
+/// `.yog-build/generated/resources/<Set>.g.rs` per `resources/**/<Set>.yres`
+/// plus `.yog-build/generated/resources.g.rs` including them all (see
 /// Yog-IDLE's `docs/yres.md`); never committed, never stale.
 #[macro_export]
 macro_rules! resources {
     () => {
         pub mod res {
-            include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/res.g.rs"));
+            include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/resources.g.rs"));
         }
     };
 }

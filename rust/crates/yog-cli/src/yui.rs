@@ -271,10 +271,18 @@ fn kind_attrs(kind: &str) -> &'static [&'static str] {
     match kind {
         "Screen" => &["width", "height", "anchor", "modal", "pause"],
         "Label" | "Button" => &["text"],
-        "TextBox" => &["text", "placeholder", "max_length", "on_change", "on_submit"],
+        "TextBox" => &[
+            "text",
+            "placeholder",
+            "max_length",
+            "on_change",
+            "on_submit",
+        ],
         "ItemSlot" => &["item"],
         "InvSlot" => &["item", "count"],
-        "Image" => &["source", "stretch", "uv", "tint", "texture", "tex_w", "tex_h"],
+        "Image" => &[
+            "source", "stretch", "uv", "tint", "texture", "tex_w", "tex_h",
+        ],
         _ => &[],
     }
 }
@@ -334,10 +342,7 @@ fn size(el: &Element, key: &str, value: &str) -> Result<Option<String>, String> 
         return Ok(None);
     }
     if let Some(p) = v.strip_suffix('%') {
-        return Ok(Some(format!(
-            "Units::Percent({})",
-            f(number(el, key, p)?)
-        )));
+        return Ok(Some(format!("Units::Percent({})", f(number(el, key, p)?))));
     }
     Ok(Some(format!("Units::Px({})", f(number(el, key, v)?))))
 }
@@ -400,7 +405,8 @@ pub fn text_expr(value: &str) -> String {
         Some(rest) if rest.starts_with('@') => format!("{rest:?}"),
         Some(key) if !key.trim().is_empty() => {
             let key = key.trim();
-            let resolved = RESOURCE_REFS.with(|r| r.borrow().texts.get(key).map(|(k, _)| k.clone()));
+            let resolved =
+                RESOURCE_REFS.with(|r| r.borrow().texts.get(key).map(|(k, _)| k.clone()));
             format!("::yog_api::tr({:?})", resolved.as_deref().unwrap_or(key))
         }
         _ => format!("{value:?}"),
@@ -472,7 +478,11 @@ impl Gen {
                 ));
                 t
             }
-            (None, None) => return Err(format!("line {line}: <Image> needs a source (e.g. source=\"item:apple\")")),
+            (None, None) => {
+                return Err(format!(
+                    "line {line}: <Image> needs a source (e.g. source=\"item:apple\")"
+                ))
+            }
         };
         let source = source.trim();
         let resolved;
@@ -540,7 +550,9 @@ impl Gen {
                 .map(|p| number(el, "uv", p))
                 .collect::<Result<_, _>>()?;
             let [u, vv, w, h] = nums[..] else {
-                return Err(format!("line {line}: <Image> uv=\"{v}\": expected \"u v width height\""));
+                return Err(format!(
+                    "line {line}: <Image> uv=\"{v}\": expected \"u v width height\""
+                ));
             };
             let _ = write!(expr, ".region([{}, {}, {}, {}])", f(u), f(vv), f(w), f(h));
         }
@@ -579,7 +591,10 @@ impl Gen {
             ));
         }
         if kind == "Screen" && depth > 0 {
-            return Err(format!("line {}: <Screen> must be the root element", el.line));
+            return Err(format!(
+                "line {}: <Screen> must be the root element",
+                el.line
+            ));
         }
         if !is_container && !el.children.is_empty() {
             return Err(format!("line {}: <{kind}> can't have children", el.line));
@@ -600,11 +615,17 @@ impl Gen {
             "Label" => format!("widget::label({})", text()),
             "Button" => format!("widget::button({})", text()),
             "TextBox" => format!("widget::text_box({})", text()),
-            "ItemSlot" => format!("widget::item_slot({:?})", el.attr("item").unwrap_or_default()),
+            "ItemSlot" => format!(
+                "widget::item_slot({:?})",
+                el.attr("item").unwrap_or_default()
+            ),
             "InvSlot" => {
                 let count = match el.attr("count") {
                     Some(c) => c.trim().parse::<u32>().map_err(|_| {
-                        format!("line {}: <InvSlot> count=\"{c}\": expected a whole number", el.line)
+                        format!(
+                            "line {}: <InvSlot> count=\"{c}\": expected a whole number",
+                            el.line
+                        )
                     })?,
                     None => 1,
                 };
@@ -631,7 +652,11 @@ impl Gen {
         let x = el.attr("x").map(|v| number(el, "x", v)).transpose()?;
         let y = el.attr("y").map(|v| number(el, "y", v)).transpose()?;
         if in_canvas || x.is_some() || y.is_some() {
-            call(format!("at({}, {})", f(x.unwrap_or(0.0)), f(y.unwrap_or(0.0))));
+            call(format!(
+                "at({}, {})",
+                f(x.unwrap_or(0.0)),
+                f(y.unwrap_or(0.0))
+            ));
         }
         for (key, value) in &el.attrs {
             let v = value.as_str();
@@ -668,7 +693,12 @@ impl Gen {
                     call(format!("{key}({})", f(number(el, key, v)?)));
                 }
                 "dock" => {
-                    let d = pick(el, key, v, &["none", "fill", "left", "right", "top", "bottom"])?;
+                    let d = pick(
+                        el,
+                        key,
+                        v,
+                        &["none", "fill", "left", "right", "top", "bottom"],
+                    )?;
                     call(format!("dock(Dock::{})", pascal(d)));
                 }
                 "align" => {
@@ -728,21 +758,50 @@ pub fn generate_for(
     let id = root
         .attr("id")
         .filter(|s| !s.trim().is_empty())
-        .ok_or_else(|| format!("line {}: <Screen> needs an id (the UI id, e.g. \"mymod:main\")", root.line))?
+        .ok_or_else(|| {
+            format!(
+                "line {}: <Screen> needs an id (the UI id, e.g. \"mymod:main\")",
+                root.line
+            )
+        })?
         .to_string();
-    let width = root.attr("width").map(|v| number(&root, "width", v)).transpose()?.unwrap_or(176.0);
-    let height = root.attr("height").map(|v| number(&root, "height", v)).transpose()?.unwrap_or(166.0);
+    let width = root
+        .attr("width")
+        .map(|v| number(&root, "width", v))
+        .transpose()?
+        .unwrap_or(176.0);
+    let height = root
+        .attr("height")
+        .map(|v| number(&root, "height", v))
+        .transpose()?
+        .unwrap_or(166.0);
     let anchor = pick(
         &root,
         "anchor",
         root.attr("anchor").unwrap_or("center"),
         &[
-            "center", "top_left", "top", "top_right", "left", "right", "bottom_left", "bottom",
-            "bottom_right", "fill",
+            "center",
+            "top_left",
+            "top",
+            "top_right",
+            "left",
+            "right",
+            "bottom_left",
+            "bottom",
+            "bottom_right",
+            "fill",
         ],
     )?;
-    let modal = root.attr("modal").map(|v| boolean(&root, "modal", v)).transpose()?.unwrap_or(true);
-    let pause = root.attr("pause").map(|v| boolean(&root, "pause", v)).transpose()?.unwrap_or(false);
+    let modal = root
+        .attr("modal")
+        .map(|v| boolean(&root, "modal", v))
+        .transpose()?
+        .unwrap_or(true);
+    let pause = root
+        .attr("pause")
+        .map(|v| boolean(&root, "pause", v))
+        .transpose()?
+        .unwrap_or(false);
 
     let mut gen = Gen {
         events: Vec::new(),
@@ -1072,11 +1131,14 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
     for file in &files {
         wanted.push(generate_file(root, file)?);
     }
-    let resources = root.join(crate::yres::GENERATED_FILE);
+    // `.yres` accessors live there too (`crate::yres` cleans those up).
+    let res_index = root.join(crate::yres::GENERATED_FILE);
+    let res_dir = root.join(crate::yres::GENERATED_DIR);
     for stale in find_files(&root.join(GENERATED_DIR), "rs") {
         if stale.to_string_lossy().ends_with(".g.rs")
             && !wanted.contains(&stale)
-            && stale != resources
+            && stale != res_index
+            && !stale.starts_with(&res_dir)
         {
             let _ = std::fs::remove_file(&stale);
         }
@@ -1105,15 +1167,33 @@ mod tests {
         )
         .unwrap();
         assert!(code.contains(r#"widget::image("item:apple").stretch(::yog_api::ui::Stretch::UniformToFill).tint(0x80FFFFFF)"#), "{code}");
-        assert!(code.contains(".w(Units::Px(156.0))") || code.contains("w(156"), "{code}");
+        assert!(
+            code.contains(".w(Units::Px(156.0))") || code.contains("w(156"),
+            "{code}"
+        );
         assert!(warnings.is_empty(), "{warnings:?}");
 
-        let (code, _) = generate_for(&screen(r#"<Image source="mod:gui/logo" uv="0 0 32 16"/>"#), "s", Some("mymod")).unwrap();
-        assert!(code.contains(r#"widget::image("mymod:textures/gui/logo.png").region([0.0, 0.0, 32.0, 16.0])"#), "{code}");
+        let (code, _) = generate_for(
+            &screen(r#"<Image source="mod:gui/logo" uv="0 0 32 16"/>"#),
+            "s",
+            Some("mymod"),
+        )
+        .unwrap();
+        assert!(
+            code.contains(
+                r#"widget::image("mymod:textures/gui/logo.png").region([0.0, 0.0, 32.0, 16.0])"#
+            ),
+            "{code}"
+        );
         assert!(generate_for(&screen(r#"<Image source="mod:gui/logo"/>"#), "s", None).is_err());
         assert!(generate_for(&screen(r#"<Image source="sprite:nope"/>"#), "s", None).is_err());
         assert!(generate_for(&screen(r#"<Image/>"#), "s", None).is_err());
-        assert!(generate_for(&screen(r#"<Image source="item:apple" stretch="big"/>"#), "s", None).is_err());
+        assert!(generate_for(
+            &screen(r#"<Image source="item:apple" stretch="big"/>"#),
+            "s",
+            None
+        )
+        .is_err());
     }
 
     #[test]
@@ -1124,7 +1204,10 @@ mod tests {
             None,
         )
         .unwrap();
-        assert!(code.contains(r#"widget::image("minecraft:textures/item/apple.png")"#), "{code}");
+        assert!(
+            code.contains(r#"widget::image("minecraft:textures/item/apple.png")"#),
+            "{code}"
+        );
         assert!(!code.contains(".w(16"), "w/h win over tex_w/tex_h: {code}");
         let all = warnings.join("\n");
         assert!(all.contains("deprecated"), "{all}");
@@ -1189,7 +1272,9 @@ mod tests {
         assert!(generate("<Column/>", "x.yui").is_err());
         assert!(generate("<Screen/>", "x.yui").unwrap_err().contains("id"));
         let bad_color = "<Screen id=\"a:b\" bg=\"red\"/>";
-        assert!(generate(bad_color, "x.yui").unwrap_err().contains("#RRGGBB"));
+        assert!(generate(bad_color, "x.yui")
+            .unwrap_err()
+            .contains("#RRGGBB"));
     }
 
     /// What the IDE's Format Document writes (Visual Studio's XAML layout):
@@ -1288,16 +1373,25 @@ mod tests {
         assert_eq!(text_expr("plain"), "\"plain\"");
         assert_eq!(text_expr("@"), "\"@\"");
         let mut refs = crate::yres::Refs::default();
-        refs.texts.insert("Strings.title".into(), ("mymod.title".into(), "Title".into()));
+        refs.texts.insert(
+            "Strings.title".into(),
+            ("mymod.title".into(), "Title".into()),
+        );
         set_resource_refs(&refs);
-        assert_eq!(text_expr("@Strings.title"), "::yog_api::tr(\"mymod.title\")");
+        assert_eq!(
+            text_expr("@Strings.title"),
+            "::yog_api::tr(\"mymod.title\")"
+        );
         set_resource_refs(&crate::yres::Refs::default());
         let code = generate(
             r#"<Screen id="m:s" width="10" height="10"><Label text="@m.title"/><Button text="@@x"/></Screen>"#,
             "s.yui",
         )
         .unwrap();
-        assert!(code.contains("widget::label(::yog_api::tr(\"m.title\"))"), "{code}");
+        assert!(
+            code.contains("widget::label(::yog_api::tr(\"m.title\"))"),
+            "{code}"
+        );
         assert!(code.contains("widget::button(\"@x\")"), "{code}");
     }
 }
