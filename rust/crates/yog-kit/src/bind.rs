@@ -188,7 +188,8 @@ mod tests {
         assert_eq!(text(&5), "5");
         assert_eq!(text("x"), "x");
         assert_eq!(color(0xFF00FF00u32), 0xFF00FF00);
-        assert_eq!(color(&7u32), 7);
+        let seven: &u32 = &7;
+        assert_eq!(color(seven), 7);
         assert_eq!(count(-1i32), 0);
         assert_eq!(count(3usize), 3);
         assert_eq!(key("a"), key(&"a".to_string()));
