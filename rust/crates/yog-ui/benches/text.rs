@@ -1,8 +1,14 @@
-//! Text measurement and wrapping (Minecraft default-font advance table).
+//! Text measurement and wrapping: Minecraft's default-font advance table,
+//! and a non-default font measured through the (no-op) host.
+
+mod support;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
+use yog_gfx::GfxContext;
 use yog_ui::text;
+
+const HOST_FONT: &str = "minecraft:uniform";
 
 const PARAGRAPH: &str = "The quick brown fox jumps over the lazy dog. Patchouli-style books \
     wrap long paragraphs like this one into narrow pages, so every layout pass measures \
@@ -20,6 +26,17 @@ fn text(c: &mut Criterion) {
     });
     c.bench_function("text/paginate", |b| {
         b.iter(|| text::paginate_text(black_box(PARAGRAPH), 116.0, 40.0, 1.0))
+    });
+
+    let table = support::null_gfx();
+    // SAFETY: `table` outlives every use: the host metrics only call its
+    // `text_width`, a plain function.
+    text::use_host_metrics(&unsafe { GfxContext::from_raw(&table) });
+    c.bench_function("text/str_width_host_font", |b| {
+        b.iter(|| text::str_width_in(black_box(PARAGRAPH), 1.0, HOST_FONT))
+    });
+    c.bench_function("text/height_116px_host_font", |b| {
+        b.iter(|| text::text_height_in(black_box(PARAGRAPH), 116.0, 1.0, HOST_FONT))
     });
 }
 
