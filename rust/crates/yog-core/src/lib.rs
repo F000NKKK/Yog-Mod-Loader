@@ -3,9 +3,11 @@
 //! Kept tiny and dependency-free: every other `yog-*` crate builds on this, and
 //! the facade [`yog-api`] re-exports it.
 
+mod null_server;
 mod query;
 mod server;
 
+pub use null_server::NullServer;
 pub use query::{BlockHit, BlockInfo, EntityInfo, Face, PlayerInfo, entity_flags};
 pub use server::Server;
 
