@@ -24,8 +24,8 @@ The project has **no backward compatibility**. Everything in §12 is deleted, no
 | B3 | **Texts are `@Set.name` refs into `.yres`** (recommended, `@Book.page.media.1`), or literal neutral text (single-language books). Translations are the `.yres` culture files (`Book.ru_ru.yres`). There is no `i18n` flag. | This is how every other Yog format localizes. The existing `.yres` editor already shows cultures side by side and highlights missing translations. The designer creates the `.yres` entries itself, so authors never type a key. |
 | B4 | **Markup is Patchouli's `$(…)` syntax**, with the same codes, built-in macros and per-book macros, plus a few Yog additions (§4). | Ported books (Hex: ~1000 strings in 13 languages) work verbatim. Modders already know it. It does not collide with `.yres` `{placeholder}` braces. In the designer, a formatting toolbar inserts the codes, so they are rarely typed by hand. |
 | B5 | **Built-in page types** cover Patchouli's: `text`, `spotlight`, `crafting`, `smelting` (all cooking types), `stonecutting`, `smithing`, `image`, `entity`, `multiblock`, `link`, `relations`, `empty`. **Custom page types are `.yui` components** with `book_page="<ns>:<type>"`; the page's fields are the component's properties. | There is one extension mechanism for UI, and it already has what custom pages need: typed properties for the property grid, markup-only rendering without a build, compiled rendering through the designer host, and generated registration. Hex's pattern page becomes a Hex component. The loader has no Hex logic (the `Pattern` page variant is deleted). |
-| B6 | **No Rust for a book.** `yog build` compiles the files to `yog/books/<book>.json` inside the `.yog`, and the runtime loads it like `yog/materials.json`. The book item is declared in the manifest. Typed handles (`books::thehexbook::patterns::MATH`) are generated for code that wants to open the book. | A book is data. Loading data from the `.yog` also allows reloading a book in a running game without the code ABI match that hot reload needs. |
-| B7 | **yog-book becomes a pure layout and draw library on yog-ui + draw2d + materials.** Its raw-GL path (`BookGl`, embedded PNG decoding, the SVG and fontdue stubs) is deleted. The runtime links it. Mods no longer do. | Only draw2d calls can be recorded by the IDE's recording `YogGfxApi`. With that, the designer draws the book with **the same crate and the same code** as the game. |
+| B6 | **No Rust needed for a book.** `yog build` compiles the files to `yog/books/<book>.json` inside the `.yog`, and the runtime loads it like `yog/materials.json`. The book item is declared in the manifest. Typed handles (`books::thehexbook::patterns::MATH`) are generated for code that wants to open the book. **Books from code stay possible** (capability rule): `yog_api::books::register(model)` takes the same typed `yog_book::model::Book` the compiler produces (built in code, e.g. generated from the mod's registries or config at run time) and goes through the same runtime path as a `.ybook` (§6.2). | A book is data. Loading data from the `.yog` also allows reloading a book in a running game without the code ABI match that hot reload needs. Today a mod builds its book in code; that stays available as the low-level path, only the hand-written builders as the *normal* way go. |
+| B7 | **yog-book becomes a pure layout and draw library on yog-ui + draw2d + materials.** Its raw-GL path (`BookGl`, embedded PNG decoding, the SVG and fontdue stubs) is deleted. The runtime links it. Mods no longer do (they see only the `model` types through yog-api, B6). | Only draw2d calls can be recorded by the IDE's recording `YogGfxApi`. With that, the designer draws the book with **the same crate and the same code** as the game. |
 | B8 | **The designer renders in Rust, not with a TypeScript port.** `src-tauri` links yog-book and draws through the existing recorder and rasterizer (Minecraft font and textures, vanilla pack). It returns the picture plus a hit map (pages, text runs, links, slots). | A TS port (as `layout.ts` is for `.yui`) would be a second implementation of text flow and Patchouli's page geometry, and would drift. The `.yui` designer only needs `layout.ts` for instant drag feedback, and books have no free-form dragging. |
 | B9 | **Text flows.** A `text` page whose text does not fit continues on as many extra pages as needed, laid out at run time with the game's font in the current language. `"flow": false` gives Patchouli's clipping. The default is set per book (`"flow"` in the manifest, `true` if absent) and can be overridden on a category, an entry or a single page; the nearest setting wins (Q2). | Translations are longer than English (Russian by about 20–30%). Patchouli forces authors to split pages by hand per language, which is what Hex's `page1..page10` keys are. |
 | B10 | **Patchouli import** (`yog import patchouli`) converts a Patchouli book (book.json, categories, entries, templates, lang JSON / flattened JSON5) to `.ybook`/`.yentry`/`.yres`, and writes component stubs for custom page types. HexMod's book is migrated with it from the original Hex Casting sources. | Porting mods is a main use case for Yog. The Hex book is the real test: 447 pages and 6 custom page types. |
@@ -338,7 +338,9 @@ presence follow the same rules as every other format (§6.8).
 The manifest's `item` is compiled like a `.yitem` with a generated id `<book id>` (`hexcasting:thehexbook`). It
 uses the same model and name rules, and `ItemDef` gains `book: Option<String>`, so the host creates a
 `YogBookItem` **because the def says so**, not because the ids are equal. The "manual registration before
-`register_book`" ordering problem goes away, and so does `thehexbook.yitem`.
+`register_book`" ordering problem goes away, and so does `thehexbook.yitem`. `ItemDef.book` is an ordinary field, so any
+item (a `.yitem` with `"book": "<book id>"`, or one registered in code) can open a book too, e.g. with
+`"item": false` in the manifest (capability rule: today any item whose id matches a book is a book item).
 
 A crafting recipe for the book is an ordinary recipe that outputs the item. `give_on_first_join` produces a
 `StartupGrant` of the item. `BookRecipe` and the `written_book` + `yog_book` NBT grants are deleted.
@@ -440,7 +442,7 @@ changes, not every frame.
 
 | Module | Contents |
 |---|---|
-| `model` | The compiled book (serde): `Book`, `Category`, `Entry`, `Page { type, anchor, unlock, fields: Map }`, `Skin`, `Condition`. It is internal: mods never build it. |
+| `model` | The compiled book (serde): `Book`, `Category`, `Entry`, `Page { type, anchor, unlock, fields: Map }`, `Skin`, `Condition`. The `.ybook` compiler produces it; mods normally never build it, but it is public (re-exported as `yog_api::books::model`) for books built in code (B6). |
 | `source` (feature `compile`) | `.ybook`/`.yentry` → `model`, with validation and diagnostics (file, line, column). It is used by yog-cli **and** by Yog-IDLE's backend, so the build and the designer compile identically. |
 | `schema` | Field specs of the built-in page types (for validation, the designer property grid and the JSON schema). |
 | `markup`, `flow` | §4 |
@@ -462,6 +464,10 @@ Because of this, books that align pages with `empty` look as they did in Patchou
 - On mod load the runtime reads every `yog/books/*.json` from the archive (it already reads `yog.toml` from it),
   evaluates the load-time conditions (`mod`, `mc`), applies version renames (§6.8), and keeps one `BookView` per
   book. Addon books (`extends`) are merged after all mods are loaded.
+- **Books from code** (B6): `yog_api::books::register(model)` calls ABI `register_book(id, model_json)` with the
+  same compiled JSON; the runtime treats it exactly like a book read from `yog/books/` (conditions, renames,
+  `extends` merge, language changes). Calling it again with the same id replaces the book, so a mod can rebuild a
+  generated book at run time.
 - **Reloading data.** The control socket gets `{"cmd":"reload_books"}`: it re-reads `yog/books/*.json` and the
   lang files of the given `.yog` (the host reloads languages). A book is data, so this needs no code-ABI match,
   unlike `hot_reload`. `yog run`/`dev.sh --reload` sends it when only book/lang files changed.
@@ -472,6 +478,8 @@ Because of this, books that align pages with `empty` look as they did in Patchou
 - From code: the generated handles (§7.2) call the new ABI `open_book(book, entry, anchor)` on the client.
 - The host's screen for books stays the generic yog UI screen (`openUI(bookId, …)`). The runtime routes render,
   click, scroll and key events to the `BookView`, as `ui_jni.rs` does for `book_renderers` today.
+- Inside a mod's own screen (today possible by driving `yog_book::BookRenderer` from the mod): a
+  `<BookView book="…" entry="…"/>` `.yui` element hosts the same `BookView` in any rect (capability rule).
 
 ### 6.4 Navigation and links
 
@@ -545,7 +553,7 @@ Storage is split by whether the data can affect the game (Q8):
 
 | Change | Purpose |
 |---|---|
-| − `register_book` | Books are data now |
+| `register_book(id, json)` now takes the compiled `model` JSON | Books from code (B6, §6.2); the Rust builder format is gone |
 | + `register_book_page`, `book_text`, `book_header`, `book_item` | Custom pages (§6.5) |
 | + `draw2d_quad` | Polygons (Hex pattern strokes; generic) |
 | + `open_book(book, entry, anchor)` | Typed handles |
@@ -903,8 +911,9 @@ features, stubs written, and links whose target is missing.
 | `BookPage::{Pattern, Svg, CustomText}`, `BookFont`/`BookFontRegistry`, the `svg`/`fonts`/`full` features, `svg.rs`, `font.rs` | custom page components; yog-ui fonts |
 | `BookGl` (shader, PNG decoding, sprite blitter), `OverlayCmd`, `BookTheme` constants | draw2d + `mat:yog:book/*` + the skin |
 | `Book.i18n`, `BookRenderer::set_translator` and the language probe | `@Set.name` refs, `host_language()` |
-| `yog_api::book`, the `yog_book` re-exports in yog-api, yog-api's dependency on yog-book, `Registry::register_book` | data loading, `BookId`/`EntryRef` handles |
-| ABI `register_book`, JNI `nativeBookJson`, Java item↔book id matching | `YogItemDef.book` |
+| `yog_api::book`, the `yog_book` re-exports in yog-api (except `model`), `Registry::register_book(&Book)` | data loading, `BookId`/`EntryRef` handles; `yog_api::books::register(model)` for books built in code (B6) |
+| `BookRenderer` as a mod-facing type | `<BookView>` element (§6.3), `open_book` |
+| JNI `nativeBookJson`, Java item↔book id matching | `YogItemDef.book` |
 | `yog_registry::BookRecipe`, `StartupGrant.book`, `AdvancementReward.book` (`written_book` + `yog_book` NBT) | normal recipes and grants of the real item |
 | HexMod `src/book.rs`, `content/items/thehexbook.yitem`, `assets/hexcasting/yog_book/**` | §10 |
 
@@ -919,14 +928,14 @@ APIs change, and the crates are published when each stage lands.
 |---|---|---|---|
 | **B0** yog-book core | `model`, `schema`, `markup`, `flow`, `pages`, `view`, `draw` over draw2d; Patchouli-exact spreads; delete GL/SVG/fonts; unit tests: markup corpus from Hex's en_us + ru_ru, golden flow results with a fixed-width test font, spread layout against Patchouli coordinates | — (draws skin with `draw2d_image` until B8) | yog-book |
 | **B1** Format + build | `source` (feature `compile`), `.ybook`/`.yentry` JSON schemas, `content.rs` Kind::Book/Entry, validation and diagnostics, `yog/books/*.json`, literal-text lang keys, book item → `ItemDef.book`, `books.g.rs` handles, `yog book new/entry` | B0 | yog-book, yog-cli, yog-registry, yog-api |
-| **B2** Runtime + ABI | load `yog/books/*.json`, conditions (`mod`, `mc`, advancement), renames, `open_book`, `host_language`, `client_has_advancement`, `key_mapping_label`, `open_url_confirm`, `recipe_json`, `YogItemDef.book` in 6 hosts, `reload_books`; delete `register_book`, `nativeBookJson`, BookRecipe, NBT grants, yog-api's book module | B1; materials S0 for `host_mc_version` | yog-runtime, yog-abi, yog-api, Java ×6 |
+| **B2** Runtime + ABI | load `yog/books/*.json` and code-registered models (`register_book` on the model JSON), conditions (`mod`, `mc`, advancement), renames, `open_book`, `host_language`, `client_has_advancement`, `key_mapping_label`, `open_url_confirm`, `recipe_json`, `YogItemDef.book` in 6 hosts, `reload_books`; delete the builder JSON path of `register_book`, `nativeBookJson`, BookRecipe, NBT grants, yog-api's book module | B1; materials S0 for `host_mc_version` | yog-runtime, yog-abi, yog-api, Java ×6 |
 | **B3** Designer v1 | `book_designer_render` (yog-book in src-tauri, recorder), book session and tab, tree with drag and drop (Substrate Tree insert positions), Properties per node and page type, Source pane with linked selection and `jsonEdit` (Substrate), Text panel with markup language, toolbar and autocomplete, language dropdown, Add language, missing-translation and overflow checks, refactors, templates | B1 (compiler), B0 (render); materials S0/S7a for the vanilla pack in IDLE | Yog-IDLE, Substrate (Tree drop positions, `jsonEdit`) |
 | **B4** Custom pages | `<Component book_page>`, `book_text` property type, `BookText`/`BookHeader`/`BookItem`, generated `register_book_page`, ABI `register_book_page`/`book_*`/`draw2d_quad`, runtime dispatch, designer host support, Toolbox *<mod> Pages* | B2, B3; boilerplate F8 for self-registration (or an interim generated call in `content!()`) | yog-cli, yog-ui, yog-kit, yog-runtime, yog-abi, Yog-IDLE |
 | **B5** Patchouli import | `yog import patchouli`, flattened JSON5, template → component stubs, report; IDLE *Import Patchouli book…* | B1, B4 (stubs target its grammar) | yog-cli, Yog-IDLE |
 | **B6** HexMod book | import, `PatternPage` (+ `HexPattern` widget on `draw2d_quad`), skin, delete the old code and files, translation decision (Q4) | B4, B5; boilerplate F1 for op_id lookup | HexMod-Yog |
 | **B7** Entities + multiblocks | `draw2d_entity` and `draw2d_blocks` (6 hosts), `entity` and `multiblock` pages (isometric preview with rotation), `<Entity>` element, Hex `BrainsweepPage` | B2 | yog-abi, yog-runtime, Java ×6, yog-ui, HexMod-Yog |
 | **B8** Materials skin | `mat:yog:book/*` overlay materials, skin parts, item tooltips through `draw2d_item_tooltip` | materials S4 | vanilla/, yog-book |
-| **B9** Extras | `extends` (addon books), progress/unread, item→entry mappings (Patchouli's shift-on-tooltip), `$(i:…)` inline icons, search | B2 | all |
+| **B9** Extras | `extends` (addon books), progress/unread, item→entry mappings (Patchouli's shift-on-tooltip), `$(i:…)` inline icons, search, `<BookView>` element (§6.3) | B2 | all |
 
 Critical path to "Hex's book in the designer and in game": B0 → B1 → B2 → B4 → B5 → B7 → B6 (entity and
 multiblock pages are part of the first release, Q6). B3 can start right after
