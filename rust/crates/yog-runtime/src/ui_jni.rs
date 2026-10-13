@@ -164,22 +164,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
         // ui=None (JSON parse failed) → fall through to generic handler
     }
 
-    // Generic UI handler — forward raw click coords so the mod can hit-test its
-    // own stored layout (see Registry::on_ui_render + LAST_LAYOUT pattern).
-    let mut consumed = false;
-    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned()
-        && !module.is_retiring()
-        && let Some(_call) = module.enter()
-    {
-        let ev = format!("click:{mx:.1}:{my:.1}");
-        yog_logging::info!("UI click '{}' → raw {}", id, ev);
-        unsafe {
-            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
-        }
-        consumed = true; // if a UI handler exists, consider the click consumed
-    }
+    // Generic UI handler: raw click coords, hit-tested by the mod. A click
+    // it doesn't use (on an inventory screen's slot, say) goes on to the game.
     let _ = button;
-    if consumed { 1 } else { 0 }
+    dispatch_consumable(&id, &format!("click:{mx:.1}:{my:.1}")) as jboolean
 }
 
 #[unsafe(no_mangle)]
