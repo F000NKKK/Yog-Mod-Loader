@@ -182,7 +182,7 @@ pub fn local_api_patch(api_path: &Path, extra: &[&str]) -> String {
 /// Generate the `yog_exports` facade module: the mod's real `src/lib.rs`
 /// content, followed by `pub mod yog_exports { pub mod <name> { pub use
 /// ::<name>::*; } ... }` — one submodule per `[dependencies.exports]`
-/// entry, so mod code writes `yog_exports::yog_pipes::register_pipe(...)`
+/// entry, so mod code writes `yog_exports::other_mod::register_widget(...)`
 /// regardless of how many other Yog mods it depends on (each already has
 /// its own unique Cargo alias, so nothing here can collide).
 ///

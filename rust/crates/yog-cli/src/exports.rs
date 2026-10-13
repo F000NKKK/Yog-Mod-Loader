@@ -401,7 +401,7 @@ pub fn strip_derive_attrs(source: &str) -> String {
 ///
 /// Given the source of a function like:
 /// ```text
-/// pub fn register_pipe(registry: &mut yog_api::Registry, def: PipeDef) -> Result<(), String> { ... }
+/// pub fn register_widget(registry: &mut yog_api::Registry, def: WidgetDef) -> Result<(), String> { ... }
 /// ```
 ///
 /// Produces (a leading `&mut Registry`-shaped parameter is dropped — the
@@ -410,11 +410,11 @@ pub fn strip_derive_attrs(source: &str) -> String {
 /// arguments; multiple remaining arguments are tupled for serialization):
 /// ```text
 /// #![allow(non_snake_case)]
-/// pub fn register_pipe(__yog_arg0: PipeDef) -> Result<(), String> {
+/// pub fn register_widget(__yog_arg0: WidgetDef) -> Result<(), String> {
 ///     // rkyv-serialize __yog_arg0, call via C-ABI slot, deserialize result
 /// }
-/// static __YOG_SLOT_REGISTER_PIPE: OnceLock<...>;
-/// #[no_mangle] pub unsafe extern "C" fn __yog_bind_register_pipe(ptr) { ... }
+/// static __YOG_SLOT_REGISTER_WIDGET: OnceLock<...>;
+/// #[no_mangle] pub unsafe extern "C" fn __yog_bind_register_widget(ptr) { ... }
 /// ```
 pub fn generate_fn_wrapper(name: &str, source: &str) -> String {
     // Flatten the whole source into one line before parsing — a signature

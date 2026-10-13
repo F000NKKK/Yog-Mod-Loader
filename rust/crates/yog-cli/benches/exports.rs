@@ -36,7 +36,11 @@ fn bench(c: &mut Criterion) {
     c.bench_function("exports/lib_rs/20", |b| {
         b.iter(|| exports::lib_rs("m", "1.0.0", black_box(&items), &system, &types))
     });
-    let fn_src = &items.iter().find(|i| i.kind == exports::ExportKind::Fn).unwrap().source;
+    let fn_src = &items
+        .iter()
+        .find(|i| i.kind == exports::ExportKind::Fn)
+        .unwrap()
+        .source;
     c.bench_function("exports/fn_wrapper", |b| {
         b.iter(|| exports::generate_fn_wrapper("register_0", black_box(fn_src)))
     });

@@ -2035,7 +2035,7 @@ mod tests {
             "content/x.yitem",
             r#"{ "model": { "parent": "generated", "textures": { "layer0": "minecraft:item/apple" } } }"#,
         )]);
-        let e = compile(&root, "HexMod-Yog", &yres::Refs::default()).unwrap_err();
+        let e = compile(&root, "Example-Mod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("give the namespace"), "{e}");
         let _ = std::fs::remove_dir_all(root);
     }

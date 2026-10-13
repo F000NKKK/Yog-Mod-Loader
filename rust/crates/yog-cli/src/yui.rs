@@ -1301,11 +1301,11 @@ mod tests {
         let (code, _) = generate_for(
             &screen(r#"<Surface w="100" h="50" source="mod:grid"/>"#),
             "s",
-            Some("hexcasting"),
+            Some("example"),
         )
         .unwrap();
         assert!(
-            code.contains(r#"widget::surface("hexcasting:grid")"#),
+            code.contains(r#"widget::surface("example:grid")"#),
             "{code}"
         );
         let (code, _) =

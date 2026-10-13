@@ -91,8 +91,14 @@ pub fn mod_root(n: usize) -> PathBuf {
     let (mut names, mut ru) = (String::from("{\n"), String::from("{\n"));
     for i in 0..n {
         let sep = if i + 1 == n { "" } else { "," };
-        let _ = writeln!(names, "  \"block_{i}\": \"Block {i}\",\n  \"item_{i}\": \"Item {i}\"{sep}");
-        let _ = writeln!(ru, "  \"block_{i}\": \"Блок {i}\",\n  \"item_{i}\": \"Предмет {i}\"{sep}");
+        let _ = writeln!(
+            names,
+            "  \"block_{i}\": \"Block {i}\",\n  \"item_{i}\": \"Item {i}\"{sep}"
+        );
+        let _ = writeln!(
+            ru,
+            "  \"block_{i}\": \"Блок {i}\",\n  \"item_{i}\": \"Предмет {i}\"{sep}"
+        );
         write(&format!("content/blocks/b{i}.yblock"), yblock(i).as_bytes());
         write(&format!("content/items/i{i}.yitem"), yitem(i).as_bytes());
         write(&format!("resources/block/b{i}.png"), b"");
@@ -117,7 +123,7 @@ pub fn screen(n: usize) -> String {
     for i in 0..n {
         let _ = write!(
             s,
-            "    <Row gap=\"4\" align=\"center\">\n      <Label text=\"Row {i}\" color=\"#FFCCCCCC\"/>\n      <Button id=\"b{i}\" text=\"Go {i}\" w=\"40\" h=\"14\" hover:bg=\"#FF555555\"/>\n    </Row>\n"
+            "    <Row gap=\"4\" align=\"center\">\n      <Label text=\"Row {i}\" color=\"#FFCCCCCC\"/>\n      <Button id=\"b{i}\" text=\"Go {i}\" w=\"40\" h=\"14\"/>\n    </Row>\n"
         );
     }
     s.push_str("  </Column>\n</Screen>\n");
@@ -143,7 +149,7 @@ pub fn vm_screen(n: usize) -> String {
             s,
             "        <Row gap=\"3\">\n\
              \x20         <ToggleButton x:Name=\"toggle_{i}\" style=\"@Toggle\" text=\"Option {i}\" checked=\"{{x:Bind mode == {i}}}\" enabled=\"{{x:Bind enabled({i})}}\" command=\"{{x:Bind set_mode({i})}}\" />\n\
-             \x20         <TextBox x:Name=\"field_{i}\" max_length=\"32\" text=\"{{x:Bind fields[{i}], Mode=TwoWay}}\" />\n\
+             \x20         <TextBox x:Name=\"field_{i}\" max_length=\"32\" text=\"{{x:Bind field_{i}, Mode=TwoWay}}\" />\n\
              \x20         <Label text=\"{{x:Bind label({i})}}\" color=\"{{x:Bind color({i})}}\" />\n\
              \x20       </Row>\n"
         );
@@ -173,10 +179,18 @@ pub fn component(n: usize) -> String {
     let mut s = String::from(
         "<Component name=\"Example\" description=\"An example\" icon=\"item:name_tag\" design_w=\"120\" design_h=\"16\">\n",
     );
-    let types = [("text", "\"x\""), ("number", "\"0.5\""), ("color", "\"#FF55C055\""), ("bool", "\"true\"")];
+    let types = [
+        ("text", "\"x\""),
+        ("number", "\"0.5\""),
+        ("color", "\"#FF55C055\""),
+        ("bool", "\"true\""),
+    ];
     for i in 0..n {
         let (ty, default) = types[i % types.len()];
-        let _ = writeln!(s, "  <Property name=\"p{i}\" type=\"{ty}\" default={default} doc=\"Property {i}\"/>");
+        let _ = writeln!(
+            s,
+            "  <Property name=\"p{i}\" type=\"{ty}\" default={default} doc=\"Property {i}\"/>"
+        );
     }
     s.push_str("  <Column min_w=\"60\" gap=\"2\">\n");
     for i in 0..n {
@@ -186,8 +200,16 @@ pub fn component(n: usize) -> String {
             2 => "color",
             _ => "visible",
         };
-        let el = if i % 4 == 1 { "Spacer h=\"2\"" } else { "Label text=\"x\"" };
-        let el = if attr == "text" { "Label".to_string() } else { el.to_string() };
+        let el = if i % 4 == 1 {
+            "Spacer h=\"2\""
+        } else {
+            "Label text=\"x\""
+        };
+        let el = if attr == "text" {
+            "Label".to_string()
+        } else {
+            el.to_string()
+        };
         let _ = writeln!(s, "    <{el} {attr}=\"{{x:Bind p{i}}}\"/>");
     }
     s.push_str("  </Column>\n</Component>\n");

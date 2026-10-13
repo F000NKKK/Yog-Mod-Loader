@@ -27,7 +27,9 @@ fn bench(c: &mut Criterion) {
         for n in common::SIZES {
             let src = make(n);
             generate.bench_with_input(BenchmarkId::from_parameter(n), &src, |b, src| {
-                b.iter(|| yui::generate_for(black_box(src), "example", Some(common::MOD_ID)).unwrap())
+                b.iter(|| {
+                    yui::generate_for(black_box(src), "example", Some(common::MOD_ID)).unwrap()
+                })
             });
         }
         generate.finish();
