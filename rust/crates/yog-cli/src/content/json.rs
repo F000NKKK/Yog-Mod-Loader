@@ -84,6 +84,7 @@ impl J {
     }
 
     /// The plain serde_json form (lines dropped).
+    #[cfg(test)]
     pub fn to_value(&self) -> serde_json::Value {
         use serde_json::Value;
         match &self.v {

@@ -1607,7 +1607,7 @@ mod tests {
         dir
     }
 
-    fn output<'a>(c: &'a Compiled, path: &str) -> Value {
+    fn output(c: &Compiled, path: &str) -> Value {
         let (_, b) = c.outputs.iter().find(|(p, _)| p == path).unwrap_or_else(|| {
             panic!("no {path} in {:?}", c.outputs.iter().map(|(p, _)| p).collect::<Vec<_>>())
         });
