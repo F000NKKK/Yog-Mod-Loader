@@ -35,13 +35,18 @@ pub enum ImageSource {
     Texture(String),
 }
 
+/// The namespace of ids that don't name one.
+const DEFAULT_NS: &str = "minecraft";
+/// Side of the square 1.20.1 GUI textures most legacy regions live in.
+const LEGACY_TEX_SIZE: f32 = 256.0;
+
 /// `apple` → `minecraft:apple`; namespaced ids are kept.
 pub fn qualify(id: &str) -> String {
     let id = id.trim();
     if id.contains(':') {
         id.to_string()
     } else {
-        format!("minecraft:{id}")
+        format!("{DEFAULT_NS}:{id}")
     }
 }
 
@@ -95,7 +100,7 @@ pub fn suggest_alias(id: &str) -> Option<String> {
     let stem = path.strip_suffix(".png").unwrap_or(path);
     // `minecraft:` is the default namespace of every alias.
     let short = |id: &str| -> String {
-        if ns == "minecraft" {
+        if ns == DEFAULT_NS {
             id.to_string()
         } else {
             format!("{ns}:{id}")
@@ -107,13 +112,11 @@ pub fn suggest_alias(id: &str) -> Option<String> {
     if let Some(block) = stem.strip_prefix("block/") {
         return Some(format!("block:{}", short(block)));
     }
-    if ns == "minecraft" {
-        let atlas_id = stem.strip_prefix("gui/sprites/");
-        if let Some(sprite) = SPRITES
-            .iter()
-            .find(|s| atlas_id.is_some() && s.atlas == atlas_id)
-        {
-            return Some(format!("sprite:{}", sprite.name));
+    if ns == DEFAULT_NS {
+        if let Some(atlas_id) = stem.strip_prefix("gui/sprites/") {
+            if let Some(sprite) = SPRITES.iter().find(|s| s.atlas == Some(atlas_id)) {
+                return Some(format!("sprite:{}", sprite.name));
+            }
         }
     }
     Some(format!("{ns}:{stem}"))
@@ -177,9 +180,9 @@ const ICONS: &str = "minecraft:textures/gui/icons.png";
 const TABS: &str = "minecraft:textures/gui/container/creative_inventory/tabs.png";
 const CHECKBOX: &str = "minecraft:textures/gui/checkbox.png";
 
-/// A region of a 256×256 texture.
+/// A region of a [`LEGACY_TEX_SIZE`]-square texture.
 const fn region(texture: &'static str, u: f32, v: f32, w: f32, h: f32) -> Option<LegacyRegion> {
-    region_of(texture, 256.0, u, v, w, h)
+    region_of(texture, LEGACY_TEX_SIZE, u, v, w, h)
 }
 
 const fn region_of(
@@ -190,15 +193,14 @@ const fn region_of(
     w: f32,
     h: f32,
 ) -> Option<LegacyRegion> {
-    let (tex_w, tex_h) = (size, size);
     Some(LegacyRegion {
         texture,
         u,
         v,
         w,
         h,
-        tex_w,
-        tex_h,
+        tex_w: size,
+        tex_h: size,
     })
 }
 

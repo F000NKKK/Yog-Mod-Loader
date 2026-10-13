@@ -266,8 +266,6 @@ impl GfxContext {
 
     // ── 2D convenience ────────────────────────────────────────────────────────
 
-    /// Access the 2D drawing helpers (text, rectangles, MC textures).
-    /// These only work during `on_hud_render`.
     /// The host's text-width function (see [`draw2d::Draw2D::text_width`]) as
     /// a plain function pointer — valid for the life of the process, so it
     /// can be kept for measuring outside render callbacks (on the render
@@ -283,6 +281,8 @@ impl GfxContext {
         self.api().image_size
     }
 
+    /// Access the 2D drawing helpers (text, rectangles, MC textures).
+    /// These only work during `on_hud_render`.
     pub fn draw2d(&self) -> draw2d::Draw2D<'_> {
         draw2d::Draw2D::new(self)
     }
