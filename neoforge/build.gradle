@@ -128,3 +128,21 @@ jar {
         attributes 'MixinConfigs': 'yog.mixins.json'
     }
 }
+
+// The dev client/server load the runtime from this checkout's rust/, built
+// for this machine — not whatever ../build.sh embedded last: the runtime
+// refuses mods of another ABI, so a stale one would drop every mod.
+def hostRuntimeTag = {
+    def os = System.getProperty('os.name').toLowerCase()
+    def arch = System.getProperty('os.arch') in ['aarch64', 'arm64'] ? 'aarch64' : 'x86_64'
+    (os.contains('win') ? 'windows' : os.contains('mac') ? 'macos' : 'linux') + '-' + arch
+}
+def refreshHostRuntime = tasks.register('refreshHostRuntime', Exec) {
+    description = 'Builds the host runtime from ../rust into src/main/resources/natives'
+    onlyIf { !System.getProperty('os.name').toLowerCase().contains('win') }
+    workingDir rootDir.parentFile
+    environment 'YOG_TARGETS', hostRuntimeTag()
+    commandLine 'bash', './build.sh', 'build', 'rust'
+}
+tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach { dependsOn refreshHostRuntime }
+tasks.named('processResources').configure { mustRunAfter refreshHostRuntime }
