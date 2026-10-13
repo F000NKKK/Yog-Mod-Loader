@@ -280,9 +280,7 @@ fn kind_attrs(kind: &str) -> &'static [&'static str] {
         ],
         "ItemSlot" => &["item"],
         "InvSlot" => &["item", "count"],
-        "Image" => &[
-            "source", "stretch", "uv", "tint", "texture", "tex_w", "tex_h",
-        ],
+        "Image" => &["source", "stretch", "uv", "tint"],
         _ => &[],
     }
 }
