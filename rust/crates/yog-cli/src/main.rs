@@ -1863,9 +1863,9 @@ fn lib_filename(name: &str, os: &str) -> String {
 
 // ── Assets ───────────────────────────────────────────────────────────────────
 
-/// The mod's `assets/` and `data/` files plus `compiled` ones (compiled
-/// resources — replacing a file at the same path), and the item/block
-/// models and blockstates their textures imply.
+/// The mod's `assets/` and `data/` files plus `compiled` ones (`.yres`
+/// resources, `content/` blocks and items — replacing a file at the same
+/// path).
 fn gather_assets(root: &Path, compiled: Vec<(String, Vec<u8>)>) -> Vec<(String, Vec<u8>)> {
     let mut present: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     let mut out: Vec<(String, Vec<u8>)> = Vec::new();
@@ -1901,57 +1901,7 @@ fn gather_assets(root: &Path, compiled: Vec<(String, Vec<u8>)>) -> Vec<(String, 
         out.push((key, bytes));
     }
 
-    // Collect auto-generated model/blockstate JSONs without borrow conflict
-    let keys: Vec<String> = present.iter().cloned().collect();
-    let mut generated: Vec<(String, Vec<u8>)> = Vec::new();
-    for key in &keys {
-        if let Some((ns, name)) = parse_texture(key, "item") {
-            let path = format!("assets/{ns}/models/item/{name}.json");
-            if present.insert(path.clone()) {
-                generated.push((path, format!(r#"{{"parent":"item/generated","textures":{{"layer0":"{ns}:item/{name}"}}}}"#).into_bytes()));
-            }
-        } else if let Some((ns, name)) = parse_texture(key, "block") {
-            for (path, json) in [
-                (
-                    format!("assets/{ns}/blockstates/{name}.json"),
-                    format!(r#"{{"variants":{{"":{{"model":"{ns}:block/{name}"}}}}}}"#),
-                ),
-                (
-                    format!("assets/{ns}/models/block/{name}.json"),
-                    format!(
-                        r#"{{"parent":"block/cube_all","textures":{{"all":"{ns}:block/{name}"}}}}"#
-                    ),
-                ),
-                (
-                    format!("assets/{ns}/models/item/{name}.json"),
-                    format!(r#"{{"parent":"{ns}:block/{name}"}}"#),
-                ),
-            ] {
-                if present.insert(path.clone()) {
-                    generated.push((path, json.into_bytes()));
-                }
-            }
-        }
-    }
-    out.extend(generated);
     out
-}
-
-fn parse_texture(entry: &str, kind: &str) -> Option<(String, String)> {
-    let parts: Vec<&str> = entry.split('/').collect();
-    if parts.len() == 5
-        && parts[0] == "assets"
-        && parts[2] == "textures"
-        && parts[3] == kind
-        && parts[4].ends_with(".png")
-    {
-        Some((
-            parts[1].to_string(),
-            parts[4].strip_suffix(".png")?.to_string(),
-        ))
-    } else {
-        None
-    }
 }
 
 // ── Packaging ─────────────────────────────────────────────────────────────────

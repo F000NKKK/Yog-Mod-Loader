@@ -1062,12 +1062,17 @@ my-mod/
     └── my-mod.yog     # built package — share this file with players
 ```
 
-Assets (textures, sounds, data packs) live in `assets/` and `data/` and are
-bundled into the `.yog` automatically:
+Blocks and items are `content/**/*.yblock` / `*.yitem` files (properties, 3D
+model, block states — edited in Yog-IDLE's model editor, see its
+`docs/blocks-items.md`); `yog_api::content!();` in `src/lib.rs` registers them.
+Other assets (sounds, data packs, hand-written models) live in `assets/` and
+`data/` and are bundled into the `.yog` as they are:
 
 ```
 my-mod/
-├── assets/<namespace>/textures/item/my_item.png
+├── content/blocks/ruby_ore.yblock
+├── content/items/ruby.yitem
+├── resources/block/ruby_ore.png
 ├── data/<namespace>/recipes/my_recipe.json
 ```
 

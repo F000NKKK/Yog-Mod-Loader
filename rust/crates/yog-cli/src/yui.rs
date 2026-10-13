@@ -1197,10 +1197,13 @@ mod tests {
             &screen(r##"<StatBar x="4" w="80" label="@@hp" value="0.5" on_select="pick" bg="#FF000000"/>"##),
             "s",
             None,
+    // So do `content/` blocks and items (`crate::content`).
+    let content_file = root.join(crate::content::GENERATED_FILE);
         )
         .unwrap();
         assert!(
             code.contains(r#"::yog_api::ui::component::build("StatBar", &[("label", &*"@hp"), ("value", "0.5"), ("on_select", "pick")])"#),
+            && stale != content_file
             "{code}"
         );
         assert!(code.contains(".bg(0xFF000000)") && code.contains(".w(Units::Px(80.0))"), "{code}");
