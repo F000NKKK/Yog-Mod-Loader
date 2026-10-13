@@ -454,6 +454,14 @@ pub(crate) fn compile_bind(value: &str) -> Option<Result<String, String>> {
     Some(b.expr.expect("parsed").emit(Scope::Screen, false))
 }
 
+/// A binding's inner expression (`count_text()`, without `{x:Bind` and
+/// options) → Rust against `vm` (screen scope), for one-shot builds
+/// (components).
+#[allow(dead_code)]
+pub(crate) fn bind_expr(src: &str) -> Result<String, String> {
+    parse_expr(src)?.emit(Scope::Screen, false)
+}
+
 /// Whether `attr` of a `kind` element (`Label`, `Button`, ...) can be bound,
 /// and the `yog_kit::bind` conversion its value goes through
 /// (`text`, `color`, `flag`, `units`, `number`, `count`, `key`).
