@@ -1167,7 +1167,7 @@ impl VmGen<'_> {
                 el.line,
                 b.raw.replace('\n', " ")
             );
-            inst.attrs.push((key, format!("{RAW_VALUE}{f}.get().as_str()")));
+            inst.attrs.push((key, format!("{RAW_VALUE}*{f}.get()")));
         }
         let (expr, _, _) = yui::static_widget(&inst, false, 2, self.mod_id)?;
         let marker = format!("\u{1}resets{}\u{1}", self.n_slots);
@@ -1564,7 +1564,7 @@ pub mod ids {{
     fn update(&mut self, root: &mut ::yog_api::ui::Widget, vm: &{vm}, u: &mut ::yog_kit::Update) {{
 {update}    }}
 
-    #[allow(unused_variables, clippy::let_unit_value)]
+    #[allow(unused_variables, clippy::let_unit_value, clippy::single_match)]
     fn dispatch(&mut self, vm: &mut {vm}, cx: &mut ::yog_kit::Cx<'_, {vm}>, ev: ::yog_kit::ViewEvent) {{
         match ev {{
 "#,
@@ -1733,9 +1733,9 @@ mod tests {
         for want in [
             "__props |= self.b0.set(::yog_kit::bind::text(&(vm.hp)));",
             "__props |= self.b1.set(::yog_kit::bind::text(&(vm.color())));",
-            r#"::yog_api::ui::component::build("StatBar", &[("label", "HP"), ("value", &*self.b0.get().as_str()), ("fill", &*self.b1.get().as_str())])"#,
+            r#"::yog_api::ui::component::build("StatBar", &[("label", "HP"), ("value", &**self.b0.get()), ("fill", &**self.b1.get())])"#,
             "u.relayout(); self.b2.reset();",
-            r#"::yog_api::ui::component::build("Pill", &[("text", &*inst."#,
+            r#"::yog_api::ui::component::build("Pill", &[("text", &**inst."#,
         ] {
             assert!(code.contains(want), "missing {want}\n{code}");
         }
