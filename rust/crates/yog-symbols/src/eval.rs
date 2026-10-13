@@ -18,7 +18,7 @@ use std::cell::OnceCell;
 
 use gimli::UnitOffset;
 
-use crate::format::{short_type_name, Formatter, Slot};
+use crate::format::{short_type_name, Formatter, Slot, ELLIPSIS};
 use crate::locals::{
     unit_ref, Frame, LocalVar, Located, NoMemory, NOT_IN_SCOPE, OPTIMIZED_OUT, UNAVAILABLE,
 };
@@ -29,6 +29,10 @@ use crate::{FrameRegs, SymbolTable, TargetMemory};
 const ROW_BUDGET: usize = 512;
 /// Rows one [`SymbolTable::expand`] returns for a sequence.
 const EXPAND_LIMIT: u64 = 1000;
+/// Nesting of parentheses, derefs and indices in one watch expression.
+const MAX_EXPR_NESTING: usize = 64;
+/// Type shown for an integer literal.
+const INTEGER_LITERAL_TYPE: &str = "{integer}";
 
 /// A value in the stopped target that can be expanded with
 /// [`SymbolTable::expand`]. Only meaningful while the target stays stopped
@@ -75,6 +79,19 @@ impl std::fmt::Display for EvalError {
 
 impl std::error::Error for EvalError {}
 
+impl ValueNode {
+    /// A row without children or a readable value.
+    fn leaf(name: String, expr: String, type_name: String, value: String) -> Self {
+        ValueNode {
+            name,
+            expr,
+            type_name,
+            value,
+            children: None,
+        }
+    }
+}
+
 /// A static variable (`DW_TAG_variable` outside any function).
 pub(crate) struct GlobalVar {
     qualified: String,
@@ -98,13 +115,12 @@ impl SymbolTable {
             .iter()
             .map(|var| match self.locate_local(var, regs, load_base, mem) {
                 Ok(slot) => self.node(var.unit, slot, mem),
-                Err(placeholder) => ValueNode {
-                    name: var.name.clone(),
-                    expr: var.name.clone(),
-                    type_name: short_type_name(&var.type_name),
-                    value: placeholder.to_string(),
-                    children: None,
-                },
+                Err(placeholder) => ValueNode::leaf(
+                    var.name.clone(),
+                    var.name.clone(),
+                    short_type_name(&var.type_name),
+                    placeholder.to_string(),
+                ),
             })
             .collect()
     }
@@ -132,13 +148,12 @@ impl SymbolTable {
             locals: OnceCell::new(),
         };
         match ctx.eval(&ast).map_err(EvalError)? {
-            Val::Int(n) => Ok(ValueNode {
-                name: text.to_string(),
-                expr: text.to_string(),
-                type_name: "{integer}".into(),
-                value: n.to_string(),
-                children: None,
-            }),
+            Val::Int(n) => Ok(ValueNode::leaf(
+                text.to_string(),
+                text.to_string(),
+                INTEGER_LITERAL_TYPE.into(),
+                n.to_string(),
+            )),
             Val::Obj(unit, slot) => {
                 let mut node = self.node(unit, slot, mem);
                 node.name = text.to_string();
@@ -149,7 +164,7 @@ impl SymbolTable {
 
     /// The rows under an expandable row, read from `mem` now (the target
     /// must still be stopped where `value` came from). Sequences are cut
-    /// off after 1000 elements, with a final `…` row.
+    /// off after [`EXPAND_LIMIT`] elements, with a final `…` row.
     pub fn expand(&self, value: &ValueRef, mem: &dyn TargetMemory) -> Vec<ValueNode> {
         let Some(info) = self.units().get(value.unit) else {
             return Vec::new();
@@ -163,26 +178,19 @@ impl SymbolTable {
             .map(|slot| self.node(value.unit, slot, mem))
             .collect();
         if more {
-            out.push(ValueNode {
-                name: "…".into(),
-                expr: String::new(),
-                type_name: String::new(),
-                value: String::new(),
-                children: None,
-            });
+            out.push(ValueNode::leaf(
+                ELLIPSIS.into(),
+                String::new(),
+                String::new(),
+                String::new(),
+            ));
         }
         out
     }
 
     fn node(&self, unit: usize, slot: Slot, mem: &dyn TargetMemory) -> ValueNode {
         let Some(info) = self.units().get(unit) else {
-            return ValueNode {
-                name: slot.name.clone(),
-                expr: slot.expr,
-                type_name: String::new(),
-                value: UNAVAILABLE.into(),
-                children: None,
-            };
+            return ValueNode::leaf(slot.name, slot.expr, String::new(), UNAVAILABLE.into());
         };
         let summary = Formatter::with_budget(self, info, mem, ROW_BUDGET).format(
             slot.name.clone(),
@@ -288,6 +296,11 @@ struct Ctx<'a> {
 }
 
 impl Ctx<'_> {
+    /// Module-relative pc of the frame.
+    fn pc(&self) -> u64 {
+        self.regs.pc().wrapping_sub(self.load_base)
+    }
+
     fn fmt(&self, unit: usize) -> Result<Formatter<'_>, String> {
         let info = self
             .table
@@ -336,10 +349,9 @@ impl Ctx<'_> {
     fn lookup(&self, segments: &[String]) -> Result<(usize, Slot), String> {
         let path = segments.join("::");
         if let [name] = segments {
-            let pc = self.regs.pc().wrapping_sub(self.load_base);
             let locals = self
                 .locals
-                .get_or_init(|| self.table.locals_in_frame(pc, self.inline_depth));
+                .get_or_init(|| self.table.locals_in_frame(self.pc(), self.inline_depth));
             if let Some(var) = locals.iter().find(|v| &v.name == name) {
                 return match self
                     .table
@@ -347,8 +359,8 @@ impl Ctx<'_> {
                 {
                     Ok(slot) => Ok((var.unit, slot)),
                     Err(NOT_IN_SCOPE) => Err(format!("`{name}` is not in scope yet")),
-                    Err(OPTIMIZED_OUT) => Err(format!("`{name}` is optimized out")),
-                    Err(_) => Err(format!("`{name}` is unavailable here")),
+                    Err(OPTIMIZED_OUT) => Err(optimized_out(name)),
+                    Err(_) => Err(unavailable(name)),
                 };
             }
         }
@@ -360,8 +372,7 @@ impl Ctx<'_> {
     /// name), preferring the current frame's compilation unit.
     fn global(&self, path: &str) -> Option<Result<(usize, Slot), String>> {
         let suffix = format!("::{path}");
-        let pc = self.regs.pc().wrapping_sub(self.load_base);
-        let here = self.table.unit_for_pc(pc);
+        let here = self.table.unit_for_pc(self.pc());
         let matches = |g: &&GlobalVar| g.qualified == path || g.qualified.ends_with(&suffix);
         let globals = self.table.globals();
         let found = globals
@@ -394,10 +405,18 @@ impl Ctx<'_> {
                     place,
                 },
             )),
-            Located::OptimizedOut => Err(format!("`{path}` is optimized out")),
-            Located::Unavailable => Err(format!("`{path}` is unavailable here")),
+            Located::OptimizedOut => Err(optimized_out(path)),
+            Located::Unavailable => Err(unavailable(path)),
         }
     }
+}
+
+fn optimized_out(name: &str) -> String {
+    format!("`{name}` is optimized out")
+}
+
+fn unavailable(name: &str) -> String {
+    format!("`{name}` is unavailable here")
 }
 
 // ---- parsing -----------------------------------------------------------
@@ -430,32 +449,13 @@ fn lex(src: &str) -> Result<Vec<Tok>, String> {
     let mut i = 0;
     while i < chars.len() {
         let c = chars[i];
+        if let Some(tok) = punct(c) {
+            out.push(tok);
+            i += 1;
+            continue;
+        }
         match c {
             c if c.is_whitespace() => i += 1,
-            '.' => {
-                out.push(Tok::Dot);
-                i += 1;
-            }
-            '*' => {
-                out.push(Tok::Star);
-                i += 1;
-            }
-            '[' => {
-                out.push(Tok::LBracket);
-                i += 1;
-            }
-            ']' => {
-                out.push(Tok::RBracket);
-                i += 1;
-            }
-            '(' => {
-                out.push(Tok::LParen);
-                i += 1;
-            }
-            ')' => {
-                out.push(Tok::RParen);
-                i += 1;
-            }
             ':' if chars.get(i + 1) == Some(&':') => {
                 out.push(Tok::PathSep);
                 i += 2;
@@ -480,6 +480,19 @@ fn lex(src: &str) -> Result<Vec<Tok>, String> {
         }
     }
     Ok(out)
+}
+
+/// The token a single-character punctuator stands for.
+fn punct(c: char) -> Option<Tok> {
+    Some(match c {
+        '.' => Tok::Dot,
+        '*' => Tok::Star,
+        '[' => Tok::LBracket,
+        ']' => Tok::RBracket,
+        '(' => Tok::LParen,
+        ')' => Tok::RParen,
+        _ => return None,
+    })
 }
 
 /// A Rust integer literal: decimal, `0x`/`0o`/`0b`, optional type suffix.
@@ -558,7 +571,7 @@ impl Parser {
     }
 
     fn unary(&mut self, depth: usize) -> Result<Expr, String> {
-        if depth > 64 {
+        if depth > MAX_EXPR_NESTING {
             return Err("expression is nested too deeply".into());
         }
         if self.peek() == Some(&Tok::Star) {

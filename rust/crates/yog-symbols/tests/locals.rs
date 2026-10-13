@@ -299,10 +299,6 @@ mod live {
         find(&value.children, name)
     }
 
-    /// Runs the fixture under ptrace up to the marker line and returns
-    /// what `read_locals` makes of the stopped frame, plus the same read
-    /// with all memory unreadable. `None` if the line has no code (an
-    /// optimized build may fold it away).
     /// The fixture, stopped under ptrace at the marker line.
     struct Stopped {
         table: SymbolTable,
@@ -370,6 +366,9 @@ mod live {
         })
     }
 
+    /// What `read_locals` makes of the fixture stopped at the marker line,
+    /// plus the same read with all memory unreadable. `None` if the line
+    /// has no code (an optimized build may fold it away).
     fn stop_and_read(exe: &Path) -> Option<(Vec<Value>, Vec<Value>)> {
         let Stopped {
             table,
