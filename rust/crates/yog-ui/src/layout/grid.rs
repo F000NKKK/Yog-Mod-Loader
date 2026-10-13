@@ -18,8 +18,8 @@
 //! `halign`/`valign` with its own measured size, capped to the cell.
 
 use super::{
-    bounded, less, measure, measure_aligned, new_node, place, Depth, GridLines, LayoutNode, Rect,
-    Shrink, SCROLLBAR_W, UNBOUNDED,
+    Depth, GridLines, LayoutNode, Rect, SCROLLBAR_W, Shrink, UNBOUNDED, bounded, less, measure,
+    measure_aligned, new_node, place,
 };
 use crate::widget::{GridLength, GridSpec, HAlign, Track, VAlign, Widget};
 
@@ -435,7 +435,7 @@ pub(super) fn layout(
 
 #[cfg(test)]
 mod tests {
-    use crate::layout::{compute, FlexDir, LayoutNode};
+    use crate::layout::{FlexDir, LayoutNode, compute};
     use crate::widget::{self, GridLength, Track, Units};
 
     fn r(n: &LayoutNode) -> (f32, f32, f32, f32) {

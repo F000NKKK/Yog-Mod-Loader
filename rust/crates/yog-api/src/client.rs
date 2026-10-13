@@ -10,8 +10,8 @@
 //! client::stop_sound(loop_);
 //! ```
 
-pub use yog_abi::ui_flags;
 use yog_abi::YogStr;
+pub use yog_abi::ui_flags;
 
 use crate::registry::global_api;
 

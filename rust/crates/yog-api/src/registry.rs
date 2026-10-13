@@ -720,11 +720,7 @@ impl Server for CServer {
                 YogStr::from_str(attribute_id),
             )
         };
-        if v.is_nan() {
-            None
-        } else {
-            Some(v)
-        }
+        if v.is_nan() { None } else { Some(v) }
     }
 
     fn entity_attribute_set(&self, uuid: &str, attribute_id: &str, value: f64) -> bool {
@@ -1128,7 +1124,7 @@ fn bp(pos: yog_core::BlockPos) -> yog_abi::YogBlockPos {
 //   Return value is meaningful only in Pre phase.
 
 macro_rules! trampoline_phased {
-    ($name:ident, $abi_ev:ty, $rust_ev:ty, |$ev:ident| $build:expr) => {
+    ($name:ident, $abi_ev:ty, $rust_ev:ty, |$ev:ident| $build:expr_2021) => {
         unsafe extern "C" fn $name<F>(
             ud: *mut c_void,
             srv: *const YogServer,
@@ -1138,15 +1134,17 @@ macro_rules! trampoline_phased {
         where
             F: Fn(&$rust_ev, EventPhase, &dyn Server) -> bool + Send + Sync,
         {
-            let f = &*(ud as *const F);
-            let $ev = &*ev;
-            let rust_ev = $build;
-            let p = if phase == 0 {
-                EventPhase::Pre
-            } else {
-                EventPhase::Post
-            };
-            f(&rust_ev, p, &CServer(srv))
+            unsafe {
+                let f = &*(ud as *const F);
+                let $ev = &*ev;
+                let rust_ev = $build;
+                let p = if phase == 0 {
+                    EventPhase::Pre
+                } else {
+                    EventPhase::Post
+                };
+                f(&rust_ev, p, &CServer(srv))
+            }
         }
     };
 }
@@ -1432,8 +1430,10 @@ unsafe extern "C" fn trampoline_server_fn<F>(ud: *mut c_void, srv: *const YogSer
 where
     F: Fn(&dyn Server) + Send + Sync,
 {
-    let f = &*(ud as *const F);
-    f(&CServer(srv));
+    unsafe {
+        let f = &*(ud as *const F);
+        f(&CServer(srv));
+    }
 }
 
 unsafe extern "C" fn trampoline_packet<F>(
@@ -1443,14 +1443,16 @@ unsafe extern "C" fn trampoline_packet<F>(
 ) where
     F: Fn(&PacketEvent, &dyn Server) + Send + Sync,
 {
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let rust_ev = PacketEvent {
-        channel: ev.channel.as_str().to_owned(),
-        player: ev.player.as_str().to_owned(),
-        payload: std::slice::from_raw_parts(ev.payload, ev.payload_len as usize).to_vec(),
-    };
-    f(&rust_ev, &CServer(srv));
+    unsafe {
+        let f = &*(ud as *const F);
+        let ev = &*ev;
+        let rust_ev = PacketEvent {
+            channel: ev.channel.as_str().to_owned(),
+            player: ev.player.as_str().to_owned(),
+            payload: std::slice::from_raw_parts(ev.payload, ev.payload_len as usize).to_vec(),
+        };
+        f(&rust_ev, &CServer(srv));
+    }
 }
 
 unsafe extern "C" fn trampoline_command<F>(
@@ -1463,21 +1465,23 @@ unsafe extern "C" fn trampoline_command<F>(
 ) where
     F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync,
 {
-    let f = &*(ud as *const F);
-    let ev = &*ev;
-    let ctx = CommandContext {
-        name: ev.name.as_str().to_owned(),
-        args: ev.args.as_str().to_owned(),
-        source: ev.source.as_str().to_owned(),
-        uuid: ev.uuid.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    };
-    *reply_len = 0;
-    if let Some(reply) = f(&ctx, &CServer(srv)) {
-        let bytes = reply.as_bytes();
-        let n = bytes.len().min(reply_cap as usize);
-        std::ptr::copy_nonoverlapping(bytes.as_ptr(), reply_buf, n);
-        *reply_len = n as u32;
+    unsafe {
+        let f = &*(ud as *const F);
+        let ev = &*ev;
+        let ctx = CommandContext {
+            name: ev.name.as_str().to_owned(),
+            args: ev.args.as_str().to_owned(),
+            source: ev.source.as_str().to_owned(),
+            uuid: ev.uuid.as_str().to_owned(),
+            dimension: ev.dimension.as_str().to_owned(),
+        };
+        *reply_len = 0;
+        if let Some(reply) = f(&ctx, &CServer(srv)) {
+            let bytes = reply.as_bytes();
+            let n = bytes.len().min(reply_cap as usize);
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), reply_buf, n);
+            *reply_len = n as u32;
+        }
     }
 }
 
@@ -1485,8 +1489,10 @@ unsafe extern "C" fn trampoline_scheduled<F>(ud: *mut c_void, srv: *const YogSer
 where
     F: Fn(&dyn Server) + Send + Sync,
 {
-    let f = &*(ud as *const F);
-    f(&CServer(srv));
+    unsafe {
+        let f = &*(ud as *const F);
+        f(&CServer(srv));
+    }
 }
 
 // ── ABI minor 10 — client-side trampolines ────────────────────────────────────
@@ -1495,49 +1501,59 @@ unsafe extern "C" fn trampoline_client_tick<F>(ud: *mut c_void)
 where
     F: Fn(&ClientTickEvent) + Send + Sync,
 {
-    let f = &*(ud as *const F);
-    f(&ClientTickEvent {});
+    unsafe {
+        let f = &*(ud as *const F);
+        f(&ClientTickEvent {});
+    }
 }
 
 unsafe extern "C" fn trampoline_hud_render<F>(ud: *mut c_void, gfx: *const YogGfxApi)
 where
     F: Fn(&GfxContext) + Send + Sync,
 {
-    let f = &*(ud as *const F);
-    f(&GfxContext::from_raw(gfx));
+    unsafe {
+        let f = &*(ud as *const F);
+        f(&GfxContext::from_raw(gfx));
+    }
 }
 
 unsafe extern "C" fn trampoline_world_render<F>(ud: *mut c_void, gfx: *const YogGfxApi)
 where
     F: Fn(&GfxContext) + Send + Sync,
 {
-    let f = &*(ud as *const F);
-    f(&GfxContext::from_raw(gfx));
+    unsafe {
+        let f = &*(ud as *const F);
+        f(&GfxContext::from_raw(gfx));
+    }
 }
 
 unsafe extern "C" fn trampoline_key_press<F>(ud: *mut c_void, ev: *const YogKeyPressEvent) -> bool
 where
     F: Fn(&KeyPressEvent) -> bool + Send + Sync,
 {
-    let f = &*(ud as *const F);
-    let e = &*ev;
-    f(&KeyPressEvent {
-        key_code: e.key_code,
-        scan_code: e.scan_code,
-        action: e.action,
-        modifiers: e.modifiers,
-    })
+    unsafe {
+        let f = &*(ud as *const F);
+        let e = &*ev;
+        f(&KeyPressEvent {
+            key_code: e.key_code,
+            scan_code: e.scan_code,
+            action: e.action,
+            modifiers: e.modifiers,
+        })
+    }
 }
 
 unsafe extern "C" fn trampoline_screen<F>(ud: *mut c_void, screen_class: YogStr) -> bool
 where
     F: Fn(&ScreenEvent) + Send + Sync,
 {
-    let f = &*(ud as *const F);
-    f(&ScreenEvent {
-        screen_class: screen_class.as_str().to_owned(),
-    });
-    true
+    unsafe {
+        let f = &*(ud as *const F);
+        f(&ScreenEvent {
+            screen_class: screen_class.as_str().to_owned(),
+        });
+        true
+    }
 }
 
 // ── Registry ─────────────────────────────────────────────────────────────────
@@ -2335,7 +2351,7 @@ unsafe extern "C" fn trampoline_ui_event<F, R>(
     F: Fn(&str, &str) -> R + Send + Sync + 'static,
     R: UiHandled,
 {
-    let f = &*(ud as *const F);
+    let f = unsafe { &*(ud as *const F) };
     let ui = unsafe { ui_id.as_str() };
     let ev = unsafe { event_id.as_str() };
     if f(ui, ev).handled() {
@@ -2352,7 +2368,7 @@ unsafe extern "C" fn trampoline_chunk_generator<F>(
 ) where
     F: Fn(&ChunkWriter) + Send + Sync + 'static,
 {
-    let f = &*(ud as *const F);
+    let f = unsafe { &*(ud as *const F) };
     let writer = unsafe { ChunkWriter::from_raw(writer) };
     f(&writer);
 }

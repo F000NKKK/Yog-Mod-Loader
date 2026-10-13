@@ -13,14 +13,14 @@ mod registry;
 pub use interop::Interop;
 pub use lang::{format_translation, tr, tr_args, translation};
 pub use registry::{
-    close_ui, installed_mods, open_ui, server, CServer, Mod, ModInfo, Registry, UiHandled,
+    CServer, Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui, server,
 };
 pub use yog_gfx::{
-    core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image, GfxContext,
+    GfxContext, core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image,
 };
 
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
-pub use yog_abi::{YogApi, ABI_VERSION};
+pub use yog_abi::{ABI_VERSION, YogApi};
 
 /// Inter-mod communication proc-macros.
 pub use yog_interop::{import, yog_export};
@@ -268,22 +268,24 @@ pub fn __yog_import_registry() -> &'static std::sync::Mutex<Vec<YogImportEntry>>
 /// runtime can call it after all mods are loaded (final resolution pass).
 #[doc(hidden)]
 pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
-    let interop = registry.interop();
-    for entry in __yog_import_registry().lock().unwrap().iter() {
-        if let Some(ptr) = interop.import_raw(entry.mod_id, entry.symbol) {
-            let bind: unsafe extern "C" fn(*const std::ffi::c_void) =
-                std::mem::transmute(entry.bind_fn);
-            bind(ptr);
+    unsafe {
+        let interop = registry.interop();
+        for entry in __yog_import_registry().lock().unwrap().iter() {
+            if let Some(ptr) = interop.import_raw(entry.mod_id, entry.symbol) {
+                let bind: unsafe extern "C" fn(*const std::ffi::c_void) =
+                    std::mem::transmute(entry.bind_fn);
+                bind(ptr);
+            }
         }
     }
 }
 
+pub use yog_book::{Book, BookCategory, BookEntry, BookMacro, BookPage, BookRegistry};
+pub use yog_book::{BookFontRegistry, BookRenderer};
 pub use yog_book::{
     crafting_page, entity_page, image_page, pattern_page, relations_page, smelting_page,
     spotlight_page, text_page, text_page_titled,
 };
-pub use yog_book::{Book, BookCategory, BookEntry, BookMacro, BookPage, BookRegistry};
-pub use yog_book::{BookFontRegistry, BookRenderer};
 pub use yog_command::CommandContext;
 pub use yog_config::Config;
 pub use yog_core::{BlockPos, Server};
@@ -308,7 +310,7 @@ pub use yog_registry::{
 };
 pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_ui::{
-    widget, Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, Stretch, UiRoot, Units,
+    Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, Stretch, UiRoot, Units, widget,
 };
 pub use yog_world::World;
 

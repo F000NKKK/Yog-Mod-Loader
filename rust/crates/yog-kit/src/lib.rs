@@ -35,7 +35,7 @@ mod screen;
 pub mod testing;
 
 pub use host::{Update, Viewport};
-pub use screen::{handle_of, Cx, Screen, ScreenHandle};
+pub use screen::{Cx, Screen, ScreenHandle, handle_of};
 pub use yog_api::ui::{Action, StateFlags, Widget};
 
 /// Everything a code-behind file needs.

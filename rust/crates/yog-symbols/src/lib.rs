@@ -42,7 +42,7 @@ use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSymbol, SymbolKind};
 
 pub use eval::{EvalError, ValueNode, ValueRef};
-pub use locals::{x86_64, FrameRegs, LocalVar, TargetMemory, Value, VarKind};
+pub use locals::{FrameRegs, LocalVar, TargetMemory, Value, VarKind, x86_64};
 
 // `Arc`, not `Rc`: a `SymbolTable` needs to be `Send + Sync` so host apps
 // (e.g. Yog-IDLE's Tauri backend) can hold one behind a `Mutex` in shared

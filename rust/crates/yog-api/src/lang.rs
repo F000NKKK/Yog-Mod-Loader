@@ -95,10 +95,10 @@ pub fn format_translation(pattern: &str, args: &[&dyn Display]) -> String {
 /// [`format_translation`].
 #[macro_export]
 macro_rules! tr {
-    ($key:expr $(,)?) => {
+    ($key:expr_2021 $(,)?) => {
         $crate::tr($key)
     };
-    ($key:expr, $($arg:expr),+ $(,)?) => {
+    ($key:expr_2021, $($arg:expr_2021),+ $(,)?) => {
         $crate::tr_args($key, &[$(&$arg as &dyn ::std::fmt::Display),+])
     };
 }

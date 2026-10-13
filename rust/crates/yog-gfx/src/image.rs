@@ -112,12 +112,11 @@ pub fn suggest_alias(id: &str) -> Option<String> {
     if let Some(block) = stem.strip_prefix("block/") {
         return Some(format!("block:{}", short(block)));
     }
-    if ns == DEFAULT_NS {
-        if let Some(atlas_id) = stem.strip_prefix("gui/sprites/") {
-            if let Some(sprite) = SPRITES.iter().find(|s| s.atlas == Some(atlas_id)) {
-                return Some(format!("sprite:{}", sprite.name));
-            }
-        }
+    if ns == DEFAULT_NS
+        && let Some(atlas_id) = stem.strip_prefix("gui/sprites/")
+        && let Some(sprite) = SPRITES.iter().find(|s| s.atlas == Some(atlas_id))
+    {
+        return Some(format!("sprite:{}", sprite.name));
     }
     Some(format!("{ns}:{stem}"))
 }

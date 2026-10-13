@@ -19,7 +19,7 @@ pub mod maps;
 pub mod ptrace_debugger;
 
 #[cfg(target_os = "linux")]
-pub use ptrace_debugger::{interrupt, thread_name, DebugError, Debugger, StepKind, StopReason};
+pub use ptrace_debugger::{DebugError, Debugger, StepKind, StopReason, interrupt, thread_name};
 pub use source_breakpoints::{SourceBreakpoint, SourceBreakpoints};
 
 use std::path::Path;

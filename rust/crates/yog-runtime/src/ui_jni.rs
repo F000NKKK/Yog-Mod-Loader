@@ -1,7 +1,7 @@
 //! UI system JNI — layer management, show/hide, hit-test, event dispatch.
 
 use crate::handlers;
-use jni::{objects::JClass, objects::JString, sys::*, JNIEnv};
+use jni::{JNIEnv, objects::JClass, objects::JString, sys::*};
 
 use crate::jcall::jcall;
 use std::cell::Cell;
@@ -25,7 +25,7 @@ fn dispatch(id: &str, ev: &str) {
 
 /// The cursor moved over a Yog UI screen — forwarded as `move:X:Y` (hover
 /// states, wheel routing).
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIMove<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -37,7 +37,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIMove<'l>(
     dispatch(&id, &format!("move:{mx:.1}:{my:.1}"));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeIsUIActive<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -49,7 +49,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeIsUIActive<'l>(
     active.iter().any(|l| l.id == id && l.visible) as jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -68,10 +68,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
         .find(|l| l.visible && l.modal)
         .map(|l| l.id.clone());
     // Only dispatch if click is on the topmost modal layer (or there's no modal)
-    if let Some(ref modal_id) = top_modal {
-        if id != *modal_id {
-            return 0;
-        }
+    if let Some(ref modal_id) = top_modal
+        && id != *modal_id
+    {
+        return 0;
     }
     drop(active);
 
@@ -79,51 +79,45 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
     // Only block generic handler if the book actually has a rendered UI (ui.is_some()).
     {
         let mut renderers = h.book_renderers.lock().expect("book_renderers");
-        if let Some(renderer) = renderers.get_mut(&id) {
-            if renderer.ui.is_some() {
-                if let Some(ui) = &renderer.ui {
-                    if let Some(hit) = yog_ui::layout::hit_test(&ui.layout_root, mx, my) {
-                        if let Some(event) = &hit.on_click {
-                            let ev = event.clone();
-                            drop(renderers);
-                            if let Some(r) = h.book_renderers.lock().unwrap().get_mut(&id) {
-                                r.handle_event(&ev);
-                            }
-                            yog_logging::info!("book click '{}' → '{}'", &id, &ev);
-                            return 1;
-                        }
-                    }
+        if let Some(renderer) = renderers.get_mut(&id)
+            && renderer.ui.is_some()
+        {
+            if let Some(ui) = &renderer.ui
+                && let Some(hit) = yog_ui::layout::hit_test(&ui.layout_root, mx, my)
+                && let Some(event) = &hit.on_click
+            {
+                let ev = event.clone();
+                drop(renderers);
+                if let Some(r) = h.book_renderers.lock().unwrap().get_mut(&id) {
+                    r.handle_event(&ev);
                 }
-                return 1; // book UI consumed the click (no hit on widget, but in book area)
+                yog_logging::info!("book click '{}' → '{}'", &id, &ev);
+                return 1;
             }
-            // ui=None (JSON parse failed) → fall through to generic handler
+            return 1; // book UI consumed the click (no hit on widget, but in book area)
         }
+        // ui=None (JSON parse failed) → fall through to generic handler
     }
 
     // Generic UI handler — forward raw click coords so the mod can hit-test its
     // own stored layout (see Registry::on_ui_render + LAST_LAYOUT pattern).
     let mut consumed = false;
-    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
-        if !module.is_retiring() {
-            if let Some(_call) = module.enter() {
-                let ev = format!("click:{mx:.1}:{my:.1}");
-                yog_logging::info!("UI click '{}' → raw {}", id, ev);
-                unsafe {
-                    handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
-                }
-                consumed = true; // if a UI handler exists, consider the click consumed
-            }
+    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned()
+        && !module.is_retiring()
+        && let Some(_call) = module.enter()
+    {
+        let ev = format!("click:{mx:.1}:{my:.1}");
+        yog_logging::info!("UI click '{}' → raw {}", id, ev);
+        unsafe {
+            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
         }
+        consumed = true; // if a UI handler exists, consider the click consumed
     }
     let _ = button;
-    if consumed {
-        1
-    } else {
-        0
-    }
+    if consumed { 1 } else { 0 }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIScroll<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -133,19 +127,18 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIScroll<'l>(
     let id = jstr!(env, ui_id);
     let h = handlers();
     // Forward as a generic UI event; the mod applies its own scroll offset.
-    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
-        if !module.is_retiring() {
-            if let Some(_call) = module.enter() {
-                let ev = format!("scroll:{dy:.2}");
-                unsafe {
-                    handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
-                }
-            }
+    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned()
+        && !module.is_retiring()
+        && let Some(_call) = module.enter()
+    {
+        let ev = format!("scroll:{dy:.2}");
+        unsafe {
+            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
         }
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIDrag<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -155,19 +148,18 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIDrag<'l>(
 ) {
     let id = jstr!(env, ui_id);
     let h = handlers();
-    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
-        if !module.is_retiring() {
-            if let Some(_call) = module.enter() {
-                let ev = format!("drag:{mx:.1}:{my:.1}");
-                unsafe {
-                    handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
-                }
-            }
+    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned()
+        && !module.is_retiring()
+        && let Some(_call) = module.enter()
+    {
+        let ev = format!("drag:{mx:.1}:{my:.1}");
+        unsafe {
+            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
         }
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRelease<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -177,14 +169,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRelease<'l>(
 ) {
     let id = jstr!(env, ui_id);
     let h = handlers();
-    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
-        if !module.is_retiring() {
-            if let Some(_call) = module.enter() {
-                let ev = format!("release:{mx:.1}:{my:.1}");
-                unsafe {
-                    handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
-                }
-            }
+    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned()
+        && !module.is_retiring()
+        && let Some(_call) = module.enter()
+    {
+        let ev = format!("release:{mx:.1}:{my:.1}");
+        unsafe {
+            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
         }
     }
 }
@@ -226,7 +217,7 @@ fn dispatch_consumable(id: &str, ev: &str) -> bool {
 /// A key pressed (or repeating) over a Yog UI screen — forwarded as
 /// `key:KEY:MODS` (GLFW key code and modifier bits). Returns whether the mod
 /// consumed it; if not, the host does its default (Esc closes the screen).
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -246,7 +237,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
 /// A character typed over a Yog UI screen (one UTF-16 unit, as
 /// `Screen.charTyped` gets it) — forwarded as `char:CODEPOINT` once a whole
 /// character is known. Returns whether the mod consumed it.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIChar<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -273,7 +264,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIChar<'l>(
     dispatch_consumable(&id, &format!("char:{}", c as u32)) as jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -325,13 +316,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     // Only use if the book has a successfully parsed layout (ui.is_some()).
     {
         let mut book_renderers = h.book_renderers.lock().expect("book_renderers");
-        if let Some(book_renderer) = book_renderers.get_mut(&id) {
-            if book_renderer.ui.is_some() {
-                book_renderer.render(&ctx, sw, sh);
-                return;
-            }
-            // ui=None → fall through to on_ui_render callbacks
+        if let Some(book_renderer) = book_renderers.get_mut(&id)
+            && book_renderer.ui.is_some()
+        {
+            book_renderer.render(&ctx, sw, sh);
+            return;
         }
+        // ui=None → fall through to on_ui_render callbacks
     }
 
     // Generic on_ui_render callbacks — run AFTER renderBackground(), so they appear
@@ -393,7 +384,7 @@ pub fn inv_slot_pos(env: &mut JNIEnv, index: i32) -> Option<(i32, i32)> {
 
 /// Return tab+newline-encoded menu entries: `label\tui_id\n...`
 /// Java side parses this and injects buttons into vanilla screens.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeMenuEntries<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,

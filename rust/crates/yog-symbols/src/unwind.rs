@@ -8,8 +8,8 @@
 
 use gimli::{RegisterRule, UnwindSection as _};
 
-use crate::locals::{x86_64, FrameRegs, TargetMemory, FP_TO_CFA, WORD_SIZE};
 use crate::SymbolTable;
+use crate::locals::{FP_TO_CFA, FrameRegs, TargetMemory, WORD_SIZE, x86_64};
 
 /// Registers a callee must preserve (System V x86_64) — the only ones whose
 /// caller value CFI can recover besides `rsp`/`rip`.
@@ -110,17 +110,16 @@ impl SymbolTable {
         mut f: impl FnMut(&gimli::UnwindTableRow<usize>) -> Option<T>,
     ) -> Option<T> {
         let mut ctx = gimli::UnwindContext::new();
-        if let Some((eh_frame, bases)) = &self.eh_frame {
-            if let Ok(row) = eh_frame.unwind_info_for_address(
+        if let Some((eh_frame, bases)) = &self.eh_frame
+            && let Ok(row) = eh_frame.unwind_info_for_address(
                 bases,
                 &mut ctx,
                 offset,
                 gimli::EhFrame::cie_from_offset,
-            ) {
-                if let Some(out) = f(row) {
-                    return Some(out);
-                }
-            }
+            )
+            && let Some(out) = f(row)
+        {
+            return Some(out);
         }
         let debug_frame = self.debug_frame.as_ref()?;
         let row = debug_frame

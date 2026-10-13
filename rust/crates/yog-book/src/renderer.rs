@@ -3,10 +3,11 @@
 
 use std::collections::HashMap;
 use yog_gfx::{
-    core::{blend, DataType, DrawMode},
-    gl, GfxContext,
+    GfxContext,
+    core::{DataType, DrawMode, blend},
+    gl,
 };
-use yog_ui::{widget, Align, FlexDir, Stretch, UiRoot};
+use yog_ui::{Align, FlexDir, Stretch, UiRoot, widget};
 
 use crate::font::{BookFontRegistry, FontAtlas};
 use crate::state::BookViewState;
@@ -28,7 +29,7 @@ pub const PAGE_H: f32 = 156.0;
 pub const TOP_PAD: f32 = 18.0; // vertical space above page text area
 pub const LEFT_X: f32 = 15.0; // left page X inside book
 pub const RIGHT_X: f32 = 141.0; // right page X inside book
-                                // Separator strip UV origin on the sprite sheet
+// Separator strip UV origin on the sprite sheet
 pub const SEP_U: f32 = 140.0;
 pub const SEP_V: f32 = 180.0;
 pub const SEP_W: f32 = 110.0;
@@ -337,16 +338,12 @@ impl BookGl {
         color: u32,
     ) {
         let hash = font_hash(ttf);
-        if let std::collections::hash_map::Entry::Vacant(e) = self.font_atlas.entry(hash) {
-            if let Some(atlas) = FontAtlas::build(ttf, size_px) {
-                let tex = ctx.create_texture_rgba(
-                    atlas.atlas_size,
-                    atlas.atlas_size,
-                    &atlas.pixels,
-                    true,
-                );
-                e.insert((tex, atlas));
-            }
+        if let std::collections::hash_map::Entry::Vacant(e) = self.font_atlas.entry(hash)
+            && let Some(atlas) = FontAtlas::build(ttf, size_px)
+        {
+            let tex =
+                ctx.create_texture_rgba(atlas.atlas_size, atlas.atlas_size, &atlas.pixels, true);
+            e.insert((tex, atlas));
         }
         // Get raw pointers so the borrow of self.font_atlas ends before we call
         // self.prog / self.flush, which also borrow fields of self.
@@ -1428,33 +1425,33 @@ fn build_page(
     match page {
         BookPage::Text { text, title } => {
             // On non-first pages, show an optional section title + separator.
-            if page_num > 0 {
-                if let Some(t) = title {
-                    let sep_h_px = (SEP_H * sy).max(1.0);
-                    let title_h = 9.0 * sy;
-                    col = col.child(
-                        lbl(t.as_str())
-                            .color(theme.title)
-                            .h(title_h)
-                            .align(Align::Center)
-                            .no_wrap(),
-                    );
-                    // sep at y=12 page-local, centered
-                    bg_sprites.push(BgSprite {
-                        sheet: SpriteSheet::Book,
-                        u: SEP_U,
-                        v: SEP_V,
-                        uw: SEP_W,
-                        uh: SEP_H,
-                        x: ox + (PAGE_W / 2.0 - SEP_W / 2.0) * sx,
-                        y: oy + 12.0 * sy,
-                        w: SEP_W * sx,
-                        h: sep_h_px,
-                    });
-                    col = col.child(widget::spacer().h((12.0 - 9.0) * sy));
-                    col = col.child(widget::spacer().h(sep_h_px));
-                    col = col.child(widget::spacer().h((22.0 - 12.0 - SEP_H) * sy));
-                }
+            if page_num > 0
+                && let Some(t) = title
+            {
+                let sep_h_px = (SEP_H * sy).max(1.0);
+                let title_h = 9.0 * sy;
+                col = col.child(
+                    lbl(t.as_str())
+                        .color(theme.title)
+                        .h(title_h)
+                        .align(Align::Center)
+                        .no_wrap(),
+                );
+                // sep at y=12 page-local, centered
+                bg_sprites.push(BgSprite {
+                    sheet: SpriteSheet::Book,
+                    u: SEP_U,
+                    v: SEP_V,
+                    uw: SEP_W,
+                    uh: SEP_H,
+                    x: ox + (PAGE_W / 2.0 - SEP_W / 2.0) * sx,
+                    y: oy + 12.0 * sy,
+                    w: SEP_W * sx,
+                    h: sep_h_px,
+                });
+                col = col.child(widget::spacer().h((12.0 - 9.0) * sy));
+                col = col.child(widget::spacer().h(sep_h_px));
+                col = col.child(widget::spacer().h((22.0 - 12.0 - SEP_H) * sy));
             }
             for para in text.split('\n') {
                 col = col.child(lbl(para).color(theme.text));

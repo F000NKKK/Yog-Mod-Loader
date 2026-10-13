@@ -5,8 +5,8 @@
 
 use yog_abi::YogStr;
 
-use crate::core::DataType;
 use crate::GfxContext;
+use crate::core::DataType;
 
 // ── Buffer ────────────────────────────────────────────────────────────────────
 
@@ -33,9 +33,11 @@ impl Buffer {
     /// The byte representation of `T` must be well-defined (no padding traps,
     /// no floats encoding NaN, etc.). Use `#[repr(C)]` structs or primitive types.
     pub unsafe fn upload<T: Sized>(&self, ctx: &GfxContext, data: &[T], dynamic: bool) {
-        let bytes =
-            std::slice::from_raw_parts(data.as_ptr() as *const u8, std::mem::size_of_val(data));
-        self.upload_bytes(ctx, bytes, dynamic);
+        unsafe {
+            let bytes =
+                std::slice::from_raw_parts(data.as_ptr() as *const u8, std::mem::size_of_val(data));
+            self.upload_bytes(ctx, bytes, dynamic);
+        }
     }
 
     /// Overwrite a sub-range of this buffer starting at `offset` bytes.

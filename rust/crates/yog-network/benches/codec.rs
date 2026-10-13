@@ -2,8 +2,8 @@
 
 use std::hint::black_box;
 
-use criterion::{criterion_group, criterion_main, Criterion};
-use yog_network::{packet, Packet};
+use criterion::{Criterion, criterion_group, criterion_main};
+use yog_network::{Packet, packet};
 
 packet! {
     struct Teleport {

@@ -3,7 +3,7 @@
 
 mod support;
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use support::{SCREEN_H, SCREEN_W, SIZES};
 use yog_gfx::GfxContext;
 use yog_ui::UiRoot;

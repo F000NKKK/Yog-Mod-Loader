@@ -75,11 +75,7 @@ impl StateFlags {
     }
     /// Sets or clears the bits of `o`.
     pub fn set(&mut self, o: Self, on: bool) {
-        if on {
-            self.insert(o)
-        } else {
-            self.remove(o)
-        }
+        if on { self.insert(o) } else { self.remove(o) }
     }
     pub const fn union(self, o: Self) -> Self {
         Self(self.0 | o.0)
@@ -394,11 +390,7 @@ impl From<f32> for Units {
     /// `0.0` maps to `Auto` (matches this crate's original `0.0 = auto` convention,
     /// so every existing `.w(18.0)`/`.h(0.0)` call keeps meaning exactly what it did).
     fn from(v: f32) -> Self {
-        if v <= 0.0 {
-            Units::Auto
-        } else {
-            Units::Px(v)
-        }
+        if v <= 0.0 { Units::Auto } else { Units::Px(v) }
     }
 }
 

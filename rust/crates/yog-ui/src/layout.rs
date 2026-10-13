@@ -1,5 +1,5 @@
 use crate::text;
-use crate::widget::{Action, Dock, HAlign, Units, VAlign, Widget, WidgetKind, SLOT_SIZE};
+use crate::widget::{Action, Dock, HAlign, SLOT_SIZE, Units, VAlign, Widget, WidgetKind};
 
 mod grid;
 
@@ -751,11 +751,7 @@ fn measure_aligned(
 
 /// Margin `side` of a visible child (a collapsed one has none).
 fn vis_margin(c: &Widget, side: usize) -> f32 {
-    if c.visible {
-        c.style.margin[side]
-    } else {
-        0.0
-    }
+    if c.visible { c.style.margin[side] } else { 0.0 }
 }
 
 /// `v` less `by` (at least 0); unbounded stays unbounded.

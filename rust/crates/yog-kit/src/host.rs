@@ -6,8 +6,8 @@
 use yog_api::ui::event::keys;
 use yog_api::ui::widget::WidgetKind;
 use yog_api::ui::{
-    layout, surface, widget, Action, FlexDir, LayoutNode, Pointer, Rect, StateFlags, TextBoxEvent,
-    UiEvent, UiRoot, Units, Widget,
+    Action, FlexDir, LayoutNode, Pointer, Rect, StateFlags, TextBoxEvent, UiEvent, UiRoot, Units,
+    Widget, layout, surface, widget,
 };
 
 use crate::screen::{self, Request};
@@ -318,10 +318,10 @@ impl<W: View> Host<W> {
         self.view.update(content, &self.vm, &mut u);
         self.vm.customize(content);
         for (slot, text) in u.text_sets {
-            if let Some(t) = self.parts.text_boxes.get_mut(slot as usize) {
-                if t.state.text() != text {
-                    t.state.set_text(text);
-                }
+            if let Some(t) = self.parts.text_boxes.get_mut(slot as usize)
+                && t.state.text() != text
+            {
+                t.state.set_text(text);
             }
         }
         for s in u.scroll_resets {
@@ -355,10 +355,10 @@ impl<W: View> Host<W> {
     fn apply_states(&mut self) {
         let content = &mut self.ui.root.children[0];
         content.clear_state_deep(StateFlags::HOVER | StateFlags::PRESSED | StateFlags::FOCUSED);
-        if let Some(p) = self.outlined.take() {
-            if let Some(w) = content.get_path_mut(&p) {
-                w.focused = false;
-            }
+        if let Some(p) = self.outlined.take()
+            && let Some(w) = content.get_path_mut(&p)
+        {
+            w.focused = false;
         }
         for (path, flag) in [
             (&self.hover, StateFlags::HOVER),
@@ -369,15 +369,13 @@ impl<W: View> Host<W> {
                 w.set_state_inherited(flag, true);
             }
         }
-        if self.focus_visible {
-            if let Some(p) = &self.focus {
-                if let Some(w) = content.get_path_mut(p) {
-                    if w.is_interactive() {
-                        w.focused = true;
-                        self.outlined = Some(p.clone());
-                    }
-                }
-            }
+        if self.focus_visible
+            && let Some(p) = &self.focus
+            && let Some(w) = content.get_path_mut(p)
+            && w.is_interactive()
+        {
+            w.focused = true;
+            self.outlined = Some(p.clone());
         }
     }
 
@@ -516,12 +514,11 @@ impl<W: View> Host<W> {
 
     fn scroll(&mut self, ev: &UiEvent<'_>) -> bool {
         // A surface under the cursor gets the wheel first.
-        if let (Some((x, y)), UiEvent::Scroll { dy }) = (self.mouse, ev) {
-            if let Some((s, r)) = self.surface_at(x, y).and_then(|p| self.surface_box(&p)) {
-                if s.scroll(*dy, (r.w, r.h)) {
-                    return true;
-                }
-            }
+        if let (Some((x, y)), UiEvent::Scroll { dy }) = (self.mouse, ev)
+            && let Some((s, r)) = self.surface_at(x, y).and_then(|p| self.surface_box(&p))
+            && s.scroll(*dy, (r.w, r.h))
+        {
+            return true;
         }
         let under = self
             .mouse
@@ -566,12 +563,12 @@ impl<W: View> Host<W> {
             self.focus_visible = false;
             return true;
         }
-        if let Some(path) = self.surface_at(x, y) {
-            if self.to_surface(&path, x, y, |x, y| Pointer::Down { x, y }) {
-                self.captured = Some(path);
-                self.focus = None;
-                return true;
-            }
+        if let Some(path) = self.surface_at(x, y)
+            && self.to_surface(&path, x, y, |x, y| Pointer::Down { x, y })
+        {
+            self.captured = Some(path);
+            self.focus = None;
+            return true;
         }
         let Some(path) = self.hit(x, y) else {
             self.focus = None;
@@ -636,10 +633,12 @@ impl<W: View> Host<W> {
         }
         let mut p = p[1..].to_vec();
         loop {
-            if let Some(w) = self.content().get_path(&p) {
-                if matches!(w.kind, WidgetKind::Surface(_)) && w.enabled && w.visible {
-                    return Some(p);
-                }
+            if let Some(w) = self.content().get_path(&p)
+                && matches!(w.kind, WidgetKind::Surface(_))
+                && w.enabled
+                && w.visible
+            {
+                return Some(p);
             }
             p.pop()?;
         }
@@ -674,10 +673,10 @@ impl<W: View> Host<W> {
 
     /// Tells the hovered surface the cursor left it.
     fn leave_surface(&mut self) {
-        if let Some(path) = self.hovered_surface.take() {
-            if let Some((s, r)) = self.surface_box(&path) {
-                s.pointer(Pointer::Leave, (r.w, r.h));
-            }
+        if let Some(path) = self.hovered_surface.take()
+            && let Some((s, r)) = self.surface_box(&path)
+        {
+            s.pointer(Pointer::Leave, (r.w, r.h));
         }
     }
 
@@ -833,10 +832,10 @@ impl<W: View> Host<W> {
         for t in &mut self.parts.text_boxes {
             t.state.blur();
         }
-        if let Some(p) = &path {
-            if let Some(t) = self.parts.text_boxes.iter_mut().find(|t| &t.path == p) {
-                t.state.focus();
-            }
+        if let Some(p) = &path
+            && let Some(t) = self.parts.text_boxes.iter_mut().find(|t| &t.path == p)
+        {
+            t.state.focus();
         }
         self.focus = path;
         self.focus_visible = visible;

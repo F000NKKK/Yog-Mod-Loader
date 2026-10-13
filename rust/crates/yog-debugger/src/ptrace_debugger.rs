@@ -5,13 +5,13 @@
 //! the attached process.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use iced_x86::{Decoder, DecoderOptions, Mnemonic};
 use nix::sys::ptrace;
 use nix::sys::signal::Signal;
-use nix::sys::wait::{waitpid, WaitPidFlag, WaitStatus};
+use nix::sys::wait::{WaitPidFlag, WaitStatus, waitpid};
 use nix::unistd::Pid;
 use yog_symbols::{FrameRegs, SourceLocation, SymbolTable, TargetMemory};
 
@@ -417,14 +417,12 @@ impl Debugger {
         stopped.sort_by_key(|t| t.as_raw());
         // The thread paused on a breakpoint is about to be let go: it has
         // to leave the breakpoint (re-armed) first, like on a continue.
-        if let Some((_, tid)) = self.pending_rearm {
-            if !wanted.contains(&tid) {
-                if let Some(Step::Stopped(reason)) = self.step_over_pending_breakpoint()? {
-                    if is_terminal(&reason) {
-                        return Ok(());
-                    }
-                }
-            }
+        if let Some((_, tid)) = self.pending_rearm
+            && !wanted.contains(&tid)
+            && let Some(Step::Stopped(reason)) = self.step_over_pending_breakpoint()?
+            && is_terminal(&reason)
+        {
+            return Ok(());
         }
         if !stopped.contains(&self.current) {
             self.current = stopped.first().copied().unwrap_or(pid);
@@ -448,10 +446,10 @@ impl Debugger {
     /// or the process ending.
     pub fn continue_(&mut self) -> Result<StopReason, DebugError> {
         self.step_ran_free = false;
-        if let Some(Step::Stopped(reason)) = self.step_over_pending_breakpoint()? {
-            if is_terminal(&reason) {
-                return Ok(reason);
-            }
+        if let Some(Step::Stopped(reason)) = self.step_over_pending_breakpoint()?
+            && is_terminal(&reason)
+        {
+            return Ok(reason);
         }
         self.resume_all()?;
         self.run_until_stop()
@@ -496,10 +494,10 @@ impl Debugger {
             // Gone already (killed while paused there).
             Step::Vanished
         };
-        if let Step::Stopped(reason) = &step {
-            if is_terminal(reason) {
-                return Ok(Some(step));
-            }
+        if let Step::Stopped(reason) = &step
+            && is_terminal(reason)
+        {
+            return Ok(Some(step));
         }
         if self.breakpoints.contains_key(&addr) {
             self.rearm(addr)?;
@@ -577,7 +575,7 @@ impl Debugger {
             };
             match status {
                 WaitStatus::Exited(_, code) => {
-                    return Ok(self.thread_gone(tid, StopReason::Exited(code)))
+                    return Ok(self.thread_gone(tid, StopReason::Exited(code)));
                 }
                 WaitStatus::Signaled(_, sig, _) => {
                     return Ok(self.thread_gone(tid, StopReason::Killed(sig)));
@@ -657,7 +655,7 @@ impl Debugger {
         let running: Vec<Pid> = self
             .threads
             .iter()
-            .filter(|(&tid, t)| !t.stopped && want(tid))
+            .filter(|&(&tid, t)| !t.stopped && want(tid))
             .map(|(&tid, _)| tid)
             .collect();
         for &tid in &running {
@@ -695,10 +693,10 @@ impl Debugger {
                 WaitStatus::PtraceEvent(_, _, event) => {
                     if event == nix::libc::PTRACE_EVENT_CLONE {
                         let known = self.threads.keys().copied().collect::<HashSet<_>>();
-                        if let Some(child) = self.adopt_clone(tid) {
-                            if !known.contains(&child) {
-                                waiting.push(child);
-                            }
+                        if let Some(child) = self.adopt_clone(tid)
+                            && !known.contains(&child)
+                        {
+                            waiting.push(child);
                         }
                     }
                     self.mark(tid, true);

@@ -13,7 +13,7 @@
 
 use std::io::{BufRead, Write};
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub fn read_message<R: BufRead>(reader: &mut R) -> std::io::Result<Option<Value>> {
     let mut content_length: Option<usize> = None;

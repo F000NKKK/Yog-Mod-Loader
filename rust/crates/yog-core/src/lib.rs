@@ -6,7 +6,7 @@
 mod query;
 mod server;
 
-pub use query::{entity_flags, BlockHit, BlockInfo, EntityInfo, Face, PlayerInfo};
+pub use query::{BlockHit, BlockInfo, EntityInfo, Face, PlayerInfo, entity_flags};
 pub use server::Server;
 
 /// A block position in the world.

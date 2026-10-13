@@ -12,8 +12,8 @@ mod nav;
 
 pub(crate) use nav::Slot;
 
-use crate::locals::{unit_ref, Place, TargetMemory, UnitInfo, Value, UNAVAILABLE};
-use crate::{SymbolTable, R};
+use crate::locals::{Place, TargetMemory, UNAVAILABLE, UnitInfo, Value, unit_ref};
+use crate::{R, SymbolTable};
 
 /// Nesting below a top-level variable that still gets expanded children.
 const MAX_DEPTH: usize = 3;
@@ -659,32 +659,23 @@ impl<'a> Formatter<'a> {
         }
 
         let qualified = self.qualified_name(off, entry);
-        if qualified == STRING {
-            if let Some((ptr, len)) =
+        if qualified == STRING
+            && let Some((ptr, len)) =
                 member("vec").and_then(|vec| self.vec_parts(vec.ty?, &place.offset(vec.offset)))
-            {
-                return Some((self.read_string(ptr, len), Vec::new()));
-            }
+        {
+            return Some((self.read_string(ptr, len), Vec::new()));
         }
-        if generic_base(&qualified) == VEC {
-            if let (Some(elem), Some((ptr, len))) =
+        if generic_base(&qualified) == VEC
+            && let (Some(elem), Some((ptr, len))) =
                 (self.template_param(off, "T"), self.vec_parts(off, place))
-            {
-                let stride = self.byte_size(elem)?;
-                return Some(self.format_elements(
-                    elem,
-                    &Place::Mem(ptr),
-                    stride,
-                    len,
-                    depth,
-                    true,
-                ));
-            }
+        {
+            let stride = self.byte_size(elem)?;
+            return Some(self.format_elements(elem, &Place::Mem(ptr), stride, len, depth, true));
         }
-        if generic_base(&qualified) == BOX {
-            if let Some((ptr, pointee)) = self.find_pointer(off, place, 0) {
-                return Some(self.format_pointer("", ptr, pointee, depth));
-            }
+        if generic_base(&qualified) == BOX
+            && let Some((ptr, pointee)) = self.find_pointer(off, place, 0)
+        {
+            return Some(self.format_pointer("", ptr, pointee, depth));
         }
         if let Some(wrapped) = self.format_wrapper(off, &qualified, &members, place, depth) {
             return Some(wrapped);

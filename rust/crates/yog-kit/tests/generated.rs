@@ -2,8 +2,8 @@
 //! sync by yog-cli's tests) compiled against a view model and driven like
 //! `manual_view.rs`.
 
-use yog_api::ui::event::keys;
 use yog_api::ui::StateFlags;
+use yog_api::ui::event::keys;
 use yog_kit::testing::TestHost;
 use yog_kit::{Cx, ViewModel};
 

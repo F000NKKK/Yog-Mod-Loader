@@ -37,16 +37,16 @@ impl BookViewState {
                 return true;
             }
         } else if let Some(n) = ev.strip_prefix("cat:") {
-            if let Ok(i) = n.parse::<usize>() {
-                if i < book.categories.len() {
-                    let changed = self.at_home || i != self.cat;
-                    self.cat = i;
-                    self.entry = 0;
-                    self.page = 0;
-                    self.list_spread = 0;
-                    self.at_home = false;
-                    return changed;
-                }
+            if let Ok(i) = n.parse::<usize>()
+                && i < book.categories.len()
+            {
+                let changed = self.at_home || i != self.cat;
+                self.cat = i;
+                self.entry = 0;
+                self.page = 0;
+                self.list_spread = 0;
+                self.at_home = false;
+                return changed;
             }
         } else if let Some(n) = ev.strip_prefix("entry:") {
             // N is the absolute index within entries_in_cat.

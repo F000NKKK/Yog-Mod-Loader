@@ -3,9 +3,9 @@
 
 use crate::layout::{LayoutNode, Rect};
 use crate::text;
-use crate::widget::{self, FocusStyle, Style, Widget, WidgetKind, SLOT_SIZE};
-use yog_gfx::draw2d::Draw2D;
+use crate::widget::{self, FocusStyle, SLOT_SIZE, Style, Widget, WidgetKind};
 use yog_gfx::GfxContext;
+use yog_gfx::draw2d::Draw2D;
 
 /// Scrollbar track and knob colors.
 const TRACK_COLOR: u32 = 0x44_000000;
@@ -99,10 +99,10 @@ fn render_clipped(
     let r = &node.rect;
     let style = widget.effective_style();
     let s: &Style = &style;
-    if let Some(c) = clip {
-        if r.intersect(&c).is_none() {
-            return;
-        }
+    if let Some(c) = clip
+        && r.intersect(&c).is_none()
+    {
+        return;
     }
 
     // Background
@@ -332,19 +332,19 @@ fn render_text_box(
         }
         draw_text(d2d, &visible, &s.font, x0, ty, s.color, s.text_shadow);
     }
-    if let Some(caret) = tb.caret {
-        if tb.caret_visible {
-            let first = crate::textbox::text_box_first(&tb.text, tb.first, caret, inner_w, cw);
-            let cx = x0
-                + tb.text
-                    .chars()
-                    .skip(first)
-                    .take(caret.saturating_sub(first))
-                    .map(cw)
-                    .sum::<f32>();
-            let cx = cx.min(x0 + inner_w);
-            fill(d2d, clip, cx, ty - 1.0, cx + 1.0, ty + line_h, s.color);
-        }
+    if let Some(caret) = tb.caret
+        && tb.caret_visible
+    {
+        let first = crate::textbox::text_box_first(&tb.text, tb.first, caret, inner_w, cw);
+        let cx = x0
+            + tb.text
+                .chars()
+                .skip(first)
+                .take(caret.saturating_sub(first))
+                .map(cw)
+                .sum::<f32>();
+        let cx = cx.min(x0 + inner_w);
+        fill(d2d, clip, cx, ty - 1.0, cx + 1.0, ty + line_h, s.color);
     }
 }
 

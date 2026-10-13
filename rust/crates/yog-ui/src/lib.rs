@@ -32,7 +32,7 @@ pub mod textbox;
 pub mod widget;
 
 pub use event::UiEvent;
-pub use layout::{hit_path, node_at, set_focus, Align, FlexDir, GridLines, LayoutNode, Rect};
+pub use layout::{Align, FlexDir, GridLines, LayoutNode, Rect, hit_path, node_at, set_focus};
 pub use scroll::ScrollState;
 pub use surface::{Pointer, Surface};
 pub use textbox::{TextBoxEvent, TextBoxState};

@@ -14,7 +14,7 @@ use gimli::{
     AttributeValue, DebuggingInformationEntry, EvaluationResult, Location, Reader as _, UnitOffset,
 };
 
-use crate::{SymbolTable, R};
+use crate::{R, SymbolTable};
 
 /// Read access to the stopped target's memory, implemented by the caller
 /// (e.g. via `process_vm_readv` or `/proc/<pid>/mem`). Addresses are
@@ -428,18 +428,17 @@ impl SymbolTable {
         // `let`, starting after its initializer, so these hang below the
         // innermost scope containing the pc.
         let mut pending = Vec::new();
-        if let Some(innermost) = scopes.last() {
-            if let Ok(mut tree) = info.unit.entries_tree(Some(innermost.offset)) {
-                if let Ok(node) = tree.root() {
-                    let _ = collect_block_vars(node, false, &mut pending);
-                }
-            }
+        if let Some(innermost) = scopes.last()
+            && let Ok(mut tree) = info.unit.entries_tree(Some(innermost.offset))
+            && let Ok(node) = tree.root()
+        {
+            let _ = collect_block_vars(node, false, &mut pending);
         }
         for die in pending {
-            if let Some(var) = describe(die, VarKind::Local, false) {
-                if seen.insert(var.name.clone()) {
-                    params.push(var);
-                }
+            if let Some(var) = describe(die, VarKind::Local, false)
+                && seen.insert(var.name.clone())
+            {
+                params.push(var);
             }
         }
         params

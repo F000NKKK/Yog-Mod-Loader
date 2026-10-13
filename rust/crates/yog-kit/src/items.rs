@@ -17,7 +17,7 @@
 
 use std::collections::HashMap;
 
-use yog_api::ui::{widget, Action, StateFlags, Units, Widget};
+use yog_api::ui::{Action, StateFlags, Units, Widget, widget};
 
 use crate::Update;
 
@@ -146,10 +146,10 @@ pub struct ItemsCursor<'a, T> {
 
 /// Points every action of this list in `w`'s subtree at item `index`.
 fn stamp(w: &mut Widget, owner: u16, index: u32) {
-    if let Some(a) = &mut w.action {
-        if a.owner == owner {
-            a.index = index;
-        }
+    if let Some(a) = &mut w.action
+        && a.owner == owner
+    {
+        a.index = index;
     }
     for c in &mut w.children {
         stamp(c, owner, index);
@@ -171,10 +171,10 @@ impl<'a, T> ItemsCursor<'a, T> {
         if selected {
             self.selected = Some(index);
         }
-        if let Some((first, last)) = self.window {
-            if index < first || index >= last {
-                return None;
-            }
+        if let Some((first, last)) = self.window
+            && (index < first || index >= last)
+        {
+            return None;
         }
         let (inst, mut w) = match self.old.remove(&key) {
             Some(x) => x,
@@ -230,15 +230,15 @@ impl<'a, T> ItemsCursor<'a, T> {
             children.insert(0, spacer(first));
             children.push(spacer(after));
         }
-        if n == 0 {
-            if let Some(build) = empty {
-                let w = self.host_empty.take().unwrap_or_else(build);
-                children.push(w);
-                *self.showing_empty = true;
-                self.container.children = children;
-                let w = self.container.children.last_mut().expect("just pushed");
-                return Some((w, self.u));
-            }
+        if n == 0
+            && let Some(build) = empty
+        {
+            let w = self.host_empty.take().unwrap_or_else(build);
+            children.push(w);
+            *self.showing_empty = true;
+            self.container.children = children;
+            let w = self.container.children.last_mut().expect("just pushed");
+            return Some((w, self.u));
         }
         self.container.children = children;
         None

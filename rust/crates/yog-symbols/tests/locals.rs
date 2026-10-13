@@ -210,11 +210,13 @@ fn locals_per_inlined_frame() {
 
     let frames = table.resolve_inlined(addr);
     assert!(frames.len() >= 2, "{frames:#?}");
-    assert!(frames[1]
-        .function
-        .as_deref()
-        .unwrap_or("")
-        .ends_with("caller"));
+    assert!(
+        frames[1]
+            .function
+            .as_deref()
+            .unwrap_or("")
+            .ends_with("caller")
+    );
 
     assert_eq!(table.locals(addr), table.locals_in_frame(addr, 0));
     assert_eq!(
@@ -254,7 +256,7 @@ mod live {
 
     use nix::sys::ptrace;
     use nix::sys::signal::Signal;
-    use nix::sys::wait::{waitpid, WaitStatus};
+    use nix::sys::wait::{WaitStatus, waitpid};
     use nix::unistd::Pid;
     use yog_symbols::{FrameRegs, TargetMemory, Value, ValueNode};
 
@@ -560,15 +562,15 @@ mod live {
             let again = eval(&s, &n.expr).unwrap_or_else(|e| panic!("`{}`: {e}", n.expr));
             assert_eq!(again.value, n.value, "`{}`", n.expr);
             checked += 1;
-            if depth < 3 {
-                if let Some(c) = &n.children {
-                    queue.extend(
-                        s.table
-                            .expand(c, &s.mem)
-                            .into_iter()
-                            .map(|c| (c, depth + 1)),
-                    );
-                }
+            if depth < 3
+                && let Some(c) = &n.children
+            {
+                queue.extend(
+                    s.table
+                        .expand(c, &s.mem)
+                        .into_iter()
+                        .map(|c| (c, depth + 1)),
+                );
             }
         }
         assert!(checked > 60, "{checked}");

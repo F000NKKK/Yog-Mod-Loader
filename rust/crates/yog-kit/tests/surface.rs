@@ -4,8 +4,8 @@
 
 use std::sync::{Arc, Mutex};
 
-use yog_api::ui::{surface, widget, Action, FlexDir, Pointer, Rect, Surface, Units, Widget};
 use yog_api::GfxContext;
+use yog_api::ui::{Action, FlexDir, Pointer, Rect, Surface, Units, Widget, surface, widget};
 use yog_kit::testing::TestHost;
 use yog_kit::{Anchor, Cx, Parts, ScreenMeta, Update, ViewEvent, ViewModel};
 

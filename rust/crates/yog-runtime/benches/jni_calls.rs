@@ -6,14 +6,14 @@
 //! the stand-in host classes in `benches/java/` are compiled with its
 //! `javac` and the JVM is loaded from its `libjvm`. Skips if there's none.
 
-use std::ffi::{c_void, CString};
+use std::ffi::{CString, c_void};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use jni::objects::JValue;
 use jni::sys::{
-    jint, JNIEnv as RawEnv, JavaVM as RawVm, JavaVMInitArgs, JavaVMOption, JNI_OK, JNI_VERSION_1_8,
+    JNI_OK, JNI_VERSION_1_8, JNIEnv as RawEnv, JavaVM as RawVm, JavaVMInitArgs, JavaVMOption, jint,
 };
 use jni::{JNIEnv, JavaVM};
 use yog_abi::YogStr;

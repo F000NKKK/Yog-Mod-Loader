@@ -10,7 +10,7 @@ use std::hint::black_box;
 use std::path::PathBuf;
 use std::process::Command;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use yog_symbols::SymbolTable;
 
 const FIXTURE: &str = "locals";
@@ -90,7 +90,7 @@ mod live {
 
     use nix::sys::ptrace;
     use nix::sys::signal::Signal;
-    use nix::sys::wait::{waitpid, WaitStatus};
+    use nix::sys::wait::{WaitStatus, waitpid};
     use nix::unistd::Pid;
     use yog_symbols::{FrameRegs, TargetMemory};
 

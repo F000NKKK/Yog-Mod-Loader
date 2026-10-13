@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use yog_debugger::maps::find_module_base;
-use yog_debugger::ptrace_debugger::{interrupt, thread_name, Debugger, StopReason};
+use yog_debugger::ptrace_debugger::{Debugger, StopReason, interrupt, thread_name};
 use yog_symbols::SymbolTable;
 
 fn build_fixture() -> PathBuf {
@@ -264,7 +264,7 @@ fn step_over_walks_lines_and_returns_to_the_caller() {
 /// into `std` — never in `std`'s own sources on the way.
 #[test]
 fn step_over_leaves_std_for_the_user_caller() {
-    use yog_debugger::{is_library_source, StepKind};
+    use yog_debugger::{StepKind, is_library_source};
 
     let exe = build_as("jmc", "jmc_steps");
     let src = std::fs::read_to_string(
@@ -348,8 +348,8 @@ fn step_over_leaves_std_for_the_user_caller() {
 /// the pause request raised, `source_step` gives up with `Interrupted`.
 #[test]
 fn pause_request_interrupts_a_step_over_a_blocking_call() {
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
     use yog_debugger::StepKind;
 
     let exe = build_as("blocking", "blocking_pause");

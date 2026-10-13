@@ -18,9 +18,9 @@ use std::cell::OnceCell;
 
 use gimli::UnitOffset;
 
-use crate::format::{short_type_name, Formatter, Slot, ELLIPSIS};
+use crate::format::{ELLIPSIS, Formatter, Slot, short_type_name};
 use crate::locals::{
-    unit_ref, Frame, LocalVar, Located, NoMemory, NOT_IN_SCOPE, OPTIMIZED_OUT, UNAVAILABLE,
+    Frame, LocalVar, Located, NOT_IN_SCOPE, NoMemory, OPTIMIZED_OUT, UNAVAILABLE, unit_ref,
 };
 use crate::{FrameRegs, SymbolTable, TargetMemory};
 
@@ -587,7 +587,7 @@ impl Parser {
                         Some(Tok::Ident(s)) => s,
                         Some(Tok::Int(n)) if n >= 0 => n.to_string(),
                         Some(t) => {
-                            return Err(format!("expected a field name, found {}", describe(&t)))
+                            return Err(format!("expected a field name, found {}", describe(&t)));
                         }
                         None => return Err("expected a field name".into()),
                     };

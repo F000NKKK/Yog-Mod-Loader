@@ -22,10 +22,10 @@
 
 use std::time::Instant;
 
-use crate::event::{keys as key, UiEvent};
+use crate::event::{UiEvent, keys as key};
 use crate::layout::LayoutNode;
 use crate::text;
-use crate::widget::{Widget, WidgetKind, TEXT_BOX_PAD_X};
+use crate::widget::{TEXT_BOX_PAD_X, Widget, WidgetKind};
 
 /// Caret blink half-period.
 const BLINK_MS: u128 = 530;

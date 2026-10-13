@@ -248,7 +248,7 @@ static SNAPSHOT: AtomicPtr<YogInvSnapshotRaw> = AtomicPtr::new(std::ptr::null_mu
 /// handlers, to refresh this mod's view of the currently-open inventory
 /// screen. Not meant to be called by mod code directly.
 #[doc(hidden)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn yog_inventory_set_snapshot(snapshot: *const YogInvSnapshotRaw) {
     SNAPSHOT.store(snapshot as *mut _, Ordering::Release);
 }

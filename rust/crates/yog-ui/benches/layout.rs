@@ -2,7 +2,7 @@
 
 mod support;
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
 use support::{SCREEN_H, SCREEN_W, SIZES};
 use yog_ui::layout;

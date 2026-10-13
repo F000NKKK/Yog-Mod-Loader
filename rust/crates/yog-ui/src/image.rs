@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use yog_gfx::draw2d::{self, Draw2D};
-use yog_gfx::image::{self as img, fit, ImageSource, Stretch};
+use yog_gfx::image::{self as img, ImageSource, Stretch, fit};
 use yog_gfx::{GfxContext, ImageSizeFn};
 
 use crate::layout::Rect;

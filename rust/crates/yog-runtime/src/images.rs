@@ -10,8 +10,8 @@
 //! regions, nine-sliced here when stretched.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use jni::JNIEnv;
 use yog_abi::YogStr;
@@ -226,67 +226,71 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
     vh: f32,
     tint: u32,
 ) {
-    if w <= 0.0 || h <= 0.0 {
-        return;
-    }
-    let source = source.as_str();
-    let Some(mut env) = crate::get_env() else {
-        return;
-    };
-    let dest = [x, y, w, h];
-    match ImageSource::parse(source) {
-        Some(ImageSource::Item(id)) => draw_item(&mut env, &id, false, dest),
-        Some(ImageSource::Block(id)) => draw_item(&mut env, &id, true, dest),
-        Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
-            Some(sp) => draw_sprite(&mut env, source, sp, dest, tint),
-            // A raw atlas id (`sprite:minecraft:widget/button`).
-            None if name.contains(':') && has_atlas(&mut env) => {
-                draw_atlas_sprite(&mut env, &name, dest, tint);
-            }
-            None => warn_once(source, "unknown sprite name (see yog_gfx::image::SPRITES)"),
-        },
-        Some(ImageSource::Texture(id)) => match texture_size(&mut env, &id) {
-            Some(size) => {
-                let region = if uw > 0.0 && vh > 0.0 {
-                    [u, v, uw, vh]
-                } else {
-                    [0.0, 0.0, size.0, size.1]
-                };
-                draw_texture(&mut env, &id, dest, region, size, tint);
-            }
-            None => warn_once(source, &format!("texture {id} not found")),
-        },
-        Some(ImageSource::ModPath(_)) => warn_once(
-            source,
-            "`mod:` is resolved by `yog build` in .yui files — in Rust write `<mod id>:<path>`",
-        ),
-        None => warn_once(
-            source,
-            "not an image source (item:, block:, sprite:, <ns>:<path>)",
-        ),
+    unsafe {
+        if w <= 0.0 || h <= 0.0 {
+            return;
+        }
+        let source = source.as_str();
+        let Some(mut env) = crate::get_env() else {
+            return;
+        };
+        let dest = [x, y, w, h];
+        match ImageSource::parse(source) {
+            Some(ImageSource::Item(id)) => draw_item(&mut env, &id, false, dest),
+            Some(ImageSource::Block(id)) => draw_item(&mut env, &id, true, dest),
+            Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
+                Some(sp) => draw_sprite(&mut env, source, sp, dest, tint),
+                // A raw atlas id (`sprite:minecraft:widget/button`).
+                None if name.contains(':') && has_atlas(&mut env) => {
+                    draw_atlas_sprite(&mut env, &name, dest, tint);
+                }
+                None => warn_once(source, "unknown sprite name (see yog_gfx::image::SPRITES)"),
+            },
+            Some(ImageSource::Texture(id)) => match texture_size(&mut env, &id) {
+                Some(size) => {
+                    let region = if uw > 0.0 && vh > 0.0 {
+                        [u, v, uw, vh]
+                    } else {
+                        [0.0, 0.0, size.0, size.1]
+                    };
+                    draw_texture(&mut env, &id, dest, region, size, tint);
+                }
+                None => warn_once(source, &format!("texture {id} not found")),
+            },
+            Some(ImageSource::ModPath(_)) => warn_once(
+                source,
+                "`mod:` is resolved by `yog build` in .yui files — in Rust write `<mod id>:<path>`",
+            ),
+            None => warn_once(
+                source,
+                "not an image source (item:, block:, sprite:, <ns>:<path>)",
+            ),
+        }
     }
 }
 
 /// `image_size` — see `YogGfxApi::image_size`.
 pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *mut f32) -> bool {
-    let source = source.as_str();
-    let size = match ImageSource::parse(source) {
-        Some(ImageSource::Item(_) | ImageSource::Block(_)) => Some((16.0, 16.0)),
-        Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
-            Some(sp) => crate::get_env().map(|mut env| sp.size(has_atlas(&mut env))),
-            None => None,
-        },
-        Some(ImageSource::Texture(id)) => {
-            crate::get_env().and_then(|mut env| texture_size(&mut env, &id))
+    unsafe {
+        let source = source.as_str();
+        let size = match ImageSource::parse(source) {
+            Some(ImageSource::Item(_) | ImageSource::Block(_)) => Some((16.0, 16.0)),
+            Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
+                Some(sp) => crate::get_env().map(|mut env| sp.size(has_atlas(&mut env))),
+                None => None,
+            },
+            Some(ImageSource::Texture(id)) => {
+                crate::get_env().and_then(|mut env| texture_size(&mut env, &id))
+            }
+            Some(ImageSource::ModPath(_)) | None => None,
+        };
+        match size {
+            Some((sw, sh)) if !w.is_null() && !h.is_null() => {
+                *w = sw;
+                *h = sh;
+                true
+            }
+            _ => false,
         }
-        Some(ImageSource::ModPath(_)) | None => None,
-    };
-    match size {
-        Some((sw, sh)) if !w.is_null() && !h.is_null() => {
-            *w = sw;
-            *h = sh;
-            true
-        }
-        _ => false,
     }
 }

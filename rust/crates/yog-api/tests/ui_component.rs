@@ -1,7 +1,7 @@
 //! `ui_component!` registers at load time; `component::build` finds it.
 
-use yog_api::ui::component::{self, Component, Prop, Props};
 use yog_api::ui::Widget;
+use yog_api::ui::component::{self, Component, Prop, Props};
 use yog_api::widget;
 
 struct Chip;

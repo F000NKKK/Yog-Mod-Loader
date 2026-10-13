@@ -524,10 +524,10 @@ pub mod book_ui {
                 .iter()
                 .filter(|e| e.category == cat.id)
                 .collect();
-            if let Some(entry) = cat_entries.get(selected_entry) {
-                if let Some(page) = entry.pages.get(current_page) {
-                    pages.push(render_page(page));
-                }
+            if let Some(entry) = cat_entries.get(selected_entry)
+                && let Some(page) = entry.pages.get(current_page)
+            {
+                pages.push(render_page(page));
             }
         }
 

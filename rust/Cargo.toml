@@ -43,7 +43,7 @@ members = [
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 rust-version = "1.99"
 authors = ["F000NK, Yog Team, Voluntas Progressus"]
 # Default for the protected engine (runtime + host). The mod-author-facing

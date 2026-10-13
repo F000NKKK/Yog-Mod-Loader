@@ -339,26 +339,26 @@ impl Formatter<'_> {
                 return Ok(Slot { expr, ..found });
             }
             // The raw layout too (`String`'s `vec`, a `RefCell`'s `borrow`).
-            if let Some((off, entry)) = cur.ty.and_then(|t| self.peel(t)) {
-                if matches!(
+            if let Some((off, entry)) = cur.ty.and_then(|t| self.peel(t))
+                && matches!(
                     entry.tag(),
                     gimli::DW_TAG_structure_type
                         | gimli::DW_TAG_class_type
                         | gimli::DW_TAG_union_type
-                ) {
-                    let tuple_name = format!("{TUPLE_FIELD}{name}");
-                    if let Some(m) = self
-                        .members(off)
-                        .into_iter()
-                        .find(|m| m.name == name || m.name == tuple_name)
-                    {
-                        return Ok(Slot {
-                            name: name.to_string(),
-                            expr,
-                            ty: m.ty,
-                            place: cur.place.offset(m.offset),
-                        });
-                    }
+                )
+            {
+                let tuple_name = format!("{TUPLE_FIELD}{name}");
+                if let Some(m) = self
+                    .members(off)
+                    .into_iter()
+                    .find(|m| m.name == name || m.name == tuple_name)
+                {
+                    return Ok(Slot {
+                        name: name.to_string(),
+                        expr,
+                        ty: m.ty,
+                        place: cur.place.offset(m.offset),
+                    });
                 }
             }
             match self.deref(&cur) {

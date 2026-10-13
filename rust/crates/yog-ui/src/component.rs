@@ -35,8 +35,8 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, PoisonError};
 
-use crate::widget::{self, Widget};
 use crate::FlexDir;
+use crate::widget::{self, Widget};
 
 /// A property's type: how `.yui` writes it and how the designer edits it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -560,12 +560,12 @@ pub fn parse_color(value: &str) -> Option<u32> {
 pub mod designer {
     use std::ffi::c_void;
     use std::fmt::Write as _;
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
 
     use yog_abi::{YogGfxApi, YogStr};
     use yog_gfx::GfxContext;
 
-    use super::{apply_style, components, find, PropKind, Props, COMMON_ATTRS};
+    use super::{COMMON_ATTRS, PropKind, Props, apply_style, components, find};
     use crate::widget::{self, Widget};
     use crate::{FlexDir, UiRoot, Units};
 

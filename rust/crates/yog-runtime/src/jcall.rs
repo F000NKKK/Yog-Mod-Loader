@@ -13,10 +13,10 @@
 
 use std::sync::OnceLock;
 
+use jni::JNIEnv;
 use jni::objects::{GlobalRef, JClass, JObject, JStaticMethodID, JString, JValueOwned};
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::jvalue;
-use jni::JNIEnv;
 use yog_abi::YogStr;
 
 /// Most parameters any bridge method takes (`NativeDraw.drawImage`: 12).
@@ -141,64 +141,68 @@ impl StaticMethod {
     /// pass the same argument kinds and expect the same `R` (the resolved
     /// signature is cached per site).
     pub(crate) unsafe fn call<R: FromJava>(&self, env: &mut JNIEnv, args: &[JArg]) -> Option<R> {
-        assert!(args.len() <= MAX_ARGS, "{}: too many arguments", self.name);
-        let result = self.invoke::<R>(env, args);
-        if result.is_none() && env.exception_check().unwrap_or(false) {
-            let _ = env.exception_clear();
+        unsafe {
+            assert!(args.len() <= MAX_ARGS, "{}: too many arguments", self.name);
+            let result = self.invoke::<R>(env, args);
+            if result.is_none() && env.exception_check().unwrap_or(false) {
+                let _ = env.exception_clear();
+            }
+            result
         }
-        result
     }
 
     unsafe fn invoke<R: FromJava>(&self, env: &mut JNIEnv, args: &[JArg]) -> Option<R> {
-        let (class, id) = self.resolve::<R>(env, args)?;
-        let mut values = [jvalue { j: 0 }; MAX_ARGS];
-        let mut locals: [Option<JObject>; MAX_ARGS] = Default::default();
-        let mut converted = true;
-        for (i, a) in args.iter().enumerate() {
-            values[i] = match *a {
-                JArg::S(s) => match env.new_string(s.as_str()) {
-                    Ok(js) => {
-                        let raw = js.as_raw();
-                        locals[i] = Some(js.into());
-                        jvalue { l: raw }
-                    }
-                    Err(_) => {
-                        converted = false;
-                        break;
-                    }
-                },
-                JArg::Bytes(b) => match env.byte_array_from_slice(b) {
-                    Ok(arr) => {
-                        let raw = arr.as_raw();
-                        locals[i] = Some(arr.into());
-                        jvalue { l: raw }
-                    }
-                    Err(_) => {
-                        converted = false;
-                        break;
-                    }
-                },
-                JArg::D(d) => jvalue { d },
-                JArg::F(f) => jvalue { f },
-                JArg::I(i) => jvalue { i },
-                JArg::J(j) => jvalue { j },
-                JArg::Z(z) => jvalue { z: z as u8 },
+        unsafe {
+            let (class, id) = self.resolve::<R>(env, args)?;
+            let mut values = [jvalue { j: 0 }; MAX_ARGS];
+            let mut locals: [Option<JObject>; MAX_ARGS] = Default::default();
+            let mut converted = true;
+            for (i, a) in args.iter().enumerate() {
+                values[i] = match *a {
+                    JArg::S(s) => match env.new_string(s.as_str()) {
+                        Ok(js) => {
+                            let raw = js.as_raw();
+                            locals[i] = Some(js.into());
+                            jvalue { l: raw }
+                        }
+                        Err(_) => {
+                            converted = false;
+                            break;
+                        }
+                    },
+                    JArg::Bytes(b) => match env.byte_array_from_slice(b) {
+                        Ok(arr) => {
+                            let raw = arr.as_raw();
+                            locals[i] = Some(arr.into());
+                            jvalue { l: raw }
+                        }
+                        Err(_) => {
+                            converted = false;
+                            break;
+                        }
+                    },
+                    JArg::D(d) => jvalue { d },
+                    JArg::F(f) => jvalue { f },
+                    JArg::I(i) => jvalue { i },
+                    JArg::J(j) => jvalue { j },
+                    JArg::Z(z) => jvalue { z: z as u8 },
+                };
+            }
+            let result = if converted {
+                let class = <&JClass>::from(class.as_obj());
+                env.call_static_method_unchecked(class, *id, R::RETURN, &values[..args.len()])
+                    .ok()
+                    .and_then(|v| R::from_java(env, v))
+            } else {
+                None
             };
+            // Free the argument copies now: a render pass can make thousands of
+            // these calls inside one native frame.
+            for obj in locals.into_iter().flatten() {
+                let _ = env.delete_local_ref(obj);
+            }
+            result
         }
-        let result = if converted {
-            let class = <&JClass>::from(class.as_obj());
-            env.call_static_method_unchecked(class, *id, R::RETURN, &values[..args.len()])
-                .ok()
-                .and_then(|v| R::from_java(env, v))
-        } else {
-            None
-        };
-        // Free the argument copies now: a render pass can make thousands of
-        // these calls inside one native frame.
-        for obj in locals.into_iter().flatten() {
-            let _ = env.delete_local_ref(obj);
-        }
-        result
     }
 }
 
@@ -208,7 +212,7 @@ impl StaticMethod {
 /// `S`, `D`, `F`, `I`, `J`, `Z` and `Bytes` ([`JArg`]) are in scope for the
 /// arguments.
 macro_rules! jcall {
-    ($env:expr, $class:literal, $name:literal, [$($arg:expr),* $(,)?]) => {{
+    ($env:expr_2021, $class:literal, $name:literal, [$($arg:expr_2021),* $(,)?]) => {{
         static METHOD: $crate::jcall::StaticMethod =
             $crate::jcall::StaticMethod::new($class, $name);
         #[allow(unused_imports)]

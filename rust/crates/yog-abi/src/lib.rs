@@ -56,10 +56,12 @@ impl YogStr {
     /// the call that provided this `YogStr`.
     #[inline]
     pub unsafe fn as_str<'a>(self) -> &'a str {
-        if self.ptr.is_null() || self.len == 0 {
-            return "";
+        unsafe {
+            if self.ptr.is_null() || self.len == 0 {
+                return "";
+            }
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(self.ptr, self.len as usize))
         }
-        std::str::from_utf8_unchecked(std::slice::from_raw_parts(self.ptr, self.len as usize))
     }
 }
 

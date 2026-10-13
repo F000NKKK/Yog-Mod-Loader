@@ -10,14 +10,16 @@ use yog_abi::{YogOwnedStr, YogStr};
 use super::owned;
 
 pub(crate) unsafe extern "C" fn api_ui_open_flags(_ctx: *mut c_void, ui_id: YogStr, flags: u32) {
-    if ui_id.as_str().is_empty() {
-        return;
+    unsafe {
+        if ui_id.as_str().is_empty() {
+            return;
+        }
+        let _: Option<()> = host!(
+            "dev/yog/YogClientApi",
+            "openUI",
+            [S(ui_id), I(flags as i32)]
+        );
     }
-    let _: Option<()> = host!(
-        "dev/yog/YogClientApi",
-        "openUI",
-        [S(ui_id), I(flags as i32)]
-    );
 }
 
 pub(crate) unsafe extern "C" fn api_client_play_sound(
@@ -27,28 +29,32 @@ pub(crate) unsafe extern "C" fn api_client_play_sound(
     pitch: f32,
     looping: bool,
 ) -> u32 {
-    let handle: Option<i32> = host!(
-        "dev/yog/YogClientApi",
-        "playSound",
-        [S(sound_id), F(volume), F(pitch), Z(looping)]
-    );
-    handle.map_or(0, |h| h.max(0) as u32)
+    unsafe {
+        let handle: Option<i32> = host!(
+            "dev/yog/YogClientApi",
+            "playSound",
+            [S(sound_id), F(volume), F(pitch), Z(looping)]
+        );
+        handle.map_or(0, |h| h.max(0) as u32)
+    }
 }
 
 pub(crate) unsafe extern "C" fn api_client_stop_sound(_ctx: *mut c_void, handle: u32) {
-    if handle == 0 {
-        return;
+    unsafe {
+        if handle == 0 {
+            return;
+        }
+        let _: Option<()> = host!("dev/yog/YogClientApi", "stopSound", [I(handle as i32)]);
     }
-    let _: Option<()> = host!("dev/yog/YogClientApi", "stopSound", [I(handle as i32)]);
 }
 
 pub(crate) unsafe extern "C" fn api_client_held_item(
     _ctx: *mut c_void,
     off_hand: bool,
 ) -> YogOwnedStr {
-    owned(host!("dev/yog/YogClientApi", "heldItem", [Z(off_hand)]))
+    unsafe { owned(host!("dev/yog/YogClientApi", "heldItem", [Z(off_hand)])) }
 }
 
 pub(crate) unsafe extern "C" fn api_client_key_down(_ctx: *mut c_void, key: i32) -> bool {
-    host!("dev/yog/YogClientApi", "keyDown", [I(key)]).unwrap_or(false)
+    unsafe { host!("dev/yog/YogClientApi", "keyDown", [I(key)]).unwrap_or(false) }
 }

@@ -3,7 +3,7 @@
 //! state, a details presenter and a close button.
 
 use yog_api::ui::event::keys;
-use yog_api::ui::{widget, Action, FlexDir, StateFlags, StylePatch, Units, Widget};
+use yog_api::ui::{Action, FlexDir, StateFlags, StylePatch, Units, Widget, widget};
 use yog_kit::bind::{self, Slot};
 use yog_kit::items::ItemsHost;
 use yog_kit::testing::TestHost;

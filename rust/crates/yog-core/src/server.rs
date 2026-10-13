@@ -356,7 +356,7 @@ pub trait Server {
     /// Replace inventory `slot`. Pass `count == 0` to clear the slot.
     /// `snbt` is merged into the new item's NBT (pass `""` for no NBT).
     fn set_slot_item(&self, player: &str, slot: u32, item_id: &str, count: u32, snbt: &str)
-        -> bool;
+    -> bool;
 
     // ── world queries & effects (ABI minor 1) ────────────────────────────────
 

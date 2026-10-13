@@ -158,9 +158,11 @@ mod tests {
             rect: v.rect,
             ..Default::default()
         };
-        assert!(layout::hit_test(&root_like, 10.0, 5.0)
-            .and_then(|n| n.on_click.as_deref())
-            .is_some_and(|e| e == "row:1"));
+        assert!(
+            layout::hit_test(&root_like, 10.0, 5.0)
+                .and_then(|n| n.on_click.as_deref())
+                .is_some_and(|e| e == "row:1")
+        );
     }
 
     #[test]

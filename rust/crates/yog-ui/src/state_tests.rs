@@ -1,6 +1,6 @@
 //! Tests of actions, visibility and state styles.
 
-use crate::layout::{self, hit_path, node_at, FlexDir};
+use crate::layout::{self, FlexDir, hit_path, node_at};
 use crate::widget::{self, Action, StateFlags, StylePatch, Units};
 
 fn tree() -> widget::Widget {

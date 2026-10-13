@@ -27,16 +27,16 @@ use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
 use yog_abi::{
-    YogAdvancementEvent, YogAdvancementFn, YogApi, YogAttackEntityFn, YogBlockBreakFn, YogBlockDef,
-    YogBlockPos, YogChatFn, YogClientFn, YogCommandFn, YogContainerCloseEvent, YogContainerCloseFn,
-    YogContainerOpenEvent, YogContainerOpenFn, YogCraftEvent, YogCraftFn, YogEntityDamageFn,
-    YogEntityDeathFn, YogEntityInteractEvent, YogEntityInteractFn, YogEntitySpawnFn,
-    YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemDef, YogItemPickupEvent,
-    YogItemPickupFn, YogKeyPressEvent, YogKeyPressFn, YogOwnedStr, YogPacketFn, YogPlaceBlockEvent,
-    YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn, YogPlayerMoveEvent,
-    YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn, YogProjectileHitEvent,
-    YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn, YogStartupGrantDef,
-    YogStr, YogUseBlockFn, YogUseItemFn, YogVec3, YogWorldRenderFn, ABI_VERSION,
+    ABI_VERSION, YogAdvancementEvent, YogAdvancementFn, YogApi, YogAttackEntityFn, YogBlockBreakFn,
+    YogBlockDef, YogBlockPos, YogChatFn, YogClientFn, YogCommandFn, YogContainerCloseEvent,
+    YogContainerCloseFn, YogContainerOpenEvent, YogContainerOpenFn, YogCraftEvent, YogCraftFn,
+    YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent, YogEntityInteractFn,
+    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemDef,
+    YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogKeyPressFn, YogOwnedStr, YogPacketFn,
+    YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn,
+    YogPlayerMoveEvent, YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn,
+    YogProjectileHitEvent, YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn,
+    YogStartupGrantDef, YogStr, YogUseBlockFn, YogUseItemFn, YogVec3, YogWorldRenderFn,
 };
 use yog_registry::{BlockDef, FoodDef, ItemDef};
 
@@ -289,7 +289,7 @@ fn hot_reloader() -> &'static HotReloader<RuntimeModuleRegistry> {
 /// before its library is hard-unloaded.
 /// Runs `$body` with `$list` bound to each per-event handler list of `$h`.
 macro_rules! for_each_handler_list {
-    ($h:expr, |$list:ident| $body:expr) => {{
+    ($h:expr_2021, |$list:ident| $body:expr_2021) => {{
         {
             let $list = &mut $h.block_break;
             $body;
@@ -465,10 +465,10 @@ fn guard(label: &str, f: impl FnOnce()) {
 /// Reads a Java string, returning `$or` (default: `Default::default()`)
 /// from the enclosing function when it can't be read.
 macro_rules! jstr {
-    ($env:expr, $s:expr) => {
+    ($env:expr_2021, $s:expr_2021) => {
         jstr!($env, $s, Default::default())
     };
-    ($env:expr, $s:expr, $or:expr) => {
+    ($env:expr_2021, $s:expr_2021, $or:expr_2021) => {
         match $env.get_string(&$s) {
             Ok(s) => String::from(s),
             Err(_) => return $or,
@@ -483,7 +483,7 @@ fn get_env() -> Option<jni::AttachGuard<'static>> {
 /// `<class>.<name>(args...)` on this thread's env, `Option<R>` — see
 /// [`jcall!`]; `None` without a JVM too.
 macro_rules! host {
-    ($class:literal, $name:literal, [$($arg:expr),* $(,)?]) => {
+    ($class:literal, $name:literal, [$($arg:expr_2021),* $(,)?]) => {
         match $crate::get_env() {
             Some(mut env) => $crate::jcall::jcall!(&mut env, $class, $name, [$($arg),*]),
             None => None,
@@ -493,7 +493,7 @@ macro_rules! host {
 
 /// `NativeBridge.<name>(args...)` — see [`host!`].
 macro_rules! bridge {
-    ($name:literal, [$($arg:expr),* $(,)?]) => {
+    ($name:literal, [$($arg:expr_2021),* $(,)?]) => {
         host!("dev/yog/NativeBridge", $name, [$($arg),*])
     };
 }
@@ -516,11 +516,13 @@ fn parse_tsv<T: std::str::FromStr, const N: usize>(s: &str) -> Option<[T; N]> {
 // ── Free-str allocator used by YogOwnedStr ────────────────────────────────────
 
 unsafe extern "C" fn yog_free_str(ptr: *mut u8, len: u32) {
-    if !ptr.is_null() {
-        drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(
-            ptr,
-            len as usize,
-        )));
+    unsafe {
+        if !ptr.is_null() {
+            drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(
+                ptr,
+                len as usize,
+            )));
+        }
     }
 }
 
@@ -529,7 +531,9 @@ unsafe extern "C" fn yog_free_str(ptr: *mut u8, len: u32) {
 // ctx is unused here — all state is in the JAVA_VM static.
 
 unsafe extern "C" fn srv_broadcast(_ctx: *mut c_void, msg: YogStr) {
-    let _: Option<()> = bridge!("broadcast", [S(msg)]);
+    unsafe {
+        let _: Option<()> = bridge!("broadcast", [S(msg)]);
+    }
 }
 
 unsafe extern "C" fn srv_get_block(
@@ -537,7 +541,7 @@ unsafe extern "C" fn srv_get_block(
     dim: YogStr,
     pos: YogBlockPos,
 ) -> YogOwnedStr {
-    owned(bridge!("getBlock", [S(dim), I(pos.x), I(pos.y), I(pos.z)]))
+    unsafe { owned(bridge!("getBlock", [S(dim), I(pos.x), I(pos.y), I(pos.z)])) }
 }
 
 unsafe extern "C" fn srv_set_block(
@@ -546,25 +550,29 @@ unsafe extern "C" fn srv_set_block(
     pos: YogBlockPos,
     block: YogStr,
 ) -> bool {
-    bridge!("setBlock", [S(dim), I(pos.x), I(pos.y), I(pos.z), S(block)]).unwrap_or(false)
+    unsafe {
+        bridge!("setBlock", [S(dim), I(pos.x), I(pos.y), I(pos.z), S(block)]).unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_world_time(_ctx: *mut c_void, dim: YogStr, out: *mut i64) -> bool {
-    match bridge!("worldTime", [S(dim)]) {
-        Some(v) if v != i64::MIN => {
-            *out = v;
-            true
+    unsafe {
+        match bridge!("worldTime", [S(dim)]) {
+            Some(v) if v != i64::MIN => {
+                *out = v;
+                true
+            }
+            _ => false,
         }
-        _ => false,
     }
 }
 
 unsafe extern "C" fn srv_set_time(_ctx: *mut c_void, dim: YogStr, time: i64) -> bool {
-    bridge!("worldSetTime", [S(dim), J(time)]).unwrap_or(false)
+    unsafe { bridge!("worldSetTime", [S(dim), J(time)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_is_raining(_ctx: *mut c_void, dim: YogStr) -> bool {
-    bridge!("worldIsRaining", [S(dim)]).unwrap_or(false)
+    unsafe { bridge!("worldIsRaining", [S(dim)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_set_weather(
@@ -573,7 +581,7 @@ unsafe extern "C" fn srv_set_weather(
     raining: bool,
     dur: i32,
 ) -> bool {
-    bridge!("worldSetWeather", [S(dim), Z(raining), I(dur)]).unwrap_or(false)
+    unsafe { bridge!("worldSetWeather", [S(dim), Z(raining), I(dur)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_give_item(
@@ -582,11 +590,11 @@ unsafe extern "C" fn srv_give_item(
     item: YogStr,
     count: u32,
 ) -> bool {
-    bridge!("giveItem", [S(player), S(item), I(count as i32)]).unwrap_or(false)
+    unsafe { bridge!("giveItem", [S(player), S(item), I(count as i32)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_player_teleport(_ctx: *mut c_void, player: YogStr, pos: YogVec3) -> bool {
-    bridge!("teleport", [S(player), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
+    unsafe { bridge!("teleport", [S(player), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_send_to_player(
@@ -596,15 +604,17 @@ unsafe extern "C" fn srv_send_to_player(
     data: *const u8,
     len: u32,
 ) -> bool {
-    bridge!(
-        "sendToPlayer",
-        [
-            S(player),
-            S(channel),
-            Bytes(std::slice::from_raw_parts(data, len as usize))
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "sendToPlayer",
+            [
+                S(player),
+                S(channel),
+                Bytes(std::slice::from_raw_parts(data, len as usize))
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_send_to_server(
@@ -613,23 +623,25 @@ unsafe extern "C" fn srv_send_to_server(
     data: *const u8,
     len: u32,
 ) -> bool {
-    host!(
-        "dev/yog/YogClient",
-        "sendToServer",
-        [
-            S(channel),
-            Bytes(std::slice::from_raw_parts(data, len as usize))
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        host!(
+            "dev/yog/YogClient",
+            "sendToServer",
+            [
+                S(channel),
+                Bytes(std::slice::from_raw_parts(data, len as usize))
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_kick_player(_ctx: *mut c_void, player: YogStr, reason: YogStr) -> bool {
-    bridge!("kickPlayer", [S(player), S(reason)]).unwrap_or(false)
+    unsafe { bridge!("kickPlayer", [S(player), S(reason)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_set_gamemode(_ctx: *mut c_void, player: YogStr, mode: YogStr) -> bool {
-    bridge!("setGamemode", [S(player), S(mode)]).unwrap_or(false)
+    unsafe { bridge!("setGamemode", [S(player), S(mode)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_send_title(
@@ -641,15 +653,17 @@ unsafe extern "C" fn srv_send_title(
     stay: i32,
     fo: i32,
 ) -> bool {
-    bridge!(
-        "sendTitle",
-        [S(player), S(title), S(sub), I(fi), I(stay), I(fo)]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "sendTitle",
+            [S(player), S(title), S(sub), I(fi), I(stay), I(fo)]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_send_actionbar(_ctx: *mut c_void, player: YogStr, msg: YogStr) -> bool {
-    bridge!("sendActionbar", [S(player), S(msg)]).unwrap_or(false)
+    unsafe { bridge!("sendActionbar", [S(player), S(msg)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_play_sound(
@@ -660,19 +674,21 @@ unsafe extern "C" fn srv_play_sound(
     vol: f32,
     pitch: f32,
 ) -> bool {
-    bridge!(
-        "playSound",
-        [
-            S(dim),
-            D(pos.x),
-            D(pos.y),
-            D(pos.z),
-            S(sound),
-            F(vol),
-            F(pitch)
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "playSound",
+            [
+                S(dim),
+                D(pos.x),
+                D(pos.y),
+                D(pos.z),
+                S(sound),
+                F(vol),
+                F(pitch)
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_play_sound_player(
@@ -682,11 +698,13 @@ unsafe extern "C" fn srv_play_sound_player(
     vol: f32,
     pitch: f32,
 ) -> bool {
-    bridge!("playSoundToPlayer", [S(player), S(sound), F(vol), F(pitch)]).unwrap_or(false)
+    unsafe {
+        bridge!("playSoundToPlayer", [S(player), S(sound), F(vol), F(pitch)]).unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_entity_teleport(_ctx: *mut c_void, uuid: YogStr, pos: YogVec3) -> bool {
-    bridge!("entityTeleport", [S(uuid), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
+    unsafe { bridge!("entityTeleport", [S(uuid), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_entity_rotation(
@@ -694,19 +712,21 @@ unsafe extern "C" fn srv_entity_rotation(
     uuid: YogStr,
     out: *mut YogVec3,
 ) -> bool {
-    let Some(s): Option<String> = bridge!("entityRotation", [S(uuid)]) else {
-        return false;
-    };
-    match parse_tsv::<f64, 2>(&s) {
-        Some([yaw, pitch]) => {
-            *out = YogVec3 {
-                x: yaw,
-                y: pitch,
-                z: 0.0,
-            };
-            true
+    unsafe {
+        let Some(s): Option<String> = bridge!("entityRotation", [S(uuid)]) else {
+            return false;
+        };
+        match parse_tsv::<f64, 2>(&s) {
+            Some([yaw, pitch]) => {
+                *out = YogVec3 {
+                    x: yaw,
+                    y: pitch,
+                    z: 0.0,
+                };
+                true
+            }
+            None => false,
         }
-        None => false,
     }
 }
 
@@ -715,34 +735,38 @@ unsafe extern "C" fn srv_entity_position(
     uuid: YogStr,
     out: *mut YogVec3,
 ) -> bool {
-    let Some(s): Option<String> = bridge!("entityPosition", [S(uuid)]) else {
-        return false;
-    };
-    match parse_tsv::<f64, 3>(&s) {
-        Some([x, y, z]) => {
-            *out = YogVec3 { x, y, z };
-            true
+    unsafe {
+        let Some(s): Option<String> = bridge!("entityPosition", [S(uuid)]) else {
+            return false;
+        };
+        match parse_tsv::<f64, 3>(&s) {
+            Some([x, y, z]) => {
+                *out = YogVec3 { x, y, z };
+                true
+            }
+            None => false,
         }
-        None => false,
     }
 }
 
 unsafe extern "C" fn srv_entity_health(_ctx: *mut c_void, uuid: YogStr, out: *mut f32) -> bool {
-    match bridge!("entityHealth", [S(uuid)]) {
-        Some(v) if !f64::is_nan(v) => {
-            *out = v as f32;
-            true
+    unsafe {
+        match bridge!("entityHealth", [S(uuid)]) {
+            Some(v) if !f64::is_nan(v) => {
+                *out = v as f32;
+                true
+            }
+            _ => false,
         }
-        _ => false,
     }
 }
 
 unsafe extern "C" fn srv_entity_set_health(_ctx: *mut c_void, uuid: YogStr, hp: f32) -> bool {
-    bridge!("entitySetHealth", [S(uuid), D(hp as f64)]).unwrap_or(false)
+    unsafe { bridge!("entitySetHealth", [S(uuid), D(hp as f64)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_entity_kill(_ctx: *mut c_void, uuid: YogStr) -> bool {
-    bridge!("entityKill", [S(uuid)]).unwrap_or(false)
+    unsafe { bridge!("entityKill", [S(uuid)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_spawn_entity(
@@ -751,10 +775,12 @@ unsafe extern "C" fn srv_spawn_entity(
     dim: YogStr,
     pos: YogVec3,
 ) -> YogOwnedStr {
-    owned(bridge!(
-        "spawnEntity",
-        [S(type_id), S(dim), D(pos.x), D(pos.y), D(pos.z)]
-    ))
+    unsafe {
+        owned(bridge!(
+            "spawnEntity",
+            [S(type_id), S(dim), D(pos.x), D(pos.y), D(pos.z)]
+        ))
+    }
 }
 
 unsafe extern "C" fn srv_entity_add_effect(
@@ -765,19 +791,21 @@ unsafe extern "C" fn srv_entity_add_effect(
     amp: u8,
     particles: bool,
 ) -> bool {
-    bridge!(
-        "entityAddEffect",
-        [S(uuid), S(fx), I(dur), I(amp as i32), Z(particles)]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "entityAddEffect",
+            [S(uuid), S(fx), I(dur), I(amp as i32), Z(particles)]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_entity_remove_effect(_ctx: *mut c_void, uuid: YogStr, fx: YogStr) -> bool {
-    bridge!("entityRemoveEffect", [S(uuid), S(fx)]).unwrap_or(false)
+    unsafe { bridge!("entityRemoveEffect", [S(uuid), S(fx)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_entity_clear_effects(_ctx: *mut c_void, uuid: YogStr) -> bool {
-    bridge!("entityClearEffects", [S(uuid)]).unwrap_or(false)
+    unsafe { bridge!("entityClearEffects", [S(uuid)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_entity_velocity(
@@ -785,15 +813,17 @@ unsafe extern "C" fn srv_entity_velocity(
     uuid: YogStr,
     out: *mut YogVec3,
 ) -> bool {
-    let Some(s): Option<String> = bridge!("entityVelocity", [S(uuid)]) else {
-        return false;
-    };
-    match parse_tsv::<f64, 3>(&s) {
-        Some([x, y, z]) => {
-            *out = YogVec3 { x, y, z };
-            true
+    unsafe {
+        let Some(s): Option<String> = bridge!("entityVelocity", [S(uuid)]) else {
+            return false;
+        };
+        match parse_tsv::<f64, 3>(&s) {
+            Some([x, y, z]) => {
+                *out = YogVec3 { x, y, z };
+                true
+            }
+            None => false,
         }
-        None => false,
     }
 }
 
@@ -802,7 +832,9 @@ unsafe extern "C" fn srv_entity_set_velocity(
     uuid: YogStr,
     vel: YogVec3,
 ) -> bool {
-    bridge!("entitySetVelocity", [S(uuid), D(vel.x), D(vel.y), D(vel.z)]).unwrap_or(false)
+    unsafe {
+        bridge!("entitySetVelocity", [S(uuid), D(vel.x), D(vel.y), D(vel.z)]).unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_entity_add_velocity(
@@ -810,15 +842,17 @@ unsafe extern "C" fn srv_entity_add_velocity(
     uuid: YogStr,
     vel: YogVec3,
 ) -> bool {
-    bridge!("entityAddVelocity", [S(uuid), D(vel.x), D(vel.y), D(vel.z)]).unwrap_or(false)
+    unsafe {
+        bridge!("entityAddVelocity", [S(uuid), D(vel.x), D(vel.y), D(vel.z)]).unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_has_item_tag(_ctx: *mut c_void, item: YogStr, tag: YogStr) -> bool {
-    bridge!("hasItemTag", [S(item), S(tag)]).unwrap_or(false)
+    unsafe { bridge!("hasItemTag", [S(item), S(tag)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_has_block_tag(_ctx: *mut c_void, block: YogStr, tag: YogStr) -> bool {
-    bridge!("hasBlockTag", [S(block), S(tag)]).unwrap_or(false)
+    unsafe { bridge!("hasBlockTag", [S(block), S(tag)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_drop_loot(
@@ -827,7 +861,9 @@ unsafe extern "C" fn srv_drop_loot(
     dim: YogStr,
     pos: YogVec3,
 ) -> bool {
-    bridge!("dropLoot", [S(table), S(dim), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
+    unsafe {
+        bridge!("dropLoot", [S(table), S(dim), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_scoreboard_get(
@@ -836,12 +872,14 @@ unsafe extern "C" fn srv_scoreboard_get(
     player: YogStr,
     out: *mut i32,
 ) -> bool {
-    match bridge!("scoreboardGet", [S(obj), S(player)]) {
-        Some(v) if v != i32::MIN => {
-            *out = v;
-            true
+    unsafe {
+        match bridge!("scoreboardGet", [S(obj), S(player)]) {
+            Some(v) if v != i32::MIN => {
+                *out = v;
+                true
+            }
+            _ => false,
         }
-        _ => false,
     }
 }
 
@@ -851,7 +889,7 @@ unsafe extern "C" fn srv_scoreboard_set(
     player: YogStr,
     score: i32,
 ) -> bool {
-    bridge!("scoreboardSet", [S(obj), S(player), I(score)]).unwrap_or(false)
+    unsafe { bridge!("scoreboardSet", [S(obj), S(player), I(score)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_scoreboard_add(
@@ -861,12 +899,14 @@ unsafe extern "C" fn srv_scoreboard_add(
     delta: i32,
     out: *mut i32,
 ) -> bool {
-    match bridge!("scoreboardAdd", [S(obj), S(player), I(delta)]) {
-        Some(v) if v != i32::MIN => {
-            *out = v;
-            true
+    unsafe {
+        match bridge!("scoreboardAdd", [S(obj), S(player), I(delta)]) {
+            Some(v) if v != i32::MIN => {
+                *out = v;
+                true
+            }
+            _ => false,
         }
-        _ => false,
     }
 }
 
@@ -877,15 +917,15 @@ unsafe extern "C" fn srv_bossbar_create(
     color: YogStr,
     style: YogStr,
 ) -> bool {
-    bridge!("bossbarCreate", [S(id), S(title), S(color), S(style)]).unwrap_or(false)
+    unsafe { bridge!("bossbarCreate", [S(id), S(title), S(color), S(style)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_bossbar_remove(_ctx: *mut c_void, id: YogStr) -> bool {
-    bridge!("bossbarRemove", [S(id)]).unwrap_or(false)
+    unsafe { bridge!("bossbarRemove", [S(id)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_bossbar_set_title(_ctx: *mut c_void, id: YogStr, title: YogStr) -> bool {
-    bridge!("bossbarSetTitle", [S(id), S(title)]).unwrap_or(false)
+    unsafe { bridge!("bossbarSetTitle", [S(id), S(title)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_bossbar_set_progress(
@@ -893,15 +933,15 @@ unsafe extern "C" fn srv_bossbar_set_progress(
     id: YogStr,
     progress: f32,
 ) -> bool {
-    bridge!("bossbarSetProgress", [S(id), F(progress)]).unwrap_or(false)
+    unsafe { bridge!("bossbarSetProgress", [S(id), F(progress)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_bossbar_set_color(_ctx: *mut c_void, id: YogStr, color: YogStr) -> bool {
-    bridge!("bossbarSetColor", [S(id), S(color)]).unwrap_or(false)
+    unsafe { bridge!("bossbarSetColor", [S(id), S(color)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_bossbar_add_player(_ctx: *mut c_void, id: YogStr, player: YogStr) -> bool {
-    bridge!("bossbarAddPlayer", [S(id), S(player)]).unwrap_or(false)
+    unsafe { bridge!("bossbarAddPlayer", [S(id), S(player)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_bossbar_remove_player(
@@ -909,11 +949,11 @@ unsafe extern "C" fn srv_bossbar_remove_player(
     id: YogStr,
     player: YogStr,
 ) -> bool {
-    bridge!("bossbarRemovePlayer", [S(id), S(player)]).unwrap_or(false)
+    unsafe { bridge!("bossbarRemovePlayer", [S(id), S(player)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_bossbar_set_visible(_ctx: *mut c_void, id: YogStr, visible: bool) -> bool {
-    bridge!("bossbarSetVisible", [S(id), Z(visible)]).unwrap_or(false)
+    unsafe { bridge!("bossbarSetVisible", [S(id), Z(visible)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_get_block_nbt(
@@ -921,10 +961,12 @@ unsafe extern "C" fn srv_get_block_nbt(
     dim: YogStr,
     pos: YogBlockPos,
 ) -> YogOwnedStr {
-    owned(bridge!(
-        "getBlockNbt",
-        [S(dim), I(pos.x), I(pos.y), I(pos.z)]
-    ))
+    unsafe {
+        owned(bridge!(
+            "getBlockNbt",
+            [S(dim), I(pos.x), I(pos.y), I(pos.z)]
+        ))
+    }
 }
 
 unsafe extern "C" fn srv_set_block_nbt(
@@ -933,11 +975,13 @@ unsafe extern "C" fn srv_set_block_nbt(
     pos: YogBlockPos,
     snbt: YogStr,
 ) -> bool {
-    bridge!(
-        "setBlockNbt",
-        [S(dim), I(pos.x), I(pos.y), I(pos.z), S(snbt)]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "setBlockNbt",
+            [S(dim), I(pos.x), I(pos.y), I(pos.z), S(snbt)]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_get_inventory_slot(
@@ -946,10 +990,12 @@ unsafe extern "C" fn srv_get_inventory_slot(
     pos: yog_abi::YogBlockPos,
     slot: u32,
 ) -> YogOwnedStr {
-    owned(bridge!(
-        "getInventorySlot",
-        [S(dim), I(pos.x), I(pos.y), I(pos.z), I(slot as i32)]
-    ))
+    unsafe {
+        owned(bridge!(
+            "getInventorySlot",
+            [S(dim), I(pos.x), I(pos.y), I(pos.z), I(slot as i32)]
+        ))
+    }
 }
 
 unsafe extern "C" fn srv_set_inventory_slot(
@@ -960,23 +1006,25 @@ unsafe extern "C" fn srv_set_inventory_slot(
     item_id: YogStr,
     count: u32,
 ) -> bool {
-    bridge!(
-        "setInventorySlot",
-        [
-            S(dim),
-            I(pos.x),
-            I(pos.y),
-            I(pos.z),
-            I(slot as i32),
-            S(item_id),
-            I(count as i32)
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "setInventorySlot",
+            [
+                S(dim),
+                I(pos.x),
+                I(pos.y),
+                I(pos.z),
+                I(slot as i32),
+                S(item_id),
+                I(count as i32)
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_player_inventory(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
-    owned(bridge!("playerInventory", [S(player)]))
+    unsafe { owned(bridge!("playerInventory", [S(player)])) }
 }
 
 unsafe extern "C" fn srv_player_set_slot(
@@ -986,11 +1034,13 @@ unsafe extern "C" fn srv_player_set_slot(
     item_id: YogStr,
     count: u32,
 ) -> bool {
-    bridge!(
-        "playerSetSlot",
-        [S(player), I(slot as i32), S(item_id), I(count as i32)]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "playerSetSlot",
+            [S(player), I(slot as i32), S(item_id), I(count as i32)]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_player_teleport_dim(
@@ -999,11 +1049,13 @@ unsafe extern "C" fn srv_player_teleport_dim(
     dim: YogStr,
     pos: YogVec3,
 ) -> bool {
-    bridge!(
-        "teleportToDim",
-        [S(player), S(dim), D(pos.x), D(pos.y), D(pos.z)]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "teleportToDim",
+            [S(player), S(dim), D(pos.x), D(pos.y), D(pos.z)]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_entity_teleport_dim(
@@ -1012,15 +1064,17 @@ unsafe extern "C" fn srv_entity_teleport_dim(
     dim: YogStr,
     pos: YogVec3,
 ) -> bool {
-    bridge!(
-        "entityTeleportToDim",
-        [S(uuid), S(dim), D(pos.x), D(pos.y), D(pos.z)]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "entityTeleportToDim",
+            [S(uuid), S(dim), D(pos.x), D(pos.y), D(pos.z)]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_online_players(_ctx: *mut c_void) -> YogOwnedStr {
-    owned(bridge!("onlinePlayers", []))
+    unsafe { owned(bridge!("onlinePlayers", [])) }
 }
 
 unsafe extern "C" fn srv_world_entity_count(
@@ -1028,19 +1082,19 @@ unsafe extern "C" fn srv_world_entity_count(
     dim: YogStr,
     entity_type: YogStr,
 ) -> i32 {
-    bridge!("worldEntityCount", [S(dim), S(entity_type)]).unwrap_or(-1)
+    unsafe { bridge!("worldEntityCount", [S(dim), S(entity_type)]).unwrap_or(-1) }
 }
 
 unsafe extern "C" fn srv_game_dir(_ctx: *mut c_void) -> YogOwnedStr {
-    owned(bridge!("gameDir", []))
+    unsafe { owned(bridge!("gameDir", [])) }
 }
 
 unsafe extern "C" fn srv_entity_get_nbt(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
-    owned(bridge!("entityGetNbt", [S(uuid)]))
+    unsafe { owned(bridge!("entityGetNbt", [S(uuid)])) }
 }
 
 unsafe extern "C" fn srv_entity_set_nbt(_ctx: *mut c_void, uuid: YogStr, snbt: YogStr) -> bool {
-    bridge!("entitySetNbt", [S(uuid), S(snbt)]).unwrap_or(false)
+    unsafe { bridge!("entitySetNbt", [S(uuid), S(snbt)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_spawn_particles(
@@ -1054,22 +1108,24 @@ unsafe extern "C" fn srv_spawn_particles(
     dz: f64,
     speed: f64,
 ) -> bool {
-    bridge!(
-        "spawnParticles",
-        [
-            S(dim),
-            D(pos.x),
-            D(pos.y),
-            D(pos.z),
-            S(particle_type),
-            I(count),
-            D(dx),
-            D(dy),
-            D(dz),
-            D(speed)
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "spawnParticles",
+            [
+                S(dim),
+                D(pos.x),
+                D(pos.y),
+                D(pos.z),
+                S(particle_type),
+                I(count),
+                D(dx),
+                D(dy),
+                D(dz),
+                D(speed)
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_entity_attribute_get(
@@ -1077,7 +1133,7 @@ unsafe extern "C" fn srv_entity_attribute_get(
     uuid: YogStr,
     attr: YogStr,
 ) -> f64 {
-    bridge!("entityAttributeGet", [S(uuid), S(attr)]).unwrap_or(f64::NAN)
+    unsafe { bridge!("entityAttributeGet", [S(uuid), S(attr)]).unwrap_or(f64::NAN) }
 }
 
 unsafe extern "C" fn srv_entity_attribute_set(
@@ -1086,11 +1142,11 @@ unsafe extern "C" fn srv_entity_attribute_set(
     attr: YogStr,
     value: f64,
 ) -> bool {
-    bridge!("entityAttributeSet", [S(uuid), S(attr), D(value)]).unwrap_or(false)
+    unsafe { bridge!("entityAttributeSet", [S(uuid), S(attr), D(value)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_get_held_item_nbt(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
-    owned(bridge!("getHeldItemNbt", [S(player)]))
+    unsafe { owned(bridge!("getHeldItemNbt", [S(player)])) }
 }
 
 unsafe extern "C" fn srv_set_held_item_nbt(
@@ -1098,11 +1154,11 @@ unsafe extern "C" fn srv_set_held_item_nbt(
     player: YogStr,
     snbt: YogStr,
 ) -> bool {
-    bridge!("setHeldItemNbt", [S(player), S(snbt)]).unwrap_or(false)
+    unsafe { bridge!("setHeldItemNbt", [S(player), S(snbt)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_get_offhand_item_nbt(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
-    owned(bridge!("getOffhandItemNbt", [S(player)]))
+    unsafe { owned(bridge!("getOffhandItemNbt", [S(player)])) }
 }
 
 unsafe extern "C" fn srv_set_offhand_item_nbt(
@@ -1110,7 +1166,7 @@ unsafe extern "C" fn srv_set_offhand_item_nbt(
     player: YogStr,
     snbt: YogStr,
 ) -> bool {
-    bridge!("setOffhandItemNbt", [S(player), S(snbt)]).unwrap_or(false)
+    unsafe { bridge!("setOffhandItemNbt", [S(player), S(snbt)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_get_slot_item(
@@ -1118,7 +1174,7 @@ unsafe extern "C" fn srv_get_slot_item(
     player: YogStr,
     slot: u32,
 ) -> YogOwnedStr {
-    owned(bridge!("getSlotItem", [S(player), I(slot as i32)]))
+    unsafe { owned(bridge!("getSlotItem", [S(player), I(slot as i32)])) }
 }
 
 unsafe extern "C" fn srv_set_slot_item(
@@ -1129,17 +1185,19 @@ unsafe extern "C" fn srv_set_slot_item(
     count: u32,
     snbt: YogStr,
 ) -> bool {
-    bridge!(
-        "setSlotItem",
-        [
-            S(player),
-            I(slot as i32),
-            S(item_id),
-            I(count as i32),
-            S(snbt)
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "setSlotItem",
+            [
+                S(player),
+                I(slot as i32),
+                S(item_id),
+                I(count as i32),
+                S(snbt)
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 // ── ABI minor 14 — low-level GPU pipeline ────────────────────────────────────
@@ -1170,74 +1228,88 @@ fn gl_attr_type(dtype: u8) -> u32 {
 }
 
 unsafe fn compile_shader(gl: &glow::Context, stage: u32, src: &str) -> Option<glow::NativeShader> {
-    let sh = gl.create_shader(stage).ok()?;
-    gl.shader_source(sh, src);
-    gl.compile_shader(sh);
-    if !gl.get_shader_compile_status(sh) {
-        yog_logging::error!("yog-gfx shader compile: {}", gl.get_shader_info_log(sh));
-        gl.delete_shader(sh);
-        return None;
+    unsafe {
+        let sh = gl.create_shader(stage).ok()?;
+        gl.shader_source(sh, src);
+        gl.compile_shader(sh);
+        if !gl.get_shader_compile_status(sh) {
+            yog_logging::error!("yog-gfx shader compile: {}", gl.get_shader_info_log(sh));
+            gl.delete_shader(sh);
+            return None;
+        }
+        Some(sh)
     }
-    Some(sh)
 }
 
 // ── GPU buffers ───────────────────────────────────────────────────────────────
 
 unsafe extern "C" fn gfx_buf_create() -> u32 {
-    let Some(g) = GL.get() else { return 0 };
-    g.0.create_buffer().map(|b| b.0.get()).unwrap_or(0)
+    unsafe {
+        let Some(g) = GL.get() else { return 0 };
+        g.0.create_buffer().map(|b| b.0.get()).unwrap_or(0)
+    }
 }
 
 unsafe extern "C" fn gfx_buf_delete(handle: u32) {
-    let Some(g) = GL.get() else { return };
-    let Some(n) = NonZeroU32::new(handle) else {
-        return;
-    };
-    g.0.delete_buffer(glow::NativeBuffer(n));
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let Some(n) = NonZeroU32::new(handle) else {
+            return;
+        };
+        g.0.delete_buffer(glow::NativeBuffer(n));
+    }
 }
 
 unsafe extern "C" fn gfx_buf_data(handle: u32, bytes: *const u8, len: u32, dynamic: bool) {
-    let Some(g) = GL.get() else { return };
-    let Some(n) = NonZeroU32::new(handle) else {
-        return;
-    };
-    let gl = &g.0;
-    let data = std::slice::from_raw_parts(bytes, len as usize);
-    let usage = if dynamic {
-        glow::DYNAMIC_DRAW
-    } else {
-        glow::STATIC_DRAW
-    };
-    gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(n)));
-    gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, data, usage);
-    gl.bind_buffer(glow::ARRAY_BUFFER, None);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let Some(n) = NonZeroU32::new(handle) else {
+            return;
+        };
+        let gl = &g.0;
+        let data = std::slice::from_raw_parts(bytes, len as usize);
+        let usage = if dynamic {
+            glow::DYNAMIC_DRAW
+        } else {
+            glow::STATIC_DRAW
+        };
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(n)));
+        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, data, usage);
+        gl.bind_buffer(glow::ARRAY_BUFFER, None);
+    }
 }
 
 unsafe extern "C" fn gfx_buf_subdata(handle: u32, offset: u32, bytes: *const u8, len: u32) {
-    let Some(g) = GL.get() else { return };
-    let Some(n) = NonZeroU32::new(handle) else {
-        return;
-    };
-    let gl = &g.0;
-    let data = std::slice::from_raw_parts(bytes, len as usize);
-    gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(n)));
-    gl.buffer_sub_data_u8_slice(glow::ARRAY_BUFFER, offset as i32, data);
-    gl.bind_buffer(glow::ARRAY_BUFFER, None);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let Some(n) = NonZeroU32::new(handle) else {
+            return;
+        };
+        let gl = &g.0;
+        let data = std::slice::from_raw_parts(bytes, len as usize);
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(n)));
+        gl.buffer_sub_data_u8_slice(glow::ARRAY_BUFFER, offset as i32, data);
+        gl.bind_buffer(glow::ARRAY_BUFFER, None);
+    }
 }
 
 // ── Vertex arrays ─────────────────────────────────────────────────────────────
 
 unsafe extern "C" fn gfx_vao_create() -> u32 {
-    let Some(g) = GL.get() else { return 0 };
-    g.0.create_vertex_array().map(|v| v.0.get()).unwrap_or(0)
+    unsafe {
+        let Some(g) = GL.get() else { return 0 };
+        g.0.create_vertex_array().map(|v| v.0.get()).unwrap_or(0)
+    }
 }
 
 unsafe extern "C" fn gfx_vao_delete(handle: u32) {
-    let Some(g) = GL.get() else { return };
-    let Some(n) = NonZeroU32::new(handle) else {
-        return;
-    };
-    g.0.delete_vertex_array(glow::NativeVertexArray(n));
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let Some(n) = NonZeroU32::new(handle) else {
+            return;
+        };
+        g.0.delete_vertex_array(glow::NativeVertexArray(n));
+    }
 }
 
 unsafe extern "C" fn gfx_vao_attrib(
@@ -1250,45 +1322,49 @@ unsafe extern "C" fn gfx_vao_attrib(
     stride: u32,
     offset: u32,
 ) {
-    let Some(g) = GL.get() else { return };
-    let (Some(vn), Some(bn)) = (NonZeroU32::new(vao), NonZeroU32::new(vbo)) else {
-        return;
-    };
-    let gl = &g.0;
-    gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
-    gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(bn)));
-    let gl_type = gl_attr_type(dtype);
-    if dtype == 2 || dtype == 3 {
-        gl.vertex_attrib_pointer_i32(
-            index,
-            components as i32,
-            gl_type,
-            stride as i32,
-            offset as i32,
-        );
-    } else {
-        gl.vertex_attrib_pointer_f32(
-            index,
-            components as i32,
-            gl_type,
-            normalized,
-            stride as i32,
-            offset as i32,
-        );
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let (Some(vn), Some(bn)) = (NonZeroU32::new(vao), NonZeroU32::new(vbo)) else {
+            return;
+        };
+        let gl = &g.0;
+        gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(bn)));
+        let gl_type = gl_attr_type(dtype);
+        if dtype == 2 || dtype == 3 {
+            gl.vertex_attrib_pointer_i32(
+                index,
+                components as i32,
+                gl_type,
+                stride as i32,
+                offset as i32,
+            );
+        } else {
+            gl.vertex_attrib_pointer_f32(
+                index,
+                components as i32,
+                gl_type,
+                normalized,
+                stride as i32,
+                offset as i32,
+            );
+        }
+        gl.enable_vertex_attrib_array(index);
+        gl.bind_vertex_array(None);
     }
-    gl.enable_vertex_attrib_array(index);
-    gl.bind_vertex_array(None);
 }
 
 unsafe extern "C" fn gfx_vao_set_ebo(vao: u32, ebo: u32) {
-    let Some(g) = GL.get() else { return };
-    let (Some(vn), Some(en)) = (NonZeroU32::new(vao), NonZeroU32::new(ebo)) else {
-        return;
-    };
-    let gl = &g.0;
-    gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
-    gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(glow::NativeBuffer(en)));
-    gl.bind_vertex_array(None);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let (Some(vn), Some(en)) = (NonZeroU32::new(vao), NonZeroU32::new(ebo)) else {
+            return;
+        };
+        let gl = &g.0;
+        gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
+        gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(glow::NativeBuffer(en)));
+        gl.bind_vertex_array(None);
+    }
 }
 
 // ── Shader programs ───────────────────────────────────────────────────────────
@@ -1319,75 +1395,82 @@ fn shader_cache_path(vert: &str, frag: &str) -> Option<PathBuf> {
 /// Uses `glProgramBinary` (GL 4.1 / ARB_get_program_binary) via the raw pointer
 /// captured in `nativeGlInit`.  Returns `None` if the extension is unavailable.
 unsafe fn load_shader_binary(gl: &glow::Context, data: &[u8]) -> Option<glow::NativeProgram> {
-    if data.len() < 4 {
-        return None;
-    }
-    type ProgramBinaryFn = unsafe extern "system" fn(u32, u32, *const c_void, i32);
-    let fn_ptr = (*GL_PROGRAM_BINARY.get()?)?;
-    let program_binary: ProgramBinaryFn = std::mem::transmute(fn_ptr);
+    unsafe {
+        if data.len() < 4 {
+            return None;
+        }
+        type ProgramBinaryFn = unsafe extern "system" fn(u32, u32, *const c_void, i32);
+        let fn_ptr = (*GL_PROGRAM_BINARY.get()?)?;
+        let program_binary: ProgramBinaryFn = std::mem::transmute(fn_ptr);
 
-    let fmt = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
-    let prog = gl.create_program().ok()?;
-    program_binary(
-        prog.0.get(),
-        fmt,
-        data[4..].as_ptr() as *const c_void,
-        (data.len() - 4) as i32,
-    );
-    if gl.get_program_link_status(prog) {
-        Some(prog)
-    } else {
-        gl.delete_program(prog);
-        None
+        let fmt = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+        let prog = gl.create_program().ok()?;
+        program_binary(
+            prog.0.get(),
+            fmt,
+            data[4..].as_ptr() as *const c_void,
+            (data.len() - 4) as i32,
+        );
+        if gl.get_program_link_status(prog) {
+            Some(prog)
+        } else {
+            gl.delete_program(prog);
+            None
+        }
     }
 }
 
 /// Read the compiled binary of a linked program.  Returns empty `Vec` if unsupported.
 unsafe fn get_shader_binary(prog: glow::NativeProgram) -> (Vec<u8>, u32) {
-    type GetProgramivFn = unsafe extern "system" fn(u32, u32, *mut i32);
-    type GetProgramBinaryFn = unsafe extern "system" fn(u32, i32, *mut i32, *mut u32, *mut c_void);
+    unsafe {
+        type GetProgramivFn = unsafe extern "system" fn(u32, u32, *mut i32);
+        type GetProgramBinaryFn =
+            unsafe extern "system" fn(u32, i32, *mut i32, *mut u32, *mut c_void);
 
-    let Some(get_iv_raw) = GL_GET_PROGRAM_IV.get().and_then(|v| *v) else {
-        return (vec![], 0);
-    };
-    let Some(get_bin_raw) = GL_GET_PROGRAM_BINARY.get().and_then(|v| *v) else {
-        return (vec![], 0);
-    };
-    let get_program_iv: GetProgramivFn = std::mem::transmute(get_iv_raw);
-    let get_program_binary: GetProgramBinaryFn = std::mem::transmute(get_bin_raw);
+        let Some(get_iv_raw) = GL_GET_PROGRAM_IV.get().and_then(|v| *v) else {
+            return (vec![], 0);
+        };
+        let Some(get_bin_raw) = GL_GET_PROGRAM_BINARY.get().and_then(|v| *v) else {
+            return (vec![], 0);
+        };
+        let get_program_iv: GetProgramivFn = std::mem::transmute(get_iv_raw);
+        let get_program_binary: GetProgramBinaryFn = std::mem::transmute(get_bin_raw);
 
-    // Query binary size via glGetProgramiv(GL_PROGRAM_BINARY_LENGTH).
-    const PROGRAM_BINARY_LENGTH: u32 = 0x8741;
-    let mut size: i32 = 0;
-    get_program_iv(prog.0.get(), PROGRAM_BINARY_LENGTH, &mut size);
-    if size <= 0 {
-        return (vec![], 0);
+        // Query binary size via glGetProgramiv(GL_PROGRAM_BINARY_LENGTH).
+        const PROGRAM_BINARY_LENGTH: u32 = 0x8741;
+        let mut size: i32 = 0;
+        get_program_iv(prog.0.get(), PROGRAM_BINARY_LENGTH, &mut size);
+        if size <= 0 {
+            return (vec![], 0);
+        }
+
+        let mut buf = vec![0u8; size as usize];
+        let mut actual_len: i32 = 0;
+        let mut fmt: u32 = 0;
+        get_program_binary(
+            prog.0.get(),
+            size,
+            &mut actual_len,
+            &mut fmt,
+            buf.as_mut_ptr() as *mut c_void,
+        );
+        buf.truncate(actual_len.max(0) as usize);
+        (buf, fmt)
     }
-
-    let mut buf = vec![0u8; size as usize];
-    let mut actual_len: i32 = 0;
-    let mut fmt: u32 = 0;
-    get_program_binary(
-        prog.0.get(),
-        size,
-        &mut actual_len,
-        &mut fmt,
-        buf.as_mut_ptr() as *mut c_void,
-    );
-    buf.truncate(actual_len.max(0) as usize);
-    (buf, fmt)
 }
 
 unsafe extern "C" fn gfx_prog_create(vert: YogStr, frag: YogStr, out: *mut u32) -> bool {
-    let Some(g) = GL.get() else { return false };
-    let gl = &g.0;
-    let vert_s = vert.as_str();
-    let frag_s = frag.as_str();
+    unsafe {
+        let Some(g) = GL.get() else { return false };
+        let gl = &g.0;
+        let vert_s = vert.as_str();
+        let frag_s = frag.as_str();
 
-    // Fast path: binary shader cache — avoids GLSL re-compilation on subsequent launches.
-    let cache_path = shader_cache_path(vert_s, frag_s);
-    if let Some(ref path) = cache_path {
-        if let Ok(data) = std::fs::read(path) {
+        // Fast path: binary shader cache — avoids GLSL re-compilation on subsequent launches.
+        let cache_path = shader_cache_path(vert_s, frag_s);
+        if let Some(ref path) = cache_path
+            && let Ok(data) = std::fs::read(path)
+        {
             if let Some(prog) = load_shader_binary(gl, &data) {
                 *out = prog.0.get();
                 return true;
@@ -1395,66 +1478,68 @@ unsafe extern "C" fn gfx_prog_create(vert: YogStr, frag: YogStr, out: *mut u32) 
             // Cache stale (driver updated?); remove and fall through to GLSL compile.
             let _ = std::fs::remove_file(path);
         }
-    }
 
-    // GLSL compile path.
-    let vs = match compile_shader(gl, glow::VERTEX_SHADER, vert_s) {
-        Some(s) => s,
-        None => return false,
-    };
-    let fs = match compile_shader(gl, glow::FRAGMENT_SHADER, frag_s) {
-        Some(s) => s,
-        None => {
-            gl.delete_shader(vs);
+        // GLSL compile path.
+        let vs = match compile_shader(gl, glow::VERTEX_SHADER, vert_s) {
+            Some(s) => s,
+            None => return false,
+        };
+        let fs = match compile_shader(gl, glow::FRAGMENT_SHADER, frag_s) {
+            Some(s) => s,
+            None => {
+                gl.delete_shader(vs);
+                return false;
+            }
+        };
+        let prog = match gl.create_program() {
+            Ok(p) => p,
+            Err(e) => {
+                yog_logging::error!("yog-gfx: create_program: {}", e);
+                gl.delete_shader(vs);
+                gl.delete_shader(fs);
+                return false;
+            }
+        };
+        gl.attach_shader(prog, vs);
+        gl.attach_shader(prog, fs);
+        gl.link_program(prog);
+        gl.detach_shader(prog, vs);
+        gl.detach_shader(prog, fs);
+        gl.delete_shader(vs);
+        gl.delete_shader(fs);
+        if !gl.get_program_link_status(prog) {
+            yog_logging::error!("yog-gfx: shader link: {}", gl.get_program_info_log(prog));
+            gl.delete_program(prog);
             return false;
         }
-    };
-    let prog = match gl.create_program() {
-        Ok(p) => p,
-        Err(e) => {
-            yog_logging::error!("yog-gfx: create_program: {}", e);
-            gl.delete_shader(vs);
-            gl.delete_shader(fs);
-            return false;
-        }
-    };
-    gl.attach_shader(prog, vs);
-    gl.attach_shader(prog, fs);
-    gl.link_program(prog);
-    gl.detach_shader(prog, vs);
-    gl.detach_shader(prog, fs);
-    gl.delete_shader(vs);
-    gl.delete_shader(fs);
-    if !gl.get_program_link_status(prog) {
-        yog_logging::error!("yog-gfx: shader link: {}", gl.get_program_info_log(prog));
-        gl.delete_program(prog);
-        return false;
-    }
 
-    // Persist binary so the next launch skips GLSL compilation entirely.
-    if let Some(ref path) = cache_path {
-        let (binary, fmt) = get_shader_binary(prog);
-        if !binary.is_empty() {
-            let mut blob = fmt.to_le_bytes().to_vec();
-            blob.extend_from_slice(&binary);
-            let _ = std::fs::write(path, &blob);
+        // Persist binary so the next launch skips GLSL compilation entirely.
+        if let Some(ref path) = cache_path {
+            let (binary, fmt) = get_shader_binary(prog);
+            if !binary.is_empty() {
+                let mut blob = fmt.to_le_bytes().to_vec();
+                blob.extend_from_slice(&binary);
+                let _ = std::fs::write(path, &blob);
+            }
         }
-    }
 
-    *out = prog.0.get();
-    true
+        *out = prog.0.get();
+        true
+    }
 }
 
 unsafe extern "C" fn gfx_prog_delete(handle: u32) {
-    let Some(g) = GL.get() else { return };
-    let Some(n) = NonZeroU32::new(handle) else {
-        return;
-    };
-    g.0.delete_program(glow::NativeProgram(n));
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let Some(n) = NonZeroU32::new(handle) else {
+            return;
+        };
+        g.0.delete_program(glow::NativeProgram(n));
+    }
 }
 
 macro_rules! with_prog {
-    ($handle:expr, |$gl:ident, $prog:ident, $loc:ident ($name:expr)| $body:expr) => {{
+    ($handle:expr_2021, |$gl:ident, $prog:ident, $loc:ident ($name:expr_2021)| $body:expr_2021) => {{
         let Some(g) = GL.get() else { return };
         let Some(n) = NonZeroU32::new($handle) else {
             return;
@@ -1468,115 +1553,135 @@ macro_rules! with_prog {
 }
 
 unsafe extern "C" fn gfx_prog_uniform_1i(prog: u32, name: YogStr, v: i32) {
-    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_1_i32(loc.as_ref(), v));
+    unsafe {
+        with_prog!(prog, |gl, _p, loc(name)| gl.uniform_1_i32(loc.as_ref(), v));
+    }
 }
 unsafe extern "C" fn gfx_prog_uniform_1f(prog: u32, name: YogStr, v: f32) {
-    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_1_f32(loc.as_ref(), v));
+    unsafe {
+        with_prog!(prog, |gl, _p, loc(name)| gl.uniform_1_f32(loc.as_ref(), v));
+    }
 }
 unsafe extern "C" fn gfx_prog_uniform_2f(prog: u32, name: YogStr, x: f32, y: f32) {
-    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_2_f32(
-        loc.as_ref(),
-        x,
-        y
-    ));
+    unsafe {
+        with_prog!(prog, |gl, _p, loc(name)| gl.uniform_2_f32(
+            loc.as_ref(),
+            x,
+            y
+        ));
+    }
 }
 unsafe extern "C" fn gfx_prog_uniform_3f(prog: u32, name: YogStr, x: f32, y: f32, z: f32) {
-    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_3_f32(
-        loc.as_ref(),
-        x,
-        y,
-        z
-    ));
+    unsafe {
+        with_prog!(prog, |gl, _p, loc(name)| gl.uniform_3_f32(
+            loc.as_ref(),
+            x,
+            y,
+            z
+        ));
+    }
 }
 unsafe extern "C" fn gfx_prog_uniform_4f(prog: u32, name: YogStr, x: f32, y: f32, z: f32, w: f32) {
-    with_prog!(prog, |gl, _p, loc(name)| gl.uniform_4_f32(
-        loc.as_ref(),
-        x,
-        y,
-        z,
-        w
-    ));
+    unsafe {
+        with_prog!(prog, |gl, _p, loc(name)| gl.uniform_4_f32(
+            loc.as_ref(),
+            x,
+            y,
+            z,
+            w
+        ));
+    }
 }
 unsafe extern "C" fn gfx_prog_uniform_mat4(prog: u32, name: YogStr, col_major: *const f32) {
-    with_prog!(prog, |gl, _p, loc(name)| {
-        let data = std::slice::from_raw_parts(col_major, 16);
-        gl.uniform_matrix_4_f32_slice(loc.as_ref(), false, data);
-    });
+    unsafe {
+        with_prog!(prog, |gl, _p, loc(name)| {
+            let data = std::slice::from_raw_parts(col_major, 16);
+            gl.uniform_matrix_4_f32_slice(loc.as_ref(), false, data);
+        });
+    }
 }
 
 // ── Textures ──────────────────────────────────────────────────────────────────
 
 unsafe extern "C" fn gfx_tex_create(w: u32, h: u32, rgba: *const u8, linear: bool) -> u32 {
-    let Some(g) = GL.get() else { return 0 };
-    let gl = &g.0;
-    let tex = match gl.create_texture() {
-        Ok(t) => t,
-        Err(_) => return 0,
-    };
-    gl.bind_texture(glow::TEXTURE_2D, Some(tex));
-    let filter = if linear { glow::LINEAR } else { glow::NEAREST };
-    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MIN_FILTER, filter as i32);
-    gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MAG_FILTER, filter as i32);
-    gl.tex_parameter_i32(
-        glow::TEXTURE_2D,
-        glow::TEXTURE_WRAP_S,
-        glow::CLAMP_TO_EDGE as i32,
-    );
-    gl.tex_parameter_i32(
-        glow::TEXTURE_2D,
-        glow::TEXTURE_WRAP_T,
-        glow::CLAMP_TO_EDGE as i32,
-    );
-    let pixels = std::slice::from_raw_parts(rgba, (w * h * 4) as usize);
-    gl.tex_image_2d(
-        glow::TEXTURE_2D,
-        0,
-        glow::RGBA8 as i32,
-        w as i32,
-        h as i32,
-        0,
-        glow::RGBA,
-        glow::UNSIGNED_BYTE,
-        glow::PixelUnpackData::Slice(Some(pixels)),
-    );
-    gl.bind_texture(glow::TEXTURE_2D, None);
-    tex.0.get()
+    unsafe {
+        let Some(g) = GL.get() else { return 0 };
+        let gl = &g.0;
+        let tex = match gl.create_texture() {
+            Ok(t) => t,
+            Err(_) => return 0,
+        };
+        gl.bind_texture(glow::TEXTURE_2D, Some(tex));
+        let filter = if linear { glow::LINEAR } else { glow::NEAREST };
+        gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MIN_FILTER, filter as i32);
+        gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MAG_FILTER, filter as i32);
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_WRAP_S,
+            glow::CLAMP_TO_EDGE as i32,
+        );
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_WRAP_T,
+            glow::CLAMP_TO_EDGE as i32,
+        );
+        let pixels = std::slice::from_raw_parts(rgba, (w * h * 4) as usize);
+        gl.tex_image_2d(
+            glow::TEXTURE_2D,
+            0,
+            glow::RGBA8 as i32,
+            w as i32,
+            h as i32,
+            0,
+            glow::RGBA,
+            glow::UNSIGNED_BYTE,
+            glow::PixelUnpackData::Slice(Some(pixels)),
+        );
+        gl.bind_texture(glow::TEXTURE_2D, None);
+        tex.0.get()
+    }
 }
 
 unsafe extern "C" fn gfx_tex_delete(handle: u32) {
-    let Some(g) = GL.get() else { return };
-    let Some(n) = NonZeroU32::new(handle) else {
-        return;
-    };
-    g.0.delete_texture(glow::NativeTexture(n));
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let Some(n) = NonZeroU32::new(handle) else {
+            return;
+        };
+        g.0.delete_texture(glow::NativeTexture(n));
+    }
 }
 
 unsafe extern "C" fn gfx_tex_bind(unit: u32, handle: u32) {
-    let Some(g) = GL.get() else { return };
-    let gl = &g.0;
-    gl.active_texture(glow::TEXTURE0 + unit);
-    match NonZeroU32::new(handle) {
-        Some(n) => gl.bind_texture(glow::TEXTURE_2D, Some(glow::NativeTexture(n))),
-        None => gl.bind_texture(glow::TEXTURE_2D, None),
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let gl = &g.0;
+        gl.active_texture(glow::TEXTURE0 + unit);
+        match NonZeroU32::new(handle) {
+            Some(n) => gl.bind_texture(glow::TEXTURE_2D, Some(glow::NativeTexture(n))),
+            None => gl.bind_texture(glow::TEXTURE_2D, None),
+        }
     }
 }
 
 unsafe extern "C" fn gfx_tex_from_mc(id: YogStr) -> u32 {
-    host!("dev/yog/NativeDraw", "getMcTextureId", [S(id)]).map_or(0, |id: i32| id as u32)
+    unsafe { host!("dev/yog/NativeDraw", "getMcTextureId", [S(id)]).map_or(0, |id: i32| id as u32) }
 }
 
 // ── Draw calls ────────────────────────────────────────────────────────────────
 
 unsafe extern "C" fn gfx_draw_arrays(vao: u32, prog: u32, mode: u8, first: u32, count: u32) {
-    let Some(g) = GL.get() else { return };
-    let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else {
-        return;
-    };
-    let gl = &g.0;
-    gl.use_program(Some(glow::NativeProgram(pn)));
-    gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
-    gl.draw_arrays(gl_draw_mode(mode), first as i32, count as i32);
-    gl.bind_vertex_array(None);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else {
+            return;
+        };
+        let gl = &g.0;
+        gl.use_program(Some(glow::NativeProgram(pn)));
+        gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
+        gl.draw_arrays(gl_draw_mode(mode), first as i32, count as i32);
+        gl.bind_vertex_array(None);
+    }
 }
 
 unsafe extern "C" fn gfx_draw_elements(
@@ -1587,77 +1692,91 @@ unsafe extern "C" fn gfx_draw_elements(
     count: u32,
     u32_idx: bool,
 ) {
-    let Some(g) = GL.get() else { return };
-    let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else {
-        return;
-    };
-    let gl = &g.0;
-    gl.use_program(Some(glow::NativeProgram(pn)));
-    gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
-    // EBO is stored in the VAO; ebo param is informational for safety but not re-bound here.
-    let _ = ebo;
-    let idx_type = if u32_idx {
-        glow::UNSIGNED_INT
-    } else {
-        glow::UNSIGNED_SHORT
-    };
-    gl.draw_elements(gl_draw_mode(mode), count as i32, idx_type, 0);
-    gl.bind_vertex_array(None);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else {
+            return;
+        };
+        let gl = &g.0;
+        gl.use_program(Some(glow::NativeProgram(pn)));
+        gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
+        // EBO is stored in the VAO; ebo param is informational for safety but not re-bound here.
+        let _ = ebo;
+        let idx_type = if u32_idx {
+            glow::UNSIGNED_INT
+        } else {
+            glow::UNSIGNED_SHORT
+        };
+        gl.draw_elements(gl_draw_mode(mode), count as i32, idx_type, 0);
+        gl.bind_vertex_array(None);
+    }
 }
 
 // ── Render state ──────────────────────────────────────────────────────────────
 
 unsafe extern "C" fn gfx_set_blend(enabled: bool, src: u32, dst: u32) {
-    let Some(g) = GL.get() else { return };
-    let gl = &g.0;
-    if enabled {
-        gl.enable(glow::BLEND);
-        gl.blend_func(src, dst);
-    } else {
-        gl.disable(glow::BLEND);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let gl = &g.0;
+        if enabled {
+            gl.enable(glow::BLEND);
+            gl.blend_func(src, dst);
+        } else {
+            gl.disable(glow::BLEND);
+        }
     }
 }
 
 unsafe extern "C" fn gfx_set_depth(test: bool, write: bool) {
-    let Some(g) = GL.get() else { return };
-    let gl = &g.0;
-    if test {
-        gl.enable(glow::DEPTH_TEST);
-    } else {
-        gl.disable(glow::DEPTH_TEST);
-    }
-    gl.depth_mask(write);
-    // Disable face culling: our 2D quads use CW winding (back-face) due to y-flip.
-    if !test {
-        gl.disable(glow::CULL_FACE);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let gl = &g.0;
+        if test {
+            gl.enable(glow::DEPTH_TEST);
+        } else {
+            gl.disable(glow::DEPTH_TEST);
+        }
+        gl.depth_mask(write);
+        // Disable face culling: our 2D quads use CW winding (back-face) due to y-flip.
+        if !test {
+            gl.disable(glow::CULL_FACE);
+        }
     }
 }
 
 unsafe extern "C" fn gfx_set_scissor(x: i32, y: i32, w: i32, h: i32) {
-    let Some(g) = GL.get() else { return };
-    let gl = &g.0;
-    gl.enable(glow::SCISSOR_TEST);
-    gl.scissor(x, y, w, h);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        let gl = &g.0;
+        gl.enable(glow::SCISSOR_TEST);
+        gl.scissor(x, y, w, h);
+    }
 }
 
 unsafe extern "C" fn gfx_clear_scissor() {
-    let Some(g) = GL.get() else { return };
-    g.0.disable(glow::SCISSOR_TEST);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        g.0.disable(glow::SCISSOR_TEST);
+    }
 }
 
 unsafe extern "C" fn gfx_set_viewport(x: i32, y: i32, w: i32, h: i32) {
-    let Some(g) = GL.get() else { return };
-    g.0.viewport(x, y, w, h);
+    unsafe {
+        let Some(g) = GL.get() else { return };
+        g.0.viewport(x, y, w, h);
+    }
 }
 
 // ── 2D convenience (JNI — uses MC's DrawContext / text renderer) ──────────────
 
 unsafe extern "C" fn gfx_draw2d_rect(x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
-    let _: Option<()> = host!(
-        "dev/yog/NativeDraw",
-        "drawRect",
-        [F(x1), F(y1), F(x2), F(y2), I(color as i32)]
-    );
+    unsafe {
+        let _: Option<()> = host!(
+            "dev/yog/NativeDraw",
+            "drawRect",
+            [F(x1), F(y1), F(x2), F(y2), I(color as i32)]
+        );
+    }
 }
 
 unsafe extern "C" fn gfx_draw2d_gradient(
@@ -1668,19 +1787,23 @@ unsafe extern "C" fn gfx_draw2d_gradient(
     top: u32,
     bottom: u32,
 ) {
-    let _: Option<()> = host!(
-        "dev/yog/NativeDraw",
-        "drawGradientRect",
-        [F(x1), F(y1), F(x2), F(y2), I(top as i32), I(bottom as i32)]
-    );
+    unsafe {
+        let _: Option<()> = host!(
+            "dev/yog/NativeDraw",
+            "drawGradientRect",
+            [F(x1), F(y1), F(x2), F(y2), I(top as i32), I(bottom as i32)]
+        );
+    }
 }
 
 unsafe extern "C" fn gfx_draw2d_text(text: YogStr, x: f32, y: f32, color: u32, shadow: bool) {
-    let _: Option<()> = host!(
-        "dev/yog/NativeDraw",
-        "drawText",
-        [S(text), F(x), F(y), I(color as i32), Z(shadow)]
-    );
+    unsafe {
+        let _: Option<()> = host!(
+            "dev/yog/NativeDraw",
+            "drawText",
+            [S(text), F(x), F(y), I(color as i32), Z(shadow)]
+        );
+    }
 }
 
 unsafe extern "C" fn gfx_draw2d_text_font(
@@ -1691,23 +1814,27 @@ unsafe extern "C" fn gfx_draw2d_text_font(
     color: u32,
     shadow: bool,
 ) {
-    let _: Option<()> = host!(
-        "dev/yog/NativeDraw",
-        "drawTextFont",
-        [S(text), S(font), F(x), F(y), I(color as i32), Z(shadow)]
-    );
+    unsafe {
+        let _: Option<()> = host!(
+            "dev/yog/NativeDraw",
+            "drawTextFont",
+            [S(text), S(font), F(x), F(y), I(color as i32), Z(shadow)]
+        );
+    }
 }
 
 unsafe extern "C" fn gfx_text_width(text: YogStr, font: YogStr) -> f32 {
-    host!("dev/yog/NativeDraw", "textWidth", [S(text), S(font)]).unwrap_or(0.0)
+    unsafe { host!("dev/yog/NativeDraw", "textWidth", [S(text), S(font)]).unwrap_or(0.0) }
 }
 
 unsafe extern "C" fn gfx_draw2d_item(id: YogStr, x: f32, y: f32, size: f32) {
-    let _: Option<()> = host!(
-        "dev/yog/NativeDraw",
-        "drawItem",
-        [S(id), F(x), F(y), F(size)]
-    );
+    unsafe {
+        let _: Option<()> = host!(
+            "dev/yog/NativeDraw",
+            "drawItem",
+            [S(id), F(x), F(y), F(size)]
+        );
+    }
 }
 
 // ── Static GFX function table (function pointers only — per-frame data filled at call time) ──
@@ -1768,9 +1895,11 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
 macro_rules! api_event {
     ($name:ident, $field:ident, $fn_ty:ty) => {
         unsafe extern "C" fn $name(ctx: *mut c_void, ud: *mut c_void, h: $fn_ty) {
-            let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-            let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-            handlers.$field.push((current_registration(), ud, h));
+            unsafe {
+                let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+                let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+                handlers.$field.push((current_registration(), ud, h));
+            }
         }
     };
 }
@@ -1817,11 +1946,13 @@ unsafe extern "C" fn api_on_packet(
     ud: *mut c_void,
     h: YogPacketFn,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    handlers
-        .packets
-        .insert(channel.as_str().to_owned(), (current_registration(), ud, h));
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        handlers
+            .packets
+            .insert(channel.as_str().to_owned(), (current_registration(), ud, h));
+    }
 }
 
 unsafe extern "C" fn api_on_client_packet(
@@ -1830,11 +1961,13 @@ unsafe extern "C" fn api_on_client_packet(
     ud: *mut c_void,
     h: YogPacketFn,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    handlers
-        .client_packets
-        .insert(channel.as_str().to_owned(), (current_registration(), ud, h));
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        handlers
+            .client_packets
+            .insert(channel.as_str().to_owned(), (current_registration(), ud, h));
+    }
 }
 
 unsafe extern "C" fn api_register_command(
@@ -1843,13 +1976,15 @@ unsafe extern "C" fn api_register_command(
     ud: *mut c_void,
     h: YogCommandFn,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    handlers
-        .commands
-        .entry(name.as_str().to_owned())
-        .or_default()
-        .push((current_registration(), None, ud, h));
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        handlers
+            .commands
+            .entry(name.as_str().to_owned())
+            .or_default()
+            .push((current_registration(), None, ud, h));
+    }
 }
 
 unsafe extern "C" fn api_register_typed_command(
@@ -1859,15 +1994,17 @@ unsafe extern "C" fn api_register_typed_command(
     ud: *mut c_void,
     h: YogCommandFn,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let n = name.as_str().to_owned();
-    handlers.commands.entry(n).or_default().push((
-        current_registration(),
-        Some(schema.as_str().to_owned()),
-        ud,
-        h,
-    ));
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let n = name.as_str().to_owned();
+        handlers.commands.entry(n).or_default().push((
+            current_registration(),
+            Some(schema.as_str().to_owned()),
+            ud,
+            h,
+        ));
+    }
 }
 
 unsafe extern "C" fn api_register_recipe_json(
@@ -1876,122 +2013,130 @@ unsafe extern "C" fn api_register_recipe_json(
     name: YogStr,
     json: YogStr,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let ns = namespace.as_str().to_owned();
-    let n = name.as_str().to_owned();
-    let j = json.as_str().to_owned();
-    // Feed the recipe to already-registered book renderers (crafting pages).
-    let full_id = format!("{ns}:{n}");
-    for r in handlers.book_renderers.lock().unwrap().values_mut() {
-        r.add_recipe(full_id.clone(), &j);
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let ns = namespace.as_str().to_owned();
+        let n = name.as_str().to_owned();
+        let j = json.as_str().to_owned();
+        // Feed the recipe to already-registered book renderers (crafting pages).
+        let full_id = format!("{ns}:{n}");
+        for r in handlers.book_renderers.lock().unwrap().values_mut() {
+            r.add_recipe(full_id.clone(), &j);
+        }
+        handlers.recipes.push((ns, n, j));
     }
-    handlers.recipes.push((ns, n, j));
 }
 
 unsafe extern "C" fn api_register_item(ctx: *mut c_void, def: *const YogItemDef) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let d = &*def;
-    let food = if d.food_nutrition > 0 {
-        Some(FoodDef {
-            nutrition: d.food_nutrition,
-            saturation: d.food_saturation,
-            can_always_eat: d.food_always_eat,
-        })
-    } else {
-        None
-    };
-    handlers.items.push(ItemDef {
-        id: d.id.as_str().to_owned(),
-        max_stack: d.max_stack as u8,
-        name: if d.name.is_empty() {
-            None
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let d = &*def;
+        let food = if d.food_nutrition > 0 {
+            Some(FoodDef {
+                nutrition: d.food_nutrition,
+                saturation: d.food_saturation,
+                can_always_eat: d.food_always_eat,
+            })
         } else {
-            Some(d.name.as_str().to_owned())
-        },
-        tooltip: if d.tooltip.is_empty() {
             None
-        } else {
-            Some(d.tooltip.as_str().to_owned())
-        },
-        max_damage: d.max_damage,
-        fire_resistant: d.fire_resistant,
-        fuel_ticks: d.fuel_ticks,
-        food,
-    });
+        };
+        handlers.items.push(ItemDef {
+            id: d.id.as_str().to_owned(),
+            max_stack: d.max_stack as u8,
+            name: if d.name.is_empty() {
+                None
+            } else {
+                Some(d.name.as_str().to_owned())
+            },
+            tooltip: if d.tooltip.is_empty() {
+                None
+            } else {
+                Some(d.tooltip.as_str().to_owned())
+            },
+            max_damage: d.max_damage,
+            fire_resistant: d.fire_resistant,
+            fuel_ticks: d.fuel_ticks,
+            food,
+        });
+    }
 }
 
 unsafe extern "C" fn api_register_block(ctx: *mut c_void, def: *const YogBlockDef) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let d = &*def;
-    handlers.blocks.push(BlockDef {
-        id: d.id.as_str().to_owned(),
-        hardness: d.hardness,
-        resistance: d.resistance,
-        name: if d.name.is_empty() {
-            None
-        } else {
-            Some(d.name.as_str().to_owned())
-        },
-        light_level: d.light_level,
-        sound: if d.sound.is_empty() {
-            None
-        } else {
-            Some(d.sound.as_str().to_owned())
-        },
-        requires_tool: d.requires_tool,
-        no_collision: d.no_collision,
-        slipperiness: d.slipperiness,
-        shape: if d.shape == [0.0f32; 6] {
-            None
-        } else {
-            Some(d.shape)
-        },
-        connects: d.connects,
-        connect_groups: if d.connect_groups.is_empty() {
-            Vec::new()
-        } else {
-            d.connect_groups
-                .as_str()
-                .split(',')
-                .map(str::to_owned)
-                .collect()
-        },
-        inventory_id: if d.inventory_id.is_empty() {
-            None
-        } else {
-            Some(d.inventory_id.as_str().to_owned())
-        },
-    });
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let d = &*def;
+        handlers.blocks.push(BlockDef {
+            id: d.id.as_str().to_owned(),
+            hardness: d.hardness,
+            resistance: d.resistance,
+            name: if d.name.is_empty() {
+                None
+            } else {
+                Some(d.name.as_str().to_owned())
+            },
+            light_level: d.light_level,
+            sound: if d.sound.is_empty() {
+                None
+            } else {
+                Some(d.sound.as_str().to_owned())
+            },
+            requires_tool: d.requires_tool,
+            no_collision: d.no_collision,
+            slipperiness: d.slipperiness,
+            shape: if d.shape == [0.0f32; 6] {
+                None
+            } else {
+                Some(d.shape)
+            },
+            connects: d.connects,
+            connect_groups: if d.connect_groups.is_empty() {
+                Vec::new()
+            } else {
+                d.connect_groups
+                    .as_str()
+                    .split(',')
+                    .map(str::to_owned)
+                    .collect()
+            },
+            inventory_id: if d.inventory_id.is_empty() {
+                None
+            } else {
+                Some(d.inventory_id.as_str().to_owned())
+            },
+        });
+    }
 }
 
 unsafe extern "C" fn api_register_inventory(
     ctx: *mut c_void,
     def: *const yog_abi::YogInventoryDef,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let d = &*def;
-    handlers.inventories.push(yog_inventory::InventoryDef {
-        id: d.id.as_str().to_owned(),
-        slot_count: d.slot_count as usize,
-        layout: yog_inventory::decode_layout(d.layout.as_str()),
-        include_player_inventory: d.include_player_inventory,
-        player_inv_offset: (d.player_inv_x, d.player_inv_y),
-        background_texture: if d.background_texture.is_empty() {
-            None
-        } else {
-            Some(d.background_texture.as_str().to_owned())
-        },
-        title: d.title.as_str().to_owned(),
-        background_size: if d.background_w > 0.0 && d.background_h > 0.0 {
-            Some((d.background_w, d.background_h))
-        } else {
-            None
-        },
-    });
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let d = &*def;
+        handlers.inventories.push(yog_inventory::InventoryDef {
+            id: d.id.as_str().to_owned(),
+            slot_count: d.slot_count as usize,
+            layout: yog_inventory::decode_layout(d.layout.as_str()),
+            include_player_inventory: d.include_player_inventory,
+            player_inv_offset: (d.player_inv_x, d.player_inv_y),
+            background_texture: if d.background_texture.is_empty() {
+                None
+            } else {
+                Some(d.background_texture.as_str().to_owned())
+            },
+            title: d.title.as_str().to_owned(),
+            background_size: if d.background_w > 0.0 && d.background_h > 0.0 {
+                Some((d.background_w, d.background_h))
+            } else {
+                None
+            },
+        });
+    }
 }
 
 unsafe extern "C" fn api_schedule_once(
@@ -2000,19 +2145,21 @@ unsafe extern "C" fn api_schedule_once(
     ud: *mut c_void,
     h: YogScheduledFn,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let handlers = handlers_lock.write().expect("handlers lock poisoned");
-    handlers
-        .scheduler
-        .lock()
-        .expect("scheduler poisoned")
-        .once_tasks
-        .push(OnceTask {
-            module: current_registration(),
-            delay_remaining: delay_ticks,
-            ud,
-            f: h,
-        });
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let handlers = handlers_lock.write().expect("handlers lock poisoned");
+        handlers
+            .scheduler
+            .lock()
+            .expect("scheduler poisoned")
+            .once_tasks
+            .push(OnceTask {
+                module: current_registration(),
+                delay_remaining: delay_ticks,
+                ud,
+                f: h,
+            });
+    }
 }
 
 unsafe extern "C" fn api_schedule_repeating(
@@ -2021,93 +2168,101 @@ unsafe extern "C" fn api_schedule_repeating(
     ud: *mut c_void,
     h: YogScheduledFn,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let handlers = handlers_lock.write().expect("handlers lock poisoned");
-    handlers
-        .scheduler
-        .lock()
-        .expect("scheduler poisoned")
-        .repeating_tasks
-        .push(RepeatingTask {
-            module: current_registration(),
-            period: period_ticks,
-            ticks_left: period_ticks,
-            ud,
-            f: h,
-        });
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let handlers = handlers_lock.write().expect("handlers lock poisoned");
+        handlers
+            .scheduler
+            .lock()
+            .expect("scheduler poisoned")
+            .repeating_tasks
+            .push(RepeatingTask {
+                module: current_registration(),
+                period: period_ticks,
+                ticks_left: period_ticks,
+                ud,
+                f: h,
+            });
+    }
 }
 
 unsafe extern "C" fn api_register_startup_grant(
     ctx: *mut c_void,
     grant: *const YogStartupGrantDef,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let g = &*grant;
-    let items: Vec<String> = if g.items.is_empty() {
-        Vec::new()
-    } else {
-        unsafe {
-            g.items
-                .as_str()
-                .split('|')
-                .map(|s: &str| s.to_owned())
-                .collect()
-        }
-    };
-    let book = if g.book.is_empty() {
-        None
-    } else {
-        Some(unsafe { g.book.as_str().to_owned() })
-    };
-    let command = if g.command.is_empty() {
-        None
-    } else {
-        Some(unsafe { g.command.as_str().to_owned() })
-    };
-    handlers.startup_grants.push(yog_registry::StartupGrant {
-        id: unsafe { g.id.as_str().to_owned() },
-        items,
-        book,
-        command,
-    });
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let g = &*grant;
+        let items: Vec<String> = if g.items.is_empty() {
+            Vec::new()
+        } else {
+            {
+                g.items
+                    .as_str()
+                    .split('|')
+                    .map(|s: &str| s.to_owned())
+                    .collect()
+            }
+        };
+        let book = if g.book.is_empty() {
+            None
+        } else {
+            Some(g.book.as_str().to_owned())
+        };
+        let command = if g.command.is_empty() {
+            None
+        } else {
+            Some(g.command.as_str().to_owned())
+        };
+        handlers.startup_grants.push(yog_registry::StartupGrant {
+            id: g.id.as_str().to_owned(),
+            items,
+            book,
+            command,
+        });
+    }
 }
 
 unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_json: YogStr) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let id = unsafe { book_id.as_str().to_owned() };
-    let json = unsafe { book_json.as_str().to_owned() };
-    handlers.books.insert(id.clone(), json.clone());
-    // Parse JSON → Book → BookRenderer so rendering works without Java round-trip.
-    match serde_json::from_str::<yog_book::Book>(&json) {
-        Ok(book) => {
-            let mut renderer = yog_book::BookRenderer::new(book);
-            // i18n books carry translation keys; shown in the game language.
-            renderer.set_translator(translate);
-            // Recipes may register before the book — replay them into the renderer.
-            for (ns, name, j) in &handlers.recipes {
-                renderer.add_recipe(format!("{ns}:{name}"), j);
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let id = book_id.as_str().to_owned();
+        let json = book_json.as_str().to_owned();
+        handlers.books.insert(id.clone(), json.clone());
+        // Parse JSON → Book → BookRenderer so rendering works without Java round-trip.
+        match serde_json::from_str::<yog_book::Book>(&json) {
+            Ok(book) => {
+                let mut renderer = yog_book::BookRenderer::new(book);
+                // i18n books carry translation keys; shown in the game language.
+                renderer.set_translator(translate);
+                // Recipes may register before the book — replay them into the renderer.
+                for (ns, name, j) in &handlers.recipes {
+                    renderer.add_recipe(format!("{ns}:{name}"), j);
+                }
+                handlers.book_renderers.lock().unwrap().insert(id, renderer);
             }
-            handlers.book_renderers.lock().unwrap().insert(id, renderer);
-        }
-        Err(e) => {
-            yog_logging::warn!(
-                "book '{}': failed to parse JSON for Rust renderer: {}",
-                id,
-                e
-            );
+            Err(e) => {
+                yog_logging::warn!(
+                    "book '{}': failed to parse JSON for Rust renderer: {}",
+                    id,
+                    e
+                );
+            }
         }
     }
 }
 
 unsafe extern "C" fn api_register_dimension_json(ctx: *mut c_void, id: YogStr, json: YogStr) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let id = unsafe { id.as_str().to_owned() };
-    let json = unsafe { json.as_str().to_owned() };
-    yog_logging::info!("registered dimension type: {}", id);
-    handlers.dimensions.insert(id, json);
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let id = id.as_str().to_owned();
+        let json = json.as_str().to_owned();
+        yog_logging::info!("registered dimension type: {}", id);
+        handlers.dimensions.insert(id, json);
+    }
 }
 
 unsafe extern "C" fn api_register_chunk_generator(
@@ -2116,13 +2271,15 @@ unsafe extern "C" fn api_register_chunk_generator(
     ud: *mut c_void,
     h: yog_abi::YogChunkGeneratorFn,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let id = unsafe { id.as_str().to_owned() };
-    yog_logging::info!("registered chunk generator for dimension: {}", id);
-    handlers
-        .chunk_generators
-        .insert(id, (current_registration(), ud, h));
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let id = id.as_str().to_owned();
+        yog_logging::info!("registered chunk generator for dimension: {}", id);
+        handlers
+            .chunk_generators
+            .insert(id, (current_registration(), ud, h));
+    }
 }
 
 unsafe extern "C" fn api_register_ui(
@@ -2132,13 +2289,15 @@ unsafe extern "C" fn api_register_ui(
     ud: *mut c_void,
     h: yog_abi::YogUIEventFn,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let id = unsafe { ui_id.as_str().to_owned() };
-    handlers
-        .ui_handlers
-        .insert(id.clone(), (current_registration(), ud, h));
-    yog_logging::info!("registered UI handler: {}", id);
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let id = ui_id.as_str().to_owned();
+        handlers
+            .ui_handlers
+            .insert(id.clone(), (current_registration(), ud, h));
+        yog_logging::info!("registered UI handler: {}", id);
+    }
 }
 
 unsafe extern "C" fn api_on_ui_render(
@@ -2147,14 +2306,16 @@ unsafe extern "C" fn api_on_ui_render(
     ud: *mut c_void,
     h: YogHudRenderFn,
 ) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let id = unsafe { ui_id.as_str().to_owned() };
-    handlers
-        .ui_render_handlers
-        .entry(id)
-        .or_default()
-        .push((current_registration(), ud, h));
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let id = ui_id.as_str().to_owned();
+        handlers
+            .ui_render_handlers
+            .entry(id)
+            .or_default()
+            .push((current_registration(), ud, h));
+    }
 }
 
 /// Strip TSV separators so one mod can't corrupt the line format.
@@ -2163,17 +2324,21 @@ fn tsv_clean(v: &str) -> String {
 }
 
 unsafe extern "C" fn api_ui_open(_ctx: *mut c_void, ui_id: YogStr, modal: bool, pause: bool) {
-    if ui_id.as_str().is_empty() {
-        return;
+    unsafe {
+        if ui_id.as_str().is_empty() {
+            return;
+        }
+        // Java side schedules onto the render thread; no-op on dedicated servers.
+        let _: Option<()> = bridge!("openUI", [S(ui_id), Z(modal), Z(pause)]);
     }
-    // Java side schedules onto the render thread; no-op on dedicated servers.
-    let _: Option<()> = bridge!("openUI", [S(ui_id), Z(modal), Z(pause)]);
 }
 
 unsafe extern "C" fn api_ui_close(_ctx: *mut c_void, ui_id: YogStr) {
-    // Java side defers onto the render thread (after the current event) and
-    // checks the open screen is that Yog UI; no-op on dedicated servers.
-    let _: Option<()> = bridge!("closeUI", [S(ui_id)]);
+    unsafe {
+        // Java side defers onto the render thread (after the current event) and
+        // checks the open screen is that Yog UI; no-op on dedicated servers.
+        let _: Option<()> = bridge!("closeUI", [S(ui_id)]);
+    }
 }
 
 unsafe extern "C" fn api_ui_consume_event(_ctx: *mut c_void) {
@@ -2181,7 +2346,7 @@ unsafe extern "C" fn api_ui_consume_event(_ctx: *mut c_void) {
 }
 
 unsafe extern "C" fn api_translate(_ctx: *mut c_void, key: YogStr) -> YogOwnedStr {
-    translate(key.as_str()).map_or(YogOwnedStr::NONE, YogOwnedStr::from_string)
+    unsafe { translate(key.as_str()).map_or(YogOwnedStr::NONE, YogOwnedStr::from_string) }
 }
 
 /// The game's text for translation `key` in the current language — `None`
@@ -2194,41 +2359,45 @@ fn translate(key: &str) -> Option<String> {
 }
 
 unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
-    let mut lines: Vec<String> = Vec::new();
-    let infos = MOD_INFOS.lock().expect("mod infos lock poisoned").clone();
-    for m in &infos {
-        // A `.yres` name/description shows in the player's language.
-        let localized = |text: &str, key: &str| {
-            translate(key).map_or_else(|| text.to_string(), |t| tsv_clean(&t))
-        };
-        lines.push(format!(
-            "yog\t{}\t{}\t{}\t{}\t{}",
-            m[0],
-            localized(&m[1], &m[5]),
-            m[2],
-            m[3],
-            localized(&m[4], &m[6])
-        ));
-    }
-    // Loader-side (Java) mods, if the host provides them.
-    let platform: Option<String> = bridge!("listPlatformMods", []);
-    for line in platform.iter().flat_map(|s| s.lines()) {
-        if !line.trim().is_empty() {
-            lines.push(format!("platform\t{line}"));
+    unsafe {
+        let mut lines: Vec<String> = Vec::new();
+        let infos = MOD_INFOS.lock().expect("mod infos lock poisoned").clone();
+        for m in &infos {
+            // A `.yres` name/description shows in the player's language.
+            let localized = |text: &str, key: &str| {
+                translate(key).map_or_else(|| text.to_string(), |t| tsv_clean(&t))
+            };
+            lines.push(format!(
+                "yog\t{}\t{}\t{}\t{}\t{}",
+                m[0],
+                localized(&m[1], &m[5]),
+                m[2],
+                m[3],
+                localized(&m[4], &m[6])
+            ));
         }
+        // Loader-side (Java) mods, if the host provides them.
+        let platform: Option<String> = bridge!("listPlatformMods", []);
+        for line in platform.iter().flat_map(|s| s.lines()) {
+            if !line.trim().is_empty() {
+                lines.push(format!("platform\t{line}"));
+            }
+        }
+        YogOwnedStr::from_string(lines.join("\n"))
     }
-    YogOwnedStr::from_string(lines.join("\n"))
 }
 
 unsafe extern "C" fn api_register_menu_entry(ctx: *mut c_void, label: YogStr, ui_id: YogStr) {
-    let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-    let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-    let l = unsafe { label.as_str().to_owned() };
-    let u = unsafe { ui_id.as_str().to_owned() };
-    handlers.menu_entries.push((l, u));
+    unsafe {
+        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        let l = label.as_str().to_owned();
+        let u = ui_id.as_str().to_owned();
+        handlers.menu_entries.push((l, u));
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeBookJson<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -2259,7 +2428,7 @@ fn pos_args(p: YogBlockPos) -> [JArg<'static>; 3] {
 }
 
 unsafe extern "C" fn srv_entity_info(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
-    owned(bridge!("entityInfo", [JArg::S(uuid)]))
+    unsafe { owned(bridge!("entityInfo", [JArg::S(uuid)])) }
 }
 
 unsafe extern "C" fn srv_entities_in_box(
@@ -2268,9 +2437,11 @@ unsafe extern "C" fn srv_entities_in_box(
     min: YogVec3,
     max: YogVec3,
 ) -> YogOwnedStr {
-    let [a, b, c] = vec_args(min);
-    let [d, e, f] = vec_args(max);
-    owned(bridge!("entitiesInBox", [JArg::S(dim), a, b, c, d, e, f]))
+    unsafe {
+        let [a, b, c] = vec_args(min);
+        let [d, e, f] = vec_args(max);
+        owned(bridge!("entitiesInBox", [JArg::S(dim), a, b, c, d, e, f]))
+    }
 }
 
 unsafe extern "C" fn srv_raycast_block(
@@ -2279,9 +2450,11 @@ unsafe extern "C" fn srv_raycast_block(
     from: YogVec3,
     to: YogVec3,
 ) -> YogOwnedStr {
-    let [a, b, c] = vec_args(from);
-    let [d, e, f] = vec_args(to);
-    owned(bridge!("raycastBlock", [JArg::S(dim), a, b, c, d, e, f]))
+    unsafe {
+        let [a, b, c] = vec_args(from);
+        let [d, e, f] = vec_args(to);
+        owned(bridge!("raycastBlock", [JArg::S(dim), a, b, c, d, e, f]))
+    }
 }
 
 unsafe extern "C" fn srv_raycast_entity(
@@ -2291,12 +2464,14 @@ unsafe extern "C" fn srv_raycast_entity(
     to: YogVec3,
     exclude: YogStr,
 ) -> YogOwnedStr {
-    let [a, b, c] = vec_args(from);
-    let [d, e, f] = vec_args(to);
-    owned(bridge!(
-        "raycastEntity",
-        [JArg::S(dim), a, b, c, d, e, f, JArg::S(exclude)]
-    ))
+    unsafe {
+        let [a, b, c] = vec_args(from);
+        let [d, e, f] = vec_args(to);
+        owned(bridge!(
+            "raycastEntity",
+            [JArg::S(dim), a, b, c, d, e, f, JArg::S(exclude)]
+        ))
+    }
 }
 
 unsafe extern "C" fn srv_block_info(
@@ -2304,8 +2479,10 @@ unsafe extern "C" fn srv_block_info(
     dim: YogStr,
     pos: YogBlockPos,
 ) -> YogOwnedStr {
-    let [x, y, z] = pos_args(pos);
-    owned(bridge!("blockInfo", [JArg::S(dim), x, y, z]))
+    unsafe {
+        let [x, y, z] = pos_args(pos);
+        owned(bridge!("blockInfo", [JArg::S(dim), x, y, z]))
+    }
 }
 
 unsafe extern "C" fn srv_break_block(
@@ -2315,12 +2492,14 @@ unsafe extern "C" fn srv_break_block(
     drop: bool,
     breaker: YogStr,
 ) -> bool {
-    let [x, y, z] = pos_args(pos);
-    bridge!(
-        "breakBlock",
-        [JArg::S(dim), x, y, z, JArg::Z(drop), JArg::S(breaker)]
-    )
-    .unwrap_or(false)
+    unsafe {
+        let [x, y, z] = pos_args(pos);
+        bridge!(
+            "breakBlock",
+            [JArg::S(dim), x, y, z, JArg::Z(drop), JArg::S(breaker)]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_place_block_from_slot(
@@ -2330,17 +2509,21 @@ unsafe extern "C" fn srv_place_block_from_slot(
     dim: YogStr,
     pos: YogBlockPos,
 ) -> bool {
-    let [x, y, z] = pos_args(pos);
-    bridge!(
-        "placeBlockFromSlot",
-        [JArg::S(player), JArg::I(slot as i32), JArg::S(dim), x, y, z]
-    )
-    .unwrap_or(false)
+    unsafe {
+        let [x, y, z] = pos_args(pos);
+        bridge!(
+            "placeBlockFromSlot",
+            [JArg::S(player), JArg::I(slot as i32), JArg::S(dim), x, y, z]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_bonemeal(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> bool {
-    let [x, y, z] = pos_args(pos);
-    bridge!("bonemeal", [JArg::S(dim), x, y, z]).unwrap_or(false)
+    unsafe {
+        let [x, y, z] = pos_args(pos);
+        bridge!("bonemeal", [JArg::S(dim), x, y, z]).unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_explode(
@@ -2351,24 +2534,26 @@ unsafe extern "C" fn srv_explode(
     fire: bool,
     source: YogStr,
 ) -> bool {
-    let [x, y, z] = vec_args(pos);
-    bridge!(
-        "explode",
-        [
-            JArg::S(dim),
-            x,
-            y,
-            z,
-            JArg::F(power),
-            JArg::Z(fire),
-            JArg::S(source),
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        let [x, y, z] = vec_args(pos);
+        bridge!(
+            "explode",
+            [
+                JArg::S(dim),
+                x,
+                y,
+                z,
+                JArg::F(power),
+                JArg::Z(fire),
+                JArg::S(source),
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_tellraw(_ctx: *mut c_void, player: YogStr, json: YogStr) -> bool {
-    bridge!("tellraw", [JArg::S(player), JArg::S(json)]).unwrap_or(false)
+    unsafe { bridge!("tellraw", [JArg::S(player), JArg::S(json)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_entity_damage(
@@ -2378,16 +2563,18 @@ unsafe extern "C" fn srv_entity_damage(
     damage_type: YogStr,
     attacker: YogStr,
 ) -> bool {
-    bridge!(
-        "entityDamage",
-        [
-            JArg::S(uuid),
-            JArg::F(amount),
-            JArg::S(damage_type),
-            JArg::S(attacker),
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "entityDamage",
+            [
+                JArg::S(uuid),
+                JArg::F(amount),
+                JArg::S(damage_type),
+                JArg::S(attacker),
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_entity_set_fire_ticks(
@@ -2395,11 +2582,11 @@ unsafe extern "C" fn srv_entity_set_fire_ticks(
     uuid: YogStr,
     ticks: i32,
 ) -> bool {
-    bridge!("entitySetFireTicks", [JArg::S(uuid), JArg::I(ticks)]).unwrap_or(false)
+    unsafe { bridge!("entitySetFireTicks", [JArg::S(uuid), JArg::I(ticks)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_player_add_xp(_ctx: *mut c_void, player: YogStr, amount: i32) -> bool {
-    bridge!("playerAddXp", [JArg::S(player), JArg::I(amount)]).unwrap_or(false)
+    unsafe { bridge!("playerAddXp", [JArg::S(player), JArg::I(amount)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_player_set_may_fly(
@@ -2407,11 +2594,11 @@ unsafe extern "C" fn srv_player_set_may_fly(
     player: YogStr,
     may_fly: bool,
 ) -> bool {
-    bridge!("playerSetMayFly", [JArg::S(player), JArg::Z(may_fly)]).unwrap_or(false)
+    unsafe { bridge!("playerSetMayFly", [JArg::S(player), JArg::Z(may_fly)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_player_info(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
-    owned(bridge!("playerInfo", [JArg::S(player)]))
+    unsafe { owned(bridge!("playerInfo", [JArg::S(player)])) }
 }
 
 unsafe extern "C" fn srv_spawn_item(
@@ -2423,31 +2610,33 @@ unsafe extern "C" fn srv_spawn_item(
     count: u32,
     snbt: YogStr,
 ) -> YogOwnedStr {
-    let [a, b, c] = vec_args(pos);
-    let [d, e, f] = vec_args(vel);
-    owned(bridge!(
-        "spawnItem",
-        [
-            JArg::S(dim),
-            a,
-            b,
-            c,
-            d,
-            e,
-            f,
-            JArg::S(item_id),
-            JArg::I(count as i32),
-            JArg::S(snbt),
-        ]
-    ))
+    unsafe {
+        let [a, b, c] = vec_args(pos);
+        let [d, e, f] = vec_args(vel);
+        owned(bridge!(
+            "spawnItem",
+            [
+                JArg::S(dim),
+                a,
+                b,
+                c,
+                d,
+                e,
+                f,
+                JArg::S(item_id),
+                JArg::I(count as i32),
+                JArg::S(snbt),
+            ]
+        ))
+    }
 }
 
 unsafe extern "C" fn srv_item_entity_stack(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
-    owned(bridge!("itemEntityStack", [JArg::S(uuid)]))
+    unsafe { owned(bridge!("itemEntityStack", [JArg::S(uuid)])) }
 }
 
 unsafe extern "C" fn srv_actionbar_json(_ctx: *mut c_void, player: YogStr, json: YogStr) -> bool {
-    bridge!("actionbarJson", [JArg::S(player), JArg::S(json)]).unwrap_or(false)
+    unsafe { bridge!("actionbarJson", [JArg::S(player), JArg::S(json)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_use_item_on_block(
@@ -2458,20 +2647,22 @@ unsafe extern "C" fn srv_use_item_on_block(
     item_id: YogStr,
     player: YogStr,
 ) -> bool {
-    let [x, y, z] = pos_args(pos);
-    bridge!(
-        "useItemOnBlock",
-        [
-            JArg::S(dim),
-            x,
-            y,
-            z,
-            JArg::I(face as i32),
-            JArg::S(item_id),
-            JArg::S(player),
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        let [x, y, z] = pos_args(pos);
+        bridge!(
+            "useItemOnBlock",
+            [
+                JArg::S(dim),
+                x,
+                y,
+                z,
+                JArg::I(face as i32),
+                JArg::S(item_id),
+                JArg::S(player),
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_pour_fluid(
@@ -2480,12 +2671,14 @@ unsafe extern "C" fn srv_pour_fluid(
     pos: YogBlockPos,
     bucket_item_id: YogStr,
 ) -> bool {
-    let [x, y, z] = pos_args(pos);
-    bridge!(
-        "pourFluid",
-        [JArg::S(dim), x, y, z, JArg::S(bucket_item_id)]
-    )
-    .unwrap_or(false)
+    unsafe {
+        let [x, y, z] = pos_args(pos);
+        bridge!(
+            "pourFluid",
+            [JArg::S(dim), x, y, z, JArg::S(bucket_item_id)]
+        )
+        .unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_has_entity_tag(
@@ -2493,11 +2686,11 @@ unsafe extern "C" fn srv_has_entity_tag(
     entity_type: YogStr,
     tag: YogStr,
 ) -> bool {
-    bridge!("hasEntityTag", [JArg::S(entity_type), JArg::S(tag)]).unwrap_or(false)
+    unsafe { bridge!("hasEntityTag", [JArg::S(entity_type), JArg::S(tag)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_item_block(_ctx: *mut c_void, item_id: YogStr) -> YogOwnedStr {
-    owned(bridge!("itemBlock", [JArg::S(item_id)]))
+    unsafe { owned(bridge!("itemBlock", [JArg::S(item_id)])) }
 }
 
 unsafe extern "C" fn srv_place_feature(
@@ -2506,8 +2699,10 @@ unsafe extern "C" fn srv_place_feature(
     pos: YogBlockPos,
     feature_id: YogStr,
 ) -> bool {
-    let [x, y, z] = pos_args(pos);
-    bridge!("placeFeature", [JArg::S(dim), x, y, z, JArg::S(feature_id)]).unwrap_or(false)
+    unsafe {
+        let [x, y, z] = pos_args(pos);
+        bridge!("placeFeature", [JArg::S(dim), x, y, z, JArg::S(feature_id)]).unwrap_or(false)
+    }
 }
 
 unsafe extern "C" fn srv_item_entity_set_stack(
@@ -2517,16 +2712,18 @@ unsafe extern "C" fn srv_item_entity_set_stack(
     count: u32,
     snbt: YogStr,
 ) -> bool {
-    bridge!(
-        "itemEntitySetStack",
-        [
-            JArg::S(uuid),
-            JArg::S(item_id),
-            JArg::I(count as i32),
-            JArg::S(snbt),
-        ]
-    )
-    .unwrap_or(false)
+    unsafe {
+        bridge!(
+            "itemEntitySetStack",
+            [
+                JArg::S(uuid),
+                JArg::S(item_id),
+                JArg::I(count as i32),
+                JArg::S(snbt),
+            ]
+        )
+        .unwrap_or(false)
+    }
 }
 
 // ── Table constructors ────────────────────────────────────────────────────────
@@ -2638,15 +2835,17 @@ unsafe extern "C" fn interop_export_impl(
     symbol: YogStr,
     ptr: *const c_void,
 ) {
-    let mod_id = mod_id.as_str();
-    let sym = symbol.as_str();
-    let registry = INTEROP_SYMBOLS.get_or_init(|| Mutex::new(HashMap::new()));
-    registry
-        .lock()
-        .expect("interop symbols lock poisoned")
-        .entry(mod_id.to_string())
-        .or_default()
-        .insert(sym.to_string(), ptr as usize);
+    unsafe {
+        let mod_id = mod_id.as_str();
+        let sym = symbol.as_str();
+        let registry = INTEROP_SYMBOLS.get_or_init(|| Mutex::new(HashMap::new()));
+        registry
+            .lock()
+            .expect("interop symbols lock poisoned")
+            .entry(mod_id.to_string())
+            .or_default()
+            .insert(sym.to_string(), ptr as usize);
+    }
 }
 
 unsafe extern "C" fn interop_import_impl(
@@ -2654,16 +2853,18 @@ unsafe extern "C" fn interop_import_impl(
     mod_id: YogStr,
     symbol: YogStr,
 ) -> *const c_void {
-    let mod_id = mod_id.as_str();
-    let sym = symbol.as_str();
-    let registry = INTEROP_SYMBOLS.get_or_init(|| Mutex::new(HashMap::new()));
-    registry
-        .lock()
-        .expect("interop symbols lock poisoned")
-        .get(mod_id)
-        .and_then(|m: &HashMap<String, usize>| m.get(sym))
-        .map(|&ptr| ptr as *const c_void)
-        .unwrap_or(std::ptr::null())
+    unsafe {
+        let mod_id = mod_id.as_str();
+        let sym = symbol.as_str();
+        let registry = INTEROP_SYMBOLS.get_or_init(|| Mutex::new(HashMap::new()));
+        registry
+            .lock()
+            .expect("interop symbols lock poisoned")
+            .get(mod_id)
+            .and_then(|m: &HashMap<String, usize>| m.get(sym))
+            .map(|&ptr| ptr as *const c_void)
+            .unwrap_or(std::ptr::null())
+    }
 }
 
 fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer) -> YogApi {
@@ -2858,11 +3059,7 @@ fn topo_sort_mods(ids: &[String], deps_list: &[Vec<String>]) -> Option<Vec<usize
             }
         }
     }
-    if order.len() == n {
-        Some(order)
-    } else {
-        None
-    }
+    if order.len() == n { Some(order) } else { None }
 }
 
 /// Loads `path` as a fresh generation of `mod_id` via the shared
@@ -3077,7 +3274,7 @@ fn srv_ptr() -> *const YogServer {
 
 // ── JNI entry points ──────────────────────────────────────────────────────────
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3117,7 +3314,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     yog_logging::info!("runtime initialised — the gate is open.");
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeHotReload<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3198,7 +3395,7 @@ fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
     true
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreak<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3224,7 +3421,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreak<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChat<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3248,7 +3445,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChat<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3350,7 +3547,7 @@ fn process_pending_grants() {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3372,7 +3569,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerLeave<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3394,7 +3591,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItem<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItemPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3420,7 +3617,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseItemPre<'l>(
     allowed(&h.use_item, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3444,7 +3641,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlockPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3472,7 +3669,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlockPre<'l>(
     allowed(&h.use_block, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAttackEntity<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3501,7 +3698,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAttackEntity<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamage<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3532,7 +3729,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamage<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDeath<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3561,7 +3758,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDeath<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
     _env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3679,7 +3876,7 @@ fn save_startup_granted(granted: &HashMap<String, bool>) {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3698,7 +3895,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStopping<'l>(
     _env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3709,7 +3906,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStopping<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeCommandNames<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3725,7 +3922,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeCommandNames<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3753,7 +3950,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
     allowed(&h.block_break, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3777,7 +3974,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
     allowed(&h.chat, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeRecipeJsons<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3793,7 +3990,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeRecipeJsons<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeDimensionJsons<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3823,15 +4020,17 @@ unsafe extern "C" fn chunk_writer_set_block(
     z: i32,
     block_id: YogStr,
 ) -> bool {
-    host!(
-        "dev/yog/YogCallbackChunkGenerator",
-        "setBlockInGeneratingChunk",
-        [I(x), I(y), I(z), S(block_id)]
-    )
-    .unwrap_or(false)
+    unsafe {
+        host!(
+            "dev/yog/YogCallbackChunkGenerator",
+            "setBlockInGeneratingChunk",
+            [I(x), I(y), I(z), S(block_id)]
+        )
+        .unwrap_or(false)
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeGenerateChunk<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3865,7 +4064,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeGenerateChunk<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeTypedCommandSchemas<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3878,10 +4077,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeTypedCommandSchemas<'l>(
     for (name, regs) in handlers().commands.iter() {
         let mut seen = std::collections::HashSet::new();
         for (_module, schema, _, _) in regs {
-            if let Some(schema) = schema {
-                if seen.insert(schema.as_str()) {
-                    lines.push(format!("{name}\t{schema}"));
-                }
+            if let Some(schema) = schema
+                && seen.insert(schema.as_str())
+            {
+                lines.push(format!("{name}\t{schema}"));
             }
         }
     }
@@ -3890,7 +4089,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeTypedCommandSchemas<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -3969,7 +4168,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4012,7 +4211,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4069,7 +4268,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
 /// Tab/newline-encoded inventory defs — one line per registered
 /// `InventoryDef` (see `yog_inventory`): `id\tslot_count=N\tlayout=x:y,...
 /// \tinclude_player_inventory=0|1\tplayer_inv=x:y\tbackground_texture=...\ttitle=...`
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeInventoryDefs<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4110,7 +4309,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInventoryDefs<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPacket<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4146,7 +4345,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPacket<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientPacket<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4177,7 +4376,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientPacket<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativePacketChannels<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4193,7 +4392,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativePacketChannels<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4209,7 +4408,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawn<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4237,7 +4436,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawn<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawnPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4261,7 +4460,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntitySpawnPre<'l>(
     allowed(&h.entity_spawn, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamagePre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4290,7 +4489,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityDamagePre<'l>(
     allowed(&h.entity_damage, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlockPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4318,7 +4517,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlockPre<'l>(
     allowed(&h.player_place_block, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlock<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4346,7 +4545,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlock<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeathPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4373,7 +4572,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeathPre<'l>(
     allowed(&h.player_death, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeath<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4404,7 +4603,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerDeath<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerRespawn<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4430,7 +4629,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerRespawn<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAdvancement<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4461,7 +4660,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnAdvancement<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteractPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4494,7 +4693,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteractPre<'l>(
     allowed(&h.entity_interact, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteract<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4530,7 +4729,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityInteract<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemCraft<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4563,7 +4762,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemCraft<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosionPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4592,7 +4791,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosionPre<'l>(
     allowed(&h.explosion, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosion<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4624,7 +4823,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosion<'l>(
 
 // ── ABI minor 9 JNI entry points ─────────────────────────────────────────────
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickupPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4656,7 +4855,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickupPre<'l>(
     allowed(&h.item_pickup, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickup<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4691,7 +4890,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemPickup<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerMove<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4729,7 +4928,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerMove<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpenPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4754,7 +4953,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpenPre<'l>(
     allowed(&h.container_open, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpen<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4785,7 +4984,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerOpen<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerClose<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4813,7 +5012,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnContainerClose<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnProjectileHitPre<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4852,7 +5051,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnProjectileHitPre<'l>(
     allowed(&h.projectile_hit, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnProjectileHit<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4892,7 +5091,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnProjectileHit<'l>(
 
 // ── ABI minor 10 — client-side JNI entry points ───────────────────────────────
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientTick<'l>(
     _env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4912,7 +5111,7 @@ fn gl_proc_address(sym: &str) -> usize {
     ptr.unwrap_or(0) as usize
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeGlInit<'l>(
     _env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4943,7 +5142,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeGlInit<'l>(
     let _ = GL_GET_PROGRAM_IV.set((get_program_iv != 0).then_some(get_program_iv));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     _env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -4986,7 +5185,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -5026,7 +5225,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnKeyPress<'l>(
     _env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -5048,7 +5247,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnKeyPress<'l>(
     allowed(&h.key_press, |ud, f| unsafe { f(ud, &ev) }) as jni::sys::jboolean
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenOpen<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
@@ -5069,7 +5268,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenOpen<'l>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
