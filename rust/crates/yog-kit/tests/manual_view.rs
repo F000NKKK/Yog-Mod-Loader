@@ -86,7 +86,7 @@ struct View {
     b0: Slot<String>,
     b1: Slot<String>,
     b2: Slot<bool>,
-    b3: Slot<String>,
+    b3: Slot<u64>,
     l0: ItemsHost<T0>,
     l1: ItemsHost<T1>,
 }
@@ -150,7 +150,7 @@ impl yog_kit::View for View {
             bind::set_checked(root.at_path_mut(&[2]), *self.b2.get());
             u.repaint();
         }
-        if self.b3.set(bind::text(&(vm.only_even, vm.search.as_str()).0)) {
+        if self.b3.set(bind::key(&(vm.only_even, vm.search.as_str()))) {
             u.reset_scroll(0);
         }
         {

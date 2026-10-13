@@ -123,6 +123,8 @@ pub(crate) struct Host<W: View> {
     lifecycle: bool,
     last_frame: Option<Instant>,
     reveal: Option<(u16, u32)>,
+    /// Viewports the last update saw.
+    seen_viewports: Vec<Viewport>,
     pub(crate) handle: ScreenHandle<W::Vm>,
     /// What the screen asked for (close, navigate, ...), for tests.
     pub(crate) log: Vec<String>,
@@ -151,6 +153,7 @@ impl<W: View> Host<W> {
             lifecycle: false,
             last_frame: None,
             reveal: None,
+            seen_viewports: Vec::new(),
             handle,
             log: Vec::new(),
             live,
@@ -278,22 +281,43 @@ impl<W: View> Host<W> {
             self.apply_parts();
             self.apply_states();
             self.layout();
-            if !self.do_reveal() {
+            if !self.do_reveal() && !self.viewports_changed() {
                 break;
             }
         }
     }
 
-    fn run_update(&mut self) {
-        let viewports = self
-            .parts
+    fn viewports(&self) -> Vec<Viewport> {
+        self.parts
             .scrollers
             .iter()
             .map(|s| Viewport {
                 offset: s.state.offset,
                 height: self.node(&s.path).map_or(0.0, |n| n.rect.h),
             })
-            .collect();
+            .collect()
+    }
+
+    /// A virtualized list's scroller changed size since the last update
+    /// (e.g. the first layout) — its window must be recomputed.
+    fn viewports_changed(&mut self) -> bool {
+        let now = self.viewports();
+        let changed = self.parts.lists.iter().any(|l| {
+            let (Some(_), Some(s)) = (l.item_height, l.scroller) else {
+                return false;
+            };
+            let (a, b) = (self.seen_viewports.get(s as usize), now.get(s as usize));
+            a.map(|v| v.height) != b.map(|v| v.height)
+        });
+        if changed {
+            self.dirty = true;
+        }
+        changed
+    }
+
+    fn run_update(&mut self) {
+        let viewports = self.viewports();
+        self.seen_viewports.clone_from(&viewports);
         let mut u = Update {
             viewports,
             ..Update::default()
