@@ -35,7 +35,44 @@ pub enum WidgetKind {
     McImage { id: String, img_w: f32, img_h: f32 },
     /// Invisible spacer.
     Spacer,
+    /// Single-line text input — see [`TextBox`] and
+    /// [`TextBoxState`](crate::TextBoxState), which owns the text and drives it.
+    TextBox(TextBox),
 }
+
+/// A text box's content and editing state, as drawn this frame. Built by
+/// [`text_box`] (text, placeholder, max length, event names); the caret,
+/// selection and horizontal scroll are filled in each frame by
+/// [`TextBoxState::apply`](crate::TextBoxState::apply).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct TextBox {
+    pub text: String,
+    /// Shown greyed while the text is empty.
+    pub placeholder: String,
+    /// Longest text allowed, in characters; 0 = unlimited.
+    pub max_length: usize,
+    /// Event name for text changes (see `TextBoxState::event_name`).
+    pub on_change: Option<String>,
+    /// Event name for Enter (see `TextBoxState::event_name`).
+    pub on_submit: Option<String>,
+    /// Caret position in characters — `Some` while the box has focus.
+    pub caret: Option<usize>,
+    /// Draw the caret this frame (it blinks).
+    pub caret_visible: bool,
+    /// Selected characters `start..end` (empty = none).
+    pub selection: (usize, usize),
+    /// First visible character (horizontal scroll).
+    pub first: usize,
+}
+
+/// Placeholder text color of a text box.
+pub const PLACEHOLDER_COLOR: u32 = 0xFF_707070;
+/// Border of an unfocused text box (vanilla `EditBox`).
+pub const TEXT_BOX_BORDER: u32 = 0xFF_A0A0A0;
+/// Border of a focused text box unless `focus_color` is set.
+pub const TEXT_BOX_FOCUS_BORDER: u32 = 0xFF_FFFFFF;
+/// Selection highlight behind selected text.
+pub const SELECTION_COLOR: u32 = 0xFF_2850A0;
 
 /// WinForms-style dock — which edge(s) the widget attaches to inside its parent.
 ///
@@ -152,6 +189,11 @@ pub struct Style {
     /// scrollbar there whenever the content overflows (see
     /// [`ScrollState`](crate::ScrollState) for driving it).
     pub scrollbar: bool,
+    /// Font id for text — empty (default) = Minecraft's default font
+    /// (`minecraft:default`); also `minecraft:uniform`, `minecraft:alt`,
+    /// `minecraft:illageralt` or a resource-pack font such as `mymod:fancy`.
+    /// See [`crate::text`] for how non-default fonts are measured.
+    pub font: String,
 }
 
 impl Default for Style {
@@ -179,6 +221,7 @@ impl Default for Style {
             clip: false,
             scroll_y: 0.0,
             scrollbar: false,
+            font: String::new(),
         }
     }
 }
@@ -317,6 +360,39 @@ impl Widget {
         self.style.scrollbar = v;
         self
     }
+    /// Font for this widget's text — see [`Style::font`].
+    pub fn font(mut self, font: impl Into<String>) -> Self {
+        self.style.font = font.into();
+        self
+    }
+    /// Text box: greyed text shown while it's empty.
+    pub fn placeholder(mut self, text: impl Into<String>) -> Self {
+        if let WidgetKind::TextBox(t) = &mut self.kind {
+            t.placeholder = text.into();
+        }
+        self
+    }
+    /// Text box: longest text allowed, in characters (0 = unlimited).
+    pub fn max_length(mut self, n: usize) -> Self {
+        if let WidgetKind::TextBox(t) = &mut self.kind {
+            t.max_length = n;
+        }
+        self
+    }
+    /// Text box: event name raised when the text changes.
+    pub fn on_change(mut self, ev: impl Into<String>) -> Self {
+        if let WidgetKind::TextBox(t) = &mut self.kind {
+            t.on_change = Some(ev.into());
+        }
+        self
+    }
+    /// Text box: event name raised by Enter.
+    pub fn on_submit(mut self, ev: impl Into<String>) -> Self {
+        if let WidgetKind::TextBox(t) = &mut self.kind {
+            t.on_submit = Some(ev.into());
+        }
+        self
+    }
     /// Adds every widget in `children`, in order.
     pub fn children(mut self, children: impl IntoIterator<Item = Widget>) -> Self {
         self.children.extend(children);
@@ -333,11 +409,16 @@ impl Widget {
         self.children.iter_mut().find_map(|c| c.find_mut(id))
     }
 
-    /// Replaces the text of a label or button; `false` for any other kind.
+    /// Replaces the text of a label, button or text box; `false` for any
+    /// other kind.
     pub fn set_text(&mut self, text: impl Into<String>) -> bool {
         match &mut self.kind {
             WidgetKind::Label(t) | WidgetKind::Button(t) => {
                 *t = text.into();
+                true
+            }
+            WidgetKind::TextBox(t) => {
+                t.text = text.into();
                 true
             }
             _ => false,
@@ -396,4 +477,17 @@ pub fn mc_image(id: impl Into<String>, img_w: f32, img_h: f32) -> Widget {
 }
 pub fn spacer() -> Widget {
     Widget::new(WidgetKind::Spacer)
+}
+/// A single-line text input holding `text` — black box, grey border (white
+/// while focused), like vanilla's `EditBox`. Its text, caret and focus live
+/// in a [`TextBoxState`](crate::TextBoxState) that the code-behind keeps and
+/// applies to it each frame.
+pub fn text_box(text: impl Into<String>) -> Widget {
+    Widget::new(WidgetKind::TextBox(TextBox {
+        text: text.into(),
+        ..TextBox::default()
+    }))
+    .bg(0xFF_000000)
+    .color(0xFF_E0E0E0)
+    .padding(0.0, 4.0, 0.0, 4.0)
 }

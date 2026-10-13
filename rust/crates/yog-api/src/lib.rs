@@ -6,10 +6,14 @@
 //! namespaced by domain (`yog_api::world::World`).
 
 mod interop;
+mod lang;
 mod registry;
 
 pub use interop::Interop;
-pub use registry::{installed_mods, open_ui, server, CServer, Mod, ModInfo, Registry};
+pub use lang::{format_translation, tr, tr_args, translation};
+pub use registry::{
+    close_ui, installed_mods, open_ui, server, CServer, Mod, ModInfo, Registry, UiHandled,
+};
 pub use yog_gfx::{core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, GfxContext};
 
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.

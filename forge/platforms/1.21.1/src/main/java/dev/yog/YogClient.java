@@ -101,7 +101,7 @@ public final class YogClient {
             String uiId  = parts[1];
 
             event.addListener(
-                Button.builder(Component.literal(label), btn -> {
+                Button.builder(Component.translatable(label), btn -> {
                     YogUIScreen.open(uiId, false, false);
                 }).pos(x, y).size(100, 20).build()
             );

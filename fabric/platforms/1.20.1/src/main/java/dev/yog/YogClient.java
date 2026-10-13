@@ -116,7 +116,7 @@ public class YogClient implements ClientModInitializer {
             // Screen.addDrawableChild is protected — Fabric API exposes the
             // screen's button list for exactly this kind of injection.
             Screens.getButtons(screen).add(
-                ButtonWidget.builder(Text.literal(label), btn -> {
+                ButtonWidget.builder(Text.translatable(label), btn -> {
                     YogUIScreen.open(uiId, false, false);
                 }).position(x, y).size(100, 20).build()
             );

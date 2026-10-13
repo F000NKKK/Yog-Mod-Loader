@@ -66,6 +66,9 @@ pub struct GfxContext(*const YogGfxApi);
 unsafe impl Send for GfxContext {}
 unsafe impl Sync for GfxContext {}
 
+/// See [`GfxContext::text_width_fn`]: `(text, font) -> width` in GUI pixels.
+pub type TextWidthFn = unsafe extern "C" fn(text: yog_abi::YogStr, font: yog_abi::YogStr) -> f32;
+
 impl GfxContext {
     #[doc(hidden)]
     pub unsafe fn from_raw(raw: *const YogGfxApi) -> Self {
@@ -260,6 +263,14 @@ impl GfxContext {
 
     /// Access the 2D drawing helpers (text, rectangles, MC textures).
     /// These only work during `on_hud_render`.
+    /// The host's text-width function (see [`draw2d::Draw2D::text_width`]) as
+    /// a plain function pointer — valid for the life of the process, so it
+    /// can be kept for measuring outside render callbacks (on the render
+    /// thread), e.g. by a layout engine.
+    pub fn text_width_fn(&self) -> TextWidthFn {
+        self.api().text_width
+    }
+
     pub fn draw2d(&self) -> draw2d::Draw2D<'_> {
         draw2d::Draw2D::new(self)
     }

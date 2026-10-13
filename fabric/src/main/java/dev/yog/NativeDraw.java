@@ -38,6 +38,38 @@ public final class NativeDraw {
                 text, (int) x, (int) y, color, shadow);
     }
 
+    /** True for "" and minecraft:default — the plain text path. */
+    private static boolean isDefaultFont(String font) {
+        return font == null || font.isEmpty() || font.equals("minecraft:default");
+    }
+
+    /** text as a literal in the font id font (unparsable ids: the default font). */
+    private static net.minecraft.text.Text styled(String text, String font) {
+        Identifier id = Identifier.tryParse(font);
+        net.minecraft.text.MutableText t = net.minecraft.text.Text.literal(text);
+        return id == null ? t : t.setStyle(net.minecraft.text.Style.EMPTY.withFont(id));
+    }
+
+    /** drawText in a font: "minecraft:uniform", a resource-pack font id, ... */
+    public static void drawTextFont(String text, String font, float x, float y, int color, boolean shadow) {
+        if (isDefaultFont(font)) {
+            drawText(text, x, y, color, shadow);
+            return;
+        }
+        DrawContext ctx = hudDrawContext;
+        if (ctx == null) return;
+        syncGlState(); // MC-pipeline draw may follow raw GL from Rust
+        ctx.drawText(MinecraftClient.getInstance().textRenderer,
+                styled(text, font), (int) x, (int) y, color, shadow);
+    }
+
+    /** Width in GUI pixels of text in font, as the text renderer measures it. */
+    public static float textWidth(String text, String font) {
+        var tr = MinecraftClient.getInstance().textRenderer;
+        if (tr == null) return 0f;
+        return isDefaultFont(font) ? tr.getWidth(text) : tr.getWidth(styled(text, font));
+    }
+
     public static void drawRect(float x1, float y1, float x2, float y2, int color) {
         DrawContext ctx = hudDrawContext;
         if (ctx == null) return;

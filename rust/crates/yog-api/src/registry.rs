@@ -1313,6 +1313,11 @@ where
 static GLOBAL_API: std::sync::atomic::AtomicPtr<YogApi> =
     std::sync::atomic::AtomicPtr::new(std::ptr::null_mut());
 
+/// The runtime's `YogApi` table, null before this mod registered.
+pub(crate) fn global_api() -> *mut YogApi {
+    GLOBAL_API.load(std::sync::atomic::Ordering::Acquire)
+}
+
 /// Metadata of an installed mod, as reported by the loader.
 #[derive(Debug, Clone)]
 pub struct ModInfo {
@@ -1369,6 +1374,37 @@ pub fn open_ui(ui_id: &str, modal: bool, pause: bool) {
         return;
     }
     unsafe { ((*api).ui_open)((*api).ctx, YogStr::from_str(ui_id), modal, pause) }
+}
+
+/// Close the Yog UI screen showing `ui_id` — e.g. from that screen's own
+/// "Done" button. Does nothing when another screen is open. Deferred onto the
+/// render thread, so the handler that calls it finishes first. Client side;
+/// a no-op on dedicated servers.
+pub fn close_ui(ui_id: &str) {
+    let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
+    if api.is_null() {
+        return;
+    }
+    unsafe { ((*api).ui_close)((*api).ctx, YogStr::from_str(ui_id)) }
+}
+
+/// What a [`Registry::register_ui`] handler returns: `()` (never marks
+/// events as used) or `bool` (`true` = the handler used this `key:`/`char:`
+/// event — the host then doesn't, e.g. Esc doesn't close the screen).
+pub trait UiHandled {
+    fn handled(self) -> bool;
+}
+
+impl UiHandled for () {
+    fn handled(self) -> bool {
+        false
+    }
+}
+
+impl UiHandled for bool {
+    fn handled(self) -> bool {
+        self
+    }
 }
 
 /// Handle to the runtime's server-action table, usable from any handler after
@@ -1933,15 +1969,23 @@ impl Registry {
 
     /// Register a UI tree with an event callback.
     /// `ui_id` is the unique identifier (e.g. "mymod:menu").
-    /// `handler` receives `(ui_id, event_id)` when a widget is clicked.
-    pub fn register_ui<F>(&mut self, ui_id: &str, handler: F)
+    /// `handler` receives `(ui_id, event)` for the screen's input: `click:X:Y`,
+    /// `drag:X:Y`, `release:X:Y`, `scroll:DY`, `key:KEY:MODS` (GLFW key code
+    /// and modifier bits, on press and repeat) and `char:CODEPOINT` (a typed
+    /// character). It returns `()` or a `bool`: `true` marks a `key:`/`char:`
+    /// event as used, so the host skips its default handling of the key
+    /// (Esc closing the screen, ...) — see [`UiHandled`].
+    pub fn register_ui<F, R>(&mut self, ui_id: &str, handler: F)
     where
-        F: Fn(&str, &str) + Send + Sync + 'static,
+        F: Fn(&str, &str) -> R + Send + Sync + 'static,
+        R: UiHandled,
     {
         let ud = Self::leak(handler);
         let id = YogStr::from_str(ui_id);
         let empty = YogStr::from_str("{}");
-        unsafe { ((*self.api).register_ui)(self.ctx(), id, empty, ud, trampoline_ui_event::<F>) }
+        unsafe {
+            ((*self.api).register_ui)(self.ctx(), id, empty, ud, trampoline_ui_event::<F, R>)
+        }
     }
 
     // ── scheduler ────────────────────────────────────────────────────────────
@@ -2053,17 +2097,23 @@ impl Registry {
     }
 }
 
-unsafe extern "C" fn trampoline_ui_event<F>(
+unsafe extern "C" fn trampoline_ui_event<F, R>(
     ud: *mut c_void,
     ui_id: yog_abi::YogStr,
     event_id: yog_abi::YogStr,
 ) where
-    F: Fn(&str, &str) + Send + Sync + 'static,
+    F: Fn(&str, &str) -> R + Send + Sync + 'static,
+    R: UiHandled,
 {
     let f = &*(ud as *const F);
     let ui = unsafe { ui_id.as_str() };
     let ev = unsafe { event_id.as_str() };
-    f(ui, ev);
+    if f(ui, ev).handled() {
+        let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
+        if !api.is_null() {
+            unsafe { ((*api).ui_consume_event)((*api).ctx) }
+        }
+    }
 }
 
 unsafe extern "C" fn trampoline_chunk_generator<F>(

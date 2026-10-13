@@ -24,6 +24,30 @@ impl<'ctx> Draw2D<'ctx> {
         unsafe { (a.draw2d_text)(YogStr::from_str(text), x, y, color, shadow) }
     }
 
+    /// [`Self::text`] in the font `font` (`"minecraft:uniform"`, a
+    /// resource-pack font id, ...; empty or `"minecraft:default"` = the
+    /// default font).
+    pub fn text_font(&self, text: &str, font: &str, x: f32, y: f32, color: u32, shadow: bool) {
+        let a = self.0.api();
+        unsafe {
+            (a.draw2d_text_font)(
+                YogStr::from_str(text),
+                YogStr::from_str(font),
+                x,
+                y,
+                color,
+                shadow,
+            )
+        }
+    }
+
+    /// Width in GUI pixels of `text` in `font` (empty = default), measured by
+    /// the host's text renderer.
+    pub fn text_width(&self, text: &str, font: &str) -> f32 {
+        let a = self.0.api();
+        unsafe { (a.text_width)(YogStr::from_str(text), YogStr::from_str(font)) }
+    }
+
     /// Fill a rectangle with a flat color (`0xAARRGGBB`).
     pub fn rect(&self, x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
         let a = self.0.api();

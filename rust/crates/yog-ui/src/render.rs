@@ -3,7 +3,7 @@
 
 use crate::layout::{LayoutNode, Rect};
 use crate::text;
-use crate::widget::{FocusStyle, Widget, WidgetKind};
+use crate::widget::{self, FocusStyle, Widget, WidgetKind};
 use yog_gfx::draw2d::Draw2D;
 
 /// Scrollbar track and knob colors.
@@ -45,15 +45,15 @@ fn fits(clip: Option<Rect>, y: f32, h: f32) -> bool {
 }
 
 /// `line` cut with `...` to fit `max_w` pixels.
-fn ellipsize(line: &str, max_w: f32, font_scale: f32) -> String {
-    if text::str_width(line, font_scale) <= max_w {
+fn ellipsize(line: &str, max_w: f32, font_scale: f32, font: &str) -> String {
+    if text::str_width_in(line, font_scale, font) <= max_w {
         return line.to_owned();
     }
-    let budget = max_w - text::str_width("...", font_scale);
+    let budget = max_w - text::str_width_in("...", font_scale, font);
     let mut out = String::new();
     let mut w = 0.0;
     for c in line.chars() {
-        let cw = text::char_width(c) * font_scale;
+        let cw = text::char_width_in(c, font) * font_scale;
         if w + cw > budget {
             break;
         }
@@ -77,8 +77,9 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
     if s.bg != 0 {
         fill(d2d, clip, r.x, r.y, r.x + r.w, r.y + r.h, s.bg);
     }
-    // Focus indicator — style controlled per-widget.
-    if node.focused {
+    // Focus indicator — style controlled per-widget. Text boxes draw their
+    // own (a white border).
+    if node.focused && !matches!(widget.kind, WidgetKind::TextBox(_)) {
         let fc = if s.focus_color != 0 {
             s.focus_color
         } else {
@@ -116,7 +117,7 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
                 if !fits(clip, ly, text::LINE_H * s.font_scale) {
                     continue;
                 }
-                let line_w = text::str_width(line, s.font_scale);
+                let line_w = text::str_width_in(line, s.font_scale, &s.font);
                 // No `.max(0.0)`: wrapped lines never exceed avail_w so this
                 // never goes negative for them; a no_wrap line wider than the
                 // box legitimately needs a negative offset to stay centered.
@@ -125,7 +126,7 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
                     crate::Align::End => r.x + s.pad[3] + (avail_w - line_w).max(0.0),
                     _ => r.x + s.pad[3],
                 };
-                d2d.text(line, tx, ly, s.color, s.text_shadow);
+                draw_text(d2d, line, &s.font, tx, ly, s.color, s.text_shadow);
             }
         }
         WidgetKind::Button(t) => {
@@ -141,9 +142,9 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
                     continue;
                 }
                 // Center each line horizontally inside the button.
-                let line_w = text::str_width(line, s.font_scale);
+                let line_w = text::str_width_in(line, s.font_scale, &s.font);
                 let tx = r.x + s.pad[3] + ((avail_w - line_w) / 2.0).max(0.0);
-                d2d.text(line, tx, ly, s.color, s.text_shadow);
+                draw_text(d2d, line, &s.font, tx, ly, s.color, s.text_shadow);
             }
         }
         WidgetKind::ItemSlot(item_id) => {
@@ -233,6 +234,7 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
             );
         }
         WidgetKind::Spacer => {} // invisible
+        WidgetKind::TextBox(tb) => render_text_box(d2d, tb, s, *r, clip, node.focused),
     }
 
     // Render children — cut to this widget's rect when it clips.
@@ -259,15 +261,105 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
     }
 }
 
+/// Text in the widget's font — the plain call for the default font.
+fn draw_text(d2d: &Draw2D, line: &str, font: &str, x: f32, y: f32, color: u32, shadow: bool) {
+    if text::is_default_font(font) {
+        d2d.text(line, x, y, color, shadow);
+    } else {
+        d2d.text_font(line, font, x, y, color, shadow);
+    }
+}
+
+/// A text box: border, then the visible part of the text (or the
+/// placeholder), the selection behind it and the caret.
+fn render_text_box(
+    d2d: &Draw2D,
+    tb: &widget::TextBox,
+    s: &crate::widget::Style,
+    r: Rect,
+    clip: Option<Rect>,
+    focused: bool,
+) {
+    let border = if focused {
+        if s.focus_color != 0 {
+            s.focus_color
+        } else {
+            widget::TEXT_BOX_FOCUS_BORDER
+        }
+    } else {
+        widget::TEXT_BOX_BORDER
+    };
+    fill(d2d, clip, r.x, r.y, r.x + r.w, r.y + 1.0, border);
+    fill(d2d, clip, r.x, r.y + r.h - 1.0, r.x + r.w, r.y + r.h, border);
+    fill(d2d, clip, r.x, r.y, r.x + 1.0, r.y + r.h, border);
+    fill(d2d, clip, r.x + r.w - 1.0, r.y, r.x + r.w, r.y + r.h, border);
+
+    let fs = s.font_scale;
+    let line_h = text::LINE_H * fs;
+    let x0 = r.x + 1.0 + s.pad[3];
+    let inner_w = (r.w - 2.0 - s.pad[1] - s.pad[3]).max(0.0);
+    let content_h = r.h - s.pad[0] - s.pad[2];
+    let ty = (r.y + s.pad[0] + ((content_h - line_h) / 2.0).max(0.0)).round();
+    if !fits(clip, ty, line_h) {
+        return;
+    }
+    let cw = |c: char| text::char_width_in(c, &s.font) * fs;
+
+    if tb.text.is_empty() {
+        if !tb.placeholder.is_empty() {
+            let shown = ellipsize(&tb.placeholder, inner_w, fs, &s.font);
+            draw_text(d2d, &shown, &s.font, x0, ty, widget::PLACEHOLDER_COLOR, false);
+        }
+    } else {
+        let caret = tb.caret.unwrap_or(0);
+        let first = crate::textbox::text_box_first(&tb.text, tb.first, caret, inner_w, cw);
+        // The characters that fit, from `first`.
+        let mut xs = vec![x0];
+        let mut visible = String::new();
+        for c in tb.text.chars().skip(first) {
+            let next = xs[xs.len() - 1] + cw(c);
+            if next > x0 + inner_w + 0.5 {
+                break;
+            }
+            visible.push(c);
+            xs.push(next);
+        }
+        let last = first + xs.len() - 1;
+        let (a, b) = tb.selection;
+        if a < b && b > first && a < last {
+            let sx0 = xs[a.max(first) - first];
+            let sx1 = xs[b.min(last) - first];
+            fill(d2d, clip, sx0, ty - 1.0, sx1, ty + line_h, widget::SELECTION_COLOR);
+        }
+        draw_text(d2d, &visible, &s.font, x0, ty, s.color, s.text_shadow);
+    }
+    if let Some(caret) = tb.caret {
+        if tb.caret_visible {
+            let first =
+                crate::textbox::text_box_first(&tb.text, tb.first, caret, inner_w, cw);
+            let cx = x0
+                + tb
+                    .text
+                    .chars()
+                    .skip(first)
+                    .take(caret.saturating_sub(first))
+                    .map(cw)
+                    .sum::<f32>();
+            let cx = cx.min(x0 + inner_w);
+            fill(d2d, clip, cx, ty - 1.0, cx + 1.0, ty + line_h, s.color);
+        }
+    }
+}
+
 /// The lines a label/button draws: wrapped to `avail_w`, or one line
 /// (`no_wrap`), cut with `...` when `ellipsis` is set.
 fn text_lines(t: &str, s: &crate::widget::Style, avail_w: f32) -> Vec<String> {
     if s.ellipsis {
-        vec![ellipsize(t, avail_w, s.font_scale)]
+        vec![ellipsize(t, avail_w, s.font_scale, &s.font)]
     } else if s.no_wrap {
         vec![t.to_owned()]
     } else {
-        text::wrap_text(t, avail_w, s.font_scale)
+        text::wrap_text_in(t, avail_w, s.font_scale, &s.font)
     }
 }
 
@@ -277,8 +369,8 @@ mod tests {
 
     #[test]
     fn ellipsize_fits_the_width() {
-        assert_eq!(ellipsize("short", 100.0, 1.0), "short");
-        let cut = ellipsize("A rather long description line", 60.0, 1.0);
+        assert_eq!(ellipsize("short", 100.0, 1.0, ""), "short");
+        let cut = ellipsize("A rather long description line", 60.0, 1.0, "");
         assert!(cut.ends_with("..."), "{cut}");
         assert!(text::str_width(&cut, 1.0) <= 60.0, "{cut}");
     }

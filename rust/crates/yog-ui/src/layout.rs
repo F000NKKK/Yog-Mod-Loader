@@ -211,11 +211,13 @@ fn layout_widget(
                 // "unlimited") and the widget doesn't opt out of wrapping.
                 if avail_w < 4096.0 && !s.no_wrap {
                     ww = (avail_w + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
-                    hh = (text::text_height(t, avail_w, s.font_scale) + s.pad[0] + s.pad[2])
+                    hh = (text::text_height_in(t, avail_w, s.font_scale, &s.font)
+                        + s.pad[0]
+                        + s.pad[2])
                         .max(s.min_h)
                         .min(max_h);
                 } else {
-                    let tw = text::str_width(t, s.font_scale);
+                    let tw = text::str_width_in(t, s.font_scale, &s.font);
                     ww = (tw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
                     hh = (text::LINE_H * s.font_scale + s.pad[0] + s.pad[2])
                         .max(s.min_h)
@@ -239,6 +241,17 @@ fn layout_widget(
                 if !bounded(hh) {
                     hh = s.min_h;
                 }
+            }
+            // Text box: the available width (100 px when unbounded), one
+            // line of text plus its border and padding.
+            WidgetKind::TextBox(_) => {
+                if !bounded(ww) {
+                    ww = 100.0;
+                }
+                ww = ww.max(s.min_w).min(max_w);
+                hh = (text::LINE_H * s.font_scale + 7.0 + s.pad[0] + s.pad[2])
+                    .max(s.min_h)
+                    .min(max_h);
             }
             WidgetKind::McImage { img_w, img_h, .. } => {
                 ww = (*img_w + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);

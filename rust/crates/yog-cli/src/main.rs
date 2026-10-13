@@ -12,6 +12,7 @@
 //!   yog ui gen [..]  — generate `*.designer.rs` from `.yui` screen files
 //!   yog help         — show usage
 
+mod ylang;
 mod yui;
 
 use std::collections::{HashMap, HashSet};
@@ -78,6 +79,10 @@ fn main() {
                 None => Err("usage: yog publish exports [--dry-run]".into()),
             }
         }
+        Some("lang") => match args.get(2).map(String::as_str) {
+            Some("check") => lang_check(),
+            _ => Err("usage: yog lang check".into()),
+        },
         Some("ui") => match args.get(2).map(String::as_str) {
             Some("gen") => ui_gen(&args[3..]),
             _ => Err("usage: yog ui gen [file.yui ...]  (no files: every src/**/*.yui)".into()),
@@ -111,6 +116,7 @@ fn print_usage() {
          \x20 run <config> --debug  Same, built with debug info kept (see `build debug`)\n\
          \x20 publish exports     Publish this mod's exported API to crates.io\n\
          \x20 ui gen [files]      Generate *.designer.rs from .yui screen files (build does this too)\n\
+         \x20 lang check          Validate .ylang translations, list keys missing per locale\n\
          \x20 help                Show this message\n\n\
          Mod projects use yog.toml instead of Cargo.toml.\n\
          Cross-compilation requires cargo-zigbuild + zig (yog setup installs them).\n\
@@ -553,7 +559,19 @@ const TARGETS: &[Target] = &[
 /// and step through line by line. No separate artifact layout: the native
 /// this produces is simply larger, slower and symbol-ful, packaged the same
 /// way.
-fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
+/// A mod project made ready for cargo: `.yog-build/` (Cargo.toml, generated
+/// `.yui` screen code, toolchain, lock) written, translations compiled.
+struct Prepared {
+    root: PathBuf,
+    meta: YogToml,
+    build_dir: PathBuf,
+    lang_files: Vec<(String, Vec<u8>)>,
+}
+
+/// What every command that compiles does first (`yog build`, `yog check`):
+/// regenerates `.yog-build/` from `yog.toml` and `src/**/*.yui`, and checks
+/// the translations.
+fn prepare() -> Result<Prepared, String> {
     let root = std::env::current_dir().map_err(|e| e.to_string())?;
     let yog_toml_path = root.join("yog.toml");
     if !yog_toml_path.exists() {
@@ -605,7 +623,16 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
 
     let screens = yui::generate_all(&root)?;
     if screens > 0 {
-        eprintln!("    generated {screens} screen designer file(s) from .yui");
+        eprintln!(
+            "    generated code for {screens} .yui screen(s) into {}/",
+            yui::GENERATED_DIR
+        );
+    }
+
+    // Translations are checked before compiling, so a typo fails fast.
+    let (lang_files, lang_warnings) = ylang::compile_all(&root, &meta.id)?;
+    for w in &lang_warnings {
+        eprintln!("    warning: {w}");
     }
 
     configure_editor(&root).map_err(|e| format!("configuring .vscode/settings.json: {e}"))?;
@@ -623,6 +650,42 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
     if yog_lock.exists() && !cargo_lock.exists() {
         std::fs::copy(&yog_lock, &cargo_lock).map_err(|e| e.to_string())?;
     }
+    Ok(Prepared {
+        root,
+        meta,
+        build_dir,
+        lang_files,
+    })
+}
+
+/// `yog check` — `cargo check` of the mod for the host platform, after the
+/// same generation `yog build` does; nothing is packaged. Quick feedback
+/// (and fresh `.yog-build/generated/` for rust-analyzer) without a build.
+fn check() -> Result<(), String> {
+    let Prepared {
+        root, build_dir, ..
+    } = prepare()?;
+    let status = Command::new("cargo")
+        .current_dir(&build_dir)
+        .env("CARGO_TARGET_DIR", root.join("target"))
+        .arg("check")
+        .status()
+        .map_err(|e| format!("failed to run cargo: {e}"))?;
+    if !status.success() {
+        return Err(format!("cargo check failed ({status})"));
+    }
+    eprintln!("==> check OK");
+    Ok(())
+}
+
+fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
+    let Prepared {
+        root,
+        meta,
+        build_dir,
+        lang_files,
+    } = prepare()?;
+    let yog_lock = root.join("yog.lock");
 
     let builder = Builder::detect();
     eprintln!(
@@ -684,7 +747,14 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
         std::fs::copy(&new_lock, &yog_lock).map_err(|e| e.to_string())?;
     }
 
-    let assets = gather_assets(&root);
+    let mut assets = gather_assets(&root);
+    if !lang_files.is_empty() {
+        eprintln!(
+            "    compiled {} .ylang translation file(s)",
+            lang_files.len()
+        );
+    }
+    assets.extend(lang_files);
     if !assets.is_empty() {
         eprintln!("    bundled {} asset file(s)", assets.len());
     }
@@ -716,6 +786,29 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
         let out = yui::generate_file(file)?;
         eprintln!("==> {} -> {}", file.display(), out.display());
     }
+    Ok(())
+}
+
+// ── yog lang check ────────────────────────────────────────────────────────────
+
+/// `yog lang check` — what `yog build` does with `.ylang` translations,
+/// without building: errors with file:line, then keys missing per locale.
+fn lang_check() -> Result<(), String> {
+    let root = std::env::current_dir().map_err(|e| e.to_string())?;
+    let meta = YogToml::read(&root.join("yog.toml"))?;
+    let (files, warnings) = ylang::compile_all(&root, &meta.id)?;
+    for w in &warnings {
+        eprintln!("warning: {w}");
+    }
+    eprintln!(
+        "==> {} translation file(s) OK{}",
+        files.len(),
+        if warnings.is_empty() {
+            String::new()
+        } else {
+            format!(", {} warning(s)", warnings.len())
+        }
+    );
     Ok(())
 }
 
@@ -1627,6 +1720,9 @@ fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
             let path = entry.path();
             if path.is_dir() {
                 stack.push(path);
+            } else if path.extension().is_some_and(|e| e == "ylang") {
+                // Source of a generated lang JSON (see `ylang`), not an asset.
+                continue;
             } else if let Ok(rel) = path.strip_prefix(root) {
                 let key = rel.to_string_lossy().replace('\\', "/");
                 if let Ok(bytes) = std::fs::read(&path) {

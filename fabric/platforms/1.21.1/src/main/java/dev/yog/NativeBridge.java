@@ -989,13 +989,28 @@ public final class NativeBridge {
         }
     }
 
+    /**
+     * Close the Yog UI screen showing uiId ("" = any Yog UI screen) — called
+     * from Rust. Always queued, so the mod's event handler finishes first.
+     */
+    public static void closeUI(String uiId) {
+        try {
+            net.minecraft.client.MinecraftClient mc = net.minecraft.client.MinecraftClient.getInstance();
+            mc.send(() -> YogUIScreen.closeIfOpen(uiId));
+        } catch (Throwable t) {
+            // dedicated server — no client classes; ignore
+        }
+    }
+
     /** Mouse dragged over a Yog UI screen (any button held). */
     public static native void nativeUIDrag(String uiId, float mx, float my);
 
     /** Mouse button released over a Yog UI screen. */
     public static native void nativeUIRelease(String uiId, float mx, float my);
-    /** Forward a key event. action: 0=release, 1=press. */
-    public static native void nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
+    /** Forward a key event (action: 0=release, 1=press, 2=repeat); true when the mod used it. */
+    public static native boolean nativeUIKey(String uiId, int keyCode, int scanCode, int modifiers, int action);
+    /** Forward a typed character (one UTF-16 unit); true when the mod used it. */
+    public static native boolean nativeUIChar(String uiId, char chr, int modifiers);
     /** Render a Rust UI immediately (called from Screen.render, not HUD). */
     public static native void nativeUIRender(String uiId, int screenW, int screenH);
     public static native boolean nativeIsUIActive(String uiId);
@@ -1147,6 +1162,19 @@ public final class NativeBridge {
 
     /** A GUI screen was closed; screenClass is the simple class name. */
     public static native void nativeOnScreenClose(String screenClass);
+
+    // ── translations (consumed by the runtime's translate ABI) ─────────────
+
+    /**
+     * The text of translation key {@code key} in the game's current
+     * language (lang files of every resource pack, .yog mods' included), or
+     * null when no language defines it. Format specifiers are left for the
+     * caller (the runtime fills them in).
+     */
+    public static String translate(String key) {
+        net.minecraft.util.Language lang = net.minecraft.util.Language.getInstance();
+        return lang.hasTranslation(key) ? lang.get(key) : null;
+    }
 
     // ── platform mod listing (consumed by the runtime's mods_list ABI) ──────
 

@@ -2628,6 +2628,52 @@ unsafe extern "C" fn gfx_draw2d_text(text: YogStr, x: f32, y: f32, color: u32, s
     }
 }
 
+unsafe extern "C" fn gfx_draw2d_text_font(
+    text: YogStr,
+    font: YogStr,
+    x: f32,
+    y: f32,
+    color: u32,
+    shadow: bool,
+) {
+    let Some(mut env) = get_env() else { return };
+    let (Some(jt), Some(jf)) = (ys_to_java(&mut env, text), ys_to_java(&mut env, font)) else {
+        return;
+    };
+    let _ = env.call_static_method(
+        "dev/yog/NativeDraw",
+        "drawTextFont",
+        "(Ljava/lang/String;Ljava/lang/String;FFIZ)V",
+        &[
+            JValue::Object(&jt),
+            JValue::Object(&jf),
+            JValue::Float(x),
+            JValue::Float(y),
+            JValue::Int(color as i32),
+            JValue::Bool(shadow as u8),
+        ],
+    );
+}
+
+unsafe extern "C" fn gfx_text_width(text: YogStr, font: YogStr) -> f32 {
+    let Some(mut env) = get_env() else { return 0.0 };
+    let (Some(jt), Some(jf)) = (ys_to_java(&mut env, text), ys_to_java(&mut env, font)) else {
+        return 0.0;
+    };
+    match env.call_static_method(
+        "dev/yog/NativeDraw",
+        "textWidth",
+        "(Ljava/lang/String;Ljava/lang/String;)F",
+        &[JValue::Object(&jt), JValue::Object(&jf)],
+    ) {
+        Ok(v) => v.f().unwrap_or(0.0),
+        Err(_) => {
+            env.exception_clear().ok();
+            0.0
+        }
+    }
+}
+
 unsafe extern "C" fn gfx_draw2d_mc_tex(
     id: YogStr,
     x: f32,
@@ -2721,6 +2767,8 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
     draw2d_text: gfx_draw2d_text,
     draw2d_mc_tex: gfx_draw2d_mc_tex,
     draw2d_item: gfx_draw2d_item,
+    draw2d_text_font: gfx_draw2d_text_font,
+    text_width: gfx_text_width,
 };
 
 // ── YogApi registration functions ─────────────────────────────────────────────
@@ -3150,6 +3198,60 @@ unsafe extern "C" fn api_ui_open(_ctx: *mut c_void, ui_id: YogStr, modal: bool, 
     }
 }
 
+unsafe extern "C" fn api_ui_close(_ctx: *mut c_void, ui_id: YogStr) {
+    let id = ui_id.as_str().to_string();
+    let Some(mut env) = get_env() else { return };
+    let Ok(jid) = env.new_string(&id) else { return };
+    let jid_obj: JObject = jid.into();
+    // Java side defers onto the render thread (after the current event) and
+    // checks the open screen is that Yog UI; no-op on dedicated servers.
+    if env
+        .call_static_method(
+            "dev/yog/NativeBridge",
+            "closeUI",
+            "(Ljava/lang/String;)V",
+            &[JValue::Object(&jid_obj)],
+        )
+        .is_err()
+    {
+        env.exception_clear().ok();
+    }
+}
+
+unsafe extern "C" fn api_ui_consume_event(_ctx: *mut c_void) {
+    ui_jni::consume_event();
+}
+
+unsafe extern "C" fn api_translate(_ctx: *mut c_void, key: YogStr) -> YogOwnedStr {
+    let key = key.as_str();
+    if key.is_empty() {
+        return YogOwnedStr::NONE;
+    }
+    let Some(mut env) = get_env() else {
+        return YogOwnedStr::NONE;
+    };
+    let Ok(jkey) = env.new_string(key) else {
+        return YogOwnedStr::NONE;
+    };
+    let jkey: JObject = jkey.into();
+    let result = env.call_static_method(
+        "dev/yog/NativeBridge",
+        "translate",
+        "(Ljava/lang/String;)Ljava/lang/String;",
+        &[JValue::Object(&jkey)],
+    );
+    let text = match result.and_then(|v| v.l()) {
+        Ok(obj) if !obj.as_raw().is_null() => env.get_string(&obj.into()).ok().map(String::from),
+        Ok(_) => None,
+        Err(_) => {
+            env.exception_clear().ok();
+            None
+        }
+    };
+    let _ = env.delete_local_ref(jkey);
+    text.map_or(YogOwnedStr::NONE, YogOwnedStr::from_string)
+}
+
 unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
     let mut lines: Vec<String> = Vec::new();
     for m in MOD_INFOS.lock().expect("mod infos lock poisoned").iter() {
@@ -3384,6 +3486,9 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         interop_import: interop_import_impl,
         register_dimension_json: api_register_dimension_json,
         register_chunk_generator: api_register_chunk_generator,
+        ui_close: api_ui_close,
+        ui_consume_event: api_ui_consume_event,
+        translate: api_translate,
     }
 }
 

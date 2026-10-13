@@ -58,8 +58,14 @@ public class YogUIScreen extends Screen {
     }
 
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        NativeBridge.nativeUIKey(uiId, keyCode, scanCode, modifiers, 1);
+        // The mod may use the key (a focused text box takes Esc to unfocus).
+        if (NativeBridge.nativeUIKey(uiId, keyCode, scanCode, modifiers, 1)) return true;
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override public boolean charTyped(char chr, int modifiers) {
+        if (NativeBridge.nativeUIChar(uiId, chr, modifiers)) return true;
+        return super.charTyped(chr, modifiers);
     }
 
     @Override public boolean isPauseScreen() { return pauseGame; }
@@ -67,6 +73,14 @@ public class YogUIScreen extends Screen {
     @Override public void onClose() {
         NativeBridge.nativeUIHide(uiId);
         super.onClose();
+    }
+
+    /** Closes the open screen if it's the Yog UI uiId ("" = any Yog UI). */
+    public static void closeIfOpen(String uiId) {
+        if (Minecraft.getInstance().screen instanceof YogUIScreen s
+                && (uiId.isEmpty() || s.uiId.equals(uiId))) {
+            s.onClose();
+        }
     }
 
     public static void open(String uiId, boolean modal, boolean pause) {

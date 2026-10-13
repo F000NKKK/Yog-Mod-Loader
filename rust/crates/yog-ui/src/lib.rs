@@ -20,10 +20,12 @@ pub mod layout;
 mod render;
 pub mod scroll;
 pub mod text;
+pub mod textbox;
 pub mod widget;
 
 pub use layout::{set_focus, Align, FlexDir, LayoutNode, Rect};
 pub use scroll::ScrollState;
+pub use textbox::{TextBoxEvent, TextBoxState};
 pub use widget::{Dock, FocusStyle, Units, Widget};
 
 use yog_gfx::GfxContext;
@@ -55,6 +57,7 @@ impl UiRoot {
     /// Render the UI tree via `yog-gfx` draw2d.
     /// Must be called from `on_hud_render`.
     pub fn render(&self, ctx: &GfxContext) {
+        text::use_host_metrics(ctx);
         let d2d = ctx.draw2d();
         render::render_node(&d2d, &self.root, &self.layout_root);
     }

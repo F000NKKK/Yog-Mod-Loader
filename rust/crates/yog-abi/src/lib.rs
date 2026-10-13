@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 32;
+pub const ABI_MINOR: u32 = 33;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -509,9 +509,15 @@ pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
 
 /// Client tick — no event, no server context.
 pub type YogClientFn = unsafe extern "C" fn(ud: *mut c_void);
+/// UI event for a `register_ui` screen. `event_id` is one of
+/// `click:X:Y`, `drag:X:Y`, `release:X:Y`, `scroll:DY` and (ABI minor 33)
+/// `key:KEY:MODS` — a GLFW key code pressed or repeating, with GLFW modifier
+/// bits — and `char:CODEPOINT` — a typed character (Unicode scalar value).
+/// Call `YogApi::ui_consume_event` while handling `key:`/`char:` to stop the
+/// host's default handling of that key (Esc closing the screen, ...).
+pub type YogUIEventFn = unsafe extern "C" fn(ud: *mut c_void, ui_id: YogStr, event_id: YogStr);
 /// HUD render — `gfx` is the graphics context for this frame; only valid for
 /// the call duration.  `draw2d_*` functions in `gfx` work here.
-pub type YogUIEventFn = unsafe extern "C" fn(ud: *mut c_void, ui_id: YogStr, event_id: YogStr);
 pub type YogHudRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
 /// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
 /// Valid only for the call duration.
@@ -668,6 +674,25 @@ pub struct YogGfxApi {
     /// ("minecraft:crafting_table"); `size` is the on-screen size in GUI px
     /// (16 = inventory size). Only valid during `on_hud_render`.
     pub draw2d_item: unsafe extern "C" fn(id: YogStr, x: f32, y: f32, size: f32),
+
+    // ── appended in ABI minor 33 ──────────────────────────────────────────────
+    /// `draw2d_text` in the font `font` — a font id such as
+    /// `"minecraft:default"`, `"minecraft:uniform"`, `"minecraft:alt"` or a
+    /// resource-pack font (`"mymod:fancy"`); empty = the default font. Only
+    /// valid during a render callback.
+    pub draw2d_text_font: unsafe extern "C" fn(
+        text: YogStr,
+        font: YogStr,
+        x: f32,
+        y: f32,
+        color: u32,
+        shadow: bool,
+    ),
+    /// Width in GUI pixels of `text` drawn in `font` (empty = default), as the
+    /// host's text renderer measures it. Callable from the render thread at
+    /// any time (render callbacks and UI event handlers); the pointer stays
+    /// valid for the life of the process.
+    pub text_width: unsafe extern "C" fn(text: YogStr, font: YogStr) -> f32,
 }
 
 unsafe impl Send for YogGfxApi {}
@@ -1186,6 +1211,25 @@ pub struct YogApi {
     /// see `YogChunkWriterApi`/`YogChunkGeneratorFn`.
     pub register_chunk_generator:
         unsafe extern "C" fn(ctx: *mut c_void, id: YogStr, ud: *mut c_void, h: YogChunkGeneratorFn),
+
+    // ── ABI minor 33 — closing Yog UI screens, consuming UI key events ──────
+    /// Close the Yog UI screen showing `ui_id` (empty = whichever Yog UI
+    /// screen is open). Scheduled onto the render thread, so it's safe to
+    /// call from that screen's own event handler. Client-side only.
+    pub ui_close: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr),
+    /// Called from inside a `register_ui` handler while it handles a `key:`
+    /// or `char:` event: the mod used the key, so the host skips its default
+    /// handling (Esc closing the screen, Tab focus navigation, ...).
+    pub ui_consume_event: unsafe extern "C" fn(ctx: *mut c_void),
+
+    // ── ABI minor 33 — translations ─────────────────────────────────────────
+    /// The text of translation key `key` (e.g. `mymod.screen.title`) in the
+    /// game's current language, from the loaded lang files — resource packs
+    /// and `.yog` mods' `assets/<ns>/lang/*.json` (compiled from `.ylang`).
+    /// `YogOwnedStr::NONE` when no language defines the key. Format
+    /// specifiers (`%s`, `%1$s`) come back as-is. Free with `free_str`.
+    /// Client-side; a dedicated server only knows `en_us`.
+    pub translate: unsafe extern "C" fn(ctx: *mut c_void, key: YogStr) -> YogOwnedStr,
 }
 
 unsafe impl Send for YogApi {}

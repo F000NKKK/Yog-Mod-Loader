@@ -4,6 +4,7 @@
 
 use crate::{handlers, UiLayer};
 use jni::{objects::JClass, objects::JString, objects::JValue, sys::*, JNIEnv};
+use std::cell::Cell;
 use yog_abi::YogStr;
 
 macro_rules! jstr {
@@ -227,6 +228,43 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRelease<'l>(
     }
 }
 
+thread_local! {
+    /// Set by `YogApi::ui_consume_event` while a `key:`/`char:` event is
+    /// being dispatched — the mod used the key.
+    static CONSUMED: Cell<bool> = const { Cell::new(false) };
+    /// A UTF-16 high surrogate waiting for its low half (`charTyped` hands
+    /// characters outside the BMP over as two calls).
+    static HIGH_SURROGATE: Cell<Option<u16>> = const { Cell::new(None) };
+}
+
+/// `YogApi::ui_consume_event`: marks the event being dispatched as used.
+pub(crate) fn consume_event() {
+    CONSUMED.with(|c| c.set(true));
+}
+
+/// Sends `ev` to the `register_ui` handler of `id`; `true` when the handler
+/// consumed it (called `ui_consume_event`).
+fn dispatch_consumable(id: &str, ev: &str) -> bool {
+    let h = handlers();
+    let Some((module, ud, handler)) = h.ui_handlers.get(id).cloned() else {
+        return false;
+    };
+    if module.is_retiring() {
+        return false;
+    }
+    let Some(_call) = module.enter() else {
+        return false;
+    };
+    let before = CONSUMED.with(|c| c.replace(false));
+    unsafe {
+        handler(ud, YogStr::from_str(id), YogStr::from_str(ev));
+    }
+    CONSUMED.with(|c| c.replace(before))
+}
+
+/// A key pressed (or repeating) over a Yog UI screen — forwarded as
+/// `key:KEY:MODS` (GLFW key code and modifier bits). Returns whether the mod
+/// consumed it; if not, the host does its default (Esc closes the screen).
 #[no_mangle]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
     mut env: JNIEnv<'l>,
@@ -234,11 +272,42 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
     ui_id: JString<'l>,
     key: jint,
     _scan: jint,
-    _mods: jint,
+    mods: jint,
     action: jint,
-) {
+) -> jboolean {
     let id = jstr!(env, ui_id);
-    yog_logging::info!("UI key: {} key={} action={}", id, key, action);
+    if action == 0 {
+        return 0;
+    }
+    dispatch_consumable(&id, &format!("key:{key}:{mods}")) as jboolean
+}
+
+/// A character typed over a Yog UI screen (one UTF-16 unit, as
+/// `Screen.charTyped` gets it) — forwarded as `char:CODEPOINT` once a whole
+/// character is known. Returns whether the mod consumed it.
+#[no_mangle]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIChar<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ui_id: JString<'l>,
+    chr: jchar,
+    _mods: jint,
+) -> jboolean {
+    let id = jstr!(env, ui_id);
+    let pending = HIGH_SURROGATE.with(|p| p.take());
+    let c = match chr {
+        0xD800..=0xDBFF => {
+            HIGH_SURROGATE.with(|p| p.set(Some(chr)));
+            return 1;
+        }
+        0xDC00..=0xDFFF => match pending {
+            Some(hi) => char::decode_utf16([hi, chr]).next().and_then(|r| r.ok()),
+            None => None,
+        },
+        _ => char::from_u32(chr as u32),
+    };
+    let Some(c) = c else { return 0 };
+    dispatch_consumable(&id, &format!("char:{}", c as u32)) as jboolean
 }
 
 #[no_mangle]

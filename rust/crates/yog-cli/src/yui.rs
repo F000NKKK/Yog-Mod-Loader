@@ -14,9 +14,10 @@
 //! </Screen>
 //! ```
 //!
-//! `yog build` (and `yog ui gen`) turns `src/**/foo.yui` into a sibling
-//! `foo.designer.rs` — VS's `Form1.Designer.cs`: generated, git-ignored,
-//! meant to be `include!`d from the screen's hand-written code-behind module.
+//! `yog build` (and `yog check`, `yog ui gen`) turns `src/**/foo.yui` into
+//! `.yog-build/generated/**/foo.g.rs` — WPF's `MainWindow.g.cs`: generated
+//! into the build directory on every build, never committed, pulled into the
+//! screen's hand-written code-behind module with `yog_api::ui_include!("foo")`.
 //! See `docs/yui.md` in Yog-IDLE for the full format.
 
 use std::fmt::Write as _;
@@ -236,7 +237,7 @@ pub fn parse_xml(src: &str) -> Result<Element, String> {
 
 const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView"];
 const LEAVES: &[&str] = &[
-    "Label", "Button", "ItemSlot", "InvSlot", "Image", "Spacer",
+    "Label", "Button", "TextBox", "ItemSlot", "InvSlot", "Image", "Spacer",
 ];
 const COMMON_ATTRS: &[&str] = &[
     "id",
@@ -254,6 +255,7 @@ const COMMON_ATTRS: &[&str] = &[
     "color",
     "align",
     "font_scale",
+    "font",
     "shadow",
     "no_wrap",
     "ellipsis",
@@ -267,6 +269,7 @@ fn kind_attrs(kind: &str) -> &'static [&'static str] {
     match kind {
         "Screen" => &["width", "height", "anchor", "modal", "pause"],
         "Label" | "Button" => &["text"],
+        "TextBox" => &["text", "placeholder", "max_length", "on_change", "on_submit"],
         "ItemSlot" => &["item"],
         "InvSlot" => &["item", "count"],
         "Image" => &["texture", "tex_w", "tex_h"],
@@ -383,6 +386,18 @@ fn pascal(value: &str) -> String {
 }
 
 /// A Rust constant name for an event/widget id: `mymod:btn-play` → `MYMOD_BTN_PLAY`.
+/// The Rust expression for a text attribute: `"@mymod.key"` is translation
+/// key `mymod.key`, looked up when the tree is built (`::yog_api::tr`, so it
+/// follows the game's language); `"@@..."` is a literal text starting
+/// with `@`; anything else is the literal text.
+pub fn text_expr(value: &str) -> String {
+    match value.strip_prefix('@') {
+        Some(rest) if rest.starts_with('@') => format!("{rest:?}"),
+        Some(key) if !key.trim().is_empty() => format!("::yog_api::tr({:?})", key.trim()),
+        _ => format!("{value:?}"),
+    }
+}
+
 pub fn const_name(value: &str) -> String {
     let mut out = String::new();
     let mut prev_lower = false;
@@ -441,13 +456,14 @@ impl Gen {
                 ));
             }
         }
-        let text = || el.attr("text").unwrap_or_default().to_string();
+        let text = || text_expr(el.attr("text").unwrap_or_default());
         let mut expr = match kind {
             "Screen" | "Canvas" | "Column" => "widget::panel(FlexDir::Column)".to_string(),
             "Row" => "widget::panel(FlexDir::Row)".to_string(),
             "ScrollView" => "widget::scroll_view()".to_string(),
-            "Label" => format!("widget::label({:?})", text()),
-            "Button" => format!("widget::button({:?})", text()),
+            "Label" => format!("widget::label({})", text()),
+            "Button" => format!("widget::button({})", text()),
+            "TextBox" => format!("widget::text_box({})", text()),
             "ItemSlot" => format!("widget::item_slot({:?})", el.attr("item").unwrap_or_default()),
             "InvSlot" => {
                 let count = match el.attr("count") {
@@ -499,11 +515,22 @@ impl Gen {
                     }
                     call(format!("id({v:?})"));
                 }
-                "on_click" => {
+                "on_click" | "on_change" | "on_submit" => {
                     if !self.events.contains(value) {
                         self.events.push(value.clone());
                     }
-                    call(format!("on_click({v:?})"));
+                    call(format!("{key}({v:?})"));
+                }
+                "placeholder" => call(format!("placeholder({})", text_expr(v))),
+                "font" => call(format!("font({:?})", v.trim())),
+                "max_length" => {
+                    let n = v.trim().parse::<usize>().map_err(|_| {
+                        format!(
+                            "line {}: <{kind}> max_length=\"{v}\": expected a whole number",
+                            el.line
+                        )
+                    })?;
+                    call(format!("max_length({n})"));
                 }
                 "w" | "h" => {
                     if let Some(s) = size(el, key, v)? {
@@ -549,9 +576,10 @@ impl Gen {
     }
 }
 
-/// Generates the `.designer.rs` source for a `.yui` document. `source_name`
-/// (the `.yui` file's name) only goes into the header comment.
-pub fn generate(src: &str, source_name: &str) -> Result<String, String> {
+/// Generates the `.g.rs` source for a `.yui` document. `name` is the screen's
+/// path under `src/` without the extension (`mod_list`, `screens/options`):
+/// what the code-behind passes to `ui_include!`.
+pub fn generate(src: &str, name: &str) -> Result<String, String> {
     let root = parse_xml(src)?;
     if root.name != "Screen" {
         return Err(format!(
@@ -624,11 +652,15 @@ pub fn generate(src: &str, source_name: &str) -> Result<String, String> {
     let mut out = String::new();
     let _ = write!(
         out,
-        r#"// Generated by yog from {source_name} — do not edit; edit the .yui file
-// (Yog-IDLE's screen designer) instead. Meant to be `include!`d from the
-// screen's code-behind module:
+        r#"// <auto-generated>
+//     Generated by yog from src/{name}.yui — do not edit: changes are lost
+//     on the next `yog build` / `yog check` / `yog ui gen`. Edit the .yui
+//     file (Yog-IDLE's screen designer) instead.
+// </auto-generated>
 //
-//     include!("{stem}.designer.rs");
+// Pulled into the screen's code-behind module with:
+//
+//     yog_api::ui_include!("{name}");
 
 /// The UI id this screen registers under (`register_ui`, `on_ui_render`, `open_ui`).
 #[allow(dead_code)]
@@ -639,7 +671,7 @@ pub const WIDTH: f32 = {width};
 #[allow(dead_code)]
 pub const HEIGHT: f32 = {height};
 
-/// `on_click` events raised by this screen's widgets.
+/// `on_click`/`on_change`/`on_submit` events raised by this screen's widgets.
 #[allow(dead_code)]
 pub mod events {{
 {events}}}
@@ -723,13 +755,34 @@ pub fn with_last<R>(f: impl FnOnce(&::yog_api::ui::UiRoot) -> R) -> Option<R> {{
     last.as_ref().map(f)
 }}
 
+/// Feeds a UI event to the text box `id` (one of [`ids`]) as laid out by the
+/// last [`render`] — call from `register_ui`'s handler; pass the same state
+/// to `TextBoxState::apply` in [`render_with`]'s customize. `Ignored` before
+/// the first render or for an unknown id.
+#[allow(dead_code)]
+pub fn text_box(
+    id: &str,
+    state: &mut ::yog_api::ui::TextBoxState,
+    event: &str,
+) -> ::yog_api::ui::TextBoxEvent {{
+    with_last(|ui| ui.find_node(id).map(|node| state.handle(event, node)))
+        .flatten()
+        .unwrap_or(::yog_api::ui::TextBoxEvent::Ignored)
+}}
+
 /// Opens the screen (modal: {modal}, pauses the game: {pause}).
 #[allow(dead_code)]
 pub fn open() {{
     ::yog_api::open_ui(ID, {modal}, {pause});
 }}
+
+/// Closes the screen if it's open (what Esc does) — for a Done/Cancel
+/// button. Takes effect after the current event handler returns.
+#[allow(dead_code)]
+pub fn close() {{
+    ::yog_api::close_ui(ID);
+}}
 "#,
-        stem = source_name.strip_suffix(".yui").unwrap_or(source_name),
         width = f(width),
         height = f(height),
         events = consts(&gen.events),
@@ -738,29 +791,109 @@ pub fn open() {{
     Ok(out)
 }
 
-/// Where `foo.yui`'s generated code goes: `foo.designer.rs` next to it.
-pub fn designer_path(yui: &Path) -> PathBuf {
-    yui.with_extension("designer.rs")
+/// Where generated screen code goes, under the project root.
+pub const GENERATED_DIR: &str = ".yog-build/generated";
+
+fn absolute(path: &Path) -> PathBuf {
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir().unwrap_or_default().join(path)
+    }
 }
 
-/// Generates `<file>.designer.rs` for one `.yui` file — only rewritten when
-/// the output changed, so cargo doesn't rebuild for nothing.
-pub fn generate_file(yui: &Path) -> Result<PathBuf, String> {
+/// The project root (the folder with `yog.toml`) a `.yui` file belongs to.
+pub fn project_root(yui: &Path) -> Option<PathBuf> {
+    absolute(yui)
+        .ancestors()
+        .skip(1)
+        .find(|d| d.join("yog.toml").is_file())
+        .map(Path::to_path_buf)
+}
+
+/// `foo.yui`'s name for `ui_include!`: its path under `src/` without the
+/// extension, `/`-separated (`mod_list`, `screens/options`).
+pub fn include_name(root: &Path, yui: &Path) -> String {
+    let abs = absolute(yui);
+    let rel = abs
+        .strip_prefix(root.join("src"))
+        .or_else(|_| abs.strip_prefix(root))
+        .unwrap_or(&abs)
+        .with_extension("");
+    rel.components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+/// Where `src/<name>.yui`'s generated code goes:
+/// `.yog-build/generated/<name>.g.rs`.
+pub fn generated_path(root: &Path, name: &str) -> PathBuf {
+    root.join(GENERATED_DIR).join(format!("{name}.g.rs"))
+}
+
+/// Generates `.yog-build/generated/<name>.g.rs` for one `.yui` file of the
+/// project at `root` — only rewritten when the output changed, so cargo
+/// doesn't rebuild for nothing. A `foo.designer.rs` left next to the `.yui`
+/// by an older yog is deleted: it's stale, and nothing may include it.
+pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
     let src = std::fs::read_to_string(yui).map_err(|e| format!("{}: {e}", yui.display()))?;
-    let name = yui
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
+    let name = include_name(root, yui);
     let code = generate(&src, &name).map_err(|e| format!("{}: {e}", yui.display()))?;
-    let out = designer_path(yui);
+    let out = generated_path(root, &name);
     if std::fs::read_to_string(&out).ok().as_deref() != Some(code.as_str()) {
+        if let Some(dir) = out.parent() {
+            std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+        }
         std::fs::write(&out, code).map_err(|e| format!("{}: {e}", out.display()))?;
+    }
+    let legacy = yui.with_extension("designer.rs");
+    if legacy.is_file() {
+        std::fs::remove_file(&legacy).map_err(|e| format!("{}: {e}", legacy.display()))?;
+        eprintln!(
+            "    removed {} (screen code is generated into {GENERATED_DIR}/ now)",
+            legacy.display()
+        );
     }
     Ok(out)
 }
 
-/// Every `.yui` file under `dir`, recursively.
-pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
+/// Code-behind still written for the old layout — `include!("foo.designer.rs")`
+/// of a screen — as `file:line: message` errors saying what to write instead.
+pub fn legacy_includes(root: &Path) -> Vec<String> {
+    let mut errors = Vec::new();
+    for file in find_files(&root.join("src"), "rs") {
+        let Ok(text) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        for (i, line) in text.lines().enumerate() {
+            let Some(start) = line.find("include!(\"") else {
+                continue;
+            };
+            let arg = &line[start + "include!(\"".len()..];
+            let Some(end) = arg.find('"') else { continue };
+            let Some(stem) = arg[..end].strip_suffix(".designer.rs") else {
+                continue;
+            };
+            let yui = file.parent().unwrap_or(root).join(format!("{stem}.yui"));
+            if !yui.is_file() {
+                continue;
+            }
+            errors.push(format!(
+                "{}:{}: `include!(\"{stem}.designer.rs\")` — .yui screen code is \
+                 generated into {GENERATED_DIR}/ now; replace it with \
+                 `yog_api::ui_include!(\"{}\");` (yog-api 0.88+)",
+                file.strip_prefix(root).unwrap_or(&file).display(),
+                i + 1,
+                include_name(root, &yui),
+            ));
+        }
+    }
+    errors
+}
+
+/// Every `*.<ext>` file under `dir`, recursively.
+fn find_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     let mut found = Vec::new();
     let Ok(entries) = std::fs::read_dir(dir) else {
         return found;
@@ -768,8 +901,8 @@ pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
-            found.extend(find_yui_files(&path));
-        } else if path.extension().is_some_and(|e| e == "yui") {
+            found.extend(find_files(&path, ext));
+        } else if path.extension().is_some_and(|e| e == ext) {
             found.push(path);
         }
     }
@@ -777,11 +910,28 @@ pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
     found
 }
 
-/// `yog build`'s step: regenerates every `src/**/*.yui`'s designer file.
+/// Every `.yui` file under `dir`, recursively.
+pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
+    find_files(dir, "yui")
+}
+
+/// `yog build`'s step: regenerates every `src/**/*.yui`'s `.g.rs`, drops
+/// generated files whose `.yui` is gone, and fails on code-behind that
+/// still includes an old `.designer.rs`.
 pub fn generate_all(root: &Path) -> Result<usize, String> {
     let files = find_yui_files(&root.join("src"));
+    let mut wanted = Vec::new();
     for file in &files {
-        generate_file(file)?;
+        wanted.push(generate_file(root, file)?);
+    }
+    for stale in find_files(&root.join(GENERATED_DIR), "rs") {
+        if stale.to_string_lossy().ends_with(".g.rs") && !wanted.contains(&stale) {
+            let _ = std::fs::remove_file(&stale);
+        }
+    }
+    let legacy = legacy_includes(root);
+    if !legacy.is_empty() {
+        return Err(legacy.join("\n"));
     }
     Ok(files.len())
 }
@@ -817,7 +967,7 @@ mod tests {
 
     #[test]
     fn generates_builder_code() {
-        let code = generate(SAMPLE, "main.yui").unwrap();
+        let code = generate(SAMPLE, "main").unwrap();
         assert!(code.contains(r#"pub const ID: &str = "mymod:main";"#));
         assert!(code.contains(r#"widget::label("Main & Menu")"#));
         assert!(code.contains(".at(8.0, 6.0)"));
@@ -832,6 +982,9 @@ mod tests {
         assert!(code.contains("widget::scroll_view()"));
         assert!(code.contains(".ellipsis()"));
         assert!(code.contains("pub fn with_last<R>"));
+        assert!(code.starts_with("// <auto-generated>"));
+        assert!(code.contains(r#"yog_api::ui_include!("main");"#));
+        assert!(code.contains("pub fn close()"));
         // Children of a Row aren't positioned unless they say so.
         assert!(!code.contains("widget::spacer()\n                .at("));
     }
@@ -883,9 +1036,72 @@ mod tests {
     }
 
     #[test]
+    fn text_box_and_font() {
+        let src = r#"<Screen id="a:b">
+  <TextBox id="search" w="100%" placeholder="Search..." max_length="64" on_change="search" on_submit="go" font="minecraft:uniform" shadow="false"/>
+</Screen>"#;
+        let code = generate(src, "x").unwrap();
+        assert!(code.contains(r#"widget::text_box("")"#), "{code}");
+        assert!(code.contains(r#".placeholder("Search...")"#));
+        assert!(code.contains(".max_length(64)"));
+        assert!(code.contains(r#".on_change("search")"#));
+        assert!(code.contains(r#".on_submit("go")"#));
+        assert!(code.contains(r#".font("minecraft:uniform")"#));
+        assert!(code.contains(".shadow(false)"));
+        assert!(code.contains(r#"pub const GO: &str = "go";"#));
+        assert!(code.contains("pub fn text_box("));
+        let bad = r#"<Screen id="a:b"><TextBox max_length="x"/></Screen>"#;
+        assert!(generate(bad, "x").unwrap_err().contains("whole number"));
+    }
+
+    #[test]
+    fn generated_paths_and_migration() {
+        let dir = std::env::temp_dir().join(format!("yog-yui-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("src/screens")).unwrap();
+        std::fs::write(dir.join("yog.toml"), "").unwrap();
+        let yui = dir.join("src/screens/opts.yui");
+        std::fs::write(&yui, r#"<Screen id="a:b"/>"#).unwrap();
+        std::fs::write(dir.join("src/screens/opts.designer.rs"), "// old").unwrap();
+        let code_behind = dir.join("src/screens/opts.rs");
+        std::fs::write(&code_behind, "include!(\"opts.designer.rs\");\n").unwrap();
+        assert_eq!(project_root(&yui).as_deref(), Some(dir.as_path()));
+        assert_eq!(include_name(&dir, &yui), "screens/opts");
+        let err = generate_all(&dir).unwrap_err();
+        assert!(
+            err.contains("opts.rs:1") && err.contains(r#"ui_include!("screens/opts")"#),
+            "{err}"
+        );
+        let generated = dir.join(".yog-build/generated/screens/opts.g.rs");
+        assert!(generated.is_file());
+        assert!(!dir.join("src/screens/opts.designer.rs").exists());
+        std::fs::write(&code_behind, "yog_api::ui_include!(\"screens/opts\");\n").unwrap();
+        assert_eq!(generate_all(&dir).unwrap(), 1);
+        std::fs::remove_file(&yui).unwrap();
+        generate_all(&dir).unwrap();
+        assert!(!generated.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn const_names() {
         assert_eq!(const_name("mymod:btn-play"), "MYMOD_BTN_PLAY");
         assert_eq!(const_name("openMenu"), "OPEN_MENU");
         assert_eq!(const_name("1st"), "_1ST");
+    }
+
+    #[test]
+    fn text_starting_with_at_is_a_translation_key() {
+        assert_eq!(text_expr("@mymod.title"), "::yog_api::tr(\"mymod.title\")");
+        assert_eq!(text_expr("@@home"), "\"@home\"");
+        assert_eq!(text_expr("plain"), "\"plain\"");
+        assert_eq!(text_expr("@"), "\"@\"");
+        let code = generate(
+            r#"<Screen id="m:s" width="10" height="10"><Label text="@m.title"/><Button text="@@x"/></Screen>"#,
+            "s.yui",
+        )
+        .unwrap();
+        assert!(code.contains("widget::label(::yog_api::tr(\"m.title\"))"), "{code}");
+        assert!(code.contains("widget::button(\"@x\")"), "{code}");
     }
 }
