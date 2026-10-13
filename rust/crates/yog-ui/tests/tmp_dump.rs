@@ -3,6 +3,7 @@ mod support;
 use yog_ui::layout;
 #[test]
 fn dump() {
+    let Ok(path) = std::env::var("DUMP") else { return };
     let mut out = String::new();
     for n in [10, 100, 300] {
         for t in [support::screen(n), support::grid(n), support::list(n)] {
@@ -14,5 +15,5 @@ fn dump() {
     for d in [1, 3, 6] {
         out += &format!("{:?}\n", layout::compute(&support::nested(d), 640.0, 360.0));
     }
-    std::fs::write(std::env::var("DUMP").unwrap(), out).unwrap();
+    std::fs::write(path, out).unwrap();
 }

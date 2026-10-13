@@ -123,9 +123,54 @@ pub fn wrap_text_in(text: &str, max_w: f32, font_scale: f32, font: &str) -> Vec<
     if font_scale <= 0.0 || max_w <= 0.0 {
         return vec![text.to_owned()];
     }
+    let mut lines = Lines::default();
+    wrap(text, max_w, font_scale, font, &mut lines);
+    lines.0
+}
+
+/// Where [`wrap`] puts the text: the pieces of the current line and the
+/// line breaks.
+trait WrapSink {
+    fn push_str(&mut self, s: &str);
+    fn push_char(&mut self, c: char);
+    /// Ends the current line.
+    fn end_line(&mut self);
+}
+
+/// Collects the wrapped lines.
+#[derive(Default)]
+struct Lines(Vec<String>, String);
+
+impl WrapSink for Lines {
+    fn push_str(&mut self, s: &str) {
+        self.1.push_str(s);
+    }
+    fn push_char(&mut self, c: char) {
+        self.1.push(c);
+    }
+    fn end_line(&mut self) {
+        self.0.push(std::mem::take(&mut self.1));
+    }
+}
+
+/// Counts the wrapped lines without building them.
+#[derive(Default)]
+struct LineCount(usize);
+
+impl WrapSink for LineCount {
+    fn push_str(&mut self, _: &str) {}
+    fn push_char(&mut self, _: char) {}
+    fn end_line(&mut self) {
+        self.0 += 1;
+    }
+}
+
+/// The word-wrapping behind [`wrap_text_in`]: words joined by single
+/// spaces, a word wider than a line hard-broken at glyph boundaries. Always
+/// ends at least one line.
+fn wrap(text: &str, max_w: f32, font_scale: f32, font: &str, out: &mut impl WrapSink) {
     let space_w = char_width_in(' ', font) * font_scale;
-    let mut lines: Vec<String> = Vec::new();
-    let mut cur = String::new();
+    let mut lines = 0usize;
     let mut cur_w = 0.0f32;
 
     for word in text.split(' ') {
@@ -133,65 +178,54 @@ pub fn wrap_text_in(text: &str, max_w: f32, font_scale: f32, font: &str) -> Vec<
             continue;
         }
         let word_w = str_width_in(word, font_scale, font);
-
-        if cur_w == 0.0 {
-            append_word(
-                &mut lines, &mut cur, &mut cur_w, word, word_w, max_w, font_scale, font,
-            );
-        } else if cur_w + space_w + word_w <= max_w {
-            cur.push(' ');
-            cur.push_str(word);
+        if cur_w > 0.0 && cur_w + space_w + word_w <= max_w {
+            out.push_char(' ');
+            out.push_str(word);
             cur_w += space_w + word_w;
-        } else {
-            lines.push(std::mem::take(&mut cur));
-            cur_w = 0.0;
-            append_word(
-                &mut lines, &mut cur, &mut cur_w, word, word_w, max_w, font_scale, font,
-            );
+            continue;
         }
-    }
-    if cur_w > 0.0 || lines.is_empty() {
-        lines.push(cur);
-    }
-    lines
-}
-
-/// Append a word, hard-breaking if it's wider than one line.
-#[allow(clippy::too_many_arguments)]
-fn append_word(
-    lines: &mut Vec<String>,
-    cur: &mut String,
-    cur_w: &mut f32,
-    word: &str,
-    word_w: f32,
-    max_w: f32,
-    font_scale: f32,
-    font: &str,
-) {
-    if word_w <= max_w {
-        cur.push_str(word);
-        *cur_w = word_w;
-        return;
-    }
-    // Word is wider than one line — hard-break at glyph boundaries.
-    let mut line = String::new();
-    let mut w = 0.0f32;
-    for ch in word.chars() {
-        let cw = char_width_in(ch, font) * font_scale;
-        if w + cw > max_w && !line.is_empty() {
-            lines.push(std::mem::take(&mut line));
-            w = 0.0;
+        if cur_w > 0.0 {
+            out.end_line();
+            lines += 1;
         }
-        line.push(ch);
-        w += cw;
+        if word_w <= max_w {
+            out.push_str(word);
+            cur_w = word_w;
+            continue;
+        }
+        // Word is wider than one line — hard-break at glyph boundaries.
+        let (mut w, mut line_empty) = (0.0f32, true);
+        for ch in word.chars() {
+            let cw = char_width_in(ch, font) * font_scale;
+            if w + cw > max_w && !line_empty {
+                out.end_line();
+                lines += 1;
+                w = 0.0;
+            }
+            out.push_char(ch);
+            line_empty = false;
+            w += cw;
+        }
+        cur_w = w;
     }
-    *cur = line;
-    *cur_w = w;
+    if cur_w > 0.0 || lines == 0 {
+        out.end_line();
+    }
 }
 
 /// Number of lines that `text` wraps to.
 pub fn line_count(text: &str, max_w: f32, font_scale: f32) -> usize {
-    wrap_text(text, max_w, font_scale).len().max(1)
+    line_count_in(text, max_w, font_scale, "")
+}
+
+/// [`line_count`] in `font`, without building the lines.
+fn line_count_in(text: &str, max_w: f32, font_scale: f32, font: &str) -> usize {
+    if font_scale <= 0.0 || max_w <= 0.0 {
+        return 1;
+    }
+    let mut count = LineCount::default();
+    wrap(text, max_w, font_scale, font, &mut count);
+    count.0
 }
 
 /// Total pixel height of wrapped `text`.
@@ -201,7 +235,7 @@ pub fn text_height(text: &str, max_w: f32, font_scale: f32) -> f32 {
 
 /// [`text_height`] in `font` (see [`char_width_in`]).
 pub fn text_height_in(text: &str, max_w: f32, font_scale: f32, font: &str) -> f32 {
-    let n = wrap_text_in(text, max_w, font_scale, font).len().max(1);
+    let n = line_count_in(text, max_w, font_scale, font);
     n as f32 * LINE_H * font_scale + (n.saturating_sub(1)) as f32 * LINE_GAP
 }
 
@@ -224,4 +258,32 @@ pub fn paginate_text(text: &str, max_w: f32, max_h: f32, font_scale: f32) -> Vec
     let per_page = per_page.max(1);
 
     all_lines.chunks(per_page).map(|c| c.to_vec()).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wraps_words_and_hard_breaks_long_ones() {
+        assert_eq!(wrap_text("aaa  bbb ccc", 40.0, 1.0), ["aaa bbb", "ccc"]);
+        assert_eq!(wrap_text("", 40.0, 1.0), [""]);
+        assert_eq!(wrap_text("mmmmmmmmmm", 30.0, 1.0), ["mmmmm", "mmmmm"]);
+        assert_eq!(wrap_text("a mmmmmmmmmm b", 30.0, 1.0), ["a", "mmmmm", "mmmmm", "b"]);
+    }
+
+    #[test]
+    fn line_count_matches_the_wrapped_lines() {
+        let text = "The quick brown fox jumps over a supercalifragilistic dog";
+        for w in [0.0, 5.0, 20.0, 50.0, 116.0, 1000.0] {
+            for scale in [0.0, 0.5, 1.0, 2.0] {
+                let lines = if scale <= 0.0 || w <= 0.0 {
+                    1
+                } else {
+                    wrap_text(text, w, scale).len()
+                };
+                assert_eq!(line_count(text, w, scale), lines, "w={w} scale={scale}");
+            }
+        }
+    }
 }
