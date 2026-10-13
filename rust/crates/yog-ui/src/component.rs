@@ -49,7 +49,7 @@ use std::collections::HashMap;
 use std::sync::{Mutex, PoisonError};
 
 use crate::widget::{self, Widget};
-use crate::{FlexDir, Units};
+use crate::FlexDir;
 
 /// A property's type: how `.yui` writes it and how the designer edits it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -203,20 +203,7 @@ pub fn error_box(message: &str) -> Widget {
         .padding(2.0, 2.0, 2.0, 2.0)
         .child(widget::label(message).color(0xFF_FF8080))
         .min_w(16.0)
-        .min_h(Units::Px(12.0).px_or(12.0))
-}
-
-trait PxOr {
-    fn px_or(self, fallback: f32) -> f32;
-}
-
-impl PxOr for Units {
-    fn px_or(self, fallback: f32) -> f32 {
-        match self {
-            Units::Px(v) => v,
-            _ => fallback,
-        }
-    }
+        .min_h(12.0)
 }
 
 /// A component's property values: what the element set, else the defaults.
@@ -497,7 +484,7 @@ mod tests {
         register::<Badge>();
         let w = build("TestBadge", &[("label", "hi")]);
         assert!(matches!(&w.kind, crate::widget::WidgetKind::Label(t) if t == "hi"));
-        assert_eq!(w.style.bg, Some(0xFF3060C0));
+        assert_eq!(w.style.bg, 0xFF3060C0);
         let missing = build("Nope", &[]);
         assert!(!missing.children.is_empty());
     }

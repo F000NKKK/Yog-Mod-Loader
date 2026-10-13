@@ -16,6 +16,7 @@
 //!     );
 //! ```
 
+pub mod component;
 pub mod event;
 pub mod image;
 pub mod layout;
