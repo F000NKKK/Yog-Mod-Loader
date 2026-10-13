@@ -552,8 +552,7 @@ struct VmGen<'a> {
     vm: String,
     resources: HashMap<String, String>,
     styles: HashMap<String, Vec<(String, String)>>,
-    warnings: Vec<String>,
-    ids: Vec<String>,
+    ids: yui::Names,
     /// View fields (name, type, init).
     view_fields: Vec<(String, String, String)>,
     parts: String,
@@ -1025,9 +1024,7 @@ impl VmGen<'_> {
             );
         }
         if let Some(id) = out.attr("id") {
-            if !self.ids.contains(&id.to_string()) {
-                self.ids.push(id.to_string());
-            }
+            self.ids.push(id);
         }
 
         // Interactive parts (screen scope only).
@@ -1244,7 +1241,7 @@ impl VmGen<'_> {
             );
             inst.attrs.push((key, format!("{RAW_VALUE}*{f}.get()")));
         }
-        let (expr, _, _) = yui::static_widget(&inst, false, 2, self.mod_id)?;
+        let (expr, _) = yui::static_widget(&inst, false, 2, self.mod_id)?;
         let marker = format!("\u{1}resets{}\u{1}", self.n_slots);
         let _ = write!(
             ctx.update,
@@ -1350,8 +1347,8 @@ impl VmGen<'_> {
         let saved = std::mem::take(&mut self.n_slots);
         let tel = self.element(&mut tctx, template, &[], Some(&items))?;
         self.n_slots = saved;
-        let (texpr, ids, warnings) = yui::static_widget(&tel, false, 1, self.mod_id)?;
-        self.absorb(ids, warnings);
+        let (texpr, ids) = yui::static_widget(&tel, false, 1, self.mod_id)?;
+        self.absorb(ids);
         let fields: String = tctx
             .slots
             .iter()
@@ -1381,8 +1378,8 @@ impl VmGen<'_> {
                     update: String::new(),
                 };
                 let eel = self.element(&mut ectx, e, &[], None)?;
-                let (eexpr, ids, warnings) = yui::static_widget(&eel, false, 1, self.mod_id)?;
-                self.absorb(ids, warnings);
+                let (eexpr, ids) = yui::static_widget(&eel, false, 1, self.mod_id)?;
+                self.absorb(ids);
                 empty_update = ectx.update;
                 let _ = write!(
                     self.templates,
@@ -1505,13 +1502,10 @@ impl VmGen<'_> {
         Ok(())
     }
 
-    fn absorb(&mut self, ids: Vec<String>, warnings: Vec<String>) {
-        for id in ids {
-            if !self.ids.contains(&id) {
-                self.ids.push(id);
-            }
+    fn absorb(&mut self, ids: Vec<String>) {
+        for id in &ids {
+            self.ids.push(id);
         }
-        self.warnings.extend(warnings);
     }
 }
 
@@ -1586,8 +1580,7 @@ pub fn generate(
         vm: vm.clone(),
         resources: HashMap::new(),
         styles: HashMap::new(),
-        warnings: Vec::new(),
-        ids: Vec::new(),
+        ids: yui::Names::default(),
         view_fields: Vec::new(),
         parts: String::new(),
         dispatch: Vec::new(),
@@ -1616,8 +1609,8 @@ pub fn generate(
         update: String::new(),
     };
     let tree = g.element(&mut ctx, &content, &[], None)?;
-    let (expr, ids, warnings) = yui::static_widget(&tree, false, 0, mod_id)?;
-    g.absorb(ids, warnings);
+    let (expr, ids) = yui::static_widget(&tree, false, 0, mod_id)?;
+    g.absorb(ids);
 
     let mut out = String::new();
     let _ = write!(
@@ -1648,15 +1641,7 @@ pub const HEIGHT: f32 = {height:?};
 pub mod ids {{
 "#
     );
-    let mut used: Vec<String> = Vec::new();
-    for v in &g.ids {
-        let mut n = yui::const_name(v);
-        while used.contains(&n) {
-            n.push('_');
-        }
-        used.push(n.clone());
-        let _ = writeln!(out, "    pub const {n}: &str = {v:?};");
-    }
+    out.push_str(&yui::str_consts(g.ids.as_slice()));
     out.push_str("}\n\n");
     out.push_str(&g.templates);
 
@@ -1757,7 +1742,7 @@ pub fn close() {{
 "#
     );
     let _ = &g.vm;
-    Ok((out, g.warnings))
+    Ok((out, Vec::new()))
 }
 
 #[cfg(test)]

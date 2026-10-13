@@ -20,6 +20,7 @@
 //! screen's hand-written code-behind module with `yog_api::ui_include!("foo")`.
 //! See `docs/yui.md` in Yog-IDLE for the full format.
 
+use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
@@ -562,16 +563,62 @@ pub fn const_name(value: &str) -> String {
     }
 }
 
+/// Names in first-seen order, each once.
+#[derive(Debug, Default)]
+pub(crate) struct Names {
+    list: Vec<String>,
+    seen: HashSet<String>,
+}
+
+impl Names {
+    pub(crate) fn push(&mut self, name: &str) {
+        if !self.seen.contains(name) {
+            self.seen.insert(name.to_string());
+            self.list.push(name.to_string());
+        }
+    }
+
+    pub(crate) fn as_slice(&self) -> &[String] {
+        &self.list
+    }
+
+    pub(crate) fn into_vec(self) -> Vec<String> {
+        self.list
+    }
+}
+
+/// `pub const NAME: &str = "value";` lines for `values`, the names from
+/// [`const_name`] (a `_` appended to repeats).
+pub(crate) fn str_consts(values: &[String]) -> String {
+    let mut out = String::new();
+    let mut used: HashSet<String> = HashSet::new();
+    for v in values {
+        let mut name = const_name(v);
+        while used.contains(&name) {
+            name.push('_');
+        }
+        let _ = writeln!(out, "    pub const {name}: &str = {v:?};");
+        used.insert(name);
+    }
+    out
+}
+
 struct Gen {
-    events: Vec<String>,
-    ids: Vec<String>,
+    events: Names,
+    ids: Names,
     /// The mod's id (from `yog.toml`), for `mod:` image sources.
     mod_id: Option<String>,
-    /// `line N: ...` warnings.
-    warnings: Vec<String>,
 }
 
 impl Gen {
+    fn new(mod_id: Option<&str>) -> Self {
+        Gen {
+            events: Names::default(),
+            ids: Names::default(),
+            mod_id: mod_id.map(str::to_string),
+        }
+    }
+
     /// `widget::surface(...)` for a `<Surface>`: the id its drawing is
     /// registered under (`ns:path`; `mod:path` = the mod's namespace).
     fn surface(&mut self, el: &Element) -> Result<String, String> {
@@ -791,22 +838,18 @@ impl Gen {
             if is_component && !COMMON_ATTRS.contains(&key.as_str()) {
                 // A component's own property (passed to `build` above); an
                 // `on_*` one names an event like `on_click` does.
-                if key.starts_with("on_") && !v.trim().is_empty() && !self.events.contains(value) {
-                    self.events.push(value.clone());
+                if key.starts_with("on_") && !v.trim().is_empty() {
+                    self.events.push(value);
                 }
                 continue;
             }
             match key.as_str() {
                 "id" => {
-                    if !self.ids.contains(value) {
-                        self.ids.push(value.clone());
-                    }
+                    self.ids.push(value);
                     call(format!("id({v:?})"));
                 }
                 "on_click" | "on_change" | "on_submit" => {
-                    if !self.events.contains(value) {
-                        self.events.push(value.clone());
-                    }
+                    self.events.push(value);
                     call(format!("{key}({v:?})"));
                 }
                 "placeholder" => call(format!("placeholder({})", text_expr(v))),
@@ -886,22 +929,17 @@ pub(crate) const RAW_VALUE: &str = "\u{1}rs:";
 /// that the view-model generator attaches to elements; never in a `.yui`.
 pub(crate) const RAW_CALL: &str = "__rs";
 
-/// The builder expression of `el` and its subtree (ids found, warnings) —
+/// The builder expression of `el` and its subtree, and the ids found —
 /// the static half of a view-model screen.
 pub(crate) fn static_widget(
     el: &Element,
     in_canvas: bool,
     depth: usize,
     mod_id: Option<&str>,
-) -> Result<(String, Vec<String>, Vec<String>), String> {
-    let mut gen = Gen {
-        events: Vec::new(),
-        ids: Vec::new(),
-        mod_id: mod_id.map(str::to_string),
-        warnings: Vec::new(),
-    };
+) -> Result<(String, Vec<String>), String> {
+    let mut gen = Gen::new(mod_id);
     let expr = gen.widget(el, in_canvas, depth)?;
-    Ok((expr, gen.ids, gen.warnings))
+    Ok((expr, gen.ids.into_vec()))
 }
 
 /// Generates the `.g.rs` source for a `.yui` document. `name` is the screen's
@@ -981,12 +1019,7 @@ pub fn generate_for(
         .transpose()?
         .unwrap_or(false);
 
-    let mut gen = Gen {
-        events: Vec::new(),
-        ids: Vec::new(),
-        mod_id: mod_id.map(str::to_string),
-        warnings: Vec::new(),
-    };
+    let mut gen = Gen::new(mod_id);
     // The screen's own id is the UI id, not a widget id.
     let mut content_root = root.clone();
     content_root.attrs.retain(|(k, _)| k != "id");
@@ -1010,20 +1043,6 @@ pub fn generate_for(
         "content.w(Units::Percent(100.0)).h(Units::Percent(100.0)).at(0.0, 0.0)".to_string()
     } else {
         format!("content.at(({ax}).max(0.0), ({ay}).max(0.0))")
-    };
-
-    let consts = |names: &[String]| -> String {
-        let mut out = String::new();
-        let mut used: Vec<String> = Vec::new();
-        for v in names {
-            let mut name = const_name(v);
-            while used.contains(&name) {
-                name.push('_');
-            }
-            used.push(name.clone());
-            let _ = writeln!(out, "    pub const {name}: &str = {v:?};");
-        }
-        out
     };
 
     let mut out = String::new();
@@ -1162,10 +1181,11 @@ pub fn close() {{
 "#,
         width = f(width),
         height = f(height),
-        events = consts(&gen.events),
-        ids = consts(&gen.ids),
+        events = str_consts(gen.events.as_slice()),
+        ids = str_consts(gen.ids.as_slice()),
     );
-    Ok((out, gen.warnings))
+    // Plain screens have nothing to warn about (yet); view-model screens do.
+    Ok((out, Vec::new()))
 }
 
 /// Where generated screen code goes, under the project root.

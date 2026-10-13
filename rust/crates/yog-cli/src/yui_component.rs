@@ -413,7 +413,7 @@ pub fn generate(
     };
     let mut counter = 0;
     let bound = bind_tree(body, &mut counter)?;
-    let (tree, _ids, warnings) = yui::static_widget(&bound, false, 1, mod_id)?;
+    let (tree, _ids) = yui::static_widget(&bound, false, 1, mod_id)?;
     let doc = root.attr("description").unwrap_or_default();
 
     let mut fields = String::new();
@@ -529,7 +529,7 @@ impl ::yog_api::ui::component::Component for {ty} {{
         design_w = design.0,
         design_h = design.1,
     );
-    Ok((code, warnings))
+    Ok((code, Vec::new()))
 }
 
 /// Whether `src` is a component `.yui` (its root is `<Component>`).
