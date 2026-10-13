@@ -39,7 +39,7 @@ This builds on decisions already recorded elsewhere:
 | V12 | **One event mechanism: `#[on(E)]`**, mirroring D2's `registry.on::<E>()`. It is used for lifecycle (`Opened`, `Closed`, `Back`, `Tick`, …), messenger messages (`publish(msg)`), and `#[recv(CHANNEL)]` for F3 server→client channels. The `ViewModel` trait's hand-written hooks are deleted. | One concept for every input to a VM. Handlers have known write masks (V2), unlike opaque `handle.update(|vm| …)` closures. |
 | V13 | **Codec everywhere state crosses a boundary (D1)**: `#[persist]` VM fields (saved client-side), `Synced<T>` server state for container screens, cross-mod messages, and optional VM state carried across hot reload. | One format, as the user decided. |
 | V14 | **The boilerplate budget is zero.** A mod author writes Rust only for real logic. Fields and command bodies are logic. Everything else is generated or declared: notification, binding and command wiring, validation plumbing, screen registration and opening (including opening from a server packet), server sync, settings screens, persisted UI state and custom-drawn surfaces. A screen with plain state, forms, lists or settings needs **no hand-written Rust beyond the VM struct**, and sometimes none at all (§3.0, §12.5–12.8). | The user's goal, verbatim: "код модов нужно от бойлерплейта избавить максимально". |
-| V15 | **The old non-VM `.yui` path is deleted.** A `<Screen>` without `x:ViewModel` compiles as a VM screen with `Vm = ()`. `on_click`/`on_change`/`on_submit`, `build()`/`render()`/`click()`/`with_last()`/`text_box()` and the `events` module go. Components become **compiled controls** with typed properties, patched in place. The string `Props` rebuild path stays only for the designer host. | The no-backward-compat rule applies, and VM screens cover every use. No mod uses the old path (checked: every `.yui` in the workspace is either a VM screen or a `<Component>`). |
+| V15 | **The old non-VM `.yui` path is deleted.** A `<Screen>` without `x:ViewModel` compiles as a VM screen with `Vm = ()`. `on_click`/`on_change`/`on_submit`, `build()`/`render()`/`click()`/`with_last()`/`text_box()` and the `events` module go. Components become **compiled controls** with typed properties, patched in place. The string `Props` path stays for the designer host and for components chosen by name at runtime (§9). The low-level `yog_api::ui` path (`Widget`, `UiRoot`, `register_ui`, `hit_test`/`find_rect`) stays, and every `.yui` still generates `build()` + `ids` for it (§8, capability rule). | The no-backward-compat rule applies, and VM screens cover every use. No mod uses the old path (checked: every `.yui` in the workspace is either a VM screen or a `<Component>`). |
 
 ---
 
@@ -186,8 +186,9 @@ impl ModListVm {
 Rules:
 
 - `#[view_model]` on the **struct**:
-  - assigns each field a bit (`Mask`, a `u64`; more than 64 fields is a compile error suggesting
-    grouping them into a sub-struct);
+  - assigns each field a bit (`Mask`, a `u64`; fields past the 63rd share one overflow bit, so
+    they are tracked coarsely, and the macro warns suggesting a sub-struct; capability rule: no
+    field limit);
   - adds **no fields**: the struct stays exactly as written, so plain struct literals work
     (Q2). The runtime state (memo cache, validation errors, the frozen flag) lives in a
     `VmCore` owned by the host next to the VM (`VmCell<V> { vm: V, core: VmCore }`). While the
@@ -200,10 +201,11 @@ Rules:
   - implements `ViewModel`.
 - `#[view_model]` on **each inherent `impl` block** of the VM: every method is analysed (§3.2)
   and helper attributes are collected: `#[command]`, `#[computed]`, `#[on]`, `#[recv]`,
-  `#[validate]`, `#[design]`, `#[volatile]`. A VM method used from markup must live in an
-  annotated block. The generated code refers to its hidden consts, so a method in an
-  unannotated block is a compile error. yog-cli's schema check (§5.9) reports it earlier, in
-  words.
+  `#[validate]`, `#[design]`, `#[volatile]`. A VM method used from markup should live in an
+  annotated block. A method the schema check (§5.9) doesn't find there (a trait method, a
+  method from another crate's impl, an unannotated block) still binds: codegen treats it as
+  `#[volatile]` (read mask `ALL`, and `ALL` written when it's a `&mut self` command) and
+  `yog check` warns (capability rule).
 - `impl ViewModel for X {}` is **deleted** from user code, along with the `on_open` / `on_close` /
   `on_back` / `customize` trait methods (replaced by `#[on]`, §10).
 - Item types (`ModEntry`, `IotaView`, …) need nothing. They are plain data.
@@ -794,7 +796,7 @@ the first one that matches wins:
 
 | Delete | Replacement |
 |---|---|
-| Non-VM `<Screen>` codegen in `yui.rs::generate_for`: `build()`, `root_with`, `root`, `render`, `render_with`, `click`, `with_last`, `text_box`, `mod events`, `__YUI_LAST` | A `<Screen>` without `x:ViewModel` compiles through the VM generator with `type Vm = ()` (a static screen still gets `register`, `open`, `ids` and `TestHost`) |
+| Non-VM `<Screen>` codegen in `yui.rs::generate_for`: `root_with`, `root`, `render`, `render_with`, `click`, `with_last`, `text_box`, `mod events`, `__YUI_LAST` | A `<Screen>` without `x:ViewModel` compiles through the VM generator with `type Vm = ()` (a static screen still gets `register`, `open`, `ids` and `TestHost`). `build()` (the static tree as a `Widget`) and `ids` stay generated for every `.yui`, for code that drives the tree through the low-level `yog_api::ui` path (below) |
 | `on_click` / `on_change` / `on_submit` attributes in `.yui` | `command=`, TwoWay, `Trigger=Submit` |
 | Component `<Event>` declarations and `on_click="{x:Bind on_select}"` | `Command<P>` properties (§9) |
 | `VmGen::component_props` (rebuild the instance when a property changes) | compiled controls patched in place (§9) |
@@ -804,6 +806,13 @@ the first one that matches wins:
 
 `Widget::on_click` stays in yog-ui: yog-book uses it (`yog-book/src/lib.rs`, `renderer.rs`). Only
 `.yui` loses it.
+
+**Kept (capability rule):** the low-level UI path in yog-api/yog-ui is not part of this deletion.
+A mod can still build or take a `Widget` tree (`build()` above, or by hand), lay it out with
+`UiRoot`, draw it, receive raw UI events through `register_ui`, and hit-test or read rects
+(`hit_test`, `find_rect`, `find_node`, `TextBoxState::handle`). What goes is the generated
+global-state glue around it (`__YUI_LAST`, string `click()`), not the ability. `yog check` warns
+when a `<Screen>` is driven this way instead of through the VM host.
 
 ---
 
@@ -839,9 +848,11 @@ changes:
 - A component may declare `x:ViewModel="SpinnerVm"` for **internal state** (a spinner's text
   while editing, a colour picker's hue). That VM is created per instance, has the same
   `#[view_model]` features, and its masks are separate from the parent's.
-- The string `Props` path (`component::build(name, &[(k, v)])`, `from_props`, `PROPS`) is
-  generated **only for the designer host** (`yog designer-lib`, behind `cfg(yog_designer)`), so
-  the Toolbox, Properties and the live canvas keep working. Game builds don't contain it.
+- The string `Props` path (`component::build(name, &[(k, v)])`, `from_props`, `PROPS`) stays
+  for the designer host (`yog designer-lib`), so the Toolbox, Properties and the live canvas keep
+  working, **and in game builds** for components chosen by name at runtime from data: ybook custom
+  page types (ybook.md B5, page fields → properties), another mod's component, data-driven layouts
+  (capability rule). `.yui` uses of a component never go through it; they use the compiled control.
 - Inside item templates (an `IotaRow` per stack entry), each row holds a control instance, and rows are
   patched like any template binding.
 
