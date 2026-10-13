@@ -20,7 +20,7 @@ use yog_cli::manifest::{
     BUILD_DIR, DEFAULT_EDITION, DEFAULT_LICENSE, DEPS_SECTION, EXPORT_DEPS_SECTION, MANIFEST,
     YogToml, latest_yog_api_version, project_root, to_snake_name, workspace_rkyv_version,
 };
-use yog_cli::{content, yres, yui, yui_component};
+use yog_cli::{bench, content, yres, yui, yui_component};
 
 use std::fmt::Write as _;
 use std::io::Write as _;
@@ -43,6 +43,7 @@ fn main() {
             build(debug).map(|_| ())
         }
         Some("check") => check(),
+        Some("bench") => run_benches(&args[2..]),
         Some("designer-lib") => designer_lib(),
         Some("new") => new_mod(args.get(2).map(String::as_str)),
         Some("setup") => setup(),
@@ -121,6 +122,7 @@ fn print_usage() {
          \x20 build               Compile the current mod and package it as artifacts/<id>.yog\n\
          \x20 build debug         Same, but keep debug info in the native (for yog-debugger)\n\
          \x20 check               Generate .yog-build/ and `cargo check` the mod (host only)\n\
+         \x20 bench [filter]      Run the mod's benches/*.rs #[yog_api::bench] functions (host only)\n\
          \x20 designer-lib        Build the mod's library for this machine (Yog-IDLE's designer); prints its path\n\
          \x20 setup               Check and install build dependencies (Rust, Zig, targets)\n\
          \x20 doctor [--json]     Report build dependencies without changing anything\n\
@@ -328,7 +330,9 @@ fn prepare() -> Result<Prepared, String> {
     // Generate .yog-build/Cargo.toml from yog.toml
     let build_dir = root.join(BUILD_DIR);
     std::fs::create_dir_all(&build_dir).map_err(|e| e.to_string())?;
-    let cargo_toml = generate_cargo_toml(&meta);
+    let benches = bench::discover(&root)?;
+    bench::write_sources(&root, &benches)?;
+    let cargo_toml = generate_cargo_toml(&meta, &benches);
     write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
 
     let screens = yui::generate_all(&root)?;
@@ -378,6 +382,34 @@ fn check() -> Result<(), String> {
         return Err(format!("cargo check failed ({status})"));
     }
     eprintln!("==> check OK");
+    Ok(())
+}
+
+/// `yog bench [args]` — the mod's `benches/*.rs` under criterion, built
+/// for the host after the same generation `yog build` does (see `bench`).
+/// `args` go to the benchmarks (`yog bench parse` runs those matching
+/// "parse").
+fn run_benches(args: &[String]) -> Result<(), String> {
+    let Prepared {
+        root, build_dir, ..
+    } = prepare()?;
+    if bench::discover(&root)?.is_empty() {
+        return Err(format!(
+            "no benchmarks: add {}/<name>.rs with #[yog_api::bench] functions",
+            bench::BENCH_DIR
+        ));
+    }
+    let status = Command::new("cargo")
+        .current_dir(&build_dir)
+        .env("CARGO_TARGET_DIR", root.join("target"))
+        .arg("bench")
+        .arg("--")
+        .args(args)
+        .status()
+        .map_err(|e| format!("failed to run cargo: {e}"))?;
+    if !status.success() {
+        return Err(format!("cargo bench failed ({status})"));
+    }
     Ok(())
 }
 

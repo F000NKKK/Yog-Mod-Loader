@@ -7,7 +7,9 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 /// Generate the hidden Cargo.toml from yog.toml metadata.
-pub fn generate_cargo_toml(meta: &YogToml) -> String {
+/// `benches`: the mod's `yog bench` files — they add `[dev-dependencies]`,
+/// `[[bench]]` targets and an `rlib` for them to link.
+pub fn generate_cargo_toml(meta: &YogToml, benches: &[crate::bench::BenchFile]) -> String {
     let authors_toml = if meta.authors.is_empty() {
         String::new()
     } else {
@@ -89,14 +91,14 @@ description  = {description:?}
 
 [lib]
 name       = "{lib_name}"
-crate-type = ["cdylib"]
+crate-type = {crate_types}
 path       = "../src/lib.rs"
 
 [dependencies]
 {api_dep}
 rkyv = "{rkyv_ver}"
 {deps}
-{patch}"#,
+{bench}{patch}"#,
         id = meta.id,
         rkyv_ver = workspace_rkyv_version(),
         lib_name = to_snake_name(&meta.id),
@@ -108,6 +110,12 @@ rkyv = "{rkyv_ver}"
         api_dep = meta.api_dep(),
         deps = deps_lines.join("\n"),
         patch = patch,
+        crate_types = if benches.is_empty() {
+            r#"["cdylib"]"#
+        } else {
+            r#"["cdylib", "rlib"]"#
+        },
+        bench = crate::bench::cargo_sections(meta, benches),
     )
 }
 

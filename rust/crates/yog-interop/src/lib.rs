@@ -172,6 +172,21 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+// ── #[bench] ─────────────────────────────────────────────────────────────
+
+/// Marks a function in a mod's `benches/*.rs` as a benchmark `yog bench`
+/// runs: `fn name(b: &mut criterion::Bencher)` for one benchmark, or
+/// `fn name(c: &mut criterion::Criterion)` to set up groups. yog generates
+/// the file's `main`; this only makes the function reachable from it.
+#[proc_macro_attribute]
+pub fn bench(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let mut f = syn::parse_macro_input!(item as syn::ItemFn);
+    if matches!(f.vis, syn::Visibility::Inherited) {
+        f.vis = syn::parse_quote!(pub(crate));
+    }
+    TokenStream::from(quote! { #f })
+}
+
 // ── import! macro ────────────────────────────────────────────────────────
 
 #[proc_macro]

@@ -5,6 +5,7 @@
 //! Not for external use — a library only so the `yog` binary, its tests and
 //! its benches share the code. No API stability, not published separately.
 
+pub mod bench;
 pub mod cargo_toml;
 pub mod content;
 pub mod exports;

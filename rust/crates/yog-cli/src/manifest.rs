@@ -66,6 +66,8 @@ pub struct YogToml {
     /// dependency, and two mod dependencies never collide under a shared
     /// alias (unlike the old name-contains-hyphen heuristic this replaced).
     pub mod_dependencies: Vec<(String, String)>,
+    /// `[dev-dependencies]` — crates only `yog bench` benchmarks use.
+    pub dev_dependencies: Vec<(String, String)>,
     /// Named dev-instance launch configs from `[run.<name>]` sections.
     pub run_configs: Vec<RunConfig>,
 }
@@ -142,6 +144,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let mut yog_api_path = None::<String>;
     let mut dependencies: Vec<(String, String)> = Vec::new();
     let mut mod_dependencies: Vec<(String, String)> = Vec::new();
+    let mut dev_dependencies: Vec<(String, String)> = Vec::new();
     let mut run_configs: HashMap<String, RunConfig> = HashMap::new();
 
     for raw in text.lines() {
@@ -196,6 +199,11 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
             "dependencies.exports" => {
                 if let Some((name, spec)) = parse_dep_line(line) {
                     mod_dependencies.push((name, spec));
+                }
+            }
+            "dev-dependencies" => {
+                if let Some((name, spec)) = parse_dep_line(line) {
+                    dev_dependencies.push((name, spec));
                 }
             }
             _ if section.starts_with("run.") => {
@@ -262,6 +270,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         yog_api_version,
         dependencies: filtered_deps,
         mod_dependencies,
+        dev_dependencies,
         run_configs,
         id,
     })

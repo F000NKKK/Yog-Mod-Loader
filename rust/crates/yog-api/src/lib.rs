@@ -23,7 +23,7 @@ pub use yog_gfx::{
 pub use yog_abi::{ABI_VERSION, YogApi};
 
 /// Inter-mod communication proc-macros.
-pub use yog_interop::{import, yog_export};
+pub use yog_interop::{bench, import, yog_export};
 
 /// rkyv — zero-copy serialization for interop. Re-exported so generated
 /// code and mods can use `rkyv::Archive`, `rkyv::Serialize`, `rkyv::Deserialize`
