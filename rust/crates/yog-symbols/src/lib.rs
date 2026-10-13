@@ -280,6 +280,7 @@ impl SymbolTable {
     /// partial path.
     pub fn resolve_breakpoint(&self, file: &str, line: u32) -> Vec<u64> {
         let want_file = normalize_path(Path::new(file));
+        let want_name = want_file.file_name();
         let mut addrs = Vec::new();
 
         self.for_each_line_program(|unit, program| {
@@ -289,23 +290,32 @@ impl SymbolTable {
                 .and_then(|d| d.to_string_lossy().ok())
                 .map(|d| PathBuf::from(d.as_ref()));
             // Match the unit's file table once, so units that never mention
-            // the file (most of them: std, dependencies) skip their rows.
+            // the file (most of them: std, dependencies) skip their rows;
+            // the bare file name is compared before building a full path.
             let header = program.header();
+            let matches = |entry: &gimli::FileEntry<R>| {
+                if let Some(want_name) = want_name {
+                    let Ok(name) = self.dwarf.attr_string(unit, entry.path_name()) else {
+                        return false;
+                    };
+                    let Ok(name) = name.to_string_lossy() else {
+                        return false;
+                    };
+                    if Path::new(name.as_ref()).file_name() != Some(want_name) {
+                        return false;
+                    }
+                }
+                self.line_file_path(unit, header, entry, comp_dir.as_deref())
+                    .is_some_and(|row_file| {
+                        if want_file.is_absolute() {
+                            row_file == want_file
+                        } else {
+                            row_file.ends_with(&want_file)
+                        }
+                    })
+            };
             let matching: Vec<bool> = (0..=header.file_names().len() as u64)
-                .map(|index| {
-                    header
-                        .file(index)
-                        .and_then(|entry| {
-                            self.line_file_path(unit, header, entry, comp_dir.as_deref())
-                        })
-                        .is_some_and(|row_file| {
-                            if want_file.is_absolute() {
-                                row_file == want_file
-                            } else {
-                                row_file.ends_with(&want_file)
-                            }
-                        })
-                })
+                .map(|index| header.file(index).is_some_and(matches))
                 .collect();
             if !matching.contains(&true) {
                 return;
