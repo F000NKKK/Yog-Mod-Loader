@@ -402,8 +402,7 @@ fn run_benches(args: &[String]) -> Result<(), String> {
     let status = Command::new("cargo")
         .current_dir(&build_dir)
         .env("CARGO_TARGET_DIR", root.join("target"))
-        .arg("bench")
-        .arg("--")
+        .args(["bench", "--benches", "--"])
         .args(args)
         .status()
         .map_err(|e| format!("failed to run cargo: {e}"))?;

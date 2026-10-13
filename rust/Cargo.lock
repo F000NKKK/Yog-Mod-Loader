@@ -1225,7 +1225,7 @@ version = "0.28.2"
 
 [[package]]
 name = "yog-api"
-version = "0.92.2"
+version = "0.92.3"
 dependencies = [
  "ctor",
  "rkyv",
@@ -1263,7 +1263,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.30.3"
+version = "0.31.0"
 dependencies = [
  "criterion",
  "serde_json",
@@ -1281,7 +1281,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-core"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "criterion",
 ]
@@ -1336,7 +1336,7 @@ dependencies = [
 
 [[package]]
 name = "yog-interop"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "proc-macro2",
  "quote",
