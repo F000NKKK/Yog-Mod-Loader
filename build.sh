@@ -31,7 +31,7 @@ Commands:
 
 Targets:
   rust                Rust runtime (native lib)
-  <loader>            One of the implemented loaders (currently: fabric)
+  <loader>            One of the implemented loaders (fabric, neoforge, forge)
   all                 rust + every implemented loader
 
 Loader-bound commands (run, publish) require an explicit loader — there is no
