@@ -43,4 +43,14 @@ public final class YogProps {
             return def;
         }
     }
+
+    /** Boolean as a runtime TSV flag: {@code "1"} / {@code "0"}. */
+    public static String flag01(boolean b) {
+        return b ? "1" : "0";
+    }
+
+    /** Make {@code s} safe as one TSV field: {@code null} → {@code ""}, tabs / line breaks → spaces. */
+    public static String tsvField(String s) {
+        return s == null ? "" : s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
+    }
 }

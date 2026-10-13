@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.util.YogInventoryDef;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
@@ -72,7 +73,7 @@ public class YogInventoryBlockEntity extends BlockEntity implements Container, M
 
     @Override
     public Component getDisplayName() {
-        YogHost.InventoryDefRt def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         String title = def != null ? def.title : "";
         return title == null || title.isEmpty() ? Component.literal("Inventory") : Component.literal(title);
     }

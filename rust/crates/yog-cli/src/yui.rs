@@ -336,10 +336,22 @@ pub fn color(value: &str) -> Option<u32> {
     }
 }
 
+/// A color attribute: a literal (see [`color`]) or `@<Set>.<name>`, a color
+/// of `resources/<Set>.yres` (see [`set_resource_refs`]).
 fn color_attr(el: &Element, key: &str, value: &str) -> Result<u32, String> {
+    if let Some(reference) = value.trim().strip_prefix('@') {
+        return RESOURCE_REFS
+            .with(|r| r.borrow().colors.get(reference).copied())
+            .ok_or_else(|| {
+                format!(
+                    "line {}: <{}> {key}=\"{value}\": no color `{reference}` in resources/*.yres",
+                    el.line, el.name
+                )
+            });
+    }
     color(value).ok_or_else(|| {
         format!(
-            "line {}: <{}> {key}=\"{value}\": expected #RRGGBB or #AARRGGBB",
+            "line {}: <{}> {key}=\"{value}\": expected #RRGGBB, #AARRGGBB or @<Set>.<name>",
             el.line, el.name
         )
     })
@@ -1187,7 +1199,7 @@ pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
     let name = include_name(root, yui);
     let mod_id = std::fs::read_to_string(root.join("yog.toml"))
         .ok()
-        .and_then(|t| crate::parse_yog_toml(&t).ok())
+        .and_then(|t| crate::manifest::parse_yog_toml(&t).ok())
         .map(|t| t.id);
     let (code, warnings) = generate_for(&src, &name, mod_id.as_deref())
         .map_err(|e| format!("{}: {e}", yui.display()))?;
@@ -1528,5 +1540,24 @@ mod tests {
             "{code}"
         );
         assert!(code.contains("widget::button(\"@x\")"), "{code}");
+    }
+
+    #[test]
+    fn color_attributes_resolve_yres_colors() {
+        let mut refs = crate::yres::Refs::default();
+        refs.colors.insert("Colors.text".into(), 0xFF12_3456);
+        set_resource_refs(&refs);
+        let code = generate(
+            r#"<Screen id="m:s" width="10" height="10"><Label text="x" color="@Colors.text"/></Screen>"#,
+            "s.yui",
+        );
+        let missing = generate(
+            r#"<Screen id="m:s" width="10" height="10"><Label text="x" color="@Colors.nope"/></Screen>"#,
+            "s.yui",
+        );
+        set_resource_refs(&crate::yres::Refs::default());
+        let code = code.unwrap();
+        assert!(code.contains("0xFF123456"), "{code}");
+        assert!(missing.unwrap_err().contains("no color `Colors.nope`"));
     }
 }

@@ -10,3 +10,22 @@ description = "Yog UI framework — flexbox and WPF-style grid layout + GPU rend
 [dependencies]
 yog-gfx = "0.25"
 yog-abi = "0.28.1"
+
+[dev-dependencies]
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "layout"
+harness = false
+
+[[bench]]
+name = "render"
+harness = false
+
+[[bench]]
+name = "text"
+harness = false
+
+[[bench]]
+name = "hit_test"
+harness = false

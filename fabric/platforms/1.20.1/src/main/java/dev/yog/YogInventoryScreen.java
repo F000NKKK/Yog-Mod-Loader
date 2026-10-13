@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.util.YogInventoryDef;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.text.Text;
@@ -10,7 +11,7 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screen.ingame.H
     public YogInventoryScreen(YogInventoryMenu handler, PlayerInventory inv, Text title) {
         super(handler, inv, title);
         this.uiId = "yog:inv/" + handler.defId;
-        YogHost.InventoryDefRt def = YogHost.INVENTORY_DEFS.get(handler.defId);
+        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(handler.defId);
         if (def != null) {
             // A custom `on_ui_render` overlay may draw its decoration at a
             // different footprint than vanilla's 176x166 default — when it

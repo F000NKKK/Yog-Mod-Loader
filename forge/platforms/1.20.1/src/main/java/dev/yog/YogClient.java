@@ -13,7 +13,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
 
-/** NeoForge client-side event handlers. Wired via @Mod.EventBusSubscriber. */
+/** Forge client-side event handlers. Wired via @Mod.EventBusSubscriber. */
 @Mod.EventBusSubscriber(modid = "yog", bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class YogClient {
     private YogClient() {}

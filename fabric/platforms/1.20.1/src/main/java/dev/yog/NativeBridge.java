@@ -1,10 +1,9 @@
 package dev.yog;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import static dev.yog.util.YogProps.flag01;
+import static dev.yog.util.YogProps.tsvField;
+
+import dev.yog.util.YogNativeRuntime;
 import java.util.Locale;
 import net.fabricmc.loader.api.FabricLoader;
 import java.util.UUID;
@@ -848,10 +847,6 @@ public final class NativeBridge {
 
     // ── world / entity queries & actions ────────────────────────────────────
 
-    private static String flag01(boolean b) {
-        return b ? "1" : "0";
-    }
-
     /** Entity by uuid, or null for null / "" / unknown. */
     private static Entity optionalEntity(String uuid) {
         return uuid == null || uuid.isEmpty() ? null : entityByUuid(uuid);
@@ -1234,61 +1229,9 @@ public final class NativeBridge {
         if (loaded) {
             return;
         }
-        loadEmbeddedRuntime();
-        nativeInit(modsDir());
+        YogNativeRuntime.loadEmbedded();
+        nativeInit(YogNativeRuntime.modsDir(FabricLoader.getInstance().getGameDir()));
         loaded = true;
-    }
-
-    /**
-     * Extract the platform's runtime native from inside this jar and load it, so
-     * players never deal with a loose .so/.dll. The jar bundles every supported
-     * platform under {@code /natives/<os>-<arch>/}.
-     */
-    private static void loadEmbeddedRuntime() {
-        String resource = "/natives/" + platformTag() + "/" + runtimeLibName();
-        try (InputStream in = NativeBridge.class.getResourceAsStream(resource)) {
-            if (in == null) {
-                throw new IllegalStateException("embedded Yog runtime not found: " + resource);
-            }
-            Path tmp = Files.createTempFile("yog_runtime", "-" + runtimeLibName());
-            Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
-            tmp.toFile().deleteOnExit();
-            System.load(tmp.toAbsolutePath().toString());
-        } catch (IOException e) {
-            throw new RuntimeException("failed to load the Yog native runtime", e);
-        }
-    }
-
-    /** Directory players drop `.yog` mods into: {@code <game dir>/yog-mods}. */
-    private static String modsDir() {
-        Path dir = FabricLoader.getInstance().getGameDir().resolve("yog-mods");
-        try {
-            Files.createDirectories(dir);
-        } catch (IOException ignored) {
-            // best effort; the runtime tolerates a missing directory
-        }
-        return dir.toAbsolutePath().toString();
-    }
-
-    /** e.g. {@code linux-x86_64} — must match the Rust runtime's platform tag. */
-    private static String platformTag() {
-        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
-        String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
-        String osTag = os.contains("win") ? "windows" : os.contains("mac") ? "macos" : "linux";
-        String archTag = switch (arch) {
-            case "amd64", "x86_64" -> "x86_64";
-            case "aarch64", "arm64" -> "aarch64";
-            default -> arch;
-        };
-        return osTag + "-" + archTag;
-    }
-
-    private static String runtimeLibName() {
-        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
-        if (os.contains("win")) {
-            return "yog_runtime.dll";
-        }
-        return os.contains("mac") ? "libyog_runtime.dylib" : "libyog_runtime.so";
     }
 
     // --- native entry points implemented in yog-runtime (Rust) ---
@@ -1588,10 +1531,6 @@ public final class NativeBridge {
               .append(tsvField(m.getDescription()));
         }
         return sb.toString();
-    }
-
-    private static String tsvField(String s) {
-        return s == null ? "" : s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
     }
 
     // ── Inventory bridge (yog-ui ↔ YogInventoryMenu) ──────────────────────────

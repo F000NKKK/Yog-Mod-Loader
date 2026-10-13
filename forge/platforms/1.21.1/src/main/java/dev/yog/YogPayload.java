@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 
 /**
  * Raw-byte custom payload for dynamic Yog channels.
- * NeoForge 1.21.x uses typed custom payloads — one codec per channel.
+ * Forge 1.21.x uses typed custom payloads — one codec per channel.
  */
 public final class YogPayload implements CustomPacketPayload {
     private static final Map<ResourceLocation, Type<YogPayload>> TYPES = new ConcurrentHashMap<>();

@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.util.YogInventoryDef;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
@@ -76,7 +77,7 @@ public class YogInventoryBlockEntity extends BlockEntity implements Inventory, E
 
     @Override
     public Text getDisplayName() {
-        YogHost.InventoryDefRt def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         String title = def != null ? def.title : "";
         return title == null || title.isEmpty() ? Text.literal("Inventory") : Text.literal(title);
     }

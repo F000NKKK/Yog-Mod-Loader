@@ -38,3 +38,10 @@ glow.workspace = true
 [target.'cfg(target_os = "linux")'.dependencies]
 # `prctl(PR_SET_PTRACER)` + `SO_PEERCRED` — see `control_socket::allow_peer_to_trace`.
 libc = "0.2"
+
+[dev-dependencies]
+criterion = "0.8"
+
+[[bench]]
+name = "jni_calls"
+harness = false

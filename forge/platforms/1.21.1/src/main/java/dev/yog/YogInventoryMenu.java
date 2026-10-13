@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.util.YogInventoryDef;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -31,7 +32,7 @@ public class YogInventoryMenu extends AbstractContainerMenu {
      * generic chest menu uses). */
     public static YogInventoryMenu createClient(int windowId, Inventory playerInv, net.minecraft.network.FriendlyByteBuf buf) {
         String defId = buf.readUtf();
-        YogHost.InventoryDefRt def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         int slotCount = def != null ? def.slotCount : 0;
         return new YogInventoryMenu(windowId, playerInv, new SimpleContainer(slotCount), defId);
     }
@@ -40,7 +41,7 @@ public class YogInventoryMenu extends AbstractContainerMenu {
         super(YogHost.INVENTORY_MENU_TYPE, windowId);
         this.inventory = inv;
         this.defId = defId;
-        YogHost.InventoryDefRt def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         this.customSlotCount = def != null ? def.slotCount : inv.getContainerSize();
         inv.startOpen(playerInv.player);
 

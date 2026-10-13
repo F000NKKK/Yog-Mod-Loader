@@ -1,10 +1,9 @@
 package dev.yog;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import static dev.yog.util.YogProps.flag01;
+import static dev.yog.util.YogProps.tsvField;
+
+import dev.yog.util.YogNativeRuntime;
 import java.util.Locale;
 import java.util.UUID;
 import net.minecraft.world.level.block.Block;
@@ -421,10 +420,6 @@ public final class NativeBridge {
     }
 
     // ── world / entity queries & actions ────────────────────────────────────
-
-    private static String flag01(boolean b) {
-        return b ? "1" : "0";
-    }
 
     /** Entity by uuid, or null for null / "" / unknown. */
     private static Entity optionalEntity(String uuid) {
@@ -1160,42 +1155,9 @@ public final class NativeBridge {
     /** Load the embedded native runtime and initialise it. Idempotent. */
     public static synchronized void ensureLoaded() {
         if (loaded) return;
-        loadEmbeddedRuntime();
-        nativeInit(modsDir());
+        YogNativeRuntime.loadEmbedded();
+        nativeInit(YogNativeRuntime.modsDir(FMLPaths.GAMEDIR.get()));
         loaded = true;
-    }
-
-    private static void loadEmbeddedRuntime() {
-        String resource = "/natives/" + platformTag() + "/" + runtimeLibName();
-        try (InputStream in = NativeBridge.class.getResourceAsStream(resource)) {
-            if (in == null) throw new IllegalStateException("embedded Yog runtime not found: " + resource);
-            Path tmp = Files.createTempFile("yog_runtime", "-" + runtimeLibName());
-            Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
-            tmp.toFile().deleteOnExit();
-            System.load(tmp.toAbsolutePath().toString());
-        } catch (IOException e) {
-            throw new RuntimeException("failed to load the Yog native runtime", e);
-        }
-    }
-
-    private static String modsDir() {
-        Path dir = FMLPaths.GAMEDIR.get().resolve("yog-mods");
-        try { Files.createDirectories(dir); } catch (IOException ignored) {}
-        return dir.toAbsolutePath().toString();
-    }
-
-    private static String platformTag() {
-        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
-        String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
-        String osTag = os.contains("win") ? "windows" : os.contains("mac") ? "macos" : "linux";
-        String archTag = switch (arch) { case "amd64", "x86_64" -> "x86_64"; case "aarch64", "arm64" -> "aarch64"; default -> arch; };
-        return osTag + "-" + archTag;
-    }
-
-    private static String runtimeLibName() {
-        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
-        if (os.contains("win")) return "yog_runtime.dll";
-        return os.contains("mac") ? "libyog_runtime.dylib" : "libyog_runtime.so";
     }
 
     // ── native entry points ─────────────────────────────────────────────
@@ -1354,10 +1316,6 @@ public final class NativeBridge {
               .append(tsvField(info.getDescription()));
         }
         return sb.toString();
-    }
-
-    private static String tsvField(String s) {
-        return s == null ? "" : s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
     }
 
     public static YogInventoryMenu activeInventoryMenu;

@@ -1,6 +1,7 @@
 package dev.yog;
 
 import dev.yog.block.YogConnectingLogic;
+import dev.yog.util.YogInventoryDef;
 import dev.yog.util.YogProps;
 
 import com.mojang.brigadier.Command;
@@ -363,78 +364,15 @@ public class YogHost implements ModInitializer {
     // ── yog-inventory (see rust/crates/yog-inventory/DESIGN.md) ────────────────
 
     /** Parsed `InventoryDef`s, keyed by id — shared by the block entity/menu/screen. */
-    public static final Map<String, InventoryDefRt> INVENTORY_DEFS = new HashMap<>();
+    public static final Map<String, YogInventoryDef> INVENTORY_DEFS = new HashMap<>();
     /** One generic block entity type valid for every block with an `inventory_id`. */
     public static BlockEntityType<YogInventoryBlockEntity> INVENTORY_BLOCK_ENTITY_TYPE;
     /** One generic menu type for every `InventoryDef` — the def id is synced as the
      *  screen-opening data so the client knows which layout/slot-count to build. */
     public static ExtendedScreenHandlerType<YogInventoryMenu> INVENTORY_SCREEN_HANDLER_TYPE;
 
-    /** Runtime-side mirror of `yog_inventory::InventoryDef` — parsed from `nativeInventoryDefs()`. */
-    public static final class InventoryDefRt {
-        public final String id;
-        public final int slotCount;
-        public final List<float[]> layout;
-        public final boolean includePlayerInventory;
-        public final float playerInvX, playerInvY;
-        public final String backgroundTexture;
-        public final String title;
-        public final float backgroundW, backgroundH;
-
-        InventoryDefRt(String id, int slotCount, List<float[]> layout, boolean includePlayerInventory,
-                       float playerInvX, float playerInvY, String backgroundTexture, String title,
-                       float backgroundW, float backgroundH) {
-            this.id = id;
-            this.slotCount = slotCount;
-            this.layout = layout;
-            this.includePlayerInventory = includePlayerInventory;
-            this.playerInvX = playerInvX;
-            this.playerInvY = playerInvY;
-            this.backgroundTexture = backgroundTexture;
-            this.title = title;
-            this.backgroundW = backgroundW;
-            this.backgroundH = backgroundH;
-        }
-    }
-
     private static void parseInventoryDefs() {
-        String raw = NativeBridge.nativeInventoryDefs();
-        if (raw == null) return;
-        for (String line : raw.split("\n")) {
-            if (line.isBlank()) continue;
-            String id = line.split("\t", 2)[0];
-            Map<String, String> p = YogProps.parse(line);
-            int slotCount = YogProps.parseInt(p, "slot_count", 0);
-            List<float[]> layout = new ArrayList<>();
-            String layoutRaw = p.getOrDefault("layout", "");
-            if (!layoutRaw.isEmpty()) {
-                for (String pair : layoutRaw.split(",")) {
-                    String[] xy = pair.split(":", 2);
-                    if (xy.length == 2) {
-                        try {
-                            layout.add(new float[]{Float.parseFloat(xy[0]), Float.parseFloat(xy[1])});
-                        } catch (NumberFormatException ignored) { }
-                    }
-                }
-            }
-            boolean includePlayerInv = !"0".equals(p.get("include_player_inventory"));
-            float px = 8f, py = 84f;
-            String playerInv = p.getOrDefault("player_inv", "");
-            String[] pxy = playerInv.split(":", 2);
-            if (pxy.length == 2) {
-                try { px = Float.parseFloat(pxy[0]); py = Float.parseFloat(pxy[1]); }
-                catch (NumberFormatException ignored) { }
-            }
-            float bgW = 0f, bgH = 0f;
-            String bgSize = p.getOrDefault("background_size", "");
-            String[] bgWh = bgSize.split(":", 2);
-            if (bgWh.length == 2) {
-                try { bgW = Float.parseFloat(bgWh[0]); bgH = Float.parseFloat(bgWh[1]); }
-                catch (NumberFormatException ignored) { }
-            }
-            INVENTORY_DEFS.put(id, new InventoryDefRt(id, slotCount, layout, includePlayerInv, px, py,
-                    p.getOrDefault("background_texture", ""), p.getOrDefault("title", ""), bgW, bgH));
-        }
+        INVENTORY_DEFS.putAll(YogInventoryDef.parseAll(NativeBridge.nativeInventoryDefs()));
     }
 
     private static void registerContent() {
@@ -549,7 +487,7 @@ public class YogHost implements ModInitializer {
 
                 Block block;
                 if (p.containsKey("inventory_id")) {
-                    InventoryDefRt def = INVENTORY_DEFS.get(p.get("inventory_id"));
+                    YogInventoryDef def = INVENTORY_DEFS.get(p.get("inventory_id"));
                     int slotCount = def != null ? def.slotCount : 0;
                     block = new YogInventoryBlock(settings, p.get("inventory_id"), slotCount);
                     inventoryBlocks.add(block);

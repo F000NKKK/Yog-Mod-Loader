@@ -682,6 +682,8 @@ pub struct Refs {
     pub texts: HashMap<String, (String, String)>,
     /// `Set.name` → image source (`<mod id>:<texture>`).
     pub images: HashMap<String, String>,
+    /// `Set.name` → color (`0xAARRGGBB`).
+    pub colors: HashMap<String, u32>,
 }
 
 /// Everything `yog build` makes of a mod's resources.
@@ -1113,6 +1115,7 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                 }
                 Kind::Color => match parse_color(e.text()) {
                     Some(v) => {
+                        c.refs.colors.insert(reference, v);
                         let _ = writeln!(code, "{doc}    pub const {upper}: u32 = 0x{v:08X};");
                     }
                     None => errors.push(format!(

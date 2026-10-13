@@ -50,6 +50,9 @@ pub use locals::{x86_64, FrameRegs, LocalVar, TargetMemory, Value, VarKind};
 // cloned reader, so atomic refcounting costs nothing that matters here.
 type R = EndianArcSlice<RunTimeEndian>;
 
+/// Most locations [`SymbolTable::resolve_inlined`] reports for one address.
+const MAX_INLINE_DEPTH: usize = 64;
+
 #[derive(Debug)]
 pub enum SymbolError {
     Io(std::io::Error),
@@ -233,15 +236,7 @@ impl SymbolTable {
             .find_frames(addr)
             .skip_all_loads()
             .ok()
-            .and_then(|mut frames| {
-                let frame = frames.next().ok().flatten()?;
-                let f = frame.function?;
-                let name = match f.demangle() {
-                    Ok(demangled) => demangled.into_owned(),
-                    Err(_) => f.raw_name().ok()?.into_owned(),
-                };
-                Some(name)
-            });
+            .and_then(|mut frames| function_name(frames.next().ok().flatten()?.function.as_ref()?));
 
         Some(SourceLocation {
             file: normalize_path(Path::new(location.file.unwrap_or(""))),
@@ -262,18 +257,14 @@ impl SymbolTable {
             return out;
         };
         while let Ok(Some(frame)) = frames.next() {
-            let function = frame.function.as_ref().and_then(|f| match f.demangle() {
-                Ok(demangled) => Some(demangled.into_owned()),
-                Err(_) => Some(f.raw_name().ok()?.into_owned()),
-            });
             let location = frame.location.as_ref();
             out.push(SourceLocation {
                 file: normalize_path(Path::new(location.and_then(|l| l.file).unwrap_or(""))),
                 line: location.and_then(|l| l.line).unwrap_or(0),
                 column: location.and_then(|l| l.column),
-                function,
+                function: frame.function.as_ref().and_then(function_name),
             });
-            if out.len() >= 64 {
+            if out.len() >= MAX_INLINE_DEPTH {
                 break;
             }
         }
@@ -291,52 +282,67 @@ impl SymbolTable {
         let want_file = normalize_path(Path::new(file));
         let mut addrs = Vec::new();
 
-        let mut units = self.dwarf.units();
-        while let Ok(Some(header)) = units.next() {
-            let Ok(unit) = self.dwarf.unit(header) else {
-                continue;
-            };
-            let Some(program) = unit.line_program.clone() else {
-                continue;
-            };
+        self.for_each_line_program(|unit, program| {
             let comp_dir = unit
                 .comp_dir
                 .as_ref()
                 .and_then(|d| d.to_string_lossy().ok())
                 .map(|d| PathBuf::from(d.as_ref()));
+            // Match the unit's file table once, so units that never mention
+            // the file (most of them: std, dependencies) skip their rows.
+            let header = program.header();
+            let matching: Vec<bool> = (0..=header.file_names().len() as u64)
+                .map(|index| {
+                    header
+                        .file(index)
+                        .and_then(|entry| {
+                            self.line_file_path(unit, header, entry, comp_dir.as_deref())
+                        })
+                        .is_some_and(|row_file| {
+                            if want_file.is_absolute() {
+                                row_file == want_file
+                            } else {
+                                row_file.ends_with(&want_file)
+                            }
+                        })
+                })
+                .collect();
+            if !matching.contains(&true) {
+                return;
+            }
             let mut rows = program.rows();
-            while let Ok(Some((line_header, row))) = rows.next_row() {
+            while let Ok(Some((_, row))) = rows.next_row() {
                 // The end-of-sequence row carries the last line but its
                 // address is one past the code (often the next function).
-                if row.end_sequence() {
+                if row.end_sequence() || row.line().map(|l| l.get()) != Some(u64::from(line)) {
                     continue;
                 }
-                let Some(row_line) = row.line() else { continue };
-                if row_line.get() as u32 != line {
-                    continue;
-                }
-                let Some(file_entry) = row.file(line_header) else {
-                    continue;
-                };
-                let Some(row_file) =
-                    self.line_file_path(&unit, line_header, file_entry, comp_dir.as_deref())
-                else {
-                    continue;
-                };
-                let matches = if want_file.is_absolute() {
-                    row_file == want_file
-                } else {
-                    row_file.ends_with(&want_file)
-                };
-                if matches {
+                let file_index = usize::try_from(row.file_index()).unwrap_or(usize::MAX);
+                if matching.get(file_index).copied().unwrap_or(false) {
                     addrs.push(row.address());
                 }
             }
-        }
+        });
 
         addrs.sort_unstable();
         addrs.dedup();
         addrs
+    }
+
+    /// Runs `f` on the line program of every unit that has one.
+    fn for_each_line_program(
+        &self,
+        mut f: impl FnMut(&gimli::Unit<R>, gimli::IncompleteLineProgram<R>),
+    ) {
+        let mut units = self.dwarf.units();
+        while let Ok(Some(header)) = units.next() {
+            let Ok(unit) = self.dwarf.unit(header) else {
+                continue;
+            };
+            if let Some(program) = unit.line_program.clone() {
+                f(&unit, program);
+            }
+        }
     }
 
     /// A line-table file entry's full, normalized path: `comp_dir` /
@@ -367,21 +373,14 @@ impl SymbolTable {
     pub fn is_statement_start(&self, addr: u64) -> bool {
         let statements = self.statements.get_or_init(|| {
             let mut addrs = Vec::new();
-            let mut units = self.dwarf.units();
-            while let Ok(Some(header)) = units.next() {
-                let Ok(unit) = self.dwarf.unit(header) else {
-                    continue;
-                };
-                let Some(program) = unit.line_program.clone() else {
-                    continue;
-                };
+            self.for_each_line_program(|_, program| {
                 let mut rows = program.rows();
                 while let Ok(Some((_, row))) = rows.next_row() {
                     if row.is_stmt() && !row.end_sequence() {
                         addrs.push(row.address());
                     }
                 }
-            }
+            });
             addrs.sort_unstable();
             addrs.dedup();
             addrs
@@ -392,6 +391,14 @@ impl SymbolTable {
     /// Every global function symbol in the native's own symbol table.
     pub fn functions(&self) -> impl Iterator<Item = &FunctionSymbol> {
         self.functions.iter()
+    }
+}
+
+/// A frame's function name, demangled where possible.
+fn function_name(function: &addr2line::FunctionName<R>) -> Option<String> {
+    match function.demangle() {
+        Ok(demangled) => Some(demangled.into_owned()),
+        Err(_) => Some(function.raw_name().ok()?.into_owned()),
     }
 }
 

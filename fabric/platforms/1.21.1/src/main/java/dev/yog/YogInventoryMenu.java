@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.util.YogInventoryDef;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
@@ -30,7 +31,7 @@ public class YogInventoryMenu extends ScreenHandler {
      * throwaway inventory just to hold synced slot contents (same convention vanilla's
      * generic chest screen handler uses). */
     public static YogInventoryMenu createClient(int syncId, PlayerInventory playerInv, String defId) {
-        YogHost.InventoryDefRt def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         int slotCount = def != null ? def.slotCount : 0;
         return new YogInventoryMenu(syncId, playerInv, new SimpleInventory(slotCount), defId);
     }
@@ -39,7 +40,7 @@ public class YogInventoryMenu extends ScreenHandler {
         super(YogHost.INVENTORY_SCREEN_HANDLER_TYPE, syncId);
         this.inventory = inv;
         this.defId = defId;
-        YogHost.InventoryDefRt def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         this.customSlotCount = def != null ? def.slotCount : inv.size();
         inv.onOpen(playerInv.player);
 
