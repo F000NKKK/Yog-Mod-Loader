@@ -99,6 +99,8 @@ pub(crate) struct StaticMethod {
     class: &'static str,
     name: &'static str,
     resolved: OnceLock<(GlobalRef, JStaticMethodID)>,
+    /// A failure of this call site was logged (once is enough to see it).
+    reported: std::sync::atomic::AtomicBool,
 }
 
 impl StaticMethod {
@@ -107,6 +109,7 @@ impl StaticMethod {
             class,
             name,
             resolved: OnceLock::new(),
+            reported: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -145,6 +148,13 @@ impl StaticMethod {
             assert!(args.len() <= MAX_ARGS, "{}: too many arguments", self.name);
             let result = self.invoke::<R>(env, args);
             if result.is_none() && env.exception_check().unwrap_or(false) {
+                // The first throw of each method goes to the game log with
+                // its stack trace — a host bug, otherwise only a silent
+                // `false`/`None` to the mod.
+                if !self.reported.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                    yog_logging::error!("host method {}.{} threw (later throws aren't logged):", self.class, self.name);
+                    let _ = env.exception_describe();
+                }
                 let _ = env.exception_clear();
             }
             result
