@@ -64,15 +64,7 @@ pub fn held_item(off_hand: bool) -> Option<String> {
         return None;
     }
     let owned = unsafe { ((*api).client_held_item)((*api).ctx, off_hand) };
-    if owned.is_none() {
-        return None;
-    }
-    let s = unsafe {
-        String::from_utf8_lossy(std::slice::from_raw_parts(owned.ptr, owned.len as usize))
-            .into_owned()
-    };
-    unsafe { ((*api).free_str)(owned.ptr, owned.len) };
-    Some(s)
+    crate::registry::take_owned(unsafe { (*api).free_str }, owned)
 }
 
 /// GLFW key codes for [`key_down`].

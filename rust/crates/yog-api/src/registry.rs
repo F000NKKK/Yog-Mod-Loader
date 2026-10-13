@@ -68,8 +68,8 @@ impl Server for CServer {
                 },
             )
         };
-        let result = take_owned(s.free_str, owned);
-        result
+
+        take_owned(s.free_str, owned)
     }
 
     fn set_block(&self, dimension: &str, pos: yog_core::BlockPos, block_id: &str) -> bool {
@@ -192,8 +192,8 @@ impl Server for CServer {
                 yog_abi::YogVec3 { x, y, z },
             )
         };
-        let result = take_owned(s.free_str, owned);
-        result
+
+        take_owned(s.free_str, owned)
     }
 
     fn entity_add_effect(
@@ -370,10 +370,7 @@ impl Server for CServer {
     fn game_dir(&self) -> String {
         let s = srv!(self);
         let owned = unsafe { (s.game_dir)(s.ctx) };
-        let Some(result) = take_owned(s.free_str, owned) else {
-            return String::new();
-        };
-        result
+        take_owned(s.free_str, owned).unwrap_or_default()
     }
 
     fn play_sound(
@@ -539,8 +536,8 @@ impl Server for CServer {
                 },
             )
         };
-        let result = take_owned(s.free_str, owned);
-        result
+
+        take_owned(s.free_str, owned)
     }
 
     fn set_block_nbt(&self, dimension: &str, pos: yog_core::BlockPos, snbt: &str) -> bool {
@@ -578,9 +575,7 @@ impl Server for CServer {
                 slot,
             )
         };
-        let Some(text) = take_owned(s.free_str, owned) else {
-            return None;
-        };
+        let text = take_owned(s.free_str, owned)?;
         let (item_id, count) = text.split_once('\t')?;
         Some((item_id.to_owned(), count.parse().ok()?))
     }
@@ -678,8 +673,8 @@ impl Server for CServer {
     fn entity_get_nbt(&self, uuid: &str) -> Option<String> {
         let s = srv!(self);
         let owned = unsafe { (s.entity_get_nbt)(s.ctx, YogStr::from_str(uuid)) };
-        let result = take_owned(s.free_str, owned);
-        result
+
+        take_owned(s.free_str, owned)
     }
 
     fn entity_set_nbt(&self, uuid: &str, snbt: &str) -> bool {
@@ -747,8 +742,8 @@ impl Server for CServer {
     fn get_held_item_nbt(&self, player: &str) -> Option<String> {
         let s = srv!(self);
         let owned = unsafe { (s.get_held_item_nbt)(s.ctx, YogStr::from_str(player)) };
-        let result = take_owned(s.free_str, owned);
-        result
+
+        take_owned(s.free_str, owned)
     }
 
     fn set_held_item_nbt(&self, player: &str, snbt: &str) -> bool {
@@ -759,8 +754,8 @@ impl Server for CServer {
     fn get_offhand_item_nbt(&self, player: &str) -> Option<String> {
         let s = srv!(self);
         let owned = unsafe { (s.get_offhand_item_nbt)(s.ctx, YogStr::from_str(player)) };
-        let result = take_owned(s.free_str, owned);
-        result
+
+        take_owned(s.free_str, owned)
     }
 
     fn set_offhand_item_nbt(&self, player: &str, snbt: &str) -> bool {
@@ -771,9 +766,7 @@ impl Server for CServer {
     fn get_slot_item(&self, player: &str, slot: u32) -> Option<(String, u32, String)> {
         let s = srv!(self);
         let owned = unsafe { (s.get_slot_item)(s.ctx, YogStr::from_str(player), slot) };
-        let Some(text) = take_owned(s.free_str, owned) else {
-            return None;
-        };
+        let text = take_owned(s.free_str, owned)?;
         let mut it = text.splitn(3, '\t');
         let item_id = it.next()?.to_owned();
         let count: u32 = it.next()?.parse().ok()?;
@@ -807,7 +800,7 @@ impl Server for CServer {
     fn entity_info(&self, uuid: &str) -> Option<yog_core::EntityInfo> {
         let s = srv!(self);
         let owned = unsafe { (s.entity_info)(s.ctx, YogStr::from_str(uuid)) };
-        take_owned(s, owned).and_then(|l| yog_core::EntityInfo::decode(&l))
+        take_owned(s.free_str, owned).and_then(|l| yog_core::EntityInfo::decode(&l))
     }
 
     fn entities_in_box(
@@ -819,7 +812,7 @@ impl Server for CServer {
         let s = srv!(self);
         let owned =
             unsafe { (s.entities_in_box)(s.ctx, YogStr::from_str(dimension), v3(min), v3(max)) };
-        take_owned(s, owned)
+        take_owned(s.free_str, owned)
             .map(|t| {
                 t.lines()
                     .filter(|l| !l.is_empty())
@@ -838,7 +831,7 @@ impl Server for CServer {
         let s = srv!(self);
         let owned =
             unsafe { (s.raycast_block)(s.ctx, YogStr::from_str(dimension), v3(from), v3(to)) };
-        take_owned(s, owned).and_then(|l| yog_core::BlockHit::decode(&l))
+        take_owned(s.free_str, owned).and_then(|l| yog_core::BlockHit::decode(&l))
     }
 
     fn raycast_entity(
@@ -858,13 +851,13 @@ impl Server for CServer {
                 YogStr::from_str(exclude),
             )
         };
-        take_owned(s, owned).filter(|u| !u.is_empty())
+        take_owned(s.free_str, owned).filter(|u| !u.is_empty())
     }
 
     fn block_info(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<yog_core::BlockInfo> {
         let s = srv!(self);
         let owned = unsafe { (s.block_info)(s.ctx, YogStr::from_str(dimension), bp(pos)) };
-        take_owned(s, owned).and_then(|l| yog_core::BlockInfo::decode(&l))
+        take_owned(s.free_str, owned).and_then(|l| yog_core::BlockInfo::decode(&l))
     }
 
     fn break_block(
@@ -969,7 +962,7 @@ impl Server for CServer {
     fn player_info(&self, player: &str) -> Option<yog_core::PlayerInfo> {
         let s = srv!(self);
         let owned = unsafe { (s.player_info)(s.ctx, YogStr::from_str(player)) };
-        take_owned(s, owned).and_then(|l| yog_core::PlayerInfo::decode(&l))
+        take_owned(s.free_str, owned).and_then(|l| yog_core::PlayerInfo::decode(&l))
     }
 
     fn spawn_item(
@@ -993,13 +986,13 @@ impl Server for CServer {
                 YogStr::from_str(snbt),
             )
         };
-        take_owned(s, owned).filter(|u| !u.is_empty())
+        take_owned(s.free_str, owned).filter(|u| !u.is_empty())
     }
 
     fn item_entity_stack(&self, uuid: &str) -> Option<(String, u32, String)> {
         let s = srv!(self);
         let owned = unsafe { (s.item_entity_stack)(s.ctx, YogStr::from_str(uuid)) };
-        let text = take_owned(s, owned)?;
+        let text = take_owned(s.free_str, owned)?;
         let mut it = text.splitn(3, '\t');
         let item_id = it.next()?.to_owned();
         let count = it.next()?.parse().ok()?;
@@ -1072,7 +1065,7 @@ impl Server for CServer {
     fn item_block(&self, item_id: &str) -> Option<String> {
         let s = srv!(self);
         let owned = unsafe { (s.item_block)(s.ctx, YogStr::from_str(item_id)) };
-        take_owned(s, owned).filter(|b| !b.is_empty())
+        take_owned(s.free_str, owned).filter(|b| !b.is_empty())
     }
 
     fn place_feature(&self, dimension: &str, pos: yog_core::BlockPos, feature_id: &str) -> bool {
@@ -1089,9 +1082,20 @@ impl Server for CServer {
 }
 
 /// Copy a runtime-owned string out and free it; `None` for NONE.
-fn take_owned(s: &YogServer, owned: yog_abi::YogOwnedStr) -> Option<String> {
-    let text = take_owned(s.free_str, owned);
-    text
+pub(crate) fn take_owned(
+    free_str: unsafe extern "C" fn(ptr: *mut u8, len: u32),
+    owned: yog_abi::YogOwnedStr,
+) -> Option<String> {
+    if owned.is_none() {
+        return None;
+    }
+    // SAFETY: a non-NONE owned string is `len` valid bytes until freed.
+    let text = unsafe {
+        String::from_utf8_lossy(std::slice::from_raw_parts(owned.ptr, owned.len as usize))
+            .into_owned()
+    };
+    unsafe { free_str(owned.ptr, owned.len) };
+    Some(text)
 }
 
 fn v3((x, y, z): (f64, f64, f64)) -> yog_abi::YogVec3 {
@@ -1578,14 +1582,9 @@ pub fn installed_mods() -> Vec<ModInfo> {
         return Vec::new();
     }
     let owned = unsafe { ((*api).mods_list)((*api).ctx) };
-    if owned.is_none() {
+    let Some(text) = take_owned(unsafe { (*api).free_str }, owned) else {
         return Vec::new();
-    }
-    let text = unsafe {
-        String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec())
-            .unwrap_or_default()
     };
-    unsafe { ((*api).free_str)(owned.ptr, owned.len) };
     text.lines()
         .filter_map(|line| {
             let mut f = line.split('\t');

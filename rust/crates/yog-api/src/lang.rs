@@ -18,15 +18,7 @@ pub fn translation(key: &str) -> Option<String> {
         return None;
     }
     let owned = unsafe { ((*api).translate)((*api).ctx, YogStr::from_str(key)) };
-    if owned.is_none() {
-        return None;
-    }
-    let text = unsafe {
-        String::from_utf8_lossy(std::slice::from_raw_parts(owned.ptr, owned.len as usize))
-            .into_owned()
-    };
-    unsafe { ((*api).free_str)(owned.ptr, owned.len) };
-    Some(text)
+    crate::registry::take_owned(unsafe { (*api).free_str }, owned)
 }
 
 /// The text of translation `key` in the current language, or `key` itself
