@@ -38,7 +38,7 @@ pub struct Element {
 }
 
 impl Element {
-    fn attr(&self, key: &str) -> Option<&str> {
+    pub(crate) fn attr(&self, key: &str) -> Option<&str> {
         self.attrs
             .iter()
             .find(|(k, _)| k == key)
@@ -624,7 +624,7 @@ impl Gen {
             return Err(format!("line {}: <{kind}> can't have children", el.line));
         }
         for (key, _) in &el.attrs {
-            if !is_component && !COMMON_ATTRS.contains(&key.as_str()) && !kind_attrs(kind).contains(&key.as_str()) {
+            if !is_component && !key.starts_with(RAW_CALL) && !COMMON_ATTRS.contains(&key.as_str()) && !kind_attrs(kind).contains(&key.as_str()) {
                 return Err(format!(
                     "line {}: <{kind}> has no attribute `{key}`",
                     el.line
@@ -685,6 +685,11 @@ impl Gen {
         }
         for (key, value) in &el.attrs {
             let v = value.as_str();
+            if key.starts_with(RAW_CALL) {
+                // Builder calls added by the view-model generator.
+                call(value.clone());
+                continue;
+            }
             if is_component && !COMMON_ATTRS.contains(&key.as_str()) {
                 // A component's own property (passed to `build` above); an
                 // `on_*` one names an event like `on_click` does.
@@ -766,6 +771,28 @@ impl Gen {
     }
 }
 
+/// Attribute-name prefix of a raw builder call (`__rs0="action(...)"`)
+/// that the view-model generator attaches to elements; never in a `.yui`.
+pub(crate) const RAW_CALL: &str = "__rs";
+
+/// The builder expression of `el` and its subtree (ids found, warnings) —
+/// the static half of a view-model screen.
+pub(crate) fn static_widget(
+    el: &Element,
+    in_canvas: bool,
+    depth: usize,
+    mod_id: Option<&str>,
+) -> Result<(String, Vec<String>, Vec<String>), String> {
+    let mut gen = Gen {
+        events: Vec::new(),
+        ids: Vec::new(),
+        mod_id: mod_id.map(str::to_string),
+        warnings: Vec::new(),
+    };
+    let expr = gen.widget(el, in_canvas, depth)?;
+    Ok((expr, gen.ids, gen.warnings))
+}
+
 /// Generates the `.g.rs` source for a `.yui` document. `name` is the screen's
 /// path under `src/` without the extension (`mod_list`, `screens/options`):
 /// what the code-behind passes to `ui_include!`.
@@ -782,6 +809,9 @@ pub fn generate_for(
     mod_id: Option<&str>,
 ) -> Result<(String, Vec<String>), String> {
     let root = parse_xml(src)?;
+    if root.attr("x:ViewModel").is_some() {
+        return crate::yui_vm::generate(&root, name, mod_id);
+    }
     if root.name != "Screen" {
         return Err(format!(
             "line {}: the root element must be <Screen>, not <{}>",
@@ -1167,10 +1197,13 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
     // `.yres` accessors live there too (`crate::yres` cleans those up).
     let res_index = root.join(crate::yres::GENERATED_FILE);
     let res_dir = root.join(crate::yres::GENERATED_DIR);
+    // So do `content/` blocks and items (`crate::content`).
+    let content_file = root.join(crate::content::GENERATED_FILE);
     for stale in find_files(&root.join(GENERATED_DIR), "rs") {
         if stale.to_string_lossy().ends_with(".g.rs")
             && !wanted.contains(&stale)
             && stale != res_index
+            && stale != content_file
             && !stale.starts_with(&res_dir)
         {
             let _ = std::fs::remove_file(&stale);
@@ -1197,13 +1230,10 @@ mod tests {
             &screen(r##"<StatBar x="4" w="80" label="@@hp" value="0.5" on_select="pick" bg="#FF000000"/>"##),
             "s",
             None,
-    // So do `content/` blocks and items (`crate::content`).
-    let content_file = root.join(crate::content::GENERATED_FILE);
         )
         .unwrap();
         assert!(
             code.contains(r#"::yog_api::ui::component::build("StatBar", &[("label", &*"@hp"), ("value", "0.5"), ("on_select", "pick")])"#),
-            && stale != content_file
             "{code}"
         );
         assert!(code.contains(".bg(0xFF000000)") && code.contains(".w(Units::Px(80.0))"), "{code}");

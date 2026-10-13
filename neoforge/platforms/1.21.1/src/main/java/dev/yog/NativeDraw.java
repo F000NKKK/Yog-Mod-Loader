@@ -79,24 +79,6 @@ public final class NativeDraw {
         ctx.fillGradient((int) x1, (int) y1, (int) x2, (int) y2, top, bottom);
     }
 
-    /** All coordinates and sizes in GUI pixels; u0/v0 and tw/th in texels. */
-    public static void drawTexture(String id, float x, float y,
-                                   float u0, float v0, float w, float h,
-                                   float tw, float th) {
-        GuiGraphics ctx = hudDrawContext;
-        if (ctx == null) return;
-        syncGlState(); // MC-pipeline draw may follow raw GL from Rust
-        ResourceLocation ident = ResourceLocation.tryParse(id);
-        if (ident == null) return;
-        // Standalone icon textures (e.g. vanilla mob-effect icons) are drawn
-        // outside MC's own icon-rendering code, which normally resets the
-        // shader color itself before blitting; without this reset the blit
-        // inherits whatever tint an earlier draw call left behind and can
-        // render fully invisible. Patchouli's own TextureIcon does the same.
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-        ctx.blit(ident, (int) x, (int) y, u0, v0, (int) w, (int) h, (int) tw, (int) th);
-    }
-
     private static int dummyTexA, dummyTexB;
 
     /**

@@ -6,7 +6,7 @@ use yog_gfx::{
     core::{blend, DataType, DrawMode},
     gl, GfxContext,
 };
-use yog_ui::{widget, Align, FlexDir, UiRoot};
+use yog_ui::{widget, Align, FlexDir, Stretch, UiRoot};
 
 use crate::font::{BookFontRegistry, FontAtlas};
 use crate::state::BookViewState;
@@ -743,9 +743,9 @@ impl BookRenderer {
                     ctx.draw2d().text(&text, x, y, color, false);
                 }
                 OverlayCmd::McTexture { path, x, y, w, h } => {
-                    // Standalone 16×16 icon texture, not an atlas region —
-                    // blit it whole (u0=v0=0, tw/th = the icon's own size).
-                    ctx.draw2d().mc_texture(&path, x, y, 0.0, 0.0, w, h, w, h);
+                    // Standalone icon texture, not an atlas region — drawn
+                    // whole, scaled into the icon box.
+                    ctx.draw2d().image(&path, x, y, w, h);
                 }
                 _ => {}
             }
@@ -1573,7 +1573,13 @@ fn build_page(
             if let Some(t) = title {
                 col = col.child(lbl(t.as_str()).color(theme.title));
             }
-            col = col.child(widget::mc_image(texture, 80.0, 80.0));
+            col = col.child(
+                widget::image(texture)
+                    .region([0.0, 0.0, 80.0, 80.0])
+                    .stretch(Stretch::Fill)
+                    .w(80.0)
+                    .h(80.0),
+            );
             if let Some(t) = text {
                 col = col.child(lbl(t.as_str()).color(theme.text));
             }

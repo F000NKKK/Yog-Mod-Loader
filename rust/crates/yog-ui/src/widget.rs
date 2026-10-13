@@ -150,9 +150,6 @@ pub enum WidgetKind {
     /// or how to query it; that's the caller's job (see `yog-inventory`).
     /// Empty `item_id` draws an empty slot box.
     InvSlot { item_id: String, count: u32 },
-    /// Minecraft texture blit (via `draw2d_mc_tex`) of a raw resource path,
-    /// drawn scaled into the widget. Prefer [`WidgetKind::Image`].
-    McImage { id: String, img_w: f32, img_h: f32 },
     /// An image from a Yog image source (`item:apple`, `sprite:button`,
     /// `mymod:gui/logo`, ...) — see [`Image`] and [`image`].
     Image(Image),
@@ -733,17 +730,6 @@ pub fn inv_slot(item_id: impl Into<String>, count: u32) -> Widget {
     })
     .w(18.0)
     .h(18.0)
-}
-/// A raw Minecraft texture (`"minecraft:textures/..."`), `img_w × img_h`
-/// pixels, stretched over the widget. Version-dependent: prefer [`image`].
-pub fn mc_image(id: impl Into<String>, img_w: f32, img_h: f32) -> Widget {
-    Widget::new(WidgetKind::McImage {
-        id: id.into(),
-        img_w,
-        img_h,
-    })
-    .w(img_w)
-    .h(img_h)
 }
 /// An image from a Yog image source — `"item:apple"`, `"block:stone"`,
 /// `"sprite:button"`, `"mymod:gui/logo"` (see [`yog_gfx::image`]) — the

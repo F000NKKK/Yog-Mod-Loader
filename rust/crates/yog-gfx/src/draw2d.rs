@@ -60,29 +60,6 @@ impl<'ctx> Draw2D<'ctx> {
         unsafe { (a.draw2d_gradient)(x1, y1, x2, y2, top, bottom) }
     }
 
-    /// Blit a region from a Minecraft texture identified by namespace + path.
-    ///
-    /// - `id`: e.g. `"minecraft:textures/gui/icons.png"`
-    /// - `(x, y)`: screen position
-    /// - `(u0, v0)`: top-left UV in texels
-    /// - `(w, h)`: region size in pixels
-    /// - `(tw, th)`: full texture size in pixels
-    pub fn mc_texture(
-        &self,
-        id: &str,
-        x: f32,
-        y: f32,
-        u0: f32,
-        v0: f32,
-        w: f32,
-        h: f32,
-        tw: f32,
-        th: f32,
-    ) {
-        let a = self.0.api();
-        unsafe { (a.draw2d_mc_tex)(YogStr::from_str(id), x, y, u0, v0, w, h, tw, th) }
-    }
-
     /// Render an item stack (3D block models included) via Minecraft's item
     /// renderer — like inventory slots or Patchouli's item icons.
     ///
@@ -97,7 +74,7 @@ impl<'ctx> Draw2D<'ctx> {
     /// Draw the image `source` — a Yog image source such as `"item:apple"`,
     /// `"block:stone"`, `"sprite:button"` or `"mymod:gui/logo"` (see
     /// [`crate::image`]) — scaled into `(x, y, w, h)`. The host resolves it
-    /// for its Minecraft version; prefer this over [`Self::mc_texture`].
+    /// for its Minecraft version.
     pub fn image(&self, source: &str, x: f32, y: f32, w: f32, h: f32) {
         self.image_region(source, x, y, w, h, [0.0; 4], 0xFFFF_FFFF);
     }

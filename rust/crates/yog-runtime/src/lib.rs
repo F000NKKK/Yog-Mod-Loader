@@ -2676,46 +2676,6 @@ unsafe extern "C" fn gfx_text_width(text: YogStr, font: YogStr) -> f32 {
     }
 }
 
-unsafe extern "C" fn gfx_draw2d_mc_tex(
-    id: YogStr,
-    x: f32,
-    y: f32,
-    u0: f32,
-    v0: f32,
-    w: f32,
-    h: f32,
-    tw: f32,
-    th: f32,
-) {
-    let Some(mut env) = get_env() else { return };
-    if let Some(ji) = ys_to_java(&mut env, id) {
-        if env
-            .call_static_method(
-                "dev/yog/NativeDraw",
-                "drawTexture",
-                // x, y, u0, v0, w, h, tw, th — eight floats. (Nine here made
-                // every call fail jni-rs's argument-count check before reaching
-                // Java, so no texture was ever drawn.)
-                "(Ljava/lang/String;FFFFFFFF)V",
-                &[
-                    JValue::Object(&ji),
-                    JValue::Float(x),
-                    JValue::Float(y),
-                    JValue::Float(u0),
-                    JValue::Float(v0),
-                    JValue::Float(w),
-                    JValue::Float(h),
-                    JValue::Float(tw),
-                    JValue::Float(th),
-                ],
-            )
-            .is_err()
-        {
-            env.exception_clear().ok();
-        }
-    }
-}
-
 unsafe extern "C" fn gfx_draw2d_item(id: YogStr, x: f32, y: f32, size: f32) {
     let Some(mut env) = get_env() else { return };
     if let Some(ji) = ys_to_java(&mut env, id) {
@@ -2780,7 +2740,6 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
     draw2d_rect: gfx_draw2d_rect,
     draw2d_gradient: gfx_draw2d_gradient,
     draw2d_text: gfx_draw2d_text,
-    draw2d_mc_tex: gfx_draw2d_mc_tex,
     draw2d_item: gfx_draw2d_item,
     draw2d_text_font: gfx_draw2d_text_font,
     text_width: gfx_text_width,

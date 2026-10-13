@@ -155,10 +155,6 @@ pub fn set_source(w: &mut Widget, source: &str) -> bool {
             img.source = source.to_owned();
             true
         }
-        WidgetKind::McImage { id, .. } => {
-            *id = source.to_owned();
-            true
-        }
         _ => false,
     }
 }

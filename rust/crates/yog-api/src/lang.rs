@@ -1,5 +1,5 @@
 //! Translations — text in the player's language, from the lang files the
-//! game loaded (a mod's `.ylang` files become them at `yog build`).
+//! game loaded (a mod's `.yres` texts become them at `yog build`).
 //!
 //! ```ignore
 //! let title = yog_api::tr("mymod.screen.title");

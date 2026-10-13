@@ -54,14 +54,14 @@ pub enum BookPage {
     },
     /// Crafting recipe display (autorenders 3×3 grid).
     Crafting {
-        #[serde(rename = "recipe", alias = "recipe_id")]
+        #[serde(rename = "recipe")]
         recipe_id: String,
         #[serde(default)]
         text: Option<String>,
     },
     /// Smelting recipe display.
     Smelting {
-        #[serde(rename = "recipe", alias = "recipe_id")]
+        #[serde(rename = "recipe")]
         recipe_id: String,
         #[serde(default)]
         text: Option<String>,
@@ -78,7 +78,7 @@ pub enum BookPage {
     },
     /// Entity display page (renders a living entity in a box).
     Entity {
-        #[serde(rename = "entity", alias = "entity_type")]
+        #[serde(rename = "entity")]
         entity_type: String,
         #[serde(default)]
         name: Option<String>,
@@ -221,8 +221,8 @@ impl Book {
             nameplate_color: "FFDD98".into(), // Patchouli default nameplateColor
             landing_text: String::new(),
             author: None,
-            book_texture: "yog:textures/gui/book.png".into(),
-            filler_texture: "yog:textures/gui/book_filler.png".into(),
+            book_texture: "yog:gui/book".into(),
+            filler_texture: "yog:gui/book_filler".into(),
             model: "minecraft:book".into(),
             categories: Vec::new(),
             entries: Vec::new(),

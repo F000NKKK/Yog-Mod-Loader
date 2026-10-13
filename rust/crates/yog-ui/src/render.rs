@@ -200,17 +200,6 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
                 }
             }
         }
-        WidgetKind::McImage { id, img_w, img_h } => {
-            // A raw texture of `img_w × img_h` pixels, stretched over the
-            // content box (it used to be blitted 1:1 at the top-left).
-            let image = widget::Image {
-                source: id.clone(),
-                stretch: crate::Stretch::Fill,
-                region: Some([0.0, 0.0, *img_w, *img_h]),
-                tint: 0xFFFF_FFFF,
-            };
-            crate::image::render(d2d, &image, content_box(r, s), clip);
-        }
         WidgetKind::Image(image) => crate::image::render(d2d, image, content_box(r, s), clip),
         WidgetKind::Spacer => {} // invisible
         WidgetKind::TextBox(tb) => render_text_box(d2d, tb, s, *r, clip, node.focused),

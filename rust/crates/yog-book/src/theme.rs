@@ -25,9 +25,6 @@ pub struct BookTheme {
     pub nameplate: u32,
     /// Divider line between sections.
     pub divider: u32,
-    // kept for compatibility — no longer used for sidebar
-    #[allow(dead_code)]
-    pub sidebar_bg: u32,
 }
 
 impl Default for BookTheme {
@@ -46,7 +43,6 @@ impl Default for BookTheme {
             border: 0xFF_5C3A10,          // spine + divider lines
             nameplate: 0xFF_FFDD98,       // book title color (Patchouli nameplateColor)
             divider: 0xFF_333333,         // section headers ("Categories" etc.)
-            sidebar_bg: 0xFF_2A1A08,      // unused, kept for API compat
         }
     }
 }

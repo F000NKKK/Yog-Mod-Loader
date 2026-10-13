@@ -6,15 +6,15 @@
 //!  - New fields are appended only at the END of structs; increment `ABI_MINOR`.
 //!  - ABI_MAJOR bumps only when an existing field is removed or reordered.
 //!
-//! Mods and the runtime are compiled independently. They are compatible when
-//! `ABI_MAJOR` matches and `mod_ABI_MINOR <= runtime_ABI_MINOR`.
+//! Mods and the runtime are compiled independently; the runtime loads a mod
+//! only when its `ABI_VERSION` is exactly the runtime's.
 
 use std::os::raw::c_void;
 
 // ── Version ──────────────────────────────────────────────────────────────────
 
-pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 34;
+pub const ABI_MAJOR: u32 = 1;
+pub const ABI_MINOR: u32 = 0;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -654,19 +654,6 @@ pub struct YogGfxApi {
         unsafe extern "C" fn(x1: f32, y1: f32, x2: f32, y2: f32, top: u32, bottom: u32),
     /// MC text renderer string. Only valid during `on_hud_render`.
     pub draw2d_text: unsafe extern "C" fn(text: YogStr, x: f32, y: f32, color: u32, shadow: bool),
-    /// Blit from a Minecraft-managed texture. Only valid during `on_hud_render`.
-    /// `(u0, v0)` in texels; `(w, h)` in pixels; `(tw, th)` full texture size.
-    pub draw2d_mc_tex: unsafe extern "C" fn(
-        id: YogStr,
-        x: f32,
-        y: f32,
-        u0: f32,
-        v0: f32,
-        w: f32,
-        h: f32,
-        tw: f32,
-        th: f32,
-    ),
 
     // ── appended in ABI minor 21 ──────────────────────────────────────────────
     /// Render an item stack (3D block models included) via MC's item renderer,
@@ -1253,7 +1240,7 @@ pub struct YogApi {
     // ── ABI minor 33 — translations ─────────────────────────────────────────
     /// The text of translation key `key` (e.g. `mymod.screen.title`) in the
     /// game's current language, from the loaded lang files — resource packs
-    /// and `.yog` mods' `assets/<ns>/lang/*.json` (compiled from `.ylang`).
+    /// and `.yog` mods' `assets/<ns>/lang/*.json` (compiled from `.yres`).
     /// `YogOwnedStr::NONE` when no language defines the key. Format
     /// specifiers (`%s`, `%1$s`) come back as-is. Free with `free_str`.
     /// Client-side; a dedicated server only knows `en_us`.

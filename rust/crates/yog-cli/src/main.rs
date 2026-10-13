@@ -17,6 +17,7 @@
 mod content;
 mod yres;
 mod yui;
+mod yui_vm;
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;

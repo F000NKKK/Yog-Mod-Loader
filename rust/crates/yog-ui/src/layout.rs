@@ -263,10 +263,6 @@ fn layout_widget(
                 ww = (nw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
                 hh = (nh + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
             }
-            WidgetKind::McImage { img_w, img_h, .. } => {
-                ww = (*img_w + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
-                hh = (*img_h + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
-            }
         }
         // Explicit width/height always wins over content sizing.
         if let Some(v) = explicit_w {
@@ -345,8 +341,14 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         FlexDir::Row => (bounded(content_w), bounded(content_h)),
         FlexDir::Column => (bounded(content_h), bounded(content_w)),
     };
+    // Measuring an auto-sized cross axis: its size isn't known yet (only a
+    // cap), so nothing is centred/end-aligned until the arrange pass.
+    let cross_shrinks = shrink.as_ref().is_some_and(|f| match dir {
+        FlexDir::Row => f.h,
+        FlexDir::Column => f.w,
+    });
     let cross_offset = |content: f32, size: f32| -> f32 {
-        if !cross_bounded {
+        if !cross_bounded || cross_shrinks {
             return 0.0;
         }
         match s.align {
@@ -971,6 +973,22 @@ mod tests {
         assert_eq!(row.rect.h, 20.0);
         assert_eq!(row.children[0].rect.y, 5.0);
         assert_eq!(row.children[1].rect.y, 0.0);
+    }
+
+    #[test]
+    fn positioned_auto_row_measures_to_content() {
+        // Measured against the rest of the screen (a bounded cap), a centred
+        // auto-height row must not centre in that cap.
+        let pill = widget::panel(FlexDir::Row).padding(1.0, 1.0, 1.0, 1.0).child(
+            widget::panel(FlexDir::Row)
+                .align(Align::Center)
+                .child(widget::spacer().min_w(10.0).min_h(9.0)),
+        );
+        let root = widget::panel(FlexDir::Column).w(500.0).h(500.0).child(pill.at(3.0, 4.0));
+        let node = compute(&root, 500.0, 500.0);
+        let r = node.children[0].rect;
+        assert_eq!((r.x, r.y, r.w, r.h), (3.0, 4.0, 12.0, 11.0));
+        assert_eq!(node.children[0].children[0].children[0].rect.y, 5.0);
     }
 
     #[test]
