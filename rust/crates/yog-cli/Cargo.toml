@@ -1,6 +1,6 @@
 [package]
 name = "yog-cli"
-version = "0.26.0"
+version = "0.27.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -14,4 +14,4 @@ path = "src/main.rs"
 zip.workspace = true
 serde_json.workspace = true
 # Image sources (`item:`, `sprite:`, ...) checked in .yui files.
-yog-gfx = "0.23"
+yog-gfx = "0.24"
