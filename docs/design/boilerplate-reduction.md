@@ -841,5 +841,8 @@ Each stage ends with: bump the crates involved (breaking, as policy allows), pub
   loaded/saved with the world; there is no `registry.persist`. The key is mandatory (it names
   the save entry, so renaming the Rust item doesn't lose data); `T: Codec + Default`. A
   `X.mark_dirty()`-free model: mutation goes through `X.update(|t| …)`, which marks dirty.
-- **D7.** Should Fabric switch from Yarn to official Mojang mappings? That would let all 6 Java
-  hosts share one source tree. Without it, only forge+neoforge share code (I3 a+b).
+- **D7 — decided (2026-10-13): yes, Fabric moves to official Mojang mappings**
+  (`loom.officialMojangMappings()`), so all Java hosts share one source tree. Safe for the
+  future: the built jar is still remapped to intermediary, Fabric officially supports Mojmap,
+  and Mojang is dropping obfuscation from Java Edition, after which Mojmap names are simply
+  the game's real names. The mappings themselves are not redistributed (Mojang's licence).
