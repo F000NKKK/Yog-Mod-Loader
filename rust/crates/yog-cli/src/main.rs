@@ -14,6 +14,7 @@
 //!   yog res check    — check `resources/**/*.yres`, generate their accessors
 //!   yog help         — show usage
 
+mod content;
 mod yres;
 mod yui;
 
@@ -86,6 +87,11 @@ fn main() {
             Some("check") => res_check(),
             _ => Err("usage: yog res check".into()),
         },
+        Some("content") => match args.get(2).map(String::as_str) {
+            Some("check") => content_check(),
+            _ => Err("usage: yog content check".into()),
+        },
+        Some("import") => content::import_command(&args[2..]),
         Some("ui") => match args.get(2).map(String::as_str) {
             Some("gen") => ui_gen(&args[3..]),
             _ => Err("usage: yog ui gen [file.yui ...]  (no files: every src/**/*.yui)".into()),
@@ -121,6 +127,11 @@ fn print_usage() {
          \x20 publish exports     Publish this mod's exported API to crates.io\n\
          \x20 ui gen [files]      Generate .yog-build/generated/**/*.g.rs from .yui screens (build does this too)\n\
          \x20 res check           Validate resources/**/*.yres, regenerate accessors, list untranslated texts\n\
+         \x20 content check       Validate content/**/*.yblock|*.yitem (blocks/items), regenerate yog-content.g.rs\n\
+         \x20 import resourcepack <zip|dir> [--model <id>|--all]\n\
+         \x20                     Turn a resource pack's block/item models into content/ files\n\
+         \x20 import bbmodel <file.bbmodel> [--id <name>] [--item]\n\
+         \x20                     Turn a Blockbench model (Java block/item) into a content/ file\n\
          \x20 help                Show this message\n\n\
          Mod projects use yog.toml instead of Cargo.toml.\n\
          Cross-compilation requires cargo-zigbuild + zig (yog setup installs them).\n\
@@ -583,6 +594,8 @@ struct Prepared {
     meta: YogToml,
     build_dir: PathBuf,
     resources: yres::Compiled,
+    /// `content/**/*.yblock|*.yitem` — blocks and items.
+    content: content::Compiled,
 }
 
 /// What every command that compiles does first (`yog build`, `yog check`):
@@ -621,6 +634,13 @@ fn prepare() -> Result<Prepared, String> {
     yres::write_sources(&root, &resources)?;
     resolve_metadata(&mut meta, &resources.refs)?;
     yui::set_resource_refs(&resources.refs);
+
+    // Blocks and items: models, states, loot, lang and their Rust glue.
+    let content = content::compile(&root, &meta.id, &resources.refs)?;
+    for w in &content.warnings {
+        eprintln!("    warning: {w}");
+    }
+    content::write_source(&root, &content)?;
 
     // Generate .yog-build/Cargo.toml from yog.toml
     let build_dir = root.join(".yog-build");
@@ -676,6 +696,7 @@ fn prepare() -> Result<Prepared, String> {
         meta,
         build_dir,
         resources,
+        content,
     })
 }
 
@@ -705,6 +726,7 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
         meta,
         build_dir,
         resources,
+        content,
     } = prepare()?;
     let yog_lock = root.join("yog.lock");
 
@@ -775,7 +797,17 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
             resources.outputs.len()
         );
     }
-    let assets = gather_assets(&root, resources.outputs);
+    if content.blocks + content.items > 0 {
+        eprintln!(
+            "    compiled {} block(s) and {} item(s) from {}/",
+            content.blocks,
+            content.items,
+            content::CONTENT_DIR
+        );
+    }
+    let mut compiled_assets = resources.outputs;
+    content::merge_outputs(&root, &mut compiled_assets, content)?;
+    let assets = gather_assets(&root, compiled_assets);
     if !assets.is_empty() {
         eprintln!("    bundled {} asset file(s)", assets.len());
     }
@@ -855,6 +887,38 @@ fn res_check() -> Result<(), String> {
     eprintln!(
         "==> {} resource file(s) OK{}",
         compiled.files,
+        if compiled.warnings.is_empty() {
+            String::new()
+        } else {
+            format!(", {} warning(s)", compiled.warnings.len())
+        }
+    );
+    Ok(())
+}
+
+// ── yog content check ────────────────────────────────────────────────────────
+
+/// `yog content check` — what `yog build` does with `content/**/*.yblock`
+/// and `*.yitem`, without building: errors with file:line, a fresh
+/// `.yog-build/generated/yog-content.g.rs`.
+fn content_check() -> Result<(), String> {
+    let root = std::env::current_dir().map_err(|e| e.to_string())?;
+    let meta = YogToml::read(&root.join("yog.toml"))?;
+    let refs = yres::compile(&root, &meta.id)
+        .map(|c| c.refs)
+        .unwrap_or_else(|e| {
+            eprintln!("warning: {e}");
+            yres::Refs::default()
+        });
+    let compiled = content::compile(&root, &meta.id, &refs)?;
+    content::write_source(&root, &compiled)?;
+    for w in &compiled.warnings {
+        eprintln!("warning: {w}");
+    }
+    eprintln!(
+        "==> {} block(s), {} item(s) OK{}",
+        compiled.blocks,
+        compiled.items,
         if compiled.warnings.is_empty() {
             String::new()
         } else {
