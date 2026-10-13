@@ -28,7 +28,9 @@ static TEXTURE_SIZES: Mutex<Option<SizeCache>> = Mutex::new(None);
 static WARNED: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
 fn warn_once(source: &str, why: &str) {
-    let mut warned = WARNED.lock().unwrap_or_else(|e| e.into_inner());
+    let mut warned = WARNED
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     if warned
         .get_or_insert_with(HashSet::new)
         .insert(source.to_string())
@@ -49,7 +51,9 @@ fn has_atlas(env: &mut JNIEnv) -> bool {
 }
 
 fn texture_size(env: &mut JNIEnv, id: &str) -> Option<(f32, f32)> {
-    let mut cache = TEXTURE_SIZES.lock().unwrap_or_else(|e| e.into_inner());
+    let mut cache = TEXTURE_SIZES
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let cache = cache.get_or_insert_with(HashMap::new);
     if let Some(hit) = cache.get(id) {
         return *hit;
@@ -237,7 +241,7 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
             Some(sp) => draw_sprite(&mut env, source, sp, dest, tint),
             // A raw atlas id (`sprite:minecraft:widget/button`).
             None if name.contains(':') && has_atlas(&mut env) => {
-                draw_atlas_sprite(&mut env, &name, dest, tint)
+                draw_atlas_sprite(&mut env, &name, dest, tint);
             }
             None => warn_once(source, "unknown sprite name (see yog_gfx::image::SPRITES)"),
         },

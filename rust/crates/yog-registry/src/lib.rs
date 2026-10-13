@@ -166,13 +166,13 @@ impl ShapedRecipe {
         let pattern: String = self
             .rows
             .iter()
-            .map(|r| format!("\"{}\"", r))
+            .map(|r| format!("\"{r}\""))
             .collect::<Vec<_>>()
             .join(",");
         let keys: String = self
             .keys
             .iter()
-            .map(|(ch, item)| format!("\"{}\":{{\"item\":\"{}\"}}", ch, item))
+            .map(|(ch, item)| format!("\"{ch}\":{{\"item\":\"{item}\"}}"))
             .collect::<Vec<_>>()
             .join(",");
         format!(
@@ -216,7 +216,7 @@ impl ShapelessRecipe {
         let ingr: String = self
             .ingredients
             .iter()
-            .map(|i| format!("{{\"item\":\"{}\"}}", i))
+            .map(|i| format!("{{\"item\":\"{i}\"}}"))
             .collect::<Vec<_>>()
             .join(",");
         format!(
@@ -312,7 +312,7 @@ impl BookRecipe {
         let ingr: String = self
             .ingredients
             .iter()
-            .map(|i| format!("{{\"item\":\"{}\"}}", i))
+            .map(|i| format!("{{\"item\":\"{i}\"}}"))
             .collect::<Vec<_>>()
             .join(",");
         format!(
@@ -357,7 +357,7 @@ impl ItemModifier {
         let params: String = self
             .parameters
             .iter()
-            .map(|(k, v)| format!("\"{}\":{}", k, v))
+            .map(|(k, v)| format!("\"{k}\":{v}"))
             .collect::<Vec<_>>()
             .join(",");
         format!(
@@ -414,7 +414,7 @@ impl StartupGrant {
         let items: Vec<String> = self
             .items
             .iter()
-            .map(|i| format!("{{\"item\":\"{}\"}}", i))
+            .map(|i| format!("{{\"item\":\"{i}\"}}"))
             .collect();
         let mut entries = String::new();
         if !items.is_empty() {
@@ -425,8 +425,7 @@ impl StartupGrant {
                 entries.push(',');
             }
             let book_entry = format!(
-                "{{\"type\":\"item\",\"name\":\"minecraft:written_book\",\"functions\":[{{\"function\":\"set_nbt\",\"tag\":\"{{yog_book:\\\"{}\\\"}}\"}}]}}",
-                book
+                "{{\"type\":\"item\",\"name\":\"minecraft:written_book\",\"functions\":[{{\"function\":\"set_nbt\",\"tag\":\"{{yog_book:\\\"{book}\\\"}}\"}}]}}"
             );
             entries.push_str(&book_entry);
         }
@@ -488,8 +487,7 @@ impl AdvancementReward {
         let book_str: String = book.into();
         self.book = Some(book_str.clone());
         self.nbt = Some(format!(
-            "{{yog_book:\"{}\",title:\"Yog Book\",author:\"Yog\"}}",
-            book_str
+            "{{yog_book:\"{book_str}\",title:\"Yog Book\",author:\"Yog\"}}"
         ));
         self
     }
@@ -498,7 +496,7 @@ impl AdvancementReward {
         let nbt_part = self
             .nbt
             .as_ref()
-            .map(|n| format!("{{\"function\":\"set_nbt\",\"tag\":{}}}", n));
+            .map(|n| format!("{{\"function\":\"set_nbt\",\"tag\":{n}}}"));
         let entries = if let Some(nbt_part) = nbt_part {
             format!(
                 "[{{\"type\":\"item\",\"name\":\"{}\",\"functions\":[{}]}}]",
@@ -508,8 +506,7 @@ impl AdvancementReward {
             format!("[{{\"type\":\"item\",\"name\":\"{}\"}}]", self.item)
         };
         format!(
-            "{{\"type\":\"advancement_reward\",\"pools\":[{{\"rolls\":1,\"entries\":{}}}]}}",
-            entries
+            "{{\"type\":\"advancement_reward\",\"pools\":[{{\"rolls\":1,\"entries\":{entries}}}]}}"
         )
     }
 }
@@ -642,7 +639,10 @@ impl BlockDef {
     /// `digital_cable` carries `"digital"`; an ALU block carries both, so it
     /// accepts either cable while a Redstone Port only accepts the analog one.
     pub fn connect_groups(mut self, groups: &[&str]) -> Self {
-        self.connect_groups = groups.iter().map(|s| s.to_string()).collect();
+        self.connect_groups = groups
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect();
         self
     }
 

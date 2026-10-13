@@ -1882,7 +1882,7 @@ unsafe extern "C" fn api_register_recipe_json(
     let n = name.as_str().to_owned();
     let j = json.as_str().to_owned();
     // Feed the recipe to already-registered book renderers (crafting pages).
-    let full_id = format!("{}:{}", ns, n);
+    let full_id = format!("{ns}:{n}");
     for r in handlers.book_renderers.lock().unwrap().values_mut() {
         r.add_recipe(full_id.clone(), &j);
     }
@@ -2087,7 +2087,7 @@ unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_j
             renderer.set_translator(translate);
             // Recipes may register before the book — replay them into the renderer.
             for (ns, name, j) in &handlers.recipes {
-                renderer.add_recipe(format!("{}:{}", ns, name), j);
+                renderer.add_recipe(format!("{ns}:{name}"), j);
             }
             handlers.book_renderers.lock().unwrap().insert(id, renderer);
         }
@@ -2241,7 +2241,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBookJson<'l>(
         .cloned()
         .unwrap_or_else(|| "null".to_string());
     env.new_string(json)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -3721,7 +3721,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeCommandNames<'l>(
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(names)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -3785,11 +3785,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeRecipeJsons<'l>(
     let s = handlers()
         .recipes
         .iter()
-        .map(|(ns, name, json)| format!("{}\t{}\t{}", ns, name, json))
+        .map(|(ns, name, json)| format!("{ns}\t{name}\t{json}"))
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -3804,11 +3804,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeDimensionJsons<'l>(
     let s = handlers()
         .dimensions
         .iter()
-        .map(|(id, json)| format!("{}\t{}", id, json))
+        .map(|(id, json)| format!("{id}\t{json}"))
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -3880,13 +3880,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeTypedCommandSchemas<'l>(
         for (_module, schema, _, _) in regs {
             if let Some(schema) = schema {
                 if seen.insert(schema.as_str()) {
-                    lines.push(format!("{}\t{}", name, schema));
+                    lines.push(format!("{name}\t{schema}"));
                 }
             }
         }
     }
     env.new_string(lines.join("\n"))
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -3951,7 +3951,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
                     buf.as_mut_ptr(),
                     buf.len() as u32,
                     &mut reply_len,
-                )
+                );
             };
             if reply_len > 0 {
                 return String::from_utf8_lossy(&buf[..reply_len as usize]).into_owned();
@@ -3965,7 +3965,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
     });
 
     env.new_string(reply)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -4008,7 +4008,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -4062,7 +4062,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -4106,7 +4106,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInventoryDefs<'l>(
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -4189,7 +4189,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativePacketChannels<'l>(
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -4205,7 +4205,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)
-        .map(|s| s.into_raw())
+        .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
 }
 

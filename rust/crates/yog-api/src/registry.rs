@@ -1931,7 +1931,7 @@ impl Registry {
                 schema_ys,
                 ud,
                 trampoline_command::<F>,
-            )
+            );
         }
     }
 
@@ -1980,7 +1980,7 @@ impl Registry {
                 YogStr::from_str(ns),
                 YogStr::from_str(name),
                 YogStr::from_str(json),
-            )
+            );
         }
     }
 
@@ -2168,7 +2168,7 @@ impl Registry {
                 id,
                 ud,
                 trampoline_chunk_generator::<F>,
-            )
+            );
         }
     }
 
@@ -2229,7 +2229,7 @@ impl Registry {
     {
         let ud = Self::leak(handler);
         unsafe {
-            ((*self.api).schedule_once)(self.ctx(), delay_ticks, ud, trampoline_scheduled::<F>)
+            ((*self.api).schedule_once)(self.ctx(), delay_ticks, ud, trampoline_scheduled::<F>);
         }
     }
 
@@ -2244,7 +2244,7 @@ impl Registry {
                 period_ticks,
                 ud,
                 trampoline_scheduled::<F>,
-            )
+            );
         }
     }
 

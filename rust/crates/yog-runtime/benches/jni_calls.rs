@@ -131,7 +131,7 @@ fn by_name_get_block(env: &mut JNIEnv, dim: &str) -> Option<String> {
                 JValue::Int(-3),
             ],
         )
-        .and_then(|v| v.l())
+        .and_then(jni::objects::JValueGen::l)
         .ok()?;
     let ret = jni::objects::JString::from(ret);
     let s = env.get_string(&ret).ok().map(String::from);
@@ -154,7 +154,7 @@ fn by_name_teleport(env: &mut JNIEnv, player: &str) -> bool {
                 JValue::Double(-3.5),
             ],
         )
-        .and_then(|v| v.z())
+        .and_then(jni::objects::JValueGen::z)
         .unwrap_or(false);
     let _ = env.delete_local_ref(jp);
     ok
@@ -181,10 +181,10 @@ fn bench(c: &mut Criterion) {
                 "drawRect",
                 [F(1.0), F(2.0), F(30.0), F(40.0), I(-1)]
             );
-        })
+        });
     });
     g.bench_function("drawText/by_name", |b| {
-        b.iter(|| by_name_text(&mut env, "Hello, Yog!"))
+        b.iter(|| by_name_text(&mut env, "Hello, Yog!"));
     });
     g.bench_function("drawText/cached", |b| {
         b.iter(|| unsafe {
@@ -194,10 +194,10 @@ fn bench(c: &mut Criterion) {
                 "drawText",
                 [S(text), F(4.0), F(8.0), I(-1), Z(true)]
             );
-        })
+        });
     });
     g.bench_function("getBlock/by_name", |b| {
-        b.iter(|| by_name_get_block(&mut env, "minecraft:overworld"))
+        b.iter(|| by_name_get_block(&mut env, "minecraft:overworld"));
     });
     g.bench_function("getBlock/cached", |b| {
         b.iter(|| unsafe {
@@ -208,10 +208,10 @@ fn bench(c: &mut Criterion) {
                 [S(dim), I(1), I(64), I(-3)]
             );
             s
-        })
+        });
     });
     g.bench_function("teleport/by_name", |b| {
-        b.iter(|| by_name_teleport(&mut env, "Steve"))
+        b.iter(|| by_name_teleport(&mut env, "Steve"));
     });
     g.bench_function("teleport/cached", |b| {
         b.iter(|| unsafe {
@@ -222,7 +222,7 @@ fn bench(c: &mut Criterion) {
                 [S(player), D(0.5), D(64.0), D(-3.5)]
             );
             ok
-        })
+        });
     });
     g.finish();
 }

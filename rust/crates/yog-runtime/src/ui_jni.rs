@@ -87,7 +87,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
                             let ev = event.clone();
                             drop(renderers);
                             if let Some(r) = h.book_renderers.lock().unwrap().get_mut(&id) {
-                                r.handle_event(&ev)
+                                r.handle_event(&ev);
                             }
                             yog_logging::info!("book click '{}' → '{}'", &id, &ev);
                             return 1;
@@ -106,7 +106,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
     if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
         if !module.is_retiring() {
             if let Some(_call) = module.enter() {
-                let ev = format!("click:{:.1}:{:.1}", mx, my);
+                let ev = format!("click:{mx:.1}:{my:.1}");
                 yog_logging::info!("UI click '{}' → raw {}", id, ev);
                 unsafe {
                     handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
@@ -136,7 +136,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIScroll<'l>(
     if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
         if !module.is_retiring() {
             if let Some(_call) = module.enter() {
-                let ev = format!("scroll:{:.2}", dy);
+                let ev = format!("scroll:{dy:.2}");
                 unsafe {
                     handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
                 }
@@ -158,7 +158,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIDrag<'l>(
     if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
         if !module.is_retiring() {
             if let Some(_call) = module.enter() {
-                let ev = format!("drag:{:.1}:{:.1}", mx, my);
+                let ev = format!("drag:{mx:.1}:{my:.1}");
                 unsafe {
                     handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
                 }
@@ -180,7 +180,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRelease<'l>(
     if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned() {
         if !module.is_retiring() {
             if let Some(_call) = module.enter() {
-                let ev = format!("release:{:.1}:{:.1}", mx, my);
+                let ev = format!("release:{mx:.1}:{my:.1}");
                 unsafe {
                     handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
                 }
@@ -255,14 +255,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIChar<'l>(
     _mods: jint,
 ) -> jboolean {
     let id = jstr!(env, ui_id);
-    let pending = HIGH_SURROGATE.with(|p| p.take());
+    let pending = HIGH_SURROGATE.with(std::cell::Cell::take);
     let c = match chr {
         0xD800..=0xDBFF => {
             HIGH_SURROGATE.with(|p| p.set(Some(chr)));
             return 1;
         }
         0xDC00..=0xDFFF => match pending {
-            Some(hi) => char::decode_utf16([hi, chr]).next().and_then(|r| r.ok()),
+            Some(hi) => char::decode_utf16([hi, chr])
+                .next()
+                .and_then(std::result::Result::ok),
             None => None,
         },
         _ => char::from_u32(chr as u32),
@@ -400,7 +402,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeMenuEntries<'l>(
     let lines: Vec<String> = h
         .menu_entries
         .iter()
-        .map(|(label, ui_id)| format!("{}\t{}", label, ui_id))
+        .map(|(label, ui_id)| format!("{label}\t{ui_id}"))
         .collect();
     let out = lines.join("\n");
     env.new_string(out).unwrap().into_raw()

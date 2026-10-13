@@ -48,11 +48,11 @@ fn bench(c: &mut Criterion) {
     let mut g = c.benchmark_group("packet");
     g.bench_function("encode_small", |b| b.iter(|| black_box(&tp).encode()));
     g.bench_function("decode_small", |b| {
-        b.iter(|| Teleport::decode(black_box(&tp_bytes)).unwrap())
+        b.iter(|| Teleport::decode(black_box(&tp_bytes)).unwrap());
     });
     g.bench_function("encode_4k", |b| b.iter(|| black_box(&chunk).encode()));
     g.bench_function("decode_4k", |b| {
-        b.iter(|| Chunk::decode(black_box(&chunk_bytes)).unwrap())
+        b.iter(|| Chunk::decode(black_box(&chunk_bytes)).unwrap());
     });
     g.finish();
 }
