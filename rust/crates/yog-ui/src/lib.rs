@@ -16,6 +16,7 @@
 //!     );
 //! ```
 
+pub mod event;
 pub mod image;
 pub mod layout;
 mod render;
@@ -24,10 +25,13 @@ pub mod text;
 pub mod textbox;
 pub mod widget;
 
-pub use layout::{set_focus, Align, FlexDir, LayoutNode, Rect};
+pub use event::UiEvent;
+pub use layout::{hit_path, node_at, set_focus, Align, FlexDir, LayoutNode, Rect};
 pub use scroll::ScrollState;
 pub use textbox::{TextBoxEvent, TextBoxState};
-pub use widget::{Dock, FocusStyle, Stretch, Units, Widget};
+pub use widget::{
+    Action, Dock, FocusStyle, StateFlags, StateStyles, Stretch, StylePatch, Units, Widget,
+};
 
 use yog_gfx::GfxContext;
 

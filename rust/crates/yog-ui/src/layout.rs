@@ -1,5 +1,5 @@
 use crate::text;
-use crate::widget::{Dock, Units, Widget, WidgetKind};
+use crate::widget::{Action, Dock, Units, Widget, WidgetKind};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FlexDir {
@@ -67,6 +67,11 @@ pub struct LayoutNode {
     pub clip: bool,
     /// The widget shows a scrollbar on overflow (see `Style::scrollbar`).
     pub scrollbar: bool,
+    /// The widget's typed click target (see `Widget::action`).
+    pub action: Option<Action>,
+    /// `false` = collapsed (see `Widget::visible`): a zero rect, no
+    /// children, never hit.
+    pub visible: bool,
 }
 
 impl LayoutNode {
@@ -119,6 +124,8 @@ impl Default for LayoutNode {
             scroll_y: 0.0,
             clip: false,
             scrollbar: false,
+            action: None,
+            visible: true,
         }
     }
 }
@@ -140,14 +147,10 @@ impl Default for LayoutNode {
 ///   instead of its content, so it fills exactly the free space and scrolls
 ///   the rest.
 pub fn compute(widget: &Widget, avail_w: f32, avail_h: f32) -> LayoutNode {
-    let mut node = LayoutNode {
-        id: widget.id.clone(),
-        on_click: widget.on_click.clone(),
-        enabled: widget.enabled,
-        focused: widget.focused,
-        ..Default::default()
-    };
-    layout_widget(widget, &mut node, 0.0, 0.0, avail_w, avail_h, avail_w, avail_h);
+    let mut node = new_node(widget);
+    if widget.visible {
+        layout_widget(widget, &mut node, 0.0, 0.0, avail_w, avail_h, avail_w, avail_h);
+    }
     node
 }
 
@@ -173,6 +176,8 @@ fn new_node(w: &Widget) -> LayoutNode {
         on_click: w.on_click.clone(),
         enabled: w.enabled,
         focused: w.focused,
+        action: w.action,
+        visible: w.visible,
         ..Default::default()
     }
 }
@@ -362,7 +367,8 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
     };
     // Returns true if this child consumes main-axis space in the normal forward pass.
     let in_flow = |child: &Widget| -> bool {
-        child.style.pos.is_none()
+        child.visible
+            && child.style.pos.is_none()
             && !matches!(
                 (dir, child.style.dock),
                 (FlexDir::Row, Dock::Right) | (FlexDir::Column, Dock::Bottom)
@@ -383,6 +389,17 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
 
     for child in &w.children {
         let mut cn = new_node(child);
+        // Collapsed: a zero rect at the content box's corner, out of the flow.
+        if !child.visible {
+            cn.rect = Rect {
+                x: x + s.pad[3],
+                y: y + s.pad[0],
+                w: 0.0,
+                h: 0.0,
+            };
+            child_nodes.push(cn);
+            continue;
+        }
         // Absolutely positioned: measured against what's left of the content
         // box past its offset (percent sizes: against the whole content box),
         // placed after the flow passes.
@@ -429,7 +446,11 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         }
         child_nodes.push(cn);
     }
-    let placed = w.children.iter().filter(|c| c.style.pos.is_none()).count();
+    let placed = w
+        .children
+        .iter()
+        .filter(|c| c.visible && c.style.pos.is_none())
+        .count();
     used_main += s.gap * (placed.saturating_sub(1) as f32);
 
     // Free main-axis space to grow into — none while measuring for content.
@@ -492,7 +513,7 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
             .children
             .iter()
             .zip(&child_nodes)
-            .filter(|(c, _)| !in_flow(c) && c.style.pos.is_none())
+            .filter(|(c, _)| c.visible && !in_flow(c) && c.style.pos.is_none())
             .map(|(_, n)| match dir {
                 FlexDir::Row => n.rect.w,
                 FlexDir::Column => n.rect.h,
@@ -507,7 +528,7 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
             + span
     };
     for (i, child) in w.children.iter().enumerate() {
-        if in_flow(child) || child.style.pos.is_some() {
+        if !child.visible || in_flow(child) || child.style.pos.is_some() {
             continue;
         }
         let cn = &mut child_nodes[i];
@@ -534,6 +555,9 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         let Some((px, py)) = child.style.pos else {
             continue;
         };
+        if !child.visible {
+            continue;
+        }
         let cn = &mut child_nodes[i];
         arrange(child, cn, x + s.pad[3] + px, y + s.pad[0] + py);
     }
@@ -573,7 +597,7 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
 /// Children only count where they're inside their parent's rect, so rows
 /// scrolled out of a clipping container can't be clicked.
 pub fn hit_test(node: &LayoutNode, mx: f32, my: f32) -> Option<&LayoutNode> {
-    if !node.rect.contains(mx, my) {
+    if !node.visible || !node.rect.contains(mx, my) {
         return None;
     }
     for child in node.children.iter().rev() {
@@ -581,10 +605,76 @@ pub fn hit_test(node: &LayoutNode, mx: f32, my: f32) -> Option<&LayoutNode> {
             return Some(hit);
         }
     }
-    if node.on_click.is_some() && node.enabled {
+    if node.is_clickable() {
         Some(node)
     } else {
         None
+    }
+}
+
+/// The child-index path (as in `Widget::at_path`) of the node
+/// [`hit_test`] finds at `(mx, my)`; `None` on a miss.
+pub fn hit_path(node: &LayoutNode, mx: f32, my: f32) -> Option<Vec<u16>> {
+    fn walk(node: &LayoutNode, mx: f32, my: f32, path: &mut Vec<u16>) -> bool {
+        if !node.visible || !node.rect.contains(mx, my) {
+            return false;
+        }
+        for (i, child) in node.children.iter().enumerate().rev() {
+            path.push(i as u16);
+            if walk(child, mx, my, path) {
+                return true;
+            }
+            path.pop();
+        }
+        node.is_clickable()
+    }
+    let mut path = Vec::new();
+    walk(node, mx, my, &mut path).then_some(path)
+}
+
+/// The path of the deepest visible node at `(mx, my)`, clickable or not
+/// (for hover routing: which scroll view is under the cursor).
+pub fn deepest_path(node: &LayoutNode, mx: f32, my: f32) -> Option<Vec<u16>> {
+    if !node.visible || !node.rect.contains(mx, my) {
+        return None;
+    }
+    let mut path = Vec::new();
+    let mut n = node;
+    'outer: loop {
+        for (i, child) in n.children.iter().enumerate().rev() {
+            if child.visible && child.rect.contains(mx, my) {
+                path.push(i as u16);
+                n = child;
+                continue 'outer;
+            }
+        }
+        return Some(path);
+    }
+}
+
+/// The node at child-index `path` (`&[]` = `node`).
+pub fn node_at<'a>(node: &'a LayoutNode, path: &[u16]) -> Option<&'a LayoutNode> {
+    let mut n = node;
+    for &i in path {
+        n = n.children.get(i as usize)?;
+    }
+    Some(n)
+}
+
+/// [`node_at`], mutably.
+pub fn node_at_mut<'a>(node: &'a mut LayoutNode, path: &[u16]) -> Option<&'a mut LayoutNode> {
+    let mut n = node;
+    for &i in path {
+        n = n.children.get_mut(i as usize)?;
+    }
+    Some(n)
+}
+
+impl LayoutNode {
+    /// Clicking it does something: it has an action or `on_click`, is
+    /// enabled and visible.
+    pub fn is_clickable(&self) -> bool {
+        self.visible && self.enabled && (self.action.is_some() || self.on_click.is_some())
     }
 }
 

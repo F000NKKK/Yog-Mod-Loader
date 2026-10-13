@@ -65,8 +65,12 @@ fn ellipsize(line: &str, max_w: f32, font_scale: f32, font: &str) -> String {
 }
 
 fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option<Rect>) {
+    if !widget.visible || !node.visible {
+        return;
+    }
     let r = &node.rect;
-    let s = &widget.style;
+    let style = widget.effective_style();
+    let s: &crate::widget::Style = &style;
     if let Some(c) = clip {
         if r.intersect(&c).is_none() {
             return;

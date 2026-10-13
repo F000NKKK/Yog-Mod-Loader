@@ -13,6 +13,125 @@ pub struct Widget {
     pub on_click: Option<String>,
     pub enabled: bool,
     pub focused: bool,
+    /// Typed click target set by generated code (yog-kit) — like
+    /// [`Self::on_click`], but no string to parse. See [`Action`].
+    pub action: Option<Action>,
+    /// `false` = collapsed: takes no space, isn't drawn and can't be hit
+    /// (its layout node is a zero rect without children).
+    pub visible: bool,
+    /// Interaction state (hover, pressed, selected, ...) the host sets each
+    /// frame — picks the [`Self::states`] patches applied when drawing.
+    pub state: StateFlags,
+    /// Paint-only style overrides per state (`hover:bg="..."` in `.yui`).
+    pub states: Option<Box<StateStyles>>,
+}
+
+/// A typed click target: `owner` 0 = the screen, `k` = items control `k`;
+/// `slot` = the command (or [`Action::SELECT`]); `index` = the item index
+/// inside an items control (0 elsewhere).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Action {
+    pub owner: u16,
+    pub slot: u16,
+    pub index: u32,
+}
+
+impl Action {
+    /// The `slot` of an items control's item container: clicking selects it.
+    pub const SELECT: u16 = u16::MAX;
+
+    /// A screen-level command `slot`.
+    pub const fn new(slot: u16) -> Self {
+        Self {
+            owner: 0,
+            slot,
+            index: 0,
+        }
+    }
+}
+
+/// Interaction state bits of a widget — see [`Widget::state`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct StateFlags(pub u8);
+
+impl StateFlags {
+    pub const NONE: Self = Self(0);
+    pub const HOVER: Self = Self(1);
+    pub const PRESSED: Self = Self(2);
+    pub const FOCUSED: Self = Self(4);
+    pub const SELECTED: Self = Self(8);
+    pub const CHECKED: Self = Self(16);
+    pub const DISABLED: Self = Self(32);
+
+    /// Every bit of `o` is set.
+    pub const fn contains(self, o: Self) -> bool {
+        self.0 & o.0 == o.0
+    }
+    pub fn insert(&mut self, o: Self) {
+        self.0 |= o.0;
+    }
+    pub fn remove(&mut self, o: Self) {
+        self.0 &= !o.0;
+    }
+    /// Sets or clears the bits of `o`.
+    pub fn set(&mut self, o: Self, on: bool) {
+        if on {
+            self.insert(o)
+        } else {
+            self.remove(o)
+        }
+    }
+    pub const fn union(self, o: Self) -> Self {
+        Self(self.0 | o.0)
+    }
+    pub const fn is_empty(self) -> bool {
+        self.0 == 0
+    }
+}
+
+impl std::ops::BitOr for StateFlags {
+    type Output = Self;
+    fn bitor(self, o: Self) -> Self {
+        self.union(o)
+    }
+}
+
+/// Paint-only style overrides — never affect layout.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct StylePatch {
+    pub bg: Option<u32>,
+    pub color: Option<u32>,
+    pub shadow: Option<bool>,
+    pub focus_color: Option<u32>,
+}
+
+impl StylePatch {
+    /// `true` when it overrides nothing.
+    pub fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
+
+    fn apply(&self, s: &mut Style) {
+        if let Some(v) = self.bg {
+            s.bg = v;
+        }
+        if let Some(v) = self.color {
+            s.color = v;
+        }
+        if let Some(v) = self.shadow {
+            s.text_shadow = v;
+        }
+        if let Some(v) = self.focus_color {
+            s.focus_color = v;
+        }
+    }
+}
+
+/// A widget's state patches: each applies when the widget's state contains
+/// its flags; later rules win.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct StateStyles {
+    pub rules: Vec<(StateFlags, StylePatch)>,
 }
 
 #[derive(Debug, Clone)]
@@ -264,7 +383,115 @@ impl Widget {
             on_click: None,
             enabled: true,
             focused: false,
+            action: None,
+            visible: true,
+            state: StateFlags::NONE,
+            states: None,
         }
+    }
+
+    /// Typed click target — see [`Action`].
+    pub fn action(mut self, a: Action) -> Self {
+        self.action = Some(a);
+        self
+    }
+    /// `false` = collapsed — see [`Widget::visible`].
+    pub fn visible(mut self, v: bool) -> Self {
+        self.visible = v;
+        self
+    }
+    /// Adds a paint-only override applied while the state contains `when`
+    /// (later calls win over earlier ones).
+    pub fn state_style(mut self, when: StateFlags, patch: StylePatch) -> Self {
+        self.states
+            .get_or_insert_with(Default::default)
+            .rules
+            .push((when, patch));
+        self
+    }
+
+    /// The descendant at child-index `path` (`&[]` = self); `None` past the
+    /// tree.
+    pub fn get_path(&self, path: &[u16]) -> Option<&Widget> {
+        let mut w = self;
+        for &i in path {
+            w = w.children.get(i as usize)?;
+        }
+        Some(w)
+    }
+    /// [`Self::get_path`], mutably.
+    pub fn get_path_mut(&mut self, path: &[u16]) -> Option<&mut Widget> {
+        let mut w = self;
+        for &i in path {
+            w = w.children.get_mut(i as usize)?;
+        }
+        Some(w)
+    }
+    /// The descendant at `path`. Panics on a bad path — for generated code,
+    /// whose paths are fixed when it's generated.
+    pub fn at_path(&self, path: &[u16]) -> &Widget {
+        self.get_path(path)
+            .unwrap_or_else(|| panic!("yog-ui: no widget at path {path:?}"))
+    }
+    /// [`Self::at_path`], mutably.
+    pub fn at_path_mut(&mut self, path: &[u16]) -> &mut Widget {
+        self.get_path_mut(path)
+            .unwrap_or_else(|| panic!("yog-ui: no widget at path {path:?}"))
+    }
+
+    /// Whether clicking it does something (an [`Action`] or `on_click`).
+    pub fn is_interactive(&self) -> bool {
+        self.action.is_some() || self.on_click.is_some()
+    }
+
+    /// Sets (or clears) `mask` on this widget and its descendants, stopping
+    /// at descendants that are interactive themselves (a button in a row
+    /// keeps its own hover) — so a row's labels follow the row's state.
+    pub fn set_state_inherited(&mut self, mask: StateFlags, on: bool) {
+        self.state.set(mask, on);
+        for c in &mut self.children {
+            if !c.is_interactive() {
+                c.set_state_inherited(mask, on);
+            }
+        }
+    }
+
+    /// Clears `mask` on the whole subtree (interactive descendants too).
+    pub fn clear_state_deep(&mut self, mask: StateFlags) {
+        self.state.remove(mask);
+        for c in &mut self.children {
+            c.clear_state_deep(mask);
+        }
+    }
+
+    /// The style drawn: [`Self::style`] plus the [`Self::states`] patches
+    /// matching [`Self::state`] (with DISABLED while `enabled` is false).
+    pub fn effective_style(&self) -> std::borrow::Cow<'_, Style> {
+        let mut state = self.state;
+        if !self.enabled {
+            state.insert(StateFlags::DISABLED);
+        }
+        self.effective_style_in(state)
+    }
+
+    /// [`Self::effective_style`] for an explicit `state`.
+    pub fn effective_style_in(&self, state: StateFlags) -> std::borrow::Cow<'_, Style> {
+        let Some(states) = &self.states else {
+            return std::borrow::Cow::Borrowed(&self.style);
+        };
+        let mut matching = states
+            .rules
+            .iter()
+            .filter(|(when, _)| !when.is_empty() && state.contains(*when))
+            .peekable();
+        if matching.peek().is_none() {
+            return std::borrow::Cow::Borrowed(&self.style);
+        }
+        let mut s = self.style.clone();
+        for (_, patch) in matching {
+            patch.apply(&mut s);
+        }
+        std::borrow::Cow::Owned(s)
     }
 
     pub fn id(mut self, id: impl Into<String>) -> Self {

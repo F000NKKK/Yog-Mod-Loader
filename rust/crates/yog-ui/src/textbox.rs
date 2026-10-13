@@ -22,6 +22,7 @@
 
 use std::time::Instant;
 
+use crate::event::UiEvent;
 use crate::layout::LayoutNode;
 use crate::text;
 use crate::widget::{Widget, WidgetKind};
@@ -97,12 +98,6 @@ impl Default for TextBoxState {
     fn default() -> Self {
         Self::new()
     }
-}
-
-/// `(x, y)` from `"X:Y"`.
-fn xy(rest: &str) -> Option<(f32, f32)> {
-    let mut it = rest.split(':');
-    Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?))
 }
 
 /// Byte offset of character `i` in `s` (`s.len()` past the end).
@@ -317,6 +312,11 @@ impl TextBoxState {
     /// Applies one UI event; `node` is the box's laid-out node from the
     /// frame the user saw (`UiRoot::find_node`).
     pub fn handle(&mut self, event: &str, node: &LayoutNode) -> TextBoxEvent {
+        self.handle_event(&UiEvent::parse(event), node)
+    }
+
+    /// [`Self::handle`] for a parsed event.
+    pub fn handle_event(&mut self, event: &UiEvent<'_>, node: &LayoutNode) -> TextBoxEvent {
         let result = self.handle_inner(event, node);
         if result.consumed() {
             self.touch();
@@ -325,59 +325,50 @@ impl TextBoxState {
         result
     }
 
-    fn handle_inner(&mut self, event: &str, node: &LayoutNode) -> TextBoxEvent {
-        if let Some((mx, my)) = event.strip_prefix("click:").and_then(xy) {
-            if node.enabled && node.rect.contains(mx, my) {
-                self.focused = true;
-                self.dragging = true;
+    fn handle_inner(&mut self, event: &UiEvent<'_>, node: &LayoutNode) -> TextBoxEvent {
+        let (k, mods) = match *event {
+            UiEvent::Click { x: mx, y: my } => {
+                if node.visible && node.enabled && node.rect.contains(mx, my) {
+                    self.focused = true;
+                    self.dragging = true;
+                    let i = self.index_at(node, mx);
+                    self.move_to(i, false);
+                    return TextBoxEvent::Handled;
+                }
+                if self.focused {
+                    self.blur();
+                }
+                return TextBoxEvent::Ignored;
+            }
+            UiEvent::Drag { x: mx, .. } => {
+                if !self.dragging {
+                    return TextBoxEvent::Ignored;
+                }
                 let i = self.index_at(node, mx);
-                self.move_to(i, false);
+                self.move_to(i, true);
                 return TextBoxEvent::Handled;
             }
-            if self.focused {
-                self.blur();
+            UiEvent::Release { .. } => {
+                return if std::mem::take(&mut self.dragging) {
+                    TextBoxEvent::Handled
+                } else {
+                    TextBoxEvent::Ignored
+                };
             }
-            return TextBoxEvent::Ignored;
-        }
-        if let Some((mx, _)) = event.strip_prefix("drag:").and_then(xy) {
-            if !self.dragging {
-                return TextBoxEvent::Ignored;
+            _ if !self.focused => return TextBoxEvent::Ignored,
+            UiEvent::Char(c) => {
+                if !allowed(c) {
+                    return TextBoxEvent::Handled;
+                }
+                return if self.insert(c) {
+                    TextBoxEvent::Changed
+                } else {
+                    TextBoxEvent::Handled
+                };
             }
-            let i = self.index_at(node, mx);
-            self.move_to(i, true);
-            return TextBoxEvent::Handled;
-        }
-        if event.starts_with("release:") {
-            return if std::mem::take(&mut self.dragging) {
-                TextBoxEvent::Handled
-            } else {
-                TextBoxEvent::Ignored
-            };
-        }
-        if !self.focused {
-            return TextBoxEvent::Ignored;
-        }
-        if let Some(cp) = event.strip_prefix("char:") {
-            let Some(c) = cp.parse::<u32>().ok().and_then(char::from_u32) else {
-                return TextBoxEvent::Ignored;
-            };
-            if !allowed(c) {
-                return TextBoxEvent::Handled;
-            }
-            return if self.insert(c) {
-                TextBoxEvent::Changed
-            } else {
-                TextBoxEvent::Handled
-            };
-        }
-        let Some(rest) = event.strip_prefix("key:") else {
-            return TextBoxEvent::Ignored;
+            UiEvent::Key { key, mods } => (key, mods),
+            _ => return TextBoxEvent::Ignored,
         };
-        let mut it = rest.split(':');
-        let Some(k) = it.next().and_then(|k| k.parse::<i32>().ok()) else {
-            return TextBoxEvent::Ignored;
-        };
-        let mods = it.next().and_then(|m| m.parse::<i32>().ok()).unwrap_or(0);
         let shift = mods & key::MOD_SHIFT != 0;
         let ctrl = mods & (key::MOD_CONTROL | key::MOD_SUPER) != 0;
         match k {

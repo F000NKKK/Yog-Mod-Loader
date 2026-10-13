@@ -12,6 +12,7 @@
 //! if LIST.lock().unwrap().handle(event, node, 24.0) { return; }
 //! ```
 
+use crate::event::UiEvent;
 use crate::layout::LayoutNode;
 
 /// Scroll offset plus scrollbar-drag state of one scrolling container.
@@ -21,12 +22,6 @@ pub struct ScrollState {
     pub offset: f32,
     /// While the knob is dragged: cursor y minus the knob's top.
     grab: Option<f32>,
-}
-
-/// `(x, y)` from `"X:Y"`.
-fn xy(rest: &str) -> Option<(f32, f32)> {
-    let mut it = rest.split(':');
-    Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?))
 }
 
 impl ScrollState {
@@ -57,41 +52,53 @@ impl ScrollState {
     ///   centred on the cursor) and keeps dragging.
     /// - `drag:X:Y` moves a grabbed knob; `release:X:Y` lets go.
     pub fn handle(&mut self, event: &str, view: &LayoutNode, wheel_step: f32) -> bool {
+        self.handle_event(&UiEvent::parse(event), view, wheel_step)
+    }
+
+    /// [`Self::handle`] for a parsed event.
+    pub fn handle_event(&mut self, event: &UiEvent<'_>, view: &LayoutNode, wheel_step: f32) -> bool {
         let max = view.max_scroll();
-        if let Some(dy) = event.strip_prefix("scroll:") {
-            let Ok(dy) = dy.parse::<f32>() else {
-                return false;
-            };
-            self.offset = (self.offset.min(max) - dy * wheel_step).clamp(0.0, max);
-            return true;
-        }
-        if let Some((mx, my)) = event.strip_prefix("click:").and_then(xy) {
-            let Some((track, knob)) = view.scrollbar_rects() else {
-                return false;
-            };
-            if !track.contains(mx, my) {
-                return false;
+        match *event {
+            UiEvent::Scroll { dy } => {
+                self.offset = (self.offset.min(max) - dy * wheel_step).clamp(0.0, max);
+                true
             }
-            let grab = if knob.contains(mx, my) {
-                my - knob.y
-            } else {
-                knob.h / 2.0
-            };
-            self.grab = Some(grab);
-            self.drag_to(my, view);
-            return true;
-        }
-        if let Some((_, my)) = event.strip_prefix("drag:").and_then(xy) {
-            if self.grab.is_some() {
+            UiEvent::Click { x: mx, y: my } => {
+                let Some((track, knob)) = view.scrollbar_rects() else {
+                    return false;
+                };
+                if !track.contains(mx, my) {
+                    return false;
+                }
+                let grab = if knob.contains(mx, my) {
+                    my - knob.y
+                } else {
+                    knob.h / 2.0
+                };
+                self.grab = Some(grab);
                 self.drag_to(my, view);
-                return true;
+                true
             }
-            return false;
+            UiEvent::Drag { y: my, .. } => {
+                if self.grab.is_some() {
+                    self.drag_to(my, view);
+                    return true;
+                }
+                false
+            }
+            UiEvent::Release { .. } => self.grab.take().is_some(),
+            _ => false,
         }
-        if event.starts_with("release:") {
-            return self.grab.take().is_some();
+    }
+
+    /// Scrolls the least amount that shows `top..top + h` (content
+    /// coordinates, 0 = the content's top) in a view `view_h` tall.
+    pub fn scroll_into_view(&mut self, top: f32, h: f32, view_h: f32) {
+        if top < self.offset {
+            self.offset = top.max(0.0);
+        } else if top + h > self.offset + view_h {
+            self.offset = (top + h - view_h).max(0.0);
         }
-        false
     }
 
     /// Moves the knob so its top is at `my - grab`.
