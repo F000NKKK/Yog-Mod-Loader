@@ -220,6 +220,10 @@ impl<W: View> Screen<W> {
         }));
         lock(&SCREENS).push(W::META);
         lock(&HANDLES).push((TypeId::of::<W>(), Box::new(handle.clone())));
+        // Opened by the game with the block it belongs to, not by `open()`.
+        if let Some(def) = inventory_of::<W>() {
+            registry.register_inventory(def);
+        }
 
         let render = host.clone();
         registry.on_ui_render(W::META.id, move |gfx| {
@@ -231,4 +235,53 @@ impl<W: View> Screen<W> {
         registry.register_ui(W::META.id, move |_, ev| lock(&host).on_event(ev));
         handle
     }
+}
+
+/// The inventory screen `W`'s markup lays out — where its `<Slot>`s and
+/// `<PlayerInventory>` land at the design size — or `None` for a plain
+/// screen. Its id is the screen's: a block opens it with
+/// `BlockDef::inventory(ID)`.
+pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
+    use yog_api::ui::widget::{PLAYER_INVENTORY_ID, SLOT_ID_PREFIX};
+    use yog_api::ui::{UiRoot, Widget};
+
+    fn slots(w: &Widget, out: &mut Vec<usize>) {
+        if let Some(i) = w.id.as_deref().and_then(|id| id.strip_prefix(SLOT_ID_PREFIX)) {
+            out.extend(i.parse::<usize>().ok());
+        }
+        for c in &w.children {
+            slots(c, out);
+        }
+    }
+
+    let (_, content, _) = W::build();
+    let mut indices = Vec::new();
+    slots(&content, &mut indices);
+    let mut ui = UiRoot::new(W::META.id, content);
+    ui.layout(W::META.w, W::META.h);
+    // A real slot's position is its item's corner, inside the 18px frame.
+    let corner = |id: &str| ui.find_rect(id).map(|r| (r.x + 1.0, r.y + 1.0));
+    let player = corner(PLAYER_INVENTORY_ID);
+    if indices.is_empty() && player.is_none() {
+        return None;
+    }
+    let count = indices.iter().max().map_or(0, |m| m + 1);
+    let defaults = yog_api::InventoryDef::default_grid(count);
+    let layout = (0..count)
+        .map(|i| match corner(&format!("{SLOT_ID_PREFIX}{i}")) {
+            Some((x, y)) => yog_api::SlotLayout { x, y },
+            None => {
+                yog_api::warn!("{}: no <Slot index=\"{i}\"> — it goes to the default grid", W::META.id);
+                defaults[i]
+            }
+        })
+        .collect();
+    let mut def = yog_api::InventoryDef::new(W::META.id, count)
+        .layout(layout)
+        .include_player_inventory(player.is_some())
+        .background_size(W::META.w, W::META.h);
+    if let Some((x, y)) = player {
+        def = def.player_inv_offset(x, y);
+    }
+    Some(def)
 }

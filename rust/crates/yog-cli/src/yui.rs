@@ -284,7 +284,8 @@ pub(crate) fn is_common_attr(key: &str) -> bool {
 
 const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView", "Grid"];
 const LEAVES: &[&str] = &[
-    "Label", "Button", "TextBox", "ItemSlot", "InvSlot", "Image", "Spacer", "Surface",
+    "Label", "Button", "TextBox", "ItemSlot", "InvSlot", "Slot", "PlayerInventory", "Image",
+    "Spacer", "Surface",
 ];
 const COMMON_ATTRS: &[&str] = &[
     "id",
@@ -328,6 +329,7 @@ fn kind_attrs(kind: &str) -> &'static [&'static str] {
         ],
         "ItemSlot" => &["item"],
         "InvSlot" => &["item", "count"],
+        "Slot" => &["index"],
         "Image" => &["source", "stretch", "uv", "tint"],
         "Surface" => &["source"],
         _ => &[],
@@ -860,6 +862,17 @@ impl Gen {
                     el.attr("item").unwrap_or_default()
                 )
             }
+            "Slot" => {
+                let index = el.attr("index").unwrap_or_default();
+                let index = index.trim().parse::<usize>().map_err(|_| {
+                    format!(
+                        "line {}: <Slot> index=\"{index}\": expected the container slot's number (0, 1, ...)",
+                        el.line
+                    )
+                })?;
+                format!("widget::slot({index})")
+            }
+            "PlayerInventory" => "widget::player_inventory()".to_string(),
             "Image" => self.image(el)?,
             "Surface" => self.surface(el)?,
             _ if is_component => component_expr(el),

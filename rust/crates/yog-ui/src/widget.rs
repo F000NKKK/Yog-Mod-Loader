@@ -971,6 +971,30 @@ pub fn inv_slot(item_id: impl Into<String>, count: u32) -> Widget {
     .w(SLOT_SIZE)
     .h(SLOT_SIZE)
 }
+/// Id prefix of a [`slot`]: `yog:slot:<index>`.
+pub const SLOT_ID_PREFIX: &str = "yog:slot:";
+/// Id of a [`player_inventory`].
+pub const PLAYER_INVENTORY_ID: &str = "yog:player_inventory";
+/// Gap between the player's main inventory and their hotbar (vanilla).
+pub const HOTBAR_GAP: f32 = 4.0;
+
+/// Slot `index` of an inventory screen's container: the frame its real
+/// slot sits in — the game draws the item, the hover and the drag over it.
+/// Where it lands in the layout is where the slot is.
+pub fn slot(index: usize) -> Widget {
+    inv_slot("", 0).id(format!("{SLOT_ID_PREFIX}{index}"))
+}
+/// The player's inventory on an inventory screen: 3 rows of 9, then the
+/// hotbar [`HOTBAR_GAP`] below — frames for the real slots, like [`slot`].
+pub fn player_inventory() -> Widget {
+    let row = || (0..9).fold(panel(FlexDir::Row), |r, _| r.child(inv_slot("", 0)));
+    panel(FlexDir::Column)
+        .id(PLAYER_INVENTORY_ID)
+        .child(row())
+        .child(row())
+        .child(row())
+        .child(row().margin(HOTBAR_GAP, 0.0, 0.0, 0.0))
+}
 /// An image from a Yog image source — `"item:apple"`, `"block:stone"`,
 /// `"sprite:button"`, `"mymod:gui/logo"` (see [`yog_gfx::image`]) — the
 /// host resolves it for its Minecraft version. Sized to the image's natural
