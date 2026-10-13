@@ -826,8 +826,9 @@ Each stage ends with: bump the crates involved (breaking, as policy allows), pub
   to `Codec`: one universal format for interop, network and saves; rkyv is removed.
 - **D2 — decided (2026-10-13): generic.** Events are `registry.on::<BlockBreak>()` /
   `before::<…>()`; the named `after_x` / `before_x` forms are not added.
-- **D3.** The book as builders in Rust, or as a `.ybook` content file? Recommended: builders
-  now, `.ybook` later.
+- **D3 — decided (2026-10-13): a `.ybook` file, now.** The book is its own content file
+  with a WYSIWYG designer in Yog-IDLE (like the `.yui` screen designer) that shows the
+  rendered book while editing; the Rust builders are not the authoring path.
 - **D4.** HexMod actions: a `macro_rules!` table inside the mod (no loader dependency), or a
   loader-level `#[collect]` + attribute form (needs proc-macro support for mods, or a generic
   yog-api attribute)? Recommended: the table now.
