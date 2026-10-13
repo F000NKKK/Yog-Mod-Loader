@@ -356,6 +356,7 @@ fn prepare() -> Result<Prepared, String> {
     if yog_lock.exists() && !cargo_lock.exists() {
         std::fs::copy(&yog_lock, &cargo_lock).map_err(|e| e.to_string())?;
     }
+    update_old_kit(&build_dir, &cargo_lock);
     Ok(Prepared {
         root,
         meta,
@@ -363,6 +364,42 @@ fn prepare() -> Result<Prepared, String> {
         resources,
         content,
     })
+}
+
+/// The oldest yog-kit that understands the screen code this yog writes
+/// (`yui_vm`'s codegen version).
+const MIN_YOG_KIT: (u64, u64, u64) = (0, 3, 7);
+
+/// A lock pinning a yog-kit older than [`MIN_YOG_KIT`] would fail on the
+/// generated screens ("generated for a newer yog-kit") — moves it up to the
+/// newest compatible one (with the yog-api it needs).
+fn update_old_kit(build_dir: &Path, cargo_lock: &Path) {
+    let Ok(lock) = std::fs::read_to_string(cargo_lock) else {
+        return;
+    };
+    let mut lines = lock.lines();
+    let mut old = false;
+    while let Some(line) = lines.next() {
+        if line.trim() == "name = \"yog-kit\""
+            && let Some(v) = lines.next().and_then(|l| l.trim().strip_prefix("version = \""))
+        {
+            let mut n = v.trim_end_matches('"').split('.').map(|p| p.parse::<u64>().unwrap_or(0));
+            let ver = (n.next().unwrap_or(0), n.next().unwrap_or(0), n.next().unwrap_or(0));
+            old |= ver < MIN_YOG_KIT;
+        }
+    }
+    if !old {
+        return;
+    }
+    eprintln!("==> updating yog-kit (the lock pins one older than this yog's screen code needs)");
+    let ok = Command::new("cargo")
+        .args(["update", "-q", "--recursive", "-p", "yog-kit"])
+        .current_dir(build_dir)
+        .status()
+        .is_ok_and(|s| s.success());
+    if !ok {
+        eprintln!("warning: `cargo update -p yog-kit` failed — the screens may not compile");
+    }
 }
 
 /// `yog check` — `cargo check` of the mod for the host platform, after the
