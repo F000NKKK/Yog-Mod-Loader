@@ -426,15 +426,15 @@ mod tests {
 
     #[test]
     fn generates_a_component() {
-        let code = gen(r##"<Component doc="A bar." width="120" height="10">
-            <Property name="label" default="HP" doc="Left text"/>
+        let code = gen(r##"<Component description="A bar." icon="@Icons.bar" category="Bars" design_w="120" design_h="10" d:bg="#FF000000">
+            <Property name="label" default="HP" doc="Left text" category="Text"/>
             <Property name="value" type="number" default="0.5"/>
             <Property name="fill" type="color" default="#FF55FF55"/>
             <Property name="size" type="choice" options="small, big"/>
             <Property name="wide" type="bool" default="true"/>
             <Event name="on_select"/>
             <Row w="100%" gap="4" on_click="{x:Bind on_select}">
-                <Label text="{x:Bind label}" visible="{x:Bind wide}"/>
+                <Label text="{x:Bind label}" d:text="Sample" visible="{x:Bind wide}"/>
                 <Spacer w="{x:Bind bar_w()}" h="6" bg="{x:Bind fill}"/>
                 <Pill text="{x:Bind label}" tone="red"/>
             </Row>
@@ -447,7 +447,12 @@ mod tests {
             "pub fill: u32,",
             "label: p.text(\"label\"),",
             "size: p.word(\"size\").to_string(),",
-            "Prop::text(\"label\", \"HP\").doc(\"Left text\")",
+            "Prop::text(\"label\", \"HP\").doc(\"Left text\").category(\"Text\")",
+            "const DOC: &'static str = \"A bar.\";",
+            "const ICON: &'static str = \"@Icons.bar\";",
+            "const CATEGORY: &'static str = \"Bars\";",
+            "const DESIGN_SIZE: (f32, f32) = (120.0, 10.0);",
+            "const TOOLBOX: bool = true;",
             "Prop::choice(\"size\", &[\"small\", \"big\"], \"small\")",
             "Prop::bool(\"wide\", true)",
             "Prop::event(\"on_select\")",
@@ -472,6 +477,11 @@ mod tests {
             (r#"<Component><Property name="a" type="float"/><Row/></Component>"#, "expected one of"),
             (r#"<Component><Property name="a" type="number" default="x"/><Row/></Component>"#, "expected a number"),
             (r#"<Component><Row/><Row/></Component>"#, "one body element"),
+            (r#"<Component doc="x"><Row/></Component>"#, "no attribute `doc`"),
+            (r#"<Component design_w="wide"><Row/></Component>"#, "expected a size"),
+            (r#"<Component toolbox="no"><Row/></Component>"#, "expected true or false"),
+            (r#"<Component icon="apple"><Row/></Component>"#, "image source"),
+            (r#"<Component><Event name="on_x" type="text"/><Row/></Component>"#, "no attribute `type`"),
             (r#"<Component><Property name="a"/></Component>"#, "has no body"),
             (r#"<Component><Row padding="{x:Bind a}"/></Component>"#, "can't be bound"),
             (r#"<Component><Row bg="{x:Bind cx.close()}"/></Component>"#, "cx"),
