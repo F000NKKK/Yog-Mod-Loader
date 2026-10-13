@@ -295,6 +295,26 @@ pub mod ui {
     pub use yog_ui::*;
 }
 
+/// Pulls a `.yui` screen's generated code into the current module — the
+/// code-behind's half of `src/<name>.yui`:
+///
+/// ```ignore
+/// // src/mod_list.rs, next to src/mod_list.yui
+/// yog_api::ui_include!("mod_list");
+/// ```
+///
+/// `<name>` is the `.yui` file's path under `src/` without the extension
+/// (`"screens/options"` for `src/screens/options.yui`). `yog build`,
+/// `yog check` and `yog ui gen` write the code to
+/// `.yog-build/generated/<name>.g.rs` (the build crate's own directory,
+/// `CARGO_MANIFEST_DIR`), so it's never committed and never stale.
+#[macro_export]
+macro_rules! ui_include {
+    ($name:literal) => {
+        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/", $name, ".g.rs"));
+    };
+}
+
 /// Inventory framework — real Container/Menu screens (BlockEntity-backed),
 /// as opposed to `ui`'s HUD-drawn overlays. See `yog-inventory`'s DESIGN.md.
 pub mod inventory {

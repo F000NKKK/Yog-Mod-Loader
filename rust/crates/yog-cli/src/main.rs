@@ -9,7 +9,8 @@
 //!   yog build        — compile + package the current mod
 //!   yog setup        — check/install build dependencies
 //!   yog doctor       — report build dependencies (read-only; `--json` for tools)
-//!   yog ui gen [..]  — generate `*.designer.rs` from `.yui` screen files
+//!   yog check        — generate `.yog-build/` and `cargo check` the mod
+//!   yog ui gen [..]  — generate `.yog-build/generated/**/*.g.rs` from `.yui` screens
 //!   yog help         — show usage
 
 mod ylang;
@@ -36,6 +37,7 @@ fn main() {
             let debug = args.get(2).map(String::as_str) == Some("debug");
             build(debug).map(|_| ())
         }
+        Some("check") => check(),
         Some("new") => new_mod(args.get(2).map(String::as_str)),
         Some("setup") => setup(),
         Some("doctor") => {
@@ -107,6 +109,7 @@ fn print_usage() {
          \x20 new <name>          Create a new mod project in ./<name>/\n\
          \x20 build               Compile the current mod and package it as artifacts/<id>.yog\n\
          \x20 build debug         Same, but keep debug info in the native (for yog-debugger)\n\
+         \x20 check               Generate .yog-build/ and `cargo check` the mod (host only)\n\
          \x20 setup               Check and install build dependencies (Rust, Zig, targets)\n\
          \x20 doctor [--json]     Report build dependencies without changing anything\n\
          \x20 version             Print the yog CLI version\n\
@@ -115,7 +118,7 @@ fn print_usage() {
          \x20 run <config>        Build, export, and launch a [run.<config>] dev instance\n\
          \x20 run <config> --debug  Same, built with debug info kept (see `build debug`)\n\
          \x20 publish exports     Publish this mod's exported API to crates.io\n\
-         \x20 ui gen [files]      Generate *.designer.rs from .yui screen files (build does this too)\n\
+         \x20 ui gen [files]      Generate .yog-build/generated/**/*.g.rs from .yui screens (build does this too)\n\
          \x20 lang check          Validate .ylang translations, list keys missing per locale\n\
          \x20 help                Show this message\n\n\
          Mod projects use yog.toml instead of Cargo.toml.\n\
@@ -565,7 +568,7 @@ struct Prepared {
     root: PathBuf,
     meta: YogToml,
     build_dir: PathBuf,
-    lang_files: Vec<(String, Vec<u8>)>,
+    lang_files: Vec<ylang::Output>,
 }
 
 /// What every command that compiles does first (`yog build`, `yog check`):
@@ -771,19 +774,28 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
 
 // ── yog ui gen ────────────────────────────────────────────────────────────────
 
-/// `yog ui gen [files...]` — regenerates the `.designer.rs` of the given
-/// `.yui` screen files, or of every `src/**/*.yui` in the current project.
-/// `yog build` does the same before compiling; this is for editors (Yog-IDLE
-/// runs it on save) and for checking a screen file without a build.
+/// `yog ui gen [files...]` — regenerates `.yog-build/generated/**/*.g.rs`
+/// for the given `.yui` screen files (each in the project whose `yog.toml`
+/// is above it), or for every `src/**/*.yui` of the current project.
+/// `yog build`/`yog check` do the same before compiling; this is for editors
+/// (Yog-IDLE runs it on save) and for checking a screen without a build.
 fn ui_gen(files: &[String]) -> Result<(), String> {
-    let files: Vec<PathBuf> = if files.is_empty() {
+    if files.is_empty() {
         let root = std::env::current_dir().map_err(|e| e.to_string())?;
-        yui::find_yui_files(&root.join("src"))
-    } else {
-        files.iter().map(PathBuf::from).collect()
-    };
-    for file in &files {
-        let out = yui::generate_file(file)?;
+        if !root.join("yog.toml").is_file() {
+            return Err("no yog.toml found in the current directory".into());
+        }
+        for file in yui::find_yui_files(&root.join("src")) {
+            let out = yui::generate_file(&root, &file)?;
+            eprintln!("==> {} -> {}", file.display(), out.display());
+        }
+        return Ok(());
+    }
+    for file in files.iter().map(PathBuf::from) {
+        let root = yui::project_root(&file).ok_or_else(|| {
+            format!("{}: not inside a yog project (no yog.toml above it)", file.display())
+        })?;
+        let out = yui::generate_file(&root, &file)?;
         eprintln!("==> {} -> {}", file.display(), out.display());
     }
     Ok(())
