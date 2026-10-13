@@ -11,9 +11,10 @@
 //!   yog doctor       — report build dependencies (read-only; `--json` for tools)
 //!   yog check        — generate `.yog-build/` and `cargo check` the mod
 //!   yog ui gen [..]  — generate `.yog-build/generated/**/*.g.rs` from `.yui` screens
+//!   yog res check    — check `resources/**/*.yres`, generate their accessors
 //!   yog help         — show usage
 
-mod ylang;
+mod yres;
 mod yui;
 
 use std::collections::{HashMap, HashSet};
@@ -81,9 +82,9 @@ fn main() {
                 None => Err("usage: yog publish exports [--dry-run]".into()),
             }
         }
-        Some("lang") => match args.get(2).map(String::as_str) {
-            Some("check") => lang_check(),
-            _ => Err("usage: yog lang check".into()),
+        Some("res") => match args.get(2).map(String::as_str) {
+            Some("check") => res_check(),
+            _ => Err("usage: yog res check".into()),
         },
         Some("ui") => match args.get(2).map(String::as_str) {
             Some("gen") => ui_gen(&args[3..]),
@@ -119,7 +120,7 @@ fn print_usage() {
          \x20 run <config> --debug  Same, built with debug info kept (see `build debug`)\n\
          \x20 publish exports     Publish this mod's exported API to crates.io\n\
          \x20 ui gen [files]      Generate .yog-build/generated/**/*.g.rs from .yui screens (build does this too)\n\
-         \x20 lang check          Validate .ylang translations, list keys missing per locale\n\
+         \x20 res check           Validate resources/**/*.yres, regenerate accessors, list untranslated texts\n\
          \x20 help                Show this message\n\n\
          Mod projects use yog.toml instead of Cargo.toml.\n\
          Cross-compilation requires cargo-zigbuild + zig (yog setup installs them).\n\
@@ -136,6 +137,12 @@ struct YogToml {
     name: String,
     version: String,
     description: String,
+    /// Translation keys of `name`/`description` when yog.toml gives them
+    /// as `@<Set>.<name>` resources (see `resolve_metadata`).
+    name_key: Option<String>,
+    description_key: Option<String>,
+    /// The mod's icon, an image source (`icon = "@Icons.logo"` resolved).
+    icon: Option<String>,
     authors: Vec<String>,
     license: String,
     /// License for the generated `yog publish exports` bindings crate.
@@ -228,6 +235,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let mut name = None::<String>;
     let mut version = None::<String>;
     let mut description = None::<String>;
+    let mut icon = None::<String>;
     let mut authors: Vec<String> = Vec::new();
     let mut license = None::<String>;
     let mut exports_license = None::<String>;
@@ -259,6 +267,9 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
                 }
                 if let Some(v) = field(line, "description") {
                     description = Some(v);
+                }
+                if let Some(v) = field(line, "icon") {
+                    icon = Some(v);
                 }
                 if let Some(v) = field(line, "license") {
                     license = Some(v);
@@ -341,6 +352,9 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         name: name.unwrap_or_else(|| id.clone()),
         version: version.unwrap_or_else(|| "0.1.0".into()),
         description: description.unwrap_or_default(),
+        name_key: None,
+        description_key: None,
+        icon,
         authors,
         license: license.unwrap_or_else(|| "MIT OR Apache-2.0".into()),
         exports_license,
@@ -568,7 +582,7 @@ struct Prepared {
     root: PathBuf,
     meta: YogToml,
     build_dir: PathBuf,
-    lang_files: Vec<ylang::Output>,
+    resources: yres::Compiled,
 }
 
 /// What every command that compiles does first (`yog build`, `yog check`):
@@ -597,6 +611,16 @@ fn prepare() -> Result<Prepared, String> {
             .unwrap_or_else(|_| root.join(rel));
         meta.yog_api_path = Some(abs.to_string_lossy().into_owned());
     }
+
+    // Resources first: `.yui` screens and yog.toml (name, description,
+    // icon) refer to them.
+    let resources = yres::compile(&root, &meta.id)?;
+    for w in &resources.warnings {
+        eprintln!("    warning: {w}");
+    }
+    yres::write_sources(&root, &resources)?;
+    resolve_metadata(&mut meta, &resources.refs)?;
+    yui::set_resource_refs(&resources.refs);
 
     // Generate .yog-build/Cargo.toml from yog.toml
     let build_dir = root.join(".yog-build");
@@ -632,12 +656,6 @@ fn prepare() -> Result<Prepared, String> {
         );
     }
 
-    // Translations are checked before compiling, so a typo fails fast.
-    let (lang_files, lang_warnings) = ylang::compile_all(&root, &meta.id)?;
-    for w in &lang_warnings {
-        eprintln!("    warning: {w}");
-    }
-
     configure_editor(&root).map_err(|e| format!("configuring .vscode/settings.json: {e}"))?;
     ensure_gitignore_entry(&root, "*.designer.rs")
         .map_err(|e| format!("updating .gitignore: {e}"))?;
@@ -657,7 +675,7 @@ fn prepare() -> Result<Prepared, String> {
         root,
         meta,
         build_dir,
-        lang_files,
+        resources,
     })
 }
 
@@ -686,7 +704,7 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
         root,
         meta,
         build_dir,
-        lang_files,
+        resources,
     } = prepare()?;
     let yog_lock = root.join("yog.lock");
 
@@ -750,14 +768,14 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
         std::fs::copy(&new_lock, &yog_lock).map_err(|e| e.to_string())?;
     }
 
-    let mut assets = gather_assets(&root);
-    if !lang_files.is_empty() {
+    if resources.files > 0 {
         eprintln!(
-            "    compiled {} .ylang translation file(s)",
-            lang_files.len()
+            "    compiled {} .yres resource file(s) into {} asset file(s)",
+            resources.files,
+            resources.outputs.len()
         );
     }
-    assets.extend(lang_files);
+    let assets = gather_assets(&root, resources.outputs);
     if !assets.is_empty() {
         eprintln!("    bundled {} asset file(s)", assets.len());
     }
@@ -785,6 +803,7 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
         if !root.join("yog.toml").is_file() {
             return Err("no yog.toml found in the current directory".into());
         }
+        load_resource_refs(&root);
         for file in yui::find_yui_files(&root.join("src")) {
             let out = yui::generate_file(&root, &file)?;
             eprintln!("==> {} -> {}", file.display(), out.display());
@@ -795,32 +814,64 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
         let root = yui::project_root(&file).ok_or_else(|| {
             format!("{}: not inside a yog project (no yog.toml above it)", file.display())
         })?;
+        load_resource_refs(&root);
         let out = yui::generate_file(&root, &file)?;
         eprintln!("==> {} -> {}", file.display(), out.display());
     }
     Ok(())
 }
 
-// ── yog lang check ────────────────────────────────────────────────────────────
+/// Makes the project's `.yres` resources available to `.yui` generation
+/// (`text="@Strings.title"`). Broken resources are reported but don't stop
+/// the screen from generating — `yog build` fails on them anyway.
+fn load_resource_refs(root: &Path) {
+    let refs = YogToml::read(&root.join("yog.toml"))
+        .and_then(|meta| yres::compile(root, &meta.id))
+        .map(|c| c.refs)
+        .unwrap_or_else(|e| {
+            eprintln!("warning: {e}");
+            yres::Refs::default()
+        });
+    yui::set_resource_refs(&refs);
+}
 
-/// `yog lang check` — what `yog build` does with `.ylang` translations,
-/// without building: errors with file:line, then keys missing per locale.
-fn lang_check() -> Result<(), String> {
+// ── yog res check ─────────────────────────────────────────────────────────────
+
+/// `yog res check` — what `yog build` does with `resources/**/*.yres`,
+/// without building: errors with file:line, untranslated texts per locale,
+/// and fresh accessors in `.yog-build/generated/resources/`.
+fn res_check() -> Result<(), String> {
     let root = std::env::current_dir().map_err(|e| e.to_string())?;
-    let meta = YogToml::read(&root.join("yog.toml"))?;
-    let (files, warnings) = ylang::compile_all(&root, &meta.id)?;
-    for w in &warnings {
+    let mut meta = YogToml::read(&root.join("yog.toml"))?;
+    let compiled = yres::compile(&root, &meta.id)?;
+    yres::write_sources(&root, &compiled)?;
+    resolve_metadata(&mut meta, &compiled.refs)?;
+    for w in &compiled.warnings {
         eprintln!("warning: {w}");
     }
     eprintln!(
-        "==> {} translation file(s) OK{}",
-        files.len(),
-        if warnings.is_empty() {
+        "==> {} resource file(s) OK{}",
+        compiled.files,
+        if compiled.warnings.is_empty() {
             String::new()
         } else {
-            format!(", {} warning(s)", warnings.len())
+            format!(", {} warning(s)", compiled.warnings.len())
         }
     );
+    Ok(())
+}
+
+/// `yog.toml`'s `name`/`description = "@<Set>.<name>"` → the neutral text
+/// (the key goes into the packaged manifest), `icon = "@<Set>.<name>"` →
+/// the image source.
+fn resolve_metadata(meta: &mut YogToml, refs: &yres::Refs) -> Result<(), String> {
+    let at = |e: String| format!("yog.toml: {e}");
+    (meta.name, meta.name_key) = yres::resolve_text(refs, &meta.name).map_err(at)?;
+    (meta.description, meta.description_key) =
+        yres::resolve_text(refs, &meta.description).map_err(at)?;
+    if let Some(icon) = &meta.icon {
+        meta.icon = Some(yres::resolve_image(refs, icon).map_err(at)?);
+    }
     Ok(())
 }
 
@@ -1711,7 +1762,10 @@ fn lib_filename(name: &str, os: &str) -> String {
 
 // ── Assets ───────────────────────────────────────────────────────────────────
 
-fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
+/// The mod's `assets/` and `data/` files plus `compiled` ones (compiled
+/// resources — replacing a file at the same path), and the item/block
+/// models and blockstates their textures imply.
+fn gather_assets(root: &Path, compiled: Vec<(String, Vec<u8>)>) -> Vec<(String, Vec<u8>)> {
     let mut present: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     let mut out: Vec<(String, Vec<u8>)> = Vec::new();
 
@@ -1720,9 +1774,6 @@ fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
         .map(|d| root.join(d))
         .filter(|p| p.is_dir())
         .collect();
-    if stack.is_empty() {
-        return out;
-    }
 
     while let Some(dir) = stack.pop() {
         let Ok(entries) = std::fs::read_dir(&dir) else {
@@ -1732,9 +1783,6 @@ fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
             let path = entry.path();
             if path.is_dir() {
                 stack.push(path);
-            } else if path.extension().is_some_and(|e| e == "ylang") {
-                // Source of a generated lang JSON (see `ylang`), not an asset.
-                continue;
             } else if let Ok(rel) = path.strip_prefix(root) {
                 let key = rel.to_string_lossy().replace('\\', "/");
                 if let Ok(bytes) = std::fs::read(&path) {
@@ -1743,6 +1791,13 @@ fn gather_assets(root: &Path) -> Vec<(String, Vec<u8>)> {
                 }
             }
         }
+    }
+
+    for (key, bytes) in compiled {
+        if !present.insert(key.clone()) {
+            out.retain(|(k, _)| *k != key);
+        }
+        out.push((key, bytes));
     }
 
     // Collect auto-generated model/blockstate JSONs without borrow conflict
@@ -1840,10 +1895,20 @@ fn package(
         .join(", ");
     // The full metadata travels inside the archive so the loader can show it
     // (mod list UI etc.) without needing the source project.
-    let manifest = format!(
+    let mut manifest = format!(
         "id = {:?}\nname = {:?}\nversion = {:?}\ndescription = {:?}\nauthors = [{}]\nlicense = {:?}\nabi = 2\nplatforms = [{platforms}]\n",
         meta.id, meta.name, meta.version, meta.description, authors, meta.license,
     );
+    // Localized metadata: the loader shows the translation when it has one.
+    for (field, value) in [
+        ("name_key", &meta.name_key),
+        ("description_key", &meta.description_key),
+        ("icon", &meta.icon),
+    ] {
+        if let Some(v) = value {
+            let _ = writeln!(manifest, "{field} = {v:?}");
+        }
+    }
     zip.start_file("yog.toml", opts)
         .map_err(|e| e.to_string())?;
     zip.write_all(manifest.as_bytes())

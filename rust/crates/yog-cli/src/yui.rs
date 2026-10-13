@@ -392,12 +392,30 @@ fn pascal(value: &str) -> String {
 /// key `mymod.key`, looked up when the tree is built (`::yog_api::tr`, so it
 /// follows the game's language); `"@@..."` is a literal text starting
 /// with `@`; anything else is the literal text.
+///
+/// `"@<Set>.<name>"` naming a text of `resources/<Set>.yres` (see
+/// [`set_resource_refs`]) is that text's translation key.
 pub fn text_expr(value: &str) -> String {
     match value.strip_prefix('@') {
         Some(rest) if rest.starts_with('@') => format!("{rest:?}"),
-        Some(key) if !key.trim().is_empty() => format!("::yog_api::tr({:?})", key.trim()),
+        Some(key) if !key.trim().is_empty() => {
+            let key = key.trim();
+            let resolved = RESOURCE_REFS.with(|r| r.borrow().texts.get(key).map(|(k, _)| k.clone()));
+            format!("::yog_api::tr({:?})", resolved.as_deref().unwrap_or(key))
+        }
         _ => format!("{value:?}"),
     }
+}
+
+thread_local! {
+    /// The mod's `.yres` resources, for `@<Set>.<name>` in attributes.
+    static RESOURCE_REFS: std::cell::RefCell<crate::yres::Refs> = Default::default();
+}
+
+/// Makes the mod's compiled `.yres` resources visible to the generator:
+/// `text="@Strings.title"` and `source="@Icons.logo"` resolve through them.
+pub fn set_resource_refs(refs: &crate::yres::Refs) {
+    RESOURCE_REFS.with(|r| *r.borrow_mut() = refs.clone());
 }
 
 pub fn const_name(value: &str) -> String {
@@ -457,6 +475,16 @@ impl Gen {
             (None, None) => return Err(format!("line {line}: <Image> needs a source (e.g. source=\"item:apple\")")),
         };
         let source = source.trim();
+        let resolved;
+        let source = match source.strip_prefix('@') {
+            Some(name) => {
+                resolved = RESOURCE_REFS
+                    .with(|r| r.borrow().images.get(name).cloned())
+                    .ok_or_else(|| format!("line {line}: <Image> source=\"{source}\": no image `{name}` in resources/*.yres"))?;
+                resolved.as_str()
+            }
+            None => source,
+        };
         let parsed = ImageSource::parse(source).ok_or_else(|| {
             format!(
                 "line {line}: <Image> source=\"{source}\": expected item:<id>, block:<id>, \
@@ -1044,8 +1072,12 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
     for file in &files {
         wanted.push(generate_file(root, file)?);
     }
+    let resources = root.join(crate::yres::GENERATED_FILE);
     for stale in find_files(&root.join(GENERATED_DIR), "rs") {
-        if stale.to_string_lossy().ends_with(".g.rs") && !wanted.contains(&stale) {
+        if stale.to_string_lossy().ends_with(".g.rs")
+            && !wanted.contains(&stale)
+            && stale != resources
+        {
             let _ = std::fs::remove_file(&stale);
         }
     }
@@ -1255,6 +1287,11 @@ mod tests {
         assert_eq!(text_expr("@@home"), "\"@home\"");
         assert_eq!(text_expr("plain"), "\"plain\"");
         assert_eq!(text_expr("@"), "\"@\"");
+        let mut refs = crate::yres::Refs::default();
+        refs.texts.insert("Strings.title".into(), ("mymod.title".into(), "Title".into()));
+        set_resource_refs(&refs);
+        assert_eq!(text_expr("@Strings.title"), "::yog_api::tr(\"mymod.title\")");
+        set_resource_refs(&crate::yres::Refs::default());
         let code = generate(
             r#"<Screen id="m:s" width="10" height="10"><Label text="@m.title"/><Button text="@@x"/></Screen>"#,
             "s.yui",

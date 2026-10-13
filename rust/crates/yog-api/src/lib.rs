@@ -315,6 +315,31 @@ macro_rules! ui_include {
     };
 }
 
+/// Pulls the mod's `.yres` resources in as module `res` — one type per
+/// resource set, with an accessor per entry:
+///
+/// ```ignore
+/// // src/lib.rs
+/// yog_api::resources!();
+///
+/// use crate::res::{Icons, Strings};
+/// let title = Strings::screen_title();        // the text in the player's language
+/// let count = Strings::mods_count(58);        // "{count} mods" → "58 mods"
+/// let logo = Icons::logo();                   // an image source, "mymod:images/logo"
+/// ```
+///
+/// `yog build`, `yog check` and `yog res check` generate
+/// `.yog-build/generated/res.g.rs` from `resources/**/*.yres` (see
+/// Yog-IDLE's `docs/yres.md`); never committed, never stale.
+#[macro_export]
+macro_rules! resources {
+    () => {
+        pub mod res {
+            include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/res.g.rs"));
+        }
+    };
+}
+
 /// Inventory framework — real Container/Menu screens (BlockEntity-backed),
 /// as opposed to `ui`'s HUD-drawn overlays. See `yog-inventory`'s DESIGN.md.
 pub mod inventory {

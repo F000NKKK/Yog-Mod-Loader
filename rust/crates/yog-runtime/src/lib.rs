@@ -56,8 +56,10 @@ static HOT_RELOADER: OnceLock<HotReloader<RuntimeModuleRegistry>> = OnceLock::ne
 /// synchronously inside one `yog_mod_register` call — see `load_mod_lib`
 /// and `Java_dev_yog_NativeBridge_nativeHotReload`.
 static CURRENT_REGISTRATION: Mutex<Option<LoadedModule>> = Mutex::new(None);
-/// Metadata of loaded .yog mods: [id, name, version, authors, description].
-static MOD_INFOS: Mutex<Vec<[String; 5]>> = Mutex::new(Vec::new());
+/// Metadata of loaded .yog mods: [id, name, version, authors, description,
+/// name_key, description_key] (the keys empty unless the mod's yog.toml
+/// gives its name/description as `.yres` texts).
+static MOD_INFOS: Mutex<Vec<[String; 7]>> = Mutex::new(Vec::new());
 /// Inter-mod symbol registry: mod_id → (symbol_name → function pointer).
 /// Filled during `yog_mod_register` (export calls), read during import calls.
 static INTEROP_SYMBOLS: OnceLock<Mutex<HashMap<String, HashMap<String, usize>>>> = OnceLock::new();
@@ -3238,17 +3240,17 @@ unsafe extern "C" fn api_ui_consume_event(_ctx: *mut c_void) {
 }
 
 unsafe extern "C" fn api_translate(_ctx: *mut c_void, key: YogStr) -> YogOwnedStr {
-    let key = key.as_str();
+    translate(key.as_str()).map_or(YogOwnedStr::NONE, YogOwnedStr::from_string)
+}
+
+/// The game's text for translation `key` in the current language — `None`
+/// when no lang file has it (or there's no JVM).
+fn translate(key: &str) -> Option<String> {
     if key.is_empty() {
-        return YogOwnedStr::NONE;
+        return None;
     }
-    let Some(mut env) = get_env() else {
-        return YogOwnedStr::NONE;
-    };
-    let Ok(jkey) = env.new_string(key) else {
-        return YogOwnedStr::NONE;
-    };
-    let jkey: JObject = jkey.into();
+    let mut env = get_env()?;
+    let jkey: JObject = env.new_string(key).ok()?.into();
     let result = env.call_static_method(
         "dev/yog/NativeBridge",
         "translate",
@@ -3264,15 +3266,24 @@ unsafe extern "C" fn api_translate(_ctx: *mut c_void, key: YogStr) -> YogOwnedSt
         }
     };
     let _ = env.delete_local_ref(jkey);
-    text.map_or(YogOwnedStr::NONE, YogOwnedStr::from_string)
+    text
 }
 
 unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
     let mut lines: Vec<String> = Vec::new();
-    for m in MOD_INFOS.lock().expect("mod infos lock poisoned").iter() {
+    let infos = MOD_INFOS.lock().expect("mod infos lock poisoned").clone();
+    for m in &infos {
+        // A `.yres` name/description shows in the player's language.
+        let localized = |text: &str, key: &str| {
+            translate(key).map_or_else(|| text.to_string(), |t| tsv_clean(&t))
+        };
         lines.push(format!(
             "yog\t{}\t{}\t{}\t{}\t{}",
-            m[0], m[1], m[2], m[3], m[4]
+            m[0],
+            localized(&m[1], &m[5]),
+            m[2],
+            m[3],
+            localized(&m[4], &m[6])
         ));
     }
     // Loader-side (Java) mods, if the host provides them.
@@ -3702,10 +3713,11 @@ fn invoke_mod_register(module: &LoadedModule, api: &YogApi, mod_id: &str) -> Res
         .unwrap_or_else(|| Err("module was unloaded before registration could run".to_string()))
 }
 
-/// Metadata for a mod file: [id, name, version, authors, description].
+/// Metadata for a mod file: [id, name, version, authors, description,
+/// name_key, description_key].
 /// For .yog archives this comes from the bundled yog.toml; bare native libs
 /// fall back to the file stem.
-fn read_mod_info(path: &Path) -> [String; 5] {
+fn read_mod_info(path: &Path) -> [String; 7] {
     let stem = path
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
@@ -3713,6 +3725,8 @@ fn read_mod_info(path: &Path) -> [String; 5] {
     let mut info = [
         stem.clone(),
         stem,
+        String::new(),
+        String::new(),
         String::new(),
         String::new(),
         String::new(),
@@ -3755,6 +3769,8 @@ fn read_mod_info(path: &Path) -> [String; 5] {
             "name" => info[1] = tsv_clean(&unquote(value)),
             "version" => info[2] = tsv_clean(&unquote(value)),
             "description" => info[4] = tsv_clean(&unquote(value)),
+            "name_key" => info[5] = unquote(value),
+            "description_key" => info[6] = unquote(value),
             "authors" => {
                 let list = value.trim_start_matches('[').trim_end_matches(']');
                 let authors: Vec<String> = list
