@@ -18,8 +18,8 @@
 //! `halign`/`valign` with its own measured size, capped to the cell.
 
 use super::{
-    arrange, bounded, layout_widget, less, new_node, LayoutNode, Rect, Shrink, SCROLLBAR_W,
-    UNBOUNDED,
+    arrange, bounded, layout_widget, less, new_node, GridLines, LayoutNode, Rect, Shrink,
+    SCROLLBAR_W, UNBOUNDED,
 };
 use crate::widget::{GridLength, GridSpec, HAlign, Track, VAlign, Widget};
 
@@ -80,8 +80,16 @@ fn measure_cap(tracks: &[Track], spacing: f32, avail: f32, start: usize, end: us
 }
 
 /// Track sizes along one axis of `avail` (`UNBOUNDED` = measure to content).
-/// `items` are the children that size auto tracks: `(start, end, size)`.
-fn size_axis(tracks: &[Track], avail: f32, spacing: f32, items: &mut [(usize, usize, f32)]) -> Vec<f32> {
+/// `items` are the children that size auto tracks: `(start, end, size)`;
+/// `floor` the sizes a measure along an unbounded axis gave (see
+/// [`GridLines`](super::GridLines)) — `*` tracks keep them when they fit.
+fn size_axis(
+    tracks: &[Track],
+    avail: f32,
+    spacing: f32,
+    items: &mut [(usize, usize, f32)],
+    floor: &[f32],
+) -> Vec<f32> {
     let flex = bounded(avail);
     let mut size: Vec<f32> = tracks
         .iter()
@@ -119,12 +127,34 @@ fn size_axis(tracks: &[Track], avail: f32, spacing: f32, items: &mut [(usize, us
 
     // Star tracks share what's left.
     if flex {
-        let mut open: Vec<usize> = (0..tracks.len()).filter(|&i| is_star(&tracks[i], flex)).collect();
+        let mut open: Vec<usize> = (0..tracks.len())
+            .filter(|&i| is_star(&tracks[i], flex))
+            .collect();
         let fixed: f32 = (0..tracks.len())
             .filter(|i| !open.contains(i))
             .map(|i| size[i])
             .sum();
         let mut rest = avail - fixed - spacing * tracks.len().saturating_sub(1) as f32;
+        // Measured to content, then arranged at that size (an auto-height
+        // grid in a scroll view): `*` tracks keep their content size —
+        // unless it doesn't fit, so a long list in a `*` row still can't
+        // push its siblings out.
+        let floored: Vec<Track>;
+        let tracks = if floor.len() == tracks.len()
+            && open.iter().map(|&i| floor[i]).sum::<f32>() <= rest + 0.01
+        {
+            floored = tracks
+                .iter()
+                .zip(floor)
+                .map(|(t, &f)| Track {
+                    min: t.min.max(f),
+                    ..*t
+                })
+                .collect();
+            &floored[..]
+        } else {
+            tracks
+        };
         let weight = |i: usize| match tracks[i].size {
             GridLength::Star(w) => w.max(0.0),
             _ => 0.0,
@@ -171,6 +201,11 @@ fn size_axis(tracks: &[Track], avail: f32, spacing: f32, items: &mut [(usize, us
 /// unbounded along an axis being measured).
 pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink: Option<Shrink>) {
     let s = &w.style;
+    // Arranging after a measure: that measure's floors (see `size_axis`).
+    let (floor_rows, floor_cols) = match (&shrink, node.grid.take()) {
+        (None, Some(g)) => (g.floor_rows, g.floor_cols),
+        _ => (Vec::new(), Vec::new()),
+    };
     let Rect { x, y, w: ww, h: hh } = node.rect;
     let bar_w = if s.scrollbar { SCROLLBAR_W } else { 0.0 };
     let content_w = if bounded(ww) {
@@ -183,8 +218,16 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
     } else {
         UNBOUNDED
     };
-    let rows: &[Track] = if spec.rows.is_empty() { &ONE_STAR } else { &spec.rows };
-    let cols: &[Track] = if spec.cols.is_empty() { &ONE_STAR } else { &spec.cols };
+    let rows: &[Track] = if spec.rows.is_empty() {
+        &ONE_STAR
+    } else {
+        &spec.rows
+    };
+    let cols: &[Track] = if spec.cols.is_empty() {
+        &ONE_STAR
+    } else {
+        &spec.cols
+    };
     let (rsp, csp) = (spec.row_spacing, spec.col_spacing);
 
     // Each placed child's cells, clamped to the grid (like WPF).
@@ -221,10 +264,12 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
         let m = c.style.margin;
         let cap_h = less(measure_cap(rows, rsp, content_h, sp.r0, sp.r1), m[0] + m[2]);
         let mut tmp = new_node(c);
-        layout_widget(c, &mut tmp, 0.0, 0.0, UNBOUNDED, cap_h, UNBOUNDED, UNBOUNDED);
+        layout_widget(
+            c, &mut tmp, 0.0, 0.0, UNBOUNDED, cap_h, UNBOUNDED, UNBOUNDED,
+        );
         items.push((sp.c0, sp.c1, tmp.rect.w + m[1] + m[3]));
     }
-    let col_size = size_axis(cols, content_w, csp, &mut items);
+    let col_size = size_axis(cols, content_w, csp, &mut items, &floor_cols);
 
     // Rows: children measured at their final column widths.
     let mut items = Vec::new();
@@ -239,13 +284,15 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
         layout_widget(c, &mut tmp, 0.0, 0.0, cell_w, UNBOUNDED, cell_w, UNBOUNDED);
         items.push((sp.r0, sp.r1, tmp.rect.h + m[0] + m[2]));
     }
-    let row_size = size_axis(rows, content_h, rsp, &mut items);
+    let row_size = size_axis(rows, content_h, rsp, &mut items, &floor_rows);
 
     let total_w = extent(&col_size, csp, 0, cols.len());
     let total_h = extent(&row_size, rsp, 0, rows.len());
     if let Some(fit) = &shrink {
         if fit.w {
-            node.rect.w = (total_w + s.pad[1] + s.pad[3] + bar_w).max(s.min_w).min(fit.max_w);
+            node.rect.w = (total_w + s.pad[1] + s.pad[3] + bar_w)
+                .max(s.min_w)
+                .min(fit.max_w);
         }
         if fit.h {
             node.rect.h = (total_h + s.pad[0] + s.pad[2]).max(s.min_h).min(fit.max_h);
@@ -264,6 +311,28 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
     };
     let col_x = starts(&col_size, csp, x + s.pad[3]);
     let row_y = starts(&row_size, rsp, y + s.pad[0]);
+    node.grid = Some(Box::new(GridLines {
+        rows: row_y
+            .iter()
+            .copied()
+            .zip(row_size.iter().copied())
+            .collect(),
+        cols: col_x
+            .iter()
+            .copied()
+            .zip(col_size.iter().copied())
+            .collect(),
+        floor_rows: if bounded(content_h) {
+            floor_rows
+        } else {
+            row_size.clone()
+        },
+        floor_cols: if bounded(content_w) {
+            floor_cols
+        } else {
+            col_size.clone()
+        },
+    }));
 
     let mut child_nodes = Vec::with_capacity(w.children.len());
     for (c, sp) in w.children.iter().zip(&spans) {
@@ -279,11 +348,19 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
                 };
             } else if let Some((px, py)) = c.style.pos {
                 // Positioned: as in a panel, inside the content box.
-                let (cw, ch) = (bounded(content_w).then_some(content_w), bounded(content_h).then_some(content_h));
+                let (cw, ch) = (
+                    bounded(content_w).then_some(content_w),
+                    bounded(content_h).then_some(content_h),
+                );
                 let mw = less(cw.unwrap_or(total_w), px + m[1] + m[3]);
                 let mh = less(ch.unwrap_or(total_h), py + m[0] + m[2]);
                 layout_widget(c, &mut cn, 0.0, 0.0, mw, mh, content_w, content_h);
-                arrange(c, &mut cn, x + s.pad[3] + px + m[3], y + s.pad[0] + py + m[0]);
+                arrange(
+                    c,
+                    &mut cn,
+                    x + s.pad[3] + px + m[3],
+                    y + s.pad[0] + py + m[0],
+                );
             }
             child_nodes.push(cn);
             continue;
@@ -338,6 +415,11 @@ pub(super) fn layout(w: &Widget, spec: &GridSpec, node: &mut LayoutNode, shrink:
         for c in &mut child_nodes {
             c.translate_y(-node.scroll_y);
         }
+        if let Some(g) = &mut node.grid {
+            for r in &mut g.rows {
+                r.0 -= node.scroll_y;
+            }
+        }
     }
     node.children = child_nodes;
 }
@@ -390,7 +472,11 @@ mod tests {
         let g = widget::grid()
             .w(300.0)
             .h(10.0)
-            .cols([Track::star(1.0).max(50.0), Track::star(1.0), Track::star(1.0).min(200.0)])
+            .cols([
+                Track::star(1.0).max(50.0),
+                Track::star(1.0),
+                Track::star(1.0).min(200.0),
+            ])
             .child(block(1.0, 1.0).cell(0, 0))
             .child(block(1.0, 1.0).cell(0, 1))
             .child(block(1.0, 1.0).cell(0, 2));
@@ -407,7 +493,11 @@ mod tests {
         let g = widget::grid()
             .w(300.0)
             .h(10.0)
-            .cols([Track::auto().max(40.0), Track::auto().min(30.0), GridLength::STAR.into()])
+            .cols([
+                Track::auto().max(40.0),
+                Track::auto().min(30.0),
+                GridLength::STAR.into(),
+            ])
             .child(block(80.0, 5.0).cell(0, 0))
             .child(block(10.0, 5.0).cell(0, 1));
         let n = compute(&g, 400.0, 400.0);
@@ -435,7 +525,11 @@ mod tests {
         let g = widget::grid()
             .w(100.0)
             .h(100.0)
-            .child(block(10.0, 10.0).halign(widget::HAlign::Right).valign(widget::VAlign::Center))
+            .child(
+                block(10.0, 10.0)
+                    .halign(widget::HAlign::Right)
+                    .valign(widget::VAlign::Center),
+            )
             .child(block(10.0, 10.0).margin(5.0, 6.0, 7.0, 8.0))
             .child(block(10.0, 10.0).w(20.0).h(20.0));
         let n = compute(&g, 400.0, 400.0);
@@ -484,7 +578,11 @@ mod tests {
             .rows([Track::auto(), Track::star(1.0), Track::px(20.0)])
             .cols([Track::star(1.0), Track::star(1.0)])
             .child(widget::label("Header").no_wrap().cell(0, 0).span(1, 2))
-            .child(widget::panel(FlexDir::Column).cell(1, 0).child(list.flex(1.0)))
+            .child(
+                widget::panel(FlexDir::Column)
+                    .cell(1, 0)
+                    .child(list.flex(1.0)),
+            )
             .child(widget::label("Details").cell(1, 1))
             .child(widget::button("Done").cell(2, 1));
         let n = compute(&g, 200.0, 150.0);
@@ -531,15 +629,12 @@ mod tests {
 
     #[test]
     fn empty_grid_takes_its_pixel_tracks() {
-        let col = widget::panel(FlexDir::Column)
-            .w(200.0)
-            .h(200.0)
-            .child(
-                widget::grid()
-                    .rows([Track::px(12.0), Track::px(8.0)])
-                    .cols([Track::px(30.0)])
-                    .row_spacing(2.0),
-            );
+        let col = widget::panel(FlexDir::Column).w(200.0).h(200.0).child(
+            widget::grid()
+                .rows([Track::px(12.0), Track::px(8.0)])
+                .cols([Track::px(30.0)])
+                .row_spacing(2.0),
+        );
         let n = compute(&col, 400.0, 400.0);
         assert_eq!((n.children[0].rect.w, n.children[0].rect.h), (30.0, 22.0));
     }
@@ -554,5 +649,58 @@ mod tests {
         let n = compute(&g, 400.0, 400.0);
         assert!(n.children[0].rect.h > 9.0, "{:?}", n.children[0].rect);
         assert_eq!(n.children[0].rect.w, 40.0);
+    }
+
+    #[test]
+    fn grown_grid_in_a_column_keeps_a_long_star_row_inside() {
+        let mut list = widget::scroll_view();
+        for i in 0..100 {
+            list = list.child(widget::label(format!("Item {i}")).no_wrap());
+        }
+        let col = widget::panel(FlexDir::Column)
+            .w(100.0)
+            .h(100.0)
+            .gap(0.0)
+            .child(block(10.0, 10.0))
+            .child(
+                widget::grid()
+                    .flex(1.0)
+                    .rows([Track::star(1.0), Track::px(10.0)])
+                    .child(list)
+                    .child(block(5.0, 5.0).cell(1, 0)),
+            );
+        let n = compute(&col, 400.0, 400.0);
+        let g = &n.children[1];
+        assert_eq!(r(g), (0.0, 10.0, 100.0, 90.0));
+        assert_eq!(g.children[0].rect.h, 80.0);
+        assert_eq!(g.children[1].rect.y, 90.0);
+        let lines = g.grid.as_ref().unwrap();
+        assert_eq!(lines.rows, vec![(10.0, 80.0), (90.0, 10.0)]);
+    }
+
+    #[test]
+    fn margins_and_self_alignment_in_flex_panels() {
+        let col = widget::panel(FlexDir::Column)
+            .w(100.0)
+            .h(100.0)
+            .gap(0.0)
+            .padding(1.0, 1.0, 1.0, 1.0)
+            .child(block(10.0, 10.0).margin(2.0, 3.0, 4.0, 5.0))
+            .child(block(10.0, 10.0).halign(widget::HAlign::Right))
+            .child(
+                block(10.0, 10.0)
+                    .halign(widget::HAlign::Stretch)
+                    .margin(0.0, 4.0, 0.0, 4.0),
+            );
+        let n = compute(&col, 400.0, 400.0);
+        assert_eq!(r(&n.children[0]), (6.0, 3.0, 10.0, 10.0));
+        assert_eq!(r(&n.children[1]), (89.0, 17.0, 10.0, 10.0));
+        assert_eq!(r(&n.children[2]), (5.0, 27.0, 90.0, 10.0));
+        // Auto size counts the margins.
+        let row = widget::panel(FlexDir::Row)
+            .gap(0.0)
+            .child(block(10.0, 10.0).margin(1.0, 2.0, 3.0, 4.0));
+        let n = compute(&row, 400.0, 400.0);
+        assert_eq!((n.rect.w, n.rect.h), (16.0, 14.0));
     }
 }

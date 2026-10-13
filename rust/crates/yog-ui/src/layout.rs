@@ -74,6 +74,23 @@ pub struct LayoutNode {
     /// `false` = collapsed (see `Widget::visible`): a zero rect, no
     /// children, never hit.
     pub visible: bool,
+    /// A grid's rows and columns as laid out (`None` for other widgets).
+    pub grid: Option<Box<GridLines>>,
+}
+
+/// Where a grid's rows and columns ended up — for drawing grid lines and
+/// designer adorners.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct GridLines {
+    /// Each row's top (absolute, scrolled like the children) and height.
+    pub rows: Vec<(f32, f32)>,
+    /// Each column's left (absolute) and width.
+    pub cols: Vec<(f32, f32)>,
+    /// Track sizes from a measure along an unbounded axis — the content
+    /// size of `*` tracks, kept as their floor when the grid is then
+    /// arranged at (at least) that size. Empty otherwise.
+    pub(crate) floor_rows: Vec<f32>,
+    pub(crate) floor_cols: Vec<f32>,
 }
 
 impl LayoutNode {
@@ -107,6 +124,11 @@ impl LayoutNode {
 
     fn translate_y(&mut self, dy: f32) {
         self.rect.y += dy;
+        if let Some(g) = &mut self.grid {
+            for r in &mut g.rows {
+                r.0 += dy;
+            }
+        }
         for c in &mut self.children {
             c.translate_y(dy);
         }
@@ -128,6 +150,7 @@ impl Default for LayoutNode {
             scrollbar: false,
             action: None,
             visible: true,
+            grid: None,
         }
     }
 }
@@ -151,7 +174,9 @@ impl Default for LayoutNode {
 pub fn compute(widget: &Widget, avail_w: f32, avail_h: f32) -> LayoutNode {
     let mut node = new_node(widget);
     if widget.visible {
-        layout_widget(widget, &mut node, 0.0, 0.0, avail_w, avail_h, avail_w, avail_h);
+        layout_widget(
+            widget, &mut node, 0.0, 0.0, avail_w, avail_h, avail_w, avail_h,
+        );
     }
     node
 }
@@ -276,6 +301,7 @@ fn layout_widget(
     }
 
     node.rect = Rect { x, y, w: ww, h: hh };
+    node.grid = None;
     node.content_h = hh;
     node.scroll_y = 0.0;
     node.clip = s.clip;
@@ -324,12 +350,7 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
         return grid::layout(w, spec, node, shrink);
     }
     let s = &w.style;
-    let Rect {
-        x,
-        y,
-        w: ww,
-        h: hh,
-    } = node.rect;
+    let Rect { x, y, w: ww, h: hh } = node.rect;
 
     let dir = if matches!(w.kind, WidgetKind::Panel(_)) && w.flex_dir == FlexDir::Row {
         FlexDir::Row
@@ -950,7 +971,11 @@ mod tests {
             .h(50.0)
             .gap(4.0)
             .child(widget::spacer().w(pct(50.0)))
-            .child(widget::panel(FlexDir::Column).flex(1.0).child(widget::spacer()))
+            .child(
+                widget::panel(FlexDir::Column)
+                    .flex(1.0)
+                    .child(widget::spacer()),
+            )
             .child(widget::spacer().w(pct(10.0)));
         let node = compute(&root, 300.0, 50.0);
         // 300 - 150 - 30 - 2 * 4 = 112 for the grown panel.
@@ -972,7 +997,11 @@ mod tests {
                     .w(pct(100.0))
                     .gap(0.0)
                     .child(widget::spacer().w(pct(25.0)).h(pct(50.0)))
-                    .child(widget::panel(FlexDir::Column).flex(1.0).child(widget::spacer()))
+                    .child(
+                        widget::panel(FlexDir::Column)
+                            .flex(1.0)
+                            .child(widget::spacer()),
+                    )
                     .child(widget::spacer().dock(Dock::Right).min_w(10.0)),
             );
         let node = compute(&root, 400.0, 400.0);
@@ -999,16 +1028,13 @@ mod tests {
             .gap(0.0)
             .child(widget::spacer().h(20.0))
             .child(
-                widget::panel(FlexDir::Row)
-                    .flex(1.0)
-                    .w(pct(100.0))
-                    .child(
-                        widget::panel(FlexDir::Column)
-                            .w(pct(50.0))
-                            .h(pct(100.0))
-                            .child(widget::spacer().h(16.0))
-                            .child(list),
-                    ),
+                widget::panel(FlexDir::Row).flex(1.0).w(pct(100.0)).child(
+                    widget::panel(FlexDir::Column)
+                        .w(pct(50.0))
+                        .h(pct(100.0))
+                        .child(widget::spacer().h(16.0))
+                        .child(list),
+                ),
             )
             .child(widget::spacer().h(26.0));
         let node = compute(&root, 400.0, 252.0);
@@ -1058,7 +1084,10 @@ mod tests {
             .child(widget::spacer().min_w(10.0).min_h(10.0));
         let node = compute(&root, 300.0, 300.0);
         assert_eq!((node.rect.w, node.rect.h), (20.0, 18.0));
-        assert_eq!((node.children[0].rect.x, node.children[0].rect.y), (6.0, 3.0));
+        assert_eq!(
+            (node.children[0].rect.x, node.children[0].rect.y),
+            (6.0, 3.0)
+        );
     }
 
     #[test]
@@ -1083,12 +1112,17 @@ mod tests {
     fn positioned_auto_row_measures_to_content() {
         // Measured against the rest of the screen (a bounded cap), a centred
         // auto-height row must not centre in that cap.
-        let pill = widget::panel(FlexDir::Row).padding(1.0, 1.0, 1.0, 1.0).child(
-            widget::panel(FlexDir::Row)
-                .align(Align::Center)
-                .child(widget::spacer().min_w(10.0).min_h(9.0)),
-        );
-        let root = widget::panel(FlexDir::Column).w(500.0).h(500.0).child(pill.at(3.0, 4.0));
+        let pill = widget::panel(FlexDir::Row)
+            .padding(1.0, 1.0, 1.0, 1.0)
+            .child(
+                widget::panel(FlexDir::Row)
+                    .align(Align::Center)
+                    .child(widget::spacer().min_w(10.0).min_h(9.0)),
+            );
+        let root = widget::panel(FlexDir::Column)
+            .w(500.0)
+            .h(500.0)
+            .child(pill.at(3.0, 4.0));
         let node = compute(&root, 500.0, 500.0);
         let r = node.children[0].rect;
         assert_eq!((r.x, r.y, r.w, r.h), (3.0, 4.0, 12.0, 11.0));

@@ -428,8 +428,8 @@ pub struct Style {
     /// Vertical placement in its slot (grid cell, or a Row's height) — see
     /// [`VAlign`]. `None` = the parent's default.
     pub valign: Option<VAlign>,
-    pub bg: u32,          // background colour 0xAARRGGBB; 0 = transparent
-    pub color: u32,       // text colour
+    pub bg: u32,    // background colour 0xAARRGGBB; 0 = transparent
+    pub color: u32, // text colour
     pub align: Align,
     pub font_scale: f32,
     pub text_shadow: bool, // MC drop-shadow behind text (HUD default; books disable it)
@@ -838,7 +838,9 @@ impl Widget {
     pub fn with_source(mut self, source: impl Into<String>) -> Self {
         match &mut self.kind {
             WidgetKind::Image(i) => i.source = source.into(),
-            WidgetKind::ItemSlot(id) | WidgetKind::InvSlot { item_id: id, .. } => *id = source.into(),
+            WidgetKind::ItemSlot(id) | WidgetKind::InvSlot { item_id: id, .. } => {
+                *id = source.into()
+            }
             _ => {}
         }
         self
