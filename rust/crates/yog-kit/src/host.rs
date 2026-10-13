@@ -3,8 +3,6 @@
 //! game) and [`crate::testing::TestHost`] (tests) alike; nothing here needs
 //! a graphics context.
 
-use std::time::{Duration, Instant};
-
 use yog_api::ui::event::keys;
 use yog_api::ui::{
     layout, widget, Action, FlexDir, LayoutNode, StateFlags, TextBoxEvent, UiEvent, UiRoot, Units,
@@ -16,9 +14,6 @@ use crate::{Anchor, Cx, Parts, ScreenHandle, View, ViewEvent, ViewModel};
 
 /// Pixels per mouse-wheel notch.
 const WHEEL_STEP: f32 = 16.0;
-/// Without host open/close events, a render gap this long means the screen
-/// was closed and opened again.
-const REOPEN_GAP: Duration = Duration::from_millis(250);
 
 /// A scroller's visible window during an update.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -119,9 +114,6 @@ pub(crate) struct Host<W: View> {
     outlined: Option<Vec<u16>>,
     mouse: Option<(f32, f32)>,
     opened: bool,
-    /// The host sends `open`/`close`.
-    lifecycle: bool,
-    last_frame: Option<Instant>,
     reveal: Option<(u16, u32)>,
     /// Viewports the last update saw.
     seen_viewports: Vec<Viewport>,
@@ -150,8 +142,6 @@ impl<W: View> Host<W> {
             outlined: None,
             mouse: None,
             opened: false,
-            lifecycle: false,
-            last_frame: None,
             reveal: None,
             seen_viewports: Vec::new(),
             handle,
@@ -261,16 +251,6 @@ impl<W: View> Host<W> {
     /// Brings the tree up to date and lays it out for a `sw` × `sh` GUI.
     pub(crate) fn frame(&mut self, sw: f32, sh: f32) {
         self.size = (sw, sh);
-        if !self.lifecycle {
-            let now = Instant::now();
-            if self.last_frame.is_none_or(|t| now - t > REOPEN_GAP) {
-                if self.opened {
-                    self.close_vm();
-                }
-                self.open_vm();
-            }
-            self.last_frame = Some(now);
-        }
         self.drain_queue();
         // A keyboard reveal can scroll a virtualized list, which needs a
         // second update for the rows that came into view.
@@ -460,7 +440,6 @@ impl<W: View> Host<W> {
         let ev = UiEvent::parse(raw);
         match ev {
             UiEvent::Open { w, h } => {
-                self.lifecycle = true;
                 self.size = (w, h);
                 if self.opened {
                     self.close_vm();
@@ -469,7 +448,6 @@ impl<W: View> Host<W> {
                 false
             }
             UiEvent::Close => {
-                self.lifecycle = true;
                 if self.opened {
                     self.close_vm();
                 }
@@ -512,13 +490,7 @@ impl<W: View> Host<W> {
             }
             UiEvent::Key { key, mods } => self.key(key, mods, &ev),
             UiEvent::Char(_) => self.text_input(&ev),
-            UiEvent::Other(name) => {
-                if name.is_empty() {
-                    return false;
-                }
-                self.with_cx(|vm, _, cx| vm.on_event(cx, name));
-                true
-            }
+            UiEvent::Other(_) => false,
         }
     }
 
@@ -600,7 +572,7 @@ impl<W: View> Host<W> {
         true
     }
 
-    /// Runs the action (or legacy `on_click`) of the widget at `path`.
+    /// Runs the action of the widget at `path`.
     fn activate(&mut self, path: &[u16]) {
         let Some(w) = self.content().get_path(path) else {
             return;
@@ -613,8 +585,6 @@ impl<W: View> Host<W> {
                 self.reveal = Some((a.owner, a.index));
             }
             self.dispatch(ViewEvent::Action(a));
-        } else if let Some(name) = w.on_click.clone() {
-            self.with_cx(|vm, _, cx| vm.on_event(cx, &name));
         }
     }
 

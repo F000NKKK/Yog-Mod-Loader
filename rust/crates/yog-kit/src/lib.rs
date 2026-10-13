@@ -71,12 +71,6 @@ pub trait ViewModel: Send + 'static {
     {
         false
     }
-    /// A legacy `on_click="name"` (no binding) in a view-model screen.
-    fn on_event(&mut self, cx: &mut Cx<'_, Self>, name: &str)
-    where
-        Self: Sized,
-    {
-    }
     /// Escape hatch: imperative changes to the content tree after each
     /// binding update. Rarely needed.
     fn customize(&self, root: &mut Widget) {}
