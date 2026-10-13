@@ -237,7 +237,7 @@ pub fn parse_xml(src: &str) -> Result<Element, String> {
 
 // ── Screen model ──────────────────────────────────────────────────────────────
 
-const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView"];
+const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView", "Grid"];
 const LEAVES: &[&str] = &[
     "Label", "Button", "TextBox", "ItemSlot", "InvSlot", "Image", "Spacer",
 ];
@@ -256,6 +256,9 @@ const COMMON_ATTRS: &[&str] = &[
     "bg",
     "color",
     "align",
+    "halign",
+    "valign",
+    "margin",
     "font_scale",
     "font",
     "shadow",
@@ -346,21 +349,61 @@ fn size(el: &Element, key: &str, value: &str) -> Result<Option<String>, String> 
 }
 
 /// CSS-style shorthand: 1 value = all sides, 2 = vertical horizontal, 4 = top right bottom left.
-fn padding(el: &Element, value: &str) -> Result<[f32; 4], String> {
+fn padding(el: &Element, key: &str, value: &str) -> Result<[f32; 4], String> {
     let parts: Vec<f32> = value
         .split([' ', ','])
         .filter(|s| !s.is_empty())
-        .map(|s| number(el, "padding", s))
+        .map(|s| number(el, key, s))
         .collect::<Result<_, _>>()?;
     match parts.as_slice() {
         [a] => Ok([*a; 4]),
         [v, h] => Ok([*v, *h, *v, *h]),
         [t, r, b, l] => Ok([*t, *r, *b, *l]),
         _ => Err(format!(
-            "line {}: <{}> padding=\"{value}\": expected 1, 2 or 4 numbers",
+            "line {}: <{}> {key}=\"{value}\": expected 1, 2 or 4 numbers",
             el.line, el.name
         )),
     }
+}
+
+/// `MinHeight` → `min_height`.
+pub(crate) fn snake(name: &str) -> String {
+    let mut out = String::new();
+    for (i, c) in name.chars().enumerate() {
+        if c.is_ascii_uppercase() {
+            if i > 0 {
+                out.push('_');
+            }
+            out.push(c.to_ascii_lowercase());
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// The `.yui` spelling of a WPF/WinUI attribute name, for error hints.
+fn wpf_hint(key: &str) -> Option<&'static str> {
+    Some(match key {
+        "HorizontalAlignment" => "halign",
+        "VerticalAlignment" => "valign",
+        "Margin" => "margin",
+        "Padding" => "padding",
+        "Width" => "w",
+        "Height" => "h",
+        "MinWidth" => "min_w",
+        "MinHeight" => "min_h",
+        "Background" => "bg",
+        "Foreground" => "color",
+        "Text" | "Content" => "text",
+        "RowDefinitions" => "rows",
+        "ColumnDefinitions" => "columns",
+        "RowSpacing" => "row_spacing",
+        "ColumnSpacing" => "column_spacing",
+        "Visibility" => "visible",
+        "IsEnabled" => "enabled",
+        _ => return None,
+    })
 }
 
 fn pick<'v>(el: &Element, key: &str, value: &str, options: &[&'v str]) -> Result<&'v str, String> {
@@ -595,8 +638,11 @@ impl Gen {
         }
         for (key, _) in &el.attrs {
             if !is_component && !key.starts_with(RAW_CALL) && !COMMON_ATTRS.contains(&key.as_str()) && !kind_attrs(kind).contains(&key.as_str()) {
+                let hint = wpf_hint(key)
+                    .map(|h| format!(" — .yui writes it `{h}`"))
+                    .unwrap_or_default();
                 return Err(format!(
-                    "line {}: <{kind}> has no attribute `{key}`",
+                    "line {}: <{kind}> has no attribute `{key}`{hint}",
                     el.line
                 ));
             }
@@ -606,6 +652,7 @@ impl Gen {
             "Screen" | "Canvas" | "Column" => "widget::panel(FlexDir::Column)".to_string(),
             "Row" => "widget::panel(FlexDir::Row)".to_string(),
             "ScrollView" => "widget::scroll_view()".to_string(),
+            "Grid" => "widget::grid()".to_string(),
             "Label" => format!("widget::label({})", text()),
             "Button" => format!("widget::button({})", text()),
             "TextBox" => format!("widget::text_box({})", text()),
@@ -717,9 +764,17 @@ impl Gen {
                     let s = pick(el, key, v, &["outline", "fill", "none"])?;
                     call(format!("focus_style(FocusStyle::{})", pascal(s)));
                 }
-                "padding" => {
-                    let [t, r, b, l] = padding(el, v)?;
-                    call(format!("padding({}, {}, {}, {})", f(t), f(r), f(b), f(l)));
+                "padding" | "margin" => {
+                    let [t, r, b, l] = padding(el, key, v)?;
+                    call(format!("{key}({}, {}, {}, {})", f(t), f(r), f(b), f(l)));
+                }
+                "halign" => {
+                    let a = pick(el, key, v, &["left", "center", "right", "stretch"])?;
+                    call(format!("halign(::yog_api::ui::HAlign::{})", pascal(a)));
+                }
+                "valign" => {
+                    let a = pick(el, key, v, &["top", "center", "bottom", "stretch"])?;
+                    call(format!("valign(::yog_api::ui::VAlign::{})", pascal(a)));
                 }
                 "bg" | "color" | "focus_color" => {
                     call(format!("{key}(0x{:08X})", color_attr(el, key, v)?));
@@ -783,7 +838,8 @@ pub fn generate_for(
     name: &str,
     mod_id: Option<&str>,
 ) -> Result<(String, Vec<String>), String> {
-    let root = parse_xml(src)?;
+    let mut root = parse_xml(src)?;
+    crate::yui_grid::normalize(&mut root)?;
     if root.name == "Component" {
         return crate::yui_component::generate(&root, name, mod_id);
     }

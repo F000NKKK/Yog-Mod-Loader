@@ -182,7 +182,7 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
     let kind = el.name.as_str();
     let builtin = matches!(
         kind,
-        "Canvas" | "Column" | "Row" | "ScrollView" | "Label" | "Button" | "TextBox" | "ItemSlot" | "InvSlot" | "Image" | "Spacer"
+        "Canvas" | "Column" | "Row" | "ScrollView" | "Grid" | "Label" | "Button" | "TextBox" | "ItemSlot" | "InvSlot" | "Image" | "Spacer"
     );
     if kind == "Component" || kind == "Screen" {
         return err(el, "can't be inside a component");

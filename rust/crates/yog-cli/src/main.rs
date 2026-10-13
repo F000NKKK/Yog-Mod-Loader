@@ -18,6 +18,7 @@ mod content;
 mod yres;
 mod yui;
 mod yui_component;
+mod yui_grid;
 mod yui_vm;
 
 use std::collections::{HashMap, HashSet};
