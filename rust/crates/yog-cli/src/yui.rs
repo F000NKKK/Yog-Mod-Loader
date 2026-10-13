@@ -237,6 +237,17 @@ pub fn parse_xml(src: &str) -> Result<Element, String> {
 
 // ── Screen model ──────────────────────────────────────────────────────────────
 
+/// Whether `<kind>` is a mod's own component (not a built-in element).
+pub(crate) fn is_custom_component(kind: &str) -> bool {
+    !CONTAINERS.contains(&kind) && !LEAVES.contains(&kind) && is_component_name(kind)
+}
+
+/// Whether `key` is an attribute every element takes (not a component's
+/// own property).
+pub(crate) fn is_common_attr(key: &str) -> bool {
+    COMMON_ATTRS.contains(&key) || key == "visible"
+}
+
 const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView", "Grid"];
 const LEAVES: &[&str] = &[
     "Label", "Button", "TextBox", "ItemSlot", "InvSlot", "Image", "Spacer", "Surface",

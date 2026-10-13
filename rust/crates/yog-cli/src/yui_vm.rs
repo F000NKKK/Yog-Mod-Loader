@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use crate::yui::{self, Element, RAW_CALL};
+use crate::yui::{self, Element, RAW_CALL, RAW_VALUE};
 
 /// The codegen version checked by `yog_kit::__codegen::require`.
 const CODEGEN: u32 = 1;
@@ -1071,6 +1071,16 @@ impl VmGen<'_> {
             self.list(ctx, el, &mut bindings, &list_attrs, path, scroller)?;
         }
 
+        // A component's bound properties: when any changes, the instance is
+        // rebuilt with the new values (then its other bindings re-applied).
+        let rebuild = if yui::is_custom_component(kind)
+            && bindings.iter().any(|(k, _)| !yui::is_common_attr(k))
+        {
+            Some(self.component_props(ctx, el, &out, &mut bindings, path)?)
+        } else {
+            None
+        };
+        let slots_before = self.n_slots;
         if bindings.iter().any(|(k, _)| k == "source") {
             // A valid stand-in for the static checks; the binding sets it.
             match kind {
@@ -1084,6 +1094,12 @@ impl VmGen<'_> {
                 continue;
             }
             self.bind_attr(ctx, el, kind, k, b, path, text_box, scroller)?;
+        }
+        if let Some(marker) = rebuild {
+            let resets: String = (slots_before..self.n_slots)
+                .map(|i| format!(" {}b{i}.reset();", ctx.fields))
+                .collect();
+            ctx.update = ctx.update.replace(&marker, &resets);
         }
 
         if !is_list {
@@ -1102,6 +1118,66 @@ impl VmGen<'_> {
             }
         }
         Ok(out)
+    }
+
+    /// Binds the component properties among `bindings` (removing them):
+    /// one text slot each, and an update block that rebuilds the instance
+    /// at `path` from `out` (its static attributes) plus the slots' values.
+    /// Returns the marker the block leaves for the resets of the element's
+    /// other bindings.
+    fn component_props(
+        &mut self,
+        ctx: &mut Ctx,
+        el: &Element,
+        out: &Element,
+        bindings: &mut Vec<(String, Binding)>,
+        path: &[u16],
+    ) -> Result<String, String> {
+        let mut inst = out.clone();
+        let mut sets = String::new();
+        let mut i = 0;
+        while i < bindings.len() {
+            if yui::is_common_attr(&bindings[i].0) {
+                i += 1;
+                continue;
+            }
+            let (key, b) = bindings.remove(i);
+            if b.mode == Mode::TwoWay || b.bind_back.is_some() {
+                return err(el, format!("{key}: component properties bind one way"));
+            }
+            let expr = match (&b.rust, &b.expr) {
+                (Some(r), _) => r.clone(),
+                (None, Some(e)) => e.emit(ctx.scope, false).map_err(|e| format!("line {}: {e}", el.line))?,
+                (None, None) => unreachable!(),
+            };
+            let value = if b.expr.as_ref().is_some_and(Ex::has_opt) {
+                let fallback = b.fallback.clone().unwrap_or_default();
+                format!(
+                    "(|| ::std::option::Option::Some(::yog_kit::bind::text(&({expr}))))().unwrap_or_else(|| ::std::string::String::from({fallback:?}))"
+                )
+            } else {
+                format!("::yog_kit::bind::text(&({expr}))")
+            };
+            let slot = self.slot(ctx, "String");
+            let f = format!("{}{slot}", ctx.fields);
+            let _ = write!(
+                sets,
+                "        // @yui {}:{} {key}=\"{}\"\n        __props |= {f}.set({value});\n",
+                self.file,
+                el.line,
+                b.raw.replace('\n', " ")
+            );
+            inst.attrs.push((key, format!("{RAW_VALUE}{f}.get().as_str()")));
+        }
+        let (expr, _, _) = yui::static_widget(&inst, false, 2, self.mod_id)?;
+        let marker = format!("\u{1}resets{}\u{1}", self.n_slots);
+        let _ = write!(
+            ctx.update,
+            "        let mut __props = false;\n{sets}        if __props {{\n            #[allow(unused_imports)]\n            use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};\n            *{}.at_path_mut({}) = {expr};\n            u.relayout();{marker}\n        }}\n",
+            ctx.tree,
+            path_lit(path),
+        );
+        Ok(marker)
     }
 
     /// The single element inside a template/empty property element.
@@ -1638,6 +1714,32 @@ mod tests {
         ] {
             assert!(code.contains(want), "missing {want}\n{code}");
         }
+    }
+
+    #[test]
+    fn component_properties() {
+        let code = gen(r##"
+            <Column>
+                <StatBar id="hp" w="80" label="HP" value="{x:Bind hp}" fill="{x:Bind color()}" visible="{x:Bind alive}"/>
+                <ListView h="40" items="{x:Bind rows}" key="{x:Bind id}">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Pill text="{x:Bind name}"/>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Column>"##)
+        .unwrap();
+        for want in [
+            "__props |= self.b0.set(::yog_kit::bind::text(&(vm.hp)));",
+            "__props |= self.b1.set(::yog_kit::bind::text(&(vm.color())));",
+            r#"::yog_api::ui::component::build("StatBar", &[("label", "HP"), ("value", &*self.b0.get().as_str()), ("fill", &*self.b1.get().as_str())])"#,
+            "u.relayout(); self.b2.reset();",
+            r#"::yog_api::ui::component::build("Pill", &[("text", &*inst."#,
+        ] {
+            assert!(code.contains(want), "missing {want}\n{code}");
+        }
+        assert!(gen(r#"<StatBar value="{x:Bind hp, Mode=TwoWay}"/>"#).is_err());
     }
 
     #[test]
