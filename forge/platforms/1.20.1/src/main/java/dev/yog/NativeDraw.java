@@ -158,4 +158,107 @@ public final class NativeDraw {
         AbstractTexture tex = mc.getTextureManager().getTexture(ident);
         return tex != null ? tex.getId() : 0;
     }
+
+    // ── Yog image sources (resolved by the runtime, see images.rs) ──────────
+
+    /** Whether this Minecraft has the GUI sprite atlas (1.20.2+). */
+    public static boolean hasGuiSprites() {
+        return false;
+    }
+
+    private static void beginImage(int tint) {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShaderColor(((tint >> 16) & 0xFF) / 255f, ((tint >> 8) & 0xFF) / 255f,
+                (tint & 0xFF) / 255f, ((tint >>> 24) & 0xFF) / 255f);
+    }
+
+    private static void endImage() {
+        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+        RenderSystem.disableBlend();
+    }
+
+    /** A GUI-atlas sprite over (x, y, w, h), nine-sliced/tiled per its .mcmeta. */
+    public static void drawGuiSprite(String id, float x, float y, float w, float h, int tint) {
+        GuiGraphics ctx = hudDrawContext;
+        if (ctx == null || !hasGuiSprites()) return;
+        ResourceLocation ident = ResourceLocation.tryParse(id);
+        if (ident == null) return;
+        syncGlState();
+        beginImage(tint);
+        int x0 = Math.round(x), y0 = Math.round(y);
+        // No GUI sprite atlas before 1.20.2 (hasGuiSprites() is false).
+        endImage();
+    }
+
+    /**
+     * Texel coordinates go to the blit as ints times this, so a region may
+     * start or end between texels (an image cut by a clip rect).
+     */
+    private static final int SUBTEXEL = 64;
+
+    /**
+     * The texture region (u, v, uw, vh) (texels of a tw x th texture) scaled
+     * into (x, y, w, h) GUI pixels, colors multiplied by tint (0xAARRGGBB).
+     */
+    public static void drawImage(String id, float x, float y, float w, float h,
+                                 float u, float v, float uw, float vh,
+                                 float tw, float th, int tint) {
+        GuiGraphics ctx = hudDrawContext;
+        if (ctx == null || w <= 0 || h <= 0 || uw <= 0 || vh <= 0) return;
+        ResourceLocation ident = ResourceLocation.tryParse(id);
+        if (ident == null) return;
+        int rw = Math.max(1, Math.round(uw * SUBTEXEL));
+        int rh = Math.max(1, Math.round(vh * SUBTEXEL));
+        syncGlState();
+        beginImage(tint);
+        ctx.pose().pushPose();
+        ctx.pose().translate(x, y, 0f);
+        ctx.pose().scale(w / rw, h / rh, 1f);
+        ctx.blit(ident, 0, 0, u * SUBTEXEL, v * SUBTEXEL, rw, rh,
+                Math.round(tw * SUBTEXEL), Math.round(th * SUBTEXEL));
+        ctx.pose().popPose();
+        endImage();
+    }
+
+    /**
+     * An item (block = the id is a block's: its item form) through the item
+     * renderer, scaled into (x, y, w, h) GUI pixels (16 x 16 = slot size).
+     */
+    public static void drawItemRect(String id, boolean block, float x, float y, float w, float h) {
+        GuiGraphics ctx = hudDrawContext;
+        if (ctx == null || w <= 0 || h <= 0) return;
+        ResourceLocation ident = ResourceLocation.tryParse(id);
+        if (ident == null) return;
+        Item item = block ? BuiltInRegistries.BLOCK.get(ident).asItem() : BuiltInRegistries.ITEM.get(ident);
+        if (item == Items.AIR) return;
+        syncGlState();
+        ctx.pose().pushPose();
+        ctx.pose().translate(x, y, 0f);
+        ctx.pose().scale(w / 16f, h / 16f, 1f);
+        ctx.renderItem(new ItemStack(item), 0, 0);
+        ctx.pose().popPose();
+        // Items render with depth (3D models at z + 150): clear it so 2D UI
+        // drawn next (stack counts, text) isn't hidden behind them.
+        RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+    }
+
+    /** Pixel size of a PNG texture resource as (w << 16) | h; 0 if missing. */
+    public static int textureSize(String id) {
+        ResourceLocation ident = ResourceLocation.tryParse(id);
+        if (ident == null) return 0;
+        var res = Minecraft.getInstance().getResourceManager().getResource(ident);
+        if (res.isEmpty()) return 0;
+        try (java.io.InputStream in = res.get().open()) {
+            byte[] head = in.readNBytes(24);
+            // PNG signature, then the IHDR chunk: width and height, big-endian.
+            if (head.length < 24 || head[0] != (byte) 0x89 || head[1] != 'P') return 0;
+            int w = java.nio.ByteBuffer.wrap(head, 16, 4).getInt();
+            int h = java.nio.ByteBuffer.wrap(head, 20, 4).getInt();
+            if (w <= 0 || h <= 0 || w > 0xFFFF || h > 0xFFFF) return 0;
+            return (w << 16) | h;
+        } catch (java.io.IOException e) {
+            return 0;
+        }
+    }
 }
