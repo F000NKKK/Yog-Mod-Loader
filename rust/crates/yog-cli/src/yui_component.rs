@@ -161,17 +161,16 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                 if kind == "choice" && options.is_empty() {
                     return err(child, "a choice needs options=\"a, b, c\"");
                 }
-                let mut default =
-                    child
-                        .attr("default")
-                        .map(str::to_string)
-                        .unwrap_or_else(|| match kind.as_str() {
-                            "number" | "int" => "0".into(),
-                            "bool" => "false".into(),
-                            "color" => "#FFFFFFFF".into(),
-                            "choice" => options[0].clone(),
-                            _ => String::new(),
-                        });
+                let mut default = child
+                    .attr("default")
+                    .map(str::to_string)
+                    .unwrap_or_else(|| match kind.as_str() {
+                        "number" | "int" => "0".into(),
+                        "bool" => "false".into(),
+                        "color" => "#FFFFFFFF".into(),
+                        "choice" => options[0].clone(),
+                        _ => String::new(),
+                    });
                 match kind.as_str() {
                     "number" if default.trim().parse::<f32>().is_err() => {
                         return err(
@@ -566,6 +565,30 @@ mod tests {
         ] {
             assert!(code.contains(want), "missing {want:?} in\n{code}");
         }
+    }
+
+    #[test]
+    fn color_properties_take_yres_colors() {
+        let mut refs = crate::yres::Refs::default();
+        refs.colors.insert("Colors.fill".into(), 0xFF01_0203);
+        crate::yui::set_resource_refs(&refs);
+        let code = gen(
+            r#"<Component><Property name="fill" type="color" default="@Colors.fill"/><Row bg="@Colors.fill"/></Component>"#,
+        );
+        let screen = crate::yui::generate_for(
+            r#"<Screen id="m:s" width="10" height="10"><Example fill="@Colors.fill"/></Screen>"#,
+            "s",
+            None,
+        );
+        crate::yui::set_resource_refs(&crate::yres::Refs::default());
+        let code = code.unwrap();
+        assert!(
+            code.contains(r##"Prop::color("fill", "#FF010203")"##),
+            "{code}"
+        );
+        assert!(code.contains(".bg(0xFF010203)"), "{code}");
+        let (screen, _) = screen.unwrap();
+        assert!(screen.contains(r##"("fill", "#FF010203")"##), "{screen}");
     }
 
     #[test]

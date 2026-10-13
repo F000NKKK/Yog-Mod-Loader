@@ -1710,6 +1710,39 @@ mod tests {
     }
 
     #[test]
+    fn yres_colors_everywhere() {
+        let mut refs = crate::yres::Refs::default();
+        refs.colors.insert("Colors.accent".into(), 0xFF11_2233);
+        refs.colors.insert("Colors.hot".into(), 0xFF44_5566);
+        refs.colors.insert("Colors.tint".into(), 0x8077_8899);
+        crate::yui::set_resource_refs(&refs);
+        let code = gen(r##"
+            <Screen.Resources>
+                <Color x:Key="Accent" value="@Colors.accent"/>
+                <Style x:Key="Btn" target="Button" bg="@Colors.accent" hover:bg="@Colors.hot"/>
+            </Screen.Resources>
+            <Column w="100%">
+                <Label text="a" color="@Accent" selected:color="@Accent" disabled:bg="@Colors.hot"/>
+                <Button style="@Btn" text="b"/>
+                <Image source="item:air" tint="@Colors.tint"/>
+            </Column>"##);
+        let missing = gen(r#"<Label text="a" hover:bg="@Colors.nope"/>"#);
+        crate::yui::set_resource_refs(&crate::yres::Refs::default());
+        let code = code.unwrap();
+        for want in [
+            ".color(0xFF112233)",
+            "StateFlags::SELECTED, ::yog_api::ui::StylePatch { color: ::std::option::Option::Some(0xFF112233)",
+            "StateFlags::DISABLED, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(0xFF445566)",
+            ".bg(0xFF112233)",
+            "StateFlags::HOVER, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(0xFF445566)",
+            ".tint(0x80778899)",
+        ] {
+            assert!(code.contains(want), "missing {want}:\n{code}");
+        }
+        assert!(missing.unwrap_err().contains("no color `Colors.nope`"));
+    }
+
+    #[test]
     fn bindings_commands_and_parts() {
         let code = gen(r##"
             <Screen.Resources>

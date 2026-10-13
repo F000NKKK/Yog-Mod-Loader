@@ -1,7 +1,7 @@
 [package]
 name = "yog-cli"
 version = "0.30.3"
-edition.workspace = true
+edition = "2021" # TEMP: migrated last
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog build tool — `yog build` compiles a mod and packages it as .yog."

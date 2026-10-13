@@ -373,11 +373,11 @@ pub fn color(value: &str) -> Option<u32> {
 pub(crate) fn color_attr(el: &Element, key: &str, value: &str) -> Result<u32, String> {
     if let Some(reference) = value.trim().strip_prefix('@') {
         return resource_color(reference).ok_or_else(|| {
-                format!(
-                    "line {}: <{}> {key}=\"{value}\": no color `{reference}` in resources/*.yres",
-                    el.line, el.name
-                )
-            });
+            format!(
+                "line {}: <{}> {key}=\"{value}\": no color `{reference}` in resources/*.yres",
+                el.line, el.name
+            )
+        });
     }
     color(value).ok_or_else(|| {
         format!(
