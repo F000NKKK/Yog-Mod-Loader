@@ -177,7 +177,7 @@ impl Pack {
             if entry.is_dir() {
                 continue;
             }
-            let name = entry.name().replace('\\', "/");
+            let name = entry.name().map_err(|e| e.to_string())?.replace('\\', "/");
             if prefix.is_none() {
                 if let Some(at) = name.find("assets/") {
                     prefix = Some(name[..at].to_string());

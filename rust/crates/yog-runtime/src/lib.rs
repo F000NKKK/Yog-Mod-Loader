@@ -4058,8 +4058,9 @@ fn extract_yog(path: &Path) -> Option<PathBuf> {
     let mut entry_name = None;
     for i in 0..archive.len() {
         let f = archive.by_index(i).ok()?;
-        if f.name().starts_with(&prefix) && !f.name().ends_with('/') {
-            entry_name = Some(f.name().to_string());
+        let name = f.name().ok()?;
+        if name.starts_with(&prefix) && !name.ends_with('/') {
+            entry_name = Some(name.to_string());
             break;
         }
     }
