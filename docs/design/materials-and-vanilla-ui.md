@@ -26,7 +26,7 @@ The project has **no backward compatibility**. Every old form listed in §11 is 
 | D11 | **Themes are `.ytheme` assets with scoped cascading.** A theme can be attached to the whole mod, a screen, a component or any element subtree. The cascade is vanilla built-in → mod → screen → component → element subtree → named style → explicit attribute (§6.6). The built-in vanilla look is itself a `.ytheme` (`minecraft:vanilla`), and `yog:bare` is an undecorated base. | This is what the user asked for: Unity-style style sheets attachable at any level. Using one format for the built-in look and mod themes means there is one mechanism. |
 | D12 | **Block behaviours mirror Minecraft's block classes.** `.yblock` `"behavior": "minecraft:transparent"` (glass), `minecraft:stained_glass`, `minecraft:leaves`, `minecraft:ice`, … brings that class's rules: same-block face culling, light passing, occlusion, suffocation, view blocking. Hosts map each behaviour to the real vanilla class per loader. Mod-defined behaviours come from mod code through a generic extension point (§4.6). A material only says how faces are drawn (layer, tint). | This is how Minecraft does it (`HalfTransparentBlock#skipRendering`, `LeavesBlock`, …). It is block logic, not appearance. |
 | D13 | **New project layout (UE5/Unity-like):** `yog.toml` + `src/` (Rust) + `content/` (every asset, free-form folders, type by extension) + `pack/` (raw resource/data-pack passthrough) + hidden `.yog/` (build, cache, IDE state). `yog migrate`, one step of the project-format migration chain (§14), converts existing mods. | Assets are found by extension, not by a folder per type. Feature folders keep a block's model, textures and material together. Generated and intermediate files are out of sight. |
-| D9 | **Fabric render layer fix:** `render_layer` reaches the host through `YogBlockDef`. Fabric registers it with `BlockRenderLayerMap`. Occlusion comes from the block's behaviour (D12), and a non-solid layer on a `minecraft:solid` block is a build error. Tint sources also reach the host, which registers block/item color providers. | Today `render_layer` only reaches the model JSON's `render_type`, so Fabric renders every block solid and full-cube cutout blocks x-ray their neighbours on every loader (§4.3). |
+| D9 | **Fabric render layer fix:** `render_layer` reaches the host through `YogBlockDef`. Fabric registers it with `BlockRenderLayerMap`. Occlusion comes from the block's behaviour (D12), and a non-solid layer on a block whose behaviour is the *implicit* default `minecraft:solid` is a build error; writing `"behavior": "minecraft:solid"` explicitly accepts it (grass-block-style opaque cube with a cutout overlay, capability rule). Tint sources also reach the host, which registers block/item color providers. | Today `render_layer` only reaches the model JSON's `render_type`, so Fabric renders every block solid and full-cube cutout blocks x-ray their neighbours on every loader (§4.3). |
 | D14 | **Project format versioning with automatic migration.** `yog.toml [project] format = N`. The CLI carries an ordered chain of migration steps N→N+1 and upgrades older projects automatically (CLI and IDLE share one implementation). The toolchain reads only the current format, so there are no compatibility code paths (§14). | Breaking changes like the ones in this design stay cheap for mod authors, and the no-backward-compat rule holds inside the toolchain. |
 
 ---
@@ -115,7 +115,7 @@ Optional metadata goes in `textures/<path>.png.mcmeta`. This is vanilla's format
 - Every texture used by a block or item model gets a `{"type": "single", "resource": "<ns>:<path>"}` entry in a generated `assets/minecraft/atlases/blocks.json`. Atlas source files exist since 1.19.3, so this works on 1.20.1 and 1.21.1.
 - The runtime's pack builder (`YogPackProvider`) **merges** the `sources` arrays of every mod's atlas files into the single `.yog-pack`, instead of letting the last mod win.
 - Textures used only by UI are standalone textures. The Yog runtime slices them itself, so they behave the same on 1.20.1 and 1.21.1.
-- A mod never adds to the GUI sprite atlas. `gui/sprites/**` exists only on 1.20.2+, and only vanilla's own sprites are used from it (through the overlay).
+- Generated output never adds to the GUI sprite atlas. `gui/sprites/**` exists only on 1.20.2+, and the overlay only uses vanilla's own sprites from it. A mod that wants its own atlas sprites (1.20.2+ only, e.g. so resource packs can override them) still ships `atlases/gui.json` and the PNGs raw under `pack/assets/` and references them as plain texture ids under `gui/sprites/`, which §5.4 draws with `blitSprite` (capability rule).
 - In the vanilla pack, ids keep vanilla's folders (`minecraft:block/stone`, `minecraft:gui/sprites/widget/button`), because those are vanilla's real paths.
 
 `yog build` validates:
@@ -481,7 +481,7 @@ Java hosts:
 | NeoForge 1.20.1/1.21.1 | model `render_type` (already written) | from the behaviour (§4.6), `YogHost` (245-281) | `RegisterColorHandlersEvent.Block/Item` |
 | Forge 1.20.1/1.21.1 | model `render_type` | from the behaviour (§4.6), (246-286) | `RegisterColorHandlersEvent.Block/Item` |
 
-Occlusion, view blocking, suffocation, light passing and same-block face culling are **block logic**. They come from the block's behaviour (§4.6), never from the material. A material only decides how faces are drawn. A safety net remains: a block with the default `minecraft:solid` behaviour whose resolved layer is not `solid` makes the build fail with *"`ruby_glass` renders cutout but behaves as a solid block (neighbours' faces would be culled): set `behavior`, e.g. `minecraft:transparent`"*. Without that error, today's x-ray bug would come back.
+Occlusion, view blocking, suffocation, light passing and same-block face culling are **block logic**. They come from the block's behaviour (§4.6), never from the material. A material only decides how faces are drawn. A safety net remains: a block with the default `minecraft:solid` behaviour whose resolved layer is not `solid` makes the build fail with *"`ruby_glass` renders cutout but behaves as a solid block (neighbours' faces would be culled): set `behavior`, e.g. `minecraft:transparent`"*. Without that error, today's x-ray bug would come back. The error applies only when `behavior` is omitted: an explicit `"behavior": "minecraft:solid"` (or `BlockDef::behavior("minecraft:solid")`) declares that the block really occludes, which is what vanilla's grass block does with its `cutout_mipped` overlay (capability rule: a cutout-rendered full occluding cube stays possible).
 
 ### 4.4 Emissive
 
@@ -549,7 +549,7 @@ registry.block_behavior(BlockBehavior::new("hexcasting:slate")
 - Rules evaluated per frame or per chunk mesh (`skip_rendering`, light passing, occlusion) are **declarative** (`SkipRule::{SameBlock, SameBehavior, Tag(…)}`) and evaluated in Java. A native call per face per chunk rebuild would be too slow.
 - The `.yblock` validator checks at build time that the id exists, either built-in or declared in the mod's code. `yog content check` finds the declarations through the generated registration code (`content!()` already sees the crate).
 
-A material and a behaviour are checked against each other, not merged: `minecraft:transparent` with a resolved `solid` layer gives a warning (vanilla glass is cutout), and a non-solid layer with `minecraft:solid` gives an error (§4.3).
+A material and a behaviour are checked against each other, not merged: `minecraft:transparent` with a resolved `solid` layer gives a warning (vanilla glass is cutout), and a non-solid layer with the implicit `minecraft:solid` gives an error, an explicit one is accepted (§4.3).
 
 ## 5. Runtime and ABI for UI drawing
 
@@ -692,13 +692,15 @@ Sizes are vanilla's defaults. The material column shows what the overlay resolve
 | Screen `background` **new** attribute | `auto` (default) = vanilla `renderBackground` (in-world dim gradient #C0101010→#D0101010, plus blur on 1.21; title screen: panorama / dirt); `none` for overlay-like screens; `dim` = only the gradient | | | new |
 | Screen `title` **new** attribute | drawn by the host the vanilla way: centered, y = 15 (lists) or panel-relative, white + shadow; also narrated | `Screen.getTitle()` | same | new |
 
-Focus: vanilla draws focus only through the `_highlighted` sprite (buttons, fields) or a white outline (lists). The amber `FocusStyle::Outline` default is deleted. `focus_style` stays, with default `none`, because materials show focus. `focus_color` is deleted.
+Focus: vanilla draws focus only through the `_highlighted` sprite (buttons, fields) or a white outline (lists). The amber `FocusStyle::Outline` default is deleted. `focus_style` stays, with default `none`, because materials show focus. `focus_color: u32` is replaced by a `focus` brush (theme property or attribute; a color or a material) that `focus_style="outline"`/`"fill"` use, so a custom-colored focus outline or fill stays possible (capability rule).
 
 `Slot`-like hover, `pressed` and tooltip timing need `move` events, which yog-kit already emits.
 
 ### 6.5 Deleted from yog-ui
 
-`TRACK_COLOR`/`KNOB_COLOR`, `TEXT_BOX_BORDER`/`TEXT_BOX_FOCUS_BORDER`, the amber focus default, `Style.bg: u32`, `focus_color`, the hand-drawn slot rects in render.rs, and `image::whole_only` for sprites (sprites are gone).
+`TRACK_COLOR`/`KNOB_COLOR`, `TEXT_BOX_BORDER`/`TEXT_BOX_FOCUS_BORDER`, the amber focus default, `Style.bg: u32`, `focus_color` (→ `focus` brush, §6.4), the hand-drawn slot rects in render.rs, and `image::whole_only` for sprites (sprites are gone).
+
+Only the *built-in* flat look is deleted (Q4), not the ability to have one: every constant above is an ordinary theme value, so a mod can reproduce the old flat look as a `.ytheme` on `yog:bare` with color brushes (capability rule).
 
 ### 6.6 Themes (`.ytheme`)
 
@@ -969,7 +971,7 @@ Substrate stays generic: it gets only a reusable `AssetPicker` widget (a searcha
 | `noOcclusion` derived from appearance, `YogShapedBlock` as the only block class | behaviours (§4.6), `YogBlockTraits` |
 | `resources/`, top-level `assets/`/`data/`, `.yog-build/`, `.yog-idle/`, root `target/` | §13 layout |
 | fixed control defaults in `render.rs` | `minecraft:vanilla.ytheme` + `.ytheme` cascade |
-| yog-ui flat defaults, amber focus, `focus_color`, `Style.bg: u32` | theme, `Brush` |
+| yog-ui flat defaults, amber focus, `focus_color`, `Style.bg: u32` | theme, `Brush`, `focus` brush (a flat look is a `.ytheme` on `yog:bare`) |
 | `NativeDraw.textureSize` (PNG IHDR read) | `yog/textures.json` + the vanilla index |
 | IDLE `designer/assets.rs` jar-in-place reader | `yog-vanilla` |
 | `java-common/.../ui/YogUILayout.java` (unused) | — |
