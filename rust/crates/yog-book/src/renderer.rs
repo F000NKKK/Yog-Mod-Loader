@@ -640,7 +640,6 @@ impl BookRenderer {
             self.source.get_or_insert_with(|| self.book.clone());
             self.translator = Some(tr);
             self.probe = None;
-            self.localize();
         }
     }
 

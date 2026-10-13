@@ -3071,6 +3071,8 @@ unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_j
     match serde_json::from_str::<yog_book::Book>(&json) {
         Ok(book) => {
             let mut renderer = yog_book::BookRenderer::new(book);
+            // i18n books carry translation keys; shown in the game language.
+            renderer.set_translator(translate);
             // Recipes may register before the book — replay them into the renderer.
             for (ns, name, j) in &handlers.recipes {
                 renderer.add_recipe(format!("{}:{}", ns, name), j);
