@@ -528,6 +528,14 @@ impl<W: View> Host<W> {
     }
 
     fn scroll(&mut self, ev: &UiEvent<'_>) -> bool {
+        // A surface under the cursor gets the wheel first.
+        if let (Some((x, y)), UiEvent::Scroll { dy }) = (self.mouse, ev) {
+            if let Some((s, r)) = self.surface_at(x, y).and_then(|p| self.surface_box(&p)) {
+                if s.scroll(*dy, (r.w, r.h)) {
+                    return true;
+                }
+            }
+        }
         let under = self
             .mouse
             .and_then(|(x, y)| layout::deepest_path(&self.ui.layout_root, x, y))

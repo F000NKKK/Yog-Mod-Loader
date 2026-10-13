@@ -10,6 +10,8 @@ public class YogUIScreen extends Screen {
     private final String uiId;
     private final boolean modal;
     private final boolean pauseGame;
+    /** No dimmed/blurred background: the world stays visible (`ui_flags::NO_BACKGROUND`). */
+    private boolean noBackground;
     /** Last cursor position sent as a `move:` event. */
     private int lastMx = Integer.MIN_VALUE, lastMy = Integer.MIN_VALUE;
 
@@ -39,7 +41,7 @@ public class YogUIScreen extends Screen {
             lastMy = my;
             NativeBridge.nativeUIMove(uiId, mx, my);
         }
-        renderBackground(ctx);
+        if (!noBackground) renderBackground(ctx);
         ctx.flush();
         NativeDraw.hudDrawContext = ctx;
         NativeBridge.nativeUIRender(uiId, this.width, this.height);
@@ -101,5 +103,12 @@ public class YogUIScreen extends Screen {
 
     public static void open(String uiId, boolean modal, boolean pause) {
         Minecraft.getInstance().setScreen(new YogUIScreen(uiId, modal, pause));
+    }
+
+    /** Opens a Yog UI with `ui_flags` bits (1 = modal, 2 = pause, 4 = no background). */
+    public static void openFlags(String uiId, int flags) {
+        YogUIScreen s = new YogUIScreen(uiId, (flags & 1) != 0, (flags & 2) != 0);
+        s.noBackground = (flags & 4) != 0;
+        Minecraft.getInstance().setScreen(s);
     }
 }

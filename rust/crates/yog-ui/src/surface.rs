@@ -56,6 +56,13 @@ pub trait Surface: Send + Sync {
         let _ = (ev, size);
         false
     }
+
+    /// The mouse wheel turned over the surface (`dy` > 0 = up); `true` =
+    /// used (scroll containers around it then don't scroll).
+    fn scroll(&self, dy: f32, size: (f32, f32)) -> bool {
+        let _ = (dy, size);
+        false
+    }
 }
 
 type Registry = HashMap<String, Arc<dyn Surface>>;
