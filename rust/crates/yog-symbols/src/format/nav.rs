@@ -35,6 +35,12 @@ struct Sequence {
     len: u64,
 }
 
+/// Pointers and wrappers `.field`, `[i]` and integer reads see through.
+const MAX_AUTODEREF: usize = 8;
+/// Wrappers around the `Option` inside a `OnceCell`.
+const MAX_WRAPPER_LAYERS: usize = 4;
+const NULL_POINTER: &str = "null pointer";
+
 /// `parent` as the operand of a postfix `.field` / `[i]`.
 fn postfix(parent: &str) -> String {
     if parent.starts_with('*') {
@@ -91,15 +97,13 @@ impl Formatter<'_> {
         }
         let short = self.name_of(entry).unwrap_or_default();
         let qualified = self.qualified_name(off, entry);
-        if short.ends_with("str") && self.is_fat_pointer(off)
-            || qualified == "alloc::string::String"
-        {
+        if short.ends_with("str") && self.is_fat_pointer(off) || qualified == STRING {
             return Vec::new();
         }
         if let Some(seq) = self.sequence(slot) {
             return element_slots(slot, &seq, limit);
         }
-        if qualified.starts_with("alloc::boxed::Box<") {
+        if generic_base(&qualified) == BOX {
             return self.deref(slot).ok().into_iter().collect();
         }
         match self.wrapper(slot) {
@@ -112,22 +116,19 @@ impl Formatter<'_> {
 
     fn is_fat_pointer(&self, off: Off) -> bool {
         let members = self.members(off);
-        members.iter().any(|m| m.name == "data_ptr") && members.iter().any(|m| m.name == "length")
+        Self::member_named(&members, FAT_DATA).is_some()
+            && Self::member_named(&members, FAT_LEN).is_some()
     }
 
     /// One row per member (tuple fields named `0`, `1`...), phantom
     /// markers left out.
     fn field_slots(&self, parent: &Slot, members: &[Member], base: &Place) -> Vec<Slot> {
         let members: Vec<&Member> = members.iter().filter(|m| !self.is_phantom(m.ty)).collect();
-        let tuple = !members.is_empty() && members.iter().all(|m| m.name.starts_with("__"));
+        let tuple = !members.is_empty() && is_tuple(members.iter().copied());
         members
             .into_iter()
             .map(|m| {
-                let name = if tuple {
-                    m.name.trim_start_matches("__").to_string()
-                } else {
-                    m.name.clone()
-                };
+                let name = field_label(m, tuple);
                 Slot {
                     expr: format!("{}.{name}", postfix(&parent.expr)),
                     name,
@@ -145,20 +146,18 @@ impl Formatter<'_> {
             gimli::DW_TAG_array_type => {
                 let (elem, len) = self.array_shape(&entry)?;
                 let elem = elem?;
-                let stride = Self::udata(&entry, gimli::DW_AT_byte_stride)
-                    .or_else(|| self.byte_size(elem))?;
                 Some(Sequence {
                     elem,
                     base: slot.place.clone(),
-                    stride,
+                    stride: self.array_stride(&entry, elem)?,
                     len,
                 })
             }
             gimli::DW_TAG_structure_type => {
                 let short = self.name_of(&entry).unwrap_or_default();
                 let members = self.members(off);
-                let member = |n: &str| members.iter().find(|m| m.name == n);
-                if let (Some(data), Some(len)) = (member("data_ptr"), member("length")) {
+                let member = |n: &str| Self::member_named(&members, n);
+                if let (Some(data), Some(len)) = (member(FAT_DATA), member(FAT_LEN)) {
                     if short.ends_with("str") || !short.contains('[') {
                         return None;
                     }
@@ -172,10 +171,7 @@ impl Formatter<'_> {
                         len,
                     });
                 }
-                if self
-                    .qualified_name(off, &entry)
-                    .starts_with("alloc::vec::Vec<")
-                {
+                if generic_base(&self.qualified_name(off, &entry)) == VEC {
                     let elem = self.template_param(off, "T")?;
                     let (ptr, len) = self.vec_parts(off, &slot.place)?;
                     return Some(Sequence {
@@ -202,9 +198,9 @@ impl Formatter<'_> {
             return None;
         }
         let qualified = self.qualified_name(off, &entry);
-        let base = qualified.split('<').next().unwrap_or(&qualified);
+        let base = generic_base(&qualified);
         let members = self.members(off);
-        let member = |n: &str| members.iter().find(|m| m.name == n);
+        let member = |n: &str| Self::member_named(&members, n);
         // The wrapped value stands in for the wrapper: same row name, same
         // expression (the evaluator sees through wrappers too).
         let inner = |m: &Member, place: Place| Slot {
@@ -214,30 +210,17 @@ impl Formatter<'_> {
             place,
         };
         match base {
-            "core::cell::UnsafeCell"
-            | "core::cell::SyncUnsafeCell"
-            | "core::cell::Cell"
-            | "core::cell::RefCell"
-            | "core::mem::maybe_uninit::MaybeUninit"
-            | "core::mem::manually_drop::ManuallyDrop"
-            | "core::mem::maybe_dangling::MaybeDangling"
-            | "core::pin::Pin" => {
-                let m = member("value").or_else(|| {
-                    let mut data = members.iter().filter(|m| !self.is_zero_sized(m.ty));
-                    match (data.next(), data.next()) {
-                        (Some(only), None) => Some(only),
-                        _ => None,
-                    }
-                })?;
+            _ if TRANSPARENT_WRAPPERS.contains(&base) => {
+                let m = self.wrapped_member(&members)?;
                 Some(Wrapped::Inner(inner(m, slot.place.offset(m.offset))))
             }
-            "core::ptr::non_null::NonNull" | "core::ptr::unique::Unique" => Some(Wrapped::Deref),
-            "core::marker::PhantomData" | "core::marker::PhantomPinned" => Some(Wrapped::Opaque),
-            "core::cell::once::OnceCell" => {
+            NON_NULL | UNIQUE => Some(Wrapped::Deref),
+            PHANTOM_DATA | PHANTOM_PINNED => Some(Wrapped::Opaque),
+            ONCE_CELL => {
                 let option = member("inner")?;
                 let mut option = inner(option, slot.place.offset(option.offset));
                 // `UnsafeCell<Option<T>>` in newer std.
-                for _ in 0..4 {
+                for _ in 0..MAX_WRAPPER_LAYERS {
                     match self.wrapper(&option) {
                         Some(Wrapped::Inner(next)) => option = next,
                         _ => break,
@@ -251,19 +234,16 @@ impl Formatter<'_> {
                 let VariantPick::Found(v) = self.active_variant(&vp, &option.place)? else {
                     return Some(Wrapped::Opaque);
                 };
-                if v.member.name != "Some" {
+                if v.member.name != SOME {
                     return Some(Wrapped::Opaque);
                 }
                 let payload = self.members(v.member.ty?).into_iter().next()?;
                 let place = option.place.offset(v.member.offset + payload.offset);
                 Some(Wrapped::Inner(inner(&payload, place)))
             }
-            "std::sync::once_lock::OnceLock" => {
+            ONCE_LOCK => {
                 let value = member("value")?;
-                let complete = member("once")
-                    .and_then(|once| self.first_uint(once.ty?, &slot.place.offset(once.offset), 0))
-                    .map(|state| state & 3 == 0);
-                if complete == Some(false) {
+                if self.once_lock_complete(&members, &slot.place) == Some(false) {
                     return Some(Wrapped::Opaque);
                 }
                 Some(Wrapped::Inner(inner(
@@ -271,17 +251,14 @@ impl Formatter<'_> {
                     slot.place.offset(value.offset),
                 )))
             }
-            "alloc::rc::Rc" | "alloc::sync::Arc" => {
+            RC | ARC => {
                 let (ptr, inner_ty) = self.find_pointer(off, &slot.place, 0)?;
                 if ptr == 0 {
                     return Some(Wrapped::Opaque);
                 }
                 let (inner_off, _) = self.peel(inner_ty?)?;
                 let fields = self.members(inner_off);
-                let data = fields
-                    .iter()
-                    .find(|m| m.name == "value")
-                    .or_else(|| fields.iter().find(|m| m.name == "data"))?;
+                let data = Self::rc_payload(&fields)?;
                 Some(Wrapped::Inner(inner(data, Place::Mem(ptr + data.offset))))
             }
             _ => None,
@@ -309,25 +286,22 @@ impl Formatter<'_> {
             }
             gimli::DW_TAG_structure_type => {
                 let qualified = self.qualified_name(off, &entry);
-                let base = qualified.split('<').next().unwrap_or(&qualified);
-                match base {
-                    "alloc::boxed::Box"
-                    | "core::ptr::non_null::NonNull"
-                    | "core::ptr::unique::Unique" => self
+                match generic_base(&qualified) {
+                    BOX | NON_NULL | UNIQUE => self
                         .find_pointer(off, &slot.place, 0)
                         .ok_or_else(|| format!("can't read `{}`", slot.expr))?,
-                    "core::pin::Pin" => match self.wrapper(slot) {
+                    PIN => match self.wrapper(slot) {
                         Some(Wrapped::Inner(inner)) => return self.deref(&inner),
                         _ => return Err(cannot()),
                     },
-                    "alloc::rc::Rc" | "alloc::sync::Arc" => {
+                    RC | ARC => {
                         return match self.wrapper(slot) {
                             Some(Wrapped::Inner(inner)) => Ok(Slot {
                                 name: format!("*{}", slot.name),
                                 expr: format!("*{}", slot.expr),
                                 ..inner
                             }),
-                            _ => Err("null pointer".into()),
+                            _ => Err(NULL_POINTER.into()),
                         };
                     }
                     _ => return Err(cannot()),
@@ -336,16 +310,10 @@ impl Formatter<'_> {
             _ => return Err(cannot()),
         };
         if ptr == 0 {
-            return Err("null pointer".into());
+            return Err(NULL_POINTER.into());
         }
         let pointee = pointee.ok_or_else(cannot)?;
-        let sized = self.peel(pointee).is_some_and(|(off, e)| {
-            !matches!(
-                e.tag(),
-                gimli::DW_TAG_subroutine_type | gimli::DW_TAG_unspecified_type
-            ) && self.byte_size(off).is_some_and(|s| s > 0)
-        });
-        if !sized {
+        if !self.is_derefable(pointee) {
             return Err(cannot());
         }
         Ok(Slot {
@@ -362,7 +330,7 @@ impl Formatter<'_> {
     pub(crate) fn field(&self, slot: &Slot, name: &str) -> Result<Slot, String> {
         let expr = format!("{}.{name}", postfix(&slot.expr));
         let mut cur = slot.clone();
-        for _ in 0..8 {
+        for _ in 0..MAX_AUTODEREF {
             if let Some(found) = self
                 .child_slots(&cur, 0)
                 .into_iter()
@@ -378,7 +346,7 @@ impl Formatter<'_> {
                         | gimli::DW_TAG_class_type
                         | gimli::DW_TAG_union_type
                 ) {
-                    let tuple_name = format!("__{name}");
+                    let tuple_name = format!("{TUPLE_FIELD}{name}");
                     if let Some(m) = self
                         .members(off)
                         .into_iter()
@@ -408,7 +376,7 @@ impl Formatter<'_> {
     /// smart pointers and std wrappers).
     pub(crate) fn index(&self, slot: &Slot, index: i128) -> Result<Slot, String> {
         let mut cur = slot.clone();
-        for _ in 0..8 {
+        for _ in 0..MAX_AUTODEREF {
             if let Some(seq) = self.sequence(&cur) {
                 let Ok(i) = u64::try_from(index) else {
                     return Err(format!("negative index {index}"));
@@ -444,7 +412,7 @@ impl Formatter<'_> {
     /// index — through references and wrappers like `Cell<usize>`.
     pub(crate) fn integer(&self, slot: &Slot) -> Result<i128, String> {
         let mut cur = slot.clone();
-        for _ in 0..8 {
+        for _ in 0..MAX_AUTODEREF {
             let Some((_, entry)) = cur.ty.and_then(|t| self.peel(t)) else {
                 break;
             };

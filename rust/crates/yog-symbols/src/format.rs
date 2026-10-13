@@ -26,7 +26,57 @@ const MAX_STR: u64 = 256;
 const NODE_BUDGET: usize = 2048;
 /// Length of the one-line summary of an aggregate's children.
 const SUMMARY_LEN: usize = 120;
-const PTR_SIZE: u64 = 8;
+/// Shown for a null pointer.
+pub(crate) const NULL: &str = "null";
+/// Shown for an empty `OnceCell` / `OnceLock`.
+const UNINIT: &str = "<uninit>";
+/// `Option` variant names.
+const SOME: &str = "Some";
+const NONE: &str = "None";
+/// Qualified-name prefix of `PhantomData` / `PhantomPinned`.
+const PHANTOM_PREFIX: &str = "core::marker::Phantom";
+const PTR_SIZE: u64 = crate::locals::WORD_SIZE as u64;
+/// Typedef/qualifier layers [`Formatter::peel`] strips.
+const MAX_PEEL: usize = 16;
+/// Children of one DIE looked at.
+const MAX_CHILDREN: usize = 4096;
+/// Enclosing namespaces/types in a qualified name.
+const MAX_QUALIFIERS: usize = 32;
+/// Nesting of a type name, and of the leading-member walks that find an
+/// integer or pointer inside a wrapper.
+const MAX_TYPE_DEPTH: usize = 8;
+/// Shown where a value or name is cut off.
+pub(crate) const ELLIPSIS: &str = "…";
+
+/// Member names rustc gives the parts of a fat pointer (`&str`, `&[T]`).
+const FAT_DATA: &str = "data_ptr";
+const FAT_LEN: &str = "length";
+/// Prefix rustc gives tuple fields (`__0`, `__1`...).
+const TUPLE_FIELD: &str = "__";
+
+const STRING: &str = "alloc::string::String";
+const VEC: &str = "alloc::vec::Vec";
+const BOX: &str = "alloc::boxed::Box";
+const PIN: &str = "core::pin::Pin";
+/// std wrappers shown as the one value they hold.
+const TRANSPARENT_WRAPPERS: [&str; 8] = [
+    "core::cell::UnsafeCell",
+    "core::cell::SyncUnsafeCell",
+    "core::cell::Cell",
+    "core::cell::RefCell",
+    "core::mem::maybe_uninit::MaybeUninit",
+    "core::mem::manually_drop::ManuallyDrop",
+    "core::mem::maybe_dangling::MaybeDangling",
+    PIN,
+];
+const NON_NULL: &str = "core::ptr::non_null::NonNull";
+const UNIQUE: &str = "core::ptr::unique::Unique";
+const PHANTOM_DATA: &str = "core::marker::PhantomData";
+const PHANTOM_PINNED: &str = "core::marker::PhantomPinned";
+const ONCE_CELL: &str = "core::cell::once::OnceCell";
+const ONCE_LOCK: &str = "std::sync::once_lock::OnceLock";
+const RC: &str = "alloc::rc::Rc";
+const ARC: &str = "alloc::sync::Arc";
 
 type Off = UnitOffset<usize>;
 type Die = DebuggingInformationEntry<R>;
@@ -63,12 +113,7 @@ impl<'a> Formatter<'a> {
         info: &'a UnitInfo,
         mem: &'a dyn TargetMemory,
     ) -> Self {
-        Formatter {
-            table,
-            info,
-            mem,
-            budget: Cell::new(NODE_BUDGET),
-        }
+        Self::with_budget(table, info, mem, NODE_BUDGET)
     }
 
     /// A formatter with its own, smaller node budget — for one row of a
@@ -110,7 +155,7 @@ impl<'a> Formatter<'a> {
     /// Strips typedefs and cv-qualifiers down to the type that decides
     /// the representation.
     fn peel(&self, mut off: Off) -> Option<(Off, Die)> {
-        for _ in 0..16 {
+        for _ in 0..MAX_PEEL {
             let entry = self.entry(off)?;
             match entry.tag() {
                 gimli::DW_TAG_typedef
@@ -138,9 +183,7 @@ impl<'a> Formatter<'a> {
             | gimli::DW_TAG_rvalue_reference_type => Some(PTR_SIZE),
             gimli::DW_TAG_array_type => {
                 let (elem, count) = self.array_shape(&entry)?;
-                let stride = Self::udata(&entry, gimli::DW_AT_byte_stride)
-                    .or_else(|| self.byte_size(elem?))?;
-                stride.checked_mul(count)
+                self.array_stride(&entry, elem?)?.checked_mul(count)
             }
             _ => None,
         }
@@ -157,7 +200,7 @@ impl<'a> Formatter<'a> {
         let mut iter = root.children();
         while let Ok(Some(child)) = iter.next() {
             out.push(child.entry().clone());
-            if out.len() > 4096 {
+            if out.len() > MAX_CHILDREN {
                 break;
             }
         }
@@ -179,6 +222,57 @@ impl<'a> Formatter<'a> {
             ty: self.ty_of(e),
             offset: Self::udata(e, gimli::DW_AT_data_member_location).unwrap_or(0),
         }
+    }
+
+    /// The member named `name` (a struct's own, not inherited).
+    fn member_named<'m>(members: &'m [Member], name: &str) -> Option<&'m Member> {
+        members.iter().find(|m| m.name == name)
+    }
+
+    /// The only member of a wrapper that holds data: `value` for the cells
+    /// and `MaybeUninit` (a union whose other member is the `()` "uninit"
+    /// view), otherwise the one non-zero-sized field.
+    fn wrapped_member<'m>(&self, members: &'m [Member]) -> Option<&'m Member> {
+        Self::member_named(members, "value").or_else(|| {
+            let mut data = members.iter().filter(|m| !self.is_zero_sized(m.ty));
+            match (data.next(), data.next()) {
+                (Some(only), None) => Some(only),
+                _ => None,
+            }
+        })
+    }
+
+    /// Whether the `OnceLock` whose members are `members` at `place` has
+    /// been initialized; `None` if its state can't be read. Both `Once`
+    /// implementations (futex and queue) keep the state in the low two
+    /// bits; COMPLETE is 0 (since Rust 1.80, when INCOMPLETE became 3).
+    fn once_lock_complete(&self, members: &[Member], place: &Place) -> Option<bool> {
+        const STATE_MASK: u64 = 3;
+        let once = Self::member_named(members, "once")?;
+        let state = self.first_uint(once.ty?, &place.offset(once.offset), 0)?;
+        Some(state & STATE_MASK == 0)
+    }
+
+    /// The payload member of an `Rc`/`Arc` allocation (`RcInner` /
+    /// `ArcInner`).
+    fn rc_payload(members: &[Member]) -> Option<&Member> {
+        Self::member_named(members, "value").or_else(|| Self::member_named(members, "data"))
+    }
+
+    /// Whether a pointer to `pointee` can be followed: not a function or an
+    /// opaque/unsized type.
+    fn is_derefable(&self, pointee: Off) -> bool {
+        self.peel(pointee).is_some_and(|(off, e)| {
+            !matches!(
+                e.tag(),
+                gimli::DW_TAG_subroutine_type | gimli::DW_TAG_unspecified_type
+            ) && self.byte_size(off).is_some_and(|s| s > 0)
+        })
+    }
+
+    /// Distance between elements of the array type `entry` of `elem`s.
+    fn array_stride(&self, entry: &Die, elem: Off) -> Option<u64> {
+        Self::udata(entry, gimli::DW_AT_byte_stride).or_else(|| self.byte_size(elem))
     }
 
     fn template_param(&self, off: Off, name: &str) -> Option<Off> {
@@ -211,7 +305,7 @@ impl<'a> Formatter<'a> {
         let mut parts = vec![self.name_of(entry).unwrap_or_else(|| "<anon>".into())];
         let parents = self.info.parents();
         let mut cur = off.0;
-        for _ in 0..32 {
+        for _ in 0..MAX_QUALIFIERS {
             let Some(&parent) = parents.get(&cur) else {
                 break;
             };
@@ -244,8 +338,8 @@ impl<'a> Formatter<'a> {
         let Some(off) = ty else {
             return "()".into();
         };
-        if depth > 8 {
-            return "…".into();
+        if depth > MAX_TYPE_DEPTH {
+            return ELLIPSIS.into();
         }
         let Some(entry) = self.entry(off) else {
             return "?".into();
@@ -328,7 +422,7 @@ impl<'a> Formatter<'a> {
         };
         let left = self.budget.get();
         if left == 0 {
-            out.value = "…".into();
+            out.value = ELLIPSIS.into();
             return out;
         }
         self.budget.set(left - 1);
@@ -411,7 +505,7 @@ impl<'a> Formatter<'a> {
         depth: usize,
     ) -> (String, Vec<Value>) {
         if ptr == 0 {
-            return ("null".into(), Vec::new());
+            return (NULL.into(), Vec::new());
         }
         let hex = format!("{ptr:#x}");
         let Some(pointee) = pointee else {
@@ -420,14 +514,7 @@ impl<'a> Formatter<'a> {
         if depth >= MAX_DEPTH {
             return (hex, Vec::new());
         }
-        // Don't "dereference" functions or opaque/unsized pointees.
-        let derefable = self.peel(pointee).is_some_and(|(off, e)| {
-            !matches!(
-                e.tag(),
-                gimli::DW_TAG_subroutine_type | gimli::DW_TAG_unspecified_type
-            ) && self.byte_size(off).is_some_and(|s| s > 0)
-        });
-        if !derefable {
+        if !self.is_derefable(pointee) {
             return (hex, Vec::new());
         }
         let child = self.format(
@@ -470,8 +557,7 @@ impl<'a> Formatter<'a> {
     ) -> Option<(String, Vec<Value>)> {
         let (elem, count) = self.array_shape(entry)?;
         let elem = elem?;
-        let stride =
-            Self::udata(entry, gimli::DW_AT_byte_stride).or_else(|| self.byte_size(elem))?;
+        let stride = self.array_stride(entry, elem)?;
         Some(self.format_elements(elem, place, stride, count, depth, false))
     }
 
@@ -492,7 +578,7 @@ impl<'a> Formatter<'a> {
             String::new()
         };
         if depth >= MAX_DEPTH {
-            return (format!("{prefix}[…]"), Vec::new());
+            return (format!("{prefix}[{ELLIPSIS}]"), Vec::new());
         }
         let shown = count.min(MAX_ELEMS);
         let children: Vec<Value> = (0..shown)
@@ -527,10 +613,10 @@ impl<'a> Formatter<'a> {
 
         let short = self.name_of(entry).unwrap_or_default();
         let members = self.members(off);
-        let member = |n: &str| members.iter().find(|m| m.name == n);
+        let member = |n: &str| Self::member_named(&members, n);
 
         // Fat pointers: `&str`, `&[T]`, `*const [T]`...
-        if let (Some(data), Some(len)) = (member("data_ptr"), member("length")) {
+        if let (Some(data), Some(len)) = (member(FAT_DATA), member(FAT_LEN)) {
             let ptr = self.read_uint(&place.offset(data.offset), PTR_SIZE)?;
             let n = self.read_uint(&place.offset(len.offset), PTR_SIZE)?;
             if short.ends_with("str") {
@@ -556,14 +642,14 @@ impl<'a> Formatter<'a> {
         }
 
         let qualified = self.qualified_name(off, entry);
-        if qualified == "alloc::string::String" {
+        if qualified == STRING {
             if let Some((ptr, len)) =
                 member("vec").and_then(|vec| self.vec_parts(vec.ty?, &place.offset(vec.offset)))
             {
                 return Some((self.read_string(ptr, len), Vec::new()));
             }
         }
-        if qualified.starts_with("alloc::vec::Vec<") {
+        if generic_base(&qualified) == VEC {
             if let (Some(elem), Some((ptr, len))) =
                 (self.template_param(off, "T"), self.vec_parts(off, place))
             {
@@ -578,7 +664,7 @@ impl<'a> Formatter<'a> {
                 ));
             }
         }
-        if qualified.starts_with("alloc::boxed::Box<") {
+        if generic_base(&qualified) == BOX {
             if let Some((ptr, pointee)) = self.find_pointer(off, place, 0) {
                 return Some(self.format_pointer("", ptr, pointee, depth));
             }
@@ -600,64 +686,40 @@ impl<'a> Formatter<'a> {
         place: &Place,
         depth: usize,
     ) -> Option<(String, Vec<Value>)> {
-        let base = qualified.split('<').next().unwrap_or(qualified);
-        let member = |n: &str| members.iter().find(|m| m.name == n);
+        let base = generic_base(qualified);
+        let member = |n: &str| Self::member_named(members, n);
         match base {
-            "core::cell::UnsafeCell"
-            | "core::cell::SyncUnsafeCell"
-            | "core::cell::Cell"
-            | "core::cell::RefCell"
-            | "core::mem::maybe_uninit::MaybeUninit"
-            | "core::mem::manually_drop::ManuallyDrop"
-            | "core::mem::maybe_dangling::MaybeDangling"
-            | "core::pin::Pin" => {
-                // `value` for the cells and `MaybeUninit` (a union whose
-                // other member is the `()` "uninit" view); otherwise the
-                // one field with data.
-                let inner = member("value").or_else(|| {
-                    let mut data = members.iter().filter(|m| !self.is_zero_sized(m.ty));
-                    match (data.next(), data.next()) {
-                        (Some(only), None) => Some(only),
-                        _ => None,
-                    }
-                })?;
-                Some(self.unwrap_member(inner, place, depth))
+            _ if TRANSPARENT_WRAPPERS.contains(&base) => {
+                Some(self.unwrap_member(self.wrapped_member(members)?, place, depth))
             }
-            "core::ptr::non_null::NonNull" | "core::ptr::unique::Unique" => {
+            NON_NULL | UNIQUE => {
                 let (ptr, pointee) = self.find_pointer(off, place, 0)?;
                 Some(self.format_pointer("", ptr, pointee, depth))
             }
-            "core::marker::PhantomData" | "core::marker::PhantomPinned" => {
+            PHANTOM_DATA | PHANTOM_PINNED => {
                 Some((base.rsplit("::").next()?.to_string(), Vec::new()))
             }
-            "core::cell::once::OnceCell" => {
+            ONCE_CELL => {
                 let (value, children) = self.unwrap_member(member("inner")?, place, depth);
                 Some(unwrap_option(value, children))
             }
-            "std::sync::once_lock::OnceLock" => {
+            ONCE_LOCK => {
                 let value = member("value")?;
-                let complete = member("once")
-                    .and_then(|once| self.first_uint(once.ty?, &place.offset(once.offset), 0))
-                    // Both `Once` implementations (futex and queue) keep the
-                    // state in the low two bits; COMPLETE is 0 (since Rust
-                    // 1.80, when INCOMPLETE became 3).
-                    .map(|state| state & 3 == 0);
-                match complete {
-                    Some(false) => Some(("<uninit>".into(), Vec::new())),
+                match self.once_lock_complete(members, place) {
+                    Some(false) => Some((UNINIT.into(), Vec::new())),
                     // Initialized, or a state this can't read: show the slot.
                     _ => Some(self.unwrap_member(value, place, depth)),
                 }
             }
-            "alloc::rc::Rc" | "alloc::sync::Arc" => {
+            RC | ARC => {
                 let (ptr, inner_ty) = self.find_pointer(off, place, 0)?;
                 if ptr == 0 {
-                    return Some(("null".into(), Vec::new()));
+                    return Some((NULL.into(), Vec::new()));
                 }
                 let (inner_off, _) = self.peel(inner_ty?)?;
                 let inner = self.members(inner_off);
-                let field = |n: &str| inner.iter().find(|m| m.name == n);
-                let strong = field("strong")?;
-                let data = field("value").or_else(|| field("data"))?;
+                let strong = Self::member_named(&inner, "strong")?;
+                let data = Self::rc_payload(&inner)?;
                 let count = self.first_uint(strong.ty?, &Place::Mem(ptr + strong.offset), 0);
                 let count = count.map_or_else(|| "?".into(), |n| n.to_string());
                 let (value, children) = self.unwrap_member(data, &Place::Mem(ptr), depth);
@@ -682,7 +744,7 @@ impl<'a> Formatter<'a> {
     /// The first integer reachable through leading struct members (an
     /// atomic's or `Cell`'s payload).
     fn first_uint(&self, ty: Off, place: &Place, depth: usize) -> Option<u64> {
-        if depth > 8 {
+        if depth > MAX_TYPE_DEPTH {
             return None;
         }
         let (off, entry) = self.peel(ty)?;
@@ -705,9 +767,7 @@ impl<'a> Formatter<'a> {
     fn is_phantom(&self, ty: Option<Off>) -> bool {
         ty.and_then(|t| self.peel(t)).is_some_and(|(off, e)| {
             e.tag() == gimli::DW_TAG_structure_type
-                && self
-                    .qualified_name(off, &e)
-                    .starts_with("core::marker::Phantom")
+                && self.qualified_name(off, &e).starts_with(PHANTOM_PREFIX)
         })
     }
 
@@ -723,19 +783,24 @@ impl<'a> Formatter<'a> {
         if members.is_empty() {
             return (short_name.to_string(), Vec::new());
         }
-        let tuple = members.iter().all(|m| m.name.starts_with("__"));
+        let tuple = is_tuple(members.iter().copied());
         if depth >= MAX_DEPTH {
-            return ((if tuple { "(…)" } else { "{…}" }).into(), Vec::new());
+            let elided = if tuple {
+                format!("({ELLIPSIS})")
+            } else {
+                format!("{{{ELLIPSIS}}}")
+            };
+            return (elided, Vec::new());
         }
         let children: Vec<Value> = members
             .iter()
             .map(|m| {
-                let name = if tuple {
-                    m.name.trim_start_matches("__").to_string()
-                } else {
-                    m.name.clone()
-                };
-                self.format(name, m.ty, &place.offset(m.offset), depth + 1)
+                self.format(
+                    field_label(m, tuple),
+                    m.ty,
+                    &place.offset(m.offset),
+                    depth + 1,
+                )
             })
             .collect();
         let summary = if tuple {
@@ -781,8 +846,7 @@ impl<'a> Formatter<'a> {
         }
         let base = place.offset(variant.member.offset);
         let (summary, children) = self.format_fields(&fields, &base, depth, &name);
-        let tuple = fields.iter().all(|m| m.name.starts_with("__"));
-        let value = if tuple {
+        let value = if is_tuple(&fields) {
             format!("{name}{summary}")
         } else {
             format!("{name} {summary}")
@@ -848,8 +912,8 @@ impl<'a> Formatter<'a> {
     fn vec_parts(&self, vec_ty: Off, place: &Place) -> Option<(u64, u64)> {
         let (off, _) = self.peel(vec_ty)?;
         let members = self.members(off);
-        let buf = members.iter().find(|m| m.name == "buf")?;
-        let len = members.iter().find(|m| m.name == "len")?;
+        let buf = Self::member_named(&members, "buf")?;
+        let len = Self::member_named(&members, "len")?;
         let (ptr, _) = self.find_pointer(buf.ty?, &place.offset(buf.offset), 0)?;
         let len = self.read_uint(&place.offset(len.offset), PTR_SIZE)?;
         Some((ptr, len))
@@ -859,7 +923,7 @@ impl<'a> Formatter<'a> {
     /// (`RawVec { inner: RawVecInner { ptr: Unique { pointer: NonNull {
     /// pointer: *const T }}}}` and friends), with its pointee type.
     fn find_pointer(&self, ty: Off, place: &Place, depth: usize) -> Option<(u64, Option<Off>)> {
-        if depth > 8 {
+        if depth > MAX_TYPE_DEPTH {
             return None;
         }
         let (off, entry) = self.peel(ty)?;
@@ -884,7 +948,7 @@ impl<'a> Formatter<'a> {
             Some(bytes) => {
                 let s = String::from_utf8_lossy(&bytes);
                 if len > take {
-                    format!("{s:?}… (len={len})")
+                    format!("{s:?}{ELLIPSIS} (len={len})")
                 } else {
                     format!("{s:?}")
                 }
@@ -896,14 +960,38 @@ impl<'a> Formatter<'a> {
 
 /// `Some(x)` -> `x`, `None` -> `<uninit>` (`OnceCell`'s slot).
 fn unwrap_option(value: String, mut children: Vec<Value>) -> (String, Vec<Value>) {
-    if value == "None" {
-        return ("<uninit>".into(), Vec::new());
+    if value == NONE {
+        return (UNINIT.into(), Vec::new());
     }
-    if value.starts_with("Some(") && children.len() == 1 {
+    if value
+        .strip_prefix(SOME)
+        .is_some_and(|rest| rest.starts_with('('))
+        && children.len() == 1
+    {
         let inner = children.remove(0);
         return (inner.value, inner.children);
     }
     (value, children)
+}
+
+/// The type a generic instance's qualified name names, without its
+/// parameters (`alloc::rc::Rc<u8>` -> `alloc::rc::Rc`).
+fn generic_base(qualified: &str) -> &str {
+    qualified.split('<').next().unwrap_or(qualified)
+}
+
+/// Whether `members` are a tuple's (or tuple variant's) fields.
+fn is_tuple<'m>(members: impl IntoIterator<Item = &'m Member>) -> bool {
+    members.into_iter().all(|m| m.name.starts_with(TUPLE_FIELD))
+}
+
+/// A member's row label: tuple fields as `0`, `1`..., others by name.
+fn field_label(member: &Member, tuple: bool) -> String {
+    if tuple {
+        member.name.trim_start_matches(TUPLE_FIELD).to_string()
+    } else {
+        member.name.clone()
+    }
 }
 
 /// Display form of a type name: the allocator parameter and the paths of
@@ -947,9 +1035,11 @@ fn attr_u64(v: &AttributeValue<R>) -> Option<u64> {
 }
 
 fn hex_bytes(bytes: &[u8]) -> String {
-    let mut s = String::from("0x");
+    use std::fmt::Write as _;
+    let mut s = String::with_capacity(2 + 2 * bytes.len());
+    s.push_str("0x");
     for b in bytes.iter().rev() {
-        s.push_str(&format!("{b:02x}"));
+        let _ = write!(s, "{b:02x}");
     }
     s
 }
@@ -970,7 +1060,10 @@ fn summarize(open: &str, close: &str, items: impl Iterator<Item = String>, more:
         s.push_str(&item);
     }
     if truncated {
-        s.push_str(if first { "…" } else { ", …" });
+        if !first {
+            s.push_str(", ");
+        }
+        s.push_str(ELLIPSIS);
     }
     s.push_str(close);
     s
