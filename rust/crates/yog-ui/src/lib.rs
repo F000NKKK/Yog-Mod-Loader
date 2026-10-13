@@ -2,7 +2,8 @@
 //!
 //! Flexbox-inspired layout engine and a WPF-style [`grid`](widget::grid)
 //! (rows/columns: pixels, `Auto`, `*`) + GPU rendering via [`yog-gfx`].
-//! Use for custom inventories, guide books, tooltips, HUD overlays.
+//! Use for custom inventories, guide books, tooltips, HUD overlays;
+//! [`surface`]s draw whatever the widgets don't (any `yog-gfx` call).
 //!
 //! # Quick start
 //! ```ignore
@@ -23,6 +24,7 @@ pub mod image;
 pub mod layout;
 mod render;
 pub mod scroll;
+pub mod surface;
 #[cfg(test)]
 mod state_tests;
 pub mod text;
@@ -32,6 +34,7 @@ pub mod widget;
 pub use event::UiEvent;
 pub use layout::{hit_path, node_at, set_focus, Align, FlexDir, GridLines, LayoutNode, Rect};
 pub use scroll::ScrollState;
+pub use surface::{Pointer, Surface};
 pub use textbox::{TextBoxEvent, TextBoxState};
 pub use widget::{
     Action, Cell, Dock, FocusStyle, GridLength, GridSpec, HAlign, StateFlags, StateStyles, Stretch,
@@ -70,7 +73,7 @@ impl UiRoot {
         text::use_host_metrics(ctx);
         image::use_host_images(ctx);
         let d2d = ctx.draw2d();
-        render::render_node(&d2d, &self.root, &self.layout_root);
+        render::render_node(ctx, &d2d, &self.root, &self.layout_root);
     }
 
     /// Find the deepest clickable widget at `(mx, my)` in screen coordinates.

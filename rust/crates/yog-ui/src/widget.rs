@@ -160,6 +160,9 @@ pub enum WidgetKind {
     Image(Image),
     /// Invisible spacer.
     Spacer,
+    /// Drawn by the code: the [`Surface`](crate::Surface) registered under
+    /// this id (see [`crate::surface`] and [`surface`]).
+    Surface(String),
     /// Single-line text input — see [`TextBox`] and
     /// [`TextBoxState`](crate::TextBoxState), which owns the text and drives it.
     TextBox(TextBox),
@@ -838,6 +841,7 @@ impl Widget {
     pub fn with_source(mut self, source: impl Into<String>) -> Self {
         match &mut self.kind {
             WidgetKind::Image(i) => i.source = source.into(),
+            WidgetKind::Surface(id) => *id = source.into(),
             WidgetKind::ItemSlot(id) | WidgetKind::InvSlot { item_id: id, .. } => {
                 *id = source.into()
             }
@@ -983,6 +987,12 @@ pub fn image(source: impl Into<String>) -> Widget {
 }
 pub fn spacer() -> Widget {
     Widget::new(WidgetKind::Spacer)
+}
+/// A box drawn by the code — the [`Surface`](crate::Surface) registered
+/// under `id` with [`crate::surface::register`]. No natural size: give it
+/// `w`/`h` (or let a parent stretch it).
+pub fn surface(id: impl Into<String>) -> Widget {
+    Widget::new(WidgetKind::Surface(id.into()))
 }
 /// A single-line text input holding `text` — black box, grey border (white
 /// while focused), like vanilla's `EditBox`. Its text, caret and focus live

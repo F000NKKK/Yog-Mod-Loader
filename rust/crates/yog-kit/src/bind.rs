@@ -147,12 +147,17 @@ pub fn set_count(w: &mut Widget, n: u32) -> bool {
     }
 }
 
-/// Sets the image source of an image; `false` for other kinds.
+/// Sets the image source of an image or the id of a surface; `false` for
+/// other kinds.
 pub fn set_source(w: &mut Widget, source: &str) -> bool {
     use yog_api::ui::widget::WidgetKind;
     match &mut w.kind {
         WidgetKind::Image(img) => {
             img.source = source.to_owned();
+            true
+        }
+        WidgetKind::Surface(id) => {
+            *id = source.to_owned();
             true
         }
         _ => false,

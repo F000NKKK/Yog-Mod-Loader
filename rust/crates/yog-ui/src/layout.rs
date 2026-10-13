@@ -260,7 +260,7 @@ fn layout_widget(
                 ww = (18.0 + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
                 hh = (18.0 + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
             }
-            WidgetKind::Spacer => {
+            WidgetKind::Spacer | WidgetKind::Surface(_) => {
                 ww = s.min_w.max(1.0).min(max_w);
                 hh = s.min_h.max(1.0).min(max_h);
             }

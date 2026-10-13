@@ -5,14 +5,15 @@ use crate::layout::{LayoutNode, Rect};
 use crate::text;
 use crate::widget::{self, FocusStyle, Widget, WidgetKind};
 use yog_gfx::draw2d::Draw2D;
+use yog_gfx::GfxContext;
 
 /// Scrollbar track and knob colors.
 const TRACK_COLOR: u32 = 0x44_000000;
 const KNOB_COLOR: u32 = 0xAA_888888;
 
 /// Recursively render a widget tree starting from the computed layout.
-pub fn render_node(d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
-    render_clipped(d2d, widget, node, None);
+pub fn render_node(gfx: &GfxContext, d2d: &Draw2D, widget: &Widget, node: &LayoutNode) {
+    render_clipped(gfx, d2d, widget, node, None);
 }
 
 /// Fills `x0..x1 × y0..y1`, cut to `clip`.
@@ -64,7 +65,13 @@ fn ellipsize(line: &str, max_w: f32, font_scale: f32, font: &str) -> String {
     out + "..."
 }
 
-fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option<Rect>) {
+fn render_clipped(
+    gfx: &GfxContext,
+    d2d: &Draw2D,
+    widget: &Widget,
+    node: &LayoutNode,
+    clip: Option<Rect>,
+) {
     if !widget.visible || !node.visible {
         return;
     }
@@ -202,6 +209,11 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
         }
         WidgetKind::Image(image) => crate::image::render(d2d, image, content_box(r, s), clip),
         WidgetKind::Spacer => {} // invisible
+        WidgetKind::Surface(id) => {
+            if let Some(surface) = crate::surface::get(id) {
+                surface.paint(gfx, content_box(r, s));
+            }
+        }
         WidgetKind::TextBox(tb) => render_text_box(d2d, tb, s, *r, clip, node.focused),
     }
 
@@ -219,7 +231,7 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
     };
     for (i, child_widget) in widget.children.iter().enumerate() {
         if let Some(child_node) = node.children.get(i) {
-            render_clipped(d2d, child_widget, child_node, child_clip);
+            render_clipped(gfx, d2d, child_widget, child_node, child_clip);
         }
     }
 

@@ -89,6 +89,23 @@ impl<W: View> TestHost<W> {
         self
     }
 
+    /// A mouse drag: the button goes down at the first point, moves through
+    /// the others and comes up at the last; returns whether the press was
+    /// consumed.
+    pub fn drag(&mut self, points: &[(f32, f32)]) -> bool {
+        let Some((&(x0, y0), rest)) = points.split_first() else {
+            return false;
+        };
+        self.move_to(x0, y0);
+        let used = self.event(&format!("click:{x0}:{y0}"));
+        for &(x, y) in rest {
+            self.event(&format!("drag:{x}:{y}"));
+        }
+        let (x, y) = points[points.len() - 1];
+        self.event(&format!("release:{x}:{y}"));
+        used
+    }
+
     /// Mouse wheel (positive = up).
     pub fn scroll(&mut self, dy: f32) -> bool {
         self.event(&format!("scroll:{dy}"))

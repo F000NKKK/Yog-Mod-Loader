@@ -4,9 +4,10 @@
 //! a graphics context.
 
 use yog_api::ui::event::keys;
+use yog_api::ui::widget::WidgetKind;
 use yog_api::ui::{
-    layout, widget, Action, FlexDir, LayoutNode, StateFlags, TextBoxEvent, UiEvent, UiRoot, Units,
-    Widget,
+    layout, surface, widget, Action, FlexDir, LayoutNode, Pointer, Rect, StateFlags, TextBoxEvent,
+    UiEvent, UiRoot, Units, Widget,
 };
 
 use crate::screen::{self, Request};
@@ -113,6 +114,10 @@ pub(crate) struct Host<W: View> {
     focus_visible: bool,
     outlined: Option<Vec<u16>>,
     mouse: Option<(f32, f32)>,
+    /// The surface a button went down on (it gets the drags and the release).
+    captured: Option<Vec<u16>>,
+    /// The surface under the cursor (it gets `Move`s, then a `Leave`).
+    hovered_surface: Option<Vec<u16>>,
     opened: bool,
     reveal: Option<(u16, u32)>,
     /// Viewports the last update saw.
@@ -141,6 +146,8 @@ impl<W: View> Host<W> {
             focus_visible: false,
             outlined: None,
             mouse: None,
+            captured: None,
+            hovered_surface: None,
             opened: false,
             reveal: None,
             seen_viewports: Vec::new(),
@@ -448,6 +455,8 @@ impl<W: View> Host<W> {
                 false
             }
             UiEvent::Close => {
+                self.captured = None;
+                self.leave_surface();
                 if self.opened {
                     self.close_vm();
                 }
@@ -459,10 +468,34 @@ impl<W: View> Host<W> {
             UiEvent::Move { x, y } => {
                 self.mouse = Some((x, y));
                 self.hover = self.hit(x, y);
-                false
+                let under = self.surface_at(x, y);
+                if under != self.hovered_surface {
+                    self.leave_surface();
+                    self.hovered_surface = under.clone();
+                }
+                under.is_some_and(|p| self.to_surface(&p, x, y, |x, y| Pointer::Move { x, y }))
             }
             UiEvent::Scroll { .. } => self.scroll(&ev),
             UiEvent::Click { x, y } => self.click(x, y, &ev),
+            UiEvent::Drag { x, y } | UiEvent::Release { x, y } if self.captured.is_some() => {
+                let release = matches!(ev, UiEvent::Release { .. });
+                let path = if release {
+                    self.pressed = None;
+                    self.captured.take()
+                } else {
+                    self.captured.clone()
+                };
+                if let Some(path) = path {
+                    self.to_surface(&path, x, y, |x, y| {
+                        if release {
+                            Pointer::Up { x, y }
+                        } else {
+                            Pointer::Drag { x, y }
+                        }
+                    });
+                }
+                true
+            }
             UiEvent::Drag { .. } | UiEvent::Release { .. } => {
                 if matches!(ev, UiEvent::Release { .. }) {
                     self.pressed = None;
@@ -555,6 +588,13 @@ impl<W: View> Host<W> {
             self.focus_visible = false;
             return true;
         }
+        if let Some(path) = self.surface_at(x, y) {
+            if self.to_surface(&path, x, y, |x, y| Pointer::Down { x, y }) {
+                self.captured = Some(path);
+                self.focus = None;
+                return true;
+            }
+        }
         let Some(path) = self.hit(x, y) else {
             self.focus = None;
             return false;
@@ -570,6 +610,60 @@ impl<W: View> Host<W> {
         self.focus_visible = false;
         self.activate(&path);
         true
+    }
+
+    // ── surfaces ────────────────────────────────────────────────────────────
+
+    /// Content path of the enabled surface under `(x, y)`: the deepest node
+    /// there or its nearest surface ancestor.
+    fn surface_at(&self, x: f32, y: f32) -> Option<Vec<u16>> {
+        let p = layout::deepest_path(&self.ui.layout_root, x, y)?;
+        if p.first() != Some(&0) {
+            return None;
+        }
+        let mut p = p[1..].to_vec();
+        loop {
+            if let Some(w) = self.content().get_path(&p) {
+                if matches!(w.kind, WidgetKind::Surface(_)) && w.enabled && w.visible {
+                    return Some(p);
+                }
+            }
+            p.pop()?;
+        }
+    }
+
+    /// The surface at `path` and its content box (rect less padding).
+    fn surface_box(&self, path: &[u16]) -> Option<(std::sync::Arc<dyn yog_api::ui::Surface>, Rect)> {
+        let w = self.content().get_path(path)?;
+        let WidgetKind::Surface(id) = &w.kind else {
+            return None;
+        };
+        let r = self.node(path)?.rect;
+        let pad = w.effective_style().pad;
+        let rect = Rect {
+            x: r.x + pad[3],
+            y: r.y + pad[0],
+            w: (r.w - pad[1] - pad[3]).max(0.0),
+            h: (r.h - pad[0] - pad[2]).max(0.0),
+        };
+        Some((surface::get(id)?, rect))
+    }
+
+    /// Hands the surface at `path` a pointer event at screen `(x, y)`.
+    fn to_surface(&self, path: &[u16], x: f32, y: f32, ev: impl FnOnce(f32, f32) -> Pointer) -> bool {
+        match self.surface_box(path) {
+            Some((s, r)) => s.pointer(ev(x - r.x, y - r.y), (r.w, r.h)),
+            None => false,
+        }
+    }
+
+    /// Tells the hovered surface the cursor left it.
+    fn leave_surface(&mut self) {
+        if let Some(path) = self.hovered_surface.take() {
+            if let Some((s, r)) = self.surface_box(&path) {
+                s.pointer(Pointer::Leave, (r.w, r.h));
+            }
+        }
     }
 
     /// Runs the action of the widget at `path`.
