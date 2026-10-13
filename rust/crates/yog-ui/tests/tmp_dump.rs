@@ -3,7 +3,9 @@ mod support;
 use yog_ui::layout;
 #[test]
 fn dump() {
-    let Ok(path) = std::env::var("DUMP") else { return };
+    let Ok(path) = std::env::var("DUMP") else {
+        return;
+    };
     let mut out = String::new();
     for n in [10, 100, 300] {
         for t in [support::screen(n), support::grid(n), support::list(n)] {

@@ -49,7 +49,11 @@ pub fn screen(nodes: usize) -> Widget {
         .w(Units::Percent(100.0))
         .h(Units::Percent(100.0))
         .padding(4.0, 4.0, 4.0, 4.0)
-        .child(widget::label("Title").align(Align::Center).w(Units::Percent(100.0)))
+        .child(
+            widget::label("Title")
+                .align(Align::Center)
+                .w(Units::Percent(100.0)),
+        )
         .child(
             widget::panel(FlexDir::Row)
                 .flex(1.0)
@@ -65,7 +69,9 @@ pub fn screen(nodes: usize) -> Widget {
                     widget::panel(FlexDir::Column)
                         .flex(1.0)
                         .child(widget::label("Details").no_wrap())
-                        .child(widget::label("Some details text that wraps a few times over")),
+                        .child(widget::label(
+                            "Some details text that wraps a few times over",
+                        )),
                 ),
         )
         .child(
@@ -96,7 +102,12 @@ pub fn grid(nodes: usize) -> Widget {
     let rows = nodes.div_ceil(4);
     let mut g = widget::grid()
         .w(Units::Percent(100.0))
-        .cols([Track::auto(), Track::star(1.0), Track::auto(), Track::px(40.0)])
+        .cols([
+            Track::auto(),
+            Track::star(1.0),
+            Track::auto(),
+            Track::px(40.0),
+        ])
         .rows((0..rows).map(|_| Track::auto()))
         .row_spacing(1.0)
         .col_spacing(2.0);

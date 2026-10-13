@@ -31,14 +31,19 @@ pub fn use_host_images(ctx: &GfxContext) {
     }
 }
 
+/// The size of an image the host can't tell (an item's, offline).
+const FALLBACK_SIZE: (f32, f32) = (16.0, 16.0);
+/// Most image sizes cached before the cache starts over.
+const SIZE_CACHE_CAP: usize = 4096;
+
 /// The size `source` has without a host to ask: 16×16 items, the sprite
 /// table's size, 16×16 for the rest.
 fn offline_size(source: &str) -> (f32, f32) {
     match ImageSource::parse(source) {
         Some(ImageSource::Sprite(name)) => {
-            img::sprite(&name).map_or((16.0, 16.0), |s| s.size(true))
+            img::sprite(&name).map_or(FALLBACK_SIZE, |s| s.size(true))
         }
-        _ => (16.0, 16.0),
+        _ => FALLBACK_SIZE,
     }
 }
 
@@ -56,7 +61,7 @@ pub fn source_size(source: &str) -> (f32, f32) {
     }
     match draw2d::image_size_with(size_fn, source) {
         Some(size) => {
-            if cache.len() > 4096 {
+            if cache.len() > SIZE_CACHE_CAP {
                 cache.clear();
             }
             cache.insert(source.to_owned(), size);
@@ -99,8 +104,12 @@ pub(crate) fn render(d2d: &Draw2D, image: &Image, bx: Rect, clip: Option<Rect>) 
     let dest = Rect { x, y, w, h };
     if whole {
         // Drawn whole or not at all — like text lines and item icons.
+        let slack = crate::render::CLIP_SLACK;
         let inside = clip.is_none_or(|c| {
-            x >= c.x - 0.5 && y >= c.y - 0.5 && x + w <= c.x + c.w + 0.5 && y + h <= c.y + c.h + 0.5
+            x >= c.x - slack
+                && y >= c.y - slack
+                && x + w <= c.x + c.w + slack
+                && y + h <= c.y + c.h + slack
         });
         if inside {
             d2d.image_region(&image.source, x, y, w, h, [0.0; 4], image.tint);

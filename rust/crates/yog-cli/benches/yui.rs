@@ -13,7 +13,7 @@ fn big_screen(n: usize) -> String {
     let mut s = String::from("<Screen id=\"m:big\" width=\"400\" height=\"300\">\n  <Column w=\"100%\" gap=\"2\">\n");
     for i in 0..n {
         s.push_str(&format!(
-            "    <Row gap=\"4\" align=\"center\">\n      <Label text=\"Row {i}\" color=\"#FFCCCCCC\"/>\n      <Button x:Name=\"b{i}\" text=\"Go {i}\" w=\"40\" h=\"14\"/>\n    </Row>\n"
+            "    <Row gap=\"4\" align=\"center\">\n      <Label text=\"Row {i}\" color=\"#FFCCCCCC\"/>\n      <Button id=\"b{i}\" text=\"Go {i}\" w=\"40\" h=\"14\"/>\n    </Row>\n"
         ));
     }
     s.push_str("  </Column>\n</Screen>\n");
@@ -22,7 +22,7 @@ fn big_screen(n: usize) -> String {
 
 fn bench(c: &mut Criterion) {
     let fixtures = [
-        ("yui/spellcasting", common::fixture("hexmod/src/ui/spellcasting.yui")),
+        ("yui_vm/spellcasting", common::fixture("hexmod/src/ui/spellcasting.yui")),
         ("yui_vm/mod_list", common::fixture("modlist/src/mod_list.yui")),
         ("yui_component/pill", common::fixture("modlist/src/pill.yui")),
         ("yui_component/stat_bar", common::fixture("modlist/src/stat_bar.yui")),

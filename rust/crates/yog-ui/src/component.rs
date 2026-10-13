@@ -302,7 +302,9 @@ impl Props {
 
     /// A color `0xAARRGGBB` (opaque white if missing or malformed).
     pub fn color(&self, name: &str) -> u32 {
-        self.get(name).and_then(parse_color).unwrap_or(FALLBACK_COLOR)
+        self.get(name)
+            .and_then(parse_color)
+            .unwrap_or(FALLBACK_COLOR)
     }
 
     /// A choice / event / image value, trimmed.

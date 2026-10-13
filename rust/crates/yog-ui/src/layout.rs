@@ -240,14 +240,7 @@ enum Depth {
 /// Measure `w` (see [`Depth`]) at `(x, y)`. `max_w`/`max_h` cap its size
 /// (`UNBOUNDED` = no cap: size to content); `basis_w`/`basis_h` are the
 /// parent's content box that percent sizes resolve against.
-fn measure(
-    w: &Widget,
-    node: &mut LayoutNode,
-    max_w: f32,
-    max_h: f32,
-    basis_w: f32,
-    basis_h: f32,
-) {
+fn measure(w: &Widget, node: &mut LayoutNode, max_w: f32, max_h: f32, basis_w: f32, basis_h: f32) {
     layout_widget(
         w,
         node,

@@ -46,6 +46,9 @@ pub fn is_default_font(font: &str) -> bool {
     font.is_empty() || font == DEFAULT_FONT
 }
 
+/// Most `(font, char)` advances cached before the cache starts over.
+const ADVANCE_CACHE_CAP: usize = 8192;
+
 struct HostMetrics {
     width: Option<TextWidthFn>,
     /// `(font, char)` → advance; MC advances are additive, so per-char
@@ -92,7 +95,7 @@ pub fn char_width_in(c: char, font: &str) -> f32 {
         )
     };
     let cache = h.cache.get_or_insert_with(HashMap::new);
-    if cache.len() > 8192 {
+    if cache.len() > ADVANCE_CACHE_CAP {
         cache.clear();
     }
     cache.insert((font.to_owned(), c), w);
@@ -269,7 +272,10 @@ mod tests {
         assert_eq!(wrap_text("aaa  bbb ccc", 40.0, 1.0), ["aaa bbb", "ccc"]);
         assert_eq!(wrap_text("", 40.0, 1.0), [""]);
         assert_eq!(wrap_text("mmmmmmmmmm", 30.0, 1.0), ["mmmmm", "mmmmm"]);
-        assert_eq!(wrap_text("a mmmmmmmmmm b", 30.0, 1.0), ["a", "mmmmm", "mmmmm", "b"]);
+        assert_eq!(
+            wrap_text("a mmmmmmmmmm b", 30.0, 1.0),
+            ["a", "mmmmm", "mmmmm", "b"]
+        );
     }
 
     #[test]
