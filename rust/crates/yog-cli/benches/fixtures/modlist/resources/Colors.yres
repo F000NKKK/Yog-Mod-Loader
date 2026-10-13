@@ -1,0 +1,4 @@
+{
+  "source.yog": { "type": "color", "value": "#88FF88", "comment": "Details pane: source line of a .yog mod" },
+  "source.platform": { "type": "color", "value": "#88BBFF", "comment": "Details pane: source line of a platform (Java) mod" }
+}

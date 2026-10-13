@@ -1,0 +1,14 @@
+{
+  "id": "staff/spruce",
+  "name": "@Items.staff.spruce",
+  "tooltip": "@Items.staff.spruce.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/spruce.png"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@Items.amethyst_dust",
+  "tooltip": "@Items.amethyst_dust.desc",
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/amethyst_dust.png"
+    }
+  }
+}

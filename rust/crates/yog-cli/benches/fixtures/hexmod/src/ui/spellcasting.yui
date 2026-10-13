@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hex Casting's staff screen (GuiSpellcasting): the whole screen is the grid, no
+     background, the game keeps running. Drawing and input: GridSurface in spellcasting.rs. -->
+<Screen id="hexcasting:spellcasting"
+        width="427"
+        height="240"
+        anchor="fill"
+        pause="false"
+        x:ViewModel="SpellcastingVm">
+    <Surface w="100%" h="100%" source="hexcasting:spellcasting_grid" />
+</Screen>

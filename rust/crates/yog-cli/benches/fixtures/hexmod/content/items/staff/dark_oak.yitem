@@ -1,0 +1,14 @@
+{
+  "id": "staff/dark_oak",
+  "name": "@Items.staff.dark_oak",
+  "tooltip": "@Items.staff.dark_oak.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/dark_oak.png"
+    }
+  }
+}

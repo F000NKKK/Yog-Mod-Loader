@@ -1,0 +1,14 @@
+{
+  "id": "staff/warped",
+  "name": "@Items.staff.warped",
+  "tooltip": "@Items.staff.warped.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/warped.png"
+    }
+  }
+}

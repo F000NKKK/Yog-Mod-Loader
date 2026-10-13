@@ -1,0 +1,9 @@
+{
+  "name": "@Items.lore_fragment",
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/lore_fragment.png"
+    }
+  }
+}

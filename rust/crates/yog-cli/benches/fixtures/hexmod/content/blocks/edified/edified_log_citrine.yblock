@@ -1,0 +1,16 @@
+{
+  "name": "@Blocks.edified_log_citrine",
+  "block": {
+    "hardness": 3,
+    "resistance": 4,
+    "sound": "wood",
+    "tool": "axe"
+  },
+  "model": {
+    "parent": "cube_column",
+    "textures": {
+      "end": "block/edified_log_top.png",
+      "side": "block/deco/edified_log_citrine.png"
+    }
+  }
+}

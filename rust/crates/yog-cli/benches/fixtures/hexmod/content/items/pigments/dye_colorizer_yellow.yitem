@@ -1,0 +1,13 @@
+{
+  "id": "dye_colorizer_yellow",
+  "name": "@Items.dye_colorizer_yellow",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/colorizer/dye_yellow.png"
+    }
+  }
+}

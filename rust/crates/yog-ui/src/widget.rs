@@ -331,6 +331,11 @@ pub struct TextBox {
     pub first: usize,
 }
 
+/// Side of an item / inventory slot box in GUI pixels (vanilla's 18).
+pub const SLOT_SIZE: f32 = 18.0;
+/// Focus indicator color when `focus_color` is 0 (amber).
+pub const DEFAULT_FOCUS_COLOR: u32 = 0xFF_FFE040;
+
 /// Placeholder text color of a text box.
 pub const PLACEHOLDER_COLOR: u32 = 0xFF_707070;
 /// Border of an unfocused text box (vanilla `EditBox`).
@@ -437,7 +442,7 @@ pub struct Style {
     pub font_scale: f32,
     pub text_shadow: bool, // MC drop-shadow behind text (HUD default; books disable it)
     pub focus_style: FocusStyle,
-    pub focus_color: u32, // 0 = default amber 0xFF_FFE040
+    pub focus_color: u32, // 0 = DEFAULT_FOCUS_COLOR
     /// Labels/buttons: never word-wrap, even if narrower than the text.
     /// For single-line titles/headers that must stay on one line — matches
     /// Patchouli, where such text overflows its box horizontally rather than
@@ -969,8 +974,8 @@ pub fn inv_slot(item_id: impl Into<String>, count: u32) -> Widget {
         item_id: item_id.into(),
         count,
     })
-    .w(18.0)
-    .h(18.0)
+    .w(SLOT_SIZE)
+    .h(SLOT_SIZE)
 }
 /// An image from a Yog image source — `"item:apple"`, `"block:stone"`,
 /// `"sprite:button"`, `"mymod:gui/logo"` (see [`yog_gfx::image`]) — the

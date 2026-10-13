@@ -1,0 +1,14 @@
+{
+  "id": "staff/bamboo",
+  "name": "@Items.staff.bamboo",
+  "tooltip": "@Items.staff.bamboo.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/bamboo.png"
+    }
+  }
+}

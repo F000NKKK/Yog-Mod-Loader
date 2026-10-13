@@ -1,0 +1,13 @@
+{
+  "name": "@Items.lens",
+  "tooltip": "@Items.lens.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/lens.png"
+    }
+  }
+}

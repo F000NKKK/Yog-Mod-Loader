@@ -1,0 +1,13 @@
+{
+  "id": "pride_colorizer_demigirl",
+  "name": "@Items.pride_colorizer_demigirl",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/colorizer/pride_demigirl.png"
+    }
+  }
+}

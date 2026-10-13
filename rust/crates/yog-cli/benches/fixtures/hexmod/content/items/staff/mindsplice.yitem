@@ -1,0 +1,14 @@
+{
+  "id": "staff/mindsplice",
+  "name": "@Items.staff.mindsplice",
+  "tooltip": "@Items.staff.mindsplice.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/mindsplice.png"
+    }
+  }
+}

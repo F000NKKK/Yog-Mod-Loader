@@ -1,0 +1,17 @@
+{
+  "name": "@Blocks.quenched_allay_bricks",
+  "block": {
+    "hardness": 1.5,
+    "resistance": 1.5,
+    "sound": "glass",
+    "tool": "pickaxe",
+    "light": 4,
+    "requires_tool": true
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/deco/quenched_allay_bricks_0.png"
+    }
+  }
+}

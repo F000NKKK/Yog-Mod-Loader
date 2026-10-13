@@ -1,0 +1,14 @@
+{
+  "name": "@Blocks.ancient_scroll_paper",
+  "block": {
+    "hardness": 0,
+    "resistance": 0,
+    "sound": "grass"
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/ancient_scroll_paper.png"
+    }
+  }
+}

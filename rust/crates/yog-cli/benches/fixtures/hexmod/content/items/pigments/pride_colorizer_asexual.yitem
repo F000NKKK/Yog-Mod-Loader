@@ -1,0 +1,13 @@
+{
+  "id": "pride_colorizer_asexual",
+  "name": "@Items.pride_colorizer_asexual",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/colorizer/pride_asexual.png"
+    }
+  }
+}

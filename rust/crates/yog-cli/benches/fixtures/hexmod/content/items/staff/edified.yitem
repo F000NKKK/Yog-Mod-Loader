@@ -1,0 +1,14 @@
+{
+  "id": "staff/edified",
+  "name": "@Items.staff.edified",
+  "tooltip": "@Items.staff.edified.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/edified.png"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@Blocks.conjured_block",
+  "block": {
+    "hardness": 0,
+    "resistance": 0,
+    "sound": "glass",
+    "shape": "full",
+    "render_layer": "translucent",
+    "drops": "none"
+  },
+  "model": {
+    "textures": {
+      "particle": "minecraft:block/amethyst_block"
+    },
+    "elements": []
+  }
+}

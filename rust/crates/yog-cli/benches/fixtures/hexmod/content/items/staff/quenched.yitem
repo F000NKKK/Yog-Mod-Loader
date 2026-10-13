@@ -1,0 +1,14 @@
+{
+  "id": "staff/quenched",
+  "name": "@Items.staff.quenched",
+  "tooltip": "@Items.staff.quenched.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/quenched_0.png"
+    }
+  }
+}

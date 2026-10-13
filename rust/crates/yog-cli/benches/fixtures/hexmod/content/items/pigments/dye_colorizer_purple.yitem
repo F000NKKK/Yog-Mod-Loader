@@ -1,0 +1,13 @@
+{
+  "id": "dye_colorizer_purple",
+  "name": "@Items.dye_colorizer_purple",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/colorizer/dye_purple.png"
+    }
+  }
+}

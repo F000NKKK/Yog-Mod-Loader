@@ -8,7 +8,7 @@
 //! it the same way.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use gimli::{
     AttributeValue, DebuggingInformationEntry, EvaluationResult, Location, Reader as _, UnitOffset,
@@ -182,6 +182,9 @@ pub(crate) struct UnitInfo {
     /// Out-of-line functions with their code ranges, in DIE order, built on
     /// the first locals lookup in this unit.
     functions: OnceLock<Vec<(gimli::Range, UnitOffset<usize>)>>,
+    /// DIE offset -> qualified name, filled as names are asked for (every
+    /// value of a struct type asks again).
+    pub(crate) qualified_names: Mutex<HashMap<usize, String>>,
 }
 
 impl UnitInfo {
@@ -288,6 +291,7 @@ impl SymbolTable {
                     unit,
                     ranges,
                     parents: OnceLock::new(),
+                    qualified_names: Mutex::default(),
                     functions: OnceLock::new(),
                 });
             }

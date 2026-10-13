@@ -1,0 +1,16 @@
+{
+  "name": "@Blocks.amethyst_tiles",
+  "block": {
+    "hardness": 1.5,
+    "resistance": 1.5,
+    "sound": "glass",
+    "tool": "pickaxe",
+    "requires_tool": true
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/deco/amethyst_tiles.png"
+    }
+  }
+}

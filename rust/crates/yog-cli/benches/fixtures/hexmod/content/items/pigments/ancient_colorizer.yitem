@@ -1,0 +1,13 @@
+{
+  "id": "ancient_colorizer",
+  "name": "@Items.ancient_colorizer",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/colorizer/ancient.png"
+    }
+  }
+}

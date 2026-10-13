@@ -1,0 +1,15 @@
+{
+  "name": "@Blocks.stripped_edified_wood",
+  "block": {
+    "hardness": 3,
+    "resistance": 4,
+    "sound": "wood",
+    "tool": "axe"
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/stripped_edified_log.png"
+    }
+  }
+}

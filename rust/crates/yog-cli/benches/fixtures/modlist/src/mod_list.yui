@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The mod browser. View model: ModListVm in mod_list.rs. -->
+<Screen id="yog-modlist:mod_list"
+        width="400"
+        height="224"
+        anchor="center"
+        bg="#E0101010"
+        x:ViewModel="ModListVm">
+    <Screen.Resources>
+        <Color x:Key="Accent" value="#FFD700" />
+        <Color x:Key="Pane" value="#88111111" />
+        <Style x:Key="Filter"
+               target="ToggleButton"
+               w="58"
+               h="14"
+               bg="#FF333333"
+               color="#FFFFFF"
+               hover:bg="#FF444444"
+               checked:bg="#FF555555"
+               disabled:color="#FF777777" />
+        <Style x:Key="Detail" target="Label" w="100%" color="#CCCCCC" shadow="false" />
+    </Screen.Resources>
+    <Grid w="100%" h="100%" rows="20,*,Auto">
+        <Row padding="0 8" gap="4" align="center" bg="#FF222222">
+            <Label text="@Strings.screen.title" color="@Accent" no_wrap="true" />
+            <Spacer flex="1" />
+            <Label x:Name="mod_count"
+                   text="{x:Bind count_text()}"
+                   color="#AAAAAA"
+                   shadow="false"
+                   no_wrap="true" />
+        </Row>
+        <Grid Grid.Row="1"
+              padding="6 8 0 8"
+              rows="14,14,*"
+              columns="*,*"
+              row_spacing="4"
+              column_spacing="6">
+            <TextBox x:Name="search"
+                     max_length="64"
+                     text="{x:Bind search, Mode=TwoWay}"
+                     placeholder="@Strings.search.placeholder" />
+            <Row Grid.Row="1" gap="3">
+                <ToggleButton x:Name="filter_all"
+                              style="@Filter"
+                              text="@Strings.filter.all"
+                              checked="{x:Bind filter == Filter::All}"
+                              command="{x:Bind set_filter(Filter::All)}" />
+                <ToggleButton x:Name="filter_yog"
+                              style="@Filter"
+                              text="@Strings.filter.yog"
+                              checked="{x:Bind filter == Filter::Yog}"
+                              enabled="{x:Bind has(Filter::Yog)}"
+                              command="{x:Bind set_filter(Filter::Yog)}" />
+                <ToggleButton x:Name="filter_platform"
+                              style="@Filter"
+                              w="64"
+                              text="@Strings.filter.platform"
+                              checked="{x:Bind filter == Filter::Platform}"
+                              enabled="{x:Bind has(Filter::Platform)}"
+                              command="{x:Bind set_filter(Filter::Platform)}" />
+            </Row>
+            <ListView x:Name="mod_list"
+                      Grid.Row="2"
+                      gap="2"
+                      padding="2"
+                      bg="@Pane"
+                      items="{x:Bind visible()}"
+                      key="{x:Bind id}"
+                      selected="{x:Bind selected_id(), BindBack=select}"
+                      scroll_key="{x:Bind list_scope()}"
+                      item_height="24">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="ModEntry">
+                        <Column w="100%"
+                                h="22"
+                                padding="3 4"
+                                gap="1"
+                                bg="#44333333"
+                                hover:bg="#66333344"
+                                selected:bg="#883A3A5A">
+                            <Label w="100%"
+                                   text="{x:Bind name}"
+                                   color="#FFFFFF"
+                                   selected:color="#FFD700"
+                                   ellipsis="true" />
+                            <Label w="100%"
+                                   text="{x:Bind subtitle()}"
+                                   color="#AAAAAA"
+                                   shadow="false"
+                                   ellipsis="true" />
+                        </Column>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+                <ListView.Empty>
+                    <Label text="{x:Bind empty_text()}" color="#888888" shadow="false" />
+                </ListView.Empty>
+            </ListView>
+            <ScrollView x:Name="details"
+                        Grid.Column="1"
+                        Grid.RowSpan="3"
+                        padding="4 6"
+                        bg="@Pane"
+                        scroll_key="{x:Bind selected_id()}">
+                <ContentPresenter w="100%" content="{x:Bind selected()}">
+                    <DataTemplate x:DataType="ModEntry">
+                        <Column w="100%" gap="3">
+                            <Label x:Name="detail_name" w="100%" text="{x:Bind name}" color="#FFFFFF" />
+                            <Label style="@Detail" text="{x:Bind Strings::details_version(version)}" color="#AAAAAA" />
+                            <Label style="@Detail" text="{x:Bind source.label()}" color="{x:Bind source.color()}" />
+                            <Label style="@Detail" text="{x:Bind authors_text()}" />
+                            <Label style="@Detail" text="{x:Bind Strings::details_id(id)}" color="#9999BB" />
+                            <Spacer h="4" />
+                            <Label style="@Detail" text="{x:Bind description_text()}" color="#DDDDDD" />
+                        </Column>
+                    </DataTemplate>
+                    <ContentPresenter.Empty>
+                        <Label text="@Strings.details.none_selected" color="#FFFFFF" />
+                    </ContentPresenter.Empty>
+                </ContentPresenter>
+            </ScrollView>
+        </Grid>
+        <Button x:Name="done"
+                Grid.Row="2"
+                w="40"
+                h="14"
+                halign="right"
+                margin="4 8 6 8"
+                text="@Strings.screen.done"
+                bg="#FF333333"
+                color="#FFFFFF"
+                hover:bg="#FF555555"
+                command="{x:Bind cx.close()}" />
+    </Grid>
+</Screen>

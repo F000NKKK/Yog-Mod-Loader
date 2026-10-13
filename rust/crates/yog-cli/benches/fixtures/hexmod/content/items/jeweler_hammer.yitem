@@ -1,0 +1,14 @@
+{
+  "name": "@Items.jeweler_hammer",
+  "tooltip": "@Items.jeweler_hammer.desc",
+  "item": {
+    "stack_size": 1,
+    "durability": 1561
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/jeweler_hammer.png"
+    }
+  }
+}

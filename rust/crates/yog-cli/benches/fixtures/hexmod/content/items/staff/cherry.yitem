@@ -1,0 +1,14 @@
+{
+  "id": "staff/cherry",
+  "name": "@Items.staff.cherry",
+  "tooltip": "@Items.staff.cherry.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/cherry.png"
+    }
+  }
+}

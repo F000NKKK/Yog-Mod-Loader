@@ -1,0 +1,13 @@
+{
+  "id": "dye_colorizer_orange",
+  "name": "@Items.dye_colorizer_orange",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/colorizer/dye_orange.png"
+    }
+  }
+}

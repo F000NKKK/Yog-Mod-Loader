@@ -1,0 +1,23 @@
+{
+  "id": "directrix/boolean",
+  "name": "@Blocks.directrix.boolean",
+  "block": {
+    "hardness": 4,
+    "resistance": 4,
+    "sound": "stone",
+    "tool": "pickaxe",
+    "requires_tool": true
+  },
+  "model": {
+    "parent": "cube",
+    "textures": {
+      "north": "block/circle/directrix/boolean/front_dim_false.png",
+      "south": "block/circle/directrix/boolean/back_dim_true.png",
+      "west": "block/circle/directrix/boolean/left_neither.png",
+      "east": "block/circle/directrix/boolean/right_neither.png",
+      "up": "block/circle/directrix/boolean/top_neither.png",
+      "down": "block/circle/bottom.png",
+      "particle": "block/circle/directrix/boolean/front_dim_false.png"
+    }
+  }
+}

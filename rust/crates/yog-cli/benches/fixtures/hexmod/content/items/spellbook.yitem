@@ -1,0 +1,13 @@
+{
+  "name": "@Items.spellbook",
+  "tooltip": "@Items.spellbook.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/spellbook_empty.png"
+    }
+  }
+}

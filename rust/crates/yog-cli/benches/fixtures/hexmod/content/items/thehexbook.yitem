@@ -1,0 +1,14 @@
+{
+  "name": "@Items.thehexbook",
+  "tooltip": "@Items.thehexbook.desc",
+  "register": "manual",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/thehexbook.png"
+    }
+  }
+}

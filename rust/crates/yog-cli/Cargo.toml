@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Yog build tool — `yog build` compiles a mod and packages it as .yog."
+exclude = ["benches/fixtures"]
 
 [lib]
 path = "src/lib.rs"
@@ -18,3 +19,22 @@ zip.workspace = true
 serde_json.workspace = true
 # Image sources (`item:`, `sprite:`, ...) checked in .yui files.
 yog-gfx = "0.25"
+
+[dev-dependencies]
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "exports"
+harness = false
+
+[[bench]]
+name = "yui"
+harness = false
+
+[[bench]]
+name = "yres"
+harness = false
+
+[[bench]]
+name = "content"
+harness = false

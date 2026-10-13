@@ -1,0 +1,16 @@
+{
+  "name": "@Blocks.akashic_connector",
+  "block": {
+    "hardness": 3,
+    "resistance": 4,
+    "sound": "wood",
+    "tool": "axe",
+    "light": 4
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/akashic_ligature.png"
+    }
+  }
+}

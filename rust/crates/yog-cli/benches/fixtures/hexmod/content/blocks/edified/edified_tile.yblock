@@ -1,0 +1,15 @@
+{
+  "name": "@Blocks.edified_tile",
+  "block": {
+    "hardness": 2,
+    "resistance": 3,
+    "sound": "wood",
+    "tool": "axe"
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/edified_tile.png"
+    }
+  }
+}

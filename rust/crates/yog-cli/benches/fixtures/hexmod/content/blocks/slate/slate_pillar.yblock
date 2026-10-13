@@ -1,0 +1,17 @@
+{
+  "name": "@Blocks.slate_pillar",
+  "block": {
+    "hardness": 2,
+    "resistance": 4,
+    "sound": "stone",
+    "tool": "pickaxe",
+    "requires_tool": true
+  },
+  "model": {
+    "parent": "cube_column",
+    "textures": {
+      "end": "block/deco/slate_pillar_end.png",
+      "side": "block/deco/slate_pillar_side.png"
+    }
+  }
+}

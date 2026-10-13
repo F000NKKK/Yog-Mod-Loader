@@ -1,0 +1,109 @@
+{
+  "mod_name": {
+    "value": "Hex Casting (Yog)",
+    "comment": "The mod's name (yog.toml name), shown in mod lists"
+  },
+  "mod_description": {
+    "value": "Unofficial Rust port of Hex Casting (by gamma-delta / FallingColors) for the Yog Mod Loader.",
+    "comment": "yog.toml description"
+  },
+  "screen.stack": {
+    "value": "The Stack",
+    "comment": "Casting screen: heading of the stack panel"
+  },
+  "screen.stack_empty": {
+    "value": "(empty)",
+    "comment": "Casting screen: the stack has no iotas"
+  },
+  "screen.patterns": {
+    "value": "Patterns",
+    "comment": "Casting screen: heading of the list of patterns drawn this session"
+  },
+  "screen.patterns_empty": {
+    "value": "Nothing drawn yet",
+    "comment": "Casting screen: no patterns drawn yet"
+  },
+  "screen.clear": {
+    "value": "Clear",
+    "comment": "Casting screen: button that clears the stack"
+  },
+  "screen.hint": {
+    "value": "Drag across the dots to draw a pattern. Esc to close.",
+    "comment": "Casting screen: hint under the grid"
+  },
+  "pattern.pending": {
+    "value": "…",
+    "comment": "Pattern list: the server hasn't answered yet"
+  },
+  "status.ok": {
+    "value": "{action}",
+    "comment": "Status line after a pattern worked: {action} = its name"
+  },
+  "status.reveal": {
+    "value": "Reveal: {iota}",
+    "comment": "Status line after Reveal: {iota} = the top iota"
+  },
+  "status.mishap": {
+    "value": "Mishap: {message}",
+    "comment": "Status line after a pattern failed"
+  },
+  "status.reset": {
+    "value": "The stack was cleared",
+    "comment": "Status line after sneak + staff / Clear"
+  },
+  "action.minds_reflection": "Mind's Reflection",
+  "action.compass_purification": "Compass' Purification",
+  "action.alidade_purification": "Alidade's Purification",
+  "action.reveal": "Reveal",
+  "action.jesters_gambit": "Jester's Gambit",
+  "action.clear_stack": {
+    "value": "Clear Stack",
+    "comment": "Port-only pattern (dsw) that empties the stack"
+  },
+  "action.unknown": {
+    "value": "Unknown pattern",
+    "comment": "Pattern list: a pattern that fizzled"
+  },
+  "mishap.no_caster": "the caster's mind is out of reach",
+  "mishap.entity_gone": "that entity is nowhere to be found",
+  "mishap.expected_entity": "expected an entity on the stack",
+  "mishap.stack_empty": "the stack is empty",
+  "mishap.nothing_to_reveal": "nothing to reveal",
+  "mishap.need_two": "need two iotas to swap",
+  "mishap.unknown_pattern": {
+    "value": "the pattern {signature} fizzles",
+    "comment": "{signature} = the pattern's angle signature, e.g. qaq"
+  },
+  "mishap.bad_strokes": "the strokes make no sense",
+  "iota.boolean": "Boolean",
+  "iota.number": "Number",
+  "iota.string": "Text",
+  "iota.entity": "Entity",
+  "iota.vector": "Vector",
+  "iota.pattern": "Pattern",
+  "iota.list": "List",
+  "iota.null": "Null",
+  "iota.true": "True",
+  "iota.false": "False",
+  "iota.list_value": {
+    "value": "{count} iotas",
+    "comment": "A list iota: {count} = its length"
+  },
+  "iota.null_value": "nothing",
+  "component.hex_grid": {
+    "value": "The hex lattice patterns are drawn on.",
+    "comment": "Designer toolbox tooltip of the HexGrid component"
+  },
+  "component.iota_row": {
+    "value": "One iota of the stack: its type and value.",
+    "comment": "Designer toolbox tooltip"
+  },
+  "component.mishap_banner": {
+    "value": "A one-line cast result or mishap message.",
+    "comment": "Designer toolbox tooltip"
+  },
+  "component.pattern_entry": {
+    "value": "A drawn pattern: its name and angle signature.",
+    "comment": "Designer toolbox tooltip"
+  }
+}

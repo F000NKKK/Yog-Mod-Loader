@@ -1,0 +1,14 @@
+{
+  "id": "staff/jungle",
+  "name": "@Items.staff.jungle",
+  "tooltip": "@Items.staff.jungle.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/jungle.png"
+    }
+  }
+}

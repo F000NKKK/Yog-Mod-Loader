@@ -1,0 +1,14 @@
+{
+  "id": "staff/oak",
+  "name": "@Items.staff.oak",
+  "tooltip": "@Items.staff.oak.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/oak.png"
+    }
+  }
+}

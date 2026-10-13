@@ -1,0 +1,11 @@
+<Component name="Pill" description="@Strings.component.pill" icon="item:name_tag" design_w="40" design_h="12">
+    <Property name="label" type="text" default="Yog" doc="The tag's text"/>
+    <Property name="fill" type="color" default="#FF2D4A8A" doc="Background" category="Appearance"/>
+    <Property name="outline" type="color" default="#FF6F8FD8" doc="Frame color" category="Appearance"/>
+    <Property name="text_color" type="color" default="#FFFFFFFF" doc="Text color" category="Appearance"/>
+    <Row bg="{x:Bind outline}" padding="1 1 1 1">
+        <Row bg="{x:Bind fill}" padding="1 4 1 4" align="center">
+            <Label text="{x:Bind label}" color="{x:Bind text_color}" shadow="false" no_wrap="true"/>
+        </Row>
+    </Row>
+</Component>

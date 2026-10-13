@@ -1,0 +1,16 @@
+{
+  "name": "@Blocks.akashic_bookshelf",
+  "block": {
+    "hardness": 3,
+    "resistance": 4,
+    "sound": "wood",
+    "tool": "axe"
+  },
+  "model": {
+    "parent": "cube_column",
+    "textures": {
+      "end": "block/akashic_bookshelf_vert.png",
+      "side": "block/akashic_bookshelf.png"
+    }
+  }
+}

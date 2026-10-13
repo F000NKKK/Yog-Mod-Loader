@@ -1,0 +1,13 @@
+{
+  "name": "@Items.battery",
+  "tooltip": "@Items.battery.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/phial/phial_small_0.png"
+    }
+  }
+}

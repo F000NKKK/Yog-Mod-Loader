@@ -1,0 +1,17 @@
+{
+  "name": "@Blocks.akashic_record",
+  "tooltip": "@Blocks.akashic_record.desc",
+  "block": {
+    "hardness": 3,
+    "resistance": 4,
+    "sound": "wood",
+    "tool": "axe",
+    "light": 15
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/akashic_record.png"
+    }
+  }
+}

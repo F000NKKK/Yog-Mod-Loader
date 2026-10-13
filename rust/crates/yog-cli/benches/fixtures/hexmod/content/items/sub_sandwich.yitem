@@ -1,0 +1,15 @@
+{
+  "name": "@Items.sub_sandwich",
+  "item": {
+    "food": {
+      "nutrition": 14,
+      "saturation": 1.2
+    }
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/sub_sandwich.png"
+    }
+  }
+}

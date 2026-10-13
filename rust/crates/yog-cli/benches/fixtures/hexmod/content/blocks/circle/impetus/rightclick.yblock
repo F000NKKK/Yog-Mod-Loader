@@ -1,0 +1,23 @@
+{
+  "id": "impetus/rightclick",
+  "name": "@Blocks.impetus.rightclick",
+  "block": {
+    "hardness": 4,
+    "resistance": 4,
+    "sound": "stone",
+    "tool": "pickaxe",
+    "requires_tool": true
+  },
+  "model": {
+    "parent": "cube",
+    "textures": {
+      "north": "block/circle/impetus/rightclick/front_dim.png",
+      "south": "block/circle/impetus/back_dim.png",
+      "west": "block/circle/impetus/rightclick/left_dim.png",
+      "east": "block/circle/impetus/rightclick/right_dim.png",
+      "up": "block/circle/impetus/rightclick/top_dim.png",
+      "down": "block/circle/bottom.png",
+      "particle": "block/circle/impetus/rightclick/front_dim.png"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@Items.thought_knot",
+  "tooltip": "@Items.thought_knot.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/thought_knot.png"
+    }
+  }
+}

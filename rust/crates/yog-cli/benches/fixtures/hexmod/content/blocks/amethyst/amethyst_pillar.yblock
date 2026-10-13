@@ -1,0 +1,18 @@
+{
+  "name": "@Blocks.amethyst_pillar",
+  "block": {
+    "hardness": 1.5,
+    "resistance": 1.5,
+    "sound": "glass",
+    "tool": "pickaxe",
+    "requires_tool": true
+  },
+  "model": {
+    "parent": "cube_bottom_top",
+    "textures": {
+      "top": "block/deco/amethyst_pillar_top.png",
+      "bottom": "block/deco/amethyst_pillar_bottom.png",
+      "side": "block/deco/amethyst_pillar_side.png"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@Blocks.quenched_allay",
+  "tooltip": "@Blocks.quenched_allay.desc",
+  "block": {
+    "hardness": 1.5,
+    "resistance": 1.5,
+    "sound": "glass",
+    "tool": "pickaxe",
+    "light": 4,
+    "requires_tool": true,
+    "drops": {
+      "item": "quenched_allay_shard",
+      "count": [
+        2,
+        4
+      ]
+    }
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/quenched_allay_0.png"
+    }
+  }
+}

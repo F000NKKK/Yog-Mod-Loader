@@ -1,0 +1,94 @@
+{
+  "name": "@Blocks.slate",
+  "tooltip": "@Blocks.slate.desc",
+  "block": {
+    "hardness": 4,
+    "resistance": 4,
+    "sound": "stone",
+    "tool": "pickaxe",
+    "requires_tool": true
+  },
+  "model": {
+    "textures": {
+      "0": "block/slate.png"
+    },
+    "elements": [
+      {
+        "from": [
+          0,
+          0,
+          0
+        ],
+        "to": [
+          16,
+          1,
+          16
+        ],
+        "faces": {
+          "north": {
+            "uv": [
+              0,
+              0,
+              16,
+              1
+            ],
+            "texture": "#0"
+          },
+          "east": {
+            "uv": [
+              15,
+              0,
+              16,
+              16
+            ],
+            "rotation": 90,
+            "texture": "#0"
+          },
+          "south": {
+            "uv": [
+              0,
+              15,
+              16,
+              16
+            ],
+            "texture": "#0"
+          },
+          "west": {
+            "uv": [
+              0,
+              0,
+              1,
+              16
+            ],
+            "rotation": 270,
+            "texture": "#0"
+          },
+          "up": {
+            "uv": [
+              0,
+              0,
+              16,
+              16
+            ],
+            "texture": "#0"
+          },
+          "down": {
+            "uv": [
+              0,
+              0,
+              16,
+              16
+            ],
+            "texture": "#0"
+          }
+        }
+      }
+    ]
+  },
+  "item_model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/slate_blank.png"
+    }
+  }
+}

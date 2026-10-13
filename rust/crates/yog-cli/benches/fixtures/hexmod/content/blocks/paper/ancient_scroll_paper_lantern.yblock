@@ -1,0 +1,17 @@
+{
+  "name": "@Blocks.ancient_scroll_paper_lantern",
+  "block": {
+    "hardness": 0,
+    "resistance": 0,
+    "sound": "grass",
+    "light": 12
+  },
+  "model": {
+    "parent": "cube_bottom_top",
+    "textures": {
+      "top": "block/ancient_scroll_paper_lantern_top.png",
+      "bottom": "block/ancient_scroll_paper_lantern_bottom.png",
+      "side": "block/ancient_scroll_paper_lantern_side.png"
+    }
+  }
+}

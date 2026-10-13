@@ -1,0 +1,10 @@
+{
+  "name": "@Items.scroll_small",
+  "tooltip": "@Items.scroll_small.desc",
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/scroll_pristine_small.png"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@Blocks.aventurine_edified_leaves",
+  "block": {
+    "hardness": 0.2,
+    "resistance": 0.2,
+    "sound": "grass",
+    "tool": "hoe",
+    "render_layer": "cutout_mipped",
+    "drops": "none"
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/aventurine_edified_leaves.png"
+    }
+  }
+}

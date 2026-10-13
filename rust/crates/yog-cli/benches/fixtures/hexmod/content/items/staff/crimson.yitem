@@ -1,0 +1,14 @@
+{
+  "id": "staff/crimson",
+  "name": "@Items.staff.crimson",
+  "tooltip": "@Items.staff.crimson.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/crimson.png"
+    }
+  }
+}

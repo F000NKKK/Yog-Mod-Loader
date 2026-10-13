@@ -1,0 +1,13 @@
+{
+  "name": "@Items.focus",
+  "tooltip": "@Items.focus.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/focus_empty.png"
+    }
+  }
+}

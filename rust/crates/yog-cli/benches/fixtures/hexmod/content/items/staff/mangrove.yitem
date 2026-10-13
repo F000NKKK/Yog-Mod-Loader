@@ -1,0 +1,14 @@
+{
+  "id": "staff/mangrove",
+  "name": "@Items.staff.mangrove",
+  "tooltip": "@Items.staff.mangrove.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/mangrove.png"
+    }
+  }
+}

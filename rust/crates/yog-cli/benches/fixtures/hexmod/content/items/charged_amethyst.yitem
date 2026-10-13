@@ -1,0 +1,10 @@
+{
+  "name": "@Items.charged_amethyst",
+  "tooltip": "@Items.charged_amethyst.desc",
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/charged_amethyst.png"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@Items.abacus",
+  "tooltip": "@Items.abacus.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/abacus.png"
+    }
+  }
+}

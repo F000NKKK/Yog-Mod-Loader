@@ -1,0 +1,13 @@
+{
+  "name": "@Items.trinket",
+  "tooltip": "@Items.trinket.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/trinket.png"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "dye_colorizer_green",
+  "name": "@Items.dye_colorizer_green",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/colorizer/dye_green.png"
+    }
+  }
+}

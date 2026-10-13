@@ -1,0 +1,13 @@
+{
+  "name": "@Items.artifact",
+  "tooltip": "@Items.artifact.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/artifact.png"
+    }
+  }
+}

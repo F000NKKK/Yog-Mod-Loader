@@ -1,0 +1,14 @@
+{
+  "id": "staff/acacia",
+  "name": "@Items.staff.acacia",
+  "tooltip": "@Items.staff.acacia.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/acacia.png"
+    }
+  }
+}

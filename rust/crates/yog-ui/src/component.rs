@@ -245,6 +245,9 @@ pub fn error_box(message: &str) -> Widget {
         .min_h(12.0)
 }
 
+/// A color value that is missing or malformed: opaque white.
+const FALLBACK_COLOR: u32 = 0xFF_FFFFFF;
+
 /// A component's property values: what the element set, else the defaults.
 #[derive(Debug, Clone, Default)]
 pub struct Props {
@@ -299,7 +302,7 @@ impl Props {
 
     /// A color `0xAARRGGBB` (opaque white if missing or malformed).
     pub fn color(&self, name: &str) -> u32 {
-        self.get(name).and_then(parse_color).unwrap_or(0xFF_FFFFFF)
+        self.get(name).and_then(parse_color).unwrap_or(FALLBACK_COLOR)
     }
 
     /// A choice / event / image value, trimmed.
@@ -360,7 +363,7 @@ pub mod bind {
     }
     impl BindColor for &str {
         fn to_argb(self) -> u32 {
-            super::parse_color(self).unwrap_or(0xFF_FFFFFF)
+            super::parse_color(self).unwrap_or(super::FALLBACK_COLOR)
         }
     }
     impl BindColor for &&str {
@@ -476,14 +479,21 @@ pub const COMMON_ATTRS: &[&str] = &[
 pub fn apply_style(w: Widget, key: &str, value: &str) -> Widget {
     let v = value.trim();
     let num = || v.parse::<f32>().ok();
+    // `set` applied when the value parsed, else `w` as it is.
+    fn with<T>(w: Widget, value: Option<T>, set: fn(Widget, T) -> Widget) -> Widget {
+        match value {
+            Some(v) => set(w, v),
+            None => w,
+        }
+    }
     match key {
-        "bg" => parse_color(v).map_or(w.clone(), |c| w.clone().bg(c)),
-        "color" => parse_color(v).map_or(w.clone(), |c| w.clone().color(c)),
-        "focus_color" => parse_color(v).map_or(w.clone(), |c| w.clone().focus_color(c)),
-        "min_w" => num().map_or(w.clone(), |n| w.clone().min_w(n)),
-        "min_h" => num().map_or(w.clone(), |n| w.clone().min_h(n)),
-        "gap" => num().map_or(w.clone(), |n| w.clone().gap(n)),
-        "font_scale" => num().map_or(w.clone(), |n| w.clone().font_scale(n)),
+        "bg" => with(w, parse_color(v), Widget::bg),
+        "color" => with(w, parse_color(v), Widget::color),
+        "focus_color" => with(w, parse_color(v), Widget::focus_color),
+        "min_w" => with(w, num(), Widget::min_w),
+        "min_h" => with(w, num(), Widget::min_h),
+        "gap" => with(w, num(), Widget::gap),
+        "font_scale" => with(w, num(), Widget::font_scale),
         "font" => w.font(v),
         "shadow" => w.shadow(v == "true"),
         "enabled" => w.enabled(v != "false"),

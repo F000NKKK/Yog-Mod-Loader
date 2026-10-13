@@ -1,0 +1,15 @@
+{
+  "name": "@Blocks.amethyst_dust_block",
+  "block": {
+    "hardness": 0.5,
+    "resistance": 0.5,
+    "sound": "sand",
+    "tool": "shovel"
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/amethyst_dust_block.png"
+    }
+  }
+}

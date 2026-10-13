@@ -1,0 +1,14 @@
+{
+  "id": "staff/birch",
+  "name": "@Items.staff.birch",
+  "tooltip": "@Items.staff.birch.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "item/staff/birch.png"
+    }
+  }
+}

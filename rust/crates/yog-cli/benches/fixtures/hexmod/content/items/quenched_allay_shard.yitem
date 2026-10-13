@@ -1,0 +1,9 @@
+{
+  "name": "@Items.quenched_allay_shard",
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/quenched_shard_0.png"
+    }
+  }
+}

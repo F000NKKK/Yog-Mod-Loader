@@ -1,0 +1,13 @@
+{
+  "id": "pride_colorizer_gay",
+  "name": "@Items.pride_colorizer_gay",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/colorizer/pride_gay.png"
+    }
+  }
+}

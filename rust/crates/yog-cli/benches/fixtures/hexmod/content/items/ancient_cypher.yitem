@@ -1,0 +1,13 @@
+{
+  "name": "@Items.ancient_cypher",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/cad/0_ancient_cypher.png",
+      "layer1": "item/cad/0_ancient_cypher_overlay.png"
+    }
+  }
+}

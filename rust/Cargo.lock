@@ -1265,6 +1265,7 @@ dependencies = [
 name = "yog-cli"
 version = "0.30.3"
 dependencies = [
+ "criterion",
  "serde_json",
  "yog-gfx",
  "zip",

@@ -1,0 +1,24 @@
+{
+  "id": "directrix/empty",
+  "name": "@Blocks.directrix.empty",
+  "tooltip": "@Blocks.directrix.empty.desc",
+  "block": {
+    "hardness": 4,
+    "resistance": 4,
+    "sound": "stone",
+    "tool": "pickaxe",
+    "requires_tool": true
+  },
+  "model": {
+    "parent": "cube",
+    "textures": {
+      "north": "block/circle/directrix/empty/front_dim.png",
+      "south": "block/circle/directrix/empty/back_dim.png",
+      "west": "block/circle/directrix/empty/left_dim.png",
+      "east": "block/circle/directrix/empty/right_dim.png",
+      "up": "block/circle/directrix/empty/top_dim.png",
+      "down": "block/circle/bottom.png",
+      "particle": "block/circle/directrix/empty/front_dim.png"
+    }
+  }
+}

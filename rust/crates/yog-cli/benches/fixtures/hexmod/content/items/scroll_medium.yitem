@@ -1,0 +1,10 @@
+{
+  "name": "@Items.scroll_medium",
+  "tooltip": "@Items.scroll_medium.desc",
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/scroll_pristine_medium.png"
+    }
+  }
+}

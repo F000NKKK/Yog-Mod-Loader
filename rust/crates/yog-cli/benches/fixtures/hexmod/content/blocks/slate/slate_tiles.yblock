@@ -1,0 +1,16 @@
+{
+  "name": "@Blocks.slate_tiles",
+  "block": {
+    "hardness": 2,
+    "resistance": 4,
+    "sound": "stone",
+    "tool": "pickaxe",
+    "requires_tool": true
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "block/deco/slate_tiles.png"
+    }
+  }
+}

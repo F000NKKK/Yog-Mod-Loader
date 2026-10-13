@@ -1,5 +1,5 @@
 use crate::text;
-use crate::widget::{Action, Dock, HAlign, Units, VAlign, Widget, WidgetKind};
+use crate::widget::{Action, Dock, HAlign, Units, VAlign, Widget, WidgetKind, SLOT_SIZE};
 
 mod grid;
 
@@ -193,6 +193,14 @@ pub fn compute(widget: &Widget, avail_w: f32, avail_h: f32) -> LayoutNode {
 /// content (a Row's main axis while its children are measured, ...).
 const UNBOUNDED: f32 = f32::MAX;
 
+/// Labels and buttons at least this wide don't wrap: the width is "no
+/// real limit" rather than a constraint.
+const NO_WRAP_W: f32 = 4096.0;
+/// A text box's width along an unbounded axis.
+const TEXT_BOX_W: f32 = 100.0;
+/// What a text box adds to its line height: border and inner margin.
+const TEXT_BOX_CHROME_H: f32 = 7.0;
+
 fn bounded(v: f32) -> bool {
     v < UNBOUNDED / 2.0
 }
@@ -275,32 +283,27 @@ fn layout_widget(
     let mut hh = explicit_h.unwrap_or(max_h);
 
     if !has_children {
-        // Leaf: size to content (text, item slot, spacer)
+        // Leaf: size to content (text, item slot, spacer) plus padding,
+        // within the min size and the cap.
+        let fit_w = |content: f32| (content + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
+        let fit_h = |content: f32| (content + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
         match &w.kind {
             WidgetKind::Label(t) | WidgetKind::Button(t) => {
                 // Wrap at the explicit width when there is one.
-                let box_w = explicit_w.unwrap_or(max_w);
-                let avail_w = (box_w - s.pad[1] - s.pad[3]).max(0.0);
+                let avail_w = (ww - s.pad[1] - s.pad[3]).max(0.0);
                 // Wrap only when the width is a real constraint (not
                 // "unlimited") and the widget doesn't opt out of wrapping.
-                if avail_w < 4096.0 && !s.no_wrap {
-                    ww = (avail_w + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
-                    hh = (text::text_height_in(t, avail_w, s.font_scale, &s.font)
-                        + s.pad[0]
-                        + s.pad[2])
-                        .max(s.min_h)
-                        .min(max_h);
+                if avail_w < NO_WRAP_W && !s.no_wrap {
+                    ww = fit_w(avail_w);
+                    hh = fit_h(text::text_height_in(t, avail_w, s.font_scale, &s.font));
                 } else {
-                    let tw = text::str_width_in(t, s.font_scale, &s.font);
-                    ww = (tw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
-                    hh = (text::LINE_H * s.font_scale + s.pad[0] + s.pad[2])
-                        .max(s.min_h)
-                        .min(max_h);
+                    ww = fit_w(text::str_width_in(t, s.font_scale, &s.font));
+                    hh = fit_h(text::LINE_H * s.font_scale);
                 }
             }
             WidgetKind::ItemSlot(_) | WidgetKind::InvSlot { .. } => {
-                ww = (18.0 + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
-                hh = (18.0 + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
+                ww = fit_w(SLOT_SIZE);
+                hh = fit_h(SLOT_SIZE);
             }
             WidgetKind::Spacer | WidgetKind::Surface(_) => {
                 ww = s.min_w.max(1.0).min(max_w);
@@ -316,21 +319,19 @@ fn layout_widget(
                     hh = s.min_h;
                 }
             }
-            // Text box: the available width (100 px when unbounded), one
-            // line of text plus its border and padding.
+            // Text box: the available width (`TEXT_BOX_W` when unbounded),
+            // one line of text plus its border and padding.
             WidgetKind::TextBox(_) => {
                 if !bounded(ww) {
-                    ww = 100.0;
+                    ww = TEXT_BOX_W;
                 }
                 ww = ww.max(s.min_w).min(max_w);
-                hh = (text::LINE_H * s.font_scale + 7.0 + s.pad[0] + s.pad[2])
-                    .max(s.min_h)
-                    .min(max_h);
+                hh = fit_h(text::LINE_H * s.font_scale + TEXT_BOX_CHROME_H);
             }
             WidgetKind::Image(image) => {
                 let (nw, nh) = crate::image::natural_size(image);
-                ww = (nw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
-                hh = (nh + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
+                ww = fit_w(nw);
+                hh = fit_h(nh);
             }
         }
         // Explicit width/height always wins over content sizing.

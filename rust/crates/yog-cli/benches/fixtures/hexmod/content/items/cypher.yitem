@@ -1,0 +1,13 @@
+{
+  "name": "@Items.cypher",
+  "tooltip": "@Items.cypher.desc",
+  "item": {
+    "stack_size": 1
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "item/cypher.png"
+    }
+  }
+}
