@@ -16,16 +16,18 @@ pub enum ExportKind {
 impl ExportKind {
     /// The kind and name of the item whose first line is `first`.
     fn parse(first: &str) -> Option<(ExportKind, &str)> {
-        let (kind, rest, ends): (_, _, &[char]) = if let Some(r) = first.strip_prefix("pub struct ")
-        {
-            (ExportKind::Struct, r, &['{', '(', ' ', '<', ';', '\t'])
-        } else if let Some(r) = first.strip_prefix("pub enum ") {
-            (ExportKind::Enum, r, &['{', ' ', '<', ';', '\t'])
-        } else if let Some(r) = first.strip_prefix("pub fn ") {
-            (ExportKind::Fn, r, &['('])
-        } else {
-            return None;
-        };
+        const KINDS: [(&str, ExportKind, &[char]); 3] = [
+            (
+                "pub struct ",
+                ExportKind::Struct,
+                &['{', '(', ' ', '<', ';', '\t'],
+            ),
+            ("pub enum ", ExportKind::Enum, &['{', ' ', '<', ';', '\t']),
+            ("pub fn ", ExportKind::Fn, &['(']),
+        ];
+        let (kind, rest, ends) = KINDS
+            .iter()
+            .find_map(|&(prefix, kind, ends)| Some((kind, first.strip_prefix(prefix)?, ends)))?;
         Some((kind, rest.split(ends).next().unwrap_or("").trim()))
     }
 }

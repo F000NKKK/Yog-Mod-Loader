@@ -47,7 +47,7 @@ pub fn yres_set(n: usize) -> (String, String) {
 /// A `.yblock` — alternating a template model with a `.png` from
 /// `resources/` and an element model with per-face UVs.
 pub fn yblock(i: usize) -> String {
-    let model = if i % 2 == 0 {
+    let model = if i.is_multiple_of(2) {
         format!("{{ \"parent\": \"cube_all\", \"textures\": {{ \"all\": \"block/b{i}.png\" }} }}")
     } else {
         let face = |uv: &str| format!("{{ \"texture\": \"#0\", \"uv\": [{uv}] }}");
@@ -60,13 +60,13 @@ pub fn yblock(i: usize) -> String {
     format!(
         "{{\n  \"name\": \"@Blocks.block_{i}\",\n  \"tooltip\": \"Block {i}\",\n  \"block\": {{ \"hardness\": {}, \"resistance\": 4, \"sound\": \"stone\", \"tool\": \"pickaxe\", \"requires_tool\": {} }},\n  \"model\": {model}\n}}\n",
         1 + i % 5,
-        i % 3 == 0
+        i.is_multiple_of(3)
     )
 }
 
 /// A `.yitem` — a sprite item, every third one food.
 pub fn yitem(i: usize) -> String {
-    let props = if i % 3 == 0 {
+    let props = if i.is_multiple_of(3) {
         "\"food\": { \"nutrition\": 4, \"saturation\": 0.3 }".to_string()
     } else {
         format!("\"stack_size\": {}", 1 + i % 64)

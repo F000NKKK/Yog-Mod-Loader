@@ -8,8 +8,11 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::hint::black_box;
 use yog_cli::{yui, yui_grid};
 
+/// Synthetic markup of `n` elements.
+type Markup = fn(usize) -> String;
+
 fn bench(c: &mut Criterion) {
-    let kinds: [(&str, fn(usize) -> String); 3] = [
+    let kinds: [(&str, Markup); 3] = [
         ("yui", common::screen),
         ("yui_vm", common::vm_screen),
         ("yui_component", common::component),
