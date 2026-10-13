@@ -453,7 +453,10 @@ mod tests {
 
     fn typed(s: &mut TextBoxState, n: &LayoutNode, text: &str) {
         for c in text.chars() {
-            assert_eq!(s.handle(&format!("char:{}", c as u32), n), TextBoxEvent::Changed);
+            assert_eq!(
+                s.handle(&format!("char:{}", c as u32), n),
+                TextBoxEvent::Changed
+            );
         }
     }
 

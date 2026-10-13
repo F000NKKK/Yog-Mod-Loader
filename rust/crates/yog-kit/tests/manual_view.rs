@@ -22,7 +22,9 @@ impl ViewModel for Vm {
     fn on_open(&mut self, _cx: &mut Cx<'_, Self>) {
         self.opened += 1;
         if self.items.is_empty() {
-            self.items = (0..100).map(|i| (format!("item {i}"), i % 2 == 0)).collect();
+            self.items = (0..100)
+                .map(|i| (format!("item {i}"), i % 2 == 0))
+                .collect();
         }
     }
 }
@@ -62,7 +64,13 @@ impl T0 {
         let w = widget::panel(FlexDir::Column)
             .w(Units::Percent(100.0))
             .h(Units::Px(10.0))
-            .state_style(StateFlags::SELECTED, StylePatch { bg: Some(0xFF333366), ..Default::default() })
+            .state_style(
+                StateFlags::SELECTED,
+                StylePatch {
+                    bg: Some(0xFF333366),
+                    ..Default::default()
+                },
+            )
             .child(widget::label("").id("row_label"));
         (T0 { b0: Slot::new() }, w)
     }
@@ -114,11 +122,33 @@ impl yog_kit::View for View {
                 widget::panel(FlexDir::Row)
                     .h(Units::Px(12.0))
                     .child(widget::label("").id("count"))
-                    .child(widget::button("Close").id("close").w(30.0).h(10.0).action(Action::new(0))),
+                    .child(
+                        widget::button("Close")
+                            .id("close")
+                            .w(30.0)
+                            .h(10.0)
+                            .action(Action::new(0)),
+                    ),
             )
-            .child(widget::text_box("").id("search").w(Units::Percent(100.0)).h(Units::Px(12.0)))
-            .child(widget::button("Even").id("even").w(30.0).h(10.0).action(Action::new(1)))
-            .child(widget::scroll_view().id("list").h(Units::Px(50.0)).w(Units::Percent(100.0)))
+            .child(
+                widget::text_box("")
+                    .id("search")
+                    .w(Units::Percent(100.0))
+                    .h(Units::Px(12.0)),
+            )
+            .child(
+                widget::button("Even")
+                    .id("even")
+                    .w(30.0)
+                    .h(10.0)
+                    .action(Action::new(1)),
+            )
+            .child(
+                widget::scroll_view()
+                    .id("list")
+                    .h(Units::Px(50.0))
+                    .w(Units::Percent(100.0)),
+            )
             .child(widget::panel(FlexDir::Column).id("presenter"));
         let mut parts = Parts::new();
         parts.focusable(&[0, 1]);
@@ -188,10 +218,18 @@ impl yog_kit::View for View {
 
     fn dispatch(&mut self, vm: &mut Vm, cx: &mut Cx<'_, Vm>, ev: ViewEvent) {
         match ev {
-            ViewEvent::Action(Action { owner: 0, slot: 0, .. }) => cx.close(),
-            ViewEvent::Action(Action { owner: 0, slot: 1, .. }) => vm.toggle_even(),
+            ViewEvent::Action(Action {
+                owner: 0, slot: 0, ..
+            }) => cx.close(),
+            ViewEvent::Action(Action {
+                owner: 0, slot: 1, ..
+            }) => vm.toggle_even(),
             ViewEvent::TextChanged { slot: 0, text } => vm.search = text,
-            ViewEvent::Action(Action { owner: 1, slot: yog_kit::items::SELECT, index })
+            ViewEvent::Action(Action {
+                owner: 1,
+                slot: yog_kit::items::SELECT,
+                index,
+            })
             | ViewEvent::Select { list: 1, index } => {
                 let k = vm.visible().nth(index as usize).map(|item| item.0.clone());
                 if let Some(k) = k {

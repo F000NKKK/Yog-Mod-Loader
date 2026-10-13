@@ -116,7 +116,9 @@ impl J {
     }
 
     pub fn obj<K: Into<String>>(members: impl IntoIterator<Item = (K, J)>) -> J {
-        J::of(V::Obj(members.into_iter().map(|(k, v)| (k.into(), v)).collect()))
+        J::of(V::Obj(
+            members.into_iter().map(|(k, v)| (k.into(), v)).collect(),
+        ))
     }
 
     pub fn number(n: f64) -> J {
@@ -140,7 +142,11 @@ impl J {
             Value::Number(n) => V::Num(n.as_f64().unwrap_or(0.0)),
             Value::String(s) => V::Str(s.clone()),
             Value::Array(a) => V::Arr(a.iter().map(J::from_value).collect()),
-            Value::Object(m) => V::Obj(m.iter().map(|(k, v)| (k.clone(), J::from_value(v))).collect()),
+            Value::Object(m) => V::Obj(
+                m.iter()
+                    .map(|(k, v)| (k.clone(), J::from_value(v)))
+                    .collect(),
+            ),
         })
     }
 
@@ -172,13 +178,29 @@ pub fn to_pretty(j: &J) -> String {
             return Some(s);
         }
         let s = match &j.v {
-            V::Arr(a) if a.iter().all(|i| matches!(i.v, V::Num(_) | V::Bool(_) | V::Null)) => {
-                format!("[{}]", a.iter().filter_map(scalar).collect::<Vec<_>>().join(", "))
+            V::Arr(a)
+                if a.iter()
+                    .all(|i| matches!(i.v, V::Num(_) | V::Bool(_) | V::Null)) =>
+            {
+                format!(
+                    "[{}]",
+                    a.iter().filter_map(scalar).collect::<Vec<_>>().join(", ")
+                )
             }
-            V::Obj(m) if !m.is_empty() && m.iter().all(|(_, v)| inline(v).is_some() && !matches!(v.v, V::Obj(_))) => {
+            V::Obj(m)
+                if !m.is_empty()
+                    && m.iter()
+                        .all(|(_, v)| inline(v).is_some() && !matches!(v.v, V::Obj(_))) =>
+            {
                 let parts: Vec<String> = m
                     .iter()
-                    .filter_map(|(k, v)| Some(format!("{}: {}", serde_json::Value::String(k.clone()), inline(v)?)))
+                    .filter_map(|(k, v)| {
+                        Some(format!(
+                            "{}: {}",
+                            serde_json::Value::String(k.clone()),
+                            inline(v)?
+                        ))
+                    })
                     .collect();
                 format!("{{ {} }}", parts.join(", "))
             }
@@ -375,10 +397,9 @@ impl P<'_> {
             Some(c) if c == b'-' || c.is_ascii_digit() => {
                 let start = self.i;
                 self.i += 1;
-                while self
-                    .peek()
-                    .is_some_and(|c| c.is_ascii_digit() || matches!(c, b'.' | b'e' | b'E' | b'+' | b'-'))
-                {
+                while self.peek().is_some_and(|c| {
+                    c.is_ascii_digit() || matches!(c, b'.' | b'e' | b'E' | b'+' | b'-')
+                }) {
                     self.i += 1;
                 }
                 let lit = std::str::from_utf8(&self.s[start..self.i]).unwrap_or("");
@@ -427,7 +448,9 @@ impl P<'_> {
                             {
                                 self.i += 2;
                                 let low = self.hex4()?;
-                                code = 0x10000 + ((code - 0xD800) << 10) + (low.wrapping_sub(0xDC00) & 0x3FF);
+                                code = 0x10000
+                                    + ((code - 0xD800) << 10)
+                                    + (low.wrapping_sub(0xDC00) & 0x3FF);
                             }
                             let ch = char::from_u32(code).unwrap_or('\u{FFFD}');
                             let mut buf = [0u8; 4];
@@ -483,8 +506,14 @@ mod tests {
 
     #[test]
     fn pretty_prints_in_order() {
-        let j = J::obj([("b", J::nums(&[0.0, 16.0])), ("a", J::obj([("x", J::string("y"))]))]);
-        assert_eq!(to_pretty(&j), "{\n  \"b\": [0, 16],\n  \"a\": { \"x\": \"y\" }\n}\n");
+        let j = J::obj([
+            ("b", J::nums(&[0.0, 16.0])),
+            ("a", J::obj([("x", J::string("y"))])),
+        ]);
+        assert_eq!(
+            to_pretty(&j),
+            "{\n  \"b\": [0, 16],\n  \"a\": { \"x\": \"y\" }\n}\n"
+        );
         assert_eq!(parse(&to_pretty(&j)).unwrap().to_value(), j.to_value());
     }
 

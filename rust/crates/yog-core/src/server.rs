@@ -366,13 +366,21 @@ pub trait Server {
 
     /// Uuids of the entities whose bounding boxes touch the box `min`–`max`
     /// in `dimension`.
-    fn entities_in_box(&self, dimension: &str, min: (f64, f64, f64), max: (f64, f64, f64))
-        -> Vec<String>;
+    fn entities_in_box(
+        &self,
+        dimension: &str,
+        min: (f64, f64, f64),
+        max: (f64, f64, f64),
+    ) -> Vec<String>;
 
     /// The first block with a collision shape on the segment `from`–`to`
     /// (fluids are ignored).
-    fn raycast_block(&self, dimension: &str, from: (f64, f64, f64), to: (f64, f64, f64))
-        -> Option<BlockHit>;
+    fn raycast_block(
+        &self,
+        dimension: &str,
+        from: (f64, f64, f64),
+        to: (f64, f64, f64),
+    ) -> Option<BlockHit>;
 
     /// The nearest pickable entity whose (slightly inflated) bounding box the
     /// segment `from`–`to` crosses, other than `exclude` (a uuid, or `""`)
@@ -396,8 +404,13 @@ pub trait Server {
     /// Place the block item in the player's inventory `slot` at `pos`, as if
     /// the player clicked the block below it: the item's own placement
     /// rules apply and one item is used up (unless creative).
-    fn place_block_from_slot(&self, player: &str, slot: u32, dimension: &str, pos: BlockPos)
-        -> bool;
+    fn place_block_from_slot(
+        &self,
+        player: &str,
+        slot: u32,
+        dimension: &str,
+        pos: BlockPos,
+    ) -> bool;
 
     /// Apply bone meal to the block at `pos`. Returns whether it grew.
     fn bonemeal(&self, dimension: &str, pos: BlockPos) -> bool;

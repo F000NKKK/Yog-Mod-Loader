@@ -34,7 +34,10 @@ fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
 }
 
 fn num(v: &str) -> Option<f32> {
-    v.trim().parse::<f32>().ok().filter(|n| n.is_finite() && *n >= 0.0)
+    v.trim()
+        .parse::<f32>()
+        .ok()
+        .filter(|n| n.is_finite() && *n >= 0.0)
 }
 
 /// One row/column size: `Auto`, `*`, `2*`, `26` → a `Track` expression.
@@ -44,7 +47,11 @@ fn length(v: &str) -> Option<String> {
         return Some("::yog_api::ui::Track::auto()".into());
     }
     if let Some(w) = v.strip_suffix('*') {
-        let w = if w.trim().is_empty() { Some(1.0) } else { num(w) }?;
+        let w = if w.trim().is_empty() {
+            Some(1.0)
+        } else {
+            num(w)
+        }?;
         return Some(format!("::yog_api::ui::Track::star({w:?})"));
     }
     num(v).map(|px| format!("::yog_api::ui::Track::px({px:?})"))
@@ -53,7 +60,10 @@ fn length(v: &str) -> Option<String> {
 /// `rows="Auto,*,26"` → track expressions.
 fn compact(el: &Element, key: &str, value: &str, what: &str) -> Result<Vec<String>, String> {
     if value.trim_start().starts_with('{') {
-        return err(el, format_args!("{key}=\"{value}\": grid definitions can't be bound"));
+        return err(
+            el,
+            format_args!("{key}=\"{value}\": grid definitions can't be bound"),
+        );
     }
     value
         .split(',')
@@ -83,17 +93,30 @@ fn elements(prop: &Element, row: bool) -> Result<Vec<String>, String> {
     let mut out = Vec::new();
     for d in &prop.children {
         if d.name != def {
-            return err(d, format_args!("isn't allowed in <{}> (expected <{def}>)", prop.name));
+            return err(
+                d,
+                format_args!("isn't allowed in <{}> (expected <{def}>)", prop.name),
+            );
         }
         if !d.children.is_empty() {
             return err(d, "can't have children");
         }
         for (k, _) in &d.attrs {
             if ![size, min, max].contains(&k.as_str()) {
-                let lower = k.chars().next().is_some_and(char::is_uppercase).then(|| crate::yui::snake(k));
+                let lower = k
+                    .chars()
+                    .next()
+                    .is_some_and(char::is_uppercase)
+                    .then(|| crate::yui::snake(k));
                 return match lower.filter(|l| [size, min, max].contains(&l.as_str())) {
-                    Some(l) => err(d, format_args!("has no attribute `{k}` — .yui attributes are lowercase: {l}")),
-                    None => err(d, format_args!("has no attribute `{k}` (expected {size}, {min}, {max})")),
+                    Some(l) => err(
+                        d,
+                        format_args!("has no attribute `{k}` — .yui attributes are lowercase: {l}"),
+                    ),
+                    None => err(
+                        d,
+                        format_args!("has no attribute `{k}` (expected {size}, {min}, {max})"),
+                    ),
                 };
             }
         }
@@ -106,7 +129,12 @@ fn elements(prop: &Element, row: bool) -> Result<Vec<String>, String> {
         })?;
         for (key, call) in [(min, "min"), (max, "max")] {
             if let Some(v) = d.attr(key) {
-                let n = num(v).ok_or_else(|| format!("line {}: <{def}> {key}=\"{v}\": expected a number of pixels", d.line))?;
+                let n = num(v).ok_or_else(|| {
+                    format!(
+                        "line {}: <{def}> {key}=\"{v}\": expected a number of pixels",
+                        d.line
+                    )
+                })?;
                 t.push_str(&format!(".{call}({n:?})"));
             }
         }
@@ -121,8 +149,15 @@ fn index(el: &Element, key: &str, v: &str, min: u16) -> Result<u16, String> {
         .ok()
         .filter(|n| *n >= min)
         .ok_or_else(|| {
-            let what = if min == 0 { "a whole number (0 = the first)" } else { "a whole number, at least 1" };
-            format!("line {}: <{}> {key}=\"{v}\": expected {what}", el.line, el.name)
+            let what = if min == 0 {
+                "a whole number (0 = the first)"
+            } else {
+                "a whole number, at least 1"
+            };
+            format!(
+                "line {}: <{}> {key}=\"{v}\": expected {what}",
+                el.line, el.name
+            )
         })
 }
 
@@ -154,7 +189,10 @@ pub fn normalize(el: &mut Element) -> Result<(), String> {
             continue;
         };
         if !is_grid {
-            return err(&child, format_args!("only goes directly inside a <Grid>, not <{}>", el.name));
+            return err(
+                &child,
+                format_args!("only goes directly inside a <Grid>, not <{}>", el.name),
+            );
         }
         let slot = if row { &mut rows } else { &mut cols };
         if slot.is_some() {
@@ -173,14 +211,30 @@ pub fn normalize(el: &mut Element) -> Result<(), String> {
                     let row = k == "rows";
                     let slot = if row { &mut rows } else { &mut cols };
                     if slot.is_some() {
-                        let prop = if row { "Grid.RowDefinitions" } else { "Grid.ColumnDefinitions" };
-                        return err(el, format_args!("{k}=\"...\" and <{prop}> both define the {k} — keep one"));
+                        let prop = if row {
+                            "Grid.RowDefinitions"
+                        } else {
+                            "Grid.ColumnDefinitions"
+                        };
+                        return err(
+                            el,
+                            format_args!("{k}=\"...\" and <{prop}> both define the {k} — keep one"),
+                        );
                     }
                     *slot = Some(compact(el, &k, &v, if row { "row" } else { "column" })?);
                 }
                 "row_spacing" | "column_spacing" => {
-                    let n = num(&v).ok_or_else(|| format!("line {}: <Grid> {k}=\"{v}\": expected a number of pixels", el.line))?;
-                    let m = if k == "row_spacing" { "row_spacing" } else { "col_spacing" };
+                    let n = num(&v).ok_or_else(|| {
+                        format!(
+                            "line {}: <Grid> {k}=\"{v}\": expected a number of pixels",
+                            el.line
+                        )
+                    })?;
+                    let m = if k == "row_spacing" {
+                        "row_spacing"
+                    } else {
+                        "col_spacing"
+                    };
                     calls.push(format!("{m}({n:?})"));
                 }
                 _ => attrs.push((k, v)),
@@ -196,7 +250,10 @@ pub fn normalize(el: &mut Element) -> Result<(), String> {
     }
     push_calls(el, calls, "g");
 
-    let (n_rows, n_cols) = (rows.as_ref().map_or(1, Vec::len), cols.as_ref().map_or(1, Vec::len));
+    let (n_rows, n_cols) = (
+        rows.as_ref().map_or(1, Vec::len),
+        cols.as_ref().map_or(1, Vec::len),
+    );
     for child in &mut el.children {
         let mut cell = [0u16, 0, 1, 1];
         let mut any = false;
@@ -204,16 +261,28 @@ pub fn normalize(el: &mut Element) -> Result<(), String> {
         for (k, v) in std::mem::take(&mut child.attrs) {
             let Some(i) = ATTACHED.iter().position(|a| *a == k) else {
                 if k.starts_with("Grid.") {
-                    return err(child, format_args!("has no attribute `{k}` (attached: {})", ATTACHED.join(", ")));
+                    return err(
+                        child,
+                        format_args!("has no attribute `{k}` (attached: {})", ATTACHED.join(", ")),
+                    );
                 }
                 attrs.push((k, v));
                 continue;
             };
             if !is_grid {
-                return err(child, format_args!("{k}: only children of a <Grid> have grid cells (this is in a <{}>)", el.name));
+                return err(
+                    child,
+                    format_args!(
+                        "{k}: only children of a <Grid> have grid cells (this is in a <{}>)",
+                        el.name
+                    ),
+                );
             }
             if v.trim_start().starts_with('{') {
-                return err(child, format_args!("{k}=\"{v}\": grid cells can't be bound"));
+                return err(
+                    child,
+                    format_args!("{k}=\"{v}\": grid cells can't be bound"),
+                );
             }
             cell[i] = index(child, &k, &v, if i < 2 { 0 } else { 1 })?;
             any = true;
@@ -270,7 +339,10 @@ mod tests {
     use crate::yui;
 
     fn gen(body: &str) -> Result<String, String> {
-        yui::generate(&format!("<Screen id=\"m:s\" width=\"100\" height=\"100\">{body}</Screen>"), "s")
+        yui::generate(
+            &format!("<Screen id=\"m:s\" width=\"100\" height=\"100\">{body}</Screen>"),
+            "s",
+        )
     }
 
     #[test]
@@ -299,9 +371,15 @@ mod tests {
             "{code}"
         );
         assert!(code.contains(".cell(1, 1)"), "{code}");
-        assert!(code.contains(".halign(::yog_api::ui::HAlign::Right)"), "{code}");
+        assert!(
+            code.contains(".halign(::yog_api::ui::HAlign::Right)"),
+            "{code}"
+        );
         assert!(code.contains(".margin(2.0, 4.0, 2.0, 4.0)"), "{code}");
-        assert!(code.contains(".cell(0, 0)\n") && code.contains(".span(3, 1)"), "{code}");
+        assert!(
+            code.contains(".cell(0, 0)\n") && code.contains(".span(3, 1)"),
+            "{code}"
+        );
     }
 
     #[test]
@@ -310,17 +388,28 @@ mod tests {
         assert!(e(r#"<Grid rows="abc"/>"#).contains("`abc` isn't a row size"));
         assert!(e(r#"<Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/></Grid.RowDefinitions></Grid>"#)
             .contains("lowercase: height"));
-        assert!(e(r#"<Grid><Grid.RowDefinitions><RowDefinition height="x"/></Grid.RowDefinitions></Grid>"#)
-            .contains("height=\"x\""));
-        assert!(e(r#"<Grid rows="*,*"><Label Grid.Row="2"/></Grid>"#).contains("past the grid's last row (it has 2 rows"));
-        assert!(e(r#"<Grid columns="*,*"><Label Grid.Column="1" Grid.ColumnSpan="2"/></Grid>"#)
-            .contains("Grid.ColumnSpan=\"2\" from column 1"));
+        assert!(e(
+            r#"<Grid><Grid.RowDefinitions><RowDefinition height="x"/></Grid.RowDefinitions></Grid>"#
+        )
+        .contains("height=\"x\""));
+        assert!(e(r#"<Grid rows="*,*"><Label Grid.Row="2"/></Grid>"#)
+            .contains("past the grid's last row (it has 2 rows"));
+        assert!(
+            e(r#"<Grid columns="*,*"><Label Grid.Column="1" Grid.ColumnSpan="2"/></Grid>"#)
+                .contains("Grid.ColumnSpan=\"2\" from column 1")
+        );
         assert!(e(r#"<Grid><Label Grid.Row="1"/></Grid>"#).contains("it has 1 row,"));
-        assert!(e(r#"<Column><Label Grid.Row="0"/></Column>"#).contains("only children of a <Grid>"));
+        assert!(
+            e(r#"<Column><Label Grid.Row="0"/></Column>"#).contains("only children of a <Grid>")
+        );
         assert!(e(r#"<Grid rows="*"><Grid.RowDefinitions/></Grid>"#).contains("keep one"));
-        assert!(e(r#"<Column><Grid.RowDefinitions/></Column>"#).contains("directly inside a <Grid>"));
+        assert!(
+            e(r#"<Column><Grid.RowDefinitions/></Column>"#).contains("directly inside a <Grid>")
+        );
         assert!(e(r#"<Grid><Label Grid.RowSpan="0"/></Grid>"#).contains("at least 1"));
         assert!(e(r#"<Grid><Label HorizontalAlignment="Left"/></Grid>"#).contains("halign"));
-        assert!(e(r#"<Grid><Label halign="middle"/></Grid>"#).contains("left, center, right, stretch"));
+        assert!(
+            e(r#"<Grid><Label halign="middle"/></Grid>"#).contains("left, center, right, stretch")
+        );
     }
 }

@@ -13,7 +13,11 @@ fn tree() -> widget::Widget {
             widget::panel(FlexDir::Row)
                 .w(Units::Percent(100.0))
                 .h(20.0)
-                .action(Action { owner: 1, slot: Action::SELECT, index: 3 })
+                .action(Action {
+                    owner: 1,
+                    slot: Action::SELECT,
+                    index: 3,
+                })
                 .child(widget::label("row"))
                 .child(widget::button("btn").w(20.0).h(10.0).action(Action::new(7))),
         )
@@ -28,7 +32,10 @@ fn invisible_takes_no_space_and_paths_mirror_the_tree() {
     assert!(node.children[0].children.is_empty());
     // No gap for the collapsed label: the row starts at the top.
     assert_eq!(node.children[1].rect.y, 0.0);
-    assert_eq!(node_at(&node, &[1, 1]).unwrap().action, Some(Action::new(7)));
+    assert_eq!(
+        node_at(&node, &[1, 1]).unwrap().action,
+        Some(Action::new(7))
+    );
     assert!(node_at(&node, &[5]).is_none());
 }
 
@@ -54,13 +61,27 @@ fn state_styles_and_inheritance() {
     let mut row = widget::panel(FlexDir::Row)
         .bg(1)
         .action(Action::new(0))
-        .state_style(StateFlags::HOVER, StylePatch { bg: Some(2), ..Default::default() })
-        .state_style(StateFlags::SELECTED, StylePatch { bg: Some(3), ..Default::default() })
-        .child(
-            widget::label("x")
-                .color(10)
-                .state_style(StateFlags::SELECTED, StylePatch { color: Some(11), ..Default::default() }),
+        .state_style(
+            StateFlags::HOVER,
+            StylePatch {
+                bg: Some(2),
+                ..Default::default()
+            },
         )
+        .state_style(
+            StateFlags::SELECTED,
+            StylePatch {
+                bg: Some(3),
+                ..Default::default()
+            },
+        )
+        .child(widget::label("x").color(10).state_style(
+            StateFlags::SELECTED,
+            StylePatch {
+                color: Some(11),
+                ..Default::default()
+            },
+        ))
         .child(widget::button("b").action(Action::new(1)));
     assert_eq!(row.effective_style().bg, 1);
     row.set_state_inherited(StateFlags::HOVER, true);
@@ -78,9 +99,13 @@ fn state_styles_and_inheritance() {
 
 #[test]
 fn disabled_patch_follows_enabled() {
-    let b = widget::button("b")
-        .color(1)
-        .state_style(StateFlags::DISABLED, StylePatch { color: Some(2), ..Default::default() });
+    let b = widget::button("b").color(1).state_style(
+        StateFlags::DISABLED,
+        StylePatch {
+            color: Some(2),
+            ..Default::default()
+        },
+    );
     assert_eq!(b.effective_style().color, 1);
     assert_eq!(b.enabled(false).effective_style().color, 2);
 }

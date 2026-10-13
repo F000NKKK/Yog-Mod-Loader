@@ -280,9 +280,25 @@ fn render_text_box(
         widget::TEXT_BOX_BORDER
     };
     fill(d2d, clip, r.x, r.y, r.x + r.w, r.y + 1.0, border);
-    fill(d2d, clip, r.x, r.y + r.h - 1.0, r.x + r.w, r.y + r.h, border);
+    fill(
+        d2d,
+        clip,
+        r.x,
+        r.y + r.h - 1.0,
+        r.x + r.w,
+        r.y + r.h,
+        border,
+    );
     fill(d2d, clip, r.x, r.y, r.x + 1.0, r.y + r.h, border);
-    fill(d2d, clip, r.x + r.w - 1.0, r.y, r.x + r.w, r.y + r.h, border);
+    fill(
+        d2d,
+        clip,
+        r.x + r.w - 1.0,
+        r.y,
+        r.x + r.w,
+        r.y + r.h,
+        border,
+    );
 
     let fs = s.font_scale;
     let line_h = text::LINE_H * fs;
@@ -298,7 +314,15 @@ fn render_text_box(
     if tb.text.is_empty() {
         if !tb.placeholder.is_empty() {
             let shown = ellipsize(&tb.placeholder, inner_w, fs, &s.font);
-            draw_text(d2d, &shown, &s.font, x0, ty, widget::PLACEHOLDER_COLOR, false);
+            draw_text(
+                d2d,
+                &shown,
+                &s.font,
+                x0,
+                ty,
+                widget::PLACEHOLDER_COLOR,
+                false,
+            );
         }
     } else {
         let caret = tb.caret.unwrap_or(0);
@@ -319,17 +343,23 @@ fn render_text_box(
         if a < b && b > first && a < last {
             let sx0 = xs[a.max(first) - first];
             let sx1 = xs[b.min(last) - first];
-            fill(d2d, clip, sx0, ty - 1.0, sx1, ty + line_h, widget::SELECTION_COLOR);
+            fill(
+                d2d,
+                clip,
+                sx0,
+                ty - 1.0,
+                sx1,
+                ty + line_h,
+                widget::SELECTION_COLOR,
+            );
         }
         draw_text(d2d, &visible, &s.font, x0, ty, s.color, s.text_shadow);
     }
     if let Some(caret) = tb.caret {
         if tb.caret_visible {
-            let first =
-                crate::textbox::text_box_first(&tb.text, tb.first, caret, inner_w, cw);
+            let first = crate::textbox::text_box_first(&tb.text, tb.first, caret, inner_w, cw);
             let cx = x0
-                + tb
-                    .text
+                + tb.text
                     .chars()
                     .skip(first)
                     .take(caret.saturating_sub(first))

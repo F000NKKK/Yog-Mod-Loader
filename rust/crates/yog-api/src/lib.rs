@@ -15,7 +15,9 @@ pub use lang::{format_translation, tr, tr_args, translation};
 pub use registry::{
     close_ui, installed_mods, open_ui, server, CServer, Mod, ModInfo, Registry, UiHandled,
 };
-pub use yog_gfx::{core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image, GfxContext};
+pub use yog_gfx::{
+    core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image, GfxContext,
+};
 
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
 pub use yog_abi::{YogApi, ABI_VERSION};
@@ -91,10 +93,11 @@ macro_rules! export_mod {
 
                 // Blocks and items of `content/**/*.yblock|*.yitem`
                 // (`yog_api::content!()`, self-registered by `ctor`).
-                let content: ::std::vec::Vec<fn(&mut $crate::Registry)> = $crate::__yog_content_registrars()
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .clone();
+                let content: ::std::vec::Vec<fn(&mut $crate::Registry)> =
+                    $crate::__yog_content_registrars()
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .clone();
                 for register in content {
                     register(&mut registry);
                 }
@@ -180,7 +183,10 @@ macro_rules! ui_component {
 #[macro_export]
 macro_rules! ui_components {
     () => {
-        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/components.g.rs"));
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/generated/components.g.rs"
+        ));
     };
 }
 
@@ -300,7 +306,9 @@ pub use yog_registry::{
     ShapedRecipe, ShapelessRecipe, StartupGrant,
 };
 pub use yog_storage::{Storage, StorageScope, Value};
-pub use yog_ui::{widget, Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, Stretch, UiRoot, Units};
+pub use yog_ui::{
+    widget, Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, Stretch, UiRoot, Units,
+};
 pub use yog_world::World;
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
@@ -387,7 +395,12 @@ pub mod ui {
 #[macro_export]
 macro_rules! ui_include {
     ($name:literal) => {
-        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/", $name, ".g.rs"));
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/generated/",
+            $name,
+            ".g.rs"
+        ));
     };
 }
 
@@ -412,7 +425,10 @@ macro_rules! ui_include {
 macro_rules! resources {
     () => {
         pub mod res {
-            include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/resources.g.rs"));
+            include!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/generated/resources.g.rs"
+            ));
         }
     };
 }
@@ -440,7 +456,10 @@ macro_rules! resources {
 macro_rules! content {
     () => {
         pub mod content {
-            include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/yog-content.g.rs"));
+            include!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/generated/yog-content.g.rs"
+            ));
         }
     };
 }

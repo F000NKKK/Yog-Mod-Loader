@@ -667,14 +667,8 @@ pub struct YogGfxApi {
     /// `"minecraft:default"`, `"minecraft:uniform"`, `"minecraft:alt"` or a
     /// resource-pack font (`"mymod:fancy"`); empty = the default font. Only
     /// valid during a render callback.
-    pub draw2d_text_font: unsafe extern "C" fn(
-        text: YogStr,
-        font: YogStr,
-        x: f32,
-        y: f32,
-        color: u32,
-        shadow: bool,
-    ),
+    pub draw2d_text_font:
+        unsafe extern "C" fn(text: YogStr, font: YogStr, x: f32, y: f32, color: u32, shadow: bool),
     /// Width in GUI pixels of `text` drawn in `font` (empty = default), as the
     /// host's text renderer measures it. Callable from the render thread at
     /// any time (render callbacks and UI event handlers); the pointer stays
@@ -1009,8 +1003,12 @@ pub struct YogServer {
         max: YogVec3,
     ) -> YogOwnedStr,
     /// `BlockHit` line of the first block on the segment, or NONE.
-    pub raycast_block:
-        unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, from: YogVec3, to: YogVec3) -> YogOwnedStr,
+    pub raycast_block: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        from: YogVec3,
+        to: YogVec3,
+    ) -> YogOwnedStr,
     /// Uuid of the nearest entity on the segment (not `exclude`), or NONE.
     pub raycast_entity: unsafe extern "C" fn(
         ctx: *mut c_void,

@@ -40,7 +40,13 @@ impl yog_kit::View for View {
                     .h(Units::Px(100.0))
                     .padding(10.0, 10.0, 10.0, 10.0),
             )
-            .child(widget::button("ok").id("ok").w(50.0).h(20.0).action(Action::new(0)));
+            .child(
+                widget::button("ok")
+                    .id("ok")
+                    .w(50.0)
+                    .h(20.0)
+                    .action(Action::new(0)),
+            );
         (View, root, Parts::default())
     }
 
@@ -92,7 +98,10 @@ fn surface_takes_the_pointer() {
 
     // Leaving it, then clicking elsewhere: a leave, and the button works.
     assert!(t.click_id("ok"));
-    assert_eq!(pad.log.lock().unwrap().drain(..).next(), Some((Pointer::Leave, size)));
+    assert_eq!(
+        pad.log.lock().unwrap().drain(..).next(),
+        Some((Pointer::Leave, size))
+    );
     assert_eq!(t.vm().clicks, 1);
     surface::unregister("test:pad");
 }

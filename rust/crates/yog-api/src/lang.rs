@@ -117,11 +117,17 @@ mod tests {
 
     #[test]
     fn formats_like_minecraft() {
-        assert_eq!(format_translation("%s of %s mods", &[&3, &"58"]), "3 of 58 mods");
+        assert_eq!(
+            format_translation("%s of %s mods", &[&3, &"58"]),
+            "3 of 58 mods"
+        );
         assert_eq!(format_translation("%2$s, %1$s", &[&"a", &"b"]), "b, a");
         assert_eq!(format_translation("100%% by %s", &[&"X"]), "100% by X");
         assert_eq!(format_translation("%d items", &[&5]), "5 items");
-        assert_eq!(format_translation("missing %s and %3$s", &[]), "missing %s and %3$s");
+        assert_eq!(
+            format_translation("missing %s and %3$s", &[]),
+            "missing %s and %3$s"
+        );
         assert_eq!(format_translation("50% off %x", &[&1]), "50% off %x");
         assert_eq!(format_translation("trailing %", &[]), "trailing %");
         assert_eq!(format_translation("Привет, %s!", &[&"мир"]), "Привет, мир!");

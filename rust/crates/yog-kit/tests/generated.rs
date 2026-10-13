@@ -25,7 +25,10 @@ impl ViewModel for Vm {
     fn on_open(&mut self, _cx: &mut Cx<'_, Self>) {
         if self.items.is_empty() {
             self.items = (0..100)
-                .map(|i| Entry { name: format!("item {i}"), even: i % 2 == 0 })
+                .map(|i| Entry {
+                    name: format!("item {i}"),
+                    even: i % 2 == 0,
+                })
                 .collect();
         }
     }
@@ -155,8 +158,14 @@ mod grid {
         assert_eq!((list.x, list.w), (0.0, 80.0));
         assert_eq!(list.y, title.y + title.h + 2.0);
         assert_eq!(list.y + list.h + 2.0 + 20.0, 120.0);
-        assert_eq!((details.x, details.y, details.w), (84.0, list.y + 4.0, 112.0));
-        assert_eq!((close.x, close.y, close.w, close.h), (160.0, 100.0, 40.0, 20.0));
+        assert_eq!(
+            (details.x, details.y, details.w),
+            (84.0, list.y + 4.0, 112.0)
+        );
+        assert_eq!(
+            (close.x, close.y, close.w, close.h),
+            (160.0, 100.0, 40.0, 20.0)
+        );
         assert!(title.x > 0.0 && title.x + title.w < 200.0);
         // The long list stays inside its row and virtualizes.
         assert!(h.widget("list").unwrap().children.len() < 20);

@@ -476,7 +476,11 @@ fn component_expr(el: &Element) -> String {
             }
         })
         .collect();
-    format!("::yog_api::ui::component::build({:?}, &[{}])", el.name, props.join(", "))
+    format!(
+        "::yog_api::ui::component::build({:?}, &[{}])",
+        el.name,
+        props.join(", ")
+    )
 }
 
 pub fn text_expr(value: &str) -> String {
@@ -572,7 +576,9 @@ impl Gen {
         let line = el.line;
         let source = el
             .attr("source")
-            .ok_or_else(|| format!("line {line}: <Image> needs a source (e.g. source=\"item:apple\")"))?
+            .ok_or_else(|| {
+                format!("line {line}: <Image> needs a source (e.g. source=\"item:apple\")")
+            })?
             .trim();
         let resolved;
         let source = match source.strip_prefix('@') {
@@ -677,7 +683,11 @@ impl Gen {
             return Err(format!("line {}: <{kind}> can't have children", el.line));
         }
         for (key, _) in &el.attrs {
-            if !is_component && !key.starts_with(RAW_CALL) && !COMMON_ATTRS.contains(&key.as_str()) && !kind_attrs(kind).contains(&key.as_str()) {
+            if !is_component
+                && !key.starts_with(RAW_CALL)
+                && !COMMON_ATTRS.contains(&key.as_str())
+                && !kind_attrs(kind).contains(&key.as_str())
+            {
                 let hint = wpf_hint(key)
                     .map(|h| format!(" — .yui writes it `{h}`"))
                     .unwrap_or_default();
@@ -1265,7 +1275,10 @@ mod tests {
             code.contains(r#"::yog_api::ui::component::build("StatBar", &[("label", &*"@hp"), ("value", "0.5"), ("on_select", "pick")])"#),
             "{code}"
         );
-        assert!(code.contains(".bg(0xFF000000)") && code.contains(".w(Units::Px(80.0))"), "{code}");
+        assert!(
+            code.contains(".bg(0xFF000000)") && code.contains(".w(Units::Px(80.0))"),
+            "{code}"
+        );
         assert!(!code.contains(".value("), "{code}");
         assert!(generate_for(&screen(r#"<statBar/>"#), "s", None).is_err());
         assert!(generate_for(&screen(r#"<StatBar><Label/></StatBar>"#), "s", None).is_err());
@@ -1273,9 +1286,18 @@ mod tests {
 
     #[test]
     fn surfaces() {
-        let (code, _) = generate_for(&screen(r#"<Surface w="100" h="50" source="mod:grid"/>"#), "s", Some("hexcasting")).unwrap();
-        assert!(code.contains(r#"widget::surface("hexcasting:grid")"#), "{code}");
-        let (code, _) = generate_for(&screen(r#"<Surface source="other:pad"/>"#), "s", None).unwrap();
+        let (code, _) = generate_for(
+            &screen(r#"<Surface w="100" h="50" source="mod:grid"/>"#),
+            "s",
+            Some("hexcasting"),
+        )
+        .unwrap();
+        assert!(
+            code.contains(r#"widget::surface("hexcasting:grid")"#),
+            "{code}"
+        );
+        let (code, _) =
+            generate_for(&screen(r#"<Surface source="other:pad"/>"#), "s", None).unwrap();
         assert!(code.contains(r#"widget::surface("other:pad")"#), "{code}");
         assert!(generate_for(&screen(r#"<Surface/>"#), "s", None).is_err());
         assert!(generate_for(&screen(r#"<Surface source="pad"/>"#), "s", None).is_err());
@@ -1330,9 +1352,11 @@ mod tests {
         )
         .unwrap_err();
         assert!(err.contains(r#"source="item:apple""#), "{err}");
-        assert!(generate_for(&screen(r#"<Image texture="item:apple"/>"#), "s", None)
-            .unwrap_err()
-            .contains("no attribute `texture`"));
+        assert!(
+            generate_for(&screen(r#"<Image texture="item:apple"/>"#), "s", None)
+                .unwrap_err()
+                .contains("no attribute `texture`")
+        );
     }
 
     const SAMPLE: &str = r##"<?xml version="1.0" encoding="utf-8"?>

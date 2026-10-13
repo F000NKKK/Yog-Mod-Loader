@@ -28,7 +28,10 @@ yog_api::ui_component!(Chip, Pill);
 #[test]
 fn registered_on_load() {
     let names: Vec<&str> = component::components().iter().map(|c| c.name).collect();
-    assert!(names.contains(&"Chip") && names.contains(&"Pill"), "{names:?}");
+    assert!(
+        names.contains(&"Chip") && names.contains(&"Pill"),
+        "{names:?}"
+    );
     let w = component::build("Chip", &[("label", "hi")]);
     assert!(matches!(&w.kind, yog_api::ui::widget::WidgetKind::Label(t) if t == "hi"));
 }

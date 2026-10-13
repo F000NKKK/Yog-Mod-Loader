@@ -91,7 +91,13 @@ pub struct Prop {
 
 impl Prop {
     pub const fn new(name: &'static str, kind: PropKind, default: &'static str) -> Self {
-        Self { name, kind, default, doc: "", category: "" }
+        Self {
+            name,
+            kind,
+            default,
+            doc: "",
+            category: "",
+        }
     }
     pub const fn text(name: &'static str, default: &'static str) -> Self {
         Self::new(name, PropKind::Text, default)
@@ -108,7 +114,11 @@ impl Prop {
     pub const fn color(name: &'static str, default: &'static str) -> Self {
         Self::new(name, PropKind::Color, default)
     }
-    pub const fn choice(name: &'static str, options: &'static [&'static str], default: &'static str) -> Self {
+    pub const fn choice(
+        name: &'static str,
+        options: &'static [&'static str],
+        default: &'static str,
+    ) -> Self {
         Self::new(name, PropKind::Choice(options), default)
     }
     pub const fn event(name: &'static str) -> Self {
@@ -199,12 +209,20 @@ pub fn register_spec(spec: ComponentSpec) {
 
 /// Every registered component, in registration order.
 pub fn components() -> Vec<ComponentSpec> {
-    REGISTRY.lock().unwrap_or_else(PoisonError::into_inner).clone()
+    REGISTRY
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .clone()
 }
 
 /// The registered component `name`.
 pub fn find(name: &str) -> Option<ComponentSpec> {
-    REGISTRY.lock().unwrap_or_else(PoisonError::into_inner).iter().find(|s| s.name == name).copied()
+    REGISTRY
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .iter()
+        .find(|s| s.name == name)
+        .copied()
 }
 
 /// The component `name` built from `.yui` attribute values (what generated
@@ -236,7 +254,10 @@ pub struct Props {
 impl Props {
     /// `props`' defaults overridden by `attrs`.
     pub fn new(props: &[Prop], attrs: &[(&str, &str)]) -> Self {
-        let mut values: HashMap<String, String> = props.iter().map(|p| (p.name.to_string(), p.default.to_string())).collect();
+        let mut values: HashMap<String, String> = props
+            .iter()
+            .map(|p| (p.name.to_string(), p.default.to_string()))
+            .collect();
         for (k, v) in attrs {
             values.insert((*k).to_string(), (*v).to_string());
         }
@@ -259,12 +280,16 @@ impl Props {
 
     /// A number (0 if missing or not a number).
     pub fn number(&self, name: &str) -> f32 {
-        self.get(name).and_then(|v| v.trim().parse().ok()).unwrap_or(0.0)
+        self.get(name)
+            .and_then(|v| v.trim().parse().ok())
+            .unwrap_or(0.0)
     }
 
     /// A whole number (0 if missing or not one).
     pub fn int(&self, name: &str) -> i64 {
-        self.get(name).and_then(|v| v.trim().parse().ok()).unwrap_or(0)
+        self.get(name)
+            .and_then(|v| v.trim().parse().ok())
+            .unwrap_or(0)
     }
 
     /// `true` only for `true`.
@@ -419,8 +444,30 @@ pub mod bind {
 /// a component's widget with builder calls — they never reach its
 /// [`Props`]).
 pub const COMMON_ATTRS: &[&str] = &[
-    "id", "x", "y", "w", "h", "min_w", "min_h", "flex", "dock", "gap", "padding", "bg", "color", "align", "font_scale",
-    "font", "shadow", "no_wrap", "ellipsis", "focus_style", "focus_color", "enabled", "on_click", "visible",
+    "id",
+    "x",
+    "y",
+    "w",
+    "h",
+    "min_w",
+    "min_h",
+    "flex",
+    "dock",
+    "gap",
+    "padding",
+    "bg",
+    "color",
+    "align",
+    "font_scale",
+    "font",
+    "shadow",
+    "no_wrap",
+    "ellipsis",
+    "focus_style",
+    "focus_color",
+    "enabled",
+    "on_click",
+    "visible",
 ];
 
 /// One common style attribute applied to `w` as generated code would
@@ -448,7 +495,11 @@ pub fn apply_style(w: Widget, key: &str, value: &str) -> Widget {
             _ => crate::Align::Start,
         }),
         "padding" => {
-            let parts: Option<Vec<f32>> = v.split([' ', ',']).filter(|s| !s.is_empty()).map(|s| s.parse().ok()).collect();
+            let parts: Option<Vec<f32>> = v
+                .split([' ', ','])
+                .filter(|s| !s.is_empty())
+                .map(|s| s.parse().ok())
+                .collect();
             match parts.as_deref() {
                 Some([a]) => w.padding(*a, *a, *a, *a),
                 Some([vv, hh]) => w.padding(*vv, *hh, *vv, *hh),
@@ -467,7 +518,11 @@ pub fn parse_color(value: &str) -> Option<u32> {
     if !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit()) {
         return v.parse().ok();
     }
-    let hex = v.strip_prefix('#').or_else(|| v.strip_prefix("0x")).or_else(|| v.strip_prefix("0X"))?.replace('_', "");
+    let hex = v
+        .strip_prefix('#')
+        .or_else(|| v.strip_prefix("0x"))
+        .or_else(|| v.strip_prefix("0X"))?
+        .replace('_', "");
     let n = u32::from_str_radix(&hex, 16).ok()?;
     match hex.len() {
         6 => Some(0xFF00_0000 | n),
@@ -513,7 +568,12 @@ pub mod designer {
     /// # Safety
     /// `request` must be valid UTF-8 for the call; `gfx` a valid table (or
     /// null for `describe`); `write` sound to call with `user_data`.
-    pub unsafe fn call(request: YogStr, gfx: *const YogGfxApi, user_data: *mut c_void, write: WriteFn) -> bool {
+    pub unsafe fn call(
+        request: YogStr,
+        gfx: *const YogGfxApi,
+        user_data: *mut c_void,
+        write: WriteFn,
+    ) -> bool {
         // SAFETY: the caller's contract.
         let request = unsafe { request.as_str() };
         let (ok, answer) = match catch_unwind(AssertUnwindSafe(|| answer(request, gfx))) {
@@ -544,10 +604,19 @@ pub mod designer {
                     return Err("render: no gfx table".into());
                 }
                 let name = lines.next().unwrap_or_default().trim().to_string();
-                let size: Vec<f32> = lines.next().unwrap_or_default().split_whitespace().filter_map(|n| n.parse().ok()).collect();
-                let [w, h, aw, ah] = size[..] else { return Err("render: expected `w h avail_w avail_h`".into()) };
-                let attrs: Vec<(String, String)> =
-                    lines.filter_map(|l| l.split_once('=')).map(|(k, v)| (k.trim().to_string(), unescape(v))).collect();
+                let size: Vec<f32> = lines
+                    .next()
+                    .unwrap_or_default()
+                    .split_whitespace()
+                    .filter_map(|n| n.parse().ok())
+                    .collect();
+                let [w, h, aw, ah] = size[..] else {
+                    return Err("render: expected `w h avail_w avail_h`".into());
+                };
+                let attrs: Vec<(String, String)> = lines
+                    .filter_map(|l| l.split_once('='))
+                    .map(|(k, v)| (k.trim().to_string(), unescape(v)))
+                    .collect();
                 // SAFETY: non-null, valid for the call (the caller's contract).
                 let ctx = unsafe { GfxContext::from_raw(gfx) };
                 render(&ctx, &name, &attrs, [w, h, aw, ah])
@@ -556,11 +625,18 @@ pub mod designer {
         }
     }
 
-    fn render(ctx: &GfxContext, name: &str, attrs: &[(String, String)], [w, h, aw, ah]: [f32; 4]) -> Result<String, String> {
+    fn render(
+        ctx: &GfxContext,
+        name: &str,
+        attrs: &[(String, String)],
+        [w, h, aw, ah]: [f32; 4],
+    ) -> Result<String, String> {
         let spec = find(name).ok_or_else(|| format!("no component named {name}"))?;
         type Attrs<'a> = Vec<(&'a str, &'a str)>;
-        let (common, own): (Attrs, Attrs) =
-            attrs.iter().map(|(k, v)| (k.as_str(), v.as_str())).partition(|(k, _)| COMMON_ATTRS.contains(k));
+        let (common, own): (Attrs, Attrs) = attrs
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .partition(|(k, _)| COMMON_ATTRS.contains(k));
         let mut root: Widget = (spec.build)(&Props::new(spec.props, &own));
         for (k, v) in common {
             root = apply_style(root, k, v);
@@ -572,13 +648,21 @@ pub mod designer {
             root = root.h(Units::Px(h));
         }
         let (aw, ah) = (aw.max(1.0), ah.max(1.0));
-        let screen = widget::panel(FlexDir::Column).w(Units::Px(aw)).h(Units::Px(ah)).child(root.at(0.0, 0.0));
+        let screen = widget::panel(FlexDir::Column)
+            .w(Units::Px(aw))
+            .h(Units::Px(ah))
+            .child(root.at(0.0, 0.0));
         // Measured like the game measures: through the host's text/image metrics.
         crate::text::use_host_metrics(ctx);
         crate::image::use_host_images(ctx);
         let mut ui = UiRoot::new("yog:designer", screen);
         ui.layout(aw, ah);
-        let rect = ui.layout_root.children.first().map(|n| n.rect).unwrap_or_default();
+        let rect = ui
+            .layout_root
+            .children
+            .first()
+            .map(|n| n.rect)
+            .unwrap_or_default();
         ui.render(ctx);
         Ok(format!("{{\"w\":{},\"h\":{}}}", rect.w, rect.h))
     }
@@ -685,7 +769,9 @@ mod tests {
             Prop::choice("size", &["small", "large"], "small"),
         ];
         fn build(p: &Props) -> Widget {
-            widget::label(p.text("label")).bg(p.color("fill")).padding(1.0, 2.0, 1.0, 2.0)
+            widget::label(p.text("label"))
+                .bg(p.color("fill"))
+                .padding(1.0, 2.0, 1.0, 2.0)
         }
     }
 
@@ -719,7 +805,14 @@ mod tests {
             unsafe { (*(ud as *mut String)).push_str(s.as_str()) };
         }
         let req = "describe";
-        let ok = unsafe { designer::call(yog_abi::YogStr::from_str(req), std::ptr::null(), &mut out as *mut String as *mut _, sink) };
+        let ok = unsafe {
+            designer::call(
+                yog_abi::YogStr::from_str(req),
+                std::ptr::null(),
+                &mut out as *mut String as *mut _,
+                sink,
+            )
+        };
         assert!(ok, "{out}");
         assert!(out.contains("\"name\":\"TestBadge\""), "{out}");
         assert!(out.contains("\"options\":[\"small\",\"large\"]"), "{out}");

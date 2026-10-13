@@ -413,10 +413,10 @@ impl<W: View> Host<W> {
         let (Some(view), Some(items)) = (self.node(&scroller.path), self.node(&list.path)) else {
             return false;
         };
-        let found = items
-            .children
-            .iter()
-            .find(|c| c.action.is_some_and(|a| a.owner == owner && a.index == index));
+        let found = items.children.iter().find(|c| {
+            c.action
+                .is_some_and(|a| a.owner == owner && a.index == index)
+        });
         let (top, h) = match (found, list.item_height) {
             (Some(n), _) => (n.rect.y - view.rect.y + view.scroll_y, n.rect.h),
             (None, Some(ih)) => {
@@ -505,7 +505,10 @@ impl<W: View> Host<W> {
                     let Some(node) = self.node(&self.parts.scrollers[i].path).cloned() else {
                         continue;
                     };
-                    if self.parts.scrollers[i].state.handle_event(&ev, &node, WHEEL_STEP) {
+                    if self.parts.scrollers[i]
+                        .state
+                        .handle_event(&ev, &node, WHEEL_STEP)
+                    {
                         used = true;
                         self.dirty = true;
                     }
@@ -551,7 +554,10 @@ impl<W: View> Host<W> {
                     .max_by_key(|(_, s)| s.path.len())
                     .map(|(i, _)| i)
             })
-            .or_else(|| self.focused_list().and_then(|l| l.scroller.map(usize::from)))
+            .or_else(|| {
+                self.focused_list()
+                    .and_then(|l| l.scroller.map(usize::from))
+            })
             .or_else(|| (!self.parts.scrollers.is_empty()).then_some(0));
         let Some(i) = target else {
             return false;
@@ -573,7 +579,10 @@ impl<W: View> Host<W> {
             let Some(node) = self.node(&self.parts.scrollers[i].path).cloned() else {
                 continue;
             };
-            if self.parts.scrollers[i].state.handle_event(ev, &node, WHEEL_STEP) {
+            if self.parts.scrollers[i]
+                .state
+                .handle_event(ev, &node, WHEEL_STEP)
+            {
                 self.dirty = true;
                 return true;
             }
@@ -641,7 +650,10 @@ impl<W: View> Host<W> {
     }
 
     /// The surface at `path` and its content box (rect less padding).
-    fn surface_box(&self, path: &[u16]) -> Option<(std::sync::Arc<dyn yog_api::ui::Surface>, Rect)> {
+    fn surface_box(
+        &self,
+        path: &[u16],
+    ) -> Option<(std::sync::Arc<dyn yog_api::ui::Surface>, Rect)> {
         let w = self.content().get_path(path)?;
         let WidgetKind::Surface(id) = &w.kind else {
             return None;
@@ -658,7 +670,13 @@ impl<W: View> Host<W> {
     }
 
     /// Hands the surface at `path` a pointer event at screen `(x, y)`.
-    fn to_surface(&self, path: &[u16], x: f32, y: f32, ev: impl FnOnce(f32, f32) -> Pointer) -> bool {
+    fn to_surface(
+        &self,
+        path: &[u16],
+        x: f32,
+        y: f32,
+        ev: impl FnOnce(f32, f32) -> Pointer,
+    ) -> bool {
         match self.surface_box(path) {
             Some((s, r)) => s.pointer(ev(x - r.x, y - r.y), (r.w, r.h)),
             None => false,
@@ -758,7 +776,11 @@ impl<W: View> Host<W> {
                 let Some(p) = self.focus.clone() else {
                     return false;
                 };
-                if self.content().get_path(&p).is_some_and(|w| w.is_interactive()) {
+                if self
+                    .content()
+                    .get_path(&p)
+                    .is_some_and(|w| w.is_interactive())
+                {
                     self.activate(&p);
                     return true;
                 }
@@ -848,7 +870,10 @@ impl<W: View> Host<W> {
                 (Some(c), true) => (c + n - step % n) % n,
             };
             let p = &self.parts.focusables[i];
-            if self.node(p).is_some_and(|n| n.visible && n.enabled && n.rect.w > 0.0) {
+            if self
+                .node(p)
+                .is_some_and(|n| n.visible && n.enabled && n.rect.w > 0.0)
+            {
                 let p = p.clone();
                 self.set_focus(Some(p), true);
                 return;

@@ -73,15 +73,20 @@ pub fn import_command(args: &[String]) -> Result<(), String> {
 }
 
 fn read_mod_id(root: &Path) -> Result<String, String> {
-    let text = std::fs::read_to_string(root.join("yog.toml"))
-        .map_err(|_| "no yog.toml in the current directory — run `yog import` in a mod".to_string())?;
+    let text = std::fs::read_to_string(root.join("yog.toml")).map_err(|_| {
+        "no yog.toml in the current directory — run `yog import` in a mod".to_string()
+    })?;
     let mut in_mod = false;
     for line in text.lines() {
         let t = line.trim();
         if t.starts_with('[') {
             in_mod = t == "[mod]";
         } else if in_mod {
-            if let Some(v) = t.strip_prefix("id").map(str::trim_start).and_then(|r| r.strip_prefix('=')) {
+            if let Some(v) = t
+                .strip_prefix("id")
+                .map(str::trim_start)
+                .and_then(|r| r.strip_prefix('='))
+            {
                 return Ok(v.trim().trim_matches('"').to_string());
             }
         }
@@ -129,14 +134,21 @@ impl Target {
 
     /// Copies a texture into `resources/<path>.png` → its value in a
     /// content file (`path.png`).
-    fn put_texture(&mut self, path: &str, png: &[u8], mcmeta: Option<&[u8]>) -> Result<String, String> {
+    fn put_texture(
+        &mut self,
+        path: &str,
+        png: &[u8],
+        mcmeta: Option<&[u8]>,
+    ) -> Result<String, String> {
         let rel = format!("resources/{path}.png");
         let existing = self.root.join(&rel);
         if !(existing.is_file() && std::fs::read(&existing).ok().as_deref() == Some(png)) {
             let force = self.force;
             // A texture already there and different: keep it, warn.
             if existing.is_file() && !force {
-                self.warnings.push(format!("{rel} exists and differs — kept it (--force overwrites)"));
+                self.warnings.push(format!(
+                    "{rel} exists and differs — kept it (--force overwrites)"
+                ));
             } else {
                 self.write_file(&rel, png)?;
             }
@@ -212,7 +224,10 @@ impl Pack {
         let mut add = |rel: &str| {
             let rest = rel.strip_prefix("assets/")?;
             let (ns, rest) = rest.split_once('/')?;
-            let name = rest.strip_prefix(dir)?.strip_prefix('/')?.strip_suffix(".json")?;
+            let name = rest
+                .strip_prefix(dir)?
+                .strip_prefix('/')?
+                .strip_suffix(".json")?;
             out.push((ns.to_string(), name.to_string()));
             Some(())
         };
@@ -247,19 +262,33 @@ fn client_jar(root: &Path) -> Option<PathBuf> {
     if let Ok(p) = std::env::var("YOG_MC_CLIENT_JAR") {
         return Some(PathBuf::from(p)).filter(|p| p.is_file());
     }
-    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+    let home = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from);
     let mut dirs: Vec<(PathBuf, &str)> = Vec::new();
     if let Some(h) = &home {
         let caches = h.join(".gradle/caches");
         dirs.push((caches.join("fabric-loom"), "minecraft-client.jar"));
-        dirs.push((caches.join("forge_gradle/minecraft_repo/versions"), "client.jar"));
+        dirs.push((
+            caches.join("forge_gradle/minecraft_repo/versions"),
+            "client.jar",
+        ));
         dirs.push((caches.join("minecraft/versions"), "client.jar"));
         dirs.push((h.join(".minecraft/versions"), ""));
     }
     for loader in ["neoforge", "fabric", "forge"] {
-        dirs.push((root.join("../Yog-Mod-Loader").join(loader).join(".gradle/caches/minecraft/versions"), "client.jar"));
+        dirs.push((
+            root.join("../Yog-Mod-Loader")
+                .join(loader)
+                .join(".gradle/caches/minecraft/versions"),
+            "client.jar",
+        ));
     }
-    let key = |v: &str| -> Vec<u32> { v.split(['.', '-']).map(|p| p.parse().unwrap_or(0)).collect() };
+    let key = |v: &str| -> Vec<u32> {
+        v.split(['.', '-'])
+            .map(|p| p.parse().unwrap_or(0))
+            .collect()
+    };
     let mut best: Option<(Vec<u32>, PathBuf)> = None;
     for (dir, file) in dirs {
         for e in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
@@ -267,7 +296,11 @@ fn client_jar(root: &Path) -> Option<PathBuf> {
             if !v.starts_with(|c: char| c.is_ascii_digit()) {
                 continue;
             }
-            let jar = if file.is_empty() { e.path().join(format!("{v}.jar")) } else { e.path().join(file) };
+            let jar = if file.is_empty() {
+                e.path().join(format!("{v}.jar"))
+            } else {
+                e.path().join(file)
+            };
             if jar.is_file() && best.as_ref().is_none_or(|(k, _)| key(&v) > *k) {
                 best = Some((key(&v), jar));
             }
@@ -346,7 +379,9 @@ fn convert_model(
             if depth == 0 {
                 return Err(format!("{id}: no such model in the pack"));
             }
-            t.warnings.push(format!("{id}: parent {current} not found (no Minecraft client jar?) — kept as the parent"));
+            t.warnings.push(format!(
+                "{id}: parent {current} not found (no Minecraft client jar?) — kept as the parent"
+            ));
             parent = Some(current.clone());
             break;
         };
@@ -379,7 +414,10 @@ fn convert_model(
             gui_light = m.get("gui_light").and_then(Value::as_str).map(String::from);
         }
         if render_type.is_none() {
-            render_type = m.get("render_type").and_then(Value::as_str).map(|s| s.trim_start_matches("minecraft:").to_string());
+            render_type = m
+                .get("render_type")
+                .and_then(Value::as_str)
+                .map(|s| s.trim_start_matches("minecraft:").to_string());
         }
         let Some(p) = m.get("parent").and_then(Value::as_str) else {
             break;
@@ -403,7 +441,11 @@ fn convert_model(
     }
     // A sprite parent reached through the jar: `item/generated` itself.
     if elements.is_none() && parent.is_none() {
-        parent = Some(if item { "generated".into() } else { "cube_all".into() });
+        parent = Some(if item {
+            "generated".into()
+        } else {
+            "cube_all".into()
+        });
     }
 
     let mut out = J::obj::<&str>([]);
@@ -424,7 +466,9 @@ fn convert_model(
                 Some(png) if valid_path(path) => {
                     let meta = pack.read(&format!("{rel}.mcmeta"));
                     if ns != tex_ns {
-                        t.warnings.push(format!("{id}: texture {ns}:{path} is bundled as {tex_ns}:{path}"));
+                        t.warnings.push(format!(
+                            "{id}: texture {ns}:{path} is bundled as {tex_ns}:{path}"
+                        ));
                     }
                     t.put_texture(path, &png, meta.as_deref())?
                 }
@@ -445,7 +489,11 @@ fn convert_model(
         out.set("textures", tex);
     }
     if let Some(els) = &elements {
-        let converted: Vec<J> = els.iter().enumerate().map(|(i, e)| element_from_mc(t, id, i, e)).collect();
+        let converted: Vec<J> = els
+            .iter()
+            .enumerate()
+            .map(|(i, e)| element_from_mc(t, id, i, e))
+            .collect();
         out.set("elements", J::of(V::Arr(converted)));
     }
     if !display.is_empty() {
@@ -464,7 +512,9 @@ fn convert_model(
 fn snap_angle(t: &mut Target, what: &str, a: f64) -> f64 {
     let snapped = ((a / 22.5).round() * 22.5).clamp(-45.0, 45.0);
     if (snapped - a).abs() > 1e-6 {
-        t.warnings.push(format!("{what}: rotation {a}° → {snapped}° (Minecraft allows -45..45 by 22.5)"));
+        t.warnings.push(format!(
+            "{what}: rotation {a}° → {snapped}° (Minecraft allows -45..45 by 22.5)"
+        ));
     }
     snapped
 }
@@ -472,7 +522,8 @@ fn snap_angle(t: &mut Target, what: &str, a: f64) -> f64 {
 fn clamp_coord(t: &mut Target, what: &str, v: f64) -> f64 {
     let c = v.clamp(-16.0, 32.0);
     if c != v {
-        t.warnings.push(format!("{what}: {v} is outside -16..32, clamped"));
+        t.warnings
+            .push(format!("{what}: {v} is outside -16..32, clamped"));
     }
     (c * 10000.0).round() / 10000.0
 }
@@ -481,7 +532,10 @@ fn clamp_coord(t: &mut Target, what: &str, v: f64) -> f64 {
 fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> J {
     let what = format!("{id} element {i}");
     let coords = |t: &mut Target, v: Option<&Value>| -> Vec<f64> {
-        let a: Vec<f64> = v.and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_f64).collect()).unwrap_or_default();
+        let a: Vec<f64> = v
+            .and_then(Value::as_array)
+            .map(|a| a.iter().filter_map(Value::as_f64).collect())
+            .unwrap_or_default();
         a.into_iter().map(|n| clamp_coord(t, &what, n)).collect()
     };
     let mut out = J::obj::<&str>([]);
@@ -494,7 +548,10 @@ fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> J {
         let angle = r.get("angle").and_then(Value::as_f64).unwrap_or(0.0);
         let angle = snap_angle(t, &what, angle);
         if angle != 0.0 {
-            let mut rot = J::obj([("axis", J::string(r.get("axis").and_then(Value::as_str).unwrap_or("y")))]);
+            let mut rot = J::obj([(
+                "axis",
+                J::string(r.get("axis").and_then(Value::as_str).unwrap_or("y")),
+            )]);
             rot.set("angle", J::number(angle));
             rot.set("origin", J::nums(&coords(t, r.get("origin"))));
             if r.get("rescale").and_then(Value::as_bool) == Some(true) {
@@ -510,16 +567,34 @@ fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> J {
     if let Some(Value::Object(f)) = e.get("faces") {
         for dir in super::DIRECTIONS {
             let Some(face) = f.get(dir) else { continue };
-            let mut fo = J::obj([("texture", J::string(face.get("texture").and_then(Value::as_str).unwrap_or("#missing")))]);
+            let mut fo = J::obj([(
+                "texture",
+                J::string(
+                    face.get("texture")
+                        .and_then(Value::as_str)
+                        .unwrap_or("#missing"),
+                ),
+            )]);
             if let Some(uv) = face.get("uv").and_then(Value::as_array) {
-                let uv: Vec<f64> = uv.iter().filter_map(Value::as_f64).map(|n| (n.clamp(0.0, 16.0) * 10000.0).round() / 10000.0).collect();
+                let uv: Vec<f64> = uv
+                    .iter()
+                    .filter_map(Value::as_f64)
+                    .map(|n| (n.clamp(0.0, 16.0) * 10000.0).round() / 10000.0)
+                    .collect();
                 fo.set("uv", J::nums(&uv));
             }
-            if let Some(r) = face.get("rotation").and_then(Value::as_f64).filter(|r| *r != 0.0) {
+            if let Some(r) = face
+                .get("rotation")
+                .and_then(Value::as_f64)
+                .filter(|r| *r != 0.0)
+            {
                 fo.set("rotation", J::number(r));
             }
             if let Some(c) = face.get("cullface").and_then(Value::as_str) {
-                fo.set("cullface", J::string(if c == "bottom" { "down" } else { c }));
+                fo.set(
+                    "cullface",
+                    J::string(if c == "bottom" { "down" } else { c }),
+                );
             }
             if let Some(n) = face.get("tintindex").and_then(Value::as_f64) {
                 fo.set("tint", J::number(n));
@@ -557,7 +632,9 @@ fn state_rotations(t: &mut Target, id: &str, bs: &Value) -> (Option<String>, Opt
         }
         vs.values().next().cloned()
     } else if let Some(Value::Array(parts)) = bs.get("multipart") {
-        t.warnings.push(format!("{id}: multipart blockstate — only the first part is imported"));
+        t.warnings.push(format!(
+            "{id}: multipart blockstate — only the first part is imported"
+        ));
         parts.first().and_then(|p| p.get("apply")).cloned()
     } else {
         None
@@ -600,7 +677,13 @@ fn header(t: &Target, ns: &str, name: &str, pack: &Pack, kind: &str) -> J {
     j
 }
 
-fn import_block(t: &mut Target, models: &mut Models, pack: &Pack, ns: &str, name: &str) -> Result<(), String> {
+fn import_block(
+    t: &mut Target,
+    models: &mut Models,
+    pack: &Pack,
+    ns: &str,
+    name: &str,
+) -> Result<(), String> {
     let bs: Option<Value> = pack
         .read(&format!("assets/{ns}/blockstates/{name}.json"))
         .and_then(|b| serde_json::from_slice(&b).ok());
@@ -620,7 +703,8 @@ fn import_block(t: &mut Target, models: &mut Models, pack: &Pack, ns: &str, name
         let plain = im.len() == 1
             && im.get("parent").and_then(Value::as_str).map(full_id) == Some(full_id(&model_id));
         if !plain {
-            let (item_model, _) = convert_model(t, models, pack, &format!("{ns}:item/{name}"), true)?;
+            let (item_model, _) =
+                convert_model(t, models, pack, &format!("{ns}:item/{name}"), true)?;
             j.set("item_model", item_model);
         }
     }
@@ -628,15 +712,27 @@ fn import_block(t: &mut Target, models: &mut Models, pack: &Pack, ns: &str, name
         j.set("states", J::obj([("rotations", r)]));
     }
     let leaf = name.rsplit('/').next().unwrap_or(name);
-    t.write_file(&format!("content/blocks/{leaf}.yblock"), to_pretty(&j).as_bytes())
+    t.write_file(
+        &format!("content/blocks/{leaf}.yblock"),
+        to_pretty(&j).as_bytes(),
+    )
 }
 
-fn import_item(t: &mut Target, models: &mut Models, pack: &Pack, ns: &str, name: &str) -> Result<(), String> {
+fn import_item(
+    t: &mut Target,
+    models: &mut Models,
+    pack: &Pack,
+    ns: &str,
+    name: &str,
+) -> Result<(), String> {
     let (model, _) = convert_model(t, models, pack, &format!("{ns}:item/{name}"), true)?;
     let mut j = header(t, ns, name, pack, "item");
     j.set("model", model);
     let leaf = name.rsplit('/').next().unwrap_or(name);
-    t.write_file(&format!("content/items/{leaf}.yitem"), to_pretty(&j).as_bytes())
+    t.write_file(
+        &format!("content/items/{leaf}.yitem"),
+        to_pretty(&j).as_bytes(),
+    )
 }
 
 fn import_pack(t: &mut Target, pack: &Pack, model: Option<&str>, all: bool) -> Result<(), String> {
@@ -651,7 +747,11 @@ fn import_pack(t: &mut Target, pack: &Pack, model: Option<&str>, all: bool) -> R
     let item_models = pack.list("models/item");
     if let Some(m) = model {
         let (ns, path) = split(m);
-        let ns = if m.contains(':') { ns.to_string() } else { t.ns.clone().unwrap_or_else(|| "minecraft".into()) };
+        let ns = if m.contains(':') {
+            ns.to_string()
+        } else {
+            t.ns.clone().unwrap_or_else(|| "minecraft".into())
+        };
         let path = if m.contains(':') { path } else { m };
         if let Some(name) = path.strip_prefix("block/") {
             return import_block(t, &mut models, pack, &ns, name);
@@ -659,7 +759,9 @@ fn import_pack(t: &mut Target, pack: &Pack, model: Option<&str>, all: bool) -> R
         if let Some(name) = path.strip_prefix("item/") {
             return import_item(t, &mut models, pack, &ns, name);
         }
-        if blockstates.iter().any(|(n, p)| *n == ns && p == path) || block_models.iter().any(|(n, p)| *n == ns && p == path) {
+        if blockstates.iter().any(|(n, p)| *n == ns && p == path)
+            || block_models.iter().any(|(n, p)| *n == ns && p == path)
+        {
             return import_block(t, &mut models, pack, &ns, path);
         }
         if item_models.iter().any(|(n, p)| *n == ns && p == path) {
@@ -748,7 +850,10 @@ fn sanitize(name: &str) -> String {
 fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> Result<(), String> {
     let text = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
     let bb: Value = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", file.display()))?;
-    let format = bb.pointer("/meta/model_format").and_then(Value::as_str).unwrap_or("");
+    let format = bb
+        .pointer("/meta/model_format")
+        .and_then(Value::as_str)
+        .unwrap_or("");
     if !matches!(format, "java_block" | "free" | "") {
         return Err(format!(
             "{}: a {format:?} Blockbench model — only the \"Java Block/Item\" format maps to Minecraft models (File > Convert Project)",
@@ -756,13 +861,23 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
         ));
     }
     if format == "free" {
-        t.warnings.push("a generic Blockbench model: rotations get snapped to Minecraft's".into());
+        t.warnings
+            .push("a generic Blockbench model: rotations get snapped to Minecraft's".into());
     }
     let name = match id {
         Some(i) => i.to_string(),
         None => {
-            let n = bb.get("name").and_then(Value::as_str).filter(|s| !s.is_empty()).map(String::from);
-            sanitize(&n.unwrap_or_else(|| file.file_stem().unwrap_or_default().to_string_lossy().into_owned()))
+            let n = bb
+                .get("name")
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty())
+                .map(String::from);
+            sanitize(&n.unwrap_or_else(|| {
+                file.file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned()
+            }))
         }
     };
     let (id_ns, name) = match name.split_once(':') {
@@ -772,18 +887,29 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
     if !valid_path(&name) {
         return Err(format!("`{name}` isn't a valid id — pass --id <name>"));
     }
-    let ns = id_ns.clone().or_else(|| t.ns.clone()).ok_or(
-        "the mod id isn't a valid namespace — pass --id <namespace>:<name>",
-    )?;
-    let res_w = bb.pointer("/resolution/width").and_then(Value::as_f64).unwrap_or(16.0);
-    let res_h = bb.pointer("/resolution/height").and_then(Value::as_f64).unwrap_or(16.0);
+    let ns = id_ns
+        .clone()
+        .or_else(|| t.ns.clone())
+        .ok_or("the mod id isn't a valid namespace — pass --id <namespace>:<name>")?;
+    let res_w = bb
+        .pointer("/resolution/width")
+        .and_then(Value::as_f64)
+        .unwrap_or(16.0);
+    let res_h = bb
+        .pointer("/resolution/height")
+        .and_then(Value::as_f64)
+        .unwrap_or(16.0);
     let folder = if item { "item" } else { "block" };
 
     // Textures: slot = index ("0", "1", ...), like Blockbench's export.
     let mut tex = J::obj::<&str>([]);
     let mut uv_scale: Vec<(f64, f64)> = Vec::new();
     let mut particle: Option<String> = None;
-    let textures = bb.get("textures").and_then(Value::as_array).cloned().unwrap_or_default();
+    let textures = bb
+        .get("textures")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     for (i, tx) in textures.iter().enumerate() {
         let slot = i.to_string();
         let tex_name = sanitize(tx.get("name").and_then(Value::as_str).unwrap_or("texture"));
@@ -793,11 +919,23 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
         let source = tx.get("source").and_then(Value::as_str).unwrap_or("");
         let value = if let Some(data) = source.strip_prefix("data:image/png;base64,") {
             let png = base64_decode(data).ok_or("a texture's data isn't base64")?;
-            let tex_folder = tx.get("folder").and_then(Value::as_str).filter(|f| valid_path(f)).unwrap_or(folder);
+            let tex_folder = tx
+                .get("folder")
+                .and_then(Value::as_str)
+                .filter(|f| valid_path(f))
+                .unwrap_or(folder);
             t.put_texture(&format!("{tex_folder}/{tex_name}"), &png, None)?
         } else {
-            let tns = tx.get("namespace").and_then(Value::as_str).filter(|s| !s.is_empty()).unwrap_or("minecraft");
-            let tfolder = tx.get("folder").and_then(Value::as_str).filter(|s| !s.is_empty()).unwrap_or(folder);
+            let tns = tx
+                .get("namespace")
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty())
+                .unwrap_or("minecraft");
+            let tfolder = tx
+                .get("folder")
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty())
+                .unwrap_or(folder);
             t.warnings.push(format!("texture {tex_name} isn't embedded in the .bbmodel — referenced as {tns}:{tfolder}/{tex_name}"));
             format!("{tns}:{tfolder}/{tex_name}")
         };
@@ -812,21 +950,43 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
     let uuid_slot: BTreeMap<String, usize> = textures
         .iter()
         .enumerate()
-        .filter_map(|(i, tx)| tx.get("uuid").and_then(Value::as_str).map(|u| (u.to_string(), i)))
+        .filter_map(|(i, tx)| {
+            tx.get("uuid")
+                .and_then(Value::as_str)
+                .map(|u| (u.to_string(), i))
+        })
         .collect();
 
     let mut elements = Vec::new();
-    for (i, e) in bb.get("elements").and_then(Value::as_array).cloned().unwrap_or_default().iter().enumerate() {
-        let what = format!("element {i} ({})", e.get("name").and_then(Value::as_str).unwrap_or("?"));
-        if e.get("type").and_then(Value::as_str).is_some_and(|ty| ty != "cube") {
+    for (i, e) in bb
+        .get("elements")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .enumerate()
+    {
+        let what = format!(
+            "element {i} ({})",
+            e.get("name").and_then(Value::as_str).unwrap_or("?")
+        );
+        if e.get("type")
+            .and_then(Value::as_str)
+            .is_some_and(|ty| ty != "cube")
+        {
             t.warnings.push(format!("{what}: not a cube — skipped"));
             continue;
         }
         if e.get("visibility").and_then(Value::as_bool) == Some(false) {
-            t.warnings.push(format!("{what}: hidden in Blockbench — imported anyway"));
+            t.warnings
+                .push(format!("{what}: hidden in Blockbench — imported anyway"));
         }
         let vec3 = |t: &mut Target, k: &str| -> Vec<f64> {
-            let a: Vec<f64> = e.get(k).and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_f64).collect()).unwrap_or_default();
+            let a: Vec<f64> = e
+                .get(k)
+                .and_then(Value::as_array)
+                .map(|a| a.iter().filter_map(Value::as_f64).collect())
+                .unwrap_or_default();
             a.into_iter().map(|n| clamp_coord(t, &what, n)).collect()
         };
         let mut el = J::obj::<&str>([]);
@@ -847,8 +1007,17 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
         }
         el.set("from", J::nums(&from));
         el.set("to", J::nums(&to));
-        let rot: Vec<f64> = e.get("rotation").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_f64).collect()).unwrap_or_default();
-        let nonzero: Vec<(usize, f64)> = rot.iter().copied().enumerate().filter(|(_, a)| *a != 0.0).collect();
+        let rot: Vec<f64> = e
+            .get("rotation")
+            .and_then(Value::as_array)
+            .map(|a| a.iter().filter_map(Value::as_f64).collect())
+            .unwrap_or_default();
+        let nonzero: Vec<(usize, f64)> = rot
+            .iter()
+            .copied()
+            .enumerate()
+            .filter(|(_, a)| *a != 0.0)
+            .collect();
         if nonzero.len() > 1 {
             t.warnings.push(format!("{what}: rotated on more than one axis — only the first kept (Minecraft rotates elements on one axis)"));
         }
@@ -869,7 +1038,9 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
         }
         let mut faces = J::obj::<&str>([]);
         for dir in super::DIRECTIONS {
-            let Some(f) = e.pointer(&format!("/faces/{dir}")) else { continue };
+            let Some(f) = e.pointer(&format!("/faces/{dir}")) else {
+                continue;
+            };
             let index = match f.get("texture") {
                 Some(Value::Number(n)) => n.as_u64().map(|n| n as usize),
                 Some(Value::String(u)) => uuid_slot.get(u).copied(),
@@ -885,14 +1056,25 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
                     .iter()
                     .filter_map(Value::as_f64)
                     .enumerate()
-                    .map(|(k, n)| ((n * if k % 2 == 0 { su } else { sv }).clamp(0.0, 16.0) * 10000.0).round() / 10000.0)
+                    .map(|(k, n)| {
+                        ((n * if k % 2 == 0 { su } else { sv }).clamp(0.0, 16.0) * 10000.0).round()
+                            / 10000.0
+                    })
                     .collect();
                 fo.set("uv", J::nums(&uv));
             }
-            if let Some(r) = f.get("rotation").and_then(Value::as_f64).filter(|r| *r != 0.0) {
+            if let Some(r) = f
+                .get("rotation")
+                .and_then(Value::as_f64)
+                .filter(|r| *r != 0.0)
+            {
                 fo.set("rotation", J::number(r));
             }
-            if let Some(c) = f.get("cullface").and_then(Value::as_str).filter(|c| !c.is_empty()) {
+            if let Some(c) = f
+                .get("cullface")
+                .and_then(Value::as_str)
+                .filter(|c| !c.is_empty())
+            {
                 fo.set("cullface", J::string(c));
             }
             if let Some(n) = f.get("tint").and_then(Value::as_f64).filter(|n| *n >= 0.0) {
@@ -905,7 +1087,10 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
     }
 
     let mut model = J::obj::<&str>([]);
-    let parent = bb.get("parent").and_then(Value::as_str).filter(|p| !p.is_empty());
+    let parent = bb
+        .get("parent")
+        .and_then(Value::as_str)
+        .filter(|p| !p.is_empty());
     if let Some(p) = parent {
         match template_of(p) {
             Some(tpl) if elements.is_empty() => model.set("parent", J::string(tpl.name)),
@@ -958,7 +1143,11 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
     }
     j.set("model", model);
     let leaf = name.rsplit('/').next().unwrap_or(&name).to_string();
-    let rel = if item { format!("content/items/{leaf}.yitem") } else { format!("content/blocks/{leaf}.yblock") };
+    let rel = if item {
+        format!("content/items/{leaf}.yitem")
+    } else {
+        format!("content/blocks/{leaf}.yblock")
+    };
     t.write_file(&rel, to_pretty(&j).as_bytes())
 }
 
@@ -974,7 +1163,13 @@ mod tests {
     }
 
     fn target(root: &Path) -> Target {
-        Target { root: root.to_path_buf(), ns: Some("mymod".into()), force: false, written: Vec::new(), warnings: Vec::new() }
+        Target {
+            root: root.to_path_buf(),
+            ns: Some("mymod".into()),
+            force: false,
+            written: Vec::new(),
+            warnings: Vec::new(),
+        }
     }
 
     #[test]
@@ -991,27 +1186,50 @@ mod tests {
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
             std::fs::write(p, s).unwrap();
         };
-        w("assets/foo/blockstates/lamp.json", br#"{"variants":{"":[{"model":"foo:block/lamp"},{"model":"foo:block/lamp","y":90}]}}"#);
+        w(
+            "assets/foo/blockstates/lamp.json",
+            br#"{"variants":{"":[{"model":"foo:block/lamp"},{"model":"foo:block/lamp","y":90}]}}"#,
+        );
         w("assets/foo/models/block/lamp_base.json", br##"{"textures":{"0":"foo:block/lamp","particle":"#0"},"render_type":"cutout",
             "elements":[{"from":[4,0,4],"to":[12,8,12],"rotation":{"angle":20,"axis":"y","origin":[8,8,8]},
             "faces":{"north":{"uv":[0,0,8,8],"texture":"#0","cullface":"north"}}}]}"##);
-        w("assets/foo/models/block/lamp.json", br#"{"parent":"foo:block/lamp_base"}"#);
-        w("assets/foo/models/item/lamp.json", br#"{"parent":"foo:block/lamp"}"#);
+        w(
+            "assets/foo/models/block/lamp.json",
+            br#"{"parent":"foo:block/lamp_base"}"#,
+        );
+        w(
+            "assets/foo/models/item/lamp.json",
+            br#"{"parent":"foo:block/lamp"}"#,
+        );
         w("assets/foo/textures/block/lamp.png", b"PNG");
-        w("assets/foo/lang/en_us.json", br#"{"block.foo.lamp":"Lamp"}"#);
+        w(
+            "assets/foo/lang/en_us.json",
+            br#"{"block.foo.lamp":"Lamp"}"#,
+        );
         let root = temp("mod");
         let mut t = target(&root);
         let pack = Pack::open(&pack_dir).unwrap();
         import_pack(&mut t, &pack, Some("foo:block/lamp"), false).unwrap();
-        assert!(t.warnings.iter().any(|w| w.contains("20° → 22.5°")), "{:?}", t.warnings);
+        assert!(
+            t.warnings.iter().any(|w| w.contains("20° → 22.5°")),
+            "{:?}",
+            t.warnings
+        );
         let text = std::fs::read_to_string(root.join("content/blocks/lamp.yblock")).unwrap();
         assert!(text.contains("\"name\": \"Lamp\""), "{text}");
         assert!(text.contains("\"render_layer\": \"cutout\""), "{text}");
         assert!(text.contains("\"0\": \"block/lamp.png\""), "{text}");
         assert!(!text.contains("item_model"), "{text}");
-        assert_eq!(std::fs::read(root.join("resources/block/lamp.png")).unwrap(), b"PNG");
+        assert_eq!(
+            std::fs::read(root.join("resources/block/lamp.png")).unwrap(),
+            b"PNG"
+        );
         let c = super::super::compile(&root, "mymod", &crate::yres::Refs::default()).unwrap();
-        let bs = c.outputs.iter().find(|(p, _)| p == "assets/mymod/blockstates/lamp.json").unwrap();
+        let bs = c
+            .outputs
+            .iter()
+            .find(|(p, _)| p == "assets/mymod/blockstates/lamp.json")
+            .unwrap();
         let bs: Value = serde_json::from_slice(&bs.1).unwrap();
         assert_eq!(bs["variants"][""][1]["y"], serde_json::json!(90));
         let _ = std::fs::remove_dir_all(pack_dir);
@@ -1035,7 +1253,10 @@ mod tests {
         let text = std::fs::read_to_string(root.join("content/blocks/thing.yblock")).unwrap();
         assert!(text.contains("\"uv\": [0, 0, 16, 8]"), "{text}");
         assert!(!text.contains("\"up\""), "{text}");
-        assert_eq!(std::fs::read(root.join("resources/block/thing.png")).unwrap(), b"hello");
+        assert_eq!(
+            std::fs::read(root.join("resources/block/thing.png")).unwrap(),
+            b"hello"
+        );
         super::super::compile(&root, "mymod", &crate::yres::Refs::default()).unwrap();
         let _ = std::fs::remove_dir_all(root);
     }

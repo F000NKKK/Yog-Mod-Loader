@@ -163,7 +163,8 @@ impl<W: View> TestHost<W> {
 
     /// Content path of the widget tagged `id`; panics when there's none.
     pub fn path(&self, id: &str) -> Vec<u16> {
-        find_path(self.root(), id).unwrap_or_else(|| panic!("yog-kit test: no widget with id {id:?}"))
+        find_path(self.root(), id)
+            .unwrap_or_else(|| panic!("yog-kit test: no widget with id {id:?}"))
     }
 
     pub fn widget(&self, id: &str) -> Option<&Widget> {

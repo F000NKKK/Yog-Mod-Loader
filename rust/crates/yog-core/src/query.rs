@@ -76,7 +76,16 @@ impl EntityInfo {
         let height = num()?;
         let flags = it.next()?.parse().ok()?;
         let name = it.next().unwrap_or_default().to_owned();
-        Some(Self { type_id, dimension, pos, eye_height, width, height, flags, name })
+        Some(Self {
+            type_id,
+            dimension,
+            pos,
+            eye_height,
+            width,
+            height,
+            flags,
+            name,
+        })
     }
 }
 
@@ -92,7 +101,14 @@ pub enum Face {
 }
 
 impl Face {
-    pub const ALL: [Face; 6] = [Face::Down, Face::Up, Face::North, Face::South, Face::West, Face::East];
+    pub const ALL: [Face; 6] = [
+        Face::Down,
+        Face::Up,
+        Face::North,
+        Face::South,
+        Face::West,
+        Face::East,
+    ];
 
     pub fn from_index(i: u8) -> Option<Self> {
         Self::ALL.get(i as usize).copied()
@@ -180,7 +196,16 @@ impl BlockInfo {
         let fluid_source = flag(it.next())?;
         let redstone = it.next()?.parse().ok()?;
         let in_world = flag(it.next())?;
-        Some(Self { state, hardness, replaceable, air, fluid, fluid_source, redstone, in_world })
+        Some(Self {
+            state,
+            hardness,
+            replaceable,
+            air,
+            fluid,
+            fluid_source,
+            redstone,
+            in_world,
+        })
     }
 }
 
@@ -219,7 +244,16 @@ impl PlayerInfo {
         let air = it.next()?.parse().ok()?;
         let may_fly = it.next()? == "1";
         let flying = it.next()? == "1";
-        Some(Self { uuid, gamemode, selected_slot, xp_level, xp_total, air, may_fly, flying })
+        Some(Self {
+            uuid,
+            gamemode,
+            selected_slot,
+            xp_level,
+            xp_total,
+            air,
+            may_fly,
+            flying,
+        })
     }
 }
 

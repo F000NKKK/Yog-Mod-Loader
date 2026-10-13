@@ -42,7 +42,9 @@ pub(crate) unsafe extern "C" fn api_client_play_sound(
     looping: bool,
 ) -> u32 {
     let Some(mut env) = get_env() else { return 0 };
-    let Ok(jid) = env.new_string(sound_id.as_str()) else { return 0 };
+    let Ok(jid) = env.new_string(sound_id.as_str()) else {
+        return 0;
+    };
     let jid: JObject = jid.into();
     let r = env.call_static_method(
         CLASS,
@@ -78,8 +80,13 @@ pub(crate) unsafe extern "C" fn api_client_stop_sound(_ctx: *mut c_void, handle:
     }
 }
 
-pub(crate) unsafe extern "C" fn api_client_held_item(_ctx: *mut c_void, off_hand: bool) -> YogOwnedStr {
-    let Some(mut env) = get_env() else { return YogOwnedStr::NONE };
+pub(crate) unsafe extern "C" fn api_client_held_item(
+    _ctx: *mut c_void,
+    off_hand: bool,
+) -> YogOwnedStr {
+    let Some(mut env) = get_env() else {
+        return YogOwnedStr::NONE;
+    };
     let r = env.call_static_method(
         CLASS,
         "heldItem",
@@ -100,7 +107,9 @@ pub(crate) unsafe extern "C" fn api_client_held_item(_ctx: *mut c_void, off_hand
 }
 
 pub(crate) unsafe extern "C" fn api_client_key_down(_ctx: *mut c_void, key: i32) -> bool {
-    let Some(mut env) = get_env() else { return false };
+    let Some(mut env) = get_env() else {
+        return false;
+    };
     match env
         .call_static_method(CLASS, "keyDown", "(I)Z", &[JValue::Int(key)])
         .and_then(|v| v.z())

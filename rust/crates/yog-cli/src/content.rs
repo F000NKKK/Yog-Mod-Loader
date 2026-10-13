@@ -191,9 +191,9 @@ pub fn template(name: &str) -> Option<&'static Template> {
 /// `[a-z0-9_.-]+` — a Minecraft namespace.
 pub fn valid_namespace(s: &str) -> bool {
     !s.is_empty()
-        && s
-            .bytes()
-            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'.' | b'-'))
+        && s.bytes().all(|b| {
+            b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'.' | b'-')
+        })
 }
 
 /// `[a-z0-9_./-]+` — a Minecraft resource path.
@@ -319,7 +319,10 @@ impl Ctx<'_> {
             if !known.contains(&k.as_str()) {
                 self.err(
                     v.line,
-                    format!("unknown key {k:?} in {what} (expected one of: {})", known.join(", ")),
+                    format!(
+                        "unknown key {k:?} in {what} (expected one of: {})",
+                        known.join(", ")
+                    ),
                 );
             }
         }
@@ -360,7 +363,10 @@ impl Ctx<'_> {
         if allowed.contains(&s) {
             Some(s.to_string())
         } else {
-            self.err(j.line, format!("{what} {s:?} isn't one of: {}", allowed.join(", ")));
+            self.err(
+                j.line,
+                format!("{what} {s:?} isn't one of: {}", allowed.join(", ")),
+            );
             None
         }
     }
@@ -387,7 +393,10 @@ impl Ctx<'_> {
             Some(rest) => match self.refs.texts.get(rest) {
                 Some((key, _)) => Some(Text::Key(key.clone())),
                 None => {
-                    self.err(j.line, format!("{what} `{s}`: no text `{rest}` in resources/*.yres"));
+                    self.err(
+                        j.line,
+                        format!("{what} `{s}`: no text `{rest}` in resources/*.yres"),
+                    );
                     None
                 }
             },
@@ -411,7 +420,10 @@ impl Ctx<'_> {
             return match self.refs.images.get(rest) {
                 Some(id) => Some(id.clone()),
                 None => {
-                    self.err(j.line, format!("{what} `{s}`: no image `{rest}` in resources/*.yres"));
+                    self.err(
+                        j.line,
+                        format!("{what} `{s}`: no image `{rest}` in resources/*.yres"),
+                    );
                     None
                 }
             };
@@ -426,7 +438,10 @@ impl Ctx<'_> {
                 );
                 return None;
             }
-            let file = self.root.join(yres::RESOURCES_DIR).join(format!("{rel}.png"));
+            let file = self
+                .root
+                .join(yres::RESOURCES_DIR)
+                .join(format!("{rel}.png"));
             if !file.is_file() {
                 self.err(j.line, format!("{what}: resources/{rel}.png doesn't exist"));
                 return None;
@@ -434,10 +449,19 @@ impl Ctx<'_> {
             let target = format!("assets/{}/textures/{rel}.png", self.ns);
             if let Some(other) = self.textures.insert(target.clone(), file.clone()) {
                 if other != file {
-                    self.err(j.line, format!("{what}: {target} also comes from {}", display(self.root, &other)));
+                    self.err(
+                        j.line,
+                        format!(
+                            "{what}: {target} also comes from {}",
+                            display(self.root, &other)
+                        ),
+                    );
                 }
             }
-            let meta = self.root.join(yres::RESOURCES_DIR).join(format!("{rel}.png.mcmeta"));
+            let meta = self
+                .root
+                .join(yres::RESOURCES_DIR)
+                .join(format!("{rel}.png.mcmeta"));
             if meta.is_file() {
                 self.textures.insert(format!("{target}.mcmeta"), meta);
             }
@@ -450,14 +474,28 @@ impl Ctx<'_> {
             );
             return None;
         }
-        let id = if s.contains(':') { s } else { format!("minecraft:{s}") };
+        let id = if s.contains(':') {
+            s
+        } else {
+            format!("minecraft:{s}")
+        };
         let (ns, path) = id.split_once(':').unwrap_or_default();
         if ns == self.ns {
-            let file = self.root.join("assets").join(ns).join("textures").join(format!("{path}.png"));
-            let bundled = self.textures.contains_key(&format!("assets/{ns}/textures/{path}.png"))
+            let file = self
+                .root
+                .join("assets")
+                .join(ns)
+                .join("textures")
+                .join(format!("{path}.png"));
+            let bundled = self
+                .textures
+                .contains_key(&format!("assets/{ns}/textures/{path}.png"))
                 || self.refs.images.values().any(|v| *v == id);
             if !file.is_file() && !bundled {
-                self.warn(j.line, format!("{what}: texture {id} isn't in assets/{ns}/textures/ or resources/"));
+                self.warn(
+                    j.line,
+                    format!("{what}: texture {id} isn't in assets/{ns}/textures/ or resources/"),
+                );
             }
         }
         Some(id)
@@ -481,7 +519,14 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
     cx.unknown_keys(
         j,
         what,
-        &["parent", "textures", "elements", "display", "ambient_occlusion", "gui_light"],
+        &[
+            "parent",
+            "textures",
+            "elements",
+            "display",
+            "ambient_occlusion",
+            "gui_light",
+        ],
     );
     let mut out = Map::new();
     let mut tpl: Option<&Template> = None;
@@ -498,7 +543,11 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
             out.insert("parent".into(), Value::String(name.into()));
             raw_parent = true;
         } else {
-            let names: Vec<&str> = TEMPLATES.iter().filter(|t| item || !t.sprite).map(|t| t.name).collect();
+            let names: Vec<&str> = TEMPLATES
+                .iter()
+                .filter(|t| item || !t.sprite)
+                .map(|t| t.name)
+                .collect();
             cx.err(
                 p.line,
                 format!("{what}.parent {name:?} isn't a template ({}) or a model id like `minecraft:block/stairs`", names.join(", ")),
@@ -512,11 +561,17 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
     let mut textures = Map::new();
     if let Some(t) = j.get("textures") {
         if !t.is_obj() {
-            cx.err(t.line, format!("{what}.textures must be an object of slot → texture"));
+            cx.err(
+                t.line,
+                format!("{what}.textures must be an object of slot → texture"),
+            );
         }
         for (slot, v) in t.members() {
             if slot.is_empty() || slot.starts_with('#') {
-                cx.err(v.line, format!("{what}.textures: slot names are plain words (`all`, `side`, `0`)"));
+                cx.err(
+                    v.line,
+                    format!("{what}.textures: slot names are plain words (`all`, `side`, `0`)"),
+                );
                 continue;
             }
             if let Some(tex) = cx.texture(v, &format!("{what}.textures.{slot}")) {
@@ -529,10 +584,15 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
     if let Some(t) = tpl {
         if t.sprite {
             if !defined("layer0", &textures) {
-                cx.err(j.line, format!("{what}: parent {:?} needs textures.layer0", t.name));
+                cx.err(
+                    j.line,
+                    format!("{what}: parent {:?} needs textures.layer0", t.name),
+                );
             }
             for slot in &slots {
-                let n = slot.strip_prefix("layer").and_then(|n| n.parse::<usize>().ok());
+                let n = slot
+                    .strip_prefix("layer")
+                    .and_then(|n| n.parse::<usize>().ok());
                 match n {
                     Some(n) if n == 0 || defined(&format!("layer{}", n - 1), &textures) => {}
                     Some(_) => cx.err(j.line, format!("{what}: textures.{slot} without the layer before it")),
@@ -543,7 +603,10 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
         } else {
             for slot in t.slots {
                 if !defined(slot, &textures) {
-                    cx.err(j.line, format!("{what}: parent {:?} needs textures.{slot}", t.name));
+                    cx.err(
+                        j.line,
+                        format!("{what}: parent {:?} needs textures.{slot}", t.name),
+                    );
                 }
             }
         }
@@ -555,7 +618,10 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
         if let Some(t) = tpl {
             cx.err(
                 e.line,
-                format!("{what}: elements replace the shape of parent {:?} — remove one of them", t.name),
+                format!(
+                    "{what}: elements replace the shape of parent {:?} — remove one of them",
+                    t.name
+                ),
             );
         }
         if !e.is_arr() {
@@ -563,7 +629,13 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
         }
         let mut elements = Vec::new();
         for (i, el) in e.items().iter().enumerate() {
-            if let Some((json, from, to)) = element(cx, el, &format!("{what}.elements[{i}]"), &textures, raw_parent) {
+            if let Some((json, from, to)) = element(
+                cx,
+                el,
+                &format!("{what}.elements[{i}]"),
+                &textures,
+                raw_parent,
+            ) {
                 let b = bounds.get_or_insert([16.0, 16.0, 16.0, 0.0, 0.0, 0.0]);
                 for a in 0..3 {
                     b[a] = b[a].min(from[a].min(to[a]));
@@ -596,7 +668,13 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
         for (slot, t) in d.members() {
             let w = format!("{what}.display.{slot}");
             if !DISPLAY_SLOTS.contains(&slot.as_str()) {
-                cx.err(t.line, format!("{w}: unknown display position (expected one of: {})", DISPLAY_SLOTS.join(", ")));
+                cx.err(
+                    t.line,
+                    format!(
+                        "{w}: unknown display position (expected one of: {})",
+                        DISPLAY_SLOTS.join(", ")
+                    ),
+                );
                 continue;
             }
             cx.unknown_keys(t, &w, &["rotation", "translation", "scale"]);
@@ -604,7 +682,10 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
             for (key, lim) in [("rotation", 360.0), ("translation", 80.0), ("scale", 4.0)] {
                 if let Some(v) = t.get(key) {
                     if let Some(v3) = cx.vec::<3>(v, &format!("{w}.{key}"), -lim, lim) {
-                        m.insert(key.into(), Value::Array(v3.iter().map(|n| num_value(*n)).collect()));
+                        m.insert(
+                            key.into(),
+                            Value::Array(v3.iter().map(|n| num_value(*n)).collect()),
+                        );
                     }
                 }
             }
@@ -640,7 +721,11 @@ fn element(
         cx.err(j.line, format!("{what} must be an object"));
         return None;
     }
-    cx.unknown_keys(j, what, &["name", "from", "to", "rotation", "shade", "faces"]);
+    cx.unknown_keys(
+        j,
+        what,
+        &["name", "from", "to", "rotation", "shade", "faces"],
+    );
     if let Some(n) = j.get("name") {
         cx.string(n, &format!("{what}.name"));
     }
@@ -651,13 +736,23 @@ fn element(
     let from = cx.vec::<3>(from_j, &format!("{what}.from"), -16.0, 32.0)?;
     let to = cx.vec::<3>(to_j, &format!("{what}.to"), -16.0, 32.0)?;
     let mut out = Map::new();
-    out.insert("from".into(), Value::Array(from.iter().map(|n| num_value(*n)).collect()));
-    out.insert("to".into(), Value::Array(to.iter().map(|n| num_value(*n)).collect()));
+    out.insert(
+        "from".into(),
+        Value::Array(from.iter().map(|n| num_value(*n)).collect()),
+    );
+    out.insert(
+        "to".into(),
+        Value::Array(to.iter().map(|n| num_value(*n)).collect()),
+    );
     if let Some(r) = j.get("rotation") {
         let w = format!("{what}.rotation");
         cx.unknown_keys(r, &w, &["origin", "axis", "angle", "rescale"]);
-        let axis = r.get("axis").and_then(|a| cx.one_of(a, &format!("{w}.axis"), &["x", "y", "z"]));
-        let angle = r.get("angle").and_then(|a| cx.number(a, &format!("{w}.angle"), -45.0, 45.0));
+        let axis = r
+            .get("axis")
+            .and_then(|a| cx.one_of(a, &format!("{w}.axis"), &["x", "y", "z"]));
+        let angle = r
+            .get("angle")
+            .and_then(|a| cx.number(a, &format!("{w}.angle"), -45.0, 45.0));
         if let Some(a) = angle {
             if (a / 22.5).fract() != 0.0 {
                 cx.err(r.line, format!("{w}.angle is {a} — Minecraft rotates elements by -45, -22.5, 0, 22.5 or 45 degrees"));
@@ -673,7 +768,10 @@ fn element(
             }
         } else if let (Some(axis), Some(angle), Some(origin)) = (axis, angle, origin) {
             let mut rot = Map::new();
-            rot.insert("origin".into(), Value::Array(origin.iter().map(|n| num_value(*n)).collect()));
+            rot.insert(
+                "origin".into(),
+                Value::Array(origin.iter().map(|n| num_value(*n)).collect()),
+            );
             rot.insert("axis".into(), Value::String(axis));
             rot.insert("angle".into(), num_value(angle));
             if let Some(rs) = r.get("rescale") {
@@ -698,12 +796,21 @@ fn element(
         None => cx.warn(j.line, format!("{what} has no faces — it's invisible")),
         Some(f) => {
             if !f.is_obj() {
-                cx.err(f.line, format!("{what}.faces must be an object of direction → face"));
+                cx.err(
+                    f.line,
+                    format!("{what}.faces must be an object of direction → face"),
+                );
             }
             for (dir, face) in f.members() {
                 let w = format!("{what}.faces.{dir}");
                 if !DIRECTIONS.contains(&dir.as_str()) {
-                    cx.err(face.line, format!("{w}: unknown face (expected one of: {})", DIRECTIONS.join(", ")));
+                    cx.err(
+                        face.line,
+                        format!(
+                            "{w}: unknown face (expected one of: {})",
+                            DIRECTIONS.join(", ")
+                        ),
+                    );
                     continue;
                 }
                 cx.unknown_keys(face, &w, &["texture", "uv", "rotation", "cullface", "tint"]);
@@ -714,7 +821,10 @@ fn element(
                         if let Some(s) = cx.string(t, &format!("{w}.texture")) {
                             let slot = s.strip_prefix('#').unwrap_or(s);
                             if !textures.contains_key(slot) && !raw_parent {
-                                cx.err(t.line, format!("{w}.texture `#{slot}`: no such slot in textures"));
+                                cx.err(
+                                    t.line,
+                                    format!("{w}.texture `#{slot}`: no such slot in textures"),
+                                );
                             }
                             fo.insert("texture".into(), Value::String(format!("#{slot}")));
                         }
@@ -722,7 +832,10 @@ fn element(
                 }
                 if let Some(uv) = face.get("uv") {
                     if let Some(uv) = cx.vec::<4>(uv, &format!("{w}.uv"), 0.0, 16.0) {
-                        fo.insert("uv".into(), Value::Array(uv.iter().map(|n| num_value(*n)).collect()));
+                        fo.insert(
+                            "uv".into(),
+                            Value::Array(uv.iter().map(|n| num_value(*n)).collect()),
+                        );
                     }
                 }
                 if let Some(r) = face.get("rotation") {
@@ -760,7 +873,10 @@ fn entry_id(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Option<(S
     let (raw, line) = match j.get("id") {
         Some(v) => (cx.string(v, "id")?.to_string(), v.line),
         None => (
-            path.file_stem().unwrap_or_default().to_string_lossy().into_owned(),
+            path.file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned(),
             1,
         ),
     };
@@ -826,10 +942,15 @@ fn compile_file(
     generated: &mut BTreeMap<String, String>,
 ) -> Option<Entry> {
     if !j.is_obj() {
-        cx.err(j.line, format!("a .y{} file is one JSON object", kind.word()));
+        cx.err(
+            j.line,
+            format!("a .y{} file is one JSON object", kind.word()),
+        );
         return None;
     }
-    let common = ["$schema", "format", "id", "name", "tooltip", "register", "model"];
+    let common = [
+        "$schema", "format", "id", "name", "tooltip", "register", "model",
+    ];
     let specific: &[&str] = match kind {
         Kind::Block => &["block", "item_model", "states"],
         Kind::Item => &["item"],
@@ -847,7 +968,9 @@ fn compile_file(
 
     let auto = match j.get("register") {
         None => true,
-        Some(r) => cx.one_of(r, "register", &["auto", "manual"]).is_none_or(|s| s == "auto"),
+        Some(r) => cx
+            .one_of(r, "register", &["auto", "manual"])
+            .is_none_or(|s| s == "auto"),
     };
 
     // Name and tooltip → lang, under the keys the game looks up.
@@ -889,32 +1012,57 @@ fn compile_file(
     match kind {
         Kind::Item => {
             if let Some(it) = j.get("item") {
-                cx.unknown_keys(it, "item", &["stack_size", "durability", "fire_resistant", "fuel_ticks", "food"]);
+                cx.unknown_keys(
+                    it,
+                    "item",
+                    &[
+                        "stack_size",
+                        "durability",
+                        "fire_resistant",
+                        "fuel_ticks",
+                        "food",
+                    ],
+                );
                 let props = &mut entry.item;
                 if let Some(v) = it.get("stack_size") {
                     props.stack_size = cx.number(v, "item.stack_size", 1.0, 99.0).map(|n| n as u8);
                 }
                 if let Some(v) = it.get("durability") {
-                    props.durability = cx.number(v, "item.durability", 0.0, 1e9).unwrap_or(0.0) as u32;
+                    props.durability =
+                        cx.number(v, "item.durability", 0.0, 1e9).unwrap_or(0.0) as u32;
                 }
                 if let Some(v) = it.get("fire_resistant") {
                     props.fire_resistant = cx.boolean(v, "item.fire_resistant").unwrap_or(false);
                 }
                 if let Some(v) = it.get("fuel_ticks") {
-                    props.fuel_ticks = cx.number(v, "item.fuel_ticks", 0.0, 1e9).unwrap_or(0.0) as u32;
+                    props.fuel_ticks =
+                        cx.number(v, "item.fuel_ticks", 0.0, 1e9).unwrap_or(0.0) as u32;
                 }
                 if let Some(f) = it.get("food") {
-                    cx.unknown_keys(f, "item.food", &["nutrition", "saturation", "always_edible"]);
-                    let n = f.get("nutrition").and_then(|v| cx.number(v, "item.food.nutrition", 0.0, 1000.0));
-                    let s = f.get("saturation").and_then(|v| cx.number(v, "item.food.saturation", 0.0, 100.0));
-                    let a = f.get("always_edible").and_then(|v| cx.boolean(v, "item.food.always_edible"));
+                    cx.unknown_keys(
+                        f,
+                        "item.food",
+                        &["nutrition", "saturation", "always_edible"],
+                    );
+                    let n = f
+                        .get("nutrition")
+                        .and_then(|v| cx.number(v, "item.food.nutrition", 0.0, 1000.0));
+                    let s = f
+                        .get("saturation")
+                        .and_then(|v| cx.number(v, "item.food.saturation", 0.0, 100.0));
+                    let a = f
+                        .get("always_edible")
+                        .and_then(|v| cx.boolean(v, "item.food.always_edible"));
                     if n.is_none() {
                         cx.err(f.line, "item.food needs nutrition");
                     }
                     props.food = n.map(|n| (n as u32, s.unwrap_or(0.0), a.unwrap_or(false)));
                 }
                 if props.durability > 0 && props.stack_size.is_some_and(|s| s > 1) {
-                    cx.warn(it.line, "item.stack_size is ignored: an item with durability stacks to 1");
+                    cx.warn(
+                        it.line,
+                        "item.stack_size is ignored: an item with durability stacks to 1",
+                    );
                 }
             }
             let Some(mj) = j.get("model") else {
@@ -938,8 +1086,19 @@ fn compile_file(
                     b,
                     "block",
                     &[
-                        "hardness", "resistance", "sound", "light", "tool", "tool_level", "requires_tool",
-                        "collision", "slipperiness", "shape", "render_layer", "drops", "connect_groups",
+                        "hardness",
+                        "resistance",
+                        "sound",
+                        "light",
+                        "tool",
+                        "tool_level",
+                        "requires_tool",
+                        "collision",
+                        "slipperiness",
+                        "shape",
+                        "render_layer",
+                        "drops",
+                        "connect_groups",
                     ],
                 );
                 let props = &mut entry.block;
@@ -991,11 +1150,17 @@ fn compile_file(
                         }
                     }
                     if !v.is_arr() {
-                        cx.err(v.line, "block.connect_groups must be an array of group names");
+                        cx.err(
+                            v.line,
+                            "block.connect_groups must be an array of group names",
+                        );
                     }
                 }
                 if props.tool_level.is_some() && props.tool.is_none() {
-                    cx.warn(b.line, "block.tool_level without block.tool — any tool of that level mines it");
+                    cx.warn(
+                        b.line,
+                        "block.tool_level without block.tool — any tool of that level mines it",
+                    );
                 }
                 if let Some(d) = b.get("drops") {
                     drops = drops_table(cx, d, &id);
@@ -1012,12 +1177,25 @@ fn compile_file(
             let mut m = model(cx, mj, "model", false)?;
             if let (Some(layer), Value::Object(o)) = (&render_layer, &mut m.json) {
                 // Forge/NeoForge read it from the model; Fabric ignores it.
-                o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
+                o.insert(
+                    "render_type".into(),
+                    Value::String(format!("minecraft:{layer}")),
+                );
             }
             if shape_auto {
-                entry.block.shape = m.bounds.filter(|b| *b != [0.0, 0.0, 0.0, 16.0, 16.0, 16.0]).map(|b| {
-                    [b[0].max(0.0), b[1].max(0.0), b[2].max(0.0), b[3].min(16.0), b[4].min(16.0), b[5].min(16.0)]
-                });
+                entry.block.shape = m
+                    .bounds
+                    .filter(|b| *b != [0.0, 0.0, 0.0, 16.0, 16.0, 16.0])
+                    .map(|b| {
+                        [
+                            b[0].max(0.0),
+                            b[1].max(0.0),
+                            b[2].max(0.0),
+                            b[3].min(16.0),
+                            b[4].min(16.0),
+                            b[5].min(16.0),
+                        ]
+                    });
             }
             let main = format!("{ns}:block/{p}");
             emit(cx, format!("models/block/{p}.json"), &m.json);
@@ -1045,21 +1223,36 @@ fn compile_file(
                             }
                         };
                         let (x, y) = (angle("x"), angle("y"));
-                        let weight = rot.get("weight").and_then(|v| cx.number(v, &format!("{w}.weight"), 1.0, 1e6));
-                        let uvlock = rot.get("uvlock").and_then(|v| cx.boolean(v, &format!("{w}.uvlock"))).unwrap_or(false);
+                        let weight = rot
+                            .get("weight")
+                            .and_then(|v| cx.number(v, &format!("{w}.weight"), 1.0, 1e6));
+                        let uvlock = rot
+                            .get("uvlock")
+                            .and_then(|v| cx.boolean(v, &format!("{w}.uvlock")))
+                            .unwrap_or(false);
                         rotations.push(variant(&main, x, y, uvlock, weight));
                     }
                 }
                 if let Some(c) = s.get("connect") {
                     cx.unknown_keys(c, "states.connect", &["arm", "uvlock"]);
-                    let uvlock = c.get("uvlock").and_then(|v| cx.boolean(v, "states.connect.uvlock")).unwrap_or(false);
+                    let uvlock = c
+                        .get("uvlock")
+                        .and_then(|v| cx.boolean(v, "states.connect.uvlock"))
+                        .unwrap_or(false);
                     match c.get("arm") {
-                        None => cx.err(c.line, "states.connect needs `arm` — the model of the arm towards north"),
+                        None => cx.err(
+                            c.line,
+                            "states.connect needs `arm` — the model of the arm towards north",
+                        ),
                         Some(a) => {
                             if let Some(am) = model(cx, a, "states.connect.arm", false) {
                                 let mut json = am.json;
-                                if let (Some(layer), Value::Object(o)) = (&render_layer, &mut json) {
-                                    o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
+                                if let (Some(layer), Value::Object(o)) = (&render_layer, &mut json)
+                                {
+                                    o.insert(
+                                        "render_type".into(),
+                                        Value::String(format!("minecraft:{layer}")),
+                                    );
                                 }
                                 emit(cx, format!("models/block/{p}_arm.json"), &json);
                                 arm = Some((format!("{ns}:block/{p}_arm"), uvlock));
@@ -1183,7 +1376,8 @@ fn drops_table(cx: &mut Ctx, d: &J, id: &str) -> Value {
                     }
                 };
                 if let Some(count) = count {
-                    entry["functions"] = json!([{ "function": "minecraft:set_count", "count": count }]);
+                    entry["functions"] =
+                        json!([{ "function": "minecraft:set_count", "count": count }]);
                 }
             }
             json!({
@@ -1243,9 +1437,13 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             warnings: &mut warnings,
             textures: &mut textures,
         };
-        if let Some(entry) = compile_file(&mut cx, &j, kind, path, mod_ns, &mut out, &mut generated) {
+        if let Some(entry) = compile_file(&mut cx, &j, kind, path, mod_ns, &mut out, &mut generated)
+        {
             if let Some(other) = ids.insert(entry.id.clone(), shown.clone()) {
-                errors.push(format!("{shown}: id {} is also defined by {other}", entry.id));
+                errors.push(format!(
+                    "{shown}: id {} is also defined by {other}",
+                    entry.id
+                ));
             }
             entries.push(entry);
         }
@@ -1258,7 +1456,10 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     out.warnings = warnings;
     if !errors.is_empty() {
-        return Err(format!("invalid blocks/items in content/:\n  {}", errors.join("\n  ")));
+        return Err(format!(
+            "invalid blocks/items in content/:\n  {}",
+            errors.join("\n  ")
+        ));
     }
     out.blocks = entries.iter().filter(|e| e.kind == Kind::Block).count();
     out.items = entries.len() - out.blocks;
@@ -1292,7 +1493,13 @@ fn mentions_content_macro(dir: &Path) -> bool {
 fn rust_ident(path: &str) -> String {
     let mut s: String = path
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '_'
+            }
+        })
         .collect();
     if s.starts_with(|c: char| c.is_ascii_digit()) {
         s.insert(0, '_');
@@ -1333,8 +1540,16 @@ fn rust_source(entries: &[Entry]) -> String {
                 let _ = write!(ident, "_{n}");
             }
             let upper = ident.to_ascii_uppercase();
-            let ident = if is_keyword(&ident) { format!("r#{ident}") } else { ident };
-            let _ = writeln!(code, "    /// `{}` — `{}`.\n    pub const {upper}: &'static str = {:?};", e.id, e.file, e.id);
+            let ident = if is_keyword(&ident) {
+                format!("r#{ident}")
+            } else {
+                ident
+            };
+            let _ = writeln!(
+                code,
+                "    /// `{}` — `{}`.\n    pub const {upper}: &'static str = {:?};",
+                e.id, e.file, e.id
+            );
             let mut b = format!("::yog_api::{def}::new(Self::{upper})");
             match kind {
                 Kind::Block => {
@@ -1370,8 +1585,10 @@ fn rust_source(entries: &[Entry]) -> String {
                         b.push_str("\n            .connects_to_neighbors()");
                     }
                     if !p.connect_groups.is_empty() {
-                        let groups: Vec<String> = p.connect_groups.iter().map(|g| format!("{g:?}")).collect();
-                        let _ = write!(b, "\n            .connect_groups(&[{}])", groups.join(", "));
+                        let groups: Vec<String> =
+                            p.connect_groups.iter().map(|g| format!("{g:?}")).collect();
+                        let _ =
+                            write!(b, "\n            .connect_groups(&[{}])", groups.join(", "));
                     }
                 }
                 Kind::Item => {
@@ -1417,7 +1634,11 @@ fn rust_source(entries: &[Entry]) -> String {
         if *n > 1 {
             let _ = write!(ident, "_{n}");
         }
-        let ident = if is_keyword(&ident) { format!("r#{ident}") } else { ident };
+        let ident = if is_keyword(&ident) {
+            format!("r#{ident}")
+        } else {
+            ident
+        };
         if !e.auto {
             continue;
         }
@@ -1437,11 +1658,11 @@ fn rust_source(entries: &[Entry]) -> String {
 
 fn is_keyword(s: &str) -> bool {
     const KW: &[&str] = &[
-        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn", "for", "if", "impl",
-        "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return", "self", "static", "struct",
-        "super", "trait", "true", "type", "unsafe", "use", "where", "while", "async", "await", "dyn", "abstract",
-        "become", "box", "do", "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield", "try",
-        "gen",
+        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
+        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
+        "return", "self", "static", "struct", "super", "trait", "true", "type", "unsafe", "use",
+        "where", "while", "async", "await", "dyn", "abstract", "become", "box", "do", "final",
+        "macro", "override", "priv", "typeof", "unsized", "virtual", "yield", "try", "gen",
     ];
     KW.contains(&s)
 }
@@ -1484,7 +1705,11 @@ fn put_output(outputs: &mut Vec<Output>, path: String, bytes: Vec<u8>) {
 /// Adds the content's outputs to `outputs` (the `.yres` ones, say): lang
 /// entries and tags merged into what's there (or into the mod's own files),
 /// the rest appended.
-pub fn merge_outputs(root: &Path, outputs: &mut Vec<Output>, compiled: Compiled) -> Result<(), String> {
+pub fn merge_outputs(
+    root: &Path,
+    outputs: &mut Vec<Output>,
+    compiled: Compiled,
+) -> Result<(), String> {
     let mut errors = Vec::new();
     // `.yres` texts under the keys the game looks up: in every lang file
     // that has the text.
@@ -1540,7 +1765,8 @@ pub fn merge_outputs(root: &Path, outputs: &mut Vec<Output>, compiled: Compiled)
             }
         };
         for (k, v) in entries {
-            map.entry(k.clone()).or_insert_with(|| Value::String(v.clone()));
+            map.entry(k.clone())
+                .or_insert_with(|| Value::String(v.clone()));
         }
         put_output(outputs, path, pretty(&Value::Object(map)));
     }
@@ -1560,7 +1786,9 @@ pub fn merge_outputs(root: &Path, outputs: &mut Vec<Output>, compiled: Compiled)
                 continue;
             }
         };
-        let values = map.entry("values").or_insert_with(|| Value::Array(Vec::new()));
+        let values = map
+            .entry("values")
+            .or_insert_with(|| Value::Array(Vec::new()));
         if let Value::Array(list) = values {
             for id in ids {
                 if !list.iter().any(|v| v.as_str() == Some(id)) {
@@ -1577,7 +1805,10 @@ pub fn merge_outputs(root: &Path, outputs: &mut Vec<Output>, compiled: Compiled)
     if errors.is_empty() {
         Ok(())
     } else {
-        Err(format!("merging blocks/items into the mod's files:\n  {}", errors.join("\n  ")))
+        Err(format!(
+            "merging blocks/items into the mod's files:\n  {}",
+            errors.join("\n  ")
+        ))
     }
 }
 
@@ -1608,9 +1839,16 @@ mod tests {
     }
 
     fn output(c: &Compiled, path: &str) -> Value {
-        let (_, b) = c.outputs.iter().find(|(p, _)| p == path).unwrap_or_else(|| {
-            panic!("no {path} in {:?}", c.outputs.iter().map(|(p, _)| p).collect::<Vec<_>>())
-        });
+        let (_, b) = c
+            .outputs
+            .iter()
+            .find(|(p, _)| p == path)
+            .unwrap_or_else(|| {
+                panic!(
+                    "no {path} in {:?}",
+                    c.outputs.iter().map(|(p, _)| p).collect::<Vec<_>>()
+                )
+            });
         serde_json::from_slice(b).unwrap()
     }
 
@@ -1638,29 +1876,53 @@ mod tests {
             output(&c, "assets/mymod/blockstates/ruby_ore.json"),
             json!({ "variants": { "": { "model": "mymod:block/ruby_ore" } } })
         );
-        assert_eq!(output(&c, "assets/mymod/models/item/ruby_ore.json"), json!({ "parent": "mymod:block/ruby_ore" }));
+        assert_eq!(
+            output(&c, "assets/mymod/models/item/ruby_ore.json"),
+            json!({ "parent": "mymod:block/ruby_ore" })
+        );
         assert_eq!(
             output(&c, "assets/mymod/items/ruby_ore.json")["model"]["model"],
             json!("mymod:item/ruby_ore")
         );
         let loot = output(&c, "data/mymod/loot_table/blocks/ruby_ore.json");
         assert_eq!(loot["pools"][0]["entries"][0]["name"], json!("mymod:ruby"));
-        assert_eq!(loot["pools"][0]["entries"][0]["functions"][0]["count"]["max"], json!(3));
-        assert!(c.outputs.iter().any(|(p, _)| p == "assets/mymod/textures/block/ruby_ore.png"));
+        assert_eq!(
+            loot["pools"][0]["entries"][0]["functions"][0]["count"]["max"],
+            json!(3)
+        );
+        assert!(c
+            .outputs
+            .iter()
+            .any(|(p, _)| p == "assets/mymod/textures/block/ruby_ore.png"));
         let src = c.source.as_ref().unwrap();
-        assert!(src.contains("pub const RUBY_ORE: &'static str = \"mymod:ruby_ore\";"), "{src}");
+        assert!(
+            src.contains("pub const RUBY_ORE: &'static str = \"mymod:ruby_ore\";"),
+            "{src}"
+        );
         assert!(src.contains(".strength(3.0, 3.0)"), "{src}");
         assert!(src.contains(".requires_tool()"), "{src}");
-        assert!(src.contains("registry.register_block(Blocks::ruby_ore());"), "{src}");
+        assert!(
+            src.contains("registry.register_block(Blocks::ruby_ore());"),
+            "{src}"
+        );
 
         let mut outputs = Vec::new();
         merge_outputs(&root, &mut outputs, c).unwrap();
         let find = |p: &str| -> Value {
             serde_json::from_slice(&outputs.iter().find(|(q, _)| q == p).unwrap().1).unwrap()
         };
-        assert_eq!(find("assets/mymod/lang/en_us.json")["block.mymod.ruby_ore"], json!("Ruby Ore"));
-        assert_eq!(find("data/minecraft/tags/block/mineable/pickaxe.json")["values"], json!(["mymod:ruby_ore"]));
-        assert_eq!(find("data/minecraft/tags/block/needs_iron_tool.json")["values"], json!(["mymod:ruby_ore"]));
+        assert_eq!(
+            find("assets/mymod/lang/en_us.json")["block.mymod.ruby_ore"],
+            json!("Ruby Ore")
+        );
+        assert_eq!(
+            find("data/minecraft/tags/block/mineable/pickaxe.json")["values"],
+            json!(["mymod:ruby_ore"])
+        );
+        assert_eq!(
+            find("data/minecraft/tags/block/needs_iron_tool.json")["values"],
+            json!(["mymod:ruby_ore"])
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -1689,7 +1951,10 @@ mod tests {
         assert_eq!(bs["multipart"].as_array().unwrap().len(), 7);
         assert_eq!(bs["multipart"][5]["apply"]["x"], json!(270));
         let src = c.source.unwrap();
-        assert!(src.contains(".shape(6.0, 6.0, 6.0, 10.0, 10.0, 10.0)"), "{src}");
+        assert!(
+            src.contains(".shape(6.0, 6.0, 6.0, 10.0, 10.0, 10.0)"),
+            "{src}"
+        );
         assert!(src.contains(".connects_to_neighbors()"), "{src}");
         assert!(src.contains(".connect_groups(&[\"mymod:pipe\"])"), "{src}");
         let _ = std::fs::remove_dir_all(root);
@@ -1702,10 +1967,22 @@ mod tests {
             "{\n  \"model\": {\n    \"textures\": { \"0\": \"minecraft:block/stone\" },\n    \"elements\": [ {\n      \"from\": [0, 0, 0], \"to\": [16, 16, 16],\n      \"rotation\": { \"axis\": \"q\", \"angle\": 30 },\n      \"faces\": { \"north\": { \"texture\": \"#1\" } }\n    } ]\n  },\n  \"bogus\": 1\n}",
         )]);
         let e = compile(&root, "mymod", &yres::Refs::default()).unwrap_err();
-        assert!(e.contains("content/bad.yblock:6: model.elements[0].rotation.axis"), "{e}");
-        assert!(e.contains("content/bad.yblock:6: model.elements[0].rotation.angle is 30"), "{e}");
-        assert!(e.contains("content/bad.yblock:7: model.elements[0].faces.north.texture `#1`"), "{e}");
-        assert!(e.contains("content/bad.yblock:10: unknown key \"bogus\""), "{e}");
+        assert!(
+            e.contains("content/bad.yblock:6: model.elements[0].rotation.axis"),
+            "{e}"
+        );
+        assert!(
+            e.contains("content/bad.yblock:6: model.elements[0].rotation.angle is 30"),
+            "{e}"
+        );
+        assert!(
+            e.contains("content/bad.yblock:7: model.elements[0].faces.north.texture `#1`"),
+            "{e}"
+        );
+        assert!(
+            e.contains("content/bad.yblock:10: unknown key \"bogus\""),
+            "{e}"
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -1718,9 +1995,16 @@ mod tests {
                  "model": { "parent": "generated", "textures": { "layer0": "@Textures.ruby" } } }"#,
         )]);
         let mut refs = yres::Refs::default();
-        refs.texts.insert("Items.ruby".into(), ("item.mymod.ruby".into(), "Ruby".into()));
-        refs.texts.insert("Strings.ruby_tip".into(), ("mymod.ruby_tip".into(), "Shiny".into()));
-        refs.images.insert("Textures.ruby".into(), "mymod:item/ruby".into());
+        refs.texts.insert(
+            "Items.ruby".into(),
+            ("item.mymod.ruby".into(), "Ruby".into()),
+        );
+        refs.texts.insert(
+            "Strings.ruby_tip".into(),
+            ("mymod.ruby_tip".into(), "Shiny".into()),
+        );
+        refs.images
+            .insert("Textures.ruby".into(), "mymod:item/ruby".into());
         let c = compile(&root, "mymod", &refs).unwrap();
         assert_eq!(
             output(&c, "assets/mymod/models/item/ruby.json"),
@@ -1728,11 +2012,16 @@ mod tests {
         );
         let src = c.source.clone().unwrap();
         assert!(src.contains(".max_stack(16)"), "{src}");
-        assert!(src.contains(".food(::yog_api::FoodDef::new(4, 0.3))"), "{src}");
+        assert!(
+            src.contains(".food(::yog_api::FoodDef::new(4, 0.3))"),
+            "{src}"
+        );
         // The .yres lang file gets the tooltip under the key the game reads.
         let mut outputs = vec![(
             "assets/mymod/lang/ru_ru.json".to_string(),
-            r#"{"item.mymod.ruby": "Рубин", "mymod.ruby_tip": "Блестит"}"#.as_bytes().to_vec(),
+            r#"{"item.mymod.ruby": "Рубин", "mymod.ruby_tip": "Блестит"}"#
+                .as_bytes()
+                .to_vec(),
         )];
         merge_outputs(&root, &mut outputs, c).unwrap();
         let ru: Value = serde_json::from_slice(&outputs[0].1).unwrap();
@@ -1742,7 +2031,10 @@ mod tests {
 
     #[test]
     fn namespace_needed_for_odd_mod_ids() {
-        let root = project(&[("content/x.yitem", r#"{ "model": { "parent": "generated", "textures": { "layer0": "minecraft:item/apple" } } }"#)]);
+        let root = project(&[(
+            "content/x.yitem",
+            r#"{ "model": { "parent": "generated", "textures": { "layer0": "minecraft:item/apple" } } }"#,
+        )]);
         let e = compile(&root, "HexMod-Yog", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("give the namespace"), "{e}");
         let _ = std::fs::remove_dir_all(root);

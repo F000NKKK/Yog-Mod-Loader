@@ -49,8 +49,29 @@ const KINDS: &[(&str, &str)] = &[
 
 /// Attributes every element takes — a property can't shadow them on an instance.
 const RESERVED: &[&str] = &[
-    "id", "x", "y", "w", "h", "min_w", "min_h", "flex", "dock", "gap", "padding", "bg", "color", "align",
-    "font_scale", "font", "shadow", "no_wrap", "ellipsis", "focus_style", "focus_color", "enabled", "on_click",
+    "id",
+    "x",
+    "y",
+    "w",
+    "h",
+    "min_w",
+    "min_h",
+    "flex",
+    "dock",
+    "gap",
+    "padding",
+    "bg",
+    "color",
+    "align",
+    "font_scale",
+    "font",
+    "shadow",
+    "no_wrap",
+    "ellipsis",
+    "focus_style",
+    "focus_color",
+    "enabled",
+    "on_click",
     "visible",
 ];
 
@@ -66,7 +87,16 @@ struct Prop {
 }
 
 /// The `<Component>` root's attributes (besides `d:*`, design-time only).
-const ROOT_ATTRS: &[&str] = &["name", "display_name", "description", "icon", "category", "design_w", "design_h", "toolbox"];
+const ROOT_ATTRS: &[&str] = &[
+    "name",
+    "display_name",
+    "description",
+    "icon",
+    "category",
+    "design_w",
+    "design_h",
+    "toolbox",
+];
 /// A `<Property>`'s / `<Event>`'s attributes.
 const PROP_ATTRS: &[&str] = &["name", "type", "default", "options", "doc", "category"];
 
@@ -75,8 +105,11 @@ fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
 }
 
 fn is_ident(s: &str) -> bool {
-    s.chars().next().is_some_and(|c| c.is_ascii_lowercase() || c == '_')
-        && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+    s.chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_lowercase() || c == '_')
+        && s.chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
 /// `stat_bar` → `StatBar`.
@@ -84,7 +117,9 @@ fn pascal(stem: &str) -> String {
     stem.split(['_', '-'])
         .map(|w| {
             let mut c = w.chars();
-            c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default()
+            c.next()
+                .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
+                .unwrap_or_default()
         })
         .collect()
 }
@@ -98,7 +133,10 @@ fn type_name(root: &Element, include_name: &str) -> Result<String, String> {
     let ok = name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
         && name.chars().all(|c| c.is_ascii_alphanumeric());
     if !ok {
-        return err(root, format_args!("name=\"{name}\": a component's name is PascalCase (StatBar)"));
+        return err(
+            root,
+            format_args!("name=\"{name}\": a component's name is PascalCase (StatBar)"),
+        );
     }
     Ok(name)
 }
@@ -110,17 +148,36 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
         match child.name.as_str() {
             "Property" | "Event" => {
                 for (key, _) in &child.attrs {
-                    let allowed = if child.name == "Event" { &["name", "doc", "category"][..] } else { PROP_ATTRS };
+                    let allowed = if child.name == "Event" {
+                        &["name", "doc", "category"][..]
+                    } else {
+                        PROP_ATTRS
+                    };
                     if !allowed.contains(&key.as_str()) {
-                        return err(child, format_args!("has no attribute `{key}` ({})", allowed.join(", ")));
+                        return err(
+                            child,
+                            format_args!("has no attribute `{key}` ({})", allowed.join(", ")),
+                        );
                     }
                 }
-                let name = child.attr("name").map(str::trim).unwrap_or_default().to_string();
+                let name = child
+                    .attr("name")
+                    .map(str::trim)
+                    .unwrap_or_default()
+                    .to_string();
                 if !is_ident(&name) {
-                    return err(child, format_args!("name=\"{name}\": expected a snake_case name"));
+                    return err(
+                        child,
+                        format_args!("name=\"{name}\": expected a snake_case name"),
+                    );
                 }
                 if RESERVED.contains(&name.as_str()) {
-                    return err(child, format_args!("`{name}` is an attribute every element has — pick another name"));
+                    return err(
+                        child,
+                        format_args!(
+                            "`{name}` is an attribute every element has — pick another name"
+                        ),
+                    );
                 }
                 if props.iter().any(|p| p.name == name) {
                     return err(child, format_args!("`{name}` is declared twice"));
@@ -131,7 +188,10 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                     let kind = child.attr("type").unwrap_or("text").trim().to_string();
                     if !KINDS.iter().any(|(k, _)| *k == kind) {
                         let known: Vec<&str> = KINDS.iter().map(|(k, _)| *k).collect();
-                        return err(child, format_args!("type=\"{kind}\": expected one of {}", known.join(", ")));
+                        return err(
+                            child,
+                            format_args!("type=\"{kind}\": expected one of {}", known.join(", ")),
+                        );
                     }
                     kind
                 };
@@ -145,19 +205,48 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                 if kind == "choice" && options.is_empty() {
                     return err(child, "a choice needs options=\"a, b, c\"");
                 }
-                let default = child.attr("default").map(str::to_string).unwrap_or_else(|| match kind.as_str() {
-                    "number" | "int" => "0".into(),
-                    "bool" => "false".into(),
-                    "color" => "#FFFFFFFF".into(),
-                    "choice" => options[0].clone(),
-                    _ => String::new(),
-                });
+                let default =
+                    child
+                        .attr("default")
+                        .map(str::to_string)
+                        .unwrap_or_else(|| match kind.as_str() {
+                            "number" | "int" => "0".into(),
+                            "bool" => "false".into(),
+                            "color" => "#FFFFFFFF".into(),
+                            "choice" => options[0].clone(),
+                            _ => String::new(),
+                        });
                 match kind.as_str() {
-                    "number" if default.trim().parse::<f32>().is_err() => return err(child, format_args!("default=\"{default}\": expected a number")),
-                    "int" if default.trim().parse::<i64>().is_err() => return err(child, format_args!("default=\"{default}\": expected a whole number")),
-                    "bool" if !matches!(default.trim(), "true" | "false") => return err(child, format_args!("default=\"{default}\": expected true or false")),
-                    "color" if yui::color(&default).is_none() => return err(child, format_args!("default=\"{default}\": expected #RRGGBB or #AARRGGBB")),
-                    "choice" if !options.contains(&default) => return err(child, format_args!("default=\"{default}\" isn't one of the options")),
+                    "number" if default.trim().parse::<f32>().is_err() => {
+                        return err(
+                            child,
+                            format_args!("default=\"{default}\": expected a number"),
+                        )
+                    }
+                    "int" if default.trim().parse::<i64>().is_err() => {
+                        return err(
+                            child,
+                            format_args!("default=\"{default}\": expected a whole number"),
+                        )
+                    }
+                    "bool" if !matches!(default.trim(), "true" | "false") => {
+                        return err(
+                            child,
+                            format_args!("default=\"{default}\": expected true or false"),
+                        )
+                    }
+                    "color" if yui::color(&default).is_none() => {
+                        return err(
+                            child,
+                            format_args!("default=\"{default}\": expected #RRGGBB or #AARRGGBB"),
+                        )
+                    }
+                    "choice" if !options.contains(&default) => {
+                        return err(
+                            child,
+                            format_args!("default=\"{default}\" isn't one of the options"),
+                        )
+                    }
                     _ => {}
                 }
                 props.push(Prop {
@@ -169,7 +258,12 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                     options,
                 });
             }
-            _ if body.is_some() => return err(child, "a component has one body element (wrap several in a Column, Row or Canvas)"),
+            _ if body.is_some() => {
+                return err(
+                    child,
+                    "a component has one body element (wrap several in a Column, Row or Canvas)",
+                )
+            }
             _ => body = Some(child),
         }
     }
@@ -182,12 +276,29 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
     let kind = el.name.as_str();
     let builtin = matches!(
         kind,
-        "Canvas" | "Column" | "Row" | "ScrollView" | "Grid" | "Label" | "Button" | "TextBox" | "ItemSlot" | "InvSlot" | "Image" | "Spacer" | "Surface"
+        "Canvas"
+            | "Column"
+            | "Row"
+            | "ScrollView"
+            | "Grid"
+            | "Label"
+            | "Button"
+            | "TextBox"
+            | "ItemSlot"
+            | "InvSlot"
+            | "Image"
+            | "Spacer"
+            | "Surface"
     );
     if kind == "Component" || kind == "Screen" {
         return err(el, "can't be inside a component");
     }
-    let mut out = Element { name: el.name.clone(), attrs: Vec::new(), children: Vec::new(), line: el.line };
+    let mut out = Element {
+        name: el.name.clone(),
+        attrs: Vec::new(),
+        children: Vec::new(),
+        line: el.line,
+    };
     for (key, value) in &el.attrs {
         if key.starts_with("d:") {
             continue; // design-time only (the designer's sample values)
@@ -200,11 +311,14 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
         let conv = "::yog_api::ui::component::bind";
         if !builtin && !RESERVED.contains(&key.as_str()) {
             // A nested component's property: passed as text.
-            out.attrs.push((key.clone(), format!("{RAW_VALUE}{conv}::text(&({e}))")));
+            out.attrs
+                .push((key.clone(), format!("{RAW_VALUE}{conv}::text(&({e}))")));
             continue;
         }
         let call = match key.as_str() {
-            "text" if matches!(kind, "Label" | "Button" | "TextBox") => format!("with_text({conv}::text(&({e})))"),
+            "text" if matches!(kind, "Label" | "Button" | "TextBox") => {
+                format!("with_text({conv}::text(&({e})))")
+            }
             "placeholder" if kind == "TextBox" => format!("placeholder({conv}::text(&({e})))"),
             "source" if kind == "Surface" => {
                 out.attrs.push(("source".into(), "yog:none".into()));
@@ -215,15 +329,24 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
                 out.attrs.push(("source".into(), "item:air".into()));
                 format!("with_source({conv}::text(&({e})))")
             }
-            "item" if matches!(kind, "ItemSlot" | "InvSlot") => format!("with_source({conv}::text(&({e})))"),
+            "item" if matches!(kind, "ItemSlot" | "InvSlot") => {
+                format!("with_source({conv}::text(&({e})))")
+            }
             "count" if kind == "InvSlot" => format!("with_count({conv}::count(&({e})))"),
             "bg" | "color" | "focus_color" => format!("{key}({conv}::color(&({e})))"),
             "tint" if kind == "Image" => format!("tint({conv}::color(&({e})))"),
             "enabled" | "visible" | "shadow" => format!("{key}({conv}::flag({e}))"),
             "w" | "h" => format!("{key}({conv}::units(&({e})))"),
-            "gap" | "flex" | "min_w" | "min_h" | "font_scale" => format!("{key}({conv}::number(&({e})))"),
+            "gap" | "flex" | "min_w" | "min_h" | "font_scale" => {
+                format!("{key}({conv}::number(&({e})))")
+            }
             "on_click" | "on_change" | "on_submit" => format!("{key}({conv}::text(&({e})))"),
-            _ => return err(el, format_args!("{key}=\"{value}\": `{key}` can't be bound")),
+            _ => {
+                return err(
+                    el,
+                    format_args!("{key}=\"{value}\": `{key}` can't be bound"),
+                )
+            }
         };
         out.attrs.push((format!("{RAW_CALL}{counter}"), call));
         *counter += 1;
@@ -240,11 +363,18 @@ fn rust_str(s: &str) -> String {
 
 /// The `.g.rs` source of a `<Component>` `.yui` (`name`: its path under
 /// `src/` without the extension, as for screens).
-pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(String, Vec<String>), String> {
+pub fn generate(
+    root: &Element,
+    name: &str,
+    mod_id: Option<&str>,
+) -> Result<(String, Vec<String>), String> {
     let ty = type_name(root, name)?;
     for (key, _) in &root.attrs {
         if !ROOT_ATTRS.contains(&key.as_str()) && !key.starts_with("d:") {
-            return err(root, format_args!("has no attribute `{key}` ({})", ROOT_ATTRS.join(", ")));
+            return err(
+                root,
+                format_args!("has no attribute `{key}` ({})", ROOT_ATTRS.join(", ")),
+            );
         }
     }
     let size = |key: &str| -> Result<f32, String> {
@@ -252,7 +382,10 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
             None | Some("") => Ok(0.0),
             Some(v) => match v.parse::<f32>() {
                 Ok(n) if n >= 0.0 => Ok(n),
-                _ => err(root, format_args!("{key}=\"{v}\": expected a size in GUI pixels")),
+                _ => err(
+                    root,
+                    format_args!("{key}=\"{v}\": expected a size in GUI pixels"),
+                ),
             },
         }
     };
@@ -260,7 +393,12 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
     let toolbox = match root.attr("toolbox").map(str::trim) {
         None | Some("true") => true,
         Some("false") => false,
-        Some(v) => return err(root, format_args!("toolbox=\"{v}\": expected true or false")),
+        Some(v) => {
+            return err(
+                root,
+                format_args!("toolbox=\"{v}\": expected true or false"),
+            )
+        }
     };
     let icon = root.attr("icon").unwrap_or_default().trim();
     if !icon.is_empty() && !icon.starts_with('@') && !icon.contains(':') {
@@ -268,7 +406,10 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
     }
     let (props, body) = declarations(root)?;
     let Some(body) = body else {
-        return err(root, "has no body — add one element (a Column, Row, Canvas, ...) after the declarations");
+        return err(
+            root,
+            "has no body — add one element (a Column, Row, Canvas, ...) after the declarations",
+        );
     };
     let mut counter = 0;
     let bound = bind_tree(body, &mut counter)?;
@@ -279,7 +420,10 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
     let mut init = String::new();
     let mut decls = String::new();
     for p in &props {
-        let rust_ty = KINDS.iter().find(|(k, _)| *k == p.kind).map_or("String", |(_, t)| t);
+        let rust_ty = KINDS
+            .iter()
+            .find(|(k, _)| *k == p.kind)
+            .map_or("String", |(_, t)| t);
         if !p.doc.is_empty() {
             let _ = writeln!(fields, "    /// {}", p.doc.replace('\n', " "));
         }
@@ -299,13 +443,25 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
             "choice" => format!(
                 "Prop::choice({}, &[{}], {})",
                 rust_str(&p.name),
-                p.options.iter().map(|o| rust_str(o)).collect::<Vec<_>>().join(", "),
+                p.options
+                    .iter()
+                    .map(|o| rust_str(o))
+                    .collect::<Vec<_>>()
+                    .join(", "),
                 rust_str(&p.default)
             ),
             k => format!("Prop::{k}({}, {})", rust_str(&p.name), rust_str(&p.default)),
         };
-        let decl = if p.doc.is_empty() { decl } else { format!("{decl}.doc({})", rust_str(&p.doc)) };
-        let decl = if p.category.is_empty() { decl } else { format!("{decl}.category({})", rust_str(&p.category)) };
+        let decl = if p.doc.is_empty() {
+            decl
+        } else {
+            format!("{decl}.doc({})", rust_str(&p.doc))
+        };
+        let decl = if p.category.is_empty() {
+            decl
+        } else {
+            format!("{decl}.category({})", rust_str(&p.category))
+        };
         let _ = writeln!(decls, "        {decl},");
     }
 
@@ -360,7 +516,11 @@ impl ::yog_api::ui::component::Component for {ty} {{
 
 ::yog_api::ui_component!({ty});
 "#,
-        doc_line = if doc.is_empty() { format!("The `{ty}` component.") } else { doc.replace('\n', " ") },
+        doc_line = if doc.is_empty() {
+            format!("The `{ty}` component.")
+        } else {
+            doc.replace('\n', " ")
+        },
         name_lit = rust_str(&ty),
         doc_lit = rust_str(doc),
         display_lit = rust_str(root.attr("display_name").unwrap_or_default()),
@@ -477,18 +637,51 @@ mod tests {
     fn rejects_bad_components() {
         for (src, msg) in [
             (r#"<Component name="bad"><Row/></Component>"#, "PascalCase"),
-            (r#"<Component><Property name="w"/><Row/></Component>"#, "every element has"),
-            (r#"<Component><Property name="a" type="float"/><Row/></Component>"#, "expected one of"),
-            (r#"<Component><Property name="a" type="number" default="x"/><Row/></Component>"#, "expected a number"),
+            (
+                r#"<Component><Property name="w"/><Row/></Component>"#,
+                "every element has",
+            ),
+            (
+                r#"<Component><Property name="a" type="float"/><Row/></Component>"#,
+                "expected one of",
+            ),
+            (
+                r#"<Component><Property name="a" type="number" default="x"/><Row/></Component>"#,
+                "expected a number",
+            ),
             (r#"<Component><Row/><Row/></Component>"#, "one body element"),
-            (r#"<Component doc="x"><Row/></Component>"#, "no attribute `doc`"),
-            (r#"<Component design_w="wide"><Row/></Component>"#, "expected a size"),
-            (r#"<Component toolbox="no"><Row/></Component>"#, "expected true or false"),
-            (r#"<Component icon="apple"><Row/></Component>"#, "image source"),
-            (r#"<Component><Event name="on_x" type="text"/><Row/></Component>"#, "no attribute `type`"),
-            (r#"<Component><Property name="a"/></Component>"#, "has no body"),
-            (r#"<Component><Row padding="{x:Bind a}"/></Component>"#, "can't be bound"),
-            (r#"<Component><Row bg="{x:Bind cx.close()}"/></Component>"#, "cx"),
+            (
+                r#"<Component doc="x"><Row/></Component>"#,
+                "no attribute `doc`",
+            ),
+            (
+                r#"<Component design_w="wide"><Row/></Component>"#,
+                "expected a size",
+            ),
+            (
+                r#"<Component toolbox="no"><Row/></Component>"#,
+                "expected true or false",
+            ),
+            (
+                r#"<Component icon="apple"><Row/></Component>"#,
+                "image source",
+            ),
+            (
+                r#"<Component><Event name="on_x" type="text"/><Row/></Component>"#,
+                "no attribute `type`",
+            ),
+            (
+                r#"<Component><Property name="a"/></Component>"#,
+                "has no body",
+            ),
+            (
+                r#"<Component><Row padding="{x:Bind a}"/></Component>"#,
+                "can't be bound",
+            ),
+            (
+                r#"<Component><Row bg="{x:Bind cx.close()}"/></Component>"#,
+                "cx",
+            ),
         ] {
             let e = gen(src).unwrap_err();
             assert!(e.contains(msg), "{src}: {e}");
@@ -501,12 +694,19 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("src/ui")).unwrap();
         std::fs::write(dir.join("yog.toml"), "").unwrap();
-        std::fs::write(dir.join("src/ui/pill.yui"), "<Component><Label/></Component>").unwrap();
+        std::fs::write(
+            dir.join("src/ui/pill.yui"),
+            "<Component><Label/></Component>",
+        )
+        .unwrap();
         std::fs::write(dir.join("src/bar.yui"), "<Component><Label/></Component>").unwrap();
         std::fs::write(dir.join("src/bar.rs"), "").unwrap();
         std::fs::write(dir.join("src/main.yui"), r#"<Screen id="a:b"/>"#).unwrap();
         let index = std::fs::read_to_string(write_index(&dir).unwrap()).unwrap();
-        assert!(index.contains("pub mod ui_pill {") && index.contains("/generated/ui/pill.g.rs"), "{index}");
+        assert!(
+            index.contains("pub mod ui_pill {") && index.contains("/generated/ui/pill.g.rs"),
+            "{index}"
+        );
         assert!(!index.contains("bar") && !index.contains("main"), "{index}");
         let _ = std::fs::remove_dir_all(&dir);
     }

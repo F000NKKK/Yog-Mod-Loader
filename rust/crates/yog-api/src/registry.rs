@@ -884,11 +884,15 @@ impl Server for CServer {
         max: (f64, f64, f64),
     ) -> Vec<String> {
         let s = srv!(self);
-        let owned = unsafe {
-            (s.entities_in_box)(s.ctx, YogStr::from_str(dimension), v3(min), v3(max))
-        };
+        let owned =
+            unsafe { (s.entities_in_box)(s.ctx, YogStr::from_str(dimension), v3(min), v3(max)) };
         take_owned(s, owned)
-            .map(|t| t.lines().filter(|l| !l.is_empty()).map(str::to_owned).collect())
+            .map(|t| {
+                t.lines()
+                    .filter(|l| !l.is_empty())
+                    .map(str::to_owned)
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -930,7 +934,13 @@ impl Server for CServer {
         take_owned(s, owned).and_then(|l| yog_core::BlockInfo::decode(&l))
     }
 
-    fn break_block(&self, dimension: &str, pos: yog_core::BlockPos, drop: bool, breaker: &str) -> bool {
+    fn break_block(
+        &self,
+        dimension: &str,
+        pos: yog_core::BlockPos,
+        drop: bool,
+        breaker: &str,
+    ) -> bool {
         let s = srv!(self);
         unsafe {
             (s.break_block)(
@@ -1095,7 +1105,11 @@ fn v3((x, y, z): (f64, f64, f64)) -> yog_abi::YogVec3 {
 }
 
 fn bp(pos: yog_core::BlockPos) -> yog_abi::YogBlockPos {
-    yog_abi::YogBlockPos { x: pos.x, y: pos.y, z: pos.z }
+    yog_abi::YogBlockPos {
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+    }
 }
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────
@@ -2211,9 +2225,7 @@ impl Registry {
         let ud = Self::leak(handler);
         let id = YogStr::from_str(ui_id);
         let empty = YogStr::from_str("{}");
-        unsafe {
-            ((*self.api).register_ui)(self.ctx(), id, empty, ud, trampoline_ui_event::<F, R>)
-        }
+        unsafe { ((*self.api).register_ui)(self.ctx(), id, empty, ud, trampoline_ui_event::<F, R>) }
     }
 
     // ── scheduler ────────────────────────────────────────────────────────────

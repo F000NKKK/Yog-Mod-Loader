@@ -202,11 +202,7 @@ impl<'a, T> ItemsCursor<'a, T> {
         self.widgets.push(w);
         let (_, inst) = self.host_insts.last_mut().expect("just pushed");
         let w = self.widgets.last_mut().expect("just pushed");
-        Some(Item {
-            inst,
-            w,
-            u: self.u,
-        })
+        Some(Item { inst, w, u: self.u })
     }
 
     /// Ends the update. With `empty` (the `.Empty` template's builder) and
@@ -221,7 +217,9 @@ impl<'a, T> ItemsCursor<'a, T> {
         if let (Some(ih), Some(_)) = (self.item_height, self.window) {
             let stride = ih + self.container.style.gap;
             let gap = self.container.style.gap;
-            let first = self.first_built.unwrap_or(n.min(self.window.map_or(0, |w| w.0)));
+            let first = self
+                .first_built
+                .unwrap_or(n.min(self.window.map_or(0, |w| w.0)));
             let after = n.saturating_sub(self.last_built.max(first));
             let spacer = |rows: u32| {
                 widget::spacer()
@@ -263,7 +261,13 @@ mod tests {
         widget::panel(FlexDir::Column).child(widget::scroll_view().gap(2.0))
     }
 
-    fn run(host: &mut ItemsHost<Row>, root: &mut Widget, u: &mut Update, keys: &[u64], sel: u64) -> u32 {
+    fn run(
+        host: &mut ItemsHost<Row>,
+        root: &mut Widget,
+        u: &mut Update,
+        keys: &[u64],
+        sel: u64,
+    ) -> u32 {
         let mut built = 0;
         let mut it = host.begin(root, u);
         for &k in keys {

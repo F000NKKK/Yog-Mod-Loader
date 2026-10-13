@@ -921,7 +921,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.30.0"
+version = "0.30.1"
 dependencies = [
  "serde_json",
  "yog-gfx",
@@ -942,7 +942,7 @@ version = "0.3.0"
 
 [[package]]
 name = "yog-debugger"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "iced-x86",
  "nix",
@@ -1039,7 +1039,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.100.0"
+version = "0.100.1"
 dependencies = [
  "glow",
  "jni",
@@ -1064,7 +1064,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-symbols"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "addr2line",
  "gimli",

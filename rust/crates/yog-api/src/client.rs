@@ -10,8 +10,8 @@
 //! client::stop_sound(loop_);
 //! ```
 
-use yog_abi::YogStr;
 pub use yog_abi::ui_flags;
+use yog_abi::YogStr;
 
 use crate::registry::global_api;
 
@@ -37,7 +37,13 @@ pub fn play_sound(sound_id: &str, volume: f32, pitch: f32, looping: bool) -> Sou
         return SoundHandle(0);
     }
     SoundHandle(unsafe {
-        ((*api).client_play_sound)((*api).ctx, YogStr::from_str(sound_id), volume, pitch, looping)
+        ((*api).client_play_sound)(
+            (*api).ctx,
+            YogStr::from_str(sound_id),
+            volume,
+            pitch,
+            looping,
+        )
     })
 }
 
@@ -62,7 +68,8 @@ pub fn held_item(off_hand: bool) -> Option<String> {
         return None;
     }
     let s = unsafe {
-        String::from_utf8_lossy(std::slice::from_raw_parts(owned.ptr, owned.len as usize)).into_owned()
+        String::from_utf8_lossy(std::slice::from_raw_parts(owned.ptr, owned.len as usize))
+            .into_owned()
     };
     unsafe { ((*api).free_str)(owned.ptr, owned.len) };
     Some(s)

@@ -27,7 +27,9 @@ impl<T: PartialEq> Slot<T> {
     }
     /// The current value. Panics before the first [`Self::set`].
     pub fn get(&self) -> &T {
-        self.0.as_ref().expect("yog-kit: binding read before it was set")
+        self.0
+            .as_ref()
+            .expect("yog-kit: binding read before it was set")
     }
     /// Forgets the value, so the next `set` reports a change.
     pub fn reset(&mut self) {

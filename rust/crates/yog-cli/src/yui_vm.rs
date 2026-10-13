@@ -281,7 +281,8 @@ impl Ex {
     fn has_opt(&self) -> bool {
         match self {
             Ex::Post(h, segs) => {
-                segs.iter().any(|s| s.opt || s.args.iter().flatten().any(Ex::has_opt))
+                segs.iter()
+                    .any(|s| s.opt || s.args.iter().flatten().any(Ex::has_opt))
                     || match h {
                         Head::Ident(_, a) | Head::Type(_, a) => a.iter().flatten().any(Ex::has_opt),
                         Head::Paren(e) => e.has_opt(),
@@ -313,7 +314,11 @@ impl Ex {
                 .iter()
                 .map(|e| {
                     let s = e.emit(scope, command)?;
-                    Ok(if by_ref && e.is_place() { format!("&{s}") } else { s })
+                    Ok(if by_ref && e.is_place() {
+                        format!("&{s}")
+                    } else {
+                        s
+                    })
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(format!("({})", parts.join(", ")))
@@ -328,9 +333,7 @@ impl Ex {
                         let root = match (n.as_str(), scope) {
                             ("vm", _) => "vm".to_string(),
                             ("cx", _) if command => "cx".to_string(),
-                            ("cx", _) => {
-                                return Err("`cx` is only available in commands".into())
-                            }
+                            ("cx", _) => return Err("`cx` is only available in commands".into()),
                             ("item" | "index", Scope::Template) => n.clone(),
                             ("item" | "index", Scope::Screen) => {
                                 return Err(format!("`{n}` is only available in item templates"))
@@ -419,7 +422,9 @@ fn parse_binding(value: &str) -> Option<Result<Binding, String>> {
                 continue;
             }
             let Some((k, v)) = part.split_once('=') else {
-                return Err(format!("{value}: expected Mode=, BindBack= or Fallback=, got `{part}`"));
+                return Err(format!(
+                    "{value}: expected Mode=, BindBack= or Fallback=, got `{part}`"
+                ));
             };
             let v = v.trim();
             match k.trim() {
@@ -567,7 +572,10 @@ struct VmGen<'a> {
 fn path_lit(path: &[u16]) -> String {
     format!(
         "&[{}]",
-        path.iter().map(u16::to_string).collect::<Vec<_>>().join(", ")
+        path.iter()
+            .map(u16::to_string)
+            .collect::<Vec<_>>()
+            .join(", ")
     )
 }
 
@@ -623,7 +631,12 @@ impl VmGen<'_> {
                     match self.resources.get(name) {
                         Some(r) => r.clone(),
                         None if k == "style" => v.clone(),
-                        None => return err(el, format!("{k}=\"{v}\": no resource `{name}` in <Screen.Resources>")),
+                        None => {
+                            return err(
+                                el,
+                                format!("{k}=\"{v}\": no resource `{name}` in <Screen.Resources>"),
+                            )
+                        }
                     }
                 }
                 _ => v.clone(),
@@ -633,7 +646,12 @@ impl VmGen<'_> {
                 "style" => {
                     let name = v.trim().trim_start_matches('@');
                     let Some(s) = self.styles.get(name) else {
-                        return err(el, format!("style=\"{v}\": no <Style x:Key=\"{name}\"> in <Screen.Resources>"));
+                        return err(
+                            el,
+                            format!(
+                                "style=\"{v}\": no <Style x:Key=\"{name}\"> in <Screen.Resources>"
+                            ),
+                        );
                     };
                     style = s.clone();
                 }
@@ -659,7 +677,10 @@ impl VmGen<'_> {
                 continue;
             }
             let Some(v) = r.attr("value") else {
-                return err(r, "needs a value (e.g. <Color x:Key=\"Accent\" value=\"#FFD700\"/>)");
+                return err(
+                    r,
+                    "needs a value (e.g. <Color x:Key=\"Accent\" value=\"#FFD700\"/>)",
+                );
             };
             self.resources.insert(key.to_string(), v.to_string());
         }
@@ -669,7 +690,9 @@ impl VmGen<'_> {
             let mut rest = Vec::new();
             for s in pending {
                 let key = s.attr("x:Key").unwrap_or_default().to_string();
-                let base = s.attr("based_on").map(|b| b.trim().trim_start_matches('@').to_string());
+                let base = s
+                    .attr("based_on")
+                    .map(|b| b.trim().trim_start_matches('@').to_string());
                 let mut attrs: Vec<(String, String)> = match &base {
                     Some(b) => match self.styles.get(b) {
                         Some(a) => a.clone(),
@@ -685,11 +708,11 @@ impl VmGen<'_> {
                         continue;
                     }
                     let v = match v.strip_prefix('@') {
-                        Some(n) if !n.contains('.') && !n.starts_with('@') => self
-                            .resources
-                            .get(n)
-                            .cloned()
-                            .ok_or_else(|| format!("line {}: <Style> {k}=\"{v}\": no resource `{n}`", s.line))?,
+                        Some(n) if !n.contains('.') && !n.starts_with('@') => {
+                            self.resources.get(n).cloned().ok_or_else(|| {
+                                format!("line {}: <Style> {k}=\"{v}\": no resource `{n}`", s.line)
+                            })?
+                        }
                         _ => v.clone(),
                     };
                     attrs.retain(|(ek, _)| ek != k);
@@ -723,7 +746,9 @@ impl VmGen<'_> {
         };
         let expr = match (&b.rust, &b.expr) {
             (Some(r), _) => r.clone(),
-            (None, Some(e)) => e.emit(ctx.scope, false).map_err(|e| format!("line {}: {e}", el.line))?,
+            (None, Some(e)) => e
+                .emit(ctx.scope, false)
+                .map_err(|e| format!("line {}: {e}", el.line))?,
             (None, None) => unreachable!(),
         };
         let opt = b.expr.as_ref().is_some_and(Ex::has_opt);
@@ -733,7 +758,9 @@ impl VmGen<'_> {
             }
             Target::Count => ("u32", "::yog_kit::bind::count(E)".into()),
             Target::Color(_) => ("u32", "::yog_kit::bind::color(E)".into()),
-            Target::Enabled | Target::Visible | Target::Checked => ("bool", "::yog_kit::bind::flag(E)".into()),
+            Target::Enabled | Target::Visible | Target::Checked => {
+                ("bool", "::yog_kit::bind::flag(E)".into())
+            }
             Target::Size(_) => ("::yog_api::ui::Units", "::yog_kit::bind::units(E)".into()),
             Target::Number(_) => ("f32", "::yog_kit::bind::number(E)".into()),
             Target::ScrollKey => ("u64", "::yog_kit::bind::key(&(E))".into()),
@@ -761,15 +788,21 @@ impl VmGen<'_> {
                 };
                 format!("u.set_text_box({tb}, {f}.get());")
             }
-            Target::Text => format!("{w}.set_text(::std::clone::Clone::clone({f}.get())); u.relayout();"),
-            Target::Placeholder => format!("::yog_kit::bind::set_placeholder({w}, {f}.get()); u.repaint();"),
+            Target::Text => {
+                format!("{w}.set_text(::std::clone::Clone::clone({f}.get())); u.relayout();")
+            }
+            Target::Placeholder => {
+                format!("::yog_kit::bind::set_placeholder({w}, {f}.get()); u.repaint();")
+            }
             Target::Item => format!("::yog_kit::bind::set_item({w}, {f}.get()); u.repaint();"),
             Target::Source => format!("::yog_kit::bind::set_source({w}, {f}.get()); u.relayout();"),
             Target::Count => format!("::yog_kit::bind::set_count({w}, *{f}.get()); u.repaint();"),
             Target::Color(c) => format!("{w}.style.{c} = *{f}.get(); u.repaint();"),
             Target::Enabled => format!("{w}.enabled = *{f}.get(); u.repaint();"),
             Target::Visible => format!("{w}.visible = *{f}.get(); u.relayout();"),
-            Target::Checked => format!("::yog_kit::bind::set_checked({w}, *{f}.get()); u.repaint();"),
+            Target::Checked => {
+                format!("::yog_kit::bind::set_checked({w}, *{f}.get()); u.repaint();")
+            }
             Target::Size(a) => format!("{w}.style.{a} = *{f}.get(); u.relayout();"),
             Target::Number(a) => format!("{w}.style.{a} = *{f}.get(); u.relayout();"),
             Target::ScrollKey => {
@@ -790,13 +823,23 @@ impl VmGen<'_> {
     }
 
     /// The command statement for `expr`, in screen scope.
-    fn command(&self, el: &Element, b: &Binding, scope: Scope, items: Option<&str>) -> Result<String, String> {
+    fn command(
+        &self,
+        el: &Element,
+        b: &Binding,
+        scope: Scope,
+        items: Option<&str>,
+    ) -> Result<String, String> {
         let Some(e) = &b.expr else {
             return err(el, "command needs {x:Bind method(...)}");
         };
         let line = el.line;
         match scope {
-            Scope::Screen => Ok(format!("{};", e.emit(Scope::Screen, true).map_err(|m| format!("line {line}: {m}"))?)),
+            Scope::Screen => Ok(format!(
+                "{};",
+                e.emit(Scope::Screen, true)
+                    .map_err(|m| format!("line {line}: {m}"))?
+            )),
             Scope::Template => {
                 // vm.method(args) / cx.method(): item arguments are cloned
                 // out of the item first.
@@ -817,7 +860,9 @@ impl VmGen<'_> {
                             .collect(),
                     );
                 }
-                let call = call.emit(Scope::Template, true).map_err(|m| format!("line {line}: {m}"))?;
+                let call = call
+                    .emit(Scope::Template, true)
+                    .map_err(|m| format!("line {line}: {m}"))?;
                 if args.is_empty() {
                     return Ok(format!("let _ = index; {call};"));
                 }
@@ -841,13 +886,23 @@ impl VmGen<'_> {
     }
 
     /// Compiles `el` at `path` in `ctx`; returns the static element.
-    fn element(&mut self, ctx: &mut Ctx, el: &Element, path: &[u16], items: Option<&str>) -> Result<Element, String> {
+    fn element(
+        &mut self,
+        ctx: &mut Ctx,
+        el: &Element,
+        path: &[u16],
+        items: Option<&str>,
+    ) -> Result<Element, String> {
         let el = &self.resolve(el)?;
         let name = el.name.as_str();
         let (kind, horizontal) = match name {
             "ToggleButton" => ("Button", false),
             "ListView" => ("ScrollView", false),
-            "ItemsControl" => ("Column", el.attr("orientation").is_some_and(|o| o.trim() == "horizontal")),
+            "ItemsControl" => (
+                "Column",
+                el.attr("orientation")
+                    .is_some_and(|o| o.trim() == "horizontal"),
+            ),
             "ContentPresenter" => ("Column", false),
             "Screen.Resources" | "DataTemplate" => return err(el, "isn't allowed here"),
             k => (k, false),
@@ -904,7 +959,10 @@ impl VmGen<'_> {
                     command = Some(b);
                 } else if matches!(k, "items" | "content" | "key" | "selected") {
                     if !is_list {
-                        return err(el, format!("{k} is for ListView, ItemsControl and ContentPresenter"));
+                        return err(
+                            el,
+                            format!("{k} is for ListView, ItemsControl and ContentPresenter"),
+                        );
                     }
                     bindings.push((k.to_string(), b));
                 } else {
@@ -999,7 +1057,12 @@ impl VmGen<'_> {
             .find(|(k, b)| k == "checked" && b.mode == Mode::TwoWay)
             .map(|(_, b)| b.clone());
         if kind == "TextBox" {
-            let tb = text_box.ok_or_else(|| format!("line {}: text boxes in item templates aren't supported", el.line))?;
+            let tb = text_box.ok_or_else(|| {
+                format!(
+                    "line {}: text boxes in item templates aren't supported",
+                    el.line
+                )
+            })?;
             if let Some((_, b)) = bindings.iter().find(|(k, _)| k == "text") {
                 let write = match (&b.bind_back, b.mode, &b.expr) {
                     (Some(m), _, _) => Some(format!("vm.{m}(text);")),
@@ -1030,12 +1093,17 @@ impl VmGen<'_> {
             let slot = self.next_cmd(owner);
             push_raw(
                 &mut out,
-                format!("action(::yog_api::ui::Action {{ owner: {owner}, slot: {slot}, index: 0 }})"),
+                format!(
+                    "action(::yog_api::ui::Action {{ owner: {owner}, slot: {slot}, index: 0 }})"
+                ),
             );
             let mut body = String::new();
             if let Some(t) = &toggle_place {
                 if ctx.scope == Scope::Template {
-                    return err(el, "Mode=TwoWay toggles in item templates aren't supported — use a command");
+                    return err(
+                        el,
+                        "Mode=TwoWay toggles in item templates aren't supported — use a command",
+                    );
                 }
                 match (&t.bind_back, &t.expr) {
                     (Some(m), Some(e)) => {
@@ -1046,7 +1114,12 @@ impl VmGen<'_> {
                         let p = e.emit(Scope::Screen, false)?;
                         let _ = write!(body, "{p} = !{p}; ");
                     }
-                    _ => return err(el, "checked Mode=TwoWay needs a bool field or BindBack=method"),
+                    _ => {
+                        return err(
+                            el,
+                            "checked Mode=TwoWay needs a bool field or BindBack=method",
+                        )
+                    }
                 }
             }
             if let Some(c) = &command {
@@ -1147,7 +1220,9 @@ impl VmGen<'_> {
             }
             let expr = match (&b.rust, &b.expr) {
                 (Some(r), _) => r.clone(),
-                (None, Some(e)) => e.emit(ctx.scope, false).map_err(|e| format!("line {}: {e}", el.line))?,
+                (None, Some(e)) => e
+                    .emit(ctx.scope, false)
+                    .map_err(|e| format!("line {}: {e}", el.line))?,
                 (None, None) => unreachable!(),
             };
             let value = if b.expr.as_ref().is_some_and(Ex::has_opt) {
@@ -1206,18 +1281,33 @@ impl VmGen<'_> {
             self.n_lists += 1;
             self.n_lists
         };
-        let get = |k: &str| bindings.iter().find(|(bk, _)| bk == k).map(|(_, b)| b.clone());
-        let source = if name == "ContentPresenter" { "content" } else { "items" };
+        let get = |k: &str| {
+            bindings
+                .iter()
+                .find(|(bk, _)| bk == k)
+                .map(|(_, b)| b.clone())
+        };
+        let source = if name == "ContentPresenter" {
+            "content"
+        } else {
+            "items"
+        };
         let Some(items_b) = get(source) else {
             return err(el, format!("needs {source}=\"{{x:Bind ...}}\""));
         };
         let items_ex = items_b.expr.clone().expect("parsed");
-        let mut items = items_ex.emit(Scope::Screen, false).map_err(|e| format!("line {}: {e}", el.line))?;
+        let mut items = items_ex
+            .emit(Scope::Screen, false)
+            .map_err(|e| format!("line {}: {e}", el.line))?;
         if items_ex.is_place() {
             items = format!("&{items}");
         }
         let key = match get("key") {
-            Some(b) => b.expr.expect("parsed").emit(Scope::Template, false).map_err(|e| format!("line {}: {e}", el.line))?,
+            Some(b) => b
+                .expr
+                .expect("parsed")
+                .emit(Scope::Template, false)
+                .map_err(|e| format!("line {}: {e}", el.line))?,
             None => "index".to_string(),
         };
         let selected = get("selected");
@@ -1241,7 +1331,10 @@ impl VmGen<'_> {
             }
         }
         let Some(template) = template else {
-            return err(el, format!("needs an item template (<{name}.ItemTemplate><DataTemplate>...)"));
+            return err(
+                el,
+                format!("needs an item template (<{name}.ItemTemplate><DataTemplate>...)"),
+            );
         };
 
         let t = self.n_templates;
@@ -1306,7 +1399,11 @@ impl VmGen<'_> {
         let sc = scroller.map_or("::std::option::Option::None".to_string(), |s| {
             format!("::std::option::Option::Some({s})")
         });
-        let _ = writeln!(self.parts, "        parts.list({owner}, {}, {sc}, {ih});", path_lit(path));
+        let _ = writeln!(
+            self.parts,
+            "        parts.list({owner}, {}, {sc}, {ih});",
+            path_lit(path)
+        );
         let field = format!("l{owner}");
         self.view_fields.push((
             field.clone(),
@@ -1321,11 +1418,19 @@ impl VmGen<'_> {
 
         // Update.
         let mut u = String::new();
-        let _ = writeln!(u, "        // @yui {}:{} {source}=\"{}\"", self.file, el.line, items_b.raw);
+        let _ = writeln!(
+            u,
+            "        // @yui {}:{} {source}=\"{}\"",
+            self.file, el.line, items_b.raw
+        );
         u.push_str("        {\n");
         let sel_expr = match &selected {
             Some(b) => {
-                let e = b.expr.as_ref().expect("parsed").emit(Scope::Screen, false)?;
+                let e = b
+                    .expr
+                    .as_ref()
+                    .expect("parsed")
+                    .emit(Scope::Screen, false)?;
                 let _ = writeln!(u, "            let __sel = {e};");
                 format!("::yog_kit::bind::is_selected(&__sel, &({key}))")
             }
@@ -1373,9 +1478,14 @@ impl VmGen<'_> {
             let write = match (&b.bind_back, b.mode, &b.expr) {
                 (Some(m), _, _) => format!("vm.{m}(__k);"),
                 (None, Mode::TwoWay, Some(e)) if e.is_place() => {
-                    format!("{} = ::std::option::Option::Some(__k);", e.emit(Scope::Screen, false)?)
+                    format!(
+                        "{} = ::std::option::Option::Some(__k);",
+                        e.emit(Scope::Screen, false)?
+                    )
                 }
-                (None, Mode::TwoWay, _) => return err(el, "selected Mode=TwoWay needs a field or BindBack=method"),
+                (None, Mode::TwoWay, _) => {
+                    return err(el, "selected Mode=TwoWay needs a field or BindBack=method")
+                }
                 _ => String::new(),
             };
             if !write.is_empty() {
@@ -1406,16 +1516,29 @@ impl VmGen<'_> {
 }
 
 /// Generates a view-model screen's `.g.rs` (see the module docs).
-pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(String, Vec<String>), String> {
+pub fn generate(
+    root: &Element,
+    name: &str,
+    mod_id: Option<&str>,
+) -> Result<(String, Vec<String>), String> {
     if root.name != "Screen" {
         return err(root, "a view-model screen's root must be <Screen>");
     }
     let id = root
         .attr("id")
         .filter(|s| !s.trim().is_empty())
-        .ok_or_else(|| format!("line {}: <Screen> needs an id (the UI id, e.g. \"mymod:main\")", root.line))?
+        .ok_or_else(|| {
+            format!(
+                "line {}: <Screen> needs an id (the UI id, e.g. \"mymod:main\")",
+                root.line
+            )
+        })?
         .to_string();
-    let vm = root.attr("x:ViewModel").unwrap_or_default().trim().to_string();
+    let vm = root
+        .attr("x:ViewModel")
+        .unwrap_or_default()
+        .trim()
+        .to_string();
     if vm.is_empty() {
         return err(root, "x:ViewModel names the view-model type");
     }
@@ -1423,8 +1546,16 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
         .attr("x:Create")
         .map(str::to_string)
         .unwrap_or_else(|| format!("<{vm} as ::std::default::Default>::default()"));
-    let width = root.attr("width").map(|v| num_attr(root, "width", v)).transpose()?.unwrap_or(176.0);
-    let height = root.attr("height").map(|v| num_attr(root, "height", v)).transpose()?.unwrap_or(166.0);
+    let width = root
+        .attr("width")
+        .map(|v| num_attr(root, "width", v))
+        .transpose()?
+        .unwrap_or(176.0);
+    let height = root
+        .attr("height")
+        .map(|v| num_attr(root, "height", v))
+        .transpose()?
+        .unwrap_or(166.0);
     let anchor = match root.attr("anchor").unwrap_or("center").trim() {
         "center" => "Center",
         "top_left" => "TopLeft",
@@ -1438,8 +1569,16 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
         "fill" => "Fill",
         a => return err(root, format!("anchor=\"{a}\": expected center, top_left, top, top_right, left, right, bottom_left, bottom, bottom_right or fill")),
     };
-    let modal = root.attr("modal").map(|v| bool_attr(root, "modal", v)).transpose()?.unwrap_or(true);
-    let pause = root.attr("pause").map(|v| bool_attr(root, "pause", v)).transpose()?.unwrap_or(false);
+    let modal = root
+        .attr("modal")
+        .map(|v| bool_attr(root, "modal", v))
+        .transpose()?
+        .unwrap_or(true);
+    let pause = root
+        .attr("pause")
+        .map(|v| bool_attr(root, "pause", v))
+        .transpose()?
+        .unwrap_or(false);
 
     let mut g = VmGen {
         file: format!("{name}.yui"),
@@ -1571,7 +1710,10 @@ pub mod ids {{
         update = ctx.update,
     );
     for (pat, body) in &g.dispatch {
-        let _ = writeln!(out, "            {pat} => {{\n                {body}\n            }}");
+        let _ = writeln!(
+            out,
+            "            {pat} => {{\n                {body}\n            }}"
+        );
     }
     let _ = write!(
         out,
@@ -1634,17 +1776,35 @@ mod tests {
         let e = |s: &str, scope| parse_expr(s).unwrap().emit(scope, false).unwrap();
         assert_eq!(e("count", Scope::Screen), "vm.count");
         assert_eq!(e("count_text()", Scope::Screen), "vm.count_text()");
-        assert_eq!(e("filter == Filter::All", Scope::Screen), "vm.filter == Filter::All");
-        assert_eq!(e("!has(Filter::Yog)", Scope::Screen), "!vm.has(Filter::Yog)");
-        assert_eq!(e("Strings::count(n, 'x')", Scope::Screen), "Strings::count(&vm.n, \"x\")");
-        assert_eq!(e("Strings::v(version)", Scope::Template), "Strings::v(&item.version)");
+        assert_eq!(
+            e("filter == Filter::All", Scope::Screen),
+            "vm.filter == Filter::All"
+        );
+        assert_eq!(
+            e("!has(Filter::Yog)", Scope::Screen),
+            "!vm.has(Filter::Yog)"
+        );
+        assert_eq!(
+            e("Strings::count(n, 'x')", Scope::Screen),
+            "Strings::count(&vm.n, \"x\")"
+        );
+        assert_eq!(
+            e("Strings::v(version)", Scope::Template),
+            "Strings::v(&item.version)"
+        );
         assert_eq!(e("selected()?.name", Scope::Screen), "vm.selected()?.name");
         assert_eq!(e("vm.x.len()", Scope::Template), "vm.x.len()");
         assert_eq!(e("item", Scope::Template), "item");
         assert_eq!(e("1.5", Scope::Screen), "1.5");
         assert!(parse_expr("a < b").is_err());
-        assert!(parse_expr("cx.close()").unwrap().emit(Scope::Screen, false).is_err());
-        assert!(parse_expr("index").unwrap().emit(Scope::Screen, false).is_err());
+        assert!(parse_expr("cx.close()")
+            .unwrap()
+            .emit(Scope::Screen, false)
+            .is_err());
+        assert!(parse_expr("index")
+            .unwrap()
+            .emit(Scope::Screen, false)
+            .is_err());
     }
 
     #[test]
@@ -1695,7 +1855,10 @@ mod tests {
         ] {
             assert!(code.contains(want), "missing {want}\n{code}");
         }
-        assert!(!code.contains("text=") || code.contains("// @yui"), "{code}");
+        assert!(
+            !code.contains("text=") || code.contains("// @yui"),
+            "{code}"
+        );
     }
 
     #[test]
@@ -1793,7 +1956,7 @@ mod tests {
     #[test]
     fn errors() {
         let e = |b: &str| gen(b).unwrap_err();
-        assert!(e(r#"<Button on_click="x"/>"#).contains("command="), );
+        assert!(e(r#"<Button on_click="x"/>"#).contains("command="),);
         assert!(e(r#"<Label w="{x:Bind a}" hover:w="3"/>"#).contains("paint attributes"));
         assert!(e(r#"<TextBox text="{x:Bind name(), Mode=TwoWay}"/>"#).contains("TwoWay"));
         assert!(e(r#"<Label text="{x:Bind a &lt; b}"/>"#).contains("unexpected"));
@@ -1806,7 +1969,8 @@ mod tests {
     /// (`UPDATE_GOLDEN=1` rewrites it); yog-kit compiles and runs it.
     #[test]
     fn kit_fixture() {
-        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../yog-kit/tests/fixtures");
+        let dir =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../yog-kit/tests/fixtures");
         for name in ["list", "grid"] {
             let src = std::fs::read_to_string(dir.join(format!("{name}.yui"))).unwrap();
             let (code, warnings) = crate::yui::generate_for(&src, name, None).unwrap();
@@ -1816,7 +1980,11 @@ mod tests {
                 std::fs::write(&out, &code).unwrap();
             }
             let want = std::fs::read_to_string(&out).unwrap_or_default();
-            assert!(want == code, "{} is stale; rerun with UPDATE_GOLDEN=1", out.display());
+            assert!(
+                want == code,
+                "{} is stale; rerun with UPDATE_GOLDEN=1",
+                out.display()
+            );
         }
     }
 

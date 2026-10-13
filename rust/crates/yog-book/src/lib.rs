@@ -312,7 +312,9 @@ impl Book {
                     BookPage::Crafting { text, .. }
                     | BookPage::Smelting { text, .. }
                     | BookPage::Relations { text, .. } => opt(text),
-                    BookPage::Pattern { text, .. } | BookPage::CustomText { text, .. } => *text = tr(text),
+                    BookPage::Pattern { text, .. } | BookPage::CustomText { text, .. } => {
+                        *text = tr(text)
+                    }
                     BookPage::Empty => {}
                 }
             }
@@ -944,7 +946,11 @@ mod localize_tests {
     fn localized_translates_every_text() {
         let book = Book::new("m:b", "m.book.name")
             .landing_text("m.book.landing")
-            .add_category(BookCategory { id: "basics".into(), name: "m.cat".into(), ..Default::default() })
+            .add_category(BookCategory {
+                id: "basics".into(),
+                name: "m.cat".into(),
+                ..Default::default()
+            })
             .add_entry(BookEntry {
                 id: "e".into(),
                 name: "m.entry".into(),
@@ -952,7 +958,13 @@ mod localize_tests {
                 pages: vec![text_page_titled("m.title", "m.text"), text_page("raw text")],
                 ..Default::default()
             });
-        let out = book.localized(|k| if k.starts_with("m.") { k.to_uppercase() } else { k.to_string() });
+        let out = book.localized(|k| {
+            if k.starts_with("m.") {
+                k.to_uppercase()
+            } else {
+                k.to_string()
+            }
+        });
         assert_eq!(out.name, "M.BOOK.NAME");
         assert_eq!(out.landing_text, "M.BOOK.LANDING");
         assert_eq!(out.categories[0].name, "M.CAT");
@@ -964,7 +976,9 @@ mod localize_tests {
             }
             p => panic!("{p:?}"),
         }
-        assert!(matches!(&out.entries[0].pages[1], BookPage::Text { text, .. } if text == "raw text"));
+        assert!(
+            matches!(&out.entries[0].pages[1], BookPage::Text { text, .. } if text == "raw text")
+        );
         assert_eq!(out.entries[0].id, "e");
     }
 }

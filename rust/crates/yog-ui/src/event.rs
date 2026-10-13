@@ -113,21 +113,45 @@ mod tests {
 
     #[test]
     fn parses_every_host_format() {
-        assert_eq!(UiEvent::parse("click:1.5:2.0"), UiEvent::Click { x: 1.5, y: 2.0 });
+        assert_eq!(
+            UiEvent::parse("click:1.5:2.0"),
+            UiEvent::Click { x: 1.5, y: 2.0 }
+        );
         assert_eq!(UiEvent::parse("drag:3:4"), UiEvent::Drag { x: 3.0, y: 4.0 });
-        assert_eq!(UiEvent::parse("release:3:4"), UiEvent::Release { x: 3.0, y: 4.0 });
-        assert_eq!(UiEvent::parse("move:3.0:4.5"), UiEvent::Move { x: 3.0, y: 4.5 });
+        assert_eq!(
+            UiEvent::parse("release:3:4"),
+            UiEvent::Release { x: 3.0, y: 4.0 }
+        );
+        assert_eq!(
+            UiEvent::parse("move:3.0:4.5"),
+            UiEvent::Move { x: 3.0, y: 4.5 }
+        );
         assert_eq!(UiEvent::parse("scroll:-2.00"), UiEvent::Scroll { dy: -2.0 });
-        assert_eq!(UiEvent::parse("key:256:0"), UiEvent::Key { key: 256, mods: 0 });
+        assert_eq!(
+            UiEvent::parse("key:256:0"),
+            UiEvent::Key { key: 256, mods: 0 }
+        );
         assert_eq!(UiEvent::parse("key:65"), UiEvent::Key { key: 65, mods: 0 });
         assert_eq!(UiEvent::parse("char:1078"), UiEvent::Char('ж'));
-        assert_eq!(UiEvent::parse("open:320:240"), UiEvent::Open { w: 320.0, h: 240.0 });
+        assert_eq!(
+            UiEvent::parse("open:320:240"),
+            UiEvent::Open { w: 320.0, h: 240.0 }
+        );
         assert_eq!(UiEvent::parse("close"), UiEvent::Close);
     }
 
     #[test]
     fn garbage_is_other() {
-        for raw in ["", "click", "click:x:1", "click:1:2:3", "scroll:", "char:-1", "done", "key:a:0"] {
+        for raw in [
+            "",
+            "click",
+            "click:x:1",
+            "click:1:2:3",
+            "scroll:",
+            "char:-1",
+            "done",
+            "key:a:0",
+        ] {
             assert_eq!(UiEvent::parse(raw), UiEvent::Other(raw), "{raw}");
         }
     }

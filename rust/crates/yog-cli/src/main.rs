@@ -2025,9 +2025,7 @@ fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
         // Add the section before any [dev] section or at the end
         let insert_idx = lines
             .iter()
-            .position(|l| {
-                l.trim().starts_with('[') && l.trim() != "[mod]"
-            })
+            .position(|l| l.trim().starts_with('[') && l.trim() != "[mod]")
             .unwrap_or(lines.len());
         lines.insert(insert_idx, target_section.to_string());
         lines.insert(insert_idx + 1, format!("{} = \"*\"", name));

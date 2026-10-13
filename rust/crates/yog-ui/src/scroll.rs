@@ -56,7 +56,12 @@ impl ScrollState {
     }
 
     /// [`Self::handle`] for a parsed event.
-    pub fn handle_event(&mut self, event: &UiEvent<'_>, view: &LayoutNode, wheel_step: f32) -> bool {
+    pub fn handle_event(
+        &mut self,
+        event: &UiEvent<'_>,
+        view: &LayoutNode,
+        wheel_step: f32,
+    ) -> bool {
         let max = view.max_scroll();
         match *event {
             UiEvent::Scroll { dy } => {

@@ -3429,10 +3429,17 @@ unsafe extern "C" fn srv_raycast_entity(
 ) -> YogOwnedStr {
     let [a, b, c] = vec_args(from);
     let [d, e, f] = vec_args(to);
-    bridge_str("raycastEntity", &[JArg::S(dim), a, b, c, d, e, f, JArg::S(exclude)])
+    bridge_str(
+        "raycastEntity",
+        &[JArg::S(dim), a, b, c, d, e, f, JArg::S(exclude)],
+    )
 }
 
-unsafe extern "C" fn srv_block_info(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr {
+unsafe extern "C" fn srv_block_info(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    pos: YogBlockPos,
+) -> YogOwnedStr {
     let [x, y, z] = pos_args(pos);
     bridge_str("blockInfo", &[JArg::S(dim), x, y, z])
 }
@@ -3445,7 +3452,10 @@ unsafe extern "C" fn srv_break_block(
     breaker: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge_bool("breakBlock", &[JArg::S(dim), x, y, z, JArg::Z(drop), JArg::S(breaker)])
+    bridge_bool(
+        "breakBlock",
+        &[JArg::S(dim), x, y, z, JArg::Z(drop), JArg::S(breaker)],
+    )
 }
 
 unsafe extern "C" fn srv_place_block_from_slot(
@@ -3478,7 +3488,15 @@ unsafe extern "C" fn srv_explode(
     let [x, y, z] = vec_args(pos);
     bridge_bool(
         "explode",
-        &[JArg::S(dim), x, y, z, JArg::F(power), JArg::Z(fire), JArg::S(source)],
+        &[
+            JArg::S(dim),
+            x,
+            y,
+            z,
+            JArg::F(power),
+            JArg::Z(fire),
+            JArg::S(source),
+        ],
     )
 }
 
@@ -3495,11 +3513,20 @@ unsafe extern "C" fn srv_entity_damage(
 ) -> bool {
     bridge_bool(
         "entityDamage",
-        &[JArg::S(uuid), JArg::F(amount), JArg::S(damage_type), JArg::S(attacker)],
+        &[
+            JArg::S(uuid),
+            JArg::F(amount),
+            JArg::S(damage_type),
+            JArg::S(attacker),
+        ],
     )
 }
 
-unsafe extern "C" fn srv_entity_set_fire_ticks(_ctx: *mut c_void, uuid: YogStr, ticks: i32) -> bool {
+unsafe extern "C" fn srv_entity_set_fire_ticks(
+    _ctx: *mut c_void,
+    uuid: YogStr,
+    ticks: i32,
+) -> bool {
     bridge_bool("entitySetFireTicks", &[JArg::S(uuid), JArg::I(ticks)])
 }
 
@@ -3507,7 +3534,11 @@ unsafe extern "C" fn srv_player_add_xp(_ctx: *mut c_void, player: YogStr, amount
     bridge_bool("playerAddXp", &[JArg::S(player), JArg::I(amount)])
 }
 
-unsafe extern "C" fn srv_player_set_may_fly(_ctx: *mut c_void, player: YogStr, may_fly: bool) -> bool {
+unsafe extern "C" fn srv_player_set_may_fly(
+    _ctx: *mut c_void,
+    player: YogStr,
+    may_fly: bool,
+) -> bool {
     bridge_bool("playerSetMayFly", &[JArg::S(player), JArg::Z(may_fly)])
 }
 
@@ -3528,7 +3559,18 @@ unsafe extern "C" fn srv_spawn_item(
     let [d, e, f] = vec_args(vel);
     bridge_str(
         "spawnItem",
-        &[JArg::S(dim), a, b, c, d, e, f, JArg::S(item_id), JArg::I(count as i32), JArg::S(snbt)],
+        &[
+            JArg::S(dim),
+            a,
+            b,
+            c,
+            d,
+            e,
+            f,
+            JArg::S(item_id),
+            JArg::I(count as i32),
+            JArg::S(snbt),
+        ],
     )
 }
 
@@ -3545,7 +3587,12 @@ unsafe extern "C" fn srv_item_entity_set_stack(
 ) -> bool {
     bridge_bool(
         "itemEntitySetStack",
-        &[JArg::S(uuid), JArg::S(item_id), JArg::I(count as i32), JArg::S(snbt)],
+        &[
+            JArg::S(uuid),
+            JArg::S(item_id),
+            JArg::I(count as i32),
+            JArg::S(snbt),
+        ],
     )
 }
 

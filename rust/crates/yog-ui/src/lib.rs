@@ -24,9 +24,9 @@ pub mod image;
 pub mod layout;
 mod render;
 pub mod scroll;
-pub mod surface;
 #[cfg(test)]
 mod state_tests;
+pub mod surface;
 pub mod text;
 pub mod textbox;
 pub mod widget;

@@ -85,7 +85,12 @@ pub fn char_width_in(c: char, font: &str) -> f32 {
     }
     let mut buf = [0u8; 4];
     let s: &str = c.encode_utf8(&mut buf);
-    let w = unsafe { width(yog_abi::YogStr::from_str(s), yog_abi::YogStr::from_str(font)) };
+    let w = unsafe {
+        width(
+            yog_abi::YogStr::from_str(s),
+            yog_abi::YogStr::from_str(font),
+        )
+    };
     let cache = h.cache.get_or_insert_with(HashMap::new);
     if cache.len() > 8192 {
         cache.clear();
