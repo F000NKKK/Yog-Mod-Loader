@@ -304,26 +304,6 @@ impl Ex {
         }
     }
 
-    /// Uses `item`/`index` (directly or as a bare template name).
-    fn uses_item(&self, scope: Scope) -> bool {
-        match self {
-            Ex::Post(h, segs) => {
-                segs.iter().any(|s| s.args.iter().flatten().any(|a| a.uses_item(scope)))
-                    || match h {
-                        Head::Ident(n, a) => {
-                            (scope == Scope::Template && n != "vm" && n != "cx")
-                                || a.iter().flatten().any(|a| a.uses_item(scope))
-                        }
-                        Head::Type(_, a) => a.iter().flatten().any(|a| a.uses_item(scope)),
-                        Head::Paren(e) => e.uses_item(scope),
-                        Head::Lit(_) => false,
-                    }
-            }
-            Ex::Not(e) => e.uses_item(scope),
-            Ex::Cmp(a, _, b) => a.uses_item(scope) || b.uses_item(scope),
-        }
-    }
-
     fn emit(&self, scope: Scope, command: bool) -> Result<String, String> {
         let args = |a: &Option<Vec<Ex>>, by_ref: bool| -> Result<String, String> {
             let Some(a) = a else {
@@ -457,6 +437,37 @@ fn parse_binding(value: &str) -> Option<Result<Binding, String>> {
         }
         Ok(b)
     })())
+}
+
+/// Compiles an attribute value `{x:Bind expr}` into a Rust expression that
+/// reads the view model `vm` (bare names become `vm.name`, `Type::f(x)`
+/// gets `&vm.x`, `a?.b` stays a `?`-chain — wrap it in a closure returning
+/// `Option`). `None` when `value` isn't a binding. Options (`Mode=`,
+/// `BindBack=`, `Fallback=`) are parsed and ignored here. Shared with the
+/// `.yui` component generator so there's one binding syntax.
+#[allow(dead_code)]
+pub(crate) fn compile_bind(value: &str) -> Option<Result<String, String>> {
+    let b = match parse_binding(value)? {
+        Ok(b) => b,
+        Err(e) => return Some(Err(e)),
+    };
+    Some(b.expr.expect("parsed").emit(Scope::Screen, false))
+}
+
+/// Whether `attr` of a `kind` element (`Label`, `Button`, ...) can be bound,
+/// and the `yog_kit::bind` conversion its value goes through
+/// (`text`, `color`, `flag`, `units`, `number`, `count`, `key`).
+#[allow(dead_code)]
+pub(crate) fn bind_conversion(kind: &str, attr: &str) -> Option<&'static str> {
+    Some(match target(kind, attr)? {
+        Target::Text | Target::Placeholder | Target::Item | Target::Source => "text",
+        Target::Count => "count",
+        Target::Color(_) => "color",
+        Target::Enabled | Target::Visible | Target::Checked => "flag",
+        Target::Size(_) => "units",
+        Target::Number(_) => "number",
+        Target::ScrollKey => "key",
+    })
 }
 
 // ── generator ────────────────────────────────────────────────────────────────
@@ -1078,7 +1089,7 @@ impl VmGen<'_> {
     }
 
     /// The single element inside a template/empty property element.
-    fn only_child<'e>(el: &'e Element) -> Result<&'e Element, String> {
+    fn only_child(el: &Element) -> Result<&Element, String> {
         let mut c = el;
         if c.children.len() == 1 && c.children[0].name == "DataTemplate" {
             c = &c.children[0];
@@ -1374,7 +1385,7 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
         update: String::new(),
     };
     let tree = g.element(&mut ctx, &content, &[], None)?;
-    let (expr, ids, warnings) = yui::static_widget(&tree, false, 1, mod_id)?;
+    let (expr, ids, warnings) = yui::static_widget(&tree, false, 0, mod_id)?;
     g.absorb(ids, warnings);
 
     let mut out = String::new();
