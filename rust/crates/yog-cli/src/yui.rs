@@ -1128,6 +1128,8 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
     for file in &files {
         wanted.push(generate_file(root, file)?);
     }
+    // Components without a code-behind, for `ui_components!()`.
+    wanted.push(crate::yui_component::write_index(root)?);
     // `.yres` accessors live there too (`crate::yres` cleans those up).
     let res_index = root.join(crate::yres::GENERATED_FILE);
     let res_dir = root.join(crate::yres::GENERATED_DIR);

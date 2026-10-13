@@ -149,14 +149,11 @@ macro_rules! export_mod {
     };
 }
 
-/// Registers a custom `.yui` component (a type implementing
+/// Registers `.yui` components (types implementing
 /// [`ui::component::Component`]) when the mod's library loads, so screens
-/// can use `<Name …/>` and Yog-IDLE's designer lists it in its toolbox.
-///
-/// ```ignore
-/// yog_api::ui_component!(StatBar);
-/// yog_api::ui_component!(StatBar, ModBadge);
-/// ```
+/// can use `<Name …/>` and Yog-IDLE's designer host can draw them. The code
+/// `yog build` generates from a `<Component>` `.yui` calls this — mods
+/// don't write it themselves.
 #[macro_export]
 macro_rules! ui_component {
     ($($ty:ty),+ $(,)?) => {
@@ -166,6 +163,23 @@ macro_rules! ui_component {
                 $( $crate::ui::component::register::<$ty>(); )+
             }
         };
+    };
+}
+
+/// Compiles in the mod's component `.yui` files that have no code-behind
+/// `.rs` (those with one are pulled in by its `ui_include!`) — call it once,
+/// in `src/lib.rs`:
+///
+/// ```ignore
+/// yog_api::ui_components!();
+/// ```
+///
+/// `yog build`, `yog check` and `yog ui gen` write the list to
+/// `.yog-build/generated/components.g.rs` (a module per component).
+#[macro_export]
+macro_rules! ui_components {
+    () => {
+        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/components.g.rs"));
     };
 }
 

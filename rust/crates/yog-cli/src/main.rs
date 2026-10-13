@@ -17,6 +17,7 @@
 mod content;
 mod yres;
 mod yui;
+mod yui_component;
 mod yui_vm;
 
 use std::collections::{HashMap, HashSet};
@@ -875,6 +876,7 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
             let out = yui::generate_file(&root, &file)?;
             eprintln!("==> {} -> {}", file.display(), out.display());
         }
+        yui_component::write_index(&root)?;
         return Ok(());
     }
     for file in files.iter().map(PathBuf::from) {
@@ -887,6 +889,7 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
         load_resource_refs(&root);
         let out = yui::generate_file(&root, &file)?;
         eprintln!("==> {} -> {}", file.display(), out.display());
+        yui_component::write_index(&root)?;
     }
     Ok(())
 }
