@@ -19,6 +19,19 @@ use crate::{is_library_source, user_location};
 
 type LineKey = (std::path::PathBuf, u32);
 
+/// The x86 `INT3` opcode a breakpoint patches in.
+const INT3: u8 = 0xCC;
+
+/// How far up the stack [`Debugger::leave_foreign_code`] looks for a user
+/// caller to return to.
+const CALLER_SEARCH_DEPTH: usize = 64;
+
+/// `word` (a little-endian memory word at some address) with its first
+/// byte — the one at that address — replaced by `byte`.
+fn with_first_byte(word: i64, byte: u8) -> i64 {
+    (word & !0xff) | i64::from(byte)
+}
+
 /// Where a step currently is.
 enum Position {
     /// On a line of user code.
@@ -328,11 +341,9 @@ impl Debugger {
             return Ok(());
         }
         let word = self.peek(addr)?;
-        let original_byte = (word & 0xff) as u8;
-        self.breakpoints.insert(addr, original_byte);
+        self.breakpoints.insert(addr, word.to_le_bytes()[0]);
         self.ever_armed.insert(addr);
-        let patched = (word & !0xffi64) | 0xCC;
-        self.poke(addr, patched)?;
+        self.poke(addr, with_first_byte(word, INT3))?;
         Ok(())
     }
 
@@ -346,8 +357,7 @@ impl Debugger {
                 self.pending_rearm = None;
             } else {
                 let word = self.peek(addr)?;
-                let restored = (word & !0xffi64) | original_byte as i64;
-                self.poke(addr, restored)?;
+                self.poke(addr, with_first_byte(word, original_byte))?;
             }
         }
         Ok(())
@@ -508,13 +518,13 @@ impl Debugger {
                 .write(true)
                 .open(format!("/proc/{}/mem", self.pid))
             {
-                let _ = mem.write_all_at(&[0xCC], addr);
+                let _ = mem.write_all_at(&[INT3], addr);
             }
             return Ok(());
         }
         let result = self
             .peek(addr)
-            .and_then(|word| self.poke(addr, (word & !0xffi64) | 0xCC));
+            .and_then(|word| self.poke(addr, with_first_byte(word, INT3)));
         match result {
             Err(DebugError::Ptrace(e)) if vanished(&e) => Ok(()),
             other => other,
@@ -798,7 +808,7 @@ impl Debugger {
         ptrace::write(
             tid,
             addr as ptrace::AddressType,
-            (word & !0xffi64) | original_byte as i64,
+            with_first_byte(word, original_byte),
         )?;
         self.current = tid;
         self.pending_rearm = Some((addr, tid));
@@ -1069,7 +1079,7 @@ impl Debugger {
         base: u64,
     ) -> Result<StopReason, DebugError> {
         let caller = self
-            .backtrace_with(symbols, base, 64)?
+            .backtrace_with(symbols, base, CALLER_SEARCH_DEPTH)?
             .into_iter()
             .skip(1)
             .find(|frame| {

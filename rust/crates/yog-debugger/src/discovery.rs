@@ -6,7 +6,6 @@
 //! looking for the one that actually has the runtime loaded.
 
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::path::Path;
 
 use nix::unistd::Pid;
 
@@ -35,20 +34,13 @@ fn all_pids() -> Vec<i32> {
 /// containing `needle` (e.g. `"yog_runtime"` to match `libyog_runtime.so`
 /// regardless of platform-specific prefix/extension).
 fn has_mapping_containing(pid: i32, needle: &str) -> bool {
-    let Ok(maps) = std::fs::read_to_string(format!("/proc/{pid}/maps")) else {
-        return false;
-    };
-    maps.lines().any(|line| {
-        let fields: Vec<&str> = line.split_whitespace().collect();
-        if fields.len() < 6 {
-            return false;
-        }
-        let path = fields[5..].join(" ");
-        Path::new(&path)
-            .file_name()
-            .and_then(|f| f.to_str())
-            .is_some_and(|f| f.contains(needle))
-    })
+    crate::maps::file_mappings(pid)
+        .into_iter()
+        .any(|(_, path)| {
+            path.file_name()
+                .and_then(|f| f.to_str())
+                .is_some_and(|f| f.contains(needle))
+        })
 }
 
 /// Breadth-first search over every descendant of `root_pid` (however many

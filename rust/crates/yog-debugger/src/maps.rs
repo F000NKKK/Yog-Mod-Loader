@@ -3,40 +3,47 @@
 //! native's own file, but breakpoints need the real runtime address, which
 //! is `module_base + offset`.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use nix::unistd::Pid;
+
+/// Every file-backed mapping in `/proc/<pid>/maps`, in address order, as
+/// `(start address, backing path)`. Empty if the file can't be read.
+pub(crate) fn file_mappings(pid: i32) -> Vec<(u64, PathBuf)> {
+    let maps = std::fs::read_to_string(format!("/proc/{pid}/maps")).unwrap_or_default();
+    maps.lines()
+        .filter_map(|line| {
+            // start-end perms offset dev inode [pathname]
+            let fields: Vec<&str> = line.split_whitespace().collect();
+            let path = fields.get(5..)?.join(" ");
+            if path.is_empty() {
+                return None;
+            }
+            let start = u64::from_str_radix(fields[0].split('-').next()?, 16).ok()?;
+            Some((start, PathBuf::from(path)))
+        })
+        .collect()
+}
+
+/// The start of the first mapping in `pid` whose backing file's name
+/// satisfies `matches`.
+fn first_mapping(pid: Pid, matches: impl Fn(&Path) -> bool) -> Option<u64> {
+    file_mappings(pid.as_raw())
+        .into_iter()
+        .find(|(_, path)| matches(path))
+        .map(|(start, _)| start)
+}
 
 /// The load base of the mapping in `pid` whose backing file matches
 /// `module_path` (compared by canonical path, falling back to a filename
 /// match since a process may see a different mount namespace view).
 pub fn find_module_base(pid: Pid, module_path: &Path) -> Option<u64> {
-    let maps = std::fs::read_to_string(format!("/proc/{}/maps", pid.as_raw())).ok()?;
     let canonical = module_path.canonicalize().ok();
     let file_name = module_path.file_name();
-
-    for line in maps.lines() {
-        let fields: Vec<&str> = line.split_whitespace().collect();
-        // start-end perms offset dev inode [pathname]
-        if fields.len() < 6 {
-            continue;
-        }
-        let path = fields[5..].join(" ");
-        if path.is_empty() {
-            continue;
-        }
-
-        let mapped = Path::new(&path);
-        let matches = canonical.as_deref().is_some_and(|c| c == mapped)
-            || file_name.is_some_and(|f| mapped.file_name() == Some(f));
-        if !matches {
-            continue;
-        }
-
-        let start_hex = fields[0].split('-').next()?;
-        return u64::from_str_radix(start_hex, 16).ok();
-    }
-    None
+    first_mapping(pid, |mapped| {
+        canonical.as_deref() == Some(mapped)
+            || file_name.is_some_and(|f| mapped.file_name() == Some(f))
+    })
 }
 
 /// Like [`find_module_base`], but matches a mapping whose filename merely
@@ -46,25 +53,10 @@ pub fn find_module_base(pid: Pid, module_path: &Path) -> Option<u64> {
 /// e.g. `"yog-my-mod-"` to find that mod's extracted native regardless of
 /// the embedded pid.
 pub fn find_module_base_by_prefix(pid: Pid, prefix: &str) -> Option<u64> {
-    let maps = std::fs::read_to_string(format!("/proc/{}/maps", pid.as_raw())).ok()?;
-
-    for line in maps.lines() {
-        let fields: Vec<&str> = line.split_whitespace().collect();
-        if fields.len() < 6 {
-            continue;
-        }
-        let path = fields[5..].join(" ");
-        if path.is_empty() {
-            continue;
-        }
-
-        let file_name = Path::new(&path).file_name().and_then(|f| f.to_str());
-        if !file_name.is_some_and(|f| f.starts_with(prefix)) {
-            continue;
-        }
-
-        let start_hex = fields[0].split('-').next()?;
-        return u64::from_str_radix(start_hex, 16).ok();
-    }
-    None
+    first_mapping(pid, |mapped| {
+        mapped
+            .file_name()
+            .and_then(|f| f.to_str())
+            .is_some_and(|f| f.starts_with(prefix))
+    })
 }

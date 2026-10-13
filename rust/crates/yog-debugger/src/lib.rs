@@ -64,8 +64,12 @@ mod session {
 
     use crate::dap::{DebugSession, StackFrameInfo};
     use crate::maps::find_module_base;
-    use crate::ptrace_debugger::{Debugger, StopReason};
+    use crate::ptrace_debugger::Debugger;
     use crate::source_breakpoints::SourceBreakpoints;
+
+    const NOT_ATTACHED: &str = "not attached";
+    /// How many frames a DAP `stackTrace` unwinds at most.
+    const MAX_STACK_FRAMES: usize = 64;
 
     /// A single-mod debug session: attaches to one running process and
     /// debugs one mod's native within it. Multi-mod attach (breakpoints
@@ -107,7 +111,7 @@ mod session {
             new_native_path: PathBuf,
             new_generation: ModuleGeneration,
         ) -> Result<(), String> {
-            let debugger = self.debugger.as_mut().ok_or("not attached")?;
+            let debugger = self.debugger.as_mut().ok_or(NOT_ATTACHED)?;
             let new_symbols = SymbolTable::load(&new_native_path).map_err(|e| e.to_string())?;
             let new_base = find_module_base(debugger.pid(), &new_native_path)
                 .ok_or("could not locate new native's load address")?;
@@ -125,6 +129,12 @@ mod session {
             self.generation = new_generation;
             self.module_base = new_base;
             Ok(())
+        }
+
+        fn debugger(&mut self) -> Result<&mut Debugger, String> {
+            self.debugger
+                .as_mut()
+                .ok_or_else(|| NOT_ATTACHED.to_string())
         }
 
         fn resolve_stop_location(&self, addr: u64) -> Option<StackFrameInfo> {
@@ -157,7 +167,7 @@ mod session {
             source_path: &str,
             lines: &[u32],
         ) -> Result<Vec<u32>, String> {
-            let debugger = self.debugger.as_mut().ok_or("not attached")?;
+            let debugger = self.debugger.as_mut().ok_or(NOT_ATTACHED)?;
             // Clear every breakpoint currently tracked for this file, then
             // re-add exactly the requested lines — matches DAP's
             // `setBreakpoints` "replace the whole set for this source"
@@ -187,18 +197,14 @@ mod session {
         }
 
         fn continue_(&mut self) -> Result<(), String> {
-            let debugger = self.debugger.as_mut().ok_or("not attached")?;
-            match debugger.continue_().map_err(|e| e.to_string())? {
-                StopReason::Exited(_) | StopReason::Killed(_) => Ok(()),
-                StopReason::Breakpoint(_) | StopReason::Signal(_) | StopReason::Interrupted => {
-                    Ok(())
-                }
-            }
+            // Every stop reason, the process ending included, is a plain
+            // success at the DAP level.
+            self.debugger()?.continue_().map_err(|e| e.to_string())?;
+            Ok(())
         }
 
         fn next(&mut self) -> Result<(), String> {
-            let debugger = self.debugger.as_mut().ok_or("not attached")?;
-            debugger.single_step().map_err(|e| e.to_string())?;
+            self.debugger()?.single_step().map_err(|e| e.to_string())?;
             Ok(())
         }
 
@@ -207,9 +213,9 @@ mod session {
         }
 
         fn stack_trace(&mut self) -> Result<Vec<StackFrameInfo>, String> {
-            let debugger = self.debugger.as_ref().ok_or("not attached")?;
+            let debugger = self.debugger.as_ref().ok_or(NOT_ATTACHED)?;
             let frames = debugger
-                .backtrace_with(&self.symbols, self.module_base, 64)
+                .backtrace_with(&self.symbols, self.module_base, MAX_STACK_FRAMES)
                 .map_err(|e| e.to_string())?;
             Ok(frames
                 .into_iter()

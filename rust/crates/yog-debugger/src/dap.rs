@@ -116,7 +116,7 @@ impl<S: DebugSession> Server<S> {
     fn dispatch(&mut self, command: &str, arguments: &Value) -> (bool, Value) {
         match command {
             "initialize" => (true, json!({ "supportsConfigurationDoneRequest": true })),
-            "attach" => result_body(self.session.attach(arguments), Value::Null),
+            "attach" => respond(self.session.attach(arguments), |()| Value::Null),
             "setBreakpoints" => {
                 let path = arguments
                     .get("source")
@@ -135,37 +135,28 @@ impl<S: DebugSession> Server<S> {
                             .collect()
                     })
                     .unwrap_or_default();
-                match self.session.set_breakpoints(&path, &lines) {
-                    Ok(verified) => {
-                        let breakpoints: Vec<Value> = verified
-                            .iter()
-                            .map(|line| json!({ "verified": true, "line": line }))
-                            .collect();
-                        (true, json!({ "breakpoints": breakpoints }))
-                    }
-                    Err(e) => (false, json!({ "error": e })),
-                }
-            }
-            "continue" => result_body(
-                self.session.continue_(),
-                json!({ "allThreadsContinued": true }),
-            ),
-            "next" => result_body(self.session.next(), Value::Null),
-            "stepIn" => result_body(self.session.step_in(), Value::Null),
-            "stackTrace" => match self.session.stack_trace() {
-                Ok(frames) => {
-                    let stack_frames: Vec<Value> = frames
+                respond(self.session.set_breakpoints(&path, &lines), |verified| {
+                    let breakpoints: Vec<Value> = verified
                         .iter()
-                        .map(|f| json!({ "id": f.id, "name": f.name, "line": f.line, "column": f.column, "source": { "path": f.file } }))
+                        .map(|line| json!({ "verified": true, "line": line }))
                         .collect();
-                    let total = stack_frames.len();
-                    (
-                        true,
-                        json!({ "stackFrames": stack_frames, "totalFrames": total }),
-                    )
-                }
-                Err(e) => (false, json!({ "error": e })),
-            },
+                    json!({ "breakpoints": breakpoints })
+                })
+            }
+            "continue" => respond(
+                self.session.continue_(),
+                |()| json!({ "allThreadsContinued": true }),
+            ),
+            "next" => respond(self.session.next(), |()| Value::Null),
+            "stepIn" => respond(self.session.step_in(), |()| Value::Null),
+            "stackTrace" => respond(self.session.stack_trace(), |frames| {
+                let stack_frames: Vec<Value> = frames
+                    .iter()
+                    .map(|f| json!({ "id": f.id, "name": f.name, "line": f.line, "column": f.column, "source": { "path": f.file } }))
+                    .collect();
+                let total = stack_frames.len();
+                json!({ "stackFrames": stack_frames, "totalFrames": total })
+            }),
             "threads" => {
                 let threads: Vec<Value> = self
                     .session
@@ -175,11 +166,8 @@ impl<S: DebugSession> Server<S> {
                     .collect();
                 (true, json!({ "threads": threads }))
             }
-            "disconnect" => result_body(self.session.disconnect(), Value::Null),
-            other => (
-                false,
-                json!({ "error": format!("unsupported DAP command: {other}") }),
-            ),
+            "disconnect" => respond(self.session.disconnect(), |()| Value::Null),
+            other => error_body(format!("unsupported DAP command: {other}")),
         }
     }
 
@@ -205,9 +193,15 @@ impl<S: DebugSession> Server<S> {
     }
 }
 
-fn result_body(result: Result<(), String>, ok_body: Value) -> (bool, Value) {
+/// A response for `result`: success with `ok`'s body, or a failure
+/// carrying the error.
+fn respond<T>(result: Result<T, String>, ok: impl FnOnce(T) -> Value) -> (bool, Value) {
     match result {
-        Ok(()) => (true, ok_body),
-        Err(e) => (false, json!({ "error": e })),
+        Ok(value) => (true, ok(value)),
+        Err(e) => error_body(e),
     }
+}
+
+fn error_body(message: String) -> (bool, Value) {
+    (false, json!({ "error": message }))
 }
