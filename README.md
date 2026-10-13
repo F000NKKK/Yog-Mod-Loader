@@ -84,7 +84,7 @@ all loaders lives in `java-common/`.
 | ✅ 11.1 | `player_pos` in `GfxContext` (distinct from camera in F5 view); shader binary cache | 15 |
 | ✅ 12 | Startup grants (give items/books on first join); creative tabs per namespace | 16 |
 | ✅ 13 | `yog-book`: in-game documentation framework — data model, 9 page types, JSON serde, GUI screen | 17–18 |
-| ✅ 13.1 | `yog-ui`: retained-mode flexbox UI (panel, label, button, item_slot, mc_image); click dispatch | 19 |
+| ✅ 13.1 | `yog-ui`: retained-mode flexbox UI (panel, label, button, item_slot, image); click dispatch | 19 |
 | ✅ 13.2 | `yog-book` GPU renderer: sidebar + entry list + page nav rendered via `yog-ui`/`yog-gfx`; SVG icons (`resvg`); custom TTF/OTF fonts (`fontdue`); visual `BookTheme` | 20 |
 | ✅ 13.3 | `yog-ui` focus system: `enabled`/`focused` per widget, `FocusStyle` (Outline/Fill/None), `set_focus()`, focus color | 21 |
 | ✅ 13.4 | `yog-ui` layout improvements: Unicode-safe text wrapping, `Dock` (Fill/Left/Right/Top/Bottom), auto-size, correct Row measurement | 21 |
@@ -197,9 +197,7 @@ registry.on_hud_render(|ctx: &GfxContext| {
     let d = ctx.draw2d();
     d.rect(4.0, 4.0, 60.0, 14.0, 0x88_00_00_00);
     d.text("hello", 6.0, 5.0, 0xFF_FF_FF_FF, true);
-    d.mc_texture("minecraft:textures/gui/icons.png",
-        w as f32 / 2.0 - 9.0, h as f32 / 2.0 - 9.0,
-        0.0, 0.0, 18.0, 18.0, 256.0, 256.0);
+    d.image("sprite:icon/heart", w as f32 / 2.0 - 9.0, h as f32 / 2.0 - 9.0, 18.0, 18.0);
 });
 ```
 
@@ -295,7 +293,8 @@ prog.uniform_1i / 1f / 2f / 3f / 4f / mat4(ctx, "name", value)
 ctx.draw2d().text(text, x, y, color, shadow)
 ctx.draw2d().rect(x1, y1, x2, y2, color)
 ctx.draw2d().gradient(x1, y1, x2, y2, top_color, bottom_color)
-ctx.draw2d().mc_texture(id, x, y, u0, v0, w, h, tex_w, tex_h)
+ctx.draw2d().image(source, x, y, w, h)  // Yog image source: item:/block:/sprite:/<ns>:<path>
+ctx.draw2d().image_region(source, x, y, w, h, [u, v, uw, vh], tint)
 ctx.draw2d().item(id, x, y, size)  // (ABI 21) render item stack via MC's item renderer (3D models included)
 ```
 
@@ -608,7 +607,7 @@ registry.on_hud_render(move |ctx| {
 | `widget::label(text)` | Text label |
 | `widget::button(text)` | Clickable button; `.on_click("event")` |
 | `widget::item_slot(id)` | MC item icon (resource location) |
-| `widget::mc_image(id, w, h)` | MC texture blitted at given size |
+| `widget::image(source)` | Image from a Yog image source (`item:apple`, `sprite:button`, `mymod:gui/logo`); `.stretch()`, `.region()`, `.tint()` |
 | `widget::spacer()` | Invisible filler |
 
 #### Layout modifiers (chainable on all widgets)

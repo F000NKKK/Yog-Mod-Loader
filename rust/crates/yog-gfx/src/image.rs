@@ -9,7 +9,7 @@
 //! | `sprite:<name>` | a vanilla GUI sprite by Yog's stable name (see [`SPRITES`]), e.g. `sprite:button`, `sprite:icon/heart` |
 //! | `mod:<path>` | the mod's own image `assets/<mod id>/textures/<path>.png` (`.yui` files; `yog build` fills in the mod id) |
 //! | `<ns>:<path>` | `assets/<ns>/textures/<path>.png` — another mod's (or your own) image, e.g. `mymod:gui/logo` |
-//! | `<ns>:textures/<path>.png` | a raw resource id — the escape hatch, version-dependent |
+//! | `<ns>:textures/<path>.png` | a raw resource id — what `mod:`/`<ns>:<path>` resolve to; `.yui` files reject it in favour of the alias ([`suggest_alias`]) |
 //!
 //! Ids without a namespace are `minecraft:`. The host resolves a source when
 //! it draws it ([`Draw2D::image`](crate::draw2d::Draw2D::image)) — sprites
