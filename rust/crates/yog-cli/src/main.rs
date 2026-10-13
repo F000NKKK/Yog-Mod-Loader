@@ -1100,7 +1100,15 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
             .as_deref()
             .or(env_path.as_deref())
             .unwrap_or("");
-        local_api_patch(Path::new(api_path))
+        // The mod's own yog-* dependencies (yog-kit, ...) too: they're
+        // built against the local yog-api.
+        let extra: Vec<&str> = meta
+            .dependencies
+            .iter()
+            .map(|(name, _)| name.as_str())
+            .filter(|n| n.starts_with("yog-"))
+            .collect();
+        local_api_patch(Path::new(api_path), &extra)
     } else {
         String::new()
     };
@@ -1209,7 +1217,8 @@ fn yog_dependencies(cargo_toml: &str) -> Vec<String> {
 /// `[patch.crates-io]` pointing every yog-* dependency of the local yog-api
 /// at `api_path`'s sibling crate directory (always including yog-interop,
 /// whose proc-macros generated code must match).
-fn local_api_patch(api_path: &Path) -> String {
+/// `extra` adds the mod's own yog-* dependencies.
+fn local_api_patch(api_path: &Path, extra: &[&str]) -> String {
     let crates_dir = api_path
         .parent()
         .map(Path::to_path_buf)
@@ -1219,6 +1228,11 @@ fn local_api_patch(api_path: &Path) -> String {
         .unwrap_or_default();
     if !names.iter().any(|n| n == "yog-interop") {
         names.push("yog-interop".into());
+    }
+    for name in extra {
+        if !names.iter().any(|n| n == name) {
+            names.push((*name).to_string());
+        }
     }
     let mut out = String::from("\n[patch.crates-io]\n");
     for name in names {
