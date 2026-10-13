@@ -122,6 +122,25 @@ impl ItemDef {
 
 // ── Recipes ──────────────────────────────────────────────────────────────────
 
+/// Namespace for recipe ids given without one.
+const VANILLA_NS: &str = "minecraft";
+/// Namespace for Yog-defined recipe types' ids given without one.
+const YOG_NS: &str = "yog";
+
+/// Split `namespace:name`, falling back to `default_ns` for a bare name.
+fn split_id<'a>(id: &'a str, default_ns: &'a str) -> (&'a str, &'a str) {
+    id.split_once(':').unwrap_or((default_ns, id))
+}
+
+/// `{"item":"a"},{"item":"b"}` — an ingredient list's JSON body.
+fn item_list_json(items: &[String]) -> String {
+    items
+        .iter()
+        .map(|i| format!("{{\"item\":\"{i}\"}}"))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
 /// A shaped crafting recipe (3×3 grid with a pattern and key mapping).
 ///
 /// ```
@@ -183,7 +202,7 @@ impl ShapedRecipe {
 
     /// Split `namespace:name` from the recipe id.
     pub fn ns_name(&self) -> (&str, &str) {
-        self.id.split_once(':').unwrap_or(("minecraft", &self.id))
+        split_id(&self.id, VANILLA_NS)
     }
 }
 
@@ -213,12 +232,7 @@ impl ShapelessRecipe {
     }
 
     pub fn to_json(&self) -> String {
-        let ingr: String = self
-            .ingredients
-            .iter()
-            .map(|i| format!("{{\"item\":\"{i}\"}}"))
-            .collect::<Vec<_>>()
-            .join(",");
+        let ingr = item_list_json(&self.ingredients);
         format!(
             "{{\"type\":\"minecraft:crafting_shapeless\",\"ingredients\":[{}],\"result\":{{\"item\":\"{}\",\"count\":{}}}}}",
             ingr, self.output, self.count
@@ -226,7 +240,7 @@ impl ShapelessRecipe {
     }
 
     pub fn ns_name(&self) -> (&str, &str) {
-        self.id.split_once(':').unwrap_or(("minecraft", &self.id))
+        split_id(&self.id, VANILLA_NS)
     }
 }
 
@@ -278,7 +292,7 @@ impl FurnaceRecipe {
     }
 
     pub fn ns_name(&self) -> (&str, &str) {
-        self.id.split_once(':').unwrap_or(("minecraft", &self.id))
+        split_id(&self.id, VANILLA_NS)
     }
 }
 
@@ -309,12 +323,7 @@ impl BookRecipe {
     }
 
     pub fn to_json(&self) -> String {
-        let ingr: String = self
-            .ingredients
-            .iter()
-            .map(|i| format!("{{\"item\":\"{i}\"}}"))
-            .collect::<Vec<_>>()
-            .join(",");
+        let ingr = item_list_json(&self.ingredients);
         format!(
             "{{\"type\":\"yog:crafting_book\",\"ingredients\":[{}],\"book\":\"{}\"}}",
             ingr, self.book
@@ -322,7 +331,7 @@ impl BookRecipe {
     }
 
     pub fn ns_name(&self) -> (&str, &str) {
-        self.id.split_once(':').unwrap_or(("yog", &self.id))
+        split_id(&self.id, YOG_NS)
     }
 }
 

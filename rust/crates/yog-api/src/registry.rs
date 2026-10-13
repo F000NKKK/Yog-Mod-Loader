@@ -1986,23 +1986,20 @@ impl Registry {
 
     /// Register a shaped crafting recipe.
     pub fn add_shaped_recipe(&mut self, recipe: ShapedRecipe) {
-        let json = recipe.to_json();
         let (ns, name) = recipe.ns_name();
-        self.recipe(ns, name, &json);
+        self.recipe(ns, name, &recipe.to_json());
     }
 
     /// Register a shapeless crafting recipe.
     pub fn add_shapeless_recipe(&mut self, recipe: ShapelessRecipe) {
-        let json = recipe.to_json();
         let (ns, name) = recipe.ns_name();
-        self.recipe(ns, name, &json);
+        self.recipe(ns, name, &recipe.to_json());
     }
 
     /// Register a furnace smelting recipe.
     pub fn add_furnace_recipe(&mut self, recipe: FurnaceRecipe) {
-        let json = recipe.to_json();
         let (ns, name) = recipe.ns_name();
-        self.recipe(ns, name, &json);
+        self.recipe(ns, name, &recipe.to_json());
     }
 
     // ── content ──────────────────────────────────────────────────────────────
