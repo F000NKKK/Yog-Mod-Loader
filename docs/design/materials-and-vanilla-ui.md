@@ -25,8 +25,9 @@ The project has **no backward compatibility**. Every old form listed in §11 is 
 | D10 | **Every reference carries an explicit namespace** (`minecraft:block/stone`, `hexcasting:block/slate`, `item:minecraft:diamond`). A bare id is an error in every format and in codegen, and the diagnostic suggests the fix. There is no short alias for the mod's own namespace: `mod:` is deleted. IDLE autocompletes full ids, and `yog migrate` rewrites old bare refs. | The user's rule: a reference is always explicit. A file's meaning then never depends on which mod it sits in or on what "default" a format picked. |
 | D11 | **Themes are `.ytheme` assets with scoped cascading.** A theme can be attached to the whole mod, a screen, a component or any element subtree. The cascade is vanilla built-in → mod → screen → component → element subtree → named style → explicit attribute (§6.6). The built-in vanilla look is itself a `.ytheme` (`minecraft:vanilla`), and `yog:bare` is an undecorated base. | This is what the user asked for: Unity-style style sheets attachable at any level. Using one format for the built-in look and mod themes means there is one mechanism. |
 | D12 | **Block behaviours mirror Minecraft's block classes.** `.yblock` `"behavior": "minecraft:transparent"` (glass), `minecraft:stained_glass`, `minecraft:leaves`, `minecraft:ice`, … brings that class's rules: same-block face culling, light passing, occlusion, suffocation, view blocking. Hosts map each behaviour to the real vanilla class per loader. Mod-defined behaviours come from mod code through a generic extension point (§4.6). A material only says how faces are drawn (layer, tint). | This is how Minecraft does it (`HalfTransparentBlock#skipRendering`, `LeavesBlock`, …). It is block logic, not appearance. |
-| D13 | **New project layout (UE5/Unity-like):** `yog.toml` + `src/` (Rust) + `content/` (every asset, free-form folders, type by extension) + `pack/` (raw resource/data-pack passthrough) + hidden `.yog/` (build, cache, IDE state). `yog migrate` converts existing mods (§13). | Assets are found by extension, not by a folder per type. Feature folders keep a block's model, textures and material together. Generated and intermediate files are out of sight. |
-| D9 | **Fabric render layer fix:** `render_layer` reaches the host through `YogBlockDef`. Fabric registers it with `BlockRenderLayerMap`, and every host sets `noOcclusion()` for non-solid layers. Tint sources also reach the host, which registers block/item color providers. | Today `render_layer` only reaches the model JSON's `render_type`, so Fabric renders every block solid and full-cube cutout blocks x-ray their neighbours on every loader (§4.4). |
+| D13 | **New project layout (UE5/Unity-like):** `yog.toml` + `src/` (Rust) + `content/` (every asset, free-form folders, type by extension) + `pack/` (raw resource/data-pack passthrough) + hidden `.yog/` (build, cache, IDE state). `yog migrate`, one step of the project-format migration chain (§14), converts existing mods. | Assets are found by extension, not by a folder per type. Feature folders keep a block's model, textures and material together. Generated and intermediate files are out of sight. |
+| D9 | **Fabric render layer fix:** `render_layer` reaches the host through `YogBlockDef`. Fabric registers it with `BlockRenderLayerMap`. Occlusion comes from the block's behaviour (D12), and a non-solid layer on a `minecraft:solid` block is a build error. Tint sources also reach the host, which registers block/item color providers. | Today `render_layer` only reaches the model JSON's `render_type`, so Fabric renders every block solid and full-cube cutout blocks x-ray their neighbours on every loader (§4.3). |
+| D14 | **Project format versioning with automatic migration.** `yog.toml [project] format = N`. The CLI carries an ordered chain of migration steps N→N+1 and upgrades older projects automatically (CLI and IDLE share one implementation). The toolchain reads only the current format, so there are no compatibility code paths (§14). | Breaking changes like the ones in this design stay cheap for mod authors, and the no-backward-compat rule holds inside the toolchain. |
 
 ---
 
@@ -208,7 +209,7 @@ Every place that takes "something to draw" takes a **paint ref**:
 - **No short alias for the mod's own namespace.** The old `mod:` prefix is deleted, and no `~:`/`self:` replaces it. A short alias is exactly the implicit reference the user ruled out, and it would read differently when a file is copied into another mod. To keep this cheap: IDLE's completion and pickers always insert the full id, starting with the project's own namespace; New Item templates are written with the project's id filled in; and renaming the mod id is a project-wide refactoring in IDLE (`yog migrate rename-namespace <old> <new>` in the CLI).
 - **Not asset references, and so unchanged:** `#slot` (a model-local name), `@Set.name` (a `.yres` entry of this mod; the set name is the scope), `{x:Bind …}`, and translation keys after `@` (`@gui.done`). These are keys, not ids.
 - Rust code uses typed handles (`res::…`, `vanilla::…`), which always carry the namespace. `yog_api` functions taking `&str` ids reject a bare id with `Err`/a logged error instead of assuming `minecraft:`. `yog_gfx::image::qualify` is deleted.
-- `yog migrate` (§13.5) rewrites the bare refs of existing files. Every bare id there meant `minecraft:` under the old rules, so the rewrite is mechanical.
+- The format migration (§14) rewrites the bare refs of existing files. Every bare id there meant `minecraft:` under the old rules, so the rewrite is mechanical.
 
 **Deleted with no replacement form:**
 - `sprite:<name>`: it becomes `mat:minecraft:gui/<name>` (§7).
@@ -253,7 +254,7 @@ For each supported MC version `V` (the union of `<loader>/versions/<V>.propertie
   lang/<locale>.json            verbatim from the jar (en_us) and asset objects (others)
   font/**, models/**, blockstates/**   verbatim, for previews and the importer
   ids.json                      {"items":[…],"blocks":[…],"lang_keys":N,"textures":N} — what codegen reads
-  reports/                      optional (--reports): Mojang data-generator output (registries, block states, tags)
+  reports/                      Mojang data-generator output (registries, block states, tags, commands); part of v1
 ```
 
 `<cache>` is the platform cache dir: `$XDG_CACHE_HOME` or `~/.cache` on Linux, `~/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows. `YOG_VANILLA_DIR` overrides it.
@@ -264,23 +265,38 @@ For each supported MC version `V` (the union of `<loader>/versions/<V>.propertie
 - Blocks and items are `.yblock`/`.yitem`, read-only, as produced by `yog import resourcepack --all`, which already exists (`content/import.rs`).
 - Strings stay vanilla lang JSON. A `.yres` would only re-wrap 6000+ keys per locale with explicit `key` fields and buy nothing.
 
-Block properties such as hardness are not in the assets. With `--reports`, the generator's `blocks.json`/`registries.json` add exact state properties and registry ids. Without it, ids come from `models/item/*.json`, `blockstates/*.json` and lang keys. This is exact for items/blocks that have a model, which is all of them that a GUI can show.
+Block properties such as hardness are not in the assets. The data generator's reports are therefore part of v1 (the user's decision). They supply:
+- `registries.json`: every registry's exact ids (items, blocks, entity types, sound events, particle types, …). This is the source for `ids.json` and the typed handles.
+- `blocks.json`: the state properties of each block. These become the `states` of the vanilla `.yblock` files.
+- The vanilla tags in `data/minecraft/tags/**`, used by pickers (`#minecraft:logs`) and validation.
+
+If reports can't be produced (no JDK for that version), `sync` falls back to asset-derived ids (from `models/item/*.json`, `blockstates/*.json` and lang keys), marks the pack `"reports": false`, and IDLE shows a warning. Codegen still works, but registry-only ids (sound events, entity types without models) are missing.
 
 ### 3.2 How it is produced
 
 New crate **`yog-vanilla`** in `Yog-Mod-Loader/rust/crates/yog-vanilla` (library). It is used by yog-cli and by Yog-IDLE's backend:
 
 1. **Locate the jar.** Move the logic of `Yog-IDLE/src-tauri/src/designer/assets.rs` (`client_jars`, `asset_objects`, `version_key`) here unchanged, with one change: the version is chosen explicitly, not "newest". The lookup order stays: `$YOG_MC_CLIENT_JAR`, Loom/ForgeGradle/NeoGradle caches, launcher dirs, the loader repos' `.gradle` caches.
-2. **Fallback download** (`--download`, and prompted in IDLE): read Mojang's `piston-meta` `version_manifest_v2.json` → the version JSON → client jar + asset index → objects, verifying sha1 at every step. This is what every launcher does; the files land in the user's cache only.
-3. **Extract** textures, mcmeta, models, blockstates, fonts and lang. Then run the importer to produce `content/**`, copy and validate the overlay (every texture an overlay material names must exist in this jar, otherwise `sync` fails and names the material), generate block/item materials, and write `textures.json`/`ids.json`/`pack.json`.
-4. **Reports (optional, `--reports`):** run `java -DbundlerMainClass=net.minecraft.data.Main -jar server.jar --reports` with the version's JDK (the same JDK rules as `build.sh`). This needs the server jar from piston-meta. It is off by default because it launches Java.
+2. **Automatic download** (approved by the user; `--offline` disables it). When no local jar exists, read Mojang's `piston-meta` `version_manifest_v2.json` → the version JSON → client jar, server jar (for reports) and asset index → objects, verifying sha1 at every step. This is what every launcher does. The files land in the user's cache only (`<cache>/yog/mojang/<version>/`). IDLE shows the progress in the status bar and the Output pane.
+3. **Extract** textures, mcmeta, models, blockstates, fonts and lang. This is the default **`extract`** mode. In **`jar`** mode (see below) only the generated Yog files and indexes are written, and pixel data, models and lang are read lazily from the jar and asset objects. Then run the importer to produce `content/**`, copy and validate the overlay (every texture an overlay material names must exist in this jar, otherwise `sync` fails and names the material), generate block/item materials, and write `textures.json`/`ids.json`/`pack.json`.
+4. **Reports (v1, on by default; `--no-reports` skips them):** run `java -DbundlerMainClass=net.minecraft.data.Main -jar server.jar --reports --server --output <tmp>` with that version's JDK. The JDK is chosen as `build.sh` does, from `java_version` in `<loader>/versions/<V>.properties`, never the default system Java 25. Then copy `reports/` and the generated `data/minecraft/tags/**` into the pack. This runs once per version and per jar sha1. It is the only step that launches Java, and both IDLE and the CLI announce it before running it.
 
-Staleness: `pack.json` records the jar sha1, the tool version and the overlay hash. `yog build`/IDLE re-sync automatically when any of them changes. The commands are `yog vanilla sync [--mc V…] [--download] [--reports]`, `yog vanilla status`, and `yog vanilla path V`.
+Staleness: `pack.json` records the jar sha1, the tool version, the overlay hash, the mode and whether reports are present. `yog build`/IDLE re-sync automatically when any of them changes. The commands are `yog vanilla sync [--mc V…] [--offline] [--no-reports] [--mode extract|jar]`, `yog vanilla status`, and `yog vanilla path V`.
+
+**Storage mode.** This is an environment setting, not a project setting, because it concerns the machine and not the mod:
+
+| | `extract` (default) | `jar` |
+|---|---|---|
+| Disk | ~60–90 MB per version (textures, models, lang for all locales) | indexes and generated Yog files only (~5 MB) |
+| Speed | files read directly; Project Explorer browses real files | every texture/model/lang read decompresses from the jar or asset objects; first previews and pickers are noticeably slower |
+| Set by | IDLE **Settings › Environment › Minecraft assets**: *Extract to cache (recommended)* / *Read from the game jar (saves disk space, slower)*. The second option carries the note: *"Previews, pickers and the designer will be slower: every texture is decompressed from the jar on first use."* | CLI: `YOG_VANILLA_MODE=jar`, or `[vanilla] mode = "jar"` in the user config `~/.config/yog/config.toml` |
+
+Both modes go through the same `yog-vanilla` `Pack` API (`read(id)`, `list(kind)`), so tools never know which one is active. In `jar` mode the Project Explorer's *Minecraft* node is a virtual tree served by that API.
 
 **Why generate locally instead of shipping:**
 - Mojang's EULA and brand guidelines forbid redistributing their assets. Strings are their text too.
 - Generating on the user's machine from their own jar is the same position as launchers and IDLE's current in-place reading.
-- A pack cached on disk (rather than read lazily from the zip as today) gives the IDE browsable files, stable paths for the Project Explorer, and a single place the CLI, IDLE and the designer agree on.
+- A pack cached on disk (rather than read lazily from the zip as today) gives the IDE browsable files, stable paths for the Project Explorer, and a single place the CLI, IDLE and the designer agree on. The lazy `jar` mode stays available for users short on disk.
 
 ### 3.3 What is committed: `Yog-Mod-Loader/vanilla/`
 
@@ -323,15 +339,15 @@ The overlay is also **embedded in yog-runtime** (`include_str!` per version fami
 
 - **`yog.toml`** gets `[mod] minecraft = ["1.20.1", "1.21.1"]`, the versions the mod supports. The default is every version the installed yog-cli knows (`versions.toml`). Run targets (`[run.fabric-1.21.1]`) must be in that list.
 - **Codegen** (§3.5) reads the packs of every listed version.
-- **IDLE** has a **Minecraft version** selector (status bar plus the designer toolbar), defaulting to the newest listed. Previews (designer, content editor, material editor), pickers and the Project Explorer's *Minecraft* node use that pack. Switching re-renders, so 1.20.1 vs 1.21.1 UI can be compared side by side.
+- **IDLE** takes the Minecraft version from the **selected run configuration** (the existing run target selector, one per `[run.<loader>-<V>]`; the user's decision). No separate version selector exists. Previews (designer, content editor, material and theme editors), pickers and the Project Explorer's *Minecraft* node use that version's pack. Switching the run configuration to `fabric-1.20.1` re-renders every open preview with 1.20.1's GUI. The status bar shows the active version next to the run configuration. With no run configuration, IDLE uses the newest version in `[mod] minecraft`.
 - **Runtime:** a new ABI query `host_mc_version() -> YogStr` (backed by `SharedConstants.getCurrentVersion().getName()` in each host) selects the overlay and the rename direction. Nothing exposes the version today.
 
 ### 3.5 Typed vanilla handles
 
-`yog_api::vanilla!();` in `lib.rs` includes `.yog-build/generated/vanilla.g.rs` as `crate::vanilla`:
+`yog_api::vanilla!();` in `lib.rs` includes `.yog/build/generated/vanilla.g.rs` as `crate::vanilla`:
 
 ```rust
-// .yog-build/generated/vanilla.g.rs  (generated from the 1.20.1 + 1.21.1 packs)
+// .yog/build/generated/vanilla.g.rs  (generated from the 1.20.1 + 1.21.1 packs)
 pub mod items {
     use ::yog_api::ItemId;
     /// `minecraft:diamond` — in every targeted version.
@@ -367,14 +383,14 @@ Rules:
 - A rename in `renames.toml` gives one constant under the **newest** name, flagged `renamed`. `ItemId`/`BlockId`/`Texture` handles carry the flag, and the runtime maps the id to the running version once, at registry lookup.
 - Name collisions (`oak_planks` vs `oak_planks`) can't happen inside a kind. Rust keywords get an `r#` prefix.
 
-Lang keys are many (~6k per version). They are generated as `const …_KEY` plus a `fn` each. If compile time suffers (§13, R4), lang moves behind `[vanilla] lang = true` in `yog.toml`.
+Lang keys are many (~6k per version). They are generated as `const …_KEY` plus a `fn` each. If compile time suffers (§16, R4), lang moves behind `[vanilla] lang = true` in `yog.toml`.
 
-In markup and JSON there are no handles. Plain ids are already the cross-format reference: `item:diamond`, `mat:minecraft:gui/button`, `minecraft:block/stone`, `@gui.done`. `yog build` validates them against the packs of every targeted version, with the same Option/rename rules (a warning for "missing in 1.20.1", an error for "missing everywhere").
+In markup and JSON there are no handles. Plain, fully namespaced ids are already the cross-format reference: `item:minecraft:diamond`, `mat:minecraft:gui/button`, `minecraft:block/stone`, `@gui.done`. `yog build` validates them against the packs of every targeted version, with the same Option/rename rules (a warning for "missing in 1.20.1", an error for "missing everywhere").
 
 The mod's own handles come from `resources!()`:
 
 ```rust
-// .yog-build/generated/resources/textures.g.rs   (part of crate::res)
+// .yog/build/generated/resources/textures.g.rs   (part of crate::res)
 pub mod textures { pub mod block { pub const SLATE: ::yog_api::Texture = ::yog_api::Texture::new("hexcasting:block/slate"); } }
 pub mod materials { pub mod gui { pub const RUNE_BUTTON: ::yog_api::Material = ::yog_api::Material::new("hexcasting:gui/rune_button"); } }
 ```
@@ -391,6 +407,7 @@ pub mod materials { pub mod gui { pub const RUNE_BUTTON: ::yog_api::Material = :
 // content/blocks/amethyst/citrine_edified_leaves.yblock
 {
   "name": "@Blocks.citrine_edified_leaves",
+  "behavior": "minecraft:leaves",                                     // §4.6: decay, distance states, no occlusion
   "block": { "hardness": 0.2, "sound": "grass", "tool": "hoe" },     // render_layer is gone from `block`
   "model": {
     "parent": "cube_all",
@@ -430,7 +447,7 @@ pub mod materials { pub mod gui { pub const RUNE_BUTTON: ::yog_api::Material = :
    - Faces using the slot get `tintindex` (derived), `uv` remapped through `uv.rect`/`uv.rotation`, and emissive (§4.4).
 3. **Block layer:**
    - Per block, take the most transparent layer of all its materials: `translucent > cutout_mipped > cutout > solid`.
-   - `auto` resolves per texture by its alpha (D4). The result is cached in `.yog-build/texture-alpha.json` by PNG hash.
+   - `auto` resolves per texture by its alpha (D4). The result is cached in `.yog/cache/texture-alpha.json` by PNG hash.
    - Mixed explicit layers give a warning ("face X is solid but the block renders cutout").
    - Write `render_type` into the model JSON (Forge/NeoForge) **and** `BlockProps.render_layer` (new) into the generated `BlockDef`.
 4. **Tints:** `BlockProps.tints: [TintSource; n]` indexed by tintindex, and the same for items.
@@ -440,7 +457,7 @@ pub mod materials { pub mod gui { pub const RUNE_BUTTON: ::yog_api::Material = :
 
 ```rust
 // yog-registry BlockDef (builder) — usable by code-registered blocks too (Yog-Pipes)
-BlockDef::new("yog-pipes:glass_pipe").render_layer(RenderLayer::Cutout).tint(0, TintSource::Constant(0x88CCFF))
+BlockDef::new("yog-pipes:glass_pipe").behavior("minecraft:transparent").render_layer(RenderLayer::Cutout).tint(0, TintSource::Constant(0x88CCFF))
 ItemDef::new("hexcasting:dyed_pigment").tint(1, TintSource::Dye)
 ```
 
@@ -450,6 +467,8 @@ pub render_layer: u8,                 // 0 solid, 1 cutout, 2 cutout_mipped, 3 t
 pub tint_count: u8,
 pub tints: *const YogTintSource,      // { kind: u8 (0 const,1 grass,2 foliage,3 water,4 dye,5 custom), rgb: u32 }
 pub emissive: u8,                     // max over faces, for the host-side fallback (§4.4)
+pub behavior: *const c_char,          // namespaced behaviour id (§4.6), never null ("minecraft:solid")
+pub behavior_args: *const c_char,     // JSON object of behaviour parameters ("{}" when none)
 ```
 
 The runtime adds `render_layer`, `tints` and `emissive` to `nativeBlockDefs`/`nativeItemDefs` (yog-runtime/src/lib.rs:5217-5265).
@@ -458,11 +477,11 @@ Java hosts:
 
 | Host | Render layer | Occlusion | Tint |
 |---|---|---|---|
-| Fabric 1.20.1/1.21.1 | `YogClient.onInitializeClient`: `BlockRenderLayerMap.INSTANCE.putBlock(block, RenderLayer.getCutout()…)` for every Yog block with layer ≠ solid. | Block settings `.nonOpaque()` when layer ≠ solid, in `YogHost` block registration (1.21.1:554-590, 1.20.1:534-570). | `ColorProviderRegistry.BLOCK/ITEM.register(…)`: a source switch → `BiomeColors.getGrassColor/getFoliageColor/getWaterColor(world, pos)` with vanilla defaults when world/pos are null, constants, `DyedColorComponent` (1.21) / `display.color` (1.20.1), and `custom` → `nativeBlockColor(...)`. |
-| NeoForge 1.20.1/1.21.1 | model `render_type` (already written) | `.noOcclusion()` in `YogHost` (245-281) | `RegisterColorHandlersEvent.Block/Item` |
-| Forge 1.20.1/1.21.1 | model `render_type` | `.noOcclusion()` (246-286) | `RegisterColorHandlersEvent.Block/Item` |
+| Fabric 1.20.1/1.21.1 | `YogClient.onInitializeClient`: `BlockRenderLayerMap.INSTANCE.putBlock(block, RenderLayer.getCutout()…)` for every Yog block with layer ≠ solid. | From the block's **behaviour** (§4.6). The block class/properties of `minecraft:transparent`, `minecraft:leaves`, … set it, in `YogHost` block registration (1.21.1:554-590, 1.20.1:534-570). | `ColorProviderRegistry.BLOCK/ITEM.register(…)`: a source switch → `BiomeColors.getGrassColor/getFoliageColor/getWaterColor(world, pos)` with vanilla defaults when world/pos are null, constants, `DyedColorComponent` (1.21) / `display.color` (1.20.1), and `custom` → `nativeBlockColor(...)`. |
+| NeoForge 1.20.1/1.21.1 | model `render_type` (already written) | from the behaviour (§4.6), `YogHost` (245-281) | `RegisterColorHandlersEvent.Block/Item` |
+| Forge 1.20.1/1.21.1 | model `render_type` | from the behaviour (§4.6), (246-286) | `RegisterColorHandlersEvent.Block/Item` |
 
-`noOcclusion` also implies `isViewBlocking=false`, `isSuffocating=false` and `isRedstoneConductor=false` for translucent blocks, matching vanilla glass. `hide_same_neighbor` (glass-like face culling between same blocks) is an open question (Q7).
+Occlusion, view blocking, suffocation, light passing and same-block face culling are **block logic**. They come from the block's behaviour (§4.6), never from the material. A material only decides how faces are drawn. A safety net remains: a block with the default `minecraft:solid` behaviour whose resolved layer is not `solid` makes the build fail with *"`ruby_glass` renders cutout but behaves as a solid block (neighbours' faces would be culled): set `behavior`, e.g. `minecraft:transparent`"*. Without that error, today's x-ray bug would come back.
 
 ### 4.4 Emissive
 
@@ -477,11 +496,67 @@ A UI `Image source="hexcasting:item/staff/oak"` draws the texture. `item:hexcast
 
 ---
 
+### 4.6 Block behaviours (Minecraft's block classes)
+
+In Minecraft, how a block interacts with its neighbours and with light is decided by its **class**:
+- `TransparentBlock` (1.20.3+; `AbstractGlassBlock`/`GlassBlock` on 1.20.1) skips faces against the same block (`HalfTransparentBlock#skipRendering`), passes skylight, has shade brightness 1, and is not view-blocking, suffocating or a redstone conductor.
+- `StainedGlassBlock` adds a beacon beam color.
+- `IceBlock` melts.
+- `LeavesBlock` has `distance`/`persistent` states and decays.
+- And so on.
+
+Yog models exactly that. A `.yblock` names its vanilla-equivalent behaviour, **always namespaced** (D10):
+
+```jsonc
+"behavior": "minecraft:transparent"                                         // glass
+"behavior": { "type": "minecraft:stained_glass", "color": "minecraft:purple" }
+"behavior": "hexcasting:slate"                                              // mod-defined, see below
+```
+
+Omitted means `minecraft:solid` (plain `Block`).
+
+**Built-in behaviours (v1):**
+
+| Behaviour | 1.21.1 class | 1.20.1 class | Brings |
+|---|---|---|---|
+| `minecraft:solid` | `Block` | `Block` | full occlusion |
+| `minecraft:half_transparent` | `HalfTransparentBlock` | `HalfTransparentBlock` | same-block face skip only |
+| `minecraft:transparent` | `TransparentBlock` | `GlassBlock` (`AbstractGlassBlock`) | glass: face skip, `noOcclusion`, skylight passes, not view-blocking/suffocating/conductor |
+| `minecraft:stained_glass` (`color`) | `StainedGlassBlock` | `StainedGlassBlock` | glass + beacon beam color |
+| `minecraft:tinted_glass` | `TintedGlassBlock` | `TintedGlassBlock` | glass that blocks light |
+| `minecraft:ice` | `IceBlock` | `IceBlock` | friction 0.98, melts to water near light |
+| `minecraft:leaves` | `LeavesBlock` | `LeavesBlock` | `distance`/`persistent`/`waterlogged` states, decay, `noOcclusion`, not suffocating |
+
+More behaviours are added the same way, each a row with its host classes: `minecraft:slab`, `stairs`, `fence`, `wall`, `pane`, `door`, `trapdoor`. They would remove the "no slabs/stairs/doors" limitation in blocks-items.md, but they are not part of this effort.
+
+**State properties.** A behaviour that brings block-state properties (such as `leaves`' `distance`, `persistent` and `waterlogged`) contributes them to the generated blockstate JSON. The model is the same for every value unless `states` says otherwise. `yog content check` knows each behaviour's properties from the vanilla pack's `reports/blocks.json` of each targeted version.
+
+**Hosts.** Each Java host has one thin subclass per behaviour, `YogTransparentBlock extends TransparentBlock` (1.20.1: `extends GlassBlock`), `YogLeavesBlock extends LeavesBlock`, …. They share a `YogBlockTraits` helper for what Yog adds on top: shape override (today `YogShapedBlock`), `connect` states, and inventory. `YogHost` picks the class from `YogBlockDef.behavior` (a new ABI field, the namespaced id, plus `behavior_args` as JSON for parameters like `color`). An unknown `minecraft:` behaviour is a build error, so the host never guesses.
+
+**Mod-defined behaviours (the generic extension point).** The loader contains no mod logic. A mod registers a behaviour in code, and blocks reference it by id:
+
+```rust
+// HexMod: src/blocks/slate.rs
+registry.block_behavior(BlockBehavior::new("hexcasting:slate")
+    .extends("minecraft:half_transparent")          // the vanilla class the host instantiates
+    .skip_rendering(SkipRule::SameBehavior)         // declarative, evaluated in Java (render thread)
+    .state(BoolProp::new("energized"))
+    .on_use(|cx| slate::use_slate(cx))              // Rust callbacks through the existing event ABI
+    .on_neighbor_changed(|cx| slate::update(cx)));
+```
+
+- `extends` names a built-in behaviour; the host instantiates that behaviour's class. The callbacks (`on_use`, `on_neighbor_changed`, `random_tick`, `on_placed`, `on_removed`) go through one generic `YogBlockBehaviorVTable` in the ABI. This is the same pattern as item `on_use`.
+- Rules evaluated per frame or per chunk mesh (`skip_rendering`, light passing, occlusion) are **declarative** (`SkipRule::{SameBlock, SameBehavior, Tag(…)}`) and evaluated in Java. A native call per face per chunk rebuild would be too slow.
+- The `.yblock` validator checks at build time that the id exists, either built-in or declared in the mod's code. `yog content check` finds the declarations through the generated registration code (`content!()` already sees the crate).
+
+A material and a behaviour are checked against each other, not merged: `minecraft:transparent` with a resolved `solid` layer gives a warning (vanilla glass is cutout), and a non-solid layer with `minecraft:solid` gives an error (§4.3).
+
 ## 5. Runtime and ABI for UI drawing
 
 ### 5.1 What a `.yog` carries
 
-- `assets/<ns>/textures/**.png(.mcmeta)`: copied from `textures/**`, the same path vanilla uses.
+- `assets/<ns>/textures/<path>.png(.mcmeta)`: copied from `content/<path>.png(.mcmeta)`, so the id `<ns>:<path>` is also vanilla's resource location.
+- `assets/minecraft/atlases/blocks.json`: `single` sources for the textures used by models (§2.1). The runtime merges these across mods.
 - `yog/textures.json`: compiled texture metadata (§2.1).
 - `yog/materials.json`: every material of the mod, **fully resolved**. Inline materials from `.yblock`/`.yui` are hoisted under synthetic ids `<ns>:__inline/<file>/<n>`. Refs are checked, states are flattened per combination, and layers are expanded to absolute texture regions.
 
@@ -546,12 +621,12 @@ pub enum TextColor { Inherit, Color(u32) }
 - `Image source` takes a paint ref. `stretch`/`uv`/`tint` stay for plain textures. For materials, the material's own `mode`/`region` apply.
 - The only brush attributes in markup are `bg` and `source`. One brush per widget keeps the model simple: decoration that needs more than one layer (a border plus a fill, say) is a material with layers. There are no separate `BorderBrush`/`BorderThickness` attributes.
 
-### 6.2 Theme = built-in control templates
+### 6.2 The built-in vanilla theme
 
-No runtime Theme object. Each built-in control has a **default style** in yog-ui, written in terms of vanilla material ids. Generated code and builders start from it, and `<Style target="Button">` / explicit attributes override it, as today.
+Each built-in control has a **default style** written in terms of vanilla material ids. That set of defaults is itself a theme, `minecraft:vanilla.ytheme` (§6.6), embedded in yog-ui and yog-cli. Codegen inlines it like any other theme. For builder code it is also compiled to Rust consts:
 
 ```rust
-// yog-ui/src/theme.rs  — the only built-in look (D6)
+// yog-ui/src/theme.rs  — generated from minecraft:vanilla.ytheme (D6)
 pub mod vanilla {
     use yog_gfx::Material as M;
     pub const BUTTON: M          = M::new("minecraft:gui/button");
@@ -582,7 +657,7 @@ In `.yui` the same set is the built-in resource set **`Theme`** (already anticip
 - Styles: `@Theme.Button`, `@Theme.Title` (white, shadow, centered), `@Theme.PanelTitle` (#404040, no shadow), `@Theme.Secondary` (#A0A0A0), `@Theme.Error` (§c #FF5555), `@Theme.Success` (§a #55FF55).
 - Materials: `@Theme.Panel`, `@Theme.Inset`, ….
 
-A mod restyles a control for one screen with `<Style target="Button" bg="mat:hexcasting:gui/rune_button"/>` in `<Screen.Resources>`. A mod-wide override is Q5.
+A mod restyles a control for one screen with `<Style target="Button" bg="mat:hexcasting:gui/rune_button"/>` in `<Screen.Resources>`. Mod-wide, per-screen and per-subtree restyles are `.ytheme` files (§6.6).
 
 ### 6.3 Text color inheritance
 
@@ -624,6 +699,67 @@ Focus: vanilla draws focus only through the `_highlighted` sprite (buttons, fiel
 ### 6.5 Deleted from yog-ui
 
 `TRACK_COLOR`/`KNOB_COLOR`, `TEXT_BOX_BORDER`/`TEXT_BOX_FOCUS_BORDER`, the amber focus default, `Style.bg: u32`, `focus_color`, the hand-drawn slot rects in render.rs, and `image::whole_only` for sprites (sprites are gone).
+
+### 6.6 Themes (`.ytheme`)
+
+A theme is a style sheet: control defaults plus named classes, attachable at any level of the UI. It is a `.ytheme` file anywhere under `content/`, with id `<mod>:<path under content/>`.
+
+```jsonc
+// content/ui/themes/slate.ytheme   → hexcasting:ui/themes/slate
+{
+  "based_on": "yog:bare",                  // default "minecraft:vanilla"; "yog:bare" = no decoration at all
+  "resources": {                           // theme-local materials/colors, referenced as @name inside the theme
+    "ink": "#FF2B1D40",
+    "rune_panel": { "texture": "hexcasting:gui/scroll", "mode": "nine_slice", "slice": 6 }
+  },
+  "styles": {
+    "Button":              { "bg": "mat:hexcasting:gui/rune_button", "color": "@ink", "shadow": false, "h": 18 },
+    "Button:disabled":     { "color": "#FF6B5D80" },
+    ".title":              { "color": "#FF3A2A55", "font_scale": 1.25 },
+    "Label.hint":          { "color": "#FF8070A0" },
+    "ListView":            { "background": "none", "bg": "@rune_panel" },
+    "Panel":               { "bg": "@rune_panel", "padding": 6 }
+  }
+}
+```
+
+- **Selectors:** `Type`, `.class`, `Type.class`, each with an optional state suffix (`:hover`, `:pressed`, `:focused`, `:disabled`, `:checked`, `:selected`). There are no descendant or child combinators: scope comes from where a theme is attached, not from selectors. That keeps resolution static and cheap.
+- **Properties** are exactly the `.yui` attributes of the type (`bg`, `color`, `shadow`, `padding`, `h`, `font_scale`, `background`, `focus_style`, …), with the same value grammar: colors, `@` refs, paint refs with full namespaces (D10). A user component's own properties are allowed under its type name (`"IotaRow": { "accent": "#FF…" }`).
+- `based_on` chains: `hexcasting:ui/themes/slate_dark` can be based on `hexcasting:ui/themes/slate`.
+
+**Attach points:**
+
+| Where | Syntax | Scope |
+|---|---|---|
+| Mod | `yog.toml` `[ui] theme = "hexcasting:ui/themes/slate"` | every screen of the mod |
+| Screen | `<Screen theme="hexcasting:ui/themes/slate; hexcasting:ui/themes/big">` | that screen (a list; later entries win) |
+| Component | `<Component theme="…">` at the component's root | every use of the component |
+| Element subtree | `theme="…"` on any element | that element and its descendants |
+| Class / inline | `class="title hint"`, `style="@Set.Danger"`, explicit attributes | one element |
+
+**Cascade**, lowest to highest priority:
+1. `minecraft:vanilla` (or whatever the base chain of the nearest theme ends in, e.g. `yog:bare`),
+2. the mod theme,
+3. the screen theme(s),
+4. `<Screen.Resources>` `<Style target=…>`,
+5. the component theme and component resources,
+6. element-subtree themes, innermost last,
+7. named style (`style=`) and classes (`class=`),
+8. explicit attributes.
+
+A closer scope always beats a farther one, whatever the selector. Within one scope the order is `Type` < `.class` < `Type.class`, then the state variants, and later list entries win. Merging is **per property**: a screen theme that sets only `Button.color` keeps the mod theme's `Button.bg`.
+
+**Compilation.** Themes are resolved at codegen. The generated widget code contains the final per-element values, so there is no runtime cascade and no lookup cost. For builder code each theme also becomes a `Theme` static (`res::themes::ui::themes::SLATE`). `UiRoot::theme(res::themes::…)` and `.theme(…)` on any builder node apply it with the same cascade rules, evaluated once at build time of the tree.
+
+**Hot reload.** A `.ytheme` edit regenerates the screens that use it. That is the same path as a `.yui` edit.
+
+**IDLE:**
+- **Theme editor** (`yog.theme` provider, plus a JSON code view):
+  - left: a selector tree (types → classes → states) with add/remove;
+  - centre: a live **gallery** of every control in every state, plus a chosen project screen rendered with the theme applied;
+  - right: a PropertyGrid for the selected selector, with paint pickers.
+- **Designer › Styles panel:** for the selected element it lists the cascade, showing each property's value and **source** (vanilla, mod theme, screen theme, …, attribute). Overridden values are struck through, and clicking a source opens it. *Extract to theme* moves the selected element's explicit attributes into a chosen theme as a `Type` or `.class` rule.
+- Editing a theme re-renders every open designer that uses it.
 
 ---
 
@@ -706,20 +842,20 @@ Every former `sprite:` name (hotbar, hearts, food, armor, air, xp bar, crosshair
 
 ```xml
 <Screen id="mymod:settings" width="260" height="180" title="@Strings.settings.title" background="auto"
-        x:ViewModel="SettingsVm">
+        theme="mymod:ui/settings" x:ViewModel="crate::ui::SettingsVm">
     <Screen.Resources>
         <Material x:Key="RunePanel" texture="hexcasting:gui/rune_panel" mode="nine_slice" slice="6"
                   text.color="#E0D0FF" text.shadow="false"/>
         <Style x:Key="Danger" target="Button" based_on="@Theme.Button" color="#FF5555"/>
     </Screen.Resources>
     <Panel w="100%" h="100%">
-        <Label text="@Strings.settings.title"/>                      <!-- #404040 via inheritance -->
+        <Label text="@Strings.settings.title" class="title"/>        <!-- #404040 via inheritance -->
         <CheckBox text="@Strings.show_badges" checked="{x:Bind show_badges, Mode=TwoWay}"/>
         <Slider w="150" value="{x:Bind volume, Mode=TwoWay}" text="{x:Bind volume_text()}"/>
         <TextBox w="150" text="{x:Bind name, Mode=TwoWay}" tooltip="@Strings.name.tip"/>
         <Image source="hexcasting:gui/logo"/>
         <Image source="mat:minecraft:gui/icon/heart"/>
-        <Image source="item:diamond"/>
+        <Image source="item:minecraft:diamond"/>
         <Column bg="@RunePanel" padding="6"> … </Column>
         <Button text="@gui.done" command="{x:Bind cx.close()}" w="150"/>
     </Panel>
@@ -728,6 +864,7 @@ Every former `sprite:` name (hotbar, hearts, food, armor, air, xp bar, crosshair
 
 - `<Material x:Key>` in `<Screen.Resources>` takes the `.ymat` schema as attributes (dotted for nesting: `text.color`, `states.hover.texture`, or a child `<Material.States>` element). It compiles to `<ns>:__inline/<screen>/<key>` in `yog/materials.json`.
 - Brush attributes are `bg` and `source`. `item`/`texture` bindings accept `Material`/`Texture` handles from code (`{x:Bind res::materials::gui::RUNE_BUTTON}`).
+- New attributes on every element: `theme` (§6.6) and `class`. `<Screen theme>` takes a `;`-separated list.
 - Bindable additions: `tooltip`, `value` (Slider), `checked` (CheckBox), `selected_tab` (TabBar).
 - `yui.rs` `LEAVES`/`CONTAINERS` gain `CheckBox`, `Slider`, `Separator`, `TabBar`/`Tab`, `Panel`, and `kind_attrs` gains the new attributes. `sprite:`/`mod:` diagnostics change to "use `mat:minecraft:gui/<name>`" / "write the namespace".
 
@@ -736,12 +873,13 @@ Every former `sprite:` name (hotbar, hearts, food, armor, air, xp bar, crosshair
 ## 9. Data flow per crate and host
 
 ```
-textures/**.png(.mcmeta) ─┐
-materials/**.ymat ────────┤  yog-cli (yog build / yog check / yog res check)
+content/**.png(.mcmeta) ──┐
+content/**.ymat|.ytheme ──┤  yog-cli (yog build / yog check / yog res check)
 content/**.yblock|.yitem ─┤    • texture scan + validation → yog/textures.json, assets/<ns>/textures/**
-src/**.yui ───────────────┤    • .ymat + inline materials → yog/materials.json (resolved, flattened)
+content/**.yui ───────────┤    • .ymat + inline materials → yog/materials.json (resolved, flattened)
 yog.toml [mod] minecraft ─┘    • content → model JSON (texture ids, tintindex, uv, render_type, emissive)
-                                         + BlockDef/ItemDef(render_layer, tints, emissive)
+                                         + BlockDef/ItemDef(render_layer, tints, emissive, behavior)
+                               • .ytheme cascade resolved and inlined into screen code
 vanilla packs (cache) ────────►• validation of every ref against each targeted version
    ▲  yog-vanilla               • generated/resources/{textures,materials}.g.rs, generated/vanilla.g.rs
    │                            • .yui → widget code with Brush::Material / theme defaults
@@ -753,13 +891,14 @@ yog-runtime ── loads overlay(host_mc_version) + every yog/materials.json →
    │           draw2d_material/material_info/draw2d_tooltip/... → layer geometry (Rust)
    ▼
 Java hosts ── NativeDraw primitives (drawImage, drawRect, drawGradientRect, drawGuiSprite, renderTooltip)
-              Fabric: BlockRenderLayerMap + nonOpaque + ColorProviderRegistry (+ FRAPI emissive in S3b)
-              NeoForge/Forge: noOcclusion + RegisterColorHandlersEvent (+ render_type, forge/neoforge_data)
+              all: block class per behaviour (YogTransparentBlock, YogLeavesBlock, …) + mod behaviour vtable
+              Fabric: BlockRenderLayerMap + ColorProviderRegistry (+ FRAPI emissive in S3b)
+              NeoForge/Forge: RegisterColorHandlersEvent (+ render_type, forge/neoforge_data)
               all: host_mc_version, screen title/background attributes
 
 yog-gfx  ── Texture, Material (handles), material data model + compiled-JSON parser + slicing math
             (shared by yog-runtime, yog-cli, Yog-IDLE's designer recorder)
-yog-ui   ── Brush, theme::vanilla, text inheritance, new controls, material-aware render
+yog-ui   ── Brush, Theme + theme::vanilla, text inheritance, new controls, material-aware render
 yog-kit  ── bindings for value/checked/selected_tab/tooltip; tooltip hover timing
 yog-api  ── re-exports, resources!() includes textures/materials, vanilla!(), ItemId/BlockId rename mapping
 ```
@@ -774,9 +913,17 @@ Substrate stays generic: it gets only a reusable `AssetPicker` widget (a searcha
 
 1. **Vanilla pack service** (`src-tauri`): replace `designer/assets.rs`'s lazy jar reading with `yog-vanilla`.
    - `Resources::for_mod(root, version)` reads the mod first, then the pack of `version`.
-   - First use of a version without a pack shows a bar: *"Minecraft 1.21.1 assets not prepared — Prepare (from local jar) / Download from Mojang"*. This runs `yog vanilla sync` with progress in Output.
-2. **Minecraft version selector** in the status bar and the designer toolbar (§3.4). It applies to the designer, the content editor, the material editor and the pickers.
-3. **Project Explorer › External › Minecraft <V>**: a read-only virtual folder of the pack (textures, materials, content, lang). Files open in the normal editors read-only. *Copy to project* copies a texture, material or block into the mod with its id rewritten.
+   - First use of a version without a pack runs `yog vanilla sync` automatically (local jar, else download) with progress in Output. With `--offline`-equivalent settings and no jar, a bar explains what is missing.
+   - **Settings › Environment › Minecraft assets:** *Extract to cache* (default) or *Read from the game jar (slower)*, written to `~/.config/yog/config.toml` so the CLI uses the same mode (§3.2). The page also shows the cache path and size, with *Clear*.
+2. **Version = the selected run configuration** (§3.4). There is no separate version selector. The designer, content editor, material and theme editors and the pickers follow the run configuration, and the status bar shows its version.
+3. **Project Explorer** presents the new layout (§13):
+   - **Content**: the `content/` tree, with typed icons per extension (texture, material, theme, block, item, model, UI, resources, book, sound). Sidecars are nested under their file: `x.png.mcmeta` under `x.png`, `x.ysound` under its `.ogg` files. A toggle switches to a UE-style **content browser**: a thumbnail grid with type filters and search.
+   - **Source**: `src/`.
+   - **Pack**: `pack/`, raw files.
+   - **Generated**: a virtual, read-only node over `.yog/build/generated` (handles, inlined screens), useful for "go to definition".
+   - **External › Minecraft <V>**: a read-only virtual folder of the pack for the run configuration's version (textures, materials, content, lang). Files open in the normal editors read-only. *Copy to project* copies a texture, material or block into the mod with its id rewritten.
+   - `.yog/` is hidden.
+   - **Rename/move** of any content file rewrites every reference to its id across the project (`.yblock`, `.yitem`, `.ymat`, `.ytheme`, `.yui`, `.ybook`, Rust handles), using the same reference index as `yog check`.
 4. **Texture editor** (PNG, a new `yog.texture` provider at priority 20 over the plain image view):
    - Pixel editing reuses `content/paint/*` (it is product-agnostic).
    - A **Metadata** panel writes `.png.mcmeta`: animation (a frame strip, frametime, interpolate, frame order with drag, play/pause preview), `gui.scaling` (with draggable nine-slice guides on the canvas), and `blur`/`clamp`.
@@ -795,15 +942,17 @@ Substrate stays generic: it gets only a reusable `AssetPicker` widget (a searcha
    - The Render Layer row moves from *Block* to each slot's material (inline or file), with an `auto` hint showing the detected layer.
    - The tint chip edits the slot material's `tint`.
    - Animated textures play in the viewport (a frame timer on the THREE texture offset).
-   - Paint mode saves new or copied textures to `textures/{block,item}/<stem>[_<slot>].png`, and the slot gets `hexcasting:block/<stem>`. `content::texture_target` is rewritten for ids only: own namespace → `<mod>/textures/<path>.png`, everything else read-only and copied on the first stroke.
+   - Paint mode saves a new or copied texture **next to the `.yblock`/`.yitem` being edited**: `content/<same folder>/<stem>[_<slot>].png`. The slot gets the full id, e.g. `hexcasting:blocks/slate/slate`. `content::texture_target` is rewritten for ids only: own namespace → `<mod>/content/<path>.png`, everything else read-only and copied on the first stroke.
    - Painting a vanilla texture copies it from the pack.
 8. **Designer:**
    - The recorder implements `draw2d_material`/`material_info`/`draw2d_tooltip`/`draw2d_text_scaled` with `yog_gfx::material` and the selected pack's overlay. Mod materials come from `yog/materials.json` produced by `yog check`, which already runs on save.
    - Tooltips show in Preview mode on hover. The Toolbox gains CheckBox, Slider, Separator, TabBar, Panel.
    - The HTML fallback (no pack) draws a material's first layer approximately.
    - Properties: `bg`/`source` use the paint picker. The color swatch row stays for color brushes.
-9. **New Item templates:** *Material (.ymat)* and *Texture (.png)* (16/32/64 px, block/item/gui folder). The codegen regex in `OpenFilesContext.tsx:329` and the matcher in `src-tauri/src/yui.rs:17-24` include `.ymat` and `.png.mcmeta` (they run `yog res check`, which now also writes the texture and material handles).
-10. **`.yres` editor:** the `image` type is removed from `RESOURCE_TYPES`. Opening a file that still has one shows the validation error with a quick fix: *Move to textures/*.
+9. **New Item templates:** *Material (.ymat)*, *Theme (.ytheme)*, *Texture (.png)* (16/32/64 px), *Sound (.ysound)* and *Book (.ybook)*, created in the selected `content/` folder, with the project's namespace filled in (D10). The project template (New Project) creates the §13 layout. The codegen regex in `OpenFilesContext.tsx:329` and the matcher in `src-tauri/src/yui.rs:17-24` include `.ymat`, `.ytheme` and `.png.mcmeta` (they run `yog res check`, which now also writes the texture, material and theme handles).
+10. **`.yres` editor:** the `image` and `sound`/`file` types are removed from `RESOURCE_TYPES`. Older projects never reach the editor with them, because the format migration (§14) converts them on open.
+11. **Theme editor and Styles panel:** §6.6.
+12. **Migration banner:** §14.
 
 ---
 
@@ -811,11 +960,15 @@ Substrate stays generic: it gets only a reusable `AssetPicker` widget (a searcha
 
 | Removed | Replacement |
 |---|---|
-| `.yres` `"type": "image"`, its `texture` field, `@Set.name` as an image (yog.toml `icon` too) | `textures/**` + a texture id (`icon = "hexcasting:gui/icon"`) |
+| `.yres` `"type": "image"`, its `texture` field, `@Set.name` as an image (yog.toml `icon` too) | a PNG under `content/` + a texture id (`icon = "yog-modlist:icon"`) |
 | content `path.png`, `@Set.name` texture forms | texture ids |
 | `block.render_layer`, face `tint` index | the material's `render_layer` / `tint` |
 | `sprite:*`, `yog_gfx::image::{SPRITES, Sprite, LegacyRegion, suggest_alias}`, `sprite:` code in `yog-runtime/src/images.rs` and IDLE `designer/images.rs` | `mat:minecraft:gui/*`, overlay |
-| `mod:<path>` | `<ns>:<path>` |
+| `mod:<path>`, bare ids meaning `minecraft:` | full `<ns>:<path>` (D10) |
+| `.yres` `sound`/`file` types | `.ogg` + `.ysound` under `content/`, raw files under `pack/` |
+| `noOcclusion` derived from appearance, `YogShapedBlock` as the only block class | behaviours (§4.6), `YogBlockTraits` |
+| `resources/`, top-level `assets/`/`data/`, `.yog-build/`, `.yog-idle/`, root `target/` | §13 layout |
+| fixed control defaults in `render.rs` | `minecraft:vanilla.ytheme` + `.ytheme` cascade |
 | yog-ui flat defaults, amber focus, `focus_color`, `Style.bg: u32` | theme, `Brush` |
 | `NativeDraw.textureSize` (PNG IHDR read) | `yog/textures.json` + the vanilla index |
 | IDLE `designer/assets.rs` jar-in-place reader | `yog-vanilla` |
@@ -836,9 +989,9 @@ anchor="fill"  (vanilla list screens use the whole window)
 Grid rows="32,*,36" columns="*"
   row 0: Title (host) + mod_count Label (@Theme.Secondary) right
   row 1: Grid columns="*,8,*"
-      left : TextBox search (h20) / TabBar filter_all|filter_yog|filter_platform (vanilla tabs; or
-             three ToggleButtons h20, decided in Q6) / ListView mod_list background="list"
-             entries 36 px: Image (mod icon, 32×32, `icon` from manifest, fallback item:book) +
+      left : TextBox search (h20) / TabBar filter_all|filter_yog|filter_platform (vanilla tabs, the
+             user's decision) / ListView mod_list background="list"
+             entries 36 px: Image (mod icon, 32×32, `icon` from manifest, fallback `item:minecraft:book`) +
              name (white) + version/source line (§7 gray, source color §a/§9)
       right: Panel-less ScrollView details background="list": name (white), version/id (#A0A0A0),
              source (§a #55FF55 Yog, §9 #5555FF Platform), authors, description (white, wrapped)
@@ -848,39 +1001,32 @@ Grid rows="32,*,36" columns="*"
 - `ModSource::color()` becomes vanilla formatting colors.
 - `Pill.yui`, `stat_bar.yui` and `stat_bar.rs` are deleted.
 - `Strings.yres` gains `screen.title` use; "Done" uses `@gui.done`, the vanilla key.
-- The test (mod_list.rs:205-225) keeps passing. TestHost draws nothing, so only ids matter.
+- The test (mod_list.rs:205-225) keeps passing. TestHost draws nothing, so only ids matter. The filters become `Tab`s; the test's `filter_*` names move to them.
+- Modlist uses no theme of its own: it is the reference consumer of `minecraft:vanilla`.
 
-### 12.2 HexMod-Yog: casting screen
+### 12.2 HexMod-Yog: the original Hex Casting UI
 
-The original Hex Casting draws the grid over the dimmed world with no frame. Keep that, and make the sides vanilla:
+**Rule (the user's): HexMod-Yog reproduces the original Hex Casting UI exactly.** It does not adopt the vanilla theme. Revision 1's plan (a vanilla `Panel`, dark §-colors for contrast) is withdrawn.
 
-```
-background="auto"  anchor="fill"
-Grid columns="2*,*"
-  left : HexGrid (unchanged: Surface + SDF shader) — transparent, no bg; hint Label @Theme.Secondary
-  right: Panel padding 7 (demo_background nine-slice, text #404040 inherited)
-           Label "The Stack" (inherited PanelTitle look)
-           ListView stack background="none" (Inset style) of IotaRow
-           MishapBanner → a Label with color #FF5555 (§c) on the Inset, no own bg
-           Label "Patterns"
-           ListView patterns (Inset) of PatternEntry; vanilla scroller
-           Button clear h20 (vanilla)
-```
+What this design guarantees, and nothing more:
+- **No vanilla default leaks in.** HexMod attaches its own theme mod-wide: `yog.toml` `[ui] theme = "hexcasting:ui/hex"`, a `.ytheme` with `"based_on": "yog:bare"`. `yog:bare` has no backgrounds, no button sprites, no screen dimming (`background="none"`), and no text color hints. Every look comes from HexMod's own theme and materials.
+- **The original art is expressible.** The original mod's textures are already in the repo (`assets/hexcasting/textures/gui/*`). They move into `content/` (below) and become materials: nine-slices, tiled backgrounds, state variants and layered frames are exactly what `.ymat` covers (§2.2). Anything the original draws procedurally (the pattern grid, stroke glow) stays in the `HexGrid` surface with its SDF shader.
+- **Per-element exceptions** use subtree themes, classes and explicit attributes (§6.6), not vanilla controls with patched colors.
 
-- `IotaRow`/`PatternEntry` drop their accent `Spacer`s and dark colors.
-- Kind/value labels use vanilla formatting colors. `iota_color` already uses §-palette values (`FFFF55`, `5555FF`, …). On the light panel they need the **dark** variants (§6 gold `#FFAA00`, §1 `#0000AA`, §5 `#AA00AA`, §3 `#00AAAA`, §4 `#AA0000`, §8 `#555555`, §2 `#00AA00`) for contrast, which is a small table in `casting_screen.rs:187-198`.
-- `mishap_banner.yui` becomes a single colored Label (or is deleted and inlined).
-- Content:
-  - `resources/block/**`, `resources/item/**` → `textures/block/**`, `textures/item/**`.
-  - `assets/hexcasting/textures/**` → `textures/**`, which merges with the above. `gui/*.png` from the original mod becomes available for a later "slate" panel material.
-  - All 48 `.yblock` and 70 `.yitem` files are rewritten from `"block/x.png"`/`"item/x.png"` to `"hexcasting:block/x"`. A one-off `yog migrate textures` command does this with the importer's path logic; it is deleted after the migration.
-  - The three edified leaves get an inline material `{ render_layer: cutout_mipped, tint: none }`, or nothing at all, because `auto` detects cutout. `amethyst_sconce` gets `cutout`.
-  - The 34 `item/colorizer/*.png.mcmeta` animations already work.
-- The book (`yog-book`) is not `.yui`, so its look is Q8.
+The exact reproduction spec (which screens, sizes, colors, fonts and animations, measured against the original mod) is **HexMod's own task**, not part of this document. This design must not block it. Missing capabilities found there become requests against §2.2 and §6.6.
+
+**Content migration** (one format step, §14):
+- `resources/block/**`, `resources/item/**` and `assets/hexcasting/textures/**` move into `content/`: each texture next to its single user (`content/blocks/slate/slate.png` beside `slate.yblock`), shared or GUI textures to `content/textures/<old path>`.
+- All 48 `.yblock` and 70 `.yitem` files are rewritten from `"block/x.png"`/`"item/x.png"` to full ids (`"hexcasting:blocks/slate/slate"`).
+- The three edified leaves get `"behavior": "minecraft:leaves"` and an inline material `{ render_layer: cutout_mipped, tint: none }` (or nothing, because `auto` detects cutout). `amethyst_sconce` gets `cutout` plus `minecraft:half_transparent` or a mod behaviour, decided while porting. Slates and other logic-carrying blocks use mod-defined behaviours (§4.6).
+- The 34 `item/colorizer/*.png.mcmeta` animations move with their PNGs and keep working.
+- `data/` (loot tables, tags) and non-texture `assets/` (OptiFine CTM, particles) go to `pack/data/` and `pack/assets/`.
+
+**The book** becomes a `.ybook` with its own WYSIWYG designer (see `docs/design/ybook.md`). It uses materials for its art and the vanilla book look by default. The book look is decided there.
 
 ### 12.3 Yog-Pipes
 
-No UI and no content files, so nothing to migrate. Its glass/transparent pipes (if any are added) use `BlockDef::render_layer(RenderLayer::Cutout)`. The unused `ModelDef`/`FaceDef` (src/model.rs) gain a `material: Material` field when they are wired up. That is out of scope here, but noted so that the API takes `Material`, not texture strings.
+No UI and no content files, so nothing to migrate. Its glass/transparent pipes (if any are added) use `.behavior("minecraft:transparent").render_layer(RenderLayer::Cutout)`. The layout migration (§13) still applies: `src/`, `.yog/`. The unused `ModelDef`/`FaceDef` (src/model.rs) gain a `material: Material` field when they are wired up. That is out of scope here, but noted so that the API takes `Material`, not texture strings.
 
 ### 12.4 Docs
 
@@ -890,33 +1036,138 @@ The following docs are rewritten:
 - `docs/blocks-items.md` (materials; remove the Fabric limitation),
 - new `docs/textures-materials.md`,
 - new `docs/vanilla-pack.md`,
+- new `docs/themes.md` (§6.6),
+- new `docs/project-layout.md` (§13) and `docs/migration.md` (§14, with the per-format changelog),
 - the Yog-Mod-Loader READMEs' feature list.
 
 ---
 
-## 13. Implementation stages
+## 13. Mod project layout (D13)
 
-| Stage | Content | Depends on | Crates / repos |
-|---|---|---|---|
-| **S0** Vanilla pack | `yog-vanilla` crate (jar locate moved from IDLE, piston-meta download, extraction, importer run, index, `pack.json`), `vanilla/` dir with `versions.toml`, `renames.toml`, `tints.toml`, empty overlays; `yog vanilla sync/status/path`; `host_mc_version` ABI + hosts | — | yog-vanilla, yog-cli, yog-abi, yog-runtime, Java |
-| **S1** Textures | `textures/**` scan, ids, `.mcmeta` validation, `yog/textures.json`, `res::textures` handles, `Texture` type in yog-gfx; delete `.yres` image, `path.png`, `@Set` textures, `mod:`; `yog migrate textures` | S0 (validation against packs) | yog-gfx, yog-cli, yog-api |
-| **S2** Materials | `yog_gfx::material` (model, compiled JSON, state resolution, slicing math, tests), `.ymat` parser/compiler, inline materials, `yog/materials.json`, `res::materials` handles | S1 | yog-gfx, yog-cli, yog-api |
-| **S3** World materials | content compile via materials (tintindex derivation, uv, auto layer), `BlockDef`/`ItemDef` render_layer/tints/emissive, ABI fields, `nativeBlockDefs`; **Fabric `BlockRenderLayerMap`, `nonOpaque`/`noOcclusion` on all hosts, color providers**; Forge/NeoForge emissive via `*_data` | S2 | yog-cli, yog-registry, yog-abi, yog-runtime, Java ×6 |
-| **S3b** Fabric emissive | FRAPI baked-model wrapper | S3 | Java (fabric ×2) |
-| **S4** UI materials in runtime | `MaterialRegistry`, `draw2d_material`/`material_info`/`draw2d_tooltip`/`draw2d_item_tooltip`/`draw2d_text_scaled`, layer geometry, animation frames; overlay for 1.20.1 + 1.21.1 written and checked with `--check-overlay`; delete `sprite:` | S2, S0 | yog-runtime, yog-abi, yog-gfx, Java ×6, vanilla/ |
-| **S5** yog-ui vanilla | `Brush`, `theme::vanilla`, text inheritance, restyled Button/ToggleButton/TextBox/ScrollView/ListView/slots, new CheckBox/Slider/Separator/TabBar/Panel/tooltip, screen `title`/`background`; `font_scale` fix; delete flat defaults; `.yui` grammar + `@Theme.*` + `<Material>` resources | S4 | yog-ui, yog-kit, yog-cli |
-| **S6** Vanilla handles | `vanilla!()`, `vanilla.g.rs` (items/blocks/textures/materials/lang), rename mapping in `ItemId`/`BlockId`, cross-version ref validation in all formats | S0, S2 | yog-cli, yog-api, yog-runtime |
-| **S7** IDLE | (a) vanilla pack service + version selector + Minecraft node (after S0); (b) texture editor + mcmeta (after S1); (c) material editor + pickers + `AssetPicker` in Substrate (after S2); (d) designer recorder for materials/new controls (after S4/S5); (e) content editor material slots, animation playback (after S3) | per item | Yog-IDLE, Substrate-Platform (AssetPicker only) |
-| **S8** Mods | Modlist rewrite (§12.1), HexMod content migration (after S1-S3) and casting-screen rewrite (after S5), Pipes API touch | S5 (UI), S3 (content) | mods |
-| **S9** Docs + publish | docs (§12.4); crates.io: yog-gfx, yog-ui, yog-kit, yog-api, yog-registry, yog-cli, yog-runtime, new yog-vanilla | all | — |
+### 13.1 Today
 
-Critical path: S0 → S1 → S2 → S4 → S5 → S8 (UI). The Fabric render-layer fix (S3) can ship as soon as S2 lands. If the user wants the bug fixed before materials exist, S3's Java part plus a temporary `BlockProps.render_layer` field is about a day's work, and the field moves into materials in S3 proper.
+`src/` (Rust plus `.yui` and `*.designer.rs`), `resources/` (`.yres` plus PNGs), `content/` (`.yblock`/`.yitem`), top-level `assets/` and `data/` (copied verbatim by `gather_assets`, main.rs ~1892), `.yog-build/` (generated cargo project, main.rs:651), `.yog-idle/`, `target/`, `artifacts/`. The `.gitignore` template (main.rs:486) lists `.yog-build/`, `target/`, `artifacts/` and `*.designer.rs`. Asset kinds are split by folder for historical reasons, and textures sit far from the blocks that use them.
 
-ABI: S0, S3 and S4 each append to `YogApi`/`YogGfxApi`/`YogBlockDef`, so they need ABI_MINOR bumps. Mods must be rebuilt (`--local-api` for hot reload).
+### 13.2 New layout
+
+All names are lowercase.
+
+```
+yog.toml                [project] format = N (§14), [mod], [ui] theme, [run.*], …
+yog.lock
+README.md, LICENSE
+src/                    Rust only. .yui code-behind view-models stay here and are referenced by path:
+                        <Screen x:ViewModel="crate::ui::ModListVm">
+content/                every asset; free-form/feature folders; the type is the extension
+pack/assets/…           raw resource-pack passthrough (OptiFine CTM, particles, anything Yog has no format for)
+pack/data/…             raw data-pack passthrough (loot tables, tags, recipes until .yloot/.ytag/.yrecipe exist)
+artifacts/              built .yog files (visible, git-ignored)
+.yog/                   hidden, git-ignored:
+  build/                  generated cargo project (was .yog-build/)
+  target/                 cargo target-dir (was ./target/)
+  cache/                  texture alpha, vanilla refs index, incremental state
+  idle/                   IDE state (was .yog-idle/)
+  backup/                 pre-migration backups (§14)
+```
+
+**`content/` file types:**
+
+| Extension | What | Id |
+|---|---|---|
+| `.png` (+ `.png.mcmeta`) | texture (D1) | path |
+| `.ymat` | material (D2) | path |
+| `.ytheme` | theme (§6.6) | path |
+| `.yblock`, `.yitem` | block / item | file stem, `id` field overrides |
+| `.ymodel` | shared model (parent for several blocks/items) | path |
+| `.yui` | screen / component | `<Screen id>` / component name |
+| `.yres` | strings, colors, numbers, bools only (`image`, `sound`, `file` types are deleted) | `@Set.name` |
+| `.ybook` | guide book (`docs/design/ybook.md`) | path |
+| `.ogg` + `.ysound` | sound event: variants, subtitle, category | path of the `.ysound` |
+| `.yrecipe`, `.yloot`, `.ytag` | future | path |
+
+"Path" means `<mod>:<path under content/ without the extension>`. Registry ids (blocks, items) use the file stem because they are global names that players see in commands; two files with the same stem are a build error that names both. Folder conventions and directory defaults (`_defaults.yblock`, `_defaults.yitem`) come from `docs/design/boilerplate-reduction.md` F5.
+
+**What reads what:**
+- yog-cli scans `content/**` once per build and dispatches by extension. The scan result is the reference index used by validation, the IDE rename refactoring (§10) and the migration's ref rewriting (§14).
+- `src/` is the cargo crate root. `.yui` files under `content/` generate code into `.yog/build/generated/ui/`, and the screen binds to its view-model by Rust path. A `.yui` without `x:ViewModel` needs no Rust at all.
+- `pack/` is copied verbatim into the `.yog`, after generated files. A collision with a generated file is a build error.
+- yog-cli's paths (`src`, `.yog-build`, `artifacts`, `assets`/`data` in `gather_assets`, the `.gitignore` template) change accordingly. `CARGO_TARGET_DIR` points to `.yog/target`.
+
+**Migration (one format step, §14):**
+- `resources/*.yres` → `content/` (same relative path). `image` entries become PNG files plus full texture ids at each use. `sound` entries become `.ysound`, and `file` entries move to `pack/`.
+- PNGs from `resources/` and `assets/<mod>/textures/` move **next to their single user** (`.yblock`/`.yitem`/`.ymat`), or to `content/textures/<old path>` when used by several files or by none. Every ref is rewritten.
+- `src/**/*.yui` → `content/ui/**`. `x:ViewModel="X"` becomes `crate::<module of the old file>::X`. `*.designer.rs` files are deleted: designer code is generated into `.yog/build/generated/ui/` only.
+- `assets/` and `data/` remaining after that → `pack/assets/`, `pack/data/`.
+- `.yog-build/`, `.yog-idle/` and `target/` are deleted (regenerated in `.yog/`), and `.gitignore` is rewritten.
+
+### 13.3 IDLE templates
+
+New Project creates `yog.toml` (with `format`), `src/lib.rs`, `content/` with a sample `.yblock` and texture side by side, an empty `pack/`, and `.gitignore` with `.yog/` and `artifacts/`. New Item templates are listed in §10.
 
 ---
 
-## 14. Risks and open questions
+## 14. Project format versioning and automatic migration (D14)
+
+**The format number.** `yog.toml` gets `[project] format = N`, an integer independent of the CLI's semver. It changes only when a project's files must change. The CLI knows its current format `C` and a table `format → minimum CLI version`.
+
+**The chain.** The `yog-migrate` library crate (used by yog-cli and Yog-IDLE) holds an ordered list of steps `N → N+1`. Each step is a small transform over the project: renames, reference rewrites, folder moves, schema changes. It works on an in-memory file set and produces a change set (writes, moves, deletes) that can be previewed or applied. Steps use the same parsers as the build, at the version they had then: a step owns any old-schema parsing it needs, so the build never does.
+
+**When it runs:**
+- Every CLI command that reads a project (build, check, run, ui gen, …) and IDLE's project open compare `format` with `C`.
+- `format < C`: the CLI migrates automatically and prints the summary. IDLE shows a banner, *"This project uses format 6. Migrate to 7?"*, with a diff preview (the change set as a tree of moves and per-file diffs) and *Migrate*. Nothing opens editable until the project is migrated.
+- Safety: the working tree must be clean in git, otherwise the original files are copied to `.yog/backup/<timestamp>/` first. The change set is logged to `.yog/migrations.log` and printed.
+- `format > C`: an error, *"This project needs yog-cli ≥ 0.9 (format 8); this is 0.8.3 (format 7)"*. Nothing is modified.
+- `yog migrate --dry-run` prints the change set without applying it. `yog migrate rename-namespace <old> <new>` reuses the same ref-rewriting machinery but is not a format step.
+- Steps are **idempotent**: running a step on an already-converted file set changes nothing, so an interrupted migration can be rerun.
+
+**No compatibility code paths.** Every part of the toolchain other than `yog-migrate` reads only format `C`. Old formats exist only as migration inputs. This is how the no-backward-compat rule and painless upgrades coexist.
+
+**Release process.**
+- A change to any project file format ships with its migration step and a fixture: a small project in the old format and the expected result.
+- CI keeps a fixture project for **every past format** and checks that each migrates to `C` and then passes `yog check`.
+- `docs/migration.md` lists each format's changes for humans.
+
+**The steps for this design.** One step per logically separate change, so each stays small and testable:
+
+| Step | Change |
+|---|---|
+| 1→2 layout | §13.2 migration (folders, `.yres` split, `.yui` move, `.gitignore`) |
+| 2→3 namespaces | bare ids → `minecraft:`, `mod:` → `<mod id>:` (D10) |
+| 3→4 textures/materials | `path.png`/`@Set.name` textures → ids; `block.render_layer` and face `tint` → slot materials; `sprite:` → `mat:minecraft:gui/*` |
+| 4→5 behaviours | blocks with a non-solid layer and no behaviour get `minecraft:transparent` or `minecraft:leaves` (by vanilla parent and name), with a note in the log to review them |
+
+Today's projects have no `format` key and are treated as format 1. After this design, `C` = 5. Steps that land in the same release may still be separate steps: the chain runs them in order.
+
+---
+
+## 15. Implementation stages
+
+| Stage | Content | Depends on | Crates / repos |
+|---|---|---|---|
+| **S0a** Format migration framework | `yog-migrate` crate (step trait, change set, dry-run, backup, git-clean check, log), `[project] format`, format→min-CLI table, the fixture CI job; IDLE banner + diff preview | — | yog-migrate, yog-cli, Yog-IDLE |
+| **S0b** Project layout | §13: content scan by extension, `pack/`, `.yog/`, `CARGO_TARGET_DIR`, `.gitignore`, `.yres` without image/sound/file, `.ysound`; step 1→2; IDLE Explorer presentation and templates | S0a | yog-cli, yog-migrate, Yog-IDLE |
+| **S0c** Namespaces | bare-id errors with suggestions in every format, delete `mod:` and `qualify`; step 2→3; IDLE completion inserts full ids, rename refactoring | S0a | yog-cli, yog-gfx, yog-migrate, Yog-IDLE |
+| **S0** Vanilla pack | `yog-vanilla` crate (jar locate moved from IDLE, piston-meta download, extraction, importer run, index, `pack.json`), `vanilla/` dir with `versions.toml`, `renames.toml`, `tints.toml`, empty overlays; `yog vanilla sync/status/path`; `host_mc_version` ABI + hosts | — | yog-vanilla, yog-cli, yog-abi, yog-runtime, Java |
+| **S1** Textures | PNGs from the `content/**` scan, ids, `.mcmeta` validation, atlas sources by usage (§2.1), `yog/textures.json`, `res::textures` handles, `Texture` type in yog-gfx; delete `path.png`, `@Set` textures | S0, S0b | yog-gfx, yog-cli, yog-api |
+| **S2** Materials | `yog_gfx::material` (model, compiled JSON, state resolution, slicing math, tests), `.ymat` parser/compiler, inline materials, `yog/materials.json`, `res::materials` handles; step 3→4 | S1 | yog-gfx, yog-cli, yog-api |
+| **S3** World materials | content compile via materials (tintindex derivation, uv, auto layer), `BlockDef`/`ItemDef` render_layer/tints/emissive, ABI fields, `nativeBlockDefs`; **Fabric `BlockRenderLayerMap`, color providers**; Forge/NeoForge emissive via `*_data` | S2 | yog-cli, yog-registry, yog-abi, yog-runtime, Java ×6 |
+| **S3a** Block behaviours | §4.6: `behavior` in `.yblock`/`BlockDef`/`YogBlockDef`, built-in behaviour classes per host (×6), `YogBlockTraits`, the layer/behaviour check; mod-defined behaviours (`block_behavior`, vtable, declarative skip rules); step 4→5 | S3 (the layer check), can start with S0 | yog-registry, yog-abi, yog-runtime, yog-cli, yog-migrate, Java ×6 |
+| **S3b** Fabric emissive | FRAPI baked-model wrapper | S3 | Java (fabric ×2) |
+| **S4** UI materials in runtime | `MaterialRegistry`, `draw2d_material`/`material_info`/`draw2d_tooltip`/`draw2d_item_tooltip`/`draw2d_text_scaled`, layer geometry, animation frames; overlay for 1.20.1 + 1.21.1 written and checked with `--check-overlay`; delete `sprite:` | S2, S0 | yog-runtime, yog-abi, yog-gfx, Java ×6, vanilla/ |
+| **S5** yog-ui vanilla | `Brush`, `minecraft:vanilla.ytheme` + `theme::vanilla`, text inheritance, restyled Button/ToggleButton/TextBox/ScrollView/ListView/slots, new CheckBox/Slider/Separator/TabBar/Panel/tooltip, screen `title`/`background`; `font_scale` fix; delete flat defaults; `.yui` grammar + `@Theme.*` + `<Material>` resources | S4 | yog-ui, yog-kit, yog-cli |
+| **S5b** Themes | `.ytheme` parser, `yog:bare`, cascade resolution in codegen, `theme`/`class` attributes, `[ui] theme`, `Theme` statics + `UiRoot::theme`; IDLE theme editor, Styles panel, *Extract to theme* | S5 | yog-ui, yog-cli, Yog-IDLE |
+| **S6** Vanilla handles | `vanilla!()`, `vanilla.g.rs` (items/blocks/textures/materials/lang), rename mapping in `ItemId`/`BlockId`, cross-version ref validation in all formats | S0, S2 | yog-cli, yog-api, yog-runtime |
+| **S7** IDLE | (a) vanilla pack service + Environment setting + run-configuration version + Minecraft node (after S0); (b) texture editor + mcmeta (after S1); (c) material editor + pickers + `AssetPicker` in Substrate (after S2); (d) designer recorder for materials/new controls (after S4/S5); (e) content editor material slots, animation playback (after S3) | per item | Yog-IDLE, Substrate-Platform (AssetPicker only) |
+| **S8** Mods | Modlist rewrite (§12.1); HexMod: migration via the format steps (after S3a), `hexcasting:ui/hex` theme on `yog:bare` + original-art materials so the UI port can reproduce the original (after S5b), `.ybook` (per ybook.md); Pipes: layout step only | S5b (UI), S3a (content) | mods |
+| **S9** Docs + publish | docs (§12.4); crates.io: yog-gfx, yog-ui, yog-kit, yog-api, yog-registry, yog-cli, yog-runtime, new yog-vanilla | all | — |
+
+Critical path: S0a → S0b → S1 → S2 → S4 → S5 → S5b → S8 (UI). S0a comes first because every later stage that changes files ships its migration step. The x-ray bug is fixed by S3 + S3a together. If it must be fixed before materials exist, the Java part of S3a (the built-in `minecraft:transparent`/`leaves` classes) plus S3's `BlockRenderLayerMap` is a small change, and a temporary migration step adds `behavior` to affected blocks.
+
+ABI: S0, S3, S3a and S4 each append to `YogApi`/`YogGfxApi`/`YogBlockDef`, so they need ABI_MINOR bumps. Mods must be rebuilt (`--local-api` for hot reload).
+
+---
+
+## 16. Risks and open questions
 
 ### Risks
 
@@ -926,17 +1177,29 @@ ABI: S0, S3 and S4 each append to `YogApi`/`YogGfxApi`/`YogBlockDef`, so they ne
 - **R4 Generated vanilla handles size.** ~1.4k items, ~1k blocks, ~3k textures and ~6k lang keys per mod build could add compile time. Mitigation: consts only, one file, and lang optional behind a `yog.toml` flag if measured as slow.
 - **R5 First-run UX.** Building a mod needs a vanilla pack for validation and handles. In CI without a jar, `yog build --no-vanilla` skips vanilla validation and generates handles only for ids actually referenced (from markup/JSON), which is weaker.
 - **R6 `auto` render layer** can pick `translucent` for textures with a few semi-transparent anti-aliased pixels, which costs sorting. The build warns when <1% of pixels are partial and suggests `cutout`.
-- **R7 Light panels and existing color palettes.** Mod text colors chosen for dark backgrounds become unreadable on `demo_background`. Text inheritance covers labels; explicit colors need review per mod (§12.2).
+- **R7 Light panels and existing color palettes.** Mod text colors chosen for dark backgrounds become unreadable on `demo_background`. Text inheritance covers labels; explicit colors need review in mods that use the vanilla theme (Modlist). HexMod is not affected because it uses `yog:bare` (§12.2).
+- **R8 Atlas merge collisions.** Several mods add `single` sources to `minecraft:blocks`; YogPackProvider merges them. Two mods can't collide on ids (namespaces differ), but a resource pack replacing `atlases/blocks.json` wholesale would drop Yog sources. YogPackProvider must append after packs, and this needs a test per loader.
+- **R9 Migration of hand-edited projects.** Steps are mechanical, and unusual files (refs built by string concatenation in Rust, comments in JSON) can be missed. Mitigation: dry-run diff by default in IDLE, git-clean/backup requirement, and `yog check` right after migrating reports anything left.
+- **R10 Theme resolution and dynamic content.** Themes are inlined at codegen, so elements created by builder code at runtime see only themes passed to the builder (`UiRoot::theme`). Mixing markup and builders in one subtree must pass the inherited theme down; the generated code does that, hand-written builders must too.
 
-### Open questions for the user
+### Decided in revision 2 (former open questions)
 
-1. **Q1 Vanilla pack storage:** extract into the user cache (proposed), or keep reading lazily from the jar? Is automatic download from Mojang's servers (piston-meta) acceptable when no local jar exists?
-2. **Q2 `--reports`** (runs Mojang's data generator with Java to get exact block states, registries and tags): is it wanted in v1, or are asset-derived ids enough?
-3. **Q3 Default namespace:** keep "no namespace = `minecraft:`" everywhere (proposed), or make bare ids mean the mod's own namespace?
-4. **Q4 Delete the current flat look entirely** (proposed), or keep it as an optional `modern` theme?
-5. **Q5 Mod-wide theme override:** is a mod-wide restyle (e.g. HexMod's "slate" look on every button) needed? If so, it would be a `themes/*.ytheme` (control → material map) or a `style` entry type in `.yres`.
-6. **Q6 Modlist filters:** vanilla tabs (TabBar, 1.20+ create-world style) or three vanilla buttons with the selected one shown "highlighted"?
-7. **Q7 Glass-like behaviour:** should `hide_same_neighbor` (no faces between identical translucent blocks) be a material or block option?
-8. **Q8 yog-book** (the HexMod guide book) has its own host-drawn look. Should it move to materials and the vanilla book style in this effort, or later?
-9. **Q9 Which MC version** should IDLE preview by default: the newest targeted version (proposed) or the user's last choice per project?
-10. **Q10 Material folder name:** `materials/` at the project root next to `textures/`, `content/` and `resources/` (proposed), or inside `content/`?
+| Q | Decision |
+|---|---|
+| Q1 Pack storage | Extract to the user cache by default; *read from jar* is an environment setting (IDLE Settings › Environment, `YOG_VANILLA_MODE`). Auto-download from piston-meta is allowed (`--offline` disables it). §3.2 |
+| Q2 Reports | In v1, on by default (`--no-reports`), using the per-version JDK. §3.1, §3.2 |
+| Q3 Default namespace | None: every reference is explicitly namespaced, no short alias. §2.3, D10 |
+| Q4 Flat look | Deleted. D6 |
+| Q5 Mod-wide restyle | `.ytheme` with scoped cascade (mod, screen, component, subtree). §6.6, D11 |
+| Q6 Modlist filters | Vanilla tabs (`TabBar`). §12.1 |
+| Q7 Glass-like culling | Block behaviour (`minecraft:transparent`, …), not material. §4.6, D12 |
+| Q8 Book | `.ybook` with its own designer, in `docs/design/ybook.md`. §12.2 |
+| Q9 IDLE preview version | The selected run configuration's version. §3.4 |
+| Q10 Material location | Anywhere under `content/`, by extension. D2, §13 |
+
+### Open questions
+
+1. **Q11 Original Hex Casting UI reference.** Which original version (and which screenshots or source revision) is the reference for "exactly"? This belongs to HexMod's UI task, but the answer decides which art and behaviours the theme and materials must cover.
+2. **Q12 `.ysound` vs `.yres`.** Proposed: sound events are `.ysound` files next to their `.ogg`s, and `.yres` keeps only strings/colors/numbers/bools. Alternative: sound events as a `sound` table inside `.yres`. The proposal matches "one file per asset" and lets IDLE nest it under the audio.
+3. **Q13 `.yui` location.** Proposed: `.yui` lives in `content/` (it is an asset) and its view-model in `src/`, linked by Rust path. Alternative: `.yui` stays in `src/` beside its code-behind, as today. The first keeps `src/` Rust-only; the second keeps a screen and its logic in one folder.
+4. **Q14 Registry ids from file stems.** Proposed: blocks and items take their id from the file stem (unique per mod), with an `id` override. Alternative: path-based ids like other assets (`hexcasting:blocks/slate/slate`), which are unique by construction but are long, player-visible names.
