@@ -23,6 +23,8 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+use yog_gfx::image::ImageSource;
+
 // ── XML subset ────────────────────────────────────────────────────────────────
 
 /// One XML element: name, attributes in source order, child elements.
@@ -272,7 +274,7 @@ fn kind_attrs(kind: &str) -> &'static [&'static str] {
         "TextBox" => &["text", "placeholder", "max_length", "on_change", "on_submit"],
         "ItemSlot" => &["item"],
         "InvSlot" => &["item", "count"],
-        "Image" => &["texture", "tex_w", "tex_h"],
+        "Image" => &["source", "stretch", "uv", "tint", "texture", "tex_w", "tex_h"],
         _ => &[],
     }
 }
@@ -426,9 +428,115 @@ pub fn const_name(value: &str) -> String {
 struct Gen {
     events: Vec<String>,
     ids: Vec<String>,
+    /// The mod's id (from `yog.toml`), for `mod:` image sources.
+    mod_id: Option<String>,
+    /// `line N: ...` warnings (deprecated attributes, raw texture paths).
+    warnings: Vec<String>,
 }
 
 impl Gen {
+    /// `widget::image(...)` for an `<Image>`: its `source` checked and
+    /// `mod:` resolved, plus `stretch`/`uv`/`tint` (and the deprecated
+    /// `texture`/`tex_w`/`tex_h`).
+    fn image(&mut self, el: &Element) -> Result<String, String> {
+        let line = el.line;
+        let source = match (el.attr("source"), el.attr("texture")) {
+            (Some(s), Some(_)) => {
+                self.warnings.push(format!(
+                    "line {line}: <Image> has both source and texture; texture (deprecated) is ignored"
+                ));
+                s
+            }
+            (Some(s), None) => s,
+            (None, Some(t)) => {
+                self.warnings.push(format!(
+                    "line {line}: <Image> texture=\"...\" is deprecated — write source=\"...\""
+                ));
+                t
+            }
+            (None, None) => return Err(format!("line {line}: <Image> needs a source (e.g. source=\"item:apple\")")),
+        };
+        let source = source.trim();
+        let parsed = ImageSource::parse(source).ok_or_else(|| {
+            format!(
+                "line {line}: <Image> source=\"{source}\": expected item:<id>, block:<id>, \
+                 sprite:<name>, mod:<path> or <namespace>:<path>"
+            )
+        })?;
+        let source = match parsed {
+            ImageSource::ModPath(path) => match &self.mod_id {
+                Some(id) => yog_gfx::image::texture_id(id, &path),
+                None => {
+                    return Err(format!(
+                        "line {line}: <Image> source=\"{source}\": mod: needs the mod id (no yog.toml found)"
+                    ))
+                }
+            },
+            ImageSource::Sprite(name) if !name.contains(':') && yog_gfx::image::sprite(&name).is_none() => {
+                let names: Vec<&str> = yog_gfx::image::SPRITES.iter().map(|s| s.name).collect();
+                return Err(format!(
+                    "line {line}: <Image> source=\"{source}\": unknown sprite (known: {})",
+                    names.join(", ")
+                ));
+            }
+            ImageSource::Texture(_) => {
+                if let Some(alias) = yog_gfx::image::suggest_alias(source) {
+                    self.warnings.push(format!(
+                        "line {line}: <Image> source=\"{source}\" is a raw resource path, which \
+                         changes between Minecraft versions — write source=\"{alias}\""
+                    ));
+                }
+                source.to_string()
+            }
+            _ => source.to_string(),
+        };
+        let mut expr = format!("widget::image({source:?})");
+        if let Some(v) = el.attr("stretch") {
+            let s = match v.trim().to_ascii_lowercase().replace('_', "").as_str() {
+                "none" => "None",
+                "fill" => "Fill",
+                "uniform" => "Uniform",
+                "uniformtofill" => "UniformToFill",
+                _ => {
+                    return Err(format!(
+                        "line {line}: <Image> stretch=\"{v}\": expected None, Fill, Uniform or UniformToFill"
+                    ))
+                }
+            };
+            let _ = write!(expr, ".stretch(::yog_api::ui::Stretch::{s})");
+        }
+        if let Some(v) = el.attr("uv") {
+            let nums: Vec<f32> = v
+                .split([',', ' '])
+                .filter(|p| !p.trim().is_empty())
+                .map(|p| number(el, "uv", p))
+                .collect::<Result<_, _>>()?;
+            let [u, vv, w, h] = nums[..] else {
+                return Err(format!("line {line}: <Image> uv=\"{v}\": expected \"u v width height\""));
+            };
+            let _ = write!(expr, ".region([{}, {}, {}, {}])", f(u), f(vv), f(w), f(h));
+        }
+        if let Some(v) = el.attr("tint") {
+            let _ = write!(expr, ".tint(0x{:08X})", color_attr(el, "tint", v)?);
+        }
+        // The old texture-size attributes: the default size, when w/h aren't given.
+        for (key, size) in [("tex_w", "w"), ("tex_h", "h")] {
+            if let Some(v) = el.attr(key) {
+                let n = number(el, key, v)?;
+                if el.attr(size).is_none() {
+                    let _ = write!(expr, ".{size}({})", f(n));
+                }
+            }
+        }
+        if el.attr("tex_w").is_some() || el.attr("tex_h").is_some() {
+            self.warnings.push(format!(
+                "line {line}: <Image> tex_w/tex_h are deprecated — the image's size comes from its \
+                 source; size the element with w/h"
+            ));
+        }
+        Ok(expr)
+    }
+
     /// The builder expression for `el`. `in_canvas`: the parent positions
     /// every child absolutely (`Screen`/`Canvas`) — a missing x/y means 0.
     fn widget(&mut self, el: &Element, in_canvas: bool, depth: usize) -> Result<String, String> {
@@ -477,16 +585,7 @@ impl Gen {
                     el.attr("item").unwrap_or_default()
                 )
             }
-            "Image" => {
-                let tw = el.attr("tex_w").map(|v| number(el, "tex_w", v)).transpose()?.unwrap_or(16.0);
-                let th = el.attr("tex_h").map(|v| number(el, "tex_h", v)).transpose()?.unwrap_or(16.0);
-                format!(
-                    "widget::mc_image({:?}, {}, {})",
-                    el.attr("texture").unwrap_or_default(),
-                    f(tw),
-                    f(th)
-                )
-            }
+            "Image" => self.image(el)?,
             _ => "widget::spacer()".to_string(),
         };
         let indent = "    ".repeat(depth + 2);
@@ -579,7 +678,18 @@ impl Gen {
 /// Generates the `.g.rs` source for a `.yui` document. `name` is the screen's
 /// path under `src/` without the extension (`mod_list`, `screens/options`):
 /// what the code-behind passes to `ui_include!`.
+#[cfg_attr(not(test), allow(dead_code))] // the tests' entry point
 pub fn generate(src: &str, name: &str) -> Result<String, String> {
+    generate_for(src, name, None).map(|(code, _)| code)
+}
+
+/// [`generate`] for the mod `mod_id` (resolves `mod:` image sources), also
+/// returning `line N: ...` warnings.
+pub fn generate_for(
+    src: &str,
+    name: &str,
+    mod_id: Option<&str>,
+) -> Result<(String, Vec<String>), String> {
     let root = parse_xml(src)?;
     if root.name != "Screen" {
         return Err(format!(
@@ -609,6 +719,8 @@ pub fn generate(src: &str, name: &str) -> Result<String, String> {
     let mut gen = Gen {
         events: Vec::new(),
         ids: Vec::new(),
+        mod_id: mod_id.map(str::to_string),
+        warnings: Vec::new(),
     };
     // The screen's own id is the UI id, not a widget id.
     let mut content_root = root.clone();
@@ -788,7 +900,7 @@ pub fn close() {{
         events = consts(&gen.events),
         ids = consts(&gen.ids),
     );
-    Ok(out)
+    Ok((out, gen.warnings))
 }
 
 /// Where generated screen code goes, under the project root.
@@ -839,7 +951,15 @@ pub fn generated_path(root: &Path, name: &str) -> PathBuf {
 pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
     let src = std::fs::read_to_string(yui).map_err(|e| format!("{}: {e}", yui.display()))?;
     let name = include_name(root, yui);
-    let code = generate(&src, &name).map_err(|e| format!("{}: {e}", yui.display()))?;
+    let mod_id = std::fs::read_to_string(root.join("yog.toml"))
+        .ok()
+        .and_then(|t| crate::parse_yog_toml(&t).ok())
+        .map(|t| t.id);
+    let (code, warnings) = generate_for(&src, &name, mod_id.as_deref())
+        .map_err(|e| format!("{}: {e}", yui.display()))?;
+    for w in warnings {
+        eprintln!("    warning: {}: {w}", yui.display());
+    }
     let out = generated_path(root, &name);
     if std::fs::read_to_string(&out).ok().as_deref() != Some(code.as_str()) {
         if let Some(dir) = out.parent() {
@@ -939,6 +1059,45 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn screen(body: &str) -> String {
+        format!(r#"<Screen id="mymod:s">{body}</Screen>"#)
+    }
+
+    #[test]
+    fn image_sources() {
+        let (code, warnings) = generate_for(
+            &screen(r##"<Image w="156" h="29" source="item:apple" stretch="UniformToFill" tint="#80FFFFFF"/>"##),
+            "s",
+            None,
+        )
+        .unwrap();
+        assert!(code.contains(r#"widget::image("item:apple").stretch(::yog_api::ui::Stretch::UniformToFill).tint(0x80FFFFFF)"#), "{code}");
+        assert!(code.contains(".w(Units::Px(156.0))") || code.contains("w(156"), "{code}");
+        assert!(warnings.is_empty(), "{warnings:?}");
+
+        let (code, _) = generate_for(&screen(r#"<Image source="mod:gui/logo" uv="0 0 32 16"/>"#), "s", Some("mymod")).unwrap();
+        assert!(code.contains(r#"widget::image("mymod:textures/gui/logo.png").region([0.0, 0.0, 32.0, 16.0])"#), "{code}");
+        assert!(generate_for(&screen(r#"<Image source="mod:gui/logo"/>"#), "s", None).is_err());
+        assert!(generate_for(&screen(r#"<Image source="sprite:nope"/>"#), "s", None).is_err());
+        assert!(generate_for(&screen(r#"<Image/>"#), "s", None).is_err());
+        assert!(generate_for(&screen(r#"<Image source="item:apple" stretch="big"/>"#), "s", None).is_err());
+    }
+
+    #[test]
+    fn raw_textures_still_work_with_a_warning() {
+        let (code, warnings) = generate_for(
+            &screen(r#"<Image w="156" h="29" texture="minecraft:textures/item/apple.png" tex_w="16" tex_h="16"/>"#),
+            "s",
+            None,
+        )
+        .unwrap();
+        assert!(code.contains(r#"widget::image("minecraft:textures/item/apple.png")"#), "{code}");
+        assert!(!code.contains(".w(16"), "w/h win over tex_w/tex_h: {code}");
+        let all = warnings.join("\n");
+        assert!(all.contains("deprecated"), "{all}");
+        assert!(all.contains(r#"source="item:apple""#), "{all}");
+    }
 
     const SAMPLE: &str = r##"<?xml version="1.0" encoding="utf-8"?>
 <!-- a comment -->

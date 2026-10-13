@@ -944,6 +944,7 @@ name = "yog-cli"
 version = "0.26.0"
 dependencies = [
  "serde_json",
+ "yog-gfx",
  "zip",
 ]
 

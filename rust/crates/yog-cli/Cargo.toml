@@ -13,3 +13,5 @@ path = "src/main.rs"
 [dependencies]
 zip.workspace = true
 serde_json.workspace = true
+# Image sources (`item:`, `sprite:`, ...) checked in .yui files.
+yog-gfx = "0.23"
