@@ -506,7 +506,7 @@ state through `MenuSync` (mvvm §12.4/§12.7) — no hand-written open/sync code
 |---|---|---|
 | Q1 | `behaviors` as object vs list — **decided: yes, as recommended** | **Object** keyed by id (merge, `null` removal); order = declaration order. A list only if the same behaviour must appear twice — not seen in any audited mod. |
 | Q2 | Params as generated Rust literals vs JSON schema validated at runtime — **decided: yes, as recommended** | **Rust literals** (rustc checks types, no runtime parse); schema generated only for editors/IDLE. |
-| Q3 | `"variants"` for data families vs D5 one-file-per-entry — **decided: no `variants`.** | Sources keep one file per entry (D5); families share data through `based_on` / `_defaults`. Expanding families is only a build-output concern, never an authoring format. |
+| Q3 | `"variants"` for data families vs D5 one-file-per-entry — **decided: no `variants`.** | Sources keep one file per id (D5): variations of one id (block states / properties) stay in its file, different ids never share a file; families share data through `based_on` / `_defaults`. Expanding families is only a build-output concern, never an authoring format. |
 | Q4 | Convert `connect_groups`/`inventory` to `yog:*` behaviours — **decided: yes, as recommended** | **Yes** — one mechanism; no special keys. |
 | Q5 | Cross-mod capabilities via exported traits — **decided: yes, as recommended** | **Yes**, through the runtime with Codec args; no raw symbol binding. |
 | Q6 | Item state format | One `yog:<behavior id>` component per stateful behaviour (Codec bytes); 1.20.1 → NBT tag of the same name. |

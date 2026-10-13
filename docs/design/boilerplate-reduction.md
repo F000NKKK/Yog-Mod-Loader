@@ -862,8 +862,11 @@ Each stage ends with: bump the crates involved (breaking, as policy allows), pub
 - **D4.** HexMod actions: a `macro_rules!` table inside the mod (no loader dependency), or a
   loader-level `#[collect]` + attribute form (needs proc-macro support for mods, or a generic
   yog-api attribute)? Recommended: the table now.
-- **D5 — decided (2026-10-13): one source file per entry; no `_list`/`variants` files.** An
-  entry whose data all comes from `_defaults` / `based_on` may be an empty `{}`. Merging entries
+- **D5 — decided (2026-10-13): one source file per id; no `_list`/`variants` files.** Variations
+  of one block or item (same id, differing by block state / properties, e.g. a `color` or `facing`
+  property) live in that one file, as `states` already do. Entries with different ids always get
+  their own file, so each id has one place for its settings, renames and references. An entry
+  whose data all comes from `_defaults` / `based_on` may be an empty `{}`. Merging entries
   into lists is done only in the build output (the `.yog`), never in the sources. Was:
   Content conventions: may an item or block file become empty, or disappear in
   favour of `_list` files? Or must every item still have its own file, as now, for the
