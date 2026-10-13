@@ -257,6 +257,10 @@ pub fn parse_xml(src: &str) -> Result<Element, String> {
 
 // ── Screen model ──────────────────────────────────────────────────────────────
 
+/// The import generated widget-building code starts with.
+pub(crate) const UI_USE: &str =
+    "use ::yog_api::ui::{widget, Align, Dock, FlexDir, FocusStyle, Units};";
+
 /// Whether `<kind>` is a built-in element.
 pub(crate) fn is_builtin(kind: &str) -> bool {
     CONTAINERS.contains(&kind) || LEAVES.contains(&kind)
@@ -456,6 +460,35 @@ fn wpf_hint(key: &str) -> Option<&'static str> {
         "IsEnabled" => "enabled",
         _ => return None,
     })
+}
+
+/// A `<Screen>`'s `width`, `height` (default 176 × 166, the vanilla
+/// container size) and `anchor` (default `center`).
+pub(crate) fn screen_frame(root: &Element) -> Result<(f32, f32, &'static str), String> {
+    let size = |key: &str, default: f32| {
+        root.attr(key)
+            .map(|v| number(root, key, v))
+            .transpose()
+            .map(|v| v.unwrap_or(default))
+    };
+    let anchor = pick(
+        root,
+        "anchor",
+        root.attr("anchor").unwrap_or("center"),
+        &[
+            "center",
+            "top_left",
+            "top",
+            "top_right",
+            "left",
+            "right",
+            "bottom_left",
+            "bottom",
+            "bottom_right",
+            "fill",
+        ],
+    )?;
+    Ok((size("width", 176.0)?, size("height", 166.0)?, anchor))
 }
 
 fn pick<'v>(el: &Element, key: &str, value: &str, options: &[&'v str]) -> Result<&'v str, String> {
@@ -991,33 +1024,7 @@ pub fn generate_for(
             )
         })?
         .to_string();
-    let width = root
-        .attr("width")
-        .map(|v| number(&root, "width", v))
-        .transpose()?
-        .unwrap_or(176.0);
-    let height = root
-        .attr("height")
-        .map(|v| number(&root, "height", v))
-        .transpose()?
-        .unwrap_or(166.0);
-    let anchor = pick(
-        &root,
-        "anchor",
-        root.attr("anchor").unwrap_or("center"),
-        &[
-            "center",
-            "top_left",
-            "top",
-            "top_right",
-            "left",
-            "right",
-            "bottom_left",
-            "bottom",
-            "bottom_right",
-            "fill",
-        ],
-    )?;
+    let (width, height, anchor) = screen_frame(&root)?;
     let modal = root
         .attr("modal")
         .map(|v| boolean(&root, "modal", v))
@@ -1091,7 +1098,7 @@ pub mod ids {{
 #[allow(dead_code)]
 pub fn build() -> ::yog_api::ui::Widget {{
     #[allow(unused_imports)]
-    use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};
+    {UI_USE}
     {body}
 }}
 
@@ -1214,7 +1221,7 @@ pub fn project_root(yui: &Path) -> Option<PathBuf> {
     absolute(yui)
         .ancestors()
         .skip(1)
-        .find(|d| d.join("yog.toml").is_file())
+        .find(|d| d.join(crate::manifest::MANIFEST).is_file())
         .map(Path::to_path_buf)
 }
 
@@ -1245,7 +1252,7 @@ pub fn generated_path(root: &Path, name: &str) -> PathBuf {
 pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
     let src = std::fs::read_to_string(yui).map_err(|e| format!("{}: {e}", yui.display()))?;
     let name = include_name(root, yui);
-    let mod_id = std::fs::read_to_string(root.join("yog.toml"))
+    let mod_id = std::fs::read_to_string(root.join(crate::manifest::MANIFEST))
         .ok()
         .and_then(|t| crate::manifest::parse_yog_toml(&t).ok())
         .map(|t| t.id);
@@ -1255,12 +1262,7 @@ pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
         eprintln!("    warning: {}: {w}", yui.display());
     }
     let out = generated_path(root, &name);
-    if std::fs::read_to_string(&out).ok().as_deref() != Some(code.as_str()) {
-        if let Some(dir) = out.parent() {
-            std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-        }
-        std::fs::write(&out, code).map_err(|e| format!("{}: {e}", out.display()))?;
-    }
+    crate::write_if_changed(&out, &code)?;
     Ok(out)
 }
 

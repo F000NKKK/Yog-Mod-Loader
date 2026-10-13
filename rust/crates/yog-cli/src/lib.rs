@@ -14,3 +14,16 @@ pub mod yui;
 pub mod yui_component;
 pub mod yui_grid;
 pub mod yui_vm;
+
+/// Writes generated `code` to `path` (creating its directory) unless it's
+/// already there — unchanged files keep their mtime, so cargo doesn't
+/// rebuild for nothing.
+pub(crate) fn write_if_changed(path: &std::path::Path, code: &str) -> Result<(), String> {
+    if std::fs::read_to_string(path).ok().as_deref() == Some(code) {
+        return Ok(());
+    }
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    }
+    std::fs::write(path, code).map_err(|e| format!("{}: {e}", path.display()))
+}

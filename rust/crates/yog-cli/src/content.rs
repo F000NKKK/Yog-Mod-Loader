@@ -1675,12 +1675,7 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
         let _ = std::fs::remove_file(&out);
         return Ok(());
     };
-    if std::fs::read_to_string(&out).ok().as_deref() != Some(code.as_str()) {
-        if let Some(dir) = out.parent() {
-            std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-        }
-        std::fs::write(&out, code).map_err(|e| format!("{}: {e}", out.display()))?;
-    }
+    crate::write_if_changed(&out, code)?;
     Ok(())
 }
 

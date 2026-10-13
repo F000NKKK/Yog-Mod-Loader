@@ -31,7 +31,7 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use crate::yui::{self, err, Element, RAW_CALL, RAW_VALUE};
+use crate::yui::{self, err, Element, RAW_CALL, RAW_VALUE, UI_USE};
 
 /// Index of the components without a code-behind, included by `ui_components!()`.
 pub const INDEX_FILE: &str = ".yog-build/generated/components.g.rs";
@@ -430,7 +430,7 @@ impl {ty} {{
     #[allow(unused_variables, clippy::needless_borrow, clippy::needless_borrows_for_generic_args)]
     pub fn view(&self) -> ::yog_api::ui::Widget {{
         #[allow(unused_imports)]
-        use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};
+        {UI_USE}
         let vm = self;
         {tree}
     }}
@@ -512,12 +512,7 @@ pub fn write_index(root: &Path) -> Result<PathBuf, String> {
         }
     }
     let path = root.join(INDEX_FILE);
-    if std::fs::read_to_string(&path).ok().as_deref() != Some(out.as_str()) {
-        if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-        }
-        std::fs::write(&path, out).map_err(|e| format!("{}: {e}", path.display()))?;
-    }
+    crate::write_if_changed(&path, &out)?;
     Ok(path)
 }
 

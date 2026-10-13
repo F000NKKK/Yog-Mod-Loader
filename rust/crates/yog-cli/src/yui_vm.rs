@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use crate::yui::{self, err, Element, RAW_CALL, RAW_VALUE};
+use crate::yui::{self, err, Element, RAW_CALL, RAW_VALUE, UI_USE};
 
 /// The codegen version checked by `yog_kit::__codegen::require`.
 const CODEGEN: u32 = 1;
@@ -450,37 +450,12 @@ fn parse_binding(value: &str) -> Option<Result<Binding, String>> {
 /// `Option`). `None` when `value` isn't a binding. Options (`Mode=`,
 /// `BindBack=`, `Fallback=`) are parsed and ignored here. Shared with the
 /// `.yui` component generator so there's one binding syntax.
-#[allow(dead_code)]
 pub(crate) fn compile_bind(value: &str) -> Option<Result<String, String>> {
     let b = match parse_binding(value)? {
         Ok(b) => b,
         Err(e) => return Some(Err(e)),
     };
     Some(b.expr.expect("parsed").emit(Scope::Screen, false))
-}
-
-/// A binding's inner expression (`count_text()`, without `{x:Bind` and
-/// options) → Rust against `vm` (screen scope), for one-shot builds
-/// (components).
-#[allow(dead_code)]
-pub(crate) fn bind_expr(src: &str) -> Result<String, String> {
-    parse_expr(src)?.emit(Scope::Screen, false)
-}
-
-/// Whether `attr` of a `kind` element (`Label`, `Button`, ...) can be bound,
-/// and the `yog_kit::bind` conversion its value goes through
-/// (`text`, `color`, `flag`, `units`, `number`, `count`, `key`).
-#[allow(dead_code)]
-pub(crate) fn bind_conversion(kind: &str, attr: &str) -> Option<&'static str> {
-    Some(match target(kind, attr)? {
-        Target::Text | Target::Placeholder | Target::Item | Target::Source => "text",
-        Target::Count => "count",
-        Target::Color(_) => "color",
-        Target::Enabled | Target::Visible | Target::Checked => "flag",
-        Target::Size(_) => "units",
-        Target::Number(_) => "number",
-        Target::ScrollKey => "key",
-    })
 }
 
 // ── generator ────────────────────────────────────────────────────────────────
@@ -541,15 +516,9 @@ struct Ctx {
     update: String,
 }
 
-struct ListGen {
-    owner: u16,
-    template: usize,
-}
-
 struct VmGen<'a> {
     file: String,
     mod_id: Option<&'a str>,
-    vm: String,
     resources: HashMap<String, String>,
     styles: HashMap<String, Vec<(String, String)>>,
     ids: yui::Names,
@@ -565,7 +534,6 @@ struct VmGen<'a> {
     n_text_boxes: u16,
     /// Next command slot per owner.
     cmd_slots: HashMap<u16, u16>,
-    lists: Vec<ListGen>,
 }
 
 fn path_lit(path: &[u16]) -> String {
@@ -1227,7 +1195,7 @@ impl VmGen<'_> {
         let marker = format!("\u{1}resets{}\u{1}", self.n_slots);
         let _ = write!(
             ctx.update,
-            "        let mut __props = false;\n{sets}        if __props {{\n            #[allow(unused_imports)]\n            use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};\n            *{}.at_path_mut({}) = {expr};\n            u.relayout();{marker}\n        }}\n",
+            "        let mut __props = false;\n{sets}        if __props {{\n            #[allow(unused_imports)]\n            {UI_USE}\n            *{}.at_path_mut({}) = {expr};\n            u.relayout();{marker}\n        }}\n",
             ctx.tree,
             path_lit(path),
         );
@@ -1343,7 +1311,7 @@ impl VmGen<'_> {
             .collect();
         let _ = write!(
             self.templates,
-            "/// Item template {t} ({}:{}).\n#[doc(hidden)]\n#[allow(non_camel_case_types)]\nstruct __T{t} {{\n{fields}}}\n\nimpl __T{t} {{\n    fn build() -> (Self, ::yog_api::ui::Widget) {{\n        #[allow(unused_imports)]\n        use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};\n        (Self {{ {inits}}}, {texpr})\n    }}\n}}\n\n",
+            "/// Item template {t} ({}:{}).\n#[doc(hidden)]\n#[allow(non_camel_case_types)]\nstruct __T{t} {{\n{fields}}}\n\nimpl __T{t} {{\n    fn build() -> (Self, ::yog_api::ui::Widget) {{\n        #[allow(unused_imports)]\n        {UI_USE}\n        (Self {{ {inits}}}, {texpr})\n    }}\n}}\n\n",
             self.file, template.line
         );
 
@@ -1365,7 +1333,7 @@ impl VmGen<'_> {
                 empty_update = ectx.update;
                 let _ = write!(
                     self.templates,
-                    "#[doc(hidden)]\n#[allow(non_snake_case)]\nfn __E{t}() -> ::yog_api::ui::Widget {{\n    #[allow(unused_imports)]\n    use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};\n    {eexpr}\n}}\n\n"
+                    "#[doc(hidden)]\n#[allow(non_snake_case)]\nfn __E{t}() -> ::yog_api::ui::Widget {{\n    #[allow(unused_imports)]\n    {UI_USE}\n    {eexpr}\n}}\n\n"
                 );
                 format!("::std::option::Option::Some(__E{t})")
             }
@@ -1393,7 +1361,6 @@ impl VmGen<'_> {
                 selected.is_some()
             ),
         ));
-        self.lists.push(ListGen { owner, template: t });
 
         // Update.
         let mut u = String::new();
@@ -1480,7 +1447,6 @@ impl VmGen<'_> {
         }
         // A list's own bindings other than items/key/selected (bg, w, ...)
         // are applied by the caller.
-        let _ = self.lists.last().map(|l| (l.owner, l.template));
         Ok(())
     }
 
@@ -1522,29 +1488,8 @@ pub fn generate(
         .attr("x:Create")
         .map(str::to_string)
         .unwrap_or_else(|| format!("<{vm} as ::std::default::Default>::default()"));
-    let width = root
-        .attr("width")
-        .map(|v| yui::number(root, "width", v))
-        .transpose()?
-        .unwrap_or(176.0);
-    let height = root
-        .attr("height")
-        .map(|v| yui::number(root, "height", v))
-        .transpose()?
-        .unwrap_or(166.0);
-    let anchor = match root.attr("anchor").unwrap_or("center").trim() {
-        "center" => "Center",
-        "top_left" => "TopLeft",
-        "top" => "Top",
-        "top_right" => "TopRight",
-        "left" => "Left",
-        "right" => "Right",
-        "bottom_left" => "BottomLeft",
-        "bottom" => "Bottom",
-        "bottom_right" => "BottomRight",
-        "fill" => "Fill",
-        a => return err(root, format!("anchor=\"{a}\": expected center, top_left, top, top_right, left, right, bottom_left, bottom, bottom_right or fill")),
-    };
+    let (width, height, anchor) = yui::screen_frame(root)?;
+    let anchor = yui::pascal(anchor);
     let modal = root
         .attr("modal")
         .map(|v| yui::boolean(root, "modal", v))
@@ -1559,7 +1504,6 @@ pub fn generate(
     let mut g = VmGen {
         file: format!("{name}.yui"),
         mod_id,
-        vm: vm.clone(),
         resources: HashMap::new(),
         styles: HashMap::new(),
         ids: yui::Names::default(),
@@ -1573,7 +1517,6 @@ pub fn generate(
         n_scrollers: 0,
         n_text_boxes: 0,
         cmd_slots: HashMap::new(),
-        lists: Vec::new(),
     };
     for c in &root.children {
         if c.name == "Screen.Resources" {
@@ -1649,7 +1592,7 @@ pub mod ids {{
 
     fn build() -> (Self, ::yog_api::ui::Widget, ::yog_kit::Parts) {{
         #[allow(unused_imports)]
-        use ::yog_api::ui::{{widget, Align, Dock, FlexDir, FocusStyle, Units}};
+        {UI_USE}
         let root = {expr};
         #[allow(unused_mut)]
         let mut parts = ::yog_kit::Parts::new();
@@ -1723,7 +1666,6 @@ pub fn close() {{
 }}
 "#
     );
-    let _ = &g.vm;
     Ok((out, Vec::new()))
 }
 
