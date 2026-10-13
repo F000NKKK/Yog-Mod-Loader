@@ -35,6 +35,8 @@ pub use ctor;
 
 #[doc(hidden)]
 pub use std::os::raw::c_void as __c_void;
+#[doc(hidden)]
+pub use yog_abi::{YogGfxApi as __YogGfxApi, YogStr as __YogStr};
 
 /// Export a [`Mod`] as a dynamically loadable Yog mod.
 ///
@@ -113,6 +115,47 @@ macro_rules! export_mod {
             let registry = unsafe { $crate::Registry::from_raw(api) };
             $crate::__yog_resolve_pending_imports(&registry);
         }
+
+        /// Yog-IDLE's screen designer: the version of the protocol below.
+        #[no_mangle]
+        pub extern "C" fn yog_ui_designer_abi() -> u32 {
+            $crate::ui::component::designer::ABI
+        }
+
+        /// Yog-IDLE's screen designer: lists this mod's custom components
+        /// and draws them (see `yog_ui::component::designer`). Never called
+        /// in game — only by the designer host, which loads the mod's
+        /// library built for the developer's machine.
+        #[no_mangle]
+        pub unsafe extern "C" fn yog_ui_designer(
+            request: $crate::__YogStr,
+            gfx: *const $crate::__YogGfxApi,
+            user_data: *mut $crate::__c_void,
+            write: $crate::ui::component::designer::WriteFn,
+        ) -> bool {
+            // SAFETY: forwarded under the same contract.
+            unsafe { $crate::ui::component::designer::call(request, gfx, user_data, write) }
+        }
+    };
+}
+
+/// Registers a custom `.yui` component (a type implementing
+/// [`ui::component::Component`]) when the mod's library loads, so screens
+/// can use `<Name …/>` and Yog-IDLE's designer lists it in its toolbox.
+///
+/// ```ignore
+/// yog_api::ui_component!(StatBar);
+/// yog_api::ui_component!(StatBar, ModBadge);
+/// ```
+#[macro_export]
+macro_rules! ui_component {
+    ($($ty:ty),+ $(,)?) => {
+        const _: () = {
+            #[$crate::ctor::ctor(unsafe, crate_path = $crate::ctor)]
+            fn __yog_register_ui_components() {
+                $( $crate::ui::component::register::<$ty>(); )+
+            }
+        };
     };
 }
 
