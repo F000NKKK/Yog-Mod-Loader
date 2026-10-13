@@ -67,10 +67,11 @@ impl<'a> Parser<'a> {
     fn line(&self) -> usize {
         let (at, line) = self.line_at.get();
         let (from, line) = if self.pos >= at { (at, line) } else { (0, 1) };
-        let line = line + self.src.as_bytes()[from..self.pos]
-            .iter()
-            .filter(|&&b| b == b'\n')
-            .count();
+        let line = line
+            + self.src.as_bytes()[from..self.pos]
+                .iter()
+                .filter(|&&b| b == b'\n')
+                .count();
         self.line_at.set((self.pos, line));
         line
     }

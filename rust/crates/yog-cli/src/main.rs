@@ -1369,8 +1369,7 @@ fn lib_filename(name: &str, os: &str) -> String {
 /// resources, `content/` blocks and items — replacing a file at the same
 /// path).
 fn gather_assets(root: &Path, compiled: Vec<(String, Vec<u8>)>) -> Vec<(String, Vec<u8>)> {
-    let mut present: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-    let mut out: Vec<(String, Vec<u8>)> = Vec::new();
+    let mut out = yog_cli::content::OutputSet::default();
 
     let mut stack: Vec<PathBuf> = ["assets", "data"]
         .iter()
@@ -1389,21 +1388,16 @@ fn gather_assets(root: &Path, compiled: Vec<(String, Vec<u8>)>) -> Vec<(String, 
             } else if let Ok(rel) = path.strip_prefix(root) {
                 let key = rel.to_string_lossy().replace('\\', "/");
                 if let Ok(bytes) = std::fs::read(&path) {
-                    present.insert(key.clone());
-                    out.push((key, bytes));
+                    out.put(key, bytes);
                 }
             }
         }
     }
 
     for (key, bytes) in compiled {
-        if !present.insert(key.clone()) {
-            out.retain(|(k, _)| *k != key);
-        }
-        out.push((key, bytes));
+        out.put(key, bytes);
     }
-
-    out
+    out.into_vec()
 }
 
 // ── Packaging ─────────────────────────────────────────────────────────────────

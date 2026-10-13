@@ -1684,22 +1684,66 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
     Ok(())
 }
 
+/// Outputs in order, keyed by path: [`OutputSet::put`] replaces a path's
+/// output (moving it to the end) without rescanning the list.
+#[derive(Default)]
+pub struct OutputSet {
+    items: Vec<Option<Output>>,
+    at: HashMap<String, usize>,
+}
+
+impl OutputSet {
+    pub fn get(&self, path: &str) -> Option<&[u8]> {
+        let i = *self.at.get(path)?;
+        self.items[i].as_ref().map(|(_, b)| b.as_slice())
+    }
+
+    pub fn contains(&self, path: &str) -> bool {
+        self.at.contains_key(path)
+    }
+
+    pub fn paths(&self) -> impl Iterator<Item = &String> {
+        self.at.keys()
+    }
+
+    /// Sets `path`'s output, dropping the one it had.
+    pub fn put(&mut self, path: String, bytes: Vec<u8>) {
+        if let Some(i) = self.at.insert(path.clone(), self.items.len()) {
+            self.items[i] = None;
+        }
+        self.items.push(Some((path, bytes)));
+    }
+
+    pub fn into_vec(self) -> Vec<Output> {
+        self.items.into_iter().flatten().collect()
+    }
+}
+
+impl From<Vec<Output>> for OutputSet {
+    fn from(outputs: Vec<Output>) -> Self {
+        let mut set = OutputSet::default();
+        for (path, bytes) in outputs {
+            set.put(path, bytes);
+        }
+        set
+    }
+}
+
 /// A JSON object output at `path`: the one already in `outputs`, else the
 /// mod's own file there, else empty.
-fn json_output(outputs: &[Output], root: &Path, path: &str) -> Result<Map<String, Value>, String> {
-    let bytes = match outputs.iter().rev().find(|(p, _)| p == path) {
-        Some((_, b)) => b.clone(),
+fn json_output(outputs: &OutputSet, root: &Path, path: &str) -> Result<Map<String, Value>, String> {
+    let read;
+    let bytes = match outputs.get(path) {
+        Some(b) => b,
         None => match std::fs::read(root.join(path)) {
-            Ok(b) => b,
+            Ok(b) => {
+                read = b;
+                &read
+            }
             Err(_) => return Ok(Map::new()),
         },
     };
-    serde_json::from_slice::<Map<String, Value>>(&bytes).map_err(|e| format!("{path}: {e}"))
-}
-
-fn put_output(outputs: &mut Vec<Output>, path: String, bytes: Vec<u8>) {
-    outputs.retain(|(p, _)| *p != path);
-    outputs.push((path, bytes));
+    serde_json::from_slice::<Map<String, Value>>(bytes).map_err(|e| format!("{path}: {e}"))
 }
 
 /// Adds the content's outputs to `outputs` (the `.yres` ones, say): lang
@@ -1710,15 +1754,13 @@ pub fn merge_outputs(
     outputs: &mut Vec<Output>,
     compiled: Compiled,
 ) -> Result<(), String> {
+    let mut set = OutputSet::from(std::mem::take(outputs));
     let mut errors = Vec::new();
     // `.yres` texts under the keys the game looks up: in every lang file
     // that has the text.
     if !compiled.lang_aliases.is_empty() {
-        let mut lang_files: BTreeSet<String> = outputs
-            .iter()
-            .map(|(p, _)| p.clone())
-            .filter(|p| is_lang_path(p))
-            .collect();
+        let mut lang_files: BTreeSet<String> =
+            set.paths().filter(|p| is_lang_path(p)).cloned().collect();
         if let Ok(dirs) = std::fs::read_dir(root.join("assets")) {
             for ns in dirs.flatten() {
                 if let Ok(files) = std::fs::read_dir(ns.path().join("lang")) {
@@ -1734,7 +1776,7 @@ pub fn merge_outputs(
             }
         }
         for path in lang_files {
-            let mut map = match json_output(outputs, root, &path) {
+            let mut map = match json_output(&set, root, &path) {
                 Ok(m) => m,
                 Err(e) => {
                     errors.push(e);
@@ -1751,13 +1793,13 @@ pub fn merge_outputs(
                 }
             }
             if changed {
-                put_output(outputs, path, pretty(&Value::Object(map)));
+                set.put(path, pretty(&Value::Object(map)));
             }
         }
     }
     for ((ns, locale), entries) in &compiled.lang {
         let path = format!("assets/{ns}/lang/{locale}.json");
-        let mut map = match json_output(outputs, root, &path) {
+        let mut map = match json_output(&set, root, &path) {
             Ok(m) => m,
             Err(e) => {
                 errors.push(e);
@@ -1768,18 +1810,18 @@ pub fn merge_outputs(
             map.entry(k.clone())
                 .or_insert_with(|| Value::String(v.clone()));
         }
-        put_output(outputs, path, pretty(&Value::Object(map)));
+        set.put(path, pretty(&Value::Object(map)));
     }
     for (path, ids) in &compiled.tags {
         // The mod's own tag file may use the pre-1.21 spelling; the loader
         // maps both to one file, so merge into whichever it has.
         let plural = path.replacen("/tags/block/", "/tags/blocks/", 1);
-        let path = if !outputs.iter().any(|(p, _)| p == path) && root.join(&plural).is_file() {
+        let path = if !set.contains(path) && root.join(&plural).is_file() {
             plural
         } else {
             path.clone()
         };
-        let mut map = match json_output(outputs, root, &path) {
+        let mut map = match json_output(&set, root, &path) {
             Ok(m) => m,
             Err(e) => {
                 errors.push(e);
@@ -1797,11 +1839,12 @@ pub fn merge_outputs(
             }
         }
         map.entry("replace").or_insert(Value::Bool(false));
-        put_output(outputs, path, pretty(&Value::Object(map)));
+        set.put(path, pretty(&Value::Object(map)));
     }
     for (path, bytes) in compiled.outputs {
-        put_output(outputs, path, bytes);
+        set.put(path, bytes);
     }
+    *outputs = set.into_vec();
     if errors.is_empty() {
         Ok(())
     } else {
