@@ -361,7 +361,8 @@ public final class NativeBridge {
     public static boolean teleportToDim(String playerName, String dimension, double x, double y, double z) {
         ServerPlayer p = playerByName(playerName);
         ServerLevel w = worldFor(dimension);
-        if (p == null || w == null) return false;
+        if (p == null) { System.out.println("[yog] teleportToDim: player not found: " + playerName); return false; }
+        if (w == null) { System.out.println("[yog] teleportToDim: no dimension " + dimension); return false; }
         p.teleportTo(w, x, y, z, p.getYRot(), p.getXRot());
         return true;
     }
