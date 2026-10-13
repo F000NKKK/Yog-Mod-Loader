@@ -504,14 +504,14 @@ state through `MenuSync` (mvvm §12.4/§12.7) — no hand-written open/sync code
 
 | # | Question | Recommendation |
 |---|---|---|
-| Q1 | `behaviors` as object vs list | **Object** keyed by id (merge, `null` removal); order = declaration order. A list only if the same behaviour must appear twice — not seen in any audited mod. |
-| Q2 | Params as generated Rust literals vs JSON schema validated at runtime | **Rust literals** (rustc checks types, no runtime parse); schema generated only for editors/IDLE. |
-| Q3 | `"variants"` for data families vs D5 one-file-per-entry | Defer; prototypes + `_defaults` already cut most duplication. Revisit after Hex migration, measuring pigments/staffs. |
-| Q4 | Convert `connect_groups`/`inventory` to `yog:*` behaviours | **Yes** — one mechanism; no special keys. |
-| Q5 | Cross-mod capabilities via exported traits | **Yes**, through the runtime with Codec args; no raw symbol binding. |
+| Q1 | `behaviors` as object vs list — **decided: yes, as recommended** | **Object** keyed by id (merge, `null` removal); order = declaration order. A list only if the same behaviour must appear twice — not seen in any audited mod. |
+| Q2 | Params as generated Rust literals vs JSON schema validated at runtime — **decided: yes, as recommended** | **Rust literals** (rustc checks types, no runtime parse); schema generated only for editors/IDLE. |
+| Q3 | `"variants"` for data families vs D5 one-file-per-entry — **decided: no `variants`.** | Sources keep one file per entry (D5); families share data through `based_on` / `_defaults`. Expanding families is only a build-output concern, never an authoring format. |
+| Q4 | Convert `connect_groups`/`inventory` to `yog:*` behaviours — **decided: yes, as recommended** | **Yes** — one mechanism; no special keys. |
+| Q5 | Cross-mod capabilities via exported traits — **decided: yes, as recommended** | **Yes**, through the runtime with Codec args; no raw symbol binding. |
 | Q6 | Item state format | One `yog:<behavior id>` component per stateful behaviour (Codec bytes); 1.20.1 → NBT tag of the same name. |
 | Q7 | When to do entities (C5) | After Hex/Pipes migrations; players use F4 `PlayerData` meanwhile. |
-| Q8 | Delete `Storage::open_chunk`? | **Yes** once C2 lands, unless a non-positional chunk use case appears. |
+| Q8 | Delete `Storage::open_chunk`? — **decided: yes, as recommended** | **Yes** once C2 lands, unless a non-positional chunk use case appears. |
 | Q9 | Hook ordering beyond declaration order (priorities) | **No** priorities; declaration order + `before`/`on` globals is enough. |
-| Q10 | Keep global events at all? | **Yes**, for cross-cutting concerns (logging, protection, "any item use"); object-specific logic must use behaviours (lint in yog-cli: global handler whose body starts with an id compare → hint). |
+| Q10 | Keep global events at all? — **decided: yes, as recommended** | **Yes**, for cross-cutting concerns (logging, protection, "any item use"); object-specific logic must use behaviours (lint in yog-cli: global handler whose body starts with an id compare → hint). |
 | Q11 | Mod-defined host classes (custom Java superclass) | Only via the generic built-in set (§4.6 table) + declarative rules; mods never ship Java. |
