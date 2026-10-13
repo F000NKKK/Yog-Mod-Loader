@@ -385,7 +385,9 @@ Patchouli's, so imported texts render identically.
 | `$(tr:<key>)` | Inline translated text (vanilla or `.yres` key), e.g. an item name that follows the language |
 | `$$` | A literal `$` |
 
-`$(c:/command)` (Patchouli's click-to-run-command) is **not** supported. The importer reports it.
+`$(c:/command)` (Patchouli's click-to-run-command) is supported (Q10). Clicking it shows a confirmation with the
+exact command; on confirm the client sends it as a normal chat command, so the server's permission checks apply.
+The tooltip shows the command.
 
 ### 4.2 From markup to the renderer
 
@@ -834,7 +836,7 @@ entries,templates}` (both 1.20 locations), plus the mod's lang files. It writes:
 | `extra_recipe_mappings` | `item_mappings` (stage B9), reported until then |
 | page `patchouli:<type>` | built-in type with renamed fields (`heading` → `title`, `recipe` …) |
 | page `advancement`/`flag` | page `unlock` |
-| `$(…)` texts | verbatim; `$(c:…)` is reported |
+| `$(…)` texts | verbatim, including `$(c:…)` |
 | template-based types (`<ns>:<template>`) | `src/ui/book/<template>_page.yui` stub: a `<Component book_page>` with one `<Property>` per `#var` the template uses, its `patchouli:text`/`header`/`image`/`entity` components translated to `<BookText>`/`<BookHeader>`/`<Image>`/`<Entity>` at their coordinates. Processors and `patchouli:custom` classes become `<!-- TODO -->` boxes with the Java class name. |
 | code-registered types (Java `PageX` classes) | a stub component with properties from the union of the fields that the type's pages use, with types inferred (number, bool, list → text) |
 
@@ -969,4 +971,4 @@ mods updated in the same change. Building and running the game is done with the 
 8. **Q8 Read progress — decided: on the server per player; the client keeps only state that cannot affect the game (§6.7).** Was: client-global per book (proposed), per world/server, or synced from the server like
    advancements?
 9. **Q9 Addon books (`extends`) — decided: not in the first release.** Was: needed in the first release (only once Hex addons are ported), or later?
-10. **Q10 `$(c:/command)`:** is click-to-run-command wanted (with a confirmation), or should it stay unsupported?
+10. **Q10 `$(c:/command)` — decided: supported, with a confirmation (§4).** Was: is click-to-run-command wanted (with a confirmation), or should it stay unsupported?
