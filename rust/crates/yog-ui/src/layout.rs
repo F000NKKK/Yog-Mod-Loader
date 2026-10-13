@@ -1,5 +1,5 @@
 use crate::text;
-use crate::widget::{Dock, Widget, WidgetKind};
+use crate::widget::{Dock, Units, Widget, WidgetKind};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FlexDir {
@@ -125,6 +125,20 @@ impl Default for LayoutNode {
 
 /// Compute layout starting at (0,0) with given available size.
 /// Returns the root LayoutNode with absolute coordinates.
+///
+/// Sizing rules (CSS-flexbox-like, single pass per container):
+/// - A `Units::Percent` size resolves exactly once, against the parent's
+///   content box (its size minus padding and scrollbar strip) on the same
+///   axis — in both a Row and a Column, at any depth. While a parent is
+///   still being measured for content on an axis (an auto size along an
+///   unbounded axis), a percent along that axis acts as `Auto` until the
+///   parent's final size is known.
+/// - `flex` (and `Dock::Fill`) grows a child into the parent's free main-axis
+///   space; the grown size sticks and the child's own children lay out
+///   against it. A growing [`clip`](crate::widget::Style::clip) container
+///   (e.g. a `scroll_view`) with an auto main size starts from its min size
+///   instead of its content, so it fills exactly the free space and scrolls
+///   the rest.
 pub fn compute(widget: &Widget, avail_w: f32, avail_h: f32) -> LayoutNode {
     let mut node = LayoutNode {
         id: widget.id.clone(),
@@ -133,25 +147,68 @@ pub fn compute(widget: &Widget, avail_w: f32, avail_h: f32) -> LayoutNode {
         focused: widget.focused,
         ..Default::default()
     };
-    layout_widget(widget, &mut node, 0.0, 0.0, avail_w, avail_h);
+    layout_widget(widget, &mut node, 0.0, 0.0, avail_w, avail_h, avail_w, avail_h);
     node
 }
 
-fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, max_h: f32) {
+/// Sizes at or above this mean "unbounded": the axis is being measured for
+/// content (a Row's main axis while its children are measured, ...).
+const UNBOUNDED: f32 = f32::MAX;
+
+fn bounded(v: f32) -> bool {
+    v < UNBOUNDED / 2.0
+}
+
+/// `u` against `basis`; a percent of an unbounded basis is `None` (auto).
+fn resolve_size(u: Units, basis: f32) -> Option<f32> {
+    match u {
+        Units::Percent(_) if !bounded(basis) => None,
+        _ => u.resolve(basis),
+    }
+}
+
+fn new_node(w: &Widget) -> LayoutNode {
+    LayoutNode {
+        id: w.id.clone(),
+        on_click: w.on_click.clone(),
+        enabled: w.enabled,
+        focused: w.focused,
+        ..Default::default()
+    }
+}
+
+/// Measure `w` and lay out its subtree at `(x, y)`. `max_w`/`max_h` cap its
+/// size (`UNBOUNDED` = no cap: size to content); `basis_w`/`basis_h` are the
+/// parent's content box that percent sizes resolve against.
+#[allow(clippy::too_many_arguments)]
+fn layout_widget(
+    w: &Widget,
+    node: &mut LayoutNode,
+    x: f32,
+    y: f32,
+    max_w: f32,
+    max_h: f32,
+    basis_w: f32,
+    basis_h: f32,
+) {
     let s = &w.style;
     let has_children = !w.children.is_empty();
+    let explicit_w = resolve_size(s.w, basis_w).map(|v| v.min(max_w));
+    let explicit_h = resolve_size(s.h, basis_h).map(|v| v.min(max_h));
 
     // Determine own size
-    let mut ww = s.w.resolve(max_w).map(|v| v.min(max_w)).unwrap_or(max_w);
-    let mut hh = s.h.resolve(max_h).map(|v| v.min(max_h)).unwrap_or(max_h);
+    let mut ww = explicit_w.unwrap_or(max_w);
+    let mut hh = explicit_h.unwrap_or(max_h);
 
     if !has_children {
         // Leaf: size to content (text, item slot, spacer)
         match &w.kind {
             WidgetKind::Label(t) | WidgetKind::Button(t) => {
-                let avail_w = (max_w - s.pad[1] - s.pad[3]).max(0.0);
-                // Wrap only when max_w is a real constraint (not "unlimited")
-                // and the widget doesn't opt out of wrapping entirely.
+                // Wrap at the explicit width when there is one.
+                let box_w = explicit_w.unwrap_or(max_w);
+                let avail_w = (box_w - s.pad[1] - s.pad[3]).max(0.0);
+                // Wrap only when the width is a real constraint (not
+                // "unlimited") and the widget doesn't opt out of wrapping.
                 if avail_w < 4096.0 && !s.no_wrap {
                     ww = (avail_w + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
                     hh = (text::text_height(t, avail_w, s.font_scale) + s.pad[0] + s.pad[2])
@@ -173,18 +230,27 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
                 ww = s.min_w.max(1.0).min(max_w);
                 hh = s.min_h.max(1.0).min(max_h);
             }
-            WidgetKind::Panel(_) => {} // panel with no children → size to min or available
+            // Panel with no children: the available space, or its min size
+            // along an unbounded axis.
+            WidgetKind::Panel(_) => {
+                if !bounded(ww) {
+                    ww = s.min_w;
+                }
+                if !bounded(hh) {
+                    hh = s.min_h;
+                }
+            }
             WidgetKind::McImage { img_w, img_h, .. } => {
                 ww = (*img_w + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
                 hh = (*img_h + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
             }
         }
         // Explicit width/height always wins over content sizing.
-        if let Some(v) = s.w.resolve(max_w) {
-            ww = v.min(max_w);
+        if let Some(v) = explicit_w {
+            ww = v;
         }
-        if let Some(v) = s.h.resolve(max_h) {
-            hh = v.min(max_h);
+        if let Some(v) = explicit_h {
+            hh = v;
         }
     }
 
@@ -194,19 +260,78 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
     node.clip = s.clip;
     node.scrollbar = s.scrollbar;
 
-    if !has_children {
-        return;
+    if has_children {
+        let shrink = Shrink {
+            w: explicit_w.is_none(),
+            h: explicit_h.is_none(),
+            max_w,
+            max_h,
+        };
+        layout_children(w, node, Some(shrink));
     }
+}
 
-    // Flex layout for children
+/// Give `w` (already measured into `node`) its final rect and lay its
+/// children out against that size — nothing is re-resolved or shrunk.
+fn arrange(w: &Widget, node: &mut LayoutNode, x: f32, y: f32) {
+    node.rect.x = x;
+    node.rect.y = y;
+    node.content_h = node.rect.h;
+    if !w.children.is_empty() {
+        layout_children(w, node, None);
+    }
+}
+
+/// Which axes of a container size to its content after its children are
+/// laid out (the measure pass), and the caps on that.
+struct Shrink {
+    w: bool,
+    h: bool,
+    max_w: f32,
+    max_h: f32,
+}
+
+/// Flex layout of `w`'s children inside `node.rect` (size and position
+/// already set). With `shrink`, auto axes then fit the content.
+fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>) {
+    let s = &w.style;
+    let Rect {
+        x,
+        y,
+        w: ww,
+        h: hh,
+    } = node.rect;
+
     let dir = if matches!(w.kind, WidgetKind::Panel(_)) && w.flex_dir == FlexDir::Row {
         FlexDir::Row
     } else {
         FlexDir::Column
     };
     let bar_w = if s.scrollbar { SCROLLBAR_W } else { 0.0 };
-    let content_w = (ww - s.pad[1] - s.pad[3] - bar_w).max(0.0);
-    let content_h = hh - s.pad[0] - s.pad[2];
+    let content_w = if bounded(ww) {
+        (ww - s.pad[1] - s.pad[3] - bar_w).max(0.0)
+    } else {
+        UNBOUNDED
+    };
+    let content_h = if bounded(hh) {
+        (hh - s.pad[0] - s.pad[2]).max(0.0)
+    } else {
+        UNBOUNDED
+    };
+    let (main_bounded, cross_bounded) = match dir {
+        FlexDir::Row => (bounded(content_w), bounded(content_h)),
+        FlexDir::Column => (bounded(content_h), bounded(content_w)),
+    };
+    let cross_offset = |content: f32, size: f32| -> f32 {
+        if !cross_bounded {
+            return 0.0;
+        }
+        match s.align {
+            Align::Center => (content - size) / 2.0,
+            Align::End => content - size,
+            Align::Start => 0.0,
+        }
+    };
 
     // Helpers for Dock
     // Returns effective flex factor (Dock::Fill implies at least 1.0).
@@ -225,66 +350,82 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
                 (FlexDir::Row, Dock::Right) | (FlexDir::Column, Dock::Bottom)
             )
     };
+    let stretches = |dock: Dock| -> bool {
+        cross_bounded
+            && match dir {
+                FlexDir::Row => matches!(dock, Dock::Fill | Dock::Left | Dock::Right),
+                FlexDir::Column => matches!(dock, Dock::Fill | Dock::Top | Dock::Bottom),
+            }
+    };
 
     // Measure children
-    let mut child_nodes: Vec<LayoutNode> = Vec::new();
+    let mut child_nodes: Vec<LayoutNode> = Vec::with_capacity(w.children.len());
     let mut total_flex: f32 = 0.0;
     let mut used_main: f32 = 0.0;
 
     for child in &w.children {
-        let dock = child.style.dock;
-        let mut cn = LayoutNode {
-            id: child.id.clone(),
-            on_click: child.on_click.clone(),
-            enabled: child.enabled,
-            focused: child.focused,
-            ..Default::default()
-        };
+        let mut cn = new_node(child);
         // Absolutely positioned: measured against what's left of the content
-        // box past its offset, placed after the flow passes.
+        // box past its offset (percent sizes: against the whole content box),
+        // placed after the flow passes.
         if let Some((px, py)) = child.style.pos {
-            let mw = (content_w - px).max(0.0);
-            let mh = (content_h - py).max(0.0);
-            layout_widget(child, &mut cn, 0.0, 0.0, mw, mh);
+            let mw = if bounded(content_w) {
+                (content_w - px).max(0.0)
+            } else {
+                UNBOUNDED
+            };
+            let mh = if bounded(content_h) {
+                (content_h - py).max(0.0)
+            } else {
+                UNBOUNDED
+            };
+            layout_widget(child, &mut cn, 0.0, 0.0, mw, mh, content_w, content_h);
             child_nodes.push(cn);
             continue;
         }
-        // Determine measurement constraints based on Dock + direction.
-        let (cmw, cmh) = match (dir, dock) {
-            // Fill: constrain both axes so text can wrap to container dimensions.
-            (FlexDir::Row, Dock::Fill) => (content_w, content_h),
-            (FlexDir::Column, Dock::Fill) => (content_w, content_h),
-            // Cross-axis fill: constrain cross axis, unlimited main axis.
-            (FlexDir::Row, Dock::Left | Dock::Right) => (f32::MAX, content_h),
-            (FlexDir::Column, Dock::Top | Dock::Bottom) => (content_w, f32::MAX),
-            // Default flex behaviour.
-            (FlexDir::Row, _) => (f32::MAX, content_h),
-            (FlexDir::Column, _) => (content_w, f32::MAX),
+        // Main axis unbounded (children size to content along it), except a
+        // Dock::Fill child which may wrap text to the container.
+        let (cmw, cmh) = match (dir, child.style.dock) {
+            (_, Dock::Fill) => (content_w, content_h),
+            (FlexDir::Row, _) => (UNBOUNDED, content_h),
+            (FlexDir::Column, _) => (content_w, UNBOUNDED),
         };
-        layout_widget(child, &mut cn, 0.0, 0.0, cmw, cmh);
-        if in_flow(child) {
-            if dir == FlexDir::Row {
-                used_main += cn.rect.w;
-            } else {
-                used_main += cn.rect.h;
+        layout_widget(child, &mut cn, 0.0, 0.0, cmw, cmh, content_w, content_h);
+        let ef = effective_flex(child);
+        // A growing clip container starts from its min size, not its content.
+        if ef > 0.0 && child.style.clip && main_bounded && in_flow(child) {
+            match dir {
+                FlexDir::Row if child.style.w.is_auto() => cn.rect.w = child.style.min_w,
+                FlexDir::Column if child.style.h.is_auto() => cn.rect.h = child.style.min_h,
+                _ => {}
             }
         }
-        total_flex += effective_flex(child);
+        // Flow and far-edge (Dock::Right / Dock::Bottom) children alike
+        // take main-axis space.
+        used_main += match dir {
+            FlexDir::Row => cn.rect.w,
+            FlexDir::Column => cn.rect.h,
+        };
+        if in_flow(child) {
+            total_flex += ef;
+        }
         child_nodes.push(cn);
     }
-    let flow_count = w.children.iter().filter(|c| in_flow(c)).count();
-    let gaps = s.gap * (flow_count.saturating_sub(1) as f32);
-    used_main += gaps;
+    let placed = w.children.iter().filter(|c| c.style.pos.is_none()).count();
+    used_main += s.gap * (placed.saturating_sub(1) as f32);
 
-    let available = (if dir == FlexDir::Row {
-        content_w
+    // Free main-axis space to grow into — none while measuring for content.
+    let available = if main_bounded {
+        (match dir {
+            FlexDir::Row => content_w,
+            FlexDir::Column => content_h,
+        }) - used_main
     } else {
-        content_h
-    }) - used_main;
-    let mut pos = if dir == FlexDir::Row {
-        s.pad[3]
-    } else {
-        s.pad[0]
+        0.0
+    };
+    let mut pos = match dir {
+        FlexDir::Row => s.pad[3],
+        FlexDir::Column => s.pad[0],
     };
 
     // --- Forward pass: position in-flow children (not Dock::Right / Dock::Bottom) ---
@@ -292,92 +433,82 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
         if !in_flow(child) {
             continue;
         }
-        let dock = child.style.dock;
         let cn = &mut child_nodes[i];
-        if dir == FlexDir::Row {
-            let ef = effective_flex(child);
-            if ef > 0.0 && total_flex > 0.0 && available > 0.0 {
-                cn.rect.w += available * ef / total_flex;
-            }
-            if dock == Dock::Fill || dock == Dock::Left || dock == Dock::Right {
-                cn.rect.h = content_h; // stretch cross axis
-            }
-            cn.rect.x = x + pos;
-            cn.rect.y = y
-                + s.pad[0]
-                + match s.align {
-                    Align::Center => (content_h - cn.rect.h) / 2.0,
-                    Align::End => content_h - cn.rect.h,
-                    _ => 0.0,
-                };
-            pos += cn.rect.w + s.gap;
+        let ef = effective_flex(child);
+        let grow = if ef > 0.0 && total_flex > 0.0 && available > 0.0 {
+            available * ef / total_flex
         } else {
-            let ef = effective_flex(child);
-            if ef > 0.0 && total_flex > 0.0 && available > 0.0 {
-                cn.rect.h += available * ef / total_flex;
+            0.0
+        };
+        let stretch = stretches(child.style.dock);
+        let (cx, cy) = if dir == FlexDir::Row {
+            cn.rect.w += grow;
+            if stretch {
+                cn.rect.h = content_h;
             }
-            if dock == Dock::Fill || dock == Dock::Top || dock == Dock::Bottom {
-                cn.rect.w = content_w; // stretch cross axis
+            let p = (x + pos, y + s.pad[0] + cross_offset(content_h, cn.rect.h));
+            pos += cn.rect.w + s.gap;
+            p
+        } else {
+            cn.rect.h += grow;
+            if stretch {
+                cn.rect.w = content_w;
             }
-            cn.rect.x = x
-                + s.pad[3]
-                + match s.align {
-                    Align::Center => (content_w - cn.rect.w) / 2.0,
-                    Align::End => content_w - cn.rect.w,
-                    _ => 0.0,
-                };
-            cn.rect.y = y + pos;
+            let p = (x + s.pad[3] + cross_offset(content_w, cn.rect.w), y + pos);
             pos += cn.rect.h + s.gap;
-        }
-        if !child.children.is_empty() {
-            layout_widget(child, cn, cn.rect.x, cn.rect.y, cn.rect.w, cn.rect.h);
-        }
+            p
+        };
+        arrange(child, cn, cx, cy);
     }
 
     // --- Reverse pass: position Dock::Right / Dock::Bottom children from the far edge ---
-    let mut rpos = if dir == FlexDir::Row {
-        x + s.pad[3] + content_w
+    // While measuring for content there is no far edge: they line up right
+    // after the flow, keeping their right-to-left (bottom-to-top) order.
+    let mut rpos = if main_bounded {
+        match dir {
+            FlexDir::Row => x + s.pad[3] + content_w,
+            FlexDir::Column => y + s.pad[0] + content_h,
+        }
     } else {
-        y + s.pad[0] + content_h
+        let docked: Vec<f32> = w
+            .children
+            .iter()
+            .zip(&child_nodes)
+            .filter(|(c, _)| !in_flow(c) && c.style.pos.is_none())
+            .map(|(_, n)| match dir {
+                FlexDir::Row => n.rect.w,
+                FlexDir::Column => n.rect.h,
+            })
+            .collect();
+        let span: f32 =
+            docked.iter().sum::<f32>() + s.gap * (docked.len().saturating_sub(1) as f32);
+        (match dir {
+            FlexDir::Row => x,
+            FlexDir::Column => y,
+        }) + pos
+            + span
     };
     for (i, child) in w.children.iter().enumerate() {
         if in_flow(child) || child.style.pos.is_some() {
             continue;
         }
-        let dock = child.style.dock;
         let cn = &mut child_nodes[i];
-        if dir == FlexDir::Row {
-            if dock == Dock::Fill || dock == Dock::Left || dock == Dock::Right {
+        let stretch = stretches(child.style.dock);
+        let (cx, cy) = if dir == FlexDir::Row {
+            if stretch {
                 cn.rect.h = content_h;
             }
             rpos -= cn.rect.w;
-            cn.rect.x = rpos;
-            cn.rect.y = y
-                + s.pad[0]
-                + match s.align {
-                    Align::Center => (content_h - cn.rect.h) / 2.0,
-                    Align::End => content_h - cn.rect.h,
-                    _ => 0.0,
-                };
-            rpos -= s.gap;
+            (rpos, y + s.pad[0] + cross_offset(content_h, cn.rect.h))
         } else {
-            if dock == Dock::Fill || dock == Dock::Top || dock == Dock::Bottom {
+            if stretch {
                 cn.rect.w = content_w;
             }
             rpos -= cn.rect.h;
-            cn.rect.y = rpos;
-            cn.rect.x = x
-                + s.pad[3]
-                + match s.align {
-                    Align::Center => (content_w - cn.rect.w) / 2.0,
-                    Align::End => content_w - cn.rect.w,
-                    _ => 0.0,
-                };
-            rpos -= s.gap;
-        }
-        if !child.children.is_empty() {
-            layout_widget(child, cn, cn.rect.x, cn.rect.y, cn.rect.w, cn.rect.h);
-        }
+            (x + s.pad[3] + cross_offset(content_w, cn.rect.w), rpos)
+        };
+        rpos -= s.gap;
+        arrange(child, cn, cx, cy);
     }
 
     // --- Absolutely positioned children (see `Style::pos`) ---
@@ -386,27 +517,25 @@ fn layout_widget(w: &Widget, node: &mut LayoutNode, x: f32, y: f32, max_w: f32, 
             continue;
         };
         let cn = &mut child_nodes[i];
-        cn.rect.x = x + s.pad[3] + px;
-        cn.rect.y = y + s.pad[0] + py;
-        if !child.children.is_empty() {
-            layout_widget(child, cn, cn.rect.x, cn.rect.y, cn.rect.w, cn.rect.h);
-        }
+        arrange(child, cn, x + s.pad[3] + px, y + s.pad[0] + py);
     }
 
-    // Auto-size: shrink to content
-    if s.w.is_auto() {
-        let cw: f32 = child_nodes
-            .iter()
-            .map(|c| c.rect.x - x + c.rect.w)
-            .fold(0.0f32, f32::max);
-        node.rect.w = (cw + s.pad[1] + s.pad[3] + bar_w).max(s.min_w).min(max_w);
-    }
+    // Auto-size (measure pass only): shrink to content
     let ch: f32 = child_nodes
         .iter()
         .map(|c| c.rect.y - y + c.rect.h)
         .fold(0.0f32, f32::max);
-    if s.h.is_auto() {
-        node.rect.h = (ch + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
+    if let Some(fit) = shrink {
+        if fit.w {
+            let cw: f32 = child_nodes
+                .iter()
+                .map(|c| c.rect.x - x + c.rect.w)
+                .fold(0.0f32, f32::max);
+            node.rect.w = (cw + s.pad[1] + bar_w).max(s.min_w).min(fit.max_w);
+        }
+        if fit.h {
+            node.rect.h = (ch + s.pad[2]).max(s.min_h).min(fit.max_h);
+        }
     }
 
     // Scrolling: children positioned from the content's top, then shifted up.
@@ -518,6 +647,307 @@ mod tests {
             .child(widget::spacer().min_w(10.0).min_h(10.0).at(30.0, 40.0));
         let node = compute(&root, 300.0, 300.0);
         assert_eq!((node.rect.w, node.rect.h), (40.0, 50.0));
+    }
+
+    fn pct(v: f32) -> Units {
+        Units::Percent(v)
+    }
+
+    fn r(n: &LayoutNode) -> (f32, f32, f32, f32) {
+        (n.rect.x, n.rect.y, n.rect.w, n.rect.h)
+    }
+
+    #[test]
+    fn percent_width_in_a_row_resolves_once_against_the_content_box() {
+        let root = widget::panel(FlexDir::Row)
+            .w(400.0)
+            .h(100.0)
+            .padding(5.0, 10.0, 5.0, 10.0)
+            .child(
+                widget::panel(FlexDir::Column)
+                    .w(pct(50.0))
+                    .child(widget::spacer().min_w(10.0).min_h(10.0)),
+            )
+            .child(widget::spacer().w(pct(25.0)).h(pct(50.0)));
+        let node = compute(&root, 800.0, 600.0);
+        // Content box: 380 x 90.
+        assert_eq!(r(&node.children[0]).2, 190.0);
+        assert_eq!(r(&node.children[1]), (10.0 + 190.0 + 2.0, 5.0, 95.0, 45.0));
+    }
+
+    #[test]
+    fn percent_sizes_in_a_column() {
+        let root = widget::panel(FlexDir::Column)
+            .w(200.0)
+            .h(300.0)
+            .padding(10.0, 0.0, 10.0, 0.0)
+            .gap(0.0)
+            .child(
+                widget::panel(FlexDir::Row)
+                    .w(pct(50.0))
+                    .h(pct(50.0))
+                    .child(widget::spacer()),
+            )
+            .child(widget::spacer().w(pct(100.0)).h(pct(10.0)));
+        let node = compute(&root, 800.0, 600.0);
+        assert_eq!(r(&node.children[0]), (0.0, 10.0, 100.0, 140.0));
+        assert_eq!(r(&node.children[1]), (0.0, 150.0, 200.0, 28.0));
+    }
+
+    #[test]
+    fn nested_percents_compound_per_level_only() {
+        let root = widget::panel(FlexDir::Row).w(400.0).h(200.0).child(
+            widget::panel(FlexDir::Column)
+                .w(pct(50.0))
+                .h(pct(100.0))
+                .child(
+                    widget::panel(FlexDir::Row)
+                        .w(pct(50.0))
+                        .h(pct(50.0))
+                        .child(widget::spacer().w(pct(50.0)).h(pct(50.0))),
+                ),
+        );
+        let node = compute(&root, 400.0, 200.0);
+        let a = &node.children[0];
+        let b = &a.children[0];
+        let c = &b.children[0];
+        assert_eq!(r(a), (0.0, 0.0, 200.0, 200.0));
+        assert_eq!(r(b), (0.0, 0.0, 100.0, 100.0));
+        assert_eq!(r(c), (0.0, 0.0, 50.0, 50.0));
+    }
+
+    #[test]
+    fn percent_resolves_against_the_scrollbar_free_box() {
+        let root = widget::scroll_view()
+            .w(106.0)
+            .h(50.0)
+            .child(widget::spacer().w(pct(50.0)).h(10.0));
+        let node = compute(&root, 400.0, 400.0);
+        assert_eq!(node.children[0].rect.w, 50.0);
+    }
+
+    #[test]
+    fn grow_shares_free_space_with_percent_siblings() {
+        let root = widget::panel(FlexDir::Row)
+            .w(300.0)
+            .h(50.0)
+            .gap(4.0)
+            .child(widget::spacer().w(pct(50.0)))
+            .child(widget::panel(FlexDir::Column).flex(1.0).child(widget::spacer()))
+            .child(widget::spacer().w(pct(10.0)));
+        let node = compute(&root, 300.0, 50.0);
+        // 300 - 150 - 30 - 2 * 4 = 112 for the grown panel.
+        assert_eq!(r(&node.children[0]).2, 150.0);
+        assert_eq!(r(&node.children[1]), (154.0, 0.0, 112.0, 4.0));
+        assert_eq!(r(&node.children[2]), (270.0, 0.0, 30.0, 4.0));
+    }
+
+    #[test]
+    fn grown_panel_keeps_its_size_and_lays_children_out_against_it() {
+        let root = widget::panel(FlexDir::Column)
+            .w(200.0)
+            .h(200.0)
+            .gap(0.0)
+            .child(widget::spacer().min_h(20.0))
+            .child(
+                widget::panel(FlexDir::Row)
+                    .flex(1.0)
+                    .w(pct(100.0))
+                    .gap(0.0)
+                    .child(widget::spacer().w(pct(25.0)).h(pct(50.0)))
+                    .child(widget::panel(FlexDir::Column).flex(1.0).child(widget::spacer()))
+                    .child(widget::spacer().dock(Dock::Right).min_w(10.0)),
+            );
+        let node = compute(&root, 400.0, 400.0);
+        let grown = &node.children[1];
+        assert_eq!(r(grown), (0.0, 20.0, 200.0, 180.0));
+        assert_eq!(r(&grown.children[0]), (0.0, 20.0, 50.0, 90.0));
+        // The inner flex child grows into what's left of the grown width...
+        assert_eq!(r(&grown.children[1]).2, 200.0 - 50.0 - 10.0);
+        // ... and the right-docked one hugs the grown panel's far edge.
+        assert_eq!(r(&grown.children[2]), (190.0, 20.0, 10.0, 180.0));
+    }
+
+    #[test]
+    fn grown_column_panel_fills_its_parent_and_children_grow_too() {
+        let root = widget::panel(FlexDir::Column)
+            .w(100.0)
+            .h(100.0)
+            .gap(0.0)
+            .child(
+                widget::panel(FlexDir::Column)
+                    .flex(1.0)
+                    .gap(0.0)
+                    .child(widget::spacer().flex(1.0)),
+            );
+        let node = compute(&root, 100.0, 100.0);
+        assert_eq!(node.children[0].rect.h, 100.0);
+        assert_eq!(node.children[0].children[0].rect.h, 100.0);
+    }
+
+    #[test]
+    fn empty_auto_panel_in_a_row_takes_its_min_width() {
+        let root = widget::panel(FlexDir::Row)
+            .w(100.0)
+            .h(20.0)
+            .child(widget::panel(FlexDir::Column).min_w(7.0))
+            .child(widget::spacer());
+        let node = compute(&root, 100.0, 20.0);
+        assert_eq!(node.children[0].rect.w, 7.0);
+        assert_eq!(node.children[1].rect.x, 9.0);
+    }
+
+    #[test]
+    fn padding_counts_once_in_auto_size() {
+        let root = widget::panel(FlexDir::Column)
+            .padding(3.0, 4.0, 5.0, 6.0)
+            .child(widget::spacer().min_w(10.0).min_h(10.0));
+        let node = compute(&root, 300.0, 300.0);
+        assert_eq!((node.rect.w, node.rect.h), (20.0, 18.0));
+        assert_eq!((node.children[0].rect.x, node.children[0].rect.y), (6.0, 3.0));
+    }
+
+    #[test]
+    fn auto_row_in_a_column_measures_to_content() {
+        // Align::Center on an auto-height row must not centre in "infinity".
+        let root = widget::panel(FlexDir::Column).w(200.0).h(200.0).child(
+            widget::panel(FlexDir::Row)
+                .align(Align::Center)
+                .gap(0.0)
+                .child(widget::spacer().min_w(10.0).min_h(10.0))
+                .child(widget::spacer().min_w(10.0).min_h(20.0))
+                .child(widget::spacer().min_w(5.0).dock(Dock::Right)),
+        );
+        let node = compute(&root, 200.0, 200.0);
+        let row = &node.children[0];
+        assert_eq!(row.rect.h, 20.0);
+        assert_eq!(row.children[0].rect.y, 5.0);
+        assert_eq!(row.children[1].rect.y, 0.0);
+    }
+
+    #[test]
+    fn row_with_right_dock_measured_on_unbounded_axis() {
+        // An auto-width row inside a row: its Dock::Right child lines up after
+        // the flow instead of at "infinity".
+        let root = widget::panel(FlexDir::Row).w(300.0).h(20.0).child(
+            widget::panel(FlexDir::Row)
+                .gap(1.0)
+                .child(widget::spacer().min_w(10.0))
+                .child(widget::spacer().min_w(5.0).dock(Dock::Right))
+                .child(widget::spacer().min_w(7.0).dock(Dock::Right)),
+        );
+        let node = compute(&root, 300.0, 20.0);
+        let inner = &node.children[0];
+        assert_eq!(inner.rect.w, 10.0 + 1.0 + 7.0 + 1.0 + 5.0);
+        assert_eq!(inner.children[1].rect.x, 19.0);
+        assert_eq!(inner.children[2].rect.x, 11.0);
+    }
+
+    #[test]
+    fn align_center_and_end_in_both_directions() {
+        let col = widget::panel(FlexDir::Column)
+            .w(100.0)
+            .h(50.0)
+            .align(Align::Center)
+            .child(widget::spacer().min_w(20.0).min_h(5.0));
+        assert_eq!(compute(&col, 100.0, 50.0).children[0].rect.x, 40.0);
+        let row = widget::panel(FlexDir::Row)
+            .w(100.0)
+            .h(50.0)
+            .padding(10.0, 0.0, 0.0, 0.0)
+            .align(Align::End)
+            .child(widget::spacer().min_w(20.0).h(pct(20.0)));
+        // Content height 40, child 8 tall, bottom-aligned.
+        assert_eq!(compute(&row, 100.0, 50.0).children[0].rect.y, 10.0 + 32.0);
+    }
+
+    #[test]
+    fn positioned_children_with_percent_sizes() {
+        let root = widget::panel(FlexDir::Column)
+            .w(200.0)
+            .h(100.0)
+            .padding(10.0, 10.0, 10.0, 10.0)
+            .child(widget::spacer().w(pct(50.0)).h(pct(50.0)).at(20.0, 10.0))
+            .child(
+                widget::panel(FlexDir::Row)
+                    .w(pct(100.0))
+                    .h(pct(25.0))
+                    .at(0.0, 60.0)
+                    .gap(0.0)
+                    .child(widget::spacer().w(pct(50.0)))
+                    .child(widget::spacer().flex(1.0)),
+            );
+        let node = compute(&root, 400.0, 400.0);
+        // Content box 180 x 80.
+        assert_eq!(r(&node.children[0]), (30.0, 20.0, 90.0, 40.0));
+        // 100% of 180 but capped to what's left past x=0, i.e. 180; 25% of 80
+        // = 20 but capped to 80 - 60.
+        let p = &node.children[1];
+        assert_eq!(r(p), (10.0, 70.0, 180.0, 20.0));
+        assert_eq!(r(&p.children[0]), (10.0, 70.0, 90.0, 4.0));
+        assert_eq!(r(&p.children[1]), (100.0, 70.0, 90.0, 4.0));
+    }
+
+    #[test]
+    fn growing_scroll_view_fills_free_space_and_scrolls_the_rest() {
+        let list = widget::scroll_view()
+            .id("list")
+            .flex(1.0)
+            .w(pct(100.0))
+            .gap(0.0)
+            .padding(2.0, 2.0, 2.0, 2.0)
+            .scroll_y(1000.0)
+            .children((0..10).map(|_| widget::spacer().w(pct(100.0)).min_h(20.0)));
+        let root = widget::panel(FlexDir::Column)
+            .w(100.0)
+            .h(120.0)
+            .gap(0.0)
+            .child(widget::spacer().min_h(20.0))
+            .child(list);
+        let node = compute(&root, 100.0, 120.0);
+        let v = find_node(&node, "list").unwrap();
+        assert_eq!(r(v), (0.0, 20.0, 100.0, 100.0));
+        assert_eq!(v.content_h, 204.0);
+        assert_eq!(v.scroll_y, 104.0);
+        // Rows span the scrollbar-free content width.
+        assert_eq!(v.children[0].rect.w, 100.0 - 4.0 - SCROLLBAR_W);
+        // The last row's bottom sits on the view's inner bottom edge.
+        let last = v.children[9].rect;
+        assert_eq!(last.y + last.h, 20.0 + 100.0 - 2.0);
+        assert!(v.scrollbar_rects().is_some());
+    }
+
+    #[test]
+    fn label_wraps_at_its_explicit_width() {
+        let root = widget::panel(FlexDir::Column)
+            .w(300.0)
+            .child(widget::label("aaaa bbbb cccc").w(40.0));
+        let node = compute(&root, 300.0, 300.0);
+        let l = node.children[0].rect;
+        assert_eq!(l.w, 40.0);
+        assert!(l.h > text::LINE_H, "wrapped onto several lines: {l:?}");
+    }
+
+    #[test]
+    fn percent_caps_at_the_cross_axis_and_ignores_unbounded_basis() {
+        // 150% across a column caps at the content width.
+        let root = widget::panel(FlexDir::Column)
+            .w(100.0)
+            .h(100.0)
+            .child(widget::spacer().w(pct(150.0)));
+        assert_eq!(compute(&root, 100.0, 100.0).children[0].rect.w, 100.0);
+        // An auto-width row measured inside a row resolves its children's
+        // percents against its final (content) width.
+        let root = widget::panel(FlexDir::Row).w(200.0).h(20.0).child(
+            widget::panel(FlexDir::Row)
+                .gap(0.0)
+                .child(widget::spacer().min_w(40.0))
+                .child(widget::spacer().w(pct(50.0))),
+        );
+        let node = compute(&root, 200.0, 20.0);
+        let inner = &node.children[0];
+        assert_eq!(inner.rect.w, 44.0);
+        assert_eq!(inner.children[1].rect.w, 22.0);
     }
 
     #[test]
