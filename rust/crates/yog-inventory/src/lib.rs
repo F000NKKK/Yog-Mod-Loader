@@ -10,7 +10,10 @@
 //! currently covers the data model (phase 2); the Java-side `BlockEntity`/
 //! `Menu`/`Screen` plumbing lands in later phases.
 
+use std::sync::atomic::{AtomicPtr, Ordering};
+
 use serde::Deserialize;
+use yog_abi::YogStr;
 
 /// Pixel position of a single slot in vanilla GUI coordinate space (the same
 /// space vanilla screens use: origin at the panel's top-left corner, one
@@ -30,6 +33,11 @@ pub const DEFAULT_PLAYER_INV_OFFSET: (f32, f32) = (8.0, 84.0);
 /// Extra vertical gap between the player's main inventory and their hotbar,
 /// on top of the normal per-row `SLOT_SIZE` spacing (also a vanilla convention).
 pub const PLAYER_INV_TO_HOTBAR_GAP: f32 = 4.0;
+/// Columns of [`InventoryDef::default_grid`] (a vanilla container row).
+const DEFAULT_GRID_COLS: usize = 9;
+/// Top-left slot of [`InventoryDef::default_grid`] — leaves room for the
+/// title above, like vanilla containers.
+const DEFAULT_GRID_ORIGIN: (f32, f32) = (8.0, 18.0);
 
 /// Describes one inventory-backed screen: how many slots a mod block has,
 /// where they sit, whether the player's own inventory is appended below,
@@ -122,8 +130,7 @@ impl InventoryDef {
     }
 
     /// Resolve the effective slot layout: the explicit one if set, otherwise
-    /// a default vanilla-style grid (9 columns, wrapping downward, 18px
-    /// spacing, starting at (8, 18) — same convention as vanilla containers).
+    /// [`InventoryDef::default_grid`].
     pub fn resolved_layout(&self) -> Vec<SlotLayout> {
         if !self.layout.is_empty() {
             return self.layout.clone();
@@ -134,14 +141,14 @@ impl InventoryDef {
     /// Default vanilla-style grid: up to 9 columns, 18px spacing, starting at
     /// (8, 18) — leaves room for a title above, matches vanilla containers.
     pub fn default_grid(slot_count: usize) -> Vec<SlotLayout> {
-        const COLS: usize = 9;
+        let (x0, y0) = DEFAULT_GRID_ORIGIN;
         (0..slot_count)
             .map(|i| {
-                let col = (i % COLS) as f32;
-                let row = (i / COLS) as f32;
+                let col = (i % DEFAULT_GRID_COLS) as f32;
+                let row = (i / DEFAULT_GRID_COLS) as f32;
                 SlotLayout {
-                    x: 8.0 + col * SLOT_SIZE,
-                    y: 18.0 + row * SLOT_SIZE,
+                    x: x0 + col * SLOT_SIZE,
+                    y: y0 + row * SLOT_SIZE,
                 }
             })
             .collect()
@@ -192,9 +199,6 @@ pub fn decode_layout(s: &str) -> Vec<SlotLayout> {
 // over a fresh pointer to THIS mod's own copy of the `SNAPSHOT` static below.
 // Resolved the same way the runtime already resolves `yog_mod_register` /
 // `__yog_resolve_imports_final` on each loaded mod's library.
-
-use std::sync::atomic::{AtomicPtr, Ordering};
-use yog_abi::YogStr;
 
 /// Capacity of [`YogInvSnapshotRaw::slots`] — covers the largest realistic
 /// inventory screen (a mod's own slots + player main inventory + hotbar).
@@ -260,26 +264,26 @@ pub struct SlotView {
     pub y: i32,
 }
 
+/// The filled slots of the snapshot the runtime handed over this frame
+/// (empty when no inventory screen is open).
+fn snapshot_slots() -> &'static [YogInvSlotRaw] {
+    let ptr = SNAPSHOT.load(Ordering::Acquire);
+    // SAFETY: the runtime keeps the snapshot alive for the render call that
+    // reads it, and only stores null or a valid pointer.
+    match unsafe { ptr.as_ref() } {
+        Some(snap) => &snap.slots[..(snap.slot_count as usize).min(MAX_SNAPSHOT_SLOTS)],
+        None => &[],
+    }
+}
+
 /// Number of slots in the currently-open inventory screen (0 if none is open).
 pub fn current_slot_count() -> usize {
-    let ptr = SNAPSHOT.load(Ordering::Acquire);
-    if ptr.is_null() {
-        return 0;
-    }
-    unsafe { &*ptr }.slot_count as usize
+    snapshot_slots().len()
 }
 
 /// Slot `index`'s content right now, or `None` if out of range.
 pub fn current_slot(index: usize) -> Option<SlotView> {
-    let ptr = SNAPSHOT.load(Ordering::Acquire);
-    if ptr.is_null() {
-        return None;
-    }
-    let snap = unsafe { &*ptr };
-    if index >= snap.slot_count as usize {
-        return None;
-    }
-    let raw = &snap.slots[index];
+    let raw = snapshot_slots().get(index)?;
     let item_id = if raw.item_id.is_empty() {
         String::new()
     } else {
@@ -291,4 +295,36 @@ pub fn current_slot(index: usize) -> Option<SlotView> {
         x: raw.x,
         y: raw.y,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_grid_wraps_rows() {
+        let g = InventoryDef::new("t", DEFAULT_GRID_COLS + 1).resolved_layout();
+        assert_eq!(g[0], SlotLayout { x: 8.0, y: 18.0 });
+        assert_eq!(g[DEFAULT_GRID_COLS], SlotLayout { x: 8.0, y: 36.0 });
+    }
+
+    #[test]
+    fn layout_round_trips() {
+        let l = vec![
+            SlotLayout { x: 1.5, y: 2.0 },
+            SlotLayout { x: 30.0, y: 4.0 },
+        ];
+        assert_eq!(decode_layout(&encode_layout(&l)), l);
+        assert!(decode_layout("").is_empty());
+        assert_eq!(
+            decode_layout("1:2,bad,3"),
+            vec![SlotLayout { x: 1.0, y: 2.0 }]
+        );
+    }
+
+    #[test]
+    fn no_snapshot_means_no_slots() {
+        assert_eq!(current_slot_count(), 0);
+        assert!(current_slot(0).is_none());
+    }
 }
