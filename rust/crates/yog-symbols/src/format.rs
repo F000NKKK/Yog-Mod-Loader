@@ -304,7 +304,12 @@ impl<'a> Formatter<'a> {
     /// `entry`'s name with the namespaces and types enclosing it
     /// (`alloc::vec::Vec<u8, alloc::alloc::Global>`), memoized per unit.
     pub(crate) fn qualified_name(&self, off: Off, entry: &Die) -> String {
-        let cache = || self.info.qualified_names.lock().unwrap_or_else(|e| e.into_inner());
+        let cache = || {
+            self.info
+                .qualified_names
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+        };
         if let Some(name) = cache().get(&off.0) {
             return name.clone();
         }

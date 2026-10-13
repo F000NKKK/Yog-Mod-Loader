@@ -12,10 +12,14 @@ fn bench(c: &mut Criterion) {
     let player = "0f8e1c2a-0000-4000-8000-000000000000\tcreative\t4\t30\t1395\t300\t1\t0";
 
     let mut g = c.benchmark_group("query_decode");
-    g.bench_function("entity", |b| b.iter(|| EntityInfo::decode(black_box(entity))));
+    g.bench_function("entity", |b| {
+        b.iter(|| EntityInfo::decode(black_box(entity)))
+    });
     g.bench_function("block_hit", |b| b.iter(|| BlockHit::decode(black_box(hit))));
     g.bench_function("block", |b| b.iter(|| BlockInfo::decode(black_box(block))));
-    g.bench_function("player", |b| b.iter(|| PlayerInfo::decode(black_box(player))));
+    g.bench_function("player", |b| {
+        b.iter(|| PlayerInfo::decode(black_box(player)))
+    });
     g.finish();
 }
 
