@@ -93,4 +93,44 @@ impl<'ctx> Draw2D<'ctx> {
         let a = self.0.api();
         unsafe { (a.draw2d_item)(YogStr::from_str(id), x, y, size) }
     }
+
+    /// Draw the image `source` — a Yog image source such as `"item:apple"`,
+    /// `"block:stone"`, `"sprite:button"` or `"mymod:gui/logo"` (see
+    /// [`crate::image`]) — scaled into `(x, y, w, h)`. The host resolves it
+    /// for its Minecraft version; prefer this over [`Self::mc_texture`].
+    pub fn image(&self, source: &str, x: f32, y: f32, w: f32, h: f32) {
+        self.image_region(source, x, y, w, h, [0.0; 4], 0xFFFF_FFFF);
+    }
+
+    /// [`Self::image`] drawing only `region` (`[u, v, w, h]` in the image's
+    /// own pixels; all zero = the whole image) multiplied by `tint`
+    /// (`0xAARRGGBB`, `0xFFFFFFFF` = none). Items and sprites are always
+    /// drawn whole, and items ignore the tint.
+    #[allow(clippy::too_many_arguments)]
+    pub fn image_region(
+        &self,
+        source: &str,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        region: [f32; 4],
+        tint: u32,
+    ) {
+        let a = self.0.api();
+        let [u, v, uw, vh] = region;
+        unsafe { (a.draw2d_image)(YogStr::from_str(source), x, y, w, h, u, v, uw, vh, tint) }
+    }
+
+    /// Natural size in GUI pixels of the image `source` (`None` if the host
+    /// can't resolve it).
+    pub fn image_size(&self, source: &str) -> Option<(f32, f32)> {
+        image_size_with(self.0.image_size_fn(), source)
+    }
+}
+
+/// Calls an [`ImageSizeFn`](crate::ImageSizeFn).
+pub fn image_size_with(f: crate::ImageSizeFn, source: &str) -> Option<(f32, f32)> {
+    let (mut w, mut h) = (0.0f32, 0.0f32);
+    unsafe { f(YogStr::from_str(source), &mut w, &mut h) }.then_some((w, h))
 }

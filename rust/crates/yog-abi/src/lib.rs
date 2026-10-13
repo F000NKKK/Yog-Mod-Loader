@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 0;
-pub const ABI_MINOR: u32 = 33;
+pub const ABI_MINOR: u32 = 34;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -693,6 +693,34 @@ pub struct YogGfxApi {
     /// any time (render callbacks and UI event handlers); the pointer stays
     /// valid for the life of the process.
     pub text_width: unsafe extern "C" fn(text: YogStr, font: YogStr) -> f32,
+
+    // ── appended in ABI minor 34 ──────────────────────────────────────────────
+    /// Draw the image `source` — a Yog image source (`item:apple`,
+    /// `block:stone`, `sprite:button`, `mymod:gui/logo`, ...; see
+    /// `yog_gfx::image`), resolved by the host for its Minecraft version —
+    /// scaled into `(x, y, w, h)` (GUI pixels, nearest-neighbour). `(u, v,
+    /// uw, vh)` is the part of the image to draw, in the image's own pixels;
+    /// `uw <= 0` or `vh <= 0` = the whole image (items and sprites are
+    /// always whole). `tint` multiplies the colors (`0xAARRGGBB`;
+    /// `0xFFFFFFFF` = none; items ignore it). Only valid during a render
+    /// callback.
+    pub draw2d_image: unsafe extern "C" fn(
+        source: YogStr,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        u: f32,
+        v: f32,
+        uw: f32,
+        vh: f32,
+        tint: u32,
+    ),
+    /// Natural size in GUI pixels of the image `source` (16×16 for items, a
+    /// texture's pixel size, ...) into `*w`/`*h`. `false` (outputs untouched)
+    /// when the source can't be resolved. Callable from the render thread at
+    /// any time; the pointer stays valid for the life of the process.
+    pub image_size: unsafe extern "C" fn(source: YogStr, w: *mut f32, h: *mut f32) -> bool,
 }
 
 unsafe impl Send for YogGfxApi {}

@@ -2687,10 +2687,13 @@ unsafe extern "C" fn gfx_draw2d_mc_tex(
 ) {
     let Some(mut env) = get_env() else { return };
     if let Some(ji) = ys_to_java(&mut env, id) {
-        let _ = env.call_static_method(
+        if env.call_static_method(
             "dev/yog/NativeDraw",
             "drawTexture",
-            "(Ljava/lang/String;FFFFFFFFF)V",
+            // x, y, u0, v0, w, h, tw, th — eight floats. (Nine here made
+            // every call fail jni-rs's argument-count check before reaching
+            // Java, so no texture was ever drawn.)
+            "(Ljava/lang/String;FFFFFFFF)V",
             &[
                 JValue::Object(&ji),
                 JValue::Float(x),
@@ -2702,14 +2705,18 @@ unsafe extern "C" fn gfx_draw2d_mc_tex(
                 JValue::Float(tw),
                 JValue::Float(th),
             ],
-        );
+        )
+        .is_err()
+        {
+            env.exception_clear().ok();
+        }
     }
 }
 
 unsafe extern "C" fn gfx_draw2d_item(id: YogStr, x: f32, y: f32, size: f32) {
     let Some(mut env) = get_env() else { return };
     if let Some(ji) = ys_to_java(&mut env, id) {
-        let _ = env.call_static_method(
+        if env.call_static_method(
             "dev/yog/NativeDraw",
             "drawItem",
             "(Ljava/lang/String;FFF)V",
@@ -2719,7 +2726,11 @@ unsafe extern "C" fn gfx_draw2d_item(id: YogStr, x: f32, y: f32, size: f32) {
                 JValue::Float(y),
                 JValue::Float(size),
             ],
-        );
+        )
+        .is_err()
+        {
+            env.exception_clear().ok();
+        }
     }
 }
 
@@ -2769,6 +2780,8 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
     draw2d_item: gfx_draw2d_item,
     draw2d_text_font: gfx_draw2d_text_font,
     text_width: gfx_text_width,
+    draw2d_image: images::gfx_draw2d_image,
+    image_size: images::gfx_image_size,
 };
 
 // ── YogApi registration functions ─────────────────────────────────────────────
@@ -6478,4 +6491,5 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
 }
 
 mod control_socket;
+mod images;
 mod ui_jni;

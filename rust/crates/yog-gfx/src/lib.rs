@@ -53,6 +53,7 @@
 pub mod core;
 pub mod draw2d;
 pub mod gl;
+pub mod image;
 
 use yog_abi::YogGfxApi;
 
@@ -68,6 +69,10 @@ unsafe impl Sync for GfxContext {}
 
 /// See [`GfxContext::text_width_fn`]: `(text, font) -> width` in GUI pixels.
 pub type TextWidthFn = unsafe extern "C" fn(text: yog_abi::YogStr, font: yog_abi::YogStr) -> f32;
+
+/// See [`GfxContext::image_size_fn`]: `(source, *w, *h) -> resolved`.
+pub type ImageSizeFn =
+    unsafe extern "C" fn(source: yog_abi::YogStr, w: *mut f32, h: *mut f32) -> bool;
 
 impl GfxContext {
     #[doc(hidden)]
@@ -269,6 +274,13 @@ impl GfxContext {
     /// thread), e.g. by a layout engine.
     pub fn text_width_fn(&self) -> TextWidthFn {
         self.api().text_width
+    }
+
+    /// The host's image-size function (see [`draw2d::Draw2D::image_size`])
+    /// as a plain function pointer, valid for the life of the process — for
+    /// a layout engine sizing images outside render callbacks.
+    pub fn image_size_fn(&self) -> ImageSizeFn {
+        self.api().image_size
     }
 
     pub fn draw2d(&self) -> draw2d::Draw2D<'_> {
