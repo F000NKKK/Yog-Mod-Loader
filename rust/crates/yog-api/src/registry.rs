@@ -1145,7 +1145,12 @@ impl Server for CServer {
     fn place_feature(&self, dimension: &str, pos: yog_core::BlockPos, feature_id: &str) -> bool {
         let s = srv!(self);
         unsafe {
-            (s.place_feature)(s.ctx, YogStr::from_str(dimension), bp(pos), YogStr::from_str(feature_id))
+            (s.place_feature)(
+                s.ctx,
+                YogStr::from_str(dimension),
+                bp(pos),
+                YogStr::from_str(feature_id),
+            )
         }
     }
 }

@@ -3637,7 +3637,10 @@ unsafe extern "C" fn srv_place_feature(
     feature_id: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge_bool("placeFeature", &[JArg::S(dim), x, y, z, JArg::S(feature_id)])
+    bridge_bool(
+        "placeFeature",
+        &[JArg::S(dim), x, y, z, JArg::S(feature_id)],
+    )
 }
 
 unsafe extern "C" fn srv_item_entity_set_stack(
