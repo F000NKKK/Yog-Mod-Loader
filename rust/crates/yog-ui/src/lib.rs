@@ -21,6 +21,8 @@ pub mod image;
 pub mod layout;
 mod render;
 pub mod scroll;
+#[cfg(test)]
+mod state_tests;
 pub mod text;
 pub mod textbox;
 pub mod widget;
