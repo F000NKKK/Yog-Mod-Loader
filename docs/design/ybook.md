@@ -849,7 +849,8 @@ features, stubs written, and links whose target is missing.
    - `brainsweep` → `BrainsweepPage` (image + entity + recipe lookup), after the entity stage; until then it is
      markup-only, with an item icon instead of the entity.
 3. The Russian text: today's `Book.ru_ru.yres` has HexMod-Yog's own terminology ("Рунный блокнот", "Мысли" for
-   media) for 5 entries. The original has a complete `ru_ru` with different terms. See open question Q4.
+   media) for 5 entries. The original has a complete `ru_ru` with different terms. Decided (Q4): import the original
+   `ru_ru` and drop HexMod-Yog's terms.
 4. Delete:
    - `src/book.rs`, and `registry.register_book` and `mod book` in `lib.rs`;
    - `content/items/thehexbook.yitem` and the manual registration in `src/item/mod.rs` (the item comes from the
@@ -938,16 +939,16 @@ mods updated in the same change. Building and running the game is done with the 
 
 ### Open questions for the user
 
-1. **Q1 Location:** `content/books/` (proposed, the same scan and explorer node as blocks/items), or a top-level
+1. **Q1 Location — decided: `content/books/`.** Was: `content/books/` (proposed, the same scan and explorer node as blocks/items), or a top-level
    `books/` next to `content/`, `textures/`, `materials/`?
 2. **Q2 Flow by default:** should text pages continue onto new pages automatically (proposed for new books), or
    should clipping with an overflow warning stay the default as in Patchouli?
-3. **Q3 Markup:** keep Patchouli's `$(…)` (proposed), or use a Markdown-like syntax (`**bold**`,
+3. **Q3 Markup — decided: Patchouli's `$(…)`.** Was: keep Patchouli's `$(…)` (proposed), or use a Markdown-like syntax (`**bold**`,
    `[text](patterns/math#add)`) with the importer converting? Markdown reads better in diffs, but breaks verbatim
    import and conflicts with nothing only if `.yres` braces stay out.
-4. **Q4 Hex's Russian:** take the original Hex Casting `ru_ru` (complete, 447 pages, the community's terms), or
+4. **Q4 Hex's Russian — decided: the original Hex Casting `ru_ru`; HexMod-Yog's own terms are dropped.** Was: take the original Hex Casting `ru_ru` (complete, 447 pages, the community's terms), or
    keep HexMod-Yog's own terminology ("Рунный блокнот", "Мысли") and translate the rest in that style?
-5. **Q5 Default skin:** the Patchouli-like brown two-page book (proposed; it is what Hex and every ported book
+5. **Q5 Default skin — decided: the Patchouli-like brown two-page book.** Was: the Patchouli-like brown two-page book (proposed; it is what Hex and every ported book
    expect), or a vanilla-looking skin built from `minecraft:gui/book` (vanilla's book screen is a single 146×180
    page, so it would be a different layout)?
 6. **Q6 Entity and multiblock pages:** is `entity` (needed for Hex's brainsweep pages) wanted in the first
