@@ -1,7 +1,8 @@
 //! `.yblock` / `.yitem` content files — a mod's blocks and items: their
 //! properties, 3D model, block states and item form, in one JSON file each,
-//! edited in Yog-IDLE's 3D model editor. See Yog-IDLE's
-//! `docs/blocks-items.md` for the format.
+//! edited in Yog-IDLE's 3D model editor — and `.yrecipe` files, one recipe
+//! each (crafting, shapeless, smelting), edited in its recipe editor. See
+//! Yog-IDLE's `docs/blocks-items.md` for the formats.
 //!
 //! `yog build` reads `content/**/*.yblock` and `content/**/*.yitem` and
 //!
@@ -15,7 +16,8 @@
 //! - generates `.yog-build/generated/yog-content.g.rs` — `Blocks`/`Items`
 //!   with an id constant and a `BlockDef`/`ItemDef` builder per entry and
 //!   a `register` function — pulled in by `yog_api::content!();`, which
-//!   also registers them (unless an entry says `"register": "manual"`).
+//!   also registers them (unless an entry says `"register": "manual"`) and
+//!   every recipe.
 
 mod import;
 pub mod json;
@@ -44,6 +46,8 @@ pub enum Kind {
     Block,
     /// `.yitem` — an item.
     Item,
+    /// `.yrecipe` — a recipe.
+    Recipe,
 }
 
 impl Kind {
@@ -51,6 +55,7 @@ impl Kind {
         match path.extension()?.to_str()? {
             "yblock" => Some(Kind::Block),
             "yitem" => Some(Kind::Item),
+            "yrecipe" => Some(Kind::Recipe),
             _ => None,
         }
     }
@@ -59,6 +64,7 @@ impl Kind {
         match self {
             Kind::Block => "block",
             Kind::Item => "item",
+            Kind::Recipe => "recipe",
         }
     }
 }
@@ -80,6 +86,7 @@ pub struct Compiled {
     pub warnings: Vec<String>,
     pub blocks: usize,
     pub items: usize,
+    pub recipes: usize,
 }
 
 // ── Vocabulary ───────────────────────────────────────────────────────────────
@@ -111,6 +118,7 @@ pub const SOUNDS: [&str; 10] = [
 pub const TOOLS: [&str; 4] = ["pickaxe", "axe", "shovel", "hoe"];
 pub const TOOL_LEVELS: [&str; 3] = ["stone", "iron", "diamond"];
 pub const RENDER_LAYERS: [&str; 4] = ["solid", "cutout", "cutout_mipped", "translucent"];
+pub const RECIPE_TYPES: [&str; 3] = ["shaped", "shapeless", "smelting"];
 
 /// A model template — `"parent": "cube_all"` — and the texture slots it takes.
 pub struct Template {
@@ -216,7 +224,7 @@ pub fn valid_id(s: &str) -> bool {
 
 // ── Finding ──────────────────────────────────────────────────────────────────
 
-/// Every `content/**/*.yblock|*.yitem` of the mod at `root`, sorted.
+/// Every `content/**/*.yblock|*.yitem|*.yrecipe` of the mod at `root`, sorted.
 pub fn find(root: &Path) -> Vec<PathBuf> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         let Ok(entries) = std::fs::read_dir(dir) else {
@@ -269,6 +277,8 @@ struct BlockProps {
     shape: Option<[f64; 6]>,
     connect_groups: Vec<String>,
     connects: bool,
+    /// The inventory screen it opens (a `.yui` `<Screen>` with `<Slot>`s).
+    inventory: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -302,6 +312,9 @@ struct Ctx<'a> {
     warnings: &'a mut Vec<String>,
     /// Bundled texture path → its source file.
     textures: &'a mut BTreeMap<String, PathBuf>,
+    /// `block.inventory` screen ids it names, by line — checked against the
+    /// mod's screens once every file is read.
+    inventories: Vec<(usize, String)>,
 }
 
 impl Ctx<'_> {
@@ -953,6 +966,7 @@ fn compile_file(
     let specific: &[&str] = match kind {
         Kind::Block => &["block", "item_model", "states"],
         Kind::Item => &["item"],
+        Kind::Recipe => unreachable!("a recipe isn't a block or an item"),
     };
     let known: Vec<&str> = common.iter().chain(specific).copied().collect();
     cx.unknown_keys(j, &format!("a .y{}", kind.word()), &known);
@@ -1009,6 +1023,7 @@ fn compile_file(
     };
 
     match kind {
+        Kind::Recipe => unreachable!("a recipe isn't a block or an item"),
         Kind::Item => {
             if let Some(it) = j.get("item") {
                 cx.unknown_keys(
@@ -1098,6 +1113,7 @@ fn compile_file(
                         "render_layer",
                         "drops",
                         "connect_groups",
+                        "inventory",
                     ],
                 );
                 let props = &mut entry.block;
@@ -1141,6 +1157,16 @@ fn compile_file(
                 }
                 if let Some(v) = b.get("render_layer") {
                     render_layer = cx.one_of(v, "block.render_layer", &RENDER_LAYERS);
+                }
+                if let Some(v) = b.get("inventory")
+                    && let Some(id) = cx.string(v, "block.inventory")
+                {
+                    if valid_id(id) && id.contains(':') {
+                        props.inventory = Some(id.to_string());
+                        cx.inventories.push((v.line, id.to_string()));
+                    } else {
+                        cx.err(v.line, format!("block.inventory `{id}`: the id of an inventory screen — a .yui <Screen id=\"mymod:name\"> with <Slot>s"));
+                    }
                 }
                 if let Some(v) = b.get("connect_groups") {
                     for g in v.items() {
@@ -1555,6 +1581,7 @@ fn rust_source(entries: &[Entry]) -> String {
             );
             let mut b = format!("::yog_api::{def}::new(Self::{upper})");
             match kind {
+                Kind::Recipe => unreachable!("a recipe isn't a block or an item"),
                 Kind::Block => {
                     let p = &e.block;
                     if p.hardness.is_some() || p.resistance.is_some() {
@@ -1592,6 +1619,9 @@ fn rust_source(entries: &[Entry]) -> String {
                             p.connect_groups.iter().map(|g| format!("{g:?}")).collect();
                         let _ =
                             write!(b, "\n            .connect_groups(&[{}])", groups.join(", "));
+                    }
+                    if let Some(inv) = &p.inventory {
+                        let _ = write!(b, "\n            .inventory({inv:?})");
                     }
                 }
                 Kind::Item => {
@@ -1648,6 +1678,7 @@ fn rust_source(entries: &[Entry]) -> String {
         let _ = match e.kind {
             Kind::Block => writeln!(code, "    registry.register_block(Blocks::{ident}());"),
             Kind::Item => writeln!(code, "    registry.register_item(Items::{ident}());"),
+            Kind::Recipe => unreachable!("a recipe isn't a block or an item"),
         };
     }
     code.push_str("}\n");
