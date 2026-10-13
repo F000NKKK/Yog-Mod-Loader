@@ -1578,7 +1578,7 @@ it.
     possible?
 15. **Q15 Container menus in `.yui` — decided: yes, slot layout in markup generates `InventoryDef`.** (`<Menu>` + `<Slot>`s generating `InventoryDef`). Was: is markup the
     right place for slot layout, or should `InventoryDef` stay in Rust with `.yui` only drawing?
-16. **Q16 VM-owned surfaces — decided: yes, the normal way.** (`source="{x:Bind grid}"`). Was: OK to make this the normal way a mod draws
+16. **Q16 VM-owned surfaces — decided: yes, for custom drawing (3D viewports and the like); 2D UI uses the declarative elements (no-manual-rendering.md R2).** (`source="{x:Bind grid}"`). Was: OK to make this the normal way a mod draws
     its own screen, keeping the id-based `Surface` registry only for cross-mod and designer use?
 17. **Q17 Boilerplate lints — decided: warnings.** ("bind the field directly", "`impl ViewModel` is generated"): warnings
     in `yog check`, or errors?
