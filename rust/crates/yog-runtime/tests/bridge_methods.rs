@@ -71,8 +71,14 @@ fn calls(src: &str) -> BTreeSet<(String, String, usize)> {
         if open == 0 || !rest[..open].chars().all(|c| c.is_ascii_alphanumeric()) {
             continue;
         }
-        let Some((name, rest)) = literal(&rest[open + 1..]) else { continue };
-        let Some(args) = rest.trim_start().strip_prefix(',').and_then(|r| r.trim_start().strip_prefix('&')) else {
+        let Some((name, rest)) = literal(&rest[open + 1..]) else {
+            continue;
+        };
+        let Some(args) = rest
+            .trim_start()
+            .strip_prefix(',')
+            .and_then(|r| r.trim_start().strip_prefix('&'))
+        else {
             continue;
         };
         if let Some(n) = list_len(args) {
@@ -81,11 +87,19 @@ fn calls(src: &str) -> BTreeSet<(String, String, usize)> {
     }
     // `call_static_method("dev/yog/<Class>", "name", "(sig)R", ...)`.
     for (i, _) in src.match_indices("\"dev/yog/") {
-        let Some((class, rest)) = literal(&src[i..]) else { continue };
+        let Some((class, rest)) = literal(&src[i..]) else {
+            continue;
+        };
         let class = &class["dev/yog/".len()..];
-        let Some(rest) = rest.trim_start().strip_prefix(',') else { continue };
-        let Some((name, rest)) = literal(rest) else { continue };
-        let Some((sig, _)) = rest.trim_start().strip_prefix(',').and_then(literal) else { continue };
+        let Some(rest) = rest.trim_start().strip_prefix(',') else {
+            continue;
+        };
+        let Some((name, rest)) = literal(rest) else {
+            continue;
+        };
+        let Some((sig, _)) = rest.trim_start().strip_prefix(',').and_then(literal) else {
+            continue;
+        };
         out.insert((class.to_owned(), name.to_owned(), sig_arity(sig)));
     }
     out
@@ -93,7 +107,9 @@ fn calls(src: &str) -> BTreeSet<(String, String, usize)> {
 
 /// Number of parameters in a JNI method signature.
 fn sig_arity(sig: &str) -> usize {
-    let Some(params) = sig.strip_prefix('(').and_then(|s| s.split(')').next()) else { return 0 };
+    let Some(params) = sig.strip_prefix('(').and_then(|s| s.split(')').next()) else {
+        return 0;
+    };
     let mut n = 0;
     let mut chars = params.chars();
     while let Some(c) = chars.next() {
@@ -123,8 +139,12 @@ fn java_statics(java: &str) -> BTreeSet<(String, usize)> {
         if head.contains(['=', ';', '{']) || head.contains(" class ") {
             continue;
         }
-        let Some(name) = head.split_whitespace().last() else { continue };
-        let Some(close) = decl[open..].find(')') else { continue };
+        let Some(name) = head.split_whitespace().last() else {
+            continue;
+        };
+        let Some(close) = decl[open..].find(')') else {
+            continue;
+        };
         let params = &decl[open + 1..open + close];
         // Generic arguments may hold commas: count the top-level ones.
         let (mut depth, mut commas) = (0i32, 0usize);
@@ -136,7 +156,11 @@ fn java_statics(java: &str) -> BTreeSet<(String, usize)> {
                 _ => {}
             }
         }
-        let arity = if params.trim().is_empty() { 0 } else { commas + 1 };
+        let arity = if params.trim().is_empty() {
+            0
+        } else {
+            commas + 1
+        };
         out.insert((name.to_owned(), arity));
     }
     out
@@ -144,7 +168,12 @@ fn java_statics(java: &str) -> BTreeSet<(String, usize)> {
 
 /// The public statics of class `class` as a host compiles it: its own
 /// platform sources, the host's shared sources, then `java-common`.
-fn class_statics(root: &Path, host: &str, platform: &Path, class: &str) -> Option<BTreeSet<(String, usize)>> {
+fn class_statics(
+    root: &Path,
+    host: &str,
+    platform: &Path,
+    class: &str,
+) -> Option<BTreeSet<(String, usize)>> {
     let file = format!("{class}.java");
     [
         platform.join("src/main/java/dev/yog"),
@@ -163,10 +192,16 @@ fn every_host_has_every_bridge_method() {
         return;
     }
     let calls = calls(&runtime_sources());
-    assert!(calls.len() > 50, "found only {} bridge calls — parser broken?", calls.len());
+    assert!(
+        calls.len() > 50,
+        "found only {} bridge calls — parser broken?",
+        calls.len()
+    );
     let mut missing = Vec::new();
     for host in HOSTS {
-        let Ok(platforms) = fs::read_dir(root.join(host).join("platforms")) else { continue };
+        let Ok(platforms) = fs::read_dir(root.join(host).join("platforms")) else {
+            continue;
+        };
         for p in platforms {
             let platform = p.unwrap().path();
             for (class, name, arity) in &calls {
@@ -178,7 +213,11 @@ fn every_host_has_every_bridge_method() {
             }
         }
     }
-    assert!(missing.is_empty(), "missing Java bridge methods:\n{}", missing.join("\n"));
+    assert!(
+        missing.is_empty(),
+        "missing Java bridge methods:\n{}",
+        missing.join("\n")
+    );
 }
 
 #[test]

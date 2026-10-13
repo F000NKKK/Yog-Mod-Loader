@@ -1128,7 +1128,11 @@ impl Server for CServer {
     fn has_entity_tag(&self, entity_type: &str, tag_id: &str) -> bool {
         let s = srv!(self);
         unsafe {
-            (s.has_entity_tag)(s.ctx, YogStr::from_str(entity_type), YogStr::from_str(tag_id))
+            (s.has_entity_tag)(
+                s.ctx,
+                YogStr::from_str(entity_type),
+                YogStr::from_str(tag_id),
+            )
         }
     }
 

@@ -3593,7 +3593,15 @@ unsafe extern "C" fn srv_use_item_on_block(
     let [x, y, z] = pos_args(pos);
     bridge_bool(
         "useItemOnBlock",
-        &[JArg::S(dim), x, y, z, JArg::I(face as i32), JArg::S(item_id), JArg::S(player)],
+        &[
+            JArg::S(dim),
+            x,
+            y,
+            z,
+            JArg::I(face as i32),
+            JArg::S(item_id),
+            JArg::S(player),
+        ],
     )
 }
 
@@ -3604,10 +3612,17 @@ unsafe extern "C" fn srv_pour_fluid(
     bucket_item_id: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge_bool("pourFluid", &[JArg::S(dim), x, y, z, JArg::S(bucket_item_id)])
+    bridge_bool(
+        "pourFluid",
+        &[JArg::S(dim), x, y, z, JArg::S(bucket_item_id)],
+    )
 }
 
-unsafe extern "C" fn srv_has_entity_tag(_ctx: *mut c_void, entity_type: YogStr, tag: YogStr) -> bool {
+unsafe extern "C" fn srv_has_entity_tag(
+    _ctx: *mut c_void,
+    entity_type: YogStr,
+    tag: YogStr,
+) -> bool {
     bridge_bool("hasEntityTag", &[JArg::S(entity_type), JArg::S(tag)])
 }
 

@@ -941,7 +941,7 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
         let mut text_params: HashMap<&str, (String, Vec<String>)> = HashMap::new();
         let _ = writeln!(
             code,
-            "/// The resources of `{shown}`.\n#[allow(dead_code)]\npub struct {name};\n\n#[allow(dead_code, clippy::all)]\nimpl {name} {{",
+            "/// The resources of `{shown}`.\n#[allow(dead_code)]\npub struct {name};\n\n#[allow(dead_code, non_snake_case, clippy::all)]\nimpl {name} {{",
             name = set.name
         );
         for e in &set.neutral.entries {

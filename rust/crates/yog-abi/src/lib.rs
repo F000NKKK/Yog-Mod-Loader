@@ -1080,7 +1080,8 @@ pub struct YogServer {
     ) -> bool,
     // ── ABI minor 2 ──
     /// `json` is a JSON text component.
-    pub actionbar_json: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, json: YogStr) -> bool,
+    pub actionbar_json:
+        unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, json: YogStr) -> bool,
     /// `face` is a `Direction` ordinal (down, up, north, south, west, east).
     pub use_item_on_block: unsafe extern "C" fn(
         ctx: *mut c_void,
