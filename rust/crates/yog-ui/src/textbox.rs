@@ -22,27 +22,10 @@
 
 use std::time::Instant;
 
-use crate::event::UiEvent;
+use crate::event::{keys as key, UiEvent};
 use crate::layout::LayoutNode;
 use crate::text;
-use crate::widget::{Widget, WidgetKind};
-
-/// GLFW key codes and modifier bits used here.
-mod key {
-    pub const A: i32 = 65;
-    pub const ESCAPE: i32 = 256;
-    pub const ENTER: i32 = 257;
-    pub const BACKSPACE: i32 = 259;
-    pub const DELETE: i32 = 261;
-    pub const RIGHT: i32 = 262;
-    pub const LEFT: i32 = 263;
-    pub const HOME: i32 = 268;
-    pub const END: i32 = 269;
-    pub const KP_ENTER: i32 = 335;
-    pub const MOD_SHIFT: i32 = 0x1;
-    pub const MOD_CONTROL: i32 = 0x2;
-    pub const MOD_SUPER: i32 = 0x8;
-}
+use crate::widget::{Widget, WidgetKind, TEXT_BOX_PAD_X};
 
 /// Caret blink half-period.
 const BLINK_MS: u128 = 530;
@@ -121,8 +104,8 @@ impl TextBoxState {
             dragging: false,
             last_input: None,
             max_length: 0,
-            pad_l: 4.0,
-            pad_r: 4.0,
+            pad_l: TEXT_BOX_PAD_X,
+            pad_r: TEXT_BOX_PAD_X,
             font_scale: 1.0,
             font: String::new(),
             on_change: None,

@@ -336,6 +336,8 @@ pub const SLOT_SIZE: f32 = 18.0;
 /// Focus indicator color when `focus_color` is 0 (amber).
 pub const DEFAULT_FOCUS_COLOR: u32 = 0xFF_FFE040;
 
+/// A text box's default left/right padding.
+pub(crate) const TEXT_BOX_PAD_X: f32 = 4.0;
 /// Placeholder text color of a text box.
 pub const PLACEHOLDER_COLOR: u32 = 0xFF_707070;
 /// Border of an unfocused text box (vanilla `EditBox`).
@@ -1010,5 +1012,5 @@ pub fn text_box(text: impl Into<String>) -> Widget {
     }))
     .bg(0xFF_000000)
     .color(0xFF_E0E0E0)
-    .padding(0.0, 4.0, 0.0, 4.0)
+    .padding(0.0, TEXT_BOX_PAD_X, 0.0, TEXT_BOX_PAD_X)
 }
