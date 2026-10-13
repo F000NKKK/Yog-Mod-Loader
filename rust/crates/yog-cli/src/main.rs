@@ -205,7 +205,7 @@ impl Mod for {struct_name} {{
 yog_api::export_mod!({struct_name});
 "#,
         name = name,
-        struct_name = to_struct_name(name),
+        struct_name = yui::pascal(name),
     );
     write_file(&root.join("src/lib.rs"), lib_rs.as_bytes())?;
 
@@ -235,18 +235,6 @@ fn to_display_name(id: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ")
-}
-
-fn to_struct_name(id: &str) -> String {
-    id.split(['-', '_'])
-        .map(|w| {
-            let mut c = w.chars();
-            c.next()
-                .map(|f| f.to_uppercase().to_string())
-                .unwrap_or_default()
-                + c.as_str()
-        })
-        .collect()
 }
 
 // ── yog build ─────────────────────────────────────────────────────────────────

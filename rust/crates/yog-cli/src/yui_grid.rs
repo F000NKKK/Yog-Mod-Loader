@@ -25,13 +25,9 @@
 //! checks all of this and turns it into builder calls (raw-call attributes),
 //! so the screen, view-model and component generators need no Grid logic.
 
-use crate::yui::{Element, RAW_CALL};
+use crate::yui::{err, Element, RAW_CALL};
 
 const ATTACHED: &[&str] = &["Grid.Row", "Grid.Column", "Grid.RowSpan", "Grid.ColumnSpan"];
-
-fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
-    Err(format!("line {}: <{}> {msg}", el.line, el.name))
-}
 
 fn num(v: &str) -> Option<f32> {
     v.trim()

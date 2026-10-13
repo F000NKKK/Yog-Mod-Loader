@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use crate::yui::{self, Element, RAW_CALL, RAW_VALUE};
+use crate::yui::{self, err, Element, RAW_CALL, RAW_VALUE};
 
 /// The codegen version checked by `yog_kit::__codegen::require`.
 const CODEGEN: u32 = 1;
@@ -578,24 +578,6 @@ fn path_lit(path: &[u16]) -> String {
     )
 }
 
-fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
-    Err(format!("line {}: <{}> {msg}", el.line, el.name))
-}
-
-fn bool_attr(el: &Element, key: &str, v: &str) -> Result<bool, String> {
-    match v.trim() {
-        "true" => Ok(true),
-        "false" => Ok(false),
-        _ => err(el, format!("{key}=\"{v}\": expected true or false")),
-    }
-}
-
-fn num_attr(el: &Element, key: &str, v: &str) -> Result<f32, String> {
-    v.trim()
-        .parse::<f32>()
-        .or_else(|_| err(el, format!("{key}=\"{v}\": expected a number")))
-}
-
 impl VmGen<'_> {
     fn slot(&mut self, ctx: &mut Ctx, ty: &str) -> String {
         let name = format!("b{}", self.n_slots);
@@ -943,7 +925,7 @@ impl VmGen<'_> {
                         let c = yui::color(v).ok_or_else(|| format!("line {}: {k}=\"{v}\": expected #RRGGBB or #AARRGGBB", el.line))?;
                         format!("{attr}: ::std::option::Option::Some(0x{c:08X})")
                     }
-                    "shadow" => format!("shadow: ::std::option::Option::Some({})", bool_attr(el, k, v)?),
+                    "shadow" => format!("shadow: ::std::option::Option::Some({})", yui::boolean(el, k, v)?),
                     _ => return err(el, format!("{k}: only paint attributes (bg, color, shadow, focus_color) take a state prefix")),
                 };
                 match patches.iter_mut().find(|(f, _)| f == flag) {
@@ -978,11 +960,11 @@ impl VmGen<'_> {
                     list_attrs.insert(k.into(), v.clone());
                 }
                 "visible" => {
-                    let b = bool_attr(el, k, v)?;
+                    let b = yui::boolean(el, k, v)?;
                     push_raw(&mut out, format!("visible({b})"));
                 }
                 "checked" if kind == "Button" => {
-                    let b = bool_attr(el, k, v)?;
+                    let b = yui::boolean(el, k, v)?;
                     bindings.push((
                         k.into(),
                         Binding {
@@ -1312,7 +1294,7 @@ impl VmGen<'_> {
             return err(el, "selected is for ListView");
         }
         let item_height = match attrs.get("item_height") {
-            Some(v) => Some(num_attr(el, "item_height", v)?),
+            Some(v) => Some(yui::number(el, "item_height", v)?),
             None => None,
         };
 
@@ -1542,12 +1524,12 @@ pub fn generate(
         .unwrap_or_else(|| format!("<{vm} as ::std::default::Default>::default()"));
     let width = root
         .attr("width")
-        .map(|v| num_attr(root, "width", v))
+        .map(|v| yui::number(root, "width", v))
         .transpose()?
         .unwrap_or(176.0);
     let height = root
         .attr("height")
-        .map(|v| num_attr(root, "height", v))
+        .map(|v| yui::number(root, "height", v))
         .transpose()?
         .unwrap_or(166.0);
     let anchor = match root.attr("anchor").unwrap_or("center").trim() {
@@ -1565,12 +1547,12 @@ pub fn generate(
     };
     let modal = root
         .attr("modal")
-        .map(|v| bool_attr(root, "modal", v))
+        .map(|v| yui::boolean(root, "modal", v))
         .transpose()?
         .unwrap_or(true);
     let pause = root
         .attr("pause")
-        .map(|v| bool_attr(root, "pause", v))
+        .map(|v| yui::boolean(root, "pause", v))
         .transpose()?
         .unwrap_or(false);
 

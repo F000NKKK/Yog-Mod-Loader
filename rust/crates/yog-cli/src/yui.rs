@@ -257,9 +257,19 @@ pub fn parse_xml(src: &str) -> Result<Element, String> {
 
 // ── Screen model ──────────────────────────────────────────────────────────────
 
+/// Whether `<kind>` is a built-in element.
+pub(crate) fn is_builtin(kind: &str) -> bool {
+    CONTAINERS.contains(&kind) || LEAVES.contains(&kind)
+}
+
 /// Whether `<kind>` is a mod's own component (not a built-in element).
 pub(crate) fn is_custom_component(kind: &str) -> bool {
-    !CONTAINERS.contains(&kind) && !LEAVES.contains(&kind) && is_component_name(kind)
+    !is_builtin(kind) && is_component_name(kind)
+}
+
+/// `line N: <Kind> msg`.
+pub(crate) fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
+    Err(format!("line {}: <{}> {msg}", el.line, el.name))
 }
 
 /// Whether `key` is an attribute every element takes (not a component's
@@ -320,23 +330,21 @@ fn kind_attrs(kind: &str) -> &'static [&'static str] {
     }
 }
 
-fn number(el: &Element, key: &str, value: &str) -> Result<f32, String> {
-    value.trim().parse::<f32>().map_err(|_| {
-        format!(
-            "line {}: <{}> {key}=\"{value}\": expected a number",
-            el.line, el.name
-        )
-    })
+pub(crate) fn number(el: &Element, key: &str, value: &str) -> Result<f32, String> {
+    value
+        .trim()
+        .parse::<f32>()
+        .or_else(|_| err(el, format_args!("{key}=\"{value}\": expected a number")))
 }
 
-fn boolean(el: &Element, key: &str, value: &str) -> Result<bool, String> {
+pub(crate) fn boolean(el: &Element, key: &str, value: &str) -> Result<bool, String> {
     match value.trim() {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => Err(format!(
-            "line {}: <{}> {key}=\"{value}\": expected true or false",
-            el.line, el.name
-        )),
+        _ => err(
+            el,
+            format_args!("{key}=\"{value}\": expected true or false"),
+        ),
     }
 }
 
@@ -465,9 +473,10 @@ fn pick<'v>(el: &Element, key: &str, value: &str, options: &[&'v str]) -> Result
         })
 }
 
-fn pascal(value: &str) -> String {
+/// `stat_bar` / `my-mod` → `StatBar` / `MyMod`.
+pub fn pascal(value: &str) -> String {
     value
-        .split('_')
+        .split(['_', '-'])
         .map(|w| {
             let mut c = w.chars();
             c.next()
@@ -477,14 +486,6 @@ fn pascal(value: &str) -> String {
         .collect()
 }
 
-/// A Rust constant name for an event/widget id: `mymod:btn-play` → `MYMOD_BTN_PLAY`.
-/// The Rust expression for a text attribute: `"@mymod.key"` is translation
-/// key `mymod.key`, looked up when the tree is built (`::yog_api::tr`, so it
-/// follows the game's language); `"@@..."` is a literal text starting
-/// with `@`; anything else is the literal text.
-///
-/// `"@<Set>.<name>"` naming a text of `resources/<Set>.yres` (see
-/// [`set_resource_refs`]) is that text's translation key.
 /// `<StatBar …/>`: a custom component's name (not a built-in element).
 fn is_component_name(kind: &str) -> bool {
     kind.chars().next().is_some_and(|c| c.is_ascii_uppercase())
@@ -515,6 +516,13 @@ fn component_expr(el: &Element) -> String {
     )
 }
 
+/// The Rust expression for a text attribute: `"@mymod.key"` is translation
+/// key `mymod.key`, looked up when the tree is built (`::yog_api::tr`, so it
+/// follows the game's language); `"@@..."` is a literal text starting
+/// with `@`; anything else is the literal text.
+///
+/// `"@<Set>.<name>"` naming a text of `resources/<Set>.yres` (see
+/// [`set_resource_refs`]) is that text's translation key.
 pub fn text_expr(value: &str) -> String {
     match value.strip_prefix('@') {
         Some(rest) if rest.starts_with('@') => format!("{rest:?}"),
@@ -539,6 +547,7 @@ pub fn set_resource_refs(refs: &crate::yres::Refs) {
     RESOURCE_REFS.with(|r| *r.borrow_mut() = refs.clone());
 }
 
+/// A Rust constant name for an event/widget id: `mymod:btn-play` → `MYMOD_BTN_PLAY`.
 pub fn const_name(value: &str) -> String {
     let mut out = String::new();
     let mut prev_lower = false;

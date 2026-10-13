@@ -31,7 +31,7 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use crate::yui::{self, Element, RAW_CALL, RAW_VALUE};
+use crate::yui::{self, err, Element, RAW_CALL, RAW_VALUE};
 
 /// Index of the components without a code-behind, included by `ui_components!()`.
 pub const INDEX_FILE: &str = ".yog-build/generated/components.g.rs";
@@ -45,34 +45,6 @@ const KINDS: &[(&str, &str)] = &[
     ("color", "u32"),
     ("choice", "String"),
     ("image", "String"),
-];
-
-/// Attributes every element takes — a property can't shadow them on an instance.
-const RESERVED: &[&str] = &[
-    "id",
-    "x",
-    "y",
-    "w",
-    "h",
-    "min_w",
-    "min_h",
-    "flex",
-    "dock",
-    "gap",
-    "padding",
-    "bg",
-    "color",
-    "align",
-    "font_scale",
-    "font",
-    "shadow",
-    "no_wrap",
-    "ellipsis",
-    "focus_style",
-    "focus_color",
-    "enabled",
-    "on_click",
-    "visible",
 ];
 
 #[derive(Debug, Clone)]
@@ -100,10 +72,6 @@ const ROOT_ATTRS: &[&str] = &[
 /// A `<Property>`'s / `<Event>`'s attributes.
 const PROP_ATTRS: &[&str] = &["name", "type", "default", "options", "doc", "category"];
 
-fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
-    Err(format!("line {}: <{}> {msg}", el.line, el.name))
-}
-
 fn is_ident(s: &str) -> bool {
     s.chars()
         .next()
@@ -112,23 +80,11 @@ fn is_ident(s: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
-/// `stat_bar` → `StatBar`.
-fn pascal(stem: &str) -> String {
-    stem.split(['_', '-'])
-        .map(|w| {
-            let mut c = w.chars();
-            c.next()
-                .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
-                .unwrap_or_default()
-        })
-        .collect()
-}
-
 /// The component's type name: `name=`, else the file's PascalCase stem.
 fn type_name(root: &Element, include_name: &str) -> Result<String, String> {
     let name = match root.attr("name").map(str::trim).filter(|s| !s.is_empty()) {
         Some(n) => n.to_string(),
-        None => pascal(include_name.rsplit('/').next().unwrap_or(include_name)),
+        None => yui::pascal(include_name.rsplit('/').next().unwrap_or(include_name)),
     };
     let ok = name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
         && name.chars().all(|c| c.is_ascii_alphanumeric());
@@ -171,7 +127,7 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                         format_args!("name=\"{name}\": expected a snake_case name"),
                     );
                 }
-                if RESERVED.contains(&name.as_str()) {
+                if yui::is_common_attr(&name) {
                     return err(
                         child,
                         format_args!(
@@ -274,22 +230,7 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
 /// (or, on a nested component, a Rust-valued property).
 fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
     let kind = el.name.as_str();
-    let builtin = matches!(
-        kind,
-        "Canvas"
-            | "Column"
-            | "Row"
-            | "ScrollView"
-            | "Grid"
-            | "Label"
-            | "Button"
-            | "TextBox"
-            | "ItemSlot"
-            | "InvSlot"
-            | "Image"
-            | "Spacer"
-            | "Surface"
-    );
+    let builtin = yui::is_builtin(kind);
     if kind == "Component" || kind == "Screen" {
         return err(el, "can't be inside a component");
     }
@@ -309,7 +250,7 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
         };
         let e = rust.map_err(|e| format!("line {}: <{kind}> {key}=\"{value}\": {e}", el.line))?;
         let conv = "::yog_api::ui::component::bind";
-        if !builtin && !RESERVED.contains(&key.as_str()) {
+        if !builtin && !yui::is_common_attr(key) {
             // A nested component's property: passed as text.
             out.attrs
                 .push((key.clone(), format!("{RAW_VALUE}{conv}::text(&({e}))")));
@@ -639,6 +580,14 @@ mod tests {
             (r#"<Component name="bad"><Row/></Component>"#, "PascalCase"),
             (
                 r#"<Component><Property name="w"/><Row/></Component>"#,
+                "every element has",
+            ),
+            (
+                r#"<Component><Property name="halign"/><Row/></Component>"#,
+                "every element has",
+            ),
+            (
+                r#"<Component><Property name="margin"/><Row/></Component>"#,
                 "every element has",
             ),
             (
