@@ -187,7 +187,6 @@ struct RuntimeHandlers {
     menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
     pub active_uis: Mutex<Vec<UiLayer>>,
     startup_grants: Vec<yog_registry::StartupGrant>,
-    startup_granted: Mutex<HashMap<String, bool>>,
     /// Players whose startup grants are pending: (name, uuid, ticks_waited).
     /// Granting happens on a server tick after join — giving items directly in
     /// the join callback fails for the host of a freshly created world.
@@ -3477,8 +3476,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlayerJoin<'l>(
     }
 }
 
+/// The command tag a player carries once startup grant `id` was given. It's
+/// saved with the player's own data, so it follows the player — not their
+/// name or uuid (a dev client gets a new name each launch, while a
+/// singleplayer world's owner stays the same player).
+fn grant_tag(id: &str) -> String {
+    format!("yog.grant.{id}")
+}
+
 /// Try to fulfil pending startup grants. Called each server tick; a grant is
-/// only marked as given (and persisted) after `give_item` actually succeeds.
+/// only marked as given (tagged on the player) after `give_item` succeeds.
 fn process_pending_grants() {
     let h = handlers();
     let mut pending = match h.pending_grants.try_lock() {
@@ -3493,46 +3500,27 @@ fn process_pending_grants() {
     // Give up after 30 seconds — the player probably left.
     const MAX_TICKS: u32 = 600;
 
-    let mut granted = h.startup_granted.lock().expect("startup_granted poisoned");
     let mut still_pending = Vec::new();
-    let mut any_new = false;
-
     for (p, u, ticks) in pending.drain(..) {
         if ticks < FIRST_TRY_TICK {
             still_pending.push((p, u, ticks + 1));
             continue;
         }
+        let player = YogStr::from_str(&p);
         let mut all_ok = true;
         for sg in &h.startup_grants {
-            let key = format!("{}::{}", u, sg.id);
-            if granted.contains_key(&key) {
+            let tag = grant_tag(&sg.id);
+            let tag = YogStr::from_str(&tag);
+            if unsafe { bridge!("playerHasTag", [S(player), S(tag)]) }.unwrap_or(false) {
                 continue;
             }
+            let book = sg.book.as_ref().map(|_| "minecraft:written_book");
             let mut ok = true;
-            for item_id in &sg.items {
-                ok &= unsafe {
-                    srv_give_item(
-                        std::ptr::null_mut(),
-                        YogStr::from_str(&p),
-                        YogStr::from_str(item_id),
-                        1,
-                    )
-                };
+            for item_id in sg.items.iter().map(String::as_str).chain(book) {
+                ok &= unsafe { srv_give_item(std::ptr::null_mut(), player, YogStr::from_str(item_id), 1) };
             }
-            if let Some(_book) = &sg.book {
-                ok &= unsafe {
-                    srv_give_item(
-                        std::ptr::null_mut(),
-                        YogStr::from_str(&p),
-                        YogStr::from_str("minecraft:written_book"),
-                        1,
-                    )
-                };
-            }
-            if ok {
+            if ok && unsafe { bridge!("addPlayerTag", [S(player), S(tag)]) }.unwrap_or(false) {
                 yog_logging::info!("startup grant {} given to {}", sg.id, p);
-                granted.insert(key, true);
-                any_new = true;
             } else {
                 all_ok = false;
             }
@@ -3542,9 +3530,6 @@ fn process_pending_grants() {
         }
     }
     *pending = still_pending;
-    if any_new {
-        save_startup_granted(&granted);
-    }
 }
 
 #[unsafe(no_mangle)]
@@ -3824,71 +3809,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
     }
 }
 
-/// Absolute path of the current world save folder (set on server start).
-static WORLD_DIR: Mutex<Option<std::path::PathBuf>> = Mutex::new(None);
-
-/// Per-world data path: `<world>/yog-data/startup_grants.json`.
-/// Falls back to the working directory before any server has started.
-fn startup_grants_path() -> std::path::PathBuf {
-    let base = WORLD_DIR
-        .lock()
-        .ok()
-        .and_then(|d| d.clone())
-        .unwrap_or_else(|| std::path::PathBuf::from("."));
-    base.join("yog-data").join("startup_grants.json")
-}
-
-fn load_startup_granted() {
-    let h = handlers();
-    let mut granted = h.startup_granted.lock().expect("startup_granted poisoned");
-    // Reset first — in singleplayer the process outlives individual worlds,
-    // and grant state is per-world.
-    granted.clear();
-    h.pending_grants
-        .lock()
-        .expect("pending_grants poisoned")
-        .clear();
-    let path = startup_grants_path();
-    let Ok(data) = std::fs::read_to_string(&path) else {
-        return;
-    };
-    let Ok(keys) = serde_json::from_str::<Vec<String>>(&data) else {
-        yog_logging::warn!("startup_grants.json: invalid JSON, ignoring");
-        return;
-    };
-    for k in keys {
-        granted.insert(k, true);
-    }
-    yog_logging::info!("loaded {} startup grants from disk", granted.len());
-}
-
-fn save_startup_granted(granted: &HashMap<String, bool>) {
-    let path = startup_grants_path();
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    let keys: Vec<&String> = granted.keys().collect();
-    match serde_json::to_string(&keys) {
-        Ok(json) => {
-            let _ = std::fs::write(&path, json);
-        }
-        Err(e) => yog_logging::error!("failed to save startup_grants.json: {}", e),
-    }
-}
-
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
-    mut env: JNIEnv<'l>,
+    _env: JNIEnv<'l>,
     _class: JClass<'l>,
-    world_dir: JString<'l>,
+    _world_dir: JString<'l>,
 ) {
-    let dir = jstr!(env, world_dir);
-    *WORLD_DIR.lock().expect("WORLD_DIR poisoned") = if dir.is_empty() {
-        None
-    } else {
-        Some(std::path::PathBuf::from(dir))
-    };
-    load_startup_granted();
+    // Grants pending for a previous world's players are void.
+    handlers().pending_grants.lock().expect("pending_grants poisoned").clear();
     let srv = srv_ptr();
     guard("on_server_started", || {
         each(&handlers().server_started, |ud, f| unsafe { f(ud, srv) });
