@@ -33,6 +33,10 @@ pub const SEP_U: f32 = 140.0;
 pub const SEP_V: f32 = 180.0;
 pub const SEP_W: f32 = 110.0;
 pub const SEP_H: f32 = 3.0;
+/// Room (GUI px) the book keeps free around it before it scales down.
+const SCREEN_MARGIN: f32 = 16.0;
+/// Smallest the book scales on a tiny screen.
+const MIN_SCALE: f32 = 0.4;
 
 // ── Vertex for the custom 2D shader (pos + uv + color) ───────────────────────
 
@@ -685,7 +689,9 @@ impl BookRenderer {
 
         // Render at Patchouli-native size (272×180 GUI pixels). Scale DOWN only
         // if the screen is smaller; never scale up (MC font is designed for 1×).
-        let scale = ((sw - 16.0) / BK_W).min((sh - 16.0) / BK_H).clamp(0.4, 1.0);
+        let scale = ((sw - SCREEN_MARGIN) / BK_W)
+            .min((sh - SCREEN_MARGIN) / BK_H)
+            .clamp(MIN_SCALE, 1.0);
         let bw = BK_W * scale;
         let bh = BK_H * scale;
         let bx = (sw - bw) / 2.0;
@@ -699,8 +705,6 @@ impl BookRenderer {
                 &self.state,
                 &self.theme,
                 &self.recipes,
-                sw,
-                sh,
                 bx,
                 by,
                 bw,
@@ -738,18 +742,24 @@ impl BookRenderer {
         // 3. Custom GL overlays (SVG icons, custom font text) — raw GL first.
         if let Some(gl) = &mut self.gl {
             gl.begin_frame(ctx, sw, sh);
-            for ov in self.overlays.clone() {
-                match ov {
-                    OverlayCmd::Svg { data, x, y, w, h } => gl.draw_svg(ctx, &data, x, y, w, h),
+            for ov in &self.overlays {
+                match *ov {
+                    OverlayCmd::Svg {
+                        ref data,
+                        x,
+                        y,
+                        w,
+                        h,
+                    } => gl.draw_svg(ctx, data, x, y, w, h),
                     OverlayCmd::Text {
-                        text,
-                        font,
+                        ref text,
+                        ref font,
                         x,
                         y,
                         color,
                     } => {
                         if let Some(ttf) = self.fonts.get(&font.font_id) {
-                            gl.draw_text_custom(ctx, ttf, font.size_px, &text, x, y, color);
+                            gl.draw_text_custom(ctx, ttf, font.size_px, text, x, y, color);
                         }
                     }
                     OverlayCmd::McText { .. }
@@ -761,25 +771,36 @@ impl BookRenderer {
 
         // 4. MC-pipeline overlays (item stacks, MC-font text) — after all raw
         //    GL, because item rendering resyncs and mutates MC's GL state.
-        for ov in self.overlays.clone() {
-            match ov {
+        for ov in &self.overlays {
+            match *ov {
                 OverlayCmd::McItem {
-                    item_id,
+                    ref item_id,
                     x,
                     y,
                     w,
                     h,
                 } => {
                     ctx.draw2d()
-                        .item(&normalize_item_id(&item_id), x, y, w.min(h));
+                        .item(&normalize_item_id(item_id), x, y, w.min(h));
                 }
-                OverlayCmd::McText { text, x, y, color } => {
-                    ctx.draw2d().text(&text, x, y, color, false);
+                OverlayCmd::McText {
+                    ref text,
+                    x,
+                    y,
+                    color,
+                } => {
+                    ctx.draw2d().text(text, x, y, color, false);
                 }
-                OverlayCmd::McTexture { path, x, y, w, h } => {
+                OverlayCmd::McTexture {
+                    ref path,
+                    x,
+                    y,
+                    w,
+                    h,
+                } => {
                     // Standalone icon texture, not an atlas region — drawn
                     // whole, scaled into the icon box.
-                    ctx.draw2d().image(&path, x, y, w, h);
+                    ctx.draw2d().image(path, x, y, w, h);
                 }
                 _ => {}
             }
@@ -805,14 +826,11 @@ fn build_ui(
     state: &BookViewState,
     theme: &BookTheme,
     recipes: &HashMap<String, RecipeVis>,
-    sw: f32,
-    sh: f32,
     bx: f32,
     by: f32,
     bw: f32,
     bh: f32,
 ) -> (UiRoot, Vec<BgSprite>, Vec<OverlayCmd>) {
-    let _ = (sw, sh);
     let mut bg_sprites: Vec<BgSprite> = Vec::new();
     let mut overlays: Vec<OverlayCmd> = Vec::new();
 
@@ -846,35 +864,23 @@ fn build_ui(
             w: 140.0 * sx,
             h: 31.0 * sy,
         });
-        // Separator below "Categories" header on right page (y=12 page-local), centered.
-        bg_sprites.push(BgSprite {
-            sheet: SpriteSheet::Book,
-            u: SEP_U,
-            v: SEP_V,
-            uw: SEP_W,
-            uh: SEP_H,
-            x: rx + sep_cx,
-            y: by + (TOP_PAD + 12.0) * sy,
-            w: SEP_W * sx,
-            h: (SEP_H * sy).max(1.0),
-        });
-    } else {
-        // Entry view: separator on right page below category name (y=12 page-local).
-        bg_sprites.push(BgSprite {
-            sheet: SpriteSheet::Book,
-            u: SEP_U,
-            v: SEP_V,
-            uw: SEP_W,
-            uh: SEP_H,
-            x: rx + sep_cx,
-            y: by + (TOP_PAD + 12.0) * sy,
-            w: SEP_W * sx,
-            h: (SEP_H * sy).max(1.0),
-        });
     }
+    // Separator on the right page below its header ("Categories" or the
+    // category name; y=12 page-local), centered.
+    bg_sprites.push(BgSprite {
+        sheet: SpriteSheet::Book,
+        u: SEP_U,
+        v: SEP_V,
+        uw: SEP_W,
+        uh: SEP_H,
+        x: rx + sep_cx,
+        y: by + (TOP_PAD + 12.0) * sy,
+        w: SEP_W * sx,
+        h: (SEP_H * sy).max(1.0),
+    });
 
     let (left_page, right_page) = if state.at_home {
-        let l = build_landing_left(book, theme, pw, ph, lx, py, sx, sy, bx, by, &mut overlays);
+        let l = build_landing_left(book, theme, pw, ph, sx, sy, bx, by, &mut overlays);
         let r = build_categories_right(book, state, theme, pw, ph, rx, py, sx, sy, &mut overlays);
         (l, r)
     } else {
@@ -939,8 +945,6 @@ fn build_landing_left(
     theme: &BookTheme,
     page_w: f32,
     page_h: f32,
-    _lx: f32,
-    _py: f32,
     sx: f32,
     sy: f32,
     bx: f32,

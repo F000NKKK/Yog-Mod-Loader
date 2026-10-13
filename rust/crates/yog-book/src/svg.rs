@@ -21,7 +21,7 @@ pub fn rasterize(svg_data: &str, w: u32, h: u32) -> Option<Vec<u8>> {
     }
     #[cfg(not(feature = "svg"))]
     {
-        // Without the `svg` feature, produce a 1×1 transparent placeholder.
+        // Without the `svg` feature there is no rasterizer.
         let _ = (svg_data, w, h);
         None
     }
