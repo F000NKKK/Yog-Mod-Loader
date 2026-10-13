@@ -778,6 +778,357 @@ public final class NativeBridge {
         }
     }
 
+    // ── sound / boss bar ────────────────────────────────────────────────────
+
+    public static boolean playSoundToPlayer(String playerName, String soundId, float volume, float pitch) {
+        ServerPlayer p = playerByName(playerName);
+        ResourceLocation id = ResourceLocation.tryParse(soundId);
+        if (p == null || id == null) return false;
+        p.serverLevel().playSound(null, p.getX(), p.getY(), p.getZ(),
+                net.minecraft.sounds.SoundEvent.createVariableRangeEvent(id), SoundSource.MASTER, volume, pitch);
+        return true;
+    }
+
+    public static boolean bossbarCreate(String id, String title, String color, String style) {
+        MinecraftServer s = server;
+        if (s == null) return false;
+        ResourceLocation bid = ResourceLocation.tryParse(id);
+        if (bid == null) return false;
+        net.minecraft.server.bossevents.CustomBossEvents mgr = s.getCustomBossEvents();
+        if (mgr.get(bid) != null) return false;
+        net.minecraft.server.bossevents.CustomBossEvent bar = mgr.create(bid, Component.literal(title));
+        bar.setColor(parseBossBarColor(color));
+        bar.setOverlay(parseBossBarStyle(style));
+        return true;
+    }
+
+    public static boolean bossbarRemove(String id) {
+        MinecraftServer s = server;
+        if (s == null) return false;
+        ResourceLocation bid = ResourceLocation.tryParse(id);
+        if (bid == null) return false;
+        net.minecraft.server.bossevents.CustomBossEvents mgr = s.getCustomBossEvents();
+        net.minecraft.server.bossevents.CustomBossEvent bar = mgr.get(bid);
+        if (bar == null) return false;
+        mgr.remove(bar);
+        return true;
+    }
+
+    public static boolean bossbarSetTitle(String id, String title) {
+        net.minecraft.server.bossevents.CustomBossEvent bar = getBossBar(id);
+        if (bar == null) return false;
+        bar.setName(Component.literal(title));
+        return true;
+    }
+
+    public static boolean bossbarSetProgress(String id, float progress) {
+        net.minecraft.server.bossevents.CustomBossEvent bar = getBossBar(id);
+        if (bar == null) return false;
+        bar.setProgress(Math.max(0f, Math.min(1f, progress)));
+        return true;
+    }
+
+    public static boolean bossbarSetColor(String id, String color) {
+        net.minecraft.server.bossevents.CustomBossEvent bar = getBossBar(id);
+        if (bar == null) return false;
+        bar.setColor(parseBossBarColor(color));
+        return true;
+    }
+
+    public static boolean bossbarAddPlayer(String id, String playerName) {
+        net.minecraft.server.bossevents.CustomBossEvent bar = getBossBar(id);
+        ServerPlayer p = playerByName(playerName);
+        if (bar == null || p == null) return false;
+        bar.addPlayer(p);
+        return true;
+    }
+
+    public static boolean bossbarRemovePlayer(String id, String playerName) {
+        net.minecraft.server.bossevents.CustomBossEvent bar = getBossBar(id);
+        ServerPlayer p = playerByName(playerName);
+        if (bar == null || p == null) return false;
+        bar.removePlayer(p);
+        return true;
+    }
+
+    public static boolean bossbarSetVisible(String id, boolean visible) {
+        net.minecraft.server.bossevents.CustomBossEvent bar = getBossBar(id);
+        if (bar == null) return false;
+        bar.setVisible(visible);
+        return true;
+    }
+
+    private static net.minecraft.server.bossevents.CustomBossEvent getBossBar(String id) {
+        MinecraftServer s = server;
+        if (s == null) return null;
+        ResourceLocation bid = ResourceLocation.tryParse(id);
+        return bid == null ? null : s.getCustomBossEvents().get(bid);
+    }
+
+    private static net.minecraft.world.BossEvent.BossBarColor parseBossBarColor(String color) {
+        return switch (color.toLowerCase(Locale.ROOT)) {
+            case "pink"   -> net.minecraft.world.BossEvent.BossBarColor.PINK;
+            case "blue"   -> net.minecraft.world.BossEvent.BossBarColor.BLUE;
+            case "red"    -> net.minecraft.world.BossEvent.BossBarColor.RED;
+            case "green"  -> net.minecraft.world.BossEvent.BossBarColor.GREEN;
+            case "yellow" -> net.minecraft.world.BossEvent.BossBarColor.YELLOW;
+            case "purple" -> net.minecraft.world.BossEvent.BossBarColor.PURPLE;
+            default       -> net.minecraft.world.BossEvent.BossBarColor.WHITE;
+        };
+    }
+
+    private static net.minecraft.world.BossEvent.BossBarOverlay parseBossBarStyle(String style) {
+        return switch (style.toLowerCase(Locale.ROOT)) {
+            case "notched_6"  -> net.minecraft.world.BossEvent.BossBarOverlay.NOTCHED_6;
+            case "notched_10" -> net.minecraft.world.BossEvent.BossBarOverlay.NOTCHED_10;
+            case "notched_12" -> net.minecraft.world.BossEvent.BossBarOverlay.NOTCHED_12;
+            case "notched_20" -> net.minecraft.world.BossEvent.BossBarOverlay.NOTCHED_20;
+            default           -> net.minecraft.world.BossEvent.BossBarOverlay.PROGRESS;
+        };
+    }
+
+    // ── effects / loot / tags / particles / attributes ──────────────────────
+
+    public static boolean entityRemoveEffect(String uuid, String effectId) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return false;
+        ResourceLocation id = ResourceLocation.tryParse(effectId);
+        if (id == null || !BuiltInRegistries.MOB_EFFECT.containsKey(id)) return false;
+        MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(id);
+        if (effect == null) return false;
+        return le.removeEffect(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect));
+    }
+
+    public static boolean entityClearEffects(String uuid) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return false;
+        return le.removeAllEffects();
+    }
+
+    public static boolean dropLoot(String tableId, String dimension, double x, double y, double z) {
+        MinecraftServer s = server;
+        if (s == null) return false;
+        ResourceLocation id = ResourceLocation.tryParse(tableId);
+        ServerLevel world = worldFor(dimension);
+        if (id == null || world == null) return false;
+        LootTable table = s.reloadableRegistries().getLootTable(ResourceKey.create(Registries.LOOT_TABLE, id));
+        if (table == null || table == LootTable.EMPTY) return false;
+        LootParams params = new LootParams(world, Map.of(), Map.of(), 0.0f);
+        java.util.List<ItemStack> stacks = table.getRandomItems(params);
+        for (ItemStack stack : stacks) {
+            world.addFreshEntity(new ItemEntity(world, x, y, z, stack));
+        }
+        return !stacks.isEmpty();
+    }
+
+    public static boolean hasItemTag(String itemId, String tagId) {
+        ResourceLocation iid = ResourceLocation.tryParse(itemId);
+        ResourceLocation tid = ResourceLocation.tryParse(tagId);
+        if (iid == null || tid == null || !BuiltInRegistries.ITEM.containsKey(iid)) return false;
+        TagKey<Item> tag = TagKey.create(Registries.ITEM, tid);
+        return BuiltInRegistries.ITEM.get(iid).getDefaultInstance().is(tag);
+    }
+
+    public static boolean hasBlockTag(String blockId, String tagId) {
+        ResourceLocation bid = ResourceLocation.tryParse(blockId);
+        ResourceLocation tid = ResourceLocation.tryParse(tagId);
+        if (bid == null || tid == null || !BuiltInRegistries.BLOCK.containsKey(bid)) return false;
+        TagKey<Block> tag = TagKey.create(Registries.BLOCK, tid);
+        return BuiltInRegistries.BLOCK.get(bid).defaultBlockState().is(tag);
+    }
+
+    public static boolean spawnParticles(
+            String dimension, double x, double y, double z,
+            String particleTypeId, int count,
+            double dx, double dy, double dz, double speed) {
+        try {
+            ServerLevel w = worldFor(dimension);
+            if (w == null) return false;
+            if (particleTypeId.indexOf(' ') >= 0 || particleTypeId.indexOf('{') >= 0) {
+                // Particle with options, /particle syntax (e.g. "minecraft:dust{color:[1,0,0],scale:1}")
+                net.minecraft.core.particles.ParticleOptions parsed =
+                        net.minecraft.commands.arguments.ParticleArgument.readParticle(
+                                new com.mojang.brigadier.StringReader(particleTypeId), w.registryAccess());
+                w.sendParticles(parsed, x, y, z, count, dx, dy, dz, speed);
+                return true;
+            }
+            ResourceLocation id = ResourceLocation.tryParse(particleTypeId);
+            if (id == null) return false;
+            net.minecraft.core.particles.ParticleType<?> type = BuiltInRegistries.PARTICLE_TYPE.get(id);
+            if (!(type instanceof net.minecraft.core.particles.ParticleOptions effect)) return false;
+            w.sendParticles(effect, x, y, z, count, dx, dy, dz, speed);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static double entityAttributeGet(String uuid, String attributeId) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return Double.NaN;
+        ResourceLocation id = ResourceLocation.tryParse(attributeId);
+        if (id == null || !BuiltInRegistries.ATTRIBUTE.containsKey(id)) return Double.NaN;
+        Attribute attr = BuiltInRegistries.ATTRIBUTE.get(id);
+        if (attr == null) return Double.NaN;
+        AttributeInstance inst = le.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr));
+        return inst == null ? Double.NaN : inst.getBaseValue();
+    }
+
+    public static boolean entityAttributeSet(String uuid, String attributeId, double value) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return false;
+        ResourceLocation id = ResourceLocation.tryParse(attributeId);
+        if (id == null || !BuiltInRegistries.ATTRIBUTE.containsKey(id)) return false;
+        Attribute attr = BuiltInRegistries.ATTRIBUTE.get(id);
+        if (attr == null) return false;
+        AttributeInstance inst = le.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr));
+        if (inst == null) return false;
+        inst.setBaseValue(value);
+        return true;
+    }
+
+    // ── held / slot item NBT ────────────────────────────────────────────────
+
+    /** SNBT of the item in the player's main hand, or null if offline / holding air. */
+    public static String getHeldItemNbt(String playerName) {
+        ServerPlayer p = playerByName(playerName);
+        if (p == null) return null;
+        ItemStack stack = p.getMainHandItem();
+        if (stack.isEmpty()) return null;
+        return stackSnbt(stack);
+    }
+
+    /** Replace the custom data of the item in the player's main hand with snbt. */
+    public static boolean setHeldItemNbt(String playerName, String snbt) {
+        ServerPlayer p = playerByName(playerName);
+        if (p == null) return false;
+        return setStackSnbt(p.getMainHandItem(), snbt);
+    }
+
+    /** SNBT of the item in the player's off hand, or null if offline / holding air. */
+    public static String getOffhandItemNbt(String playerName) {
+        ServerPlayer p = playerByName(playerName);
+        if (p == null) return null;
+        ItemStack stack = p.getOffhandItem();
+        if (stack.isEmpty()) return null;
+        return stackSnbt(stack);
+    }
+
+    /** Replace the custom data of the player's off-hand item with snbt. */
+    public static boolean setOffhandItemNbt(String playerName, String snbt) {
+        ServerPlayer p = playerByName(playerName);
+        if (p == null) return false;
+        return setStackSnbt(p.getOffhandItem(), snbt);
+    }
+
+    private static boolean setStackSnbt(ItemStack stack, String snbt) {
+        if (stack.isEmpty()) return false;
+        try {
+            CompoundTag nbt = TagParser.parseTag(snbt);
+            stack.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Full item stack at inventory slot: "item_id\tcount\tnbt_snbt", or null if empty/offline. */
+    public static String getSlotItem(String playerName, int slot) {
+        ServerPlayer p = playerByName(playerName);
+        if (p == null) return null;
+        Inventory inv = p.getInventory();
+        if (slot < 0 || slot >= inv.getContainerSize()) return null;
+        ItemStack stack = inv.getItem(slot);
+        if (stack.isEmpty()) return null;
+        return BuiltInRegistries.ITEM.getKey(stack.getItem()) + "\t" + stack.getCount() + "\t" + stackSnbt(stack);
+    }
+
+    /** Replace inventory slot; snbt becomes the new item's custom data (pass "" for none). */
+    public static boolean setSlotItem(String playerName, int slot, String itemId, int count, String snbt) {
+        ServerPlayer p = playerByName(playerName);
+        if (p == null) return false;
+        Inventory inv = p.getInventory();
+        if (slot < 0 || slot >= inv.getContainerSize()) return false;
+        if (count <= 0) {
+            inv.setItem(slot, ItemStack.EMPTY);
+            return true;
+        }
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return false;
+        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(id), count);
+        if (snbt != null && !snbt.isEmpty()) {
+            try {
+                stack.set(DataComponents.CUSTOM_DATA, CustomData.of(TagParser.parseTag(snbt)));
+            } catch (Exception ignored) {}
+        }
+        inv.setItem(slot, stack);
+        return true;
+    }
+
+    // ── ABI minor 2 ──────────────────────────────────────────────────────────
+
+    /** An action-bar message from a JSON text component. */
+    public static boolean actionbarJson(String player, String json) {
+        try {
+            ServerPlayer p = playerByName(player);
+            if (p == null) return false;
+            Component text = Component.Serializer.fromJson(json, p.registryAccess());
+            if (text == null) return false;
+            p.connection.send(new ClientboundSetActionBarTextPacket(text));
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Use a fresh single item on a block face, as the named player (or nobody). */
+    public static boolean useItemOnBlock(String dim, int x, int y, int z, int face, String itemId, String player) {
+        try {
+            ServerLevel w = worldFor(dim);
+            ResourceLocation id = ResourceLocation.tryParse(itemId);
+            if (w == null || id == null || !BuiltInRegistries.ITEM.containsKey(id) || face < 0 || face > 5) return false;
+            ServerPlayer p = player.isEmpty() ? null : playerByName(player);
+            BlockPos pos = new BlockPos(x, y, z);
+            ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(id));
+            BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.from3DDataValue(face), pos, false);
+            net.minecraft.world.item.context.UseOnContext ctx =
+                    new net.minecraft.world.item.context.UseOnContext(w, p, InteractionHand.MAIN_HAND, stack, hit) {};
+            return stack.getItem().useOn(ctx).consumesAction();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Empty a bucket item's fluid at the position, the way a player would. */
+    public static boolean pourFluid(String dim, int x, int y, int z, String bucketId) {
+        try {
+            ServerLevel w = worldFor(dim);
+            ResourceLocation id = ResourceLocation.tryParse(bucketId);
+            if (w == null || id == null || !BuiltInRegistries.ITEM.containsKey(id)) return false;
+            if (!(BuiltInRegistries.ITEM.get(id) instanceof net.minecraft.world.item.BucketItem bucket)) return false;
+            BlockPos pos = new BlockPos(x, y, z);
+            BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+            return bucket.emptyContents(null, w, pos, hit);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean hasEntityTag(String entityType, String tagId) {
+        ResourceLocation eid = ResourceLocation.tryParse(entityType);
+        ResourceLocation tid = ResourceLocation.tryParse(tagId);
+        if (eid == null || tid == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(eid)) return false;
+        return BuiltInRegistries.ENTITY_TYPE.get(eid).is(TagKey.create(Registries.ENTITY_TYPE, tid));
+    }
+
+    /** The block id a block item places, or null. */
+    public static String itemBlock(String itemId) {
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return null;
+        if (!(BuiltInRegistries.ITEM.get(id) instanceof BlockItem bi)) return null;
+        return BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
+    }
+
     private static Entity entityByUuid(String uuidStr) {
         MinecraftServer s = server;
         if (s == null) return null;

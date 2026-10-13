@@ -1086,6 +1086,57 @@ impl Server for CServer {
             )
         }
     }
+
+    fn actionbar_json(&self, player: &str, json: &str) -> bool {
+        let s = srv!(self);
+        unsafe { (s.actionbar_json)(s.ctx, YogStr::from_str(player), YogStr::from_str(json)) }
+    }
+
+    fn use_item_on_block(
+        &self,
+        dimension: &str,
+        pos: yog_core::BlockPos,
+        face: yog_core::Face,
+        item_id: &str,
+        player: &str,
+    ) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.use_item_on_block)(
+                s.ctx,
+                YogStr::from_str(dimension),
+                bp(pos),
+                face.index(),
+                YogStr::from_str(item_id),
+                YogStr::from_str(player),
+            )
+        }
+    }
+
+    fn pour_fluid(&self, dimension: &str, pos: yog_core::BlockPos, bucket_item_id: &str) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.pour_fluid)(
+                s.ctx,
+                YogStr::from_str(dimension),
+                bp(pos),
+                YogStr::from_str(bucket_item_id),
+            )
+        }
+    }
+
+    fn has_entity_tag(&self, entity_type: &str, tag_id: &str) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.has_entity_tag)(s.ctx, YogStr::from_str(entity_type), YogStr::from_str(tag_id))
+        }
+    }
+
+    fn item_block(&self, item_id: &str) -> Option<String> {
+        let s = srv!(self);
+        let owned = unsafe { (s.item_block)(s.ctx, YogStr::from_str(item_id)) };
+        take_owned(s, owned).filter(|b| !b.is_empty())
+    }
 }
 
 /// Copy a runtime-owned string out and free it; `None` for NONE.

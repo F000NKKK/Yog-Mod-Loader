@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 1;
-pub const ABI_MINOR: u32 = 1;
+pub const ABI_MINOR: u32 = 2;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1078,6 +1078,28 @@ pub struct YogServer {
         count: u32,
         snbt: YogStr,
     ) -> bool,
+    // ── ABI minor 2 ──
+    /// `json` is a JSON text component.
+    pub actionbar_json: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, json: YogStr) -> bool,
+    /// `face` is a `Direction` ordinal (down, up, north, south, west, east).
+    pub use_item_on_block: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        pos: YogBlockPos,
+        face: u8,
+        item_id: YogStr,
+        player: YogStr,
+    ) -> bool,
+    pub pour_fluid: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        pos: YogBlockPos,
+        bucket_item_id: YogStr,
+    ) -> bool,
+    pub has_entity_tag:
+        unsafe extern "C" fn(ctx: *mut c_void, entity_type: YogStr, tag_id: YogStr) -> bool,
+    /// The block id a block item places, or NONE.
+    pub item_block: unsafe extern "C" fn(ctx: *mut c_void, item_id: YogStr) -> YogOwnedStr,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.

@@ -1,7 +1,7 @@
 //! The handle Rust mods use to act on the running server — the Rust → Minecraft
 //! path.
 
-use crate::{BlockHit, BlockInfo, BlockPos, EntityInfo, PlayerInfo};
+use crate::{BlockHit, BlockInfo, BlockPos, EntityInfo, Face, PlayerInfo};
 
 /// Low-level capabilities the Yog runtime exposes to mods (the engine contract).
 ///
@@ -474,4 +474,36 @@ pub trait Server {
     /// Replace the stack inside a dropped item entity (`count == 0` removes
     /// the entity).
     fn item_entity_set_stack(&self, uuid: &str, item_id: &str, count: u32, snbt: &str) -> bool;
+
+    /// An action-bar message (the line above the hotbar) from a JSON text
+    /// component, like [`tellraw`](Self::tellraw): translation keys show
+    /// in each client's own language.
+    fn actionbar_json(&self, player: &str, json: &str) -> bool;
+
+    /// Use one `item_id` (a fresh single item, nothing is taken from anyone)
+    /// on the `face` of the block at `pos`, as `player` (a name, or `""` for
+    /// nobody): flint and steel lights it, a shovel puts out a campfire, a
+    /// hoe tills it… Returns whether the item did something.
+    fn use_item_on_block(
+        &self,
+        dimension: &str,
+        pos: BlockPos,
+        face: Face,
+        item_id: &str,
+        player: &str,
+    ) -> bool;
+
+    /// Empty the fluid of a bucket item (`"minecraft:water_bucket"`) at `pos`
+    /// the way a player would: it waterlogs a waterloggable block, replaces
+    /// a replaceable one, and evaporates where water can't exist. Returns
+    /// whether any fluid was placed.
+    fn pour_fluid(&self, dimension: &str, pos: BlockPos, bucket_item_id: &str) -> bool;
+
+    /// Whether an entity type (`"minecraft:zombie"`) is in `tag_id`
+    /// (`"minecraft:skeletons"`).
+    fn has_entity_tag(&self, entity_type: &str, tag_id: &str) -> bool;
+
+    /// The block an item places (`"minecraft:torch"` for the torch item), or
+    /// `None` if it isn't a block item.
+    fn item_block(&self, item_id: &str) -> Option<String>;
 }

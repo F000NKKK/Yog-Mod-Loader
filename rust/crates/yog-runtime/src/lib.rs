@@ -3578,6 +3578,43 @@ unsafe extern "C" fn srv_item_entity_stack(_ctx: *mut c_void, uuid: YogStr) -> Y
     bridge_str("itemEntityStack", &[JArg::S(uuid)])
 }
 
+unsafe extern "C" fn srv_actionbar_json(_ctx: *mut c_void, player: YogStr, json: YogStr) -> bool {
+    bridge_bool("actionbarJson", &[JArg::S(player), JArg::S(json)])
+}
+
+unsafe extern "C" fn srv_use_item_on_block(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    pos: YogBlockPos,
+    face: u8,
+    item_id: YogStr,
+    player: YogStr,
+) -> bool {
+    let [x, y, z] = pos_args(pos);
+    bridge_bool(
+        "useItemOnBlock",
+        &[JArg::S(dim), x, y, z, JArg::I(face as i32), JArg::S(item_id), JArg::S(player)],
+    )
+}
+
+unsafe extern "C" fn srv_pour_fluid(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    pos: YogBlockPos,
+    bucket_item_id: YogStr,
+) -> bool {
+    let [x, y, z] = pos_args(pos);
+    bridge_bool("pourFluid", &[JArg::S(dim), x, y, z, JArg::S(bucket_item_id)])
+}
+
+unsafe extern "C" fn srv_has_entity_tag(_ctx: *mut c_void, entity_type: YogStr, tag: YogStr) -> bool {
+    bridge_bool("hasEntityTag", &[JArg::S(entity_type), JArg::S(tag)])
+}
+
+unsafe extern "C" fn srv_item_block(_ctx: *mut c_void, item_id: YogStr) -> YogOwnedStr {
+    bridge_str("itemBlock", &[JArg::S(item_id)])
+}
+
 unsafe extern "C" fn srv_item_entity_set_stack(
     _ctx: *mut c_void,
     uuid: YogStr,
@@ -3688,6 +3725,11 @@ fn build_server_table() -> YogServer {
         spawn_item: srv_spawn_item,
         item_entity_stack: srv_item_entity_stack,
         item_entity_set_stack: srv_item_entity_set_stack,
+        actionbar_json: srv_actionbar_json,
+        use_item_on_block: srv_use_item_on_block,
+        pour_fluid: srv_pour_fluid,
+        has_entity_tag: srv_has_entity_tag,
+        item_block: srv_item_block,
     }
 }
 
@@ -5075,7 +5117,7 @@ unsafe extern "C" fn chunk_writer_set_block(
         return false;
     };
     env.call_static_method(
-        "dev/yog/NativeBridge",
+        "dev/yog/YogCallbackChunkGenerator",
         "setBlockInGeneratingChunk",
         "(IIILjava/lang/String;)Z",
         &[

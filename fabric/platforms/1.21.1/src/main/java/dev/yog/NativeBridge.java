@@ -1625,4 +1625,68 @@ public final class NativeBridge {
         net.minecraft.screen.slot.Slot slot = activeInventoryMenu.slots.get(index);
         return slot.x + "\t" + slot.y;
     }
+
+    // ── ABI minor 2 ──────────────────────────────────────────────────────────
+
+    /** An action-bar message from a JSON text component. */
+    public static boolean actionbarJson(String player, String json) {
+        try {
+            ServerPlayerEntity p = playerByName(player);
+            if (p == null) return false;
+            Text text = Text.Serialization.fromJson(json, p.getRegistryManager());
+            if (text == null) return false;
+            p.networkHandler.sendPacket(new OverlayMessageS2CPacket(text));
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Use a fresh single item on a block face, as the named player (or nobody). */
+    public static boolean useItemOnBlock(String dim, int x, int y, int z, int face, String itemId, String player) {
+        try {
+            ServerWorld w = worldFor(dim);
+            Identifier id = Identifier.tryParse(itemId);
+            if (w == null || id == null || !Registries.ITEM.containsId(id) || face < 0 || face > 5) return false;
+            ServerPlayerEntity p = player.isEmpty() ? null : playerByName(player);
+            BlockPos pos = new BlockPos(x, y, z);
+            ItemStack stack = new ItemStack(Registries.ITEM.get(id));
+            BlockHitResult hit = new BlockHitResult(Vec3d.ofCenter(pos), Direction.byId(face), pos, false);
+            net.minecraft.item.ItemUsageContext ctx =
+                    new net.minecraft.item.ItemUsageContext(w, p, Hand.MAIN_HAND, stack, hit) {};
+            return stack.getItem().useOnBlock(ctx).isAccepted();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Empty a bucket item's fluid at the position, the way a player would. */
+    public static boolean pourFluid(String dim, int x, int y, int z, String bucketId) {
+        try {
+            ServerWorld w = worldFor(dim);
+            Identifier id = Identifier.tryParse(bucketId);
+            if (w == null || id == null || !Registries.ITEM.containsId(id)) return false;
+            if (!(Registries.ITEM.get(id) instanceof net.minecraft.item.BucketItem bucket)) return false;
+            BlockPos pos = new BlockPos(x, y, z);
+            BlockHitResult hit = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+            return bucket.placeFluid(null, w, pos, hit);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean hasEntityTag(String entityType, String tagId) {
+        Identifier eid = Identifier.tryParse(entityType);
+        Identifier tid = Identifier.tryParse(tagId);
+        if (eid == null || tid == null || !Registries.ENTITY_TYPE.containsId(eid)) return false;
+        return Registries.ENTITY_TYPE.get(eid).isIn(TagKey.of(RegistryKeys.ENTITY_TYPE, tid));
+    }
+
+    /** The block id a block item places, or null. */
+    public static String itemBlock(String itemId) {
+        Identifier id = Identifier.tryParse(itemId);
+        if (id == null || !Registries.ITEM.containsId(id)) return null;
+        if (!(Registries.ITEM.get(id) instanceof BlockItem bi)) return null;
+        return Registries.BLOCK.getId(bi.getBlock()).toString();
+    }
 }
