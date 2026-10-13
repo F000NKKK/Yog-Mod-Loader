@@ -89,9 +89,9 @@ pub fn functions(source: &str) -> Result<Vec<(String, Takes)>, String> {
     let mut rest = source;
     while let Some(at) = rest.find(ATTRIBUTE) {
         let line = source[..source.len() - rest.len() + at]
-            .lines()
+            .matches('\n')
             .count()
-            .max(1);
+            + 1;
         rest = &rest[at + ATTRIBUTE.len()..];
         let Some(fn_at) = rest.find("fn ") else {
             return Err(format!("line {line}: {ATTRIBUTE} must be on a function"));
