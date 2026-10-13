@@ -400,6 +400,27 @@ fn pascal(value: &str) -> String {
 ///
 /// `"@<Set>.<name>"` naming a text of `resources/<Set>.yres` (see
 /// [`set_resource_refs`]) is that text's translation key.
+/// `<StatBar …/>`: a custom component's name (not a built-in element).
+fn is_component_name(kind: &str) -> bool {
+    kind.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+        && kind.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+/// A custom component built by name from its own (non-common) attributes;
+/// `@key` values are translated like `text`.
+fn component_expr(el: &Element) -> String {
+    let props: Vec<String> = el
+        .attrs
+        .iter()
+        .filter(|(k, _)| !COMMON_ATTRS.contains(&k.as_str()))
+        .map(|(k, v)| match v.strip_prefix('@') {
+            Some(rest) if !rest.trim().is_empty() => format!("({k:?}, &*{})", text_expr(v)),
+            _ => format!("({k:?}, {v:?})"),
+        })
+        .collect();
+    format!("::yog_api::ui::component::build({:?}, &[{}])", el.name, props.join(", "))
+}
+
 pub fn text_expr(value: &str) -> String {
     match value.strip_prefix('@') {
         Some(rest) if rest.starts_with('@') => format!("{rest:?}"),
@@ -582,9 +603,12 @@ impl Gen {
     fn widget(&mut self, el: &Element, in_canvas: bool, depth: usize) -> Result<String, String> {
         let kind = el.name.as_str();
         let is_container = CONTAINERS.contains(&kind);
-        if !is_container && !LEAVES.contains(&kind) {
+        // Any other PascalCase element is one of the mod's own components
+        // (`yog_api::ui_component!`), looked up by name when the tree is built.
+        let is_component = !is_container && !LEAVES.contains(&kind) && is_component_name(kind);
+        if !is_container && !LEAVES.contains(&kind) && !is_component {
             return Err(format!(
-                "line {}: unknown element <{kind}> (expected one of {}, {})",
+                "line {}: unknown element <{kind}> (expected one of {}, {}, or a custom component's PascalCase name)",
                 el.line,
                 CONTAINERS[1..].join(", "),
                 LEAVES.join(", ")
@@ -600,7 +624,7 @@ impl Gen {
             return Err(format!("line {}: <{kind}> can't have children", el.line));
         }
         for (key, _) in &el.attrs {
-            if !COMMON_ATTRS.contains(&key.as_str()) && !kind_attrs(kind).contains(&key.as_str()) {
+            if !is_component && !COMMON_ATTRS.contains(&key.as_str()) && !kind_attrs(kind).contains(&key.as_str()) {
                 return Err(format!(
                     "line {}: <{kind}> has no attribute `{key}`",
                     el.line
@@ -635,6 +659,7 @@ impl Gen {
                 )
             }
             "Image" => self.image(el)?,
+            _ if is_component => component_expr(el),
             _ => "widget::spacer()".to_string(),
         };
         let indent = "    ".repeat(depth + 2);
@@ -660,6 +685,14 @@ impl Gen {
         }
         for (key, value) in &el.attrs {
             let v = value.as_str();
+            if is_component && !COMMON_ATTRS.contains(&key.as_str()) {
+                // A component's own property (passed to `build` above); an
+                // `on_*` one names an event like `on_click` does.
+                if key.starts_with("on_") && !v.trim().is_empty() && !self.events.contains(value) {
+                    self.events.push(value.clone());
+                }
+                continue;
+            }
             match key.as_str() {
                 "id" => {
                     if !self.ids.contains(value) {
@@ -1156,6 +1189,24 @@ mod tests {
 
     fn screen(body: &str) -> String {
         format!(r#"<Screen id="mymod:s">{body}</Screen>"#)
+    }
+
+    #[test]
+    fn custom_components() {
+        let (code, _) = generate_for(
+            &screen(r#"<StatBar x="4" w="80" label="@@hp" value="0.5" on_select="pick" bg="#FF000000"/>"#),
+            "s",
+            None,
+        )
+        .unwrap();
+        assert!(
+            code.contains(r#"::yog_api::ui::component::build("StatBar", &[("label", &*"@hp"), ("value", "0.5"), ("on_select", "pick")])"#),
+            "{code}"
+        );
+        assert!(code.contains(".bg(0xFF000000)") && code.contains(".w(Units::Px(80.0))"), "{code}");
+        assert!(!code.contains(".value("), "{code}");
+        assert!(generate_for(&screen(r#"<statBar/>"#), "s", None).is_err());
+        assert!(generate_for(&screen(r#"<StatBar><Label/></StatBar>"#), "s", None).is_err());
     }
 
     #[test]

@@ -262,6 +262,51 @@ impl Props {
     }
 }
 
+/// The attributes every `.yui` element takes (`yog build` applies them to
+/// a component's widget with builder calls — they never reach its
+/// [`Props`]).
+pub const COMMON_ATTRS: &[&str] = &[
+    "id", "x", "y", "w", "h", "min_w", "min_h", "flex", "dock", "gap", "padding", "bg", "color", "align", "font_scale",
+    "font", "shadow", "no_wrap", "ellipsis", "focus_style", "focus_color", "enabled", "on_click", "visible",
+];
+
+/// One common style attribute applied to `w` as generated code would
+/// (layout attributes — position, size, dock, flex — are left to the
+/// caller; malformed values are ignored).
+pub fn apply_style(w: Widget, key: &str, value: &str) -> Widget {
+    let v = value.trim();
+    let num = || v.parse::<f32>().ok();
+    match key {
+        "bg" => parse_color(v).map_or(w.clone(), |c| w.clone().bg(c)),
+        "color" => parse_color(v).map_or(w.clone(), |c| w.clone().color(c)),
+        "focus_color" => parse_color(v).map_or(w.clone(), |c| w.clone().focus_color(c)),
+        "min_w" => num().map_or(w.clone(), |n| w.clone().min_w(n)),
+        "min_h" => num().map_or(w.clone(), |n| w.clone().min_h(n)),
+        "gap" => num().map_or(w.clone(), |n| w.clone().gap(n)),
+        "font_scale" => num().map_or(w.clone(), |n| w.clone().font_scale(n)),
+        "font" => w.font(v),
+        "shadow" => w.shadow(v == "true"),
+        "enabled" => w.enabled(v != "false"),
+        "no_wrap" if v == "true" => w.no_wrap(),
+        "ellipsis" if v == "true" => w.ellipsis(),
+        "align" => w.align(match v {
+            "center" => crate::Align::Center,
+            "end" => crate::Align::End,
+            _ => crate::Align::Start,
+        }),
+        "padding" => {
+            let parts: Option<Vec<f32>> = v.split([' ', ',']).filter(|s| !s.is_empty()).map(|s| s.parse().ok()).collect();
+            match parts.as_deref() {
+                Some([a]) => w.padding(*a, *a, *a, *a),
+                Some([vv, hh]) => w.padding(*vv, *hh, *vv, *hh),
+                Some([t, r, b, l]) => w.padding(*t, *r, *b, *l),
+                _ => w,
+            }
+        }
+        _ => w,
+    }
+}
+
 /// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB` (as `.yui` colors).
 pub fn parse_color(value: &str) -> Option<u32> {
     let v = value.trim();
@@ -296,7 +341,7 @@ pub mod designer {
     use yog_abi::{YogGfxApi, YogStr};
     use yog_gfx::GfxContext;
 
-    use super::{components, find, Props, PropKind};
+    use super::{apply_style, components, find, PropKind, Props, COMMON_ATTRS};
     use crate::widget::{self, Widget};
     use crate::{FlexDir, UiRoot, Units};
 
@@ -356,8 +401,13 @@ pub mod designer {
 
     fn render(ctx: &GfxContext, name: &str, attrs: &[(String, String)], [w, h, aw, ah]: [f32; 4]) -> Result<String, String> {
         let spec = find(name).ok_or_else(|| format!("no component named {name}"))?;
-        let attrs: Vec<(&str, &str)> = attrs.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
-        let mut root: Widget = (spec.build)(&Props::new(spec.props, &attrs));
+        type Attrs<'a> = Vec<(&'a str, &'a str)>;
+        let (common, own): (Attrs, Attrs) =
+            attrs.iter().map(|(k, v)| (k.as_str(), v.as_str())).partition(|(k, _)| COMMON_ATTRS.contains(k));
+        let mut root: Widget = (spec.build)(&Props::new(spec.props, &own));
+        for (k, v) in common {
+            root = apply_style(root, k, v);
+        }
         if w > 0.0 {
             root = root.w(Units::Px(w));
         }

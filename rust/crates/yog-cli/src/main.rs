@@ -40,6 +40,7 @@ fn main() {
             build(debug).map(|_| ())
         }
         Some("check") => check(),
+        Some("designer-lib") => designer_lib(),
         Some("new") => new_mod(args.get(2).map(String::as_str)),
         Some("setup") => setup(),
         Some("doctor") => {
@@ -117,6 +118,7 @@ fn print_usage() {
          \x20 build               Compile the current mod and package it as artifacts/<id>.yog\n\
          \x20 build debug         Same, but keep debug info in the native (for yog-debugger)\n\
          \x20 check               Generate .yog-build/ and `cargo check` the mod (host only)\n\
+         \x20 designer-lib        Build the mod's library for this machine (Yog-IDLE's designer); prints its path\n\
          \x20 setup               Check and install build dependencies (Rust, Zig, targets)\n\
          \x20 doctor [--json]     Report build dependencies without changing anything\n\
          \x20 version             Print the yog CLI version\n\
@@ -717,6 +719,38 @@ fn check() -> Result<(), String> {
         return Err(format!("cargo check failed ({status})"));
     }
     eprintln!("==> check OK");
+    Ok(())
+}
+
+/// `yog designer-lib` — the mod's library built for this machine (debug
+/// profile, `target/designer/`), for Yog-IDLE's screen designer host to
+/// load and draw the mod's custom `.yui` components with. Cargo's output
+/// goes to stderr; the library's path is the one line on stdout.
+fn designer_lib() -> Result<(), String> {
+    let Prepared {
+        root,
+        meta,
+        build_dir,
+        ..
+    } = prepare()?;
+    let target_dir = root.join("target").join("designer");
+    let status = Command::new("cargo")
+        .current_dir(&build_dir)
+        .env("CARGO_TARGET_DIR", &target_dir)
+        .args(["build", "--lib", "--color", "never"])
+        .stdout(std::process::Stdio::null())
+        .status()
+        .map_err(|e| format!("failed to run cargo: {e}"))?;
+    if !status.success() {
+        return Err(format!("cargo build failed ({status})"));
+    }
+    let lib = target_dir
+        .join("debug")
+        .join(lib_filename(&meta.id, std::env::consts::OS));
+    if !lib.is_file() {
+        return Err(format!("built, but {} is missing", lib.display()));
+    }
+    println!("{}", lib.display());
     Ok(())
 }
 
