@@ -18,10 +18,21 @@ use yog_abi::YogStr;
 /// Pixel position of a single slot in vanilla GUI coordinate space (the same
 /// space vanilla screens use: origin at the panel's top-left corner, one
 /// vanilla slot = 18×18px).
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct SlotLayout {
     pub x: f32,
     pub y: f32,
+    /// What the slot takes: item ids (`minecraft:redstone`) and item tags
+    /// (`#c:dusts`). Empty = anything.
+    #[serde(default)]
+    pub accepts: Vec<String>,
+}
+
+impl SlotLayout {
+    /// A slot at `(x, y)` taking anything.
+    pub fn at(x: f32, y: f32) -> Self {
+        Self { x, y, accepts: Vec::new() }
+    }
 }
 
 /// Vanilla spacing between adjacent slots in the default grid.
@@ -146,22 +157,23 @@ impl InventoryDef {
             .map(|i| {
                 let col = (i % DEFAULT_GRID_COLS) as f32;
                 let row = (i / DEFAULT_GRID_COLS) as f32;
-                SlotLayout {
-                    x: x0 + col * SLOT_SIZE,
-                    y: y0 + row * SLOT_SIZE,
-                }
+                SlotLayout::at(x0 + col * SLOT_SIZE, y0 + row * SLOT_SIZE)
             })
             .collect()
     }
 }
 
-/// Encode an [`InventoryDef`]'s slot layout as `"x:y,x:y,..."` — the
+/// Encode an [`InventoryDef`]'s slot layout as `"x:y,x:y:a|b,..."` — the
 /// wire format used when handing the layout to the Java host (mirrors how
-/// `BlockDef::connect_groups` is comma-joined for its ABI struct).
+/// `BlockDef::connect_groups` is comma-joined for its ABI struct); a slot
+/// that takes only some items adds them after a third `:`, `|`-joined.
 pub fn encode_layout(layout: &[SlotLayout]) -> String {
     layout
         .iter()
-        .map(|s| format!("{}:{}", s.x, s.y))
+        .map(|s| match s.accepts.is_empty() {
+            true => format!("{}:{}", s.x, s.y),
+            false => format!("{}:{}:{}", s.x, s.y, s.accepts.join("|")),
+        })
         .collect::<Vec<_>>()
         .join(",")
 }
@@ -172,11 +184,17 @@ pub fn decode_layout(s: &str) -> Vec<SlotLayout> {
         return Vec::new();
     }
     s.split(',')
-        .filter_map(|pair| {
-            let (x, y) = pair.split_once(':')?;
+        .filter_map(|entry| {
+            let mut parts = entry.splitn(3, ':');
+            let (x, y) = (parts.next()?, parts.next()?);
+            let accepts = parts
+                .next()
+                .map(|a| a.split('|').filter(|s| !s.is_empty()).map(str::to_owned).collect())
+                .unwrap_or_default();
             Some(SlotLayout {
                 x: x.parse().ok()?,
                 y: y.parse().ok()?,
+                accepts,
             })
         })
         .collect()
@@ -304,21 +322,25 @@ mod tests {
     #[test]
     fn default_grid_wraps_rows() {
         let g = InventoryDef::new("t", DEFAULT_GRID_COLS + 1).resolved_layout();
-        assert_eq!(g[0], SlotLayout { x: 8.0, y: 18.0 });
-        assert_eq!(g[DEFAULT_GRID_COLS], SlotLayout { x: 8.0, y: 36.0 });
+        assert_eq!(g[0], SlotLayout::at(8.0, 18.0));
+        assert_eq!(g[DEFAULT_GRID_COLS], SlotLayout::at(8.0, 36.0));
     }
 
     #[test]
     fn layout_round_trips() {
         let l = vec![
-            SlotLayout { x: 1.5, y: 2.0 },
-            SlotLayout { x: 30.0, y: 4.0 },
+            SlotLayout::at(1.5, 2.0),
+            SlotLayout {
+                accepts: vec!["minecraft:redstone".into(), "#c:dusts".into()],
+                ..SlotLayout::at(30.0, 4.0)
+            },
         ];
+        assert_eq!(encode_layout(&l), "1.5:2,30:4:minecraft:redstone|#c:dusts");
         assert_eq!(decode_layout(&encode_layout(&l)), l);
         assert!(decode_layout("").is_empty());
         assert_eq!(
             decode_layout("1:2,bad,3"),
-            vec![SlotLayout { x: 1.0, y: 2.0 }]
+            vec![SlotLayout::at(1.0, 2.0)]
         );
     }
 
