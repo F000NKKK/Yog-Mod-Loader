@@ -1679,4 +1679,18 @@ public final class NativeBridge {
         if (!(Registries.ITEM.get(id) instanceof BlockItem bi)) return null;
         return Registries.BLOCK.getId(bi.getBlock()).toString();
     }
+
+    public static boolean placeFeature(String dim, int x, int y, int z, String featureId) {
+        try {
+            ServerWorld w = worldFor(dim);
+            Identifier id = Identifier.tryParse(featureId);
+            if (w == null || id == null) return false;
+            net.minecraft.world.gen.feature.ConfiguredFeature<?, ?> f =
+                    w.getRegistryManager().get(RegistryKeys.CONFIGURED_FEATURE).get(id);
+            if (f == null) return false;
+            return f.generate(w, w.getChunkManager().getChunkGenerator(), w.getRandom(), new BlockPos(x, y, z));
+        } catch (Throwable t) {
+            return false;
+        }
+    }
 }

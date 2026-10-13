@@ -1101,6 +1101,12 @@ pub struct YogServer {
         unsafe extern "C" fn(ctx: *mut c_void, entity_type: YogStr, tag_id: YogStr) -> bool,
     /// The block id a block item places, or NONE.
     pub item_block: unsafe extern "C" fn(ctx: *mut c_void, item_id: YogStr) -> YogOwnedStr,
+    pub place_feature: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        pos: YogBlockPos,
+        feature_id: YogStr,
+    ) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.

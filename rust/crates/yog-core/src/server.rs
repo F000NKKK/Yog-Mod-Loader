@@ -506,4 +506,9 @@ pub trait Server {
     /// The block an item places (`"minecraft:torch"` for the torch item), or
     /// `None` if it isn't a block item.
     fn item_block(&self, item_id: &str) -> Option<String>;
+
+    /// Place a configured feature (`"minecraft:oak"`, or a datapack's own
+    /// `data/<ns>/worldgen/configured_feature/*.json`) at `pos`, the way
+    /// a growing sapling places its tree. Returns whether it was placed.
+    fn place_feature(&self, dimension: &str, pos: BlockPos, feature_id: &str) -> bool;
 }

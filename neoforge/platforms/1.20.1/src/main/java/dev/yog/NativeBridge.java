@@ -1126,6 +1126,20 @@ public final class NativeBridge {
         return BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
     }
 
+    public static boolean placeFeature(String dim, int x, int y, int z, String featureId) {
+        try {
+            ServerLevel w = worldFor(dim);
+            ResourceLocation id = ResourceLocation.tryParse(featureId);
+            if (w == null || id == null) return false;
+            net.minecraft.world.level.levelgen.feature.ConfiguredFeature<?, ?> f =
+                    w.registryAccess().registryOrThrow(Registries.CONFIGURED_FEATURE).get(id);
+            if (f == null) return false;
+            return f.place(w, w.getChunkSource().getGenerator(), w.getRandom(), new BlockPos(x, y, z));
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     private static Entity entityByUuid(String uuidStr) {
         MinecraftServer s = server;
         if (s == null) return null;

@@ -3630,6 +3630,16 @@ unsafe extern "C" fn srv_item_block(_ctx: *mut c_void, item_id: YogStr) -> YogOw
     bridge_str("itemBlock", &[JArg::S(item_id)])
 }
 
+unsafe extern "C" fn srv_place_feature(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    pos: YogBlockPos,
+    feature_id: YogStr,
+) -> bool {
+    let [x, y, z] = pos_args(pos);
+    bridge_bool("placeFeature", &[JArg::S(dim), x, y, z, JArg::S(feature_id)])
+}
+
 unsafe extern "C" fn srv_item_entity_set_stack(
     _ctx: *mut c_void,
     uuid: YogStr,
@@ -3745,6 +3755,7 @@ fn build_server_table() -> YogServer {
         pour_fluid: srv_pour_fluid,
         has_entity_tag: srv_has_entity_tag,
         item_block: srv_item_block,
+        place_feature: srv_place_feature,
     }
 }
 

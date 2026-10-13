@@ -1141,6 +1141,13 @@ impl Server for CServer {
         let owned = unsafe { (s.item_block)(s.ctx, YogStr::from_str(item_id)) };
         take_owned(s, owned).filter(|b| !b.is_empty())
     }
+
+    fn place_feature(&self, dimension: &str, pos: yog_core::BlockPos, feature_id: &str) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.place_feature)(s.ctx, YogStr::from_str(dimension), bp(pos), YogStr::from_str(feature_id))
+        }
+    }
 }
 
 /// Copy a runtime-owned string out and free it; `None` for NONE.
