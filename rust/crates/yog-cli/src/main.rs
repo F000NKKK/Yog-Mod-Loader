@@ -269,7 +269,7 @@ fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
             continue;
         }
         match section {
-            "mod" | "package" => {
+            "mod" => {
                 if let Some(v) = field(line, "id") {
                     id = Some(v);
                 }
@@ -2004,7 +2004,7 @@ fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
         let insert_idx = lines
             .iter()
             .position(|l| {
-                l.trim().starts_with('[') && l.trim() != "[mod]" && l.trim() != "[package]"
+                l.trim().starts_with('[') && l.trim() != "[mod]"
             })
             .unwrap_or(lines.len());
         lines.insert(insert_idx, target_section.to_string());

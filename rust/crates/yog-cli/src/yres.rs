@@ -1280,7 +1280,6 @@ pub fn write_sources(root: &Path, compiled: &Compiled) -> Result<(), String> {
             }
         }
     }
-    let _ = std::fs::remove_file(root.join(".yog-build/generated/res.g.rs")); // pre-0.27.2 name
     let mut index = BANNER.replace("{source}", "resources/**/*.yres");
     index.push_str("// Included by `yog_api::resources!()` as `crate::res`.\n");
     for (set, code) in &compiled.sources {
