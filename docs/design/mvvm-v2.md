@@ -1532,7 +1532,12 @@ it.
 
 ## 18. Open questions for the user
 
-1. **Q1 Tracking model**: static masks from `#[view_model]` with plain fields (recommended), or
+1. **Q1 Tracking model — decided: static masks with plain fields.** The user asked for whichever is more
+   convenient and works better and faster. Masks win on both: fields stay plain (`self.name = x`, no
+   `.get()/.set()`, no wrapper types in literals or tests), tracking costs one `u64` OR per write and nothing per
+   read, and there is no per-field allocation or subscriber list. The dynamic cases signals would catch
+   (writes through opaque `&mut self` helpers outside the impl) fall back to "all fields dirty", which the
+   `Slot` diff keeps correct; the debug shadow re-evaluation flags them. Was: static masks (recommended), or
    runtime signals (`Prop<T>` fields with `.get()/.set()`)?
 2. **Q2 Hidden field**: `#[view_model]` adds `__yk: VmCore`, so struct literals need
    `..Default::default()`. Acceptable, or should the core live in the host (no computed memo
