@@ -132,6 +132,9 @@ pub(crate) struct Host<W: View> {
     pub(crate) log: Vec<String>,
     /// Calls `yog_api` for close/navigation (off in tests).
     pub(crate) live: bool,
+    /// Re-evaluate the bindings every frame: an inventory screen's slots
+    /// change by drag-and-drop, which runs no command.
+    pub(crate) every_frame: bool,
 }
 
 impl<W: View> Host<W> {
@@ -159,6 +162,7 @@ impl<W: View> Host<W> {
             handle,
             log: Vec::new(),
             live,
+            every_frame: false,
         }
     }
 
@@ -264,6 +268,7 @@ impl<W: View> Host<W> {
     pub(crate) fn frame(&mut self, sw: f32, sh: f32) {
         self.size = (sw, sh);
         self.drain_queue();
+        self.dirty |= self.every_frame;
         // A keyboard reveal can scroll a virtualized list, which needs a
         // second update for the rows that came into view.
         for _ in 0..2 {

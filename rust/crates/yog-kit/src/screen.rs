@@ -223,6 +223,7 @@ impl<W: View> Screen<W> {
         // Opened by the game with the block it belongs to, not by `open()`.
         if let Some(def) = inventory_of::<W>() {
             registry.register_inventory(def);
+            lock(&host).every_frame = true;
         }
 
         let render = host.clone();
