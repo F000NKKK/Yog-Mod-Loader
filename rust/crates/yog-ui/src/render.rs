@@ -162,18 +162,9 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
                 iy + sz - 1.0,
                 0xFF_888888,
             );
-            if let Some((ns, name)) = item_id.split_once(':') {
-                d2d.mc_texture(
-                    &format!("{ns}:textures/item/{name}.png"),
-                    ix + 2.0,
-                    iy + 2.0,
-                    0.0,
-                    0.0,
-                    14.0,
-                    14.0,
-                    16.0,
-                    16.0,
-                );
+            // The item renderer: modded items, 3D block items, any version.
+            if !item_id.is_empty() {
+                d2d.item(item_id, ix + 1.0, iy + 1.0, 16.0);
             }
         }
         WidgetKind::InvSlot { item_id, count } => {
@@ -191,19 +182,7 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
             d2d.rect(ix + sz - 1.0, iy, ix + sz, iy + sz, 0xFF_FFFFFF);
             // Item icon + count
             if !item_id.is_empty() {
-                if let Some((ns, name)) = item_id.split_once(':') {
-                    d2d.mc_texture(
-                        &format!("{ns}:textures/item/{name}.png"),
-                        ix + 2.0,
-                        iy + 2.0,
-                        0.0,
-                        0.0,
-                        14.0,
-                        14.0,
-                        16.0,
-                        16.0,
-                    );
-                }
+                d2d.item(item_id, ix + 1.0, iy + 1.0, 16.0);
                 if *count > 1 {
                     let count_str = count.to_string();
                     let cw = crate::text::str_width(&count_str, 0.7);
@@ -218,21 +197,17 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
             }
         }
         WidgetKind::McImage { id, img_w, img_h } => {
-            if !fits(clip, r.y + s.pad[0], *img_h) {
-                return;
-            }
-            d2d.mc_texture(
-                id,
-                r.x + s.pad[3],
-                r.y + s.pad[0],
-                0.0,
-                0.0,
-                *img_w,
-                *img_h,
-                *img_w,
-                *img_h,
-            );
+            // A raw texture of `img_w × img_h` pixels, stretched over the
+            // content box (it used to be blitted 1:1 at the top-left).
+            let image = widget::Image {
+                source: id.clone(),
+                stretch: crate::Stretch::Fill,
+                region: Some([0.0, 0.0, *img_w, *img_h]),
+                tint: 0xFFFF_FFFF,
+            };
+            crate::image::render(d2d, &image, content_box(r, s), clip);
         }
+        WidgetKind::Image(image) => crate::image::render(d2d, image, content_box(r, s), clip),
         WidgetKind::Spacer => {} // invisible
         WidgetKind::TextBox(tb) => render_text_box(d2d, tb, s, *r, clip, node.focused),
     }
@@ -258,6 +233,16 @@ fn render_clipped(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, clip: Option
     if let Some((track, knob)) = node.scrollbar_rects() {
         fill_rect(d2d, clip, track, TRACK_COLOR);
         fill_rect(d2d, clip, knob, KNOB_COLOR);
+    }
+}
+
+/// `r` without the widget's padding.
+fn content_box(r: &Rect, s: &crate::widget::Style) -> Rect {
+    Rect {
+        x: r.x + s.pad[3],
+        y: r.y + s.pad[0],
+        w: (r.w - s.pad[1] - s.pad[3]).max(0.0),
+        h: (r.h - s.pad[0] - s.pad[2]).max(0.0),
     }
 }
 

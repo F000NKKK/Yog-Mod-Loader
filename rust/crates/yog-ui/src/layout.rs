@@ -253,6 +253,11 @@ fn layout_widget(
                     .max(s.min_h)
                     .min(max_h);
             }
+            WidgetKind::Image(image) => {
+                let (nw, nh) = crate::image::natural_size(image);
+                ww = (nw + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
+                hh = (nh + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);
+            }
             WidgetKind::McImage { img_w, img_h, .. } => {
                 ww = (*img_w + s.pad[1] + s.pad[3]).max(s.min_w).min(max_w);
                 hh = (*img_h + s.pad[0] + s.pad[2]).max(s.min_h).min(max_h);

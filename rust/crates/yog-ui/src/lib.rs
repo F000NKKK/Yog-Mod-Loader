@@ -16,6 +16,7 @@
 //!     );
 //! ```
 
+pub mod image;
 pub mod layout;
 mod render;
 pub mod scroll;
@@ -26,7 +27,7 @@ pub mod widget;
 pub use layout::{set_focus, Align, FlexDir, LayoutNode, Rect};
 pub use scroll::ScrollState;
 pub use textbox::{TextBoxEvent, TextBoxState};
-pub use widget::{Dock, FocusStyle, Units, Widget};
+pub use widget::{Dock, FocusStyle, Stretch, Units, Widget};
 
 use yog_gfx::GfxContext;
 
@@ -58,6 +59,7 @@ impl UiRoot {
     /// Must be called from `on_hud_render`.
     pub fn render(&self, ctx: &GfxContext) {
         text::use_host_metrics(ctx);
+        image::use_host_images(ctx);
         let d2d = ctx.draw2d();
         render::render_node(&d2d, &self.root, &self.layout_root);
     }

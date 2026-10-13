@@ -35,7 +35,9 @@ pub fn use_host_images(ctx: &GfxContext) {
 /// table's size, 16×16 for the rest.
 fn offline_size(source: &str) -> (f32, f32) {
     match ImageSource::parse(source) {
-        Some(ImageSource::Sprite(name)) => img::sprite(&name).map_or((16.0, 16.0), |s| s.size(true)),
+        Some(ImageSource::Sprite(name)) => {
+            img::sprite(&name).map_or((16.0, 16.0), |s| s.size(true))
+        }
         _ => (16.0, 16.0),
     }
 }
@@ -110,12 +112,7 @@ pub(crate) fn render(d2d: &Draw2D, image: &Image, bx: Rect, clip: Option<Rect>) 
         Some(r) if r[2] > 0.0 && r[3] > 0.0 => r,
         _ => [0.0, 0.0, nw, nh],
     };
-    let mut src = [
-        ru + u0 * rw,
-        rv + v0 * rh,
-        (u1 - u0) * rw,
-        (v1 - v0) * rh,
-    ];
+    let mut src = [ru + u0 * rw, rv + v0 * rh, (u1 - u0) * rw, (v1 - v0) * rh];
     let mut dest = dest;
     if let Some(c) = clip {
         let Some(cut) = dest.intersect(&c) else {
@@ -131,5 +128,13 @@ pub(crate) fn render(d2d: &Draw2D, image: &Image, bx: Rect, clip: Option<Rect>) 
         ];
         dest = cut;
     }
-    d2d.image_region(&image.source, dest.x, dest.y, dest.w, dest.h, src, image.tint);
+    d2d.image_region(
+        &image.source,
+        dest.x,
+        dest.y,
+        dest.w,
+        dest.h,
+        src,
+        image.tint,
+    );
 }

@@ -23,7 +23,8 @@ const DRAW: &str = "dev/yog/NativeDraw";
 /// 0 = not asked yet, 1 = the host has the GUI sprite atlas, 2 = it doesn't.
 static ATLAS: AtomicU8 = AtomicU8::new(0);
 /// Texture id → pixel size (`None` = missing), asked once per id.
-static TEXTURE_SIZES: Mutex<Option<HashMap<String, Option<(f32, f32)>>>> = Mutex::new(None);
+type SizeCache = HashMap<String, Option<(f32, f32)>>;
+static TEXTURE_SIZES: Mutex<Option<SizeCache>> = Mutex::new(None);
 /// Sources already reported as unresolvable (logged once each).
 static WARNED: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
