@@ -6,8 +6,9 @@
 //! `ui_component!`. See Yog-IDLE's `docs/yui.md`, "Components".
 //!
 //! ```xml
-//! <Component name="StatBar" doc="A labelled bar." width="120" height="10">
-//!     <Property name="label" type="text" default="HP" doc="Shown on the left"/>
+//! <Component name="StatBar" description="A labelled bar." icon="item:experience_bottle"
+//!            design_w="120" design_h="10">
+//!     <Property name="label" type="text" default="HP" doc="Shown on the left" category="Text"/>
 //!     <Property name="value" type="number" default="0.5"/>
 //!     <Event name="on_select"/>
 //!     <Row w="100%" gap="4">
@@ -21,6 +22,11 @@
 //! built. Methods they call (`bar_w()`) live in the optional code-behind
 //! `stat_bar.rs` (`yog_api::ui_include!("stat_bar"); impl StatBar { ... }`);
 //! components without one are compiled in by `yog_api::ui_components!()`.
+//!
+//! The root's designer metadata — `display_name`, `description`, `icon`,
+//! `category`, `design_w`/`design_h`, `toolbox` — goes into the
+//! implementation's constants as written (`@Set.key` references included),
+//! for Yog-IDLE's designer host.
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -55,8 +61,14 @@ struct Prop {
     kind: String,
     default: String,
     doc: String,
+    category: String,
     options: Vec<String>,
 }
+
+/// The `<Component>` root's attributes (besides `d:*`, design-time only).
+const ROOT_ATTRS: &[&str] = &["name", "display_name", "description", "icon", "category", "design_w", "design_h", "toolbox"];
+/// A `<Property>`'s / `<Event>`'s attributes.
+const PROP_ATTRS: &[&str] = &["name", "type", "default", "options", "doc", "category"];
 
 fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
     Err(format!("line {}: <{}> {msg}", el.line, el.name))
@@ -97,6 +109,12 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
     for child in &root.children {
         match child.name.as_str() {
             "Property" | "Event" => {
+                for (key, _) in &child.attrs {
+                    let allowed = if child.name == "Event" { &["name", "doc", "category"][..] } else { PROP_ATTRS };
+                    if !allowed.contains(&key.as_str()) {
+                        return err(child, format_args!("has no attribute `{key}` ({})", allowed.join(", ")));
+                    }
+                }
                 let name = child.attr("name").map(str::trim).unwrap_or_default().to_string();
                 if !is_ident(&name) {
                     return err(child, format_args!("name=\"{name}\": expected a snake_case name"));
@@ -142,7 +160,14 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                     "choice" if !options.contains(&default) => return err(child, format_args!("default=\"{default}\" isn't one of the options")),
                     _ => {}
                 }
-                props.push(Prop { name, kind, default, doc: child.attr("doc").unwrap_or_default().to_string(), options });
+                props.push(Prop {
+                    name,
+                    kind,
+                    default,
+                    doc: child.attr("doc").unwrap_or_default().to_string(),
+                    category: child.attr("category").unwrap_or_default().to_string(),
+                    options,
+                });
             }
             _ if body.is_some() => return err(child, "a component has one body element (wrap several in a Column, Row or Canvas)"),
             _ => body = Some(child),
@@ -164,6 +189,9 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
     }
     let mut out = Element { name: el.name.clone(), attrs: Vec::new(), children: Vec::new(), line: el.line };
     for (key, value) in &el.attrs {
+        if key.starts_with("d:") {
+            continue; // design-time only (the designer's sample values)
+        }
         let Some(rust) = crate::yui_vm::compile_bind(value) else {
             out.attrs.push((key.clone(), value.clone()));
             continue;
@@ -211,9 +239,28 @@ fn rust_str(s: &str) -> String {
 pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(String, Vec<String>), String> {
     let ty = type_name(root, name)?;
     for (key, _) in &root.attrs {
-        if !matches!(key.as_str(), "name" | "doc" | "width" | "height") && !key.starts_with("d:") {
-            return err(root, format_args!("has no attribute `{key}` (name, doc, width, height)"));
+        if !ROOT_ATTRS.contains(&key.as_str()) && !key.starts_with("d:") {
+            return err(root, format_args!("has no attribute `{key}` ({})", ROOT_ATTRS.join(", ")));
         }
+    }
+    let size = |key: &str| -> Result<f32, String> {
+        match root.attr(key).map(str::trim) {
+            None | Some("") => Ok(0.0),
+            Some(v) => match v.parse::<f32>() {
+                Ok(n) if n >= 0.0 => Ok(n),
+                _ => err(root, format_args!("{key}=\"{v}\": expected a size in GUI pixels")),
+            },
+        }
+    };
+    let design = (size("design_w")?, size("design_h")?);
+    let toolbox = match root.attr("toolbox").map(str::trim) {
+        None | Some("true") => true,
+        Some("false") => false,
+        Some(v) => return err(root, format_args!("toolbox=\"{v}\": expected true or false")),
+    };
+    let icon = root.attr("icon").unwrap_or_default().trim();
+    if !icon.is_empty() && !icon.starts_with('@') && !icon.contains(':') {
+        return err(root, format_args!("icon=\"{icon}\": expected an image source (item:apple, sprite:button, mod:gui/logo) or @Icons.name"));
     }
     let (props, body) = declarations(root)?;
     let Some(body) = body else {
@@ -222,7 +269,7 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
     let mut counter = 0;
     let bound = bind_tree(body, &mut counter)?;
     let (tree, _ids, warnings) = yui::static_widget(&bound, false, 1, mod_id)?;
-    let doc = root.attr("doc").unwrap_or_default();
+    let doc = root.attr("description").unwrap_or_default();
 
     let mut fields = String::new();
     let mut init = String::new();
@@ -254,6 +301,7 @@ pub fn generate(root: &Element, name: &str, mod_id: Option<&str>) -> Result<(Str
             k => format!("Prop::{k}({}, {})", rust_str(&p.name), rust_str(&p.default)),
         };
         let decl = if p.doc.is_empty() { decl } else { format!("{decl}.doc({})", rust_str(&p.doc)) };
+        let decl = if p.category.is_empty() { decl } else { format!("{decl}.category({})", rust_str(&p.category)) };
         let _ = writeln!(decls, "        {decl},");
     }
 
@@ -290,6 +338,11 @@ impl {ty} {{
 impl ::yog_api::ui::component::Component for {ty} {{
     const NAME: &'static str = {name_lit};
     const DOC: &'static str = {doc_lit};
+    const DISPLAY_NAME: &'static str = {display_lit};
+    const ICON: &'static str = {icon_lit};
+    const CATEGORY: &'static str = {category_lit};
+    const DESIGN_SIZE: (f32, f32) = ({design_w:?}, {design_h:?});
+    const TOOLBOX: bool = {toolbox};
     const PROPS: &'static [::yog_api::ui::component::Prop] = {{
         #[allow(unused_imports)]
         use ::yog_api::ui::component::Prop;
@@ -306,6 +359,11 @@ impl ::yog_api::ui::component::Component for {ty} {{
         doc_line = if doc.is_empty() { format!("The `{ty}` component.") } else { doc.replace('\n', " ") },
         name_lit = rust_str(&ty),
         doc_lit = rust_str(doc),
+        display_lit = rust_str(root.attr("display_name").unwrap_or_default()),
+        icon_lit = rust_str(icon),
+        category_lit = rust_str(root.attr("category").unwrap_or_default()),
+        design_w = design.0,
+        design_h = design.1,
     );
     Ok((code, warnings))
 }

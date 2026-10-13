@@ -7,9 +7,10 @@
 //! bindings call (see Yog-IDLE's `docs/yui.md`, "Components"):
 //!
 //! ```xml
-//! <Component name="StatBar" doc="A labelled progress bar." width="120" height="10">
+//! <Component name="StatBar" description="A labelled progress bar." icon="item:experience_bottle"
+//!            design_w="120" design_h="10">
 //!     <Property name="label" type="text" default="HP"/>
-//!     <Property name="value" type="number" default="0.5" doc="Filled fraction, 0..1"/>
+//!     <Property name="value" type="number" default="0.5" doc="Filled fraction, 0..1" category="Data"/>
 //!     <Row w="100%" gap="4">
 //!         <Label text="{x:Bind label}"/>
 //!         <Spacer w="{x:Bind bar_w()}" h="6" bg="#FF55FF55"/>
@@ -18,7 +19,8 @@
 //! ```
 //!
 //! `yog build` generates the [`Component`] implementation from it (a struct
-//! with one typed field per property, `NAME`, `DOC`, `PROPS`, `build`) and
+//! with one typed field per property, `NAME`, the designer metadata, `PROPS`,
+//! `build`) and
 //! registers it (`yog_api::ui_component!`) — this module is that code's
 //! runtime: the registry, [`Props`] (the instance's attribute values, read
 //! back typed), [`bind`] (binding conversions) and [`designer`], Yog-IDLE's
@@ -83,11 +85,13 @@ pub struct Prop {
     pub default: &'static str,
     /// Shown in the designer's property grid.
     pub doc: &'static str,
+    /// The property grid's category for it (empty: the component's own).
+    pub category: &'static str,
 }
 
 impl Prop {
     pub const fn new(name: &'static str, kind: PropKind, default: &'static str) -> Self {
-        Self { name, kind, default, doc: "" }
+        Self { name, kind, default, doc: "", category: "" }
     }
     pub const fn text(name: &'static str, default: &'static str) -> Self {
         Self::new(name, PropKind::Text, default)
@@ -117,6 +121,10 @@ impl Prop {
     pub const fn doc(self, doc: &'static str) -> Self {
         Self { doc, ..self }
     }
+    /// Puts it in a property grid category of its own.
+    pub const fn category(self, category: &'static str) -> Self {
+        Self { category, ..self }
+    }
 }
 
 /// A custom component — implemented by the code `yog build` generates
@@ -124,8 +132,20 @@ impl Prop {
 pub trait Component {
     /// The `.yui` element name (`<StatBar …/>`), PascalCase.
     const NAME: &'static str;
-    /// One line for the designer's toolbox tooltip.
+    /// Its description: the designer's toolbox tooltip and property grid
+    /// header. Texts here and below may be `@Set.key` resource references.
     const DOC: &'static str = "";
+    /// The designer's toolbox label (empty: `NAME`).
+    const DISPLAY_NAME: &'static str = "";
+    /// The toolbox icon, a Yog image source (`item:…`, `sprite:…`, `mod:…`)
+    /// or `@Icons.x`; empty: a generic glyph.
+    const ICON: &'static str = "";
+    /// The toolbox category (empty: "<mod> Components").
+    const CATEGORY: &'static str = "";
+    /// Its size on the designer's canvas and when dropped (0: unset).
+    const DESIGN_SIZE: (f32, f32) = (0.0, 0.0);
+    /// Whether the toolbox offers it (false: internal to the mod's own markup).
+    const TOOLBOX: bool = true;
     const PROPS: &'static [Prop] = &[];
     /// The widget tree for these properties. Common attributes (position,
     /// size, `bg`, `on_click`, ...) are applied to the result by the caller.
@@ -137,13 +157,28 @@ pub trait Component {
 pub struct ComponentSpec {
     pub name: &'static str,
     pub doc: &'static str,
+    pub display_name: &'static str,
+    pub icon: &'static str,
+    pub category: &'static str,
+    pub design_size: (f32, f32),
+    pub toolbox: bool,
     pub props: &'static [Prop],
     pub build: fn(&Props) -> Widget,
 }
 
 impl ComponentSpec {
     pub fn of<C: Component>() -> Self {
-        Self { name: C::NAME, doc: C::DOC, props: C::PROPS, build: C::build }
+        Self {
+            name: C::NAME,
+            doc: C::DOC,
+            display_name: C::DISPLAY_NAME,
+            icon: C::ICON,
+            category: C::CATEGORY,
+            design_size: C::DESIGN_SIZE,
+            toolbox: C::TOOLBOX,
+            props: C::PROPS,
+            build: C::build,
+        }
     }
 }
 
@@ -550,7 +585,18 @@ pub mod designer {
             if i > 0 {
                 out.push(',');
             }
-            let _ = write!(out, "{{\"name\":{},\"doc\":{},\"props\":[", json(c.name), json(c.doc));
+            let _ = write!(
+                out,
+                "{{\"name\":{},\"description\":{},\"display_name\":{},\"icon\":{},\"category\":{},\"design_w\":{},\"design_h\":{},\"toolbox\":{},\"props\":[",
+                json(c.name),
+                json(c.doc),
+                json(c.display_name),
+                json(c.icon),
+                json(c.category),
+                c.design_size.0,
+                c.design_size.1,
+                c.toolbox
+            );
             for (j, p) in c.props.iter().enumerate() {
                 if j > 0 {
                     out.push(',');
@@ -561,11 +607,12 @@ pub mod designer {
                 };
                 let _ = write!(
                     out,
-                    "{{\"name\":{},\"kind\":{},\"default\":{},\"doc\":{},\"options\":[{options}]}}",
+                    "{{\"name\":{},\"kind\":{},\"default\":{},\"doc\":{},\"category\":{},\"options\":[{options}]}}",
                     json(p.name),
                     json(p.kind.as_str()),
                     json(p.default),
-                    json(p.doc)
+                    json(p.doc),
+                    json(p.category)
                 );
             }
             out.push_str("]}");
@@ -626,6 +673,8 @@ mod tests {
     struct Badge;
     impl Component for Badge {
         const NAME: &'static str = "TestBadge";
+        const ICON: &'static str = "item:apple";
+        const DESIGN_SIZE: (f32, f32) = (40.0, 12.0);
         const PROPS: &'static [Prop] = &[
             Prop::text("label", "new"),
             Prop::color("fill", "#FF3060C0").doc("Background"),
@@ -670,6 +719,7 @@ mod tests {
         assert!(ok, "{out}");
         assert!(out.contains("\"name\":\"TestBadge\""), "{out}");
         assert!(out.contains("\"options\":[\"small\",\"large\"]"), "{out}");
+        assert!(out.contains("\"icon\":\"item:apple\",\"category\":\"\",\"design_w\":40,\"design_h\":12,\"toolbox\":true"), "{out}");
         assert_eq!(designer::unescape(&designer::escape("a\\b\nc")), "a\\b\nc");
     }
 }
