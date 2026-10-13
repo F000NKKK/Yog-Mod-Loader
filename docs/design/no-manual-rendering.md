@@ -821,7 +821,7 @@ Each stage ships on its own: crates bumped (breaking where noted), published, th
 
 1. **Q1 Keep a hidden `Surface` escape hatch?** *Recommendation: no.* Every manual-GL file in the workspace came
    through it. A gap found later is a loader feature request (generic primitive), handled like N0–N7.
-2. **Q2 Zappy fidelity: exact or similar?** *Recommendation: exact.* The `jitter` parameters (§5.2) describe
+2. **Q2 Zappy fidelity — decided: exact.** The `jitter` parameters (§5.2) describe
    `makeZappy` completely with Minecraft's simplex noise, so the port matches the original (port-faithfully) and the
    effect is still generic.
 3. **Q3 Mod-registered path effects (pure Rust functions point list → point list)?** *Recommendation: no.* It
@@ -829,12 +829,16 @@ Each stage ships on its own: crates bumped (breaking where noted), published, th
    real effect is needed, add it to the loader.
 4. **Q4 Where to tessellate: yog-ui (mod side) or the runtime?** *Recommendation: yog-ui.* One ABI function, and
    the IDLE recorder gets final triangles. The cost is code size in each mod, which is small.
-5. **Q5 Anti-aliasing by default?** *Recommendation: off* (the original draws aliased triangles); `antialias:
+5. **Q5 Anti-aliasing — decided: off by default, configurable** (per stroke in `.ymat`, and per theme/mod default) (the original draws aliased triangles); `antialias:
    true` per stroke for mods that want it, implemented as an alpha fringe without shaders.
-6. **Q6 Decals: render-to-texture or direct geometry each frame?** *Recommendation: render-to-texture, cached by
-   props hash* (the original 0.11 approach). Direct geometry costs thousands of triangles per spell circle per frame.
-7. **Q7 Particle colors: server callback or declarative color sources?** *Recommendation: callback* (`FnMut(dir)
-   -> u32` per particle) now; a declarative `cycle` color source only if a second mod needs it.
+6. **Q6 Decals — decided: render-to-texture, cached by props hash** (the original 0.11 approach). Direct geometry costs thousands of triangles per spell circle per frame.
+7. **Q7 Particle colors — decided: declarative color sources, no callback.** The user left the choice open;
+   declarative wins on every axis: zero mod code (the minimal-mod-code goal), previewable in IDLE without a
+   compiled mod, and no native call per particle. `.yparticle` `color` takes a color source: `"#rrggbb"`,
+   `{ "cycle": [colors], "period": ticks }`, `{ "gradient": [colors], "by": "age" | "dir" | "pos" }`, with an
+   optional `seed` (e.g. a player UUID hash for per-player pigments). Hex pigments become data: each pigment
+   item carries its color list, and `particles::emit(id, pos, params)` passes it as a param. A Rust callback is
+   added only if a real effect can't be expressed this way.
 8. **Q8 Lattice kinds.** *Recommendation:* `hex` (pointy), `hex_flat`, `square` in N2; triangle lattices when
    asked for.
 9. **Q9 Animation scope.** *Recommendation:* `<Animate>` as in §7 only. State transitions (animate on property
