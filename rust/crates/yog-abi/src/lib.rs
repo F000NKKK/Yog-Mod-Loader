@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 1;
-pub const ABI_MINOR: u32 = 0;
+pub const ABI_MINOR: u32 = 1;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -995,6 +995,85 @@ pub struct YogServer {
     /// entity does not exist. `out` receives x=yaw, y=pitch, z=0.
     pub entity_rotation:
         unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, out: *mut YogVec3) -> bool,
+
+    // ── world queries & effects (ABI minor 1) ────────────────────────────────
+    // Records come back as one tab-separated line; `yog_core`'s `EntityInfo`,
+    // `BlockHit`, `BlockInfo` and `PlayerInfo` document and decode them.
+    /// `EntityInfo` line of a loaded entity, or NONE.
+    pub entity_info: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr,
+    /// Newline-separated uuids of the entities touching the box.
+    pub entities_in_box: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        min: YogVec3,
+        max: YogVec3,
+    ) -> YogOwnedStr,
+    /// `BlockHit` line of the first block on the segment, or NONE.
+    pub raycast_block:
+        unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, from: YogVec3, to: YogVec3) -> YogOwnedStr,
+    /// Uuid of the nearest entity on the segment (not `exclude`), or NONE.
+    pub raycast_entity: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        from: YogVec3,
+        to: YogVec3,
+        exclude: YogStr,
+    ) -> YogOwnedStr,
+    /// `BlockInfo` line of the block at `pos`, or NONE.
+    pub block_info:
+        unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr,
+    pub break_block: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        pos: YogBlockPos,
+        drop: bool,
+        breaker: YogStr,
+    ) -> bool,
+    pub place_block_from_slot: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        player: YogStr,
+        slot: u32,
+        dim: YogStr,
+        pos: YogBlockPos,
+    ) -> bool,
+    pub bonemeal: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> bool,
+    pub explode: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        pos: YogVec3,
+        power: f32,
+        fire: bool,
+        source: YogStr,
+    ) -> bool,
+    pub send_message: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, msg: YogStr) -> bool,
+    pub entity_damage:
+        unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, amount: f32, source: YogStr) -> bool,
+    pub entity_set_fire_ticks:
+        unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, ticks: i32) -> bool,
+    pub player_add_xp: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, amount: i32) -> bool,
+    pub player_set_may_fly:
+        unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, may_fly: bool) -> bool,
+    /// `PlayerInfo` line of an online player, or NONE.
+    pub player_info: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr) -> YogOwnedStr,
+    /// Uuid of the dropped item entity, or NONE.
+    pub spawn_item: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        pos: YogVec3,
+        vel: YogVec3,
+        item_id: YogStr,
+        count: u32,
+        snbt: YogStr,
+    ) -> YogOwnedStr,
+    /// `item_id\tcount\tsnbt` of a dropped item entity, or NONE.
+    pub item_entity_stack: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr,
+    pub item_entity_set_stack: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        uuid: YogStr,
+        item_id: YogStr,
+        count: u32,
+        snbt: YogStr,
+    ) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.

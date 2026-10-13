@@ -868,6 +868,228 @@ impl Server for CServer {
             )
         }
     }
+
+    // ── world queries & effects (ABI minor 1) ────────────────────────────────
+
+    fn entity_info(&self, uuid: &str) -> Option<yog_core::EntityInfo> {
+        let s = srv!(self);
+        let owned = unsafe { (s.entity_info)(s.ctx, YogStr::from_str(uuid)) };
+        take_owned(s, owned).and_then(|l| yog_core::EntityInfo::decode(&l))
+    }
+
+    fn entities_in_box(
+        &self,
+        dimension: &str,
+        min: (f64, f64, f64),
+        max: (f64, f64, f64),
+    ) -> Vec<String> {
+        let s = srv!(self);
+        let owned = unsafe {
+            (s.entities_in_box)(s.ctx, YogStr::from_str(dimension), v3(min), v3(max))
+        };
+        take_owned(s, owned)
+            .map(|t| t.lines().filter(|l| !l.is_empty()).map(str::to_owned).collect())
+            .unwrap_or_default()
+    }
+
+    fn raycast_block(
+        &self,
+        dimension: &str,
+        from: (f64, f64, f64),
+        to: (f64, f64, f64),
+    ) -> Option<yog_core::BlockHit> {
+        let s = srv!(self);
+        let owned =
+            unsafe { (s.raycast_block)(s.ctx, YogStr::from_str(dimension), v3(from), v3(to)) };
+        take_owned(s, owned).and_then(|l| yog_core::BlockHit::decode(&l))
+    }
+
+    fn raycast_entity(
+        &self,
+        dimension: &str,
+        from: (f64, f64, f64),
+        to: (f64, f64, f64),
+        exclude: &str,
+    ) -> Option<String> {
+        let s = srv!(self);
+        let owned = unsafe {
+            (s.raycast_entity)(
+                s.ctx,
+                YogStr::from_str(dimension),
+                v3(from),
+                v3(to),
+                YogStr::from_str(exclude),
+            )
+        };
+        take_owned(s, owned).filter(|u| !u.is_empty())
+    }
+
+    fn block_info(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<yog_core::BlockInfo> {
+        let s = srv!(self);
+        let owned = unsafe { (s.block_info)(s.ctx, YogStr::from_str(dimension), bp(pos)) };
+        take_owned(s, owned).and_then(|l| yog_core::BlockInfo::decode(&l))
+    }
+
+    fn break_block(&self, dimension: &str, pos: yog_core::BlockPos, drop: bool, breaker: &str) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.break_block)(
+                s.ctx,
+                YogStr::from_str(dimension),
+                bp(pos),
+                drop,
+                YogStr::from_str(breaker),
+            )
+        }
+    }
+
+    fn place_block_from_slot(
+        &self,
+        player: &str,
+        slot: u32,
+        dimension: &str,
+        pos: yog_core::BlockPos,
+    ) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.place_block_from_slot)(
+                s.ctx,
+                YogStr::from_str(player),
+                slot,
+                YogStr::from_str(dimension),
+                bp(pos),
+            )
+        }
+    }
+
+    fn bonemeal(&self, dimension: &str, pos: yog_core::BlockPos) -> bool {
+        let s = srv!(self);
+        unsafe { (s.bonemeal)(s.ctx, YogStr::from_str(dimension), bp(pos)) }
+    }
+
+    fn explode(
+        &self,
+        dimension: &str,
+        x: f64,
+        y: f64,
+        z: f64,
+        power: f32,
+        fire: bool,
+        source: &str,
+    ) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.explode)(
+                s.ctx,
+                YogStr::from_str(dimension),
+                v3((x, y, z)),
+                power,
+                fire,
+                YogStr::from_str(source),
+            )
+        }
+    }
+
+    fn send_message(&self, player: &str, message: &str) -> bool {
+        let s = srv!(self);
+        unsafe { (s.send_message)(s.ctx, YogStr::from_str(player), YogStr::from_str(message)) }
+    }
+
+    fn entity_damage(&self, uuid: &str, amount: f32, source: &str) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.entity_damage)(s.ctx, YogStr::from_str(uuid), amount, YogStr::from_str(source))
+        }
+    }
+
+    fn entity_set_fire_ticks(&self, uuid: &str, ticks: i32) -> bool {
+        let s = srv!(self);
+        unsafe { (s.entity_set_fire_ticks)(s.ctx, YogStr::from_str(uuid), ticks) }
+    }
+
+    fn player_add_xp(&self, player: &str, amount: i32) -> bool {
+        let s = srv!(self);
+        unsafe { (s.player_add_xp)(s.ctx, YogStr::from_str(player), amount) }
+    }
+
+    fn player_set_may_fly(&self, player: &str, may_fly: bool) -> bool {
+        let s = srv!(self);
+        unsafe { (s.player_set_may_fly)(s.ctx, YogStr::from_str(player), may_fly) }
+    }
+
+    fn player_info(&self, player: &str) -> Option<yog_core::PlayerInfo> {
+        let s = srv!(self);
+        let owned = unsafe { (s.player_info)(s.ctx, YogStr::from_str(player)) };
+        take_owned(s, owned).and_then(|l| yog_core::PlayerInfo::decode(&l))
+    }
+
+    fn spawn_item(
+        &self,
+        dimension: &str,
+        pos: (f64, f64, f64),
+        vel: (f64, f64, f64),
+        item_id: &str,
+        count: u32,
+        snbt: &str,
+    ) -> Option<String> {
+        let s = srv!(self);
+        let owned = unsafe {
+            (s.spawn_item)(
+                s.ctx,
+                YogStr::from_str(dimension),
+                v3(pos),
+                v3(vel),
+                YogStr::from_str(item_id),
+                count,
+                YogStr::from_str(snbt),
+            )
+        };
+        take_owned(s, owned).filter(|u| !u.is_empty())
+    }
+
+    fn item_entity_stack(&self, uuid: &str) -> Option<(String, u32, String)> {
+        let s = srv!(self);
+        let owned = unsafe { (s.item_entity_stack)(s.ctx, YogStr::from_str(uuid)) };
+        let text = take_owned(s, owned)?;
+        let mut it = text.splitn(3, '\t');
+        let item_id = it.next()?.to_owned();
+        let count = it.next()?.parse().ok()?;
+        let nbt = it.next().unwrap_or("{}").to_owned();
+        Some((item_id, count, nbt))
+    }
+
+    fn item_entity_set_stack(&self, uuid: &str, item_id: &str, count: u32, snbt: &str) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.item_entity_set_stack)(
+                s.ctx,
+                YogStr::from_str(uuid),
+                YogStr::from_str(item_id),
+                count,
+                YogStr::from_str(snbt),
+            )
+        }
+    }
+}
+
+/// Copy a runtime-owned string out and free it; `None` for NONE.
+fn take_owned(s: &YogServer, owned: yog_abi::YogOwnedStr) -> Option<String> {
+    if owned.is_none() {
+        return None;
+    }
+    let text = unsafe {
+        String::from_utf8(std::slice::from_raw_parts(owned.ptr, owned.len as usize).to_vec()).ok()
+    };
+    unsafe { (s.free_str)(owned.ptr, owned.len) };
+    text
+}
+
+fn v3((x, y, z): (f64, f64, f64)) -> yog_abi::YogVec3 {
+    yog_abi::YogVec3 { x, y, z }
+}
+
+fn bp(pos: yog_core::BlockPos) -> yog_abi::YogBlockPos {
+    yog_abi::YogBlockPos { x: pos.x, y: pos.y, z: pos.z }
 }
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 //! The handle Rust mods use to act on the running server — the Rust → Minecraft
 //! path.
 
-use crate::BlockPos;
+use crate::{BlockHit, BlockInfo, BlockPos, EntityInfo, PlayerInfo};
 
 /// Low-level capabilities the Yog runtime exposes to mods (the engine contract).
 ///
@@ -20,8 +20,9 @@ pub trait Server {
     /// unavailable. Call from the server thread (e.g. an event handler).
     fn get_block(&self, dimension: &str, pos: BlockPos) -> Option<String>;
 
-    /// Set the block at `pos` in `dimension` to `block_id`. Returns whether the
-    /// change was applied. Call from the server thread.
+    /// Set the block at `pos` in `dimension` to `block_id` — a registry id
+    /// or, like `/setblock`, a state (`"minecraft:water_cauldron[level=3]"`).
+    /// Returns whether the change was applied. Call from the server thread.
     fn set_block(&self, dimension: &str, pos: BlockPos, block_id: &str) -> bool;
 
     /// Give `count` of `item_id` to the named player. Returns whether it worked
@@ -300,6 +301,8 @@ pub trait Server {
     // ── particles ────────────────────────────────────────────────────────────
 
     /// Spawn `count` particles at `(x, y, z)` in `dimension`.
+    /// `particle_type` is a particle id or, like `/particle`, an id with its
+    /// options (`"minecraft:dust 1 0.5 0 1"`).
     /// `dx/dy/dz` control the spatial spread; `speed` controls particle velocity.
     fn spawn_particles(
         &self,
@@ -354,4 +357,103 @@ pub trait Server {
     /// `snbt` is merged into the new item's NBT (pass `""` for no NBT).
     fn set_slot_item(&self, player: &str, slot: u32, item_id: &str, count: u32, snbt: &str)
         -> bool;
+
+    // ── world queries & effects (ABI minor 1) ────────────────────────────────
+
+    /// Type, position, size and kind of a loaded entity, or `None` if no
+    /// entity has that uuid.
+    fn entity_info(&self, uuid: &str) -> Option<EntityInfo>;
+
+    /// Uuids of the entities whose bounding boxes touch the box `min`–`max`
+    /// in `dimension`.
+    fn entities_in_box(&self, dimension: &str, min: (f64, f64, f64), max: (f64, f64, f64))
+        -> Vec<String>;
+
+    /// The first block with a collision shape on the segment `from`–`to`
+    /// (fluids are ignored).
+    fn raycast_block(&self, dimension: &str, from: (f64, f64, f64), to: (f64, f64, f64))
+        -> Option<BlockHit>;
+
+    /// The nearest pickable entity whose (slightly inflated) bounding box the
+    /// segment `from`–`to` crosses, other than `exclude` (a uuid, or `""`)
+    /// and whatever it rides.
+    fn raycast_entity(
+        &self,
+        dimension: &str,
+        from: (f64, f64, f64),
+        to: (f64, f64, f64),
+        exclude: &str,
+    ) -> Option<String>;
+
+    /// State, hardness, fluid and redstone power of the block at `pos`.
+    fn block_info(&self, dimension: &str, pos: BlockPos) -> Option<BlockInfo>;
+
+    /// Break the block at `pos` as `breaker` (a player name, or `""`):
+    /// plays the break effects and, if `drop`, drops its loot as if mined
+    /// with an empty hand. Returns `false` for air and unbreakable blocks.
+    fn break_block(&self, dimension: &str, pos: BlockPos, drop: bool, breaker: &str) -> bool;
+
+    /// Place the block item in the player's inventory `slot` at `pos`, as if
+    /// the player clicked the block below it: the item's own placement
+    /// rules apply and one item is used up (unless creative).
+    fn place_block_from_slot(&self, player: &str, slot: u32, dimension: &str, pos: BlockPos)
+        -> bool;
+
+    /// Apply bone meal to the block at `pos`. Returns whether it grew.
+    fn bonemeal(&self, dimension: &str, pos: BlockPos) -> bool;
+
+    /// An explosion of `power` (TNT is 4) at `pos`, caused by entity
+    /// `source` (a uuid, or `""`); `fire` sets fires like a ghast fireball.
+    #[allow(clippy::too_many_arguments)]
+    fn explode(
+        &self,
+        dimension: &str,
+        x: f64,
+        y: f64,
+        z: f64,
+        power: f32,
+        fire: bool,
+        source: &str,
+    ) -> bool;
+
+    /// A system chat message to one player.
+    fn send_message(&self, player: &str, message: &str) -> bool;
+
+    /// Hurt an entity: `source` is a damage type id
+    /// (`"minecraft:magic"`, `"minecraft:drown"`, …). Returns whether it took
+    /// the damage.
+    fn entity_damage(&self, uuid: &str, amount: f32, source: &str) -> bool;
+
+    /// Set an entity on fire for `ticks` (`0` puts it out).
+    fn entity_set_fire_ticks(&self, uuid: &str, ticks: i32) -> bool;
+
+    /// Give (or, negative, take) experience points.
+    fn player_add_xp(&self, player: &str, amount: i32) -> bool;
+
+    /// Let a player fly (creative-style) or take it away (also stops them
+    /// flying). Game mode changes reset it.
+    fn player_set_may_fly(&self, player: &str, may_fly: bool) -> bool;
+
+    /// Game mode, selected slot, experience, air and flight of a player.
+    fn player_info(&self, player: &str) -> Option<PlayerInfo>;
+
+    /// Drop an item stack into the world with velocity `vel`; `snbt` is the
+    /// stack's NBT (`""` for none). Returns the item entity's uuid.
+    #[allow(clippy::too_many_arguments)]
+    fn spawn_item(
+        &self,
+        dimension: &str,
+        pos: (f64, f64, f64),
+        vel: (f64, f64, f64),
+        item_id: &str,
+        count: u32,
+        snbt: &str,
+    ) -> Option<String>;
+
+    /// The stack inside a dropped item entity: `(item_id, count, snbt)`.
+    fn item_entity_stack(&self, uuid: &str) -> Option<(String, u32, String)>;
+
+    /// Replace the stack inside a dropped item entity (`count == 0` removes
+    /// the entity).
+    fn item_entity_set_stack(&self, uuid: &str, item_id: &str, count: u32, snbt: &str) -> bool;
 }

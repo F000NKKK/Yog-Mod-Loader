@@ -3,8 +3,10 @@
 //! Kept tiny and dependency-free: every other `yog-*` crate builds on this, and
 //! the facade [`yog-api`] re-exports it.
 
+mod query;
 mod server;
 
+pub use query::{entity_flags, BlockHit, BlockInfo, EntityInfo, Face, PlayerInfo};
 pub use server::Server;
 
 /// A block position in the world.
