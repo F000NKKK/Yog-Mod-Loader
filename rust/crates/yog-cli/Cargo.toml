@@ -1,6 +1,6 @@
 [package]
 name = "yog-cli"
-version = "0.31.5"
+version = "0.31.6"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
