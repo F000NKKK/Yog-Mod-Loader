@@ -1573,9 +1573,9 @@ it.
 14. **Q14 Settings screens — decided: yes, generate and hook into the platform config button.** Was: generate a whole config screen from `#[derive(Config)]` (recommended),
     and hook it into the platform's mod-list config button (Fabric ModMenu, Forge/NeoForge) where
     possible?
-15. **Q15 Container menus in `.yui`** (`<Menu>` + `<Slot>`s generating `InventoryDef`): is markup the
+15. **Q15 Container menus in `.yui` — decided: yes, slot layout in markup generates `InventoryDef`.** (`<Menu>` + `<Slot>`s generating `InventoryDef`). Was: is markup the
     right place for slot layout, or should `InventoryDef` stay in Rust with `.yui` only drawing?
-16. **Q16 VM-owned surfaces** (`source="{x:Bind grid}"`): OK to make this the normal way a mod draws
+16. **Q16 VM-owned surfaces — decided: yes, the normal way.** (`source="{x:Bind grid}"`). Was: OK to make this the normal way a mod draws
     its own screen, keeping the id-based `Surface` registry only for cross-mod and designer use?
 17. **Q17 Boilerplate lints** ("bind the field directly", "`impl ViewModel` is generated"): warnings
     in `yog check`, or errors?
