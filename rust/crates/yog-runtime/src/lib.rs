@@ -19,10 +19,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock, RwLock};
 
 use glow::HasContext;
+use jcall::JArg;
 use jni::objects::{JByteArray, JClass, JFloatArray, JString};
 use jni::sys::{jdouble, jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
-use jcall::{jcall, JArg};
 use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
@@ -408,7 +408,7 @@ macro_rules! jstr {
     ($env:expr, $s:expr) => {
         match $env.get_string(&$s) {
             Ok(s) => String::from(s),
-            Err(_) => return,
+            Err(_) => return Default::default(),
         }
     };
 }
@@ -421,8 +421,8 @@ fn get_env() -> Option<jni::AttachGuard<'static>> {
 /// [`jcall!`]; `None` without a JVM too.
 macro_rules! host {
     ($class:literal, $name:literal, [$($arg:expr),* $(,)?]) => {
-        match get_env() {
-            Some(mut env) => jcall!(&mut env, $class, $name, [$($arg),*]),
+        match $crate::get_env() {
+            Some(mut env) => $crate::jcall::jcall!(&mut env, $class, $name, [$($arg),*]),
             None => None,
         }
     };
@@ -533,7 +533,15 @@ unsafe extern "C" fn srv_send_to_player(
     data: *const u8,
     len: u32,
 ) -> bool {
-    bridge!("sendToPlayer", [S(player), S(channel), Bytes(std::slice::from_raw_parts(data, len as usize))]).unwrap_or(false)
+    bridge!(
+        "sendToPlayer",
+        [
+            S(player),
+            S(channel),
+            Bytes(std::slice::from_raw_parts(data, len as usize))
+        ]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_send_to_server(
@@ -542,7 +550,15 @@ unsafe extern "C" fn srv_send_to_server(
     data: *const u8,
     len: u32,
 ) -> bool {
-    host!("dev/yog/YogClient", "sendToServer", [S(channel), Bytes(std::slice::from_raw_parts(data, len as usize))]).unwrap_or(false)
+    host!(
+        "dev/yog/YogClient",
+        "sendToServer",
+        [
+            S(channel),
+            Bytes(std::slice::from_raw_parts(data, len as usize))
+        ]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_kick_player(_ctx: *mut c_void, player: YogStr, reason: YogStr) -> bool {
@@ -562,7 +578,11 @@ unsafe extern "C" fn srv_send_title(
     stay: i32,
     fo: i32,
 ) -> bool {
-    bridge!("sendTitle", [S(player), S(title), S(sub), I(fi), I(stay), I(fo)]).unwrap_or(false)
+    bridge!(
+        "sendTitle",
+        [S(player), S(title), S(sub), I(fi), I(stay), I(fo)]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_send_actionbar(_ctx: *mut c_void, player: YogStr, msg: YogStr) -> bool {
@@ -577,7 +597,19 @@ unsafe extern "C" fn srv_play_sound(
     vol: f32,
     pitch: f32,
 ) -> bool {
-    bridge!("playSound", [S(dim), D(pos.x), D(pos.y), D(pos.z), S(sound), F(vol), F(pitch)]).unwrap_or(false)
+    bridge!(
+        "playSound",
+        [
+            S(dim),
+            D(pos.x),
+            D(pos.y),
+            D(pos.z),
+            S(sound),
+            F(vol),
+            F(pitch)
+        ]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_play_sound_player(
@@ -656,7 +688,10 @@ unsafe extern "C" fn srv_spawn_entity(
     dim: YogStr,
     pos: YogVec3,
 ) -> YogOwnedStr {
-    owned(bridge!("spawnEntity", [S(type_id), S(dim), D(pos.x), D(pos.y), D(pos.z)]))
+    owned(bridge!(
+        "spawnEntity",
+        [S(type_id), S(dim), D(pos.x), D(pos.y), D(pos.z)]
+    ))
 }
 
 unsafe extern "C" fn srv_entity_add_effect(
@@ -667,7 +702,11 @@ unsafe extern "C" fn srv_entity_add_effect(
     amp: u8,
     particles: bool,
 ) -> bool {
-    bridge!("entityAddEffect", [S(uuid), S(fx), I(dur), I(amp as i32), Z(particles)]).unwrap_or(false)
+    bridge!(
+        "entityAddEffect",
+        [S(uuid), S(fx), I(dur), I(amp as i32), Z(particles)]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_remove_effect(_ctx: *mut c_void, uuid: YogStr, fx: YogStr) -> bool {
@@ -819,7 +858,10 @@ unsafe extern "C" fn srv_get_block_nbt(
     dim: YogStr,
     pos: YogBlockPos,
 ) -> YogOwnedStr {
-    owned(bridge!("getBlockNbt", [S(dim), I(pos.x), I(pos.y), I(pos.z)]))
+    owned(bridge!(
+        "getBlockNbt",
+        [S(dim), I(pos.x), I(pos.y), I(pos.z)]
+    ))
 }
 
 unsafe extern "C" fn srv_set_block_nbt(
@@ -828,7 +870,11 @@ unsafe extern "C" fn srv_set_block_nbt(
     pos: YogBlockPos,
     snbt: YogStr,
 ) -> bool {
-    bridge!("setBlockNbt", [S(dim), I(pos.x), I(pos.y), I(pos.z), S(snbt)]).unwrap_or(false)
+    bridge!(
+        "setBlockNbt",
+        [S(dim), I(pos.x), I(pos.y), I(pos.z), S(snbt)]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_get_inventory_slot(
@@ -837,7 +883,10 @@ unsafe extern "C" fn srv_get_inventory_slot(
     pos: yog_abi::YogBlockPos,
     slot: u32,
 ) -> YogOwnedStr {
-    owned(bridge!("getInventorySlot", [S(dim), I(pos.x), I(pos.y), I(pos.z), I(slot as i32)]))
+    owned(bridge!(
+        "getInventorySlot",
+        [S(dim), I(pos.x), I(pos.y), I(pos.z), I(slot as i32)]
+    ))
 }
 
 unsafe extern "C" fn srv_set_inventory_slot(
@@ -848,7 +897,19 @@ unsafe extern "C" fn srv_set_inventory_slot(
     item_id: YogStr,
     count: u32,
 ) -> bool {
-    bridge!("setInventorySlot", [S(dim), I(pos.x), I(pos.y), I(pos.z), I(slot as i32), S(item_id), I(count as i32)]).unwrap_or(false)
+    bridge!(
+        "setInventorySlot",
+        [
+            S(dim),
+            I(pos.x),
+            I(pos.y),
+            I(pos.z),
+            I(slot as i32),
+            S(item_id),
+            I(count as i32)
+        ]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_player_inventory(_ctx: *mut c_void, player: YogStr) -> YogOwnedStr {
@@ -862,7 +923,11 @@ unsafe extern "C" fn srv_player_set_slot(
     item_id: YogStr,
     count: u32,
 ) -> bool {
-    bridge!("playerSetSlot", [S(player), I(slot as i32), S(item_id), I(count as i32)]).unwrap_or(false)
+    bridge!(
+        "playerSetSlot",
+        [S(player), I(slot as i32), S(item_id), I(count as i32)]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_player_teleport_dim(
@@ -871,7 +936,11 @@ unsafe extern "C" fn srv_player_teleport_dim(
     dim: YogStr,
     pos: YogVec3,
 ) -> bool {
-    bridge!("teleportToDim", [S(player), S(dim), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
+    bridge!(
+        "teleportToDim",
+        [S(player), S(dim), D(pos.x), D(pos.y), D(pos.z)]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_teleport_dim(
@@ -880,7 +949,11 @@ unsafe extern "C" fn srv_entity_teleport_dim(
     dim: YogStr,
     pos: YogVec3,
 ) -> bool {
-    bridge!("entityTeleportToDim", [S(uuid), S(dim), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
+    bridge!(
+        "entityTeleportToDim",
+        [S(uuid), S(dim), D(pos.x), D(pos.y), D(pos.z)]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_online_players(_ctx: *mut c_void) -> YogOwnedStr {
@@ -920,7 +993,18 @@ unsafe extern "C" fn srv_spawn_particles(
 ) -> bool {
     bridge!(
         "spawnParticles",
-        [S(dim), D(pos.x), D(pos.y), D(pos.z), S(particle_type), I(count), D(dx), D(dy), D(dz), D(speed)]
+        [
+            S(dim),
+            D(pos.x),
+            D(pos.y),
+            D(pos.z),
+            S(particle_type),
+            I(count),
+            D(dx),
+            D(dy),
+            D(dz),
+            D(speed)
+        ]
     )
     .unwrap_or(false)
 }
@@ -982,7 +1066,17 @@ unsafe extern "C" fn srv_set_slot_item(
     count: u32,
     snbt: YogStr,
 ) -> bool {
-    bridge!("setSlotItem", [S(player), I(slot as i32), S(item_id), I(count as i32), S(snbt)]).unwrap_or(false)
+    bridge!(
+        "setSlotItem",
+        [
+            S(player),
+            I(slot as i32),
+            S(item_id),
+            I(count as i32),
+            S(snbt)
+        ]
+    )
+    .unwrap_or(false)
 }
 
 // ── ABI minor 14 — low-level GPU pipeline ────────────────────────────────────
@@ -1496,7 +1590,11 @@ unsafe extern "C" fn gfx_set_viewport(x: i32, y: i32, w: i32, h: i32) {
 // ── 2D convenience (JNI — uses MC's DrawContext / text renderer) ──────────────
 
 unsafe extern "C" fn gfx_draw2d_rect(x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
-    let _: Option<()> = host!("dev/yog/NativeDraw", "drawRect", [F(x1), F(y1), F(x2), F(y2), I(color as i32)]);
+    let _: Option<()> = host!(
+        "dev/yog/NativeDraw",
+        "drawRect",
+        [F(x1), F(y1), F(x2), F(y2), I(color as i32)]
+    );
 }
 
 unsafe extern "C" fn gfx_draw2d_gradient(
@@ -1507,11 +1605,19 @@ unsafe extern "C" fn gfx_draw2d_gradient(
     top: u32,
     bottom: u32,
 ) {
-    let _: Option<()> = host!("dev/yog/NativeDraw", "drawGradientRect", [F(x1), F(y1), F(x2), F(y2), I(top as i32), I(bottom as i32)]);
+    let _: Option<()> = host!(
+        "dev/yog/NativeDraw",
+        "drawGradientRect",
+        [F(x1), F(y1), F(x2), F(y2), I(top as i32), I(bottom as i32)]
+    );
 }
 
 unsafe extern "C" fn gfx_draw2d_text(text: YogStr, x: f32, y: f32, color: u32, shadow: bool) {
-    let _: Option<()> = host!("dev/yog/NativeDraw", "drawText", [S(text), F(x), F(y), I(color as i32), Z(shadow)]);
+    let _: Option<()> = host!(
+        "dev/yog/NativeDraw",
+        "drawText",
+        [S(text), F(x), F(y), I(color as i32), Z(shadow)]
+    );
 }
 
 unsafe extern "C" fn gfx_draw2d_text_font(
@@ -1522,7 +1628,11 @@ unsafe extern "C" fn gfx_draw2d_text_font(
     color: u32,
     shadow: bool,
 ) {
-    let _: Option<()> = host!("dev/yog/NativeDraw", "drawTextFont", [S(text), S(font), F(x), F(y), I(color as i32), Z(shadow)]);
+    let _: Option<()> = host!(
+        "dev/yog/NativeDraw",
+        "drawTextFont",
+        [S(text), S(font), F(x), F(y), I(color as i32), Z(shadow)]
+    );
 }
 
 unsafe extern "C" fn gfx_text_width(text: YogStr, font: YogStr) -> f32 {
@@ -1530,7 +1640,11 @@ unsafe extern "C" fn gfx_text_width(text: YogStr, font: YogStr) -> f32 {
 }
 
 unsafe extern "C" fn gfx_draw2d_item(id: YogStr, x: f32, y: f32, size: f32) {
-    let _: Option<()> = host!("dev/yog/NativeDraw", "drawItem", [S(id), F(x), F(y), F(size)]);
+    let _: Option<()> = host!(
+        "dev/yog/NativeDraw",
+        "drawItem",
+        [S(id), F(x), F(y), F(size)]
+    );
 }
 
 // ── Static GFX function table (function pointers only — per-frame data filled at call time) ──
@@ -2119,7 +2233,10 @@ unsafe extern "C" fn srv_raycast_entity(
 ) -> YogOwnedStr {
     let [a, b, c] = vec_args(from);
     let [d, e, f] = vec_args(to);
-    owned(bridge!("raycastEntity", [JArg::S(dim), a, b, c, d, e, f, JArg::S(exclude)]))
+    owned(bridge!(
+        "raycastEntity",
+        [JArg::S(dim), a, b, c, d, e, f, JArg::S(exclude)]
+    ))
 }
 
 unsafe extern "C" fn srv_block_info(
@@ -2139,7 +2256,11 @@ unsafe extern "C" fn srv_break_block(
     breaker: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge!("breakBlock", [JArg::S(dim), x, y, z, JArg::Z(drop), JArg::S(breaker)]).unwrap_or(false)
+    bridge!(
+        "breakBlock",
+        [JArg::S(dim), x, y, z, JArg::Z(drop), JArg::S(breaker)]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_place_block_from_slot(
@@ -2150,7 +2271,11 @@ unsafe extern "C" fn srv_place_block_from_slot(
     pos: YogBlockPos,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge!("placeBlockFromSlot", [JArg::S(player), JArg::I(slot as i32), JArg::S(dim), x, y, z]).unwrap_or(false)
+    bridge!(
+        "placeBlockFromSlot",
+        [JArg::S(player), JArg::I(slot as i32), JArg::S(dim), x, y, z]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_bonemeal(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> bool {
@@ -2167,7 +2292,9 @@ unsafe extern "C" fn srv_explode(
     source: YogStr,
 ) -> bool {
     let [x, y, z] = vec_args(pos);
-    bridge!("explode", [
+    bridge!(
+        "explode",
+        [
             JArg::S(dim),
             x,
             y,
@@ -2175,7 +2302,9 @@ unsafe extern "C" fn srv_explode(
             JArg::F(power),
             JArg::Z(fire),
             JArg::S(source),
-        ]).unwrap_or(false)
+        ]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_tellraw(_ctx: *mut c_void, player: YogStr, json: YogStr) -> bool {
@@ -2189,12 +2318,16 @@ unsafe extern "C" fn srv_entity_damage(
     damage_type: YogStr,
     attacker: YogStr,
 ) -> bool {
-    bridge!("entityDamage", [
+    bridge!(
+        "entityDamage",
+        [
             JArg::S(uuid),
             JArg::F(amount),
             JArg::S(damage_type),
             JArg::S(attacker),
-        ]).unwrap_or(false)
+        ]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_entity_set_fire_ticks(
@@ -2232,7 +2365,9 @@ unsafe extern "C" fn srv_spawn_item(
 ) -> YogOwnedStr {
     let [a, b, c] = vec_args(pos);
     let [d, e, f] = vec_args(vel);
-    owned(bridge!("spawnItem", [
+    owned(bridge!(
+        "spawnItem",
+        [
             JArg::S(dim),
             a,
             b,
@@ -2243,7 +2378,8 @@ unsafe extern "C" fn srv_spawn_item(
             JArg::S(item_id),
             JArg::I(count as i32),
             JArg::S(snbt),
-        ]))
+        ]
+    ))
 }
 
 unsafe extern "C" fn srv_item_entity_stack(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
@@ -2263,7 +2399,9 @@ unsafe extern "C" fn srv_use_item_on_block(
     player: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge!("useItemOnBlock", [
+    bridge!(
+        "useItemOnBlock",
+        [
             JArg::S(dim),
             x,
             y,
@@ -2271,7 +2409,9 @@ unsafe extern "C" fn srv_use_item_on_block(
             JArg::I(face as i32),
             JArg::S(item_id),
             JArg::S(player),
-        ]).unwrap_or(false)
+        ]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_pour_fluid(
@@ -2281,7 +2421,11 @@ unsafe extern "C" fn srv_pour_fluid(
     bucket_item_id: YogStr,
 ) -> bool {
     let [x, y, z] = pos_args(pos);
-    bridge!("pourFluid", [JArg::S(dim), x, y, z, JArg::S(bucket_item_id)]).unwrap_or(false)
+    bridge!(
+        "pourFluid",
+        [JArg::S(dim), x, y, z, JArg::S(bucket_item_id)]
+    )
+    .unwrap_or(false)
 }
 
 unsafe extern "C" fn srv_has_entity_tag(
@@ -2313,12 +2457,16 @@ unsafe extern "C" fn srv_item_entity_set_stack(
     count: u32,
     snbt: YogStr,
 ) -> bool {
-    bridge!("itemEntitySetStack", [
+    bridge!(
+        "itemEntitySetStack",
+        [
             JArg::S(uuid),
             JArg::S(item_id),
             JArg::I(count as i32),
             JArg::S(snbt),
-        ]).unwrap_or(false)
+        ]
+    )
+    .unwrap_or(false)
 }
 
 // ── Table constructors ────────────────────────────────────────────────────────
@@ -3799,7 +3947,12 @@ unsafe extern "C" fn chunk_writer_set_block(
     z: i32,
     block_id: YogStr,
 ) -> bool {
-    host!("dev/yog/YogCallbackChunkGenerator", "setBlockInGeneratingChunk", [I(x), I(y), I(z), S(block_id)]).unwrap_or(false)
+    host!(
+        "dev/yog/YogCallbackChunkGenerator",
+        "setBlockInGeneratingChunk",
+        [I(x), I(y), I(z), S(block_id)]
+    )
+    .unwrap_or(false)
 }
 
 #[no_mangle]

@@ -1,88 +1,11 @@
 //! UI system JNI — layer management, show/hide, hit-test, event dispatch.
-//! Replace the // ── UI system JNI ── section in lib.rs with this file.
-//! Then add `mod ui_jni;` to lib.rs.
 
-use crate::{handlers, UiLayer};
-use jni::{objects::JClass, objects::JString, objects::JValue, sys::*, JNIEnv};
+use crate::handlers;
+use jni::{objects::JClass, objects::JString, sys::*, JNIEnv};
+
+use crate::jcall::jcall;
 use std::cell::Cell;
 use yog_abi::YogStr;
-
-macro_rules! jstr {
-    ($env:expr, $s:expr) => {
-        match $env.get_string(&$s) {
-            Ok(s) => String::from(s),
-            Err(_) => return Default::default(),
-        }
-    };
-}
-
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    ui_id: JString<'l>,
-    parent_id: JString<'l>,
-    modal: jboolean,
-    pause_game: jboolean,
-    screen_w: jint,
-    screen_h: jint,
-) {
-    let id = jstr!(env, ui_id);
-    let parent = jstr!(env, parent_id);
-    let parent = if parent.is_empty() {
-        None
-    } else {
-        Some(parent)
-    };
-    let h = handlers();
-    let mut active = h.active_uis.lock().expect("active_uis");
-    active.retain(|l| l.id != id);
-    let layer = UiLayer {
-        id: id.clone(),
-        parent,
-        modal: modal != 0,
-        pause_game: pause_game != 0,
-        visible: true,
-        enabled: true,
-        z_index: active.iter().map(|l| l.z_index).max().unwrap_or(0) + 1,
-    };
-    active.push(layer);
-    active.sort_by_key(|l| l.z_index);
-    yog_logging::info!(
-        "UI show: {} modal={} pause={} layers={}",
-        id,
-        modal != 0,
-        pause_game != 0,
-        active.len()
-    );
-    drop(active);
-    // Lifecycle event for the screen's own handler (yog-kit's `on_open`).
-    dispatch(&id, &format!("open:{screen_w}:{screen_h}"));
-}
-
-#[no_mangle]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIHide<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    ui_id: JString<'l>,
-) {
-    let id = jstr!(env, ui_id);
-    let h = handlers();
-    let mut active = h.active_uis.lock().expect("active_uis");
-    // Remove layer and all children
-    let ids_to_remove: Vec<String> = active
-        .iter()
-        .filter(|l| l.id == id || l.parent.as_deref() == Some(&id))
-        .map(|l| l.id.clone())
-        .collect();
-    active.retain(|l| !ids_to_remove.contains(&l.id));
-    yog_logging::info!("UI hide: {} (layers left: {})", id, active.len());
-    drop(active);
-    // Lifecycle event for the screens' own handlers (yog-kit's `on_close`).
-    for closed in &ids_to_remove {
-        dispatch(closed, "close");
-    }
-}
 
 /// Sends `ev` to the `register_ui` handler of `id`, if any (result ignored).
 fn dispatch(id: &str, ev: &str) {
@@ -448,49 +371,22 @@ fn push_inventory_snapshot(snapshot: &yog_inventory::YogInvSnapshotRaw) {
 
 /// Number of slots in the currently open inventory screen (0 if none).
 pub fn inv_slot_count(env: &mut JNIEnv) -> i32 {
-    env.call_static_method("dev/yog/NativeBridge", "getSlotCount", "()I", &[])
-        .and_then(|v| v.i())
-        .unwrap_or(0)
+    unsafe { jcall!(env, "dev/yog/NativeBridge", "getSlotCount", []) }.unwrap_or(0)
 }
 
 /// Query one slot: returns `Some((item_id, count))` or `None` if empty.
 /// `item_id` is a namespaced string like `"minecraft:diamond"`.
 pub fn inv_slot_item(env: &mut JNIEnv, index: i32) -> Option<(String, i32)> {
-    let ret = env
-        .call_static_method(
-            "dev/yog/NativeBridge",
-            "getSlotItem",
-            "(I)Ljava/lang/String;",
-            &[JValue::Int(index)],
-        )
-        .ok()?;
-    let obj = ret.l().ok()?;
-    let jstr = JString::from(obj);
-    let s = env.get_string(&jstr).ok()?;
-    let s: String = s.into();
-    if s.is_empty() {
-        return None;
-    }
+    let s: String = unsafe { jcall!(env, "dev/yog/NativeBridge", "getSlotItem", [I(index)]) }?;
     let (id, count) = s.split_once('\t')?;
     Some((id.to_owned(), count.parse().ok()?))
 }
 
 /// Pixel position of a slot (relative to screen, already including guiLeft/guiTop).
 pub fn inv_slot_pos(env: &mut JNIEnv, index: i32) -> Option<(i32, i32)> {
-    let ret = env
-        .call_static_method(
-            "dev/yog/NativeBridge",
-            "getSlotPos",
-            "(I)Ljava/lang/String;",
-            &[JValue::Int(index)],
-        )
-        .ok()?;
-    let obj = ret.l().ok()?;
-    let jstr = JString::from(obj);
-    let s = env.get_string(&jstr).ok()?;
-    let s: String = s.into();
-    let (x, y) = s.split_once('\t')?;
-    Some((x.parse().ok()?, y.parse().ok()?))
+    let s: String = unsafe { jcall!(env, "dev/yog/NativeBridge", "getSlotPos", [I(index)]) }?;
+    let [x, y] = crate::parse_tsv(&s)?;
+    Some((x, y))
 }
 
 /// Return tab+newline-encoded menu entries: `label\tui_id\n...`

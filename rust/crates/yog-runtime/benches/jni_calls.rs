@@ -13,8 +13,7 @@ use std::process::Command;
 use criterion::{criterion_group, criterion_main, Criterion};
 use jni::objects::JValue;
 use jni::sys::{
-    jint, JNIEnv as RawEnv, JavaVM as RawVm, JavaVMInitArgs, JavaVMOption, JNI_OK,
-    JNI_VERSION_1_8,
+    jint, JNIEnv as RawEnv, JavaVM as RawVm, JavaVMInitArgs, JavaVMOption, JNI_OK, JNI_VERSION_1_8,
 };
 use jni::{JNIEnv, JavaVM};
 use yog_abi::YogStr;
@@ -57,7 +56,8 @@ fn start_jvm(jdk: &Path, classpath: &Path) -> JavaVM {
     let lib = Box::leak(Box::new(
         unsafe { libloading::Library::new(&lib) }.expect("load libjvm"),
     ));
-    type CreateVm = unsafe extern "system" fn(*mut *mut RawVm, *mut *mut c_void, *mut c_void) -> jint;
+    type CreateVm =
+        unsafe extern "system" fn(*mut *mut RawVm, *mut *mut c_void, *mut c_void) -> jint;
     let create: libloading::Symbol<CreateVm> =
         unsafe { lib.get(b"JNI_CreateJavaVM\0") }.expect("JNI_CreateJavaVM");
     let cp = CString::new(format!("-Djava.class.path={}", classpath.display())).unwrap();
@@ -175,8 +175,12 @@ fn bench(c: &mut Criterion) {
     g.bench_function("drawRect/by_name", |b| b.iter(|| by_name_rect(&mut env)));
     g.bench_function("drawRect/cached", |b| {
         b.iter(|| unsafe {
-            let _: Option<()> =
-                jcall!(&mut env, "dev/yog/NativeDraw", "drawRect", [F(1.0), F(2.0), F(30.0), F(40.0), I(-1)]);
+            let _: Option<()> = jcall!(
+                &mut env,
+                "dev/yog/NativeDraw",
+                "drawRect",
+                [F(1.0), F(2.0), F(30.0), F(40.0), I(-1)]
+            );
         })
     });
     g.bench_function("drawText/by_name", |b| {
@@ -184,8 +188,12 @@ fn bench(c: &mut Criterion) {
     });
     g.bench_function("drawText/cached", |b| {
         b.iter(|| unsafe {
-            let _: Option<()> =
-                jcall!(&mut env, "dev/yog/NativeDraw", "drawText", [S(text), F(4.0), F(8.0), I(-1), Z(true)]);
+            let _: Option<()> = jcall!(
+                &mut env,
+                "dev/yog/NativeDraw",
+                "drawText",
+                [S(text), F(4.0), F(8.0), I(-1), Z(true)]
+            );
         })
     });
     g.bench_function("getBlock/by_name", |b| {
@@ -193,8 +201,12 @@ fn bench(c: &mut Criterion) {
     });
     g.bench_function("getBlock/cached", |b| {
         b.iter(|| unsafe {
-            let s: Option<String> =
-                jcall!(&mut env, "dev/yog/NativeBridge", "getBlock", [S(dim), I(1), I(64), I(-3)]);
+            let s: Option<String> = jcall!(
+                &mut env,
+                "dev/yog/NativeBridge",
+                "getBlock",
+                [S(dim), I(1), I(64), I(-3)]
+            );
             s
         })
     });

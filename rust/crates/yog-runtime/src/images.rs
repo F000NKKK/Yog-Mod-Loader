@@ -13,12 +13,11 @@ use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Mutex;
 
-use jni::objects::JValue;
 use jni::JNIEnv;
 use yog_abi::YogStr;
 use yog_gfx::image::{self, ImageSource, LegacyRegion, Sprite};
 
-const DRAW: &str = "dev/yog/NativeDraw";
+use crate::jcall::jcall;
 
 /// 0 = not asked yet, 1 = the host has the GUI sprite atlas, 2 = it doesn't.
 static ATLAS: AtomicU8 = AtomicU8::new(0);
@@ -38,26 +37,13 @@ fn warn_once(source: &str, why: &str) {
     }
 }
 
-/// Drops a pending Java exception (a failed call must not poison the next).
-fn clear(env: &mut JNIEnv) {
-    if env.exception_check().unwrap_or(false) {
-        let _ = env.exception_clear();
-    }
-}
-
 fn has_atlas(env: &mut JNIEnv) -> bool {
     match ATLAS.load(Ordering::Relaxed) {
         1 => return true,
         2 => return false,
         _ => {}
     }
-    let yes = match env.call_static_method(DRAW, "hasGuiSprites", "()Z", &[]) {
-        Ok(v) => v.z().unwrap_or(false),
-        Err(_) => {
-            clear(env);
-            false
-        }
-    };
+    let yes = unsafe { jcall!(env, "dev/yog/NativeDraw", "hasGuiSprites", []) }.unwrap_or(false);
     ATLAS.store(if yes { 1 } else { 2 }, Ordering::Relaxed);
     yes
 }
@@ -69,19 +55,14 @@ fn texture_size(env: &mut JNIEnv, id: &str) -> Option<(f32, f32)> {
         return *hit;
     }
     let size = (|| {
-        let jid = env.new_string(id).ok()?;
-        let packed = match env.call_static_method(
-            DRAW,
-            "textureSize",
-            "(Ljava/lang/String;)I",
-            &[JValue::Object(&jid)],
-        ) {
-            Ok(v) => v.i().ok()?,
-            Err(_) => {
-                clear(env);
-                return None;
-            }
-        };
+        let packed: i32 = unsafe {
+            jcall!(
+                env,
+                "dev/yog/NativeDraw",
+                "textureSize",
+                [S(YogStr::from_str(id))]
+            )
+        }?;
         let (w, h) = ((packed >> 16) & 0xFFFF, packed & 0xFFFF);
         (w > 0 && h > 0).then_some((w as f32, h as f32))
     })();
@@ -101,79 +82,67 @@ fn draw_texture(
     if w <= 0.0 || h <= 0.0 || uw <= 0.0 || vh <= 0.0 {
         return;
     }
-    let Ok(jid) = env.new_string(id) else { return };
-    let args = [
-        JValue::Object(&jid),
-        JValue::Float(x),
-        JValue::Float(y),
-        JValue::Float(w),
-        JValue::Float(h),
-        JValue::Float(u),
-        JValue::Float(v),
-        JValue::Float(uw),
-        JValue::Float(vh),
-        JValue::Float(tw),
-        JValue::Float(th),
-        JValue::Int(tint as i32),
-    ];
-    if env
-        .call_static_method(DRAW, "drawImage", "(Ljava/lang/String;FFFFFFFFFFI)V", &args)
-        .is_err()
-    {
-        clear(env);
-    }
+    let _: Option<()> = unsafe {
+        jcall!(
+            env,
+            "dev/yog/NativeDraw",
+            "drawImage",
+            [
+                S(YogStr::from_str(id)),
+                F(x),
+                F(y),
+                F(w),
+                F(h),
+                F(u),
+                F(v),
+                F(uw),
+                F(vh),
+                F(tw),
+                F(th),
+                I(tint as i32)
+            ]
+        )
+    };
 }
 
 fn draw_item(env: &mut JNIEnv, id: &str, block: bool, [x, y, w, h]: [f32; 4]) {
-    let Ok(jid) = env.new_string(id) else { return };
-    let args = [
-        JValue::Object(&jid),
-        JValue::Bool(block as u8),
-        JValue::Float(x),
-        JValue::Float(y),
-        JValue::Float(w),
-        JValue::Float(h),
-    ];
-    if env
-        .call_static_method(DRAW, "drawItemRect", "(Ljava/lang/String;ZFFFF)V", &args)
-        .is_err()
-    {
-        clear(env);
-    }
+    let _: Option<()> = unsafe {
+        jcall!(
+            env,
+            "dev/yog/NativeDraw",
+            "drawItemRect",
+            [S(YogStr::from_str(id)), Z(block), F(x), F(y), F(w), F(h)]
+        )
+    };
 }
 
 fn draw_atlas_sprite(env: &mut JNIEnv, id: &str, [x, y, w, h]: [f32; 4], tint: u32) {
-    let Ok(jid) = env.new_string(id) else { return };
-    let args = [
-        JValue::Object(&jid),
-        JValue::Float(x),
-        JValue::Float(y),
-        JValue::Float(w),
-        JValue::Float(h),
-        JValue::Int(tint as i32),
-    ];
-    if env
-        .call_static_method(DRAW, "drawGuiSprite", "(Ljava/lang/String;FFFFI)V", &args)
-        .is_err()
-    {
-        clear(env);
-    }
+    let _: Option<()> = unsafe {
+        jcall!(
+            env,
+            "dev/yog/NativeDraw",
+            "drawGuiSprite",
+            [
+                S(YogStr::from_str(id)),
+                F(x),
+                F(y),
+                F(w),
+                F(h),
+                I(tint as i32)
+            ]
+        )
+    };
 }
 
 fn rect(env: &mut JNIEnv, x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
-    let args = [
-        JValue::Float(x1),
-        JValue::Float(y1),
-        JValue::Float(x2),
-        JValue::Float(y2),
-        JValue::Int(color as i32),
-    ];
-    if env
-        .call_static_method(DRAW, "drawRect", "(FFFFI)V", &args)
-        .is_err()
-    {
-        clear(env);
-    }
+    let _: Option<()> = unsafe {
+        jcall!(
+            env,
+            "dev/yog/NativeDraw",
+            "drawRect",
+            [F(x1), F(y1), F(x2), F(y2), I(color as i32)]
+        )
+    };
 }
 
 /// The inventory slot: grey with a dark top-left and a light bottom-right

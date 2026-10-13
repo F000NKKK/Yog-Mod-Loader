@@ -61,28 +61,20 @@ fn list_len(s: &str) -> Option<usize> {
 /// `(class, method, arity)` of every Java static the runtime calls.
 fn calls(src: &str) -> BTreeSet<(String, String, usize)> {
     let mut out = BTreeSet::new();
-    // `bridge_bool("name", &[args...])` and friends call NativeBridge.
-    for (i, _) in src.match_indices("bridge_") {
-        let rest = &src[i + "bridge_".len()..];
-        let Some(open) = rest.find('(') else { continue };
-        if open == 0 || !rest[..open].chars().all(|c| c.is_ascii_alphanumeric()) {
-            continue;
-        }
-        let Some((name, rest)) = literal(&rest[open + 1..]) else {
+    // `bridge!("name", [args...])` calls NativeBridge.
+    for (i, _) in src.match_indices("bridge!(") {
+        let rest = &src[i + "bridge!(".len()..];
+        let Some((name, rest)) = literal(rest) else {
             continue;
         };
-        let Some(args) = rest
-            .trim_start()
-            .strip_prefix(',')
-            .and_then(|r| r.trim_start().strip_prefix('&'))
-        else {
+        let Some(args) = rest.trim_start().strip_prefix(',') else {
             continue;
         };
         if let Some(n) = list_len(args) {
             out.insert(("NativeBridge".to_owned(), name.to_owned(), n));
         }
     }
-    // `call_static_method("dev/yog/<Class>", "name", "(sig)R", ...)`.
+    // `host!("dev/yog/<Class>", "name", [args...])` / `jcall!(env, ...)`.
     for (i, _) in src.match_indices("\"dev/yog/") {
         let Some((class, rest)) = literal(&src[i..]) else {
             continue;
@@ -94,36 +86,14 @@ fn calls(src: &str) -> BTreeSet<(String, String, usize)> {
         let Some((name, rest)) = literal(rest) else {
             continue;
         };
-        let Some((sig, _)) = rest.trim_start().strip_prefix(',').and_then(literal) else {
+        let Some(args) = rest.trim_start().strip_prefix(',') else {
             continue;
         };
-        out.insert((class.to_owned(), name.to_owned(), sig_arity(sig)));
-    }
-    out
-}
-
-/// Number of parameters in a JNI method signature.
-fn sig_arity(sig: &str) -> usize {
-    let Some(params) = sig.strip_prefix('(').and_then(|s| s.split(')').next()) else {
-        return 0;
-    };
-    let mut n = 0;
-    let mut chars = params.chars();
-    while let Some(c) = chars.next() {
-        match c {
-            '[' => continue,
-            'L' => {
-                for c in chars.by_ref() {
-                    if c == ';' {
-                        break;
-                    }
-                }
-                n += 1;
-            }
-            _ => n += 1,
+        if let Some(n) = list_len(args) {
+            out.insert((class.to_owned(), name.to_owned(), n));
         }
     }
-    n
+    out
 }
 
 /// `(name, arity)` of the public static methods in a Java file.
@@ -218,8 +188,8 @@ fn every_host_has_every_bridge_method() {
 }
 
 #[test]
-fn signature_arity() {
-    assert_eq!(sig_arity("(IIILjava/lang/String;)Z"), 4);
-    assert_eq!(sig_arity("()Ljava/lang/String;"), 0);
-    assert_eq!(sig_arity("([BLjava/lang/String;D)V"), 3);
+fn argument_count() {
+    assert_eq!(list_len("[S(dim), I(pos.x), f(a, b)]"), Some(3));
+    assert_eq!(list_len("[]"), Some(0));
+    assert_eq!(list_len("[S(x),\n]"), Some(1));
 }
