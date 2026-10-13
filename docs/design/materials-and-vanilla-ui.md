@@ -2,6 +2,8 @@
 
 Status: design only. Nothing is implemented yet, and nothing was built while writing this.
 
+Revision 2 records the user's answers to the open questions of revision 1: vanilla pack storage and reports, mandatory explicit namespaces, deletion of the flat look, scoped `.ytheme` files, vanilla tabs in Modlist, Minecraft-style block behaviours, `.ybook`, the run-configuration version, and a new project layout. It also states that HexMod-Yog reproduces the original Hex Casting UI rather than the vanilla theme.
+
 Scope: Yog-Mod-Loader (yog-gfx, yog-ui, yog-kit, yog-cli, yog-abi, yog-runtime, yog-registry, Java hosts), Yog-IDLE, and the mods Yog-Modlist, HexMod-Yog and Yog-Pipes.
 
 The project has **no backward compatibility**. Every old form listed in §11 is deleted, not deprecated.
@@ -12,14 +14,18 @@ The project has **no backward compatibility**. Every old form listed in §11 is 
 
 | # | Decision | Why |
 |---|---|---|
-| D1 | **Texture** = a PNG plus an optional `.png.mcmeta` sidecar in vanilla's own format (animation, `texture.blur/clamp`, `gui.scaling`). Its id is `<ns>:<path>`, exactly as in Minecraft (`assets/<ns>/textures/<path>.png`). A mod's textures live in `textures/**` at the project root. The file is the declaration: there is no registry file to fill in. | Mods and vanilla then use one shape. The metadata format is the one Minecraft, resource packs and every tool already understand. The vanilla pack (D7) is just textures in that same shape. |
-| D2 | **Material** = a texture or texture layers plus how to draw them: render layer, tint, emissive, UV transform, UI slicing and tiling, fills/frames/gradients, text hints, and interaction states. It lives in `materials/**/*.ymat` (one JSON per material, like `.yblock`), or **inline** wherever a material ref is accepted in JSON formats. Its id is `<ns>:<path>`. | A material is structured data with states and layers, which doesn't fit `.yres`'s flat Name/Value/Type grid. One file per asset matches `.yblock`/`.yitem` and gives IDLE a natural document to open. |
+| D1 | **Texture** = a PNG plus an optional `.png.mcmeta` sidecar in vanilla's own format (animation, `texture.blur/clamp`, `gui.scaling`). Its id is `<ns>:<path>`, exactly as in Minecraft (`assets/<ns>/textures/<path>.png`). A mod's textures are PNGs anywhere under `content/` (§13), with id `<mod id>:<path under content/ without .png>`. The file is the declaration: there is no registry file to fill in. | Mods and vanilla then use one shape. The metadata format is the one Minecraft, resource packs and every tool already understand. The vanilla pack (D7) is just textures in that same shape. |
+| D2 | **Material** = a texture or texture layers plus how to draw them: render layer, tint, emissive, UV transform, UI slicing and tiling, fills/frames/gradients, text hints, and interaction states. It is a `.ymat` file anywhere under `content/` (one JSON per material, like `.yblock`), or **inline** wherever a material ref is accepted in JSON formats. Its id is `<ns>:<path>`. | A material is structured data with states and layers, which doesn't fit `.yres`'s flat Name/Value/Type grid. One file per asset matches `.yblock`/`.yitem` and gives IDLE a natural document to open. |
 | D3 | **A texture ref is a material ref.** Everywhere a material is accepted, a bare texture id means "that texture with default material settings". So a material file is only needed when a setting differs from the default. | There is one concept for authors to learn: "what to draw". |
 | D4 | **`render_layer` defaults to `auto`.** The build inspects the alpha channel: no alpha → `solid`, only 0/255 alpha → `cutout`, partial alpha → `translucent`. | Most cutout bugs disappear without any authoring. |
 | D5 | **Materials are resolved by the host, never by the mod.** Every `.yog` ships `yog/materials.json`. The runtime holds a `MaterialRegistry` containing the vanilla overlay for the running MC version plus every mod's materials. yog-ui passes `(material id, state bits)` over the ABI. | Vanilla GUI materials are version-dependent, so they must be resolved in the host. Using the same path for mod materials keeps one mechanism, and hot-reload and resource packs just work. |
 | D6 | **The vanilla look is yog-ui's only built-in look.** The default control templates draw vanilla materials (`minecraft:gui/button`, …). The current flat "modern" defaults (`bg` rects, amber focus outline, gray scrollbar) are **deleted**, not kept as a theme. Flat colors stay available as brushes for authors who want them. | The user asked for vanilla-first. The "modern" look is not a theme today, just ad-hoc constants in `render.rs`, so there is nothing worth keeping. |
-| D7 | **The Vanilla Pack:** for each MC version Yog supports, the vanilla content is exposed in Yog's own formats: textures (PNG+mcmeta), materials (`.ymat`), blocks/items (`.yblock`/`.yitem`), lang, GUI materials and id lists. It is **generated locally on demand** by `yog vanilla sync` from the user's client jar (or Mojang's servers) into a per-user cache, and is **never committed or published**. Only Yog-authored data is committed in `Yog-Mod-Loader/vanilla/`: the extraction tool, GUI material overlays per version, and rename tables. | Mojang's assets must not be redistributed. Ids and region coordinates are facts that Yog authors itself, so committing them is fine. |
+| D7 | **The Vanilla Pack:** for each MC version Yog supports, the vanilla content is exposed in Yog's own formats: textures (PNG+mcmeta), materials (`.ymat`), blocks/items (`.yblock`/`.yitem`), lang, GUI materials, id lists and data-generator reports. It is **generated locally on demand** by `yog vanilla sync` from the user's client jar, downloading from Mojang's servers automatically when there is none. It goes into a per-user cache and is **never committed or published**. By default the pack is extracted to disk. An IDLE Environment setting (`YOG_VANILLA_MODE=jar` for the CLI) switches to reading lazily from the jar, which is slower. Only Yog-authored data is committed in `Yog-Mod-Loader/vanilla/`: the extraction tool, GUI material overlays per version, and rename tables. | Mojang's assets must not be redistributed. Ids and region coordinates are facts that Yog authors itself, so committing them is fine. |
 | D8 | **Typed handles everywhere.** Mod textures and materials → `crate::res::textures::…` and `crate::res::materials::…`. Vanilla → `crate::vanilla::{items, blocks, textures, materials, lang}`, generated from the vanilla packs of every MC version the mod targets. Ids that are absent or renamed in some targeted version get `Option`-returning accessors or a runtime rename. | This catches typos at compile time and lets one binary run on 1.20.1 and 1.21.1. |
+| D10 | **Every reference carries an explicit namespace** (`minecraft:block/stone`, `hexcasting:block/slate`, `item:minecraft:diamond`). A bare id is an error in every format and in codegen, and the diagnostic suggests the fix. There is no short alias for the mod's own namespace: `mod:` is deleted. IDLE autocompletes full ids, and `yog migrate` rewrites old bare refs. | The user's rule: a reference is always explicit. A file's meaning then never depends on which mod it sits in or on what "default" a format picked. |
+| D11 | **Themes are `.ytheme` assets with scoped cascading.** A theme can be attached to the whole mod, a screen, a component or any element subtree. The cascade is vanilla built-in → mod → screen → component → element subtree → named style → explicit attribute (§6.6). The built-in vanilla look is itself a `.ytheme` (`minecraft:vanilla`), and `yog:bare` is an undecorated base. | This is what the user asked for: Unity-style style sheets attachable at any level. Using one format for the built-in look and mod themes means there is one mechanism. |
+| D12 | **Block behaviours mirror Minecraft's block classes.** `.yblock` `"behavior": "minecraft:transparent"` (glass), `minecraft:stained_glass`, `minecraft:leaves`, `minecraft:ice`, … brings that class's rules: same-block face culling, light passing, occlusion, suffocation, view blocking. Hosts map each behaviour to the real vanilla class per loader. Mod-defined behaviours come from mod code through a generic extension point (§4.6). A material only says how faces are drawn (layer, tint). | This is how Minecraft does it (`HalfTransparentBlock#skipRendering`, `LeavesBlock`, …). It is block logic, not appearance. |
+| D13 | **New project layout (UE5/Unity-like):** `yog.toml` + `src/` (Rust) + `content/` (every asset, free-form folders, type by extension) + `pack/` (raw resource/data-pack passthrough) + hidden `.yog/` (build, cache, IDE state). `yog migrate` converts existing mods (§13). | Assets are found by extension, not by a folder per type. Feature folders keep a block's model, textures and material together. Generated and intermediate files are out of sight. |
 | D9 | **Fabric render layer fix:** `render_layer` reaches the host through `YogBlockDef`. Fabric registers it with `BlockRenderLayerMap`, and every host sets `noOcclusion()` for non-solid layers. Tint sources also reach the host, which registers block/item color providers. | Today `render_layer` only reaches the model JSON's `render_type`, so Fabric renders every block solid and full-cube cutout blocks x-ray their neighbours on every loader (§4.4). |
 
 ---
@@ -104,14 +110,12 @@ Optional metadata goes in `textures/<path>.png.mcmeta`. This is vanilla's format
 | `gui.scaling` | `stretch` (default), `tile` (`width`/`height`), `nine_slice` (`width`/`height`, `border` as a number or `{left,top,right,bottom}`). | Minecraft 1.20.2+ for atlas sprites under `gui/sprites/`. The Yog runtime everywhere else, including 1.20.1. |
 | `yog.size` | `[w, h]`: natural size in GUI pixels when it differs from the pixel size (for 2× hi-res GUI art). | The Yog runtime and IDLE. |
 
-**Atlas placement follows the folder, as in vanilla:**
-- `block/**` and `item/**` go into the block atlas.
-- `gui/sprites/**` goes into the GUI atlas on 1.20.2+.
-- `entity/**`, `gui/**` (outside `sprites/`), `particle/**` and others are standalone or follow their own vanilla rules.
-
-`yog build` warns when a model uses a texture outside `block/`/`item/`, because vanilla would show the missing texture.
-
-**Recommended for mod GUI art:** put it in `textures/gui/**`, not `gui/sprites/**`. Standalone GUI textures behave the same on 1.20.1 and 1.21.1, because the Yog runtime does the slicing itself. `gui/sprites/**` only exists on 1.20.2+.
+**Atlas placement follows usage, not the folder.** Mod textures sit in free-form folders under `content/` (§13), so `yog build` cannot rely on vanilla's "`block/` and `item/` go to the block atlas" directory rule. Instead:
+- Every texture used by a block or item model gets a `{"type": "single", "resource": "<ns>:<path>"}` entry in a generated `assets/minecraft/atlases/blocks.json`. Atlas source files exist since 1.19.3, so this works on 1.20.1 and 1.21.1.
+- The runtime's pack builder (`YogPackProvider`) **merges** the `sources` arrays of every mod's atlas files into the single `.yog-pack`, instead of letting the last mod win.
+- Textures used only by UI are standalone textures. The Yog runtime slices them itself, so they behave the same on 1.20.1 and 1.21.1.
+- A mod never adds to the GUI sprite atlas. `gui/sprites/**` exists only on 1.20.2+, and only vanilla's own sprites are used from it (through the overlay).
+- In the vanilla pack, ids keep vanilla's folders (`minecraft:block/stone`, `minecraft:gui/sprites/widget/button`), because those are vanilla's real paths.
 
 `yog build` validates:
 - The PNG decodes.
@@ -191,19 +195,24 @@ Every place that takes "something to draw" takes a **paint ref**:
 
 | Form | Meaning | Allowed in |
 |---|---|---|
-| `<ns>:<path>` | a texture with default material settings (D3). No namespace = `minecraft:`. | everywhere |
-| `mat:<ns>:<path>` | a material (`materials/<path>.ymat` of mod `<ns>`, or the vanilla pack's / overlay's). | everywhere |
+| `<ns>:<path>` | a texture with default material settings (D3). The namespace is **mandatory** (D10). | everywhere |
+| `mat:<ns>:<path>` | a material (`content/<path>.ymat` of mod `<ns>`, or the vanilla pack's / overlay's). | everywhere |
 | `{ … }` (JSON) | an inline material, same schema as `.ymat` | `.yblock`, `.yitem`, `.ymat` layers |
 | `#slot` | another texture slot of the same model | `.yblock`/`.yitem` models |
 | `#RRGGBB` / `#AARRGGBB` | a flat color brush | `.yui` brush attributes, `.ymat` fills |
-| `item:<id>` / `block:<id>` | the item renderer (3D block items, enchant glint). This is not a texture. | `.yui` `Image`, `ItemSlot` |
+| `item:<ns>:<id>` / `block:<ns>:<id>` | the item renderer (3D block items, enchant glint). This is not a texture. | `.yui` `Image`, `ItemSlot` |
 | `@Set.name` | a `.yres` color (brush attributes only) | `.yui` |
 
-The default namespace stays `minecraft` (the Minecraft convention, and today's `item:`/content behavior). A mod's own assets are written with their namespace (`hexcasting:block/slate`). IDLE pickers always insert full ids, and Rust code uses typed handles.
+**Namespaces are always explicit (D10, the user's rule).** This covers every asset reference in `.yblock`, `.yitem`, `.ymat`, `.ytheme`, `.yui`, `.ybook`, `.ysound`, `yog.toml`, code-generated ids and `yog_api` string APIs: `minecraft:block/stone`, `hexcasting:block/slate`, `item:minecraft:diamond`, `mat:minecraft:gui/button`.
+- A bare `block/stone` or `item:diamond` is an **error**. The diagnostic points at the value and offers the candidates that exist: *"`block/stone` has no namespace — did you mean `minecraft:block/stone` (vanilla) or `hexcasting:block/stone` (this mod)?"*. IDLE shows the same as a quick fix.
+- **No short alias for the mod's own namespace.** The old `mod:` prefix is deleted, and no `~:`/`self:` replaces it. A short alias is exactly the implicit reference the user ruled out, and it would read differently when a file is copied into another mod. To keep this cheap: IDLE's completion and pickers always insert the full id, starting with the project's own namespace; New Item templates are written with the project's id filled in; and renaming the mod id is a project-wide refactoring in IDLE (`yog migrate rename-namespace <old> <new>` in the CLI).
+- **Not asset references, and so unchanged:** `#slot` (a model-local name), `@Set.name` (a `.yres` entry of this mod; the set name is the scope), `{x:Bind …}`, and translation keys after `@` (`@gui.done`). These are keys, not ids.
+- Rust code uses typed handles (`res::…`, `vanilla::…`), which always carry the namespace. `yog_api` functions taking `&str` ids reject a bare id with `Err`/a logged error instead of assuming `minecraft:`. `yog_gfx::image::qualify` is deleted.
+- `yog migrate` (§13.5) rewrites the bare refs of existing files. Every bare id there meant `minecraft:` under the old rules, so the rewrite is mechanical.
 
 **Deleted with no replacement form:**
 - `sprite:<name>`: it becomes `mat:minecraft:gui/<name>` (§7).
-- `mod:<path>`.
+- `mod:<path>` and every other implicit-namespace form.
 - `path.png` texture paths in content files.
 - `.yres` `image` entries and `@Set.name` as an image.
 - `yog_gfx::image::{SPRITES, Sprite, LegacyRegion, suggest_alias}`: the overlay (§3.3) holds that data now.
