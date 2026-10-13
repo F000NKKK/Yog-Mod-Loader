@@ -1105,12 +1105,16 @@ fn generate_cargo_toml(meta: &YogToml) -> String {
             .unwrap_or("");
         // The mod's own yog-* dependencies (yog-kit, ...) too: they're
         // built against the local yog-api.
-        let extra: Vec<&str> = meta
+        // They depend on yog-api from crates.io, so it's patched as well.
+        let mut extra: Vec<&str> = meta
             .dependencies
             .iter()
             .map(|(name, _)| name.as_str())
             .filter(|n| n.starts_with("yog-"))
             .collect();
+        if !extra.is_empty() {
+            extra.push("yog-api");
+        }
         local_api_patch(Path::new(api_path), &extra)
     } else {
         String::new()

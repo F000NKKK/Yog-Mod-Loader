@@ -351,7 +351,7 @@ impl Ex {
             }
             Ex::Not(e) => format!("!{}", e.emit(scope, command)?),
             Ex::Cmp(a, op, b) => format!(
-                "({} {op} {})",
+                "{} {op} {}",
                 a.emit(scope, command)?,
                 b.emit(scope, command)?
             ),
@@ -1550,7 +1550,7 @@ mod tests {
         let e = |s: &str, scope| parse_expr(s).unwrap().emit(scope, false).unwrap();
         assert_eq!(e("count", Scope::Screen), "vm.count");
         assert_eq!(e("count_text()", Scope::Screen), "vm.count_text()");
-        assert_eq!(e("filter == Filter::All", Scope::Screen), "(vm.filter == Filter::All)");
+        assert_eq!(e("filter == Filter::All", Scope::Screen), "vm.filter == Filter::All");
         assert_eq!(e("!has(Filter::Yog)", Scope::Screen), "!vm.has(Filter::Yog)");
         assert_eq!(e("Strings::count(n, 'x')", Scope::Screen), "Strings::count(&vm.n, \"x\")");
         assert_eq!(e("Strings::v(version)", Scope::Template), "Strings::v(&item.version)");
@@ -1595,7 +1595,7 @@ mod tests {
             ".action(::yog_api::ui::Action { owner: 0, slot: 0, index: 0 })",
             ".action(::yog_api::ui::Action { owner: 0, slot: 1, index: 0 })",
             "::yog_kit::bind::set_checked(root.at_path_mut(&[0, 3]), *self.",
-            "::yog_kit::bind::flag((vm.filter == Filter::Yog))",
+            "::yog_kit::bind::flag(vm.filter == Filter::Yog)",
             "slot: 0, .. }) => {\n                cx.close();",
             "slot: 1, .. }) => {\n                vm.set_filter(Filter::Yog);",
             "parts.focusable(&[0, 2]);",
