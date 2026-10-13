@@ -38,7 +38,7 @@ pub const GENERATED_FILE: &str = ".yog-build/generated/yog-content.g.rs";
 pub type Output = (String, Vec<u8>);
 
 /// What a content file defines.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Kind {
     /// `.yblock` — a block and its item form.
     Block,
@@ -1727,7 +1727,7 @@ mod tests {
         // The .yres lang file gets the tooltip under the key the game reads.
         let mut outputs = vec![(
             "assets/mymod/lang/ru_ru.json".to_string(),
-            br#"{"item.mymod.ruby": "Рубин", "mymod.ruby_tip": "Блестит"}"#.to_vec(),
+            r#"{"item.mymod.ruby": "Рубин", "mymod.ruby_tip": "Блестит"}"#.as_bytes().to_vec(),
         )];
         merge_outputs(&root, &mut outputs, c).unwrap();
         let ru: Value = serde_json::from_slice(&outputs[0].1).unwrap();

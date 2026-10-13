@@ -108,6 +108,123 @@ pub fn num_value(n: f64) -> serde_json::Value {
     }
 }
 
+/// Builds values for [`to_pretty`]: `J::obj([("a", J::number(1.0))])`.
+impl J {
+    pub fn of(v: V) -> J {
+        J { line: 0, v }
+    }
+
+    pub fn obj<K: Into<String>>(members: impl IntoIterator<Item = (K, J)>) -> J {
+        J::of(V::Obj(members.into_iter().map(|(k, v)| (k.into(), v)).collect()))
+    }
+
+    pub fn number(n: f64) -> J {
+        J::of(V::Num(n))
+    }
+
+    pub fn string(s: impl Into<String>) -> J {
+        J::of(V::Str(s.into()))
+    }
+
+    pub fn nums(ns: &[f64]) -> J {
+        J::of(V::Arr(ns.iter().map(|n| J::number(*n)).collect()))
+    }
+
+    /// From serde_json (keys in its order).
+    pub fn from_value(v: &serde_json::Value) -> J {
+        use serde_json::Value;
+        J::of(match v {
+            Value::Null => V::Null,
+            Value::Bool(b) => V::Bool(*b),
+            Value::Number(n) => V::Num(n.as_f64().unwrap_or(0.0)),
+            Value::String(s) => V::Str(s.clone()),
+            Value::Array(a) => V::Arr(a.iter().map(J::from_value).collect()),
+            Value::Object(m) => V::Obj(m.iter().map(|(k, v)| (k.clone(), J::from_value(v))).collect()),
+        })
+    }
+
+    /// Adds or replaces a member of an object.
+    pub fn set(&mut self, key: &str, value: J) {
+        if let V::Obj(m) = &mut self.v {
+            match m.iter_mut().find(|(k, _)| k == key) {
+                Some((_, v)) => *v = value,
+                None => m.push((key.to_string(), value)),
+            }
+        }
+    }
+}
+
+/// Pretty JSON, keys in order, two-space indent; arrays of numbers and
+/// small objects of scalars stay on one line (`"uv": [0, 0, 16, 16]`).
+pub fn to_pretty(j: &J) -> String {
+    fn scalar(j: &J) -> Option<String> {
+        Some(match &j.v {
+            V::Null => "null".into(),
+            V::Bool(b) => b.to_string(),
+            V::Num(n) => num_value(*n).to_string(),
+            V::Str(s) => serde_json::Value::String(s.clone()).to_string(),
+            _ => return None,
+        })
+    }
+    fn inline(j: &J) -> Option<String> {
+        if let Some(s) = scalar(j) {
+            return Some(s);
+        }
+        let s = match &j.v {
+            V::Arr(a) if a.iter().all(|i| matches!(i.v, V::Num(_) | V::Bool(_) | V::Null)) => {
+                format!("[{}]", a.iter().filter_map(scalar).collect::<Vec<_>>().join(", "))
+            }
+            V::Obj(m) if !m.is_empty() && m.iter().all(|(_, v)| inline(v).is_some() && !matches!(v.v, V::Obj(_))) => {
+                let parts: Vec<String> = m
+                    .iter()
+                    .filter_map(|(k, v)| Some(format!("{}: {}", serde_json::Value::String(k.clone()), inline(v)?)))
+                    .collect();
+                format!("{{ {} }}", parts.join(", "))
+            }
+            V::Obj(m) if m.is_empty() => "{}".into(),
+            V::Arr(a) if a.is_empty() => "[]".into(),
+            _ => return None,
+        };
+        (s.len() <= 72).then_some(s)
+    }
+    fn write(j: &J, indent: usize, out: &mut String) {
+        if let Some(s) = inline(j) {
+            out.push_str(&s);
+            return;
+        }
+        let pad = "  ".repeat(indent + 1);
+        match &j.v {
+            V::Arr(a) => {
+                out.push_str("[\n");
+                for (i, item) in a.iter().enumerate() {
+                    out.push_str(&pad);
+                    write(item, indent + 1, out);
+                    out.push_str(if i + 1 < a.len() { ",\n" } else { "\n" });
+                }
+                out.push_str(&"  ".repeat(indent));
+                out.push(']');
+            }
+            V::Obj(m) => {
+                out.push_str("{\n");
+                for (i, (k, v)) in m.iter().enumerate() {
+                    out.push_str(&pad);
+                    out.push_str(&serde_json::Value::String(k.clone()).to_string());
+                    out.push_str(": ");
+                    write(v, indent + 1, out);
+                    out.push_str(if i + 1 < m.len() { ",\n" } else { "\n" });
+                }
+                out.push_str(&"  ".repeat(indent));
+                out.push('}');
+            }
+            _ => {}
+        }
+    }
+    let mut out = String::new();
+    write(j, 0, &mut out);
+    out.push('\n');
+    out
+}
+
 /// Parses `text`. Errors are `line N: message`. Duplicate keys are an error.
 pub fn parse(text: &str) -> Result<J, String> {
     let mut p = P {
@@ -361,6 +478,13 @@ mod tests {
     fn tolerates_comments_and_trailing_commas() {
         let j = parse("{ // note\n \"a\": [1, 2,],\n}").unwrap();
         assert_eq!(j.get("a").unwrap().items().len(), 2);
+    }
+
+    #[test]
+    fn pretty_prints_in_order() {
+        let j = J::obj([("b", J::nums(&[0.0, 16.0])), ("a", J::obj([("x", J::string("y"))]))]);
+        assert_eq!(to_pretty(&j), "{\n  \"b\": [0, 16],\n  \"a\": { \"x\": \"y\" }\n}\n");
+        assert_eq!(parse(&to_pretty(&j)).unwrap().to_value(), j.to_value());
     }
 
     #[test]
