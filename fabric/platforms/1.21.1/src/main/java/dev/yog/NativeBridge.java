@@ -160,6 +160,18 @@ public final class NativeBridge {
     }
 
     /** Teleport the named online player within their current world. */
+    /** Whether the online player carries command tag `tag` (`/tag`; saved with the player's own data). */
+    public static boolean playerHasTag(String player, String tag) {
+        ServerPlayerEntity p = playerByName(player);
+        return p != null && p.getCommandTags().contains(tag);
+    }
+
+    /** Adds command tag `tag` to the online player; false when offline or already tagged. */
+    public static boolean addPlayerTag(String player, String tag) {
+        ServerPlayerEntity p = playerByName(player);
+        return p != null && p.addCommandTag(tag);
+    }
+
     public static boolean teleport(String player, double x, double y, double z) {
         ServerPlayerEntity p = playerByName(player);
         if (p == null) {

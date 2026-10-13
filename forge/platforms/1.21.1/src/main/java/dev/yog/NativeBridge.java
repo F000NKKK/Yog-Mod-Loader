@@ -132,6 +132,18 @@ public final class NativeBridge {
         return true;
     }
 
+    /** Whether the online player carries command tag `tag` (`/tag`; saved with the player's own data). */
+    public static boolean playerHasTag(String player, String tag) {
+        ServerPlayer p = playerByName(player);
+        return p != null && p.getTags().contains(tag);
+    }
+
+    /** Adds command tag `tag` to the online player; false when offline or already tagged. */
+    public static boolean addPlayerTag(String player, String tag) {
+        ServerPlayer p = playerByName(player);
+        return p != null && p.addTag(tag);
+    }
+
     public static boolean teleport(String player, double x, double y, double z) {
         ServerPlayer p = playerByName(player);
         if (p == null) return false;
