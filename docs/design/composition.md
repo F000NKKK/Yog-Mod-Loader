@@ -13,6 +13,11 @@ Ground rules (same as every other design doc): everything is generic — the loa
 Java hosts never learn about a specific mod; no backward compatibility — superseded APIs and
 content keys are deleted, not deprecated.
 
+**Capability rule (the user, 2026-10-13): nothing mods could do before may become impossible.**
+Deleted builders, keys and registries below are API *shapes*; each keeps an equal or stronger
+replacement — content `behaviors` by default, plus a public Rust path for code-registered objects
+(§3.2, §8). Global events stay (Q10) for anything per-object hooks don't cover.
+
 ---
 
 ## 0. Decisions at a glance
@@ -219,6 +224,13 @@ so rustc type-checks every param; errors are remapped to `.yblock:line` the same
 remaps `.yui`. The literal is Codec-encoded and passed to runtime
 `attach(kind, object_id, behavior_id, bytes)`, which routes it to the owner mod. Same path for
 same-mod and cross-mod behaviours (owner resolved through `yog_exports` of dependencies).
+
+`attach` is also **public mod API** (capability rule): a block/item registered from Rust
+(`"register": "manual"` or a `BlockDef`/`ItemDef` built in code, e.g. in a loop) attaches
+behaviours the same way — `BlockDef::new(..).behavior(yog::Connect { groups: vec![..] })` or
+`blocks.attach::<B>(id, params)` before registration freezes. Content is the default, code stays
+possible; this is what replaces the deleted `connect_groups`/`connects_to_neighbors`/`inventory`
+builders.
 
 yog-cli also syn-scans `#[behavior]` attributes (id index → unknown-id errors with did-you-mean,
 JSON schema for editors, IDLE inspector field list).
@@ -478,7 +490,8 @@ state through `MenuSync` (mvvm §12.4/§12.7) — no hand-written open/sync code
 ## 8. Deletions
 
 - yog-registry: `BlockDef::connect_groups`, `connects_to_neighbors`, `inventory(id)` builders
-  (→ `yog:connect`, `yog:inventory`); `"register": "manual"` only where still needed.
+  (→ `yog:connect`, `yog:inventory` in content, or `.behavior(..)`/`attach` from Rust for
+  code-registered blocks, §3.2 — capability rule); `"register": "manual"` only where still needed.
 - Content: singular `"behavior"` key, `"connect_groups"` top-level key, F5 `"extends"`.
 - yog-api: materials' `BlockBehavior::new(..)` builder; `Storage::open_chunk` (per-position KV
   was only ever a BE substitute) — Q8.
