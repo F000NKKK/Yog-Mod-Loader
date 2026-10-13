@@ -178,6 +178,9 @@ const WIDGETS: &str = "minecraft:textures/gui/widgets.png";
 const ICONS: &str = "minecraft:textures/gui/icons.png";
 const TABS: &str = "minecraft:textures/gui/container/creative_inventory/tabs.png";
 const CHECKBOX: &str = "minecraft:textures/gui/checkbox.png";
+/// The demo screen's window — vanilla's plain grey window frame, the same
+/// texture on every version.
+const WINDOW: &str = "minecraft:textures/gui/demo_background.png";
 
 /// A region of a [`LEGACY_TEX_SIZE`]-square texture.
 const fn region(texture: &'static str, u: f32, v: f32, w: f32, h: f32) -> Option<LegacyRegion> {
@@ -255,6 +258,15 @@ pub const SPRITES: &[Sprite] = &[
         region(WIDGETS, 0.0, 46.0, 200.0, 20.0),
         3.0,
     ),
+    Sprite {
+        name: "panel",
+        description: "Window background (vanilla's grey frame)",
+        w: 248.0,
+        h: 166.0,
+        atlas: None,
+        legacy: region(WINDOW, 0.0, 0.0, 248.0, 166.0),
+        border: 4.0,
+    },
     Sprite {
         name: "slot",
         description: "Inventory slot (18×18)",

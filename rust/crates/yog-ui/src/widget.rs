@@ -96,6 +96,7 @@ impl std::ops::BitOr for StateFlags {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct StylePatch {
     pub bg: Option<u32>,
+    pub bg_image: Option<String>,
     pub color: Option<u32>,
     pub shadow: Option<bool>,
     pub focus_color: Option<u32>,
@@ -110,6 +111,9 @@ impl StylePatch {
     fn apply(&self, s: &mut Style) {
         if let Some(v) = self.bg {
             s.bg = v;
+        }
+        if let Some(v) = &self.bg_image {
+            s.bg_image.clone_from(v);
         }
         if let Some(v) = self.color {
             s.color = v;
@@ -431,6 +435,10 @@ pub struct Style {
     /// [`VAlign`]. `None` = the parent's default.
     pub valign: Option<VAlign>,
     pub bg: u32,    // background colour 0xAARRGGBB; 0 = transparent
+    /// Background image, drawn over `bg` and stretched to the box — a Yog
+    /// image source (`sprite:button`, `sprite:panel`, `mymod:gui/frame`);
+    /// sprites are nine-sliced, so frames keep their edges. Empty = none.
+    pub bg_image: String,
     pub color: u32, // text colour
     pub align: Align,
     pub font_scale: f32,
@@ -485,6 +493,7 @@ impl Default for Style {
             halign: None,
             valign: None,
             bg: 0,
+            bg_image: String::new(),
             color: 0xFF_CCCCAA,
             align: Align::Start,
             font_scale: 1.0,
@@ -676,6 +685,11 @@ impl Widget {
     }
     pub fn bg(mut self, v: u32) -> Self {
         self.style.bg = v;
+        self
+    }
+    /// See [`Style::bg_image`].
+    pub fn bg_image(mut self, source: impl Into<String>) -> Self {
+        self.style.bg_image = source.into();
         self
     }
     pub fn color(mut self, v: u32) -> Self {

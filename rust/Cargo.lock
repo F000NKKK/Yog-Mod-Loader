@@ -1225,7 +1225,7 @@ version = "0.28.2"
 
 [[package]]
 name = "yog-api"
-version = "0.92.4"
+version = "0.92.5"
 dependencies = [
  "ctor",
  "rkyv",
@@ -1263,7 +1263,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.31.2"
+version = "0.31.3"
 dependencies = [
  "criterion",
  "serde_json",
@@ -1322,7 +1322,7 @@ dependencies = [
 
 [[package]]
 name = "yog-gfx"
-version = "0.25.0"
+version = "0.25.1"
 dependencies = [
  "yog-abi",
 ]
@@ -1354,7 +1354,7 @@ dependencies = [
 
 [[package]]
 name = "yog-kit"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "yog-api",
 ]
@@ -1388,7 +1388,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.100.3"
+version = "0.100.4"
 dependencies = [
  "criterion",
  "glow",
@@ -1425,7 +1425,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ui"
-version = "0.40.2"
+version = "0.40.3"
 dependencies = [
  "criterion",
  "yog-abi",

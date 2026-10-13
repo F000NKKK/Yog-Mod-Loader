@@ -715,51 +715,7 @@ impl Gen {
                 format!("line {line}: <Image> needs a source (e.g. source=\"item:apple\")")
             })?
             .trim();
-        let resolved;
-        let source = match source.strip_prefix('@') {
-            Some(name) => {
-                resolved = RESOURCE_REFS
-                    .with(|r| r.borrow().images.get(name).cloned())
-                    .ok_or_else(|| format!("line {line}: <Image> source=\"{source}\": no image `{name}` in resources/*.yres"))?;
-                resolved.as_str()
-            }
-            None => source,
-        };
-        let parsed = ImageSource::parse(source).ok_or_else(|| {
-            format!(
-                "line {line}: <Image> source=\"{source}\": expected item:<id>, block:<id>, \
-                 sprite:<name>, mod:<path> or <namespace>:<path>"
-            )
-        })?;
-        let source = match parsed {
-            ImageSource::ModPath(path) => match &self.mod_id {
-                Some(id) => yog_gfx::image::texture_id(id, &path),
-                None => {
-                    return Err(format!(
-                        "line {line}: <Image> source=\"{source}\": mod: needs the mod id (no yog.toml found)"
-                    ));
-                }
-            },
-            ImageSource::Sprite(name)
-                if !name.contains(':') && yog_gfx::image::sprite(&name).is_none() =>
-            {
-                let names: Vec<&str> = yog_gfx::image::SPRITES.iter().map(|s| s.name).collect();
-                return Err(format!(
-                    "line {line}: <Image> source=\"{source}\": unknown sprite (known: {})",
-                    names.join(", ")
-                ));
-            }
-            ImageSource::Texture(_) => {
-                if let Some(alias) = yog_gfx::image::suggest_alias(source) {
-                    return Err(format!(
-                        "line {line}: <Image> source=\"{source}\" is a raw resource path, which \
-                         changes between Minecraft versions — write source=\"{alias}\""
-                    ));
-                }
-                source.to_string()
-            }
-            _ => source.to_string(),
-        };
+        let source = image_source(el, "source", source, self.mod_id.as_deref())?;
         let mut expr = format!("widget::image({source:?})");
         if let Some(v) = el.attr("stretch") {
             let s = match v.trim().to_ascii_lowercase().replace('_', "").as_str() {
@@ -971,6 +927,10 @@ impl Gen {
                     let a = pick(el, key, v, &["top", "center", "bottom", "stretch"])?;
                     call(format!("valign(::yog_api::ui::VAlign::{})", pascal(a)));
                 }
+                "bg" if is_image_value(v) => {
+                    let src = image_source(el, key, v.trim(), self.mod_id.as_deref())?;
+                    call(format!("bg_image({src:?})"));
+                }
                 "bg" | "color" | "focus_color" => {
                     call(format!("{key}(0x{:08X})", color_attr(el, key, v)?));
                 }
@@ -989,6 +949,70 @@ impl Gen {
         }
         Ok(expr)
     }
+}
+
+/// Whether a `bg` value is an image (`sprite:panel`, `mymod:gui/frame`,
+/// an `@Set.name` image) rather than a color (`#RRGGBB`, `@Colors.name`).
+pub(crate) fn is_image_value(v: &str) -> bool {
+    let v = v.trim();
+    match v.strip_prefix('@') {
+        Some(name) => RESOURCE_REFS.with(|r| r.borrow().images.contains_key(name)),
+        None => !v.starts_with('#') && v.contains(':'),
+    }
+}
+
+/// An image source attribute (`<Image source>`, `bg="sprite:..."`): checks
+/// it and resolves `@Set.name` and `mod:` → the source the host draws.
+pub(crate) fn image_source(el: &Element, attr: &str, source: &str, mod_id: Option<&str>) -> Result<String, String> {
+    let line = el.line;
+    let kind = el.name.as_str();
+    let mod_id = mod_id.map(str::to_owned);
+    let resolved;
+    let source = match source.strip_prefix('@') {
+        Some(name) => {
+            resolved = RESOURCE_REFS
+                .with(|r| r.borrow().images.get(name).cloned())
+                .ok_or_else(|| format!("line {line}: <{kind}> {attr}=\"{source}\": no image `{name}` in resources/*.yres"))?;
+            resolved.as_str()
+        }
+        None => source,
+    };
+    let parsed = ImageSource::parse(source).ok_or_else(|| {
+        format!(
+            "line {line}: <{kind}> {attr}=\"{source}\": expected item:<id>, block:<id>, \
+             sprite:<name>, mod:<path> or <namespace>:<path>"
+        )
+    })?;
+    let source = match parsed {
+        ImageSource::ModPath(path) => match &mod_id {
+            Some(id) => yog_gfx::image::texture_id(id, &path),
+            None => {
+                return Err(format!(
+                    "line {line}: <{kind}> {attr}=\"{source}\": mod: needs the mod id (no yog.toml found)"
+                ));
+            }
+        },
+        ImageSource::Sprite(name)
+            if !name.contains(':') && yog_gfx::image::sprite(&name).is_none() =>
+        {
+            let names: Vec<&str> = yog_gfx::image::SPRITES.iter().map(|s| s.name).collect();
+            return Err(format!(
+                "line {line}: <{kind}> {attr}=\"{source}\": unknown sprite (known: {})",
+                names.join(", ")
+            ));
+        }
+        ImageSource::Texture(_) => {
+            if let Some(alias) = yog_gfx::image::suggest_alias(source) {
+                return Err(format!(
+                    "line {line}: <{kind}> {attr}=\"{source}\" is a raw resource path, which \
+                     changes between Minecraft versions — write {attr}=\"{alias}\""
+                ));
+            }
+            source.to_string()
+        }
+        _ => source.to_string(),
+    };
+    Ok(source)
 }
 
 /// Prefix of a custom component property's value that is a Rust
@@ -1449,6 +1473,17 @@ mod tests {
                 .unwrap_err()
                 .contains("no attribute `texture`")
         );
+    }
+
+    #[test]
+    fn image_backgrounds() {
+        let code = generate_for(&screen(r##"<Column bg="sprite:panel"><Label bg="#FF000000"/></Column>"##), "s", None)
+            .unwrap()
+            .0;
+        assert!(code.contains(r#"bg_image("sprite:panel")"#), "{code}");
+        assert!(code.contains("bg(0xFF000000)"), "{code}");
+        let err = generate_for(&screen(r#"<Column bg="sprite:nope"/>"#), "s", None).unwrap_err();
+        assert!(err.contains("<Column> bg=\"sprite:nope\": unknown sprite"), "{err}");
     }
 
     #[test]

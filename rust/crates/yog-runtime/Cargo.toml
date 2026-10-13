@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.100.3"
+version = "0.100.4"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -22,9 +22,9 @@ yog-abi = "0.28.2"
 yog-api = "0.92.2"
 yog-logging = "0.1"
 yog-registry = "0.28"
-yog-ui     = "0.40.1"
+yog-ui     = "0.40.3"
 yog-book   = "0.60"
-yog-gfx    = "0.25"
+yog-gfx    = "0.25.1"
 yog-inventory = "0.14"
 yog-hot-reload = "0.2"
 

@@ -1,6 +1,6 @@
 [package]
 name = "yog-cli"
-version = "0.31.2"
+version = "0.31.3"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -17,7 +17,7 @@ path = "src/main.rs"
 zip.workspace = true
 serde_json.workspace = true
 # Image sources (`item:`, `sprite:`, ...) checked in .yui files.
-yog-gfx = "0.25"
+yog-gfx = "0.25.1"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }

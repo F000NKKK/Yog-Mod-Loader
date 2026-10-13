@@ -109,6 +109,10 @@ fn render_clipped(
     if s.bg != 0 {
         fill(d2d, clip, r.x, r.y, r.x + r.w, r.y + r.h, s.bg);
     }
+    // An image can't be cut: drawn while it's inside the clip.
+    if !s.bg_image.is_empty() && fits(clip, r.y, r.h) {
+        d2d.image(&s.bg_image, r.x, r.y, r.w, r.h);
+    }
     // Focus indicator — style controlled per-widget. Text boxes draw their
     // own (a white border).
     if node.focused && !matches!(widget.kind, WidgetKind::TextBox(_)) {

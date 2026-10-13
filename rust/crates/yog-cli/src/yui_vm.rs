@@ -922,6 +922,10 @@ impl VmGen<'_> {
                     );
                 };
                 let field = match attr {
+                    "bg" if yui::is_image_value(v) => {
+                        let src = yui::image_source(el, k, v.trim(), self.mod_id)?;
+                        format!("bg_image: ::std::option::Option::Some(::std::string::String::from({src:?}))")
+                    }
                     "bg" | "color" | "focus_color" => {
                         let c = yui::color_attr(el, k, v)?;
                         format!("{attr}: ::std::option::Option::Some(0x{c:08X})")
@@ -1708,6 +1712,14 @@ mod tests {
             r#"<Screen id="t:s" width="200" height="100" x:ViewModel="Vm">{body}</Screen>"#
         );
         crate::yui::generate_for(&src, "s", None).map(|(c, _)| c)
+    }
+
+    #[test]
+    fn image_state_backgrounds() {
+        let code = codegen(r#"<Button bg="sprite:button" hover:bg="sprite:button_hover" disabled:bg="sprite:button_disabled" command="{x:Bind go()}"/>"#).unwrap();
+        assert!(code.contains(r#".bg_image("sprite:button")"#), "{code}");
+        assert!(code.contains(r#"StateFlags::HOVER, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_hover"))"#), "{code}");
+        assert!(code.contains(r#"bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_disabled"))"#), "{code}");
     }
 
     #[test]
