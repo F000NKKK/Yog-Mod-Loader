@@ -1,7 +1,6 @@
 //! `yog publish exports` — the `-exports` crate generated from a mod's
 //! `#[yog_export]` items.
 
-use crate::manifest::DESIGNER_FILE;
 use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -628,12 +627,7 @@ pub fn collect_rs_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
         let path = entry.path();
         if path.is_dir() {
             out.extend(collect_rs_files(&path)?);
-        } else if path.extension().and_then(|e| e.to_str()) == Some("rs")
-            // Skip the `yog_exports` facade `build()` generates next to
-            // `lib.rs` — it's a verbatim copy of the real source, and
-            // scanning it too would double every `#[yog_export]` item.
-            && path.file_name().and_then(|n| n.to_str()) != Some(DESIGNER_FILE)
-        {
+        } else if path.extension().and_then(|e| e.to_str()) == Some("rs") {
             out.push(path);
         }
     }

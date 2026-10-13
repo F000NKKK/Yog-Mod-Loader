@@ -14,11 +14,11 @@
 //!   yog res check    — check `resources/**/*.yres`, generate their accessors
 //!   yog help         — show usage
 
-use yog_cli::cargo_toml::{generate_cargo_toml, generate_lib_facade};
+use yog_cli::cargo_toml::generate_cargo_toml;
 use yog_cli::exports::{self, ExportItem, collect_rs_files};
 use yog_cli::manifest::{
-    BUILD_DIR, DEFAULT_EDITION, DEFAULT_LICENSE, DEPS_SECTION, DESIGNER_FILE, EXPORT_DEPS_SECTION,
-    MANIFEST, YogToml, latest_yog_api_version, project_root, to_snake_name, workspace_rkyv_version,
+    BUILD_DIR, DEFAULT_EDITION, DEFAULT_LICENSE, DEPS_SECTION, EXPORT_DEPS_SECTION, MANIFEST,
+    YogToml, latest_yog_api_version, project_root, to_snake_name, workspace_rkyv_version,
 };
 use yog_cli::{content, yres, yui, yui_component};
 
@@ -211,7 +211,7 @@ yog_api::export_mod!({struct_name});
     // .gitignore
     write_file(
         &root.join(".gitignore"),
-        b".yog-build/\ntarget/\nartifacts/\n*.designer.rs\n",
+        b".yog-build/\ntarget/\nartifacts/\n",
     )?;
 
     eprintln!("==> created {name}/");
@@ -331,26 +331,6 @@ fn prepare() -> Result<Prepared, String> {
     let cargo_toml = generate_cargo_toml(&meta);
     write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
 
-    let designer_path = root.join("src").join(DESIGNER_FILE);
-    match generate_lib_facade(&meta, &root)? {
-        Some(facade) => {
-            // Written as a sibling of the real `src/lib.rs` (not under
-            // `.yog-build/`) so its `mod foo;` declarations still resolve.
-            write_file(&designer_path, facade.as_bytes())?;
-        }
-        None => {
-            // No `[dependencies.exports]` anymore — a `lib.designer.rs` left
-            // over from a previous build is dead weight (unreferenced by
-            // `[lib] path`, which now points straight at `src/lib.rs`) and,
-            // worse, stale: it won't track further edits to `src/lib.rs` at
-            // all. `yog build` owns this file end to end, so it cleans up
-            // after itself rather than leaving it to rot.
-            if designer_path.exists() {
-                std::fs::remove_file(&designer_path).map_err(|e| e.to_string())?;
-            }
-        }
-    }
-
     let screens = yui::generate_all(&root)?;
     if screens > 0 {
         eprintln!(
@@ -360,8 +340,6 @@ fn prepare() -> Result<Prepared, String> {
     }
 
     configure_editor(&root).map_err(|e| format!("configuring .vscode/settings.json: {e}"))?;
-    ensure_gitignore_entry(&root, "*.designer.rs")
-        .map_err(|e| format!("updating .gitignore: {e}"))?;
 
     write_file(
         &build_dir.join("rust-toolchain.toml"),
@@ -764,19 +742,13 @@ fn expand_tilde(path: &str) -> String {
 
 /// Make the editor "just work" for a `yog.toml`-only project: rust-analyzer
 /// has nothing to find at the project root (a `Cargo.toml` there is
-/// forbidden — `.yog-build/Cargo.toml` is the real one), and `lib.designer.rs`
-/// is easy to mistake for a second, unrelated source file. Both are fixed by
-/// merging two settings into `.vscode/settings.json`:
-/// - `rust-analyzer.linkedProjects` — points it at the generated Cargo.toml.
-/// - `explorer.fileNesting.patterns` — `*.rs -> ${capture}.designer.rs`
-///   nests any `x.designer.rs` under its `x.rs` in the file tree, the same
-///   relationship VS's WinForms designer has with its code-behind file.
+/// forbidden — `.yog-build/Cargo.toml` is the real one), so
+/// `rust-analyzer.linkedProjects` in `.vscode/settings.json` points it at
+/// the generated one.
 ///
 /// Merges into whatever the author already has — an existing `.vscode/
-/// settings.json` (their own editor prefs) is read and only these two keys
-/// are touched; a existing `linkedProjects`/`fileNesting.patterns` entry
-/// list keeps every entry the author already had and just adds ours if
-/// missing, rather than overwriting the whole file.
+/// settings.json` (their own editor prefs) is read and only that key is
+/// touched, keeping every entry the author already listed.
 fn configure_editor(root: &Path) -> Result<(), String> {
     let vscode_dir = root.join(".vscode");
     std::fs::create_dir_all(&vscode_dir).map_err(|e| e.to_string())?;
@@ -802,39 +774,8 @@ fn configure_editor(root: &Path) -> Result<(), String> {
         }
     }
 
-    obj.entry("explorer.fileNesting.enabled")
-        .or_insert(serde_json::json!(true));
-
-    let patterns = obj
-        .entry("explorer.fileNesting.patterns")
-        .or_insert_with(|| serde_json::json!({}));
-    if let Some(map) = patterns.as_object_mut() {
-        map.entry("*.rs".to_string())
-            .or_insert(serde_json::json!("${capture}.designer.rs"));
-    }
-
     let pretty = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
     write_file(&settings_path, (pretty + "\n").as_bytes())
-}
-
-/// Make sure `.gitignore` at the project root has `pattern` as its own
-/// line — appends it (creating the file if missing) without touching
-/// anything already there. Used to keep generated build artifacts
-/// (`lib.designer.rs`) out of git even for projects that existed before
-/// `yog build` started generating them.
-fn ensure_gitignore_entry(root: &Path, pattern: &str) -> Result<(), String> {
-    let path = root.join(".gitignore");
-    let text = std::fs::read_to_string(&path).unwrap_or_default();
-    if text.lines().any(|l| l.trim() == pattern) {
-        return Ok(());
-    }
-    let mut updated = text;
-    if !updated.is_empty() && !updated.ends_with('\n') {
-        updated.push('\n');
-    }
-    updated.push_str(pattern);
-    updated.push('\n');
-    write_file(&path, updated.as_bytes())
 }
 
 // ── yog setup ────────────────────────────────────────────────────────────────

@@ -226,7 +226,7 @@ blocks.attach::<yog_pipes::Pipe>("copper-pipes:copper_pipe",
 so rustc type-checks every param; errors are remapped to `.yblock:line` the same way mvvm V8
 remaps `.yui`. The literal is Codec-encoded and passed to runtime
 `attach(kind, object_id, behavior_id, bytes)`, which routes it to the owner mod. Same path for
-same-mod and cross-mod behaviours (owner resolved through `yog_exports` of dependencies).
+same-mod and cross-mod behaviours (owner resolved through the dependencies' exports crates).
 
 `attach` is also **public mod API** (capability rule): a block/item registered from Rust
 (`"register": "manual"` or a `BlockDef`/`ItemDef` built in code, e.g. in a loop) attaches

@@ -8,8 +8,6 @@ use std::path::{Path, PathBuf};
 pub const MANIFEST: &str = "yog.toml";
 /// Where `yog build` generates the cargo project, under the project root.
 pub const BUILD_DIR: &str = ".yog-build";
-/// `src/` facade over `[dependencies.exports]` crates (see `cargo_toml`).
-pub const DESIGNER_FILE: &str = "lib.designer.rs";
 /// Plain crates.io dependencies.
 pub const DEPS_SECTION: &str = "[dependencies]";
 /// Other Yog mods' exports crates.

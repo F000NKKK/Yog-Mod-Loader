@@ -924,7 +924,7 @@ extension = ".yui"; base_name = "screen"
 my-mod/
 ├─ yog.toml                  # name/description/icon = @Strings.*/@Icons.logo, [dependencies] yog-kit, [resources] neutral
 ├─ README.md
-├─ .gitignore                # .yog-build/  target/  artifacts/  *.designer.rs
+├─ .gitignore                # .yog-build/  target/  artifacts/
 ├─ resources/
 │  ├─ Strings.yres           # mod_name, mod_description, menu_button, title, clicks ({count}), add, reset, close
 │  ├─ Strings.ru_ru.yres     # the same names, Russian values (example culture)
