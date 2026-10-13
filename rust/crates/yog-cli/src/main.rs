@@ -15,13 +15,10 @@
 //!   yog help         — show usage
 
 use yog_cli::cargo_toml::{generate_cargo_toml, generate_lib_facade};
-use yog_cli::exports::{
-    collect_rs_files, collect_uses, generate_fn_wrapper, strip_derive_attrs, ExportItem,
-};
+use yog_cli::exports::{self, collect_rs_files, ExportItem};
 use yog_cli::manifest::{latest_yog_api_version, to_snake_name, workspace_rkyv_version, YogToml};
 use yog_cli::{content, yres, yui, yui_component};
 
-use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -1625,19 +1622,19 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
     for path in collect_rs_files(&src_dir)? {
         sources.push(std::fs::read_to_string(&path).map_err(|e| e.to_string())?);
     }
-    let exports: Vec<ExportItem> = sources.iter().flat_map(|src| exports::scan(src)).collect();
+    let items: Vec<ExportItem> = sources.iter().flat_map(|src| exports::scan(src)).collect();
 
-    if exports.is_empty() {
+    if items.is_empty() {
         eprintln!("==> no #[yog_export] items found — nothing to publish");
         return Ok(());
     }
 
     // Collect used namespaces from exported items
-    let (system_uses, type_uses) = exports::collect_uses(&exports, &sources);
+    let (system_uses, type_uses) = exports::collect_uses(&items, &sources);
 
     eprintln!(
         "==> generating {exports_crate_name} ({items} export(s))",
-        items = exports.len()
+        items = items.len()
     );
     eprintln!("    system_uses: {:?}", system_uses);
     eprintln!("    type_uses: {:?}", type_uses);
@@ -1667,7 +1664,7 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
     });
     write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
 
-    let lib_rs = exports::lib_rs(&mod_id, &version, &exports, &system_uses, &type_uses);
+    let lib_rs = exports::lib_rs(&mod_id, &version, &items, &system_uses, &type_uses);
     write_file(&build_dir.join("src").join("lib.rs"), lib_rs.as_bytes())?;
 
     if dry_run {

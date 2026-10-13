@@ -1,14 +1,185 @@
 //! `yog publish exports` — the `-exports` crate generated from a mod's
 //! `#[yog_export]` items.
 
+use std::collections::HashSet;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
+
+/// What a `#[yog_export]` item is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExportKind {
+    Struct,
+    Enum,
+    Fn,
+}
+
+impl ExportKind {
+    /// The kind and name of the item whose first line is `first`.
+    fn parse(first: &str) -> Option<(ExportKind, &str)> {
+        let (kind, rest, ends): (_, _, &[char]) = if let Some(r) = first.strip_prefix("pub struct ")
+        {
+            (ExportKind::Struct, r, &['{', '(', ' ', '<', ';', '\t'])
+        } else if let Some(r) = first.strip_prefix("pub enum ") {
+            (ExportKind::Enum, r, &['{', ' ', '<', ';', '\t'])
+        } else if let Some(r) = first.strip_prefix("pub fn ") {
+            (ExportKind::Fn, r, &['('])
+        } else {
+            return None;
+        };
+        Some((kind, rest.split(ends).next().unwrap_or("").trim()))
+    }
+}
 
 /// Item found by the export scanner.
 #[derive(Debug)]
 pub struct ExportItem {
-    pub kind: String, // "struct", "enum", "fn"
+    pub kind: ExportKind,
     pub name: String,
-    pub source: String, // full Rust source of the item (without #[yog_export])
+    /// Full Rust source of the item (without `#[yog_export]`).
+    pub source: String,
+}
+
+/// Every `#[yog_export]` item of one source file.
+pub fn scan(src: &str) -> Vec<ExportItem> {
+    let mut exports = Vec::new();
+    let lines: Vec<&str> = src.lines().collect();
+    let mut i = 0;
+    while i < lines.len() {
+        let trimmed = lines[i].trim();
+        if trimmed == "#[yog_export]" || trimmed.starts_with("#[yog_export(") {
+            i += 1;
+            // Skip outer attributes that may appear between #[yog_export] and the item
+            while i < lines.len() && lines[i].trim() == "#[yog_export]" {
+                i += 1;
+            }
+            // Collect the item source: pub struct / pub enum / pub fn
+            if i >= lines.len() {
+                break;
+            }
+            let Some((kind, name)) = ExportKind::parse(lines[i].trim()) else {
+                i += 1;
+                continue;
+            };
+            if name.is_empty() {
+                i += 1;
+                continue;
+            }
+            let name = name.to_string();
+
+            // Collect lines until the top-level brace block closes
+            let mut depth: i32 = 0;
+            let mut found_open = false;
+            let mut item_lines: Vec<&str> = Vec::new();
+            while i < lines.len() {
+                let line = lines[i];
+                item_lines.push(line);
+                for ch in line.chars() {
+                    if ch == '{' {
+                        depth += 1;
+                        found_open = true;
+                    } else if ch == '}' {
+                        depth -= 1;
+                    }
+                }
+                if found_open && depth <= 0 {
+                    item_lines.push("");
+                    i += 1;
+                    break;
+                }
+                // Also handle items with no body (empty struct/enum with semicolon)
+                if !found_open && line.trim().ends_with(';') {
+                    i += 1;
+                    break;
+                }
+                i += 1;
+            }
+            exports.push(ExportItem {
+                kind,
+                name,
+                source: item_lines.join("\n"),
+            });
+        }
+        i += 1;
+    }
+    exports
+}
+
+/// Names always in scope — primitives and the std/core/alloc prelude and
+/// modules — that never need an import.
+const PRIMITIVES: &[&str] = &[
+    "bool",
+    "u8",
+    "u16",
+    "u32",
+    "u64",
+    "u128",
+    "usize",
+    "i8",
+    "i16",
+    "i32",
+    "i64",
+    "i128",
+    "isize",
+    "f32",
+    "f64",
+    "char",
+    "str",
+    "String",
+    "Vec",
+    "Option",
+    "Result",
+    "Box",
+    "Rc",
+    "Arc",
+    "Cow",
+    "PhantomData",
+    "Ordering",
+    "Self",
+    "()",
+    "HashMap",
+    "HashSet",
+    "BTreeMap",
+    "BTreeSet",
+    "LinkedList",
+    "VecDeque",
+    "BinaryHeap",
+    "Path",
+    "PathBuf",
+    "Duration",
+    "Instant",
+    "SystemTime",
+    "Error",
+    "fmt",
+    "ops",
+    "cmp",
+    "iter",
+    "slice",
+    "cell",
+    "sync",
+    "collections",
+    "convert",
+    "marker",
+    "mem",
+    "ptr",
+    "hint",
+    "borrow",
+    "hash",
+    "default",
+    "num",
+    "array",
+    "range",
+    "std::",
+    "core::",
+];
+
+/// Paths into std/core/alloc — always available, imported as "system" uses.
+const SYSTEM_ROOTS: [&str; 3] = ["std::", "core::", "alloc::"];
+
+/// Path roots internal to the mod crate, meaningless in the exports crate.
+const LOCAL_ROOTS: [&str; 3] = ["crate", "super", "self"];
+
+fn is_system(path: &str) -> bool {
+    SYSTEM_ROOTS.iter().any(|p| path.starts_with(p))
 }
 
 /// Collect the imports a generated exports crate needs.
@@ -24,79 +195,9 @@ pub struct ExportItem {
 /// Returns `(system_uses, type_uses)` where:
 /// - `system_uses`: std/core/alloc `use` paths like `std::collections::HashMap`
 /// - `type_uses`: external `use` paths like `yog_api::registry::Mod`
-pub fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec<String>) {
-    use std::collections::HashSet;
-
+pub fn collect_uses(exports: &[ExportItem], sources: &[String]) -> (Vec<String>, Vec<String>) {
     // 1 + 2: names that never need an import.
-    // Primitives and std/core/alloc items are always in scope.
-    let mut primitives: HashSet<&str> = HashSet::new();
-    for p in [
-        "bool",
-        "u8",
-        "u16",
-        "u32",
-        "u64",
-        "u128",
-        "usize",
-        "i8",
-        "i16",
-        "i32",
-        "i64",
-        "i128",
-        "isize",
-        "f32",
-        "f64",
-        "char",
-        "str",
-        "String",
-        "Vec",
-        "Option",
-        "Result",
-        "Box",
-        "Rc",
-        "Arc",
-        "Cow",
-        "PhantomData",
-        "Ordering",
-        "Self",
-        "()",
-        "HashMap",
-        "HashSet",
-        "BTreeMap",
-        "BTreeSet",
-        "LinkedList",
-        "VecDeque",
-        "BinaryHeap",
-        "Path",
-        "PathBuf",
-        "Duration",
-        "Instant",
-        "SystemTime",
-        "Error",
-        "fmt",
-        "ops",
-        "cmp",
-        "iter",
-        "slice",
-        "cell",
-        "sync",
-        "collections",
-        "convert",
-        "marker",
-        "mem",
-        "ptr",
-        "hint",
-        "borrow",
-        "hash",
-        "default",
-        "num",
-        "array",
-        "range",
-    ] {
-        primitives.insert(p);
-    }
-    // std/core/alloc prelude modules — anything starting with these is in scope.
-    let prelude_prefixes: &[&str] = &["std::", "core::", "alloc::"];
+    let primitives: HashSet<&str> = PRIMITIVES.iter().copied().collect();
 
     // Names defined locally in the mod (exported items) — no import required.
     let local_names: HashSet<String> = exports.iter().map(|e| e.name.clone()).collect();
@@ -106,36 +207,26 @@ pub fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec
     let mut import_paths: Vec<String> = Vec::new(); // e.g. "yog_api::registry::Mod"
     let mut system_imports: HashSet<String> = HashSet::new();
     let mut type_imports: HashSet<String> = HashSet::new();
-    if let Ok(files) = collect_rs_files(src_dir) {
-        for path in files {
-            let Ok(src) = std::fs::read_to_string(&path) else {
-                continue;
-            };
-            for line in src.lines() {
-                let t = line.trim();
-                if !t.starts_with("use ") {
-                    continue;
-                }
-                let path_part = t[4..].trim_end_matches(';').trim();
-                if path_part.is_empty() {
-                    continue;
-                }
-                // Skip malformed imports like `yog_api::{` without closing brace.
-                if path_part.contains('{') && !path_part.contains('}') {
-                    continue;
-                }
-                // `use foo::{a, b}` / `use foo::*` — keep the prefix as a candidate.
-                if path_part.starts_with("std::")
-                    || path_part.starts_with("core::")
-                    || path_part.starts_with("alloc::")
-                {
-                    system_imports.insert(path_part.to_string());
-                } else {
-                    type_imports.insert(path_part.to_string());
-                }
-                import_paths.push(path_part.to_string());
-            }
+    for line in sources.iter().flat_map(|src| src.lines()) {
+        let t = line.trim();
+        if !t.starts_with("use ") {
+            continue;
         }
+        let path_part = t["use ".len()..].trim_end_matches(';').trim();
+        if path_part.is_empty() {
+            continue;
+        }
+        // Skip malformed imports like `yog_api::{` without closing brace.
+        if path_part.contains('{') && !path_part.contains('}') {
+            continue;
+        }
+        // `use foo::{a, b}` / `use foo::*` — keep the prefix as a candidate.
+        if is_system(path_part) {
+            system_imports.insert(path_part.to_string());
+        } else {
+            type_imports.insert(path_part.to_string());
+        }
+        import_paths.push(path_part.to_string());
     }
 
     /// Resolve a bare type identifier to the most specific `use` path available.
@@ -144,13 +235,12 @@ pub fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec
         import_paths: &[String],
         local_names: &HashSet<String>,
         primitives: &HashSet<&str>,
-        prelude_prefixes: &[&str],
     ) -> Option<String> {
         // 1. primitive / prelude
         if primitives.contains(name) {
             return None;
         }
-        if prelude_prefixes.iter().any(|p| name.starts_with(p)) {
+        if is_system(name) {
             return None;
         }
         // 2. defined in this crate
@@ -211,10 +301,9 @@ pub fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec
                 .split("::")
                 .next()
                 .unwrap_or("");
-            if prelude_prefixes.iter().any(|p| path.starts_with(p)) {
+            if is_system(path) {
                 system_imports.insert(path.to_string());
-            } else if first == "yog_api" || first == "crate" || first == "super" || first == "self"
-            {
+            } else if first == "yog_api" || LOCAL_ROOTS.contains(&first) {
                 type_imports.insert(path.to_string());
             }
         }
@@ -230,15 +319,8 @@ pub fn collect_uses(exports: &[ExportItem], src_dir: &Path) -> (Vec<String>, Vec
                 .map(|c| c.is_uppercase())
                 .unwrap_or(false)
             {
-                if let Some(p) = resolve_name(
-                    tok,
-                    &import_paths,
-                    &local_names,
-                    &primitives,
-                    prelude_prefixes,
-                ) {
-                    if p.starts_with("std::") || p.starts_with("core::") || p.starts_with("alloc::")
-                    {
+                if let Some(p) = resolve_name(tok, &import_paths, &local_names, &primitives) {
+                    if is_system(&p) {
                         system_imports.insert(p);
                     } else {
                         type_imports.insert(p);
@@ -561,4 +643,113 @@ pub fn collect_rs_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
         }
     }
     Ok(out)
+}
+
+/// What the exports crate's `Cargo.toml` says.
+pub struct CrateMeta<'a> {
+    pub name: &'a str,
+    pub version: &'a str,
+    pub edition: &'a str,
+    /// The mod's authors, joined with `", "`.
+    pub authors: &'a str,
+    pub license: &'a str,
+    pub mod_id: &'a str,
+    pub yog_api: &'a str,
+    pub rkyv: &'a str,
+}
+
+/// The exports crate's `Cargo.toml`.
+pub fn cargo_toml(m: &CrateMeta) -> String {
+    let maybe_authors = if m.authors.is_empty() {
+        String::new()
+    } else {
+        format!("authors = [\"{}\"]\n", m.authors.replace(", ", "\", \""))
+    };
+    format!(
+        r#"[package]
+name = "{name}"
+version = "{version}"
+edition = "{edition}"
+{maybe_authors}license = "{license}"
+description = "Exports from the {mod_id} Yog mod — generated by `yog publish exports`."
+
+[dependencies]
+yog-api = "{yog_api}"
+rkyv = "{rkyv}"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+"#,
+        name = m.name,
+        version = m.version,
+        edition = m.edition,
+        license = m.license,
+        mod_id = m.mod_id,
+        yog_api = m.yog_api,
+        rkyv = m.rkyv,
+    )
+}
+
+/// The exports crate's `src/lib.rs`: the imports from [`collect_uses`],
+/// structs and enums with rkyv derives so consumers get the serialisable
+/// types, and an interop wrapper per fn (the same pattern as `import!`).
+pub fn lib_rs(
+    mod_id: &str,
+    version: &str,
+    exports: &[ExportItem],
+    system_uses: &[String],
+    type_uses: &[String],
+) -> String {
+    let mut lib_rs = format!(
+        "//! Auto-generated exports from `{mod_id}` v{version}.\n\
+         //! DO NOT EDIT — generated by `yog publish exports`.\n\n\
+         #![allow(unused_imports)]\n\n"
+    );
+
+    // Add system uses (std, core, alloc)
+    if !system_uses.is_empty() {
+        lib_rs.push_str("// System dependencies\n");
+        for u in system_uses {
+            let _ = writeln!(lib_rs, "use {u};");
+        }
+        lib_rs.push('\n');
+    }
+
+    // Add type dependencies (yog_api, rkyv, etc.)
+    // Filter out crate-internal imports and duplicates of exported items
+    let exported_names: HashSet<&str> = exports.iter().map(|e| e.name.as_str()).collect();
+    if !type_uses.is_empty() {
+        lib_rs.push_str("// Type dependencies\n");
+        for u in type_uses {
+            // Skip imports that:
+            // 1. Reference crate:: (internal modules not available in exports crate)
+            // 2. Are the same as an exported item (would cause duplicate definitions)
+            let first_part = u.split("::").next().unwrap_or("");
+            if LOCAL_ROOTS.contains(&first_part) {
+                continue;
+            }
+            let last_part = u.rsplit("::").next().unwrap_or(u);
+            if exported_names.contains(last_part) {
+                continue;
+            }
+            let _ = writeln!(lib_rs, "use {u};");
+        }
+        lib_rs.push('\n');
+    }
+
+    for item in exports {
+        match item.kind {
+            ExportKind::Struct | ExportKind::Enum => {
+                // Strip existing #[derive(...)] to avoid duplicates.
+                let _ = writeln!(
+                    lib_rs,
+                    "#[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize, Debug, Clone, PartialEq)]\n{}",
+                    strip_derive_attrs(&item.source)
+                );
+            }
+            ExportKind::Fn => lib_rs.push_str(&generate_fn_wrapper(&item.name, &item.source)),
+        }
+    }
+    // Types are already in crate root, no extra re-export needed.
+    lib_rs
 }
