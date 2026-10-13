@@ -125,7 +125,6 @@ UiEvent::parse(raw) →
                  focused ListView (BindBack with neighbour key, scroll into view), Esc → vm.on_back(cx) → default
                  cx.back() (pop navigation or close)
   Char{c}      → focused TextBox
-  legacy on_click strings → vm.on_event(cx, name)
 ```
 
 **Lists:**
@@ -212,8 +211,6 @@ pub trait ViewModel: Send + 'static {
     fn on_close(&mut self, cx: &mut Cx<'_, Self>) where Self: Sized {}
     /// Esc / back. `false` = default (pop navigation, else close).
     fn on_back(&mut self, cx: &mut Cx<'_, Self>) -> bool where Self: Sized { false }
-    /// Legacy `on_click="name"` strings in a VM screen (migration aid).
-    fn on_event(&mut self, cx: &mut Cx<'_, Self>, name: &str) where Self: Sized {}
     /// Escape hatch: imperative tweaks after each update (rarely needed).
     fn customize(&self, root: &mut yog_ui::Widget) {}
 }
@@ -374,7 +371,7 @@ The codegen rejects TwoWay on non-place expressions, with the line number.
 - `command="{x:Bind set_filter(Filter::Yog)}"` and `command="{x:Bind cx.close()}"`. Arguments are evaluated at click time.
 - In templates, `item.*` arguments are cloned (`Clone` required) before the `&mut vm` call.
 - `enabled` is bound separately (there is no CanExecute).
-- `on_click="name"` without braces still works in VM screens and goes to `ViewModel::on_event`.
+- `on_click`/`on_change`/`on_submit` are compile errors in VM screens: use `command=` and `Mode=TwoWay`.
 
 **New elements:**
 
@@ -1071,16 +1068,12 @@ It is reachable from the File menu and from `EmptyEditorState`.
 
 - **Screens without `x:ViewModel`** generate byte-identical output to today, through `gen_legacy.rs`. A golden test pins this, and existing code-behind keeps working.
 - **VM screens** still emit `ID`, `ids`, `open()`, `close()`. `build/render_with/click/with_last` are not emitted because the host owns them. `ViewModel::customize` and `cx.focus(ids::X)` remain as escape hatches.
-- **Incremental migration.** Add `x:ViewModel`, keep `on_click="name"` strings (they route to `ViewModel::on_event`), then convert to `command=` one by one. `yog ui migrate <file>` rewrites `on_click="x"` to `command="{x:Bind x()}"` and prints VM method stubs.
+- **No incremental migration.** A screen is either plain or VM; adding `x:ViewModel` means replacing every `on_click`/`on_change`/`on_submit` with `command=` / `Mode=TwoWay` (they're errors in VM screens).
 - **`@mod.key` raw keys** keep working. `.ylang` files are superseded by `.yres` (existing keys kept via the `key` field).
 - **Reserved names** in VM-screen modules: `View`, `ID`, `WIDTH`, `HEIGHT`, `ids`, `register`, `register_with`, `handle`, `open`, `close`, `__T*`, `__E*`, `__HANDLE`.
 - **yog-ui struct changes** are additive fields with defaults. They break only external struct-literal construction of `Widget`/`LayoutNode`; none is known (grep the repos before release). Bump the minor version.
 - **Host event strings.** `move`, `open` and `close` are new prefixes. Old handlers ignore them: `ScrollState::handle` returns false, `click()` returns None, and TextBoxState ignores them.
-  - Before enabling, verify yog-book's handler and the runtime's book-click path, which only handles clicks.
-  - On older hosts, kit falls back to:
-    - open detection: the first render after more than 250 ms without renders;
-    - wheel routing: no hover, so the focused list or the first ScrollView;
-    - hover states: inert.
+  - yog-kit requires a host that sends them (runtime with `nativeUIMove` and open/close events); there is no fallback for older hosts.
 
 ---
 
@@ -1162,8 +1155,7 @@ It is reachable from the File menu and from `EmptyEditorState`.
      - scroll_key reset;
      - focus cycle and Esc → on_back → close;
      - queued `ScreenHandle::update` from another thread;
-     - dialogs and their results;
-     - legacy `on_event`.
+     - dialogs and their results.
    - Compile-fail tests (`trybuild` dev-dep) check that the `on_unimplemented` messages appear.
 4. **Templates:** render snapshots; `YOG_E2E=1` runs `yog new` for each template plus `yog check`, and each item template onto `app` plus `yog check`.
 5. **Modlist:** pure VM tests (filter, search, selection fallback, counts) and TestHost tests (see §8).
