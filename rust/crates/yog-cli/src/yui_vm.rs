@@ -381,6 +381,19 @@ struct Binding {
     fallback: Option<String>,
 }
 
+impl Binding {
+    /// The bound value as Rust in `scope`.
+    fn rust(&self, scope: Scope, el: &Element) -> Result<String, String> {
+        match (&self.rust, &self.expr) {
+            (Some(r), _) => Ok(r.clone()),
+            (None, Some(e)) => e
+                .emit(scope, false)
+                .map_err(|e| format!("line {}: {e}", el.line)),
+            (None, None) => unreachable!("a binding has an expression"),
+        }
+    }
+}
+
 /// Splits on commas outside parentheses and quotes.
 fn split_top(s: &str) -> Vec<&str> {
     let (mut depth, mut quote, mut start) = (0i32, false, 0);
@@ -514,6 +527,19 @@ struct Ctx {
     /// Slot fields declared (name, type) — for templates.
     slots: Vec<(String, String)>,
     update: String,
+}
+
+impl Ctx {
+    fn new(scope: Scope, fields: &'static str, tree: &'static str, owner: u16) -> Self {
+        Ctx {
+            scope,
+            fields,
+            tree,
+            owner,
+            slots: Vec::new(),
+            update: String::new(),
+        }
+    }
 }
 
 struct VmGen<'a> {
@@ -693,13 +719,7 @@ impl VmGen<'_> {
         let Some(t) = target(kind, key) else {
             return err(el, format!("{key} can't be bound"));
         };
-        let expr = match (&b.rust, &b.expr) {
-            (Some(r), _) => r.clone(),
-            (None, Some(e)) => e
-                .emit(ctx.scope, false)
-                .map_err(|e| format!("line {}: {e}", el.line))?,
-            (None, None) => unreachable!(),
-        };
+        let expr = b.rust(ctx.scope, el)?;
         let opt = b.expr.as_ref().is_some_and(Ex::has_opt);
         let (ty, conv) = match t {
             Target::Text | Target::Placeholder | Target::Item | Target::Source => {
@@ -1165,13 +1185,7 @@ impl VmGen<'_> {
             if b.mode == Mode::TwoWay || b.bind_back.is_some() {
                 return err(el, format!("{key}: component properties bind one way"));
             }
-            let expr = match (&b.rust, &b.expr) {
-                (Some(r), _) => r.clone(),
-                (None, Some(e)) => e
-                    .emit(ctx.scope, false)
-                    .map_err(|e| format!("line {}: {e}", el.line))?,
-                (None, None) => unreachable!(),
-            };
+            let expr = b.rust(ctx.scope, el)?;
             let value = if b.expr.as_ref().is_some_and(Ex::has_opt) {
                 let fallback = b.fallback.clone().unwrap_or_default();
                 format!(
@@ -1286,14 +1300,7 @@ impl VmGen<'_> {
 
         let t = self.n_templates;
         self.n_templates += 1;
-        let mut tctx = Ctx {
-            scope: Scope::Template,
-            fields: "inst.",
-            tree: "w",
-            owner,
-            slots: Vec::new(),
-            update: String::new(),
-        };
+        let mut tctx = Ctx::new(Scope::Template, "inst.", "w", owner);
         let saved = std::mem::take(&mut self.n_slots);
         let tel = self.element(&mut tctx, template, &[], Some(&items))?;
         self.n_slots = saved;
@@ -1319,14 +1326,7 @@ impl VmGen<'_> {
         let mut empty_update = String::new();
         let empty_fn = match empty {
             Some(e) => {
-                let mut ectx = Ctx {
-                    scope: Scope::Screen,
-                    fields: "self.",
-                    tree: "w",
-                    owner: 0,
-                    slots: Vec::new(),
-                    update: String::new(),
-                };
+                let mut ectx = Ctx::new(Scope::Screen, "self.", "w", 0);
                 let eel = self.element(&mut ectx, e, &[], None)?;
                 let (eexpr, ids) = yui::static_widget(&eel, false, 1, self.mod_id)?;
                 self.absorb(ids);
@@ -1525,14 +1525,7 @@ pub fn generate(
     }
     let mut content = root.clone();
     content.attrs.retain(|(k, _)| k != "id");
-    let mut ctx = Ctx {
-        scope: Scope::Screen,
-        fields: "self.",
-        tree: "root",
-        owner: 0,
-        slots: Vec::new(),
-        update: String::new(),
-    };
+    let mut ctx = Ctx::new(Scope::Screen, "self.", "root", 0);
     let tree = g.element(&mut ctx, &content, &[], None)?;
     let (expr, ids) = yui::static_widget(&tree, false, 0, mod_id)?;
     g.absorb(ids);

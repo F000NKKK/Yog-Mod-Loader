@@ -417,7 +417,7 @@ pub fn strip_derive_attrs(source: &str) -> String {
 ///     // rkyv-serialize __yog_arg0, call via C-ABI slot, deserialize result
 /// }
 /// static __YOG_SLOT_REGISTER_WIDGET: OnceLock<...>;
-/// #[no_mangle] pub unsafe extern "C" fn __yog_bind_register_widget(ptr) { ... }
+/// #[unsafe(no_mangle)] pub unsafe extern "C" fn __yog_bind_register_widget(ptr) { ... }
 /// ```
 pub fn generate_fn_wrapper(name: &str, source: &str) -> String {
     // Flatten the whole source into one line before parsing — a signature
@@ -611,9 +611,9 @@ pub fn {name}({params_sig_fmt}) -> {output_type_fmt} {{
 static {slot_name_fmt}: ::std::sync::OnceLock<{wrapper_ty}> = ::std::sync::OnceLock::new();
 
 #[doc(hidden)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn {bind_name_fmt}(ptr: *const ::std::os::raw::c_void) {{
-    let f: {wrapper_ty} = ::std::mem::transmute(ptr);
+    let f: {wrapper_ty} = unsafe {{ ::std::mem::transmute(ptr) }};
     {slot_name_fmt}.set(f).ok();
 }}
 "#
