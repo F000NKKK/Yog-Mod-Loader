@@ -56,6 +56,21 @@ pub mod x86_64 {
 
 const NUM_REGS: usize = 17;
 
+/// Bytes in a pointer / general-purpose register.
+pub(crate) const WORD_SIZE: usize = 8;
+/// Offset of the CFA from `rbp` in a `push rbp; mov rbp, rsp` frame: the
+/// saved `rbp` and the return address sit between them.
+pub(crate) const FP_TO_CFA: u64 = 16;
+/// Largest value [`Place::read`] reads, so a corrupt length can't make us
+/// allocate gigabytes.
+const MAX_READ: usize = 1 << 20;
+/// Largest piece of a composite location.
+const MAX_PIECE: usize = 1 << 16;
+/// Step limit for one DWARF expression (they can loop).
+const MAX_EXPR_STEPS: u32 = 10_000;
+/// `DW_AT_abstract_origin` / `DW_AT_specification` links followed.
+const MAX_ORIGIN_CHAIN: usize = 4;
+
 /// Register state of one stopped frame, keyed by DWARF register number
 /// (see [`x86_64`]). Registers the caller doesn't know (e.g. caller-saved
 /// registers in an outer frame of a backtrace) stay `None`, and anything
@@ -77,7 +92,7 @@ impl FrameRegs {
 
     /// All 17 x86_64 registers in DWARF order (`rax, rdx, rcx, rbx, rsi,
     /// rdi, rbp, rsp, r8..r15, rip`).
-    pub fn from_dwarf_order(values: [u64; 17]) -> Self {
+    pub fn from_dwarf_order(values: [u64; NUM_REGS]) -> Self {
         FrameRegs {
             regs: values.map(Some),
         }
@@ -210,8 +225,7 @@ impl Place {
 
     /// Reads `len` bytes at this place; `None` if any of it is unavailable.
     pub(crate) fn read(&self, mem: &dyn TargetMemory, len: usize) -> Option<Vec<u8>> {
-        // Hard cap so a corrupt length can't make us allocate gigabytes.
-        if len > 1 << 20 {
+        if len > MAX_READ {
             return None;
         }
         match self {
@@ -241,6 +255,17 @@ pub(crate) struct Frame<'a> {
     pub(crate) load_base: u64,
     /// Module-relative pc.
     pub(crate) pc: u64,
+}
+
+impl<'a> Frame<'a> {
+    pub(crate) fn new(regs: &'a FrameRegs, mem: &'a dyn TargetMemory, load_base: u64) -> Self {
+        Frame {
+            regs,
+            mem,
+            load_base,
+            pc: regs.pc().wrapping_sub(load_base),
+        }
+    }
 }
 
 impl SymbolTable {
@@ -462,12 +487,7 @@ impl SymbolTable {
         if !var.in_scope {
             return leaf(var, NOT_IN_SCOPE);
         }
-        let frame = Frame {
-            regs,
-            mem,
-            load_base,
-            pc: regs.pc().wrapping_sub(load_base),
-        };
+        let frame = Frame::new(regs, mem, load_base);
         let Some(info) = self.units().get(var.unit) else {
             return leaf(var, UNAVAILABLE);
         };
@@ -599,7 +619,7 @@ impl SymbolTable {
             return Some(v);
         }
         let mut current = entry.clone();
-        for _ in 0..4 {
+        for _ in 0..MAX_ORIGIN_CHAIN {
             let origin = current
                 .attr_value(gimli::DW_AT_abstract_origin)
                 .or_else(|| current.attr_value(gimli::DW_AT_specification))?;
@@ -685,39 +705,14 @@ impl SymbolTable {
     /// `.debug_frame`) unwind rows; falls back to `rbp + 16` for frames
     /// with a conventional frame pointer.
     fn cfa(&self, frame: &Frame<'_>) -> Option<u64> {
-        let from_rule = |rule: &gimli::CfaRule<usize>| match rule {
+        self.with_unwind_row(frame.pc, |row| match row.cfa() {
             gimli::CfaRule::RegisterAndOffset { register, offset } => frame
                 .regs
                 .get(register.0)
                 .map(|v| v.wrapping_add_signed(*offset)),
             gimli::CfaRule::Expression(_) => None,
-        };
-        let mut ctx = gimli::UnwindContext::new();
-        if let Some((eh_frame, bases)) = &self.eh_frame {
-            if let Ok(row) = eh_frame.unwind_info_for_address(
-                bases,
-                &mut ctx,
-                frame.pc,
-                gimli::EhFrame::cie_from_offset,
-            ) {
-                if let Some(cfa) = from_rule(row.cfa()) {
-                    return Some(cfa);
-                }
-            }
-        }
-        if let Some(debug_frame) = &self.debug_frame {
-            if let Ok(row) = debug_frame.unwind_info_for_address(
-                &gimli::BaseAddresses::default(),
-                &mut ctx,
-                frame.pc,
-                gimli::DebugFrame::cie_from_offset,
-            ) {
-                if let Some(cfa) = from_rule(row.cfa()) {
-                    return Some(cfa);
-                }
-            }
-        }
-        frame.regs.fp().map(|fp| fp.wrapping_add(16))
+        })
+        .or_else(|| frame.regs.fp().map(|fp| fp.wrapping_add(FP_TO_CFA)))
     }
 
     fn evaluate_location(
@@ -728,14 +723,14 @@ impl SymbolTable {
         frame_base: &dyn Fn() -> Option<u64>,
     ) -> Option<Vec<gimli::Piece<R>>> {
         let mut eval = expr.evaluation(info.unit.encoding());
-        eval.set_max_iterations(10_000);
+        eval.set_max_iterations(MAX_EXPR_STEPS);
         let mut state = eval.evaluate().ok()?;
         loop {
             state = match state {
                 EvaluationResult::Complete => break,
                 EvaluationResult::RequiresMemory { address, size, .. } => {
-                    let size = (size as usize).min(8);
-                    let mut buf = [0u8; 8];
+                    let size = (size as usize).min(WORD_SIZE);
+                    let mut buf = [0u8; WORD_SIZE];
                     if !frame.mem.read(address, &mut buf[..size]) {
                         return None;
                     }
@@ -800,7 +795,7 @@ fn assemble(pieces: Vec<gimli::Piece<R>>, frame: &Frame<'_>) -> Located {
             return Located::Unavailable;
         };
         let len = bits.div_ceil(8) as usize;
-        if len > 1 << 16 {
+        if len > MAX_PIECE {
             return Located::Unavailable;
         }
         let bytes = match location_bytes(&piece.location, frame, Some(len)) {

@@ -19,7 +19,9 @@ use std::cell::OnceCell;
 use gimli::UnitOffset;
 
 use crate::format::{short_type_name, Formatter, Slot};
-use crate::locals::{LocalVar, Located, NoMemory, NOT_IN_SCOPE, OPTIMIZED_OUT, UNAVAILABLE};
+use crate::locals::{
+    unit_ref, Frame, LocalVar, Located, NoMemory, NOT_IN_SCOPE, OPTIMIZED_OUT, UNAVAILABLE,
+};
 use crate::{FrameRegs, SymbolTable, TargetMemory};
 
 /// Node budget for formatting one row's summary (whose children are
@@ -213,12 +215,7 @@ impl SymbolTable {
         }
         let info = self.units().get(var.unit).ok_or(UNAVAILABLE)?;
         let entry = info.unit.entry(var.die).map_err(|_| UNAVAILABLE)?;
-        let frame = crate::locals::Frame {
-            regs,
-            mem,
-            load_base,
-            pc: regs.pc().wrapping_sub(load_base),
-        };
+        let frame = Frame::new(regs, mem, load_base);
         match self.locate(info, &entry, var.subprogram, &frame) {
             Located::Place(place) => Ok(Slot {
                 name: var.name.clone(),
@@ -382,16 +379,11 @@ impl Ctx<'_> {
             .get(g.unit)
             .ok_or_else(|| UNAVAILABLE.to_string())?;
         let entry = info.unit.entry(g.die).map_err(|e| e.to_string())?;
-        let frame = crate::locals::Frame {
-            regs: self.regs,
-            mem: self.mem,
-            load_base: self.load_base,
-            pc: self.regs.pc().wrapping_sub(self.load_base),
-        };
+        let frame = Frame::new(self.regs, self.mem, self.load_base);
         let ty = self
             .table
             .attr_with_origin(info, &entry, gimli::DW_AT_type)
-            .and_then(|v| crate::locals::unit_ref(info, v));
+            .and_then(|v| unit_ref(info, v));
         match self.table.locate(info, &entry, g.die, &frame) {
             Located::Place(place) => Ok((
                 g.unit,

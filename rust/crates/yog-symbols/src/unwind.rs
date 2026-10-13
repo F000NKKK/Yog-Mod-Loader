@@ -8,7 +8,7 @@
 
 use gimli::{RegisterRule, UnwindSection as _};
 
-use crate::locals::{x86_64, FrameRegs, TargetMemory};
+use crate::locals::{x86_64, FrameRegs, TargetMemory, FP_TO_CFA, WORD_SIZE};
 use crate::SymbolTable;
 
 /// Registers a callee must preserve (System V x86_64) — the only ones whose
@@ -99,6 +99,16 @@ impl SymbolTable {
         if !self.contains(offset) {
             return None;
         }
+        self.with_unwind_row(offset, |row| apply_row(row, regs, mem))
+    }
+
+    /// Runs `f` on the CFI row for module-relative `offset`, from
+    /// `.eh_frame` first, then `.debug_frame`; the first `Some` wins.
+    pub(crate) fn with_unwind_row<T>(
+        &self,
+        offset: u64,
+        mut f: impl FnMut(&gimli::UnwindTableRow<usize>) -> Option<T>,
+    ) -> Option<T> {
         let mut ctx = gimli::UnwindContext::new();
         if let Some((eh_frame, bases)) = &self.eh_frame {
             if let Ok(row) = eh_frame.unwind_info_for_address(
@@ -107,20 +117,21 @@ impl SymbolTable {
                 offset,
                 gimli::EhFrame::cie_from_offset,
             ) {
-                return apply_row(row, regs, mem);
+                if let Some(out) = f(row) {
+                    return Some(out);
+                }
             }
         }
-        if let Some(debug_frame) = &self.debug_frame {
-            if let Ok(row) = debug_frame.unwind_info_for_address(
+        let debug_frame = self.debug_frame.as_ref()?;
+        let row = debug_frame
+            .unwind_info_for_address(
                 &gimli::BaseAddresses::default(),
                 &mut ctx,
                 offset,
                 gimli::DebugFrame::cie_from_offset,
-            ) {
-                return apply_row(row, regs, mem);
-            }
-        }
-        None
+            )
+            .ok()?;
+        f(row)
     }
 }
 
@@ -148,7 +159,7 @@ fn apply_row(
     let ret = match row.register(gimli::Register(x86_64::RIP)) {
         // The return address column always has a rule in practice; without
         // one, assume the plain `call` layout.
-        None => read_u64(mem, cfa.wrapping_sub(8))?,
+        None => read_u64(mem, cfa.wrapping_sub(WORD_SIZE as u64))?,
         Some(RegisterRule::SameValue) => return None,
         Some(_) => recover(x86_64::RIP)?,
     };
@@ -167,19 +178,19 @@ fn apply_row(
 /// right above it.
 fn unwind_frame_pointer(regs: &FrameRegs, mem: &dyn TargetMemory) -> Option<FrameRegs> {
     let fp = regs.fp()?;
-    if fp == 0 || fp % 8 != 0 {
+    if fp == 0 || fp % WORD_SIZE as u64 != 0 {
         return None;
     }
     let saved_fp = read_u64(mem, fp)?;
-    let ret = read_u64(mem, fp.wrapping_add(8))?;
+    let ret = read_u64(mem, fp.wrapping_add(WORD_SIZE as u64))?;
     Some(FrameRegs::new(
         ret.wrapping_sub(1),
-        fp.wrapping_add(16),
+        fp.wrapping_add(FP_TO_CFA),
         saved_fp,
     ))
 }
 
 fn read_u64(mem: &dyn TargetMemory, addr: u64) -> Option<u64> {
-    let mut buf = [0u8; 8];
+    let mut buf = [0u8; WORD_SIZE];
     mem.read(addr, &mut buf).then(|| u64::from_le_bytes(buf))
 }
