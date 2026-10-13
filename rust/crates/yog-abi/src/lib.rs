@@ -1045,9 +1045,15 @@ pub struct YogServer {
         fire: bool,
         source: YogStr,
     ) -> bool,
-    pub send_message: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, msg: YogStr) -> bool,
-    pub entity_damage:
-        unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, amount: f32, source: YogStr) -> bool,
+    /// `json` is a JSON text component (the `/tellraw` format).
+    pub tellraw: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, json: YogStr) -> bool,
+    pub entity_damage: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        uuid: YogStr,
+        amount: f32,
+        damage_type: YogStr,
+        attacker: YogStr,
+    ) -> bool,
     pub entity_set_fire_ticks:
         unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, ticks: i32) -> bool,
     pub player_add_xp: unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, amount: i32) -> bool,

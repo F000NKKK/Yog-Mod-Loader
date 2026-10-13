@@ -1057,30 +1057,41 @@ public final class NativeBridge {
         }
     }
 
-    public static boolean sendMessage(String player, String message) {
+    /** A system chat message from a JSON text component (the /tellraw format). */
+    public static boolean tellraw(String player, String json) {
         try {
             ServerPlayerEntity p = playerByName(player);
             if (p == null) return false;
-            p.sendMessage(Text.literal(message), false);
+            Text text = Text.Serializer.fromJson(json);
+            if (text == null) return false;
+            p.sendMessage(text, false);
             return true;
         } catch (Throwable t) {
             return false;
         }
     }
 
-    /** Damage an entity; source = player attack / mob attack / magic depending on sourceUuid. */
-    public static boolean entityDamage(String uuid, float amount, String sourceUuid) {
+    /** Damage an entity with a damage type id (empty: from the attacker), caused by attacker (uuid or ""). */
+    public static boolean entityDamage(String uuid, float amount, String damageType, String attackerUuid) {
         try {
             Entity e = entityByUuid(uuid);
             if (e == null) return false;
-            Entity src = optionalEntity(sourceUuid);
-            DamageSource ds;
-            if (src instanceof PlayerEntity sp) {
-                ds = e.getDamageSources().playerAttack(sp);
-            } else if (src instanceof LivingEntity sl) {
-                ds = e.getDamageSources().mobAttack(sl);
-            } else {
-                ds = e.getDamageSources().magic();
+            Entity src = optionalEntity(attackerUuid);
+            DamageSource ds = null;
+            Identifier tid = damageType == null || damageType.isEmpty() ? null : Identifier.tryParse(damageType);
+            if (tid != null) {
+                var type = e.getWorld().getRegistryManager().get(RegistryKeys.DAMAGE_TYPE)
+                        .getEntry(RegistryKey.of(RegistryKeys.DAMAGE_TYPE, tid));
+                if (type.isPresent()) ds = new DamageSource(type.get(), src);
+            }
+            if (ds == null) {
+                if (tid == null && src instanceof PlayerEntity sp) {
+                    ds = e.getDamageSources().playerAttack(sp);
+                } else if (tid == null && src instanceof LivingEntity sl) {
+                    ds = e.getDamageSources().mobAttack(sl);
+                } else {
+                    ds = e.getDamageSources().magic();
+                }
             }
             return e.damage(ds, amount);
         } catch (Throwable t) {

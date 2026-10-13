@@ -416,13 +416,18 @@ pub trait Server {
         source: &str,
     ) -> bool;
 
-    /// A system chat message to one player.
-    fn send_message(&self, player: &str, message: &str) -> bool;
+    /// A system chat message to one player, like `/tellraw`: `json` is a
+    /// JSON text component, so it can hold translation keys
+    /// (`{"translate":"mymod.msg","with":["x"]}`) that each client shows in
+    /// its own language.
+    fn tellraw(&self, player: &str, json: &str) -> bool;
 
-    /// Hurt an entity: `source` is a damage type id
-    /// (`"minecraft:magic"`, `"minecraft:drown"`, …). Returns whether it took
-    /// the damage.
-    fn entity_damage(&self, uuid: &str, amount: f32, source: &str) -> bool;
+    /// Hurt an entity. `damage_type` is a damage type id
+    /// (`"minecraft:magic"`, `"minecraft:drown"`, …; `""` picks one from
+    /// the attacker: player attack, mob attack, or magic without one), and
+    /// `attacker` the uuid of the entity responsible (or `""`). An unknown
+    /// damage type falls back to magic. Returns whether it took the damage.
+    fn entity_damage(&self, uuid: &str, amount: f32, damage_type: &str, attacker: &str) -> bool;
 
     /// Set an entity on fire for `ticks` (`0` puts it out).
     fn entity_set_fire_ticks(&self, uuid: &str, ticks: i32) -> bool;

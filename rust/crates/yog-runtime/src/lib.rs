@@ -3482,17 +3482,21 @@ unsafe extern "C" fn srv_explode(
     )
 }
 
-unsafe extern "C" fn srv_send_message(_ctx: *mut c_void, player: YogStr, msg: YogStr) -> bool {
-    bridge_bool("sendMessage", &[JArg::S(player), JArg::S(msg)])
+unsafe extern "C" fn srv_tellraw(_ctx: *mut c_void, player: YogStr, json: YogStr) -> bool {
+    bridge_bool("tellraw", &[JArg::S(player), JArg::S(json)])
 }
 
 unsafe extern "C" fn srv_entity_damage(
     _ctx: *mut c_void,
     uuid: YogStr,
     amount: f32,
-    source: YogStr,
+    damage_type: YogStr,
+    attacker: YogStr,
 ) -> bool {
-    bridge_bool("entityDamage", &[JArg::S(uuid), JArg::F(amount), JArg::S(source)])
+    bridge_bool(
+        "entityDamage",
+        &[JArg::S(uuid), JArg::F(amount), JArg::S(damage_type), JArg::S(attacker)],
+    )
 }
 
 unsafe extern "C" fn srv_entity_set_fire_ticks(_ctx: *mut c_void, uuid: YogStr, ticks: i32) -> bool {
@@ -3628,7 +3632,7 @@ fn build_server_table() -> YogServer {
         place_block_from_slot: srv_place_block_from_slot,
         bonemeal: srv_bonemeal,
         explode: srv_explode,
-        send_message: srv_send_message,
+        tellraw: srv_tellraw,
         entity_damage: srv_entity_damage,
         entity_set_fire_ticks: srv_entity_set_fire_ticks,
         player_add_xp: srv_player_add_xp,

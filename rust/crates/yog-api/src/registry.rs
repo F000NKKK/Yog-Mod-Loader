@@ -990,15 +990,21 @@ impl Server for CServer {
         }
     }
 
-    fn send_message(&self, player: &str, message: &str) -> bool {
+    fn tellraw(&self, player: &str, json: &str) -> bool {
         let s = srv!(self);
-        unsafe { (s.send_message)(s.ctx, YogStr::from_str(player), YogStr::from_str(message)) }
+        unsafe { (s.tellraw)(s.ctx, YogStr::from_str(player), YogStr::from_str(json)) }
     }
 
-    fn entity_damage(&self, uuid: &str, amount: f32, source: &str) -> bool {
+    fn entity_damage(&self, uuid: &str, amount: f32, damage_type: &str, attacker: &str) -> bool {
         let s = srv!(self);
         unsafe {
-            (s.entity_damage)(s.ctx, YogStr::from_str(uuid), amount, YogStr::from_str(source))
+            (s.entity_damage)(
+                s.ctx,
+                YogStr::from_str(uuid),
+                amount,
+                YogStr::from_str(damage_type),
+                YogStr::from_str(attacker),
+            )
         }
     }
 
