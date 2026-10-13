@@ -12,7 +12,6 @@ use std::sync::OnceLock;
 
 use gimli::{
     AttributeValue, DebuggingInformationEntry, EvaluationResult, Location, Reader as _, UnitOffset,
-    UnwindSection as _,
 };
 
 use crate::{SymbolTable, R};
