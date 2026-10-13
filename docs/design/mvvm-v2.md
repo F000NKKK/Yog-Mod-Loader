@@ -1566,7 +1566,10 @@ it.
     state to `.ymat`, coordinated with the materials design?
 11. **Q11 Hot reload**: carry VM state across hot reload when the VM is `Codec`
     (`#[view_model(reload)]`)?
-12. **Q12 Server sync granularity**: whole-snapshot diffs per tick (recommended first), or
+12. **Q12 Server sync granularity — decided: whole snapshots first.** The server encodes the synced state with
+    Codec once per tick and sends it only when the bytes changed; screen state is small (hundreds of bytes), so
+    this costs less than tracking per-field deltas and has no ordering or desync bugs. Field-level deltas can be
+    added behind the same `Synced<T>` API later if a real screen needs them. Was: whole-snapshot diffs per tick (recommended first), or
     field-level deltas from the start?
 13. **Q13 Messages to closed screens**: deliver by default (recommended, so VMs stay current) or
     only to open screens?
@@ -1577,5 +1580,5 @@ it.
     right place for slot layout, or should `InventoryDef` stay in Rust with `.yui` only drawing?
 16. **Q16 VM-owned surfaces — decided: yes, the normal way.** (`source="{x:Bind grid}"`). Was: OK to make this the normal way a mod draws
     its own screen, keeping the id-based `Surface` registry only for cross-mod and designer use?
-17. **Q17 Boilerplate lints** ("bind the field directly", "`impl ViewModel` is generated"): warnings
+17. **Q17 Boilerplate lints — decided: warnings.** ("bind the field directly", "`impl ViewModel` is generated"): warnings
     in `yog check`, or errors?
