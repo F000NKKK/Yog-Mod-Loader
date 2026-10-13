@@ -1027,6 +1027,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-kit"
+version = "0.1.0"
+dependencies = [
+ "yog-api",
+]
+
+[[package]]
 name = "yog-logging"
 version = "0.1.0"
 

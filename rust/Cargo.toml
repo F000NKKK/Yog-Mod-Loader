@@ -25,6 +25,8 @@ members = [
     "crates/yog-gfx",
     # UI framework — flexbox layout + widgets on top of yog-gfx
     "crates/yog-ui",
+    # MVVM screens on top of yog-ui (.yui x:ViewModel codegen target)
+    "crates/yog-kit",
     # inventory framework — real Container/Menu screens (BlockEntity-backed)
     "crates/yog-inventory",
     # inter-mod communication (proc-macros)
@@ -87,6 +89,7 @@ yog-api      = { path = "crates/yog-api" }
 yog-book     = { path = "crates/yog-book" }
 yog-gfx      = { path = "crates/yog-gfx" }
 yog-ui       = { path = "crates/yog-ui" }
+yog-kit      = { path = "crates/yog-kit" }
 yog-inventory = { path = "crates/yog-inventory" }
 yog-interop   = { path = "crates/yog-interop" }
 yog-symbols    = { path = "crates/yog-symbols" }
