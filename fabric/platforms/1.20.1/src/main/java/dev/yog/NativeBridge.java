@@ -846,7 +846,7 @@ public final class NativeBridge {
         return e.getUuidAsString();
     }
 
-    // ── world / entity queries & actions (Hex-style ops) ────────────────────
+    // ── world / entity queries & actions ────────────────────────────────────
 
     private static String flag01(boolean b) {
         return b ? "1" : "0";
