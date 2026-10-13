@@ -460,9 +460,13 @@ pub fn apply_style(w: Widget, key: &str, value: &str) -> Widget {
     }
 }
 
-/// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB` (as `.yui` colors).
+/// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB` (as `.yui` colors), or a decimal
+/// `0xAARRGGBB` value (what a bound `u32` property arrives as).
 pub fn parse_color(value: &str) -> Option<u32> {
     let v = value.trim();
+    if !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit()) {
+        return v.parse().ok();
+    }
     let hex = v.strip_prefix('#').or_else(|| v.strip_prefix("0x")).or_else(|| v.strip_prefix("0X"))?.replace('_', "");
     let n = u32::from_str_radix(&hex, 16).ok()?;
     match hex.len() {

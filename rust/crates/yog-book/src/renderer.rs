@@ -603,6 +603,11 @@ pub struct BookRenderer {
     dirty: bool,
     last_sw: f32,
     last_sh: f32,
+    /// i18n books: the untranslated book, the translator and the language
+    /// probe (the book name's text) the shown book was made for.
+    source: Option<Book>,
+    translator: Option<fn(&str) -> Option<String>>,
+    probe: Option<Option<String>>,
 }
 
 impl BookRenderer {
@@ -621,7 +626,36 @@ impl BookRenderer {
             dirty: true,
             last_sw: 0.0,
             last_sh: 0.0,
+            source: None,
+            translator: None,
+            probe: None,
         }
+    }
+
+    /// For [`Book::i18n`] books: the book's texts are translation keys,
+    /// looked up with `tr` (unknown keys stay as they are) and re-looked up
+    /// whenever the language changes.
+    pub fn set_translator(&mut self, tr: fn(&str) -> Option<String>) {
+        if self.book.i18n {
+            self.source.get_or_insert_with(|| self.book.clone());
+            self.translator = Some(tr);
+            self.probe = None;
+            self.localize();
+        }
+    }
+
+    /// Re-translates the book when the language changed since last time.
+    fn localize(&mut self) {
+        let (Some(src), Some(tr)) = (&self.source, self.translator) else {
+            return;
+        };
+        let probe = Some(tr(&src.name));
+        if probe == self.probe {
+            return;
+        }
+        self.book = src.localized(|k| tr(k).unwrap_or_else(|| k.to_string()));
+        self.probe = probe;
+        self.dirty = true;
     }
 
     pub fn handle_event(&mut self, ev: &str) {
@@ -658,6 +692,7 @@ impl BookRenderer {
         let bx = (sw - bw) / 2.0;
         let by = (sh - bh) / 2.0;
 
+        self.localize();
         // Rebuild widget tree if dirty or screen resized.
         if self.dirty || sw != self.last_sw || sh != self.last_sh {
             let (root, bg_sprites, overlays) = build_ui(

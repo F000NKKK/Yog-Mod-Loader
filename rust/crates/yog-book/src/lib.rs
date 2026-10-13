@@ -274,6 +274,52 @@ impl Book {
         self
     }
 
+    /// This book with its texts run through `tr` — names, descriptions,
+    /// landing text and every page's title/text. With [`Self::i18n`] on,
+    /// the texts are translation keys and the renderer shows
+    /// `localized(<current language>)` (see [`BookRenderer::set_translator`]).
+    pub fn localized(&self, tr: impl Fn(&str) -> String) -> Book {
+        let opt = |o: &mut Option<String>| {
+            if let Some(t) = o {
+                *t = tr(t);
+            }
+        };
+        let mut b = self.clone();
+        b.name = tr(&b.name);
+        b.landing_text = tr(&b.landing_text);
+        for c in &mut b.categories {
+            c.name = tr(&c.name);
+            opt(&mut c.description);
+        }
+        for e in &mut b.entries {
+            e.name = tr(&e.name);
+            for p in &mut e.pages {
+                match p {
+                    BookPage::Text { text, title } => {
+                        *text = tr(text);
+                        opt(title);
+                    }
+                    BookPage::Spotlight { title, text, .. }
+                    | BookPage::Image { title, text, .. }
+                    | BookPage::Svg { title, text, .. } => {
+                        opt(title);
+                        opt(text);
+                    }
+                    BookPage::Entity { name, text, .. } => {
+                        opt(name);
+                        opt(text);
+                    }
+                    BookPage::Crafting { text, .. }
+                    | BookPage::Smelting { text, .. }
+                    | BookPage::Relations { text, .. } => opt(text),
+                    BookPage::Pattern { text, .. } | BookPage::CustomText { text, .. } => *text = tr(text),
+                    BookPage::Empty => {}
+                }
+            }
+        }
+        b
+    }
+
     pub fn i18n(mut self, val: bool) -> Self {
         self.i18n = val;
         self
@@ -887,5 +933,38 @@ mod wire_format_tests {
             BookPage::Crafting { recipe_id, .. } => assert_eq!(recipe_id, "yog:r1"),
             p => panic!("expected crafting, got {p:?}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod localize_tests {
+    use super::*;
+
+    #[test]
+    fn localized_translates_every_text() {
+        let book = Book::new("m:b", "m.book.name")
+            .landing_text("m.book.landing")
+            .add_category(BookCategory { id: "basics".into(), name: "m.cat".into(), ..Default::default() })
+            .add_entry(BookEntry {
+                id: "e".into(),
+                name: "m.entry".into(),
+                category: "basics".into(),
+                pages: vec![text_page_titled("m.title", "m.text"), text_page("raw text")],
+                ..Default::default()
+            });
+        let out = book.localized(|k| if k.starts_with("m.") { k.to_uppercase() } else { k.to_string() });
+        assert_eq!(out.name, "M.BOOK.NAME");
+        assert_eq!(out.landing_text, "M.BOOK.LANDING");
+        assert_eq!(out.categories[0].name, "M.CAT");
+        assert_eq!(out.entries[0].name, "M.ENTRY");
+        match &out.entries[0].pages[0] {
+            BookPage::Text { text, title } => {
+                assert_eq!(text, "M.TEXT");
+                assert_eq!(title.as_deref(), Some("M.TITLE"));
+            }
+            p => panic!("{p:?}"),
+        }
+        assert!(matches!(&out.entries[0].pages[1], BookPage::Text { text, .. } if text == "raw text"));
+        assert_eq!(out.entries[0].id, "e");
     }
 }
