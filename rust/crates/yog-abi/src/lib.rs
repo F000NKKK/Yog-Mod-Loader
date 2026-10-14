@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 1;
-pub const ABI_MINOR: u32 = 2;
+pub const ABI_MINOR: u32 = 3;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -396,6 +396,8 @@ pub struct YogBlockDef {
     /// block is backed by — empty = no inventory (plain block, as before).
     /// See `yog_inventory`'s DESIGN.md.
     pub inventory_id: YogStr,
+    /// ABI minor 3: gives off redstone power (`Server::set_redstone_output`).
+    pub redstone_source: bool,
 }
 
 /// An inventory-backed screen definition — see `yog_inventory::InventoryDef`.

@@ -2085,6 +2085,7 @@ impl Registry {
                 .as_deref()
                 .map(YogStr::from_str)
                 .unwrap_or(YogStr::EMPTY),
+            redstone_source: def.redstone_source,
         };
         unsafe { ((*self.api).register_block)(self.ctx(), &c) }
     }

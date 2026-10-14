@@ -1206,6 +1206,99 @@ public final class NativeBridge {
         return s.getLevel(ResourceKey.create(Registries.DIMENSION, id));
     }
 
+    // ── ABI minor 3 ──────────────────────────────────────────────────────────
+
+    /** Puts {@code itemId} on cooldown for {@code ticks} for an online player. */
+    public static boolean setItemCooldown(String player, String itemId, int ticks) {
+        ServerPlayer p = playerByName(player);
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        if (p == null || id == null || !BuiltInRegistries.ITEM.containsKey(id)) return false;
+        p.getCooldowns().addCooldown(BuiltInRegistries.ITEM.get(id), ticks);
+        return true;
+    }
+
+    /** Teleports an entity and everything riding it, which stays mounted. */
+    public static boolean entityTeleportWithPassengers(String uuid, String dimension, double x, double y, double z) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) return false;
+        java.util.List<Entity> riders = new java.util.ArrayList<>(e.getPassengers());
+        for (Entity r : riders) r.stopRiding();
+        if (!entityTeleportToDim(uuid, dimension, x, y, z)) return false;
+        Entity moved = entityByUuid(uuid);
+        for (Entity r : riders) {
+            String id = r.getStringUUID();
+            if (!entityTeleportToDim(id, dimension, x, y, z)) continue;
+            Entity rider = entityByUuid(id);
+            if (rider != null && moved != null) rider.startRiding(moved, true);
+        }
+        return true;
+    }
+
+    /** The redstone power a block receives from its neighbours (0–15), or -1. */
+    public static int redstonePower(String dimension, int x, int y, int z) {
+        ServerLevel w = worldFor(dimension);
+        if (w == null) return -1;
+        net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
+        return w.getBestNeighborSignal(pos);
+    }
+
+    /** Power a Yog block declared as a redstone source gives off, by "dimension|x|y|z". */
+    public static final java.util.Map<String, Integer> REDSTONE_OUTPUT = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static String redstoneKey(String dimension, int x, int y, int z) {
+        return dimension + "|" + x + "|" + y + "|" + z;
+    }
+
+    /** Sets the power (0–15) a redstone-source Yog block at a position gives off. */
+    public static boolean setRedstoneOutput(String dimension, int x, int y, int z, int level) {
+        ServerLevel w = worldFor(dimension);
+        if (w == null) return false;
+        String key = redstoneKey(dimension, x, y, z);
+        int clamped = Math.max(0, Math.min(15, level));
+        Integer before = clamped == 0 ? REDSTONE_OUTPUT.remove(key) : REDSTONE_OUTPUT.put(key, clamped);
+        if (before == null ? clamped != 0 : before != clamped) {
+            net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
+            w.updateNeighborsAt(pos, w.getBlockState(pos).getBlock());
+        }
+        return true;
+    }
+
+    /** The full state of the block at a position: "minecraft:repeater[delay=2,facing=east,...]". */
+    public static String getBlockState(String dimension, int x, int y, int z) {
+        ServerLevel w = worldFor(dimension);
+        if (w == null) return null;
+        net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
+        return net.minecraft.commands.arguments.blocks.BlockStateParser.serialize(w.getBlockState(pos));
+    }
+
+    /** Places a block in a full state ("minecraft:repeater[delay=2]"); false if it doesn't parse. */
+    public static boolean setBlockState(String dimension, int x, int y, int z, String state) {
+        ServerLevel w = worldFor(dimension);
+        if (w == null) return false;
+        try {
+            var parsed = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK.asLookup(), state, false).blockState();
+            net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
+            return w.setBlock(pos, parsed, 3);
+        } catch (Exception e) {
+            System.out.println("[yog] setBlockState: " + state + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static boolean worldIsThundering(String dimension) {
+        ServerLevel w = worldFor(dimension);
+        return w != null && w.isThundering();
+    }
+
+    /** Starts (or stops) a thunderstorm for {@code durationTicks} (0 = a default). */
+    public static boolean worldSetThunder(String dimension, boolean thundering, int durationTicks) {
+        ServerLevel w = worldFor(dimension);
+        if (w == null) return false;
+        int dur = durationTicks > 0 ? durationTicks : DEFAULT_WEATHER_TICKS;
+        w.setWeatherParameters(thundering ? 0 : dur, thundering ? dur : 0, thundering, thundering);
+        return true;
+    }
+
     /** Load the embedded native runtime and initialise it. Idempotent. */
     public static synchronized void ensureLoaded() {
         if (loaded) return;

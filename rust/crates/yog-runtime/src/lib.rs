@@ -2105,6 +2105,7 @@ unsafe extern "C" fn api_register_block(ctx: *mut c_void, def: *const YogBlockDe
             } else {
                 Some(d.inventory_id.as_str().to_owned())
             },
+            redstone_source: d.redstone_source,
         });
     }
 }
@@ -4190,6 +4191,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
             }
             if let Some(inv) = &d.inventory_id {
                 parts.push(format!("inventory_id={inv}"));
+            }
+            if d.redstone_source {
+                parts.push("redstone=1".into());
             }
             parts.join("\t")
         })

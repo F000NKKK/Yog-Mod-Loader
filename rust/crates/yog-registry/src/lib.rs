@@ -570,6 +570,9 @@ pub struct BlockDef {
     /// Id of a `YogInventoryDef` this block is backed by — `None` = plain
     /// block (default). See `yog_inventory`'s DESIGN.md.
     pub inventory_id: Option<String>,
+    /// Gives off redstone power — how much, per position, the mod sets with
+    /// `Server::set_redstone_output`.
+    pub redstone_source: bool,
 }
 
 impl BlockDef {
@@ -588,6 +591,7 @@ impl BlockDef {
             connects: false,
             connect_groups: Vec::new(),
             inventory_id: None,
+            redstone_source: false,
         }
     }
 
@@ -668,6 +672,13 @@ impl BlockDef {
     /// Back this block with a real Container/Menu inventory screen, whose
     /// shape/layout was registered separately via `Registry::register_inventory`
     /// — see `yog_inventory::InventoryDef`. `id` is that def's id.
+    /// A redstone power source: what each placed block gives off is set
+    /// with `Server::set_redstone_output` (0 until then).
+    pub fn redstone_source(mut self) -> Self {
+        self.redstone_source = true;
+        self
+    }
+
     pub fn inventory(mut self, id: impl Into<String>) -> Self {
         self.inventory_id = Some(id.into());
         self
