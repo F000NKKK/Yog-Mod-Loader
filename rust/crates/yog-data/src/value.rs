@@ -84,6 +84,11 @@ impl Map {
         self.0.iter_mut().find(|(k, _)| k == key).map(|(_, v)| v)
     }
 
+    /// The value of the `i`-th entry.
+    pub fn value_at(&self, i: usize) -> Option<&Value> {
+        self.0.get(i).map(|(_, v)| v)
+    }
+
     /// The position of `key` among the entries.
     pub fn index_of(&self, key: &str) -> Option<usize> {
         self.0.iter().position(|(k, _)| k == key)

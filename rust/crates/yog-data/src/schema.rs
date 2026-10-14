@@ -425,13 +425,14 @@ fn found_text(v: &Value) -> String {
     }
 }
 
-/// The `known` name closest to `key`, if it's close enough to be a typo.
+/// The `known` name closest to `key`, if it's close enough to be a typo
+/// (`txt` → `text`, `img` → `image`, `colour` → `color`).
 fn closest<'k>(key: &str, known: &[&'k str]) -> Option<&'k str> {
     let lower = key.to_ascii_lowercase();
     known
         .iter()
         .map(|k| (edit_distance(&lower, k), *k))
-        .filter(|(d, k)| *d <= (k.len() / 3).max(1))
+        .filter(|(d, k)| *d <= if k.len() <= 3 { 1 } else { k.len() / 2 })
         .min_by_key(|(d, _)| *d)
         .map(|(_, k)| k)
 }

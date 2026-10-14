@@ -52,7 +52,7 @@ impl Doc {
                 break;
             };
             v = match v {
-                Value::Map(m) => m.iter().nth(i).map(|(_, v)| v).unwrap_or(v),
+                Value::Map(m) => m.value_at(i).unwrap_or(v),
                 Value::List(l) => &l[i],
                 _ => v,
             };
@@ -282,6 +282,8 @@ impl<const SPANS: bool> Parser<'_, SPANS> {
         self.i += 1;
         let mut map = Map::new();
         let mut spans = Vec::new();
+        // Duplicate keys: a scan for small objects, a set once they grow.
+        let mut seen: Option<std::collections::HashSet<String>> = None;
         loop {
             self.ws()?;
             if self.peek() == Some(b'}') {
@@ -306,7 +308,17 @@ impl<const SPANS: bool> Parser<'_, SPANS> {
                 start: key_start as u32,
                 end: self.i as u32,
             };
-            if map.get(&key).is_some() {
+            let duplicate = match &mut seen {
+                Some(set) => !set.insert(key.clone()),
+                None if map.len() < 16 => map.get(&key).is_some(),
+                None => {
+                    let mut set: std::collections::HashSet<String> = map.keys().map(str::to_string).collect();
+                    let dup = !set.insert(key.clone());
+                    seen = Some(set);
+                    dup
+                }
+            };
+            if duplicate {
                 return Err(
                     self.error_at(key_start, format!("`{key}` is already set in this object"))
                 );

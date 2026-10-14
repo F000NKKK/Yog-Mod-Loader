@@ -19,6 +19,8 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write as _;
 use std::path::{Component, Path, PathBuf};
 
+use yog_data::{Reader, Schema, Seg, Shape};
+
 /// The locale of the neutral `<Set>.yres` files.
 pub const NEUTRAL_LOCALE: &str = "en_us";
 /// Where resource files live, under the mod root.
@@ -36,7 +38,7 @@ pub type Output = (String, Vec<u8>);
 // ── Parsing ───────────────────────────────────────────────────────────────────
 
 /// An entry's type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Schema)]
 pub enum Kind {
     String,
     Image,
@@ -48,19 +50,6 @@ pub enum Kind {
 }
 
 impl Kind {
-    fn parse(s: &str) -> Option<Kind> {
-        Some(match s {
-            "string" => Kind::String,
-            "image" => Kind::Image,
-            "file" => Kind::File,
-            "sound" => Kind::Sound,
-            "color" => Kind::Color,
-            "number" => Kind::Number,
-            "bool" => Kind::Bool,
-            _ => return None,
-        })
-    }
-
     fn name(self) -> &'static str {
         match self {
             Kind::String => "string",
@@ -72,9 +61,18 @@ impl Kind {
             Kind::Bool => "bool",
         }
     }
+
+    /// The type of an entry that doesn't say, by its value.
+    fn of(value: &Value) -> Kind {
+        match value {
+            Value::Str(_) => Kind::String,
+            Value::Num(_) => Kind::Number,
+            Value::Bool(_) => Kind::Bool,
+        }
+    }
 }
 
-/// A JSON scalar as written: a string, a number (its literal) or a bool.
+/// A scalar as written: a string, a number (its literal) or a bool.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Str(String),
@@ -106,356 +104,167 @@ impl Entry {
     }
 }
 
-/// Parses `.yres` text. Errors are `line N: message`. Duplicate names are
-/// an error; names aren't validated here (see [`valid_name`]).
-pub fn parse(text: &str) -> Result<Vec<Entry>, String> {
-    let mut p = Parser {
-        s: text.as_bytes(),
-        i: 0,
-        line: 1,
+/// An entry's object form: `{ "type": ..., "value": ..., "comment": ..., ... }`.
+#[derive(Schema)]
+struct EntryObject {
+    /// What the entry is; by default what its value is (string, number, bool).
+    #[data(rename = "type")]
+    kind: Option<Kind>,
+    /// The text, path, color, number or flag.
+    value: yog_data::Value,
+    /// A note for whoever edits the file — never shipped.
+    comment: Option<String>,
+    /// Texts: the translation key instead of the default one.
+    key: Option<String>,
+    /// Images: the texture path under `assets/<mod id>/textures/`.
+    texture: Option<String>,
+    /// Sounds: the sound event name.
+    event: Option<String>,
+    /// Sounds: the subtitle's translation key.
+    subtitle: Option<String>,
+}
+
+/// A whole `.yres` file: named entries in file order.
+struct YresFile(Vec<Entry>);
+
+/// `v` as an entry's scalar value.
+fn scalar(v: &yog_data::Value, cx: &mut Reader) -> Option<Value> {
+    Some(match v {
+        yog_data::Value::Str(_) => Value::Str(String::read(v, cx)?),
+        yog_data::Value::Int(n) => Value::Num(n.to_string()),
+        yog_data::Value::Float(f) => Value::Num(format!("{f:?}")),
+        yog_data::Value::Bool(b) => Value::Bool(*b),
+        other => {
+            cx.expected("a string, a number or true/false", other);
+            return None;
+        }
+    })
+}
+
+fn read_entry(name: &str, v: &yog_data::Value, cx: &mut Reader) -> Option<Entry> {
+    let mut entry = Entry {
+        name: name.to_string(),
+        kind: Kind::String,
+        value: Value::Str(String::new()),
+        comment: None,
+        key: None,
+        texture: None,
+        event: None,
+        subtitle: None,
+        line: 0,
     };
-    // A UTF-8 BOM is tolerated, as editors on Windows like to add one.
-    if p.s.starts_with(b"\xEF\xBB\xBF") {
-        p.i = 3;
+    if !matches!(v, yog_data::Value::Map(_)) {
+        entry.value = scalar(v, cx)?;
+        entry.kind = Kind::of(&entry.value);
+        return Some(entry);
     }
-    p.ws();
-    if !p.eat(b'{') {
-        return Err(p.err("expected `{` — a .yres file is one JSON object of named resources"));
+    let o = EntryObject::read(v, cx);
+    // The value is checked even when another field is wrong: every problem at once.
+    let value = v.get("value").and_then(|val| cx.at(Seg::Key("value".into()), |cx| scalar(val, cx)));
+    let (o, value) = (o?, value?);
+    let kind = o.kind.unwrap_or(Kind::of(&value));
+    let fits = matches!(
+        (kind, &value),
+        (Kind::Number, Value::Num(_)) | (Kind::Bool, Value::Bool(_)) | (Kind::String | Kind::Image | Kind::File | Kind::Sound | Kind::Color, Value::Str(_))
+    );
+    if !fits {
+        let needs = match kind {
+            Kind::Number => "number",
+            Kind::Bool => "true/false",
+            _ => "string",
+        };
+        cx.at(Seg::Key("value".into()), |cx| cx.problem(format!("a {} needs a {needs} value", kind.name())));
+        return None;
     }
-    let mut entries: Vec<Entry> = Vec::new();
-    let mut seen: HashMap<String, usize> = HashMap::new();
-    p.ws();
-    if !p.eat(b'}') {
-        loop {
-            p.ws();
-            let line = p.line;
-            let name = p
-                .string()
-                .map_err(|e| format!("{e} (expected a resource name)"))?;
-            if let Some(first) = seen.get(&name) {
-                return Err(format!(
-                    "line {line}: duplicate name {name:?} (first on line {first})"
-                ));
-            }
-            p.ws();
-            if !p.eat(b':') {
-                return Err(p.err("expected `:` after the name"));
-            }
-            p.ws();
-            let mut entry = Entry {
-                name: name.clone(),
-                kind: Kind::String,
-                value: Value::Str(String::new()),
-                comment: None,
-                key: None,
-                texture: None,
-                event: None,
-                subtitle: None,
-                line,
-            };
-            match p.peek() {
-                Some(b'{') => p.entry_object(&mut entry)?,
-                _ => {
-                    entry.value = p.scalar().map_err(|e| {
-                        format!("{e} — {name:?} must be a string or {{ \"value\": ..., \"type\": ..., \"comment\": ... }}")
-                    })?;
-                    entry.kind = match entry.value {
-                        Value::Str(_) => Kind::String,
-                        Value::Num(_) => Kind::Number,
-                        Value::Bool(_) => Kind::Bool,
-                    };
-                }
-            }
-            seen.insert(name, line);
-            entries.push(entry);
-            p.ws();
-            if p.eat(b',') {
-                continue;
-            }
-            if p.eat(b'}') {
-                break;
-            }
-            return Err(p.err("expected `,` or `}`"));
+    let misplaced = [("key", o.key.is_some(), Kind::String), ("texture", o.texture.is_some(), Kind::Image), ("event", o.event.is_some(), Kind::Sound), ("subtitle", o.subtitle.is_some(), Kind::Sound)];
+    for (field, present, only) in misplaced {
+        if present && kind != only {
+            cx.at(Seg::Key(field.into()), |cx| cx.problem(format!("only {} entries have a `{field}`", only.name())));
+            return None;
         }
     }
-    p.ws();
-    if p.i < p.s.len() {
-        return Err(p.err("unexpected text after the closing `}`"));
+    entry.kind = kind;
+    entry.value = value;
+    (entry.comment, entry.key, entry.texture, entry.event, entry.subtitle) = (o.comment, o.key, o.texture, o.event, o.subtitle);
+    Some(entry)
+}
+
+impl Schema for YresFile {
+    fn shape() -> Shape {
+        Shape::Map(EntryObject::shape)
+    }
+
+    fn read(v: &yog_data::Value, cx: &mut Reader) -> Option<Self> {
+        let yog_data::Value::Map(map) = v else {
+            cx.problem("expected `{` — a .yres file is one JSON object of named resources");
+            return None;
+        };
+        let mut entries = Vec::with_capacity(map.len());
+        let mut ok = true;
+        // `$…` keys are the file's metadata (`$schema`); every other key names a resource.
+        for (name, v) in map.iter().filter(|(k, _)| !k.starts_with('$')) {
+            match cx.at(Seg::Key(name.to_string()), |cx| read_entry(name, v, cx)) {
+                Some(e) => entries.push(e),
+                None => ok = false,
+            }
+        }
+        ok.then_some(YresFile(entries))
+    }
+
+    fn write(&self) -> yog_data::Value {
+        let mut map = yog_data::Map::new();
+        for e in &self.0 {
+            let value = match &e.value {
+                Value::Str(s) => yog_data::Value::Str(s.clone()),
+                Value::Num(n) => n.parse::<i64>().map(yog_data::Value::Int).unwrap_or_else(|_| yog_data::Value::Float(n.parse().unwrap_or_default())),
+                Value::Bool(b) => yog_data::Value::Bool(*b),
+            };
+            let plain = e.kind == Kind::of(&e.value) && e.comment.is_none() && e.key.is_none() && e.texture.is_none() && e.event.is_none() && e.subtitle.is_none();
+            if plain {
+                map.insert(e.name.clone(), value);
+                continue;
+            }
+            let o = EntryObject {
+                kind: (e.kind != Kind::of(&e.value)).then_some(e.kind),
+                value,
+                comment: e.comment.clone(),
+                key: e.key.clone(),
+                texture: e.texture.clone(),
+                event: e.event.clone(),
+                subtitle: e.subtitle.clone(),
+            };
+            map.insert(e.name.clone(), o.write());
+        }
+        yog_data::Value::Map(map)
+    }
+}
+
+/// Parses `.yres` text. Every problem is reported, `line:column: name: message`
+/// one per line; names aren't validated here (see [`valid_name`]).
+pub fn parse(text: &str) -> Result<Vec<Entry>, String> {
+    let doc = yog_data::text::parse(text).map_err(|e| e.to_string())?;
+    let mut entries = yog_data::schema::from_doc::<YresFile>(text, &doc).map_err(|e| e.to_string())?.value.0;
+    // Each name's line: the spans are in the same order as the names.
+    let mut lines = HashMap::new();
+    if let yog_data::Value::Map(map) = &doc.value {
+        let mut line = 1;
+        let mut at = 0;
+        for ((name, _), spans) in map.iter().zip(&doc.spans.children) {
+            let start = spans.key.unwrap_or(spans.span).start as usize;
+            line += text.as_bytes()[at..start].iter().filter(|&&b| b == b'\n').count();
+            at = start;
+            lines.insert(name, line);
+        }
+    }
+    for e in &mut entries {
+        e.line = lines.get(e.name.as_str()).copied().unwrap_or(0);
     }
     Ok(entries)
 }
 
-struct Parser<'a> {
-    s: &'a [u8],
-    i: usize,
-    line: usize,
-}
-
-impl Parser<'_> {
-    fn peek(&self) -> Option<u8> {
-        self.s.get(self.i).copied()
-    }
-
-    fn eat(&mut self, c: u8) -> bool {
-        if self.peek() == Some(c) {
-            self.i += 1;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn eat_word(&mut self, word: &str) -> bool {
-        if self.s[self.i..].starts_with(word.as_bytes()) {
-            self.i += word.len();
-            true
-        } else {
-            false
-        }
-    }
-
-    fn ws(&mut self) {
-        while let Some(c) = self.peek() {
-            match c {
-                b'\n' => self.line += 1,
-                b' ' | b'\t' | b'\r' => {}
-                _ => return,
-            }
-            self.i += 1;
-        }
-    }
-
-    fn err(&self, msg: &str) -> String {
-        match self.peek() {
-            None => format!("line {}: {msg}, found the end of the file", self.line),
-            Some(_) => format!("line {}: {msg}", self.line),
-        }
-    }
-
-    /// A string, number or `true`/`false`.
-    fn scalar(&mut self) -> Result<Value, String> {
-        match self.peek() {
-            Some(b'"') => Ok(Value::Str(self.string()?)),
-            Some(b't') if self.eat_word("true") => Ok(Value::Bool(true)),
-            Some(b'f') if self.eat_word("false") => Ok(Value::Bool(false)),
-            Some(c) if c == b'-' || c.is_ascii_digit() => {
-                let start = self.i;
-                while let Some(c) = self.peek() {
-                    if c.is_ascii_digit() || matches!(c, b'-' | b'+' | b'.' | b'e' | b'E') {
-                        self.i += 1;
-                    } else {
-                        break;
-                    }
-                }
-                let lit = String::from_utf8_lossy(&self.s[start..self.i]).into_owned();
-                if lit.parse::<f64>().is_err() {
-                    return Err(format!("line {}: invalid number `{lit}`", self.line));
-                }
-                Ok(Value::Num(lit))
-            }
-            _ => Err(self.err("expected a value")),
-        }
-    }
-
-    /// A JSON string literal, unescaped.
-    fn string(&mut self) -> Result<String, String> {
-        if !self.eat(b'"') {
-            return Err(self.err("expected a string"));
-        }
-        let mut out: Vec<u8> = Vec::new();
-        loop {
-            let Some(c) = self.peek() else {
-                return Err(self.err("unterminated string"));
-            };
-            self.i += 1;
-            match c {
-                b'"' => break,
-                b'\n' => {
-                    return Err(format!(
-                        "line {}: unterminated string (strings can't span lines — use \\n)",
-                        self.line
-                    ));
-                }
-                b'\\' => {
-                    let Some(e) = self.peek() else {
-                        return Err(self.err("unterminated string"));
-                    };
-                    self.i += 1;
-                    let ch = match e {
-                        b'"' => '"',
-                        b'\\' => '\\',
-                        b'/' => '/',
-                        b'b' => '\u{8}',
-                        b'f' => '\u{c}',
-                        b'n' => '\n',
-                        b'r' => '\r',
-                        b't' => '\t',
-                        b'u' => self.unicode_escape()?,
-                        other => {
-                            return Err(format!(
-                                "line {}: invalid escape `\\{}`",
-                                self.line, other as char
-                            ));
-                        }
-                    };
-                    let mut buf = [0u8; 4];
-                    out.extend_from_slice(ch.encode_utf8(&mut buf).as_bytes());
-                }
-                c if c < 0x20 => {
-                    return Err(format!(
-                        "line {}: control character in a string — escape it",
-                        self.line
-                    ));
-                }
-                c => out.push(c),
-            }
-        }
-        String::from_utf8(out)
-            .map_err(|_| format!("line {}: the string isn't valid UTF-8", self.line))
-    }
-
-    fn hex4(&mut self) -> Result<u32, String> {
-        let digits = self
-            .s
-            .get(self.i..self.i + 4)
-            .ok_or_else(|| self.err("truncated \\u escape"))?;
-        let text = std::str::from_utf8(digits).map_err(|_| self.err("invalid \\u escape"))?;
-        let v = u32::from_str_radix(text, 16)
-            .map_err(|_| format!("line {}: invalid \\u escape `\\u{text}`", self.line))?;
-        self.i += 4;
-        Ok(v)
-    }
-
-    fn unicode_escape(&mut self) -> Result<char, String> {
-        let hi = self.hex4()?;
-        let code = if (0xD800..0xDC00).contains(&hi) {
-            if !(self.eat(b'\\') && self.eat(b'u')) {
-                return Err(format!(
-                    "line {}: lone surrogate in a \\u escape",
-                    self.line
-                ));
-            }
-            let lo = self.hex4()?;
-            if !(0xDC00..0xE000).contains(&lo) {
-                return Err(format!(
-                    "line {}: invalid surrogate pair in a \\u escape",
-                    self.line
-                ));
-            }
-            0x10000 + ((hi - 0xD800) << 10) + (lo - 0xDC00)
-        } else {
-            hi
-        };
-        char::from_u32(code).ok_or_else(|| format!("line {}: invalid \\u escape", self.line))
-    }
-
-    /// `{ "type": ..., "value": ..., "comment": ..., ... }` into `entry`.
-    fn entry_object(&mut self, entry: &mut Entry) -> Result<(), String> {
-        let name = entry.name.clone();
-        let start = self.line;
-        self.eat(b'{');
-        let mut value = None;
-        let mut kind = None;
-        let mut seen: Vec<String> = Vec::new();
-        self.ws();
-        if !self.eat(b'}') {
-            loop {
-                self.ws();
-                let field_line = self.line;
-                let field = self.string()?;
-                self.ws();
-                if !self.eat(b':') {
-                    return Err(self.err("expected `:`"));
-                }
-                self.ws();
-                if seen.contains(&field) {
-                    return Err(format!(
-                        "line {field_line}: {name:?}: duplicate field `{field}`"
-                    ));
-                }
-                let v = self.scalar()?;
-                let text = |v: Value| match v {
-                    Value::Str(s) => Ok(s),
-                    _ => Err(format!(
-                        "line {field_line}: {name:?}: `{field}` must be a string"
-                    )),
-                };
-                match field.as_str() {
-                    "value" => value = Some(v),
-                    "type" => {
-                        let t = text(v)?;
-                        kind = Some(Kind::parse(&t).ok_or_else(|| {
-                            format!(
-                                "line {field_line}: {name:?}: unknown type `{t}` (string, image, file, sound, color, number or bool)"
-                            )
-                        })?);
-                    }
-                    "comment" => entry.comment = Some(text(v)?),
-                    "key" => entry.key = Some(text(v)?),
-                    "texture" => entry.texture = Some(text(v)?),
-                    "event" => entry.event = Some(text(v)?),
-                    "subtitle" => entry.subtitle = Some(text(v)?),
-                    other => {
-                        return Err(format!(
-                            "line {field_line}: {name:?}: unknown field `{other}` (value, type, comment, key, texture, event, subtitle)"
-                        ));
-                    }
-                }
-                seen.push(field);
-                self.ws();
-                if self.eat(b',') {
-                    continue;
-                }
-                if self.eat(b'}') {
-                    break;
-                }
-                return Err(self.err("expected `,` or `}`"));
-            }
-        }
-        let value = value.ok_or_else(|| format!("line {start}: {name:?}: missing `value`"))?;
-        let kind = kind.unwrap_or(match value {
-            Value::Str(_) => Kind::String,
-            Value::Num(_) => Kind::Number,
-            Value::Bool(_) => Kind::Bool,
-        });
-        let fits = matches!(
-            (kind, &value),
-            (Kind::Number, Value::Num(_))
-                | (Kind::Bool, Value::Bool(_))
-                | (
-                    Kind::String | Kind::Image | Kind::File | Kind::Sound | Kind::Color,
-                    Value::Str(_)
-                )
-        );
-        if !fits {
-            return Err(format!(
-                "line {start}: {name:?}: a {} needs a {} value",
-                kind.name(),
-                match kind {
-                    Kind::Number => "number",
-                    Kind::Bool => "true/false",
-                    _ => "string",
-                }
-            ));
-        }
-        let misplaced = [
-            ("key", entry.key.is_some(), Kind::String),
-            ("texture", entry.texture.is_some(), Kind::Image),
-            ("event", entry.event.is_some(), Kind::Sound),
-            ("subtitle", entry.subtitle.is_some(), Kind::Sound),
-        ];
-        for (field, present, only) in misplaced {
-            if present && kind != only {
-                return Err(format!(
-                    "line {start}: {name:?}: `{field}` is only for {} entries",
-                    only.name()
-                ));
-            }
-        }
-        entry.kind = kind;
-        entry.value = value;
-        Ok(())
-    }
+/// `.yres` text for `entries`, as the IDE writes it.
+pub fn write(entries: &[Entry]) -> String {
+    yog_data::text::to_string_pretty(&YresFile(entries.to_vec()).write())
 }
 
 // ── Names ─────────────────────────────────────────────────────────────────────
@@ -1347,41 +1156,43 @@ mod tests {
 
     #[test]
     fn parses_all_shapes_in_order() {
-        let entries = parse(
-            "{\n  \"b\": \"B\",\n  \"a\": { \"value\": \"A \\u00e9\", \"comment\": \"note\", \"key\": \"x.y\" },\n  \"n\": 5,\n  \"f\": false,\n  \"c\": { \"type\": \"color\", \"value\": \"#FF0000\" },\n  \"r\": { \"type\": \"number\", \"value\": -1.5e2 }\n}\n",
-        )
-        .unwrap();
-        assert_eq!(entries.len(), 6);
+        let text = "{\n  // Comments are fine.\n  \"b\": \"B\",\n  \"a\": { \"value\": \"A \\u00e9\", \"comment\": \"note\", \"key\": \"x.y\" },\n  \"n\": 5,\n  \"f\": false,\n  \"c\": { \"type\": \"color\", \"value\": \"#FF0000\" },\n  \"r\": { \"type\": \"number\", \"value\": -1.5e2 },\n  \"at\": \"@@everyone\",\n}\n";
+        let entries = parse(text).unwrap();
+        assert_eq!(entries.len(), 7);
         assert_eq!(entries[0].name, "b");
-        assert_eq!(entries[1].line, 3);
+        assert_eq!(entries[1].line, 4);
         assert_eq!(entries[1].value, Value::Str("A é".into()));
         assert_eq!(entries[1].key.as_deref(), Some("x.y"));
         assert_eq!(entries[2].kind, Kind::Number);
         assert_eq!(entries[3].value, Value::Bool(false));
         assert_eq!(entries[4].kind, Kind::Color);
-        assert_eq!(entries[5].value, Value::Num("-1.5e2".into()));
+        assert_eq!(entries[5].value, Value::Num("-150.0".into()));
+        assert_eq!(entries[6].value, Value::Str("@everyone".into()));
+        // Written back, it reads the same.
+        let again = parse(&write(&entries)).unwrap();
+        assert_eq!(again.iter().map(|e| (&e.name, e.kind, &e.value, &e.key)).collect::<Vec<_>>(), entries.iter().map(|e| (&e.name, e.kind, &e.value, &e.key)).collect::<Vec<_>>());
     }
 
     #[test]
     fn errors_carry_lines() {
         let err = parse("{\n  \"a\": \"1\",\n  \"a\": \"2\"\n}").unwrap_err();
-        assert!(
-            err.starts_with("line 3: duplicate name \"a\" (first on line 2)"),
-            "{err}"
-        );
+        assert_eq!(err, "3:3: `a` is already set in this object");
         let err = parse("{\n  \"a\": { \"type\": \"bool\", \"value\": \"x\" }\n}").unwrap_err();
-        assert!(
-            err.starts_with("line 2:") && err.contains("true/false"),
-            "{err}"
-        );
+        assert_eq!(err, "2:35: a.value: a bool needs a true/false value");
         let err = parse("{\n\"a\": { \"value\": \"x\", \"note\": \"y\" }\n}").unwrap_err();
-        assert!(err.contains("unknown field `note`"), "{err}");
-        let err = parse("{\n\"a\": { \"type\": \"image\", \"value\": \"x\", \"key\": \"k\" }\n}")
-            .unwrap_err();
-        assert!(err.contains("`key` is only for string"), "{err}");
+        assert!(err.contains("2:22: a.note: unknown field `note`"), "{err}");
+        let err = parse("{\n\"a\": { \"type\": \"image\", \"value\": \"x\", \"key\": \"k\" }\n}").unwrap_err();
+        assert_eq!(err, "2:46: a.key: only string entries have a `key`");
         let err = parse("{\n  \"a\": \"1\"\n  \"b\": \"2\"\n}").unwrap_err();
-        assert!(err.starts_with("line 3: expected `,` or `}`"), "{err}");
-        assert!(parse("[]").unwrap_err().starts_with("line 1: expected `{`"));
+        assert_eq!(err, "3:3: expected `,` or `}`");
+        // Every problem at once.
+        let err = parse("{\n  \"a\": [],\n  \"b\": { \"type\": \"img\", \"value\": \"@Strings.x\" }\n}").unwrap_err();
+        assert_eq!(err.lines().collect::<Vec<_>>(), [
+            "2:8: a: expected a string, a number or true/false, found a list",
+            "3:18: b.type: unknown `img` — did you mean `image`?",
+            "3:34: b.value: expected plain text, found a resource (write `@@` for a literal `@`)",
+        ]);
+        assert!(parse("[]").unwrap_err().contains("expected `{`"));
         assert!(parse("\u{FEFF}{ }").unwrap().is_empty());
     }
 
