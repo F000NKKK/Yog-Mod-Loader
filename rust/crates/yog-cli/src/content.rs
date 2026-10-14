@@ -664,10 +664,12 @@ fn model(cx: &mut Ctx, j: &J, what: &str, item: bool) -> Option<Model> {
         cx.err(j.line, format!("{what}: no parent and no elements — give a template (\"parent\": \"cube_all\") or elements"));
     }
 
-    // `particle` — the break/run particles. Default: the first texture.
+    // `particle` — the break/run particles. Default: the first texture —
+    // also under a raw parent when the model brings its own elements (a
+    // parent like `minecraft:block/block` names no particle texture).
     if !textures.contains_key("particle")
         && !tpl.is_some_and(|t| t.has_particle)
-        && !raw_parent
+        && (!raw_parent || j.get("elements").is_some())
         && let Some(first) = slots.first()
     {
         let v = textures[first].clone();
@@ -2298,6 +2300,19 @@ mod tests {
             find("data/minecraft/tags/block/needs_iron_tool.json")["values"],
             json!(["mymod:ruby_ore"])
         );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn raw_parent_with_elements_gets_a_particle() {
+        let root = project(&[(
+            "content/cable.yblock",
+            r##"{ "model": { "parent": "minecraft:block/block", "textures": { "all": "minecraft:block/stone" },
+                 "elements": [ { "from": [5, 5, 5], "to": [11, 11, 11], "faces": { "up": { "texture": "#all" } } } ] } }"##,
+        )]);
+        let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
+        let m = output(&c, "assets/mymod/models/block/cable.json");
+        assert_eq!(m["textures"]["particle"], json!("minecraft:block/stone"));
         let _ = std::fs::remove_dir_all(root);
     }
 
