@@ -62,6 +62,9 @@ struct Inner {
     library: Mutex<Option<Library>>,
     active: AtomicUsize,
     retiring: AtomicBool,
+    /// Set (under the `library` lock) right before the library is dropped —
+    /// what [`LoadedModule::enter`] checks, lock-free, on every call.
+    unloaded: AtomicBool,
     on_retire: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
@@ -75,11 +78,17 @@ fn try_unload(inner: &Inner) {
     if !inner.retiring.load(Ordering::SeqCst) {
         return;
     }
-    let mut library = inner.library.lock().unwrap();
+    let mut library = inner.library.lock().unwrap_or_else(|e| e.into_inner());
     if library.is_none() {
         return;
     }
+    // Claim the unload first, then look for calls in flight: an `enter`
+    // that increments `active` after this sees `unloaded` and backs out;
+    // one that incremented before is seen here, and the unload waits for
+    // its guard (SeqCst orders the two pairs of operations).
+    inner.unloaded.store(true, Ordering::SeqCst);
     if inner.active.load(Ordering::SeqCst) != 0 {
+        inner.unloaded.store(false, Ordering::SeqCst);
         return;
     }
     if let Some(on_retire) = inner.on_retire.lock().unwrap().take() {
@@ -112,6 +121,7 @@ impl LoadedModule {
             library: Mutex::new(Some(library)),
             active: AtomicUsize::new(0),
             retiring: AtomicBool::new(false),
+            unloaded: AtomicBool::new(false),
             on_retire: Mutex::new(None),
         })))
     }
@@ -131,6 +141,7 @@ impl LoadedModule {
             library: Mutex::new(Some(library)),
             active: AtomicUsize::new(0),
             retiring: AtomicBool::new(false),
+            unloaded: AtomicBool::new(false),
             on_retire: Mutex::new(None),
         }))
     }
@@ -171,14 +182,15 @@ impl LoadedModule {
     /// integration point with `yog-runtime`'s existing `catch_unwind`-based
     /// `guard()` helper).
     pub fn enter(&self) -> Option<CallGuard> {
-        if self.0.library.lock().unwrap().is_none() {
+        // Lock-free: count the call in, then check the module is still
+        // there (see `try_unload` for the ordering that makes this safe).
+        self.0.active.fetch_add(1, Ordering::SeqCst);
+        if self.0.unloaded.load(Ordering::SeqCst) {
+            self.0.active.fetch_sub(1, Ordering::SeqCst);
+            // An unload that backed off because of this call can go now.
+            try_unload(&self.0);
             return None;
         }
-        self.0.active.fetch_add(1, Ordering::SeqCst);
-        // A retirement may race us between the loaded check and the
-        // increment; that's fine — either this guard legitimately delays
-        // unloading, or the caller drops it and its `try_unload` (which is
-        // idempotent) performs the unload right after.
         Some(CallGuard(self.0.clone()))
     }
 
@@ -307,5 +319,62 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
     /// The host's [`ModuleRegistry`] implementation.
     pub fn registry(&self) -> &R {
         &self.registry
+    }
+}
+
+#[cfg(all(test, feature = "testing"))]
+mod lifecycle_tests {
+    use super::*;
+    use std::sync::atomic::AtomicUsize;
+
+    #[test]
+    fn a_retired_module_unloads_once_the_last_call_returns() {
+        let m = LoadedModule::this_process(GenerationAllocator::new().next());
+        let unloads = Arc::new(AtomicUsize::new(0));
+        let guard = m.enter().expect("loaded");
+        let u = unloads.clone();
+        m.retire(move || {
+            u.fetch_add(1, Ordering::SeqCst);
+        });
+        assert_eq!(unloads.load(Ordering::SeqCst), 0, "a call is still inside");
+        let second = m.enter();
+        assert!(second.is_some(), "still loaded while a call runs");
+        drop(second);
+        drop(guard);
+        assert_eq!(unloads.load(Ordering::SeqCst), 1, "unloaded when the last call returned");
+        assert!(m.enter().is_none(), "gone");
+        m.retire(|| {});
+        assert_eq!(unloads.load(Ordering::SeqCst), 1, "once");
+    }
+
+    #[test]
+    fn calls_racing_a_retirement_never_run_in_an_unloaded_module() {
+        for _ in 0..200 {
+            let m = LoadedModule::this_process(GenerationAllocator::new().next());
+            let inside_after_unload = Arc::new(AtomicBool::new(false));
+            let unloaded = Arc::new(AtomicBool::new(false));
+            let callers: Vec<_> = (0..4)
+                .map(|_| {
+                    let (m, bad, gone) = (m.clone(), inside_after_unload.clone(), unloaded.clone());
+                    std::thread::spawn(move || {
+                        for _ in 0..200 {
+                            if let Some(g) = m.enter() {
+                                if gone.load(Ordering::SeqCst) {
+                                    bad.store(true, Ordering::SeqCst);
+                                }
+                                drop(g);
+                            }
+                        }
+                    })
+                })
+                .collect();
+            let gone = unloaded.clone();
+            m.retire(move || gone.store(true, Ordering::SeqCst));
+            for c in callers {
+                c.join().unwrap();
+            }
+            assert!(!inside_after_unload.load(Ordering::SeqCst), "a call ran after the unload");
+            assert!(unloaded.load(Ordering::SeqCst), "it did unload");
+        }
     }
 }
