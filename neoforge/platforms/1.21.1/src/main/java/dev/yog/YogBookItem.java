@@ -19,10 +19,7 @@ public class YogBookItem extends YogItem {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (level.isClientSide) {
-            String json = NativeBridge.nativeBookJson(bookId);
-            if (json != null && !json.equals("null")) {
-                Minecraft.getInstance().setScreen(new YogUIScreen(bookId));
-            }
+            Minecraft.getInstance().setScreen(new YogUIScreen(bookId));
         }
         return InteractionResultHolder.success(player.getItemInHand(hand));
     }

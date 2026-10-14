@@ -16,9 +16,9 @@ import java.util.Map;
 public final class YogContent {
     public record Food(int nutrition, float saturation, boolean alwaysEdible) {}
 
-    /** An item; {@code name}/{@code tooltip} are empty when not set, {@code food} null. */
+    /** An item; {@code name}/{@code tooltip} are empty when not set, {@code food} null; {@code book}: opens the book of its id. */
     public record Item(String id, int maxStack, String name, String tooltip, int maxDamage,
-                       boolean fireResistant, int fuelTicks, Food food) {}
+                       boolean fireResistant, int fuelTicks, Food food, boolean book) {}
 
     /** A block; {@code shape} ({@code x1, y1, z1, x2, y2, z2} in pixels), {@code sound} and {@code inventory} are null when not set. */
     public record Block(String id, float hardness, float resistance, String name, float[] shape, int light,
@@ -66,7 +66,7 @@ public final class YogContent {
             items.add(new Item(YogData.str(m.get("id"), ""), (int) YogData.integer(m.get("max_stack"), 64),
                     YogData.str(m.get("name"), ""), YogData.str(m.get("tooltip"), ""),
                     (int) YogData.integer(m.get("max_damage"), 0), YogData.bool(m.get("fire_resistant"), false),
-                    (int) YogData.integer(m.get("fuel_ticks"), 0), food));
+                    (int) YogData.integer(m.get("fuel_ticks"), 0), food, YogData.bool(m.get("book"), false)));
         }
         List<Block> blocks = new ArrayList<>();
         for (Object o : YogData.list(root.get("blocks"))) {

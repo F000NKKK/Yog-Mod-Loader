@@ -272,9 +272,8 @@ public class YogHost {
                     }
                 }
 
-                String bookJson = NativeBridge.nativeBookJson(id);
                 Item item;
-                if (bookJson != null && !bookJson.equals("null")) {
+                if (p.book()) {
                     item = new YogBookItem(props,
                             p.name(), p.tooltip(), id);
                 } else {

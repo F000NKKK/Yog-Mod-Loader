@@ -1,4 +1,4 @@
-//! What the hosts register — items, blocks, inventories, recipes,
+//! What the hosts register — items (and which open a book), blocks, inventories, recipes,
 //! dimensions — as one Yog Data
 //! blob (`yog_data::binary`), read by `dev.yog.data.YogContent` in
 //! java-common: one call and one format instead of a TSV dialect per kind.
@@ -57,6 +57,8 @@ pub fn snapshot(h: &RuntimeHandlers) -> Value {
             put(&mut m, "max_damage", d.max_damage as i64);
             put(&mut m, "fire_resistant", d.fire_resistant);
             put(&mut m, "fuel_ticks", d.fuel_ticks as i64);
+            // A book registered under the item's id: the host makes it open the book.
+            put(&mut m, "book", h.books.contains_key(&d.id));
             if let Some(f) = &d.food {
                 let mut food = Map::new();
                 put(&mut food, "nutrition", f.nutrition as i64);

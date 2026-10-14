@@ -2351,23 +2351,6 @@ unsafe extern "C" fn api_register_menu_entry(ctx: *mut c_void, label: YogStr, ui
     }
 }
 
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeBookJson<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    book_id: JString<'l>,
-) -> jstring {
-    let id = jstr!(env, book_id, std::ptr::null_mut());
-    let json = handlers()
-        .books
-        .get(&id)
-        .cloned()
-        .unwrap_or_else(|| "null".to_string());
-    env.new_string(json)
-        .map(jni::objects::JString::into_raw)
-        .unwrap_or(std::ptr::null_mut())
-}
-
 // ── World queries & effects (ABI minor 1) ────────────────────────────────────
 //
 // Each of these forwards to a `NativeBridge` static of the same shape; the JNI

@@ -18,10 +18,7 @@ public class YogBookItem extends YogItem {
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
         if (world.isClient) {
-            String json = NativeBridge.nativeBookJson(bookId);
-            if (json != null && !json.equals("null")) {
-                NativeBridge.openUI(bookId, true, false);
-            }
+            NativeBridge.openUI(bookId, true, false);
         }
         return TypedActionResult.success(player.getStackInHand(hand));
     }

@@ -197,6 +197,8 @@ fn the_hosts_get_content_as_one_yog_data_blob() {
     let h = registering(|ctx| unsafe {
         let def = yog_registry::ItemDef::new("mymod:apple").max_stack(16).name("Apple").tooltip("").fuel(200).food(yog_registry::FoodDef::new(4, 1.5).can_always_eat());
         content(ctx, "item", "mymod:apple", &def.write());
+        content(ctx, "item", "mymod:guide", &yog_registry::ItemDef::new("mymod:guide").write());
+        content(ctx, "book", "mymod:guide", &json(r#"{"id":"mymod:guide","name":"Guide","categories":[],"entries":[]}"#));
     });
     let bytes = yog_data::binary::encode(&crate::content_blob::snapshot(&h.read().unwrap()));
     let v = yog_data::binary::decode(&bytes).unwrap();
@@ -204,6 +206,8 @@ fn the_hosts_get_content_as_one_yog_data_blob() {
     assert_eq!(item.get("id").and_then(|x| x.as_str()), Some("mymod:apple"));
     assert_eq!(item.get("max_stack").and_then(|x| x.as_i64()), Some(16));
     assert!(item.get("tooltip").is_none(), "an empty tooltip is no tooltip");
+    let book = |i: usize| v.get("items").unwrap().as_list().unwrap()[i].get("book").and_then(|x| x.as_bool());
+    assert_eq!((book(0), book(1)), (Some(false), Some(true)), "the item of a book's id opens it");
     let food = item.get("food").unwrap();
     assert_eq!((food.get("nutrition").and_then(|x| x.as_i64()), food.get("always_edible").and_then(|x| x.as_bool())), (Some(4), Some(true)));
     assert_eq!(v.get("blocks").unwrap().as_list().unwrap().len(), 0);
@@ -215,6 +219,8 @@ fn write_a_content_blob() {
     let Some(out) = std::env::var_os("YOG_CONTENT_OUT") else { return };
     let mut h = RuntimeHandlers::default();
     h.items.push(yog_registry::ItemDef::new("m:apple").max_stack(16).name("Apple").food(yog_registry::FoodDef::new(4, 1.5).can_always_eat()));
+    h.items.push(yog_registry::ItemDef::new("m:guide"));
+    h.books.insert("m:guide".into(), "{}".into());
     let mut b = yog_registry::BlockDef::new("m:pipe");
     b.shape = Some([6.0, 6.0, 6.0, 10.0, 10.0, 10.0]);
     b.connects = true;

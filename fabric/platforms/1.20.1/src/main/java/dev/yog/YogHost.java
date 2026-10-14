@@ -431,9 +431,8 @@ public class YogHost implements ModInitializer {
                 }
 
                 // Check if this item has an associated book
-                String bookJson = NativeBridge.nativeBookJson(id);
                 Item item;
-                if (bookJson != null && !bookJson.equals("null")) {
+                if (p.book()) {
                     item = new YogBookItem(settings,
                             p.name(), p.tooltip(), id);
                 } else {

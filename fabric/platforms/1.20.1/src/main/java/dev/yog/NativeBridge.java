@@ -1478,8 +1478,6 @@ public final class NativeBridge {
     public static native void nativeGenerateChunk(
             String generatorTypeId, int chunkX, int chunkZ, int minY, int height);
 
-    /** Get the JSON of a registered book by its id (e.g. "yog:example_guide"). */
-    public static native String nativeBookJson(String bookId);
 
     /** Open a Rust-mod-defined UI. parentId="" for top-level, modal blocks clicks outside, pauseGame pauses MC. */
     public static native void nativeUIShow(String uiId, String parentId, boolean modal, boolean pauseGame, int screenW, int screenH);
