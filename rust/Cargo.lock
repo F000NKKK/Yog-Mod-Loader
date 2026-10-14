@@ -1225,7 +1225,7 @@ version = "0.28.3"
 
 [[package]]
 name = "yog-api"
-version = "0.92.10"
+version = "0.92.11"
 dependencies = [
  "ctor",
  "rkyv",
