@@ -145,9 +145,11 @@ public final class YogDataLayout {
      * {@code smithing}; an ingredient is an item id, a {@code #tag} or an
      * array of those (any of them) — as the vanilla recipe JSON of this
      * Minecraft version ({@code mc121}: 1.21's {@code "id"} results). JSON of
-     * another type (a namespaced one) is passed on (upgraded to 1.21 there).
+     * another mod's type ({@code create:mixing}) is passed on (upgraded to
+     * 1.21 there); the mod's own kind ({@code <namespace>:…}) is its data,
+     * not the game's: {@code null}, nothing to write.
      */
-    public static String yogRecipeToVanilla(String json, boolean mc121) {
+    public static String yogRecipeToVanilla(String json, String namespace, boolean mc121) {
         JsonObject in;
         try {
             in = JsonParser.parseString(json).getAsJsonObject();
@@ -155,7 +157,13 @@ public final class YogDataLayout {
             return json;
         }
         String type = in.has("type") ? in.get("type").getAsString() : "";
-        if (type.contains(":")) return mc121 ? upgradeRecipeJson(json) : json;
+        if (type.contains(":")) {
+            // The mod's own kind of recipe (`mymod:infusion`): its data, for
+            // its machines and books — not the game's.
+            if (type.startsWith(namespace + ":")) return null;
+            // Another mod's (a Java mod's `create:mixing`): as written.
+            return mc121 ? upgradeRecipeJson(json) : json;
+        }
         JsonObject out = new JsonObject();
         String result = in.has("result") ? in.get("result").getAsString() : "minecraft:air";
         int count = in.has("count") ? in.get("count").getAsInt() : 1;

@@ -1451,6 +1451,10 @@ enum RecipeKind {
     Cooking { method: &'static str, input: Vec<String>, experience: f64, cook_time: u32 },
     Stonecutting(Vec<String>),
     Smithing { template: Vec<String>, base: Vec<String>, addition: Vec<String> },
+    /// The mod's own kind of recipe (`mymod:infusion`), for its machines
+    /// and books — not the game's: named slots, each a list of ingredients
+    /// (an ingredient any of several items), and values (`time`, `energy`…).
+    Custom { kind: String, slots: Vec<(String, Vec<Vec<String>>)>, values: serde_json::Map<String, Value> },
 }
 
 /// One checked `.ybook`.
@@ -1666,6 +1670,23 @@ impl Recipe {
                 float(*experience)
             ),
             RecipeKind::Stonecutting(input) => format!("Stonecutting {{ ingredient: {} }}", list(input)),
+            RecipeKind::Custom { kind, slots, values } => {
+                // Yog's recipe JSON as is: the host keeps it out of the game's data.
+                let mut o = Map::new();
+                o.insert("type".into(), kind.clone().into());
+                o.insert("slots".into(), Value::Object(slots.iter().map(|(k, v)| (k.clone(), json!(v))).collect()));
+                if !values.is_empty() {
+                    o.insert("values".into(), Value::Object(values.clone()));
+                }
+                o.insert("result".into(), self.result.clone().into());
+                if self.count != 1 {
+                    o.insert("count".into(), self.count.into());
+                }
+                if let Some(g) = &self.group {
+                    o.insert("group".into(), g.clone().into());
+                }
+                return format!("registry.add_recipe_json({:?}, {:?});", self.id, Value::Object(o).to_string());
+            }
             RecipeKind::Smithing { template, base, addition } => format!(
                 "Smithing {{ template: {}, base: {}, addition: {} }}",
                 list(template),
@@ -1712,6 +1733,78 @@ fn recipe_item(cx: &mut Ctx, j: &J, what: &str, tags: bool, items: &mut Vec<(usi
     Some(s)
 }
 
+/// A recipe of the mod's own kind `kind`: `slots` (name → a list of
+/// ingredients), `values`, `result`, `count`, `group`.
+fn compile_custom_recipe(cx: &mut Ctx, j: &J, kind: String, id: String) -> Option<Recipe> {
+    for key in ["pattern", "key", "ingredients", "ingredient", "experience", "cook_time", "template", "base", "addition", "category"] {
+        if let Some(v) = j.get(key) {
+            cx.err(v.line, format!("{key} is for the game's recipe types; {kind} takes \"slots\" and \"values\""));
+        }
+    }
+    let mut items = Vec::new();
+    let mut slots = Vec::new();
+    match j.get("slots") {
+        Some(sv) if sv.is_obj() => {
+            for (name, list) in sv.members() {
+                if !list.is_arr() || list.items().is_empty() {
+                    cx.err(list.line, format!("slots.{name}: a list of ingredients — [\"minecraft:diamond\"], [[\"minecraft:coal\", \"minecraft:charcoal\"]]"));
+                    continue;
+                }
+                let ings: Vec<Vec<String>> = list
+                    .items()
+                    .iter()
+                    .filter_map(|i| recipe_ingredient(cx, i, &format!("slots.{name}[]"), &mut items))
+                    .collect();
+                slots.push((name.clone(), ings));
+            }
+        }
+        Some(sv) => cx.err(sv.line, "slots must be an object: { \"core\": [\"minecraft:diamond\"] }"),
+        None => cx.err(j.line, format!("a {kind} recipe needs \"slots\": what goes in, by slot name")),
+    }
+    let values = match j.get("values") {
+        Some(v) if v.is_obj() => v.members().iter().map(|(k, x)| (k.clone(), json_value(x))).collect(),
+        Some(v) => {
+            cx.err(v.line, "values must be an object: { \"time\": 200 }");
+            Map::new()
+        }
+        None => Map::new(),
+    };
+    let result = match j.get("result") {
+        Some(v) => recipe_item(cx, v, "result", false, &mut items),
+        None => {
+            cx.err(j.line, "a recipe needs a \"result\": the item it makes");
+            None
+        }
+    };
+    let count = match j.get("count") {
+        Some(v) => cx.number(v, "count", 1.0, 64.0).map(|n| n as u32),
+        None => Some(1),
+    };
+    let group = j.get("group").and_then(|v| cx.string(v, "group").map(str::to_owned));
+    Some(Recipe {
+        id,
+        file: cx.file.clone(),
+        kind: RecipeKind::Custom { kind, slots, values },
+        result: result?,
+        count: count?,
+        group,
+        category: None,
+        items,
+    })
+}
+
+/// `j` as plain JSON.
+fn json_value(j: &J) -> Value {
+    match &j.v {
+        V::Null => Value::Null,
+        V::Bool(b) => Value::Bool(*b),
+        V::Num(n) => num_value(*n),
+        V::Str(s) => Value::String(s.clone()),
+        V::Arr(items) => Value::Array(items.iter().map(json_value).collect()),
+        V::Obj(members) => Value::Object(members.iter().map(|(k, v)| (k.clone(), json_value(v))).collect()),
+    }
+}
+
 /// Checks one `.yrecipe`.
 fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Option<Recipe> {
     if !j.is_obj() {
@@ -1724,7 +1817,7 @@ fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Opt
         &[
             "$schema", "format", "id", "type", "pattern", "key", "ingredients", "ingredient",
             "result", "count", "experience", "cook_time", "template", "base", "addition", "group",
-            "category",
+            "category", "slots", "values",
         ],
     );
     if let Some(f) = j.get("format")
@@ -1737,6 +1830,10 @@ fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Opt
         cx.err(j.line, format!("a recipe needs a \"type\": {}", RECIPE_TYPES.join(", ")));
         return None;
     };
+    // The mod's own kind of recipe: `<mod id>:<kind>`.
+    if let Some(own) = t.str().filter(|ty| mod_ns.is_some_and(|m| ty.split_once(':').is_some_and(|(n, k)| n == m && valid_path(k)))) {
+        return compile_custom_recipe(cx, j, own.to_string(), format!("{ns}:{p}"));
+    }
     let ty = cx.one_of(t, "type", &RECIPE_TYPES)?;
     let cooking = matches!(ty.as_str(), "smelting" | "blasting" | "smoking" | "campfire_cooking");
     // Keys of the other types.
@@ -2780,6 +2877,23 @@ mod tests {
         let bad = project(&[("content/bad.ybook", r#"{ "id": "x", "entries": [{ "pages": [{ "type": "nope" }] }] }"#)]);
         let e = compile(&bad, "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("not a book"), "{e}");
+    }
+
+    #[test]
+    fn compiles_a_recipe_of_the_mods_own_kind() {
+        let r = r##"{ "type": "mymod:infusion", "slots": { "core": ["minecraft:diamond"], "ring": [["minecraft:coal", "minecraft:charcoal"], "#c:dusts"] },
+                     "values": { "time": 200 }, "result": "minecraft:emerald", "count": 2 }"##;
+        let c = compile(&project(&[("content/infusion.yrecipe", r)]), "mymod", &yres::Refs::default()).unwrap();
+        let src = c.source.unwrap();
+        assert!(src.contains("registry.add_recipe_json(\"mymod:infusion\""), "{src}");
+        assert!(src.contains(r#"\"type\":\"mymod:infusion\""#) && src.contains(r#"\"time\":200"#), "{src}");
+
+        let bad = r#"{ "type": "mymod:infusion", "ingredient": "minecraft:stone", "result": "minecraft:emerald" }"#;
+        let e = compile(&project(&[("content/bad.yrecipe", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("takes \"slots\"") && e.contains("needs \"slots\""), "{e}");
+        // Another mod's kind isn't the mod's own: not a Yog recipe type.
+        let other = r#"{ "type": "create:mixing", "result": "minecraft:emerald" }"#;
+        assert!(compile(&project(&[("content/o.yrecipe", other)]), "mymod", &yres::Refs::default()).is_err());
     }
 
     #[test]

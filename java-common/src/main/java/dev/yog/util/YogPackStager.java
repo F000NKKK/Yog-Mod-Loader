@@ -121,11 +121,13 @@ public final class YogPackStager {
             String name     = parts[1];
             String json     = parts[2];
             try {
+                String vanilla = YogDataLayout.yogRecipeToVanilla(json, namespace, mc121);
+                if (vanilla == null) continue;
                 Path target = packRoot
                         .resolve("data").resolve(namespace).resolve(YogDataLayout.recipeDir(mc121))
                         .resolve(name + ".json");
                 Files.createDirectories(target.getParent());
-                Files.writeString(target, YogDataLayout.yogRecipeToVanilla(json, mc121));
+                Files.writeString(target, vanilla);
             } catch (IOException e) {
                 System.err.println("[yog] failed to write recipe " + namespace + ":" + name + ": " + e);
             }

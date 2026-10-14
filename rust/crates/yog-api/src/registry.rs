@@ -2090,6 +2090,14 @@ impl Registry {
         self.recipe(ns, name, &recipe.to_json());
     }
 
+    /// Register a recipe given as Yog's recipe JSON — how `yog build`
+    /// registers the mod's own kinds (`{"type": "mymod:infusion", "slots":
+    /// …}`), which stay the mod's data: for its machines and its books.
+    pub fn add_recipe_json(&mut self, id: &str, json: &str) {
+        let (ns, name) = id.split_once(':').unwrap_or(("minecraft", id));
+        self.recipe(ns, name, json);
+    }
+
     // ── content ──────────────────────────────────────────────────────────────
 
     pub fn register_item(&mut self, def: ItemDef) {
