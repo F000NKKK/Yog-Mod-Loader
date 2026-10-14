@@ -1081,6 +1081,55 @@ impl Server for CServer {
             )
         }
     }
+
+    fn set_item_cooldown(&self, player: &str, item_id: &str, ticks: u32) -> bool {
+        let s = srv!(self);
+        unsafe { (s.set_item_cooldown)(s.ctx, YogStr::from_str(player), YogStr::from_str(item_id), ticks.min(i32::MAX as u32) as i32) }
+    }
+
+    fn entity_teleport_with_passengers(&self, uuid: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool {
+        let s = srv!(self);
+        unsafe {
+            (s.entity_teleport_with_passengers)(
+                s.ctx,
+                YogStr::from_str(uuid),
+                YogStr::from_str(dimension),
+                yog_abi::YogVec3 { x, y, z },
+            )
+        }
+    }
+
+    fn redstone_power(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<u8> {
+        let s = srv!(self);
+        let p = unsafe { (s.redstone_power)(s.ctx, YogStr::from_str(dimension), bp(pos)) };
+        (0..=15).contains(&p).then_some(p as u8)
+    }
+
+    fn set_redstone_output(&self, dimension: &str, pos: yog_core::BlockPos, level: u8) -> bool {
+        let s = srv!(self);
+        unsafe { (s.set_redstone_output)(s.ctx, YogStr::from_str(dimension), bp(pos), level.min(15) as i32) }
+    }
+
+    fn get_block_state(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<String> {
+        let s = srv!(self);
+        let owned = unsafe { (s.get_block_state)(s.ctx, YogStr::from_str(dimension), bp(pos)) };
+        take_owned(s.free_str, owned).filter(|b| !b.is_empty())
+    }
+
+    fn set_block_state(&self, dimension: &str, pos: yog_core::BlockPos, state: &str) -> bool {
+        let s = srv!(self);
+        unsafe { (s.set_block_state)(s.ctx, YogStr::from_str(dimension), bp(pos), YogStr::from_str(state)) }
+    }
+
+    fn world_is_thundering(&self, dimension: &str) -> bool {
+        let s = srv!(self);
+        unsafe { (s.world_is_thundering)(s.ctx, YogStr::from_str(dimension)) }
+    }
+
+    fn world_set_thunder(&self, dimension: &str, thundering: bool, duration_ticks: i32) -> bool {
+        let s = srv!(self);
+        unsafe { (s.world_set_thunder)(s.ctx, YogStr::from_str(dimension), thundering, duration_ticks) }
+    }
 }
 
 /// Copy a runtime-owned string out and free it; `None` for NONE.

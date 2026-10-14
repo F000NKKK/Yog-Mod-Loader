@@ -402,4 +402,28 @@ impl Server for NullServer {
     fn place_feature(&self, dimension: &str, pos: BlockPos, feature_id: &str) -> bool {
         Default::default()
     }
+    fn set_item_cooldown(&self, player: &str, item_id: &str, ticks: u32) -> bool {
+        Default::default()
+    }
+    fn entity_teleport_with_passengers(&self, uuid: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool {
+        Default::default()
+    }
+    fn redstone_power(&self, dimension: &str, pos: BlockPos) -> Option<u8> {
+        Default::default()
+    }
+    fn set_redstone_output(&self, dimension: &str, pos: BlockPos, level: u8) -> bool {
+        Default::default()
+    }
+    fn get_block_state(&self, dimension: &str, pos: BlockPos) -> Option<String> {
+        Default::default()
+    }
+    fn set_block_state(&self, dimension: &str, pos: BlockPos, state: &str) -> bool {
+        Default::default()
+    }
+    fn world_is_thundering(&self, dimension: &str) -> bool {
+        Default::default()
+    }
+    fn world_set_thunder(&self, dimension: &str, thundering: bool, duration_ticks: i32) -> bool {
+        Default::default()
+    }
 }

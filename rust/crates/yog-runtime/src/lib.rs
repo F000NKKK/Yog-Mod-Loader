@@ -2824,7 +2824,51 @@ fn build_server_table() -> YogServer {
         has_entity_tag: srv_has_entity_tag,
         item_block: srv_item_block,
         place_feature: srv_place_feature,
+        set_item_cooldown: srv_set_item_cooldown,
+        entity_teleport_with_passengers: srv_entity_teleport_with_passengers,
+        redstone_power: srv_redstone_power,
+        set_redstone_output: srv_set_redstone_output,
+        get_block_state: srv_get_block_state,
+        set_block_state: srv_set_block_state,
+        world_is_thundering: srv_world_is_thundering,
+        world_set_thunder: srv_world_set_thunder,
     }
+}
+
+// ── ABI minor 3 ──────────────────────────────────────────────────────────────
+
+unsafe extern "C" fn srv_set_item_cooldown(_ctx: *mut c_void, player: YogStr, item_id: YogStr, ticks: i32) -> bool {
+    unsafe { bridge!("setItemCooldown", [S(player), S(item_id), I(ticks)]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn srv_entity_teleport_with_passengers(_ctx: *mut c_void, uuid: YogStr, dim: YogStr, pos: YogVec3) -> bool {
+    unsafe {
+        bridge!("entityTeleportWithPassengers", [S(uuid), S(dim), D(pos.x), D(pos.y), D(pos.z)]).unwrap_or(false)
+    }
+}
+
+unsafe extern "C" fn srv_redstone_power(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32 {
+    unsafe { bridge!("redstonePower", [S(dim), I(pos.x), I(pos.y), I(pos.z)]).unwrap_or(-1) }
+}
+
+unsafe extern "C" fn srv_set_redstone_output(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, level: i32) -> bool {
+    unsafe { bridge!("setRedstoneOutput", [S(dim), I(pos.x), I(pos.y), I(pos.z), I(level)]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn srv_get_block_state(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr {
+    unsafe { owned(bridge!("getBlockState", [S(dim), I(pos.x), I(pos.y), I(pos.z)])) }
+}
+
+unsafe extern "C" fn srv_set_block_state(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, state: YogStr) -> bool {
+    unsafe { bridge!("setBlockState", [S(dim), I(pos.x), I(pos.y), I(pos.z), S(state)]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn srv_world_is_thundering(_ctx: *mut c_void, dim: YogStr) -> bool {
+    unsafe { bridge!("worldIsThundering", [S(dim)]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn srv_world_set_thunder(_ctx: *mut c_void, dim: YogStr, thundering: bool, duration_ticks: i32) -> bool {
+    unsafe { bridge!("worldSetThunder", [S(dim), Z(thundering), I(duration_ticks)]).unwrap_or(false) }
 }
 
 // ── Inter-mod communication ──────────────────────────────────────────────────

@@ -1112,6 +1112,23 @@ pub struct YogServer {
         pos: YogBlockPos,
         feature_id: YogStr,
     ) -> bool,
+
+    // ── ABI minor 3 ──────────────────────────────────────────────────────────
+    pub set_item_cooldown:
+        unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, item_id: YogStr, ticks: i32) -> bool,
+    pub entity_teleport_with_passengers:
+        unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, dim: YogStr, pos: YogVec3) -> bool,
+    /// Received redstone power 0–15, or -1 (no such dimension).
+    pub redstone_power: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32,
+    pub set_redstone_output:
+        unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, level: i32) -> bool,
+    /// `"ns:id[prop=value,...]"`, or NONE.
+    pub get_block_state: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr,
+    pub set_block_state:
+        unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, state: YogStr) -> bool,
+    pub world_is_thundering: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr) -> bool,
+    pub world_set_thunder:
+        unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, thundering: bool, duration_ticks: i32) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.

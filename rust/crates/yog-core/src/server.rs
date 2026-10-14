@@ -514,4 +514,40 @@ pub trait Server {
     /// `data/<ns>/worldgen/configured_feature/*.json`) at `pos`, the way
     /// a growing sapling places its tree. Returns whether it was placed.
     fn place_feature(&self, dimension: &str, pos: BlockPos, feature_id: &str) -> bool;
+
+    // ── ABI minor 3 ──────────────────────────────────────────────────────────
+
+    /// Puts `item_id` on cooldown for an online player for `ticks` (the
+    /// grey sweep over it in the hotbar; using it waits). `false` if the
+    /// player is offline or the item unknown.
+    fn set_item_cooldown(&self, player: &str, item_id: &str, ticks: u32) -> bool;
+
+    /// Teleports an entity — a boat, a horse, a player in a minecart — and
+    /// everything riding it, which stays mounted.
+    fn entity_teleport_with_passengers(&self, uuid: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool;
+
+    /// The redstone power the block at `pos` receives from its neighbours
+    /// (0–15); `None` if the dimension doesn't exist.
+    fn redstone_power(&self, dimension: &str, pos: BlockPos) -> Option<u8>;
+
+    /// Sets the power (0–15) the block at `pos` gives off — a block
+    /// declared a redstone source (`BlockDef::redstone_source`,
+    /// `"redstone": true` in its `.yblock`). Neighbours update.
+    fn set_redstone_output(&self, dimension: &str, pos: BlockPos, level: u8) -> bool;
+
+    /// The full state of the block at `pos`: its id and properties,
+    /// `"minecraft:repeater[delay=2,facing=east,locked=false,powered=false]"`.
+    fn get_block_state(&self, dimension: &str, pos: BlockPos) -> Option<String>;
+
+    /// Places a block in a full state, as `/setblock` writes it
+    /// (`"minecraft:repeater[delay=2,facing=east]"`; unset properties take
+    /// their defaults). `false` if it doesn't parse.
+    fn set_block_state(&self, dimension: &str, pos: BlockPos, state: &str) -> bool;
+
+    /// Whether a thunderstorm is going on in `dimension`.
+    fn world_is_thundering(&self, dimension: &str) -> bool;
+
+    /// Starts (`true`) or ends a thunderstorm; `duration_ticks` 0 = a
+    /// server-chosen length.
+    fn world_set_thunder(&self, dimension: &str, thundering: bool, duration_ticks: i32) -> bool;
 }
