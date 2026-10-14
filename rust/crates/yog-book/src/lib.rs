@@ -12,6 +12,29 @@ use serde::{Deserialize, Serialize};
 use yog_registry::ItemDef;
 
 pub use font::BookFont;
+/// The blocks of a multiblock `pattern` (layers top to bottom, rows of
+/// characters) with their `mapping`: ((x, y, z), block state).
+pub fn multiblock_blocks(
+    pattern: &[Vec<String>],
+    mapping: &std::collections::BTreeMap<String, String>,
+) -> Vec<((i32, i32, i32), String)> {
+    let mut out = Vec::new();
+    let layers = pattern.len() as i32;
+    for (li, layer) in pattern.iter().enumerate() {
+        for (z, row) in layer.iter().enumerate() {
+            for (x, ch) in row.chars().enumerate() {
+                if ch == ' ' {
+                    continue;
+                }
+                if let Some(state) = mapping.get(&ch.to_string()) {
+                    out.push(((x as i32, layers - 1 - li as i32, z as i32), state.clone()));
+                }
+            }
+        }
+    }
+    out
+}
+
 pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET};
 pub use state::BookViewState;
 pub use theme::BookTheme;
@@ -81,6 +104,18 @@ pub enum BookPage {
         entity_type: String,
         #[serde(default)]
         name: Option<String>,
+        #[serde(default)]
+        text: Option<String>,
+    },
+    /// A multiblock structure in 3D, turning (Patchouli's multiblock page):
+    /// `pattern` is its layers top to bottom, each a list of rows; each
+    /// character stands for the block `mapping` gives it (a full block
+    /// state: `"minecraft:furnace[facing=north]"`), ` ` for air.
+    Multiblock {
+        #[serde(default)]
+        name: Option<String>,
+        pattern: Vec<Vec<String>>,
+        mapping: std::collections::BTreeMap<String, String>,
         #[serde(default)]
         text: Option<String>,
     },
@@ -304,7 +339,7 @@ impl Book {
                         opt(title);
                         opt(text);
                     }
-                    BookPage::Entity { name, text, .. } => {
+                    BookPage::Entity { name, text, .. } | BookPage::Multiblock { name, text, .. } => {
                         opt(name);
                         opt(text);
                     }
@@ -645,139 +680,9 @@ fn esc(s: &str) -> String {
 }
 
 impl BookPage {
+    /// The page's wire JSON (`{"type": "text", ...}`).
     pub fn to_json(&self) -> String {
-        match self {
-            Self::Text { text, title } => {
-                let t = title
-                    .as_deref()
-                    .map(|s| format!(r#","title":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                format!(r#"{{"type":"text","text":"{}"{}}}"#, esc(text), t)
-            }
-            Self::Spotlight { item, title, text } => {
-                let t = title
-                    .as_deref()
-                    .map(|s| format!(r#","title":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                let tx = text
-                    .as_deref()
-                    .map(|s| format!(r#","text":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                format!(
-                    r#"{{"type":"spotlight","item":"{id}"{t}{tx}}}"#,
-                    id = esc(&item.id)
-                )
-            }
-            Self::Crafting { recipe_id, text } => {
-                let tx = text
-                    .as_deref()
-                    .map(|s| format!(r#","text":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                format!(
-                    r#"{{"type":"crafting","recipe":"{}"{}}}"#,
-                    esc(recipe_id),
-                    tx
-                )
-            }
-            Self::Smelting { recipe_id, text } => {
-                let tx = text
-                    .as_deref()
-                    .map(|s| format!(r#","text":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                format!(
-                    r#"{{"type":"smelting","recipe":"{}"{}}}"#,
-                    esc(recipe_id),
-                    tx
-                )
-            }
-            Self::Image {
-                texture,
-                title,
-                text,
-                border,
-            } => {
-                let t = title
-                    .as_deref()
-                    .map(|s| format!(r#","title":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                let tx = text
-                    .as_deref()
-                    .map(|s| format!(r#","text":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                format!(
-                    r#"{{"type":"image","texture":"{}","border":{}{}{}}}"#,
-                    esc(texture),
-                    border,
-                    t,
-                    tx
-                )
-            }
-            Self::Entity {
-                entity_type,
-                name,
-                text,
-            } => {
-                let n = name
-                    .as_deref()
-                    .map(|s| format!(r#","name":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                let tx = text
-                    .as_deref()
-                    .map(|s| format!(r#","text":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                format!(
-                    r#"{{"type":"entity","entity":"{}"{}{}}}"#,
-                    esc(entity_type),
-                    n,
-                    tx
-                )
-            }
-            Self::Relations { entries, text } => {
-                let e: String = entries
-                    .iter()
-                    .map(|s| format!(r#""{}""#, esc(s)))
-                    .collect::<Vec<_>>()
-                    .join(",");
-                let tx = text
-                    .as_deref()
-                    .map(|s| format!(r#","text":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                format!(r#"{{"type":"relations","entries":[{}]{}}}"#, e, tx)
-            }
-            Self::Empty => r#"{"type":"empty"}"#.to_string(),
-            Self::Pattern {
-                op_id,
-                anchor,
-                input,
-                output,
-                text,
-            } => format!(
-                r#"{{"type":"pattern","op_id":"{}","anchor":"{}","input":"{}","output":"{}","text":"{}"}}"#,
-                esc(op_id),
-                esc(anchor),
-                esc(input),
-                esc(output),
-                esc(text)
-            ),
-            Self::Svg { data, title, text } => {
-                let t = title
-                    .as_deref()
-                    .map(|s| format!(r#","title":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                let tx = text
-                    .as_deref()
-                    .map(|s| format!(r#","text":"{}""#, esc(s)))
-                    .unwrap_or_default();
-                format!(r#"{{"type":"svg","data":"{}"{}{}}}"#, esc(data), t, tx)
-            }
-            Self::CustomText { text, font, color } => format!(
-                r#"{{"type":"custom_text","text":"{}","font_id":"{}","size_px":{},"color":{}}}"#,
-                esc(text),
-                esc(&font.font_id),
-                font.size_px,
-                color
-            ),
-        }
+        serde_json::to_string(self).unwrap_or_default()
     }
 }
 

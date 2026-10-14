@@ -83,6 +83,23 @@ pub(crate) enum OverlayCmd {
         w: f32,
         h: f32,
     },
+    /// One of `items` at a time, a new one every second (an ingredient's
+    /// alternatives); tags (`#…`) are skipped.
+    McItems {
+        items: Vec<String>,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+    },
+    /// Blocks in 3D, turning.
+    Blocks {
+        blocks: Vec<((i32, i32, i32), String)>,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+    },
     /// A living entity standing in the box.
     Entity {
         entity: String,
@@ -147,32 +164,45 @@ fn push_icon(overlays: &mut Vec<OverlayCmd>, icon: &str, x: f32, y: f32, w: f32,
 #[derive(Clone)]
 pub(crate) enum RecipeVis {
     Shaped {
-        grid: Vec<Option<String>>,
+        /// Each slot's alternatives (empty: no ingredient).
+        grid: Vec<Vec<String>>,
         width: usize,
         output: String,
         count: u32,
     },
     Shapeless {
-        ingredients: Vec<String>,
+        ingredients: Vec<Vec<String>>,
         output: String,
         count: u32,
     },
+    /// A one-ingredient recipe: cooking, stonecutting; `station` shows how.
     Smelting {
-        input: String,
+        input: Vec<String>,
         output: String,
+        station: String,
     },
 }
 
+/// An ingredient in Yog's recipe format: an id, a `#tag`, or an array of
+/// those (any of them).
+fn ingredient(v: &serde_json::Value) -> Vec<String> {
+    match v {
+        serde_json::Value::String(s) => vec![s.clone()],
+        serde_json::Value::Array(a) => a.iter().flat_map(ingredient).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// A recipe in Yog's own format (what a `.yrecipe` says — see
+/// `yog_registry::Recipe`), as the book shows it.
 fn parse_recipe(json: &str) -> Option<RecipeVis> {
     let v: serde_json::Value = serde_json::from_str(json).ok()?;
+    let output = v.get("result")?.as_str()?.to_owned();
+    let count = v.get("count").and_then(|c| c.as_u64()).unwrap_or(1) as u32;
+    let station = |s: &str| Some(s.to_owned());
     match v.get("type")?.as_str()? {
-        "minecraft:crafting_shaped" => {
-            let pattern: Vec<&str> = v
-                .get("pattern")?
-                .as_array()?
-                .iter()
-                .filter_map(|p| p.as_str())
-                .collect();
+        "shaped" => {
+            let pattern: Vec<&str> = v.get("pattern")?.as_array()?.iter().filter_map(|p| p.as_str()).collect();
             let width = pattern.iter().map(|r| r.chars().count()).max()?.max(1);
             let key = v.get("key")?.as_object()?;
             let mut grid = Vec::new();
@@ -180,42 +210,26 @@ fn parse_recipe(json: &str) -> Option<RecipeVis> {
                 let mut chars: Vec<char> = row.chars().collect();
                 chars.resize(width, ' ');
                 for ch in chars {
-                    grid.push(
-                        key.get(&ch.to_string())
-                            .and_then(|k| k.get("item"))
-                            .and_then(|i| i.as_str())
-                            .map(str::to_owned),
-                    );
+                    grid.push(key.get(&ch.to_string()).map(ingredient).unwrap_or_default());
                 }
             }
-            let result = v.get("result")?;
-            Some(RecipeVis::Shaped {
-                grid,
-                width,
-                output: result.get("item")?.as_str()?.to_owned(),
-                count: result.get("count").and_then(|c| c.as_u64()).unwrap_or(1) as u32,
-            })
+            Some(RecipeVis::Shaped { grid, width, output, count })
         }
-        "minecraft:crafting_shapeless" => {
-            let ingredients = v
-                .get("ingredients")?
-                .as_array()?
-                .iter()
-                .filter_map(|i| i.get("item").and_then(|x| x.as_str()).map(str::to_owned))
-                .collect();
-            let result = v.get("result")?;
-            Some(RecipeVis::Shapeless {
-                ingredients,
-                output: result.get("item")?.as_str()?.to_owned(),
-                count: result.get("count").and_then(|c| c.as_u64()).unwrap_or(1) as u32,
-            })
-        }
-        "minecraft:smelting"
-        | "minecraft:blasting"
-        | "minecraft:smoking"
-        | "minecraft:campfire_cooking" => Some(RecipeVis::Smelting {
-            input: v.get("ingredient")?.get("item")?.as_str()?.to_owned(),
-            output: v.get("result")?.as_str()?.to_owned(),
+        "shapeless" => Some(RecipeVis::Shapeless {
+            ingredients: v.get("ingredients")?.as_array()?.iter().map(ingredient).collect(),
+            output,
+            count,
+        }),
+        kind @ ("smelting" | "blasting" | "smoking" | "campfire_cooking" | "stonecutting") => Some(RecipeVis::Smelting {
+            input: ingredient(v.get("ingredient")?),
+            output,
+            station: match kind {
+                "blasting" => station("minecraft:blast_furnace"),
+                "smoking" => station("minecraft:smoker"),
+                "campfire_cooking" => station("minecraft:campfire"),
+                "stonecutting" => station("minecraft:stonecutter"),
+                _ => station("minecraft:furnace"),
+            }?,
         }),
         _ => None,
     }
@@ -259,6 +273,8 @@ pub struct BookRenderer {
     written: Book,
     /// Flowed with the host's own text metrics (else estimated ones).
     measured: bool,
+    /// When the renderer was made: what animations count from.
+    start: std::time::Instant,
     pub ui: Option<UiRoot>,
     bg_sprites: Vec<BgSprite>,
     overlays: Vec<OverlayCmd>,
@@ -282,6 +298,7 @@ impl BookRenderer {
             origins,
             written,
             measured: false,
+            start: std::time::Instant::now(),
             state: BookViewState::default(),
             theme,
             recipes: HashMap::new(),
@@ -403,10 +420,17 @@ impl BookRenderer {
         if let Some(ui) = &mut self.ui {
             ui.render(ctx);
         }
+        // Animations: entities and structures turn (Patchouli's pace), an
+        // ingredient's alternatives take turns every second.
+        let t = self.start.elapsed().as_secs_f32();
         for ov in &self.overlays {
             match *ov {
                 OverlayCmd::Svg { ref data, x, y, w, h } => d2.svg(data, x, y, w, h),
-                OverlayCmd::Entity { ref entity, x, y, w, h } => d2.entity(entity, x, y, w, h, 30.0, 0.0),
+                OverlayCmd::Entity { ref entity, x, y, w, h } => d2.entity(entity, x, y, w, h, -30.0 + t * 30.0, 0.0),
+                OverlayCmd::Blocks { ref blocks, x, y, w, h } => {
+                    let list: Vec<((i32, i32, i32), &str)> = blocks.iter().map(|(p, b)| (*p, b.as_str())).collect();
+                    d2.blocks(&list, x, y, w, h, -45.0 + t * 20.0, 30.0);
+                }
                 _ => {}
             }
         }
@@ -415,8 +439,16 @@ impl BookRenderer {
     }
 
     fn draw_mc_overlays(&self, ctx: &GfxContext) {
+        let second = self.start.elapsed().as_secs() as usize;
         for ov in &self.overlays {
             match *ov {
+                OverlayCmd::McItems { ref items, x, y, w, h } => {
+                    let shown: Vec<&String> = items.iter().filter(|i| !i.starts_with('#')).collect();
+                    if !shown.is_empty() {
+                        let item = shown[second % shown.len()];
+                        ctx.draw2d().item(&normalize_item_id(item), x, y, w.min(h));
+                    }
+                }
                 OverlayCmd::McItem { ref item_id, x, y, w, h } => {
                     ctx.draw2d().item(&normalize_item_id(item_id), x, y, w.min(h));
                 }
@@ -431,6 +463,16 @@ impl BookRenderer {
                 _ => {}
             }
         }
+    }
+
+    /// The page shown moves by itself (an entity, a structure, an
+    /// ingredient's alternatives): the host should keep redrawing it.
+    pub fn animated(&self) -> bool {
+        self.overlays.iter().any(|o| match o {
+            OverlayCmd::Entity { .. } | OverlayCmd::Blocks { .. } => true,
+            OverlayCmd::McItems { items, .. } => items.iter().filter(|i| !i.starts_with('#')).count() > 1,
+            _ => false,
+        })
     }
 
     /// A click at `(x, y)` (screen GUI pixels, as last rendered): what it
@@ -552,6 +594,7 @@ fn content_above_text(page: &BookPage) -> Option<f32> {
         BookPage::Crafting { .. } => 80.0,
         BookPage::Smelting { .. } => 40.0,
         BookPage::Image { .. } | BookPage::Entity { .. } => 104.0,
+        BookPage::Multiblock { .. } => 114.0,
         BookPage::Relations { entries, .. } => 12.0 + entries.len() as f32 * 10.0,
         _ => return None,
     })
@@ -565,6 +608,7 @@ fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
         | BookPage::Smelting { text, .. }
         | BookPage::Image { text, .. }
         | BookPage::Entity { text, .. }
+        | BookPage::Multiblock { text, .. }
         | BookPage::Relations { text, .. } => text.as_mut(),
         _ => None,
     }
@@ -1109,7 +1153,7 @@ fn draw_crafting_grid(
     bg_sprites: &mut Vec<BgSprite>,
     overlays: &mut Vec<OverlayCmd>,
     col: &mut widget::Widget,
-    grid: &[Option<String>],
+    grid: &[Vec<String>],
     width: usize,
     output: &str,
     count: u32,
@@ -1159,9 +1203,9 @@ fn draw_crafting_grid(
     let icon_s = 16.0 * sx.min(sy);
     let width = width.max(1);
     for (i, slot) in grid.iter().enumerate() {
-        if let Some(item) = slot {
-            overlays.push(OverlayCmd::McItem {
-                item_id: item.clone(),
+        if !slot.is_empty() {
+            overlays.push(OverlayCmd::McItems {
+                items: slot.clone(),
                 x: ox + (rx0 + 3.0 + (i % width) as f32 * 19.0) * sx,
                 y: oy + (ry + 3.0 + (i / width) as f32 * 19.0) * sy,
                 w: icon_s,
@@ -1324,9 +1368,8 @@ fn build_page(
                     output,
                     count,
                 }) => {
-                    let grid: Vec<Option<String>> = ingredients.iter().cloned().map(Some).collect();
                     draw_crafting_grid(
-                        theme, bg_sprites, overlays, &mut col, &grid, 3, output, *count, true, ox,
+                        theme, bg_sprites, overlays, &mut col, ingredients, 3, output, *count, true, ox,
                         oy, rx0, ry, sx, sy,
                     );
                 }
@@ -1345,7 +1388,7 @@ fn build_page(
             let rx0 = PAGE_W / 2.0 - 49.0;
             let ry = 12.0;
             match recipes.get(recipe_id.as_str()) {
-                Some(RecipeVis::Smelting { input, output }) => {
+                Some(RecipeVis::Smelting { input, output, station }) => {
                     col = col.child(
                         title_lbl(pretty_item_name(output))
                             .color(theme.title)
@@ -1364,16 +1407,16 @@ fn build_page(
                         h: 24.0 * sy,
                     });
                     let icon_s = 16.0 * sx.min(sy);
-                    overlays.push(OverlayCmd::McItem {
-                        item_id: input.clone(),
+                    overlays.push(OverlayCmd::McItems {
+                        items: input.clone(),
                         x: ox + (rx0 + 4.0) * sx,
                         y: oy + (ry + 4.0) * sy,
                         w: icon_s,
                         h: icon_s,
                     });
-                    // Center: the furnace itself (Patchouli's "toast symbol").
+                    // Center: the furnace (blast furnace, …) itself (Patchouli's "toast symbol").
                     overlays.push(OverlayCmd::McItem {
-                        item_id: "minecraft:furnace".into(),
+                        item_id: station.clone(),
                         x: ox + (rx0 + 40.0) * sx,
                         y: oy + (ry + 4.0) * sy,
                         w: icon_s,
@@ -1457,6 +1500,23 @@ fn build_page(
             col = col.child(title_lbl("See also:").color(theme.title));
             for e in entries {
                 col = col.child(lbl(format!("• {}", e)).color(theme.nav));
+            }
+        }
+
+        BookPage::Multiblock { name, pattern, mapping, text } => {
+            if let Some(n) = name {
+                col = col.child(title_lbl(n.as_str()).color(theme.title));
+            }
+            overlays.push(OverlayCmd::Blocks {
+                blocks: crate::multiblock_blocks(pattern, mapping),
+                x: ox + (PAGE_W / 2.0 - 45.0) * sx,
+                y: oy + 12.0 * sy,
+                w: 90.0 * sx,
+                h: 90.0 * sy,
+            });
+            col = col.child(widget::spacer().h(94.0 * sy));
+            if let Some(t) = text {
+                col = col.child(lbl(t.as_str()).color(theme.text));
             }
         }
 
@@ -1561,6 +1621,35 @@ mod tests {
         assert!(r.state.page > 1, "past the first page's flowed text");
         r.handle_event("prev_page");
         assert_eq!(r.shown(), Some(("e".into(), 0)), "flowed text belongs to the first");
+    }
+
+    #[test]
+    fn reads_yog_recipes() {
+        let shaped = parse_recipe(r##"{"type":"shaped","pattern":["AB"],"key":{"A":"m:a","B":["m:x","#c:t"]},"result":"m:out","count":2}"##);
+        let Some(RecipeVis::Shaped { grid, width, output, count }) = shaped else { panic!() };
+        assert_eq!((width, output.as_str(), count), (2, "m:out", 2));
+        assert_eq!(grid[1], ["m:x", "#c:t"]);
+        let blast = parse_recipe(r##"{"type":"blasting","ingredient":"m:ore","result":"m:ingot"}"##);
+        assert!(matches!(blast, Some(RecipeVis::Smelting { station, .. }) if station == "minecraft:blast_furnace"));
+        assert!(parse_recipe(r#"{"type":"minecraft:crafting_shaped"}"#).is_none(), "vanilla JSON isn't the book's");
+    }
+
+    #[test]
+    fn multiblocks_turn_and_animate() {
+        let pattern = vec![vec!["G".to_string()], vec!["S ".to_string()]];
+        let mapping = [("G".to_string(), "minecraft:glass".to_string()), ("S".to_string(), "minecraft:stone".to_string())].into();
+        let blocks = crate::multiblock_blocks(&pattern, &mapping);
+        assert_eq!(blocks, [((0, 1, 0), "minecraft:glass".to_string()), ((0, 0, 0), "minecraft:stone".to_string())]);
+
+        let mut b = book(vec![BookPage::Multiblock { name: None, pattern, mapping, text: None }]);
+        b.categories.push(crate::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
+        b.entries[0].category = "c".into();
+        let mut r = BookRenderer::new(b);
+        r.prepare(800.0, 600.0);
+        assert!(!r.animated(), "the landing page is still");
+        r.show("e", 0);
+        r.prepare(800.0, 600.0);
+        assert!(r.animated(), "a structure turns");
     }
 
     #[test]

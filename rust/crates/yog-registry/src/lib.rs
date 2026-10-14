@@ -141,6 +141,21 @@ fn ingredient_json(id: &str) -> String {
     }
 }
 
+/// `s` as a JSON string.
+fn json_str(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
 fn item_list_json(items: &[String]) -> String {
     items
         .iter()
@@ -149,158 +164,229 @@ fn item_list_json(items: &[String]) -> String {
         .join(",")
 }
 
-/// A shaped crafting recipe (3×3 grid with a pattern and key mapping).
-///
-/// ```
-/// # use yog_registry::ShapedRecipe;
-/// ShapedRecipe::new("yog:ruby_sword", "yog:ruby_shard", 1)
-///     .row("R  ").row("RS ").row(" S ")
-///     .key('R', "yog:ruby_shard").key('S', "minecraft:stick");
-/// ```
+/// How a cooking recipe cooks.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
-pub struct ShapedRecipe {
-    pub id: String,
-    pub output: String,
-    pub count: u32,
-    rows: Vec<String>,
-    keys: Vec<(char, String)>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Cooking {
+    Smelting,
+    Blasting,
+    Smoking,
+    Campfire,
 }
 
-impl ShapedRecipe {
-    pub fn new(id: impl Into<String>, output: impl Into<String>, count: u32) -> Self {
-        Self {
-            id: id.into(),
-            output: output.into(),
-            count,
-            rows: Vec::new(),
-            keys: Vec::new(),
+impl Cooking {
+    /// Its `type` in Yog's recipe format.
+    pub fn word(self) -> &'static str {
+        match self {
+            Cooking::Smelting => "smelting",
+            Cooking::Blasting => "blasting",
+            Cooking::Smoking => "smoking",
+            Cooking::Campfire => "campfire_cooking",
         }
     }
+}
 
+/// What a recipe is made of besides its result.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
+pub enum RecipeKind {
+    /// A crafting grid: rows of key characters (space = empty).
+    Shaped { pattern: Vec<String>, key: Vec<(char, Vec<String>)> },
+    /// Crafting, in any arrangement.
+    Shapeless { ingredients: Vec<Vec<String>> },
+    Cooking { method: Cooking, ingredient: Vec<String>, experience: f32, cook_time: u32 },
+    Stonecutting { ingredient: Vec<String> },
+    /// A smithing table: `base` upgraded with `addition`, `template` used up.
+    Smithing { template: Vec<String>, base: Vec<String>, addition: Vec<String> },
+}
+
+/// A recipe, in Yog's own format — what a `.yrecipe` says. The host writes
+/// the recipe JSON of its Minecraft version from it.
+///
+/// An ingredient is an item id (`minecraft:stick`), an item tag (`#c:dusts`)
+/// or — the `_any` builders — any of several.
+///
+/// ```
+/// # use yog_registry::{Cooking, Recipe};
+/// Recipe::shaped("yog:ruby_sword", "yog:ruby_sword", 1)
+///     .row(" R ").row(" R ").row(" S ")
+///     .key('R', "yog:ruby").key('S', "minecraft:stick");
+/// Recipe::cooking("yog:ruby", Cooking::Blasting, "#c:ruby_ores", "yog:ruby", 1).experience(0.7);
+/// ```
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
+pub struct Recipe {
+    pub id: String,
+    pub kind: RecipeKind,
+    pub result: String,
+    pub count: u32,
+    /// Recipes of a group share a slot in the recipe book.
+    pub group: Option<String>,
+    /// The recipe book's tab (`building`, `equipment`, `misc`, …).
+    pub category: Option<String>,
+}
+
+impl Recipe {
+    fn of(id: impl Into<String>, kind: RecipeKind, result: impl Into<String>, count: u32) -> Self {
+        Recipe { id: id.into(), kind, result: result.into(), count, group: None, category: None }
+    }
+
+    pub fn shaped(id: impl Into<String>, result: impl Into<String>, count: u32) -> Self {
+        Self::of(id, RecipeKind::Shaped { pattern: Vec::new(), key: Vec::new() }, result, count)
+    }
+
+    pub fn shapeless(id: impl Into<String>, result: impl Into<String>, count: u32) -> Self {
+        Self::of(id, RecipeKind::Shapeless { ingredients: Vec::new() }, result, count)
+    }
+
+    /// Cooking `ingredient` (100 % of a vanilla furnace: 0.1 experience,
+    /// 200 ticks — see [`Self::experience`], [`Self::cook_time`]).
+    pub fn cooking(
+        id: impl Into<String>,
+        method: Cooking,
+        ingredient: impl Into<String>,
+        result: impl Into<String>,
+        count: u32,
+    ) -> Self {
+        let cook_time = match method {
+            Cooking::Smelting => 200,
+            Cooking::Blasting | Cooking::Smoking => 100,
+            Cooking::Campfire => 600,
+        };
+        let kind = RecipeKind::Cooking { method, ingredient: vec![ingredient.into()], experience: 0.1, cook_time };
+        Self::of(id, kind, result, count)
+    }
+
+    pub fn stonecutting(id: impl Into<String>, ingredient: impl Into<String>, result: impl Into<String>, count: u32) -> Self {
+        Self::of(id, RecipeKind::Stonecutting { ingredient: vec![ingredient.into()] }, result, count)
+    }
+
+    pub fn smithing(
+        id: impl Into<String>,
+        template: impl Into<String>,
+        base: impl Into<String>,
+        addition: impl Into<String>,
+        result: impl Into<String>,
+    ) -> Self {
+        let kind = RecipeKind::Smithing {
+            template: vec![template.into()],
+            base: vec![base.into()],
+            addition: vec![addition.into()],
+        };
+        Self::of(id, kind, result, 1)
+    }
+
+    /// A row of a shaped recipe's pattern.
     pub fn row(mut self, pattern: impl Into<String>) -> Self {
-        self.rows.push(pattern.into());
+        if let RecipeKind::Shaped { pattern: p, .. } = &mut self.kind {
+            p.push(pattern.into());
+        }
         self
     }
 
-    /// What `symbol` stands for: an item id, or `#ns:tag` for an item tag.
-    pub fn key(mut self, symbol: char, item_id: impl Into<String>) -> Self {
-        self.keys.push((symbol, item_id.into()));
+    /// What `symbol` stands for in a shaped recipe.
+    pub fn key(self, symbol: char, item: impl Into<String>) -> Self {
+        self.key_any(symbol, [item.into()])
+    }
+
+    /// `symbol` stands for any of `items`.
+    pub fn key_any(mut self, symbol: char, items: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        if let RecipeKind::Shaped { key, .. } = &mut self.kind {
+            key.push((symbol, items.into_iter().map(Into::into).collect()));
+        }
         self
     }
 
-    /// Generate the Minecraft 1.20 recipe JSON for this recipe.
+    /// One more ingredient of a shapeless recipe.
+    pub fn ingredient(self, item: impl Into<String>) -> Self {
+        self.ingredient_any([item.into()])
+    }
+
+    /// One more ingredient of a shapeless recipe: any of `items`.
+    pub fn ingredient_any(mut self, items: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        if let RecipeKind::Shapeless { ingredients } = &mut self.kind {
+            ingredients.push(items.into_iter().map(Into::into).collect());
+        }
+        self
+    }
+
+    /// Experience a cooking recipe gives.
+    pub fn experience(mut self, xp: f32) -> Self {
+        if let RecipeKind::Cooking { experience, .. } = &mut self.kind {
+            *experience = xp;
+        }
+        self
+    }
+
+    /// A cooking recipe's time in ticks.
+    pub fn cook_time(mut self, ticks: u32) -> Self {
+        if let RecipeKind::Cooking { cook_time, .. } = &mut self.kind {
+            *cook_time = ticks;
+        }
+        self
+    }
+
+    pub fn group(mut self, group: impl Into<String>) -> Self {
+        self.group = Some(group.into());
+        self
+    }
+
+    pub fn category(mut self, category: impl Into<String>) -> Self {
+        self.category = Some(category.into());
+        self
+    }
+
+    /// The recipe in Yog's own format (the `.yrecipe` shape, compact).
     pub fn to_json(&self) -> String {
-        let pattern: String = self
-            .rows
-            .iter()
-            .map(|r| format!("\"{r}\""))
-            .collect::<Vec<_>>()
-            .join(",");
-        let keys: String = self
-            .keys
-            .iter()
-            .map(|(ch, item)| format!("\"{ch}\":{}", ingredient_json(item)))
-            .collect::<Vec<_>>()
-            .join(",");
-        format!(
-            "{{\"type\":\"minecraft:crafting_shaped\",\"pattern\":[{}],\"key\":{{{}}},\"result\":{{\"item\":\"{}\",\"count\":{}}}}}",
-            pattern, keys, self.output, self.count
-        )
+        let ing = |items: &[String]| match items {
+            [one] => json_str(one),
+            many => format!("[{}]", many.iter().map(|i| json_str(i)).collect::<Vec<_>>().join(",")),
+        };
+        let mut fields = Vec::new();
+        match &self.kind {
+            RecipeKind::Shaped { pattern, key } => {
+                fields.push("\"type\":\"shaped\"".to_string());
+                let rows: Vec<String> = pattern.iter().map(|r| json_str(r)).collect();
+                fields.push(format!("\"pattern\":[{}]", rows.join(",")));
+                let keys: Vec<String> = key.iter().map(|(c, items)| format!("{}:{}", json_str(&c.to_string()), ing(items))).collect();
+                fields.push(format!("\"key\":{{{}}}", keys.join(",")));
+            }
+            RecipeKind::Shapeless { ingredients } => {
+                fields.push("\"type\":\"shapeless\"".to_string());
+                let list: Vec<String> = ingredients.iter().map(|i| ing(i)).collect();
+                fields.push(format!("\"ingredients\":[{}]", list.join(",")));
+            }
+            RecipeKind::Cooking { method, ingredient, experience, cook_time } => {
+                fields.push(format!("\"type\":\"{}\"", method.word()));
+                fields.push(format!("\"ingredient\":{}", ing(ingredient)));
+                fields.push(format!("\"experience\":{experience}"));
+                fields.push(format!("\"cook_time\":{cook_time}"));
+            }
+            RecipeKind::Stonecutting { ingredient } => {
+                fields.push("\"type\":\"stonecutting\"".to_string());
+                fields.push(format!("\"ingredient\":{}", ing(ingredient)));
+            }
+            RecipeKind::Smithing { template, base, addition } => {
+                fields.push("\"type\":\"smithing\"".to_string());
+                fields.push(format!("\"template\":{}", ing(template)));
+                fields.push(format!("\"base\":{}", ing(base)));
+                fields.push(format!("\"addition\":{}", ing(addition)));
+            }
+        }
+        fields.push(format!("\"result\":{}", json_str(&self.result)));
+        if self.count != 1 {
+            fields.push(format!("\"count\":{}", self.count));
+        }
+        if let Some(g) = &self.group {
+            fields.push(format!("\"group\":{}", json_str(g)));
+        }
+        if let Some(c) = &self.category {
+            fields.push(format!("\"category\":{}", json_str(c)));
+        }
+        format!("{{{}}}", fields.join(","))
     }
 
     /// Split `namespace:name` from the recipe id.
-    pub fn ns_name(&self) -> (&str, &str) {
-        split_id(&self.id, VANILLA_NS)
-    }
-}
-
-/// A shapeless crafting recipe (unordered ingredients).
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
-pub struct ShapelessRecipe {
-    pub id: String,
-    pub output: String,
-    pub count: u32,
-    pub ingredients: Vec<String>,
-}
-
-impl ShapelessRecipe {
-    pub fn new(id: impl Into<String>, output: impl Into<String>, count: u32) -> Self {
-        Self {
-            id: id.into(),
-            output: output.into(),
-            count,
-            ingredients: Vec::new(),
-        }
-    }
-
-    /// An item id, or `#ns:tag` for an item tag.
-    pub fn ingredient(mut self, item_id: impl Into<String>) -> Self {
-        self.ingredients.push(item_id.into());
-        self
-    }
-
-    pub fn to_json(&self) -> String {
-        let ingr = item_list_json(&self.ingredients);
-        format!(
-            "{{\"type\":\"minecraft:crafting_shapeless\",\"ingredients\":[{}],\"result\":{{\"item\":\"{}\",\"count\":{}}}}}",
-            ingr, self.output, self.count
-        )
-    }
-
-    pub fn ns_name(&self) -> (&str, &str) {
-        split_id(&self.id, VANILLA_NS)
-    }
-}
-
-/// A furnace smelting recipe.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
-pub struct FurnaceRecipe {
-    pub id: String,
-    pub input: String,
-    pub output: String,
-    pub count: u32,
-    pub experience: f32,
-    pub cook_time: u32,
-}
-
-impl FurnaceRecipe {
-    pub fn new(
-        id: impl Into<String>,
-        input: impl Into<String>,
-        output: impl Into<String>,
-        count: u32,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            input: input.into(),
-            output: output.into(),
-            count,
-            experience: 0.1,
-            cook_time: 200,
-        }
-    }
-
-    pub fn experience(mut self, xp: f32) -> Self {
-        self.experience = xp;
-        self
-    }
-
-    /// Cooking time in ticks (default 200 = 10 seconds).
-    pub fn cook_time(mut self, ticks: u32) -> Self {
-        self.cook_time = ticks;
-        self
-    }
-
-    pub fn to_json(&self) -> String {
-        format!(
-            "{{\"type\":\"minecraft:smelting\",\"ingredient\":{},\"result\":\"{}\",\"experience\":{},\"cookingtime\":{}}}",
-            ingredient_json(&self.input), self.output, self.experience, self.cook_time
-        )
-    }
-
     pub fn ns_name(&self) -> (&str, &str) {
         split_id(&self.id, VANILLA_NS)
     }
@@ -690,12 +776,15 @@ mod recipe_tests {
     use super::*;
 
     #[test]
-    fn tags_are_tag_ingredients() {
-        let shaped = ShapedRecipe::new("m:a", "m:b", 1).row("D").key('D', "#c:dusts").to_json();
-        assert!(shaped.contains(r#""D":{"tag":"c:dusts"}"#), "{shaped}");
-        let shapeless = ShapelessRecipe::new("m:a", "m:b", 1).ingredient("minecraft:paper").ingredient("#minecraft:logs").to_json();
-        assert!(shapeless.contains(r#"[{"item":"minecraft:paper"},{"tag":"minecraft:logs"}]"#), "{shapeless}");
-        let smelt = FurnaceRecipe::new("m:a", "#c:ores", "m:b", 1).to_json();
-        assert!(smelt.contains(r#""ingredient":{"tag":"c:ores"}"#), "{smelt}");
+    fn writes_the_yog_format() {
+        let shaped = Recipe::shaped("m:a", "m:b", 2).row("D ").key('D', "#c:dusts").key_any('E', ["m:x", "m:y"]).group("g");
+        assert_eq!(
+            shaped.to_json(),
+            r##"{"type":"shaped","pattern":["D "],"key":{"D":"#c:dusts","E":["m:x","m:y"]},"result":"m:b","count":2,"group":"g"}"##
+        );
+        let blast = Recipe::cooking("m:a", Cooking::Blasting, "#c:ores", "m:b", 1).experience(0.5);
+        assert_eq!(blast.to_json(), r##"{"type":"blasting","ingredient":"#c:ores","experience":0.5,"cook_time":100,"result":"m:b"}"##);
+        let smith = Recipe::smithing("m:a", "m:t", "m:base", "m:add", "m:out");
+        assert!(smith.to_json().contains(r#""type":"smithing","template":"m:t""#));
     }
 }

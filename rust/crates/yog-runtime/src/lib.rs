@@ -1822,6 +1822,37 @@ unsafe extern "C" fn gfx_draw2d_text_font(
     }
 }
 
+unsafe extern "C" fn gfx_draw2d_text_scaled(
+    text: YogStr,
+    font: YogStr,
+    x: f32,
+    y: f32,
+    scale: f32,
+    color: u32,
+    shadow: bool,
+) {
+    unsafe {
+        let _: Option<()> = host!(
+            "dev/yog/NativeDraw",
+            "drawTextScaled",
+            [S(text), S(font), F(x), F(y), F(scale), I(color as i32), Z(shadow)]
+        );
+    }
+}
+
+unsafe extern "C" fn gfx_draw2d_blocks(blocks: YogStr, x: f32, y: f32, w: f32, h: f32, yaw: f32, pitch: f32) {
+    if w <= 0.0 || h <= 0.0 {
+        return;
+    }
+    unsafe {
+        let _: Option<()> = host!(
+            "dev/yog/NativeDraw",
+            "drawBlocks",
+            [S(blocks), F(x), F(y), F(w), F(h), F(yaw), F(pitch)]
+        );
+    }
+}
+
 unsafe extern "C" fn gfx_text_width(text: YogStr, font: YogStr) -> f32 {
     unsafe { host!("dev/yog/NativeDraw", "textWidth", [S(text), S(font)]).unwrap_or(0.0) }
 }
@@ -1885,6 +1916,8 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
     image_size: images::gfx_image_size,
     draw2d_svg: svg::gfx_draw2d_svg,
     draw2d_entity: svg::gfx_draw2d_entity,
+    draw2d_text_scaled: gfx_draw2d_text_scaled,
+    draw2d_blocks: gfx_draw2d_blocks,
 };
 
 // ── YogApi registration functions ─────────────────────────────────────────────

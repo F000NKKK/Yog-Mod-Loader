@@ -123,7 +123,8 @@ pub const SOUNDS: [&str; 10] = [
 pub const TOOLS: [&str; 4] = ["pickaxe", "axe", "shovel", "hoe"];
 pub const TOOL_LEVELS: [&str; 3] = ["stone", "iron", "diamond"];
 pub const RENDER_LAYERS: [&str; 4] = ["solid", "cutout", "cutout_mipped", "translucent"];
-pub const RECIPE_TYPES: [&str; 3] = ["shaped", "shapeless", "smelting"];
+pub const RECIPE_TYPES: [&str; 8] =
+    ["shaped", "shapeless", "smelting", "blasting", "smoking", "campfire_cooking", "stonecutting", "smithing"];
 
 /// A model template — `"parent": "cube_all"` — and the texture slots it takes.
 pub struct Template {
@@ -336,7 +337,7 @@ impl Ctx<'_> {
     /// Reports keys of `obj` not in `known`.
     fn unknown_keys(&mut self, obj: &J, what: &str, known: &[&str]) {
         for (k, v) in obj.members() {
-            if !known.contains(&k.as_str()) {
+            if !known.contains(&k.as_str()) && !is_metadata(k) {
                 self.err(
                     v.line,
                     format!(
@@ -1442,12 +1443,15 @@ fn drops_table(cx: &mut Ctx, d: &J, id: &str) -> Value {
 /// What a recipe takes.
 #[derive(Debug, Clone)]
 enum RecipeKind {
-    /// A crafting grid pattern: rows of key characters (space = empty).
-    Shaped { pattern: Vec<String>, key: Vec<(char, String)> },
+    /// A crafting grid pattern: rows of key characters (space = empty);
+    /// each key any of several items.
+    Shaped { pattern: Vec<String>, key: Vec<(char, Vec<String>)> },
     /// Crafting ingredients in any arrangement.
-    Shapeless(Vec<String>),
-    /// A furnace: one ingredient.
-    Smelting { input: String, experience: f64, cook_time: u32 },
+    Shapeless(Vec<Vec<String>>),
+    /// Cooking (`method`: `Smelting`, `Blasting`, `Smoking`, `Campfire`).
+    Cooking { method: &'static str, input: Vec<String>, experience: f64, cook_time: u32 },
+    Stonecutting(Vec<String>),
+    Smithing { template: Vec<String>, base: Vec<String>, addition: Vec<String> },
 }
 
 /// One checked `.ybook`.
@@ -1540,6 +1544,12 @@ fn compile_book(cx: &mut Ctx, j: &J, mod_ns: Option<&str>) -> Option<BookFile> {
     Some(BookFile { id, json: value.to_string() })
 }
 
+/// Keys a source file may carry for its authors and tools — `$…`, `_…`,
+/// `comment`, `meta` — which nothing ships.
+fn is_metadata(key: &str) -> bool {
+    key.starts_with('$') || key.starts_with('_') || key == "comment" || key == "meta"
+}
+
 /// One checked `.yrecipe`.
 #[derive(Debug, Clone)]
 struct Recipe {
@@ -1548,38 +1558,52 @@ struct Recipe {
     kind: RecipeKind,
     result: String,
     count: u32,
+    group: Option<String>,
+    category: Option<String>,
     /// Item ids it names (not tags), by line — the mod's own are checked
     /// against its blocks and items.
     items: Vec<(usize, String)>,
 }
 
 impl Recipe {
-    /// The `registry.add_*_recipe(...)` call registering it.
+    /// The `registry.add_recipe(...)` call registering it.
     fn registration(&self) -> String {
-        let (id, result, count) = (&self.id, &self.result, self.count);
-        match &self.kind {
+        let list = |items: &[String]| {
+            let quoted: Vec<String> = items.iter().map(|i| format!("{i:?}.into()")).collect();
+            format!("vec![{}]", quoted.join(", "))
+        };
+        let kind = match &self.kind {
             RecipeKind::Shaped { pattern, key } => {
-                let mut b = format!("::yog_api::ShapedRecipe::new({id:?}, {result:?}, {count})");
-                for row in pattern {
-                    let _ = write!(b, ".row({row:?})");
-                }
-                for (c, item) in key {
-                    let _ = write!(b, ".key({c:?}, {item:?})");
-                }
-                format!("registry.add_shaped_recipe({b});")
+                let rows: Vec<String> = pattern.iter().map(|r| format!("{r:?}.into()")).collect();
+                let keys: Vec<String> = key.iter().map(|(c, items)| format!("({c:?}, {})", list(items))).collect();
+                format!("Shaped {{ pattern: vec![{}], key: vec![{}] }}", rows.join(", "), keys.join(", "))
             }
             RecipeKind::Shapeless(ingredients) => {
-                let mut b = format!("::yog_api::ShapelessRecipe::new({id:?}, {result:?}, {count})");
-                for item in ingredients {
-                    let _ = write!(b, ".ingredient({item:?})");
-                }
-                format!("registry.add_shapeless_recipe({b});")
+                let all: Vec<String> = ingredients.iter().map(|i| list(i)).collect();
+                format!("Shapeless {{ ingredients: vec![{}] }}", all.join(", "))
             }
-            RecipeKind::Smelting { input, experience, cook_time } => format!(
-                "registry.add_furnace_recipe(::yog_api::FurnaceRecipe::new({id:?}, {input:?}, {result:?}, {count}).experience({}_f32).cook_time({cook_time}));",
+            RecipeKind::Cooking { method, input, experience, cook_time } => format!(
+                "Cooking {{ method: ::yog_api::Cooking::{method}, ingredient: {}, experience: {}_f32, cook_time: {cook_time} }}",
+                list(input),
                 float(*experience)
             ),
-        }
+            RecipeKind::Stonecutting(input) => format!("Stonecutting {{ ingredient: {} }}", list(input)),
+            RecipeKind::Smithing { template, base, addition } => format!(
+                "Smithing {{ template: {}, base: {}, addition: {} }}",
+                list(template),
+                list(base),
+                list(addition)
+            ),
+        };
+        let opt = |o: &Option<String>| o.as_ref().map_or("None".to_string(), |v| format!("Some({v:?}.into())"));
+        format!(
+            "registry.add_recipe(::yog_api::Recipe {{ id: {:?}.into(), kind: ::yog_api::RecipeKind::{kind}, result: {:?}.into(), count: {}, group: {}, category: {} }});",
+            self.id,
+            self.result,
+            self.count,
+            opt(&self.group),
+            opt(&self.category)
+        )
     }
 }
 
@@ -1621,7 +1645,8 @@ fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Opt
         "a .yrecipe",
         &[
             "$schema", "format", "id", "type", "pattern", "key", "ingredients", "ingredient",
-            "result", "count", "experience", "cook_time",
+            "result", "count", "experience", "cook_time", "template", "base", "addition", "group",
+            "category",
         ],
     );
     if let Some(f) = j.get("format")
@@ -1635,19 +1660,23 @@ fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Opt
         return None;
     };
     let ty = cx.one_of(t, "type", &RECIPE_TYPES)?;
+    let cooking = matches!(ty.as_str(), "smelting" | "blasting" | "smoking" | "campfire_cooking");
     // Keys of the other types.
-    for (key, owner) in [
-        ("pattern", "shaped"),
-        ("key", "shaped"),
-        ("ingredients", "shapeless"),
-        ("ingredient", "smelting"),
-        ("experience", "smelting"),
-        ("cook_time", "smelting"),
+    for (key, owners) in [
+        ("pattern", &["shaped"][..]),
+        ("key", &["shaped"]),
+        ("ingredients", &["shapeless"]),
+        ("ingredient", &["smelting", "blasting", "smoking", "campfire_cooking", "stonecutting"]),
+        ("experience", &["smelting", "blasting", "smoking", "campfire_cooking"]),
+        ("cook_time", &["smelting", "blasting", "smoking", "campfire_cooking"]),
+        ("template", &["smithing"]),
+        ("base", &["smithing"]),
+        ("addition", &["smithing"]),
     ] {
-        if owner != ty
+        if !owners.contains(&ty.as_str())
             && let Some(v) = j.get(key)
         {
-            cx.err(v.line, format!("{key} is for {owner} recipes, this one is {ty}"));
+            cx.err(v.line, format!("{key} is for {} recipes, this one is {ty}", owners.join("/")));
         }
     }
     let mut items = Vec::new();
@@ -1662,6 +1691,9 @@ fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Opt
         Some(v) => cx.number(v, "count", 1.0, 64.0).map(|n| n as u32),
         None => Some(1),
     };
+    let text = |cx: &mut Ctx, key: &str| j.get(key).and_then(|v| cx.string(v, key).map(str::to_owned));
+    let group = text(cx, "group");
+    let category = text(cx, "category");
     let kind = match ty.as_str() {
         "shaped" => {
             let Some(pv) = j.get("pattern") else {
@@ -1681,11 +1713,11 @@ fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Opt
                         let mut chars = k.chars();
                         match (chars.next(), chars.next()) {
                             (Some(c), None) if c != ' ' => {
-                                if let Some(item) = recipe_item(cx, v, &format!("key {k:?}"), true, &mut items) {
+                                if let Some(alts) = recipe_ingredient(cx, v, &format!("key {k:?}"), &mut items) {
                                     if !rows.iter().any(|r| r.contains(c)) {
                                         cx.warn(v.line, format!("key {k:?} isn't used by the pattern"));
                                     }
-                                    key.push((c, item));
+                                    key.push((c, alts));
                                 }
                             }
                             _ => cx.err(v.line, format!("key {k:?}: one character other than space")),
@@ -1708,10 +1740,10 @@ fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Opt
                 cx.err(j.line, "a shapeless recipe needs \"ingredients\": 1–9 items or tags");
                 return None;
             };
-            let list: Vec<String> = iv
+            let list: Vec<Vec<String>> = iv
                 .items()
                 .iter()
-                .filter_map(|i| recipe_item(cx, i, "ingredients[]", true, &mut items))
+                .filter_map(|i| recipe_ingredient(cx, i, "ingredients[]", &mut items))
                 .collect();
             if !iv.is_arr() || iv.items().is_empty() || iv.items().len() > 9 {
                 cx.err(iv.line, "ingredients must be an array of 1–9 items or tags");
@@ -1719,21 +1751,44 @@ fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Opt
             }
             RecipeKind::Shapeless(list)
         }
+        "smithing" => {
+            let mut part = |cx: &mut Ctx, key: &str| match j.get(key) {
+                Some(v) => recipe_ingredient(cx, v, key, &mut items),
+                None => {
+                    cx.err(j.line, format!("a smithing recipe needs a \"{key}\""));
+                    None
+                }
+            };
+            let template = part(cx, "template");
+            let base = part(cx, "base");
+            let addition = part(cx, "addition");
+            RecipeKind::Smithing { template: template?, base: base?, addition: addition? }
+        }
         _ => {
             let Some(iv) = j.get("ingredient") else {
-                cx.err(j.line, "a smelting recipe needs an \"ingredient\": the item or tag it smelts");
+                cx.err(j.line, format!("a {ty} recipe needs an \"ingredient\": the item or tag it takes"));
                 return None;
             };
-            let input = recipe_item(cx, iv, "ingredient", true, &mut items)?;
-            let experience = match j.get("experience") {
-                Some(v) => cx.number(v, "experience", 0.0, 1000.0)?,
-                None => 0.1,
-            };
-            let cook_time = match j.get("cook_time") {
-                Some(v) => cx.number(v, "cook_time", 1.0, 32767.0)? as u32,
-                None => 200,
-            };
-            RecipeKind::Smelting { input, experience, cook_time }
+            let input = recipe_ingredient(cx, iv, "ingredient", &mut items)?;
+            if !cooking {
+                RecipeKind::Stonecutting(input)
+            } else {
+                let (method, default_time) = match ty.as_str() {
+                    "smelting" => ("Smelting", 200.0),
+                    "blasting" => ("Blasting", 100.0),
+                    "smoking" => ("Smoking", 100.0),
+                    _ => ("Campfire", 600.0),
+                };
+                let experience = match j.get("experience") {
+                    Some(v) => cx.number(v, "experience", 0.0, 1000.0)?,
+                    None => 0.1,
+                };
+                let cook_time = match j.get("cook_time") {
+                    Some(v) => cx.number(v, "cook_time", 1.0, 32767.0)?,
+                    None => default_time,
+                } as u32;
+                RecipeKind::Cooking { method, input, experience, cook_time }
+            }
         }
     };
     Some(Recipe {
@@ -1742,8 +1797,23 @@ fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Opt
         kind,
         result: result?,
         count: count?,
+        group,
+        category,
         items,
     })
+}
+
+/// An ingredient: an item, a tag, or an array of either (any of them).
+fn recipe_ingredient(cx: &mut Ctx, j: &J, what: &str, items: &mut Vec<(usize, String)>) -> Option<Vec<String>> {
+    if j.is_arr() {
+        let alts: Vec<String> = j.items().iter().filter_map(|i| recipe_item(cx, i, what, true, items)).collect();
+        if alts.is_empty() {
+            cx.err(j.line, format!("{what}: an array of items or tags, at least one"));
+            return None;
+        }
+        return Some(alts);
+    }
+    recipe_item(cx, j, what, true, items).map(|i| vec![i])
 }
 
 /// Ids of the `.yui` screens under `dir` that lay out an inventory (have
@@ -2500,16 +2570,22 @@ mod tests {
             ),
             (
                 "content/recipes/smelt_ruby.yrecipe",
-                r##"{ "type": "smelting", "ingredient": "#c:ores", "result": "mymod:ruby", "experience": 0.7 }"##,
+                r##"{ "type": "smelting", "ingredient": "#c:ores", "result": "mymod:ruby", "experience": 0.7, "$comment": "metadata goes", "_editor": { "x": 1 } }"##,
+            ),
+            (
+                "content/recipes/cut.yrecipe",
+                r##"{ "type": "stonecutting", "ingredient": ["minecraft:stone", "minecraft:andesite"], "result": "mymod:ruby", "group": "rubies" }"##,
             ),
         ]);
         let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
-        assert_eq!(c.recipes, 3);
+        assert_eq!(c.recipes, 4);
         let src = c.source.clone().unwrap();
         for want in [
-            r#"registry.add_shaped_recipe(::yog_api::ShapedRecipe::new("mymod:ruby_block", "minecraft:emerald_block", 1).row("RR").row("RR").key('R', "mymod:ruby"));"#,
-            r##"registry.add_shapeless_recipe(::yog_api::ShapelessRecipe::new("mymod:ruby", "mymod:ruby", 2).ingredient("minecraft:emerald").ingredient("#c:dusts"));"##,
-            r##"::yog_api::FurnaceRecipe::new("mymod:smelt_ruby", "#c:ores", "mymod:ruby", 1).experience(0.7_f32).cook_time(200)"##,
+            r#"kind: ::yog_api::RecipeKind::Shaped { pattern: vec!["RR".into(), "RR".into()], key: vec![('R', vec!["mymod:ruby".into()])] }, result: "minecraft:emerald_block".into(), count: 1"#,
+            r##"Shapeless { ingredients: vec![vec!["minecraft:emerald".into()], vec!["#c:dusts".into()]] }, result: "mymod:ruby".into(), count: 2"##,
+            r##"Cooking { method: ::yog_api::Cooking::Smelting, ingredient: vec!["#c:ores".into()], experience: 0.7_f32, cook_time: 200 }"##,
+            r##"Stonecutting { ingredient: vec!["minecraft:stone".into(), "minecraft:andesite".into()] }"##,
+            r##"group: Some("rubies".into())"##,
         ] {
             assert!(src.contains(want), "missing {want}\n{src}");
         }

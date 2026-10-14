@@ -247,13 +247,15 @@ fn draw_lines(
         }
         let line_w = text::str_width_in(line, s.font_scale, &s.font);
         let tx = r.x + s.pad[3] + place(avail_w - line_w);
-        draw_text(d2d, line, &s.font, tx, ly, s.color, s.text_shadow);
+        draw_text(d2d, line, &s.font, tx, ly, s.font_scale, s.color, s.text_shadow);
     }
 }
 
 /// Text in the widget's font — the plain call for the default font.
-fn draw_text(d2d: &Draw2D, line: &str, font: &str, x: f32, y: f32, color: u32, shadow: bool) {
-    if text::is_default_font(font) {
+fn draw_text(d2d: &Draw2D, line: &str, font: &str, x: f32, y: f32, scale: f32, color: u32, shadow: bool) {
+    if scale != 1.0 {
+        d2d.text_scaled(line, font, x, y, scale, color, shadow);
+    } else if text::is_default_font(font) {
         d2d.text(line, x, y, color, shadow);
     } else {
         d2d.text_font(line, font, x, y, color, shadow);
@@ -301,6 +303,7 @@ fn render_text_box(
                 &s.font,
                 x0,
                 ty,
+                fs,
                 widget::PLACEHOLDER_COLOR,
                 false,
             );
@@ -334,7 +337,7 @@ fn render_text_box(
                 widget::SELECTION_COLOR,
             );
         }
-        draw_text(d2d, &visible, &s.font, x0, ty, s.color, s.text_shadow);
+        draw_text(d2d, &visible, &s.font, x0, ty, fs, s.color, s.text_shadow);
     }
     if let Some(caret) = tb.caret
         && tb.caret_visible

@@ -1,6 +1,6 @@
 [package]
 name = "yog-api"
-version = "0.92.14"
+version = "0.92.15"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -16,7 +16,7 @@ yog-event = "0.4"
 yog-world = "0.3"
 yog-entity = "0.3"
 yog-player = "0.4.1"
-yog-registry = "0.28.2"
+yog-registry = "0.29"
 yog-network = "0.1"
 yog-command = "0.2"
 yog-dimensions = "0.11"
@@ -26,7 +26,7 @@ yog-storage = "0.1"
 yog-config  = "0.1"
 yog-gfx     = "0.25.1"
 yog-ui      = "0.40.6"
-yog-book = "0.61"
+yog-book = "0.62"
 yog-inventory = "0.14.1"
 
 

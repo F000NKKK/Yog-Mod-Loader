@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.100.11"
+version = "0.100.12"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -18,13 +18,13 @@ crate-type = ["cdylib"]
 # call site to the new API first.
 jni.workspace = true
 
-yog-abi = "0.28.4"
-yog-api = "0.92.2"
+yog-abi = "0.28.5"
+yog-api = "0.92.15"
 yog-logging = "0.1"
-yog-registry = "0.28.2"
-yog-ui     = "0.40.6"
-yog-book   = "0.61"
-yog-gfx    = "0.25.2"
+yog-registry = "0.29"
+yog-ui     = "0.40.8"
+yog-book   = "0.62"
+yog-gfx    = "0.25.3"
 yog-inventory = "0.14.1"
 yog-hot-reload = "0.2"
 

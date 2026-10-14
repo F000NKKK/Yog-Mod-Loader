@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 1;
-pub const ABI_MINOR: u32 = 4;
+pub const ABI_MINOR: u32 = 5;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -716,6 +716,24 @@ pub struct YogGfxApi {
     /// (0 = facing the viewer) and tilted `pitch` degrees.
     pub draw2d_entity:
         unsafe extern "C" fn(entity: YogStr, x: f32, y: f32, w: f32, h: f32, yaw: f32, pitch: f32),
+
+    // ── ABI 1.5 ──────────────────────────────────────────────────────────────
+    /// Draws `text` in `font` (empty = default) at `(x, y)`, `scale` times
+    /// its size.
+    pub draw2d_text_scaled: unsafe extern "C" fn(
+        text: YogStr,
+        font: YogStr,
+        x: f32,
+        y: f32,
+        scale: f32,
+        color: u32,
+        shadow: bool,
+    ),
+    /// Draws blocks in 3D, as big as fits in `(x, y, w, h)`: `blocks` is one
+    /// `x y z state` line per block (`0 0 0 minecraft:furnace[facing=north]`),
+    /// turned `yaw` degrees about the vertical and tilted `pitch` degrees.
+    pub draw2d_blocks:
+        unsafe extern "C" fn(blocks: YogStr, x: f32, y: f32, w: f32, h: f32, yaw: f32, pitch: f32),
 }
 
 unsafe impl Send for YogGfxApi {}

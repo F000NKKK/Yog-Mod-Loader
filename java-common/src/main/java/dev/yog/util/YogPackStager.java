@@ -125,7 +125,7 @@ public final class YogPackStager {
                         .resolve("data").resolve(namespace).resolve(YogDataLayout.recipeDir(mc121))
                         .resolve(name + ".json");
                 Files.createDirectories(target.getParent());
-                Files.writeString(target, mc121 ? YogDataLayout.upgradeRecipeJson(json) : json);
+                Files.writeString(target, YogDataLayout.yogRecipeToVanilla(json, mc121));
             } catch (IOException e) {
                 System.err.println("[yog] failed to write recipe " + namespace + ":" + name + ": " + e);
             }

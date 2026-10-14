@@ -108,6 +108,29 @@ impl<'ctx> Draw2D<'ctx> {
         unsafe { (a.draw2d_svg)(YogStr::from_str(data), x, y, w, h) }
     }
 
+    /// [`Self::text_font`] `scale` times its size (1 = the font's own).
+    #[allow(clippy::too_many_arguments)]
+    pub fn text_scaled(&self, text: &str, font: &str, x: f32, y: f32, scale: f32, color: u32, shadow: bool) {
+        let a = self.0.api();
+        unsafe { (a.draw2d_text_scaled)(YogStr::from_str(text), YogStr::from_str(font), x, y, scale, color, shadow) }
+    }
+
+    /// Draws blocks in 3D, as big as fits in `(x, y, w, h)` — a multiblock
+    /// structure, a block on display: each is `((x, y, z), state)` with a
+    /// full block state (`minecraft:furnace[facing=north]`), turned `yaw`
+    /// degrees about the vertical and tilted `pitch` degrees toward the
+    /// viewer (30 looks down on it like Patchouli does).
+    #[allow(clippy::too_many_arguments)]
+    pub fn blocks(&self, blocks: &[((i32, i32, i32), &str)], x: f32, y: f32, w: f32, h: f32, yaw: f32, pitch: f32) {
+        let mut list = String::new();
+        for ((bx, by, bz), state) in blocks {
+            use std::fmt::Write as _;
+            let _ = writeln!(list, "{bx} {by} {bz} {state}");
+        }
+        let a = self.0.api();
+        unsafe { (a.draw2d_blocks)(YogStr::from_str(&list), x, y, w, h, yaw, pitch) }
+    }
+
     /// Draws a living entity of type `entity` (`minecraft:zombie`,
     /// `mymod:wisp`) standing in `(x, y, w, h)`, as big as fits, turned
     /// `yaw` degrees (0 = facing the viewer) and tilted `pitch` degrees.

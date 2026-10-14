@@ -321,4 +321,70 @@ public final class NativeDraw {
         net.minecraft.client.gui.screens.inventory.InventoryScreen.renderEntityInInventory(
                 ctx, (int) cx, (int) (y + h / 2f + e.getBbHeight() * size / 2f), (int) size, pose, null, e);
     }
+
+    // ── Scaled text, 3D blocks ────────────────────────────────────────────────
+
+    /** Text {@code scale} times its size, top-left at (x, y). */
+    public static void drawTextScaled(String text, String font, float x, float y, float scale, int color, boolean shadow) {
+        GuiGraphics ctx = hudDrawContext;
+        if (ctx == null) return;
+        ctx.pose().pushPose();
+        ctx.pose().translate(x, y, 0f);
+        ctx.pose().scale(scale, scale, 1f);
+        if (font == null || font.isEmpty() || font.equals("minecraft:default")) drawText(text, 0, 0, color, shadow);
+        else drawTextFont(text, font, 0, 0, color, shadow);
+        ctx.pose().popPose();
+    }
+
+    /**
+     * Blocks in 3D ("x y z state" lines), as big as fits in (x, y, w, h),
+     * turned {@code yaw} degrees about the vertical, tilted {@code pitch}.
+     */
+    public static void drawBlocks(String list, float x, float y, float w, float h, float yaw, float pitch) {
+        GuiGraphics ctx = hudDrawContext;
+        if (ctx == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        java.util.List<Object[]> blocks = new java.util.ArrayList<>();
+        int[] lo = {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE};
+        int[] hi = {Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE};
+        for (String line : list.split("\n")) {
+            String[] p = line.trim().split(" ", 4);
+            if (p.length < 4) continue;
+            try {
+                int[] at = {Integer.parseInt(p[0]), Integer.parseInt(p[1]), Integer.parseInt(p[2])};
+                var state = net.minecraft.commands.arguments.blocks.BlockStateParser
+                        .parseForBlock(BuiltInRegistries.BLOCK.asLookup(), p[3], false).blockState();
+                blocks.add(new Object[]{at, state});
+                for (int i = 0; i < 3; i++) { lo[i] = Math.min(lo[i], at[i]); hi[i] = Math.max(hi[i], at[i]); }
+            } catch (Exception e) {
+                // An unknown block: left out.
+            }
+        }
+        if (blocks.isEmpty()) return;
+        float size = Math.max(hi[0] - lo[0], Math.max(hi[1] - lo[1], hi[2] - lo[2])) + 1;
+        float s = Math.min(w, h) / (size * 1.7f);
+        syncGlState();
+        var m = ctx.pose();
+        m.pushPose();
+        m.translate(x + w / 2f, y + h / 2f, 150f);
+        m.scale(s, -s, s);
+        m.mulPose(com.mojang.math.Axis.XP.rotationDegrees(pitch));
+        m.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yaw));
+        m.translate(-(lo[0] + hi[0] + 1) / 2f, -(lo[1] + hi[1] + 1) / 2f, -(lo[2] + hi[2] + 1) / 2f);
+        var buffers = mc.renderBuffers().bufferSource();
+        var renderer = mc.getBlockRenderer();
+        com.mojang.blaze3d.platform.Lighting.setupForFlatItems();
+        for (Object[] b : blocks) {
+            int[] at = (int[]) b[0];
+            m.pushPose();
+            m.translate(at[0], at[1], at[2]);
+            renderer.renderSingleBlock((net.minecraft.world.level.block.state.BlockState) b[1], m, buffers,
+                    net.minecraft.client.renderer.LightTexture.FULL_BRIGHT,
+                    net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY);
+            m.popPose();
+        }
+        buffers.endBatch();
+        com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
+        m.popPose();
+    }
 }

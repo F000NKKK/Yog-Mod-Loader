@@ -32,7 +32,7 @@ use yog_event::{
 };
 use yog_gfx::GfxContext;
 use yog_network::{Packet, PacketEvent};
-use yog_registry::{BlockDef, FurnaceRecipe, ItemDef, ShapedRecipe, ShapelessRecipe, StartupGrant};
+use yog_registry::{BlockDef, ItemDef, Recipe, StartupGrant};
 
 // ── CServer — implements Server via the YogServer function table ──────────────
 
@@ -2083,20 +2083,9 @@ impl Registry {
         }
     }
 
-    /// Register a shaped crafting recipe.
-    pub fn add_shaped_recipe(&mut self, recipe: ShapedRecipe) {
-        let (ns, name) = recipe.ns_name();
-        self.recipe(ns, name, &recipe.to_json());
-    }
-
-    /// Register a shapeless crafting recipe.
-    pub fn add_shapeless_recipe(&mut self, recipe: ShapelessRecipe) {
-        let (ns, name) = recipe.ns_name();
-        self.recipe(ns, name, &recipe.to_json());
-    }
-
-    /// Register a furnace smelting recipe.
-    pub fn add_furnace_recipe(&mut self, recipe: FurnaceRecipe) {
+    /// Register a recipe (Yog's format — see [`Recipe`]; the host writes
+    /// its Minecraft version's JSON).
+    pub fn add_recipe(&mut self, recipe: Recipe) {
         let (ns, name) = recipe.ns_name();
         self.recipe(ns, name, &recipe.to_json());
     }

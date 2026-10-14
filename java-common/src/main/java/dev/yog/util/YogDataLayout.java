@@ -137,4 +137,99 @@ public final class YogDataLayout {
         m.forEach((k, v) -> out.put(v, k));
         return Map.copyOf(out);
     }
+
+    /**
+     * A recipe in Yog's own format — what {@code .yrecipe} files say:
+     * {@code shaped}, {@code shapeless}, {@code smelting}, {@code blasting},
+     * {@code smoking}, {@code campfire_cooking}, {@code stonecutting},
+     * {@code smithing}; an ingredient is an item id, a {@code #tag} or an
+     * array of those (any of them) — as the vanilla recipe JSON of this
+     * Minecraft version ({@code mc121}: 1.21's {@code "id"} results). JSON of
+     * another type (a namespaced one) is passed on (upgraded to 1.21 there).
+     */
+    public static String yogRecipeToVanilla(String json, boolean mc121) {
+        JsonObject in;
+        try {
+            in = JsonParser.parseString(json).getAsJsonObject();
+        } catch (Exception e) {
+            return json;
+        }
+        String type = in.has("type") ? in.get("type").getAsString() : "";
+        if (type.contains(":")) return mc121 ? upgradeRecipeJson(json) : json;
+        JsonObject out = new JsonObject();
+        String result = in.has("result") ? in.get("result").getAsString() : "minecraft:air";
+        int count = in.has("count") ? in.get("count").getAsInt() : 1;
+        switch (type) {
+            case "shaped" -> {
+                out.addProperty("type", "minecraft:crafting_shaped");
+                out.add("pattern", in.get("pattern"));
+                JsonObject key = new JsonObject();
+                for (Map.Entry<String, JsonElement> e : in.getAsJsonObject("key").entrySet()) {
+                    key.add(e.getKey(), ingredient(e.getValue()));
+                }
+                out.add("key", key);
+                out.add("result", stack(result, count, mc121));
+            }
+            case "shapeless" -> {
+                out.addProperty("type", "minecraft:crafting_shapeless");
+                com.google.gson.JsonArray list = new com.google.gson.JsonArray();
+                for (JsonElement e : in.getAsJsonArray("ingredients")) list.add(ingredient(e));
+                out.add("ingredients", list);
+                out.add("result", stack(result, count, mc121));
+            }
+            case "smelting", "blasting", "smoking", "campfire_cooking" -> {
+                out.addProperty("type", "minecraft:" + type);
+                out.add("ingredient", ingredient(in.get("ingredient")));
+                if (mc121) out.add("result", stack(result, count, true));
+                else out.addProperty("result", result);
+                out.addProperty("experience", in.has("experience") ? in.get("experience").getAsFloat() : 0.1f);
+                out.addProperty("cookingtime", in.has("cook_time") ? in.get("cook_time").getAsInt() : 200);
+            }
+            case "stonecutting" -> {
+                out.addProperty("type", "minecraft:stonecutting");
+                out.add("ingredient", ingredient(in.get("ingredient")));
+                if (mc121) {
+                    out.add("result", stack(result, count, true));
+                } else {
+                    out.addProperty("result", result);
+                    out.addProperty("count", count);
+                }
+            }
+            case "smithing" -> {
+                out.addProperty("type", "minecraft:smithing_transform");
+                out.add("template", ingredient(in.get("template")));
+                out.add("base", ingredient(in.get("base")));
+                out.add("addition", ingredient(in.get("addition")));
+                out.add("result", stack(result, count, mc121));
+            }
+            default -> {
+                return json;
+            }
+        }
+        if (in.has("group")) out.addProperty("group", in.get("group").getAsString());
+        if (in.has("category")) out.addProperty("category", in.get("category").getAsString());
+        return out.toString();
+    }
+
+    /** An item id, a {@code #tag}, or an array of those (any of them), as a vanilla ingredient. */
+    private static JsonElement ingredient(JsonElement v) {
+        if (v.isJsonArray()) {
+            com.google.gson.JsonArray any = new com.google.gson.JsonArray();
+            for (JsonElement e : v.getAsJsonArray()) any.add(ingredient(e));
+            return any.size() == 1 ? any.get(0) : any;
+        }
+        String item = v.getAsString();
+        JsonObject o = new JsonObject();
+        if (item.startsWith("#")) o.addProperty("tag", item.substring(1));
+        else o.addProperty("item", item);
+        return o;
+    }
+
+    /** A result stack: {@code {"item": …}} before 1.21, {@code {"id": …}} since. */
+    private static JsonObject stack(String id, int count, boolean mc121) {
+        JsonObject o = new JsonObject();
+        o.addProperty(mc121 ? "id" : "item", id);
+        if (count != 1) o.addProperty("count", count);
+        return o;
+    }
 }
