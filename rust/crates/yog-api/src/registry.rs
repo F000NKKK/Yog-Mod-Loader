@@ -10,13 +10,13 @@
 use std::os::raw::c_void;
 
 use yog_abi::{
-    YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, YogBlockDef,
+    YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, 
     YogChatEvent, YogCommandEvent, YogContainerCloseEvent, YogContainerOpenEvent, YogCraftEvent,
     YogEntityDamageEvent, YogEntityDeathEvent, YogEntityInteractEvent, YogEntitySpawnEvent,
-    YogExplosionEvent, YogGfxApi, YogInventoryDef, YogItemDef, YogItemPickupEvent,
+    YogExplosionEvent, YogGfxApi, YogItemPickupEvent,
     YogKeyPressEvent, YogPacketEvent, YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent,
     YogPlayerMoveEvent, YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer,
-    YogStartupGrantDef, YogStr, YogUseBlockEvent, YogUseItemEvent,
+    YogStr, YogUseBlockEvent, YogUseItemEvent,
 };
 use yog_book::Book;
 use yog_command::CommandContext;
@@ -2079,147 +2079,63 @@ impl Registry {
         });
     }
 
-    // ── recipes ──────────────────────────────────────────────────────────────
+    // ── content ──────────────────────────────────────────────────────────────
 
-    fn recipe(&mut self, ns: &str, name: &str, json: &str) {
-        unsafe {
-            ((*self.api).register_recipe_json)(
-                self.ctx(),
-                YogStr::from_str(ns),
-                YogStr::from_str(name),
-                YogStr::from_str(json),
-            );
-        }
+    /// Hands the runtime content of `kind` named `id`: its definition as a
+    /// Yog Data blob (`register_content`, one ABI call for every kind).
+    fn content(&mut self, kind: &str, id: &str, def: &yog_data::Value) {
+        let blob = yog_data::binary::encode(def);
+        unsafe { ((*self.api).register_content)(self.ctx(), YogStr::from_str(kind), YogStr::from_str(id), blob.as_ptr(), blob.len()) }
+    }
+
+    /// JSON text as Yog Data (recipes and books are written as JSON by their crates).
+    fn json(text: &str) -> yog_data::Value {
+        yog_data::json::from_json_text(text).unwrap_or_default()
     }
 
     /// Register a recipe (Yog's format — see [`Recipe`]; the host writes
     /// its Minecraft version's JSON).
     pub fn add_recipe(&mut self, recipe: Recipe) {
         let (ns, name) = recipe.ns_name();
-        self.recipe(ns, name, &recipe.to_json());
+        let id = format!("{ns}:{name}");
+        self.content("recipe", &id, &Self::json(&recipe.to_json()));
     }
 
     /// Register a recipe given as Yog's recipe JSON — how `yog build`
     /// registers the mod's own kinds (`{"type": "mymod:infusion", "slots":
     /// …}`), which stay the mod's data: for its machines and its books.
     pub fn add_recipe_json(&mut self, id: &str, json: &str) {
-        let (ns, name) = id.split_once(':').unwrap_or(("minecraft", id));
-        self.recipe(ns, name, json);
+        let id = if id.contains(':') { id.to_string() } else { format!("minecraft:{id}") };
+        self.content("recipe", &id, &Self::json(json));
     }
 
-    // ── content ──────────────────────────────────────────────────────────────
-
     pub fn register_item(&mut self, def: ItemDef) {
-        // Build a C-compatible YogItemDef whose YogStr fields point into `def`'s
-        // String storage.  We then call register_item which must copy the data
-        // before returning (the runtime stores owned Strings).
-        let food_nutrition = def.food.as_ref().map_or(0, |f| f.nutrition);
-        let food_saturation = def.food.as_ref().map_or(0.0, |f| f.saturation);
-        let food_always_eat = def.food.as_ref().is_some_and(|f| f.can_always_eat);
-        let c = YogItemDef {
-            id: YogStr::from_str(&def.id),
-            max_stack: def.max_stack as u32,
-            name: def
-                .name
-                .as_deref()
-                .map(YogStr::from_str)
-                .unwrap_or(YogStr::EMPTY),
-            tooltip: def
-                .tooltip
-                .as_deref()
-                .map(YogStr::from_str)
-                .unwrap_or(YogStr::EMPTY),
-            max_damage: def.max_damage,
-            fire_resistant: def.fire_resistant,
-            fuel_ticks: def.fuel_ticks,
-            food_nutrition,
-            food_saturation,
-            food_always_eat,
-        };
-        unsafe { ((*self.api).register_item)(self.ctx(), &c) }
+        use yog_data::Schema;
+        self.content("item", &def.id.clone(), &def.write());
     }
 
     pub fn register_block(&mut self, def: BlockDef) {
-        let shape = def.shape.unwrap_or([0.0; 6]);
-        let groups_joined = def.connect_groups.join(",");
-        let c = YogBlockDef {
-            id: YogStr::from_str(&def.id),
-            hardness: def.hardness,
-            resistance: def.resistance,
-            name: def
-                .name
-                .as_deref()
-                .map(YogStr::from_str)
-                .unwrap_or(YogStr::EMPTY),
-            light_level: def.light_level,
-            sound: def
-                .sound
-                .as_deref()
-                .map(YogStr::from_str)
-                .unwrap_or(YogStr::EMPTY),
-            requires_tool: def.requires_tool,
-            no_collision: def.no_collision,
-            slipperiness: def.slipperiness,
-            shape,
-            connects: def.connects,
-            connect_groups: YogStr::from_str(&groups_joined),
-            inventory_id: def
-                .inventory_id
-                .as_deref()
-                .map(YogStr::from_str)
-                .unwrap_or(YogStr::EMPTY),
-            redstone_source: def.redstone_source,
-        };
-        unsafe { ((*self.api).register_block)(self.ctx(), &c) }
+        use yog_data::Schema;
+        self.content("block", &def.id.clone(), &def.write());
     }
 
     /// Register a real Container/Menu inventory screen — see
     /// `yog_inventory::InventoryDef`. Attach it to a block via
     /// `BlockDef::inventory(id)`.
     pub fn register_inventory(&mut self, def: yog_inventory::InventoryDef) {
-        let layout = yog_inventory::encode_layout(&def.resolved_layout());
-        let c = YogInventoryDef {
-            id: YogStr::from_str(&def.id),
-            slot_count: def.slot_count as u32,
-            layout: YogStr::from_str(&layout),
-            include_player_inventory: def.include_player_inventory,
-            player_inv_x: def.player_inv_offset.0,
-            player_inv_y: def.player_inv_offset.1,
-            background_texture: def
-                .background_texture
-                .as_deref()
-                .map(YogStr::from_str)
-                .unwrap_or(YogStr::EMPTY),
-            title: YogStr::from_str(&def.title),
-            background_w: def.background_size.map(|(w, _)| w).unwrap_or(0.0),
-            background_h: def.background_size.map(|(_, h)| h).unwrap_or(0.0),
-        };
-        unsafe { ((*self.api).register_inventory)(self.ctx(), &c) }
+        use yog_data::Schema;
+        self.content("inventory", &def.id.clone(), &def.write());
     }
 
     // ── startup grants ───────────────────────────────────────────────────────
 
     /// Register a startup grant: items/books to give once when a player first joins.
     pub fn register_startup_grant(&mut self, grant: StartupGrant) {
-        let items_str = grant.items.join("|");
-        let c = YogStartupGrantDef {
-            id: YogStr::from_str(&grant.id),
-            items: YogStr::from_str(&items_str),
-            book: grant
-                .book
-                .as_deref()
-                .map(YogStr::from_str)
-                .unwrap_or(YogStr::EMPTY),
-            command: grant
-                .command
-                .as_deref()
-                .map(YogStr::from_str)
-                .unwrap_or(YogStr::EMPTY),
-        };
-        unsafe { ((*self.api).register_startup_grant)(self.ctx(), &c) }
+        use yog_data::Schema;
+        self.content("startup_grant", &grant.id.clone(), &grant.write());
     }
 
-    /// Register a book with its JSON-serialized content.
+    /// Register a book.
     pub fn register_book(&mut self, book: &Book) {
         self.register_book_json(&book.id, &book.to_json());
     }
@@ -2227,7 +2143,7 @@ impl Registry {
     /// Register a book from its JSON (what `yog build` makes of a
     /// `content/**/*.ybook`).
     pub fn register_book_json(&mut self, id: &str, json: &str) {
-        unsafe { ((*self.api).register_book)(self.ctx(), YogStr::from_str(id), YogStr::from_str(json)) }
+        self.content("book", id, &Self::json(json));
     }
 
     /// Register (or patch) a dimension's *type* (sky, lighting, physics, ...).
@@ -2245,10 +2161,8 @@ impl Registry {
     /// pick a generator type registered with
     /// [`Registry::register_chunk_generator`].
     pub fn register_dimension(&mut self, def: &YogDimensionDef) {
-        let json = def.to_json();
-        let id = YogStr::from_str(&def.id);
-        let j = YogStr::from_str(&json);
-        unsafe { ((*self.api).register_dimension_json)(self.ctx(), id, j) }
+        let value = Self::json(&def.to_json());
+        self.content("dimension", &def.id.clone(), &value);
     }
 
     /// Register a named, reusable chunk-generator type under

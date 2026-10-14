@@ -1,6 +1,6 @@
 [package]
 name = "yog-ui"
-version = "0.40.14"
+version = "0.41.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -8,11 +8,11 @@ license = "MIT OR Apache-2.0"
 description = "Yog UI framework — flexbox and WPF-style grid layout + GPU rendering via yog-gfx"
 
 [dependencies]
-yog-gfx = "0.25.3"
-yog-abi = "0.28.1"
+yog-gfx = "0.26"
+yog-abi = "0.29"
 
 [dev-dependencies]
-yog-gfx = { version = "0.25.3", features = ["testing"] }
+yog-gfx = { version = "0.26", features = ["testing"] }
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
 
 [[bench]]

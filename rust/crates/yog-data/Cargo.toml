@@ -1,6 +1,6 @@
 [package]
 name = "yog-data"
-version = "0.3.0"
+version = "0.3.1"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -15,8 +15,13 @@ yog-data-derive = { version = "0.3", path = "../yog-data-derive" }
 toml = { version = "1", optional = true, default-features = false, features = ["std", "parse", "preserve_order"] }
 serde_spanned = { version = "1", optional = true }
 
+# JSON ⇄ Yog Data (`json` feature).
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
 [features]
 toml = ["dep:toml", "dep:serde_spanned"]
+json = ["dep:serde", "dep:serde_json"]
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }

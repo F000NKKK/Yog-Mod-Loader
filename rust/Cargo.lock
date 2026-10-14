@@ -1459,11 +1459,11 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "yog-abi"
-version = "0.28.5"
+version = "0.29.0"
 
 [[package]]
 name = "yog-api"
-version = "0.93.2"
+version = "0.94.0"
 dependencies = [
  "ctor",
  "rkyv",
@@ -1472,6 +1472,7 @@ dependencies = [
  "yog-command",
  "yog-config",
  "yog-core",
+ "yog-data",
  "yog-dimensions",
  "yog-entity",
  "yog-event",
@@ -1489,7 +1490,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.63.4"
+version = "0.64.0"
 dependencies = [
  "criterion",
  "serde",
@@ -1502,7 +1503,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "criterion",
  "serde_json",
@@ -1531,9 +1532,10 @@ dependencies = [
 
 [[package]]
 name = "yog-data"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "criterion",
+ "serde",
  "serde_json",
  "serde_spanned",
  "toml",
@@ -1562,7 +1564,7 @@ dependencies = [
 
 [[package]]
 name = "yog-dimensions"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1585,14 +1587,14 @@ dependencies = [
 
 [[package]]
 name = "yog-formats"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "yog-data",
 ]
 
 [[package]]
 name = "yog-gfx"
-version = "0.25.4"
+version = "0.26.0"
 dependencies = [
  "yog-abi",
 ]
@@ -1615,16 +1617,17 @@ dependencies = [
 
 [[package]]
 name = "yog-inventory"
-version = "0.14.1"
+version = "0.15.0"
 dependencies = [
  "serde",
  "serde_json",
  "yog-abi",
+ "yog-data",
 ]
 
 [[package]]
 name = "yog-kit"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "yog-api",
 ]
@@ -1650,16 +1653,17 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.29.1"
+version = "0.30.0"
 dependencies = [
  "serde",
  "serde_json",
  "yog-abi",
+ "yog-data",
 ]
 
 [[package]]
 name = "yog-runtime"
-version = "0.101.3"
+version = "0.102.0"
 dependencies = [
  "criterion",
  "glow",
@@ -1698,7 +1702,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ui"
-version = "0.40.14"
+version = "0.41.0"
 dependencies = [
  "criterion",
  "yog-abi",

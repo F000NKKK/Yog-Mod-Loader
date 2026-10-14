@@ -998,6 +998,29 @@ impl<T: Schema, const N: usize> Schema for [T; N] {
     }
 }
 
+/// A pair, written `[a, b]` (a point, a size).
+impl<A: Schema, B: Schema> Schema for (A, B) {
+    fn shape() -> Shape {
+        Shape::List(Value::shape)
+    }
+    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+        let Value::List(items) = v else {
+            cx.expected("a pair [a, b]", v);
+            return None;
+        };
+        if items.len() != 2 {
+            cx.problem(format!("expected 2 items, found {}", items.len()));
+            return None;
+        }
+        let a = cx.at(Seg::Index(0), |cx| A::read(&items[0], cx));
+        let b = cx.at(Seg::Index(1), |cx| B::read(&items[1], cx));
+        Some((a?, b?))
+    }
+    fn write(&self) -> Value {
+        Value::List(vec![self.0.write(), self.1.write()])
+    }
+}
+
 fn read_map<T: Schema>(v: &Value, cx: &mut Reader, mut put: impl FnMut(String, T)) -> Option<()> {
     let map = cx.map(v)?;
     let mut ok = true;

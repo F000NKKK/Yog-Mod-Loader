@@ -18,13 +18,14 @@ use yog_abi::YogStr;
 /// Pixel position of a single slot in vanilla GUI coordinate space (the same
 /// space vanilla screens use: origin at the panel's top-left corner, one
 /// vanilla slot = 18×18px).
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, yog_data::Schema)]
 pub struct SlotLayout {
     pub x: f32,
     pub y: f32,
     /// What the slot takes: item ids (`minecraft:redstone`) and item tags
     /// (`#c:dusts`). Empty = anything.
     #[serde(default)]
+    #[data(default)]
     pub accepts: Vec<String>,
 }
 
@@ -53,7 +54,7 @@ const DEFAULT_GRID_ORIGIN: (f32, f32) = (8.0, 18.0);
 /// Describes one inventory-backed screen: how many slots a mod block has,
 /// where they sit, whether the player's own inventory is appended below,
 /// and which background texture to draw (vanilla default, or a mod's own).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, yog_data::Schema)]
 pub struct InventoryDef {
     pub id: String,
     pub slot_count: usize,

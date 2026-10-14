@@ -28,17 +28,16 @@ use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry
 
 use yog_abi::{
     ABI_VERSION, YogAdvancementEvent, YogAdvancementFn, YogApi, YogAttackEntityFn, YogBlockBreakFn,
-    YogBlockDef, YogBlockPos, YogChatFn, YogClientFn, YogCommandFn, YogContainerCloseEvent,
+    YogBlockPos, YogChatFn, YogClientFn, YogCommandFn, YogContainerCloseEvent,
     YogContainerCloseFn, YogContainerOpenEvent, YogContainerOpenFn, YogCraftEvent, YogCraftFn,
     YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent, YogEntityInteractFn,
-    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemDef,
-    YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogKeyPressFn, YogOwnedStr, YogPacketFn,
+    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogKeyPressFn, YogOwnedStr, YogPacketFn,
     YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn,
     YogPlayerMoveEvent, YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn,
     YogProjectileHitEvent, YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn,
-    YogStartupGrantDef, YogStr, YogUseBlockFn, YogUseItemFn, YogVec3, YogWorldRenderFn,
+    YogStr, YogUseBlockFn, YogUseItemFn, YogVec3, YogWorldRenderFn,
 };
-use yog_registry::{BlockDef, FoodDef, ItemDef};
+use yog_registry::{BlockDef, ItemDef};
 
 // ── Static globals ────────────────────────────────────────────────────────────
 
@@ -2068,138 +2067,109 @@ unsafe extern "C" fn api_register_typed_command(
     }
 }
 
-unsafe extern "C" fn api_register_recipe_json(
-    ctx: *mut c_void,
-    namespace: YogStr,
-    name: YogStr,
-    json: YogStr,
-) {
+/// `register_content`: content of `kind` named `id`, its definition a Yog
+/// Data blob — the one way mods hand the runtime what the hosts register.
+unsafe extern "C" fn api_register_content(ctx: *mut c_void, kind: YogStr, id: YogStr, data: *const u8, len: usize) {
     unsafe {
         let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-        let ns = namespace.as_str().to_owned();
-        let n = name.as_str().to_owned();
-        let j = json.as_str().to_owned();
-        // Feed the recipe to already-registered book renderers (crafting pages).
-        let full_id = format!("{ns}:{n}");
-        for r in handlers.book_renderers.lock().unwrap().values_mut() {
-            r.add_recipe(full_id.clone(), &j);
-        }
-        handlers.recipes.push((ns, n, j));
-    }
-}
-
-unsafe extern "C" fn api_register_item(ctx: *mut c_void, def: *const YogItemDef) {
-    unsafe {
-        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-        let d = &*def;
-        let food = if d.food_nutrition > 0 {
-            Some(FoodDef {
-                nutrition: d.food_nutrition,
-                saturation: d.food_saturation,
-                can_always_eat: d.food_always_eat,
-            })
-        } else {
-            None
+        let kind = kind.as_str();
+        let id = id.as_str().to_owned();
+        let bytes = if data.is_null() || len == 0 { &[][..] } else { std::slice::from_raw_parts(data, len) };
+        let value = match yog_data::binary::decode(bytes) {
+            Ok(v) => v,
+            Err(e) => {
+                yog_logging::warn!("{kind} {id}: not Yog Data: {e}");
+                return;
+            }
         };
-        handlers.items.push(ItemDef {
-            id: d.id.as_str().to_owned(),
-            max_stack: d.max_stack as u8,
-            name: if d.name.is_empty() {
-                None
-            } else {
-                Some(d.name.as_str().to_owned())
-            },
-            tooltip: if d.tooltip.is_empty() {
-                None
-            } else {
-                Some(d.tooltip.as_str().to_owned())
-            },
-            max_damage: d.max_damage,
-            fire_resistant: d.fire_resistant,
-            fuel_ticks: d.fuel_ticks,
-            food,
-        });
+        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
+        register_content(&mut handlers, kind, id, &value);
     }
 }
 
-unsafe extern "C" fn api_register_block(ctx: *mut c_void, def: *const YogBlockDef) {
-    unsafe {
-        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-        let d = &*def;
-        handlers.blocks.push(BlockDef {
-            id: d.id.as_str().to_owned(),
-            hardness: d.hardness,
-            resistance: d.resistance,
-            name: if d.name.is_empty() {
+/// Stores content of `kind` (see `register_content` in yog-abi).
+fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_data::Value) {
+    fn read<T: yog_data::Schema>(kind: &str, id: &str, v: &yog_data::Value) -> Option<T> {
+        match yog_data::from_value::<T>(v) {
+            Ok(r) => Some(r.value),
+            Err(problems) => {
+                let list: Vec<String> = problems.iter().map(|p| format!("{}: {}", p.path, p.message)).collect();
+                yog_logging::warn!("{kind} {id}: {}", list.join("; "));
                 None
-            } else {
-                Some(d.name.as_str().to_owned())
-            },
-            light_level: d.light_level,
-            sound: if d.sound.is_empty() {
-                None
-            } else {
-                Some(d.sound.as_str().to_owned())
-            },
-            requires_tool: d.requires_tool,
-            no_collision: d.no_collision,
-            slipperiness: d.slipperiness,
-            shape: if d.shape == [0.0f32; 6] {
-                None
-            } else {
-                Some(d.shape)
-            },
-            connects: d.connects,
-            connect_groups: if d.connect_groups.is_empty() {
-                Vec::new()
-            } else {
-                d.connect_groups
-                    .as_str()
-                    .split(',')
-                    .map(str::to_owned)
-                    .collect()
-            },
-            inventory_id: if d.inventory_id.is_empty() {
-                None
-            } else {
-                Some(d.inventory_id.as_str().to_owned())
-            },
-            redstone_source: d.redstone_source,
-        });
+            }
+        }
+    }
+    let none_if_empty = |s: &mut Option<String>| {
+        if s.as_deref() == Some("") {
+            *s = None;
+        }
+    };
+    let json = || yog_data::json::to_json(value).to_string();
+    match kind {
+        "item" => {
+            if let Some(mut d) = read::<ItemDef>(kind, &id, value) {
+                none_if_empty(&mut d.name);
+                none_if_empty(&mut d.tooltip);
+                h.items.push(d);
+            }
+        }
+        "block" => {
+            if let Some(mut d) = read::<BlockDef>(kind, &id, value) {
+                none_if_empty(&mut d.name);
+                none_if_empty(&mut d.sound);
+                none_if_empty(&mut d.inventory_id);
+                h.blocks.push(d);
+            }
+        }
+        "inventory" => {
+            if let Some(d) = read::<yog_inventory::InventoryDef>(kind, &id, value) {
+                h.inventories.push(d);
+            }
+        }
+        "startup_grant" => {
+            if let Some(mut g) = read::<yog_registry::StartupGrant>(kind, &id, value) {
+                none_if_empty(&mut g.book);
+                none_if_empty(&mut g.command);
+                h.startup_grants.push(g);
+            }
+        }
+        "recipe" => {
+            let (ns, name) = id.split_once(':').unwrap_or(("minecraft", &id));
+            let j = json();
+            // Feed the recipe to the books already registered (their recipe pages).
+            for r in h.book_renderers.lock().unwrap().values_mut() {
+                r.add_recipe(format!("{ns}:{name}"), &j);
+            }
+            h.recipes.push((ns.to_string(), name.to_string(), j));
+        }
+        "book" => {
+            let j = json();
+            h.books.insert(id.clone(), j.clone());
+            // The renderer draws it without a round trip to Java.
+            match serde_json::from_str::<yog_book::Book>(&j) {
+                Ok(book) => {
+                    let mut renderer = yog_book::BookRenderer::new(book);
+                    // i18n books carry translation keys; shown in the game language.
+                    renderer.set_translator(translate);
+                    // Recipes may register before the book — replay them into the renderer.
+                    for (ns, name, rj) in &h.recipes {
+                        renderer.add_recipe(format!("{ns}:{name}"), rj);
+                    }
+                    h.book_renderers.lock().unwrap().insert(id, renderer);
+                }
+                Err(e) => yog_logging::warn!("book '{}': not a book: {}", id, e),
+            }
+        }
+        "dimension" => {
+            yog_logging::info!("registered dimension type: {}", id);
+            h.dimensions.insert(id, json());
+        }
+        other => yog_logging::warn!("unknown kind of content `{other}` ({id}) — this runtime doesn't know it"),
     }
 }
 
-unsafe extern "C" fn api_register_inventory(
-    ctx: *mut c_void,
-    def: *const yog_abi::YogInventoryDef,
-) {
-    unsafe {
-        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-        let d = &*def;
-        handlers.inventories.push(yog_inventory::InventoryDef {
-            id: d.id.as_str().to_owned(),
-            slot_count: d.slot_count as usize,
-            layout: yog_inventory::decode_layout(d.layout.as_str()),
-            include_player_inventory: d.include_player_inventory,
-            player_inv_offset: (d.player_inv_x, d.player_inv_y),
-            background_texture: if d.background_texture.is_empty() {
-                None
-            } else {
-                Some(d.background_texture.as_str().to_owned())
-            },
-            title: d.title.as_str().to_owned(),
-            background_size: if d.background_w > 0.0 && d.background_h > 0.0 {
-                Some((d.background_w, d.background_h))
-            } else {
-                None
-            },
-        });
-    }
-}
+
+
 
 unsafe extern "C" fn api_schedule_once(
     ctx: *mut c_void,
@@ -2248,84 +2218,8 @@ unsafe extern "C" fn api_schedule_repeating(
     }
 }
 
-unsafe extern "C" fn api_register_startup_grant(
-    ctx: *mut c_void,
-    grant: *const YogStartupGrantDef,
-) {
-    unsafe {
-        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-        let g = &*grant;
-        let items: Vec<String> = if g.items.is_empty() {
-            Vec::new()
-        } else {
-            {
-                g.items
-                    .as_str()
-                    .split('|')
-                    .map(|s: &str| s.to_owned())
-                    .collect()
-            }
-        };
-        let book = if g.book.is_empty() {
-            None
-        } else {
-            Some(g.book.as_str().to_owned())
-        };
-        let command = if g.command.is_empty() {
-            None
-        } else {
-            Some(g.command.as_str().to_owned())
-        };
-        handlers.startup_grants.push(yog_registry::StartupGrant {
-            id: g.id.as_str().to_owned(),
-            items,
-            book,
-            command,
-        });
-    }
-}
 
-unsafe extern "C" fn api_register_book(ctx: *mut c_void, book_id: YogStr, book_json: YogStr) {
-    unsafe {
-        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-        let id = book_id.as_str().to_owned();
-        let json = book_json.as_str().to_owned();
-        handlers.books.insert(id.clone(), json.clone());
-        // Parse JSON → Book → BookRenderer so rendering works without Java round-trip.
-        match serde_json::from_str::<yog_book::Book>(&json) {
-            Ok(book) => {
-                let mut renderer = yog_book::BookRenderer::new(book);
-                // i18n books carry translation keys; shown in the game language.
-                renderer.set_translator(translate);
-                // Recipes may register before the book — replay them into the renderer.
-                for (ns, name, j) in &handlers.recipes {
-                    renderer.add_recipe(format!("{ns}:{name}"), j);
-                }
-                handlers.book_renderers.lock().unwrap().insert(id, renderer);
-            }
-            Err(e) => {
-                yog_logging::warn!(
-                    "book '{}': failed to parse JSON for Rust renderer: {}",
-                    id,
-                    e
-                );
-            }
-        }
-    }
-}
 
-unsafe extern "C" fn api_register_dimension_json(ctx: *mut c_void, id: YogStr, json: YogStr) {
-    unsafe {
-        let handlers_lock = &*(ctx as *const RwLock<RuntimeHandlers>);
-        let mut handlers = handlers_lock.write().expect("handlers lock poisoned");
-        let id = id.as_str().to_owned();
-        let json = json.as_str().to_owned();
-        yog_logging::info!("registered dimension type: {}", id);
-        handlers.dimensions.insert(id, json);
-    }
-}
 
 unsafe extern "C" fn api_register_chunk_generator(
     ctx: *mut c_void,
@@ -3030,9 +2924,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_client_packet: api_on_client_packet,
         register_command: api_register_command,
         register_typed_command: api_register_typed_command,
-        register_recipe_json: api_register_recipe_json,
-        register_item: api_register_item,
-        register_block: api_register_block,
+        register_content: api_register_content,
         schedule_once: api_schedule_once,
         schedule_repeating: api_schedule_repeating,
         on_client_tick: api_on_client_tick,
@@ -3041,18 +2933,14 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_screen_open: api_on_screen_open,
         on_screen_close: api_on_screen_close,
         on_world_render: api_on_world_render,
-        register_startup_grant: api_register_startup_grant,
-        register_book: api_register_book,
         register_ui: api_register_ui,
         on_ui_render: api_on_ui_render,
         register_menu_entry: api_register_menu_entry,
         mods_list: api_mods_list,
         free_str: yog_free_str,
         ui_open: api_ui_open,
-        register_inventory: api_register_inventory,
         interop_export: interop_export_impl,
         interop_import: interop_import_impl,
-        register_dimension_json: api_register_dimension_json,
         register_chunk_generator: api_register_chunk_generator,
         ui_close: api_ui_close,
         ui_consume_event: api_ui_consume_event,

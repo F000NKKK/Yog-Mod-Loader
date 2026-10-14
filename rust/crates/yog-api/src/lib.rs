@@ -322,7 +322,7 @@ pub use yog_network::packet;
 pub use yog_network::{Packet, PacketEvent, PacketField};
 pub use yog_player::Player;
 pub use yog_registry::{
-    AdvancementReward, BlockDef, BookRecipe, Cooking, FoodDef, ItemDef, ItemModifier, Recipe,
+    BlockDef, Cooking, FoodDef, ItemDef, Recipe,
     RecipeKind, StartupGrant,
 };
 pub use yog_storage::{Storage, StorageScope, Value};

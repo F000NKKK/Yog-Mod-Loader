@@ -13,8 +13,8 @@ use std::os::raw::c_void;
 
 // ── Version ──────────────────────────────────────────────────────────────────
 
-pub const ABI_MAJOR: u32 = 1;
-pub const ABI_MINOR: u32 = 5;
+pub const ABI_MAJOR: u32 = 2;
+pub const ABI_MINOR: u32 = 0;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -346,82 +346,6 @@ pub struct YogCommandEvent {
     pub uuid: YogStr,
     /// Empty for console-run commands (no world).
     pub dimension: YogStr,
-}
-
-/// A startup grant definition — items/books to give on first join.
-#[repr(C)]
-pub struct YogStartupGrantDef {
-    pub id: YogStr,
-    pub items: YogStr,   // '|'-separated item ids
-    pub book: YogStr,    // empty = none
-    pub command: YogStr, // empty = none
-}
-
-// ── Content definition structs (mod → runtime) ────────────────────────────────
-
-#[repr(C)]
-pub struct YogItemDef {
-    pub id: YogStr,
-    pub max_stack: u32,
-    pub name: YogStr,    // empty = no override
-    pub tooltip: YogStr, // empty = none
-    pub max_damage: u32,
-    pub fire_resistant: bool,
-    pub fuel_ticks: u32,
-    pub food_nutrition: u32, // 0 = not a food item
-    pub food_saturation: f32,
-    pub food_always_eat: bool,
-}
-
-#[repr(C)]
-pub struct YogBlockDef {
-    pub id: YogStr,
-    pub hardness: f32,
-    pub resistance: f32,
-    pub name: YogStr,
-    pub light_level: u8,
-    pub sound: YogStr, // empty = default stone sound
-    pub requires_tool: bool,
-    pub no_collision: bool,
-    pub slipperiness: f32,
-    /// Bounding box in pixels: `[x1, y1, z1, x2, y2, z2]`. All zeros = full cube.
-    pub shape: [f32; 6],
-    /// Fence/pipe-style dynamic arm growth toward compatible neighbors — see
-    /// `yog_registry::BlockDef::connects_to_neighbors`.
-    pub connects: bool,
-    /// Comma-joined connection compatibility tags — see
-    /// `yog_registry::BlockDef::connect_groups`. Empty = no tags.
-    pub connect_groups: YogStr,
-    /// Id of a `YogInventoryDef` (registered via `register_inventory`) this
-    /// block is backed by — empty = no inventory (plain block, as before).
-    /// See `yog_inventory`'s DESIGN.md.
-    pub inventory_id: YogStr,
-    /// ABI minor 3: gives off redstone power (`Server::set_redstone_output`).
-    pub redstone_source: bool,
-}
-
-/// An inventory-backed screen definition — see `yog_inventory::InventoryDef`.
-#[repr(C)]
-pub struct YogInventoryDef {
-    pub id: YogStr,
-    pub slot_count: u32,
-    /// `"x:y,x:y,..."` — one pair per slot, in slot-index order. Empty =
-    /// use the default vanilla-style grid (see `yog_inventory::InventoryDef::default_grid`).
-    pub layout: YogStr,
-    pub include_player_inventory: bool,
-    pub player_inv_x: f32,
-    pub player_inv_y: f32,
-    /// Empty = default vanilla-style panel texture.
-    pub background_texture: YogStr,
-    pub title: YogStr,
-    /// Screen size to center the container on — `0.0` (either field) means
-    /// "use the vanilla default (176×166)". Set this to whatever a custom
-    /// `on_ui_render` overlay actually occupies so the real vanilla `Slot`s
-    /// (positioned by `layout`/`player_inv_x/y` relative to `guiLeft`/`guiTop`)
-    /// land under the matching decoration the overlay draws, instead of the
-    /// two disagreeing about where the container's top-left corner is.
-    pub background_w: f32,
-    pub background_h: f32,
 }
 
 // ── ABI minor 10 client event structs ─────────────────────────────────────────
@@ -1284,15 +1208,14 @@ pub struct YogApi {
         h: YogCommandFn,
     ),
 
-    // ── recipes ──────────────────────────────────────────────────────────────
-    /// Register a recipe by supplying Minecraft JSON (`data/` format).
-    /// `namespace` + `name` form the file path: `data/{ns}/recipes/{name}.json`.
-    pub register_recipe_json:
-        unsafe extern "C" fn(ctx: *mut c_void, namespace: YogStr, name: YogStr, json: YogStr),
-
     // ── content ──────────────────────────────────────────────────────────────
-    pub register_item: unsafe extern "C" fn(ctx: *mut c_void, def: *const YogItemDef),
-    pub register_block: unsafe extern "C" fn(ctx: *mut c_void, def: *const YogBlockDef),
+    /// Register content of `kind` (`item`, `block`, `inventory`, `recipe`,
+    /// `book`, `dimension`, `startup_grant`) named `id`: its definition as
+    /// a Yog Data blob (`yog_data::binary`, `len` bytes at `data`), the
+    /// shape of `yog_registry`'s / `yog_inventory`'s definitions, a recipe
+    /// in Yog's format, a book, a dimension. One call for every kind of
+    /// content — new kinds need no new ABI.
+    pub register_content: unsafe extern "C" fn(ctx: *mut c_void, kind: YogStr, id: YogStr, data: *const u8, len: usize),
 
     // ── scheduler ────────────────────────────────────────────────────────────
     pub schedule_once: unsafe extern "C" fn(
@@ -1321,13 +1244,6 @@ pub struct YogApi {
     /// custom 3D geometry into clip space.
     pub on_world_render:
         unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogWorldRenderFn),
-
-    // ── ABI minor 16 — startup grants ────────────────────────────────────────
-    pub register_startup_grant:
-        unsafe extern "C" fn(ctx: *mut c_void, grant: *const YogStartupGrantDef),
-
-    // ── ABI minor 18 — books ─────────────────────────────────────────────────
-    pub register_book: unsafe extern "C" fn(ctx: *mut c_void, book_id: YogStr, book_json: YogStr),
 
     // ── ABI minor 19 — UI system ──────────────────────────────────────────────
     /// Register a UI tree. `ui_id` is the unique identifier (e.g. "mymod:menu").
@@ -1374,10 +1290,6 @@ pub struct YogApi {
     /// `modal` blocks game input; `pause` pauses a singleplayer game.
     pub ui_open: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr, modal: bool, pause: bool),
 
-    // ── ABI minor 25 — inventory framework (yog-inventory) ──────────────────
-    /// Register a real Container/Menu inventory screen — see `yog_inventory`.
-    pub register_inventory: unsafe extern "C" fn(ctx: *mut c_void, def: *const YogInventoryDef),
-
     // ── ABI minor 26 — inter-mod communication ─────────────────────────────
     /// Export a function pointer under `symbol` for the calling mod (`mod_id`).
     /// Other mods can import it via `interop_import`.
@@ -1389,11 +1301,6 @@ pub struct YogApi {
         unsafe extern "C" fn(ctx: *mut c_void, mod_id: YogStr, symbol: YogStr) -> *const c_void,
 
     // ── ABI minor 29 — custom dimensions ────────────────────────────────────
-    /// Register a dimension-type definition (id + `YogDimensionTypeDef` JSON).
-    /// Must be called at mod-init time (same window as blocks/items) — the
-    /// host registers a `LevelStem`/`DimensionType` entry before the
-    /// registry freezes. See `yog-dimensions` crate.
-    pub register_dimension_json: unsafe extern "C" fn(ctx: *mut c_void, id: YogStr, json: YogStr),
     /// Register a chunk generator for a previously-declared dimension `id`.
     /// `handler` is called once per chunk column that needs generating —
     /// see `YogChunkWriterApi`/`YogChunkGeneratorFn`.
@@ -1472,7 +1379,7 @@ mod tests {
             YogEntitySpawnEvent, YogPlayerDeathEvent, YogPlayerRespawnEvent, YogAdvancementEvent,
             YogEntityInteractEvent, YogCraftEvent, YogExplosionEvent, YogItemPickupEvent, YogPlayerMoveEvent,
             YogContainerOpenEvent, YogContainerCloseEvent, YogProjectileHitEvent, YogPlaceBlockEvent,
-            YogPacketEvent, YogCommandEvent, YogStartupGrantDef, YogItemDef, YogBlockDef, YogInventoryDef,
+            YogPacketEvent, YogCommandEvent,
             YogKeyPressEvent, YogGfxApi, YogServer, YogChunkWriterApi, YogApi,
         );
         // FNV-1a over (name, size, align).
@@ -1491,7 +1398,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (10005, 0xd31b_d808_c579_6d40), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (20000, 0x86d0_a5cf_6d18_85d4), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]

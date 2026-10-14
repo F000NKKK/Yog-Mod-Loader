@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 
 /// Nutritional properties for a food item.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
+#[derive(yog_data::Schema, Debug, Clone)]
 pub struct FoodDef {
     /// Hunger points restored (1 unit = half a drumstick).
     pub nutrition: u32,
@@ -47,7 +47,7 @@ impl FoodDef {
 
 /// A custom item to register, identified by `namespace:path`.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
+#[derive(yog_data::Schema, Debug, Clone)]
 pub struct ItemDef {
     pub id: String,
     pub max_stack: u8,
@@ -124,22 +124,12 @@ impl ItemDef {
 
 /// Namespace for recipe ids given without one.
 const VANILLA_NS: &str = "minecraft";
-/// Namespace for Yog-defined recipe types' ids given without one.
-const YOG_NS: &str = "yog";
 
 /// Split `namespace:name`, falling back to `default_ns` for a bare name.
 fn split_id<'a>(id: &'a str, default_ns: &'a str) -> (&'a str, &'a str) {
     id.split_once(':').unwrap_or((default_ns, id))
 }
 
-/// `{"item":"a"},{"item":"b"}` — an ingredient list's JSON body.
-/// A recipe ingredient: `ns:item` → `{"item":…}`, `#ns:tag` → `{"tag":…}`.
-fn ingredient_json(id: &str) -> String {
-    match id.strip_prefix('#') {
-        Some(tag) => format!("{{\"tag\":\"{tag}\"}}"),
-        None => format!("{{\"item\":\"{id}\"}}"),
-    }
-}
 
 /// `s` as a JSON string.
 fn json_str(s: &str) -> String {
@@ -160,13 +150,6 @@ fn json_str(s: &str) -> String {
     out
 }
 
-fn item_list_json(items: &[String]) -> String {
-    items
-        .iter()
-        .map(|i| ingredient_json(i))
-        .collect::<Vec<_>>()
-        .join(",")
-}
 
 /// How a cooking recipe cooks.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -398,95 +381,18 @@ impl Recipe {
 
 // ── BookRecipe (like Patchouli's shapeless_book_recipe) ──────────────────────
 
-/// A shapeless recipe that produces a book from `yog-book`.
-/// Replaces `patchouli:shapeless_book_recipe`.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
-pub struct BookRecipe {
-    pub id: String,
-    pub book: String,
-    pub ingredients: Vec<String>,
-}
 
-impl BookRecipe {
-    pub fn new(id: impl Into<String>, book: impl Into<String>) -> Self {
-        Self {
-            id: id.into(),
-            book: book.into(),
-            ingredients: Vec::new(),
-        }
-    }
-
-    pub fn ingredient(mut self, item_id: impl Into<String>) -> Self {
-        self.ingredients.push(item_id.into());
-        self
-    }
-
-    pub fn to_json(&self) -> String {
-        let ingr = item_list_json(&self.ingredients);
-        format!(
-            "{{\"type\":\"yog:crafting_book\",\"ingredients\":[{}],\"book\":\"{}\"}}",
-            ingr, self.book
-        )
-    }
-
-    pub fn ns_name(&self) -> (&str, &str) {
-        split_id(&self.id, YOG_NS)
-    }
-}
 
 // ── ItemModifier ─────────────────────────────────────────────────────────────
 
-/// An item modifier applied during loot generation (like smelting, enchanted, etc.).
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
-pub struct ItemModifier {
-    pub id: String,
-    /// Modifier function identifier, e.g. "yog:set_count" or "example:shard_reducer".
-    pub function: String,
-    /// Parameters as JSON object.
-    pub parameters: std::collections::HashMap<String, String>,
-}
 
-impl ItemModifier {
-    pub fn new(id: impl Into<String>, function: impl Into<String>) -> Self {
-        Self {
-            id: id.into(),
-            function: function.into(),
-            parameters: std::collections::HashMap::new(),
-        }
-    }
-
-    pub fn param(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.parameters.insert(key.into(), value.into());
-        self
-    }
-
-    pub fn to_json(&self) -> String {
-        let params: String = self
-            .parameters
-            .iter()
-            .map(|(k, v)| format!("\"{k}\":{v}"))
-            .collect::<Vec<_>>()
-            .join(",");
-        format!(
-            "{{\"function\":\"{}\",{}}}",
-            self.function,
-            if params.is_empty() {
-                String::new()
-            } else {
-                params
-            }
-        )
-    }
-}
 
 // ── StartupGrant ─────────────────────────────────────────────────────────────
 
 /// Grant items/books to every player once when they first join.
 /// This is the Yog-side replacement for `grant_patchi_book.json`.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
+#[derive(yog_data::Schema, Debug, Clone)]
 pub struct StartupGrant {
     pub id: String,
     pub items: Vec<String>,
@@ -536,72 +442,13 @@ impl StartupGrant {
     }
 }
 
-// ── Blocks ───────────────────────────────────────────────────────────────────
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
-pub struct AdvancementReward {
-    pub id: String,
-    /// The item to grant (default: special book item when book rewards).
-    pub item: String,
-    /// Optional NBT tag to apply.
-    pub nbt: Option<String>,
-    /// If set, the reward links to a yog-book.
-    pub book: Option<String>,
-}
 
-impl AdvancementReward {
-    pub fn new(id: impl Into<String>) -> Self {
-        Self {
-            id: id.into(),
-            item: "minecraft:written_book".into(),
-            nbt: None,
-            book: None,
-        }
-    }
-
-    pub fn item(mut self, item: impl Into<String>) -> Self {
-        self.item = item.into();
-        self
-    }
-
-    pub fn nbt(mut self, nbt: impl Into<String>) -> Self {
-        self.nbt = Some(nbt.into());
-        self
-    }
-
-    pub fn book(mut self, book: impl Into<String>) -> Self {
-        let book_str: String = book.into();
-        self.book = Some(book_str.clone());
-        self.nbt = Some(format!(
-            "{{yog_book:\"{book_str}\",title:\"Yog Book\",author:\"Yog\"}}"
-        ));
-        self
-    }
-
-    pub fn to_json(&self) -> String {
-        let nbt_part = self
-            .nbt
-            .as_ref()
-            .map(|n| format!("{{\"function\":\"set_nbt\",\"tag\":{n}}}"));
-        let entries = if let Some(nbt_part) = nbt_part {
-            format!(
-                "[{{\"type\":\"item\",\"name\":\"{}\",\"functions\":[{}]}}]",
-                self.item, nbt_part
-            )
-        } else {
-            format!("[{{\"type\":\"item\",\"name\":\"{}\"}}]", self.item)
-        };
-        format!(
-            "{{\"type\":\"advancement_reward\",\"pools\":[{{\"rolls\":1,\"entries\":{entries}}}]}}"
-        )
-    }
-}
 
 // ── Blocks ───────────────────────────────────────────────────────────────────
 
 /// A custom block to register; it also gets a matching block-item.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
+#[derive(yog_data::Schema, Debug, Clone)]
 pub struct BlockDef {
     pub id: String,
     pub hardness: f32,

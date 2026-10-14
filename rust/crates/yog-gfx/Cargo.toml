@@ -1,6 +1,6 @@
 [package]
 name = "yog-gfx"
-version = "0.25.4"
+version = "0.26.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 description = "Yog graphics subsystem — low-level GPU pipeline access for mods."
 
 [dependencies]
-yog-abi = "0.28.5"
+yog-abi = "0.29"
 
 [features]
 # A graphics table that draws nothing, for tests and benchmarks.
