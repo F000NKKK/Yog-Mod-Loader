@@ -29,8 +29,10 @@ benchmarks **before** reorganising the APIs further.
 | NBT | SNBT strings | the game | — | SNBT strings (8 ABI calls) |
 | Runtime ↔ host lists | TSV lines | yog-runtime, Java | — | `\t`/`\n`-joined strings |
 | IDE state | JSON (`state.json`, `workspace.json`, publish profiles) | Yog-IDLE | none | — |
+| mod config (`yog-config/<mod>.cfg`) | `key = value` lines | yog-config | none (a newline in a value breaks the file; comments are lost on save) | — |
+| mod storage (`yog-data/<mod>/**.kv`) | `key\ttype\tvalue` lines | yog-storage | none | — |
 
-**Count:** 4 surface syntaxes (TOML, JSON, XML, ad hoc string grammars), ~6
+**Count:** 6 surface syntaxes (TOML, JSON, XML, `.cfg`, `.kv`, ad hoc string grammars), ~6
 places that parse references, 3 that parse recipes, 2 that parse Yog text,
 and 5 different ways data crosses the ABI (C structs, JSON, TSV, SNBT,
 generated code).

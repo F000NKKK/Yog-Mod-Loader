@@ -72,3 +72,28 @@ impl CommandContext {
         Some((x, y, z))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ctx(args: &str) -> CommandContext {
+        CommandContext { name: "hex".into(), args: args.into(), source: "Dev".into(), uuid: String::new(), dimension: String::new() }
+    }
+
+    #[test]
+    fn plain_and_typed_arguments() {
+        assert_eq!(ctx("  a  b ").arg_list(), ["a", "b"]);
+        let t = ctx("5\t2.5\tSteve\t1,-2,3");
+        assert_eq!(t.typed_args().len(), 4);
+        assert_eq!(t.arg_int(0), Some(5));
+        assert_eq!(t.arg_float(1), Some(2.5));
+        assert_eq!(t.arg_player(2), Some("Steve"));
+        assert_eq!(t.arg_blockpos(3), Some((1, -2, 3)));
+        assert_eq!(t.arg_int(2), None, "not a number");
+        assert_eq!(t.arg_str(9), None);
+        assert!(ctx("").typed_args().is_empty());
+        assert_eq!(ctx("").arg_str(0), None);
+        assert_eq!(ctx("1,2").arg_blockpos(0), None);
+    }
+}

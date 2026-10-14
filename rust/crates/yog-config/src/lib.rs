@@ -153,3 +153,31 @@ impl Config {
         self.data.iter().map(|(k, v)| (k.as_str(), v.as_str()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn values_survive_a_save_and_parse_as_typed() {
+        let dir = std::env::temp_dir().join(format!("yog-config-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let game = dir.to_string_lossy();
+        let mut c = Config::load(&game, "my:mod/x");
+        assert!(c.is_empty());
+        c.set("speed", 2.5);
+        c.set("lives", 3);
+        c.set("on", "yes");
+        c.set("name", "a = b");
+        c.save().unwrap();
+        assert!(dir.join("yog-config/my_mod_x.cfg").is_file(), "`:` and `/` become `_`");
+        let c = Config::load(&game, "my:mod/x");
+        assert_eq!(c.get_float("speed"), Some(2.5));
+        assert_eq!(c.get_int_or("lives", 0), 3);
+        assert_eq!(c.get_bool("on"), Some(true));
+        assert_eq!(c.get("name"), Some("a = b"), "only the first `=` splits");
+        assert_eq!(c.get_bool_or("missing", true), true);
+        assert_eq!(c.get_int("name"), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

@@ -463,3 +463,62 @@ fn hex_decode(s: &str) -> Vec<u8> {
         .filter_map(|h| u8::from_str_radix(h, 16).ok())
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn game_dir(name: &str) -> String {
+        let d = std::env::temp_dir().join(format!("yog-storage-test-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        d.to_string_lossy().into_owned()
+    }
+
+    #[test]
+    fn every_value_comes_back_after_a_flush() {
+        let dir = game_dir("roundtrip");
+        let odd = "tab\there\nnew line \\ backslash";
+        {
+            let mut s = Storage::open(&dir, "mymod");
+            s.set("text", odd);
+            s.set("int", -42i64);
+            s.set("float", 2.5f64);
+            s.set("yes", true);
+            s.set("bytes", vec![0u8, 9, 10, 255]);
+            assert!(s.is_dirty());
+            s.flush().unwrap();
+            assert!(!s.is_dirty());
+        }
+        let s = Storage::open(&dir, "mymod");
+        assert_eq!(s.get_str("text"), Some(odd), "tabs and newlines survive");
+        assert_eq!(s.get_int("int"), Some(-42));
+        assert_eq!(s.get_float("float"), Some(2.5));
+        assert_eq!(s.get_bool("yes"), Some(true));
+        assert_eq!(s.get_bytes("bytes"), Some(&[0u8, 9, 10, 255][..]));
+        assert_eq!(s.len(), 5);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn dropping_saves_and_scopes_keep_apart() {
+        let dir = game_dir("scopes");
+        {
+            let mut p = Storage::open_player(&dir, "mymod", "uuid-1");
+            p.set("coins", 7i64);
+            let mut c = Storage::open_chunk(&dir, "mymod", "minecraft:overworld", -1, 2);
+            c.set("ore", "copper");
+        }
+        assert_eq!(Storage::open_player(&dir, "mymod", "uuid-1").get_int("coins"), Some(7), "saved on drop");
+        assert_eq!(Storage::open_player(&dir, "mymod", "uuid-2").get_int("coins"), None);
+        assert_eq!(Storage::open_chunk(&dir, "mymod", "minecraft:overworld", -1, 2).get_str("ore"), Some("copper"));
+        assert!(Storage::open(&dir, "mymod").is_empty(), "the global store is its own");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn values_convert() {
+        assert_eq!(Value::from(3u32).as_int(), Some(3));
+        assert_eq!(Value::from("x").as_str(), Some("x"));
+        assert_eq!(Value::from(true).as_int(), None);
+    }
+}
