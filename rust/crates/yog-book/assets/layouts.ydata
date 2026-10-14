@@ -1,0 +1,98 @@
+// yog-book's layouts for the game's recipe kinds (see `layout.rs`), drawn
+// from Patchouli's crafting sheet (`yog:gui/book/crafting`) where its pages
+// draw them. A mod's own `.ylayout` for a kind takes its place.
+[
+  // Crafting: the 3×3 grid, result, the crafting table under it.
+  {
+    kinds: ["shaped"],
+    size: [100, 62],
+    parts: [
+      { type: "image", source: "yog:gui/book/crafting", uv: [0, 0, 100, 62] },
+      { type: "slots", slot: "grid", at: [[5, 5], [24, 5], [43, 5], [5, 24], [24, 24], [43, 24], [5, 43], [24, 43], [43, 43]] },
+      { type: "result", at: [81, 24] },
+      { type: "count", at: [83, 42] },
+      { type: "item", item: "@item:minecraft:crafting_table", at: [81, 43] },
+    ],
+  },
+  // Shapeless: the same, with Patchouli's "any arrangement" mark.
+  {
+    kinds: ["shapeless"],
+    size: [100, 62],
+    parts: [
+      { type: "image", source: "yog:gui/book/crafting", uv: [0, 0, 100, 62] },
+      { type: "image", source: "yog:gui/book/crafting", uv: [0, 64, 11, 11], at: [64, 4] },
+      { type: "slots", slot: "grid", at: [[5, 5], [24, 5], [43, 5], [5, 24], [24, 24], [43, 24], [5, 43], [24, 43], [43, 43]] },
+      { type: "result", at: [81, 24] },
+      { type: "count", at: [83, 42] },
+      { type: "item", item: "@item:minecraft:crafting_table", at: [81, 43] },
+    ],
+  },
+  // smelting: Patchouli's furnace strip — input, the station, result.
+  {
+    kinds: ["smelting"],
+    size: [96, 24],
+    parts: [
+      { type: "image", source: "yog:gui/book/crafting", uv: [11, 71, 96, 24], at: [0, 2] },
+      { type: "slots", slot: "input", at: [[4, 6]] },
+      { type: "item", item: "@item:minecraft:furnace", at: [40, 6] },
+      { type: "result", at: [76, 6] },
+    ],
+  },
+  // blasting: Patchouli's furnace strip — input, the station, result.
+  {
+    kinds: ["blasting"],
+    size: [96, 24],
+    parts: [
+      { type: "image", source: "yog:gui/book/crafting", uv: [11, 71, 96, 24], at: [0, 2] },
+      { type: "slots", slot: "input", at: [[4, 6]] },
+      { type: "item", item: "@item:minecraft:blast_furnace", at: [40, 6] },
+      { type: "result", at: [76, 6] },
+    ],
+  },
+  // smoking: Patchouli's furnace strip — input, the station, result.
+  {
+    kinds: ["smoking"],
+    size: [96, 24],
+    parts: [
+      { type: "image", source: "yog:gui/book/crafting", uv: [11, 71, 96, 24], at: [0, 2] },
+      { type: "slots", slot: "input", at: [[4, 6]] },
+      { type: "item", item: "@item:minecraft:smoker", at: [40, 6] },
+      { type: "result", at: [76, 6] },
+    ],
+  },
+  // campfire_cooking: Patchouli's furnace strip — input, the station, result.
+  {
+    kinds: ["campfire_cooking"],
+    size: [96, 24],
+    parts: [
+      { type: "image", source: "yog:gui/book/crafting", uv: [11, 71, 96, 24], at: [0, 2] },
+      { type: "slots", slot: "input", at: [[4, 6]] },
+      { type: "item", item: "@item:minecraft:campfire", at: [40, 6] },
+      { type: "result", at: [76, 6] },
+    ],
+  },
+  // stonecutting: Patchouli's furnace strip — input, the station, result.
+  {
+    kinds: ["stonecutting"],
+    size: [96, 24],
+    parts: [
+      { type: "image", source: "yog:gui/book/crafting", uv: [11, 71, 96, 24], at: [0, 2] },
+      { type: "slots", slot: "input", at: [[4, 6]] },
+      { type: "item", item: "@item:minecraft:stonecutter", at: [40, 6] },
+      { type: "result", at: [76, 6] },
+    ],
+  },
+  // Smithing: Patchouli's smithing strip (base over addition), the
+  // template where the station goes, result.
+  {
+    kinds: ["smithing"],
+    size: [96, 43],
+    parts: [
+      { type: "image", source: "yog:gui/book/crafting", uv: [11, 135, 96, 43], at: [0, 2] },
+      { type: "slots", slot: "base", at: [[4, 6]] },
+      { type: "slots", slot: "addition", at: [[4, 26]] },
+      { type: "slots", slot: "template", at: [[40, 15]], frame: true },
+      { type: "result", at: [76, 15] },
+    ],
+  },
+]

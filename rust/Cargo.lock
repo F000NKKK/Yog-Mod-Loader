@@ -1489,7 +1489,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.63.2"
+version = "0.63.3"
 dependencies = [
  "criterion",
  "serde",

@@ -6,6 +6,7 @@
 //! entries — through typed references (`@item:minecraft:stick`, see
 //! [`refs`]); tools check them and hand the renderer plain ids.
 
+pub mod layout;
 pub mod markup;
 pub mod pattern;
 pub mod refs;
@@ -28,7 +29,10 @@ pub use theme::BookTheme;
 
 /// The blocks of a multiblock `pattern` (layers top to bottom, rows of
 /// characters) with their `mapping`: ((x, y, z), block state).
-pub fn multiblock_blocks(pattern: &[Vec<String>], mapping: &BTreeMap<String, String>) -> Vec<((i32, i32, i32), String)> {
+pub fn multiblock_blocks(
+    pattern: &[Vec<String>],
+    mapping: &BTreeMap<String, String>,
+) -> Vec<((i32, i32, i32), String)> {
     let mut out = Vec::new();
     let layers = pattern.len() as i32;
     for (li, layer) in pattern.iter().enumerate() {
@@ -247,6 +251,10 @@ pub struct Book {
     /// build turns it on when a text is a `.yres` text or a name).
     #[data(default)]
     pub i18n: bool,
+    /// The mod's recipe layouts (`content/*.ylayout`), which the build adds.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[data(skip)]
+    pub layouts: Vec<layout::RecipeLayout>,
 }
 
 fn default_nameplate_color() -> String {
@@ -275,6 +283,7 @@ impl Default for Book {
             categories: Vec::new(),
             entries: Vec::new(),
             i18n: false,
+            layouts: Vec::new(),
         }
     }
 }
@@ -306,11 +315,13 @@ impl Book {
                         *text = tr(text);
                         opt(title);
                     }
-                    BookPage::Spotlight { title, text, .. } | BookPage::Image { title, text, .. } => {
+                    BookPage::Spotlight { title, text, .. }
+                    | BookPage::Image { title, text, .. } => {
                         opt(title);
                         opt(text);
                     }
-                    BookPage::Entity { name, text, .. } | BookPage::Multiblock { name, text, .. } => {
+                    BookPage::Entity { name, text, .. }
+                    | BookPage::Multiblock { name, text, .. } => {
                         opt(name);
                         opt(text);
                     }
@@ -337,7 +348,12 @@ mod tests {
     use super::*;
 
     fn text(t: &str) -> BookPage {
-        BookPage::Text { text: t.into(), title: None, font: None, font_size: None }
+        BookPage::Text {
+            text: t.into(),
+            title: None,
+            font: None,
+            font_size: None,
+        }
     }
 
     #[test]
@@ -346,15 +362,27 @@ mod tests {
             id: "yog:test".into(),
             name: "Test Book".into(),
             version: 1,
-            categories: vec![BookCategory { id: "yog:c1".into(), name: "Cat".into(), icon: Some("yog:ruby".into()), ..Default::default() }],
+            categories: vec![BookCategory {
+                id: "yog:c1".into(),
+                name: "Cat".into(),
+                icon: Some("yog:ruby".into()),
+                ..Default::default()
+            }],
             entries: vec![BookEntry {
                 id: "yog:e1".into(),
                 name: "Entry".into(),
                 category: "yog:c1".into(),
                 pages: vec![
                     text("plain"),
-                    BookPage::Spotlight { item: "yog:ruby".into(), title: None, text: None },
-                    BookPage::Recipe { recipe: "yog:r1".into(), text: None },
+                    BookPage::Spotlight {
+                        item: "yog:ruby".into(),
+                        title: None,
+                        text: None,
+                    },
+                    BookPage::Recipe {
+                        recipe: "yog:r1".into(),
+                        text: None,
+                    },
                     BookPage::Empty,
                 ],
                 ..Default::default()
@@ -364,8 +392,12 @@ mod tests {
         let parsed: Book = serde_json::from_str(&book.to_json()).expect("its JSON parses");
         assert_eq!(parsed.version, 1);
         assert_eq!(parsed.entries[0].pages.len(), 4);
-        assert!(matches!(&parsed.entries[0].pages[1], BookPage::Spotlight { item, .. } if item == "yog:ruby"));
-        assert!(matches!(&parsed.entries[0].pages[2], BookPage::Recipe { recipe, .. } if recipe == "yog:r1"));
+        assert!(
+            matches!(&parsed.entries[0].pages[1], BookPage::Spotlight { item, .. } if item == "yog:ruby")
+        );
+        assert!(
+            matches!(&parsed.entries[0].pages[2], BookPage::Recipe { recipe, .. } if recipe == "yog:r1")
+        );
     }
 
     #[test]
@@ -374,25 +406,44 @@ mod tests {
             id: "m:b".into(),
             name: "m.book.name".into(),
             landing_text: "m.book.landing".into(),
-            categories: vec![BookCategory { id: "m:basics".into(), name: "m.cat".into(), ..Default::default() }],
+            categories: vec![BookCategory {
+                id: "m:basics".into(),
+                name: "m.cat".into(),
+                ..Default::default()
+            }],
             entries: vec![BookEntry {
                 id: "m:e".into(),
                 name: "m.entry".into(),
                 category: "m:basics".into(),
                 pages: vec![
-                    BookPage::Text { text: "m.text".into(), title: Some("m.title".into()), font: None, font_size: None },
+                    BookPage::Text {
+                        text: "m.text".into(),
+                        title: Some("m.title".into()),
+                        font: None,
+                        font_size: None,
+                    },
                     text("raw text"),
                 ],
                 ..Default::default()
             }],
             ..Default::default()
         };
-        let out = book.localized(|k| if k.starts_with("m.") { k.to_uppercase() } else { k.to_string() });
+        let out = book.localized(|k| {
+            if k.starts_with("m.") {
+                k.to_uppercase()
+            } else {
+                k.to_string()
+            }
+        });
         assert_eq!(out.name, "M.BOOK.NAME");
         assert_eq!(out.landing_text, "M.BOOK.LANDING");
         assert_eq!(out.categories[0].name, "M.CAT");
         assert_eq!(out.entries[0].name, "M.ENTRY");
-        assert!(matches!(&out.entries[0].pages[0], BookPage::Text { text, title, .. } if text == "M.TEXT" && title.as_deref() == Some("M.TITLE")));
-        assert!(matches!(&out.entries[0].pages[1], BookPage::Text { text, .. } if text == "raw text"));
+        assert!(
+            matches!(&out.entries[0].pages[0], BookPage::Text { text, title, .. } if text == "M.TEXT" && title.as_deref() == Some("M.TITLE"))
+        );
+        assert!(
+            matches!(&out.entries[0].pages[1], BookPage::Text { text, .. } if text == "raw text")
+        );
     }
 }

@@ -25,10 +25,16 @@ mod tests {
 
     #[test]
     fn resolves_the_books_words() {
-        let r = resolve("{accent|Media} is {b|{link=hexcasting:staff|staves}} {{x}}", "#8d6acc");
+        let r = resolve(
+            "{accent|Media} is {b|{link=hexcasting:staff|staves}} {{x}}",
+            "#8d6acc",
+        );
         assert_eq!(r, "{#8d6acc|Media} is {b|{u #2f5fbf|staves}} {{x}}");
         let runs = yog_ui::rich::runs(&r);
         assert_eq!(runs[0].1.color, Some(0x8d6acc));
-        assert!(runs.iter().any(|(t, s)| t == "staves" && s.bold && s.underline));
+        assert!(
+            runs.iter()
+                .any(|(t, s)| t == "staves" && s.bold && s.underline)
+        );
     }
 }

@@ -133,7 +133,13 @@ impl Book {
     /// Reads a `.ybook` (`text`), references and texts going through
     /// `resolver`: the book as the game shows it, and what it references.
     pub fn read(text: &str, resolver: &mut dyn Resolve) -> Result<Read<Book>, Errors> {
-        let doc = yog_data::text::parse(text).map_err(|e| Errors(vec![yog_data::schema::Located { at: Some(e.at), path: yog_data::Path::root(), message: e.message }]))?;
+        let doc = yog_data::text::parse(text).map_err(|e| {
+            Errors(vec![yog_data::schema::Located {
+                at: Some(e.at),
+                path: yog_data::Path::root(),
+                message: e.message,
+            }])
+        })?;
         yog_data::from_doc_with(text, &doc, resolver)
     }
 }
@@ -149,7 +155,11 @@ mod tests {
     impl Resolve for Check {
         fn reference(&mut self, r: &Ref, _: &Path) -> Result<String, String> {
             self.0.push(format!("{}:{}", r.kind, r.id));
-            if r.id == "minecraft:nope" { Err("no item minecraft:nope".into()) } else { Ok(r.id.clone()) }
+            if r.id == "minecraft:nope" {
+                Err("no item minecraft:nope".into())
+            } else {
+                Ok(r.id.clone())
+            }
         }
         fn text(&mut self, t: &Text, _: &Path) -> Result<String, String> {
             Ok(match t {
@@ -175,14 +185,27 @@ mod tests {
     #[test]
     fn references_resolve_to_plain_ids() {
         let mut c = Check(Vec::new());
-        let book = Book::read(BOOK, &mut c).unwrap_or_else(|e| panic!("{e}")).value;
+        let book = Book::read(BOOK, &mut c)
+            .unwrap_or_else(|e| panic!("{e}"))
+            .value;
         assert_eq!(book.name, "mymod.title");
         assert_eq!(book.categories[0].icon.as_deref(), Some("minecraft:book"));
         assert_eq!(book.entries[0].category, "mymod:basics");
-        assert_eq!(book.entries[0].icon.as_deref(), Some("minecraft:textures/item/book.png"), "an image stays");
-        assert!(matches!(&book.entries[0].pages[0], BookPage::Spotlight { item, .. } if item == "minecraft:stone"));
-        assert!(matches!(&book.entries[0].pages[1], BookPage::Multiblock { mapping, .. } if mapping["A"] == "minecraft:furnace[facing=north]"));
-        assert!(c.0.contains(&"entry:mymod:ruby".to_string()), "links are checked");
+        assert_eq!(
+            book.entries[0].icon.as_deref(),
+            Some("minecraft:textures/item/book.png"),
+            "an image stays"
+        );
+        assert!(
+            matches!(&book.entries[0].pages[0], BookPage::Spotlight { item, .. } if item == "minecraft:stone")
+        );
+        assert!(
+            matches!(&book.entries[0].pages[1], BookPage::Multiblock { mapping, .. } if mapping["A"] == "minecraft:furnace[facing=north]")
+        );
+        assert!(
+            c.0.contains(&"entry:mymod:ruby".to_string()),
+            "links are checked"
+        );
         assert_eq!(book.nameplate_color, "FFDD98", "defaults as the runtime's");
     }
 
@@ -196,11 +219,16 @@ mod tests {
     { type: "text", text: "{link=items/staff|old}" },
   ]}],
 }"#;
-        let e = Book::read(bad, &mut Check(Vec::new())).unwrap_err().to_string();
-        assert_eq!(e.lines().collect::<Vec<_>>(), [
-            "4:31: entries[0].pages[0].recipe: `minecraft:stick`: name it by a reference — `@recipe:minecraft:stick`",
-            "5:31: entries[0].pages[1].entity: `@item:minecraft:nope` is a reference to item — this takes `@entity:`",
-            "6:27: entries[0].pages[2].text: link `items/staff`: write {link=@entry:ns:entry|…}",
-        ]);
+        let e = Book::read(bad, &mut Check(Vec::new()))
+            .unwrap_err()
+            .to_string();
+        assert_eq!(
+            e.lines().collect::<Vec<_>>(),
+            [
+                "4:31: entries[0].pages[0].recipe: `minecraft:stick`: name it by a reference — `@recipe:minecraft:stick`",
+                "5:31: entries[0].pages[1].entity: `@item:minecraft:nope` is a reference to item — this takes `@entity:`",
+                "6:27: entries[0].pages[2].text: link `items/staff`: write {link=@entry:ns:entry|…}",
+            ]
+        );
     }
 }

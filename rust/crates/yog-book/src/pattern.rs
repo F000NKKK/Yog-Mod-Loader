@@ -38,7 +38,9 @@ fn dir_index(d: &str) -> Option<usize> {
 impl HexPattern {
     /// The grid points it passes through, in order (axial `q`, `r`).
     pub fn positions(&self) -> Vec<(i32, i32)> {
-        let Some(mut dir) = dir_index(&self.startdir) else { return Vec::new() };
+        let Some(mut dir) = dir_index(&self.startdir) else {
+            return Vec::new();
+        };
         let mut at = (0, 0);
         let mut out = vec![at];
         for c in self.signature.chars() {
@@ -119,8 +121,22 @@ impl Lcg {
 struct Simplex([i32; 256]);
 
 const GRADIENT: [[i32; 3]; 16] = [
-    [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0], [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
-    [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1], [1, 1, 0], [0, -1, 1], [-1, 1, 0], [0, -1, -1],
+    [1, 1, 0],
+    [-1, 1, 0],
+    [1, -1, 0],
+    [-1, -1, 0],
+    [1, 0, 1],
+    [-1, 0, 1],
+    [1, 0, -1],
+    [-1, 0, -1],
+    [0, 1, 1],
+    [0, -1, 1],
+    [0, 1, -1],
+    [0, -1, -1],
+    [1, 1, 0],
+    [0, -1, 1],
+    [-1, 1, 0],
+    [0, -1, -1],
 ];
 
 impl Simplex {
@@ -153,7 +169,11 @@ impl Simplex {
     }
     fn value(&self, x: f64, y: f64, z: f64) -> f64 {
         let s = (x + y + z) * 0.333_333_333_333_333_3;
-        let (i, j, k) = ((x + s).floor() as i32, (y + s).floor() as i32, (z + s).floor() as i32);
+        let (i, j, k) = (
+            (x + s).floor() as i32,
+            (y + s).floor() as i32,
+            (z + s).floor() as i32,
+        );
         let t = (i + j + k) as f64 * 0.166_666_666_666_666_66;
         let (x0, y0, z0) = (x - (i as f64 - t), y - (j as f64 - t), z - (k as f64 - t));
         let (i1, j1, k1, i2, j2, k2) = if x0 >= y0 {
@@ -173,8 +193,16 @@ impl Simplex {
         };
         let g6 = 0.166_666_666_666_666_66;
         let g3 = 0.333_333_333_333_333_3;
-        let (x1, y1, z1) = (x0 - i1 as f64 + g6, y0 - j1 as f64 + g6, z0 - k1 as f64 + g6);
-        let (x2, y2, z2) = (x0 - i2 as f64 + g3, y0 - j2 as f64 + g3, z0 - k2 as f64 + g3);
+        let (x1, y1, z1) = (
+            x0 - i1 as f64 + g6,
+            y0 - j1 as f64 + g6,
+            z0 - k1 as f64 + g6,
+        );
+        let (x2, y2, z2) = (
+            x0 - i2 as f64 + g3,
+            y0 - j2 as f64 + g3,
+            z0 - k2 as f64 + g3,
+        );
         let (x3, y3, z3) = (x0 - 0.5, y0 - 0.5, z0 - 0.5);
         let (ii, jj, kk) = (i & 255, j & 255, k & 255);
         let g0 = self.p(ii + self.p(jj + self.p(kk))) % 12;
@@ -209,7 +237,13 @@ fn mth_cos(f: f32) -> f32 {
 }
 
 /// Hex Casting's `makeZappy` (at rest: its book's patterns don't move).
-fn make_zappy(points: &[V], dups: &[bool], readability: f32, last_segment: f32, seed: f64) -> Vec<V> {
+fn make_zappy(
+    points: &[V],
+    dups: &[bool],
+    readability: f32,
+    last_segment: f32,
+    seed: f64,
+) -> Vec<V> {
     const HOPS: usize = 10;
     const VARIANCE: f32 = 0.5;
     const FLOW_IRREGULAR: f64 = 0.2;
@@ -219,7 +253,8 @@ fn make_zappy(points: &[V], dups: &[bool], readability: f32, last_segment: f32, 
         for i in 0..pts.len().saturating_sub(1) {
             let (src, target) = (pts[i], pts[i + 1]);
             let delta = (target.0 - src.0, target.1 - src.1);
-            let hop_dist = ((target.0 - src.0).powi(2) + (target.1 - src.1).powi(2)).sqrt() / HOPS as f32;
+            let hop_dist =
+                ((target.0 - src.0).powi(2) + (target.1 - src.1).powi(2)).sqrt() / HOPS as f32;
             let max_variance = hop_dist * VARIANCE;
             let max_j = if truncate_last && i == pts.len() - 2 {
                 (last_segment * HOPS as f32).round() as usize
@@ -228,10 +263,17 @@ fn make_zappy(points: &[V], dups: &[bool], readability: f32, last_segment: f32, 
             };
             for j in 1..=max_j {
                 let progress = j as f64 / (HOPS + 1) as f64;
-                let pos = (src.0 + delta.0 * progress as f32, src.1 + delta.1 * progress as f32);
+                let pos = (
+                    src.0 + delta.0 * progress as f32,
+                    src.1 + delta.1 * progress as f32,
+                );
                 let minor = get_noise(i as f64, j as f64, 0.0) * FLOW_IRREGULAR;
-                let theta = (3.0 * get_noise(i as f64 + progress + minor, 1337.0, seed) * std::f64::consts::TAU) as f32;
-                let r = (get_noise(i as f64 + progress, 69420.0, seed) * max_variance as f64 * scale_variance(progress)) as f32;
+                let theta = (3.0
+                    * get_noise(i as f64 + progress + minor, 1337.0, seed)
+                    * std::f64::consts::TAU) as f32;
+                let r = (get_noise(i as f64 + progress, 69420.0, seed)
+                    * max_variance as f64
+                    * scale_variance(progress)) as f32;
                 out.push((pos.0 + r * mth_cos(theta), pos.1 + r * mth_sin(theta)));
                 if j == HOPS {
                     out.push(target);
@@ -244,8 +286,15 @@ fn make_zappy(points: &[V], dups: &[bool], readability: f32, last_segment: f32, 
     let mut chain: Vec<V> = Vec::new();
     for i in 0..points.len().saturating_sub(1) {
         let (head, tail) = (points[i], points[i + 1]);
-        let tangent = ((tail.0 - head.0) * readability, (tail.1 - head.1) * readability);
-        chain.push(if i != 0 && dups[i] { (head.0 + tangent.0, head.1 + tangent.1) } else { head });
+        let tangent = (
+            (tail.0 - head.0) * readability,
+            (tail.1 - head.1) * readability,
+        );
+        chain.push(if i != 0 && dups[i] {
+            (head.0 + tangent.0, head.1 + tangent.1)
+        } else {
+            head
+        });
         if i == points.len() - 2 {
             chain.push(tail);
             out.extend(zappify(&chain, true));
@@ -298,11 +347,19 @@ pub fn svg(patterns: &[HexPattern], w: f32, h: f32) -> String {
         let off_x = (iw - bw * scale) / 2.0 + (cell_w - iw).max(0.0) / 2.0;
         let off_y = (ih - bh * scale) / 2.0 + (cell_h - ih).max(0.0) / 2.0;
         let (cx, cy) = (cell_w * (k % cols) as f64, cell_h * (k / cols) as f64);
-        let at = |&(x, y): &V| (cx + (x as f64 - x0) * fin + off_x, cy + (y as f64 - y0) * fin + off_y);
-        let line: Vec<String> = zappy.iter().map(|p| {
-            let (x, y) = at(p);
-            format!("{x:.2},{y:.2}")
-        }).collect();
+        let at = |&(x, y): &V| {
+            (
+                cx + (x as f64 - x0) * fin + off_x,
+                cy + (y as f64 - y0) * fin + off_y,
+            )
+        };
+        let line: Vec<String> = zappy
+            .iter()
+            .map(|p| {
+                let (x, y) = at(p);
+                format!("{x:.2},{y:.2}")
+            })
+            .collect();
         let line = line.join(" ");
         for (color, width) in [(OUTER, STROKE), (INNER, STROKE * 2.0 / 5.0)] {
             s += &format!(
@@ -317,7 +374,10 @@ pub fn svg(patterns: &[HexPattern], w: f32, h: f32) -> String {
                     format!("{:.2},{:.2}", x + t.cos() * r, y + t.sin() * r)
                 })
                 .collect();
-            format!(r#"<polygon points="{}" fill="{fill}" fill-opacity="{opacity}"/>"#, pts.join(" "))
+            format!(
+                r#"<polygon points="{}" fill="{fill}" fill-opacity="{opacity}"/>"#,
+                pts.join(" ")
+            )
         };
         s += &spot(at(&dots[0]), 0.8 * STROKE * 2.0 / 5.0, START_DOT, 1.0);
         for d in &dots[1..] {
@@ -332,7 +392,10 @@ mod tests {
     use super::*;
 
     fn p(dir: &str, sig: &str) -> HexPattern {
-        HexPattern { startdir: dir.into(), signature: sig.into() }
+        HexPattern {
+            startdir: dir.into(),
+            signature: sig.into(),
+        }
     }
 
     #[test]
@@ -343,7 +406,10 @@ mod tests {
         assert_eq!(p("E", "s").positions(), [(0, 0), (1, 0), (0, 0)]);
         // `qaq` (Mind's Reflection): five points.
         assert_eq!(p("NORTH_EAST", "qaq").positions().len(), 5);
-        assert!(p("UP", "w").positions().is_empty(), "an unknown direction draws nothing");
+        assert!(
+            p("UP", "w").positions().is_empty(),
+            "an unknown direction draws nothing"
+        );
     }
 
     #[test]
@@ -364,7 +430,10 @@ mod tests {
         let z = make_zappy(&dots, &dup_indices(&pos), 0.2, 0.8, 0.0);
         // 1 + 10 hops + the target, then 8 hops of the last stroke.
         assert_eq!(z.len(), 1 + 10 + 1 + 8);
-        assert!(z.iter().all(|&(x, y)| x >= -0.5 && x <= 3.7 && y.abs() < 0.5));
+        assert!(
+            z.iter()
+                .all(|&(x, y)| (-0.5..=3.7).contains(&x) && y.abs() < 0.5)
+        );
     }
 
     #[test]
