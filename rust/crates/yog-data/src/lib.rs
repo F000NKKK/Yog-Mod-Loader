@@ -15,6 +15,8 @@ extern crate self as yog_data;
 
 pub mod binary;
 pub mod text;
+#[cfg(feature = "toml")]
+pub mod toml;
 pub mod typed;
 mod value;
 

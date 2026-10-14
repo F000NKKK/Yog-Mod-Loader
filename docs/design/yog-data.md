@@ -1,8 +1,8 @@
 # Yog Data: one language for every format — audit and plan
 
-Status: proposal (audit of 2026-10-14). Nothing here is built yet. The project
-has no backward compatibility: every format and API below is replaced, not
-deprecated.
+Status: P0 and P1 done (2026-10-14) — the `yog-data` crate exists; no format
+uses it yet (P2). The project has no backward compatibility: every format and
+API below is replaced, not deprecated.
 
 The goal, in the user's words: analyse every format and make one universal
 language, the way Minecraft has NBT and Office has ODF; check and clean the
@@ -167,6 +167,22 @@ parse (baseline for P1).
 **P1 — `yog-data`.** Model, text parser with positions, binary codec,
 `#[derive(Schema)]`, references and tags; Java reader. Benches against
 serde_json.
+
+*Done:* crates `yog-data` (`Value`, `text`, `typed`, `binary`, `schema`,
+`toml` behind a feature) and `yog-data-derive`; `java-common`'s
+`dev.yog.data.YogData` reads and writes the same bytes (checked by
+`cargo test -p yog-data --test java -- --ignored`). On HexMod's book
+(145 KB of JSON, 52 KB binary):
+
+| | yog-data | serde_json |
+|---|---:|---:|
+| parse text | 430 µs (with spans 520 µs) | 418 µs |
+| decode binary | 258 µs | — |
+| write text | 102 µs | 75 µs |
+| encode binary | 160 µs | — |
+
+Decoding is bound by allocating owned strings; a borrowing reader for the
+runtime comes with P3, when the runtime reads blobs.
 
 **P2 — formats onto Yog Data,** one at a time with its golden tests:
 `.yres`, `.ybook`, `.yrecipe` (tags, all kinds, custom kinds, layouts),

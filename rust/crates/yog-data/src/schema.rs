@@ -525,6 +525,19 @@ pub fn from_text<T: Schema>(text: &str) -> Result<Read<T>, Errors> {
     from_doc(text, &doc)
 }
 
+/// Parses TOML `text` and reads it as `T`.
+#[cfg(feature = "toml")]
+pub fn from_toml<T: Schema>(text: &str) -> Result<Read<T>, Errors> {
+    let doc = crate::toml::parse(text).map_err(|e| {
+        Errors(vec![Located {
+            at: Some(e.at),
+            path: Path::root(),
+            message: e.message,
+        }])
+    })?;
+    from_doc(text, &doc)
+}
+
 /// Reads a parsed document as `T`; `text` is its source, for positions.
 pub fn from_doc<T: Schema>(text: &str, doc: &Doc) -> Result<Read<T>, Errors> {
     from_value(&doc.value).map_err(|problems| {

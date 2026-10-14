@@ -11,6 +11,12 @@ exclude = ["benches/hexbook.ybook"]
 
 [dependencies]
 yog-data-derive = { version = "0.1", path = "../yog-data-derive" }
+# `yog.toml` read into the model (`toml` feature).
+toml = { version = "1", optional = true, default-features = false, features = ["std", "parse", "preserve_order"] }
+serde_spanned = { version = "1", optional = true }
+
+[features]
+toml = ["dep:toml", "dep:serde_spanned"]
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
