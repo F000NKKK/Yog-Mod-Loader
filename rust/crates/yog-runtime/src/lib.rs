@@ -185,6 +185,8 @@ struct RuntimeHandlers {
     chunk_generators: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogChunkGeneratorFn)>,
     ui_handlers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogUIEventFn)>,
     ui_render_handlers: HashMap<String, Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>>,
+    /// Book pages' pictures (`BookPage::Drawn`), by drawer id.
+    page_drawers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogPageDrawFn)>,
     menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
     pub active_uis: Mutex<Vec<UiLayer>>,
     startup_grants: Vec<yog_registry::StartupGrant>,
@@ -468,6 +470,8 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         for entries in h.ui_render_handlers.values_mut() {
             entries.retain(|(m, ..)| m.generation() != generation);
         }
+        h.page_drawers
+            .retain(|_, (m, ..)| m.generation() != generation);
         h.scheduler
             .lock()
             .expect("scheduler poisoned")
@@ -2280,6 +2284,20 @@ unsafe extern "C" fn api_on_ui_render(
     }
 }
 
+unsafe extern "C" fn api_on_book_page(
+    ctx: *mut c_void,
+    drawer: YogStr,
+    ud: *mut c_void,
+    f: yog_abi::YogPageDrawFn,
+) {
+    unsafe {
+        let mut handlers = handlers_mut(ctx);
+        handlers
+            .page_drawers
+            .insert(drawer.as_str().to_owned(), (current_registration(), ud, f));
+    }
+}
+
 /// Strip TSV separators so one mod can't corrupt the line format.
 fn tsv_clean(v: &str) -> String {
     v.replace(['\t', '\n', '\r'], " ")
@@ -2938,6 +2956,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         client_stop_sound: client_api::api_client_stop_sound,
         client_held_item: client_api::api_client_held_item,
         client_key_down: client_api::api_client_key_down,
+        on_book_page: api_on_book_page,
     }
 }
 

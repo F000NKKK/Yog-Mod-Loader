@@ -82,10 +82,15 @@ pub(crate) struct BgSprite {
 
 // ── Pending overlay draw commands ─────────────────────────────────────────────
 
+/// Draws a mod's picture (`BookPage::Drawn`): `(ctx, drawer, data, [x, y, w, h])`.
+pub type PageDrawer<'a> = &'a mut dyn FnMut(&GfxContext, &str, &yog_data::Value, [f32; 4]);
+
 #[derive(Clone)]
 pub(crate) enum OverlayCmd {
-    Svg {
-        data: String,
+    /// A mod's picture: its drawer (`BookPage::Drawn`) draws `data` in the box.
+    Drawn {
+        drawer: String,
+        data: yog_data::Value,
         x: f32,
         y: f32,
         w: f32,
@@ -542,7 +547,16 @@ impl BookRenderer {
     /// Draws the book into a `sw`×`sh` screen — all of it through
     /// `draw2d` (its sprite sheets as the image sources [`BOOK_SHEET`] and
     /// [`CRAFTING_SHEET`]).
+    /// Draws the book; mods' pictures (`BookPage::Drawn`) are left empty —
+    /// see [`BookRenderer::render_with`].
     pub fn render(&mut self, ctx: &GfxContext, sw: f32, sh: f32) {
+        self.render_with(ctx, sw, sh, &mut |_, _, _, _| {});
+    }
+
+    /// Draws the book, mods' pictures with `draw(ctx, drawer, data, [x, y,
+    /// w, h])` (screen pixels) — the game calls the mod that registered
+    /// `drawer`.
+    pub fn render_with(&mut self, ctx: &GfxContext, sw: f32, sh: f32, draw: PageDrawer<'_>) {
         // Text flows by the host's own font metrics once it can measure.
         yog_ui::text::use_host_metrics(ctx);
         if !self.measured {
@@ -585,13 +599,14 @@ impl BookRenderer {
         let t = self.start.elapsed().as_secs_f32();
         for ov in &self.overlays {
             match *ov {
-                OverlayCmd::Svg {
+                OverlayCmd::Drawn {
+                    ref drawer,
                     ref data,
                     x,
                     y,
                     w,
                     h,
-                } => d2.svg(data, x, y, w, h),
+                } => draw(ctx, drawer, data, [x, y, w, h]),
                 OverlayCmd::Entity {
                     ref entity,
                     x,
@@ -810,8 +825,6 @@ const BODY_H: f32 = PAGE_H - 22.0 - 12.0 - 14.0;
 /// A multiblock page's view of its structure, and its name's height (with
 /// the gap under it), in book pixels.
 const MB_VIEW: f32 = 70.0;
-/// A pattern page's box for its patterns, in book pixels.
-const PATTERN_H: f32 = 64.0;
 const MB_NAME_H: f32 = 14.0;
 
 /// How much of the body a page's own content takes above its text.
@@ -823,21 +836,10 @@ fn content_above_text(page: &BookPage) -> Option<f32> {
         // (A crafting grid's height: a furnace's is less.)
         BookPage::Recipe { .. } => 80.0,
         BookPage::Image { .. } | BookPage::Entity { .. } => 104.0,
-        BookPage::Pattern {
-            patterns,
-            input,
-            output,
-            ..
-        } => {
-            14.0 + if patterns.is_empty() {
-                0.0
-            } else {
-                PATTERN_H + 4.0
-            } + if input.is_empty() && output.is_empty() {
-                0.0
-            } else {
-                14.0
-            }
+        BookPage::Drawn { title, height, caption, .. } => {
+            let title = if title.is_some() { 14.0 } else { 0.0 };
+            let picture = if *height > 0.0 { height + 4.0 } else { 0.0 };
+            title + picture + if caption.is_some() { 14.0 } else { 0.0 }
         }
         BookPage::Multiblock { name, .. } => {
             MB_VIEW + 4.0 + if name.is_some() { MB_NAME_H } else { 0.0 }
@@ -849,13 +851,14 @@ fn content_above_text(page: &BookPage) -> Option<f32> {
 
 fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
     match page {
-        BookPage::Text { text, .. } | BookPage::Pattern { text, .. } => Some(text),
+        BookPage::Text { text, .. } => Some(text),
         BookPage::Spotlight { text, .. }
         | BookPage::Recipe { text, .. }
         | BookPage::Image { text, .. }
         | BookPage::Entity { text, .. }
         | BookPage::Multiblock { text, .. }
-        | BookPage::Relations { text, .. } => text.as_mut(),
+        | BookPage::Relations { text, .. }
+        | BookPage::Drawn { text, .. } => text.as_mut(),
         _ => None,
     }
 }
@@ -1800,37 +1803,36 @@ fn build_page(
             }
         }
 
-        BookPage::Pattern {
-            op_id,
-            name,
-            input,
-            output,
+        BookPage::Drawn {
+            drawer,
+            title,
+            height,
+            caption,
             text,
-            patterns,
-            ..
+            data,
         } => {
-            col = col.child(
-                title_lbl(name.as_deref().unwrap_or(op_id.as_str()))
-                    .color(theme.title)
-                    .h(10.0 * sy),
-            );
-            // Hex Casting's page: the patterns in a box the page's width
-            // under the name, then what it takes and gives.
-            if !patterns.is_empty() {
-                overlays.push(OverlayCmd::Svg {
-                    data: crate::pattern::svg(patterns, PAGE_W, PATTERN_H),
+            let mut top = 0.0;
+            if let Some(t) = title {
+                col = col.child(title_lbl(t.as_str()).color(theme.title).h(10.0 * sy));
+                top = 14.0;
+            }
+            // The picture: a box the page's width, drawn by the mod's code.
+            if *height > 0.0 {
+                overlays.push(OverlayCmd::Drawn {
+                    drawer: drawer.clone(),
+                    data: data.clone(),
                     x: ox,
-                    y: oy + 14.0 * sy,
+                    y: oy + top * sy,
                     w: PAGE_W * sx,
-                    h: PATTERN_H * sy,
+                    h: height * sy,
                 });
-                col = col.child(widget::spacer().h(PATTERN_H * sy));
+                col = col.child(widget::spacer().h(height * sy));
             }
-            if !input.is_empty() || !output.is_empty() {
-                col = col.child(lbl(format!("{{u|{input}}} → {{u|{output}}}")).color(theme.text));
+            if let Some(c) = caption {
+                col = col.child(lbl(c.as_str()).color(theme.text));
             }
-            if !text.is_empty() {
-                col = col.child(lbl(text.as_str()).color(theme.text));
+            if let Some(t) = text {
+                col = col.child(lbl(t.as_str()).color(theme.text));
             }
         }
 
@@ -2121,5 +2123,32 @@ mod tests {
         }];
         let flowed = flow(book(pages.clone()));
         assert_eq!(flowed.entries[0].pages.len(), 1);
+    }
+
+    #[test]
+    fn a_drawn_page_hands_its_box_and_data_to_the_mods_drawer() {
+        let data = yog_data::json::from_json(&serde_json::json!({ "op_id": "hexcasting:manual" }));
+        let page: BookPage = serde_json::from_value(serde_json::json!({
+            "type": "drawn", "drawer": "hexcasting:pattern", "title": "Manual", "height": 64,
+            "caption": "{u|entity} → {u|num}", "text": "Casts.", "data": { "op_id": "hexcasting:manual" }
+        }))
+        .unwrap();
+        assert!(matches!(&page, BookPage::Drawn { data: d, height, .. } if *d == data && *height == 64.0));
+        assert_eq!(content_above_text(&page), Some(14.0 + 68.0 + 14.0));
+        let mut b = book(vec![page.clone()]);
+        b.categories.push(crate::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
+        b.entries[0].category = "c".into();
+        let mut r = BookRenderer::new(b);
+        r.show("e", 0);
+        r.prepare(800.0, 600.0);
+        let drawn: Vec<_> = r.overlays.iter().filter_map(|o| match o {
+            OverlayCmd::Drawn { drawer, data, w, h, .. } => Some((drawer.clone(), data.clone(), *w / *h)),
+            _ => None,
+        }).collect();
+        assert_eq!(drawn.len(), 1);
+        assert_eq!((drawn[0].0.as_str(), &drawn[0].1), ("hexcasting:pattern", &data));
+        assert!((drawn[0].2 - PAGE_W / 64.0).abs() < 0.01, "the page's width, 64 high");
+        // The JSON form keeps the data.
+        assert_eq!(serde_json::to_value(&page).unwrap()["data"]["op_id"], "hexcasting:manual");
     }
 }

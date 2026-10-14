@@ -1614,6 +1614,19 @@ where
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+unsafe extern "C" fn trampoline_book_page<F>(ud: *mut c_void, gfx: *const YogGfxApi, data: *const u8, len: usize, x: f32, y: f32, w: f32, h: f32)
+where
+    F: Fn(&GfxContext, &yog_data::Value, [f32; 4]) + Send + Sync,
+{
+    unsafe {
+        let f = &*(ud as *const F);
+        let bytes = if data.is_null() { &[][..] } else { std::slice::from_raw_parts(data, len) };
+        let value = yog_data::binary::decode(bytes).unwrap_or(yog_data::Value::Null);
+        guard((), || f(&GfxContext::from_raw(gfx), &value, [x, y, w, h]));
+    }
+}
+
 unsafe extern "C" fn trampoline_world_render<F>(ud: *mut c_void, gfx: *const YogGfxApi)
 where
     F: Fn(&GfxContext) + Send + Sync,
@@ -2301,6 +2314,24 @@ impl Registry {
         let ud = Self::leak(handler);
         let id = YogStr::from_str(ui_id);
         unsafe { ((*self.api).on_ui_render)(self.ctx(), id, ud, trampoline_hud_render::<F>) }
+    }
+
+    /// Draw the pictures of book pages of type `drawn` whose `drawer` is
+    /// `drawer` (`"mymod:diagram"`): `handler` gets the page's `data` and
+    /// the picture's box `[x, y, w, h]` in screen pixels, every frame the
+    /// page is open.
+    ///
+    /// ```text
+    /// { type: "drawn", drawer: "mymod:diagram", title: "Wiring", height: 64,
+    ///   caption: "{u|in} → {u|out}", text: "…", data: { nodes: 3 } }
+    /// ```
+    pub fn on_book_page<F>(&mut self, drawer: &str, handler: F)
+    where
+        F: Fn(&GfxContext, &yog_data::Value, [f32; 4]) + Send + Sync + 'static,
+    {
+        let ud = Self::leak(handler);
+        let id = YogStr::from_str(drawer);
+        unsafe { ((*self.api).on_book_page)(self.ctx(), id, ud, trampoline_book_page::<F>) }
     }
 
     /// Register a handler called every frame when the HUD is rendered.

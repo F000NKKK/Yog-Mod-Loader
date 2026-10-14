@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 2;
-pub const ABI_MINOR: u32 = 0;
+pub const ABI_MINOR: u32 = 1;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -447,6 +447,19 @@ pub type YogUIEventFn = unsafe extern "C" fn(ud: *mut c_void, ui_id: YogStr, eve
 /// HUD render — `gfx` is the graphics context for this frame; only valid for
 /// the call duration.  `draw2d_*` functions in `gfx` work here.
 pub type YogHudRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
+/// A book page's picture: `data`/`len` is the page's `data` (Yog Data,
+/// binary), `x, y, w, h` its box in screen pixels; `gfx` is valid for the
+/// call.
+pub type YogPageDrawFn = unsafe extern "C" fn(
+    ud: *mut c_void,
+    gfx: *const YogGfxApi,
+    data: *const u8,
+    len: usize,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+);
 /// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
 /// Valid only for the call duration.
 pub type YogWorldRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
@@ -1348,6 +1361,12 @@ pub struct YogApi {
     pub client_held_item: unsafe extern "C" fn(ctx: *mut c_void, off_hand: bool) -> YogOwnedStr,
     /// Whether GLFW key `key` is held down right now (client window).
     pub client_key_down: unsafe extern "C" fn(ctx: *mut c_void, key: i32) -> bool,
+
+    // ── ABI 2.1 — book pages drawn by mods ──────────────────────────────────
+    /// Draw the pictures of book pages of type `drawn` whose `drawer` is
+    /// `drawer` (`hexcasting:pattern`) — see [`YogPageDrawFn`].
+    pub on_book_page:
+        unsafe extern "C" fn(ctx: *mut c_void, drawer: YogStr, ud: *mut c_void, f: YogPageDrawFn),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].
@@ -1398,7 +1417,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (20000, 0x86d0_a5cf_6d18_85d4), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (20001, 0xee6d_c4a0_b4b5_e9ec), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]

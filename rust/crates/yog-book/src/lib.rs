@@ -8,7 +8,6 @@
 
 pub mod layout;
 pub mod markup;
-pub mod pattern;
 pub mod refs;
 pub mod renderer;
 pub mod state;
@@ -23,9 +22,22 @@ use yog_data::with::{List, Opt, RefTo, Values};
 
 use refs::{BookText, Icon};
 
-pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET, LANG};
+pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET, LANG, PageDrawer};
 pub use state::BookViewState;
 pub use theme::BookTheme;
+
+/// A [`yog_data::Value`] in a book's JSON form.
+mod value_json {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S: Serializer>(v: &yog_data::Value, s: S) -> Result<S::Ok, S::Error> {
+        yog_data::json::to_json(v).serialize(s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<yog_data::Value, D::Error> {
+        Ok(yog_data::json::from_json(&serde_json::Value::deserialize(d)?))
+    }
+}
 
 /// The blocks of a multiblock `pattern` (layers top to bottom, rows of
 /// characters) with their `mapping`: ((x, y, z), block state).
@@ -138,27 +150,31 @@ pub enum BookPage {
         #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
-    /// A spell pattern: its name, what it takes and gives, the pattern
-    /// itself on a hexagonal grid (see [`pattern`]).
-    Pattern {
-        op_id: String,
-        /// The action's name (the page's title; `op_id` if none).
+    /// A picture the mod's code draws (`Registry::on_book_page`) — Hex
+    /// Casting's patterns, a mod's diagram: the `drawer` registered under
+    /// that id gets `data` and a box the page's width and `height` high,
+    /// between the title and a caption line, over the text.
+    Drawn {
+        /// The id the mod's drawer is registered under (`hexcasting:pattern`).
+        drawer: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
-        name: Option<String>,
+        title: Option<String>,
+        /// The picture's height in book pixels (0: none).
         #[serde(default)]
-        #[data(with = "BookText", default)]
-        input: String,
-        #[serde(default)]
-        #[data(with = "BookText", default)]
-        output: String,
-        #[serde(default)]
-        #[data(with = "BookText", default)]
-        text: String,
-        /// The patterns drawn on the page (none: just the texts).
-        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[data(default, range = "0..=150")]
+        height: f32,
+        /// A line under the picture.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
+        caption: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
+        text: Option<String>,
+        /// Whatever the drawer reads, as is.
+        #[serde(default, with = "value_json")]
         #[data(default)]
-        patterns: Vec<pattern::HexPattern>,
+        data: yog_data::Value,
     },
     /// Nothing (to start the next on a new spread).
     Empty,
@@ -326,9 +342,10 @@ impl Book {
                         opt(text);
                     }
                     BookPage::Recipe { text, .. } | BookPage::Relations { text, .. } => opt(text),
-                    BookPage::Pattern { text, name, .. } => {
-                        *text = tr(text);
-                        opt(name);
+                    BookPage::Drawn { title, caption, text, .. } => {
+                        opt(title);
+                        opt(caption);
+                        opt(text);
                     }
                     BookPage::Empty => {}
                 }

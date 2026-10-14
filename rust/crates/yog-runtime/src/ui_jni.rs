@@ -372,7 +372,21 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
         if let Some(book_renderer) = book_renderers.get_mut(&id)
             && book_renderer.ui.is_some()
         {
-            book_renderer.render(&ctx, sw, sh);
+            // Pictures of `drawn` pages: the mod that registered the drawer draws them.
+            let gfx_ptr = &gfx as *const _;
+            book_renderer.render_with(&ctx, sw, sh, &mut |_, drawer, data, [x, y, w, bh]| {
+                let Some((module, ud, f)) = h.page_drawers.get(drawer).cloned() else {
+                    return;
+                };
+                if module.is_retiring() {
+                    return;
+                }
+                let Some(_call) = module.enter() else {
+                    return;
+                };
+                let bytes = yog_data::binary::encode(data);
+                unsafe { f(ud, gfx_ptr, bytes.as_ptr(), bytes.len(), x, y, w, bh) };
+            });
             return;
         }
         // ui=None → fall through to on_ui_render callbacks

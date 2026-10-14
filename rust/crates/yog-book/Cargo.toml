@@ -12,7 +12,7 @@ yog-registry = { version = "0.30", features = ["serde"] }
 yog-ui  = "0.41"
 yog-gfx = "0.26"
 # The .ybook format: schema, references, texts.
-yog-data = "0.3.1"
+yog-data = { version = "0.3.1", features = ["json"] }
 
 # Serialization (for runtime JSON parsing)
 serde.workspace      = true
