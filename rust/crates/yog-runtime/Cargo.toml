@@ -26,6 +26,7 @@ yog-ui     = "0.41"
 yog-book   = "0.64"
 yog-gfx    = "0.26"
 yog-inventory = "0.16"
+yog-worldgen = "0.1"
 yog-hot-reload = "0.2.2"
 # The content blob the hosts read (`content_blob`).
 yog-data = { version = "0.4", features = ["json"] }

@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::num::NonZeroU32;
 use std::os::raw::c_void;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock, RwLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
 use glow::HasContext;
 use jcall::JArg;
@@ -178,7 +178,7 @@ struct RuntimeHandlers {
     blocks: Vec<BlockDef>,
     /// The content blob the hosts read (`nativeContent`), built once —
     /// dropped when more content registers.
-    content_blob: Mutex<Option<std::sync::Arc<Vec<u8>>>>,
+    content_blob: Mutex<Option<Arc<Vec<u8>>>>,
     /// Mods' sound groups by id; a block's `sound` is one of these or built in.
     sound_groups: HashMap<String, yog_registry::SoundGroup>,
     /// Mods' tool and armor materials by id (the game's are built in).
@@ -195,6 +195,9 @@ struct RuntimeHandlers {
     /// see `yog-dimensions` crate docs.
     dimensions: HashMap<String, yog_data::Value>,
     chunk_generators: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogChunkGeneratorFn)>,
+    /// Dimensions' `terrain`s (`.ydef`), generated here: by the dimension's id,
+    /// which is its `generator_type`.
+    terrains: HashMap<String, Arc<yog_worldgen::Generator>>,
     ui_handlers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogUIEventFn)>,
     ui_render_handlers: HashMap<String, Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>>,
     /// Book pages' pictures (`BookPage::Drawn`), by drawer id.
@@ -2209,7 +2212,17 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
         }
         "dimension" => {
             yog_logging::info!("registered dimension type: {}", id);
-            h.dimensions.insert(id, value.to_value());
+            let mut def = value.to_value();
+            // The terrain stays here; the host gets the dimension, its generator this one.
+            if let Some(t) = value.get("terrain") {
+                let Some(terrain) = read::<yog_worldgen::Terrain>(kind, &id, t) else { return };
+                if let yog_data::Value::Map(m) = &mut def {
+                    m.remove("terrain");
+                    m.insert("generator_type", yog_data::Value::from(id.as_str()));
+                }
+                h.terrains.insert(id.clone(), Arc::new(yog_worldgen::Generator::new(terrain)));
+            }
+            h.dimensions.insert(id, def);
         }
         other => yog_logging::warn!("unknown kind of content `{other}` ({id}) — this runtime doesn't know it"),
     }
@@ -4010,6 +4023,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeGenerateChunk<'l>(
         Ok(s) => String::from(s),
         Err(_) => return,
     };
+    let terrain = handlers().terrains.get(&id).cloned();
+    if let Some(g) = terrain {
+        guard("chunk_generator", || {
+            g.generate(chunk_x, chunk_z, min_y, height, |x, y, z, block| unsafe {
+                chunk_writer_set_block(std::ptr::null_mut(), x, y, z, YogStr::from_str(block));
+            });
+        });
+        return;
+    }
     let Some((module, ud, cb)) = handlers().chunk_generators.get(&id).cloned() else {
         return;
     };

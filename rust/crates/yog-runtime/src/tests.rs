@@ -394,3 +394,28 @@ fn content_exchange() {
     std::fs::write(out.join("old_recipes.txt"), recipes).unwrap();
     std::fs::write(out.join("new_content.ydata"), new()).unwrap();
 }
+
+#[test]
+fn a_dimensions_terrain_is_generated_here_and_the_host_gets_the_rest() {
+    let def = yog_data::text::parse_value(
+        r#"{ id: "mymod:flat", dimension_type: { min_y: 0, height: 64 }, biome: "minecraft:plains",
+            structures: false, features: false, mob_spawning: true,
+            terrain: { base_height: 8, fill: "@block:minecraft:stone", layers: [{ block: "@block:minecraft:dirt", depth: 2 }] } }"#,
+    )
+    .unwrap();
+    let h = registering(|ctx| unsafe { content(ctx, "dimension", "mymod:flat", &def) });
+    let h = h.read().unwrap();
+    let kept = &h.dimensions["mymod:flat"];
+    assert!(kept.get("terrain").is_none(), "the host doesn't get the terrain");
+    assert_eq!(kept.get("generator_type"), Some(&yog_data::Value::from("mymod:flat")));
+    let g = &h.terrains["mymod:flat"];
+    let mut column = Vec::new();
+    g.generate(0, 0, 0, 64, |x, y, z, b| {
+        if (x, z) == (0, 0) {
+            column.push((y, b.to_string()));
+        }
+    });
+    assert_eq!(column.len(), 9, "{column:?}");
+    assert_eq!(column[8], (8, "minecraft:dirt".to_string()));
+    assert_eq!(column[0], (0, "minecraft:stone".to_string()));
+}

@@ -13,6 +13,8 @@ members = [
     "crates/yog-network",
     "crates/yog-command",
     "crates/yog-dimensions",
+    # declarative terrain: noise, layers, caves, ores — the runtime's and the IDE's preview
+    "crates/yog-worldgen",
     # the one data model / text / binary / schema of every Yog format
     "crates/yog-data",
     "crates/yog-data-derive",
@@ -88,6 +90,7 @@ yog-network  = { path = "crates/yog-network" }
 yog-command  = { path = "crates/yog-command" }
 yog-dimensions = { path = "crates/yog-dimensions" }
 yog-data     = { path = "crates/yog-data" }
+yog-worldgen = { path = "crates/yog-worldgen" }
 yog-data-derive = { path = "crates/yog-data-derive" }
 yog-formats  = { path = "crates/yog-formats" }
 yog-logging  = { path = "crates/yog-logging" }

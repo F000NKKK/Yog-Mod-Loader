@@ -971,6 +971,11 @@ struct BookFile {
     data: Vec<u8>,
 }
 
+/// A dimension's data file under `.yog-build/generated/`.
+fn dimension_path(id: &str) -> String {
+    format!("dimensions/{}.ydata", id.replace(':', "__"))
+}
+
 impl BookFile {
     /// Its file under `.yog-build/generated/`.
     fn path(&self) -> String {
@@ -1203,6 +1208,7 @@ fn compile_layout(
     mod_ns: Option<&str>,
     known: &refs::Known,
     ores: &mut Vec<OreOut>,
+    dimensions: &mut Vec<(String, Vec<u8>)>,
 ) -> Option<(Option<yog_book::layout::RecipeLayout>, Option<yog_formats::def::RecipeKindDef>)> {
     use yog_formats::def::Def;
     let doc = match yog_data::text::parse(text) {
@@ -1266,9 +1272,37 @@ fn compile_layout(
             }
             return None;
         }
+        Def::Dimension(d) => {
+            if ok {
+                dimensions.push(dimension(d, ns));
+            }
+            return None;
+        }
         _ => return None,
     };
     ok.then_some((layout, kind))
+}
+
+/// A dimension as the runtime and the hosts read it (Yog Data, binary):
+/// its type, biome, flags, the generator that makes its chunks — its
+/// `terrain`'s (the runtime's own, under the dimension's id) or the mod's.
+fn dimension(d: yog_formats::def::DimensionDef, ns: &str) -> (String, Vec<u8>) {
+    use yog_data::{Map, Schema, Value as V};
+    let id = if d.id.contains(':') { d.id.clone() } else { format!("{ns}:{}", d.id) };
+    let mut m = Map::new();
+    m.insert("id", V::from(id.as_str()));
+    m.insert("dimension_type", d.dimension_type.write());
+    m.insert("biome", V::from(d.biome.map_or("minecraft:plains".to_string(), |b| b.id).as_str()));
+    m.insert("structures", V::Bool(d.structures));
+    m.insert("features", V::Bool(d.features));
+    m.insert("mob_spawning", V::Bool(d.mob_spawning));
+    if let Some(t) = &d.terrain {
+        m.insert("generator_type", V::from(id.as_str()));
+        m.insert("terrain", t.write());
+    } else if let Some(g) = &d.generator {
+        m.insert("generator_type", V::from(if g.contains(':') { g.clone() } else { format!("{ns}:{g}") }.as_str()));
+    }
+    (id, yog_data::binary::encode(&V::Map(m)))
 }
 
 /// What an ore makes: its files, and the biome feature (feature, biomes, step) for Fabric's host.
@@ -1617,6 +1651,8 @@ struct Defs {
     armor_materials: Vec<yog_formats::def::ArmorMaterial>,
     /// Placed features the mod adds to biomes (its ores), for the hosts that add them in code.
     biome_features: Vec<(String, String, String)>,
+    /// Its dimensions' ids (their data in `generated/dimensions/`).
+    dimensions: Vec<String>,
 }
 
 impl Defs {
@@ -1672,7 +1708,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                     }
                 }
                 // Read with the recipes (`compile_layout`).
-                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::RecipeLayout(_) | yog_formats::def::Def::Ore(_) => {}
+                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::RecipeLayout(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) => {}
                 // Its level is placed on the ladder below.
                 yog_formats::def::Def::ToolMaterial(mut m) => {
                     m.id = full(&m.id);
@@ -1772,7 +1808,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
             incorrect,
         });
     }
-    Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new() }
+    Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new(), dimensions: Vec::new() }
 }
 
 /// The tags that make block `id` need tool level `level`, on every version:
@@ -1891,7 +1927,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         if kind == Kind::Def {
             // Kinds of recipe and recipe layouts are checked with the recipes.
             let of = yog_data::text::parse_value(&text).ok().and_then(|v| v.get("kind").and_then(|k| k.as_str()).map(str::to_string));
-            if matches!(of.as_deref(), Some("recipe_kind" | "recipe_layout" | "ore")) {
+            if matches!(of.as_deref(), Some("recipe_kind" | "recipe_layout" | "ore" | "dimension")) {
                 pending_layouts.push((shown.clone(), text));
             } else {
                 pending_defs.push((shown.clone(), text));
@@ -1934,6 +1970,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut recipe_defs: HashMap<String, yog_formats::def::RecipeKindDef> = HashMap::new();
     let mut laid_out: HashMap<String, String> = HashMap::new();
     let mut ores: Vec<OreOut> = Vec::new();
+    let mut dimensions: Vec<(String, Vec<u8>)> = Vec::new();
     for (shown, text) in &pending_layouts {
         let mut cx = Ctx {
             root,
@@ -1946,7 +1983,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        let Some((l, kind)) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores) else { continue };
+        let Some((l, kind)) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions) else { continue };
         if let Some(k) = kind {
             if recipe_defs.contains_key(&k.id) {
                 errors.push(format!("{shown}: recipe kind {} is declared twice", k.id));
@@ -2069,7 +2106,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     out.items = entries.len() - out.blocks;
     out.recipes = recipes.len();
     out.books = books.len();
-    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty())
+    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !dimensions.is_empty())
         && !mentions_content_macro(&root.join("src"))
     {
         out.warnings.push(format!(
@@ -2078,6 +2115,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         ));
     }
     out.data_files = books.iter().map(|b| (b.path(), b.data.clone())).collect();
+    out.data_files.extend(dimensions.iter().map(|(id, data)| (dimension_path(id), data.clone())));
     // A tool level above netherite gets a tag of what its tools can't mine.
     for m in &defs.tool_materials {
         if let Some((n, p)) = m.incorrect.split_once(':')
@@ -2086,6 +2124,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             out.tags.entry(format!("when/any/1.21/data/{n}/tags/block/{p}.json")).or_default();
         }
     }
+    defs.dimensions = dimensions.iter().map(|(id, _)| id.clone()).collect();
     out.source = Some(rust_source(&entries, &recipes, &books, &defs));
     version_overlays(&mut out, &known.datapack);
     Ok(out)
@@ -2358,6 +2397,13 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
             float(g.pitch as f64)
         );
     }
+    for id in &defs.dimensions {
+        let _ = writeln!(
+            code,
+            "    registry.register_dimension_data({id:?}, include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/{}\")));",
+            dimension_path(id)
+        );
+    }
     for (feature, biomes, step) in &defs.biome_features {
         let _ = writeln!(code, "    registry.add_biome_feature({feature:?}, {biomes:?}, {step:?});");
     }
@@ -2388,7 +2434,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
         );
     }
     code.push_str("}\n");
-    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() {
+    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !defs.dimensions.is_empty() {
         code.push_str(
             "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",
         );
@@ -3078,6 +3124,26 @@ mod tests {
         let missing = r#"{ kind: "ore", id: "x", targets: [{ replaces: "stone", block: "@block:mymod:nope" }], size: 6, per_chunk: 4, height: { min: 0, max: 10 } }"#;
         let e = compile(&project(&[("content/x.ydef", missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no block mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn a_dimension_and_its_terrain_go_to_the_runtime_as_data() {
+        let dim = r#"{ kind: "dimension", id: "flatlands", dimension_type: { has_sky_light: true }, biome: "@biome:minecraft:desert",
+            terrain: { seed: 3, base_height: 70, noise: [{ scale: 80, amplitude: 6 }], fill: "@block:minecraft:sandstone",
+                layers: [{ block: "@block:minecraft:sand", depth: 3 }] } }"#;
+        let c = compile(&project(&[("content/flatlands.ydef", dim)]), "mymod", &yres::Refs::default()).unwrap();
+        let (path, data) = c.data_files.iter().find(|(p, _)| p.starts_with("dimensions/")).expect("the dimension's data");
+        assert_eq!(path, "dimensions/mymod__flatlands.ydata");
+        let v = yog_data::binary::decode(data).unwrap();
+        assert_eq!(v.get("biome"), Some(&yog_data::Value::from("minecraft:desert")), "a plain id: the hosts read it");
+        assert_eq!(v.get("generator_type"), Some(&yog_data::Value::from("mymod:flatlands")));
+        let t = yog_data::read_value::<yog_worldgen::Terrain>(v.get("terrain").unwrap()).unwrap();
+        assert_eq!((t.base_height, t.fill.as_str()), (70, "minecraft:sandstone"));
+        let src = c.source.unwrap();
+        assert!(src.contains(r#"registry.register_dimension_data("mymod:flatlands", include_bytes!("#), "{src}");
+        let bad = r#"{ kind: "dimension", id: "x", terrain: { fill: "@block:minecraft:nope" } }"#;
+        let e = compile(&project(&[("content/x.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("no block minecraft:nope"), "{e}");
     }
 
     #[test]

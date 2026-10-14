@@ -55,6 +55,58 @@ pub enum Def {
     /// An ore in the world: veins of the mod's blocks in place of stone,
     /// in the biomes it says — the overworld's or any dimension's.
     Ore(OreDef),
+    /// A dimension: its type (sky, light, height…), its biome, and its
+    /// ground as data (`terrain`, see `yog_worldgen`) — or a generator the
+    /// mod's code registers (`generator`).
+    Dimension(DimensionDef),
+}
+
+/// `{ kind: "dimension", id: "crystal_caves", dimension_type: { has_sky_light:
+/// false }, biome: "@biome:minecraft:plains", terrain: { … } }`.
+#[derive(Schema, Debug, Clone)]
+pub struct DimensionDef {
+    /// `crystal_caves` (the mod's), or the game's to change it (`minecraft:overworld`).
+    pub id: String,
+    #[data(default)]
+    pub dimension_type: DimensionTypeProps,
+    /// The biome it's made of (default `minecraft:plains`).
+    pub biome: Option<yog_data::Id<yog_data::kinds::Biome>>,
+    /// Structures (villages…) may start in it.
+    #[data(default = "yes")]
+    pub structures: bool,
+    /// The biome's features (trees, flowers, its ores) are placed.
+    #[data(default = "yes")]
+    pub features: bool,
+    #[data(default = "yes")]
+    pub mob_spawning: bool,
+    /// Its ground, as data.
+    pub terrain: Option<yog_worldgen::Terrain>,
+    /// Or a generator the mod's code registers (`Registry::register_chunk_generator`).
+    pub generator: Option<String>,
+}
+
+fn yes() -> bool {
+    true
+}
+
+/// A dimension type's properties; what's left out is the overworld's.
+#[derive(Schema, Debug, Clone, Default)]
+pub struct DimensionTypeProps {
+    pub min_y: Option<i32>,
+    pub height: Option<i32>,
+    pub logical_height: Option<i32>,
+    pub has_sky_light: Option<bool>,
+    pub has_ceiling: Option<bool>,
+    #[data(range = "0..=1")]
+    pub ambient_light: Option<f32>,
+    pub coordinate_scale: Option<f64>,
+    pub ultrawarm: Option<bool>,
+    pub natural: Option<bool>,
+    pub beds_explode: Option<bool>,
+    pub respawn_anchors_explode: Option<bool>,
+    pub piglin_safe: Option<bool>,
+    /// The sky and fog the game draws: `minecraft:overworld`, `minecraft:the_nether`, `minecraft:the_end`.
+    pub effects: Option<String>,
 }
 
 /// `{ kind: "ore", id: "mythril_ore", targets: [{ replaces: "stone", block:

@@ -31,6 +31,7 @@ yog-formats = "0.4"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+yog-worldgen = "0.1"
 
 [[bench]]
 name = "exports"
