@@ -1614,6 +1614,39 @@ where
     }
 }
 
+/// What `Registry::on_item_tooltip` keeps: the size and the draw closures.
+struct TooltipPicture<S, D> {
+    size: S,
+    draw: D,
+}
+
+unsafe extern "C" fn trampoline_tooltip_size<S, D>(ud: *mut c_void, item: YogStr, snbt: YogStr, w: *mut f32, h: *mut f32) -> bool
+where
+    S: Fn(&str, &str) -> Option<(f32, f32)> + Send + Sync,
+{
+    unsafe {
+        let t = &*(ud as *const TooltipPicture<S, D>);
+        match guard(None, || (t.size)(item.as_str(), snbt.as_str())) {
+            Some((pw, ph)) => {
+                (*w, *h) = (pw, ph);
+                true
+            }
+            None => false,
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+unsafe extern "C" fn trampoline_tooltip_draw<S, D>(ud: *mut c_void, gfx: *const YogGfxApi, item: YogStr, snbt: YogStr, x: f32, y: f32, w: f32, h: f32)
+where
+    D: Fn(&GfxContext, &str, &str, [f32; 4]) + Send + Sync,
+{
+    unsafe {
+        let t = &*(ud as *const TooltipPicture<S, D>);
+        guard((), || (t.draw)(&GfxContext::from_raw(gfx), item.as_str(), snbt.as_str(), [x, y, w, h]));
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 unsafe extern "C" fn trampoline_book_page<F>(ud: *mut c_void, gfx: *const YogGfxApi, data: *const u8, len: usize, x: f32, y: f32, w: f32, h: f32)
 where
@@ -2333,6 +2366,22 @@ impl Registry {
         let ud = Self::leak(handler);
         let id = YogStr::from_str(drawer);
         unsafe { ((*self.api).on_book_page)(self.ctx(), id, ud, trampoline_book_page::<F>) }
+    }
+
+    /// A picture under the tooltips of `item` (as Hex Casting's scrolls show
+    /// their pattern): `size(item, snbt)` says whether a stack — its custom
+    /// data as SNBT — gets one and its size in GUI pixels; `draw` draws it
+    /// in the box `[x, y, w, h]` (screen pixels) while the tooltip shows.
+    pub fn on_item_tooltip<S, D>(&mut self, item: &str, size: S, draw: D)
+    where
+        S: Fn(&str, &str) -> Option<(f32, f32)> + Send + Sync + 'static,
+        D: Fn(&GfxContext, &str, &str, [f32; 4]) + Send + Sync + 'static,
+    {
+        let ud = Self::leak(TooltipPicture { size, draw });
+        let id = YogStr::from_str(item);
+        unsafe {
+            ((*self.api).on_item_tooltip)(self.ctx(), id, ud, trampoline_tooltip_size::<S, D>, trampoline_tooltip_draw::<S, D>)
+        }
     }
 
     /// Register a handler called every frame when the HUD is rendered.

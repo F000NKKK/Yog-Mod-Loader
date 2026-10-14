@@ -19,4 +19,10 @@ public final class YogClientSetup {
     public static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
         event.register(YogHost.INVENTORY_MENU_TYPE, YogInventoryScreen::new);
     }
+
+    /** Pictures in item tooltips (ABI 2.2): the mod's code draws them. */
+    @SubscribeEvent
+    public static void onTooltipFactories(net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent event) {
+        event.register(YogTooltipData.class, YogClientTooltip::new);
+    }
 }

@@ -21,6 +21,9 @@ import org.joml.Matrix4f;
 public class YogClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        // Pictures in item tooltips (ABI 2.2).
+        net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback.EVENT.register(
+                data -> data instanceof YogTooltipData d ? new YogClientTooltip(d) : null);
         NativeBridge.ensureLoaded();
 
         // yog-inventory: register the generic Container/Menu screen (see

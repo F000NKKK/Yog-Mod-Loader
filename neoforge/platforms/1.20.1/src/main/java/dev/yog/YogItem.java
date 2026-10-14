@@ -45,4 +45,10 @@ public class YogItem extends Item {
             }
         }
     }
+
+    /** A Yog mod's picture under the tooltip, if it gives this stack one. */
+    @Override
+    public java.util.Optional<net.minecraft.world.inventory.tooltip.TooltipComponent> getTooltipImage(net.minecraft.world.item.ItemStack stack) {
+        return YogTooltipData.of(stack);
+    }
 }

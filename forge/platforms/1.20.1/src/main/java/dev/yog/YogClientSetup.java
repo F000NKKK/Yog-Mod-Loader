@@ -22,4 +22,10 @@ public final class YogClientSetup {
             MenuScreens.register(YogHost.INVENTORY_MENU_TYPE, YogInventoryScreen::new);
         });
     }
+
+    /** Pictures in item tooltips (ABI 2.2): the mod's code draws them. */
+    @SubscribeEvent
+    public static void onTooltipFactories(net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent event) {
+        event.register(YogTooltipData.class, YogClientTooltip::new);
+    }
 }

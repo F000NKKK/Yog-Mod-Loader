@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 2;
-pub const ABI_MINOR: u32 = 1;
+pub const ABI_MINOR: u32 = 2;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -455,6 +455,22 @@ pub type YogPageDrawFn = unsafe extern "C" fn(
     gfx: *const YogGfxApi,
     data: *const u8,
     len: usize,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+);
+/// Whether a stack of `item` with custom data `snbt` gets a tooltip
+/// picture; if so its size in GUI pixels goes to `w`, `h`.
+pub type YogTooltipSizeFn =
+    unsafe extern "C" fn(ud: *mut c_void, item: YogStr, snbt: YogStr, w: *mut f32, h: *mut f32) -> bool;
+/// Draw the tooltip picture of a stack of `item` (custom data `snbt`) in
+/// the box `x, y, w, h` (screen pixels); `gfx` is valid for the call.
+pub type YogTooltipDrawFn = unsafe extern "C" fn(
+    ud: *mut c_void,
+    gfx: *const YogGfxApi,
+    item: YogStr,
+    snbt: YogStr,
     x: f32,
     y: f32,
     w: f32,
@@ -1367,6 +1383,18 @@ pub struct YogApi {
     /// `drawer` (`hexcasting:pattern`) — see [`YogPageDrawFn`].
     pub on_book_page:
         unsafe extern "C" fn(ctx: *mut c_void, drawer: YogStr, ud: *mut c_void, f: YogPageDrawFn),
+
+    // ── ABI 2.2 — pictures in item tooltips ─────────────────────────────────
+    /// A picture under the tooltip of item `item` (Hex Casting's scrolls
+    /// show their pattern): `size` says whether a stack gets one and how
+    /// big, `draw` draws it — see [`YogTooltipSizeFn`], [`YogTooltipDrawFn`].
+    pub on_item_tooltip: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        item: YogStr,
+        ud: *mut c_void,
+        size: YogTooltipSizeFn,
+        draw: YogTooltipDrawFn,
+    ),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].
@@ -1417,7 +1445,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (20001, 0xee6d_c4a0_b4b5_e9ec), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (20002, 0x76b2_0250_9e6a_09e4), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]

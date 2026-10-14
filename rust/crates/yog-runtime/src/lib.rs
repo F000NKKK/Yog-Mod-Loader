@@ -113,6 +113,8 @@ pub struct UiLayer {
 
 /// One command registration: owning module, typed-args schema (if any),
 /// user data and callback.
+/// A tooltip picture's mod, user data, size and draw callbacks.
+type TooltipEntry = (LoadedModule, *mut c_void, yog_abi::YogTooltipSizeFn, yog_abi::YogTooltipDrawFn);
 type CommandEntry = (LoadedModule, Option<String>, *mut c_void, YogCommandFn);
 
 // Every callback table below is tagged with the `LoadedModule` that
@@ -192,6 +194,8 @@ struct RuntimeHandlers {
     ui_render_handlers: HashMap<String, Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>>,
     /// Book pages' pictures (`BookPage::Drawn`), by drawer id.
     page_drawers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogPageDrawFn)>,
+    /// Pictures in item tooltips, by item id: the first that answers draws.
+    item_tooltips: HashMap<String, Vec<TooltipEntry>>,
     menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
     pub active_uis: Mutex<Vec<UiLayer>>,
     startup_grants: Vec<yog_registry::StartupGrant>,
@@ -477,6 +481,9 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         }
         h.page_drawers
             .retain(|_, (m, ..)| m.generation() != generation);
+        for entries in h.item_tooltips.values_mut() {
+            entries.retain(|(m, ..)| m.generation() != generation);
+        }
         h.scheduler
             .lock()
             .expect("scheduler poisoned")
@@ -2301,6 +2308,23 @@ unsafe extern "C" fn api_on_book_page(
     }
 }
 
+unsafe extern "C" fn api_on_item_tooltip(
+    ctx: *mut c_void,
+    item: YogStr,
+    ud: *mut c_void,
+    size: yog_abi::YogTooltipSizeFn,
+    draw: yog_abi::YogTooltipDrawFn,
+) {
+    unsafe {
+        let mut handlers = handlers_mut(ctx);
+        handlers
+            .item_tooltips
+            .entry(item.as_str().to_owned())
+            .or_default()
+            .push((current_registration(), ud, size, draw));
+    }
+}
+
 /// Strip TSV separators so one mod can't corrupt the line format.
 fn tsv_clean(v: &str) -> String {
     v.replace(['\t', '\n', '\r'], " ")
@@ -2960,6 +2984,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         client_held_item: client_api::api_client_held_item,
         client_key_down: client_api::api_client_key_down,
         on_book_page: api_on_book_page,
+        on_item_tooltip: api_on_item_tooltip,
     }
 }
 

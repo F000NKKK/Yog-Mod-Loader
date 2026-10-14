@@ -1518,4 +1518,17 @@ public final class NativeBridge {
         net.minecraft.world.inventory.Slot slot = activeInventoryMenu.slots.get(index);
         return slot.x + "\t" + slot.y;
     }
+
+    // ── Pictures in item tooltips (ABI 2.2) ─────────────────────────────────
+
+    /** {@code {w, h}} of the picture a mod gives a stack of {@code item} with custom data {@code snbt}, or null. */
+    public static native float[] nativeTooltipSize(String item, String snbt);
+
+    /** Draws that picture in {@code x, y, w, h} (GUI pixels). */
+    public static native void nativeTooltipDraw(String item, String snbt, int x, int y, int w, int h, int screenW, int screenH);
+
+    /** A stack's custom data as SNBT, what tooltip pictures are told. */
+    public static String tooltipSnbt(net.minecraft.world.item.ItemStack stack) {
+        return stackSnbt(stack);
+    }
 }
