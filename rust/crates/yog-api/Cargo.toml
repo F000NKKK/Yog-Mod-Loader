@@ -1,6 +1,6 @@
 [package]
 name = "yog-api"
-version = "0.92.8"
+version = "0.92.9"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -11,7 +11,7 @@ description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 
 [dependencies]
 yog-abi  = "0.28.2"
-yog-core = "0.3.3"
+yog-core = "0.3.4"
 yog-event = "0.4"
 yog-world = "0.3"
 yog-entity = "0.3"
@@ -25,7 +25,7 @@ yog-interop = "0.21.1"
 yog-storage = "0.1"
 yog-config  = "0.1"
 yog-gfx     = "0.25.1"
-yog-ui      = "0.40.5"
+yog-ui      = "0.40.6"
 yog-book = "0.60"
 yog-inventory = "0.14.1"
 

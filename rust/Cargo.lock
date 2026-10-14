@@ -1225,7 +1225,7 @@ version = "0.28.2"
 
 [[package]]
 name = "yog-api"
-version = "0.92.8"
+version = "0.92.9"
 dependencies = [
  "ctor",
  "rkyv",
@@ -1282,7 +1282,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-core"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "criterion",
 ]
@@ -1355,7 +1355,7 @@ dependencies = [
 
 [[package]]
 name = "yog-kit"
-version = "0.3.8"
+version = "0.3.9"
 dependencies = [
  "yog-api",
 ]
@@ -1389,7 +1389,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.100.8"
+version = "0.100.9"
 dependencies = [
  "criterion",
  "glow",
