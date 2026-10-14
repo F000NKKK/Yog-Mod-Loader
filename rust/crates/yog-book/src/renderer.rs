@@ -402,7 +402,11 @@ impl BookRenderer {
     pub fn new(book: Book) -> Self {
         let theme = BookTheme::default().with_nameplate(&book.nameplate_color);
         let written = styled(&book);
-        let (book, origins) = flow_traced(written.clone());
+        let (flowed, origins) = flow_traced(written.clone());
+        // Translated, it's flowed again from the book as written: flowing
+        // its keys would split them.
+        let source = book.i18n.then_some(book);
+        let book = flowed;
         Self {
             book,
             origins,
@@ -418,9 +422,9 @@ impl BookRenderer {
             dirty: true,
             last_sw: 0.0,
             last_sh: 0.0,
-            source: None,
             translator: None,
             probe: None,
+            source,
         }
     }
 
@@ -436,8 +440,6 @@ impl BookRenderer {
     pub fn set_translator(&mut self, tr: fn(&str) -> Option<String>) {
         *ITEM_NAMES.write().unwrap_or_else(|e| e.into_inner()) = Some(tr);
         if self.book.i18n {
-            self.source.get_or_insert_with(|| self.book.clone());
-            // (Already flowed: flowing again only splits what still overflows.)
             self.translator = Some(tr);
             self.probe = None;
         }
@@ -737,7 +739,10 @@ impl BookRenderer {
     pub fn set_book(&mut self, book: Book) {
         let at = self.shown();
         self.written = styled(&book);
+        self.probe = None;
+        self.source = book.i18n.then_some(book);
         (self.book, self.origins) = flow_traced(self.written.clone());
+        self.localize();
         self.theme = BookTheme::default().with_nameplate(&self.book.nameplate_color);
         self.dirty = true;
         match at {
@@ -857,7 +862,7 @@ fn flow_traced(mut book: Book) -> (Book, HashMap<String, Vec<usize>>) {
         let mut pages = Vec::with_capacity(entry.pages.len());
         let mut from = Vec::with_capacity(entry.pages.len());
         for (written, page) in std::mem::take(&mut entry.pages).into_iter().enumerate() {
-            let split = split_page(page, &fits);
+            let split = split_page(page, &book.page_types, &fits);
             from.extend(std::iter::repeat_n(written, split.len()));
             pages.extend(split);
         }
@@ -867,13 +872,49 @@ fn flow_traced(mut book: Book) -> (Book, HashMap<String, Vec<usize>>) {
     (book, origins)
 }
 
+/// A mod's page's room for its text: the property its last text shows
+/// (`<BookText text="{x:Bind text}"/>`, nothing else in it), and the
+/// height the rest of the page takes, in book pixels.
+fn custom_text(page: &crate::page_type::CustomPage, types: &[crate::page_type::PageType]) -> Option<(String, f32)> {
+    use crate::page_type::PageElement as E;
+    let t = types.iter().find(|t| t.id == page.kind)?;
+    let line_h = yog_ui::text::LINE_H + yog_ui::text::LINE_GAP;
+    let shown: Vec<&E> = t.body.iter().filter(|el| match el {
+        E::Header { visible, .. } | E::Text { visible, .. } | E::Item { visible, .. } | E::Image { visible, .. } | E::Drawn { visible, .. } => t.visible(page, visible),
+        E::Spacer { .. } => true,
+    }).collect();
+    let at = shown.iter().rposition(|el| matches!(el, E::Text { .. }))?;
+    let E::Text { text, .. } = shown[at] else { return None };
+    let name = text.trim().strip_prefix("{x:Bind ")?.strip_suffix('}')?.trim();
+    if !matches!(page.fields.get(name), Some(yog_data::Value::Str(_))) {
+        return None;
+    }
+    let others: f32 = shown.iter().enumerate().filter(|(i, _)| *i != at).map(|(_, el)| match el {
+        E::Header { .. } => 14.0,
+        E::Text { text, .. } => t.text(page, text).split('\n').map(|p| yog_ui::text::wrap_text(p, TEXT_W, 1.0).len().max(1)).sum::<usize>() as f32 * line_h + 4.0,
+        E::Item { .. } => 20.0,
+        E::Image { height, .. } | E::Drawn { height, .. } | E::Spacer { height } => height + 4.0,
+    }).sum();
+    Some((name.to_string(), others))
+}
+
 /// `page`, and the text pages its overflowing text goes on to.
-fn split_page(mut page: BookPage, fits: &dyn Fn(f32) -> usize) -> Vec<BookPage> {
-    let Some(above) = content_above_text(&page) else {
-        return vec![page];
-    };
-    let Some(text) = page_text_mut(&mut page) else {
-        return vec![page];
+fn split_page(mut page: BookPage, types: &[crate::page_type::PageType], fits: &dyn Fn(f32) -> usize) -> Vec<BookPage> {
+    let (above, text) = match &mut page {
+        BookPage::Custom(c) => {
+            let Some((name, above)) = custom_text(c, types) else { return vec![page] };
+            let Some(yog_data::Value::Str(text)) = c.fields.get_mut(&name) else { return vec![page] };
+            (above, text)
+        }
+        _ => {
+            let Some(above) = content_above_text(&page) else {
+                return vec![page];
+            };
+            let Some(text) = page_text_mut(&mut page) else {
+                return vec![page];
+            };
+            (above, text)
+        }
     };
     let lines: Vec<String> = text
         .split('\n')
@@ -2217,5 +2258,60 @@ mod tests {
         assert_eq!(drawn.len(), 1, "the second page has no patterns: no picture");
         assert_eq!(drawn[0].0, "hexcasting:pattern");
         assert!(matches!(&drawn[0].1, yog_data::Value::List(l) if l.len() == 1), "the field's whole value");
+    }
+
+    #[test]
+    fn a_mods_page_flows_its_long_text_onto_text_pages() {
+        use crate::page_type::{PageElement as E, PageProperty, PageType, PropKind};
+        let ty = PageType {
+            id: "m:p".into(),
+            properties: vec![
+                PageProperty { name: "patterns".into(), kind: PropKind::Data, default: None },
+                PageProperty { name: "text".into(), kind: PropKind::BookText, default: None },
+            ],
+            body: vec![
+                E::Drawn { drawer: "m:d".into(), height: 64.0, data: "{x:Bind patterns}".into(), visible: None },
+                E::Text { text: "{x:Bind text}".into(), visible: None },
+            ],
+        };
+        let long = "word ".repeat(120);
+        let page = format!(r#"{{"type":"m:p","patterns":[1],"text":"{long}"}}"#);
+        let mut b = book(vec![BookPage::Custom(yog_data::read_value(&yog_data::json::from_json_text(&page).unwrap()).unwrap())]);
+        b.page_types.push(ty);
+        let flowed = flow(b);
+        let pages = &flowed.entries[0].pages;
+        assert!(pages.len() >= 2, "{pages:?}");
+        let BookPage::Custom(first) = &pages[0] else { panic!("{:?}", pages[0]) };
+        let kept = first.fields.get("text").and_then(|v| v.as_str()).unwrap();
+        let line_h = yog_ui::text::LINE_H + yog_ui::text::LINE_GAP;
+        assert!(kept.lines().count() as f32 * line_h <= BODY_H - 68.0 + 1.0, "under the picture: {kept}");
+        let words: usize = kept.split_whitespace().count()
+            + pages[1..].iter().map(|p| match p {
+                BookPage::Text { text, .. } => text.split_whitespace().count(),
+                _ => 0,
+            }).sum::<usize>();
+        assert_eq!(words, 120, "nothing lost");
+    }
+
+    #[test]
+    fn a_translated_book_is_flowed_from_its_words_not_its_keys() {
+        // A key too long for a page: flowed as it is, it'd be cut in pieces.
+        fn tr(k: &str) -> Option<String> {
+            (k.len() == 3000 && k.starts_with("mymod.")).then(|| "Short.".into())
+        }
+        let key = format!("mymod.{}", "x".repeat(2994));
+        let mut b = book(vec![BookPage::Text {
+            text: key,
+            title: None,
+            font: None,
+            font_size: None,
+        }]);
+        b.i18n = true;
+        let mut r = BookRenderer::new(b);
+        r.set_translator(tr);
+        r.localize();
+        let pages = &r.book().entries[0].pages;
+        assert_eq!(pages.len(), 1, "{pages:?}");
+        assert!(matches!(&pages[0], BookPage::Text { text, .. } if text == "Short."), "{pages:?}");
     }
 }
