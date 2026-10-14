@@ -1515,7 +1515,7 @@ dependencies = [
 
 [[package]]
 name = "yog-hot-reload"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "libloading",
 ]
@@ -1575,7 +1575,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.101.2"
+version = "0.101.3"
 dependencies = [
  "criterion",
  "glow",
