@@ -1,34 +1,31 @@
-//! Recipe layouts: how a book shows a kind of recipe — data, not code.
-//! The game's kinds have built-in layouts (Patchouli's: the crafting grid,
-//! the furnace strip, the smithing strip, …); a mod lays out its own kind
-//! in the kind's `.ydef` (`kind: "recipe_kind"`, its `layout`), and the
-//! game's or another mod's kinds in a `.ydef` of kind `recipe_layout`:
+//! Recipe layouts: how a kind of recipe is shown — in books and in
+//! Yog-IDLE's recipe editor. The game's kinds have built-in layouts
+//! (Patchouli's: the crafting grid, the furnace strip, the smithing
+//! strip, …); a mod lays out its own kinds, or the game's, with a `.yui`
+//! component — drawn and arranged in the screen designer like any UI:
 //!
-//! ```json5
-//! {
-//!   kind: "recipe_kind",
-//!   id: "infusion",
-//!   slots: { ring: { max: 2 }, core: { required: true } },
-//!   values: { time: "number" },
-//!   layout: {
-//!     size: [96, 44],
-//!     parts: [
-//!       { type: "image", source: "mymod:gui/infusion", uv: [0, 0, 96, 44] },
-//!       { type: "slots", slot: "ring", at: [[4, 4], [4, 24]], frame: true },
-//!       { type: "slots", slot: "core", at: [[40, 14]], frame: true },
-//!       { type: "result", at: [76, 14] },
-//!       { type: "text", text: "{time} ticks", at: [40, 34] },
-//!     ],
-//!   },
-//! }
+//! ```xml
+//! <Component name="InfusionLayout" recipe_layout="infusion" width="96" height="44">
+//!     <Image source="mymod:gui/infusion" uv="0 0 96 44"/>
+//!     <RecipeSlot slot="ring" x="4" y="4" frame="true"/>
+//!     <RecipeSlot slot="ring" x="4" y="24" frame="true"/>
+//!     <RecipeSlot slot="core" x="40" y="14" frame="true"/>
+//!     <ItemSlot item="minecraft:beacon" x="40" y="0"/>
+//!     <RecipeResult x="76" y="14"/>
+//!     <RecipeCount x="78" y="32"/>
+//!     <Label text="{x:Bind time} ticks" x="40" y="34"/>
+//! </Component>
 //! ```
 //!
-//! Positions are GUI pixels from the layout's top-left; an item is 16×16.
-//! A slot's ingredients fill its places in order. The game's kinds name
-//! their slots: `grid` (crafting, 9 places; a shaped recipe's cells by
-//! position), `input` (cooking, stonecutting), `template`/`base`/`addition`
-//! (smithing). A text's `{name}` is the recipe's value of that name
-//! (`time`, `experience`, or a mod kind's `values`).
+//! `recipe_layout` names the kinds it shows (several: space-separated):
+//! the mod's own (`infusion`, its namespace added) or the game's
+//! (`shaped`, `smelting`, …). Positions are GUI pixels from the layout's
+//! top-left; an item is 16×16. A slot's places take its ingredients in
+//! order (`index` to say which). The game's kinds name their slots:
+//! `grid` (crafting, 9 places; a shaped recipe's cells by position),
+//! `input` (cooking, stonecutting), `template`/`base`/`addition`
+//! (smithing). A label's bindings are the recipe's values (`time`,
+//! `experience`, or a mod kind's `values`).
 
 use std::sync::LazyLock;
 
@@ -112,6 +109,129 @@ pub fn find<'a>(own: &'a [RecipeLayout], kind: &str) -> Option<&'a RecipeLayout>
         .find(|l| l.kinds.iter().any(|k| k == kind))
 }
 
+// ── From `.yui` ────────────────────────────────────────────────────────────────
+
+use crate::ui::Element;
+
+/// Whether `root` is a recipe layout (`<Component recipe_layout="…">`).
+pub fn is_recipe_layout(root: &Element) -> bool {
+    root.name == "Component" && root.attr("recipe_layout").is_some()
+}
+
+fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
+    Err(format!("line {}: <{}>: {msg}", el.line, el.name))
+}
+
+fn num(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> {
+    match el.attr(key) {
+        Some(v) => v.trim().parse::<f32>().or_else(|_| err(el, format_args!("{key}=\"{v}\": a number of GUI pixels"))),
+        None => default.map(Ok).unwrap_or_else(|| err(el, format_args!("needs {key}=\"…\""))),
+    }
+}
+
+fn at(el: &Element) -> Result<[f32; 2], String> {
+    Ok([num(el, "x", Some(0.0))?, num(el, "y", Some(0.0))?])
+}
+
+fn flag(el: &Element, key: &str) -> bool {
+    el.attr(key).is_some_and(|v| v.trim() == "true")
+}
+
+/// The game's kinds of recipe (those with built-in layouts).
+pub fn game_kinds() -> impl Iterator<Item = &'static str> {
+    BUILT_IN.iter().flat_map(|l| l.kinds.iter().map(String::as_str))
+}
+
+/// `root` (a `<Component recipe_layout="…">`) as a layout; `ns`: the mod's
+/// namespace, for its own kinds written without one.
+pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
+    let kinds: Vec<String> = root
+        .attr("recipe_layout")
+        .unwrap_or_default()
+        .split([' ', ','])
+        .filter(|k| !k.is_empty())
+        .map(|k| if k.contains(':') || game_kinds().any(|g| g == k) { k.to_string() } else { format!("{ns}:{k}") })
+        .collect();
+    if kinds.is_empty() {
+        return err(root, "recipe_layout=\"…\": the kinds it shows — the mod's own or the game's");
+    }
+    let size = [num(root, "width", None)?, num(root, "height", None)?];
+    // The elements may sit in one <Canvas>, as a screen's do.
+    let mut children: Vec<&Element> = Vec::new();
+    for c in &root.children {
+        if c.name == "Canvas" { children.extend(c.children.iter()) } else { children.push(c) }
+    }
+    let mut parts: Vec<LayoutPart> = Vec::new();
+    // A slot's places (index, where), gathered into its one part, and its frame.
+    type Places = Vec<(usize, [f32; 2])>;
+    let mut places: Vec<(String, Places, bool)> = Vec::new();
+    for el in children {
+        match el.name.as_str() {
+            "Image" => {
+                let source = el.attr("source").map(Ok).unwrap_or_else(|| err(el, "needs source=\"…\""))?.to_string();
+                let uv = match el.attr("uv") {
+                    Some(v) => {
+                        let n: Vec<f32> = v.split_whitespace().filter_map(|x| x.parse().ok()).collect();
+                        let [u, v, w, h] = n[..] else { return err(el, format_args!("uv=\"{v}\": u v width height")) };
+                        [u, v, w, h]
+                    }
+                    None => [0.0, 0.0, num(el, "w", None)?, num(el, "h", None)?],
+                };
+                parts.push(LayoutPart::Image { source, uv, at: at(el)? });
+            }
+            "RecipeSlot" => {
+                let slot = el.attr("slot").map(Ok).unwrap_or_else(|| err(el, "needs slot=\"…\" (the kind's slot)"))?.to_string();
+                let index = match el.attr("index") {
+                    Some(i) => i.trim().parse::<usize>().or_else(|_| err(el, format_args!("index=\"{i}\": 0, 1, …")))?,
+                    None => places.iter().find(|(s, ..)| *s == slot).map_or(0, |(_, p, _)| p.iter().map(|(i, _)| i + 1).max().unwrap_or(0)),
+                };
+                match places.iter_mut().find(|(s, ..)| *s == slot) {
+                    Some((_, p, frame)) => {
+                        if p.iter().any(|(i, _)| *i == index) {
+                            return err(el, format_args!("{slot}'s place {index} is laid out twice"));
+                        }
+                        p.push((index, at(el)?));
+                        *frame |= flag(el, "frame");
+                    }
+                    None => {
+                        places.push((slot.clone(), vec![(index, at(el)?)], flag(el, "frame")));
+                        parts.push(LayoutPart::Slots { slot, at: Vec::new(), frame: false });
+                    }
+                }
+            }
+            "RecipeResult" => parts.push(LayoutPart::Result { at: at(el)?, frame: flag(el, "frame") }),
+            "RecipeCount" => parts.push(LayoutPart::Count { at: at(el)? }),
+            "ItemSlot" => {
+                let item = el.attr("item").map(Ok).unwrap_or_else(|| err(el, "needs item=\"…\" (the station: minecraft:furnace)"))?;
+                let item = item.trim().trim_start_matches("@item:").to_string();
+                let item = if item.contains(':') { item } else { format!("minecraft:{item}") };
+                parts.push(LayoutPart::Item { item, at: at(el)? });
+            }
+            "Label" => {
+                let text = el.attr("text").map(Ok).unwrap_or_else(|| err(el, "needs text=\"…\""))?;
+                parts.push(LayoutPart::Text { text: text.replace("{x:Bind ", "{"), at: at(el)? });
+            }
+            other => {
+                return err(el, format_args!("not a recipe layout's element (`{other}`) — Image, RecipeSlot, RecipeResult, RecipeCount, ItemSlot, Label"));
+            }
+        }
+    }
+    for part in &mut parts {
+        if let LayoutPart::Slots { slot, at, frame } = part
+            && let Some((_, p, f)) = places.iter().find(|(s, ..)| s == slot)
+        {
+            let mut p = p.clone();
+            p.sort_by_key(|(i, _)| *i);
+            if let Some(gap) = p.iter().enumerate().find(|(n, (i, _))| n != i) {
+                return Err(format!("{slot}: place {} isn't laid out (a slot's places are 0, 1, … in a row)", gap.0));
+            }
+            *at = p.into_iter().map(|(_, a)| a).collect();
+            *frame = *f;
+        }
+    }
+    Ok(RecipeLayout { kinds, size, parts })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -152,5 +272,34 @@ mod tests {
                 .contains("unknown `slot` — did you mean `slots`?"),
             "{e}"
         );
+    }
+
+    #[test]
+    fn a_layout_compiles_from_yui() {
+        let el = crate::ui::parse(
+            r#"<Component name="Infusion" recipe_layout="infusion shaped" width="96" height="44">
+                <Canvas>
+                    <Image source="mymod:gui/infusion" uv="0 0 96 44"/>
+                    <RecipeSlot slot="ring" x="4" y="24" index="1" frame="true"/>
+                    <RecipeSlot slot="ring" x="4" y="4" index="0"/>
+                    <ItemSlot item="beacon" x="40" y="0"/>
+                    <RecipeResult x="76" y="14"/>
+                    <Label text="{x:Bind time} ticks" x="40" y="34"/>
+                </Canvas>
+            </Component>"#,
+        )
+        .unwrap();
+        assert!(is_recipe_layout(&el));
+        let l = compile(&el, "mymod").unwrap();
+        assert_eq!(l.kinds, ["mymod:infusion", "shaped"]);
+        assert_eq!(l.size, [96.0, 44.0]);
+        assert!(matches!(&l.parts[1], LayoutPart::Slots { slot, at, frame: true } if slot == "ring" && at == &[[4.0, 4.0], [4.0, 24.0]]));
+        assert!(matches!(&l.parts[2], LayoutPart::Item { item, .. } if item == "minecraft:beacon"));
+        assert!(matches!(&l.parts[4], LayoutPart::Text { text, .. } if text == "{time} ticks"));
+
+        let bad = crate::ui::parse(r#"<Component recipe_layout="x" width="1" height="1"><Button/></Component>"#).unwrap();
+        assert!(compile(&bad, "m").unwrap_err().contains("not a recipe layout's element (`Button`)"));
+        let gap = crate::ui::parse(r#"<Component recipe_layout="x" width="1" height="1"><RecipeSlot slot="a" index="1"/></Component>"#).unwrap();
+        assert!(compile(&gap, "m").unwrap_err().contains("place 0 isn't laid out"));
     }
 }

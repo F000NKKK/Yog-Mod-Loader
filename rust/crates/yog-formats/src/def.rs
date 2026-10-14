@@ -19,9 +19,9 @@ yog_data::kind! {
 /// A `.ydef`: an entry of some kind of definition, named by reference
 /// (`@<kind>:<id>`) everywhere else. Kinds: `ladder` (an ordered scale),
 /// `level` (a step on one), `sound_group` (what a block sounds like),
-/// `recipe_kind` (a mod's kind of recipe), `recipe_layout` (how books
-/// show the game's or another mod's), `tool_material` and
-/// `armor_material`.
+/// `recipe_kind` (a mod's kind of recipe; how it's shown is a `.yui`
+/// `recipe_layout`, see `yog_book::layout`), `tool_material`,
+/// `armor_material`, `ore` and `dimension`.
 #[derive(Schema, Debug, Clone)]
 #[data(tag = "kind")]
 pub enum Def {
@@ -41,11 +41,8 @@ pub enum Def {
     /// are built-in ones (`stone`, `amethyst`…).
     SoundGroup(SoundGroup),
     /// A mod's own kind of recipe (`mymod:infusion`): its slots and values,
-    /// checked in every recipe of the kind, and how books show it.
+    /// checked in every recipe of the kind.
     RecipeKind(RecipeKindDef),
-    /// How books show kinds of recipe that aren't the mod's own — the
-    /// game's (`shaped`), another mod's.
-    RecipeLayout(yog_book::layout::RecipeLayout),
     /// What tools are made of (`@tool_material:mymod:mythril`); the game's
     /// are built in (`iron`, `diamond`…).
     ToolMaterial(ToolMaterialDef),
@@ -272,7 +269,7 @@ pub enum ValueType {
 
 /// A mod's kind of recipe: `{ kind: "recipe_kind", id: "infusion", slots:
 /// { core: { required: true }, ring: { max: 8 } }, values: { time:
-/// "number" }, layout: { size: [96, 24], parts: [ … ] } }`.
+/// "number" } }`. A `.yui` `<Component recipe_layout="infusion">` shows it.
 #[derive(Schema, Debug, Clone, PartialEq)]
 pub struct RecipeKindDef {
     /// `infusion` (the mod's namespace is added) or `mymod:infusion`.
@@ -281,18 +278,6 @@ pub struct RecipeKindDef {
     pub slots: Ordered<SlotSpec>,
     #[data(default)]
     pub values: Ordered<ValueType>,
-    /// How books show its recipes (`yog_book::layout`): none, and a book
-    /// can't show them.
-    pub layout: Option<KindLayout>,
-}
-
-/// A [`yog_book::layout::RecipeLayout`] of one kind, the kind's own.
-#[derive(Schema, Debug, Clone, PartialEq)]
-pub struct KindLayout {
-    /// Width and height in GUI pixels.
-    pub size: [f32; 2],
-    #[data(default)]
-    pub parts: Vec<yog_book::layout::LayoutPart>,
 }
 
 /// The game's tool tiers: `@ladder:minecraft:tool`, bottom to top (gold mines like wood).

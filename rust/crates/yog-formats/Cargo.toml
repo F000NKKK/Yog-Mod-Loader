@@ -11,7 +11,5 @@ description = "The schemas of Yog's source formats — .yblock/.yitem, .yrecipe,
 yog-data = "0.4"
 # Content definitions whose format is the definition itself (`SoundGroup`).
 yog-registry = "0.32"
-# Recipe layouts (`.ydef` recipe_kind / recipe_layout) are yog-book's.
-yog-book = "0.64"
 # A dimension's `terrain`.
 yog-worldgen = "0.1"

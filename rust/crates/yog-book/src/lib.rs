@@ -13,6 +13,7 @@ pub mod refs;
 pub mod renderer;
 pub mod state;
 pub mod theme;
+pub mod ui;
 
 use std::collections::BTreeMap;
 

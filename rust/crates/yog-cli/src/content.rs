@@ -1183,10 +1183,10 @@ fn compile_book(
                 && yog_book::layout::find(layouts, kind).is_none()
             {
                 let path = yog_data::Path::root().key("entries").index(e).key("pages").index(p).key("recipe");
-                let file = kind.split_once(':').map_or(kind.as_str(), |(_, k)| k);
+                let short = kind.split_once(':').map_or(kind.as_str(), |(_, k)| k);
                 cx.err(
                     doc.locate(text, &path).line as usize,
-                    format!("{path}: no layout for recipe kind {kind} — give content/{file}.ydef (its recipe_kind) a `layout` (see yog_book::layout)"),
+                    format!("{path}: no layout for recipe kind {kind} — lay it out in a .yui: <Component recipe_layout=\"{short}\" width=\"…\" height=\"…\"> (see yog_book::layout)"),
                 );
                 ok = false;
             }
@@ -1209,7 +1209,7 @@ fn compile_layout(
     known: &refs::Known,
     ores: &mut Vec<OreOut>,
     dimensions: &mut Vec<(String, Vec<u8>)>,
-) -> Option<(Option<yog_book::layout::RecipeLayout>, Option<yog_formats::def::RecipeKindDef>)> {
+) -> Option<yog_formats::def::RecipeKindDef> {
     use yog_formats::def::Def;
     let doc = match yog_data::text::parse(text) {
         Ok(d) => d,
@@ -1238,7 +1238,7 @@ fn compile_layout(
         }
     }
     let ns = mod_ns.unwrap_or("minecraft");
-    let (layout, kind) = match read.value {
+    let kind = match read.value {
         Def::RecipeKind(mut k) => {
             if !k.id.contains(':') {
                 k.id = format!("{ns}:{}", k.id);
@@ -1247,24 +1247,7 @@ fn compile_layout(
                 cx.err(doc.locate(text, &yog_data::Path::root().key("id")).line as usize, format!("id: `{}`: the mod's own kind, `{ns}:<kind>`", k.id));
                 ok = false;
             }
-            let layout = k.layout.clone().map(|l| yog_book::layout::RecipeLayout { kinds: vec![k.id.clone()], size: l.size, parts: l.parts });
-            (layout, Some(k))
-        }
-        Def::RecipeLayout(l) => {
-            for (i, k) in l.kinds.iter().enumerate() {
-                let game = yog_formats::recipe::TYPES.contains(&k.as_str());
-                let own = k.split_once(':').is_some_and(|(n, p)| n == ns && valid_path(p));
-                if !game && !own {
-                    let path = yog_data::Path::root().key("kinds").index(i);
-                    cx.err(doc.locate(text, &path).line as usize, format!("{path}: `{k}`: one of {}, or the mod's own kind `{ns}:<kind>`", yog_formats::recipe::TYPES.join(", ")));
-                    ok = false;
-                }
-            }
-            if l.kinds.is_empty() {
-                cx.err(1, "kinds: the recipe kinds it lays out, at least one");
-                ok = false;
-            }
-            (Some(l), None)
+            k
         }
         Def::Ore(o) => {
             if ok {
@@ -1280,7 +1263,63 @@ fn compile_layout(
         }
         _ => return None,
     };
-    ok.then_some((layout, kind))
+    ok.then_some(kind)
+}
+
+/// The mod's recipe layouts (`.yui` `<Component recipe_layout="…">`),
+/// checked: each kind the game's or one the mod declares, laid out once;
+/// a mod kind's slots its own; stations known items.
+fn recipe_layouts(
+    root: &Path,
+    ns: &str,
+    kinds: &HashMap<String, yog_formats::def::RecipeKindDef>,
+    known: &refs::Known,
+    errors: &mut Vec<String>,
+) -> Vec<yog_book::layout::RecipeLayout> {
+    use yog_book::layout::LayoutPart;
+    let mut laid_out: HashMap<String, String> = HashMap::new();
+    let mut out = Vec::new();
+    for (shown, l) in crate::book_page::find_layouts(root, ns, errors) {
+        let mut ok = true;
+        for k in &l.kinds {
+            let game = yog_formats::recipe::TYPES.contains(&k.as_str());
+            if !game && !kinds.contains_key(k) {
+                errors.push(format!(
+                    "{shown}: recipe_layout: `{k}`: one of {}, or a kind the mod declares (a .ydef of kind recipe_kind)",
+                    yog_formats::recipe::TYPES.join(", ")
+                ));
+                ok = false;
+            }
+            if let Some(other) = laid_out.insert(k.clone(), shown.clone()) {
+                errors.push(format!("{shown}: recipe kind {k} is also laid out by {other}"));
+                ok = false;
+            }
+        }
+        for part in &l.parts {
+            match part {
+                LayoutPart::Slots { slot, .. } => {
+                    for k in l.kinds.iter().filter_map(|k| kinds.get(k)) {
+                        if !k.slots.0.iter().any(|(s, _)| s == slot) {
+                            let all: Vec<&str> = k.slots.0.iter().map(|(s, _)| s.as_str()).collect();
+                            errors.push(format!("{shown}: <RecipeSlot slot=\"{slot}\">: {} has no slot `{slot}` — {}", k.id, all.join(", ")));
+                            ok = false;
+                        }
+                    }
+                }
+                LayoutPart::Item { item, .. } => {
+                    if let Err(e) = known.check(refs::RefKind::Item, item) {
+                        errors.push(format!("{shown}: <ItemSlot item=\"{item}\">: {e}"));
+                        ok = false;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if ok {
+            out.push(l);
+        }
+    }
+    out
 }
 
 /// A dimension as the runtime and the hosts read it (Yog Data, binary):
@@ -1708,7 +1747,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                     }
                 }
                 // Read with the recipes (`compile_layout`).
-                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::RecipeLayout(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) => {}
+                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) => {}
                 // Its level is placed on the ladder below.
                 yog_formats::def::Def::ToolMaterial(mut m) => {
                     m.id = full(&m.id);
@@ -1925,9 +1964,9 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             continue;
         }
         if kind == Kind::Def {
-            // Kinds of recipe and recipe layouts are checked with the recipes.
+            // Kinds of recipe are checked with the recipes, ores and dimensions with what they name.
             let of = yog_data::text::parse_value(&text).ok().and_then(|v| v.get("kind").and_then(|k| k.as_str()).map(str::to_string));
-            if matches!(of.as_deref(), Some("recipe_kind" | "recipe_layout" | "ore" | "dimension")) {
+            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension")) {
                 pending_layouts.push((shown.clone(), text));
             } else {
                 pending_defs.push((shown.clone(), text));
@@ -1964,11 +2003,9 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     for e in &entries {
         known.add(if e.kind == Kind::Block { refs::RefKind::Block } else { refs::RefKind::Item }, e.id.clone());
     }
-    // Kinds of recipe and recipe layouts (`.ydef`): what they name checked; a
-    // kind declared or laid out twice is a mistake.
-    let mut layouts: Vec<yog_book::layout::RecipeLayout> = Vec::new();
+    // Kinds of recipe (`.ydef`): what they name checked; a kind declared
+    // twice is a mistake.
     let mut recipe_defs: HashMap<String, yog_formats::def::RecipeKindDef> = HashMap::new();
-    let mut laid_out: HashMap<String, String> = HashMap::new();
     let mut ores: Vec<OreOut> = Vec::new();
     let mut dimensions: Vec<(String, Vec<u8>)> = Vec::new();
     for (shown, text) in &pending_layouts {
@@ -1983,22 +2020,14 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        let Some((l, kind)) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions) else { continue };
-        if let Some(k) = kind {
-            if recipe_defs.contains_key(&k.id) {
-                errors.push(format!("{shown}: recipe kind {} is declared twice", k.id));
-            }
-            recipe_defs.insert(k.id.clone(), k);
+        let Some(k) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions) else { continue };
+        if recipe_defs.contains_key(&k.id) {
+            errors.push(format!("{shown}: recipe kind {} is declared twice", k.id));
         }
-        if let Some(l) = l {
-            for k in &l.kinds {
-                if let Some(other) = laid_out.insert(k.clone(), shown.clone()) {
-                    errors.push(format!("{shown}: recipe kind {k} is also laid out by {other}"));
-                }
-            }
-            layouts.push(l);
-        }
+        recipe_defs.insert(k.id.clone(), k);
     }
+    // How kinds of recipe are shown: `.yui` `recipe_layout` components.
+    let layouts = recipe_layouts(root, mod_ns.unwrap_or("minecraft"), &recipe_defs, &known, &mut errors);
     for (shown, text, path) in &pending_recipes {
         let mut cx = Ctx {
             root,
@@ -3163,23 +3192,25 @@ mod tests {
         let book = r#"{ id: "guide", name: "G", categories: [{ id: "mymod:c", name: "C" }],
             entries: [{ id: "mymod:e", name: "E", category: "@category:mymod:c",
                 pages: [{ type: "recipe", recipe: "@recipe:mymod:infusion" }] }] }"#;
-        let bare = r#"{ kind: "recipe_kind", id: "infusion", slots: { core: { required: true } } }"#;
-        let laid_out = r#"{ kind: "recipe_kind", id: "infusion", slots: { core: { required: true } },
-            layout: { size: [96, 24], parts: [
-                { type: "slots", slot: "core", at: [[4, 4]], frame: true },
-                { type: "item", item: "@item:minecraft:beacon", at: [40, 4] },
-                { type: "result", at: [76, 4], frame: true },
-            ] } }"#;
-        let files = [("content/infusion.yrecipe", recipe), ("content/guide.ybook", book)];
-        let e = compile(&project(&[files[0], files[1], ("content/infusion.ydef", bare)]), "mymod", &yres::Refs::default()).unwrap_err();
-        assert!(e.contains("entries[0].pages[0].recipe: no layout for recipe kind mymod:infusion — give content/infusion.ydef (its recipe_kind) a `layout`"), "{e}");
-        let c = compile(&project(&[files[0], files[1], ("content/infusion.ydef", laid_out)]), "mymod", &yres::Refs::default()).unwrap();
+        let kind = r#"{ kind: "recipe_kind", id: "infusion", slots: { core: { required: true } } }"#;
+        let layout = r#"<Component name="InfusionLayout" recipe_layout="infusion" width="96" height="24">
+                <RecipeSlot slot="core" x="4" y="4" frame="true"/>
+                <ItemSlot item="minecraft:beacon" x="40" y="4"/>
+                <RecipeResult x="76" y="4" frame="true"/>
+            </Component>"#;
+        let files = [("content/infusion.yrecipe", recipe), ("content/guide.ybook", book), ("content/infusion.ydef", kind)];
+        let e = compile(&project(&files), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("entries[0].pages[0].recipe: no layout for recipe kind mymod:infusion"), "{e}");
+        let c = compile(&project(&[files[0], files[1], files[2], ("src/ui/infusion.yui", layout)]), "mymod", &yres::Refs::default()).unwrap();
         let book = yog_data::read_bytes::<yog_book::Book>(&c.data_files[0].1).unwrap();
         assert_eq!(book.layouts[0].kinds, ["mymod:infusion"], "the book carries the mod's layouts");
-        // The game's kinds and others' are laid out by a recipe_layout.
-        let bad = r#"{ kind: "recipe_layout", kinds: ["create:mixing"], size: [1, 1], parts: [{ type: "item", item: "@item:minecraft:nope", at: [0, 0] }] }"#;
-        let e = compile(&project(&[("content/bad.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
-        assert!(e.contains("kinds[0]: `create:mixing`: one of shaped") && e.contains("parts[0].item: no item minecraft:nope in Minecraft"), "{e}");
+        // What a layout names is checked: the kinds, a mod kind's slots, the stations.
+        let bad = r#"<Component recipe_layout="create:mixing infusion" width="1" height="1">
+                <RecipeSlot slot="ring"/><ItemSlot item="minecraft:nope"/></Component>"#;
+        let e = compile(&project(&[files[2], ("src/ui/bad.yui", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("`create:mixing`: one of shaped"), "{e}");
+        assert!(e.contains("mymod:infusion has no slot `ring` — core"), "{e}");
+        assert!(e.contains("<ItemSlot item=\"minecraft:nope\">: no item minecraft:nope in Minecraft"), "{e}");
     }
 
     #[test]

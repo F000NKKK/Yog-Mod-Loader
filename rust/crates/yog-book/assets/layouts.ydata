@@ -1,6 +1,6 @@
 // yog-book's layouts for the game's recipe kinds (see `layout.rs`), drawn
 // from Patchouli's crafting sheet (`yog:gui/book/crafting`) where its pages
-// draw them. A mod's own `.ylayout` for a kind takes its place.
+// draw them. A mod's own `.yui` `recipe_layout` for a kind takes its place.
 [
   // Crafting: the 3×3 grid, result, the crafting table under it.
   {
