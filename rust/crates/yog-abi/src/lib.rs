@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 2;
-pub const ABI_MINOR: u32 = 3;
+pub const ABI_MINOR: u32 = 4;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -476,6 +476,14 @@ pub type YogTooltipDrawFn = unsafe extern "C" fn(
     w: f32,
     h: f32,
 );
+/// Where a callback writes text it gives back: `write(sink, text)`, the
+/// text copied by the caller during the call.
+pub type YogTextSink = unsafe extern "C" fn(sink: *mut c_void, text: YogStr);
+/// The name and tooltip lines of a stack of `item` with custom data
+/// `snbt`: `false` for the item's own; else one `write` of the name (empty:
+/// the item's own) and the lines under it, separated by `\n`.
+pub type YogItemTextFn =
+    unsafe extern "C" fn(ud: *mut c_void, item: YogStr, snbt: YogStr, sink: *mut c_void, write: YogTextSink) -> bool;
 /// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
 /// Valid only for the call duration.
 pub type YogWorldRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
@@ -1407,6 +1415,11 @@ pub struct YogApi {
     /// [`YogOwnedStr::NONE`] when the call failed (said in the log).
     /// Free with `free_str`.
     pub java_call: unsafe extern "C" fn(ctx: *mut c_void, expr: YogStr, args: YogStr) -> YogOwnedStr,
+
+    // ── ABI 2.4 — a stack's own name and tooltip ────────────────────────────
+    /// The name and tooltip lines of stacks of `item` from its custom data
+    /// (a written blueprint shows its design) — see [`YogItemTextFn`].
+    pub on_item_text: unsafe extern "C" fn(ctx: *mut c_void, item: YogStr, ud: *mut c_void, f: YogItemTextFn),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].

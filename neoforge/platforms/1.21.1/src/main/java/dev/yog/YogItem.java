@@ -20,6 +20,8 @@ public class YogItem extends Item {
 
     @Override
     public Component getName(ItemStack stack) {
+        String[] own = ownText(stack);
+        if (own != null && !own[0].isEmpty()) return Component.literal(own[0]);
         return displayName == null || displayName.isEmpty()
                 ? super.getName(stack)
                 : Component.literal(displayName);
@@ -43,11 +45,23 @@ public class YogItem extends Item {
                 lines.add(Component.literal(line));
             }
         }
+        String[] own = ownText(stack);
+        if (own != null) for (int i = 1; i < own.length; i++) lines.add(Component.literal(own[i]));
     }
 
     /** A Yog mod's picture under the tooltip, if it gives this stack one. */
     @Override
     public java.util.Optional<net.minecraft.world.inventory.tooltip.TooltipComponent> getTooltipImage(net.minecraft.world.item.ItemStack stack) {
         return YogTooltipData.of(stack);
+    }
+
+    /** A Yog mod's name (first) and tooltip lines for this stack ({@code Registry::on_item_text}), or null. */
+    static String[] ownText(ItemStack stack) {
+        try {
+            String t = NativeBridge.nativeItemText(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), NativeBridge.tooltipSnbt(stack));
+            return t == null ? null : t.split("\n", -1);
+        } catch (UnsatisfiedLinkError e) {
+            return null;
+        }
     }
 }

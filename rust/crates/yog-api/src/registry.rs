@@ -1636,6 +1636,23 @@ where
     }
 }
 
+unsafe extern "C" fn trampoline_item_text<F>(ud: *mut c_void, item: YogStr, snbt: YogStr, sink: *mut c_void, write: yog_abi::YogTextSink) -> bool
+where
+    F: Fn(&str, &str) -> Option<(Option<String>, Vec<String>)> + Send + Sync,
+{
+    unsafe {
+        let f = &*(ud as *const F);
+        let Some((name, lines)) = guard(None, || f(item.as_str(), snbt.as_str())) else { return false };
+        let mut text = name.unwrap_or_default();
+        for l in lines {
+            text.push('\n');
+            text.push_str(&l.replace('\n', " "));
+        }
+        write(sink, YogStr::from_str(&text));
+        true
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 unsafe extern "C" fn trampoline_tooltip_draw<S, D>(ud: *mut c_void, gfx: *const YogGfxApi, item: YogStr, snbt: YogStr, x: f32, y: f32, w: f32, h: f32)
 where
@@ -2412,6 +2429,25 @@ impl Registry {
         unsafe {
             ((*self.api).on_item_tooltip)(self.ctx(), id, ud, trampoline_tooltip_size::<S, D>, trampoline_tooltip_draw::<S, D>)
         }
+    }
+
+    /// A stack's own name and tooltip, from its custom data (SNBT): `text(item,
+    /// snbt)` gives `Some((name, lines))` — `name` `None` keeps the item's —
+    /// or `None` for the item's own. A written blueprint names its design:
+    ///
+    /// ```ignore
+    /// registry.on_item_text(Items::BLUEPRINT, |_, snbt| {
+    ///     let bp = Blueprint::from_nbt(snbt)?;
+    ///     Some((Some(bp.name.clone()), vec![format!("{} ports", bp.ports)]))
+    /// });
+    /// ```
+    pub fn on_item_text<F>(&mut self, item: &str, text: F)
+    where
+        F: Fn(&str, &str) -> Option<(Option<String>, Vec<String>)> + Send + Sync + 'static,
+    {
+        let ud = Self::leak(text);
+        let id = YogStr::from_str(item);
+        unsafe { ((*self.api).on_item_text)(self.ctx(), id, ud, trampoline_item_text::<F>) }
     }
 
     /// Register a handler called every frame when the HUD is rendered.

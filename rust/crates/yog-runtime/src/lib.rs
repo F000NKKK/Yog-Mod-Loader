@@ -115,6 +115,7 @@ pub struct UiLayer {
 /// user data and callback.
 /// A tooltip picture's mod, user data, size and draw callbacks.
 type TooltipEntry = (LoadedModule, *mut c_void, yog_abi::YogTooltipSizeFn, yog_abi::YogTooltipDrawFn);
+type ItemTextEntry = (LoadedModule, *mut c_void, yog_abi::YogItemTextFn);
 type CommandEntry = (LoadedModule, Option<String>, *mut c_void, YogCommandFn);
 
 // Every callback table below is tagged with the `LoadedModule` that
@@ -204,6 +205,8 @@ struct RuntimeHandlers {
     page_drawers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogPageDrawFn)>,
     /// Pictures in item tooltips, by item id: the first that answers draws.
     item_tooltips: HashMap<String, Vec<TooltipEntry>>,
+    /// Stacks' own names and tooltip lines, by item.
+    item_texts: HashMap<String, Vec<ItemTextEntry>>,
     menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
     pub active_uis: Mutex<Vec<UiLayer>>,
     startup_grants: Vec<yog_registry::StartupGrant>,
@@ -489,6 +492,9 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         }
         h.page_drawers
             .retain(|_, (m, ..)| m.generation() != generation);
+        for entries in h.item_texts.values_mut() {
+            entries.retain(|(m, ..)| m.generation() != generation);
+        }
         for entries in h.item_tooltips.values_mut() {
             entries.retain(|(m, ..)| m.generation() != generation);
         }
@@ -2360,6 +2366,50 @@ unsafe extern "C" fn api_on_item_tooltip(
     }
 }
 
+unsafe extern "C" fn api_on_item_text(ctx: *mut c_void, item: YogStr, ud: *mut c_void, f: yog_abi::YogItemTextFn) {
+    unsafe {
+        handlers_mut(ctx).item_texts.entry(item.as_str().to_owned()).or_default().push((current_registration(), ud, f));
+    }
+}
+
+unsafe extern "C" fn copy_text(sink: *mut c_void, text: YogStr) {
+    // SAFETY: `sink` is the `String` `item_text` passes; `text` is valid for the call.
+    unsafe { (*(sink as *mut String)).push_str(text.as_str()) }
+}
+
+/// A stack's own name and tooltip lines (`name\nline…`), from the first
+/// mod that gives them; `None`: the item's own.
+fn item_text(item: &str, snbt: &str) -> Option<String> {
+    let entries = handlers().item_texts.get(item).cloned().unwrap_or_default();
+    for (module, ud, f) in entries {
+        let Some(_call) = module.enter() else { continue };
+        let mut out = String::new();
+        let mut given = false;
+        guard("item_text", || unsafe {
+            given = f(ud, YogStr::from_str(item), YogStr::from_str(snbt), &mut out as *mut String as *mut c_void, copy_text);
+        });
+        if given {
+            return Some(out);
+        }
+    }
+    None
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemText<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    item: JString<'l>,
+    snbt: JString<'l>,
+) -> jstring {
+    let item: String = env.get_string(&item).map(String::from).unwrap_or_default();
+    let snbt: String = env.get_string(&snbt).map(String::from).unwrap_or_default();
+    match item_text(&item, &snbt) {
+        Some(t) => env.new_string(t).map(JString::into_raw).unwrap_or(std::ptr::null_mut()),
+        None => std::ptr::null_mut(),
+    }
+}
+
 /// The Yog mods being loaded, by id (all of them, before the first registers).
 static YOG_MOD_IDS: RwLock<std::collections::BTreeSet<String>> = RwLock::new(std::collections::BTreeSet::new());
 
@@ -3056,6 +3106,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_item_tooltip: api_on_item_tooltip,
         is_mod_loaded: api_is_mod_loaded,
         java_call: api_java_call,
+        on_item_text: api_on_item_text,
     }
 }
 
