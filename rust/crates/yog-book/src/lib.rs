@@ -245,7 +245,11 @@ pub struct Book {
     /// The color `{accent|terms}` are shown in (`#rrggbb`).
     pub accent: String,
     pub landing_text: String,
-    pub author: Option<String>,
+    /// The nameplate's second line when `version` is 0.
+    pub subtitle: Option<String>,
+    /// The book's edition: its nameplate says "1st Edition", "2nd Edition"…
+    /// (0: the `subtitle` instead).
+    pub version: u32,
     pub book_texture: String,
     pub filler_texture: String,
     pub model: String,
@@ -266,7 +270,8 @@ impl Book {
             nameplate_color: "FFDD98".into(), // Patchouli default nameplateColor
             accent: "#8d6acc".into(),
             landing_text: String::new(),
-            author: None,
+            subtitle: None,
+            version: 0,
             book_texture: "yog:gui/book".into(),
             filler_texture: "yog:gui/book_filler".into(),
             model: "minecraft:book".into(),
@@ -280,8 +285,8 @@ impl Book {
         }
     }
 
-    pub fn author(mut self, author: impl Into<String>) -> Self {
-        self.author = Some(author.into());
+    pub fn subtitle(mut self, subtitle: impl Into<String>) -> Self {
+        self.subtitle = Some(subtitle.into());
         self
     }
 
@@ -677,23 +682,6 @@ pub mod book_ui {
 
 // ── JSON serialization ────────────────────────────────────────────────────────
 
-fn esc(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for ch in s.chars() {
-        match ch {
-            '\\' => out.push_str("\\\\"),
-            '"' => out.push_str("\\\""),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if c.is_control() => {
-                out.push_str(&format!("\\u{:04x}", c as u32));
-            }
-            _ => out.push(ch),
-        }
-    }
-    out
-}
 
 impl BookPage {
     /// The page's wire JSON (`{"type": "text", ...}`).
@@ -704,104 +692,22 @@ impl BookPage {
 
 impl BookEntry {
     pub fn to_json(&self) -> String {
-        let pages: String = self
-            .pages
-            .iter()
-            .map(|p| p.to_json())
-            .collect::<Vec<_>>()
-            .join(",");
-        let icon = self
-            .icon
-            .as_deref()
-            .map(|s| format!(r#","icon":"{}""#, esc(s)))
-            .unwrap_or_default();
-        let adv = self
-            .advancement
-            .as_deref()
-            .map(|s| format!(r#","advancement":"{}""#, esc(s)))
-            .unwrap_or_default();
-        format!(
-            r#"{{"id":"{}","name":"{}","category":"{}","pages":[{}],"secret":{},"priority":{},"read_by_default":{}{}{}}}"#,
-            esc(&self.id),
-            esc(&self.name),
-            esc(&self.category),
-            pages,
-            self.secret,
-            self.priority,
-            self.read_by_default,
-            icon,
-            adv
-        )
+        serde_json::to_string(self).unwrap_or_default()
     }
 }
 
 impl BookCategory {
     pub fn to_json(&self) -> String {
-        let desc = self
-            .description
-            .as_deref()
-            .map(|s| format!(r#","description":"{}""#, esc(s)))
-            .unwrap_or_default();
-        let icon = self
-            .icon
-            .as_deref()
-            .map(|s| format!(r#","icon":"{}""#, esc(s)))
-            .unwrap_or_default();
-        format!(
-            r#"{{"id":"{}","name":"{}","sortnum":{}{}{}}}"#,
-            esc(&self.id),
-            esc(&self.name),
-            self.sortnum,
-            desc,
-            icon
-        )
+        serde_json::to_string(self).unwrap_or_default()
     }
 }
 
 impl Book {
+    /// The book as the JSON hosts and `yog build` pass around.
     pub fn to_json(&self) -> String {
-        let cats: String = self
-            .categories
-            .iter()
-            .map(|c| c.to_json())
-            .collect::<Vec<_>>()
-            .join(",");
-        let entries: String = self
-            .entries
-            .iter()
-            .map(|e| e.to_json())
-            .collect::<Vec<_>>()
-            .join(",");
-        let author = self
-            .author
-            .as_deref()
-            .map(|s| format!(r#","author":"{}""#, esc(s)))
-            .unwrap_or_default();
-        let tab = self
-            .creative_tab
-            .as_deref()
-            .map(|s| format!(r#","creative_tab":"{}""#, esc(s)))
-            .unwrap_or_default();
-        format!(
-            r#"{{"id":"{}","name":"{}","nameplate_color":"{}","landing_text":"{}","book_texture":"{}","filler_texture":"{}","model":"{}","show_progress":{},"i18n":{},"use_resource_pack":{},"categories":[{}],"entries":[{}]{}{}}}"#,
-            esc(&self.id),
-            esc(&self.name),
-            esc(&self.nameplate_color),
-            esc(&self.landing_text),
-            esc(&self.book_texture),
-            esc(&self.filler_texture),
-            esc(&self.model),
-            self.show_progress,
-            self.i18n,
-            self.use_resource_pack,
-            cats,
-            entries,
-            author,
-            tab
-        )
+        serde_json::to_string(self).unwrap_or_default()
     }
 }
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod wire_format_tests {
@@ -812,7 +718,7 @@ mod wire_format_tests {
     #[test]
     fn book_to_json_roundtrips_through_serde() {
         let book = Book::new("yog:test", "Test Book")
-            .author("Tester")
+            .subtitle("Tester")
             .landing_text("hello")
             .add_category(BookCategory {
                 id: "c1".into(),

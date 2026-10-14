@@ -1435,7 +1435,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.62.7"
+version = "0.62.8"
 dependencies = [
  "serde",
  "serde_json",

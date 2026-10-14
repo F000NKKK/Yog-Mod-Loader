@@ -1,6 +1,6 @@
 [package]
 name = "yog-book"
-version = "0.62.7"
+version = "0.62.8"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true

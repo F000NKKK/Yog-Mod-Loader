@@ -1,8 +1,9 @@
 {
-  "yog.book.by": "Автор: %s",
   "yog.book.categories": "Категории",
+  "yog.book.edition": "Издание %s",
   "yog.book.entries": "Записи",
   "yog.book.entry_count": "Записей: %s",
   "yog.book.no_entries": "Записей пока нет.",
+  "yog.book.ordinals": "",
   "yog.book.see_also": "См. также:"
 }

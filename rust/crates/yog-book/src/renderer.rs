@@ -299,6 +299,24 @@ fn name_from_path(path: &str) -> String {
         .join(" ")
 }
 
+/// `n` as the game's language counts editions: "1st" in English (its
+/// `yog.book.ordinals`), plain "1" where it has none.
+fn ordinal(n: u32) -> String {
+    let suffixes = word("ordinals", "");
+    let s: Vec<&str> = suffixes.split_whitespace().collect();
+    if s.len() < 4 {
+        return n.to_string();
+    }
+    let i = match (n % 100, n % 10) {
+        (11..=13, _) => 0,
+        (_, 1) => 1,
+        (_, 2) => 2,
+        (_, 3) => 3,
+        _ => 0,
+    };
+    format!("{n}{}", s[i])
+}
+
 /// An entity's name: the game's (`entity.<ns>.<path>`), else one made
 /// from its id.
 fn entity_name(id: &str) -> String {
@@ -886,9 +904,14 @@ fn build_landing_left(
         y: by + 16.0 * sy,
         color: theme.nameplate,
     });
-    if let Some(author) = &book.author {
+    // Its edition ("1st Edition"), else its subtitle — as Patchouli.
+    let second = match book.version {
+        0 => book.subtitle.clone(),
+        n => Some(word("edition", &ordinal(n))),
+    };
+    if let Some(text) = second {
         overlays.push(OverlayCmd::McText {
-            text: word("by", author),
+            text,
             x: bx + 24.0 * sx,
             y: by + 24.0 * sy,
             color: theme.nameplate,
