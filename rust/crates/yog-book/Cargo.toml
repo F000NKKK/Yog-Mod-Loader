@@ -1,6 +1,6 @@
 [package]
 name = "yog-book"
-version = "0.63.0"
+version = "0.63.1"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -11,6 +11,8 @@ description = "In-game book/documentation framework for Yog mods (Patchouli-like
 yog-registry = { version = "0.29", features = ["serde"] }
 yog-ui  = "0.40.12"
 yog-gfx = "0.25.3"
+# The .ybook format: schema, references, texts.
+yog-data = "0.2"
 
 # Serialization (for runtime JSON parsing)
 serde.workspace      = true

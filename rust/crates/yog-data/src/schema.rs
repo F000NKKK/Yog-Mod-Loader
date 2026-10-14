@@ -63,11 +63,13 @@ pub enum Shape {
     /// A mod resource, `@Set.key`.
     Res,
     /// Content of a kind (`""`: any kind, written `@kind:id`).
-    Ref(&'static str),
+    Ref(&'static [&'static str]),
     /// A tag of content of a kind.
-    Tag(&'static str),
+    Tag(&'static [&'static str]),
     /// Content of a kind or a tag of it.
-    RefOrTag(&'static str),
+    RefOrTag(&'static [&'static str]),
+    /// Content of a kind (`@item:…`) or an image source.
+    RefOrImage(&'static [&'static str]),
     List(ShapeFn),
     /// An object of any keys, every value this shape.
     Map(ShapeFn),
@@ -159,13 +161,17 @@ impl Shape {
             Shape::Image => kind("image"),
             Shape::Color => kind("color"),
             Shape::Res => kind("res"),
-            Shape::Ref(k) | Shape::Tag(k) | Shape::RefOrTag(k) => {
+            Shape::Ref(k) | Shape::Tag(k) | Shape::RefOrTag(k) | Shape::RefOrImage(k) => {
                 let mut m = kind(match self {
                     Shape::Ref(_) => "ref",
                     Shape::Tag(_) => "tag",
-                    _ => "ref_or_tag",
+                    Shape::RefOrTag(_) => "ref_or_tag",
+                    _ => "ref_or_image",
                 });
-                m.insert("of", Value::from(*k));
+                m.insert(
+                    "of",
+                    Value::List(k.iter().map(|k| Value::from(*k)).collect()),
+                );
                 m
             }
             Shape::List(s) | Shape::Map(s) | Shape::Optional(s) => {
@@ -249,9 +255,11 @@ pub struct Found<T> {
 
 /// The state of reading a value: where it is, the problems so far, and the
 /// references met (for the build to check against the content there is).
-#[derive(Debug, Default)]
-pub struct Reader {
+#[derive(Default)]
+pub struct Reader<'r> {
     path: Path,
+    /// What the tool makes of references and texts (none: kept as written).
+    resolver: Option<&'r mut dyn Resolve>,
     pub problems: Vec<Problem>,
     pub refs: Vec<Found<Ref>>,
     pub tags: Vec<Found<Ref>>,
@@ -265,9 +273,66 @@ pub fn is_metadata_key(key: &str) -> bool {
     key.starts_with('$') || key.starts_with('_') || key == "comment"
 }
 
-impl Reader {
+/// What a tool makes of the references and texts it reads: `yog build`
+/// checks each reference against the content there is and turns texts
+/// into translation keys; the IDE shows them.
+pub trait Resolve {
+    /// A reference: the id to keep, or why it's wrong.
+    fn reference(&mut self, r: &Ref, _path: &Path) -> Result<String, String> {
+        Ok(r.id.clone())
+    }
+
+    /// A text: what to keep (its words, a translation key, ...), or why it's wrong.
+    fn text(&mut self, t: &Text, _path: &Path) -> Result<String, String> {
+        Ok(match t {
+            Text::Literal(s) => s.clone(),
+            Text::Res(r) => format!("@{}.{}", r.set, r.key),
+            Text::NameOf(r) => format!("@{}:{}", r.kind, r.id),
+        })
+    }
+
+    /// The words of a `.yres` text, if known (to check what's in them).
+    fn words(&mut self, _r: &Res) -> Option<String> {
+        None
+    }
+}
+
+impl<'r> Reader<'r> {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// A reader handing references and texts to `resolver`.
+    pub fn with_resolver(resolver: &'r mut dyn Resolve) -> Self {
+        Self {
+            resolver: Some(resolver),
+            ..Self::default()
+        }
+    }
+
+    /// `r` resolved (a problem if it's wrong); its id without a resolver.
+    pub fn resolve_ref(&mut self, r: &Ref) -> Option<String> {
+        let result = match &mut self.resolver {
+            Some(res) => res.reference(r, &self.path),
+            None => Ok(r.id.clone()),
+        };
+        result.map_err(|e| self.problem(e)).ok()
+    }
+
+    /// `t` resolved (a problem if it's wrong).
+    pub fn resolve_text(&mut self, t: &Text) -> Option<String> {
+        struct Keep;
+        impl Resolve for Keep {}
+        let result = match &mut self.resolver {
+            Some(res) => res.text(t, &self.path),
+            None => Keep.text(t, &self.path),
+        };
+        result.map_err(|e| self.problem(e)).ok()
+    }
+
+    /// The words of `.yres` text `r`, if the resolver knows them.
+    pub fn words(&mut self, r: &Res) -> Option<String> {
+        self.resolver.as_mut()?.words(r)
     }
 
     pub fn path(&self) -> &Path {
@@ -398,6 +463,34 @@ impl Reader {
         }
     }
 
+    /// Field `key` of `map` through codec `W`.
+    pub fn field_with<W: crate::with::With<F>, F>(
+        &mut self,
+        map: &Map,
+        key: &'static str,
+    ) -> Option<F> {
+        match map.get(key) {
+            Some(v) => self.at(Seg::Key(key.to_string()), |cx| W::read(v, cx)),
+            None => W::absent().or_else(|| {
+                self.problem(format!("missing `{key}`"));
+                None
+            }),
+        }
+    }
+
+    /// Field `key` of `map` through codec `W`, `default()` when it isn't there.
+    pub fn field_or_with<W: crate::with::With<F>, F>(
+        &mut self,
+        map: &Map,
+        key: &'static str,
+        default: impl FnOnce() -> F,
+    ) -> Option<F> {
+        match map.get(key) {
+            Some(v) => self.at(Seg::Key(key.to_string()), |cx| W::read(v, cx)),
+            None => Some(default()),
+        }
+    }
+
     /// Reads `v` as `T` with `key` allowed in it — the tag of the enum variant `T` is.
     pub fn with_allowed<T>(&mut self, key: &'static str, f: impl FnOnce(&mut Self) -> T) -> T {
         self.allowed.push(key);
@@ -501,7 +594,18 @@ pub struct Read<T> {
 
 /// Reads `v` as `T`: the value and its references, or every problem.
 pub fn from_value<T: Schema>(v: &Value) -> Result<Read<T>, Vec<Problem>> {
-    let mut cx = Reader::new();
+    read_with(v, Reader::new())
+}
+
+/// `from_value`, references and texts going through `resolver`.
+pub fn from_value_with<T: Schema>(
+    v: &Value,
+    resolver: &mut dyn Resolve,
+) -> Result<Read<T>, Vec<Problem>> {
+    read_with(v, Reader::with_resolver(resolver))
+}
+
+fn read_with<T: Schema>(v: &Value, mut cx: Reader<'_>) -> Result<Read<T>, Vec<Problem>> {
     let value = T::read(v, &mut cx);
     match value {
         Some(value) if cx.problems.is_empty() => Ok(Read {
@@ -541,7 +645,24 @@ pub fn from_toml<T: Schema>(text: &str) -> Result<Read<T>, Errors> {
 
 /// Reads a parsed document as `T`; `text` is its source, for positions.
 pub fn from_doc<T: Schema>(text: &str, doc: &Doc) -> Result<Read<T>, Errors> {
-    from_value(&doc.value).map_err(|problems| {
+    locate(text, doc, from_value(&doc.value))
+}
+
+/// `from_doc`, references and texts going through `resolver`.
+pub fn from_doc_with<T: Schema>(
+    text: &str,
+    doc: &Doc,
+    resolver: &mut dyn Resolve,
+) -> Result<Read<T>, Errors> {
+    locate(text, doc, from_value_with(&doc.value, resolver))
+}
+
+fn locate<T>(
+    text: &str,
+    doc: &Doc,
+    read: Result<Read<T>, Vec<Problem>>,
+) -> Result<Read<T>, Errors> {
+    read.map_err(|problems| {
         let mut located: Vec<(u32, Located)> = problems
             .into_iter()
             .map(|p| {
@@ -842,6 +963,23 @@ pub trait Kind {
     const NAME: &'static str;
 }
 
+/// One kind or several (`(Item, Block)`): what a reference field takes.
+pub trait Kinds {
+    const NAMES: &'static [&'static str];
+}
+
+impl<K: Kind> Kinds for K {
+    const NAMES: &'static [&'static str] = &[K::NAME];
+}
+
+impl<A: Kind, B: Kind> Kinds for (A, B) {
+    const NAMES: &'static [&'static str] = &[A::NAME, B::NAME];
+}
+
+impl<A: Kind, B: Kind, C: Kind> Kinds for (A, B, C) {
+    const NAMES: &'static [&'static str] = &[A::NAME, B::NAME, C::NAME];
+}
+
 /// Declares kinds of content: `yog_data::kind!(Pattern = "pattern");`.
 #[macro_export]
 macro_rules! kind {
@@ -917,15 +1055,28 @@ impl<K> fmt::Display for Id<K> {
     }
 }
 
-/// `v` as content of kind `kind`: a reference of that kind, or (`bare`) a bare id.
-fn read_ref(v: &Value, cx: &mut Reader, kind: &str) -> Option<Ref> {
+/// `v` as a reference to content of one of `kinds` (any kind if empty),
+/// written `@kind:id` — a bare id is an error that says how to write it.
+pub fn read_ref(v: &Value, cx: &mut Reader, kinds: &[&str]) -> Option<Ref> {
+    let wanted = || {
+        kinds
+            .iter()
+            .map(|k| format!("`@{k}:`"))
+            .collect::<Vec<_>>()
+            .join(" or ")
+    };
     let r = match v {
         Value::Ref(r) => r.clone(),
         Value::Str(s) if s.starts_with('@') => match typed::classify(s) {
             Ok(Value::Ref(r)) => r,
             Ok(other) => {
                 cx.problem(format!(
-                    "expected {kind} `@{kind}:id`, found {}",
+                    "expected a reference ({}), found {}",
+                    if kinds.is_empty() {
+                        "`@kind:id`".into()
+                    } else {
+                        wanted()
+                    },
                     other.kind_name()
                 ));
                 return None;
@@ -935,23 +1086,24 @@ fn read_ref(v: &Value, cx: &mut Reader, kind: &str) -> Option<Ref> {
                 return None;
             }
         },
-        Value::Str(s) => match typed::resource_id(s, s) {
-            Ok(id) => Ref {
-                kind: kind.to_string(),
-                id,
-            },
-            Err(e) => {
-                cx.problem(e);
-                return None;
-            }
-        },
+        Value::Str(s) => {
+            let kind = kinds.first().copied().unwrap_or("item");
+            cx.problem(format!("`{s}`: name it by a reference — `@{kind}:{s}`"));
+            return None;
+        }
         other => {
-            cx.expected(&format!("an id of {kind}"), other);
+            cx.expected("a reference `@kind:id`", other);
             return None;
         }
     };
-    if !kind.is_empty() && r.kind != kind {
-        cx.problem(format!("expected {kind}, found {} `{}`", r.kind, r.id));
+    if !kinds.is_empty() && !kinds.contains(&r.kind.as_str()) {
+        cx.problem(format!(
+            "`@{}:{}` is a reference to {} — this takes {}",
+            r.kind,
+            r.id,
+            r.kind,
+            wanted()
+        ));
         return None;
     }
     cx.note_ref(r.clone());
@@ -990,10 +1142,10 @@ fn read_tag(v: &Value, cx: &mut Reader, kind: &str) -> Option<Ref> {
 
 impl<K: Kind> Schema for Id<K> {
     fn shape() -> Shape {
-        Shape::Ref(K::NAME)
+        Shape::Ref(<K as Kinds>::NAMES)
     }
     fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
-        read_ref(v, cx, K::NAME).map(|r| Id::new(r.id))
+        read_ref(v, cx, <K as Kinds>::NAMES).map(|r| Id::new(r.id))
     }
     fn write(&self) -> Value {
         Value::Ref(Ref::new(K::NAME, self.id.clone()))
@@ -1002,7 +1154,7 @@ impl<K: Kind> Schema for Id<K> {
 
 impl Schema for Ref {
     fn shape() -> Shape {
-        Shape::Ref("")
+        Shape::Ref(&[])
     }
     fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
         if let Value::Str(s) = v
@@ -1011,7 +1163,7 @@ impl Schema for Ref {
             cx.problem(format!("expected a reference `@kind:id`, found {s:?}"));
             return None;
         }
-        read_ref(v, cx, "")
+        read_ref(v, cx, &[])
     }
     fn write(&self) -> Value {
         Value::Ref(self.clone())
@@ -1050,7 +1202,7 @@ impl<K: Kind> fmt::Debug for TagId<K> {
 
 impl<K: Kind> Schema for TagId<K> {
     fn shape() -> Shape {
-        Shape::Tag(K::NAME)
+        Shape::Tag(<K as Kinds>::NAMES)
     }
     fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
         read_tag(v, cx, K::NAME).map(|r| TagId::new(r.id))
@@ -1072,7 +1224,7 @@ pub type ItemIdOrTag = OneOrTag<kinds::Item>;
 
 impl<K: Kind> Schema for OneOrTag<K> {
     fn shape() -> Shape {
-        Shape::RefOrTag(K::NAME)
+        Shape::RefOrTag(<K as Kinds>::NAMES)
     }
     fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
         let is_tag = match v {

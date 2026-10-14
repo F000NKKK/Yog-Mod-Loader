@@ -1489,11 +1489,12 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.63.0"
+version = "0.63.1"
 dependencies = [
  "criterion",
  "serde",
  "serde_json",
+ "yog-data",
  "yog-gfx",
  "yog-registry",
  "yog-ui",
@@ -1501,7 +1502,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.33.1"
+version = "0.34.0"
 dependencies = [
  "criterion",
  "serde_json",
@@ -1529,7 +1530,7 @@ dependencies = [
 
 [[package]]
 name = "yog-data"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "criterion",
  "serde_json",
@@ -1540,7 +1541,7 @@ dependencies = [
 
 [[package]]
 name = "yog-data-derive"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",

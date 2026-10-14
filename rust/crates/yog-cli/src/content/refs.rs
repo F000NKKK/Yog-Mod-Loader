@@ -7,9 +7,36 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
-use yog_book::refs::{RefKind, bare};
+use yog_book::refs::bare;
 
 use crate::manifest::External;
+
+/// What a reference names that the build can check.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RefKind {
+    Item,
+    Block,
+    Entity,
+    Recipe,
+}
+
+impl RefKind {
+    pub const ALL: [RefKind; 4] = [RefKind::Item, RefKind::Block, RefKind::Entity, RefKind::Recipe];
+
+    /// Its prefix: `item` for `@item:`.
+    pub fn word(self) -> &'static str {
+        match self {
+            RefKind::Item => "item",
+            RefKind::Block => "block",
+            RefKind::Entity => "entity",
+            RefKind::Recipe => "recipe",
+        }
+    }
+
+    pub fn from_word(word: &str) -> Option<RefKind> {
+        RefKind::ALL.into_iter().find(|k| k.word() == word)
+    }
+}
 
 /// Vanilla ids: (kind, path) → the versions it's in (`None`: all).
 struct Vanilla {

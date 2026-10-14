@@ -19,13 +19,15 @@ pub mod text;
 pub mod toml;
 pub mod typed;
 mod value;
+pub mod with;
 
 pub use text::{Doc, LineCol, Span, Spans, SyntaxError};
 pub use value::{Map, Path, Ref, Res, Seg, Value};
 pub mod schema;
 
 pub use schema::{
-    BlockId, Color, EntityId, Errors, Id, Image, ItemId, ItemIdOrTag, Kind, OneOrTag, Ordered,
-    Read, Reader, RecipeId, Schema, Shape, TagId, Text, from_text, from_value, kinds, to_text,
+    BlockId, Color, EntityId, Errors, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds, OneOrTag,
+    Ordered, Read, Reader, RecipeId, Resolve, Schema, Shape, TagId, Text, from_doc_with, from_text,
+    from_value, from_value_with, kinds, to_text,
 };
 pub use yog_data_derive::Schema;

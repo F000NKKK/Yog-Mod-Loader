@@ -1464,7 +1464,7 @@ struct BookFile {
     json: String,
 }
 
-/// Checks one `.ybook`: a `yog_book::Book` as JSON, whose references
+/// Checks one `.ybook` (`yog_book::Book`'s schema), whose references
 /// (`@item:minecraft:stick`, see `yog_book::refs`) must name what exists
 /// — in this mod, on every Minecraft version, or among the other mods'
 /// ids `yog.toml` declares — and come out as plain ids. Texts may be
@@ -1472,45 +1472,10 @@ struct BookFile {
 /// `@entity:<id>` (its name) or `@@…` (a literal `@`); a book with text
 /// references is shown in the player's language. An `id` without a
 /// namespace gets the mod's.
-fn compile_book(cx: &mut Ctx, j: &J, mod_ns: Option<&str>, known: &refs::Known) -> Option<BookFile> {
-    use yog_book::refs::{self as r, RefKind};
-
-    fn plain(j: &J) -> Value {
-        match &j.v {
-            V::Null => Value::Null,
-            V::Bool(b) => Value::Bool(*b),
-            V::Num(n) => serde_json::Number::from_f64(*n).map_or(Value::Null, |n| {
-                // Whole numbers stay integers (sortnum, priority, version).
-                if n.as_f64().is_some_and(|f| f.fract() == 0.0 && f.abs() < 9e15) {
-                    Value::from(n.as_f64().unwrap_or(0.0) as i64)
-                } else {
-                    Value::Number(n)
-                }
-            }),
-            V::Str(s) => Value::String(s.clone()),
-            V::Arr(items) => Value::Array(items.iter().map(plain).collect()),
-            V::Obj(members) => Value::Object(members.iter().map(|(k, v)| (k.clone(), plain(v))).collect()),
-        }
-    }
-
-    /// The line of `path` (`entries[2].pages[0].item`) in the file.
-    fn line_of(j: &J, path: &str) -> usize {
-        let mut at = j;
-        for seg in path.split('.') {
-            let (key, idx) = match seg.split_once('[') {
-                Some((k, rest)) => (k, rest.trim_end_matches(']').parse::<usize>().ok()),
-                None => (seg, None),
-            };
-            let Some(next) = at.get(key) else { break };
-            at = next;
-            if let Some(i) = idx
-                && let Some(item) = at.items().get(i)
-            {
-                at = item;
-            }
-        }
-        at.line
-    }
+fn compile_book(cx: &mut Ctx, text: &str, mod_ns: Option<&str>, known: &refs::Known) -> Option<BookFile> {
+    use refs::RefKind;
+    use yog_data::schema::{Resolve, Text};
+    use yog_data::{Path, Ref, Res};
 
     struct Check<'a> {
         known: &'a refs::Known,
@@ -1518,112 +1483,99 @@ fn compile_book(cx: &mut Ctx, j: &J, mod_ns: Option<&str>, known: &refs::Known) 
         entries: HashSet<String>,
         categories: HashSet<String>,
         text_refs: bool,
-        errors: Vec<String>,
     }
 
-    impl r::Resolver for Check<'_> {
-        fn reference(&mut self, kind: RefKind, id: &str, _path: &str) -> Result<String, String> {
-            let own = match kind {
-                RefKind::Entry => Some(&self.entries),
-                RefKind::Category => Some(&self.categories),
+    impl Resolve for Check<'_> {
+        fn reference(&mut self, r: &Ref, _: &Path) -> Result<String, String> {
+            let own = match r.kind.as_str() {
+                "entry" => Some(&self.entries),
+                "category" => Some(&self.categories),
                 _ => None,
             };
-            match own {
-                Some(set) if set.contains(id) => Ok(id.to_string()),
-                Some(_) => Err(format!("no {} {id} in this book", kind.word())),
-                None => self.known.check(kind, id).map(|()| id.to_string()),
+            match (own, RefKind::from_word(&r.kind)) {
+                (Some(set), _) if set.contains(&r.id) => Ok(r.id.clone()),
+                (Some(_), _) => Err(format!("no {} {} in this book", r.kind, r.id)),
+                (None, Some(kind)) => self.known.check(kind, &r.id).map(|()| r.id.clone()),
+                (None, None) => Err(format!("`@{}:` names nothing a book shows", r.kind)),
             }
         }
 
-        fn text(&mut self, text: &str, path: &str) -> Option<String> {
-            let rest = text.strip_prefix('@')?;
-            if let Some(lit) = rest.strip_prefix('@') {
-                return Some(format!("@{lit}"));
-            }
-            // A name: the game's translation of the item, block or entity.
-            if let Some((kind, id)) = r::parse(text) {
-                let word = match kind {
-                    RefKind::Item | RefKind::Block | RefKind::Entity => kind.word(),
-                    _ => {
-                        self.errors.push(format!("{path}: `{text}` has no name to show"));
-                        return None;
+        fn text(&mut self, t: &Text, _: &Path) -> Result<String, String> {
+            match t {
+                Text::Literal(s) => Ok(s.clone()),
+                // A name: the game's translation of the item, block or entity.
+                Text::NameOf(r) => {
+                    if !matches!(r.kind.as_str(), "item" | "block" | "entity") {
+                        return Err(format!("`@{}:{}` has no name to show", r.kind, r.id));
                     }
-                };
-                if let Err(e) = self.known.check(kind, id) {
-                    self.errors.push(format!("{path}: {e}"));
-                }
-                let (ns, p) = r::bare(id).split_once(':').unwrap_or(("minecraft", id));
-                self.text_refs = true;
-                return Some(format!("{word}.{ns}.{}", p.replace('/', ".")));
-            }
-            match self.texts.get(rest) {
-                Some((key, _)) => {
+                    self.known.check(RefKind::from_word(&r.kind).unwrap(), &r.id)?;
+                    let (ns, p) = yog_book::refs::bare(&r.id).split_once(':').unwrap_or(("minecraft", &r.id));
                     self.text_refs = true;
-                    Some(key.clone())
+                    Ok(format!("{}.{ns}.{}", r.kind, p.replace('/', ".")))
                 }
-                None => {
-                    self.errors.push(format!("{path}: `{text}`: no text `{rest}` in resources/*.yres"));
-                    None
-                }
+                Text::Res(r) => match self.texts.get(&format!("{}.{}", r.set, r.key)) {
+                    Some((key, _)) => {
+                        self.text_refs = true;
+                        Ok(key.clone())
+                    }
+                    None => Err(format!("`@{}.{}`: no text `{}.{}` in resources/*.yres", r.set, r.key, r.set, r.key)),
+                },
             }
         }
 
-        fn text_of(&mut self, text: &str) -> Option<String> {
-            self.texts.get(text.strip_prefix('@')?).map(|(_, t)| t.clone())
+        fn words(&mut self, r: &Res) -> Option<String> {
+            self.texts.get(&format!("{}.{}", r.set, r.key)).map(|(_, t)| t.clone())
         }
     }
 
-    if !matches!(j.v, V::Obj(_)) {
-        cx.err(j.line, "a .ybook file is one JSON object");
-        return None;
-    }
-    let mut value = plain(j);
-    let obj = value.as_object_mut()?;
-    let id = match obj.get("id").and_then(|v| v.as_str()) {
-        Some(id) if id.contains(':') => id.to_string(),
-        Some(id) => format!("{}:{id}", mod_ns.unwrap_or("minecraft")),
-        None => {
-            cx.err(j.line, "a book needs an `id` (the item that opens it)");
+    // Entries and categories may name each other in any order: their ids first.
+    let doc = match yog_data::text::parse(text) {
+        Ok(d) => d,
+        Err(e) => {
+            cx.err(e.at.line as usize, e.message);
             return None;
         }
     };
-    if !valid_id(&id) {
-        cx.err(j.line, format!("book id `{id}`: not a valid id"));
-        return None;
-    }
-    obj.insert("id".into(), id.clone().into());
     let ids = |key: &str| -> HashSet<String> {
-        obj.get(key)
-            .and_then(Value::as_array)
-            .map(|a| a.iter().filter_map(|e| e.get("id")?.as_str().map(str::to_string)).collect())
-            .unwrap_or_default()
+        doc.value.get(key).and_then(|v| v.as_list()).unwrap_or_default().iter().filter_map(|e| e.get("id")?.as_str().map(str::to_string)).collect()
     };
-    let mut check = Check {
-        known,
-        texts: &cx.refs.texts,
-        entries: ids("entries"),
-        categories: ids("categories"),
-        text_refs: false,
-        errors: Vec::new(),
+    let mut check = Check { known, texts: &cx.refs.texts, entries: ids("entries"), categories: ids("categories"), text_refs: false };
+    let mut book = match yog_data::from_doc_with::<yog_book::Book>(text, &doc, &mut check) {
+        Ok(read) => read.value,
+        Err(errors) => {
+            for e in errors.0 {
+                let line = e.at.map_or(1, |a| a.line as usize);
+                if e.path.is_root() {
+                    cx.err(line, e.message);
+                } else {
+                    cx.err(line, format!("{}: {}", e.path, e.message));
+                }
+            }
+            return None;
+        }
     };
-    let mut errors = r::resolve(&mut value, &mut check);
-    errors.append(&mut check.errors);
-    let text_refs = check.text_refs;
-    for e in &errors {
-        let path = e.split(": ").next().unwrap_or_default();
-        cx.err(line_of(j, path), e);
+    if !book.id.contains(':') {
+        book.id = format!("{}:{}", mod_ns.unwrap_or("minecraft"), book.id);
     }
-    if !errors.is_empty() {
+    // References to entries and categories always have a namespace, so their ids must too.
+    let ns = mod_ns.unwrap_or("minecraft");
+    let unnamespaced: Vec<String> = (book.categories.iter().enumerate().map(|(i, c)| (format!("categories[{i}].id"), &c.id)))
+        .chain(book.entries.iter().enumerate().map(|(i, e)| (format!("entries[{i}].id"), &e.id)))
+        .filter(|(_, id)| !id.contains(':'))
+        .map(|(path, id)| format!("{path}: `{id}`: write its namespace (`{ns}:{id}`)"))
+        .collect();
+    if !unnamespaced.is_empty() {
+        for e in unnamespaced {
+            cx.err(1, e);
+        }
         return None;
     }
-    if text_refs && let Some(obj) = value.as_object_mut() && !obj.contains_key("i18n") {
-        obj.insert("i18n".into(), true.into());
-    }
-    if let Err(e) = serde_json::from_value::<yog_book::Book>(value.clone()) {
-        cx.err(j.line, format!("not a book: {e}"));
+    if !valid_id(&book.id) {
+        cx.err(1, format!("book id `{}`: not a valid id", book.id));
         return None;
     }
-    Some(BookFile { id, json: value.to_string() })
+    book.i18n |= check.text_refs;
+    Some(BookFile { id: book.id.clone(), json: book.to_json() })
 }
 
 /// Keys a source file may carry for its authors and tools — `$…`, `_…`,
@@ -2043,7 +1995,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut books: Vec<BookFile> = Vec::new();
     let mut book_ids: HashMap<String, String> = HashMap::new();
     let mut inventories: Vec<(String, usize, String)> = Vec::new();
-    let mut pending_books: Vec<(String, J)> = Vec::new();
+    let mut pending_books: Vec<(String, String)> = Vec::new();
     for path in &files {
         let shown = display(root, path);
         let Some(kind) = Kind::of(path) else { continue };
@@ -2054,6 +2006,11 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
                 continue;
             }
         };
+        if kind == Kind::Book {
+            // Checked once every block, item and recipe is known.
+            pending_books.push((shown.clone(), text));
+            continue;
+        }
         let j = match json::parse(&text) {
             Ok(j) => j,
             Err(e) => {
@@ -2071,11 +2028,6 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             textures: &mut textures,
             inventories: &mut inventories,
         };
-        if kind == Kind::Book {
-            // Checked once every block, item and recipe is known.
-            pending_books.push((shown.clone(), j));
-            continue;
-        }
         if kind == Kind::Recipe {
             if let Some(r) = compile_recipe(&mut cx, &j, path, mod_ns) {
                 if let Some(other) = recipe_ids.insert(r.id.clone(), shown.clone()) {
@@ -2100,12 +2052,12 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let externals = crate::manifest::YogToml::read(&root.join("yog.toml")).map(|t| t.externals).unwrap_or_default();
     let mut known = refs::Known::new(mod_ns.unwrap_or("minecraft"), &externals);
     for e in &entries {
-        known.add(if e.kind == Kind::Block { yog_book::refs::RefKind::Block } else { yog_book::refs::RefKind::Item }, e.id.clone());
+        known.add(if e.kind == Kind::Block { refs::RefKind::Block } else { refs::RefKind::Item }, e.id.clone());
     }
     for r in &recipes {
-        known.add(yog_book::refs::RefKind::Recipe, r.id.clone());
+        known.add(refs::RefKind::Recipe, r.id.clone());
     }
-    for (shown, j) in &pending_books {
+    for (shown, text) in &pending_books {
         let mut cx = Ctx {
             root,
             refs,
@@ -2116,7 +2068,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             textures: &mut textures,
             inventories: &mut inventories,
         };
-        if let Some(b) = compile_book(&mut cx, j, mod_ns, &known) {
+        if let Some(b) = compile_book(&mut cx, text, mod_ns, &known) {
             if let Some(other) = book_ids.insert(b.id.clone(), shown.clone()) {
                 errors.push(format!("{shown}: book {} is also defined by {other}", b.id));
             }
@@ -2835,11 +2787,11 @@ mod tests {
         let book = r#"{
             "id": "guide",
             "name": "@Book.title",
-            "categories": [{ "id": "basics", "name": "Basics", "icon": "@item:minecraft:book" }],
+            "categories": [{ "id": "mymod:basics", "name": "Basics", "icon": "@item:minecraft:book" }],
             "entries": [{
-                "id": "ruby", "name": "@item:mymod:ruby", "category": "@category:basics",
+                "id": "mymod:ruby", "name": "@item:mymod:ruby", "category": "@category:mymod:basics",
                 "pages": [
-                    { "type": "text", "text": "@@not a ref, {link=@entry:ruby|see}" },
+                    { "type": "text", "text": "@@not a ref, {link=@entry:mymod:ruby|see}" },
                     { "type": "spotlight", "item": "@item:mymod:ruby" },
                     { "type": "entity", "entity": "@entity:minecraft:allay" }
                 ]
@@ -2855,7 +2807,7 @@ mod tests {
         assert!(src.contains("registry.register_book_json(\"mymod:guide\""), "{src}");
         assert!(src.contains("mymod.book.title") && src.contains("item.mymod.ruby"), "{src}");
         assert!(src.contains("not a ref") && src.contains("i18n"), "{src}");
-        assert!(src.contains(r#"\"item\":\"mymod:ruby\""#) && src.contains(r#"\"category\":\"basics\""#), "references become ids: {src}");
+        assert!(src.contains(r#"\"item\":\"mymod:ruby\""#) && src.contains(r#"\"category\":\"mymod:basics\""#), "references become ids: {src}");
 
         // Bare ids, missing content and version-only ids are errors, each on its line.
         let bad = r#"{ "id": "x",
@@ -2876,7 +2828,10 @@ mod tests {
 
         let bad = project(&[("content/bad.ybook", r#"{ "id": "x", "entries": [{ "pages": [{ "type": "nope" }] }] }"#)]);
         let e = compile(&bad, "mymod", &yres::Refs::default()).unwrap_err();
-        assert!(e.contains("not a book"), "{e}");
+        assert!(e.contains("entries[0].pages[0].type: unknown `nope`"), "{e}");
+        let bad = project(&[("content/bad.ybook", r#"{ "id": "x", "name": "X", "categories": [{ "id": "c", "name": "C" }] }"#)]);
+        let e = compile(&bad, "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("categories[0].id: `c`: write its namespace (`mymod:c`)"), "{e}");
     }
 
     #[test]

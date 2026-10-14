@@ -10,17 +10,49 @@ use yog_data::{Map, Ref, Res, Value, binary, text};
 
 fn jdk_tool(name: &str) -> PathBuf {
     let jdk17 = Path::new("/usr/lib/jvm/java-17-openjdk-amd64/bin").join(name);
-    if jdk17.exists() { jdk17 } else { PathBuf::from(name) }
+    if jdk17.exists() {
+        jdk17
+    } else {
+        PathBuf::from(name)
+    }
 }
 
 fn every_type() -> Value {
     let mut m = Map::new();
-    m.insert("ints", Value::List([0, 1, -1, 63, -64, 64, i64::MAX, i64::MIN].map(Value::Int).to_vec()));
-    m.insert("floats", Value::List([0.5, -0.0, 1e300, f64::MIN_POSITIVE].map(Value::Float).to_vec()));
-    m.insert("misc", Value::List(vec![Value::Null, Value::Bool(true), Value::Bool(false), Value::Str("ünï😀".into())]));
+    m.insert(
+        "ints",
+        Value::List(
+            [0, 1, -1, 63, -64, 64, i64::MAX, i64::MIN]
+                .map(Value::Int)
+                .to_vec(),
+        ),
+    );
+    m.insert(
+        "floats",
+        Value::List(
+            [0.5, -0.0, 1e300, f64::MIN_POSITIVE]
+                .map(Value::Float)
+                .to_vec(),
+        ),
+    );
+    m.insert(
+        "misc",
+        Value::List(vec![
+            Value::Null,
+            Value::Bool(true),
+            Value::Bool(false),
+            Value::Str("ünï😀".into()),
+        ]),
+    );
     m.insert("ref", Value::Ref(Ref::new("item", "minecraft:stick")));
     m.insert("tag", Value::Tag(Ref::new("block", "minecraft:logs")));
-    m.insert("res", Value::Res(Res { set: "Strings".into(), key: "a.b".into() }));
+    m.insert(
+        "res",
+        Value::Res(Res {
+            set: "Strings".into(),
+            key: "a.b".into(),
+        }),
+    );
     m.insert("text", Value::Text("{b|x}".into()));
     m.insert("image", Value::Image("sprite:x".into()));
     m.insert("color", Value::Color(0x80FF_0000));
@@ -46,11 +78,24 @@ fn java_reads_and_writes_the_same_bytes() {
     let book = text::parse_value(include_str!("../benches/hexbook.ybook")).unwrap();
     for (name, value) in [("types", every_type()), ("book", book)] {
         let bytes = binary::encode(&value);
-        let (input, output) = (dir.join(format!("{name}.in")), dir.join(format!("{name}.out")));
+        let (input, output) = (
+            dir.join(format!("{name}.in")),
+            dir.join(format!("{name}.out")),
+        );
         std::fs::write(&input, &bytes).unwrap();
-        let run = Command::new(jdk_tool("java")).arg("-cp").arg(&dir).arg("RoundTrip").arg(&input).arg(&output).status().expect("java");
+        let run = Command::new(jdk_tool("java"))
+            .arg("-cp")
+            .arg(&dir)
+            .arg("RoundTrip")
+            .arg(&input)
+            .arg(&output)
+            .status()
+            .expect("java");
         assert!(run.success(), "{name}: Java failed");
-        assert!(std::fs::read(&output).unwrap() == bytes, "{name}: Java wrote different bytes");
+        assert!(
+            std::fs::read(&output).unwrap() == bytes,
+            "{name}: Java wrote different bytes"
+        );
     }
     let _ = std::fs::remove_dir_all(&dir);
 }

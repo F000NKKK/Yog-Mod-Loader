@@ -8,12 +8,13 @@
 use serde::{Deserialize, Serialize};
 
 /// One pattern of a [`crate::BookPage::Pattern`] page.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, yog_data::Schema)]
 pub struct HexPattern {
     /// The first stroke's direction: `EAST`, `SOUTH_EAST`, … (or `E`, `SE`, …).
     pub startdir: String,
     /// The turns after it.
     #[serde(default)]
+    #[data(default)]
     pub signature: String,
 }
 

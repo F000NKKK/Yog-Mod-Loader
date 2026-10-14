@@ -312,7 +312,8 @@ impl<const SPANS: bool> Parser<'_, SPANS> {
                 Some(set) => !set.insert(key.clone()),
                 None if map.len() < 16 => map.get(&key).is_some(),
                 None => {
-                    let mut set: std::collections::HashSet<String> = map.keys().map(str::to_string).collect();
+                    let mut set: std::collections::HashSet<String> =
+                        map.keys().map(str::to_string).collect();
                     let dup = !set.insert(key.clone());
                     seen = Some(set);
                     dup

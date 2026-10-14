@@ -16,6 +16,11 @@ pub mod theme;
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use yog_data::Schema;
+use yog_data::kinds::{Block, Category, Entity, Entry, Item, Recipe};
+use yog_data::with::{List, Opt, RefTo, Values};
+
+use refs::{BookText, Icon};
 
 pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET, LANG};
 pub use state::BookViewState;
@@ -43,50 +48,66 @@ pub fn multiblock_blocks(pattern: &[Vec<String>], mapping: &BTreeMap<String, Str
 
 // ── Pages ────────────────────────────────────────────────────────────────────
 
-/// One page of an entry: `{"type": "spotlight", "item": "minecraft:stick", …}`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// One page of an entry: `{"type": "spotlight", "item": "@item:minecraft:stick", …}`.
+#[derive(Debug, Clone, Serialize, Deserialize, Schema)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[data(tag = "type")]
 pub enum BookPage {
     /// Text (Yog text: `{b|…}`, `{#rrggbb|…}`, `{link=…|…}`), with an
     /// optional title; in another `font` (a resource-pack font id, e.g. a
     /// `ttf` provider) at `font_size` pixels a line.
     Text {
+        #[data(with = "BookText")]
         text: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         title: Option<String>,
+        /// A resource-pack font id.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         font: Option<String>,
+        /// Pixels a line.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         font_size: Option<f32>,
     },
     /// An item in a frame, its name (or `title`) and text.
     Spotlight {
+        #[data(with = "RefTo<(Item, Block)>")]
         item: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         title: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
     /// A recipe as its station shows it (a crafting grid, a furnace, …).
     Recipe {
+        #[data(with = "RefTo<Recipe>")]
         recipe: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
     /// An image (a Yog image source: a texture, `.svg` too).
     Image {
+        /// An image source (`mymod:textures/gui/x.png`, `.svg` too).
         texture: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         title: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
     /// A living entity, turning slowly.
     Entity {
+        #[data(with = "RefTo<Entity>")]
         entity: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         name: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
     /// A structure in 3D, turning: `pattern` is its layers top to bottom,
@@ -94,16 +115,23 @@ pub enum BookPage {
     /// gives it (a block state: `minecraft:furnace[facing=north]`), ` ` for air.
     Multiblock {
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         name: Option<String>,
+        /// Layers top to bottom, each a list of rows of characters.
         pattern: Vec<Vec<String>>,
+        /// What each character is: a block, with a state if it matters.
+        #[data(with = "Values<RefTo<Block>>")]
         mapping: BTreeMap<String, String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
     /// Links to other entries.
     Relations {
+        #[data(with = "List<RefTo<Entry>>")]
         entries: Vec<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
     /// A spell pattern: its name, what it takes and gives, the pattern
@@ -112,15 +140,20 @@ pub enum BookPage {
         op_id: String,
         /// The action's name (the page's title; `op_id` if none).
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[data(with = "Opt<BookText>")]
         name: Option<String>,
         #[serde(default)]
+        #[data(with = "BookText", default)]
         input: String,
         #[serde(default)]
+        #[data(with = "BookText", default)]
         output: String,
         #[serde(default)]
+        #[data(with = "BookText", default)]
         text: String,
         /// The patterns drawn on the page (none: just the texts).
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[data(default)]
         patterns: Vec<pattern::HexPattern>,
     },
     /// Nothing (to start the next on a new spread).
@@ -130,36 +163,47 @@ pub enum BookPage {
 // ── Categories and entries ───────────────────────────────────────────────────
 
 /// A category of the book's home page.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Schema)]
 #[serde(default)]
 pub struct BookCategory {
     pub id: String,
+    #[data(with = "BookText")]
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[data(with = "Opt<BookText>")]
     pub description: Option<String>,
-    /// An item (`minecraft:book`) or an image (`minecraft:textures/item/book.png`).
+    /// An item (`@item:minecraft:book`) or an image (`minecraft:textures/item/book.png`).
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[data(with = "Opt<Icon>")]
     pub icon: Option<String>,
     /// Lower first.
+    #[data(default)]
     pub sortnum: i32,
 }
 
 /// One entry: its pages, in a category.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Schema)]
 #[serde(default)]
 pub struct BookEntry {
     pub id: String,
+    #[data(with = "BookText")]
     pub name: String,
+    #[data(with = "RefTo<Category>")]
     pub category: String,
+    #[data(default)]
     pub pages: Vec<BookPage>,
     /// An item or an image, as [`BookCategory::icon`].
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[data(with = "Opt<Icon>")]
     pub icon: Option<String>,
     /// Lower first.
+    #[data(default)]
     pub priority: i32,
     /// Hidden from the book's lists.
+    #[data(default)]
     pub secret: bool,
     /// Shown as read before it's opened.
+    #[data(default)]
     pub read_by_default: bool,
     /// The advancement that unlocks it.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -169,29 +213,52 @@ pub struct BookEntry {
 // ── Book ─────────────────────────────────────────────────────────────────────
 
 /// A guide book: what a `.ybook` file holds.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Schema)]
 #[serde(default)]
 pub struct Book {
-    /// The item that opens it.
+    /// The item that opens it (the mod's namespace if it has none).
     pub id: String,
+    #[data(with = "BookText")]
     pub name: String,
     /// The nameplate's second line when `version` is 0.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[data(with = "Opt<BookText>")]
     pub subtitle: Option<String>,
     /// The book's edition: its nameplate says "1st Edition", "2nd Edition"…
     /// (0: the `subtitle` instead).
+    #[data(default)]
     pub version: u32,
+    #[data(with = "BookText", default)]
     pub landing_text: String,
     /// The nameplate's text color (`rrggbb`).
+    #[data(default = "default_nameplate_color")]
     pub nameplate_color: String,
     /// The color `{accent|terms}` are shown in (`#rrggbb`).
+    #[data(default = "default_accent")]
     pub accent: String,
     /// Its sheet (laid out as [`BOOK_PNG`]): `ns:textures/x.png`, or Yog's.
+    #[data(default = "default_book_texture")]
     pub book_texture: String,
+    #[data(default)]
     pub categories: Vec<BookCategory>,
+    #[data(default)]
     pub entries: Vec<BookEntry>,
-    /// Its texts are translation keys, shown in the game's language.
+    /// Its texts are translation keys, shown in the game's language (the
+    /// build turns it on when a text is a `.yres` text or a name).
+    #[data(default)]
     pub i18n: bool,
+}
+
+fn default_nameplate_color() -> String {
+    "FFDD98".into()
+}
+
+fn default_accent() -> String {
+    "#8d6acc".into()
+}
+
+fn default_book_texture() -> String {
+    "yog:gui/book".into()
 }
 
 impl Default for Book {
@@ -202,9 +269,9 @@ impl Default for Book {
             subtitle: None,
             version: 0,
             landing_text: String::new(),
-            nameplate_color: "FFDD98".into(),
-            accent: "#8d6acc".into(),
-            book_texture: "yog:gui/book".into(),
+            nameplate_color: default_nameplate_color(),
+            accent: default_accent(),
+            book_texture: default_book_texture(),
             categories: Vec::new(),
             entries: Vec::new(),
             i18n: false,

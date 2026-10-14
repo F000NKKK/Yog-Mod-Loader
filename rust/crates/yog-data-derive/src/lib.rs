@@ -34,6 +34,7 @@ struct Attrs {
     default: Option<Option<syn::Path>>,
     skip: bool,
     tag: Option<String>,
+    with: Option<Type>,
 }
 
 fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
@@ -50,10 +51,14 @@ fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
                 } else {
                     None
                 });
+            } else if meta.path.is_ident("with") {
+                a.with = Some(meta.value()?.parse::<LitStr>()?.parse()?);
             } else if meta.path.is_ident("skip") {
                 a.skip = true;
             } else {
-                return Err(meta.error("unknown `data` attribute (rename, default, skip, tag)"));
+                return Err(
+                    meta.error("unknown `data` attribute (rename, default, skip, tag, with)")
+                );
             }
             Ok(())
         })?;
@@ -112,6 +117,8 @@ struct NamedField {
     doc: String,
     default: Option<Option<syn::Path>>,
     skip: bool,
+    /// The codec: `with = "…"`, else `Plain` (the type's own schema).
+    with: Type,
 }
 
 fn named_fields(fields: &syn::FieldsNamed) -> syn::Result<Vec<NamedField>> {
@@ -131,6 +138,9 @@ fn named_fields(fields: &syn::FieldsNamed) -> syn::Result<Vec<NamedField>> {
                 doc: docs(&f.attrs),
                 default: a.default,
                 skip: a.skip,
+                with: a
+                    .with
+                    .unwrap_or_else(|| syn::parse_quote!(::yog_data::with::Plain)),
             })
         })
         .collect()
@@ -139,14 +149,14 @@ fn named_fields(fields: &syn::FieldsNamed) -> syn::Result<Vec<NamedField>> {
 /// `Vec<Field>` describing `fields`.
 fn field_shapes(fields: &[NamedField]) -> Tokens {
     let items = fields.iter().filter(|f| !f.skip).map(|f| {
-        let (key, doc, ty) = (&f.key, &f.doc, &f.ty);
+        let (key, doc, ty, w) = (&f.key, &f.doc, &f.ty, &f.with);
         let has_default = f.default.is_some();
         quote! {
             ::yog_data::schema::Field {
                 name: #key,
                 doc: #doc,
-                shape: <#ty as ::yog_data::Schema>::shape,
-                required: !#has_default && <#ty as ::yog_data::Schema>::absent().is_none(),
+                shape: <#w as ::yog_data::with::With<#ty>>::shape,
+                required: !#has_default && <#w as ::yog_data::with::With<#ty>>::absent().is_none(),
             }
         }
     });
@@ -157,14 +167,14 @@ fn field_shapes(fields: &[NamedField]) -> Tokens {
 fn read_fields(fields: &[NamedField], ctor: Tokens) -> Tokens {
     let keys = fields.iter().filter(|f| !f.skip).map(|f| &f.key);
     let lets = fields.iter().map(|f| {
-        let (ident, ty, key) = (&f.ident, &f.ty, &f.key);
+        let (ident, ty, key, w) = (&f.ident, &f.ty, &f.key, &f.with);
         if f.skip {
             return quote! { let #ident: ::std::option::Option<#ty> = ::std::option::Option::Some(::std::default::Default::default()); };
         }
         match &f.default {
-            None => quote! { let #ident = cx.field::<#ty>(map, #key); },
-            Some(None) => quote! { let #ident = cx.field_or::<#ty>(map, #key, ::std::default::Default::default); },
-            Some(Some(path)) => quote! { let #ident = cx.field_or::<#ty>(map, #key, #path); },
+            None => quote! { let #ident = cx.field_with::<#w, #ty>(map, #key); },
+            Some(None) => quote! { let #ident = cx.field_or_with::<#w, #ty>(map, #key, ::std::default::Default::default); },
+            Some(Some(path)) => quote! { let #ident = cx.field_or_with::<#w, #ty>(map, #key, #path); },
         }
     });
     let inits = fields.iter().map(|f| {
@@ -183,10 +193,10 @@ fn read_fields(fields: &[NamedField], ctor: Tokens) -> Tokens {
 /// Inserts `fields` (bound by name) into `m` (in scope).
 fn write_fields(fields: &[NamedField]) -> Tokens {
     let puts = fields.iter().filter(|f| !f.skip).map(|f| {
-        let (ident, key) = (&f.ident, &f.key);
+        let (ident, key, ty, w) = (&f.ident, &f.key, &f.ty, &f.with);
         quote! {
-            if !::yog_data::Schema::skip(#ident) {
-                m.insert(#key, ::yog_data::Schema::write(#ident));
+            if !<#w as ::yog_data::with::With<#ty>>::skip(#ident) {
+                m.insert(#key, <#w as ::yog_data::with::With<#ty>>::write(#ident));
             }
         }
     });

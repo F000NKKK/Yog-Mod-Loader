@@ -73,8 +73,8 @@ const BOOK: &str = r##"{
   pos: [0, -2],
   pages: [
     { type: "text", text: "@@everyone {b|Hello}" },
-    { type: "spotlight", item: "minecraft:stick", text: "@item:minecraft:stick" },
-    { type: "recipe", result: "@item:gm:ruby", mode: "smelt", ingredients: ["@tag:item:minecraft:planks", "stick"], $note: "meta" },
+    { type: "spotlight", item: "@item:minecraft:stick", text: "@item:minecraft:stick" },
+    { type: "recipe", result: "@item:gm:ruby", mode: "smelt", ingredients: ["@tag:item:minecraft:planks", "@item:stick"], $note: "meta" },
     { type: "empty" },
   ],
 }"##;
@@ -148,7 +148,7 @@ fn every_problem_is_reported_with_its_place() {
   pages: [
     { type: "txt", text: "x" },
     { type: "spotlight", item: "@block:minecraft:stone", txt: "y" },
-    { type: "recipe", result: "Gm:Ruby", count: -1, mode: "boil", ingredients: ["@tag:block:minecraft:logs"] },
+    { type: "recipe", result: "@item:Gm:Ruby", count: -1, mode: "boil", ingredients: ["@tag:block:minecraft:logs"] },
     { text: "no type" },
   ],
 }"##;
@@ -159,12 +159,12 @@ fn every_problem_is_reported_with_its_place() {
         "4:8: pos: expected 2 items, found 1",
         "5:3: colour: unknown field `colour` — did you mean `color`?",
         "7:13: pages[0].type: unknown `txt` — did you mean `text`?",
-        "8:32: pages[1].item: expected item, found block `minecraft:stone`",
+        "8:32: pages[1].item: `@block:minecraft:stone` is a reference to block — this takes `@item:`",
         "8:58: pages[1].txt: unknown field `txt` — did you mean `text`?",
-        "9:31: pages[2].result: `Gm:Ruby`: `Gm:Ruby` isn't an id (lower case `namespace:path`)",
-        "9:49: pages[2].count: -1 is out of range (0..=4294967295)",
-        "9:59: pages[2].mode: unknown `boil` (expected `shaped`, `shapeless`, `smelt`)",
-        "9:81: pages[2].ingredients[0]: expected a tag of item, found a tag of block",
+        "9:31: pages[2].result: `@item:Gm:Ruby`: `Gm:Ruby` isn't an id (lower case `namespace:path`)",
+        "9:55: pages[2].count: -1 is out of range (0..=4294967295)",
+        "9:65: pages[2].mode: unknown `boil` (expected `shaped`, `shapeless`, `smelt`)",
+        "9:87: pages[2].ingredients[0]: expected a tag of item, found a tag of block",
         "10:5: pages[3]: missing `type` (`text`, `spotlight`, `recipe`, `empty`)",
     ];
     assert_eq!(errors.lines().collect::<Vec<_>>(), expected, "\n{errors}");
@@ -225,7 +225,7 @@ fn shapes_describe_the_format() {
     let spot_fields = variants[1].get("fields").unwrap().as_list().unwrap();
     assert_eq!(
         spot_fields[0].get("shape").unwrap().get("of"),
-        Some(&Value::from("item"))
+        Some(&Value::List(vec![Value::from("item")]))
     );
     assert_eq!(spot_fields[1].get("required"), Some(&Value::Bool(false)));
     let fields = variants[2].get("fields").unwrap().as_list().unwrap();
@@ -240,4 +240,86 @@ fn shapes_describe_the_format() {
             .get("kind"),
         Some(&Value::from("ref_or_tag"))
     );
+}
+
+/// A plain-string model read through codecs, references and texts resolved.
+#[derive(Schema, Debug, PartialEq)]
+struct Plainly {
+    #[data(with = "yog_data::with::RefTo<(kinds::Item, kinds::Block)>")]
+    icon: String,
+    #[data(with = "yog_data::with::Opt<yog_data::with::TextOf>")]
+    title: Option<String>,
+    #[data(
+        with = "yog_data::with::List<yog_data::with::RefTo<kinds::Entry>>",
+        default
+    )]
+    see: Vec<String>,
+}
+
+struct Game;
+
+impl yog_data::Resolve for Game {
+    fn reference(&mut self, r: &Ref, _: &yog_data::Path) -> Result<String, String> {
+        if r.id.ends_with("nope") {
+            Err(format!("no {} {}", r.kind, r.id))
+        } else {
+            Ok(r.id.clone())
+        }
+    }
+    fn text(&mut self, t: &Text, _: &yog_data::Path) -> Result<String, String> {
+        Ok(match t {
+            Text::Res(r) => format!("gm.{}", r.key),
+            Text::NameOf(r) => format!("{}.{}", r.kind, r.id.replace(':', ".")),
+            Text::Literal(s) => s.clone(),
+        })
+    }
+}
+
+#[test]
+fn codecs_keep_plain_types_and_resolve() {
+    let v = text::parse_value(
+        r#"{ icon: "@block:minecraft:stone", title: "@Strings.title", see: ["@entry:gm:a"] }"#,
+    )
+    .unwrap();
+    let read = yog_data::from_value_with::<Plainly>(&v, &mut Game).unwrap();
+    assert_eq!(
+        read.value,
+        Plainly {
+            icon: "minecraft:stone".into(),
+            title: Some("gm.title".into()),
+            see: vec!["gm:a".into()]
+        }
+    );
+    let v = text::parse_value(r#"{ icon: "minecraft:stone", title: "@item:minecraft:stick", see: ["@entry:gm:nope", "@item:x"] }"#).unwrap();
+    let problems: Vec<String> = yog_data::from_value_with::<Plainly>(&v, &mut Game)
+        .unwrap_err()
+        .into_iter()
+        .map(|p| format!("{}: {}", p.path, p.message))
+        .collect();
+    assert_eq!(
+        problems,
+        [
+            "icon: `minecraft:stone`: name it by a reference — `@item:minecraft:stone`",
+            "see[0]: no entry gm:nope",
+            "see[1]: `@item:minecraft:x` is a reference to item — this takes `@entry:`",
+        ]
+    );
+    let shape = Plainly::shape().describe();
+    let fields = shape
+        .get("defs")
+        .unwrap()
+        .get("Plainly")
+        .unwrap()
+        .get("fields")
+        .unwrap()
+        .as_list()
+        .unwrap();
+    assert_eq!(
+        fields[0].get("shape").unwrap().get("of"),
+        Some(&Value::List(vec![
+            Value::from("item"),
+            Value::from("block")
+        ]))
+    );
+    assert_eq!(fields[2].get("required"), Some(&Value::Bool(false)));
 }
