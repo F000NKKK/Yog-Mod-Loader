@@ -1,7 +1,7 @@
 # Yog Data: one language for every format — audit and plan
 
-Status: P0 and P1 done (2026-10-14) — the `yog-data` crate exists; no format
-uses it yet (P2). The project has no backward compatibility: every format and
+Status: P0, P1 and P2 done (2026-10-14) — every source format is read
+through Yog Data schemas (`yog-formats`, `yog-book`); P3 (ABI 2.0) next. The project has no backward compatibility: every format and
 API below is replaced, not deprecated.
 
 The goal, in the user's words: analyse every format and make one universal
@@ -190,6 +190,18 @@ runtime comes with P3, when the runtime reads blobs.
 `.yblock`/`.yitem`, `.yui` attributes, dimensions; `yog.toml` (see the
 decisions). Yog-IDLE's editors switch to schema-driven property grids.
 Each format's old parser is deleted.
+
+*P2 done:* `.yres`, `.ybook`, `.yrecipe` (+ `.ylayout` recipe layouts),
+`.yblock`/`.yitem`, `.ydef` (ladders, levels), `yog.toml` (TOML into the
+model) — each read by a schema, its hand-written parser deleted, problems
+reported with line, path and a suggestion; references strict and checked
+everywhere (`@lang:` for translation keys). The schemas live in
+`yog-formats`; `yog schema <format>` prints any of them, and Yog-IDLE
+generates property grids from the same schemas (`format_shape`). In
+`.yui`, `@Name` (no `:` or `.`) is the screen's own resource
+(`<Screen.Resources>`), replaced before the shared grammar applies.
+Version- and loader-specific data rides in `when/<loader>/<version>/`
+overlays of the `.yog`.
 
 **P3 — ABI 2.0:** binary blobs for content; TSV and JSON strings removed. Open vocabularies that need the hosts: a block's `sound` becomes the
 game's group names *or* the mod's own group (`break`, `step`, `place`, `hit`,
