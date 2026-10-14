@@ -182,5 +182,5 @@ performance where the benches point.
 ## 4. Decisions (2026-10-14)
 
 1. Typed values are JSON strings (`"@item:minecraft:stick"`): every file stays JSON.
-2. `yog.toml` becomes a Yog Data file too — one parser, one schema system.
+2. `yog.toml` stays TOML — the surface people know from Cargo — read by a real TOML parser into the Yog Data model, so the same schema, checks and references apply (as `.yui` stays XML). Run targets become valid TOML (`[run."fabric-1.21.1"]`).
 3. ABI 2.0 ships once, at the end of P3; inside, content kinds move over one at a time.
