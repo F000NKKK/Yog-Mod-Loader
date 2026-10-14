@@ -4038,50 +4038,57 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
             .map(String::from)
             .unwrap_or_default(),
     );
-    let ev = yog_abi::YogCommandEvent {
-        name: YogStr::from_str(&n),
-        args: YogStr::from_str(&a),
-        source: YogStr::from_str(&s),
-        uuid: YogStr::from_str(&u),
-        dimension: YogStr::from_str(&d),
-    };
     let h = handlers();
     let srv = srv_ptr();
-    // Actual arg count of this invocation (0 for a bare command with no args).
-    let actual_argc = if a.is_empty() {
-        0
-    } else {
-        a.split('\t').count()
+    let args: Vec<&str> = if a.is_empty() { Vec::new() } else { a.split('\t').collect() };
+    // One handler with `args`; its reply, or `None` when it passed.
+    let call = |ud: &*mut c_void, f: &YogCommandFn, args: &str| -> Option<String> {
+        let ev = yog_abi::YogCommandEvent {
+            name: YogStr::from_str(&n),
+            args: YogStr::from_str(args),
+            source: YogStr::from_str(&s),
+            uuid: YogStr::from_str(&u),
+            dimension: YogStr::from_str(&d),
+        };
+        let mut buf = [0u8; 4096];
+        let mut reply_len: u32 = 0;
+        unsafe { f(*ud, srv, &ev, buf.as_mut_ptr(), buf.len() as u32, &mut reply_len) };
+        (reply_len > 0).then(|| String::from_utf8_lossy(&buf[..reply_len as usize]).into_owned())
     };
     let reply = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let Some(regs) = h.commands.get(&n) else {
             return String::new();
         };
-        for (module, schema, ud, f) in regs {
-            let expected_argc = schema.as_ref().map_or(0, |s| s.split_whitespace().count());
-            if expected_argc != actual_argc {
-                continue;
-            }
-            if module.is_retiring() {
-                continue;
-            }
-            let Some(_call) = module.enter() else {
-                continue;
-            };
-            let mut buf = [0u8; 4096];
-            let mut reply_len: u32 = 0;
-            unsafe {
-                f(
-                    *ud,
-                    srv,
-                    &ev,
-                    buf.as_mut_ptr(),
-                    buf.len() as u32,
-                    &mut reply_len,
-                );
-            };
-            if reply_len > 0 {
-                return String::from_utf8_lossy(&buf[..reply_len as usize]).into_owned();
+        let live = regs.iter().filter(|(module, ..)| !module.is_retiring());
+        // 1. Typed handlers whose schema has exactly these many args.
+        // 2. Ones ending in a `string`, with the extra words joined into it
+        //    (the game may have parsed them as separate words).
+        // 3. Plain (schema-less) handlers, with whatever was typed.
+        for pass in 0..3 {
+            for (module, schema, ud, f) in live.clone() {
+                let joined;
+                let these = match (pass, schema) {
+                    (0, Some(schema)) if schema.split_whitespace().count() == args.len() => a.as_str(),
+                    (1, Some(schema)) => {
+                        let types: Vec<&str> = schema.split_whitespace().collect();
+                        let k = types.len();
+                        if types.last() != Some(&"string") || k == 0 || args.len() <= k {
+                            continue;
+                        }
+                        let mut parts: Vec<String> = args[..k - 1].iter().map(|x| x.to_string()).collect();
+                        parts.push(args[k - 1..].join(" "));
+                        joined = parts.join("\t");
+                        joined.as_str()
+                    }
+                    (2, None) => a.as_str(),
+                    _ => continue,
+                };
+                let Some(_call) = module.enter() else {
+                    continue;
+                };
+                if let Some(r) = call(ud, f, these) {
+                    return r;
+                }
             }
         }
         String::new()
