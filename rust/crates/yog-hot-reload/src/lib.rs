@@ -116,6 +116,24 @@ impl LoadedModule {
         })))
     }
 
+    /// The running program itself as a module: for testing code that
+    /// registers and dispatches through modules without a mod library.
+    pub fn this_process(generation: ModuleGeneration) -> Self {
+        #[cfg(unix)]
+        let library: Library = libloading::os::unix::Library::this().into();
+        #[cfg(windows)]
+        let library: Library = libloading::os::windows::Library::this()
+            .expect("the running program as a library")
+            .into();
+        LoadedModule(Arc::new(Inner {
+            generation,
+            library: Mutex::new(Some(library)),
+            active: AtomicUsize::new(0),
+            retiring: AtomicBool::new(false),
+            on_retire: Mutex::new(None),
+        }))
+    }
+
     pub fn generation(&self) -> ModuleGeneration {
         self.0.generation
     }

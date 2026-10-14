@@ -204,6 +204,33 @@ struct SchedulerState {
     repeating_tasks: Vec<RepeatingTask>,
 }
 
+impl SchedulerState {
+    /// One server tick: the tasks due now — once tasks whose delay ran out
+    /// (`schedule_once(d)`: `d` ticks later, 0 and 1 meaning the next tick),
+    /// repeating ones whose period came round (`schedule_repeating(p)`:
+    /// every `p` ticks, 0 meaning every tick). Once tasks fired are gone.
+    fn due(&mut self) -> Vec<(LoadedModule, *mut c_void, YogScheduledFn)> {
+        let mut out = Vec::new();
+        self.once_tasks.retain_mut(|t| {
+            if t.delay_remaining <= 1 {
+                out.push((t.module.clone(), t.ud, t.f));
+                false
+            } else {
+                t.delay_remaining -= 1;
+                true
+            }
+        });
+        for t in &mut self.repeating_tasks {
+            t.ticks_left = t.ticks_left.saturating_sub(1);
+            if t.ticks_left == 0 {
+                out.push((t.module.clone(), t.ud, t.f));
+                t.ticks_left = t.period.max(1);
+            }
+        }
+        out
+    }
+}
+
 struct OnceTask {
     module: LoadedModule,
     delay_remaining: u64,
@@ -2214,7 +2241,7 @@ unsafe extern "C" fn api_schedule_repeating(
             .push(RepeatingTask {
                 module: current_registration(),
                 period: period_ticks,
-                ticks_left: period_ticks,
+                ticks_left: period_ticks.max(1),
                 ud,
                 f: h,
             });
@@ -3858,56 +3885,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
 
     guard("startup_grants", process_pending_grants);
 
-    // Scheduler — once tasks
-    {
-        let mut sched = h.scheduler.lock().expect("scheduler poisoned");
-        let mut to_fire: Vec<(LoadedModule, *mut c_void, YogScheduledFn)> = Vec::new();
-        let mut remaining = Vec::new();
-        for task in sched.once_tasks.drain(..) {
-            if task.delay_remaining == 0 {
-                to_fire.push((task.module.clone(), task.ud, task.f));
-            } else {
-                remaining.push(OnceTask {
-                    delay_remaining: task.delay_remaining - 1,
-                    ..task
-                });
-            }
+    // Scheduler: what's due this tick, run outside the lock (a task may schedule more).
+    let due = h.scheduler.lock().expect("scheduler poisoned").due();
+    for (module, ud, f) in due {
+        if module.is_retiring() {
+            continue;
         }
-        sched.once_tasks = remaining;
-        drop(sched);
-        for (module, ud, f) in to_fire {
-            if module.is_retiring() {
-                continue;
-            }
-            let Some(_call) = module.enter() else {
-                continue;
-            };
-            guard("schedule_once", || unsafe { f(ud, srv) });
-        }
-    }
-
-    // Scheduler — repeating tasks
-    {
-        let mut sched = h.scheduler.lock().expect("scheduler poisoned");
-        let mut to_fire: Vec<(LoadedModule, *mut c_void, YogScheduledFn)> = Vec::new();
-        for task in &mut sched.repeating_tasks {
-            if task.ticks_left == 0 {
-                to_fire.push((task.module.clone(), task.ud, task.f));
-                task.ticks_left = task.period;
-            } else {
-                task.ticks_left -= 1;
-            }
-        }
-        drop(sched);
-        for (module, ud, f) in to_fire {
-            if module.is_retiring() {
-                continue;
-            }
-            let Some(_call) = module.enter() else {
-                continue;
-            };
-            guard("schedule_repeating", || unsafe { f(ud, srv) });
-        }
+        let Some(_call) = module.enter() else {
+            continue;
+        };
+        guard("scheduled task", || unsafe { f(ud, srv) });
     }
 }
 
@@ -5335,3 +5322,5 @@ mod images;
 mod svg;
 mod jcall;
 mod ui_jni;
+#[cfg(test)]
+mod tests;
