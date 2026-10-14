@@ -176,7 +176,7 @@ mod tests {
         assert_eq!(c.get_int_or("lives", 0), 3);
         assert_eq!(c.get_bool("on"), Some(true));
         assert_eq!(c.get("name"), Some("a = b"), "only the first `=` splits");
-        assert_eq!(c.get_bool_or("missing", true), true);
+        assert!(c.get_bool_or("missing", true));
         assert_eq!(c.get_int("name"), None);
         let _ = std::fs::remove_dir_all(&dir);
     }
