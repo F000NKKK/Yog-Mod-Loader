@@ -53,7 +53,7 @@ pub fn rasterize(data: &str, w: u32, h: u32) -> Option<Vec<u8>> {
     resvg::render(&tree, t, &mut pixmap.as_mut());
     // tiny-skia keeps premultiplied alpha; textures want it straight.
     let mut px = pixmap.take();
-    for p in px.chunks_exact_mut(4) {
+    for p in px.as_chunks_mut::<4>().0 {
         let a = p[3] as u32;
         if a > 0 && a < 255 {
             for c in &mut p[..3] {
