@@ -1263,7 +1263,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.31.7"
+version = "0.31.8"
 dependencies = [
  "criterion",
  "serde_json",
@@ -1337,7 +1337,7 @@ dependencies = [
 
 [[package]]
 name = "yog-interop"
-version = "0.21.2"
+version = "0.21.3"
 dependencies = [
  "proc-macro2",
  "quote",
