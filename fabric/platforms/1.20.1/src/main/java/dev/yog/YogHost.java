@@ -330,7 +330,7 @@ public class YogHost implements ModInitializer {
             java.util.Set<String> typedNames = new java.util.HashSet<>();
             String schemaLines = NativeBridge.nativeTypedCommandSchemas();
             if (schemaLines != null) {
-                for (String line : schemaLines.split("\n")) {
+                for (String line : typedSchemaOrder(schemaLines)) {
                     if (line.isBlank()) continue;
                     int tab = line.indexOf('\t');
                     if (tab <= 0) continue;
@@ -350,7 +350,7 @@ public class YogHost implements ModInitializer {
                         .executes(ctx -> runCommand(name, "", ctx))
                         .then(CommandManager.argument("args", StringArgumentType.greedyString())
                                 .executes(ctx -> runCommand(
-                                        name, StringArgumentType.getString(ctx, "args"), ctx))));
+                                        name, StringArgumentType.getString(ctx, "args").trim().replaceAll("\\s+", "\t"), ctx))));
             }
         });
     }
@@ -585,11 +585,27 @@ public class YogHost implements ModInitializer {
         // Build argument chain from last to first, wrapping inner with outer.
         ArgumentBuilder<ServerCommandSource, ?> chain = buildLeaf(name, schema, schema.length - 1);
         for (int i = schema.length - 2; i >= 0; i--) {
-            chain = buildArgNode(schema[i], "arg_" + i).then(chain);
+            chain = buildArgNode(schema[i], argName(i, schema[i])).then(chain);
             // Also allow executing with fewer args (partial match not standard; just attach executes at leaf).
         }
         root.then(chain);
         return root;
+    }
+
+    /**
+     * A typed argument's node name — its position and type, so schemas that
+     * differ there get separate Brigadier branches instead of being merged
+     * into the first one's (Brigadier merges same-named nodes).
+     */
+    private static String argName(int index, String type) {
+        return "arg_" + index + "_" + type;
+    }
+
+    /** Schema lines with greedy `string` args last: Brigadier tries a command's branches in registration order, so word chains go first. */
+    private static java.util.List<String> typedSchemaOrder(String lines) {
+        java.util.List<String> out = new java.util.ArrayList<>(java.util.Arrays.asList(lines.split("\n")));
+        out.sort(java.util.Comparator.comparing(l -> l.contains("string")));
+        return out;
     }
 
     private static RequiredArgumentBuilder<ServerCommandSource, ?> buildArgNode(String type, String argName) {
@@ -606,12 +622,12 @@ public class YogHost implements ModInitializer {
 
     private static ArgumentBuilder<ServerCommandSource, ?> buildLeaf(String cmdName, String[] schema, int idx) {
         String type    = schema[idx];
-        String argName = "arg_" + idx;
+        String argName = argName(idx, type);
         return buildArgNode(type, argName).executes(ctx -> {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i <= idx; i++) {
                 if (i > 0) sb.append('\t');
-                sb.append(resolveArg(schema[i], "arg_" + i, ctx));
+                sb.append(resolveArg(schema[i], argName(i, schema[i]), ctx));
             }
             return runCommand(cmdName, sb.toString(), ctx);
         });
