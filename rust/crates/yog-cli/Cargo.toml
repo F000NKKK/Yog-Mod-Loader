@@ -18,6 +18,8 @@ zip.workspace = true
 serde_json.workspace = true
 # Image sources (`item:`, `sprite:`, ...) checked in .yui files.
 yog-gfx = "0.25.1"
+# Themes (`<Screen theme>`) applied to .yui elements.
+yog-ui = "0.40.6"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }

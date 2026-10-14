@@ -24,6 +24,9 @@ pub struct Widget {
     pub state: StateFlags,
     /// Paint-only style overrides per state (`hover:bg="..."` in `.yui`).
     pub states: Option<Box<StateStyles>>,
+    /// Text shown in a tooltip while the cursor rests on it (`\n` breaks
+    /// lines) — see [`crate::UiRoot::tooltip_at`].
+    pub tooltip: Option<String>,
 }
 
 /// A typed click target: `owner` 0 = the screen, `k` = items control `k`;
@@ -533,7 +536,19 @@ impl Widget {
             visible: true,
             state: StateFlags::NONE,
             states: None,
+            tooltip: None,
         }
+    }
+
+    /// See [`Self::tooltip`]; empty = none.
+    pub fn tooltip(mut self, text: impl Into<String>) -> Self {
+        self.set_tooltip(text);
+        self
+    }
+    /// Sets (empty: clears) [`Self::tooltip`].
+    pub fn set_tooltip(&mut self, text: impl Into<String>) {
+        let t = text.into();
+        self.tooltip = (!t.is_empty()).then_some(t);
     }
 
     /// Typed click target — see [`Action`].

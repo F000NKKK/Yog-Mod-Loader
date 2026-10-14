@@ -44,6 +44,15 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
         // slots' items, the hover, the carried stack and the tooltip over it.
         super.render(ctx, mx, my, delta);
         this.renderTooltip(ctx, mx, my);
+        // What the screen draws over the game's items (its own tooltips),
+        // lifted above them like vanilla's.
+        ctx.pose().pushPose();
+        ctx.pose().translate(0, 0, 400);
+        NativeDraw.hudDrawContext = ctx;
+        NativeBridge.nativeUIRender(uiId + "#overlay", this.width, this.height);
+        NativeDraw.hudDrawContext = null;
+        ctx.pose().popPose();
+        NativeDraw.syncGlState();
     }
 
     @Override protected void renderBg(GuiGraphics ctx, float d, int mx, int my) {

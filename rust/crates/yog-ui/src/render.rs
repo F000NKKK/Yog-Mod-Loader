@@ -390,3 +390,36 @@ mod tests {
         assert!(fits(None, -100.0, 9.0));
     }
 }
+
+/// Vanilla's tooltip box: near-black fill, a purple gradient frame, white
+/// text — 12px right of and above the cursor, flipped to stay on screen.
+pub(crate) fn tooltip(d2d: &Draw2D, text: &str, mx: f32, my: f32, sw: f32, sh: f32) {
+    const BG: u32 = 0xF0_100010;
+    const BORDER_TOP: u32 = 0x50_5000FF;
+    const BORDER_BOTTOM: u32 = 0x50_28007F;
+    let lines: Vec<&str> = text.lines().collect();
+    if lines.is_empty() {
+        return;
+    }
+    let w = lines.iter().map(|l| crate::text::str_width(l, 1.0)).fold(0.0, f32::max);
+    let h = lines.len() as f32 * (crate::text::LINE_H + 1.0) - 1.0;
+    let mut x = mx + 12.0;
+    let mut y = my - 12.0;
+    if x + w + 4.0 > sw {
+        x = (mx - 16.0 - w).max(4.0);
+    }
+    y = y.clamp(4.0, (sh - h - 4.0).max(4.0));
+    let (x0, y0, x1, y1) = (x - 3.0, y - 3.0, x + w + 3.0, y + h + 3.0);
+    d2d.rect(x0, y0 - 1.0, x1, y0, BG);
+    d2d.rect(x0, y1, x1, y1 + 1.0, BG);
+    d2d.rect(x0, y0, x1, y1, BG);
+    d2d.rect(x0 - 1.0, y0, x0, y1, BG);
+    d2d.rect(x1, y0, x1 + 1.0, y1, BG);
+    d2d.gradient(x0, y0 + 1.0, x0 + 1.0, y1 - 1.0, BORDER_TOP, BORDER_BOTTOM);
+    d2d.gradient(x1 - 1.0, y0 + 1.0, x1, y1 - 1.0, BORDER_TOP, BORDER_BOTTOM);
+    d2d.rect(x0, y0, x1, y0 + 1.0, BORDER_TOP);
+    d2d.rect(x0, y1 - 1.0, x1, y1, BORDER_BOTTOM);
+    for (i, line) in lines.iter().enumerate() {
+        d2d.text(line, x, y + i as f32 * (crate::text::LINE_H + 1.0), 0xFF_FFFFFF, true);
+    }
+}

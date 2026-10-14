@@ -314,11 +314,12 @@ const COMMON_ATTRS: &[&str] = &[
     "focus_color",
     "enabled",
     "on_click",
+    "tooltip",
 ];
 
 fn kind_attrs(kind: &str) -> &'static [&'static str] {
     match kind {
-        "Screen" => &["width", "height", "anchor", "modal", "pause", "live"],
+        "Screen" => &["width", "height", "anchor", "modal", "pause", "live", "theme"],
         "Label" | "Button" => &["text"],
         "TextBox" => &[
             "text",
@@ -902,6 +903,7 @@ impl Gen {
                     call(format!("{key}({v:?})"));
                 }
                 "placeholder" => call(format!("placeholder({})", text_expr(v))),
+                "tooltip" => call(format!("tooltip({})", text_expr(v))),
                 "font" => call(format!("font({:?})", v.trim())),
                 "max_length" => {
                     let n = v.trim().parse::<usize>().map_err(|_| {
@@ -976,6 +978,29 @@ impl Gen {
 /// Lower case a-z, 0-9, `_`, `-`, `.`, `/` — a resource id's namespace or path.
 fn valid_resource_id(s: &str) -> bool {
     s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "_-./".contains(c))
+}
+
+/// The theme `<Screen theme="...">` names, if any.
+pub(crate) fn screen_theme(root: &Element) -> Result<Option<yog_ui::theme::Theme>, String> {
+    let Some(id) = root.attr("theme").map(str::trim).filter(|t| !t.is_empty()) else {
+        return Ok(None);
+    };
+    yog_ui::theme::Theme::builtin(id).map(Some).ok_or_else(|| {
+        format!(
+            "line {}: <Screen> theme=\"{id}\": no such theme (built in: {})",
+            root.line,
+            yog_ui::theme::Theme::BUILTIN.join(", ")
+        )
+    })
+}
+
+/// Gives every element of `el`'s subtree its theme defaults (what it
+/// doesn't set itself) — for screens without styles to merge first.
+pub(crate) fn apply_theme(el: &mut Element, theme: &yog_ui::theme::Theme) {
+    theme.apply(&el.name, &mut el.attrs);
+    for c in &mut el.children {
+        apply_theme(c, theme);
+    }
 }
 
 /// Whether a `bg` value is an image (`sprite:panel`, `mymod:gui/frame`,
@@ -1086,6 +1111,9 @@ pub fn generate_for(
     }
     if root.attr("x:ViewModel").is_some() {
         return crate::yui_vm::generate(&root, name, mod_id);
+    }
+    if let Some(theme) = screen_theme(&root)? {
+        apply_theme(&mut root, &theme);
     }
     if root.name != "Screen" {
         return Err(format!(

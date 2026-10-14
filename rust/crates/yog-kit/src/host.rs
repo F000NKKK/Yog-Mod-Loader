@@ -447,6 +447,15 @@ impl<W: View> Host<W> {
         }
     }
 
+    /// The tooltip of what's under the cursor, drawn on top.
+    pub(crate) fn draw_tooltip(&self, gfx: &yog_api::GfxContext) {
+        if let Some((x, y)) = self.mouse
+            && let Some(text) = self.ui.tooltip_at(x, y)
+        {
+            UiRoot::render_tooltip(gfx, text, x, y);
+        }
+    }
+
     // ── input ───────────────────────────────────────────────────────────────
 
     /// Handles one raw UI event; `true` = consumed.

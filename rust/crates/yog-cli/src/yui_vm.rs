@@ -478,6 +478,7 @@ pub(crate) fn compile_bind(value: &str) -> Option<Result<String, String>> {
 enum Target {
     Text,
     Placeholder,
+    Tooltip,
     Item,
     Source,
     Count,
@@ -494,6 +495,7 @@ fn target(kind: &str, attr: &str) -> Option<Target> {
     Some(match attr {
         "text" if matches!(kind, "Label" | "Button" | "TextBox") => Target::Text,
         "placeholder" if kind == "TextBox" => Target::Placeholder,
+        "tooltip" => Target::Tooltip,
         "item" if matches!(kind, "ItemSlot" | "InvSlot") => Target::Item,
         "source" if matches!(kind, "Image" | "Surface") => Target::Source,
         "count" if kind == "InvSlot" => Target::Count,
@@ -545,6 +547,8 @@ impl Ctx {
 struct VmGen<'a> {
     file: String,
     mod_id: Option<&'a str>,
+    /// `<Screen theme>`: element defaults under its own attributes and styles.
+    theme: Option<yog_ui::theme::Theme>,
     resources: HashMap<String, String>,
     styles: HashMap<String, Vec<(String, String)>>,
     ids: yui::Names,
@@ -638,6 +642,10 @@ impl VmGen<'_> {
                 out.attrs.push((k, v));
             }
         }
+        // Theme defaults come last: own attributes and styles win.
+        if let Some(theme) = &self.theme {
+            theme.apply(&el.name, &mut out.attrs);
+        }
         Ok(out)
     }
 
@@ -722,7 +730,7 @@ impl VmGen<'_> {
         let expr = b.rust(ctx.scope, el)?;
         let opt = b.expr.as_ref().is_some_and(Ex::has_opt);
         let (ty, conv) = match t {
-            Target::Text | Target::Placeholder | Target::Item | Target::Source => {
+            Target::Text | Target::Placeholder | Target::Tooltip | Target::Item | Target::Source => {
                 ("String", "::yog_kit::bind::text(&(E))".to_string())
             }
             Target::Count => ("u32", "::yog_kit::bind::count(E)".into()),
@@ -763,6 +771,7 @@ impl VmGen<'_> {
             Target::Placeholder => {
                 format!("::yog_kit::bind::set_placeholder({w}, {f}.get()); u.repaint();")
             }
+            Target::Tooltip => format!("{w}.set_tooltip(::std::clone::Clone::clone({f}.get()));"),
             Target::Item => format!("::yog_kit::bind::set_item({w}, {f}.get()); u.repaint();"),
             Target::Source => format!("::yog_kit::bind::set_source({w}, {f}.get()); u.relayout();"),
             Target::Count => format!("::yog_kit::bind::set_count({w}, *{f}.get()); u.repaint();"),
@@ -992,7 +1001,7 @@ impl VmGen<'_> {
                         },
                     ));
                 }
-                "text" | "placeholder"
+                "text" | "placeholder" | "tooltip"
                     if v.starts_with('@') && !v.starts_with("@@") && v.len() > 1 =>
                 {
                     // Looked up on every update, so it follows the language.
@@ -1550,6 +1559,7 @@ pub fn generate(
     let mut g = VmGen {
         file: format!("{name}.yui"),
         mod_id,
+        theme: yui::screen_theme(root)?,
         resources: HashMap::new(),
         styles: HashMap::new(),
         ids: yui::Names::default(),
@@ -1718,6 +1728,31 @@ mod tests {
             r#"<Screen id="t:s" width="200" height="100" x:ViewModel="Vm">{body}</Screen>"#
         );
         crate::yui::generate_for(&src, "s", None).map(|(c, _)| c)
+    }
+
+    #[test]
+    fn themes() {
+        let src = r##"<Screen id="t:s" width="200" height="100" theme="minecraft:vanilla" x:ViewModel="Vm">
+            <Screen.Resources><Style x:Key="Red" target="Button" bg="#FFFF0000"/></Screen.Resources>
+            <Column>
+                <Button x:Name="plain" command="{x:Bind go()}"/>
+                <Button x:Name="own" bg="#FF00FF00" command="{x:Bind go()}"/>
+                <Button x:Name="styled" style="@Red" command="{x:Bind go()}"/>
+            </Column></Screen>"##;
+        let code = crate::yui::generate_for(src, "s", None).unwrap().0;
+        assert!(code.contains(r#".bg_image("sprite:panel")"#), "{code}");
+        assert_eq!(code.matches(r#".bg_image("sprite:button")"#).count(), 1, "{code}");
+        assert!(code.contains("bg(0xFF00FF00)") && code.contains("bg(0xFFFF0000)"), "{code}");
+        let bad = src.replace("minecraft:vanilla", "nope:nope");
+        assert!(crate::yui::generate_for(&bad, "s", None).unwrap_err().contains("no such theme"));
+    }
+
+    #[test]
+    fn tooltips() {
+        let code = codegen(r#"<Column><Label tooltip="Static"/><Label tooltip="{x:Bind hint()}"/></Column>"#).unwrap();
+        assert!(code.contains(r#".tooltip("Static")"#), "{code}");
+        assert!(code.contains("::yog_kit::bind::text(&(vm.hint()))"), "{code}");
+        assert!(code.contains(".set_tooltip(::std::clone::Clone::clone("), "{code}");
     }
 
     #[test]

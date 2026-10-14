@@ -222,7 +222,9 @@ impl<W: View> Screen<W> {
         lock(&HANDLES).push((TypeId::of::<W>(), Box::new(handle.clone())));
         lock(&host).every_frame = W::META.live;
         // Opened by the game with the block it belongs to, not by `open()`.
-        if let Some(def) = inventory_of::<W>() {
+        let inventory = inventory_of::<W>();
+        let overlay = inventory.is_some();
+        if let Some(def) = inventory {
             registry.register_inventory(def);
             lock(&host).every_frame = true;
         }
@@ -233,7 +235,17 @@ impl<W: View> Screen<W> {
             let (w, hh) = gfx.screen_size();
             h.frame(w as f32, hh as f32);
             h.ui.render(gfx);
+            if !overlay {
+                h.draw_tooltip(gfx);
+            }
         });
+        // An inventory screen's game-drawn items come after its markup: the
+        // host draws `<id>#overlay` after them, for what goes on top.
+        if overlay {
+            let top = host.clone();
+            let id: &'static str = Box::leak(format!("{}#overlay", W::META.id).into_boxed_str());
+            registry.on_ui_render(id, move |gfx| lock(&top).draw_tooltip(gfx));
+        }
         registry.register_ui(W::META.id, move |_, ev| lock(&host).on_event(ev));
         handle
     }

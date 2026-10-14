@@ -27,6 +27,7 @@ pub mod scroll;
 #[cfg(test)]
 mod state_tests;
 pub mod surface;
+pub mod theme;
 pub mod text;
 pub mod textbox;
 pub mod widget;
@@ -74,6 +75,28 @@ impl UiRoot {
         image::use_host_images(ctx);
         let d2d = ctx.draw2d();
         render::render_node(ctx, &d2d, &self.root, &self.layout_root);
+    }
+
+    /// The tooltip of the innermost widget at `(mx, my)` that has one.
+    /// Call after [`Self::layout`].
+    pub fn tooltip_at(&self, mx: f32, my: f32) -> Option<&str> {
+        let path = layout::deepest_path(&self.layout_root, mx, my)?;
+        let mut w = &self.root;
+        let mut found = w.tooltip.as_deref();
+        for &i in &path {
+            let Some(c) = w.children.get(i as usize) else { break };
+            w = c;
+            found = w.tooltip.as_deref().or(found);
+        }
+        found
+    }
+
+    /// Draws `text` as a vanilla tooltip next to the cursor at `(mx, my)`,
+    /// kept inside the screen. Call after [`Self::render`] so it's on top.
+    pub fn render_tooltip(ctx: &GfxContext, text: &str, mx: f32, my: f32) {
+        text::use_host_metrics(ctx);
+        let (sw, sh) = ctx.screen_size();
+        render::tooltip(&ctx.draw2d(), text, mx, my, sw as f32, sh as f32);
     }
 
     /// Find the deepest clickable widget at `(mx, my)` in screen coordinates.
