@@ -143,7 +143,7 @@ fn render_clipped(
             crate::Align::Start => 0.0,
         }),
         // Each line centered horizontally inside the button.
-        WidgetKind::Button(t) => draw_lines(d2d, t, s, *r, clip, |free| (free / 2.0).max(0.0)),
+        WidgetKind::Button(t) => draw_button_text(d2d, t, s, *r, clip),
         WidgetKind::ItemSlot(item_id) => {
             let (ix, iy) = (r.x + s.pad[3], r.y + s.pad[0]);
             if !fits(clip, iy, SLOT_SIZE) {
@@ -226,6 +226,27 @@ fn render_clipped(
 
 /// Draws a label's / button's text lines inside `r` (less padding), the
 /// block centered vertically and each line `place(free width)` from the left.
+/// A button's text: centred like vanilla's buttons — one line at
+/// `y + (h - 8) / 2` in whole pixels (the glyphs' 8, not the line's 9), so it
+/// keeps clear of the frame; several lines centred as a block.
+fn draw_button_text(d2d: &Draw2D, t: &str, s: &Style, r: Rect, clip: Option<Rect>) {
+    let avail_w = (r.w - s.pad[1] - s.pad[3]).max(0.0);
+    let lines = text_lines(t, s, avail_w);
+    if lines.len() != 1 || s.font_scale != 1.0 || !text::is_default_font(&s.font) {
+        draw_lines(d2d, t, s, r, clip, |free| (free / 2.0).max(0.0));
+        return;
+    }
+    let content_h = r.h - s.pad[0] - s.pad[2];
+    let y = r.y + s.pad[0] + ((content_h - 8.0) / 2.0).max(0.0).floor();
+    let line = &lines[0];
+    if !fits(clip, y, text::LINE_H) {
+        return;
+    }
+    let ink_w = (text::str_width_in(line, 1.0, &s.font) - 1.0).max(0.0);
+    let x = r.x + s.pad[3] + ((avail_w - ink_w) / 2.0).max(0.0);
+    draw_text(d2d, line, &s.font, x, y, 1.0, s.color, s.text_shadow);
+}
+
 fn draw_lines(
     d2d: &Draw2D,
     t: &str,
