@@ -294,7 +294,7 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
             ::yog_api::__yog_import_registry().lock().unwrap().push(::yog_api::YogImportEntry {
                 mod_id: #mod_name,
                 symbol: #name_str,
-                bind_fn: #bind_name as usize,
+                bind_fn: #bind_name as *const () as usize,
             });
         }
     }

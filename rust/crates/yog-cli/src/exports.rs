@@ -623,7 +623,7 @@ fn __yog_import_ctor_{name}() {{
     ::yog_api::__yog_import_registry().lock().unwrap().push(::yog_api::YogImportEntry {{
         mod_id: "{mod_id}",
         symbol: "{name}",
-        bind_fn: {bind_name_fmt} as usize,
+        bind_fn: {bind_name_fmt} as *const () as usize,
     }});
 }}
 "#
