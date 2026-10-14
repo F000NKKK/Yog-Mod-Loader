@@ -1,18 +1,17 @@
-//! Yog rich text — formatting inside a text string, the same for every
-//! host, version and the designer:
+//! Yog text — one format for every text a mod writes (`.yres`, `.yui`,
+//! books), the same for every host, version and the designer:
 //!
-//! | Write | Shows |
+//! | Write | Means |
 //! |---|---|
-//! | `{b\|bold}` | bold |
-//! | `{i\|italic}` | italic |
-//! | `{u\|underlined}` | underlined |
-//! | `{s\|struck}` | struck through |
-//! | `{#8d6acc\|text}` | any color (`#rrggbb`) |
+//! | `{b\|bold}` `{i\|…}` `{u\|…}` `{s\|…}` | bold, italic, underlined, struck through |
+//! | `{#8d6acc\|text}` | any color |
 //! | `{b #8d6acc\|text}` | several at once; spans nest |
-//! | `\{` `\}` `\|` `\\` | the character itself |
+//! | `{name}`, `{0}` | an argument (`.yres` texts; filled in before drawing) |
+//! | `{{`, `}}` | a literal `{`, `}` (`}}` outside a span; in one, `}` closes it) |
 //!
-//! A `{` not starting a span (no `|`, unknown attributes) is just a
-//! character. Minecraft's own `§` codes pass through as the game reads them.
+//! A producer may add its own attribute words and turn them into these
+//! before drawing (a book's `accent`, `link=entry` — see [`map_attrs`]).
+//! Minecraft's own `§` codes pass through as the game reads them.
 
 /// What a stretch of text looks like.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -51,8 +50,13 @@ enum Token<'a> {
     Close,
 }
 
-/// Reads `s` token by token (a `}` with no span open is a character).
+/// Reads `s` token by token.
 fn tokens(s: &str) -> Vec<Token<'_>> {
+    pieces(s).into_iter().map(|(t, _)| t).collect()
+}
+
+/// `s` read token by token, each with the text it was read from.
+fn pieces(s: &str) -> Vec<(Token<'_>, &str)> {
     let mut out = Vec::new();
     let mut depth = 0usize;
     let mut i = 0;
@@ -60,14 +64,9 @@ fn tokens(s: &str) -> Vec<Token<'_>> {
     while i < s.len() {
         let c = s[i..].chars().next().unwrap_or_default();
         match c {
-            '\\' => {
-                if let Some(n) = s[i + 1..].chars().next() {
-                    out.push(Token::Char(n));
-                    i += 1 + n.len_utf8();
-                } else {
-                    out.push(Token::Char('\\'));
-                    i += 1;
-                }
+            '{' if b.get(i + 1) == Some(&b'{') => {
+                out.push((Token::Char('{'), &s[i..i + 2]));
+                i += 2;
                 continue;
             }
             '{' => {
@@ -75,21 +74,69 @@ fn tokens(s: &str) -> Vec<Token<'_>> {
                     && b[bar] == b'|'
                     && apply(&s[i + 1..bar], Style::default()).is_some()
                 {
-                    out.push(Token::Open(&s[i + 1..bar]));
+                    out.push((Token::Open(&s[i + 1..bar]), &s[i..=bar]));
                     depth += 1;
                     i = bar + 1;
                     continue;
                 }
             }
             '}' if depth > 0 => {
-                out.push(Token::Close);
+                out.push((Token::Close, &s[i..=i]));
                 depth -= 1;
                 i += 1;
                 continue;
             }
+            '}' if b.get(i + 1) == Some(&b'}') => {
+                out.push((Token::Char('}'), &s[i..i + 2]));
+                i += 2;
+                continue;
+            }
             _ => {}
         }
-        out.push(Token::Char(c));
+        out.push((Token::Char(c), &s[i..i + c.len_utf8()]));
+        i += c.len_utf8();
+    }
+    out
+}
+
+/// `s` split into its markup and its characters: each piece's text as
+/// written, and the character it shows (`None`: markup, no room taken).
+pub fn glyphs(s: &str) -> Vec<(&str, Option<char>)> {
+    pieces(s)
+        .into_iter()
+        .map(|(t, raw)| match t {
+            Token::Char(c) => (raw, Some(c)),
+            _ => (raw, None),
+        })
+        .collect()
+}
+
+/// `s` with every span's attribute words passed through `f` (`Some`: the
+/// words to write instead) — how a producer turns its own words (`accent`,
+/// `link=…`) into this format's.
+pub fn map_attrs(s: &str, f: impl Fn(&str) -> Option<String>) -> String {
+    let mut out = String::with_capacity(s.len());
+    let b = s.as_bytes();
+    let mut i = 0;
+    while i < s.len() {
+        if b[i] == b'{' && b.get(i + 1) == Some(&b'{') {
+            out.push_str("{{");
+            i += 2;
+            continue;
+        }
+        if b[i] == b'{'
+            && let Some(bar) = s[i + 1..].find(['|', '{', '}']).map(|p| p + i + 1)
+            && b[bar] == b'|'
+        {
+            let words: Vec<String> = s[i + 1..bar].split_whitespace().map(|w| f(w).unwrap_or_else(|| w.to_string())).collect();
+            out.push('{');
+            out.push_str(&words.join(" "));
+            out.push('|');
+            i = bar + 1;
+            continue;
+        }
+        let c = s[i..].chars().next().unwrap_or_default();
+        out.push(c);
         i += c.len_utf8();
     }
     out
@@ -177,13 +224,23 @@ mod tests {
 
     #[test]
     fn parses_spans() {
-        let r = runs("a {b|bold {#8d6acc|purple}} \\{x\\} {not a span}");
+        let r = runs("a {b|bold {#8d6acc|purple}} {{x}} {not a span}");
         assert_eq!(r[0], ("a ".to_string(), Style::default()));
         assert_eq!(r[1].0, "bold ");
         assert!(r[1].1.bold);
         assert_eq!(r[2], ("purple".to_string(), Style { bold: true, color: Some(0x8d6acc), ..Default::default() }));
         assert_eq!(r[3].0, " {x} {not a span}");
         assert_eq!(plain("{i|x}y"), "xy");
+    }
+
+    #[test]
+    fn producers_map_their_words() {
+        let s = map_attrs("a {accent|term} {{x}} {b link=m:e|y}", |w| match w {
+            "accent" => Some("#8d6acc".into()),
+            w if w.starts_with("link=") => Some("u #2f5fbf".into()),
+            _ => None,
+        });
+        assert_eq!(s, "a {#8d6acc|term} {{x}} {b u #2f5fbf|y}");
     }
 
     #[test]

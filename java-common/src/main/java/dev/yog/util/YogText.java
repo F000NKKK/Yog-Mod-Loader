@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Yog rich text (see the yog-ui crate's {@code rich} module): {@code {b|…}},
+ * Yog text (see the yog-ui crate's {@code rich} module): {@code {b|…}},
  * {@code {i|…}}, {@code {u|…}}, {@code {s|…}}, {@code {#rrggbb|…}}, several
- * attributes in one span, spans nested, {@code \{ \} \| \\} escapes — split
+ * attributes in one span, spans nested, {@code {{} / {@code }}} literal braces — split
  * into runs of one style, which each host turns into its version's text
  * components. Minecraft's own {@code §} codes stay in the text as the game
  * reads them. Mapping-agnostic.
@@ -21,9 +21,9 @@ public final class YogText {
         static final Style NONE = new Style(-1, false, false, false, false);
     }
 
-    /** Whether {@code s} may hold spans (the plain path otherwise). */
+    /** Whether {@code s} may hold spans or brace escapes (the plain path otherwise). */
     public static boolean rich(String s) {
-        return s.indexOf('{') >= 0 || s.indexOf('\\') >= 0;
+        return s.indexOf('{') >= 0 || s.indexOf('}') >= 0;
     }
 
     /** {@code attrs} applied to {@code st}; {@code null} if they aren't span attributes. */
@@ -61,9 +61,10 @@ public final class YogText {
         for (int k = 0; k < n; k++) {
             char c = s.charAt(k);
             Style top = stack.get(stack.size() - 1);
-            if (c == '\\' && k + 1 < n) {
+            if (c == '{' && k + 1 < n && s.charAt(k + 1) == '{') {
                 if (!top.equals(curStyle)) { flush(out, cur, curStyle); curStyle = top; }
-                cur.append(s.charAt(++k));
+                cur.append('{');
+                k++;
                 continue;
             }
             if (c == '{') {
@@ -82,6 +83,12 @@ public final class YogText {
             }
             if (c == '}' && stack.size() > 1) {
                 stack.remove(stack.size() - 1);
+                continue;
+            }
+            if (c == '}' && k + 1 < n && s.charAt(k + 1) == '}') {
+                if (!top.equals(curStyle)) { flush(out, cur, curStyle); curStyle = top; }
+                cur.append('}');
+                k++;
                 continue;
             }
             if (!top.equals(curStyle)) { flush(out, cur, curStyle); curStyle = top; }

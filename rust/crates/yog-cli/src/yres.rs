@@ -545,20 +545,35 @@ enum Segment {
     Arg(String),
 }
 
-/// Splits a text into literal parts and `{arg}` placeholders.
+/// Splits a text into literal parts and `{arg}` placeholders. Yog rich
+/// text (`{b|…}`, `{#rrggbb|…}`: an opening with a `|` before any brace)
+/// and its `\` escapes stay in the text as they are.
 fn segments(text: &str) -> Result<Vec<Segment>, String> {
     let mut out = Vec::new();
     let mut lit = String::new();
+    let mut spans = 0usize;
     let mut chars = text.chars().peekable();
     while let Some(c) = chars.next() {
         match c {
+            '{' if {
+                let rest: String = chars.clone().take_while(|&x| x != '{' && x != '}').collect();
+                rest.contains('|')
+            } =>
+            {
+                lit.push('{');
+                spans += 1;
+            }
+            '}' if spans > 0 => {
+                lit.push('}');
+                spans -= 1;
+            }
             '{' if chars.peek() == Some(&'{') => {
                 chars.next();
-                lit.push('{');
+                lit.push_str("{{");
             }
             '}' if chars.peek() == Some(&'}') => {
                 chars.next();
-                lit.push('}');
+                lit.push_str("}}");
             }
             '{' => {
                 let mut arg = String::new();
@@ -1321,6 +1336,13 @@ pub fn resolve_image(refs: &Refs, value: &str) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn rich_text_spans_are_not_placeholders() {
+        let seg = segments("{#8d6acc|Media} and {b|x} for {name}").unwrap();
+        assert_eq!(seg, [Segment::Text("{#8d6acc|Media} and {b|x} for ".into()), Segment::Arg("name".into())]);
+    }
+
     use super::*;
 
     #[test]
@@ -1383,7 +1405,7 @@ mod tests {
         let segs = segments("{shown} of {total}: 100% {{ok}}").unwrap();
         let ps = params(&segs).unwrap();
         assert_eq!(ps, ["shown", "total"]);
-        assert_eq!(lang_text(&segs, &ps).unwrap(), "%1$s of %2$s: 100%% {ok}");
+        assert_eq!(lang_text(&segs, &ps).unwrap(), "%1$s of %2$s: 100%% {{ok}}");
         let ru = segments("из {total} показано {shown}").unwrap();
         assert_eq!(lang_text(&ru, &ps).unwrap(), "из %2$s показано %1$s");
         assert!(lang_text(&segments("{other}").unwrap(), &ps).is_err());

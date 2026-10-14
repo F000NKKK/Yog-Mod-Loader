@@ -237,7 +237,7 @@ pub struct Book {
     pub id: String,
     pub name: String,
     pub nameplate_color: String,
-    /// The color `==terms==` are shown in (`#rrggbb`).
+    /// The color `{accent|terms}` are shown in (`#rrggbb`).
     pub accent: String,
     pub landing_text: String,
     pub author: Option<String>,

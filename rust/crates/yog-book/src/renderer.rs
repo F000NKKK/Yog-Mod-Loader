@@ -245,10 +245,37 @@ fn normalize_item_id(id: &str) -> String {
     format!("{ns}:{name}")
 }
 
-/// "yog:ruby_block" → "Ruby Block" (fallback display name from an item id).
+/// The image source of a book's sheet: its own (`book_texture`, a sheet
+/// laid out as [`BOOK_PNG`]; `ns:textures/x.png` and `ns:x` alike) or Yog's.
+fn book_sheet(texture: &str) -> String {
+    let t = texture.trim();
+    if t.is_empty() || t == "yog:gui/book" {
+        return BOOK_SHEET.to_string();
+    }
+    let (ns, path) = t.split_once(':').unwrap_or(("minecraft", t));
+    let path = path.strip_prefix("textures/").unwrap_or(path);
+    format!("{ns}:{}", path.strip_suffix(".png").unwrap_or(path))
+}
+
+/// The game's translations, for item names (set with the translator).
+static ITEM_NAMES: std::sync::RwLock<Option<fn(&str) -> Option<String>>> = std::sync::RwLock::new(None);
+
+/// An item's name: the game's (`item.<ns>.<path>`, else `block.…`), else
+/// one made from its id — "hexcasting:staff/oak" → "Oak Staff".
 fn pretty_item_name(id: &str) -> String {
-    let name = id.rsplit(':').next().unwrap_or(id);
-    name.split('_')
+    let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
+    if let Some(tr) = *ITEM_NAMES.read().unwrap_or_else(|e| e.into_inner()) {
+        let key = path.replace('/', ".");
+        for kind in ["item", "block"] {
+            let k = format!("{kind}.{ns}.{key}");
+            if let Some(name) = tr(&k).filter(|n| *n != k) {
+                return name;
+            }
+        }
+    }
+    path.rsplit('/')
+        .flat_map(|seg| seg.split('_'))
+        .filter(|w| !w.is_empty())
         .map(|w| {
             let mut c = w.chars();
             match c.next() {
@@ -314,10 +341,12 @@ impl BookRenderer {
         }
     }
 
-    /// For [`Book::i18n`] books: the book's texts are translation keys,
-    /// looked up with `tr` (unknown keys stay as they are) and re-looked up
-    /// whenever the language changes.
+    /// The game's translations: items' names in recipe titles, and, for
+    /// [`Book::i18n`] books, the book's texts — translation keys, looked up
+    /// with `tr` (unknown keys stay as they are) and re-looked up whenever
+    /// the language changes.
     pub fn set_translator(&mut self, tr: fn(&str) -> Option<String>) {
+        *ITEM_NAMES.write().unwrap_or_else(|e| e.into_inner()) = Some(tr);
         if self.book.i18n {
             self.source.get_or_insert_with(|| self.book.clone());
             // (Already flowed: flowing again only splits what still overflows.)
@@ -336,7 +365,7 @@ impl BookRenderer {
             return;
         }
         let accent = src.accent.clone();
-        self.written = src.localized(|k| crate::markup::to_rich(&tr(k).unwrap_or_else(|| k.to_string()), &accent));
+        self.written = src.localized(|k| crate::markup::resolve(&tr(k).unwrap_or_else(|| k.to_string()), &accent));
         (self.book, self.origins) = flow_traced(self.written.clone());
         self.probe = probe;
         self.dirty = true;
@@ -410,10 +439,11 @@ impl BookRenderer {
         }
         let (bx, by, bw, bh) = self.prepare(sw, sh);
         let d2 = ctx.draw2d();
-        d2.image_region(BOOK_SHEET, bx, by, bw, bh, [0.0, 0.0, BK_W, BK_H], 0xFFFF_FFFF);
+        let book_sheet = book_sheet(&self.book.book_texture);
+        d2.image_region(&book_sheet, bx, by, bw, bh, [0.0, 0.0, BK_W, BK_H], 0xFFFF_FFFF);
         for spr in &self.bg_sprites {
             let sheet = match spr.sheet {
-                SpriteSheet::Book => BOOK_SHEET,
+                SpriteSheet::Book => &book_sheet,
                 SpriteSheet::Crafting => CRAFTING_SHEET,
             };
             d2.image_region(sheet, spr.x, spr.y, spr.w, spr.h, [spr.u, spr.v, spr.uw, spr.uh], 0xFFFF_FFFF);
@@ -586,6 +616,11 @@ const TEXT_W: f32 = PAGE_W - 8.0;
 /// title and separator, the page navigation and the padding.
 const BODY_H: f32 = PAGE_H - 22.0 - 12.0 - 14.0;
 
+/// A multiblock page's view of its structure, and its name's height (with
+/// the gap under it), in book pixels.
+const MB_VIEW: f32 = 70.0;
+const MB_NAME_H: f32 = 14.0;
+
 /// How much of the body a page's own content takes above its text.
 fn content_above_text(page: &BookPage) -> Option<f32> {
     Some(match page {
@@ -595,7 +630,7 @@ fn content_above_text(page: &BookPage) -> Option<f32> {
         BookPage::Crafting { .. } => 80.0,
         BookPage::Smelting { .. } => 40.0,
         BookPage::Image { .. } | BookPage::Entity { .. } => 104.0,
-        BookPage::Multiblock { .. } => 114.0,
+        BookPage::Multiblock { name, .. } => MB_VIEW + 4.0 + if name.is_some() { MB_NAME_H } else { 0.0 },
         BookPage::Relations { entries, .. } => 12.0 + entries.len() as f32 * 10.0,
         _ => return None,
     })
@@ -615,9 +650,9 @@ fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
     }
 }
 
-/// `book` with its texts' markup (see [`crate::markup`]) as formatting codes.
+/// `book` with its texts' own words (see [`crate::markup`]) as Yog text's.
 fn styled(book: &Book) -> Book {
-    book.localized(|t| crate::markup::to_rich(t, &book.accent))
+    book.localized(|t| crate::markup::resolve(t, &book.accent))
 }
 
 /// Text that doesn't fit its page goes on to new text pages after it.
@@ -1510,17 +1545,21 @@ fn build_page(
         }
 
         BookPage::Multiblock { name, pattern, mapping, text } => {
-            if let Some(n) = name {
-                col = col.child(title_lbl(n.as_str()).color(theme.title));
-            }
+            // A 70px view (under its name), its text below.
+            let top = if let Some(n) = name {
+                col = col.child(title_lbl(n.as_str()).color(theme.title).h(10.0 * sy));
+                MB_NAME_H
+            } else {
+                0.0
+            };
             overlays.push(OverlayCmd::Blocks {
                 blocks: crate::multiblock_blocks(pattern, mapping),
-                x: ox + (PAGE_W / 2.0 - 45.0) * sx,
-                y: oy + 12.0 * sy,
-                w: 90.0 * sx,
-                h: 90.0 * sy,
+                x: ox + (PAGE_W / 2.0 - MB_VIEW / 2.0) * sx,
+                y: oy + top * sy,
+                w: MB_VIEW * sx,
+                h: MB_VIEW * sy,
             });
-            col = col.child(widget::spacer().h(94.0 * sy));
+            col = col.child(widget::spacer().h(MB_VIEW * sy));
             if let Some(t) = text {
                 col = col.child(lbl(t.as_str()).color(theme.text));
             }

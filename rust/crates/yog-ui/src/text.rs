@@ -219,26 +219,21 @@ fn wrap_paragraph(text: &str, max_w: f32, font_scale: f32, font: &str, out: &mut
         // Word is wider than one line — hard-break at glyph boundaries.
         let (mut w, mut line_empty) = (0.0f32, true);
         let mut code = false;
-        let mut opening = false;
-        for ch in word.chars() {
+        for (raw, ch) in crate::rich::glyphs(word) {
             // Markup takes no room: a `§` code, a span's `{attrs|` and `}`.
-            if code || ch == '§' {
-                code = ch == '§';
-                out.push_char(ch);
+            let shown = ch.filter(|&c| !code && c != '§');
+            code = ch == Some('§');
+            let Some(ch) = shown else {
+                raw.chars().for_each(|c| out.push_char(c));
                 continue;
-            }
-            if opening || ch == '{' || ch == '}' {
-                opening = (opening || ch == '{') && ch != '|';
-                out.push_char(ch);
-                continue;
-            }
+            };
             let cw = char_width_in(ch, font) * font_scale;
             if w + cw > max_w && !line_empty {
                 out.end_line();
                 lines += 1;
                 w = 0.0;
             }
-            out.push_char(ch);
+            raw.chars().for_each(|c| out.push_char(c));
             line_empty = false;
             w += cw;
         }
@@ -314,6 +309,8 @@ mod tests {
             wrap_text("a mmmmmmmmmm b", 30.0, 1.0),
             ["a", "mmmmm", "mmmmm", "b"]
         );
+        assert_eq!(wrap_text("{b|mmmmmmmmmm}", 30.0, 1.0), ["{b|mmmmm", "mmmmm}"], "spans take no room");
+        assert_eq!(wrap_text("{{m}}{{m}}", 15.0, 1.0), ["{{m", "}}{{", "m}}"], "escaped braces are characters");
     }
 
     #[test]
