@@ -571,9 +571,7 @@ pub fn generate_fn_wrapper(mod_id: &str, name: &str, source: &str) -> String {
     let bind_name_fmt = bind_name.replace('{', "{{").replace('}', "}}");
 
     // Build the C-ABI function pointer type
-    let wrapper_ty = "unsafe extern \"C\" fn(input_ptr: *const u8, input_len: u32, \
-         out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32)"
-        .to_string();
+    let wrapper_ty = "::yog_api::YogExportFn".to_string();
 
     let serialize_block = if tuple_expr.is_empty() {
         "let input_bytes: Vec<u8> = Vec::new();".to_string()
@@ -592,18 +590,9 @@ pub fn {name}({params_sig_fmt}) -> {output_type_fmt} {{
     {serialize_block}
     let f = {slot_name_fmt}.get()
         .expect(concat!("yog: export '", "{name}", "' not bound"));
-    let mut out_data: *mut u8 = std::ptr::null_mut();
-    let mut out_len: u32 = 0;
-    let mut out_cap: u32 = 0;
-    unsafe {{
-        f(input_bytes.as_ptr(), input_bytes.len() as u32,
-          &mut out_data, &mut out_len, &mut out_cap);
-        let output_slice = std::slice::from_raw_parts(out_data, out_len as usize);
-        let result: {output_type_fmt} = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(output_slice)
-            .expect(concat!("yog: deser failed in export '", "{name}", "'"));
-        let _ = Vec::from_raw_parts(out_data, out_len as usize, out_cap as usize);
-        result
-    }}
+    let output = ::yog_api::__interop_call(*f, &input_bytes, "{name}");
+    ::yog_api::rkyv::from_bytes::<{output_type_fmt}, ::yog_api::rkyv::rancor::Error>(&output)
+        .expect(concat!("yog: the result of export '", "{name}", "' didn't decode"))
 }}
 
 static {slot_name_fmt}: ::std::sync::OnceLock<{wrapper_ty}> = ::std::sync::OnceLock::new();

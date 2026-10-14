@@ -256,6 +256,28 @@ pub fn __yog_content_registrars() -> &'static std::sync::Mutex<Vec<fn(&mut Regis
     &REG
 }
 
+/// An exported function's C wrapper, as `#[yog_export]` generates it.
+#[doc(hidden)]
+pub type YogExportFn =
+    unsafe extern "C" fn(input_ptr: *const u8, input_len: u32, out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32);
+
+/// Calls another mod's export `what` (`mod:name`) through its wrapper `f`
+/// with the encoded arguments: its encoded result. A failure in that mod
+/// (it answers no data) panics here, on the calling side, where it's safe.
+#[doc(hidden)]
+pub fn __interop_call(f: YogExportFn, input: &[u8], what: &str) -> Vec<u8> {
+    let mut out_data: *mut u8 = std::ptr::null_mut();
+    let (mut out_len, mut out_cap) = (0u32, 0u32);
+    unsafe {
+        f(input.as_ptr(), input.len() as u32, &mut out_data, &mut out_len, &mut out_cap);
+        if out_data.is_null() {
+            panic!("yog: '{what}' failed in its mod (see its log)");
+        }
+        // The answer was allocated by the other mod's `Vec` (same system allocator).
+        Vec::from_raw_parts(out_data, out_len as usize, out_cap as usize)
+    }
+}
+
 #[doc(hidden)]
 pub fn __yog_import_registry() -> &'static std::sync::Mutex<Vec<YogImportEntry>> {
     static REG: std::sync::LazyLock<std::sync::Mutex<Vec<YogImportEntry>>> =

@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.101.1"
+version = "0.101.2"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -26,7 +26,7 @@ yog-ui     = "0.40.8"
 yog-book   = "0.63"
 yog-gfx    = "0.25.3"
 yog-inventory = "0.14.1"
-yog-hot-reload = "0.2"
+yog-hot-reload = "0.2.1"
 
 serde_json.workspace = true
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.

@@ -141,14 +141,30 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
             input_ptr: *const u8, input_len: u32,
             out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32,
         ) {
-            let input_slice = unsafe { std::slice::from_raw_parts(input_ptr, input_len as usize) };
-            let __yog_data: #data_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(input_slice)
-                .expect("yog: deser failed");
-            #destructure
-            #registry_setup
-            let result: #output = #call_fn;
-            let aligned = ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(&result).unwrap_or_default();
-            let bytes: Vec<u8> = aligned.to_vec();
+            // A panic must not unwind out of `extern "C"` (it would abort the
+            // game): a failure — bad input, a panic — answers no data, and
+            // the importing side reports it where unwinding is safe.
+            let call = ::std::panic::catch_unwind(::std::panic::AssertUnwindSafe(|| {
+                let input_slice: &[u8] = if input_len == 0 {
+                    &[]
+                } else {
+                    unsafe { std::slice::from_raw_parts(input_ptr, input_len as usize) }
+                };
+                let __yog_data: #data_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(input_slice)
+                    .expect("yog: an export's arguments didn't decode");
+                #destructure
+                #registry_setup
+                let result: #output = #call_fn;
+                ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(&result).map(|a| a.to_vec()).ok()
+            }));
+            let Ok(Some(bytes)) = call else {
+                unsafe {
+                    *out_data = std::ptr::null_mut();
+                    *out_len = 0;
+                    *out_cap = 0;
+                }
+                return;
+            };
             unsafe {
                 *out_data = bytes.as_ptr() as *mut u8;
                 *out_len = bytes.len() as u32;
@@ -219,7 +235,13 @@ pub fn import(input: TokenStream) -> TokenStream {
     TokenStream::from(out)
 }
 
-fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenStream {
+/// An imported function: `pub fn name(args) -> Out;` (a body, if written, is ignored).
+struct ImportFn {
+    vis: syn::Visibility,
+    sig: syn::Signature,
+}
+
+fn generate_import_fn(func: &ImportFn, mod_name: &str) -> proc_macro2::TokenStream {
     let name = &func.sig.ident;
     let name_str = name.to_string();
     // Statics use SCREAMING_SNAKE_CASE per Rust convention; the bind fn stays
@@ -254,10 +276,7 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
         }
     };
 
-    let wrapper_ty = quote! {
-        unsafe extern "C" fn(input_ptr: *const u8, input_len: u32,
-            out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32)
-    };
+    let wrapper_ty = quote! { ::yog_api::YogExportFn };
 
     quote! {
         #[allow(non_snake_case)]
@@ -265,17 +284,9 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
             #serialize_block
             let f = #slot_name.get()
                 .expect(concat!("yog: import '", #mod_name, ":", #name_str, "' not bound"));
-            let mut out_data: *mut u8 = std::ptr::null_mut();
-            let mut out_len: u32 = 0; let mut out_cap: u32 = 0;
-            unsafe {
-                f(input_bytes.as_ptr(), input_bytes.len() as u32,
-                  &mut out_data, &mut out_len, &mut out_cap);
-                let output_slice = std::slice::from_raw_parts(out_data, out_len as usize);
-                let result: #output_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(output_slice)
-                    .expect(concat!("yog: deser failed in import '", #mod_name, ":", #name_str, "'"));
-                let _ = Vec::from_raw_parts(out_data, out_len as usize, out_cap as usize);
-                result
-            }
+            let output = ::yog_api::__interop_call(*f, &input_bytes, concat!(#mod_name, ":", #name_str));
+            ::yog_api::rkyv::from_bytes::<#output_type, ::yog_api::rkyv::rancor::Error>(&output)
+                .expect(concat!("yog: the result of '", #mod_name, ":", #name_str, "' didn't decode"))
         }
 
         static #slot_name: ::std::sync::OnceLock<#wrapper_ty> = ::std::sync::OnceLock::new();
@@ -307,7 +318,7 @@ struct ImportBlock {
     items: Vec<ImportItem>,
 }
 enum ImportItem {
-    Func(syn::ItemFn),
+    Func(ImportFn),
     Struct(syn::ItemStruct),
 }
 
@@ -323,14 +334,22 @@ impl syn::parse::Parse for ImportBlock {
         syn::braced!(content in input);
         let mut items = Vec::new();
         while !content.is_empty() {
-            if let Ok(f) = content.parse::<syn::ItemFn>() {
-                items.push(ImportItem::Func(f));
-                let _ = content.parse::<syn::Token![;]>();
-            } else if let Ok(s) = content.parse::<syn::ItemStruct>() {
+            let attrs = content.call(syn::Attribute::parse_outer)?;
+            let vis: syn::Visibility = content.parse()?;
+            if content.peek(syn::Token![fn]) {
+                let sig: syn::Signature = content.parse()?;
+                if content.peek(syn::token::Brace) {
+                    let _body: syn::Block = content.parse()?;
+                } else {
+                    content.parse::<syn::Token![;]>()?;
+                }
+                items.push(ImportItem::Func(ImportFn { vis, sig }));
+            } else {
+                let mut s: syn::ItemStruct = content.parse()?;
+                s.attrs = attrs;
+                s.vis = vis;
                 items.push(ImportItem::Struct(s));
                 let _ = content.parse::<syn::Token![;]>();
-            } else {
-                break;
             }
         }
         Ok(ImportBlock { mod_name, items })
