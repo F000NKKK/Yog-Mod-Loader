@@ -236,7 +236,11 @@ performance where the benches point.
 `LoadedModule::enter` is lock-free (28.7 → 19.7 ns); yog-ui's rich text
 tokenizes lazily and measures without allocating — a book's text wraps in
 2.56 ms instead of 7.3, a spread draws in 4.8 µs instead of 13.4; the
-workspace is clippy-clean. Left: the generic book page drawn by mod code.
+workspace is clippy-clean. The book's generic page drawn by mod code is
+in (`drawn`, `Registry::on_book_page`, ABI 2.1) and Hex's pattern page moved
+into HexMod. The export wrappers read signatures with `syn` too (a doc
+comment's parenthesis had cost them their parameters), and
+`yog publish exports` publishes only when asked (`--help` used to publish).
 
 ## 4. Decisions (2026-10-14)
 
