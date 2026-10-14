@@ -191,7 +191,11 @@ runtime comes with P3, when the runtime reads blobs.
 decisions). Yog-IDLE's editors switch to schema-driven property grids.
 Each format's old parser is deleted.
 
-**P3 — ABI 2.0:** binary blobs for content; TSV and JSON strings removed.
+**P3 — ABI 2.0:** binary blobs for content; TSV and JSON strings removed. Open vocabularies that need the hosts: a block's `sound` becomes the
+game's group names *or* the mod's own group (`break`, `step`, `place`, `hit`,
+`fall` sound events — vanilla or `.yres` sounds — with volume and pitch),
+which each host builds as a `SoundType`; tools and tiers are already open
+(block tags).
 
 **P4 — audit and cleanup** of every crate, Yog-IDLE and Substrate: dead
 code, duplication (Yog text in Java, recipe conversion), the generic
