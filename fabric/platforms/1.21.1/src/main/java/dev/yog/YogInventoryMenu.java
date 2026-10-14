@@ -155,7 +155,14 @@ public class YogInventoryMenu extends ScreenHandler {
         }
         YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         for (int p : def.machinePlaces) {
-            if (p < inventory.size() && !inventory.getStack(p).isEmpty()) inventory.removeStack(p, 1);
+            if (p >= inventory.size() || inventory.getStack(p).isEmpty()) continue;
+            // What an ingredient leaves (a milk bucket's bucket): in its slot if that's empty, else the player's.
+            net.minecraft.item.Item rem = inventory.getStack(p).getItem().getRecipeRemainder();
+            ItemStack left = rem == null ? ItemStack.EMPTY : new ItemStack(rem);
+            inventory.removeStack(p, 1);
+            if (left.isEmpty()) continue;
+            if (inventory.getStack(p).isEmpty()) inventory.setStack(p, left);
+            else if (!player.getInventory().insertStack(left)) player.dropItem(left, false);
         }
         inventory.markDirty();
         refreshMachine();
