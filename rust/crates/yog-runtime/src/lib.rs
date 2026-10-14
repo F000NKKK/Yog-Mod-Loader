@@ -5322,6 +5322,8 @@ mod images;
 mod svg;
 mod jcall;
 mod ui_jni;
+// Entry points for the benchmarks only: never in a build of the loader.
+#[cfg(feature = "bench")]
 #[doc(hidden)]
 pub mod bench_support;
 #[cfg(test)]

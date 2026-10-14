@@ -8,3 +8,7 @@ description = "Safe dlopen/dlclose swap primitives for reloading a mod's native 
 
 [dependencies]
 libloading.workspace = true
+
+[features]
+# `LoadedModule::this_process`, for tests and benchmarks; never in the loader.
+testing = []

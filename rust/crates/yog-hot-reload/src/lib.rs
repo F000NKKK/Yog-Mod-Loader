@@ -118,6 +118,7 @@ impl LoadedModule {
 
     /// The running program itself as a module: for testing code that
     /// registers and dispatches through modules without a mod library.
+    #[cfg(feature = "testing")]
     pub fn this_process(generation: ModuleGeneration) -> Self {
         #[cfg(unix)]
         let library: Library = libloading::os::unix::Library::this().into();

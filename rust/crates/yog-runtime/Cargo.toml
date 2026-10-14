@@ -41,7 +41,13 @@ resvg = { version = "0.48", default-features = false }
 # `prctl(PR_SET_PTRACER)` + `SO_PEERCRED` — see `control_socket::allow_peer_to_trace`.
 libc = "0.2"
 
+[features]
+# The benchmarks' entry points (`cargo bench --features bench`); never in a
+# build of the loader.
+bench = ["yog-hot-reload/testing"]
+
 [dev-dependencies]
+yog-hot-reload = { version = "0.2.1", features = ["testing"] }
 criterion = "0.8"
 
 [[bench]]
@@ -51,3 +57,4 @@ harness = false
 [[bench]]
 name = "dispatch"
 harness = false
+required-features = ["bench"]
