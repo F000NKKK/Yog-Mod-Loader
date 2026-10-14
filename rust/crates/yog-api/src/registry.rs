@@ -1537,7 +1537,12 @@ unsafe extern "C" fn trampoline_packet<F>(
         let rust_ev = PacketEvent {
             channel: ev.channel.as_str().to_owned(),
             player: ev.player.as_str().to_owned(),
-            payload: std::slice::from_raw_parts(ev.payload, ev.payload_len as usize).to_vec(),
+            // (A null pointer with no bytes is fine for C, not for a slice.)
+            payload: if ev.payload.is_null() || ev.payload_len == 0 {
+                Vec::new()
+            } else {
+                std::slice::from_raw_parts(ev.payload, ev.payload_len as usize).to_vec()
+            },
         };
         guard((), || f(&rust_ev, &CServer(srv)));
     }
@@ -1566,7 +1571,11 @@ unsafe extern "C" fn trampoline_command<F>(
         *reply_len = 0;
         if let Some(reply) = guard(None, || f(&ctx, &CServer(srv))) {
             let bytes = reply.as_bytes();
-            let n = bytes.len().min(reply_cap as usize);
+            // As much as fits, cut between characters (it's read as UTF-8).
+            let mut n = bytes.len().min(reply_cap as usize);
+            while !reply.is_char_boundary(n) {
+                n -= 1;
+            }
             std::ptr::copy_nonoverlapping(bytes.as_ptr(), reply_buf, n);
             *reply_len = n as u32;
         }
@@ -2462,4 +2471,94 @@ unsafe extern "C" fn trampoline_chunk_generator<F>(
 /// Implemented by every Yog mod. Called once at startup to register handlers.
 pub trait Mod {
     fn register(registry: &mut Registry);
+}
+
+#[cfg(test)]
+mod trampoline_tests {
+    use super::*;
+    use yog_abi::{YogBlockPos, YogChatEvent, YogCommandEvent, YogPacketEvent};
+
+    fn ud<F>(f: &F) -> *mut c_void {
+        f as *const F as *mut c_void
+    }
+
+    fn chat<F: Fn(&ChatEvent, EventPhase, &dyn Server) -> bool + Send + Sync>(f: &F, ev: &YogChatEvent, phase: u8) -> bool {
+        unsafe { trampoline_chat::<F>(ud(f), std::ptr::null(), ev, phase) }
+    }
+
+    fn block_break<F: Fn(&BlockBreakEvent, EventPhase, &dyn Server) -> bool + Send + Sync>(f: &F, ev: &YogBlockBreakEvent) -> bool {
+        unsafe { trampoline_block_break::<F>(ud(f), std::ptr::null(), ev, 0) }
+    }
+
+    fn command<F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync>(f: &F, ev: &YogCommandEvent, buf: &mut [u8]) -> u32 {
+        let mut len = 99u32;
+        unsafe { trampoline_command::<F>(ud(f), std::ptr::null(), ev, buf.as_mut_ptr(), buf.len() as u32, &mut len) };
+        len
+    }
+
+    fn packet<F: Fn(&PacketEvent, &dyn Server) + Send + Sync>(f: &F, ev: &YogPacketEvent) {
+        unsafe { trampoline_packet::<F>(ud(f), std::ptr::null(), ev) }
+    }
+
+    #[test]
+    fn events_arrive_converted_with_their_phase() {
+        let seen = std::sync::Mutex::new(Vec::new());
+        let handler = |ev: &ChatEvent, p: EventPhase, _: &dyn Server| {
+            seen.lock().unwrap().push((ev.player_name.clone(), ev.message.clone(), p));
+            ev.message != "cancel me"
+        };
+        let ev = |msg: &'static str| YogChatEvent {
+            player: YogStr::from_str("Dev"),
+            message: YogStr::from_str(msg),
+            dimension: YogStr::from_str("minecraft:overworld"),
+        };
+        assert!(chat(&handler, &ev("hi"), 0));
+        assert!(!chat(&handler, &ev("cancel me"), 0));
+        chat(&handler, &ev("after"), 1);
+        let seen = seen.into_inner().unwrap();
+        assert_eq!(seen[0], ("Dev".into(), "hi".into(), EventPhase::Pre));
+        assert_eq!(seen[2].2, EventPhase::Post);
+    }
+
+    #[test]
+    fn a_panicking_handler_allows_the_action() {
+        let handler = |_: &BlockBreakEvent, _: EventPhase, _: &dyn Server| -> bool { panic!("mod bug") };
+        let ev = YogBlockBreakEvent {
+            player: YogStr::from_str("Dev"),
+            block: YogStr::from_str("minecraft:stone"),
+            pos: YogBlockPos { x: 1, y: 2, z: 3 },
+            dimension: YogStr::from_str("minecraft:overworld"),
+        };
+        assert!(block_break(&handler, &ev));
+    }
+
+    #[test]
+    fn command_replies_fit_the_buffer_whole_characters_only() {
+        let handler = |c: &CommandContext, _: &dyn Server| Some(format!("{}: привет", c.args));
+        let ev = YogCommandEvent {
+            name: YogStr::from_str("hex"),
+            args: YogStr::from_str("x"),
+            source: YogStr::from_str("Dev"),
+            uuid: YogStr::EMPTY,
+            dimension: YogStr::EMPTY,
+        };
+        let mut buf = [0u8; 6];
+        let len = command(&handler, &ev, &mut buf);
+        // "x: п" is 5 bytes; "пр" wouldn't fit whole in 6.
+        assert_eq!(std::str::from_utf8(&buf[..len as usize]), Ok("x: п"));
+    }
+
+    #[test]
+    fn empty_packets_need_no_payload_pointer() {
+        let got = std::sync::Mutex::new(None);
+        let handler = |p: &PacketEvent, _: &dyn Server| *got.lock().unwrap() = Some(p.payload.len());
+        let ev = YogPacketEvent {
+            channel: YogStr::from_str("mymod:ping"),
+            player: YogStr::from_str("Dev"),
+            payload: std::ptr::null(),
+            payload_len: 0,
+        };
+        packet(&handler, &ev);
+        assert_eq!(*got.lock().unwrap(), Some(0));
+    }
 }
