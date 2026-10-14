@@ -1,6 +1,6 @@
 //! Golden tests: every mod under `tests/golden/<case>/` goes through what
-//! `yog build` does with its resources and content (`.yres` → content →
-//! outputs merged), and everything that comes out — generated code, files,
+//! `yog build` does with its resources, content and screens (`.yres` →
+//! content → outputs merged → `.yui`), and everything that comes out — generated code, files,
 //! warnings, errors — must match `tests/golden/<case>.expected`.
 //!
 //! After a deliberate change: `YOG_BLESS=1 cargo test -p yog-cli --test golden`
@@ -9,7 +9,7 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use yog_cli::{content, yres};
+use yog_cli::{content, yres, yui};
 
 fn copy_dir(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();
@@ -22,6 +22,19 @@ fn copy_dir(from: &Path, to: &Path) {
             std::fs::copy(e.path(), target).unwrap();
         }
     }
+}
+
+fn walk(dir: &Path) -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let p = e.path();
+        if p.is_dir() {
+            found.extend(walk(&p));
+        } else {
+            found.push(p);
+        }
+    }
+    found
 }
 
 /// Everything the build makes of the mod at `root`, as text.
@@ -47,6 +60,22 @@ fn build(root: &Path, mod_id: &str) -> String {
     let mut outputs = res.outputs;
     if let Err(e) = content::merge_outputs(root, &mut outputs, c) {
         let _ = writeln!(out, "# merging failed\n{e}");
+    }
+    yui::set_resource_refs(&res.refs);
+    match yui::generate_all(root) {
+        Ok(0) => {}
+        Ok(_) => {
+            let dir = root.join(yui::GENERATED_DIR);
+            let mut files = walk(&dir);
+            files.sort();
+            for f in files {
+                let rel = f.strip_prefix(&dir).unwrap().to_string_lossy().replace('\\', "/");
+                let _ = writeln!(out, "# screens: {rel}\n{}", std::fs::read_to_string(&f).unwrap());
+            }
+        }
+        Err(e) => {
+            let _ = writeln!(out, "# screens failed\n{e}");
+        }
     }
     outputs.sort_by(|a, b| a.0.cmp(&b.0));
     for (path, bytes) in outputs {

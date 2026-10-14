@@ -1,0 +1,12 @@
+<Component name="StatBar" description="A labelled bar." icon="item:experience_bottle"
+           design_w="120" design_h="10">
+    <Property name="label" type="text" default="HP" doc="Shown on the left" category="Text"/>
+    <Property name="value" type="number" default="0.5"/>
+    <Property name="fill" type="color" default="#FF55FF55"/>
+    <Property name="mode" type="choice" options="bar,dots" default="bar"/>
+    <Event name="on_select"/>
+    <Row w="100%" gap="4">
+        <Label text="{x:Bind label}" color="@Colors.detail"/>
+        <Spacer w="{x:Bind bar_w()}" h="6" bg="{x:Bind fill}"/>
+    </Row>
+</Component>

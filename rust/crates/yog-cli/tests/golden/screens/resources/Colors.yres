@@ -1,0 +1,16 @@
+{
+  "source.yog": {"type": "color", "value": "#1E6E1E", "comment": "Details pane: source line of a .yog mod"},
+  "source.platform": {"type": "color", "value": "#1E4A8A", "comment": "Details pane: source line of a platform (Java) mod"},
+  "detail": {"type": "color", "value": "#303030", "comment": "Details pane: a detail line"},
+  "row.hover": {"type": "color", "value": "#30FFFFFF", "comment": "Mod list: a row under the cursor"},
+  "row.selected": {"type": "color", "value": "#FFC6C6C6", "comment": "Mod list: the selected row"},
+  "row.name": {"type": "color", "value": "#202020", "comment": "Mod list: a mod's name"},
+  "row.name_selected": {"type": "color", "value": "#000000", "comment": "Mod list: the selected mod's name"},
+  "row.subtitle": {"type": "color", "value": "#404040", "comment": "Mod list: version and source under a name"},
+  "empty": {"type": "color", "value": "#373737", "comment": "Mod list: the empty-list text"},
+  "detail.name": {"type": "color", "value": "#202020", "comment": "Details pane: the mod's name"},
+  "detail.version": {"type": "color", "value": "#404040", "comment": "Details pane: the version line"},
+  "detail.id": {"type": "color", "value": "#3A3A6A", "comment": "Details pane: the id line"},
+  "detail.description": {"type": "color", "value": "#2A2A2A", "comment": "Details pane: the description"},
+  "detail.none": {"type": "color", "value": "#303030", "comment": "Details pane: nothing selected"}
+}

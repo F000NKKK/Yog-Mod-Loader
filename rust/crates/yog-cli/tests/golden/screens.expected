@@ -1,0 +1,855 @@
+# resources: Colors.g.rs
+/// The resources of `resources/Colors.yres`.
+#[allow(dead_code)]
+pub struct Colors;
+
+#[allow(dead_code, non_snake_case, clippy::all)]
+impl Colors {
+    /// The color `#1E6E1E`.
+    ///
+    /// `source.yog` — Details pane: source line of a .yog mod (resources/Colors.yres:2)
+    pub const SOURCE_YOG: u32 = 0xFF1E6E1E;
+    /// The color `#1E4A8A`.
+    ///
+    /// `source.platform` — Details pane: source line of a platform (Java) mod (resources/Colors.yres:3)
+    pub const SOURCE_PLATFORM: u32 = 0xFF1E4A8A;
+    /// The color `#303030`.
+    ///
+    /// `detail` — Details pane: a detail line (resources/Colors.yres:4)
+    pub const DETAIL: u32 = 0xFF303030;
+    /// The color `#30FFFFFF`.
+    ///
+    /// `row.hover` — Mod list: a row under the cursor (resources/Colors.yres:5)
+    pub const ROW_HOVER: u32 = 0x30FFFFFF;
+    /// The color `#FFC6C6C6`.
+    ///
+    /// `row.selected` — Mod list: the selected row (resources/Colors.yres:6)
+    pub const ROW_SELECTED: u32 = 0xFFC6C6C6;
+    /// The color `#202020`.
+    ///
+    /// `row.name` — Mod list: a mod's name (resources/Colors.yres:7)
+    pub const ROW_NAME: u32 = 0xFF202020;
+    /// The color `#000000`.
+    ///
+    /// `row.name_selected` — Mod list: the selected mod's name (resources/Colors.yres:8)
+    pub const ROW_NAME_SELECTED: u32 = 0xFF000000;
+    /// The color `#404040`.
+    ///
+    /// `row.subtitle` — Mod list: version and source under a name (resources/Colors.yres:9)
+    pub const ROW_SUBTITLE: u32 = 0xFF404040;
+    /// The color `#373737`.
+    ///
+    /// `empty` — Mod list: the empty-list text (resources/Colors.yres:10)
+    pub const EMPTY: u32 = 0xFF373737;
+    /// The color `#202020`.
+    ///
+    /// `detail.name` — Details pane: the mod's name (resources/Colors.yres:11)
+    pub const DETAIL_NAME: u32 = 0xFF202020;
+    /// The color `#404040`.
+    ///
+    /// `detail.version` — Details pane: the version line (resources/Colors.yres:12)
+    pub const DETAIL_VERSION: u32 = 0xFF404040;
+    /// The color `#3A3A6A`.
+    ///
+    /// `detail.id` — Details pane: the id line (resources/Colors.yres:13)
+    pub const DETAIL_ID: u32 = 0xFF3A3A6A;
+    /// The color `#2A2A2A`.
+    ///
+    /// `detail.description` — Details pane: the description (resources/Colors.yres:14)
+    pub const DETAIL_DESCRIPTION: u32 = 0xFF2A2A2A;
+    /// The color `#303030`.
+    ///
+    /// `detail.none` — Details pane: nothing selected (resources/Colors.yres:15)
+    pub const DETAIL_NONE: u32 = 0xFF303030;
+}
+
+# resources: Strings.g.rs
+/// The resources of `resources/Strings.yres`.
+#[allow(dead_code)]
+pub struct Strings;
+
+#[allow(dead_code, non_snake_case, clippy::all)]
+impl Strings {
+    /// Translation key of [`Self::mod_name`]: `gm.mod_name`.
+    pub const MOD_NAME_KEY: &'static str = "gm.mod_name";
+    /// Looks up a localized string similar to "Yog Mod List".
+    ///
+    /// `mod_name` — The mod's name (yog.toml name), shown in mod lists (resources/Strings.yres:2)
+    pub fn mod_name() -> ::std::string::String {
+        ::yog_api::tr(Self::MOD_NAME_KEY)
+    }
+    /// Translation key of [`Self::mod_description`]: `gm.mod_description`.
+    pub const MOD_DESCRIPTION_KEY: &'static str = "gm.mod_description";
+    /// Looks up a localized string similar to "In-game mod list browser. Shows loaded Yog mods and, on Fabric, platform mods.".
+    ///
+    /// `mod_description` — yog.toml description (resources/Strings.yres:3)
+    pub fn mod_description() -> ::std::string::String {
+        ::yog_api::tr(Self::MOD_DESCRIPTION_KEY)
+    }
+    /// Translation key of [`Self::menu_button`]: `gm.menu.button`.
+    pub const MENU_BUTTON_KEY: &'static str = "gm.menu.button";
+    /// Looks up a localized string similar to "Yog Mods".
+    ///
+    /// `menu.button` — Button the loader adds to the title screen / mod list screen (resources/Strings.yres:4)
+    pub fn menu_button() -> ::std::string::String {
+        ::yog_api::tr(Self::MENU_BUTTON_KEY)
+    }
+    /// Translation key of [`Self::screen_title`]: `gm.screen.title`.
+    pub const SCREEN_TITLE_KEY: &'static str = "gm.screen.title";
+    /// Looks up a localized string similar to "Yog Mods".
+    ///
+    /// `screen.title` — Header of the mod browser (resources/Strings.yres:5)
+    pub fn screen_title() -> ::std::string::String {
+        ::yog_api::tr(Self::SCREEN_TITLE_KEY)
+    }
+    /// Translation key of [`Self::screen_count`]: `gm.screen.count`.
+    pub const SCREEN_COUNT_KEY: &'static str = "gm.screen.count";
+    /// Looks up a localized string similar to "{count} mods".
+    ///
+    /// `screen.count` — Header, right side: {count} = number of installed mods (resources/Strings.yres:6)
+    pub fn screen_count(count: impl ::std::fmt::Display) -> ::std::string::String {
+        ::yog_api::tr_args(Self::SCREEN_COUNT_KEY, &[&count])
+    }
+    /// Translation key of [`Self::screen_count_filtered`]: `gm.screen.count_filtered`.
+    pub const SCREEN_COUNT_FILTERED_KEY: &'static str = "gm.screen.count_filtered";
+    /// Looks up a localized string similar to "{shown} of {total} mods".
+    ///
+    /// `screen.count_filtered` — Header when a filter or the search hides some (resources/Strings.yres:7)
+    pub fn screen_count_filtered(shown: impl ::std::fmt::Display, total: impl ::std::fmt::Display) -> ::std::string::String {
+        ::yog_api::tr_args(Self::SCREEN_COUNT_FILTERED_KEY, &[&shown, &total])
+    }
+    /// Translation key of [`Self::screen_done`]: `gm.screen.done`.
+    pub const SCREEN_DONE_KEY: &'static str = "gm.screen.done";
+    /// Looks up a localized string similar to "Done".
+    ///
+    /// `screen.done` — Button closing the screen (resources/Strings.yres:8)
+    pub fn screen_done() -> ::std::string::String {
+        ::yog_api::tr(Self::SCREEN_DONE_KEY)
+    }
+    /// Translation key of [`Self::search_placeholder`]: `gm.search.placeholder`.
+    pub const SEARCH_PLACEHOLDER_KEY: &'static str = "gm.search.placeholder";
+    /// Looks up a localized string similar to "Search mods...".
+    ///
+    /// `search.placeholder` — Hint in the empty search box (resources/Strings.yres:9)
+    pub fn search_placeholder() -> ::std::string::String {
+        ::yog_api::tr(Self::SEARCH_PLACEHOLDER_KEY)
+    }
+    /// Translation key of [`Self::filter_all`]: `gm.filter.all`.
+    pub const FILTER_ALL_KEY: &'static str = "gm.filter.all";
+    /// Looks up a localized string similar to "All".
+    ///
+    /// `filter.all` — Filter button: every mod (resources/Strings.yres:10)
+    pub fn filter_all() -> ::std::string::String {
+        ::yog_api::tr(Self::FILTER_ALL_KEY)
+    }
+    /// Translation key of [`Self::filter_yog`]: `gm.filter.yog`.
+    pub const FILTER_YOG_KEY: &'static str = "gm.filter.yog";
+    /// Looks up a localized string similar to "Yog".
+    ///
+    /// `filter.yog` — Filter button: .yog mods only (resources/Strings.yres:11)
+    pub fn filter_yog() -> ::std::string::String {
+        ::yog_api::tr(Self::FILTER_YOG_KEY)
+    }
+    /// Translation key of [`Self::filter_platform`]: `gm.filter.platform`.
+    pub const FILTER_PLATFORM_KEY: &'static str = "gm.filter.platform";
+    /// Looks up a localized string similar to "Platform".
+    ///
+    /// `filter.platform` — Filter button: loader (Fabric/Forge/NeoForge) mods only (resources/Strings.yres:12)
+    pub fn filter_platform() -> ::std::string::String {
+        ::yog_api::tr(Self::FILTER_PLATFORM_KEY)
+    }
+    /// Translation key of [`Self::list_empty`]: `gm.list.empty`.
+    pub const LIST_EMPTY_KEY: &'static str = "gm.list.empty";
+    /// Looks up a localized string similar to "No mods".
+    ///
+    /// `list.empty` — List placeholder when the filter shows nothing (resources/Strings.yres:13)
+    pub fn list_empty() -> ::std::string::String {
+        ::yog_api::tr(Self::LIST_EMPTY_KEY)
+    }
+    /// Translation key of [`Self::list_no_matches`]: `gm.list.no_matches`.
+    pub const LIST_NO_MATCHES_KEY: &'static str = "gm.list.no_matches";
+    /// Looks up a localized string similar to "No mods match the search".
+    ///
+    /// `list.no_matches` — List placeholder when the search shows nothing (resources/Strings.yres:14)
+    pub fn list_no_matches() -> ::std::string::String {
+        ::yog_api::tr(Self::LIST_NO_MATCHES_KEY)
+    }
+    /// Translation key of [`Self::badge_yog`]: `gm.badge.yog`.
+    pub const BADGE_YOG_KEY: &'static str = "gm.badge.yog";
+    /// Looks up a localized string similar to "[Yog]".
+    ///
+    /// `badge.yog` — Short tag in a list row (resources/Strings.yres:15)
+    pub fn badge_yog() -> ::std::string::String {
+        ::yog_api::tr(Self::BADGE_YOG_KEY)
+    }
+    /// Translation key of [`Self::badge_platform`]: `gm.badge.platform`.
+    pub const BADGE_PLATFORM_KEY: &'static str = "gm.badge.platform";
+    /// Looks up a localized string similar to "[MC]".
+    ///
+    /// `badge.platform` — Short tag in a list row (resources/Strings.yres:16)
+    pub fn badge_platform() -> ::std::string::String {
+        ::yog_api::tr(Self::BADGE_PLATFORM_KEY)
+    }
+    /// Translation key of [`Self::row_version`]: `gm.row.version`.
+    pub const ROW_VERSION_KEY: &'static str = "gm.row.version";
+    /// Looks up a localized string similar to "v{version}".
+    ///
+    /// `row.version` — Version in a list row (resources/Strings.yres:17)
+    pub fn row_version(version: impl ::std::fmt::Display) -> ::std::string::String {
+        ::yog_api::tr_args(Self::ROW_VERSION_KEY, &[&version])
+    }
+    /// Translation key of [`Self::source_yog`]: `gm.source.yog`.
+    pub const SOURCE_YOG_KEY: &'static str = "gm.source.yog";
+    /// Looks up a localized string similar to "Yog mod".
+    ///
+    /// `source.yog` (resources/Strings.yres:18)
+    pub fn source_yog() -> ::std::string::String {
+        ::yog_api::tr(Self::SOURCE_YOG_KEY)
+    }
+    /// Translation key of [`Self::source_platform`]: `gm.source.platform`.
+    pub const SOURCE_PLATFORM_KEY: &'static str = "gm.source.platform";
+    /// Looks up a localized string similar to "Platform mod".
+    ///
+    /// `source.platform` (resources/Strings.yres:19)
+    pub fn source_platform() -> ::std::string::String {
+        ::yog_api::tr(Self::SOURCE_PLATFORM_KEY)
+    }
+    /// Translation key of [`Self::details_version`]: `gm.details.version`.
+    pub const DETAILS_VERSION_KEY: &'static str = "gm.details.version";
+    /// Looks up a localized string similar to "Version {version}".
+    ///
+    /// `details.version` (resources/Strings.yres:20)
+    pub fn details_version(version: impl ::std::fmt::Display) -> ::std::string::String {
+        ::yog_api::tr_args(Self::DETAILS_VERSION_KEY, &[&version])
+    }
+    /// Translation key of [`Self::details_authors`]: `gm.details.authors`.
+    pub const DETAILS_AUTHORS_KEY: &'static str = "gm.details.authors";
+    /// Looks up a localized string similar to "by {authors}".
+    ///
+    /// `details.authors` — {authors} = comma-separated authors (resources/Strings.yres:21)
+    pub fn details_authors(authors: impl ::std::fmt::Display) -> ::std::string::String {
+        ::yog_api::tr_args(Self::DETAILS_AUTHORS_KEY, &[&authors])
+    }
+    /// Translation key of [`Self::details_authors_unknown`]: `gm.details.authors_unknown`.
+    pub const DETAILS_AUTHORS_UNKNOWN_KEY: &'static str = "gm.details.authors_unknown";
+    /// Looks up a localized string similar to "by unknown".
+    ///
+    /// `details.authors_unknown` (resources/Strings.yres:22)
+    pub fn details_authors_unknown() -> ::std::string::String {
+        ::yog_api::tr(Self::DETAILS_AUTHORS_UNKNOWN_KEY)
+    }
+    /// Translation key of [`Self::details_id`]: `gm.details.id`.
+    pub const DETAILS_ID_KEY: &'static str = "gm.details.id";
+    /// Looks up a localized string similar to "id: {id}".
+    ///
+    /// `details.id` (resources/Strings.yres:23)
+    pub fn details_id(id: impl ::std::fmt::Display) -> ::std::string::String {
+        ::yog_api::tr_args(Self::DETAILS_ID_KEY, &[&id])
+    }
+    /// Translation key of [`Self::details_no_description`]: `gm.details.no_description`.
+    pub const DETAILS_NO_DESCRIPTION_KEY: &'static str = "gm.details.no_description";
+    /// Looks up a localized string similar to "No description.".
+    ///
+    /// `details.no_description` (resources/Strings.yres:24)
+    pub fn details_no_description() -> ::std::string::String {
+        ::yog_api::tr(Self::DETAILS_NO_DESCRIPTION_KEY)
+    }
+    /// Translation key of [`Self::details_none_selected`]: `gm.details.none_selected`.
+    pub const DETAILS_NONE_SELECTED_KEY: &'static str = "gm.details.none_selected";
+    /// Looks up a localized string similar to "No mod selected".
+    ///
+    /// `details.none_selected` (resources/Strings.yres:25)
+    pub fn details_none_selected() -> ::std::string::String {
+        ::yog_api::tr(Self::DETAILS_NONE_SELECTED_KEY)
+    }
+}
+
+# screens: components.g.rs
+// <auto-generated> by yog: component .yui files without a code-behind,
+// compiled in by `yog_api::ui_components!()` — do not edit. </auto-generated>
+#[allow(unused_imports)]
+pub mod widgets_stat_bar {
+    use super::*;
+    include!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/widgets/stat_bar.g.rs"));
+}
+
+# screens: mod_list.g.rs
+// <auto-generated>
+//     Generated by yog from src/mod_list.yui (view model ModListVm, codegen 2) —
+//     do not edit: changes are lost on the next `yog build` / `yog check` /
+//     `yog ui gen`. Edit the .yui file instead.
+// </auto-generated>
+//
+// Pulled into the code-behind module (which defines `ModListVm`) with:
+//
+//     yog_api::ui_include!("mod_list");
+
+const _: () = ::yog_kit::__codegen::require(2);
+
+/// The UI id this screen registers under.
+#[allow(dead_code)]
+pub const ID: &str = "gm:mod_list";
+/// Design-time size in GUI pixels.
+#[allow(dead_code)]
+pub const WIDTH: f32 = 400.0;
+#[allow(dead_code)]
+pub const HEIGHT: f32 = 224.0;
+
+/// Ids of this screen's named widgets.
+#[allow(dead_code)]
+pub mod ids {
+    pub const MOD_COUNT: &str = "mod_count";
+    pub const SEARCH: &str = "search";
+    pub const FILTER_ALL: &str = "filter_all";
+    pub const FILTER_YOG: &str = "filter_yog";
+    pub const FILTER_PLATFORM: &str = "filter_platform";
+    pub const MOD_LIST: &str = "mod_list";
+    pub const DETAILS: &str = "details";
+    pub const DETAIL_NAME: &str = "detail_name";
+    pub const DONE: &str = "done";
+}
+
+/// Item template 0 (mod_list.yui:62).
+#[doc(hidden)]
+#[allow(non_camel_case_types)]
+struct __T0 {
+    b0: ::yog_kit::bind::Slot<String>,
+    b1: ::yog_kit::bind::Slot<String>,
+}
+
+impl __T0 {
+    fn build() -> (Self, ::yog_api::ui::Widget) {
+        #[allow(unused_imports)]
+        use ::yog_api::ui::{widget, Align, Dock, FlexDir, FocusStyle, Units};
+        (Self { b0: ::yog_kit::bind::Slot::new(), b1: ::yog_kit::bind::Slot::new(), }, widget::panel(FlexDir::Column)
+            .w(Units::Percent(100.0))
+            .h(Units::Px(22.0))
+            .padding(3.0, 4.0, 3.0, 4.0)
+            .gap(1.0)
+            .state_style(::yog_api::ui::StateFlags::HOVER, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(0x30FFFFFF), ..::std::default::Default::default() })
+            .state_style(::yog_api::ui::StateFlags::SELECTED, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(0xFFC6C6C6), ..::std::default::Default::default() })
+            .child(widget::label("")
+                .w(Units::Percent(100.0))
+                .color(0xFF202020)
+                .ellipsis()
+                .shadow(false)
+                .state_style(::yog_api::ui::StateFlags::SELECTED, ::yog_api::ui::StylePatch { color: ::std::option::Option::Some(0xFF000000), ..::std::default::Default::default() }))
+            .child(widget::label("")
+                .w(Units::Percent(100.0))
+                .color(0xFF404040)
+                .ellipsis()
+                .shadow(false)))
+    }
+}
+
+#[doc(hidden)]
+#[allow(non_snake_case)]
+fn __E0() -> ::yog_api::ui::Widget {
+    #[allow(unused_imports)]
+    use ::yog_api::ui::{widget, Align, Dock, FlexDir, FocusStyle, Units};
+    widget::label("")
+            .color(0xFF373737)
+            .shadow(false)
+}
+
+/// Item template 1 (mod_list.yui:91).
+#[doc(hidden)]
+#[allow(non_camel_case_types)]
+struct __T1 {
+    b0: ::yog_kit::bind::Slot<String>,
+    b1: ::yog_kit::bind::Slot<String>,
+    b2: ::yog_kit::bind::Slot<String>,
+    b3: ::yog_kit::bind::Slot<u32>,
+    b4: ::yog_kit::bind::Slot<String>,
+    b5: ::yog_kit::bind::Slot<String>,
+    b6: ::yog_kit::bind::Slot<String>,
+}
+
+impl __T1 {
+    fn build() -> (Self, ::yog_api::ui::Widget) {
+        #[allow(unused_imports)]
+        use ::yog_api::ui::{widget, Align, Dock, FlexDir, FocusStyle, Units};
+        (Self { b0: ::yog_kit::bind::Slot::new(), b1: ::yog_kit::bind::Slot::new(), b2: ::yog_kit::bind::Slot::new(), b3: ::yog_kit::bind::Slot::new(), b4: ::yog_kit::bind::Slot::new(), b5: ::yog_kit::bind::Slot::new(), b6: ::yog_kit::bind::Slot::new(), }, widget::panel(FlexDir::Column)
+            .w(Units::Percent(100.0))
+            .gap(3.0)
+            .child(widget::label("")
+                .id("detail_name")
+                .w(Units::Percent(100.0))
+                .color(0xFF202020)
+                .shadow(false))
+            .child(widget::label("")
+                .color(0xFF404040)
+                .w(Units::Percent(100.0))
+                .shadow(false))
+            .child(widget::label("")
+                .w(Units::Percent(100.0))
+                .shadow(false))
+            .child(widget::label("")
+                .w(Units::Percent(100.0))
+                .color(0xFF303030)
+                .shadow(false))
+            .child(widget::label("")
+                .color(0xFF3A3A6A)
+                .w(Units::Percent(100.0))
+                .shadow(false))
+            .child(widget::spacer()
+                .h(Units::Px(4.0)))
+            .child(widget::label("")
+                .color(0xFF2A2A2A)
+                .w(Units::Percent(100.0))
+                .shadow(false)))
+    }
+}
+
+#[doc(hidden)]
+#[allow(non_snake_case)]
+fn __E1() -> ::yog_api::ui::Widget {
+    #[allow(unused_imports)]
+    use ::yog_api::ui::{widget, Align, Dock, FlexDir, FocusStyle, Units};
+    widget::label("")
+            .color(0xFF303030)
+            .shadow(false)
+}
+
+/// The compiled view of this screen — hosted by `yog_kit::Screen`.
+/// Private like the view model it names; tests in the code-behind
+/// module drive it with `yog_kit::testing::TestHost<View>`.
+struct View {
+    b0: ::yog_kit::bind::Slot<String>,
+    b1: ::yog_kit::bind::Slot<String>,
+    b2: ::yog_kit::bind::Slot<String>,
+    b3: ::yog_kit::bind::Slot<String>,
+    b4: ::yog_kit::bind::Slot<String>,
+    b5: ::yog_kit::bind::Slot<bool>,
+    b6: ::yog_kit::bind::Slot<String>,
+    b7: ::yog_kit::bind::Slot<bool>,
+    b8: ::yog_kit::bind::Slot<bool>,
+    b9: ::yog_kit::bind::Slot<String>,
+    b10: ::yog_kit::bind::Slot<bool>,
+    b11: ::yog_kit::bind::Slot<bool>,
+    b12: ::yog_kit::bind::Slot<String>,
+    l1: ::yog_kit::items::ItemsHost<__T0>,
+    b13: ::yog_kit::bind::Slot<u64>,
+    b14: ::yog_kit::bind::Slot<u64>,
+    b15: ::yog_kit::bind::Slot<String>,
+    l2: ::yog_kit::items::ItemsHost<__T1>,
+    b16: ::yog_kit::bind::Slot<String>,
+}
+
+impl ::yog_kit::View for View {
+    type Vm = ModListVm;
+    const META: ::yog_kit::ScreenMeta = ::yog_kit::ScreenMeta {
+        id: ID,
+        w: WIDTH,
+        h: HEIGHT,
+        anchor: ::yog_kit::Anchor::Center,
+        modal: true,
+        pause: false,
+        live: false,
+    };
+
+    fn build() -> (Self, ::yog_api::ui::Widget, ::yog_kit::Parts) {
+        #[allow(unused_imports)]
+        use ::yog_api::ui::{widget, Align, Dock, FlexDir, FocusStyle, Units};
+        let root = widget::panel(FlexDir::Column)
+        .w(Units::Px(400.0))
+        .h(Units::Px(224.0))
+        .bg_image("sprite:panel")
+        .child(widget::grid()
+            .at(0.0, 0.0)
+            .w(Units::Percent(100.0))
+            .h(Units::Percent(100.0))
+            .rows([::yog_api::ui::Track::px(20.0), ::yog_api::ui::Track::star(1.0), ::yog_api::ui::Track::auto()])
+            .child(widget::panel(FlexDir::Row)
+                .padding(0.0, 8.0, 0.0, 8.0)
+                .gap(4.0)
+                .align(Align::Center)
+                .child(widget::label("")
+                    .no_wrap()
+                    .color(0xFF404040)
+                    .shadow(false))
+                .child(widget::spacer()
+                    .flex(1.0))
+                .child(widget::label("")
+                    .id("mod_count")
+                    .no_wrap()
+                    .color(0xFF404040)
+                    .shadow(false)))
+            .child(widget::grid()
+                .padding(6.0, 8.0, 0.0, 8.0)
+                .cell(1, 0)
+                .row_spacing(4.0)
+                .col_spacing(6.0)
+                .rows([::yog_api::ui::Track::px(14.0), ::yog_api::ui::Track::px(16.0), ::yog_api::ui::Track::star(1.0)])
+                .cols([::yog_api::ui::Track::star(1.0), ::yog_api::ui::Track::star(1.0)])
+                .child(widget::text_box("")
+                    .id("search")
+                    .max_length(64))
+                .child(widget::panel(FlexDir::Row)
+                    .gap(3.0)
+                    .cell(1, 0)
+                    .child(widget::button("")
+                        .id("filter_all")
+                        .w(Units::Px(58.0))
+                        .h(Units::Px(16.0))
+                        .bg_image("sprite:button")
+                        .color(0xFFFFFFFF)
+                        .shadow(true)
+                        .state_style(::yog_api::ui::StateFlags::HOVER, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_hover")), ..::std::default::Default::default() })
+                        .state_style(::yog_api::ui::StateFlags::CHECKED, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_disabled")), color: ::std::option::Option::Some(0xFFFFFFA0), ..::std::default::Default::default() })
+                        .state_style(::yog_api::ui::StateFlags::DISABLED, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_disabled")), color: ::std::option::Option::Some(0xFFA0A0A0), ..::std::default::Default::default() })
+                        .action(::yog_api::ui::Action { owner: 0, slot: 0, index: 0 }))
+                    .child(widget::button("")
+                        .id("filter_yog")
+                        .w(Units::Px(58.0))
+                        .h(Units::Px(16.0))
+                        .bg_image("sprite:button")
+                        .color(0xFFFFFFFF)
+                        .shadow(true)
+                        .state_style(::yog_api::ui::StateFlags::HOVER, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_hover")), ..::std::default::Default::default() })
+                        .state_style(::yog_api::ui::StateFlags::CHECKED, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_disabled")), color: ::std::option::Option::Some(0xFFFFFFA0), ..::std::default::Default::default() })
+                        .state_style(::yog_api::ui::StateFlags::DISABLED, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_disabled")), color: ::std::option::Option::Some(0xFFA0A0A0), ..::std::default::Default::default() })
+                        .action(::yog_api::ui::Action { owner: 0, slot: 1, index: 0 }))
+                    .child(widget::button("")
+                        .id("filter_platform")
+                        .w(Units::Px(64.0))
+                        .h(Units::Px(16.0))
+                        .bg_image("sprite:button")
+                        .color(0xFFFFFFFF)
+                        .shadow(true)
+                        .state_style(::yog_api::ui::StateFlags::HOVER, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_hover")), ..::std::default::Default::default() })
+                        .state_style(::yog_api::ui::StateFlags::CHECKED, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_disabled")), color: ::std::option::Option::Some(0xFFFFFFA0), ..::std::default::Default::default() })
+                        .state_style(::yog_api::ui::StateFlags::DISABLED, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_disabled")), color: ::std::option::Option::Some(0xFFA0A0A0), ..::std::default::Default::default() })
+                        .action(::yog_api::ui::Action { owner: 0, slot: 2, index: 0 })))
+                .child(widget::scroll_view()
+                    .id("mod_list")
+                    .gap(2.0)
+                    .padding(2.0, 2.0, 2.0, 2.0)
+                    .cell(2, 0)
+                    .bg_image("sprite:slot"))
+                .child(widget::scroll_view()
+                    .id("details")
+                    .padding(4.0, 6.0, 4.0, 6.0)
+                    .cell(0, 1)
+                    .span(3, 1)
+                    .bg_image("sprite:slot")
+                    .child(widget::panel(FlexDir::Column)
+                        .w(Units::Percent(100.0)))))
+            .child(widget::button("")
+                .id("done")
+                .w(Units::Px(60.0))
+                .h(Units::Px(20.0))
+                .halign(::yog_api::ui::HAlign::Right)
+                .margin(4.0, 8.0, 6.0, 8.0)
+                .cell(2, 0)
+                .bg_image("sprite:button")
+                .color(0xFFFFFFFF)
+                .shadow(true)
+                .state_style(::yog_api::ui::StateFlags::HOVER, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_hover")), ..::std::default::Default::default() })
+                .state_style(::yog_api::ui::StateFlags::DISABLED, ::yog_api::ui::StylePatch { bg_image: ::std::option::Option::Some(::std::string::String::from("sprite:button_disabled")), color: ::std::option::Option::Some(0xFFA0A0A0), ..::std::default::Default::default() })
+                .action(::yog_api::ui::Action { owner: 0, slot: 3, index: 0 })));
+        #[allow(unused_mut)]
+        let mut parts = ::yog_kit::Parts::new();
+        parts.text_box(&[0, 1, 0]);
+        parts.focusable(&[0, 1, 1, 0]);
+        parts.focusable(&[0, 1, 1, 1]);
+        parts.focusable(&[0, 1, 1, 2]);
+        parts.scroller(&[0, 1, 2]);
+        parts.list(1, &[0, 1, 2], ::std::option::Option::Some(0), ::std::option::Option::Some(24.0));
+        parts.scroller(&[0, 1, 3]);
+        parts.list(2, &[0, 1, 3, 0], ::std::option::Option::None, ::std::option::Option::None);
+        parts.focusable(&[0, 2]);
+        let view = View {
+            b0: ::yog_kit::bind::Slot::new(),
+            b1: ::yog_kit::bind::Slot::new(),
+            b2: ::yog_kit::bind::Slot::new(),
+            b3: ::yog_kit::bind::Slot::new(),
+            b4: ::yog_kit::bind::Slot::new(),
+            b5: ::yog_kit::bind::Slot::new(),
+            b6: ::yog_kit::bind::Slot::new(),
+            b7: ::yog_kit::bind::Slot::new(),
+            b8: ::yog_kit::bind::Slot::new(),
+            b9: ::yog_kit::bind::Slot::new(),
+            b10: ::yog_kit::bind::Slot::new(),
+            b11: ::yog_kit::bind::Slot::new(),
+            b12: ::yog_kit::bind::Slot::new(),
+            l1: ::yog_kit::items::ItemsHost::new(1, &[0, 1, 2], ::std::option::Option::Some(24.0), ::std::option::Option::Some(0), true),
+            b13: ::yog_kit::bind::Slot::new(),
+            b14: ::yog_kit::bind::Slot::new(),
+            b15: ::yog_kit::bind::Slot::new(),
+            l2: ::yog_kit::items::ItemsHost::new(2, &[0, 1, 3, 0], ::std::option::Option::None, ::std::option::Option::None, false),
+            b16: ::yog_kit::bind::Slot::new(),
+        };
+        (view, root, parts)
+    }
+
+    #[allow(unused_variables)]
+    fn update(&mut self, root: &mut ::yog_api::ui::Widget, vm: &ModListVm, u: &mut ::yog_kit::Update) {
+        // @yui mod_list.yui:15 text="@Strings.screen.title"
+        if self.b0.set(::yog_kit::bind::text(&(::yog_api::tr("gm.screen.title")))) { root.at_path_mut(&[0, 0, 0]).set_text(::std::clone::Clone::clone(self.b0.get())); u.relayout(); }
+        // @yui mod_list.yui:17 text="{x:Bind count_text()}"
+        if self.b1.set(::yog_kit::bind::text(&(vm.count_text()))) { root.at_path_mut(&[0, 0, 2]).set_text(::std::clone::Clone::clone(self.b1.get())); u.relayout(); }
+        // @yui mod_list.yui:27 text="{x:Bind search, Mode=TwoWay}"
+        if self.b2.set(::yog_kit::bind::text(&(vm.search))) { u.set_text_box(0, self.b2.get()); }
+        // @yui mod_list.yui:27 placeholder="@Strings.search.placeholder"
+        if self.b3.set(::yog_kit::bind::text(&(::yog_api::tr("gm.search.placeholder")))) { ::yog_kit::bind::set_placeholder(root.at_path_mut(&[0, 1, 0]), self.b3.get()); u.repaint(); }
+        // @yui mod_list.yui:32 text="@Strings.filter.all"
+        if self.b4.set(::yog_kit::bind::text(&(::yog_api::tr("gm.filter.all")))) { root.at_path_mut(&[0, 1, 1, 0]).set_text(::std::clone::Clone::clone(self.b4.get())); u.relayout(); }
+        // @yui mod_list.yui:32 checked="{x:Bind filter == Filter::All}"
+        if self.b5.set(::yog_kit::bind::flag(vm.filter == Filter::All)) { ::yog_kit::bind::set_checked(root.at_path_mut(&[0, 1, 1, 0]), *self.b5.get()); u.repaint(); }
+        // @yui mod_list.yui:37 text="@Strings.filter.yog"
+        if self.b6.set(::yog_kit::bind::text(&(::yog_api::tr("gm.filter.yog")))) { root.at_path_mut(&[0, 1, 1, 1]).set_text(::std::clone::Clone::clone(self.b6.get())); u.relayout(); }
+        // @yui mod_list.yui:37 checked="{x:Bind filter == Filter::Yog}"
+        if self.b7.set(::yog_kit::bind::flag(vm.filter == Filter::Yog)) { ::yog_kit::bind::set_checked(root.at_path_mut(&[0, 1, 1, 1]), *self.b7.get()); u.repaint(); }
+        // @yui mod_list.yui:37 enabled="{x:Bind has(Filter::Yog)}"
+        if self.b8.set(::yog_kit::bind::flag(vm.has(Filter::Yog))) { root.at_path_mut(&[0, 1, 1, 1]).enabled = *self.b8.get(); u.repaint(); }
+        // @yui mod_list.yui:43 text="@Strings.filter.platform"
+        if self.b9.set(::yog_kit::bind::text(&(::yog_api::tr("gm.filter.platform")))) { root.at_path_mut(&[0, 1, 1, 2]).set_text(::std::clone::Clone::clone(self.b9.get())); u.relayout(); }
+        // @yui mod_list.yui:43 checked="{x:Bind filter == Filter::Platform}"
+        if self.b10.set(::yog_kit::bind::flag(vm.filter == Filter::Platform)) { ::yog_kit::bind::set_checked(root.at_path_mut(&[0, 1, 1, 2]), *self.b10.get()); u.repaint(); }
+        // @yui mod_list.yui:43 enabled="{x:Bind has(Filter::Platform)}"
+        if self.b11.set(::yog_kit::bind::flag(vm.has(Filter::Platform))) { root.at_path_mut(&[0, 1, 1, 2]).enabled = *self.b11.get(); u.repaint(); }
+        // @yui mod_list.yui:51 items="{x:Bind visible()}"
+        {
+            let __sel = vm.selected_id();
+            let mut __it = self.l1.begin(root, u);
+            for (index, item) in ::std::iter::IntoIterator::into_iter(vm.visible()).enumerate() {
+                let _ = (&index, &item);
+                let ::std::option::Option::Some(__row) = __it.next(::yog_kit::bind::key(&(item.id)), ::yog_kit::bind::is_selected(&__sel, &(item.id)), __T0::build) else { continue };
+                let ::yog_kit::items::Item { inst, w, u } = __row;
+                // @yui mod_list.yui:68 text="{x:Bind name}"
+                if inst.b0.set(::yog_kit::bind::text(&(item.name))) { w.at_path_mut(&[0]).set_text(::std::clone::Clone::clone(inst.b0.get())); u.relayout(); }
+                // @yui mod_list.yui:73 text="{x:Bind subtitle()}"
+                if inst.b1.set(::yog_kit::bind::text(&(item.subtitle()))) { w.at_path_mut(&[1]).set_text(::std::clone::Clone::clone(inst.b1.get())); u.relayout(); }
+            }
+            if let ::std::option::Option::Some((w, u)) = __it.finish(::std::option::Option::Some(__E0)) {
+                // @yui mod_list.yui:81 text="{x:Bind empty_text()}"
+                if self.b12.set(::yog_kit::bind::text(&(vm.empty_text()))) { w.at_path_mut(&[]).set_text(::std::clone::Clone::clone(self.b12.get())); u.relayout(); }
+            }
+        }
+        // @yui mod_list.yui:51 scroll_key="{x:Bind list_scope()}"
+        if self.b13.set(::yog_kit::bind::key(&(vm.list_scope()))) { u.reset_scroll(0); }
+        // @yui mod_list.yui:84 scroll_key="{x:Bind selected_id()}"
+        if self.b14.set(::yog_kit::bind::key(&(vm.selected_id()))) { u.reset_scroll(1); }
+        // @yui mod_list.yui:89 content="{x:Bind selected()}"
+        {
+            let mut __it = self.l2.begin(root, u);
+            for (index, item) in ::std::iter::IntoIterator::into_iter(vm.selected()).enumerate() {
+                let _ = (&index, &item);
+                let ::std::option::Option::Some(__row) = __it.next(::yog_kit::bind::key(&(index)), false, __T1::build) else { continue };
+                let ::yog_kit::items::Item { inst, w, u } = __row;
+                // @yui mod_list.yui:92 text="{x:Bind name}"
+                if inst.b0.set(::yog_kit::bind::text(&(item.name))) { w.at_path_mut(&[0]).set_text(::std::clone::Clone::clone(inst.b0.get())); u.relayout(); }
+                // @yui mod_list.yui:93 text="{x:Bind Strings::details_version(version)}"
+                if inst.b1.set(::yog_kit::bind::text(&(Strings::details_version(&item.version)))) { w.at_path_mut(&[1]).set_text(::std::clone::Clone::clone(inst.b1.get())); u.relayout(); }
+                // @yui mod_list.yui:94 text="{x:Bind source.label()}"
+                if inst.b2.set(::yog_kit::bind::text(&(item.source.label()))) { w.at_path_mut(&[2]).set_text(::std::clone::Clone::clone(inst.b2.get())); u.relayout(); }
+                // @yui mod_list.yui:94 color="{x:Bind source.color()}"
+                if inst.b3.set(::yog_kit::bind::color(item.source.color())) { w.at_path_mut(&[2]).style.color = *inst.b3.get(); u.repaint(); }
+                // @yui mod_list.yui:95 text="{x:Bind authors_text()}"
+                if inst.b4.set(::yog_kit::bind::text(&(item.authors_text()))) { w.at_path_mut(&[3]).set_text(::std::clone::Clone::clone(inst.b4.get())); u.relayout(); }
+                // @yui mod_list.yui:96 text="{x:Bind Strings::details_id(id)}"
+                if inst.b5.set(::yog_kit::bind::text(&(Strings::details_id(&item.id)))) { w.at_path_mut(&[4]).set_text(::std::clone::Clone::clone(inst.b5.get())); u.relayout(); }
+                // @yui mod_list.yui:98 text="{x:Bind description_text()}"
+                if inst.b6.set(::yog_kit::bind::text(&(item.description_text()))) { w.at_path_mut(&[6]).set_text(::std::clone::Clone::clone(inst.b6.get())); u.relayout(); }
+            }
+            if let ::std::option::Option::Some((w, u)) = __it.finish(::std::option::Option::Some(__E1)) {
+                // @yui mod_list.yui:102 text="@Strings.details.none_selected"
+                if self.b15.set(::yog_kit::bind::text(&(::yog_api::tr("gm.details.none_selected")))) { w.at_path_mut(&[]).set_text(::std::clone::Clone::clone(self.b15.get())); u.relayout(); }
+            }
+        }
+        // @yui mod_list.yui:107 text="@Strings.screen.done"
+        if self.b16.set(::yog_kit::bind::text(&(::yog_api::tr("gm.screen.done")))) { root.at_path_mut(&[0, 2]).set_text(::std::clone::Clone::clone(self.b16.get())); u.relayout(); }
+    }
+
+    #[allow(unused_variables, clippy::let_unit_value, clippy::single_match, clippy::match_single_binding)]
+    fn dispatch(&mut self, vm: &mut ModListVm, cx: &mut ::yog_kit::Cx<'_, ModListVm>, ev: ::yog_kit::ViewEvent) {
+        match ev {
+            ::yog_kit::ViewEvent::TextChanged { slot: 0, text } => {
+                vm.search = text;
+            }
+            ::yog_kit::ViewEvent::Action(::yog_api::ui::Action { owner: 0, slot: 0, .. }) => {
+                vm.set_filter(Filter::All);
+            }
+            ::yog_kit::ViewEvent::Action(::yog_api::ui::Action { owner: 0, slot: 1, .. }) => {
+                vm.set_filter(Filter::Yog);
+            }
+            ::yog_kit::ViewEvent::Action(::yog_api::ui::Action { owner: 0, slot: 2, .. }) => {
+                vm.set_filter(Filter::Platform);
+            }
+            ::yog_kit::ViewEvent::Action(::yog_api::ui::Action { owner: 1, slot: ::yog_kit::items::SELECT, index })
+            | ::yog_kit::ViewEvent::Select { list: 1, index } => {
+                let __k = ::std::iter::IntoIterator::into_iter(vm.visible()).enumerate().nth(index as usize).map(|(index, item)| { let _ = (&index, &item); ::std::clone::Clone::clone(&(item.id)) });
+                if let ::std::option::Option::Some(__k) = __k { vm.select(__k); }
+            }
+            ::yog_kit::ViewEvent::Action(::yog_api::ui::Action { owner: 0, slot: 3, .. }) => {
+                cx.close();
+            }
+            _ => {}
+        }
+    }
+}
+
+static __HANDLE: ::std::sync::OnceLock<::yog_kit::ScreenHandle<ModListVm>> = ::std::sync::OnceLock::new();
+
+/// Registers the screen (rendering + input) with a new view model
+/// (`<ModListVm as ::std::default::Default>::default()`); returns its handle. Call once, from `Mod::register`.
+#[allow(dead_code, private_interfaces)]
+pub fn register(registry: &mut ::yog_api::Registry) -> ::yog_kit::ScreenHandle<ModListVm> {
+    register_with(registry, <ModListVm as ::std::default::Default>::default())
+}
+
+/// [`register`] with a given view model.
+#[allow(dead_code, private_interfaces)]
+pub fn register_with(registry: &mut ::yog_api::Registry, vm: ModListVm) -> ::yog_kit::ScreenHandle<ModListVm> {
+    ::std::clone::Clone::clone(__HANDLE.get_or_init(|| ::yog_kit::Screen::<View>::register(registry, vm)))
+}
+
+/// The handle [`register`] returned (`None` before it).
+#[allow(dead_code, private_interfaces)]
+pub fn handle() -> ::std::option::Option<::yog_kit::ScreenHandle<ModListVm>> {
+    __HANDLE.get().cloned()
+}
+
+/// Opens the screen (modal: true, pauses the game: false).
+#[allow(dead_code)]
+pub fn open() {
+    ::yog_api::open_ui(ID, true, false);
+}
+
+/// Closes the screen if it's open.
+#[allow(dead_code)]
+pub fn close() {
+    ::yog_api::close_ui(ID);
+}
+
+# screens: widgets/stat_bar.g.rs
+// <auto-generated>
+//     Generated by yog from src/widgets/stat_bar.yui — do not edit: changes are lost
+//     on the next `yog build` / `yog check` / `yog ui gen`. Edit the .yui
+//     file (Yog-IDLE's designer) instead.
+// </auto-generated>
+
+/// A labelled bar.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StatBar {
+    /// Shown on the left
+    pub label: String,
+    pub value: f32,
+    pub fill: u32,
+    pub mode: String,
+    pub on_select: String,
+}
+
+impl StatBar {
+    /// The property values of an instance (defaults for what it doesn't set).
+    #[allow(unused_variables)]
+    pub fn from_props(p: &::yog_api::ui::component::Props) -> Self {
+        Self {
+            label: p.text("label"),
+            value: p.number("value"),
+            fill: p.color("fill"),
+            mode: p.word("mode").to_string(),
+            on_select: p.word("on_select").to_string(),
+        }
+    }
+
+    /// The component's widget tree for these values.
+    #[allow(unused_variables, clippy::needless_borrow, clippy::needless_borrows_for_generic_args)]
+    pub fn view(&self) -> ::yog_api::ui::Widget {
+        #[allow(unused_imports)]
+        use ::yog_api::ui::{widget, Align, Dock, FlexDir, FocusStyle, Units};
+        let vm = self;
+        widget::panel(FlexDir::Row)
+            .w(Units::Percent(100.0))
+            .gap(4.0)
+            .child(widget::label("")
+                .with_text(::yog_api::ui::component::bind::text(&(vm.label)))
+                .color(0xFF303030))
+            .child(widget::spacer()
+                .w(::yog_api::ui::component::bind::units(&(vm.bar_w())))
+                .h(Units::Px(6.0))
+                .bg(::yog_api::ui::component::bind::color(&(vm.fill))))
+    }
+}
+
+impl ::yog_api::ui::component::Component for StatBar {
+    const NAME: &'static str = "StatBar";
+    const DOC: &'static str = "A labelled bar.";
+    const DISPLAY_NAME: &'static str = "";
+    const ICON: &'static str = "item:experience_bottle";
+    const CATEGORY: &'static str = "";
+    const DESIGN_SIZE: (f32, f32) = (120.0, 10.0);
+    const TOOLBOX: bool = true;
+    const PROPS: &'static [::yog_api::ui::component::Prop] = {
+        #[allow(unused_imports)]
+        use ::yog_api::ui::component::Prop;
+        &[
+        Prop::text("label", "HP").doc("Shown on the left").category("Text"),
+        Prop::number("value", "0.5"),
+        Prop::color("fill", "#FF55FF55"),
+        Prop::choice("mode", &["bar", "dots"], "bar"),
+        Prop::event("on_select"),
+        ]
+    };
+    fn build(props: &::yog_api::ui::component::Props) -> ::yog_api::ui::Widget {
+        Self::from_props(props).view()
+    }
+}
+
+::yog_api::ui_component!(StatBar);
+
+# assets/gm/lang/en_us.json
+{
+  "gm.badge.platform": "[MC]",
+  "gm.badge.yog": "[Yog]",
+  "gm.details.authors": "by %1$s",
+  "gm.details.authors_unknown": "by unknown",
+  "gm.details.id": "id: %1$s",
+  "gm.details.no_description": "No description.",
+  "gm.details.none_selected": "No mod selected",
+  "gm.details.version": "Version %1$s",
+  "gm.filter.all": "All",
+  "gm.filter.platform": "Platform",
+  "gm.filter.yog": "Yog",
+  "gm.list.empty": "No mods",
+  "gm.list.no_matches": "No mods match the search",
+  "gm.menu.button": "Yog Mods",
+  "gm.mod_description": "In-game mod list browser. Shows loaded Yog mods and, on Fabric, platform mods.",
+  "gm.mod_name": "Yog Mod List",
+  "gm.row.version": "v%1$s",
+  "gm.screen.count": "%1$s mods",
+  "gm.screen.count_filtered": "%1$s of %2$s mods",
+  "gm.screen.done": "Done",
+  "gm.screen.title": "Yog Mods",
+  "gm.search.placeholder": "Search mods...",
+  "gm.source.platform": "Platform mod",
+  "gm.source.yog": "Yog mod"
+}
+# assets/gm/lang/ru_ru.json
+{
+  "gm.badge.platform": "[MC]",
+  "gm.badge.yog": "[Yog]",
+  "gm.details.authors": "Авторы: %1$s",
+  "gm.details.authors_unknown": "Автор неизвестен",
+  "gm.details.id": "id: %1$s",
+  "gm.details.no_description": "Нет описания.",
+  "gm.details.none_selected": "Мод не выбран",
+  "gm.details.version": "Версия %1$s",
+  "gm.filter.all": "Все",
+  "gm.filter.platform": "Платформа",
+  "gm.filter.yog": "Yog",
+  "gm.list.empty": "Нет модов",
+  "gm.list.no_matches": "Ничего не найдено",
+  "gm.menu.button": "Моды Yog",
+  "gm.mod_description": "Просмотр модов в игре: загруженные моды Yog и, на Fabric, моды платформы.",
+  "gm.mod_name": "Список модов Yog",
+  "gm.row.version": "v%1$s",
+  "gm.screen.count": "Модов: %1$s",
+  "gm.screen.count_filtered": "Показано %1$s из %2$s",
+  "gm.screen.done": "Готово",
+  "gm.screen.title": "Моды Yog",
+  "gm.search.placeholder": "Поиск модов...",
+  "gm.source.platform": "Мод платформы",
+  "gm.source.yog": "Мод Yog"
+}
