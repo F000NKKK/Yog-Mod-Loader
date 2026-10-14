@@ -4,7 +4,7 @@
     "AB"
   ],
   "key": {
-    "A": "minecraft:stick"
+    "A": "@item:minecraft:stick"
   },
-  "result": "gm:missing"
+  "result": "@item:gm:missing"
 }

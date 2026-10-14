@@ -1848,11 +1848,11 @@ mod tests {
             </Screen.Resources>
             <Column w="100%">
                 <Label x:Name="count" text="{x:Bind count_text()}" color="@Accent"/>
-                <Label text="@mymod.title"/>
+                <Label text="@lang:mymod.title"/>
                 <Button style="@Btn" text="Close" command="{x:Bind cx.close()}"/>
                 <ToggleButton style="@Toggle" text="Yog" checked="{x:Bind filter == Filter::Yog}"
                               enabled="{x:Bind has(Filter::Yog)}" command="{x:Bind set_filter(Filter::Yog)}"/>
-                <TextBox w="100" h="14" text="{x:Bind search, Mode=TwoWay}" placeholder="@mymod.search"
+                <TextBox w="100" h="14" text="{x:Bind search, Mode=TwoWay}" placeholder="@lang:mymod.search"
                          command="{x:Bind submit()}"/>
                 <ScrollView h="50" scroll_key="{x:Bind search}" visible="{x:Bind show}"/>
             </Column>"##)
@@ -2025,7 +2025,7 @@ mod tests {
 
     #[test]
     fn legacy_screens_unchanged() {
-        let src = r#"<Screen id="t:s"><Label text="@t.k" on_click="go"/></Screen>"#;
+        let src = r#"<Screen id="t:s"><Label text="@lang:t.k" on_click="go"/></Screen>"#;
         let (code, _) = crate::yui::generate_for(src, "s", None).unwrap();
         assert!(code.contains("pub fn render(gfx"), "{code}");
         assert!(!code.contains("yog_kit"), "{code}");

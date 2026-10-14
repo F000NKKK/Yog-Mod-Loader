@@ -21,6 +21,7 @@
 
 mod import;
 pub mod json;
+mod recipe;
 mod refs;
 
 pub use import::import_command;
@@ -1593,15 +1594,11 @@ fn is_metadata(key: &str) -> bool {
 #[derive(Debug, Clone)]
 struct Recipe {
     id: String,
-    file: String,
     kind: RecipeKind,
     result: String,
     count: u32,
     group: Option<String>,
     category: Option<String>,
-    /// Item ids it names (not tags), by line — the mod's own are checked
-    /// against its blocks and items.
-    items: Vec<(usize, String)>,
 }
 
 impl Recipe {
@@ -1663,289 +1660,155 @@ impl Recipe {
     }
 }
 
-/// An item id (`minecraft:paper`), or — where `tags` — an item tag
-/// (`#c:dusts`); the namespace is always written out.
-fn recipe_item(cx: &mut Ctx, j: &J, what: &str, tags: bool, items: &mut Vec<(usize, String)>) -> Option<String> {
-    let s = cx.string(j, what)?.trim().to_string();
-    let (tag, id) = match s.strip_prefix('#') {
-        Some(rest) => (true, rest),
-        None => (false, s.as_str()),
-    };
-    if tag && !tags {
-        cx.err(j.line, format!("{what} `{s}`: must be an item, not a tag"));
-        return None;
-    }
-    let ok = id.split_once(':').is_some_and(|(ns, p)| valid_namespace(ns) && valid_path(p));
-    if !ok {
-        let hint = if id.contains(':') { String::new() } else { format!(" — write `minecraft:{id}`") };
-        cx.err(
-            j.line,
-            format!("{what} `{s}`: expected an item id with its namespace (minecraft:paper){}{hint}", if tags { " or an item tag (#c:dusts)" } else { "" }),
-        );
-        return None;
-    }
-    if !tag {
-        items.push((j.line, id.to_string()));
-    }
-    Some(s)
-}
+/// Checks one `.yrecipe` (see `content::recipe`): its schema, then what it
+/// names — the mod's content, every Minecraft version's, other mods'
+/// declared ids (`known`).
+fn compile_recipe(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Option<&str>, known: &refs::Known) -> Option<Recipe> {
+    use recipe::{Body, RecipeFile};
+    use yog_data::Path as At;
 
-/// A recipe of the mod's own kind `kind`: `slots` (name → a list of
-/// ingredients), `values`, `result`, `count`, `group`.
-fn compile_custom_recipe(cx: &mut Ctx, j: &J, kind: String, id: String) -> Option<Recipe> {
-    for key in ["pattern", "key", "ingredients", "ingredient", "experience", "cook_time", "template", "base", "addition", "category"] {
-        if let Some(v) = j.get(key) {
-            cx.err(v.line, format!("{key} is for the game's recipe types; {kind} takes \"slots\" and \"values\""));
+    let doc = match yog_data::text::parse(text) {
+        Ok(d) => d,
+        Err(e) => {
+            cx.err(e.at.line as usize, e.message);
+            return None;
         }
-    }
-    let mut items = Vec::new();
-    let mut slots = Vec::new();
-    match j.get("slots") {
-        Some(sv) if sv.is_obj() => {
-            for (name, list) in sv.members() {
-                if !list.is_arr() || list.items().is_empty() {
-                    cx.err(list.line, format!("slots.{name}: a list of ingredients — [\"minecraft:diamond\"], [[\"minecraft:coal\", \"minecraft:charcoal\"]]"));
-                    continue;
-                }
-                let ings: Vec<Vec<String>> = list
-                    .items()
-                    .iter()
-                    .filter_map(|i| recipe_ingredient(cx, i, &format!("slots.{name}[]"), &mut items))
-                    .collect();
-                slots.push((name.clone(), ings));
+    };
+    let line = |p: &At| doc.locate(text, p).line as usize;
+    let read = match yog_data::schema::from_doc::<RecipeFile>(text, &doc) {
+        Ok(r) => r,
+        Err(errors) => {
+            for e in errors.0 {
+                let l = e.at.map_or(1, |a| a.line as usize);
+                if e.path.is_root() { cx.err(l, e.message) } else { cx.err(l, format!("{}: {}", e.path, e.message)) }
             }
-        }
-        Some(sv) => cx.err(sv.line, "slots must be an object: { \"core\": [\"minecraft:diamond\"] }"),
-        None => cx.err(j.line, format!("a {kind} recipe needs \"slots\": what goes in, by slot name")),
-    }
-    let values = match j.get("values") {
-        Some(v) if v.is_obj() => v.members().iter().map(|(k, x)| (k.clone(), json_value(x))).collect(),
-        Some(v) => {
-            cx.err(v.line, "values must be an object: { \"time\": 200 }");
-            Map::new()
-        }
-        None => Map::new(),
-    };
-    let result = match j.get("result") {
-        Some(v) => recipe_item(cx, v, "result", false, &mut items),
-        None => {
-            cx.err(j.line, "a recipe needs a \"result\": the item it makes");
-            None
+            return None;
         }
     };
-    let count = match j.get("count") {
-        Some(v) => cx.number(v, "count", 1.0, 64.0).map(|n| n as u32),
-        None => Some(1),
-    };
-    let group = j.get("group").and_then(|v| cx.string(v, "group").map(str::to_owned));
-    Some(Recipe {
-        id,
-        file: cx.file.clone(),
-        kind: RecipeKind::Custom { kind, slots, values },
-        result: result?,
-        count: count?,
-        group,
-        category: None,
-        items,
-    })
-}
-
-/// `j` as plain JSON.
-fn json_value(j: &J) -> Value {
-    match &j.v {
-        V::Null => Value::Null,
-        V::Bool(b) => Value::Bool(*b),
-        V::Num(n) => num_value(*n),
-        V::Str(s) => Value::String(s.clone()),
-        V::Arr(items) => Value::Array(items.iter().map(json_value).collect()),
-        V::Obj(members) => Value::Object(members.iter().map(|(k, v)| (k.clone(), json_value(v))).collect()),
-    }
-}
-
-/// Checks one `.yrecipe`.
-fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Option<Recipe> {
-    if !j.is_obj() {
-        cx.err(j.line, "a .yrecipe file is one JSON object");
-        return None;
-    }
-    cx.unknown_keys(
-        j,
-        "a .yrecipe",
-        &[
-            "$schema", "format", "id", "type", "pattern", "key", "ingredients", "ingredient",
-            "result", "count", "experience", "cook_time", "template", "base", "addition", "group",
-            "category", "slots", "values",
-        ],
-    );
-    if let Some(f) = j.get("format")
-        && f.num() != Some(1.0)
-    {
-        cx.err(f.line, "format must be 1 (this yog understands format 1)");
-    }
-    let (ns, p) = entry_id(cx, j, path, mod_ns)?;
-    let Some(t) = j.get("type") else {
-        cx.err(j.line, format!("a recipe needs a \"type\": {}", RECIPE_TYPES.join(", ")));
-        return None;
-    };
-    // The mod's own kind of recipe: `<mod id>:<kind>`.
-    if let Some(own) = t.str().filter(|ty| mod_ns.is_some_and(|m| ty.split_once(':').is_some_and(|(n, k)| n == m && valid_path(k)))) {
-        return compile_custom_recipe(cx, j, own.to_string(), format!("{ns}:{p}"));
-    }
-    let ty = cx.one_of(t, "type", &RECIPE_TYPES)?;
-    let cooking = matches!(ty.as_str(), "smelting" | "blasting" | "smoking" | "campfire_cooking");
-    // Keys of the other types.
-    for (key, owners) in [
-        ("pattern", &["shaped"][..]),
-        ("key", &["shaped"]),
-        ("ingredients", &["shapeless"]),
-        ("ingredient", &["smelting", "blasting", "smoking", "campfire_cooking", "stonecutting"]),
-        ("experience", &["smelting", "blasting", "smoking", "campfire_cooking"]),
-        ("cook_time", &["smelting", "blasting", "smoking", "campfire_cooking"]),
-        ("template", &["smithing"]),
-        ("base", &["smithing"]),
-        ("addition", &["smithing"]),
-    ] {
-        if !owners.contains(&ty.as_str())
-            && let Some(v) = j.get(key)
+    let mut ok = true;
+    for f in &read.refs {
+        if let Some(kind) = refs::RefKind::from_word(&f.value.kind)
+            && let Err(e) = known.check(kind, &f.value.id)
         {
-            cx.err(v.line, format!("{key} is for {} recipes, this one is {ty}", owners.join("/")));
+            cx.err(line(&f.path), format!("{}: {e}", f.path));
+            ok = false;
         }
     }
-    let mut items = Vec::new();
-    let result = match j.get("result") {
-        Some(v) => recipe_item(cx, v, "result", false, &mut items),
-        None => {
-            cx.err(j.line, "a recipe needs a \"result\": the item it makes");
-            None
-        }
-    };
-    let count = match j.get("count") {
-        Some(v) => cx.number(v, "count", 1.0, 64.0).map(|n| n as u32),
-        None => Some(1),
-    };
-    let text = |cx: &mut Ctx, key: &str| j.get(key).and_then(|v| cx.string(v, key).map(str::to_owned));
-    let group = text(cx, "group");
-    let category = text(cx, "category");
-    let kind = match ty.as_str() {
-        "shaped" => {
-            let Some(pv) = j.get("pattern") else {
-                cx.err(j.line, "a shaped recipe needs a \"pattern\": 1–3 rows of 1–3 key characters, e.g. [\"ISI\", \" S \"]");
+    let RecipeFile { common: c, body } = read.value;
+    let root = At::root();
+    if let Some(f) = c.format
+        && f != 1
+    {
+        cx.err(line(&root.key("format")), "format must be 1 (this yog understands format 1)");
+        ok = false;
+    }
+    // Its id: as written, else the file's name; the mod's namespace by default.
+    let raw = c.id.clone().unwrap_or_else(|| path.file_stem().unwrap_or_default().to_string_lossy().into_owned());
+    let id_line = line(&root.key("id"));
+    let (ns, p) = match raw.split_once(':') {
+        Some((ns, p)) => (ns.to_string(), p.to_string()),
+        None => match mod_ns {
+            Some(ns) => (ns.to_string(), raw.clone()),
+            None => {
+                cx.err(id_line, "the mod id isn't a valid Minecraft namespace (a-z, 0-9, `_`, `-`, `.`), so give the namespace: \"id\": \"mynamespace:name\"");
                 return None;
-            };
-            let rows: Vec<String> = pv.items().iter().filter_map(|r| cx.string(r, "pattern[]").map(str::to_owned)).collect();
-            let width = rows.first().map_or(0, |r| r.chars().count());
-            if !pv.is_arr() || rows.is_empty() || rows.len() > 3 || width == 0 || width > 3 || rows.iter().any(|r| r.chars().count() != width) {
-                cx.err(pv.line, "pattern must be 1–3 rows of the same 1–3 characters each");
+            }
+        },
+    };
+    if !valid_namespace(&ns) || !valid_path(&p) {
+        cx.err(id_line, format!("id `{ns}:{p}` isn't a valid Minecraft id — lower case a-z, 0-9, `_`, `-`, `.` (and `/` in the path)"));
+        return None;
+    }
+    if !(1..=64).contains(&c.count) {
+        cx.err(line(&root.key("count")), format!("count: {} is out of range (1..=64)", c.count));
+        ok = false;
+    }
+    let kind = match body {
+        Body::Shaped(s) => {
+            let width = s.pattern.first().map_or(0, |r| r.chars().count());
+            if s.pattern.is_empty() || s.pattern.len() > 3 || width == 0 || width > 3 || s.pattern.iter().any(|r| r.chars().count() != width) {
+                cx.err(line(&root.key("pattern")), "pattern must be 1–3 rows of the same 1–3 characters each");
                 return None;
             }
             let mut key = Vec::new();
-            match j.get("key") {
-                Some(kv) if kv.is_obj() => {
-                    for (k, v) in kv.members() {
-                        let mut chars = k.chars();
-                        match (chars.next(), chars.next()) {
-                            (Some(c), None) if c != ' ' => {
-                                if let Some(alts) = recipe_ingredient(cx, v, &format!("key {k:?}"), &mut items) {
-                                    if !rows.iter().any(|r| r.contains(c)) {
-                                        cx.warn(v.line, format!("key {k:?} isn't used by the pattern"));
-                                    }
-                                    key.push((c, alts));
-                                }
-                            }
-                            _ => cx.err(v.line, format!("key {k:?}: one character other than space")),
+            for (k, ing) in &s.key.0 {
+                let at = line(&root.key("key").key(k));
+                let mut chars = k.chars();
+                match (chars.next(), chars.next()) {
+                    (Some(ch), None) if ch != ' ' => {
+                        if !s.pattern.iter().any(|r| r.contains(ch)) {
+                            cx.warn(at, format!("key {k:?} isn't used by the pattern"));
                         }
+                        key.push((ch, ing.ids()));
+                    }
+                    _ => {
+                        cx.err(at, format!("key {k:?}: one character other than space"));
+                        ok = false;
                     }
                 }
-                Some(kv) => cx.err(kv.line, "key must be an object: { \"I\": \"minecraft:iron_ingot\", ... }"),
-                None => cx.err(j.line, "a shaped recipe needs a \"key\": what each pattern character stands for"),
             }
-            for c in rows.iter().flat_map(|r| r.chars()).filter(|c| *c != ' ') {
-                if !key.iter().any(|(k, _)| *k == c) && j.get("key").is_some_and(|kv| kv.get(&c.to_string()).is_none()) {
-                    cx.err(pv.line, format!("pattern uses {c:?}, which key doesn't define"));
+            for ch in s.pattern.iter().flat_map(|r| r.chars()).filter(|c| *c != ' ') {
+                if !s.key.0.iter().any(|(k, _)| k.chars().eq([ch])) {
+                    cx.err(line(&root.key("pattern")), format!("pattern uses {ch:?}, which key doesn't define"));
                     return None;
                 }
             }
-            RecipeKind::Shaped { pattern: rows, key }
+            RecipeKind::Shaped { pattern: s.pattern, key }
         }
-        "shapeless" => {
-            let Some(iv) = j.get("ingredients") else {
-                cx.err(j.line, "a shapeless recipe needs \"ingredients\": 1–9 items or tags");
-                return None;
-            };
-            let list: Vec<Vec<String>> = iv
-                .items()
-                .iter()
-                .filter_map(|i| recipe_ingredient(cx, i, "ingredients[]", &mut items))
-                .collect();
-            if !iv.is_arr() || iv.items().is_empty() || iv.items().len() > 9 {
-                cx.err(iv.line, "ingredients must be an array of 1–9 items or tags");
+        Body::Shapeless(s) => {
+            if s.ingredients.is_empty() || s.ingredients.len() > 9 {
+                cx.err(line(&root.key("ingredients")), "ingredients must be 1–9 items or tags");
                 return None;
             }
-            RecipeKind::Shapeless(list)
+            RecipeKind::Shapeless(s.ingredients.iter().map(|i| i.ids()).collect())
         }
-        "smithing" => {
-            let mut part = |cx: &mut Ctx, key: &str| match j.get(key) {
-                Some(v) => recipe_ingredient(cx, v, key, &mut items),
-                None => {
-                    cx.err(j.line, format!("a smithing recipe needs a \"{key}\""));
-                    None
-                }
+        Body::Cooking(ty, k) => {
+            let (method, default_time) = match ty.as_str() {
+                "smelting" => ("Smelting", 200),
+                "blasting" => ("Blasting", 100),
+                "smoking" => ("Smoking", 100),
+                _ => ("Campfire", 600),
             };
-            let template = part(cx, "template");
-            let base = part(cx, "base");
-            let addition = part(cx, "addition");
-            RecipeKind::Smithing { template: template?, base: base?, addition: addition? }
-        }
-        _ => {
-            let Some(iv) = j.get("ingredient") else {
-                cx.err(j.line, format!("a {ty} recipe needs an \"ingredient\": the item or tag it takes"));
-                return None;
-            };
-            let input = recipe_ingredient(cx, iv, "ingredient", &mut items)?;
-            if !cooking {
-                RecipeKind::Stonecutting(input)
-            } else {
-                let (method, default_time) = match ty.as_str() {
-                    "smelting" => ("Smelting", 200.0),
-                    "blasting" => ("Blasting", 100.0),
-                    "smoking" => ("Smoking", 100.0),
-                    _ => ("Campfire", 600.0),
-                };
-                let experience = match j.get("experience") {
-                    Some(v) => cx.number(v, "experience", 0.0, 1000.0)?,
-                    None => 0.1,
-                };
-                let cook_time = match j.get("cook_time") {
-                    Some(v) => cx.number(v, "cook_time", 1.0, 32767.0)?,
-                    None => default_time,
-                } as u32;
-                RecipeKind::Cooking { method, input, experience, cook_time }
+            if !(0.0..=1000.0).contains(&k.experience) {
+                cx.err(line(&root.key("experience")), "experience: 0–1000");
+                ok = false;
             }
+            let cook_time = k.cook_time.unwrap_or(default_time);
+            if !(1..=32767).contains(&cook_time) {
+                cx.err(line(&root.key("cook_time")), "cook_time: 1–32767 ticks");
+                ok = false;
+            }
+            RecipeKind::Cooking { method, input: k.ingredient.ids(), experience: k.experience, cook_time }
+        }
+        Body::Stonecutting(k) => RecipeKind::Stonecutting(k.ingredient.ids()),
+        Body::Smithing(k) => RecipeKind::Smithing { template: k.template.ids(), base: k.base.ids(), addition: k.addition.ids() },
+        Body::Custom(kind, k) => {
+            // The mod's own kind of recipe: `<mod id>:<kind>`.
+            let own = mod_ns.is_some_and(|m| kind.split_once(':').is_some_and(|(n, p)| n == m && valid_path(p)));
+            if !own {
+                cx.err(
+                    line(&root.key("type")),
+                    format!("type `{kind}`: one of {}, or the mod's own kind `{}:<kind>`", recipe::TYPES.join(", "), mod_ns.unwrap_or("mymod")),
+                );
+                return None;
+            }
+            if c.category.is_some() {
+                cx.err(line(&root.key("category")), format!("category is for the game's recipe types; {kind} takes \"slots\" and \"values\""));
+                ok = false;
+            }
+            let slots = k.slots.0.iter().map(|(name, ings)| (name.clone(), ings.iter().map(|i| i.ids()).collect())).collect();
+            let values = k.values.0.iter().map(|(name, v)| (name.clone(), serde_json::from_str(&yog_data::text::to_string(v)).unwrap_or(Value::Null))).collect();
+            RecipeKind::Custom { kind, slots, values }
         }
     };
-    Some(Recipe {
+    ok.then(|| Recipe {
         id: format!("{ns}:{p}"),
-        file: cx.file.clone(),
         kind,
-        result: result?,
-        count: count?,
-        group,
-        category,
-        items,
+        result: c.result.id,
+        count: c.count,
+        group: c.group,
+        category: c.category,
     })
-}
-
-/// An ingredient: an item, a tag, or an array of either (any of them).
-fn recipe_ingredient(cx: &mut Ctx, j: &J, what: &str, items: &mut Vec<(usize, String)>) -> Option<Vec<String>> {
-    if j.is_arr() {
-        let alts: Vec<String> = j.items().iter().filter_map(|i| recipe_item(cx, i, what, true, items)).collect();
-        if alts.is_empty() {
-            cx.err(j.line, format!("{what}: an array of items or tags, at least one"));
-            return None;
-        }
-        return Some(alts);
-    }
-    recipe_item(cx, j, what, true, items).map(|i| vec![i])
 }
 
 /// Ids of the `.yui` screens under `dir` that lay out an inventory (have
@@ -2001,6 +1864,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut book_ids: HashMap<String, String> = HashMap::new();
     let mut inventories: Vec<(String, usize, String)> = Vec::new();
     let mut pending_books: Vec<(String, String)> = Vec::new();
+    let mut pending_recipes: Vec<(String, String, PathBuf)> = Vec::new();
     for path in &files {
         let shown = display(root, path);
         let Some(kind) = Kind::of(path) else { continue };
@@ -2014,6 +1878,11 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         if kind == Kind::Book {
             // Checked once every block, item and recipe is known.
             pending_books.push((shown.clone(), text));
+            continue;
+        }
+        if kind == Kind::Recipe {
+            // Checked once every block and item is known.
+            pending_recipes.push((shown.clone(), text, path.clone()));
             continue;
         }
         let j = match json::parse(&text) {
@@ -2033,15 +1902,6 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             textures: &mut textures,
             inventories: &mut inventories,
         };
-        if kind == Kind::Recipe {
-            if let Some(r) = compile_recipe(&mut cx, &j, path, mod_ns) {
-                if let Some(other) = recipe_ids.insert(r.id.clone(), shown.clone()) {
-                    errors.push(format!("{shown}: recipe {} is also defined by {other}", r.id));
-                }
-                recipes.push(r);
-            }
-            continue;
-        }
         if let Some(entry) = compile_file(&mut cx, &j, kind, path, mod_ns, &mut out, &mut generated)
         {
             if let Some(other) = ids.insert(entry.id.clone(), shown.clone()) {
@@ -2058,6 +1918,24 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut known = refs::Known::new(mod_ns.unwrap_or("minecraft"), &externals);
     for e in &entries {
         known.add(if e.kind == Kind::Block { refs::RefKind::Block } else { refs::RefKind::Item }, e.id.clone());
+    }
+    for (shown, text, path) in &pending_recipes {
+        let mut cx = Ctx {
+            root,
+            refs,
+            file: shown.clone(),
+            ns: mod_ns.unwrap_or("minecraft").to_string(),
+            errors: &mut errors,
+            warnings: &mut warnings,
+            textures: &mut textures,
+            inventories: &mut inventories,
+        };
+        if let Some(r) = compile_recipe(&mut cx, text, path, mod_ns, &known) {
+            if let Some(other) = recipe_ids.insert(r.id.clone(), shown.clone()) {
+                errors.push(format!("{shown}: recipe {} is also defined by {other}", r.id));
+            }
+            recipes.push(r);
+        }
     }
     for r in &recipes {
         known.add(refs::RefKind::Recipe, r.id.clone());
@@ -2083,16 +1961,6 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     // What recipes name from this mod must be its blocks and items (vanilla
     // and other mods' ids can't be checked here).
     if let Some(ns) = mod_ns {
-        for r in &recipes {
-            for (line, item) in &r.items {
-                if item.split_once(':').is_some_and(|(n, _)| n == ns) && !ids.contains_key(item) {
-                    errors.push(format!(
-                        "{}:{line}: no block or item {item} in {CONTENT_DIR}/",
-                        r.file
-                    ));
-                }
-            }
-        }
         let screens = inventory_screens(&root.join("src"));
         for (file, line, id) in &inventories {
             if id.split_once(':').is_some_and(|(n, _)| n == ns) && !screens.contains(id) {
@@ -2720,19 +2588,19 @@ mod tests {
             ("content/ruby.yitem", r#"{ "model": { "parent": "generated", "textures": { "layer0": "minecraft:item/emerald" } } }"#),
             (
                 "content/recipes/ruby_block.yrecipe",
-                r##"{ "type": "shaped", "pattern": ["RR", "RR"], "key": { "R": "mymod:ruby" }, "result": "minecraft:emerald_block" }"##,
+                r##"{ "type": "shaped", "pattern": ["RR", "RR"], "key": { "R": "@item:mymod:ruby" }, "result": "@item:minecraft:emerald_block" }"##,
             ),
             (
                 "content/recipes/ruby.yrecipe",
-                r##"{ "type": "shapeless", "ingredients": ["minecraft:emerald", "#c:dusts"], "result": "mymod:ruby", "count": 2 }"##,
+                r##"{ "type": "shapeless", "ingredients": ["@item:minecraft:emerald", "@tag:item:c:dusts"], "result": "@item:mymod:ruby", "count": 2 }"##,
             ),
             (
                 "content/recipes/smelt_ruby.yrecipe",
-                r##"{ "type": "smelting", "ingredient": "#c:ores", "result": "mymod:ruby", "experience": 0.7, "$comment": "metadata goes", "_editor": { "x": 1 } }"##,
+                r##"{ "type": "smelting", "ingredient": "@tag:item:c:ores", "result": "@item:mymod:ruby", "experience": 0.7, "$comment": "metadata goes", "_editor": { "x": 1 } }"##,
             ),
             (
                 "content/recipes/cut.yrecipe",
-                r##"{ "type": "stonecutting", "ingredient": ["minecraft:stone", "minecraft:andesite"], "result": "mymod:ruby", "group": "rubies" }"##,
+                r##"{ "type": "stonecutting", "ingredient": ["@item:minecraft:stone", "@item:minecraft:andesite"], "result": "@item:mymod:ruby", "group": "rubies" }"##,
             ),
         ]);
         let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
@@ -2758,16 +2626,22 @@ mod tests {
             let _ = std::fs::remove_dir_all(root);
             e
         };
-        let e = bad(r#"{ "type": "shaped", "pattern": ["AB"], "key": { "A": "minecraft:stick" }, "result": "minecraft:stick" }"#);
+        let e = bad(r#"{ "type": "shaped", "pattern": ["AB"], "key": { "A": "@item:minecraft:stick" }, "result": "@item:minecraft:stick" }"#);
         assert!(e.contains("pattern uses 'B'"), "{e}");
-        let e = bad(r#"{ "type": "shapeless", "ingredients": ["stick"], "result": "minecraft:stick" }"#);
-        assert!(e.contains("write `minecraft:stick`"), "{e}");
-        let e = bad(r##"{ "type": "smelting", "ingredient": "minecraft:sand", "result": "#c:glass" }"##);
-        assert!(e.contains("must be an item, not a tag"), "{e}");
-        let e = bad(r#"{ "type": "shapeless", "ingredients": ["minecraft:sand"], "result": "mymod:nothing" }"#);
-        assert!(e.contains("no block or item mymod:nothing"), "{e}");
-        let e = bad(r#"{ "type": "shapeless", "pattern": ["A"], "ingredients": ["minecraft:sand"], "result": "minecraft:glass" }"#);
-        assert!(e.contains("pattern is for shaped recipes"), "{e}");
+        let e = bad(r#"{ "type": "shapeless", "ingredients": ["stick"], "result": "@item:minecraft:stick" }"#);
+        assert!(e.contains("ingredients[0]: `stick`: name it by a reference — `@item:stick`"), "{e}");
+        let e = bad(r##"{ "type": "shapeless", "ingredients": ["#c:sand"], "result": "@item:minecraft:glass" }"##);
+        assert!(e.contains("`#c:sand`: write a tag as `@tag:item:c:sand`"), "{e}");
+        let e = bad(r##"{ "type": "smelting", "ingredient": "@item:minecraft:sand", "result": "@tag:item:c:glass" }"##);
+        assert!(e.contains("result: expected a reference (`@item:`), found a tag"), "{e}");
+        let e = bad(r#"{ "type": "shapeless", "ingredients": ["@item:minecraft:sand"], "result": "@item:mymod:nothing" }"#);
+        assert!(e.contains("result: no item mymod:nothing in this mod"), "{e}");
+        let e = bad(r#"{ "type": "shapeless", "ingredients": ["@item:minecraft:nope"], "result": "@item:minecraft:glass" }"#);
+        assert!(e.contains("ingredients[0]: no item minecraft:nope in Minecraft"), "{e}");
+        let e = bad(r#"{ "type": "shapeless", "pattern": ["A"], "ingredients": ["@item:minecraft:sand"], "result": "@item:minecraft:glass" }"#);
+        assert!(e.contains("unknown field `pattern`"), "{e}");
+        let e = bad(r#"{ "type": "smeltin", "ingredient": "@item:minecraft:sand", "result": "@item:minecraft:glass" }"#);
+        assert!(e.contains("unknown `smeltin` — did you mean `smelting`?"), "{e}");
     }
 
     #[test]
@@ -2841,19 +2715,20 @@ mod tests {
 
     #[test]
     fn compiles_a_recipe_of_the_mods_own_kind() {
-        let r = r##"{ "type": "mymod:infusion", "slots": { "core": ["minecraft:diamond"], "ring": [["minecraft:coal", "minecraft:charcoal"], "#c:dusts"] },
-                     "values": { "time": 200 }, "result": "minecraft:emerald", "count": 2 }"##;
+        let r = r##"{ type: "mymod:infusion", slots: { core: ["@item:minecraft:diamond"], ring: [["@item:minecraft:coal", "@item:minecraft:charcoal"], "@tag:item:c:dusts"] },
+                     values: { time: 200 }, result: "@item:minecraft:emerald", count: 2 }"##;
         let c = compile(&project(&[("content/infusion.yrecipe", r)]), "mymod", &yres::Refs::default()).unwrap();
         let src = c.source.unwrap();
         assert!(src.contains("registry.add_recipe_json(\"mymod:infusion\""), "{src}");
         assert!(src.contains(r#"\"type\":\"mymod:infusion\""#) && src.contains(r#"\"time\":200"#), "{src}");
 
-        let bad = r#"{ "type": "mymod:infusion", "ingredient": "minecraft:stone", "result": "minecraft:emerald" }"#;
+        let bad = r#"{ "type": "mymod:infusion", "ingredient": "@item:minecraft:stone", "result": "@item:minecraft:emerald" }"#;
         let e = compile(&project(&[("content/bad.yrecipe", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
-        assert!(e.contains("takes \"slots\"") && e.contains("needs \"slots\""), "{e}");
+        assert!(e.contains("unknown field `ingredient`") && e.contains("missing `slots`"), "{e}");
         // Another mod's kind isn't the mod's own: not a Yog recipe type.
-        let other = r#"{ "type": "create:mixing", "result": "minecraft:emerald" }"#;
-        assert!(compile(&project(&[("content/o.yrecipe", other)]), "mymod", &yres::Refs::default()).is_err());
+        let other = r#"{ "type": "create:mixing", "slots": {}, "result": "@item:minecraft:emerald" }"#;
+        let e = compile(&project(&[("content/o.yrecipe", other)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("type `create:mixing`: one of shaped"), "{e}");
     }
 
     #[test]

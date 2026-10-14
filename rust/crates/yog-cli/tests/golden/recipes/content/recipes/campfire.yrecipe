@@ -1,5 +1,5 @@
 {
   "type": "campfire_cooking",
-  "ingredient": "minecraft:beef",
-  "result": "minecraft:cooked_beef"
+  "ingredient": "@item:minecraft:beef",
+  "result": "@item:minecraft:cooked_beef"
 }

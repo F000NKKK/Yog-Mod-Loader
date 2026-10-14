@@ -1,13 +1,13 @@
 {
   "type": "shapeless",
   "ingredients": [
-    "gm:ruby",
+    "@item:gm:ruby",
     [
-      "minecraft:coal",
-      "minecraft:charcoal"
+      "@item:minecraft:coal",
+      "@item:minecraft:charcoal"
     ],
-    "#c:dusts"
+    "@tag:item:c:dusts"
   ],
-  "result": "minecraft:torch",
+  "result": "@item:minecraft:torch",
   "count": 4
 }

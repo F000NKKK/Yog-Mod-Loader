@@ -1,6 +1,6 @@
 {
   "type": "stonecutting",
-  "ingredient": "minecraft:stone",
-  "result": "minecraft:stone_bricks",
+  "ingredient": "@item:minecraft:stone",
+  "result": "@item:minecraft:stone_bricks",
   "count": 2
 }

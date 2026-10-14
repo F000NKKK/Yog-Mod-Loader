@@ -5,9 +5,9 @@
     "RR"
   ],
   "key": {
-    "R": "gm:ruby"
+    "R": "@item:gm:ruby"
   },
-  "result": "minecraft:redstone_block",
+  "result": "@item:minecraft:redstone_block",
   "group": "blocks",
   "category": "building"
 }

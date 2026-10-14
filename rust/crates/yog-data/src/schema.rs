@@ -500,6 +500,20 @@ impl<'r> Reader<'r> {
         r
     }
 
+    /// Reads with every one of `keys` allowed (the fields of a struct read
+    /// from the same object — see [`read_both`]).
+    pub fn with_allowed_all<T>(
+        &mut self,
+        keys: &[&'static str],
+        f: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let before = self.allowed.len();
+        self.allowed.extend_from_slice(keys);
+        let r = f(self);
+        self.allowed.truncate(before);
+        r
+    }
+
     /// Reads a struct's own keys with no allowance inherited from outside.
     pub fn own_keys<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
         let saved = std::mem::take(&mut self.allowed);
@@ -591,6 +605,31 @@ pub struct Read<T> {
     pub refs: Vec<Found<Ref>>,
     pub tags: Vec<Found<Ref>>,
     pub resources: Vec<Found<Res>>,
+}
+
+/// The field names of a struct's shape (none for anything else).
+pub fn field_names(shape: &Shape) -> Vec<&'static str> {
+    match shape {
+        Shape::Struct(s) => s.fields.iter().map(|f| f.name).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// `A` and `B` read from the same object — each allowing the other's
+/// fields, like serde's `flatten`: a recipe's common fields and its kind's.
+pub fn read_both<A: Schema, B: Schema>(
+    v: &Value,
+    cx: &mut Reader,
+    also: &[&'static str],
+) -> Option<(A, B)> {
+    let (an, bn) = (field_names(&A::shape()), field_names(&B::shape()));
+    let mut b_keys = bn.clone();
+    b_keys.extend_from_slice(also);
+    let mut a_keys = an;
+    a_keys.extend_from_slice(also);
+    let a = cx.with_allowed_all(&b_keys, |cx| A::read(v, cx));
+    let b = cx.with_allowed_all(&a_keys, |cx| B::read(v, cx));
+    Some((a?, b?))
 }
 
 /// Reads `v` as `T`: the value and its references, or every problem.
@@ -1228,6 +1267,12 @@ impl<K: Kind> Schema for OneOrTag<K> {
         Shape::RefOrTag(<K as Kinds>::NAMES)
     }
     fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+        if let Value::Str(s) = v
+            && let Some(tag) = s.strip_prefix('#')
+        {
+            cx.problem(format!("`{s}`: write a tag as `@tag:{}:{tag}`", K::NAME));
+            return None;
+        }
         let is_tag = match v {
             Value::Tag(_) => true,
             Value::Str(s) => s.starts_with("@tag:"),

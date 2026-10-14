@@ -1,7 +1,7 @@
 {
   "type": "smithing",
-  "template": "minecraft:netherite_upgrade_smithing_template",
-  "base": "minecraft:diamond_sword",
-  "addition": "gm:ruby",
-  "result": "minecraft:netherite_sword"
+  "template": "@item:minecraft:netherite_upgrade_smithing_template",
+  "base": "@item:minecraft:diamond_sword",
+  "addition": "@item:gm:ruby",
+  "result": "@item:minecraft:netherite_sword"
 }

@@ -1435,7 +1435,7 @@ item coal *
 item coal_block *
 item coal_ore *
 item coarse_dirt *
-item coast_armor_trim_smithing_template 1.21.1
+item coast_armor_trim_smithing_template *
 item cobbled_deepslate *
 item cobbled_deepslate_slab *
 item cobbled_deepslate_stairs *
@@ -1611,7 +1611,7 @@ item dried_kelp_block *
 item dripstone_block *
 item dropper *
 item drowned_spawn_egg *
-item dune_armor_trim_smithing_template 1.21.1
+item dune_armor_trim_smithing_template *
 item echo_shard *
 item egg *
 item elder_guardian_spawn_egg *
@@ -1648,7 +1648,7 @@ item exposed_copper_trapdoor 1.21.1
 item exposed_cut_copper *
 item exposed_cut_copper_slab *
 item exposed_cut_copper_stairs *
-item eye_armor_trim_smithing_template 1.21.1
+item eye_armor_trim_smithing_template *
 item farmland *
 item feather *
 item fermented_spider_eye *
@@ -1766,7 +1766,7 @@ item horn_coral *
 item horn_coral_block *
 item horn_coral_fan *
 item horse_spawn_egg *
-item host_armor_trim_smithing_template 1.21.1
+item host_armor_trim_smithing_template *
 item howl_pottery_sherd *
 item husk_spawn_egg *
 item ice *
@@ -1997,7 +1997,7 @@ item netherite_pickaxe *
 item netherite_scrap *
 item netherite_shovel *
 item netherite_sword *
-item netherite_upgrade_smithing_template 1.21.1
+item netherite_upgrade_smithing_template *
 item netherrack *
 item note_block *
 item oak_boat *
@@ -2168,7 +2168,7 @@ item rabbit_hide *
 item rabbit_spawn_egg *
 item rabbit_stew *
 item rail *
-item raiser_armor_trim_smithing_template 1.21.1
+item raiser_armor_trim_smithing_template *
 item ravager_spawn_egg *
 item raw_copper *
 item raw_copper_block *
@@ -2211,7 +2211,7 @@ item reinforced_deepslate *
 item repeater *
 item repeating_command_block *
 item respawn_anchor *
-item rib_armor_trim_smithing_template 1.21.1
+item rib_armor_trim_smithing_template *
 item rooted_dirt *
 item rose_bush *
 item rotten_flesh *
@@ -2235,8 +2235,8 @@ item scute 1.20.1
 item sea_lantern *
 item sea_pickle *
 item seagrass *
-item sentry_armor_trim_smithing_template 1.21.1
-item shaper_armor_trim_smithing_template 1.21.1
+item sentry_armor_trim_smithing_template *
+item shaper_armor_trim_smithing_template *
 item sheaf_pottery_sherd *
 item shears *
 item sheep_spawn_egg *
@@ -2247,7 +2247,7 @@ item shroomlight *
 item shulker_box *
 item shulker_shell *
 item shulker_spawn_egg *
-item silence_armor_trim_smithing_template 1.21.1
+item silence_armor_trim_smithing_template *
 item silverfish_spawn_egg *
 item skeleton_horse_spawn_egg *
 item skeleton_skull *
@@ -2276,7 +2276,7 @@ item smooth_stone_slab *
 item sniffer_egg *
 item sniffer_spawn_egg *
 item snort_pottery_sherd *
-item snout_armor_trim_smithing_template 1.21.1
+item snout_armor_trim_smithing_template *
 item snow *
 item snow_block *
 item snow_golem_spawn_egg *
@@ -2290,7 +2290,7 @@ item spawner *
 item spectral_arrow *
 item spider_eye *
 item spider_spawn_egg *
-item spire_armor_trim_smithing_template 1.21.1
+item spire_armor_trim_smithing_template *
 item splash_potion *
 item sponge *
 item spore_blossom *
@@ -2368,7 +2368,7 @@ item tadpole_spawn_egg *
 item tall_grass *
 item target *
 item terracotta *
-item tide_armor_trim_smithing_template 1.21.1
+item tide_armor_trim_smithing_template *
 item tinted_glass *
 item tipped_arrow *
 item tnt *
@@ -2404,13 +2404,13 @@ item turtle_spawn_egg *
 item twisting_vines *
 item vault 1.21.1
 item verdant_froglight *
-item vex_armor_trim_smithing_template 1.21.1
+item vex_armor_trim_smithing_template *
 item vex_spawn_egg *
 item villager_spawn_egg *
 item vindicator_spawn_egg *
 item vine *
 item wandering_trader_spawn_egg *
-item ward_armor_trim_smithing_template 1.21.1
+item ward_armor_trim_smithing_template *
 item warden_spawn_egg *
 item warped_button *
 item warped_door *
@@ -2467,7 +2467,7 @@ item waxed_weathered_copper_trapdoor 1.21.1
 item waxed_weathered_cut_copper *
 item waxed_weathered_cut_copper_slab *
 item waxed_weathered_cut_copper_stairs *
-item wayfinder_armor_trim_smithing_template 1.21.1
+item wayfinder_armor_trim_smithing_template *
 item weathered_chiseled_copper 1.21.1
 item weathered_copper *
 item weathered_copper_bulb 1.21.1
@@ -2495,7 +2495,7 @@ item white_stained_glass_pane *
 item white_terracotta *
 item white_tulip *
 item white_wool *
-item wild_armor_trim_smithing_template 1.21.1
+item wild_armor_trim_smithing_template *
 item wind_charge 1.21.1
 item witch_spawn_egg *
 item wither_rose *

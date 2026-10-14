@@ -13,9 +13,18 @@ for v in VERSIONS:
     lang = json.loads(z.read("assets/minecraft/lang/en_us.json"))
     named_items = {k.split(".")[2] for k in lang if re.fullmatch(r"item\.minecraft\.[a-z0-9_]+", k)}
     named_blocks = {k.split(".")[2] for k in lang if re.fullmatch(r"block\.minecraft\.[a-z0-9_]+", k)}
+    # An item model is an item's when the item has a name or its own texture
+    # (1.20.1's smithing templates share one name, `item.minecraft.smithing_template`);
+    # template models (`generated`, `template_*`) have neither.
+    # Models an item switches to (`bow_pulling_0`, `clock_01`: its `overrides`) aren't items.
+    textured = {m[1] for n in names if (m := re.fullmatch(r"assets/minecraft/textures/item/([a-z0-9_]+)\.png", n))}
+    for n in names:
+        if re.fullmatch(r"assets/minecraft/models/item/[a-z0-9_]+\.json", n):
+            for o in json.loads(z.read(n)).get("overrides", []):
+                textured.discard(o.get("model", "").split("/")[-1])
     for n in names:
         m = re.fullmatch(r"assets/minecraft/models/item/([a-z0-9_]+)\.json", n)
-        if m and (m[1] in named_items or m[1] in named_blocks):
+        if m and (m[1] in named_items or m[1] in named_blocks or m[1] in textured):
             ids[("item", m[1])].add(v)
         m = re.fullmatch(r"assets/minecraft/blockstates/([a-z0-9_]+)\.json", n)
         if m:

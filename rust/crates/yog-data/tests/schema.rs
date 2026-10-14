@@ -271,6 +271,7 @@ impl yog_data::Resolve for Game {
             Text::Res(r) => format!("gm.{}", r.key),
             Text::NameOf(r) => format!("{}.{}", r.kind, r.id.replace(':', ".")),
             Text::Literal(s) => s.clone(),
+            Text::Lang(k) => k.clone(),
         })
     }
 }

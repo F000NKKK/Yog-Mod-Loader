@@ -1742,12 +1742,12 @@ mod tests {
         );
         set_resource_refs(&refs);
         assert_eq!(
-            text_expr("@Strings.title"),
+            text_expr("@Strings.title").unwrap(),
             "::yog_api::tr(\"mymod.title\")"
         );
         set_resource_refs(&crate::yres::Refs::default());
         let code = generate(
-            r#"<Screen id="m:s" width="10" height="10"><Label text="@m.title"/><Button text="@@x"/></Screen>"#,
+            r#"<Screen id="m:s" width="10" height="10"><Label text="@lang:m.title"/><Button text="@@x"/></Screen>"#,
             "s.yui",
         )
         .unwrap();

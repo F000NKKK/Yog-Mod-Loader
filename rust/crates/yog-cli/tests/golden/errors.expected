@@ -1,6 +1,7 @@
 # content failed
 invalid blocks/items in content/:
   content/bad.yitem:1: expected `,` or `}`
+  content/recipe.yrecipe:9: result: no item gm:missing in this mod
   content/recipe.yrecipe:3: pattern uses 'B', which key doesn't define
   content/book.ybook:1: missing `name`
   content/book.ybook:13: entries[0].category: `c`: name it by a reference — `@category:c`

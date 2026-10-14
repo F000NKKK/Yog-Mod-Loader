@@ -1,1 +1,7 @@
-{"type": "shapeless", "ingredients": ["minecraft:redstone"], "result": "gm:ruby"}
+{
+  "type": "shapeless",
+  "ingredients": [
+    "@item:minecraft:redstone"
+  ],
+  "result": "@item:gm:ruby"
+}
