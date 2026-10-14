@@ -205,6 +205,8 @@ public class YogHost {
                 int slotCount = def != null ? def.slotCount : 0;
                 block = new YogInventoryBlock(props, p.get("inventory_id"), slotCount);
                 inventoryBlocks.add(block);
+            } else if ("1".equals(p.get("redstone"))) {
+                block = new YogRedstoneBlock(props);
             } else if ("1".equals(p.get("connects"))) {
                 // Default core = a slim centered post (like a vanilla fence)
                 // unless the mod supplied its own `.shape(...)`.

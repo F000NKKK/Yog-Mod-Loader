@@ -426,4 +426,10 @@ impl Server for NullServer {
     fn world_set_thunder(&self, dimension: &str, thundering: bool, duration_ticks: i32) -> bool {
         Default::default()
     }
+    fn fill_region(&self, dimension: &str, from: BlockPos, to: BlockPos, state: &str) -> Option<u32> {
+        Default::default()
+    }
+    fn scan_region(&self, dimension: &str, from: BlockPos, to: BlockPos) -> Vec<(BlockPos, String)> {
+        Default::default()
+    }
 }

@@ -1288,6 +1288,39 @@ public final class NativeBridge {
         }
     }
 
+    /** Sets every block of the box to {@code state} (no neighbour updates); how many changed, or -1. */
+    public static int fillRegion(String dimension, int x1, int y1, int z1, int x2, int y2, int z2, String state) {
+        ServerLevel w = worldFor(dimension);
+        if (w == null) return -1;
+        try {
+            var parsed = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK.asLookup(), state, false).blockState();
+            net.minecraft.core.BlockPos from = new net.minecraft.core.BlockPos(x1, y1, z1), to = new net.minecraft.core.BlockPos(x2, y2, z2);
+            int changed = 0;
+            for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(from, to)) {
+                if (w.setBlock(pos, parsed, 2)) changed++;
+            }
+            return changed;
+        } catch (Exception e) {
+            System.out.println("[yog] fillRegion: " + state + ": " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /** The box's non-air blocks: "x y z state" lines. */
+    public static String scanRegion(String dimension, int x1, int y1, int z1, int x2, int y2, int z2) {
+        ServerLevel w = worldFor(dimension);
+        if (w == null) return null;
+        net.minecraft.core.BlockPos from = new net.minecraft.core.BlockPos(x1, y1, z1), to = new net.minecraft.core.BlockPos(x2, y2, z2);
+        StringBuilder sb = new StringBuilder();
+        for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(from, to)) {
+            var st = w.getBlockState(pos);
+            if (st.isAir()) continue;
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(pos.getX()).append(' ').append(pos.getY()).append(' ').append(pos.getZ()).append(' ').append(net.minecraft.commands.arguments.blocks.BlockStateParser.serialize(st));
+        }
+        return sb.toString();
+    }
+
     public static boolean worldIsThundering(String dimension) {
         ServerLevel w = worldFor(dimension);
         return w != null && w.isThundering();

@@ -356,7 +356,7 @@ fn prepare() -> Result<Prepared, String> {
     if yog_lock.exists() && !cargo_lock.exists() {
         std::fs::copy(&yog_lock, &cargo_lock).map_err(|e| e.to_string())?;
     }
-    update_old_kit(&build_dir, &cargo_lock);
+    update_old_deps(&build_dir, &cargo_lock);
     Ok(Prepared {
         root,
         meta,
@@ -366,39 +366,46 @@ fn prepare() -> Result<Prepared, String> {
     })
 }
 
-/// The oldest yog-kit that understands the screen code this yog writes
-/// (`yui_vm`'s codegen version).
-const MIN_YOG_KIT: (u64, u64, u64) = (0, 3, 7);
+/// The oldest versions of the loader crates this yog's generated code and
+/// the current runtime's ABI (1.3) need — a mod's lock pinning older ones
+/// moves up (the runtime refuses a mod of another ABI; screens generated
+/// for a newer yog-kit don't compile).
+const MIN_VERSIONS: &[(&str, (u64, u64, u64))] = &[("yog-api", (0, 92, 10)), ("yog-kit", (0, 3, 10))];
 
-/// A lock pinning a yog-kit older than [`MIN_YOG_KIT`] would fail on the
-/// generated screens ("generated for a newer yog-kit") — moves it up to the
-/// newest compatible one (with the yog-api it needs).
-fn update_old_kit(build_dir: &Path, cargo_lock: &Path) {
+/// Moves crates of the lock at `cargo_lock` older than [`MIN_VERSIONS`] up
+/// to the newest compatible ones (with what they need).
+fn update_old_deps(build_dir: &Path, cargo_lock: &Path) {
     let Ok(lock) = std::fs::read_to_string(cargo_lock) else {
         return;
     };
     let mut lines = lock.lines();
-    let mut old = false;
+    let mut old = Vec::new();
     while let Some(line) = lines.next() {
-        if line.trim() == "name = \"yog-kit\""
-            && let Some(v) = lines.next().and_then(|l| l.trim().strip_prefix("version = \""))
-        {
+        let Some(name) = line.trim().strip_prefix("name = \"").and_then(|n| n.strip_suffix('"')) else {
+            continue;
+        };
+        let Some((_, min)) = MIN_VERSIONS.iter().find(|(n, _)| *n == name) else {
+            continue;
+        };
+        if let Some(v) = lines.next().and_then(|l| l.trim().strip_prefix("version = \"")) {
             let mut n = v.trim_end_matches('"').split('.').map(|p| p.parse::<u64>().unwrap_or(0));
             let ver = (n.next().unwrap_or(0), n.next().unwrap_or(0), n.next().unwrap_or(0));
-            old |= ver < MIN_YOG_KIT;
+            if ver < *min {
+                old.push(name.to_string());
+            }
         }
     }
-    if !old {
+    if old.is_empty() {
         return;
     }
-    eprintln!("==> updating yog-kit (the lock pins one older than this yog's screen code needs)");
-    let ok = Command::new("cargo")
-        .args(["update", "-q", "--recursive", "-p", "yog-kit"])
-        .current_dir(build_dir)
-        .status()
-        .is_ok_and(|s| s.success());
-    if !ok {
-        eprintln!("warning: `cargo update -p yog-kit` failed — the screens may not compile");
+    eprintln!("==> updating {} (the lock pins versions older than this yog needs)", old.join(", "));
+    let mut cmd = Command::new("cargo");
+    cmd.args(["update", "-q", "--recursive"]).current_dir(build_dir);
+    for name in &old {
+        cmd.args(["-p", name]);
+    }
+    if !cmd.status().is_ok_and(|s| s.success()) {
+        eprintln!("warning: `cargo update` failed — the build may not match the runtime");
     }
 }
 

@@ -279,6 +279,8 @@ struct BlockProps {
     connects: bool,
     /// The inventory screen it opens (a `.yui` `<Screen>` with `<Slot>`s).
     inventory: Option<String>,
+    /// Gives off redstone power, set by the mod per position.
+    redstone: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -1114,6 +1116,7 @@ fn compile_file(
                         "drops",
                         "connect_groups",
                         "inventory",
+                        "redstone",
                     ],
                 );
                 let props = &mut entry.block;
@@ -1157,6 +1160,9 @@ fn compile_file(
                 }
                 if let Some(v) = b.get("render_layer") {
                     render_layer = cx.one_of(v, "block.render_layer", &RENDER_LAYERS);
+                }
+                if let Some(v) = b.get("redstone") {
+                    props.redstone = cx.boolean(v, "block.redstone").unwrap_or(false);
                 }
                 if let Some(v) = b.get("inventory")
                     && let Some(id) = cx.string(v, "block.inventory")
@@ -1912,6 +1918,9 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe]) -> String {
                     }
                     if let Some(inv) = &p.inventory {
                         let _ = write!(b, "\n            .inventory({inv:?})");
+                    }
+                    if p.redstone {
+                        b.push_str("\n            .redstone_source()");
                     }
                 }
                 Kind::Item => {

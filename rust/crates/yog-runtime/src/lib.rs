@@ -2832,6 +2832,8 @@ fn build_server_table() -> YogServer {
         set_block_state: srv_set_block_state,
         world_is_thundering: srv_world_is_thundering,
         world_set_thunder: srv_world_set_thunder,
+        fill_region: srv_fill_region,
+        scan_region: srv_scan_region,
     }
 }
 
@@ -2869,6 +2871,26 @@ unsafe extern "C" fn srv_world_is_thundering(_ctx: *mut c_void, dim: YogStr) -> 
 
 unsafe extern "C" fn srv_world_set_thunder(_ctx: *mut c_void, dim: YogStr, thundering: bool, duration_ticks: i32) -> bool {
     unsafe { bridge!("worldSetThunder", [S(dim), Z(thundering), I(duration_ticks)]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn srv_fill_region(
+    _ctx: *mut c_void,
+    dim: YogStr,
+    from: YogBlockPos,
+    to: YogBlockPos,
+    state: YogStr,
+) -> i32 {
+    unsafe {
+        bridge!(
+            "fillRegion",
+            [S(dim), I(from.x), I(from.y), I(from.z), I(to.x), I(to.y), I(to.z), S(state)]
+        )
+        .unwrap_or(-1)
+    }
+}
+
+unsafe extern "C" fn srv_scan_region(_ctx: *mut c_void, dim: YogStr, from: YogBlockPos, to: YogBlockPos) -> YogOwnedStr {
+    unsafe { owned(bridge!("scanRegion", [S(dim), I(from.x), I(from.y), I(from.z), I(to.x), I(to.y), I(to.z)])) }
 }
 
 // ── Inter-mod communication ──────────────────────────────────────────────────

@@ -1130,6 +1130,27 @@ impl Server for CServer {
         let s = srv!(self);
         unsafe { (s.world_set_thunder)(s.ctx, YogStr::from_str(dimension), thundering, duration_ticks) }
     }
+
+    fn fill_region(&self, dimension: &str, from: yog_core::BlockPos, to: yog_core::BlockPos, state: &str) -> Option<u32> {
+        let s = srv!(self);
+        let n = unsafe { (s.fill_region)(s.ctx, YogStr::from_str(dimension), bp(from), bp(to), YogStr::from_str(state)) };
+        u32::try_from(n).ok()
+    }
+
+    fn scan_region(&self, dimension: &str, from: yog_core::BlockPos, to: yog_core::BlockPos) -> Vec<(yog_core::BlockPos, String)> {
+        let s = srv!(self);
+        let owned = unsafe { (s.scan_region)(s.ctx, YogStr::from_str(dimension), bp(from), bp(to)) };
+        let Some(text) = take_owned(s.free_str, owned) else {
+            return Vec::new();
+        };
+        text.lines()
+            .filter_map(|line| {
+                let mut it = line.splitn(4, ' ');
+                let (x, y, z) = (it.next()?.parse().ok()?, it.next()?.parse().ok()?, it.next()?.parse().ok()?);
+                Some((yog_core::BlockPos { x, y, z }, it.next()?.to_string()))
+            })
+            .collect()
+    }
 }
 
 /// Copy a runtime-owned string out and free it; `None` for NONE.

@@ -1129,6 +1129,17 @@ pub struct YogServer {
     pub world_is_thundering: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr) -> bool,
     pub world_set_thunder:
         unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, thundering: bool, duration_ticks: i32) -> bool,
+    /// Sets every block of the box `from..=to` to `state`; how many changed, or -1.
+    pub fill_region: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        dim: YogStr,
+        from: YogBlockPos,
+        to: YogBlockPos,
+        state: YogStr,
+    ) -> i32,
+    /// The non-air blocks of the box `from..=to`: `"x y z state"` lines, or NONE.
+    pub scan_region:
+        unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, from: YogBlockPos, to: YogBlockPos) -> YogOwnedStr,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.

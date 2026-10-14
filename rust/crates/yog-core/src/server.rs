@@ -550,4 +550,14 @@ pub trait Server {
     /// Starts (`true`) or ends a thunderstorm; `duration_ticks` 0 = a
     /// server-chosen length.
     fn world_set_thunder(&self, dimension: &str, thundering: bool, duration_ticks: i32) -> bool;
+
+    /// Sets every block of the box between `from` and `to` (inclusive, any
+    /// corners) to `state` (`"minecraft:barrier"`, `"minecraft:air"`, a full
+    /// state) in one call. How many blocks changed; `None` if the dimension
+    /// or state is unknown.
+    fn fill_region(&self, dimension: &str, from: BlockPos, to: BlockPos, state: &str) -> Option<u32>;
+
+    /// Every non-air block of the box between `from` and `to` with its full
+    /// state (see [`Server::get_block_state`]) — one call for a whole area.
+    fn scan_region(&self, dimension: &str, from: BlockPos, to: BlockPos) -> Vec<(BlockPos, String)>;
 }
