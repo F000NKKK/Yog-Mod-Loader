@@ -900,6 +900,10 @@ pub fn generate_for(
     mod_id: Option<&str>,
 ) -> Result<(String, Vec<String>), String> {
     let mut root = parse_xml(src)?;
+    // A book's kind of page or a recipe layout isn't code: the build reads it as data.
+    if crate::book_page::is_book_ui(&root) {
+        return Ok((String::new(), Vec::new()));
+    }
     crate::yui_grid::normalize(&mut root)?;
     if root.name == "Component" {
         return crate::yui_component::generate(&root, name, mod_id);
@@ -1234,6 +1238,16 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn book_pages_and_recipe_layouts_make_no_code() {
+        for src in [
+            r#"<Component name="123Layout" recipe_layout="123" width="10" height="10"><RecipeSlot slot="a"/></Component>"#,
+            r#"<Component book_page="note"><BookText text="x"/></Component>"#,
+        ] {
+            assert_eq!(generate_for(src, "x", Some("m")).unwrap(), (String::new(), Vec::new()));
+        }
+    }
 
     fn screen(body: &str) -> String {
         format!(r#"<Screen id="mymod:s">{body}</Screen>"#)
