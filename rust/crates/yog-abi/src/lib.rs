@@ -481,7 +481,8 @@ pub type YogTooltipDrawFn = unsafe extern "C" fn(
 pub type YogTextSink = unsafe extern "C" fn(sink: *mut c_void, text: YogStr);
 /// The name and tooltip lines of a stack of `item` with custom data
 /// `snbt`: `false` for the item's own; else one `write` of the name (empty:
-/// the item's own) and the lines under it, separated by `\n`.
+/// the item's own) and the lines that stand instead of its description,
+/// separated by `\n`.
 pub type YogItemTextFn =
     unsafe extern "C" fn(ud: *mut c_void, item: YogStr, snbt: YogStr, sink: *mut c_void, write: YogTextSink) -> bool;
 /// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.

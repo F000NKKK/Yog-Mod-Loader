@@ -36,6 +36,13 @@ public class YogItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+        // A mod's own lines for this stack (a written blueprint, a fabricated
+        // chip) stand instead of the item's description.
+        String[] own = ownText(stack);
+        if (own != null) {
+            for (int i = 1; i < own.length; i++) lines.add(Component.literal(own[i]));
+            return;
+        }
         String descKey = this.getDescriptionId() + ".desc";
         String resolved = net.minecraft.client.resources.language.I18n.exists(descKey)
                 ? net.minecraft.client.resources.language.I18n.get(descKey)
@@ -45,8 +52,6 @@ public class YogItem extends Item {
                 lines.add(Component.literal(line));
             }
         }
-        String[] own = ownText(stack);
-        if (own != null) for (int i = 1; i < own.length; i++) lines.add(Component.literal(own[i]));
     }
 
     /** A Yog mod's picture under the tooltip, if it gives this stack one. */

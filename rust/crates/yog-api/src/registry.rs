@@ -2432,8 +2432,9 @@ impl Registry {
     }
 
     /// A stack's own name and tooltip, from its custom data (SNBT): `text(item,
-    /// snbt)` gives `Some((name, lines))` — `name` `None` keeps the item's —
-    /// or `None` for the item's own. A written blueprint names its design:
+    /// snbt)` gives `Some((name, lines))` — `name` `None` keeps the item's;
+    /// `lines` stand instead of the item's description — or `None` for the
+    /// item's own. A written blueprint names its design:
     ///
     /// ```ignore
     /// registry.on_item_text(Items::BLUEPRINT, |_, snbt| {

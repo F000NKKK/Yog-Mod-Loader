@@ -37,6 +37,13 @@ public class YogItem extends Item {
 
     @Override
     public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> lines, TooltipContext ctx) {
+        // A mod's own lines for this stack (a written blueprint, a fabricated
+        // chip) stand instead of the item's description.
+        String[] own = ownText(stack);
+        if (own != null) {
+            for (int i = 1; i < own.length; i++) lines.add(Text.literal(own[i]));
+            return;
+        }
         String descKey = this.getTranslationKey() + ".desc";
         String resolved = net.minecraft.client.resource.language.I18n.hasTranslation(descKey)
                 ? net.minecraft.client.resource.language.I18n.translate(descKey)
@@ -46,8 +53,6 @@ public class YogItem extends Item {
                 lines.add(Text.literal(line));
             }
         }
-        String[] own = ownText(stack);
-        if (own != null) for (int i = 1; i < own.length; i++) lines.add(Text.literal(own[i]));
     }
 
     /** A Yog mod's picture under the tooltip, if it gives this stack one. */
