@@ -1,6 +1,6 @@
 [package]
 name = "yog-book"
-version = "0.60.2"
+version = "0.60.3"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -15,7 +15,6 @@ yog-gfx = "0.25"
 # Serialization (for runtime JSON parsing)
 serde.workspace      = true
 serde_json.workspace = true
-png.workspace        = true
 
 [features]
 default = []

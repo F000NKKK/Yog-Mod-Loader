@@ -164,32 +164,12 @@ void main() {
 pub static BOOK_PNG: &[u8] = include_bytes!("../assets/book_brown.png");
 /// The crafting-grid sprite sheet.
 pub static CRAFTING_PNG: &[u8] = include_bytes!("../assets/crafting.png");
-/// The image source [`BookRenderer::render_2d`] draws [`BOOK_PNG`] as.
-pub const BOOK_SHEET: &str = "yog-book:book";
-/// The image source [`BookRenderer::render_2d`] draws [`CRAFTING_PNG`] as.
-pub const CRAFTING_SHEET: &str = "yog-book:crafting";
-
-fn decode_png(data: &[u8]) -> Option<(Vec<u8>, u32, u32)> {
-    use png::Decoder;
-    let decoder = Decoder::new(std::io::Cursor::new(data));
-    let mut reader = decoder.read_info().ok()?;
-    let mut buf = vec![0u8; reader.output_buffer_size().unwrap_or(0)];
-    let info = reader.next_frame(&mut buf).ok()?;
-    let rgba = match info.color_type {
-        png::ColorType::Rgba => buf[..info.buffer_size()].to_vec(),
-        png::ColorType::Rgb => {
-            let rgb = &buf[..info.buffer_size()];
-            let mut out = Vec::with_capacity(rgb.len() / 3 * 4);
-            for px in rgb.chunks(3) {
-                out.extend_from_slice(px);
-                out.push(255);
-            }
-            out
-        }
-        _ => return None,
-    };
-    Some((rgba, info.width, info.height))
-}
+/// The image source the book draws [`BOOK_PNG`] as: the loader ships it
+/// as `assets/yog/textures/gui/book/book.png` (Yog-IDLE resolves it to
+/// the bytes).
+pub const BOOK_SHEET: &str = "yog:gui/book/book";
+/// The image source the book draws [`CRAFTING_PNG`] as.
+pub const CRAFTING_SHEET: &str = "yog:gui/book/crafting";
 
 // ── GL resource cache ─────────────────────────────────────────────────────────
 
@@ -197,8 +177,6 @@ struct BookGl {
     prog: gl::ShaderProgram,
     vao: gl::VertexArray,
     vbo: gl::Buffer,
-    book_tex: Option<(gl::Texture, u32, u32)>,
-    crafting_tex: Option<(gl::Texture, u32, u32)>,
     svg_tex: HashMap<u64, (gl::Texture, u32, u32)>,
     font_atlas: HashMap<u64, (gl::Texture, FontAtlas)>,
 }
@@ -214,21 +192,10 @@ impl BookGl {
         vao.attrib(ctx, &vbo, 1, 2, DataType::F32, false, STRIDE, 8); // uv
         vao.attrib(ctx, &vbo, 2, 4, DataType::F32, false, STRIDE, 16); // col
 
-        let load = |data: &[u8]| {
-            decode_png(data).map(|(rgba, w, h)| {
-                let tex = ctx.create_texture_rgba(w, h, &rgba, true);
-                (tex, w, h)
-            })
-        };
-        let book_tex = load(BOOK_PNG);
-        let crafting_tex = load(CRAFTING_PNG);
-
         Some(BookGl {
             prog,
             vao,
             vbo,
-            book_tex,
-            crafting_tex,
             svg_tex: HashMap::new(),
             font_atlas: HashMap::new(),
         })
@@ -275,49 +242,6 @@ impl BookGl {
         ctx.set_depth(false, false);
         self.prog.uniform_2f(ctx, "uScreen", sw, sh);
         self.prog.uniform_1i(ctx, "uTex", 0);
-    }
-
-    /// Blit a subrect of a sprite sheet at an arbitrary screen position.
-    fn draw_book_sprite(&self, ctx: &GfxContext, spr: &BgSprite) {
-        let sheet = match spr.sheet {
-            SpriteSheet::Book => &self.book_tex,
-            SpriteSheet::Crafting => &self.crafting_tex,
-        };
-        let Some((tex, tw, th)) = sheet else { return };
-        let u0 = spr.u / *tw as f32;
-        let v0 = spr.v / *th as f32;
-        let u1 = (spr.u + spr.uw) / *tw as f32;
-        let v1 = (spr.v + spr.uh) / *th as f32;
-        self.prog.uniform_1i(ctx, "uMode", 1);
-        ctx.bind_texture(0, tex);
-        let mut v = Vec::with_capacity(6);
-        quad(
-            &mut v,
-            spr.x,
-            spr.y,
-            spr.w,
-            spr.h,
-            u0,
-            v0,
-            u1,
-            v1,
-            0xFF_FFFFFF,
-        );
-        self.flush(ctx, &v);
-    }
-
-    /// Blit the open-book background from the embedded book texture.
-    fn draw_book_bg(&self, ctx: &GfxContext, bx: f32, by: f32, bw: f32, bh: f32) {
-        let Some((tex, tw, th)) = &self.book_tex else {
-            return;
-        };
-        let su = BK_W / *tw as f32;
-        let sv = BK_H / *th as f32;
-        self.prog.uniform_1i(ctx, "uMode", 1);
-        ctx.bind_texture(0, tex);
-        let mut v = Vec::with_capacity(6);
-        quad(&mut v, bx, by, bw, bh, 0.0, 0.0, su, sv, 0xFF_FFFFFF);
-        self.flush(ctx, &v);
     }
 
     fn draw_svg(&mut self, ctx: &GfxContext, data: &str, x: f32, y: f32, w: f32, h: f32) {
@@ -726,58 +650,21 @@ impl BookRenderer {
         (bx, by, bw, bh)
     }
 
+    /// Draws the book: everything through `draw2d` — its sprite sheets
+    /// as the image sources [`BOOK_SHEET`] and [`CRAFTING_SHEET`] — except
+    /// SVG pages and custom-font text, which take GL of their own.
     pub fn render(&mut self, ctx: &GfxContext, sw: f32, sh: f32) {
-        // Lazy GL init.
-        if self.gl.is_none() {
-            self.gl = BookGl::init(ctx);
-        }
-        let (bx, by, bw, bh) = self.prepare(sw, sh);
-
-        // 1. Draw book background texture first.
-        if let Some(gl) = &mut self.gl {
-            gl.begin_frame(ctx, sw, sh);
-            gl.draw_book_bg(ctx, bx, by, bw, bh);
-        }
-
-        // 1b. Background sprites (nameplate banner, separator lines) from book texture.
-        if let Some(gl) = &mut self.gl {
-            for spr in &self.bg_sprites {
-                gl.draw_book_sprite(ctx, spr);
-            }
-        }
-
-        // 2. yog-ui: text, buttons, icons (transparent BG — texture is already there).
-        if let Some(ui) = &mut self.ui {
-            ui.render(ctx);
-        }
-
-        // 3. Custom GL overlays (SVG icons, custom font text) — raw GL first.
-        if let Some(gl) = &mut self.gl {
-            gl.begin_frame(ctx, sw, sh);
-            for ov in &self.overlays {
-                match *ov {
-                    OverlayCmd::Svg { ref data, x, y, w, h } => gl.draw_svg(ctx, data, x, y, w, h),
-                    OverlayCmd::Text { ref text, ref font, x, y, color } => {
-                        if let Some(ttf) = self.fonts.get(&font.font_id) {
-                            gl.draw_text_custom(ctx, ttf, font.size_px, text, x, y, color);
-                        }
-                    }
-                    OverlayCmd::McText { .. } | OverlayCmd::McItem { .. } | OverlayCmd::McTexture { .. } => {}
-                }
-            }
-        }
-
-        // 4. MC-pipeline overlays (item stacks, MC-font text) — after all raw
-        //    GL, because item rendering resyncs and mutates MC's GL state.
-        self.draw_mc_overlays(ctx);
+        self.draw(ctx, sw, sh, true);
     }
 
-    /// Draws the book with `draw2d` alone — no shaders, no textures of its
-    /// own: its sprite sheets as the image sources [`BOOK_SHEET`] and
-    /// [`CRAFTING_SHEET`] (the host resolves them to [`BOOK_PNG`] and
-    /// [`CRAFTING_PNG`]), SVG pages as their box, custom-font text in the
-    /// Minecraft font. For hosts without GL — Yog-IDLE's book designer.
+    /// [`Self::render`] without any GL of its own: SVG pages as their box,
+    /// custom-font text in the Minecraft font. For hosts without GL —
+    /// Yog-IDLE's book designer.
     pub fn render_2d(&mut self, ctx: &GfxContext, sw: f32, sh: f32) {
+        self.draw(ctx, sw, sh, false);
+    }
+
+    fn draw(&mut self, ctx: &GfxContext, sw: f32, sh: f32, gl: bool) {
         let (bx, by, bw, bh) = self.prepare(sw, sh);
         let d2 = ctx.draw2d();
         d2.image_region(BOOK_SHEET, bx, by, bw, bh, [0.0, 0.0, BK_W, BK_H], 0xFFFF_FFFF);
@@ -791,13 +678,35 @@ impl BookRenderer {
         if let Some(ui) = &mut self.ui {
             ui.render(ctx);
         }
-        for ov in &self.overlays {
-            match *ov {
-                OverlayCmd::Svg { x, y, w, h, .. } => d2.rect(x, y, x + w, y + h, 0x40_000000),
-                OverlayCmd::Text { ref text, x, y, color, .. } => d2.text(text, x, y, color, false),
-                _ => {}
+        if gl && self.gl.is_none() && self.overlays.iter().any(|o| matches!(o, OverlayCmd::Svg { .. } | OverlayCmd::Text { .. })) {
+            self.gl = BookGl::init(ctx);
+        }
+        match &mut self.gl {
+            Some(g) if gl => {
+                g.begin_frame(ctx, sw, sh);
+                for ov in &self.overlays {
+                    match *ov {
+                        OverlayCmd::Svg { ref data, x, y, w, h } => g.draw_svg(ctx, data, x, y, w, h),
+                        OverlayCmd::Text { ref text, ref font, x, y, color } => {
+                            if let Some(ttf) = self.fonts.get(&font.font_id) {
+                                g.draw_text_custom(ctx, ttf, font.size_px, text, x, y, color);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {
+                for ov in &self.overlays {
+                    match *ov {
+                        OverlayCmd::Svg { x, y, w, h, .. } => d2.rect(x, y, x + w, y + h, 0x40_000000),
+                        OverlayCmd::Text { ref text, x, y, color, .. } => d2.text(text, x, y, color, false),
+                        _ => {}
+                    }
+                }
             }
         }
+        // Item stacks and MC-font text last: item rendering changes GL state.
         self.draw_mc_overlays(ctx);
     }
 

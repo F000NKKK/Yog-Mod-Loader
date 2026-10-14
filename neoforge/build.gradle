@@ -36,7 +36,10 @@ sourceSets {
             // Loader- and mapping-agnostic Java shared with other loader hosts.
             srcDir "../java-common/src/main/java"
         }
-        resources { srcDir "${platformDir}/src/main/resources" }
+        resources {
+            srcDir "${platformDir}/src/main/resources"
+            srcDir "../java-common/src/main/resources"
+        }
     }
 }
 

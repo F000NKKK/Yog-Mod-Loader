@@ -43,6 +43,7 @@ sourceSets {
         }
         resources {
             srcDir "${platformDir}/src/main/resources"
+            srcDir "../java-common/src/main/resources"
         }
     }
 }
