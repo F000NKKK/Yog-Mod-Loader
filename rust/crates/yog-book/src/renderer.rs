@@ -245,6 +245,11 @@ fn normalize_item_id(id: &str) -> String {
     format!("{ns}:{name}")
 }
 
+/// `0xAARRGGBB` → `#rrggbb`.
+fn theme_hex(argb: u32) -> String {
+    format!("#{:06x}", argb & 0xFF_FFFF)
+}
+
 /// The image source of a book's sheet: its own (`book_texture`, a sheet
 /// laid out as [`BOOK_PNG`]; `ns:textures/x.png` and `ns:x` alike) or Yog's.
 fn book_sheet(texture: &str) -> String {
@@ -258,7 +263,9 @@ fn book_sheet(texture: &str) -> String {
 }
 
 /// The game's translations, for item names (set with the translator).
-static ITEM_NAMES: std::sync::RwLock<Option<fn(&str) -> Option<String>>> = std::sync::RwLock::new(None);
+static ITEM_NAMES: std::sync::RwLock<Option<Translator>> = std::sync::RwLock::new(None);
+
+type Translator = fn(&str) -> Option<String>;
 
 /// An item's name: the game's (`item.<ns>.<path>`, else `block.…`), else
 /// one made from its id — "hexcasting:staff/oak" → "Oak Staff".
@@ -598,14 +605,15 @@ fn btn(text: impl Into<String>) -> widget::Widget {
 /// the page's width.
 fn title_lbl(text: impl Into<String>) -> widget::Widget {
     let text = text.into();
-    let fit = ((PAGE_W - 6.0) / yog_ui::text::str_width(&text, 1.0)).clamp(0.5, 1.0);
-    // As wide as the page, so `align` can centre it.
+    // As wide as the page's inside (less its padding), so `align` can centre it.
+    let w = PAGE_W - 10.0;
+    let fit = (w / yog_ui::text::str_width(&text, 1.0)).clamp(0.5, 1.0);
     widget::label(text)
         .shadow(false)
         .font_scale(text_scale() * fit)
         .no_wrap()
         .ellipsis()
-        .w((PAGE_W - 6.0) * text_scale())
+        .w(w * text_scale())
 }
 
 // ── Flowing text ──────────────────────────────────────────────────────────────
@@ -619,6 +627,8 @@ const BODY_H: f32 = PAGE_H - 22.0 - 12.0 - 14.0;
 /// A multiblock page's view of its structure, and its name's height (with
 /// the gap under it), in book pixels.
 const MB_VIEW: f32 = 70.0;
+/// A pattern page's box for its patterns, in book pixels.
+const PATTERN_H: f32 = 56.0;
 const MB_NAME_H: f32 = 14.0;
 
 /// How much of the body a page's own content takes above its text.
@@ -630,6 +640,10 @@ fn content_above_text(page: &BookPage) -> Option<f32> {
         BookPage::Crafting { .. } => 80.0,
         BookPage::Smelting { .. } => 40.0,
         BookPage::Image { .. } | BookPage::Entity { .. } => 104.0,
+        BookPage::Pattern { patterns, input, output, .. } => {
+            14.0 + if patterns.is_empty() { 0.0 } else { PATTERN_H + 4.0 }
+                + if input.is_empty() && output.is_empty() { 0.0 } else { 14.0 }
+        }
         BookPage::Multiblock { name, .. } => MB_VIEW + 4.0 + if name.is_some() { MB_NAME_H } else { 0.0 },
         BookPage::Relations { entries, .. } => 12.0 + entries.len() as f32 * 10.0,
         _ => return None,
@@ -638,7 +652,7 @@ fn content_above_text(page: &BookPage) -> Option<f32> {
 
 fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
     match page {
-        BookPage::Text { text, .. } => Some(text),
+        BookPage::Text { text, .. } | BookPage::Pattern { text, .. } => Some(text),
         BookPage::Spotlight { text, .. }
         | BookPage::Crafting { text, .. }
         | BookPage::Smelting { text, .. }
@@ -860,11 +874,13 @@ fn build_landing_left(
         .padding(25.0 * sy, 6.0, 4.0, 4.0)
         .gap(0.0);
 
+    // As small as it takes to fit above the entry count.
+    let fit = landing_fit(&book.landing_text);
     for para in book.landing_text.split('\n') {
         if para.is_empty() {
             col = col.child(widget::spacer().h(4.0 * sy));
         } else {
-            col = col.child(lbl(para).color(theme.text));
+            col = col.child(lbl(para).color(theme.text).font_scale(text_scale() * fit));
         }
     }
 
@@ -877,6 +893,25 @@ fn build_landing_left(
             .align(Align::Center),
     );
     col
+}
+
+/// The scale (≤ 1) the landing text fits its page at.
+fn landing_fit(text: &str) -> f32 {
+    use yog_ui::text::{LINE_GAP, LINE_H, line_count};
+    let room = PAGE_H - 25.0 - 4.0 - 9.0 - 2.0;
+    let height = |scale: f32| -> f32 {
+        text.split('\n')
+            .map(|p| match p.is_empty() {
+                true => 4.0,
+                false => line_count(p, TEXT_W, scale) as f32 * (LINE_H * scale + LINE_GAP),
+            })
+            .sum()
+    };
+    let mut scale = 1.0;
+    while scale > 0.6 && height(scale) > room {
+        scale -= 0.05;
+    }
+    scale
 }
 
 // ── Right page: category list (home view) ────────────────────────────────────
@@ -1100,7 +1135,7 @@ fn build_entries_right(
     let mut col = widget::panel(FlexDir::Column)
         .w(page_w)
         .h(page_h)
-        .padding(0.0, 4.0, 4.0, 0.0)
+        .padding(0.0, 4.0, 8.0, 0.0)
         .gap(0.0);
 
     col = col.child(
@@ -1147,7 +1182,9 @@ fn build_entries_right(
             .padding(1.0, 2.0, 1.0, 2.0);
 
         row = row.child(widget::spacer().w(icon_size + 2.0));
-        row = row.child(lbl(&entry.name).color(color).flex(1.0).no_wrap());
+        // Long names shrink to the row (as titles do).
+        let fit = ((PAGE_W - 26.0) / yog_ui::text::str_width(&entry.name, 1.0)).clamp(0.5, 1.0);
+        row = row.child(lbl(&entry.name).color(color).font_scale(text_scale() * fit).flex(1.0).no_wrap());
         col = col.child(row);
     }
 
@@ -1360,9 +1397,9 @@ fn build_page(
             });
 
             let item_name = title
-                .as_deref()
-                .or(item.name.as_deref())
-                .unwrap_or(item.id.as_str());
+                .clone()
+                .or_else(|| item.name.clone())
+                .unwrap_or_else(|| pretty_item_name(&item.id));
             col = col.child(
                 title_lbl(item_name)
                     .color(theme.title)
@@ -1591,10 +1628,26 @@ fn build_page(
             input,
             output,
             text,
+            patterns,
             ..
         } => {
-            col = col.child(title_lbl(name.as_deref().unwrap_or(op_id.as_str())).color(theme.title));
-            col = col.child(lbl(format!("{} → {}", input, output)).color(theme.nav));
+            col = col.child(title_lbl(name.as_deref().unwrap_or(op_id.as_str())).color(theme.title).h(10.0 * sy));
+            // Hex Casting's page: the pattern in a box under the name, then
+            // what it takes and gives.
+            if !patterns.is_empty() {
+                let (w, h) = (PAGE_W - 8.0, PATTERN_H);
+                overlays.push(OverlayCmd::Svg {
+                    data: crate::pattern::svg(patterns, w, h, &theme_hex(theme.title)),
+                    x: ox + 4.0 * sx,
+                    y: oy + 14.0 * sy,
+                    w: w * sx,
+                    h: h * sy,
+                });
+                col = col.child(widget::spacer().h(h * sy));
+            }
+            if !input.is_empty() || !output.is_empty() {
+                col = col.child(lbl(format!("{} → {}", input, output)).color(theme.nav).align(Align::Center));
+            }
             if !text.is_empty() {
                 col = col.child(lbl(text.as_str()).color(theme.text));
             }
@@ -1693,6 +1746,8 @@ mod tests {
         let mut r = BookRenderer::new(b);
         r.prepare(800.0, 600.0);
         assert!(!r.animated(), "the landing page is still");
+        assert_eq!(landing_fit("short"), 1.0);
+        assert!(landing_fit(&"many words here ".repeat(60)) < 1.0, "long landing texts shrink");
         r.show("e", 0);
         r.prepare(800.0, 600.0);
         assert!(r.animated(), "a structure turns");

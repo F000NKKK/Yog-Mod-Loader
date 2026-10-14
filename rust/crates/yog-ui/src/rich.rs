@@ -99,6 +99,22 @@ fn pieces(s: &str) -> Vec<(Token<'_>, &str)> {
     out
 }
 
+/// `s` split at its shown spaces (a span's `{b #fff|` stays whole).
+pub fn words(s: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut start = 0;
+    let mut at = 0;
+    for (t, raw) in pieces(s) {
+        if matches!(t, Token::Char(' ')) {
+            out.push(&s[start..at]);
+            start = at + 1;
+        }
+        at += raw.len();
+    }
+    out.push(&s[start..]);
+    out
+}
+
 /// `s` split into its markup and its characters: each piece's text as
 /// written, and the character it shows (`None`: markup, no room taken).
 pub fn glyphs(s: &str) -> Vec<(&str, Option<char>)> {

@@ -1436,8 +1436,6 @@ fn drops_table(cx: &mut Ctx, d: &J, id: &str) -> Value {
     }
 }
 
-/// Compiles the mod's content files (see the module docs). Any error fails
-/// the whole thing, listing every problem.
 // ── Recipes ──────────────────────────────────────────────────────────────────
 
 /// What a recipe takes.
@@ -1848,6 +1846,8 @@ fn inventory_screens(dir: &Path) -> BTreeSet<String> {
     out
 }
 
+/// Compiles the mod's content files (see the module docs). Any error fails
+/// the whole thing, listing every problem.
 pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled, String> {
     let mut out = Compiled::default();
     let files = find(root);

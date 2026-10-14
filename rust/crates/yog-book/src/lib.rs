@@ -5,6 +5,7 @@
 
 pub mod font;
 pub mod markup;
+pub mod pattern;
 pub mod renderer;
 pub mod state;
 pub mod theme;
@@ -128,7 +129,8 @@ pub enum BookPage {
     },
     /// Empty separator.
     Empty,
-    /// Custom mod-defined page (e.g. `example:pattern`).
+    /// A spell pattern: its name, what it takes and gives, the pattern
+    /// itself on a hexagonal grid (see [`pattern`]).
     Pattern {
         op_id: String,
         /// The action's name (the page's title; `op_id` if none).
@@ -142,6 +144,9 @@ pub enum BookPage {
         output: String,
         #[serde(default)]
         text: String,
+        /// The patterns drawn on the page (none: just the texts).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        patterns: Vec<pattern::HexPattern>,
     },
     /// SVG image page — rasterized at render time via `resvg`.
     Svg {
@@ -502,6 +507,7 @@ pub fn pattern_page(
         input: input.into(),
         output: output.into(),
         text: text.into(),
+        patterns: Vec::new(),
     }
 }
 

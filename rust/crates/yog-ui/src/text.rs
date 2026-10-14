@@ -196,7 +196,7 @@ fn wrap_paragraph(text: &str, max_w: f32, font_scale: f32, font: &str, out: &mut
     let mut lines = 0usize;
     let mut cur_w = 0.0f32;
 
-    for word in text.split(' ') {
+    for word in crate::rich::words(text) {
         if word.is_empty() {
             continue;
         }
@@ -310,6 +310,7 @@ mod tests {
             ["a", "mmmmm", "mmmmm", "b"]
         );
         assert_eq!(wrap_text("{b|mmmmmmmmmm}", 30.0, 1.0), ["{b|mmmmm", "mmmmm}"], "spans take no room");
+        assert_eq!(wrap_text("aaa {b #ff0000|bb cc}", 40.0, 1.0), ["aaa {b #ff0000|bb", "cc}"], "a span's opening stays whole");
         assert_eq!(wrap_text("{{m}}{{m}}", 15.0, 1.0), ["{{m", "}}{{", "m}}"], "escaped braces are characters");
     }
 

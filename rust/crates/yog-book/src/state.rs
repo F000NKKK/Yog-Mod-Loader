@@ -3,9 +3,9 @@
 use crate::Book;
 
 /// Max entries shown on the first list spread (right page only).
-pub const ENTRIES_FIRST: usize = 11;
+pub const ENTRIES_FIRST: usize = 10;
 /// Max entries shown on each subsequent list spread (right page only).
-pub const ENTRIES_PER: usize = 13;
+pub const ENTRIES_PER: usize = 12;
 
 #[derive(Debug, Clone)]
 pub struct BookViewState {
