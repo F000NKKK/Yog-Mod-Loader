@@ -137,6 +137,57 @@ fn blocks_and_inventories_arrive_as_their_definitions() {
 }
 
 #[test]
+fn scheduled_tasks_run_when_due() {
+    let fired = Box::new(AtomicUsize::new(0));
+    let ud = &*fired as *const AtomicUsize as *mut c_void;
+    let h = registering(|ctx| unsafe {
+        api_schedule_once(ctx, 0, ud, count_task);
+        api_schedule_once(ctx, 3, ud, count_task);
+        api_schedule_repeating(ctx, 2, ud, count_task);
+        api_schedule_repeating(ctx, 0, ud, count_task);
+    });
+    let h = h.read().unwrap();
+    let mut per_tick = Vec::new();
+    for _ in 0..6 {
+        let due = h.scheduler.lock().unwrap().due();
+        per_tick.push(due.len());
+    }
+    // tick 1: once(0), every tick; 2: every 2, every tick; 3: once(3), every tick; …
+    assert_eq!(per_tick, [2, 2, 2, 2, 1, 2]);
+    assert!(h.scheduler.lock().unwrap().once_tasks.is_empty(), "once tasks are gone once run");
+}
+
+type Ping = unsafe extern "C" fn(*mut c_void) -> bool;
+
+unsafe extern "C" fn ping_yes(ud: *mut c_void) -> bool {
+    unsafe { (*(ud as *const AtomicUsize)).fetch_add(1, Ordering::SeqCst) };
+    true
+}
+
+unsafe extern "C" fn ping_no(ud: *mut c_void) -> bool {
+    unsafe { (*(ud as *const AtomicUsize)).fetch_add(1, Ordering::SeqCst) };
+    false
+}
+
+#[test]
+fn pre_phase_handlers_stop_at_the_first_no_and_skip_retired_mods() {
+    let calls = Box::new(AtomicUsize::new(0));
+    let ud = &*calls as *const AtomicUsize as *mut c_void;
+    let live = module();
+    let retired = module();
+    retired.retire(|| {});
+    let entries: Vec<Entry<Ping>> = vec![
+        (retired.clone(), ud, ping_no as Ping),
+        (live.clone(), ud, ping_yes as Ping),
+        (live.clone(), ud, ping_no as Ping),
+        (live.clone(), ud, ping_yes as Ping),
+    ];
+    assert!(!allowed(&entries, |ud, f| unsafe { f(ud) }), "a handler said no");
+    assert_eq!(calls.load(Ordering::SeqCst), 2, "the retired one is skipped, the last never runs");
+    assert!(allowed(&entries, |_, _| -> bool { panic!("a mod panicked") }), "a panic doesn't cancel the action");
+}
+
+#[test]
 fn tsv_values_cannot_break_lines() {
     assert_eq!(tsv_clean("a\tb\nc\rd"), "a b c d");
 }
