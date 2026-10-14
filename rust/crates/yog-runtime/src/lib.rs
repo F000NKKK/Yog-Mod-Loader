@@ -31,7 +31,7 @@ use yog_abi::{
     YogBlockPos, YogChatFn, YogClientFn, YogCommandFn, YogContainerCloseEvent,
     YogContainerCloseFn, YogContainerOpenEvent, YogContainerOpenFn, YogCraftEvent, YogCraftFn,
     YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent, YogEntityInteractFn,
-    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogKeyPressFn, YogOwnedStr, YogPacketFn,
+    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogMachineCraftEvent, YogMachineCraftFn, YogKeyPressFn, YogOwnedStr, YogPacketFn,
     YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn,
     YogPlayerMoveEvent, YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn,
     YogProjectileHitEvent, YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn,
@@ -146,6 +146,7 @@ struct RuntimeHandlers {
     advancement: Vec<(LoadedModule, *mut c_void, YogAdvancementFn)>,
     entity_interact: Vec<(LoadedModule, *mut c_void, YogEntityInteractFn)>,
     item_craft: Vec<(LoadedModule, *mut c_void, YogCraftFn)>,
+    machine_craft: Vec<(LoadedModule, *mut c_void, YogMachineCraftFn)>,
     explosion: Vec<(LoadedModule, *mut c_void, YogExplosionFn)>,
     item_pickup: Vec<(LoadedModule, *mut c_void, YogItemPickupFn)>,
     player_move: Vec<(LoadedModule, *mut c_void, YogPlayerMoveFn)>,
@@ -401,6 +402,10 @@ macro_rules! for_each_handler_list {
         }
         {
             let $list = &mut $h.item_craft;
+            $body;
+        }
+        {
+            let $list = &mut $h.machine_craft;
             $body;
         }
         {
@@ -2015,6 +2020,7 @@ api_event!(api_on_player_respawn, player_respawn, YogPlayerRespawnFn);
 api_event!(api_on_advancement, advancement, YogAdvancementFn);
 api_event!(api_on_entity_interact, entity_interact, YogEntityInteractFn);
 api_event!(api_on_item_craft, item_craft, YogCraftFn);
+api_event!(api_on_machine_craft, machine_craft, YogMachineCraftFn);
 api_event!(api_on_explosion, explosion, YogExplosionFn);
 api_event!(api_on_item_pickup, item_pickup, YogItemPickupFn);
 api_event!(api_on_player_move, player_move, YogPlayerMoveFn);
@@ -2408,6 +2414,100 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemText<'l>(
         Some(t) => env.new_string(t).map(JString::into_raw).unwrap_or(std::ptr::null_mut()),
         None => std::ptr::null_mut(),
     }
+}
+
+// ── Machines (ABI 2.5) ───────────────────────────────────────────────────────
+
+/// A machine's event about recipe `found`.
+fn machine_event<'a>(
+    m: &'a yog_inventory::Machine,
+    def: &'a str,
+    found: &'a machine::Found,
+    dim: &'a str,
+    pos: YogBlockPos,
+    player: &'a str,
+) -> YogMachineCraftEvent {
+    YogMachineCraftEvent {
+        machine: YogStr::from_str(def),
+        kind: YogStr::from_str(&m.kind),
+        recipe: YogStr::from_str(&found.recipe),
+        result_item: YogStr::from_str(&found.result),
+        result_count: found.count,
+        values: YogStr::from_str(&found.values),
+        pos,
+        dimension: YogStr::from_str(dim),
+        player: YogStr::from_str(player),
+    }
+}
+
+/// The recipe machine `def` at `pos` makes of `items` (by inventory slot,
+/// `""` empty): the first that fits and every mod allows; `recipe` only it.
+fn machine_recipe(def: &str, dim: &str, pos: YogBlockPos, items: &[String], recipe: Option<&str>) -> Option<machine::Found> {
+    let h = handlers();
+    let m = h.inventories.iter().find(|d| d.id == def)?.machine.as_ref()?;
+    let has_tag = |item: &str, tag: &str| unsafe { srv_has_item_tag(std::ptr::null_mut(), YogStr::from_str(item), YogStr::from_str(tag)) };
+    let recipes = h.recipes.iter().map(|(ns, name, r)| (format!("{ns}:{name}"), r)).filter(|(id, _)| recipe.is_none_or(|r| r == id));
+    let srv = srv_ptr();
+    machine::find(m, recipes, items, &has_tag).find(|found| {
+        let ev = machine_event(m, def, found, dim, pos, "");
+        allowed(&h.machine_craft, |ud, f| unsafe { f(ud, srv, &ev, 0) })
+    })
+}
+
+/// What machine `def` at `x y z` makes of `items` (`\n`-joined, by slot):
+/// `recipe\nresult\ncount`, or null.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeMachineResult<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    def: JString<'l>,
+    dimension: JString<'l>,
+    x: jint,
+    y: jint,
+    z: jint,
+    items: JString<'l>,
+) -> jstring {
+    let (def, d, items) = (jstr!(env, def, std::ptr::null_mut()), jstr!(env, dimension, std::ptr::null_mut()), jstr!(env, items, std::ptr::null_mut()));
+    let items: Vec<String> = items.split('\n').map(str::to_string).collect();
+    let mut found = None;
+    guard("machine_result", || found = machine_recipe(&def, &d, YogBlockPos { x, y, z }, &items, None));
+    match found {
+        Some(f) => env.new_string(format!("{}\n{}\n{}", f.recipe, f.result, f.count)).map(JString::into_raw).unwrap_or(std::ptr::null_mut()),
+        None => std::ptr::null_mut(),
+    }
+}
+
+/// `player` took machine `def`'s result, made by `recipe` of `items` (the
+/// ingredients still in): whether it may — then the mods take their share.
+#[unsafe(no_mangle)]
+#[allow(clippy::too_many_arguments)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeMachineCraft<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    def: JString<'l>,
+    recipe: JString<'l>,
+    dimension: JString<'l>,
+    x: jint,
+    y: jint,
+    z: jint,
+    items: JString<'l>,
+    player: JString<'l>,
+) -> jni::sys::jboolean {
+    let (def, recipe, d, items, player) =
+        (jstr!(env, def, 0), jstr!(env, recipe, 0), jstr!(env, dimension, 0), jstr!(env, items, 0), jstr!(env, player, 0));
+    let items: Vec<String> = items.split('\n').map(str::to_string).collect();
+    let pos = YogBlockPos { x, y, z };
+    let mut made = false;
+    guard("machine_craft", || {
+        let Some(found) = machine_recipe(&def, &d, pos, &items, Some(&recipe)) else { return };
+        let h = handlers();
+        let Some(m) = h.inventories.iter().find(|i| i.id == def).and_then(|i| i.machine.as_ref()) else { return };
+        let ev = machine_event(m, &def, &found, &d, pos, &player);
+        let srv = srv_ptr();
+        each(&h.machine_craft, |ud, f| unsafe { f(ud, srv, &ev, 1) });
+        made = true;
+    });
+    made as jni::sys::jboolean
 }
 
 /// The Yog mods being loaded, by id (all of them, before the first registers).
@@ -3107,6 +3207,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         is_mod_loaded: api_is_mod_loaded,
         java_call: api_java_call,
         on_item_text: api_on_item_text,
+        on_machine_craft: api_on_machine_craft,
     }
 }
 
@@ -5213,6 +5314,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
 
 mod client_api;
 mod content_blob;
+mod machine;
 mod control_socket;
 mod images;
 mod svg;

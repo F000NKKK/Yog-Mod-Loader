@@ -25,6 +25,13 @@ public class YogInventoryMenu extends AbstractContainerMenu {
     public final Container inventory;
     public final String defId;
     private final int customSlotCount;
+    /** A machine's made result: the menu's, never the block's (see {@link YogInventoryDef#machineResult}). */
+    private final SimpleContainer machineOut = new SimpleContainer(1);
+    /** Server-side, a machine's block entity; its current recipe and what it was found from. */
+    private YogInventoryBlockEntity machine;
+    private String machineRecipe;
+    private String machineItems = "";
+    private int machineTicks;
 
     /** Server-side: opened against the block's real backing inventory. */
     public static YogInventoryMenu create(int windowId, Inventory playerInv, Container inv, String defId) {
@@ -48,12 +55,17 @@ public class YogInventoryMenu extends AbstractContainerMenu {
         YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         this.customSlotCount = def != null ? def.slotCount : inv.getContainerSize();
         inv.startOpen(playerInv.player);
+        if (def != null && def.isMachine() && inv instanceof YogInventoryBlockEntity be && be.getLevel() != null && !be.getLevel().isClientSide) {
+            this.machine = be;
+        }
 
         if (def != null) {
             for (int i = 0; i < def.slotCount; i++) {
                 float[] xy = i < def.layout.size() ? def.layout.get(i) : new float[]{8f + (i % 9) * 18f, 18f + (i / 9) * 18f};
                 String[] accepts = i < def.accepts.size() ? def.accepts.get(i) : new String[0];
-                this.addSlot(accepts.length == 0
+                this.addSlot(def.isMachine() && i == def.machineResult
+                        ? new MachineResultSlot((int) xy[0], (int) xy[1])
+                        : accepts.length == 0
                         ? new Slot(inv, i, (int) xy[0], (int) xy[1])
                         : new FilteredSlot(inv, i, (int) xy[0], (int) xy[1], accepts));
             }
@@ -98,6 +110,65 @@ public class YogInventoryMenu extends AbstractContainerMenu {
         return result;
     }
 
+    /** The machine's items by slot ({@code ""} empty), {@code \n}-joined, as the runtime takes them. */
+    private String machineItems() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            if (i > 0) sb.append('\n');
+            ItemStack s = inventory.getItem(i);
+            if (!s.isEmpty()) sb.append(BuiltInRegistries.ITEM.getKey(s.getItem()));
+        }
+        return sb.toString();
+    }
+
+    /** Asks the runtime what the machine's slots make now and shows it. */
+    private void refreshMachine() {
+        if (machine == null) return;
+        machineItems = machineItems();
+        String found;
+        try {
+            found = NativeBridge.nativeMachineResult(defId, machine.getLevel().dimension().location().toString(),
+                    machine.getBlockPos().getX(), machine.getBlockPos().getY(), machine.getBlockPos().getZ(), machineItems);
+        } catch (UnsatisfiedLinkError e) {
+            found = null;
+        }
+        ItemStack out = ItemStack.EMPTY;
+        machineRecipe = null;
+        if (found != null) {
+            String[] p = found.split("\n");
+            ResourceLocation id = ResourceLocation.tryParse(p[1]);
+            if (id != null && BuiltInRegistries.ITEM.containsKey(id)) {
+                machineRecipe = p[0];
+                out = new ItemStack(BuiltInRegistries.ITEM.get(id), Integer.parseInt(p[2]));
+            }
+        }
+        if (!ItemStack.matches(out, machineOut.getItem(0))) machineOut.setItem(0, out);
+    }
+
+    /** Makes the machine's recipe: the mods take their share, then one of each ingredient goes. */
+    private void craftMachine(Player player) {
+        if (machine == null || machineRecipe == null) return;
+        try {
+            NativeBridge.nativeMachineCraft(defId, machineRecipe, machine.getLevel().dimension().location().toString(),
+                    machine.getBlockPos().getX(), machine.getBlockPos().getY(), machine.getBlockPos().getZ(),
+                    machineItems(), player.getName().getString());
+        } catch (UnsatisfiedLinkError ignored) {
+        }
+        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
+        for (int p : def.machinePlaces) {
+            if (p < inventory.getContainerSize() && !inventory.getItem(p).isEmpty()) inventory.removeItem(p, 1);
+        }
+        inventory.setChanged();
+        refreshMachine();
+    }
+
+    @Override
+    public void broadcastChanges() {
+        // What's in it changed, or now and then (a mod's share may have).
+        if (machine != null && (++machineTicks % 10 == 0 || !machineItems.equals(machineItems()))) refreshMachine();
+        super.broadcastChanges();
+    }
+
     @Override
     public boolean stillValid(Player player) {
         return inventory.stillValid(player);
@@ -107,6 +178,36 @@ public class YogInventoryMenu extends AbstractContainerMenu {
     public void removed(Player player) {
         super.removed(player);
         inventory.stopOpen(player);
+    }
+
+    /** A machine's result, like a crafting table's: nothing goes in; taking it (all of it) makes it. */
+    private final class MachineResultSlot extends Slot {
+        MachineResultSlot(int x, int y) {
+            super(machineOut, 0, x, y);
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return false;
+        }
+
+        @Override
+        public boolean mayPickup(Player player) {
+            // Still made of what's there and still allowed.
+            refreshMachine();
+            return hasItem();
+        }
+
+        @Override
+        public ItemStack remove(int amount) {
+            return super.remove(getItem().getCount());
+        }
+
+        @Override
+        public void onTake(Player player, ItemStack stack) {
+            craftMachine(player);
+            super.onTake(player, stack);
+        }
     }
 
     /** A container slot that takes only the items and {@code #tags} its {@code <Slot accepts>} names. */

@@ -181,7 +181,7 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
     w.key("inventories").list(h.inventories.len());
     for (d, layout) in h.inventories.iter().zip(&layouts) {
         // Always: id, slot_count, slots, include_player_inventory, player_inv, title.
-        let n = 6 + d.background_texture.is_some() as usize + d.background_size.is_some() as usize;
+        let n = 6 + d.background_texture.is_some() as usize + d.background_size.is_some() as usize + d.machine.is_some() as usize;
         w.map(n);
         w.key("id").str(&d.id);
         w.key("slot_count").int(d.slot_count as i64);
@@ -203,6 +203,15 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
         if let Some((bw, bh)) = d.background_size {
             w.key("background_size");
             floats(&mut w, &[bw, bh]);
+        }
+        // A machine: its ingredients' slots and its result's (the recipe is the runtime's to find).
+        if let Some(m) = &d.machine {
+            w.key("machine").map(2);
+            w.key("places").list(m.places.len());
+            for p in &m.places {
+                w.int(p.inv as i64);
+            }
+            w.key("result").int(m.result as i64);
         }
     }
 

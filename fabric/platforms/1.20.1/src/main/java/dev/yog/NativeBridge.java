@@ -1810,6 +1810,12 @@ public final class NativeBridge {
     /** {@code {w, h}} of the picture a mod gives a stack of {@code item} with custom data {@code snbt}, or null. */
     /** A Yog mod's name and tooltip lines for a stack — `name\nline…` — or null (ABI 2.4). */
     public static native String nativeItemText(String item, String snbt);
+
+    /** What machine {@code defId} at a block makes of {@code items} ({@code \n}-joined by slot): {@code recipe\nresult\ncount}, or null. */
+    public static native String nativeMachineResult(String defId, String dimension, int x, int y, int z, String items);
+
+    /** A player took machine {@code defId}'s result of {@code recipe}: the mods take their share. */
+    public static native boolean nativeMachineCraft(String defId, String recipe, String dimension, int x, int y, int z, String items, String player);
     public static native float[] nativeTooltipSize(String item, String snbt);
 
     /** Draws that picture in {@code x, y, w, h} (GUI pixels). */

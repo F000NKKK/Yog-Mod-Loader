@@ -26,10 +26,14 @@ public final class YogInventoryDef {
     public final String backgroundTexture;
     public final String title;
     public final float backgroundW, backgroundH;
+    /** A machine's ingredient slots ({@code .yui <RecipeArea>}): the runtime finds the recipe they make. */
+    public final int[] machinePlaces;
+    /** A machine's result slot, or -1: not a machine. Its stack lives in the menu, never in the block. */
+    public final int machineResult;
 
     YogInventoryDef(String id, int slotCount, List<float[]> layout, List<String[]> accepts, boolean includePlayerInventory,
                     float playerInvX, float playerInvY, String backgroundTexture, String title,
-                    float backgroundW, float backgroundH) {
+                    float backgroundW, float backgroundH, int[] machinePlaces, int machineResult) {
         this.id = id;
         this.slotCount = slotCount;
         this.layout = layout;
@@ -41,6 +45,12 @@ public final class YogInventoryDef {
         this.title = title;
         this.backgroundW = backgroundW;
         this.backgroundH = backgroundH;
+        this.machinePlaces = machinePlaces;
+        this.machineResult = machineResult;
+    }
+
+    public boolean isMachine() {
+        return machineResult >= 0;
     }
 
     /** One inventory of the runtime's content blob (see {@code dev.yog.data.YogContent}). */
@@ -57,8 +67,17 @@ public final class YogInventoryDef {
         }
         float[] playerInv = m.get("player_inv") != null ? YogContent.floats(m.get("player_inv")) : new float[]{DEFAULT_PLAYER_INV_X, DEFAULT_PLAYER_INV_Y};
         float[] bg = m.get("background_size") != null ? YogContent.floats(m.get("background_size")) : new float[]{0f, 0f};
+        int[] places = new int[0];
+        int result = -1;
+        if (m.get("machine") != null) {
+            Map<String, Object> machine = YogData.map(m.get("machine"));
+            List<Object> p = YogData.list(machine.get("places"));
+            places = new int[p.size()];
+            for (int i = 0; i < places.length; i++) places[i] = (int) YogData.integer(p.get(i), 0);
+            result = (int) YogData.integer(machine.get("result"), -1);
+        }
         return new YogInventoryDef(YogData.str(m.get("id"), ""), (int) YogData.integer(m.get("slot_count"), 0), layout, accepts,
                 YogData.bool(m.get("include_player_inventory"), true), playerInv[0], playerInv[1],
-                YogData.str(m.get("background_texture"), ""), YogData.str(m.get("title"), ""), bg[0], bg[1]);
+                YogData.str(m.get("background_texture"), ""), YogData.str(m.get("title"), ""), bg[0], bg[1], places, result);
     }
 }

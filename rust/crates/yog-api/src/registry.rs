@@ -13,7 +13,7 @@ use yog_abi::{
     YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, 
     YogChatEvent, YogCommandEvent, YogContainerCloseEvent, YogContainerOpenEvent, YogCraftEvent,
     YogEntityDamageEvent, YogEntityDeathEvent, YogEntityInteractEvent, YogEntitySpawnEvent,
-    YogExplosionEvent, YogGfxApi, YogItemPickupEvent,
+    YogExplosionEvent, YogGfxApi, YogItemPickupEvent, YogMachineCraftEvent,
     YogKeyPressEvent, YogPacketEvent, YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent,
     YogPlayerMoveEvent, YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer,
     YogStr, YogUseBlockEvent, YogUseItemEvent,
@@ -1430,6 +1430,44 @@ trampoline_phased!(trampoline_craft, YogCraftEvent, CraftEvent, |ev| {
     }
 });
 
+/// A machine — an inventory whose `.yui` has a `<RecipeArea kind="…">` —
+/// making a recipe of its kind, like a crafting table: the result shows as
+/// soon as its slots hold a recipe's ingredients, and taking it takes them.
+///
+/// - `Pre` — whether it may: `false` and the result doesn't show (a
+///   workbench short of what the recipe's `values` cost). `player` is empty.
+/// - `Post` — a player took the result; the host takes the ingredients, the mod
+///   its share (the workbench's resources).
+#[derive(Debug, Clone)]
+pub struct MachineCraftEvent {
+    /// The machine's inventory, e.g. `"mymod:press"`.
+    pub machine: String,
+    /// The recipe's kind (`"mymod:pressing"`) and id.
+    pub kind: String,
+    pub recipe: String,
+    pub result_item: String,
+    pub result_count: u32,
+    /// The recipe's values: `{ "energy": 4 }`.
+    pub values: yog_data::Value,
+    pub pos: yog_core::BlockPos,
+    pub dimension: String,
+    pub player: String,
+}
+
+trampoline_phased!(trampoline_machine_craft, YogMachineCraftEvent, MachineCraftEvent, |ev| {
+    MachineCraftEvent {
+        machine: ev.machine.as_str().to_owned(),
+        kind: ev.kind.as_str().to_owned(),
+        recipe: ev.recipe.as_str().to_owned(),
+        result_item: ev.result_item.as_str().to_owned(),
+        result_count: ev.result_count,
+        values: yog_data::json::from_json_text(ev.values.as_str()).unwrap_or(yog_data::Value::Null),
+        pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
+        dimension: ev.dimension.as_str().to_owned(),
+        player: ev.player.as_str().to_owned(),
+    }
+});
+
 trampoline_phased!(
     trampoline_explosion,
     YogExplosionEvent,
@@ -1993,6 +2031,15 @@ impl Registry {
     {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_item_craft)(self.ctx(), ud, trampoline_craft::<F>) }
+    }
+
+    /// A machine making a recipe — see [`MachineCraftEvent`].
+    pub fn on_machine_craft<F>(&mut self, handler: F)
+    where
+        F: Fn(&MachineCraftEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
+    {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_machine_craft)(self.ctx(), ud, trampoline_machine_craft::<F>) }
     }
 
     pub fn on_explosion<F>(&mut self, handler: F)

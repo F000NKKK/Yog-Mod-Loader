@@ -12,7 +12,7 @@ description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 [dependencies]
 # Content crosses the ABI as Yog Data blobs (`register_content`).
 yog-data = { version = "0.4", features = ["json"] }
-yog-abi  = "0.29.4"
+yog-abi  = "0.29.5"
 yog-core = "0.3.5"
 yog-event = "0.4"
 yog-world = "0.3"
@@ -27,7 +27,7 @@ yog-interop = "0.21.4"
 yog-storage = "0.1"
 yog-config  = "0.1"
 yog-gfx     = "0.26"
-yog-ui      = "0.41"
+yog-ui      = "0.41.3"
 yog-book = "0.64"
 yog-inventory = "0.17"
 

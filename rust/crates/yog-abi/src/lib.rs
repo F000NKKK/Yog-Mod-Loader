@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 2;
-pub const ABI_MINOR: u32 = 4;
+pub const ABI_MINOR: u32 = 5;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -242,6 +242,27 @@ pub struct YogCraftEvent {
     pub dimension: YogStr,
 }
 
+/// A machine (an inventory's `.yui` `<RecipeArea>`) and the recipe its
+/// slots make. Pre: whether it may — the result shows only if every
+/// handler allows it (a workbench short of a resource says no); `player`
+/// empty. Post: a player took the result — the mod takes its share (the
+/// host takes the ingredients).
+#[repr(C)]
+pub struct YogMachineCraftEvent {
+    /// The machine's inventory, e.g. `mymod:press`.
+    pub machine: YogStr,
+    /// The recipe's kind and id.
+    pub kind: YogStr,
+    pub recipe: YogStr,
+    pub result_item: YogStr,
+    pub result_count: u32,
+    /// The recipe's values (`{ "energy": 4 }`), as JSON.
+    pub values: YogStr,
+    pub pos: YogBlockPos,
+    pub dimension: YogStr,
+    pub player: YogStr,
+}
+
 /// Fired when an explosion occurs in a world (Pre: before block destruction; Post: after).
 /// Pre phase — return false to cancel the explosion (block and entity damage suppressed).
 #[repr(C)]
@@ -404,6 +425,8 @@ pub type YogEntityInteractFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityInteractEvent, u8) -> bool;
 pub type YogCraftFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogCraftEvent, u8) -> bool;
+pub type YogMachineCraftFn =
+    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogMachineCraftEvent, u8) -> bool;
 pub type YogExplosionFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogExplosionEvent, u8) -> bool;
 pub type YogItemPickupFn =
@@ -1423,6 +1446,10 @@ pub struct YogApi {
     /// The name and tooltip lines of stacks of `item` from its custom data
     /// (a written blueprint shows its design) — see [`YogItemTextFn`].
     pub on_item_text: unsafe extern "C" fn(ctx: *mut c_void, item: YogStr, ud: *mut c_void, f: YogItemTextFn),
+
+    // ── ABI 2.5 — machines ──────────────────────────────────────────────────
+    /// A machine making a recipe — see [`YogMachineCraftEvent`].
+    pub on_machine_craft: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogMachineCraftFn),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].

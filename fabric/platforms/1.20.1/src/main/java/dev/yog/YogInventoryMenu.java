@@ -26,6 +26,13 @@ public class YogInventoryMenu extends ScreenHandler {
     public final Inventory inventory;
     public final String defId;
     private final int customSlotCount;
+    /** A machine's made result: the menu's, never the block's (see {@link YogInventoryDef#machineResult}). */
+    private final SimpleInventory machineOut = new SimpleInventory(1);
+    /** Server-side, a machine's block entity; its current recipe and what it was found from. */
+    private YogInventoryBlockEntity machine;
+    private String machineRecipe;
+    private String machineItems = "";
+    private int machineTicks;
 
     /** Server-side: opened against the block's real backing inventory. */
     public static YogInventoryMenu create(int syncId, PlayerInventory playerInv, Inventory inv, String defId) {
@@ -49,12 +56,17 @@ public class YogInventoryMenu extends ScreenHandler {
         YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         this.customSlotCount = def != null ? def.slotCount : inv.size();
         inv.onOpen(playerInv.player);
+        if (def != null && def.isMachine() && inv instanceof YogInventoryBlockEntity be && be.getWorld() != null && !be.getWorld().isClient) {
+            this.machine = be;
+        }
 
         if (def != null) {
             for (int i = 0; i < def.slotCount; i++) {
                 float[] xy = i < def.layout.size() ? def.layout.get(i) : new float[]{8f + (i % 9) * 18f, 18f + (i / 9) * 18f};
                 String[] accepts = i < def.accepts.size() ? def.accepts.get(i) : new String[0];
-                this.addSlot(accepts.length == 0
+                this.addSlot(def.isMachine() && i == def.machineResult
+                        ? new MachineResultSlot((int) xy[0], (int) xy[1])
+                        : accepts.length == 0
                         ? new Slot(inv, i, (int) xy[0], (int) xy[1])
                         : new FilteredSlot(inv, i, (int) xy[0], (int) xy[1], accepts));
             }
@@ -99,6 +111,65 @@ public class YogInventoryMenu extends ScreenHandler {
         return result;
     }
 
+    /** The machine's items by slot ({@code ""} empty), {@code \n}-joined, as the runtime takes them. */
+    private String machineItems() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < inventory.size(); i++) {
+            if (i > 0) sb.append('\n');
+            ItemStack s = inventory.getStack(i);
+            if (!s.isEmpty()) sb.append(Registries.ITEM.getId(s.getItem()));
+        }
+        return sb.toString();
+    }
+
+    /** Asks the runtime what the machine's slots make now and shows it. */
+    private void refreshMachine() {
+        if (machine == null) return;
+        machineItems = machineItems();
+        String found;
+        try {
+            found = NativeBridge.nativeMachineResult(defId, machine.getWorld().getRegistryKey().getValue().toString(),
+                    machine.getPos().getX(), machine.getPos().getY(), machine.getPos().getZ(), machineItems);
+        } catch (UnsatisfiedLinkError e) {
+            found = null;
+        }
+        ItemStack out = ItemStack.EMPTY;
+        machineRecipe = null;
+        if (found != null) {
+            String[] p = found.split("\n");
+            Identifier id = Identifier.tryParse(p[1]);
+            if (id != null && Registries.ITEM.containsId(id)) {
+                machineRecipe = p[0];
+                out = new ItemStack(Registries.ITEM.get(id), Integer.parseInt(p[2]));
+            }
+        }
+        if (!ItemStack.areEqual(out, machineOut.getStack(0))) machineOut.setStack(0, out);
+    }
+
+    /** Makes the machine's recipe: the mods take their share, then one of each ingredient goes. */
+    private void craftMachine(PlayerEntity player) {
+        if (machine == null || machineRecipe == null) return;
+        try {
+            NativeBridge.nativeMachineCraft(defId, machineRecipe, machine.getWorld().getRegistryKey().getValue().toString(),
+                    machine.getPos().getX(), machine.getPos().getY(), machine.getPos().getZ(),
+                    machineItems(), player.getName().getString());
+        } catch (UnsatisfiedLinkError ignored) {
+        }
+        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
+        for (int p : def.machinePlaces) {
+            if (p < inventory.size() && !inventory.getStack(p).isEmpty()) inventory.removeStack(p, 1);
+        }
+        inventory.markDirty();
+        refreshMachine();
+    }
+
+    @Override
+    public void sendContentUpdates() {
+        // What's in it changed, or now and then (a mod's share may have).
+        if (machine != null && (++machineTicks % 10 == 0 || !machineItems.equals(machineItems()))) refreshMachine();
+        super.sendContentUpdates();
+    }
+
     @Override
     public boolean canUse(PlayerEntity player) {
         return inventory.canPlayerUse(player);
@@ -108,6 +179,36 @@ public class YogInventoryMenu extends ScreenHandler {
     public void onClosed(PlayerEntity player) {
         super.onClosed(player);
         inventory.onClose(player);
+    }
+
+    /** A machine's result, like a crafting table's: nothing goes in; taking it (all of it) makes it. */
+    private final class MachineResultSlot extends Slot {
+        MachineResultSlot(int x, int y) {
+            super(machineOut, 0, x, y);
+        }
+
+        @Override
+        public boolean canInsert(ItemStack stack) {
+            return false;
+        }
+
+        @Override
+        public boolean canTakeItems(PlayerEntity player) {
+            // Still made of what's there and still allowed.
+            refreshMachine();
+            return hasStack();
+        }
+
+        @Override
+        public ItemStack takeStack(int amount) {
+            return super.takeStack(getStack().getCount());
+        }
+
+        @Override
+        public void onTakeItem(PlayerEntity player, ItemStack stack) {
+            craftMachine(player);
+            super.onTakeItem(player, stack);
+        }
     }
 
     /** A container slot that takes only the items and {@code #tags} its {@code <Slot accepts>} names. */
