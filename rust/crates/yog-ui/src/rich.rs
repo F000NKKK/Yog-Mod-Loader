@@ -42,6 +42,13 @@ fn apply(attrs: &str, mut style: Style) -> Option<Style> {
     any.then_some(style)
 }
 
+/// Whether `s` has anything but plain characters: span braces or a `§`
+/// code (most words don't, and skip the tokenizer).
+fn has_markup(s: &str) -> bool {
+    // `§` is U+00A7, encoded C2 A7.
+    s.bytes().any(|b| matches!(b, b'{' | b'}' | 0xC2))
+}
+
 /// One step of reading rich text.
 enum Token<'a> {
     Char(char),
@@ -51,65 +58,89 @@ enum Token<'a> {
 }
 
 /// Reads `s` token by token.
-fn tokens(s: &str) -> Vec<Token<'_>> {
-    pieces(s).into_iter().map(|(t, _)| t).collect()
+fn tokens(s: &str) -> impl Iterator<Item = Token<'_>> {
+    pieces(s).map(|(t, _)| t)
 }
 
-/// `s` read token by token, each with the text it was read from.
-fn pieces(s: &str) -> Vec<(Token<'_>, &str)> {
-    let mut out = Vec::new();
-    let mut depth = 0usize;
-    let mut i = 0;
-    let b = s.as_bytes();
-    while i < s.len() {
-        let c = s[i..].chars().next().unwrap_or_default();
+/// `s` read token by token, each with the text it was read from — lazily,
+/// so measuring a word allocates nothing.
+struct Pieces<'a> {
+    s: &'a str,
+    i: usize,
+    depth: usize,
+}
+
+impl<'a> Iterator for Pieces<'a> {
+    type Item = (Token<'a>, &'a str);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (s, i) = (self.s, self.i);
+        let b = s.as_bytes();
+        let c = s[i..].chars().next()?;
         match c {
             '{' if b.get(i + 1) == Some(&b'{') => {
-                out.push((Token::Char('{'), &s[i..i + 2]));
-                i += 2;
-                continue;
+                self.i += 2;
+                return Some((Token::Char('{'), &s[i..i + 2]));
             }
             '{' => {
                 if let Some(bar) = s[i + 1..].find(['|', '{', '}']).map(|p| p + i + 1)
                     && b[bar] == b'|'
                     && apply(&s[i + 1..bar], Style::default()).is_some()
                 {
-                    out.push((Token::Open(&s[i + 1..bar]), &s[i..=bar]));
-                    depth += 1;
-                    i = bar + 1;
-                    continue;
+                    self.depth += 1;
+                    self.i = bar + 1;
+                    return Some((Token::Open(&s[i + 1..bar]), &s[i..=bar]));
                 }
             }
-            '}' if depth > 0 => {
-                out.push((Token::Close, &s[i..=i]));
-                depth -= 1;
-                i += 1;
-                continue;
+            '}' if self.depth > 0 => {
+                self.depth -= 1;
+                self.i += 1;
+                return Some((Token::Close, &s[i..=i]));
             }
             '}' if b.get(i + 1) == Some(&b'}') => {
-                out.push((Token::Char('}'), &s[i..i + 2]));
-                i += 2;
-                continue;
+                self.i += 2;
+                return Some((Token::Char('}'), &s[i..i + 2]));
             }
             _ => {}
         }
-        out.push((Token::Char(c), &s[i..i + c.len_utf8()]));
-        i += c.len_utf8();
+        self.i += c.len_utf8();
+        Some((Token::Char(c), &s[i..i + c.len_utf8()]))
     }
-    out
+}
+
+fn pieces(s: &str) -> Pieces<'_> {
+    Pieces { s, i: 0, depth: 0 }
 }
 
 /// `s` split at its shown spaces (a span's `{b #fff|` stays whole).
 pub fn words(s: &str) -> Vec<&str> {
+    // Byte by byte, as `Pieces` reads it: the bytes that matter (space,
+    // braces, `|`) are ASCII, never part of another character's encoding.
+    let b = s.as_bytes();
     let mut out = Vec::new();
-    let mut start = 0;
-    let mut at = 0;
-    for (t, raw) in pieces(s) {
-        if matches!(t, Token::Char(' ')) {
-            out.push(&s[start..at]);
-            start = at + 1;
+    let (mut start, mut i, mut depth) = (0, 0, 0usize);
+    while i < b.len() {
+        match b[i] {
+            b'{' if b.get(i + 1) == Some(&b'{') => i += 2,
+            b'{' => match s[i + 1..].find(['|', '{', '}']).map(|p| p + i + 1) {
+                Some(bar) if b[bar] == b'|' && apply(&s[i + 1..bar], Style::default()).is_some() => {
+                    depth += 1;
+                    i = bar + 1;
+                }
+                _ => i += 1,
+            },
+            b'}' if depth > 0 => {
+                depth -= 1;
+                i += 1;
+            }
+            b'}' if b.get(i + 1) == Some(&b'}') => i += 2,
+            b' ' => {
+                out.push(&s[start..i]);
+                start = i + 1;
+                i += 1;
+            }
+            _ => i += 1,
         }
-        at += raw.len();
     }
     out.push(&s[start..]);
     out
@@ -119,7 +150,6 @@ pub fn words(s: &str) -> Vec<&str> {
 /// written, and the character it shows (`None`: markup, no room taken).
 pub fn glyphs(s: &str) -> Vec<(&str, Option<char>)> {
     pieces(s)
-        .into_iter()
         .map(|(t, raw)| match t {
             Token::Char(c) => (raw, Some(c)),
             _ => (raw, None),
@@ -193,20 +223,50 @@ pub fn plain(s: &str) -> String {
 /// Width with `advance` per glyph: markup takes no room, bold glyphs one
 /// more (Minecraft's own `§` codes too).
 pub fn width(s: &str, mut advance: impl FnMut(char) -> f32) -> f32 {
+    if !has_markup(s) {
+        return s.chars().map(advance).sum();
+    }
+    // As `runs` reads it, without building the runs: a `§` code acts on
+    // the glyph after it within one stretch of the same style.
     let mut w = 0.0;
-    for (text, st) in runs(s) {
-        let mut legacy_bold = false;
-        let mut chars = text.chars();
-        while let Some(c) = chars.next() {
-            if c == '§' {
-                match chars.next().map(|k| k.to_ascii_lowercase()) {
-                    Some('l') => legacy_bold = true,
-                    Some(k) if k == 'r' || k.is_ascii_hexdigit() => legacy_bold = false,
-                    _ => {}
+    let mut outer: Vec<Style> = Vec::new();
+    let mut style = Style::default();
+    let mut legacy_bold = false;
+    let mut code = false;
+    for t in tokens(s) {
+        match t {
+            Token::Char(c) => {
+                if code {
+                    code = false;
+                    match c.to_ascii_lowercase() {
+                        'l' => legacy_bold = true,
+                        k if k == 'r' || k.is_ascii_hexdigit() => legacy_bold = false,
+                        _ => {}
+                    }
+                    continue;
                 }
-                continue;
+                if c == '§' {
+                    code = true;
+                    continue;
+                }
+                w += advance(c) + if style.bold || legacy_bold { 1.0 } else { 0.0 };
             }
-            w += advance(c) + if st.bold || legacy_bold { 1.0 } else { 0.0 };
+            Token::Open(a) => {
+                outer.push(style);
+                let next = apply(a, style).unwrap_or(style);
+                if next != style {
+                    (legacy_bold, code) = (false, false);
+                }
+                style = next;
+            }
+            Token::Close => {
+                if let Some(prev) = outer.pop() {
+                    if prev != style {
+                        (legacy_bold, code) = (false, false);
+                    }
+                    style = prev;
+                }
+            }
         }
     }
     w
@@ -236,6 +296,56 @@ pub fn reopen(spans: &[String]) -> String {
 
 #[cfg(test)]
 mod tests {
+    /// `width` as it was computed before it stopped allocating: through `runs`.
+    fn width_via_runs(s: &str, advance: impl Fn(char) -> f32) -> f32 {
+        let mut w = 0.0;
+        for (text, st) in super::runs(s) {
+            let mut legacy_bold = false;
+            let mut chars = text.chars();
+            while let Some(c) = chars.next() {
+                if c == '§' {
+                    match chars.next().map(|k| k.to_ascii_lowercase()) {
+                        Some('l') => legacy_bold = true,
+                        Some(k) if k == 'r' || k.is_ascii_hexdigit() => legacy_bold = false,
+                        _ => {}
+                    }
+                    continue;
+                }
+                w += advance(c) + if st.bold || legacy_bold { 1.0 } else { 0.0 };
+            }
+        }
+        w
+    }
+
+    /// `words` as it was: splitting at the space tokens of `pieces`.
+    fn words_via_pieces(s: &str) -> Vec<&str> {
+        let (mut out, mut start, mut at) = (Vec::new(), 0, 0);
+        for (t, raw) in super::pieces(s) {
+            if matches!(t, super::Token::Char(' ')) {
+                out.push(&s[start..at]);
+                start = at + 1;
+            }
+            at += raw.len();
+        }
+        out.push(&s[start..]);
+        out
+    }
+
+    #[test]
+    fn words_split_as_pieces_do() {
+        for s in ["a b  c", "{b #ff0000|bold words} x", "{{a b}} c", "{nope b|x} y", "ünï ç {i|é ö}", "{b|unclosed a b", " lead trail "] {
+            assert_eq!(super::words(s), words_via_pieces(s), "{s:?}");
+        }
+    }
+
+    #[test]
+    fn width_measures_as_runs_do() {
+        let adv = |c: char| if c == 'i' { 2.0 } else { 6.0 };
+        for s in ["plain", "{b|bold} x", "{b|a {#ff0000|b} c}d", "§lbold§r then", "{{x}} }}", "{nope|x}", "{b|unclosed", "a§", "{b|§lx} y", "ünï {i|ç}"] {
+            assert_eq!(super::width(s, adv), width_via_runs(s, adv), "{s:?}");
+        }
+    }
+
     use super::*;
 
     #[test]
