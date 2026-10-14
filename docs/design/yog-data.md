@@ -96,6 +96,7 @@ A tree of typed values, like NBT:
 | **res** — a mod resource | `"@Strings.title"` |
 | **text** — Yog text | `"{b|bold} and {#8d6acc|color}"` |
 | **image** — an image source | `"@image:sprite:button"`, `"@image:mymod:gui/logo"` |
+| **lang** — a translation key | `"@lang:gui.done"` |
 | **color** | `"#ff8d6acc"` |
 
 Typed values are written as strings in the text form, so every file stays

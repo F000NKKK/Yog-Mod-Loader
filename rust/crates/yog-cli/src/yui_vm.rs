@@ -1010,7 +1010,7 @@ impl VmGen<'_> {
                         Binding {
                             raw: v.clone(),
                             expr: None,
-                            rust: Some(yui::text_expr(v)),
+                            rust: Some(yui::text_attr(el, k, v)?),
                             mode: Mode::OneWay,
                             bind_back: None,
                             fallback: None,

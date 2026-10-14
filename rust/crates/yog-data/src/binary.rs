@@ -25,6 +25,7 @@
 //! | 11 | text | string |
 //! | 12 | image | string |
 //! | 13 | color | u32, little-endian (`0xAARRGGBB`) |
+//! | 14 | translation key | string |
 //!
 //! Varints are LEB128. Decoding checks every length against the input, so
 //! malformed bytes are an error, never a panic or a huge allocation.
@@ -56,6 +57,7 @@ mod tag {
     pub const TEXT: u8 = 11;
     pub const IMAGE: u8 = 12;
     pub const COLOR: u8 = 13;
+    pub const LANG: u8 = 14;
 }
 
 /// `value` in the binary form.
@@ -147,6 +149,10 @@ impl<'v> Encoder<'v> {
             }
             Value::Image(s) => {
                 self.body.push(tag::IMAGE);
+                self.string(s);
+            }
+            Value::Lang(s) => {
+                self.body.push(tag::LANG);
                 self.string(s);
             }
             Value::Color(c) => {
@@ -359,6 +365,7 @@ impl<'b> Decoder<'b> {
             tag::TEXT => Value::Text(self.string()?.to_string()),
             tag::IMAGE => Value::Image(self.string()?.to_string()),
             tag::COLOR => Value::Color(u32::from_le_bytes(self.fixed()?)),
+            tag::LANG => Value::Lang(self.string()?.to_string()),
             t => {
                 self.i -= 1;
                 return Err(self.error(format!("unknown tag {t}")));
@@ -399,6 +406,7 @@ mod tests {
         m.insert("text", Value::Text("{b|hi}".into()));
         m.insert("icon", Value::Image("sprite:x".into()));
         m.insert("color", Value::Color(0x80FF0000));
+        m.insert("lang", Value::Lang("gui.done".into()));
         m.insert("again", Value::Str("Ruby".into()));
         Value::Map(m)
     }

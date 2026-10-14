@@ -56,6 +56,7 @@ fn every_type() -> Value {
     m.insert("text", Value::Text("{b|x}".into()));
     m.insert("image", Value::Image("sprite:x".into()));
     m.insert("color", Value::Color(0x80FF_0000));
+    m.insert("lang", Value::Lang("gui.done".into()));
     m.insert("again", Value::Str("ünï😀".into()));
     Value::Map(m)
 }

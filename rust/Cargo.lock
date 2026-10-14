@@ -1489,7 +1489,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.63.1"
+version = "0.63.2"
 dependencies = [
  "criterion",
  "serde",
@@ -1530,7 +1530,7 @@ dependencies = [
 
 [[package]]
 name = "yog-data"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "criterion",
  "serde_json",

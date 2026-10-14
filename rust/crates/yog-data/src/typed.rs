@@ -6,6 +6,7 @@
 //! | `@tag:item:minecraft:planks` | [`Value::Tag`] |
 //! | `@Strings.screen.title` (set names start upper case) | [`Value::Res`] |
 //! | `@image:sprite:button`, `@image:mymod:gui/logo` | [`Value::Image`] |
+//! | `@lang:gui.done` (a key as in the lang files) | [`Value::Lang`] |
 //! | `#RRGGBB`, `#AARRGGBB` | [`Value::Color`] |
 //! | `@@text` | the plain string `@text` |
 //!
@@ -63,6 +64,18 @@ pub fn classify(s: &str) -> Result<Value, String> {
                 id: resource_id(s, id)?,
             }))
         }
+        "lang" => {
+            if tail.is_empty()
+                || !tail.bytes().all(|b| {
+                    b.is_ascii_alphanumeric() || matches!(b, b'_' | b'.' | b'-' | b':' | b'/')
+                })
+            {
+                return Err(format!(
+                    "`{s}`: `@lang:` takes a translation key as the lang files have it (`@lang:gui.done`)"
+                ));
+            }
+            Ok(Value::Lang(tail.to_string()))
+        }
         "image" => {
             if tail.is_empty() {
                 return Err(format!("`{s}`: no image source after `@image:`"));
@@ -83,6 +96,7 @@ pub fn typed_string(v: &Value) -> Option<String> {
         Value::Tag(r) => format!("@tag:{}:{}", r.kind, r.id),
         Value::Res(r) => format!("@{}.{}", r.set, r.key),
         Value::Image(src) => format!("@image:{src}"),
+        Value::Lang(key) => format!("@lang:{key}"),
         Value::Color(c) => format_color(*c),
         Value::Text(t) => escape_at(t),
         Value::Str(t) => escape_at(t),

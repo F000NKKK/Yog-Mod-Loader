@@ -325,7 +325,7 @@ Built-in dialogs are written in `.yui` inside yog-kit (`src/dialogs/{message,con
 | `literal` | As today. |
 | `@Set.name` | Typed resource from `resources/Set.yres`: string, image, color, number or style. Compiled to the generated accessor (`Set::name()` from `resources!()`). |
 | `@name` (no dot) | Screen-local resource (`<Screen.Resources>`). |
-| `@mod-id.raw.key` | Raw translation key (legacy; the first segment isn't a resource set). |
+| `@lang:key` | Any translation key, as the lang files have it (`@lang:gui.done`). |
 | `@@text` | Literal starting with `@`. |
 | `{x:Bind Expr[, Mode=OneTime\|OneWay\|TwoWay][, BindBack=method][, Fallback=value]}` | Compiled binding. |
 | `res:Set.name` | Runtime string form of an image alias (also usable from Rust). |

@@ -24,6 +24,8 @@ pub enum Value {
     Tag(Ref),
     /// `@Strings.title` — a mod resource (`.yres` entry).
     Res(Res),
+    /// `@lang:gui.done` — a translation key of the game's or a mod's lang files.
+    Lang(String),
     /// Yog text: `{b|bold} and {#8d6acc|color}`.
     Text(String),
     /// An image source: `sprite:button`, `mymod:gui/logo`, `item:minecraft:stick`.
@@ -169,6 +171,7 @@ impl Value {
             Value::Ref(_) => "a reference",
             Value::Tag(_) => "a tag",
             Value::Res(_) => "a resource",
+            Value::Lang(_) => "a translation key",
             Value::Text(_) => "a text",
             Value::Image(_) => "an image",
             Value::Color(_) => "a color",

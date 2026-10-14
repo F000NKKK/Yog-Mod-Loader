@@ -538,51 +538,71 @@ fn is_component_name(kind: &str) -> bool {
 
 /// A custom component built by name from its own (non-common) attributes;
 /// `@key` values are translated like `text`.
-fn component_expr(el: &Element) -> String {
+fn component_expr(el: &Element) -> Result<String, String> {
     let props: Vec<String> = el
         .attrs
         .iter()
         .filter(|(k, _)| !COMMON_ATTRS.contains(&k.as_str()))
         .map(|(k, v)| {
             if let Some(rust) = v.strip_prefix(RAW_VALUE) {
-                return format!("({k:?}, &*{rust})");
+                return Ok(format!("({k:?}, &*{rust})"));
             }
             match v.strip_prefix('@') {
                 // A `.yres` color (for a color property): its value.
                 Some(rest) if !is_resource_text(rest) && resource_color(rest).is_some() => {
                     let c = resource_color(rest).unwrap_or_default();
-                    format!("({k:?}, \"#{c:08X}\")")
+                    Ok(format!("({k:?}, \"#{c:08X}\")"))
                 }
-                Some(rest) if !rest.trim().is_empty() => format!("({k:?}, &*{})", text_expr(v)),
-                _ => format!("({k:?}, {v:?})"),
+                Some(rest) if !rest.trim().is_empty() => Ok(format!("({k:?}, &*{})", text_attr(el, k, v)?)),
+                _ => Ok(format!("({k:?}, {v:?})")),
             }
         })
-        .collect();
-    format!(
+        .collect::<Result<_, String>>()?;
+    Ok(format!(
         "::yog_api::ui::component::build({:?}, &[{}])",
         el.name,
         props.join(", ")
-    )
+    ))
 }
 
-/// The Rust expression for a text attribute: `"@mymod.key"` is translation
-/// key `mymod.key`, looked up when the tree is built (`::yog_api::tr`, so it
-/// follows the game's language); `"@@..."` is a literal text starting
-/// with `@`; anything else is the literal text.
-///
-/// `"@<Set>.<name>"` naming a text of `resources/<Set>.yres` (see
-/// [`set_resource_refs`]) is that text's translation key.
-pub fn text_expr(value: &str) -> String {
-    match value.strip_prefix('@') {
-        Some(rest) if rest.starts_with('@') => format!("{rest:?}"),
-        Some(key) if !key.trim().is_empty() => {
-            let key = key.trim();
-            let resolved =
-                RESOURCE_REFS.with(|r| r.borrow().texts.get(key).map(|(k, _)| k.clone()));
-            format!("::yog_api::tr({:?})", resolved.as_deref().unwrap_or(key))
-        }
-        _ => format!("{value:?}"),
+/// The Rust expression for a text attribute, its `@` forms as everywhere
+/// in Yog Data (`yog_data::typed`): `"@Strings.title"` is a text of
+/// `resources/Strings.yres` (see [`set_resource_refs`]), `"@lang:gui.done"`
+/// any translation key, `"@item:minecraft:stick"` (`@block:`, `@entity:`)
+/// that content's name — each looked up when the tree is built
+/// (`::yog_api::tr`, so it follows the game's language); `"@@..."` is a
+/// literal text starting with `@`; anything else is the literal text.
+pub fn text_expr(value: &str) -> Result<String, String> {
+    if value.trim() == "@" || !value.starts_with('@') {
+        return Ok(format!("{value:?}"));
     }
+    let tr = |key: &str| format!("::yog_api::tr({key:?})");
+    match yog_data::typed::classify(value.trim()) {
+        Ok(yog_data::Value::Str(s)) => Ok(format!("{s:?}")),
+        Ok(yog_data::Value::Lang(key)) => Ok(tr(&key)),
+        Ok(yog_data::Value::Res(r)) => {
+            let name = format!("{}.{}", r.set, r.key);
+            RESOURCE_REFS
+                .with(|refs| refs.borrow().texts.get(&name).map(|(k, _)| k.clone()))
+                .map(|k| tr(&k))
+                .ok_or_else(|| format!("no text `{name}` in resources/*.yres"))
+        }
+        Ok(yog_data::Value::Ref(r)) if matches!(r.kind.as_str(), "item" | "block" | "entity") => {
+            let (ns, path) = r.id.split('[').next().unwrap_or(&r.id).split_once(':').unwrap_or(("minecraft", &r.id));
+            Ok(tr(&format!("{}.{ns}.{}", r.kind, path.replace('/', "."))))
+        }
+        Ok(other) => Err(format!("{} isn't a text", other.kind_name())),
+        Err(_) if !value.contains(':') => Err(format!(
+            "write a translation key as `@lang:{}`, a .yres text as `@Set.name`, a literal `@` as `@@`",
+            value[1..].trim()
+        )),
+        Err(e) => Err(e),
+    }
+}
+
+/// [`text_expr`] for attribute `key` of `el`, a problem saying where.
+pub(crate) fn text_attr(el: &Element, key: &str, value: &str) -> Result<String, String> {
+    text_expr(value).map_err(|e| format!("line {}: <{}> {key}=\"{value}\": {e}", el.line, el.name))
 }
 
 thread_local! {
@@ -791,15 +811,15 @@ impl Gen {
                 ));
             }
         }
-        let text = || text_expr(el.attr("text").unwrap_or_default());
+        let text = || text_attr(el, "text", el.attr("text").unwrap_or_default());
         let mut expr = match kind {
             "Screen" | "Canvas" | "Column" => "widget::panel(FlexDir::Column)".to_string(),
             "Row" => "widget::panel(FlexDir::Row)".to_string(),
             "ScrollView" => "widget::scroll_view()".to_string(),
             "Grid" => "widget::grid()".to_string(),
-            "Label" => format!("widget::label({})", text()),
-            "Button" => format!("widget::button({})", text()),
-            "TextBox" => format!("widget::text_box({})", text()),
+            "Label" => format!("widget::label({})", text()?),
+            "Button" => format!("widget::button({})", text()?),
+            "TextBox" => format!("widget::text_box({})", text()?),
             "ItemSlot" => format!(
                 "widget::item_slot({:?})",
                 el.attr("item").unwrap_or_default()
@@ -854,7 +874,7 @@ impl Gen {
             "PlayerInventory" => "widget::player_inventory()".to_string(),
             "Image" => self.image(el)?,
             "Surface" => self.surface(el)?,
-            _ if is_component => component_expr(el),
+            _ if is_component => component_expr(el)?,
             _ => "widget::spacer()".to_string(),
         };
         let indent = "    ".repeat(depth + 2);
@@ -902,8 +922,8 @@ impl Gen {
                     self.events.push(value);
                     call(format!("{key}({v:?})"));
                 }
-                "placeholder" => call(format!("placeholder({})", text_expr(v))),
-                "tooltip" => call(format!("tooltip({})", text_expr(v))),
+                "placeholder" => call(format!("placeholder({})", text_attr(el, key, v)?)),
+                "tooltip" => call(format!("tooltip({})", text_attr(el, key, v)?)),
                 "font" => call(format!("font({:?})", v.trim())),
                 "max_length" => {
                     let n = v.trim().parse::<usize>().map_err(|_| {
@@ -1706,10 +1726,15 @@ mod tests {
 
     #[test]
     fn text_starting_with_at_is_a_translation_key() {
-        assert_eq!(text_expr("@mymod.title"), "::yog_api::tr(\"mymod.title\")");
-        assert_eq!(text_expr("@@home"), "\"@home\"");
-        assert_eq!(text_expr("plain"), "\"plain\"");
-        assert_eq!(text_expr("@"), "\"@\"");
+        assert_eq!(text_expr("@lang:gui.done").unwrap(), "::yog_api::tr(\"gui.done\")");
+        assert_eq!(text_expr("@item:minecraft:stick").unwrap(), "::yog_api::tr(\"item.minecraft.stick\")");
+        assert_eq!(text_expr("@@home").unwrap(), "\"@home\"");
+        assert_eq!(text_expr("plain").unwrap(), "\"plain\"");
+        assert_eq!(text_expr("@").unwrap(), "\"@\"");
+        // The old bare key, a missing text, something that isn't a text.
+        assert!(text_expr("@gui.done").unwrap_err().contains("`@lang:gui.done`"));
+        assert!(text_expr("@Strings.nope").unwrap_err().contains("no text `Strings.nope`"));
+        assert!(text_expr("@image:sprite:x").unwrap_err().contains("isn't a text"));
         let mut refs = crate::yres::Refs::default();
         refs.texts.insert(
             "Strings.title".into(),

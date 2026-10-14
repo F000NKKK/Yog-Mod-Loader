@@ -1513,6 +1513,11 @@ fn compile_book(cx: &mut Ctx, text: &str, mod_ns: Option<&str>, known: &refs::Kn
                     self.text_refs = true;
                     Ok(format!("{}.{ns}.{}", r.kind, p.replace('/', ".")))
                 }
+                // Any translation key, the game's or a mod's.
+                Text::Lang(key) => {
+                    self.text_refs = true;
+                    Ok(key.clone())
+                }
                 Text::Res(r) => match self.texts.get(&format!("{}.{}", r.set, r.key)) {
                     Some((key, _)) => {
                         self.text_refs = true;

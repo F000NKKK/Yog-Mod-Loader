@@ -288,6 +288,7 @@ pub trait Resolve {
             Text::Literal(s) => s.clone(),
             Text::Res(r) => format!("@{}.{}", r.set, r.key),
             Text::NameOf(r) => format!("@{}:{}", r.kind, r.id),
+            Text::Lang(k) => format!("@lang:{k}"),
         })
     }
 
@@ -1277,13 +1278,15 @@ impl Schema for Res {
     }
 }
 
-/// A text a player reads: Yog text as written, a `.yres` text, or the name
-/// of some content (`@item:minecraft:stick` shows "Stick").
+/// A text a player reads: Yog text as written, a `.yres` text, the name
+/// of some content (`@item:minecraft:stick` shows "Stick"), or any
+/// translation key (`@lang:gui.done`).
 #[derive(Debug, Clone, PartialEq)]
 pub enum Text {
     Literal(String),
     Res(Res),
     NameOf(Ref),
+    Lang(String),
 }
 
 impl Default for Text {
@@ -1312,6 +1315,7 @@ impl Schema for Text {
                 cx.note_ref(r.clone());
                 Some(Text::NameOf(r))
             }
+            Value::Lang(k) => Some(Text::Lang(k)),
             other => {
                 cx.expected("a text", &other);
                 None
@@ -1323,6 +1327,7 @@ impl Schema for Text {
             Text::Literal(s) => Value::Text(s.clone()),
             Text::Res(r) => Value::Res(r.clone()),
             Text::NameOf(r) => Value::Ref(r.clone()),
+            Text::Lang(k) => Value::Lang(k.clone()),
         }
     }
 }

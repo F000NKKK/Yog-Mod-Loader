@@ -18,7 +18,7 @@ import java.util.Map;
  * <p>Values decode to: {@code null}, {@link Boolean}, {@link Long},
  * {@link Double}, {@link String}, {@link List}, {@link Map} (insertion
  * ordered), and the typed records {@link Ref}, {@link Tag}, {@link Res},
- * {@link Text}, {@link Image}, {@link Color}. {@link #encode} takes the
+ * {@link Text}, {@link Image}, {@link Color}, {@link Lang}. {@link #encode} takes the
  * same (plus {@link Integer}/{@link Float}) and writes exactly what the
  * Rust encoder writes for the same value.
  */
@@ -31,7 +31,7 @@ public final class YogData {
     public static final int MAX_DEPTH = 256;
 
     private static final int NULL = 0, FALSE = 1, TRUE = 2, INT = 3, FLOAT = 4, STR = 5, LIST = 6, MAP = 7,
-            REF = 8, TAG = 9, RES = 10, TEXT = 11, IMAGE = 12, COLOR = 13;
+            REF = 8, TAG = 9, RES = 10, TEXT = 11, IMAGE = 12, COLOR = 13, LANG = 14;
 
     /** Content of a kind ({@code item}, {@code block}, ...) by id. */
     public record Ref(String kind, String id) {}
@@ -50,6 +50,9 @@ public final class YogData {
 
     /** {@code 0xAARRGGBB}. */
     public record Color(int argb) {}
+
+    /** A translation key of the game's or a mod's lang files ({@code @lang:gui.done}). */
+    public record Lang(String key) {}
 
     /** Malformed binary data. */
     public static final class DecodeException extends RuntimeException {
@@ -163,6 +166,7 @@ public final class YogData {
                 case TEXT: return new Text(string());
                 case IMAGE: return new Image(string());
                 case COLOR: return new Color((int) fixed(4));
+                case LANG: return new Lang(string());
                 default: throw new DecodeException("unknown tag " + tag, i - 1);
             }
         }
@@ -250,6 +254,9 @@ public final class YogData {
             } else if (v instanceof Image img) {
                 body.write(IMAGE);
                 string(img.source());
+            } else if (v instanceof Lang l) {
+                body.write(LANG);
+                string(l.key());
             } else if (v instanceof Color c) {
                 body.write(COLOR);
                 fixed(c.argb() & 0xFFFFFFFFL, 4);

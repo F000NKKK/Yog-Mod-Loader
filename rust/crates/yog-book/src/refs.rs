@@ -17,7 +17,8 @@
 //! | `relations.entries` | `@entry:` |
 //!
 //! Texts (names, titles, page texts, …) may be whole references to texts
-//! (`@Book.title`) or names (`@item:mymod:ruby` shows the item's name), and
+//! (`@Book.title`), names (`@item:mymod:ruby` shows the item's name) or
+//! any translation key (`@lang:gui.done`), and
 //! link entries with `{link=@entry:mymod:basics|text}`.
 
 use yog_data::schema::{Read, Resolve, Text, read_ref};
@@ -63,7 +64,7 @@ impl With<String> for BookText {
         let words = match &t {
             Text::Literal(s) => Some(s.clone()),
             Text::Res(r) => cx.words(r),
-            Text::NameOf(_) => None,
+            Text::NameOf(_) | Text::Lang(_) => None,
         };
         let mut ok = true;
         for l in links(words.as_deref().unwrap_or_default()) {
