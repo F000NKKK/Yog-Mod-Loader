@@ -98,11 +98,23 @@ fn main() {
             }
         }
         Some("publish") => {
-            let dry_run = args.iter().any(|a| a == "--dry-run");
+            const USAGE: &str = "usage: yog publish exports [--dry-run]";
+            // Publishing can't be undone: anything but `--dry-run` (a typo, `--help`) stops here.
+            let flags: Vec<&str> = args.iter().skip(3).map(String::as_str).collect();
+            let other = flags.iter().find(|a| **a != "--dry-run");
             match args.get(2).map(String::as_str) {
-                Some("exports") => publish_exports(dry_run),
+                Some("exports") if other.is_some_and(|o| matches!(*o, "-h" | "--help")) => {
+                    println!("{USAGE}\n\nPublishes this mod's exports crate (`#[yog_export]` items) to crates.io; --dry-run only generates and packages it.");
+                    Ok(())
+                }
+                Some("exports") if other.is_some() => Err(format!("unknown flag {} — {USAGE}", other.unwrap())),
+                Some("exports") => publish_exports(!flags.is_empty()),
+                Some("-h" | "--help") => {
+                    println!("{USAGE}");
+                    Ok(())
+                }
                 Some(other) => Err(format!("unknown publish subcommand: {other}")),
-                None => Err("usage: yog publish exports [--dry-run]".into()),
+                None => Err(USAGE.into()),
             }
         }
         Some("res") => match args.get(2).map(String::as_str) {
