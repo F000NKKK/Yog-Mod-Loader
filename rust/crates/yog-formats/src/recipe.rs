@@ -4,7 +4,7 @@
 //! are references (`@item:minecraft:stick`), tags `@tag:item:c:dusts`.
 
 use yog_data::schema::{Field, StructShape, read_both};
-use yog_data::{ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Schema, Seg, Shape, Value};
+use yog_data::{ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Schema, Seg, Shape, Value, ValueRef};
 
 /// The game's recipe types.
 pub const TYPES: [&str; 8] = [
@@ -60,13 +60,13 @@ impl Schema for Ingredient {
     fn shape() -> Shape {
         ItemIdOrTag::shape()
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         match v {
-            Value::List(items) if items.is_empty() => {
+            ValueRef::List([]) => {
                 cx.problem("an empty list: at least one item or tag");
                 None
             }
-            Value::List(_) => Vec::<ItemIdOrTag>::read(v, cx).map(Ingredient),
+            ValueRef::List(_) => Vec::<ItemIdOrTag>::read(v, cx).map(Ingredient),
             _ => ItemIdOrTag::read(v, cx).map(|i| Ingredient(vec![i])),
         }
     }
@@ -169,10 +169,10 @@ impl Schema for RecipeFile {
         })
     }
 
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let map = cx.map(v)?;
         let ty = match map.get("type") {
-            Some(Value::Str(t)) => t.clone(),
+            Some(ValueRef::Str(t)) => t.to_string(),
             Some(other) => {
                 cx.at(Seg::Key("type".into()), |cx| {
                     cx.expected("a recipe type", other)

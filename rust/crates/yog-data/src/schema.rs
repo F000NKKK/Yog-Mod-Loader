@@ -10,6 +10,7 @@ use std::marker::PhantomData;
 
 use crate::text::{self, Doc, LineCol};
 use crate::typed;
+use crate::borrowed::{MapRef, ValueRef};
 use crate::value::{Map, Path, Ref, Res, Seg, Value};
 
 /// A Yog Data format.
@@ -19,7 +20,7 @@ pub trait Schema: Sized {
 
     /// Reads `v`. Problems go to `cx` at its current path; `None` when the
     /// value couldn't be read (the problem is in `cx`).
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self>;
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self>;
 
     /// The value, as the format writes it.
     fn write(&self) -> Value;
@@ -371,6 +372,11 @@ impl<'r> Reader<'r> {
         !self.value_only
     }
 
+    /// Whether references and texts go through a resolver (else kept as written).
+    pub fn resolves(&self) -> bool {
+        self.resolver.is_some()
+    }
+
     /// The words of `.yres` text `r`, if the resolver knows them.
     pub fn words(&mut self, r: &Res) -> Option<String> {
         self.resolver.as_mut()?.words(r)
@@ -402,7 +408,7 @@ impl<'r> Reader<'r> {
     }
 
     /// "expected X, found Y".
-    pub fn expected(&mut self, what: &str, found: &Value) {
+    pub fn expected(&mut self, what: &str, found: &ValueRef) {
         self.problem(format!("expected {what}, found {}", found_text(found)));
     }
 
@@ -447,9 +453,9 @@ impl<'r> Reader<'r> {
     }
 
     /// `v` as an object, or a problem.
-    pub fn map<'v>(&mut self, v: &'v Value) -> Option<&'v Map> {
+    pub fn map<'v>(&mut self, v: &ValueRef<'v>) -> Option<MapRef<'v>> {
         match v {
-            Value::Map(m) => Some(m),
+            ValueRef::Map(m) => Some(*m),
             other => {
                 self.expected("an object", other);
                 None
@@ -458,7 +464,7 @@ impl<'r> Reader<'r> {
     }
 
     /// Reports keys of `map` that aren't `known` (nor metadata, nor allowed by an enclosing enum).
-    pub fn unknown_keys(&mut self, map: &Map, known: &[&str]) {
+    pub fn unknown_keys(&mut self, map: MapRef, known: &[&str]) {
         for key in map.keys() {
             if known.contains(&key) || is_metadata_key(key) || self.allowed.contains(&key) {
                 continue;
@@ -504,7 +510,7 @@ impl<'r> Reader<'r> {
     }
 
     /// Field `key` of `map`: read, or its absent value, or a problem.
-    pub fn field<T: Schema>(&mut self, map: &Map, key: &'static str) -> Option<T> {
+    pub fn field<T: Schema>(&mut self, map: MapRef, key: &'static str) -> Option<T> {
         match map.get(key) {
             Some(v) => self.at(Seg::Key(key.to_string()), |cx| T::read(v, cx)),
             None => T::absent().or_else(|| {
@@ -517,7 +523,7 @@ impl<'r> Reader<'r> {
     /// Field `key` of `map`, `default()` when it isn't there.
     pub fn field_or<T: Schema>(
         &mut self,
-        map: &Map,
+        map: MapRef,
         key: &'static str,
         default: impl FnOnce() -> T,
     ) -> Option<T> {
@@ -530,7 +536,7 @@ impl<'r> Reader<'r> {
     /// Field `key` of `map` through codec `W`.
     pub fn field_with<W: crate::with::With<F>, F>(
         &mut self,
-        map: &Map,
+        map: MapRef,
         key: &'static str,
     ) -> Option<F> {
         match map.get(key) {
@@ -545,7 +551,7 @@ impl<'r> Reader<'r> {
     /// Field `key` of `map` through codec `W`, `default()` when it isn't there.
     pub fn field_or_with<W: crate::with::With<F>, F>(
         &mut self,
-        map: &Map,
+        map: MapRef,
         key: &'static str,
         default: impl FnOnce() -> F,
     ) -> Option<F> {
@@ -586,12 +592,12 @@ impl<'r> Reader<'r> {
     }
 }
 
-fn found_text(v: &Value) -> String {
+fn found_text(v: &ValueRef) -> String {
     match v {
-        Value::Str(s) if s.chars().count() <= 40 => format!("{s:?}"),
-        Value::Int(n) => n.to_string(),
-        Value::Float(f) => f.to_string(),
-        Value::Bool(b) => b.to_string(),
+        ValueRef::Str(s) if s.chars().count() <= 40 => format!("{s:?}"),
+        ValueRef::Int(n) => n.to_string(),
+        ValueRef::Float(f) => f.to_string(),
+        ValueRef::Bool(b) => b.to_string(),
         other => other.kind_name().to_string(),
     }
 }
@@ -753,7 +759,7 @@ pub fn field_names(shape: &Shape) -> Vec<&'static str> {
 /// `A` and `B` read from the same object — each allowing the other's
 /// fields, like serde's `flatten`: a recipe's common fields and its kind's.
 pub fn read_both<A: Schema, B: Schema>(
-    v: &Value,
+    v: &ValueRef,
     cx: &mut Reader,
     also: &[&'static str],
 ) -> Option<(A, B)> {
@@ -769,14 +775,31 @@ pub fn read_both<A: Schema, B: Schema>(
 
 /// Reads `v` as `T`: the value and its references, or every problem.
 pub fn from_value<T: Schema>(v: &Value) -> Result<Read<T>, Vec<Problem>> {
-    read_with(v, Reader::new())
+    let arena = bumpalo::Bump::new();
+    read_with(&v.borrow(&arena), Reader::new())
 }
 
 /// Reads `v` as `T`, nothing else: what the game wants of content (the
 /// references met aren't kept).
 pub fn read_value<T: Schema>(v: &Value) -> Result<T, Vec<Problem>> {
+    let arena = bumpalo::Bump::new();
+    read_ref_value(&v.borrow(&arena))
+}
+
+/// [`read_value`] of a borrowed value.
+pub fn read_ref_value<T: Schema>(v: &ValueRef) -> Result<T, Vec<Problem>> {
     let reader = Reader { value_only: true, ..Reader::new() };
     read_with(v, reader).map(|r| r.value)
+}
+
+/// Reads the binary form as `T`, borrowed all the way: no string is
+/// copied but into `T` itself — content as the runtime takes it.
+pub fn read_bytes<T: Schema>(bytes: &[u8]) -> Result<T, Vec<Problem>> {
+    let arena = bumpalo::Bump::new();
+    let v = crate::binary::decode_ref(bytes, &arena).map_err(|e| {
+        vec![Problem { path: Path::root(), message: e.to_string(), at_key: false }]
+    })?;
+    read_ref_value(&v)
 }
 
 /// `from_value`, references and texts going through `resolver`.
@@ -784,10 +807,11 @@ pub fn from_value_with<T: Schema>(
     v: &Value,
     resolver: &mut dyn Resolve,
 ) -> Result<Read<T>, Vec<Problem>> {
-    read_with(v, Reader::with_resolver(resolver))
+    let arena = bumpalo::Bump::new();
+    read_with(&v.borrow(&arena), Reader::with_resolver(resolver))
 }
 
-fn read_with<T: Schema>(v: &Value, mut cx: Reader<'_>) -> Result<Read<T>, Vec<Problem>> {
+fn read_with<T: Schema>(v: &ValueRef, mut cx: Reader<'_>) -> Result<Read<T>, Vec<Problem>> {
     let value = T::read(v, &mut cx);
     match value {
         Some(value) if cx.problems.is_empty() => Ok(Read {
@@ -881,8 +905,8 @@ impl Schema for Value {
     fn shape() -> Shape {
         Shape::Any
     }
-    fn read(v: &Value, _: &mut Reader) -> Option<Self> {
-        Some(v.clone())
+    fn read(v: &ValueRef<'_>, _: &mut Reader) -> Option<Self> {
+        Some(v.to_value())
     }
     fn write(&self) -> Value {
         self.clone()
@@ -893,7 +917,7 @@ impl Schema for bool {
     fn shape() -> Shape {
         Shape::Bool
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         v.as_bool().or_else(|| {
             cx.expected("true or false", v);
             None
@@ -910,7 +934,7 @@ macro_rules! int_schema {
             fn shape() -> Shape {
                 Shape::Int { min: <$t>::MIN as i64, max: (<$t>::MAX as u64).min(i64::MAX as u64) as i64 }
             }
-            fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+            fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
                 let Some(n) = v.as_i64() else {
                     cx.expected("an integer", v);
                     return None;
@@ -934,7 +958,7 @@ macro_rules! float_schema {
             fn shape() -> Shape {
                 Shape::Float
             }
-            fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+            fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
                 v.as_f64().map(|f| f as $t).or_else(|| {
                     cx.expected("a number", v);
                     None
@@ -952,9 +976,11 @@ impl Schema for String {
     fn shape() -> Shape {
         Shape::Str
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         match v {
-            Value::Str(s) => match typed::classify(s) {
+            // Plain text, the usual case: copied once, into the result.
+            ValueRef::Str(s) if !s.starts_with('@') => Some(s.to_string()),
+            ValueRef::Str(s) => match typed::classify(s) {
                 Ok(Value::Str(s)) => Some(s),
                 Ok(other) => {
                     cx.problem(format!(
@@ -983,7 +1009,7 @@ impl<T: Schema> Schema for Option<T> {
     fn shape() -> Shape {
         Shape::Optional(T::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         if v.is_null() {
             Some(None)
         } else {
@@ -1005,7 +1031,7 @@ impl<T: Schema> Schema for Box<T> {
     fn shape() -> Shape {
         T::shape()
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         T::read(v, cx).map(Box::new)
     }
     fn write(&self) -> Value {
@@ -1023,8 +1049,8 @@ impl<T: Schema> Schema for Vec<T> {
     fn shape() -> Shape {
         Shape::List(T::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
-        let Value::List(items) = v else {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        let ValueRef::List(items) = v else {
             cx.expected("a list", v);
             return None;
         };
@@ -1047,7 +1073,7 @@ impl<T: Schema, const N: usize> Schema for [T; N] {
     fn shape() -> Shape {
         Shape::List(T::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let items = Vec::<T>::read(v, cx)?;
         let len = items.len();
         items.try_into().ok().or_else(|| {
@@ -1065,8 +1091,8 @@ impl<A: Schema, B: Schema> Schema for (A, B) {
     fn shape() -> Shape {
         Shape::List(Value::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
-        let Value::List(items) = v else {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        let ValueRef::List(items) = v else {
             cx.expected("a pair [a, b]", v);
             return None;
         };
@@ -1083,7 +1109,7 @@ impl<A: Schema, B: Schema> Schema for (A, B) {
     }
 }
 
-fn read_map<T: Schema>(v: &Value, cx: &mut Reader, mut put: impl FnMut(String, T)) -> Option<()> {
+fn read_map<T: Schema>(v: &ValueRef, cx: &mut Reader, mut put: impl FnMut(String, T)) -> Option<()> {
     let map = cx.map(v)?;
     let mut ok = true;
     for (k, item) in map.iter() {
@@ -1102,7 +1128,7 @@ impl<T: Schema> Schema for BTreeMap<String, T> {
     fn shape() -> Shape {
         Shape::Map(T::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let mut out = BTreeMap::new();
         read_map(v, cx, |k, x| {
             out.insert(k, x);
@@ -1118,7 +1144,7 @@ impl<T: Schema> Schema for HashMap<String, T> {
     fn shape() -> Shape {
         Shape::Map(T::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let mut out = HashMap::new();
         read_map(v, cx, |k, x| {
             out.insert(k, x);
@@ -1150,7 +1176,7 @@ impl<T: Schema> Schema for Ordered<T> {
     fn shape() -> Shape {
         Shape::Map(T::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let mut out = Vec::new();
         read_map(v, cx, |k, x| out.push((k, x)))?;
         Some(Ordered(out))
@@ -1262,7 +1288,7 @@ impl<K> fmt::Display for Id<K> {
 
 /// `v` as a reference to content of one of `kinds` (any kind if empty),
 /// written `@kind:id` — a bare id is an error that says how to write it.
-pub fn read_ref(v: &Value, cx: &mut Reader, kinds: &[&str]) -> Option<Ref> {
+pub fn read_ref(v: &ValueRef, cx: &mut Reader, kinds: &[&str]) -> Option<Ref> {
     let wanted = || {
         kinds
             .iter()
@@ -1271,8 +1297,8 @@ pub fn read_ref(v: &Value, cx: &mut Reader, kinds: &[&str]) -> Option<Ref> {
             .join(" or ")
     };
     let r = match v {
-        Value::Ref(r) => r.clone(),
-        Value::Str(s) if s.starts_with('@') => match typed::classify(s) {
+        ValueRef::Ref { kind, id } => Ref::new(*kind, *id),
+        ValueRef::Str(s) if s.starts_with('@') => match typed::classify(s) {
             Ok(Value::Ref(r)) => r,
             Ok(other) => {
                 cx.problem(format!(
@@ -1291,7 +1317,7 @@ pub fn read_ref(v: &Value, cx: &mut Reader, kinds: &[&str]) -> Option<Ref> {
                 return None;
             }
         },
-        Value::Str(s) => {
+        ValueRef::Str(s) => {
             let kind = kinds.first().copied().unwrap_or("item");
             cx.problem(format!("`{s}`: name it by a reference — `@{kind}:{s}`"));
             return None;
@@ -1315,10 +1341,10 @@ pub fn read_ref(v: &Value, cx: &mut Reader, kinds: &[&str]) -> Option<Ref> {
     Some(r)
 }
 
-fn read_tag(v: &Value, cx: &mut Reader, kind: &str) -> Option<Ref> {
+fn read_tag(v: &ValueRef, cx: &mut Reader, kind: &str) -> Option<Ref> {
     let r = match v {
-        Value::Tag(r) => r.clone(),
-        Value::Str(s) => match typed::classify(s) {
+        ValueRef::Tag { kind, id } => Ref::new(*kind, *id),
+        ValueRef::Str(s) => match typed::classify(s) {
             Ok(Value::Tag(r)) => r,
             Ok(_) => {
                 cx.problem(format!("expected a tag `@tag:{kind}:id`, found {s:?}"));
@@ -1349,7 +1375,7 @@ impl<K: Kind> Schema for Id<K> {
     fn shape() -> Shape {
         Shape::Ref(<K as Kinds>::NAMES)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         read_ref(v, cx, <K as Kinds>::NAMES).map(|r| Id::new(r.id))
     }
     fn write(&self) -> Value {
@@ -1361,8 +1387,8 @@ impl Schema for Ref {
     fn shape() -> Shape {
         Shape::Ref(&[])
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
-        if let Value::Str(s) = v
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        if let ValueRef::Str(s) = v
             && !s.starts_with('@')
         {
             cx.problem(format!("expected a reference `@kind:id`, found {s:?}"));
@@ -1409,7 +1435,7 @@ impl<K: Kind> Schema for TagId<K> {
     fn shape() -> Shape {
         Shape::Tag(<K as Kinds>::NAMES)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         read_tag(v, cx, K::NAME).map(|r| TagId::new(r.id))
     }
     fn write(&self) -> Value {
@@ -1431,16 +1457,16 @@ impl<K: Kind> Schema for OneOrTag<K> {
     fn shape() -> Shape {
         Shape::RefOrTag(<K as Kinds>::NAMES)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
-        if let Value::Str(s) = v
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        if let ValueRef::Str(s) = v
             && let Some(tag) = s.strip_prefix('#')
         {
             cx.problem(format!("`{s}`: write a tag as `@tag:{}:{tag}`", K::NAME));
             return None;
         }
         let is_tag = match v {
-            Value::Tag(_) => true,
-            Value::Str(s) => s.starts_with("@tag:"),
+            ValueRef::Tag { .. } => true,
+            ValueRef::Str(s) => s.starts_with("@tag:"),
             _ => false,
         };
         if is_tag {
@@ -1461,10 +1487,10 @@ impl Schema for Res {
     fn shape() -> Shape {
         Shape::Res
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let r = match v {
-            Value::Res(r) => r.clone(),
-            Value::Str(s) => match typed::classify(s) {
+            ValueRef::Res { set, key } => Res { set: set.to_string(), key: key.to_string() },
+            ValueRef::Str(s) => match typed::classify(s) {
                 Ok(Value::Res(r)) => r,
                 Ok(_) => {
                     cx.problem(format!("expected a resource `@Set.key`, found {s:?}"));
@@ -1509,11 +1535,18 @@ impl Schema for Text {
     fn shape() -> Shape {
         Shape::Text
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let typed = match v {
-            Value::Str(s) => typed::classify(s).map_err(|e| cx.problem(e)).ok()?,
-            Value::Text(t) => return Some(Text::Literal(t.clone())),
-            other => other.clone(),
+            // Words as they are, the usual case: copied once.
+            ValueRef::Str(s) if !s.starts_with('@') => return Some(Text::Literal(s.to_string())),
+            ValueRef::Text(t) => return Some(Text::Literal(t.to_string())),
+            ValueRef::Lang(k) => return Some(Text::Lang(k.to_string())),
+            ValueRef::Str(s) => typed::classify(s).map_err(|e| cx.problem(e)).ok()?,
+            ValueRef::Res { .. } | ValueRef::Ref { .. } => v.to_value(),
+            other => {
+                cx.expected("a text", other);
+                return None;
+            }
         };
         match typed {
             Value::Str(s) => Some(Text::Literal(s)),
@@ -1527,7 +1560,7 @@ impl Schema for Text {
             }
             Value::Lang(k) => Some(Text::Lang(k)),
             other => {
-                cx.expected("a text", &other);
+                cx.problem(format!("expected a text, found {}", other.kind_name()));
                 None
             }
         }
@@ -1554,15 +1587,12 @@ impl Schema for Image {
     fn shape() -> Shape {
         Shape::Image
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         match v {
-            Value::Image(s) => Some(Image::Source(s.clone())),
-            Value::Res(r) => {
-                cx.note_res(r.clone());
-                Some(Image::Res(r.clone()))
-            }
-            Value::Str(s) if !s.starts_with('@') => Some(Image::Source(s.clone())),
-            Value::Str(s) => match typed::classify(s) {
+            ValueRef::Image(s) => Some(Image::Source(s.to_string())),
+            ValueRef::Res { .. } => Res::read(v, cx).map(Image::Res),
+            ValueRef::Str(s) if !s.starts_with('@') => Some(Image::Source(s.to_string())),
+            ValueRef::Str(s) => match typed::classify(s) {
                 Ok(Value::Image(src)) => Some(Image::Source(src)),
                 Ok(Value::Res(r)) => {
                     cx.note_res(r.clone());
@@ -1570,7 +1600,7 @@ impl Schema for Image {
                 }
                 Ok(Value::Str(s)) => Some(Image::Source(s)),
                 Ok(other) => {
-                    cx.expected("an image", &other);
+                    cx.problem(format!("expected an image, found {}", other.kind_name()));
                     None
                 }
                 Err(e) => {
@@ -1603,20 +1633,17 @@ impl Schema for Color {
     fn shape() -> Shape {
         Shape::Color
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         match v {
-            Value::Color(c) => Some(Color::Argb(*c)),
-            Value::Res(r) => {
-                cx.note_res(r.clone());
-                Some(Color::Res(r.clone()))
-            }
-            Value::Str(s) if s.starts_with('#') => {
+            ValueRef::Color(c) => Some(Color::Argb(*c)),
+            ValueRef::Res { .. } => Res::read(v, cx).map(Color::Res),
+            ValueRef::Str(s) if s.starts_with('#') => {
                 typed::parse_color(s).map(Color::Argb).or_else(|| {
                     cx.problem(format!("`{s}` isn't a color (#RRGGBB or #AARRGGBB)"));
                     None
                 })
             }
-            Value::Str(s) if s.starts_with('@') => Res::read(v, cx).map(Color::Res),
+            ValueRef::Str(s) if s.starts_with('@') => Res::read(v, cx).map(Color::Res),
             other => {
                 cx.expected("a color (#RRGGBB or #AARRGGBB)", other);
                 None

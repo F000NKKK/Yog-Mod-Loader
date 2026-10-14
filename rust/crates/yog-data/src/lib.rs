@@ -14,6 +14,7 @@
 extern crate self as yog_data;
 
 pub mod binary;
+mod borrowed;
 #[cfg(feature = "json")]
 pub mod json;
 pub mod text;
@@ -24,12 +25,14 @@ mod value;
 pub mod with;
 
 pub use text::{Doc, LineCol, Span, Spans, SyntaxError};
+pub use borrowed::{MapRef, ValueRef};
+pub use bumpalo::Bump;
 pub use value::{Map, Path, Ref, Res, Seg, Value};
 pub mod schema;
 
 pub use schema::{
     BlockId, Color, EntityId, Errors, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds, OneOrTag,
     Ordered, Read, Reader, RecipeId, Resolve, Schema, Shape, TagId, Text, from_doc_with, from_text,
-    from_value, from_value_with, kinds, read_value, to_text,
+    from_value, from_value_with, kinds, read_bytes, read_ref_value, read_value, to_text,
 };
 pub use yog_data_derive::Schema;

@@ -310,8 +310,9 @@ fn content_exchange() {
     let parsed = yog_data::from_value::<yog_book::Book>(&bv).unwrap().value;
     let old_json = parsed.to_json();
     time("  book, old: serde parse of its JSON", 50, &mut || { std::hint::black_box(serde_json::from_str::<yog_book::Book>(&old_json).unwrap()); });
-    time("  book, new: decode", 50, &mut || { std::hint::black_box(yog_data::binary::decode(&book.2).unwrap()); });
-    time("  book, new: read by its schema", 50, &mut || { std::hint::black_box(yog_data::read_value::<yog_book::Book>(&bv).unwrap()); });
+    time("  book, new: borrowed decode + read by its schema", 50, &mut || { std::hint::black_box(yog_data::read_bytes::<yog_book::Book>(&book.2).unwrap()); });
+    time("    of which the borrowed decode", 50, &mut || { std::hint::black_box(yog_data::binary::decode_ref(&book.2, &yog_data::Bump::new()).is_ok()); });
+    time("  (owned decode, for comparison)", 50, &mut || { std::hint::black_box(yog_data::binary::decode(&book.2).unwrap()); });
     time("  book: BookRenderer::new (both)", 50, &mut || { std::hint::black_box(yog_book::BookRenderer::new(parsed.clone())); });
     let h = handlers.unwrap();
     let h = h.read().unwrap();

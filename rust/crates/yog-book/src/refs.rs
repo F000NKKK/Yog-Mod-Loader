@@ -23,7 +23,7 @@
 
 use yog_data::schema::{Read, Resolve, Text, read_ref};
 use yog_data::with::With;
-use yog_data::{Errors, Ref, Schema, Shape, Value, typed};
+use yog_data::{Errors, Ref, Schema, Shape, Value, ValueRef, typed};
 
 use crate::Book;
 
@@ -59,7 +59,7 @@ impl With<String> for BookText {
         Shape::Text
     }
 
-    fn read(v: &Value, cx: &mut yog_data::Reader) -> Option<String> {
+    fn read(v: &ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<String> {
         let t = Text::read(v, cx)?;
         let words: std::borrow::Cow<str> = match &t {
             Text::Literal(s) => s.as_str().into(),
@@ -114,10 +114,10 @@ impl With<String> for Icon {
         Shape::RefOrImage(&["item", "block"])
     }
 
-    fn read(v: &Value, cx: &mut yog_data::Reader) -> Option<String> {
+    fn read(v: &ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<String> {
         match v {
-            Value::Str(s) if !s.starts_with('@') => Some(s.clone()),
-            Value::Image(s) => Some(s.clone()),
+            ValueRef::Str(s) if !s.starts_with('@') => Some(s.to_string()),
+            ValueRef::Image(s) => Some(s.to_string()),
             _ => {
                 let r = read_ref(v, cx, &["item", "block"])?;
                 cx.resolve_ref(&r)

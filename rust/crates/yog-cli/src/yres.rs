@@ -19,7 +19,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write as _;
 use std::path::{Component, Path, PathBuf};
 
-use yog_data::{Reader, Schema, Seg, Shape};
+use yog_data::{Reader, Schema, Seg, Shape, ValueRef};
 
 /// The locale of the neutral `<Set>.yres` files.
 pub const NEUTRAL_LOCALE: &str = "en_us";
@@ -84,12 +84,12 @@ impl Entry {
 struct YresFile(Vec<Entry>);
 
 /// `v` as an entry's scalar value.
-fn scalar(v: &yog_data::Value, cx: &mut Reader) -> Option<Value> {
+fn scalar(v: &ValueRef, cx: &mut Reader) -> Option<Value> {
     Some(match v {
-        yog_data::Value::Str(_) => Value::Str(String::read(v, cx)?),
-        yog_data::Value::Int(n) => Value::Num(n.to_string()),
-        yog_data::Value::Float(f) => Value::Num(format!("{f:?}")),
-        yog_data::Value::Bool(b) => Value::Bool(*b),
+        ValueRef::Str(_) => Value::Str(String::read(v, cx)?),
+        ValueRef::Int(n) => Value::Num(n.to_string()),
+        ValueRef::Float(f) => Value::Num(format!("{f:?}")),
+        ValueRef::Bool(b) => Value::Bool(*b),
         other => {
             cx.expected("a string, a number or true/false", other);
             return None;
@@ -97,7 +97,7 @@ fn scalar(v: &yog_data::Value, cx: &mut Reader) -> Option<Value> {
     })
 }
 
-fn read_entry(name: &str, v: &yog_data::Value, cx: &mut Reader) -> Option<Entry> {
+fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
     let mut entry = Entry {
         name: name.to_string(),
         kind: Kind::String,
@@ -109,7 +109,7 @@ fn read_entry(name: &str, v: &yog_data::Value, cx: &mut Reader) -> Option<Entry>
         subtitle: None,
         line: 0,
     };
-    if !matches!(v, yog_data::Value::Map(_)) {
+    if !matches!(v, ValueRef::Map(_)) {
         entry.value = scalar(v, cx)?;
         entry.kind = kind_of(&entry.value);
         return Some(entry);
@@ -150,8 +150,8 @@ impl Schema for YresFile {
         Shape::Map(EntryObject::shape)
     }
 
-    fn read(v: &yog_data::Value, cx: &mut Reader) -> Option<Self> {
-        let yog_data::Value::Map(map) = v else {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        let ValueRef::Map(map) = v else {
             cx.problem("expected `{` — a .yres file is one JSON object of named resources");
             return None;
         };

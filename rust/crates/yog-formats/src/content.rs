@@ -4,7 +4,7 @@
 
 use yog_data::kinds::Item;
 use yog_data::with::{Opt, RefTo};
-use yog_data::{Ordered, Reader, Res, Schema, Shape, Text, Value};
+use yog_data::{Ordered, Reader, Res, Schema, Shape, Text, Value, ValueRef};
 
 use crate::def::{LevelKind, SoundGroupKind, TOOL_LEVELS};
 
@@ -67,15 +67,15 @@ pub struct LevelRef;
 pub const TOOLS: [&str; 4] = ["pickaxe", "axe", "shovel", "hoe"];
 
 fn block_tag(
-    v: &Value,
+    v: &ValueRef,
     cx: &mut Reader,
     short: &[&str],
     full: fn(&str) -> String,
     what: &str,
 ) -> Option<BlockTag> {
     match v {
-        Value::Str(s) if short.contains(&s.as_str()) => Some(BlockTag(full(s))),
-        Value::Str(s) if !s.starts_with('@') => {
+        ValueRef::Str(s) if short.contains(s) => Some(BlockTag(full(s))),
+        ValueRef::Str(s) if !s.starts_with('@') => {
             cx.problem(format!(
                 "`{s}`: one of {} — or a tag of the mod's own {what}s, `@tag:block:mymod:…`",
                 short.join(", ")
@@ -90,7 +90,7 @@ impl yog_data::with::With<BlockTag> for ToolTag {
     fn shape() -> Shape {
         Shape::Tag(&["block"])
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<BlockTag> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<BlockTag> {
         block_tag(v, cx, &TOOLS, |s| format!("minecraft:mineable/{s}"), "tool")
     }
     fn write(f: &BlockTag) -> Value {
@@ -105,10 +105,10 @@ impl yog_data::with::With<String> for LevelRef {
     fn shape() -> Shape {
         Shape::Ref(&["level"])
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<String> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
-            Value::Str(s) if TOOL_LEVELS.contains(&s.as_str()) => Some(format!("minecraft:{s}")),
-            Value::Str(s) if !s.starts_with('@') => {
+            ValueRef::Str(s) if TOOL_LEVELS.contains(s) => Some(format!("minecraft:{s}")),
+            ValueRef::Str(s) if !s.starts_with('@') => {
                 cx.problem(format!(
                     "`{s}`: one of {} — or a level of the tool ladder, `@level:mymod:…` (a .ydef)",
                     TOOL_LEVELS.join(", ")
@@ -130,9 +130,9 @@ impl yog_data::with::With<String> for SoundRef {
     fn shape() -> Shape {
         Shape::Ref(&["sound_group"])
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<String> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
-            Value::Str(s) if !s.starts_with('@') => match yog_registry::SoundGroup::built_in(s) {
+            ValueRef::Str(s) if !s.starts_with('@') => match yog_registry::SoundGroup::built_in(s) {
                 Some(g) => Some(g.id.clone()),
                 None => {
                     cx.problem(format!("`{s}`: not one of the game's sound groups (stone, wood, metal, amethyst…) — a mod's is `@sound_group:mymod:…` (a .ydef)"));
@@ -157,9 +157,9 @@ impl<F, W: yog_data::with::With<F>> yog_data::with::With<Vec<F>> for OneOrMany<W
     fn shape() -> Shape {
         Shape::List(W::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Vec<F>> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Vec<F>> {
         match v {
-            Value::List(_) => yog_data::with::List::<W>::read(v, cx),
+            ValueRef::List(_) => yog_data::with::List::<W>::read(v, cx),
             _ => W::read(v, cx).map(|x| vec![x]),
         }
     }
@@ -203,11 +203,11 @@ impl Schema for BlockShape {
     fn shape() -> Shape {
         Shape::Any
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         match v {
-            Value::Str(s) if s == "auto" => Some(BlockShape::Auto),
-            Value::Str(s) if s == "full" => Some(BlockShape::Full),
-            Value::List(_) => {
+            ValueRef::Str(s) if *s == "auto" => Some(BlockShape::Auto),
+            ValueRef::Str(s) if *s == "full" => Some(BlockShape::Full),
+            ValueRef::List(_) => {
                 let b = <[f64; 6]>::read(v, cx)?;
                 if b.iter().any(|n| !(0.0..=16.0).contains(n)) {
                     cx.problem("a box is [x1, y1, z1, x2, y2, z2] in pixels, 0–16");
@@ -244,9 +244,9 @@ impl Schema for DropCount {
     fn shape() -> Shape {
         Shape::Any
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let n = match v {
-            Value::List(_) => {
+            ValueRef::List(_) => {
                 let [lo, hi] = <[f64; 2]>::read(v, cx)?;
                 (lo, hi, DropCount::Between(lo, hi))
             }
@@ -289,11 +289,11 @@ impl Schema for Drops {
     fn shape() -> Shape {
         Shape::Any
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         match v {
-            Value::Str(s) if s == "self" => Some(Drops::Itself),
-            Value::Str(s) if s == "none" => Some(Drops::Nothing),
-            Value::Map(_) => DropItem::read(v, cx).map(Drops::Item),
+            ValueRef::Str(s) if *s == "self" => Some(Drops::Itself),
+            ValueRef::Str(s) if *s == "none" => Some(Drops::Nothing),
+            ValueRef::Map(_) => DropItem::read(v, cx).map(Drops::Item),
             other => {
                 cx.expected(
                     "\"self\", \"none\" or { item: \"@item:ns:item\", count: [1, 3] }",
@@ -370,18 +370,18 @@ impl Schema for Texture {
     fn shape() -> Shape {
         Shape::Image
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         match v {
-            Value::Res(r) => Some(Texture::Res(r.clone())),
-            Value::Str(s) if s.starts_with('#') => {
+            ValueRef::Res { .. } => Res::read(v, cx).map(Texture::Res),
+            ValueRef::Str(s) if s.starts_with('#') => {
                 if s.len() == 1 {
                     cx.problem("`#` needs a slot name");
                     return None;
                 }
                 Some(Texture::Slot(s[1..].to_string()))
             }
-            Value::Str(s) if s.starts_with('@') => Res::read(v, cx).map(Texture::Res),
-            Value::Str(s) => Some(Texture::Plain(s.clone())),
+            ValueRef::Str(s) if s.starts_with('@') => Res::read(v, cx).map(Texture::Res),
+            ValueRef::Str(s) => Some(Texture::Plain(s.to_string())),
             other => {
                 cx.expected("a texture", other);
                 None

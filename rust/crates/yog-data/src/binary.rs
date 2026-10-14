@@ -34,6 +34,9 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{BuildHasherDefault, Hasher};
 
+use bumpalo::Bump;
+
+use crate::borrowed::{MapRef, ValueRef};
 use crate::value::{Map, Ref, Res, Value};
 
 pub const MAGIC: &[u8; 4] = b"YOGD";
@@ -299,39 +302,63 @@ impl std::error::Error for DecodeError {}
 
 /// Reads the binary form.
 pub fn decode(bytes: &[u8]) -> Result<Value, DecodeError> {
-    let mut d = Decoder {
-        b: bytes,
-        i: 0,
-        strings: Vec::new(),
-        keys: Vec::new(),
-    };
-    if !bytes.starts_with(MAGIC) {
-        return Err(d.error("not Yog Data (no `YOGD` header)"));
-    }
-    d.i = 4;
-    let version = d.byte()?;
-    if version != VERSION {
-        return Err(d.error(format!(
-            "Yog Data version {version}, this reads version {VERSION}"
-        )));
-    }
-    let count = d.count(1)?;
-    d.strings.reserve(count);
-    for _ in 0..count {
-        let len = d.count(1)?;
-        let start = d.i;
-        let s = std::str::from_utf8(&bytes[start..start + len]).map_err(|_| DecodeError {
-            message: "a string isn't UTF-8".into(),
-            offset: start,
-        })?;
-        d.strings.push(s);
-        d.i += len;
-    }
+    let mut d = Decoder::open(bytes)?;
     let v = d.value(0)?;
-    if d.i != bytes.len() {
-        return Err(d.error("bytes after the value"));
-    }
+    d.end()?;
     Ok(v)
+}
+
+/// Reads the binary form borrowed: every string points into `bytes`,
+/// lists and maps go in `arena` — nothing is copied. What a schema reads
+/// fastest ([`crate::read_bytes`]).
+pub fn decode_ref<'a>(bytes: &'a [u8], arena: &'a Bump) -> Result<ValueRef<'a>, DecodeError> {
+    let mut d = Decoder::open(bytes)?;
+    let mut stack = Vec::new();
+    let v = d.value_ref(0, arena, &mut stack)?;
+    d.end()?;
+    Ok(v)
+}
+
+impl<'b> Decoder<'b> {
+    /// The header and the string table read; the root value next.
+    fn open(bytes: &'b [u8]) -> Result<Self, DecodeError> {
+        let mut d = Decoder {
+            b: bytes,
+            i: 0,
+            strings: Vec::new(),
+            keys: Vec::new(),
+        };
+        if !bytes.starts_with(MAGIC) {
+            return Err(d.error("not Yog Data (no `YOGD` header)"));
+        }
+        d.i = 4;
+        let version = d.byte()?;
+        if version != VERSION {
+            return Err(d.error(format!(
+                "Yog Data version {version}, this reads version {VERSION}"
+            )));
+        }
+        let count = d.count(1)?;
+        d.strings.reserve(count);
+        for _ in 0..count {
+            let len = d.count(1)?;
+            let start = d.i;
+            let s = std::str::from_utf8(&bytes[start..start + len]).map_err(|_| DecodeError {
+                message: "a string isn't UTF-8".into(),
+                offset: start,
+            })?;
+            d.strings.push(s);
+            d.i += len;
+        }
+        Ok(d)
+    }
+
+    fn end(&self) -> Result<(), DecodeError> {
+        if self.i != self.b.len() {
+            return Err(self.error("bytes after the value"));
+        }
+        Ok(())
+    }
 }
 
 struct Decoder<'b> {
@@ -411,6 +438,61 @@ impl<'b> Decoder<'b> {
         }
         self.keys[i] = Some(k.clone());
         Ok(k)
+    }
+
+    /// [`Decoder::value`], borrowed: children gather on `stack`, then move
+    /// into `arena` as one slice.
+    fn value_ref<'a>(&mut self, depth: usize, arena: &'a Bump, stack: &mut Vec<ValueRef<'a>>) -> Result<ValueRef<'a>, DecodeError>
+    where
+        'b: 'a,
+    {
+        if depth > MAX_DEPTH {
+            return Err(self.error(format!("nested deeper than {MAX_DEPTH} levels")));
+        }
+        Ok(match self.byte()? {
+            tag::NULL => ValueRef::Null,
+            tag::FALSE => ValueRef::Bool(false),
+            tag::TRUE => ValueRef::Bool(true),
+            tag::INT => {
+                let z = self.varint()?;
+                ValueRef::Int(((z >> 1) as i64) ^ -((z & 1) as i64))
+            }
+            tag::FLOAT => ValueRef::Float(f64::from_le_bytes(self.fixed()?)),
+            tag::STR => ValueRef::Str(self.string()?),
+            tag::LIST => {
+                let n = self.count(1)?;
+                let start = stack.len();
+                for _ in 0..n {
+                    let v = self.value_ref(depth + 1, arena, stack)?;
+                    stack.push(v);
+                }
+                let items = arena.alloc_slice_copy(&stack[start..]);
+                stack.truncate(start);
+                ValueRef::List(items)
+            }
+            tag::MAP => {
+                let n = self.count(2)?;
+                let mut entries = bumpalo::collections::Vec::with_capacity_in(n, arena);
+                for _ in 0..n {
+                    let k = self.string()?;
+                    entries.push((k, self.value_ref(depth + 1, arena, stack)?));
+                }
+                ValueRef::Map(MapRef(entries.into_bump_slice()))
+            }
+            t @ (tag::REF | tag::TAG) => {
+                let (kind, id) = (self.string()?, self.string()?);
+                if t == tag::REF { ValueRef::Ref { kind, id } } else { ValueRef::Tag { kind, id } }
+            }
+            tag::RES => ValueRef::Res { set: self.string()?, key: self.string()? },
+            tag::TEXT => ValueRef::Text(self.string()?),
+            tag::IMAGE => ValueRef::Image(self.string()?),
+            tag::COLOR => ValueRef::Color(u32::from_le_bytes(self.fixed()?)),
+            tag::LANG => ValueRef::Lang(self.string()?),
+            t => {
+                self.i -= 1;
+                return Err(self.error(format!("unknown tag {t}")));
+            }
+        })
     }
 
     fn value(&mut self, depth: usize) -> Result<Value, DecodeError> {
@@ -515,6 +597,36 @@ mod tests {
         assert_eq!(decode(&bytes).unwrap(), v);
         // "Ruby" is stored once.
         assert_eq!(bytes.windows(4).filter(|w| w == b"Ruby").count(), 1);
+    }
+
+    #[test]
+    fn the_borrowed_decode_reads_the_same_without_copying() {
+        let v = sample();
+        let bytes = encode(&v);
+        let arena = Bump::new();
+        let r = decode_ref(&bytes, &arena).unwrap();
+        assert_eq!(r.to_value(), v);
+        assert_eq!(r, v.borrow(&arena), "borrowing a Value gives the same");
+        // Its strings point into the bytes.
+        let span = bytes.as_ptr_range();
+        let mut strings = Vec::new();
+        fn walk<'a>(v: &ValueRef<'a>, out: &mut Vec<&'a str>) {
+            match v {
+                ValueRef::Str(s) | ValueRef::Text(s) | ValueRef::Image(s) | ValueRef::Lang(s) => out.push(s),
+                ValueRef::List(l) => l.iter().for_each(|x| walk(x, out)),
+                ValueRef::Map(m) => m.iter().for_each(|(k, x)| {
+                    out.push(k);
+                    walk(x, out)
+                }),
+                _ => {}
+            }
+        }
+        walk(&r, &mut strings);
+        assert!(!strings.is_empty() && strings.iter().all(|s| span.contains(&s.as_ptr())));
+        // Malformed bytes are errors here too.
+        for len in 0..bytes.len() {
+            assert!(decode_ref(&bytes[..len], &arena).is_err(), "truncated at {len}");
+        }
     }
 
     #[test]

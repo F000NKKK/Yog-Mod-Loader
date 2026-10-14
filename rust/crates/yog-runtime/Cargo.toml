@@ -21,14 +21,14 @@ jni.workspace = true
 yog-abi = "0.29.1"
 yog-api = "0.94"
 yog-logging = "0.1"
-yog-registry = "0.30.1"
+yog-registry = "0.31"
 yog-ui     = "0.41"
 yog-book   = "0.64"
 yog-gfx    = "0.26"
-yog-inventory = "0.15"
+yog-inventory = "0.16"
 yog-hot-reload = "0.2.2"
 # The content blob the hosts read (`content_blob`).
-yog-data = { version = "0.3.1", features = ["json"] }
+yog-data = { version = "0.4", features = ["json"] }
 
 serde_json.workspace = true
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.

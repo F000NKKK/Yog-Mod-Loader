@@ -246,7 +246,7 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
                     fn shape() -> ::yog_data::Shape {
                         ::yog_data::Shape::Struct(::yog_data::schema::StructShape { name: #shape_name, doc: #doc, fields: #shapes })
                     }
-                    fn read(v: &::yog_data::Value, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
+                    fn read(v: &::yog_data::ValueRef<'_>, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
                         let map = cx.map(v)?;
                         #read
                     }
@@ -263,7 +263,7 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
                 let ty = &u.unnamed[0].ty;
                 quote! {
                     fn shape() -> ::yog_data::Shape { <#ty as ::yog_data::Schema>::shape() }
-                    fn read(v: &::yog_data::Value, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
+                    fn read(v: &::yog_data::ValueRef<'_>, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
                         <#ty as ::yog_data::Schema>::read(v, cx).map(Self)
                     }
                     fn write(&self) -> ::yog_data::Value { ::yog_data::Schema::write(&self.0) }
@@ -375,12 +375,12 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
         });
         return Ok(quote! {
             #shape
-            fn read(v: &::yog_data::Value, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
-                let ::yog_data::Value::Str(s) = v else {
+            fn read(v: &::yog_data::ValueRef<'_>, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
+                let ::yog_data::ValueRef::Str(s) = v else {
                     cx.expected("a name", v);
                     return ::std::option::Option::None;
                 };
-                match s.as_str() {
+                match *s {
                     #(#reads)*
                     other => {
                         cx.unknown_name(other, &[#(#keys),*]);
@@ -444,17 +444,17 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
     });
     Ok(quote! {
         #shape
-        fn read(v: &::yog_data::Value, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
+        fn read(v: &::yog_data::ValueRef<'_>, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
             let map = cx.map(v)?;
             let ::std::option::Option::Some(kind) = map.get(#tag) else {
                 cx.problem(::std::format!("missing `{}` ({})", #tag, [#(#keys),*].map(|k| ::std::format!("`{k}`")).join(", ")));
                 return ::std::option::Option::None;
             };
-            let ::yog_data::Value::Str(kind) = kind else {
+            let ::yog_data::ValueRef::Str(kind) = kind else {
                 cx.at(::yog_data::Seg::Key(::std::string::String::from(#tag)), |cx| cx.expected("a name", kind));
                 return ::std::option::Option::None;
             };
-            match kind.as_str() {
+            match *kind {
                 #(#reads)*
                 other => {
                     cx.at(::yog_data::Seg::Key(::std::string::String::from(#tag)), |cx| cx.unknown_name(other, &[#(#keys),*]));

@@ -19,13 +19,14 @@
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
+use crate::borrowed::ValueRef;
 use crate::schema::{Kinds, Reader, Schema, Shape, Text, is_metadata_key, read_ref};
 use crate::value::{Map, Ref, Seg, Value};
 
 /// How a field of type `F` is read and written.
 pub trait With<F> {
     fn shape() -> Shape;
-    fn read(v: &Value, cx: &mut Reader) -> Option<F>;
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<F>;
     fn write(f: &F) -> Value;
     /// The field's value when it isn't there (`None`: it's required).
     fn absent() -> Option<F> {
@@ -44,15 +45,19 @@ impl<K: Kinds> With<String> for RefTo<K> {
     fn shape() -> Shape {
         Shape::Ref(K::NAMES)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<String> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         // The usual case, a reference of a kind it takes: nothing copied but its id.
-        if let Value::Ref(r) = v
-            && (K::NAMES.is_empty() || K::NAMES.contains(&r.kind.as_str()))
+        if let ValueRef::Ref { kind, id } = v
+            && (K::NAMES.is_empty() || K::NAMES.contains(kind))
         {
-            if cx.keeps_found() {
-                cx.note_ref(r.clone());
+            if cx.keeps_found() || cx.resolves() {
+                let r = Ref::new(*kind, *id);
+                if cx.keeps_found() {
+                    cx.note_ref(r.clone());
+                }
+                return cx.take_ref(r);
             }
-            return cx.resolve_ref(r);
+            return Some(id.to_string());
         }
         let r = read_ref(v, cx, K::NAMES)?;
         cx.take_ref(r)
@@ -72,7 +77,7 @@ impl With<String> for TextOf {
     fn shape() -> Shape {
         Shape::Text
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<String> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         let t = Text::read(v, cx)?;
         cx.take_text(t)
     }
@@ -88,7 +93,7 @@ impl<F, W: With<F>> With<Option<F>> for Opt<W> {
     fn shape() -> Shape {
         Shape::Optional(W::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Option<F>> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Option<F>> {
         if v.is_null() {
             Some(None)
         } else {
@@ -113,8 +118,8 @@ impl<F, W: With<F>> With<Vec<F>> for List<W> {
     fn shape() -> Shape {
         Shape::List(W::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<Vec<F>> {
-        let Value::List(items) = v else {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Vec<F>> {
+        let ValueRef::List(items) = v else {
             cx.expected("a list", v);
             return None;
         };
@@ -140,7 +145,7 @@ impl<F, W: With<F>> With<BTreeMap<String, F>> for Values<W> {
     fn shape() -> Shape {
         Shape::Map(W::shape)
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<BTreeMap<String, F>> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<BTreeMap<String, F>> {
         let map = cx.map(v)?;
         let mut out = BTreeMap::new();
         let mut ok = true;
@@ -170,7 +175,7 @@ impl<F: Schema> With<F> for Plain {
     fn shape() -> Shape {
         F::shape()
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<F> {
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<F> {
         F::read(v, cx)
     }
     fn write(f: &F) -> Value {

@@ -1,6 +1,6 @@
 [package]
 name = "yog-inventory"
-version = "0.15.0"
+version = "0.16.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -10,6 +10,6 @@ description = "Yog inventory framework — real Container/Menu screens (vanilla-
 [dependencies]
 yog-abi = "0.29"
 # Definitions cross the ABI as Yog Data (`register_content`).
-yog-data = "0.3.1"
+yog-data = "0.4"
 serde.workspace      = true
 serde_json.workspace = true

@@ -2091,22 +2091,24 @@ unsafe extern "C" fn api_register_content(ctx: *mut c_void, kind: YogStr, id: Yo
         let kind = kind.as_str();
         let id = id.as_str().to_owned();
         let bytes = if data.is_null() || len == 0 { &[][..] } else { std::slice::from_raw_parts(data, len) };
-        let value = match yog_data::binary::decode(bytes) {
+        // Borrowed: strings stay in `bytes`, only what's kept is copied.
+        let arena = yog_data::Bump::new();
+        let value = match yog_data::binary::decode_ref(bytes, &arena) {
             Ok(v) => v,
             Err(e) => {
                 yog_logging::warn!("{kind} {id}: not Yog Data: {e}");
                 return;
             }
         };
-        register_content(&mut handlers_mut(ctx), kind, id, value);
+        register_content(&mut handlers_mut(ctx), kind, id, &value);
     }
 }
 
 /// Stores content of `kind` (see `register_content` in yog-abi).
-fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: yog_data::Value) {
+fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_data::ValueRef) {
     *h.content_blob.get_mut().unwrap_or_else(|e| e.into_inner()) = None;
-    fn read<T: yog_data::Schema>(kind: &str, id: &str, v: &yog_data::Value) -> Option<T> {
-        match yog_data::read_value::<T>(v) {
+    fn read<T: yog_data::Schema>(kind: &str, id: &str, v: &yog_data::ValueRef) -> Option<T> {
+        match yog_data::read_ref_value::<T>(v) {
             Ok(value) => Some(value),
             Err(problems) => {
                 let list: Vec<String> = problems.iter().map(|p| format!("{}: {}", p.path, p.message)).collect();
@@ -2122,14 +2124,14 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: yog_
     };
     match kind {
         "item" => {
-            if let Some(mut d) = read::<ItemDef>(kind, &id, &value) {
+            if let Some(mut d) = read::<ItemDef>(kind, &id, value) {
                 none_if_empty(&mut d.name);
                 none_if_empty(&mut d.tooltip);
                 h.items.push(d);
             }
         }
         "block" => {
-            if let Some(mut d) = read::<BlockDef>(kind, &id, &value) {
+            if let Some(mut d) = read::<BlockDef>(kind, &id, value) {
                 none_if_empty(&mut d.name);
                 none_if_empty(&mut d.sound);
                 none_if_empty(&mut d.inventory_id);
@@ -2137,17 +2139,17 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: yog_
             }
         }
         "sound_group" => {
-            if let Some(g) = read::<yog_registry::SoundGroup>(kind, &id, &value) {
+            if let Some(g) = read::<yog_registry::SoundGroup>(kind, &id, value) {
                 h.sound_groups.insert(g.id.clone(), g);
             }
         }
         "inventory" => {
-            if let Some(d) = read::<yog_inventory::InventoryDef>(kind, &id, &value) {
+            if let Some(d) = read::<yog_inventory::InventoryDef>(kind, &id, value) {
                 h.inventories.push(d);
             }
         }
         "startup_grant" => {
-            if let Some(mut g) = read::<yog_registry::StartupGrant>(kind, &id, &value) {
+            if let Some(mut g) = read::<yog_registry::StartupGrant>(kind, &id, value) {
                 none_if_empty(&mut g.book);
                 none_if_empty(&mut g.command);
                 h.startup_grants.push(g);
@@ -2155,15 +2157,16 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: yog_
         }
         "recipe" => {
             let (ns, name) = id.split_once(':').unwrap_or(("minecraft", &id));
+            let recipe = value.to_value();
             // Feed the recipe to the books already registered (their recipe pages).
             for r in h.book_renderers.lock().unwrap().values_mut() {
-                r.add_recipe(format!("{ns}:{name}"), &value);
+                r.add_recipe(format!("{ns}:{name}"), &recipe);
             }
-            h.recipes.push((ns.to_string(), name.to_string(), value));
+            h.recipes.push((ns.to_string(), name.to_string(), recipe));
         }
         "book" => {
             // Read by its schema; the renderer draws it without a round trip to Java.
-            if let Some(book) = read::<yog_book::Book>(kind, &id, &value) {
+            if let Some(book) = read::<yog_book::Book>(kind, &id, value) {
                 h.books.insert(id.clone());
                 let mut renderer = yog_book::BookRenderer::new(book);
                 // i18n books carry translation keys; shown in the game language.
@@ -2177,7 +2180,7 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: yog_
         }
         "dimension" => {
             yog_logging::info!("registered dimension type: {}", id);
-            h.dimensions.insert(id, value);
+            h.dimensions.insert(id, value.to_value());
         }
         other => yog_logging::warn!("unknown kind of content `{other}` ({id}) — this runtime doesn't know it"),
     }
