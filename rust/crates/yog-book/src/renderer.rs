@@ -253,6 +253,8 @@ pub struct BookRenderer {
     pub state: BookViewState,
     pub theme: BookTheme,
     recipes: HashMap<String, RecipeVis>,
+    /// Per entry: which page as written each shown page came from.
+    origins: HashMap<String, Vec<usize>>,
     pub ui: Option<UiRoot>,
     bg_sprites: Vec<BgSprite>,
     overlays: Vec<OverlayCmd>,
@@ -269,8 +271,10 @@ pub struct BookRenderer {
 impl BookRenderer {
     pub fn new(book: Book) -> Self {
         let theme = BookTheme::default().with_nameplate(&book.nameplate_color);
+        let (book, origins) = flow_traced(book);
         Self {
-            book: flow(book),
+            book,
+            origins,
             state: BookViewState::default(),
             theme,
             recipes: HashMap::new(),
@@ -307,7 +311,7 @@ impl BookRenderer {
         if probe == self.probe {
             return;
         }
-        self.book = flow(src.localized(|k| tr(k).unwrap_or_else(|| k.to_string())));
+        (self.book, self.origins) = flow_traced(src.localized(|k| tr(k).unwrap_or_else(|| k.to_string())));
         self.probe = probe;
         self.dirty = true;
     }
@@ -426,8 +430,9 @@ impl BookRenderer {
         Some(action)
     }
 
-    /// Shows `entry` (an entry id) at `page`, as a reader would have got
-    /// there; `false` if there's no such entry.
+    /// Shows `entry` (an entry id) at `page` — its page as written, not
+    /// counting the pages long text flowed onto — as a reader would have
+    /// got there; `false` if there's no such entry.
     pub fn show(&mut self, entry: &str, page: usize) -> bool {
         let Some(e) = self.book.entries.iter().find(|e| e.id == entry) else { return false };
         let Some(cat) = self.book.categories.iter().position(|c| c.id == e.category) else { return false };
@@ -435,25 +440,28 @@ impl BookRenderer {
         self.state.at_home = false;
         let in_cat = self.state.entries_in_cat(&self.book);
         let Some(i) = in_cat.iter().position(|x| x.id == entry) else { return false };
+        let shown = self.origins.get(entry).and_then(|o| o.iter().position(|&w| w >= page)).unwrap_or(page);
         self.state.entry = i;
-        self.state.page = page.min(e.pages.len().saturating_sub(1));
+        self.state.page = shown.min(e.pages.len().saturating_sub(1));
         self.dirty = true;
         true
     }
 
-    /// The entry shown (its id) and the page of it, or `None` on the
-    /// landing and list pages.
+    /// The entry shown (its id) and the page of it as written, or `None`
+    /// on the landing and list pages.
     pub fn shown(&self) -> Option<(String, usize)> {
         if self.state.at_home {
             return None;
         }
-        self.state.current_entry(&self.book).map(|e| (e.id.clone(), self.state.page))
+        let e = self.state.current_entry(&self.book)?;
+        let page = self.origins.get(&e.id).and_then(|o| o.get(self.state.page)).copied().unwrap_or(self.state.page);
+        Some((e.id.clone(), page))
     }
 
     /// Replaces the book (an edit), keeping the reader where they were.
     pub fn set_book(&mut self, book: Book) {
         let at = self.shown();
-        self.book = flow(book);
+        (self.book, self.origins) = flow_traced(book);
         self.theme = BookTheme::default().with_nameplate(&self.book.nameplate_color);
         self.dirty = true;
         match at {
@@ -493,7 +501,13 @@ fn btn(text: impl Into<String>) -> widget::Widget {
 fn title_lbl(text: impl Into<String>) -> widget::Widget {
     let text = text.into();
     let fit = ((PAGE_W - 6.0) / yog_ui::text::str_width(&text, 1.0)).clamp(0.5, 1.0);
-    widget::label(text).shadow(false).font_scale(text_scale() * fit).no_wrap().ellipsis()
+    // As wide as the page, so `align` can centre it.
+    widget::label(text)
+        .shadow(false)
+        .font_scale(text_scale() * fit)
+        .no_wrap()
+        .ellipsis()
+        .w((PAGE_W - 6.0) * text_scale())
 }
 
 // ── Flowing text ──────────────────────────────────────────────────────────────
@@ -532,40 +546,49 @@ fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
 }
 
 /// Text that doesn't fit its page goes on to new text pages after it.
-fn flow(mut book: Book) -> Book {
+#[cfg(test)]
+fn flow(book: Book) -> Book {
+    flow_traced(book).0
+}
+
+/// [`flow`], and for each entry where each of its pages came from: the
+/// index of the page in the book as written.
+fn flow_traced(mut book: Book) -> (Book, HashMap<String, Vec<usize>>) {
+    let mut origins = HashMap::new();
     let line_h = yog_ui::text::LINE_H + yog_ui::text::LINE_GAP;
     let fits = |h: f32| (((h + yog_ui::text::LINE_GAP) / line_h).floor() as usize).max(1);
     for entry in &mut book.entries {
         let mut pages = Vec::with_capacity(entry.pages.len());
-        for mut page in std::mem::take(&mut entry.pages) {
-            let Some(above) = content_above_text(&page) else {
-                pages.push(page);
-                continue;
-            };
-            let Some(text) = page_text_mut(&mut page) else {
-                pages.push(page);
-                continue;
-            };
-            let lines: Vec<String> = text
-                .split('\n')
-                .flat_map(|para| {
-                    if para.is_empty() { vec![String::new()] } else { yog_ui::text::wrap_text(para, TEXT_W, 1.0) }
-                })
-                .collect();
-            let first = fits(BODY_H - above);
-            if lines.len() <= first {
-                pages.push(page);
-                continue;
-            }
-            *text = lines[..first].join("\n");
-            pages.push(page);
-            for chunk in lines[first..].chunks(fits(BODY_H)) {
-                pages.push(BookPage::Text { text: chunk.join("\n"), title: None });
-            }
+        let mut from = Vec::with_capacity(entry.pages.len());
+        for (written, page) in std::mem::take(&mut entry.pages).into_iter().enumerate() {
+            let split = split_page(page, &fits);
+            from.extend(std::iter::repeat_n(written, split.len()));
+            pages.extend(split);
         }
         entry.pages = pages;
+        origins.insert(entry.id.clone(), from);
     }
-    book
+    (book, origins)
+}
+
+/// `page`, and the text pages its overflowing text goes on to.
+fn split_page(mut page: BookPage, fits: &dyn Fn(f32) -> usize) -> Vec<BookPage> {
+    let Some(above) = content_above_text(&page) else { return vec![page] };
+    let Some(text) = page_text_mut(&mut page) else { return vec![page] };
+    let lines: Vec<String> = text
+        .split('\n')
+        .flat_map(|para| if para.is_empty() { vec![String::new()] } else { yog_ui::text::wrap_text(para, TEXT_W, 1.0) })
+        .collect();
+    let first = fits(BODY_H - above);
+    if lines.len() <= first {
+        return vec![page];
+    }
+    *text = lines[..first].join("\n");
+    let rest: Vec<BookPage> = lines[first..]
+        .chunks(fits(BODY_H))
+        .map(|chunk| BookPage::Text { text: chunk.join("\n"), title: None })
+        .collect();
+    std::iter::once(page).chain(rest).collect()
 }
 
 /// Build the yog-ui widget tree + bg sprites + overlay commands for the current book state.
@@ -738,7 +761,7 @@ fn build_landing_left(
     let total = book.entries.len();
     col = col.child(widget::spacer().flex(1.0));
     col = col.child(
-        lbl(format!("{} entries", total))
+        title_lbl(format!("{} entries", total))
             .color(theme.nav)
             .h(9.0 * sy)
             .align(Align::Center),
@@ -776,7 +799,7 @@ fn build_categories_right(
         .gap(0.0);
 
     col = col.child(
-        lbl("Categories")
+        title_lbl("Categories")
             .color(theme.divider)
             .h(header_h)
             .align(Align::Center)
@@ -971,11 +994,10 @@ fn build_entries_right(
         .gap(0.0);
 
     col = col.child(
-        lbl(cat_name)
+        title_lbl(cat_name)
             .color(theme.divider)
             .h(header_h)
-            .align(Align::Center)
-            .no_wrap(),
+            .align(Align::Center),
     );
     // sep region: y=9..15 (sep h=3), then gap to entries start at y=20
     col = col.child(widget::spacer().h((12.0 - 9.0) * sy)); // gap to sep
@@ -1501,6 +1523,20 @@ mod tests {
         r.set_book(b);
         assert_eq!(r.shown(), Some(("e".into(), 1)));
         assert!(!r.show("missing", 0));
+    }
+
+    #[test]
+    fn pages_are_counted_as_written() {
+        let long = "word ".repeat(400);
+        let mut b = book(vec![BookPage::Text { text: long, title: None }, BookPage::Empty]);
+        b.categories.push(crate::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
+        b.entries[0].category = "c".into();
+        let mut r = BookRenderer::new(b);
+        assert!(r.show("e", 1));
+        assert_eq!(r.shown(), Some(("e".into(), 1)), "the second page as written");
+        assert!(r.state.page > 1, "past the first page's flowed text");
+        r.handle_event("prev_page");
+        assert_eq!(r.shown(), Some(("e".into(), 0)), "flowed text belongs to the first");
     }
 
     #[test]
