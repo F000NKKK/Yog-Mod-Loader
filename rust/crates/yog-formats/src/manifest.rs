@@ -18,6 +18,10 @@ pub struct ModSection {
     pub license: Option<String>,
     /// License of the generated exports crate (default MIT OR Apache-2.0).
     pub exports_license: Option<String>,
+    /// The Minecraft version whose vanilla content the mod names (its
+    /// datapack: `1.21.1`) — the newest Yog supports by default. On other
+    /// versions renamed content is mapped (`short_grass` is `grass` on 1.20.1).
+    pub datapack: Option<String>,
     /// Rust edition (default 2024).
     pub edition: Option<String>,
 }

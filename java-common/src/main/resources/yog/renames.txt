@@ -1,0 +1,6 @@
+# Ids Minecraft renamed: <kind> <old> <new> <the version that renamed it>.
+# A mod names content as its datapack version does; on a version with the
+# other name, that one is used.
+block grass short_grass 1.20.3
+item grass short_grass 1.20.3
+item scute turtle_scute 1.20.5

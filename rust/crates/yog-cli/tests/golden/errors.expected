@@ -7,4 +7,4 @@ invalid blocks/items in content/:
   content/book.ybook:13: entries[0].category: `c`: name it by a reference — `@category:c`
   content/book.ybook:17: entries[0].pages[0].item: `minecraft:stick`: name it by a reference — `@item:minecraft:stick`
   content/book.ybook:21: entries[0].pages[1].entity: no entity minecraft:nope in Minecraft
-  content/book.ybook:25: entries[0].pages[2].item: minecraft:short_grass is only in Minecraft 1.21.1 — not in 1.20.1
+  content/book.ybook:25: entries[0].pages[2].item: minecraft:grass isn't in Minecraft 1.21.1 (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass

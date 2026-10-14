@@ -159,8 +159,32 @@ public final class YogDataLayout {
         return yogRecipeToVanilla(in, namespace, mc121);
     }
 
+    /** An item a recipe names that this version of the game doesn't have (under any name). */
+    private static final class Missing extends RuntimeException {
+        Missing(String id) {
+            super(id, null, false, false);
+        }
+    }
+
+    /** {@code id} as this version calls it ({@link dev.yog.data.YogVersions}), or {@link Missing}. */
+    private static String item(String id) {
+        String here = dev.yog.data.YogVersions.item(id);
+        if (here == null) throw new Missing(id);
+        return here;
+    }
+
     /** {@link #yogRecipeToVanilla(String, String, boolean)} of a recipe already a JSON tree. */
     public static String yogRecipeToVanilla(JsonObject in, String namespace, boolean mc121) {
+        try {
+            return toVanilla(in, namespace, mc121);
+        } catch (Missing m) {
+            // Content of another version: this one hasn't got it, so neither the recipe.
+            System.err.println("[yog] recipe of " + namespace + " left out: " + m.getMessage() + " isn't in this version of Minecraft");
+            return null;
+        }
+    }
+
+    private static String toVanilla(JsonObject in, String namespace, boolean mc121) {
         String type = in.has("type") ? in.get("type").getAsString() : "";
         if (type.contains(":")) {
             // The mod's own kind of recipe (`mymod:infusion`): its data, for
@@ -235,14 +259,14 @@ public final class YogDataLayout {
         String item = v.getAsString();
         JsonObject o = new JsonObject();
         if (item.startsWith("#")) o.addProperty("tag", item.substring(1));
-        else o.addProperty("item", item);
+        else o.addProperty("item", item(item));
         return o;
     }
 
     /** A result stack: {@code {"item": …}} before 1.21, {@code {"id": …}} since. */
     private static JsonObject stack(String id, int count, boolean mc121) {
         JsonObject o = new JsonObject();
-        o.addProperty(mc121 ? "id" : "item", id);
+        o.addProperty(mc121 ? "id" : "item", item(id));
         if (count != 1) o.addProperty("count", count);
         return o;
     }

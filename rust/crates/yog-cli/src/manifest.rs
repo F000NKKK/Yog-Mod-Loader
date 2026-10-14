@@ -49,6 +49,8 @@ pub struct YogToml {
     /// adoption of the exports crate) — set `[mod] exports_license = "..."`
     /// to opt into matching the mod's own license instead.
     pub exports_license: Option<String>,
+    /// The Minecraft version whose vanilla content it names (`[mod] datapack`).
+    pub datapack: Option<String>,
     pub edition: Option<String>,
     /// Optional: path to yog-api for local/monorepo development.
     /// Set via [dev] yog_api_path = "..."  or YOG_API_PATH env var.
@@ -253,6 +255,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         authors: m.authors,
         license: m.license.unwrap_or_else(|| DEFAULT_LICENSE.into()),
         exports_license: m.exports_license,
+        datapack: m.datapack,
         edition: m.edition,
         yog_api_path: f.dev.and_then(|d| d.yog_api_path),
         yog_api_version,

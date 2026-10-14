@@ -1861,8 +1861,10 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         }
     }
     // Books name the mod's content, vanilla's and other mods' declared ids.
-    let externals = crate::manifest::YogToml::read(&root.join("yog.toml")).map(|t| t.externals).unwrap_or_default();
-    let mut known = refs::Known::new(mod_ns.unwrap_or("minecraft"), &externals);
+    let manifest = crate::manifest::YogToml::read(&root.join("yog.toml")).ok();
+    let externals = manifest.as_ref().map(|t| t.externals.clone()).unwrap_or_default();
+    let datapack = manifest.as_ref().and_then(|t| t.datapack.clone());
+    let mut known = refs::Known::new(mod_ns.unwrap_or("minecraft"), &externals, datapack.as_deref());
     for e in &entries {
         known.add(if e.kind == Kind::Block { refs::RefKind::Block } else { refs::RefKind::Item }, e.id.clone());
     }
@@ -2020,8 +2022,60 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         }
     }
     out.source = Some(rust_source(&entries, &recipes, &books, &defs));
+    version_overlays(&mut out, &known.datapack);
     Ok(out)
 }
+
+/// The mod's data names vanilla content as its datapack version does; for
+/// each other version that calls some of it otherwise, an overlay of the
+/// file with those names (`when/any/<version>/…`). What a version hasn't
+/// got under any name is said in a warning.
+fn version_overlays(out: &mut Compiled, datapack: &str) {
+    fn map(v: &mut Value, version: &str, missing: &mut BTreeSet<String>) -> bool {
+        match v {
+            Value::String(s) if s.starts_with("minecraft:") => {
+                let id = s.trim_start_matches('#').to_string();
+                let eq = refs::equivalent(refs::RefKind::Item, &id, version).or_else(|| refs::equivalent(refs::RefKind::Block, &id, version));
+                match eq {
+                    Some(e) if e != id => {
+                        *s = e;
+                        true
+                    }
+                    Some(_) => false,
+                    // Not an id Yog knows (a loot function, a tag), or one this version hasn't got.
+                    None => {
+                        if refs::is_vanilla(&id) {
+                            missing.insert(id);
+                        }
+                        false
+                    }
+                }
+            }
+            Value::Array(a) => a.iter_mut().fold(false, |c, x| map(x, version, missing) | c),
+            Value::Object(o) => o.values_mut().fold(false, |c, x| map(x, version, missing) | c),
+            _ => false,
+        }
+    }
+    let mut overlays = Vec::new();
+    for (path, bytes) in &out.outputs {
+        if !path.starts_with("data/") || !path.ends_with(".json") {
+            continue;
+        }
+        let Ok(json) = serde_json::from_slice::<Value>(bytes) else { continue };
+        for version in refs::versions().iter().filter(|v| *v != datapack) {
+            let mut copy = json.clone();
+            let mut missing = BTreeSet::new();
+            if map(&mut copy, version, &mut missing) {
+                overlays.push((format!("when/any/{version}/{path}"), pretty(&copy)));
+            }
+            for id in missing {
+                out.warnings.push(format!("{path} names {id}, which Minecraft {version} hasn't got"));
+            }
+        }
+    }
+    out.outputs.extend(overlays);
+}
+
 
 /// Whether any `src/**/*.rs` has `content!(` — the include of the generated code.
 fn mentions_content_macro(dir: &Path) -> bool {
@@ -2847,14 +2901,14 @@ mod tests {
             "entries": [{ "id": "e", "name": "E", "category": "c",
                 "pages": [
                     { "type": "spotlight", "item": "minecraft:stick" },
-                    { "type": "spotlight", "item": "@item:minecraft:short_grass" },
+                    { "type": "spotlight", "item": "@item:minecraft:grass" },
                     { "type": "recipe", "recipe": "@recipe:mymod:nope" },
                     { "type": "entity", "entity": "@entity:create:train" }
                 ] }] }"#;
         let e = compile(&project(&[("content/bad.ybook", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("bad.ybook:3: entries[0].category: `c`: name it by a reference — `@category:c`"), "{e}");
         assert!(e.contains("bad.ybook:5:") && e.contains("`@item:minecraft:stick`"), "{e}");
-        assert!(e.contains("not in 1.20.1"), "{e}");
+        assert!(e.contains("minecraft:grass isn't in Minecraft 1.21.1 (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass"), "{e}");
         assert!(e.contains("no recipe mymod:nope in this mod"), "{e}");
         assert!(e.contains("[external.create]"), "{e}");
 
@@ -2916,6 +2970,20 @@ mod tests {
         let missing = format!(r#"{{ {model}, item: {{ armor: {{ slot: "feet", material: "@armor_material:mymod:nope" }} }} }}"#);
         let e = compile(&project(&[("content/m.yitem", &missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no armor material mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn data_naming_renamed_content_gets_each_versions_name() {
+        let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+        let block = format!(r#"{{ {model}, block: {{ drops: {{ item: "@item:minecraft:short_grass" }} }} }}"#);
+        let c = compile(&project(&[("content/tuft.yblock", &block)]), "mymod", &yres::Refs::default()).unwrap();
+        let loot = |p: &str| c.outputs.iter().find(|(q, _)| q == p).map(|(_, b)| String::from_utf8_lossy(b).to_string());
+        assert!(loot("data/mymod/loot_table/blocks/tuft.json").is_some_and(|l| l.contains("minecraft:short_grass")), "the datapack's name");
+        let old = loot("when/any/1.20.1/data/mymod/loot_table/blocks/tuft.json").expect("1.20.1's overlay");
+        assert!(old.contains("minecraft:grass") && !old.contains("short_grass"), "{old}");
+        let crafter = format!(r#"{{ {model}, block: {{ drops: {{ item: "@item:minecraft:crafter" }} }} }}"#);
+        let c = compile(&project(&[("content/c.yblock", &crafter)]), "mymod", &yres::Refs::default()).unwrap();
+        assert!(c.warnings.iter().any(|w| w.contains("minecraft:crafter, which Minecraft 1.20.1 hasn't got")), "{:?}", c.warnings);
     }
 
     #[test]

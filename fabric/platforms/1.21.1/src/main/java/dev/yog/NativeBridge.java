@@ -1843,5 +1843,7 @@ public final class NativeBridge {
         // How java_call finds an entity by uuid, and an entity's uuid.
         dev.yog.data.YogJava.entityByUuid = NativeBridge::entityByUuid;
         dev.yog.data.YogJava.uuidOf = o -> o instanceof Entity e ? e.getUuidAsString() : null;
+        // Which vanilla items this version has, for content named by another version's ids.
+        dev.yog.data.YogVersions.itemExists = id -> { var i = net.minecraft.util.Identifier.tryParse(id); return i != null && net.minecraft.registry.Registries.ITEM.containsId(i); };
     }
 }
