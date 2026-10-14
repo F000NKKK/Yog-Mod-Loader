@@ -432,7 +432,7 @@ impl BookRenderer {
         }
     }
 
-    /// Register a recipe (vanilla recipe JSON) so Crafting/Smelting pages can
+    /// Register a recipe (Yog's recipe JSON) so recipe pages can
     /// render it visually. Unknown recipe types are ignored.
     pub fn add_recipe(&mut self, id: impl Into<String>, json: &str) {
         if let Some(vis) = parse_recipe(json) {
@@ -685,8 +685,8 @@ fn content_above_text(page: &BookPage) -> Option<f32> {
         BookPage::Text { title: Some(_), .. } => 22.0,
         BookPage::Text { .. } => 0.0,
         BookPage::Spotlight { .. } => 40.0,
-        BookPage::Crafting { .. } => 80.0,
-        BookPage::Smelting { .. } => 40.0,
+        // (A crafting grid's height: a furnace's is less.)
+        BookPage::Recipe { .. } => 80.0,
         BookPage::Image { .. } | BookPage::Entity { .. } => 104.0,
         BookPage::Pattern { patterns, input, output, .. } => {
             14.0 + if patterns.is_empty() { 0.0 } else { PATTERN_H + 4.0 }
@@ -702,8 +702,7 @@ fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
     match page {
         BookPage::Text { text, .. } | BookPage::Pattern { text, .. } => Some(text),
         BookPage::Spotlight { text, .. }
-        | BookPage::Crafting { text, .. }
-        | BookPage::Smelting { text, .. }
+        | BookPage::Recipe { text, .. }
         | BookPage::Image { text, .. }
         | BookPage::Entity { text, .. }
         | BookPage::Multiblock { text, .. }
@@ -758,7 +757,7 @@ fn split_page(mut page: BookPage, fits: &dyn Fn(f32) -> usize) -> Vec<BookPage> 
     *text = lines[..first].join("\n");
     let rest: Vec<BookPage> = lines[first..]
         .chunks(fits(BODY_H))
-        .map(|chunk| BookPage::Text { text: chunk.join("\n"), title: None })
+        .map(|chunk| BookPage::Text { text: chunk.join("\n"), title: None, font: None, font_size: None })
         .collect();
     std::iter::once(page).chain(rest).collect()
 }
@@ -1399,7 +1398,7 @@ fn build_page(
     };
 
     match page {
-        BookPage::Text { text, title } => {
+        BookPage::Text { text, title, font, font_size } => {
             // On non-first pages, show an optional section title + separator.
             if page_num > 0
                 && let Some(t) = title
@@ -1430,7 +1429,12 @@ fn build_page(
                 col = col.child(widget::spacer().h((22.0 - 12.0 - SEP_H) * sy));
             }
             // One label: its lines are as far apart as the flowing counted.
-            col = col.child(lbl(text.as_str()).color(theme.text));
+            let mut l = lbl(text.as_str()).color(theme.text);
+            // Another font (a resource-pack one), `font_size` pixels a line.
+            if let Some(f) = font {
+                l = l.font(f.as_str()).font_scale(text_scale() * font_size.unwrap_or(yog_ui::text::LINE_H) / yog_ui::text::LINE_H);
+            }
+            col = col.child(l);
         }
 
         BookPage::Spotlight { item, title, text } => {
@@ -1452,8 +1456,7 @@ fn build_page(
 
             let item_name = title
                 .clone()
-                .or_else(|| item.name.clone())
-                .unwrap_or_else(|| pretty_item_name(&item.id));
+                .unwrap_or_else(|| pretty_item_name(item));
             col = col.child(
                 title_lbl(item_name)
                     .color(theme.title)
@@ -1463,7 +1466,7 @@ fn build_page(
 
             let icon_s = 16.0 * sx.min(sy);
             overlays.push(OverlayCmd::McItem {
-                item_id: item.id.clone(),
+                item_id: item.clone(),
                 x: ox + (PAGE_W / 2.0 - 8.0) * sx,
                 y: oy + 15.0 * sy,
                 w: icon_s,
@@ -1478,12 +1481,12 @@ fn build_page(
             }
         }
 
-        BookPage::Crafting { recipe_id, text } => {
-            // Patchouli PageCrafting: recipe origin at page-local
+        BookPage::Recipe { recipe, text } => {
+            // Patchouli's crafting and smelting pages: recipe origin at page-local
             // (PAGE_W/2-49, 4); we place it in body-local coords below a title.
             let rx0 = PAGE_W / 2.0 - 49.0; // = 9
             let ry = 12.0; // body-local recipe y (title occupies 0..10)
-            match recipes.get(recipe_id.as_str()) {
+            match recipes.get(recipe.as_str()) {
                 Some(RecipeVis::Shaped {
                     grid,
                     width,
@@ -1505,21 +1508,6 @@ fn build_page(
                         oy, rx0, ry, sx, sy,
                     );
                 }
-                _ => {
-                    col = col.child(lbl(format!("[Recipe: {}]", recipe_id)).color(theme.nav));
-                }
-            }
-            if let Some(t) = text {
-                col = col.child(lbl(t.as_str()).color(theme.text));
-            }
-        }
-
-        BookPage::Smelting { recipe_id, text } => {
-            // Patchouli PageSmelting: bg UV(11,71) 96×24, input at +4,+4,
-            // output at +76,+4.
-            let rx0 = PAGE_W / 2.0 - 49.0;
-            let ry = 12.0;
-            match recipes.get(recipe_id.as_str()) {
                 Some(RecipeVis::Smelting { input, output, station }) => {
                     col = col.child(
                         title_lbl(pretty_item_name(output))
@@ -1565,7 +1553,7 @@ fn build_page(
                     col = col.child(widget::spacer().h((ry + 24.0 + 4.0 - 10.0) * sy));
                 }
                 _ => {
-                    col = col.child(lbl(format!("[Recipe: {}]", recipe_id)).color(theme.nav));
+                    col = col.child(lbl(format!("[Recipe: {}]", recipe)).color(theme.nav));
                 }
             }
             if let Some(t) = text {
@@ -1592,37 +1580,6 @@ fn build_page(
             if let Some(t) = text {
                 col = col.child(lbl(t.as_str()).color(theme.text));
             }
-        }
-
-        BookPage::Svg { data, title, text } => {
-            let top = if let Some(t) = title {
-                col = col.child(title_lbl(t.as_str()).color(theme.title));
-                12.0
-            } else {
-                0.0
-            };
-            overlays.push(OverlayCmd::Svg {
-                data: data.clone(),
-                x: ox + (PAGE_W / 2.0 - 32.0) * sx,
-                y: oy + top * sy,
-                w: 64.0 * sx,
-                h: 64.0 * sy,
-            });
-            col = col.child(widget::spacer().h(68.0 * sy));
-            if let Some(t) = text {
-                col = col.child(lbl(t.as_str()).color(theme.text));
-            }
-        }
-
-        BookPage::CustomText { text, font, color } => {
-            // A resource-pack font (assets/<ns>/font/<name>.json — a `ttf`
-            // provider, say), at `size_px` for its 9-pixel line.
-            col = col.child(
-                lbl(text.as_str())
-                    .font(font.font_id.as_str())
-                    .font_scale(text_scale() * font.size_px / yog_ui::text::LINE_H)
-                    .color(*color),
-            );
         }
 
         BookPage::Relations { entries, text } => {
@@ -1657,14 +1614,14 @@ fn build_page(
         }
 
         BookPage::Entity {
-            entity_type,
+            entity,
             name,
             text,
         } => {
-            let display = name.clone().unwrap_or_else(|| entity_name(entity_type));
+            let display = name.clone().unwrap_or_else(|| entity_name(entity));
             col = col.child(title_lbl(display).color(theme.title));
             overlays.push(OverlayCmd::Entity {
-                entity: entity_type.clone(),
+                entity: entity.clone(),
                 x: ox + (PAGE_W / 2.0 - 40.0) * sx,
                 y: oy + 12.0 * sy,
                 w: 80.0 * sx,
@@ -1718,7 +1675,7 @@ mod tests {
     use crate::BookEntry;
 
     fn book(pages: Vec<BookPage>) -> Book {
-        let mut book = Book::new("t:b", "B");
+        let mut book = Book { id: "t:b".into(), name: "B".into(), ..Default::default() };
         book.entries.push(BookEntry { id: "e".into(), name: "E".into(), pages, ..Default::default() });
         book
     }
@@ -1726,7 +1683,7 @@ mod tests {
     #[test]
     fn long_text_flows_onto_new_pages() {
         let long = "word ".repeat(400);
-        let flowed = flow(book(vec![BookPage::Text { text: long.clone(), title: None }, BookPage::Empty]));
+        let flowed = flow(book(vec![BookPage::Text { text: long.clone(), title: None, font: None, font_size: None }, BookPage::Empty]));
         let pages = &flowed.entries[0].pages;
         assert!(pages.len() > 3, "{}", pages.len());
         assert!(matches!(pages.last(), Some(BookPage::Empty)), "what came after stays after");
@@ -1745,7 +1702,7 @@ mod tests {
 
     #[test]
     fn edits_keep_the_reader_where_they_were() {
-        let mut b = book(vec![BookPage::Text { text: "one".into(), title: None }, BookPage::Text { text: "two".into(), title: None }]);
+        let mut b = book(vec![BookPage::Text { text: "one".into(), title: None, font: None, font_size: None }, BookPage::Text { text: "two".into(), title: None, font: None, font_size: None }]);
         b.categories.push(crate::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
         b.entries[0].category = "c".into();
         let mut r = BookRenderer::new(b.clone());
@@ -1764,7 +1721,7 @@ mod tests {
     #[test]
     fn pages_are_counted_as_written() {
         let long = "word ".repeat(400);
-        let mut b = book(vec![BookPage::Text { text: long, title: None }, BookPage::Empty]);
+        let mut b = book(vec![BookPage::Text { text: long, title: None, font: None, font_size: None }, BookPage::Empty]);
         b.categories.push(crate::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
         b.entries[0].category = "c".into();
         let mut r = BookRenderer::new(b);
@@ -1808,7 +1765,7 @@ mod tests {
 
     #[test]
     fn short_text_stays_put() {
-        let pages = vec![BookPage::Text { text: "Hello".into(), title: Some("T".into()) }];
+        let pages = vec![BookPage::Text { text: "Hello".into(), title: Some("T".into()), font: None, font_size: None }];
         let flowed = flow(book(pages.clone()));
         assert_eq!(flowed.entries[0].pages.len(), 1);
     }

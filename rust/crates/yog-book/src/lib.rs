@@ -1,25 +1,29 @@
-//! yog-book — in-game book/documentation framework for Yog mods.
+//! yog-book — guide books for Yog mods: the format (a `.ybook` file, see
+//! [`Book`]) and the renderer the game and Yog-IDLE draw it with
+//! ([`BookRenderer`], `draw2d` alone).
 //!
-//! Provides Patchouli-like book data model plus a full GPU renderer on top of
-//! yog-ui and yog-gfx, with SVG icon support and custom TTF/OTF fonts.
+//! A book names what it shows — items, blocks, entities, recipes, its own
+//! entries — through typed references (`@item:minecraft:stick`, see
+//! [`refs`]); tools check them and hand the renderer plain ids.
 
-pub mod font;
 pub mod markup;
 pub mod pattern;
+pub mod refs;
 pub mod renderer;
 pub mod state;
 pub mod theme;
 
-use serde::{Deserialize, Serialize};
-use yog_registry::ItemDef;
+use std::collections::BTreeMap;
 
-pub use font::BookFont;
+use serde::{Deserialize, Serialize};
+
+pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET, LANG};
+pub use state::BookViewState;
+pub use theme::BookTheme;
+
 /// The blocks of a multiblock `pattern` (layers top to bottom, rows of
 /// characters) with their `mapping`: ((x, y, z), block state).
-pub fn multiblock_blocks(
-    pattern: &[Vec<String>],
-    mapping: &std::collections::BTreeMap<String, String>,
-) -> Vec<((i32, i32, i32), String)> {
+pub fn multiblock_blocks(pattern: &[Vec<String>], mapping: &BTreeMap<String, String>) -> Vec<((i32, i32, i32), String)> {
     let mut out = Vec::new();
     let layers = pattern.len() as i32;
     for (li, layer) in pattern.iter().enumerate() {
@@ -37,107 +41,78 @@ pub fn multiblock_blocks(
     out
 }
 
-pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET, LANG};
-pub use state::BookViewState;
-pub use theme::BookTheme;
+// ── Pages ────────────────────────────────────────────────────────────────────
 
-// ── Macros ───────────────────────────────────────────────────────────────────
-
-/// A macro substitution (e.g. `$(thing)` → red color span).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BookMacro(pub String, pub String);
-
-// ── Page types ───────────────────────────────────────────────────────────────
-
-/// A single page variant inside a book entry.
-///
-/// The wire format (mod ↔ runtime JSON boundary, produced by
-/// [`BookPage::to_json`]) is internally tagged with snake_case names —
-/// `{"type": "spotlight", "item": "yog:ruby", ...}` — like Patchouli's
-/// per-page "type" field. The serde attributes below keep `Deserialize`
-/// in exact agreement with `to_json`.
+/// One page of an entry: `{"type": "spotlight", "item": "minecraft:stick", …}`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum BookPage {
-    /// Plain formatted text, optionally with a section title (for non-first pages).
+    /// Text (Yog text: `{b|…}`, `{#rrggbb|…}`, `{link=…|…}`), with an
+    /// optional title; in another `font` (a resource-pack font id, e.g. a
+    /// `ttf` provider) at `font_size` pixels a line.
     Text {
         text: String,
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         title: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        font: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        font_size: Option<f32>,
     },
-    /// Display an item outlined (tooltip on hover).
+    /// An item in a frame, its name (or `title`) and text.
     Spotlight {
-        /// On the wire this is the item id string ("yog:ruby"); rich
-        /// `ItemDef` maps are accepted too.
-        #[serde(with = "item_ref")]
-        item: ItemDef,
-        #[serde(default)]
+        item: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         title: Option<String>,
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         text: Option<String>,
     },
-    /// Crafting recipe display (autorenders 3×3 grid).
-    Crafting {
-        #[serde(rename = "recipe")]
-        recipe_id: String,
-        #[serde(default)]
+    /// A recipe as its station shows it (a crafting grid, a furnace, …).
+    Recipe {
+        recipe: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         text: Option<String>,
     },
-    /// Smelting recipe display.
-    Smelting {
-        #[serde(rename = "recipe")]
-        recipe_id: String,
-        #[serde(default)]
-        text: Option<String>,
-    },
-    /// Image overlay page.
+    /// An image (a Yog image source: a texture, `.svg` too).
     Image {
         texture: String,
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         title: Option<String>,
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         text: Option<String>,
-        #[serde(default)]
-        border: bool,
     },
-    /// Entity display page (renders a living entity in a box).
+    /// A living entity, turning slowly.
     Entity {
-        #[serde(rename = "entity")]
-        entity_type: String,
-        #[serde(default)]
+        entity: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         name: Option<String>,
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         text: Option<String>,
     },
-    /// A multiblock structure in 3D, turning (Patchouli's multiblock page):
-    /// `pattern` is its layers top to bottom, each a list of rows; each
-    /// character stands for the block `mapping` gives it (a full block
-    /// state: `"minecraft:furnace[facing=north]"`), ` ` for air.
+    /// A structure in 3D, turning: `pattern` is its layers top to bottom,
+    /// each a list of rows; each character stands for the block `mapping`
+    /// gives it (a block state: `minecraft:furnace[facing=north]`), ` ` for air.
     Multiblock {
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         name: Option<String>,
         pattern: Vec<Vec<String>>,
-        mapping: std::collections::BTreeMap<String, String>,
-        #[serde(default)]
+        mapping: BTreeMap<String, String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         text: Option<String>,
     },
-    /// Link to another entry (like Patchouli's relations).
+    /// Links to other entries.
     Relations {
         entries: Vec<String>,
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         text: Option<String>,
     },
-    /// Empty separator.
-    Empty,
     /// A spell pattern: its name, what it takes and gives, the pattern
     /// itself on a hexagonal grid (see [`pattern`]).
     Pattern {
         op_id: String,
         /// The action's name (the page's title; `op_id` if none).
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         name: Option<String>,
-        #[serde(default)]
-        anchor: String,
         #[serde(default)]
         input: String,
         #[serde(default)]
@@ -148,70 +123,28 @@ pub enum BookPage {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         patterns: Vec<pattern::HexPattern>,
     },
-    /// SVG image page — rasterized at render time via `resvg`.
-    Svg {
-        /// Raw SVG source string.
-        data: String,
-        #[serde(default)]
-        title: Option<String>,
-        #[serde(default)]
-        text: Option<String>,
-    },
-    /// Text rendered with a custom TTF/OTF font.
-    CustomText {
-        text: String,
-        /// Flattened on the wire: `"font_id": …, "size_px": …`.
-        #[serde(flatten)]
-        font: BookFont,
-        /// ARGB color (0xAARRGGBB).
-        color: u32,
-    },
+    /// Nothing (to start the next on a new spread).
+    Empty,
 }
 
-/// (De)serialize `ItemDef` as a plain item-id string ("yog:ruby"), accepting
-/// a full `ItemDef` map on input for richer definitions.
-mod item_ref {
-    use serde::{Deserialize, Deserializer, Serializer};
-    use yog_registry::ItemDef;
+// ── Categories and entries ───────────────────────────────────────────────────
 
-    pub fn serialize<S: Serializer>(item: &ItemDef, s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(&item.id)
-    }
-
-    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<ItemDef, D::Error> {
-        #[derive(Deserialize)]
-        #[serde(untagged)]
-        enum Repr {
-            Id(String),
-            Def(ItemDef),
-        }
-        Ok(match Repr::deserialize(d)? {
-            Repr::Id(id) => ItemDef::new(id),
-            Repr::Def(def) => def,
-        })
-    }
-}
-
-// ── Category ─────────────────────────────────────────────────────────────────
-
-/// Represents a book category tab (e.g. "Basics", "Patterns").
+/// A category of the book's home page.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct BookCategory {
     pub id: String,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// MC texture path for the category icon (e.g. `"minecraft:textures/item/book.png"`).
+    /// An item (`minecraft:book`) or an image (`minecraft:textures/item/book.png`).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
-    /// Raw SVG string for the category icon (takes priority over `icon`).
-    pub icon_svg: Option<String>,
-    /// Sort priority (lower = first).
+    /// Lower first.
     pub sortnum: i32,
 }
 
-// ── Entry ────────────────────────────────────────────────────────────────────
-
-/// One entry in a book (like a "page" in the TOC sidebar).
+/// One entry: its pages, in a category.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct BookEntry {
@@ -219,114 +152,69 @@ pub struct BookEntry {
     pub name: String,
     pub category: String,
     pub pages: Vec<BookPage>,
-    /// Entry icon (item id or texture path).
+    /// An item or an image, as [`BookCategory::icon`].
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
-    /// Raw SVG icon string (takes priority over `icon`).
-    pub icon_svg: Option<String>,
-    /// If true, hides from the book (used for unlocks).
-    pub secret: bool,
-    /// Sort priority (lower = first).
+    /// Lower first.
     pub priority: i32,
-    /// If true, read by default when opening the book.
+    /// Hidden from the book's lists.
+    pub secret: bool,
+    /// Shown as read before it's opened.
     pub read_by_default: bool,
-    /// Advancement required to unlock.
+    /// The advancement that unlocks it.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub advancement: Option<String>,
 }
 
 // ── Book ─────────────────────────────────────────────────────────────────────
 
-/// The top-level book definition — replaces `patchouli_books/<id>/book.json`.
+/// A guide book: what a `.ybook` file holds.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Book {
+    /// The item that opens it.
     pub id: String,
     pub name: String,
-    pub nameplate_color: String,
-    /// The color `{accent|terms}` are shown in (`#rrggbb`).
-    pub accent: String,
-    pub landing_text: String,
     /// The nameplate's second line when `version` is 0.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subtitle: Option<String>,
     /// The book's edition: its nameplate says "1st Edition", "2nd Edition"…
     /// (0: the `subtitle` instead).
     pub version: u32,
+    pub landing_text: String,
+    /// The nameplate's text color (`rrggbb`).
+    pub nameplate_color: String,
+    /// The color `{accent|terms}` are shown in (`#rrggbb`).
+    pub accent: String,
+    /// Its sheet (laid out as [`BOOK_PNG`]): `ns:textures/x.png`, or Yog's.
     pub book_texture: String,
-    pub filler_texture: String,
-    pub model: String,
     pub categories: Vec<BookCategory>,
     pub entries: Vec<BookEntry>,
-    pub macros: Vec<BookMacro>,
-    pub use_resource_pack: bool,
-    pub show_progress: bool,
+    /// Its texts are translation keys, shown in the game's language.
     pub i18n: bool,
-    pub creative_tab: Option<String>,
+}
+
+impl Default for Book {
+    fn default() -> Self {
+        Book {
+            id: String::new(),
+            name: String::new(),
+            subtitle: None,
+            version: 0,
+            landing_text: String::new(),
+            nameplate_color: "FFDD98".into(),
+            accent: "#8d6acc".into(),
+            book_texture: "yog:gui/book".into(),
+            categories: Vec::new(),
+            entries: Vec::new(),
+            i18n: false,
+        }
+    }
 }
 
 impl Book {
-    pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
-        Self {
-            id: id.into(),
-            name: name.into(),
-            nameplate_color: "FFDD98".into(), // Patchouli default nameplateColor
-            accent: "#8d6acc".into(),
-            landing_text: String::new(),
-            subtitle: None,
-            version: 0,
-            book_texture: "yog:gui/book".into(),
-            filler_texture: "yog:gui/book_filler".into(),
-            model: "minecraft:book".into(),
-            categories: Vec::new(),
-            entries: Vec::new(),
-            macros: Vec::new(),
-            use_resource_pack: false,
-            show_progress: true,
-            i18n: false,
-            creative_tab: None,
-        }
-    }
-
-    pub fn subtitle(mut self, subtitle: impl Into<String>) -> Self {
-        self.subtitle = Some(subtitle.into());
-        self
-    }
-
-    pub fn book_texture(mut self, tex: impl Into<String>) -> Self {
-        self.book_texture = tex.into();
-        self
-    }
-
-    pub fn filler_texture(mut self, tex: impl Into<String>) -> Self {
-        self.filler_texture = tex.into();
-        self
-    }
-
-    pub fn nameplate(mut self, color: impl Into<String>) -> Self {
-        self.nameplate_color = color.into();
-        self
-    }
-
-    pub fn landing_text(mut self, text: impl Into<String>) -> Self {
-        self.landing_text = text.into();
-        self
-    }
-
-    pub fn model(mut self, model: impl Into<String>) -> Self {
-        self.model = model.into();
-        self
-    }
-
-    pub fn creative_tab(mut self, tab: impl Into<String>) -> Self {
-        self.creative_tab = Some(tab.into());
-        self
-    }
-
-    pub fn show_progress(mut self, show: bool) -> Self {
-        self.show_progress = show;
-        self
-    }
-
     /// This book with its texts run through `tr` — names, descriptions,
-    /// landing text and every page's title/text. With [`Self::i18n`] on,
+    /// landing text and every page's title/text. With [`Book::i18n`] on,
     /// the texts are translation keys and the renderer shows
     /// `localized(<current language>)` (see [`BookRenderer::set_translator`]).
     pub fn localized(&self, tr: impl Fn(&str) -> String) -> Book {
@@ -338,6 +226,7 @@ impl Book {
         let mut b = self.clone();
         b.name = tr(&b.name);
         b.landing_text = tr(&b.landing_text);
+        opt(&mut b.subtitle);
         for c in &mut b.categories {
             c.name = tr(&c.name);
             opt(&mut c.description);
@@ -346,13 +235,11 @@ impl Book {
             e.name = tr(&e.name);
             for p in &mut e.pages {
                 match p {
-                    BookPage::Text { text, title } => {
+                    BookPage::Text { text, title, .. } => {
                         *text = tr(text);
                         opt(title);
                     }
-                    BookPage::Spotlight { title, text, .. }
-                    | BookPage::Image { title, text, .. }
-                    | BookPage::Svg { title, text, .. } => {
+                    BookPage::Spotlight { title, text, .. } | BookPage::Image { title, text, .. } => {
                         opt(title);
                         opt(text);
                     }
@@ -360,14 +247,11 @@ impl Book {
                         opt(name);
                         opt(text);
                     }
-                    BookPage::Crafting { text, .. }
-                    | BookPage::Smelting { text, .. }
-                    | BookPage::Relations { text, .. } => opt(text),
+                    BookPage::Recipe { text, .. } | BookPage::Relations { text, .. } => opt(text),
                     BookPage::Pattern { text, name, .. } => {
                         *text = tr(text);
                         opt(name);
                     }
-                    BookPage::CustomText { text, .. } => *text = tr(text),
                     BookPage::Empty => {}
                 }
             }
@@ -375,334 +259,6 @@ impl Book {
         b
     }
 
-    pub fn i18n(mut self, val: bool) -> Self {
-        self.i18n = val;
-        self
-    }
-
-    pub fn use_resource_pack(mut self, val: bool) -> Self {
-        self.use_resource_pack = val;
-        self
-    }
-
-    pub fn add_macro(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.macros.push(BookMacro(key.into(), value.into()));
-        self
-    }
-
-    pub fn add_category(mut self, category: BookCategory) -> Self {
-        self.categories.push(category);
-        self
-    }
-
-    pub fn add_entry(mut self, entry: BookEntry) -> Self {
-        self.entries.push(entry);
-        self
-    }
-}
-
-impl Default for Book {
-    fn default() -> Self {
-        Self::new("yog:default", "Unknown Book")
-    }
-}
-
-// ── Registry ─────────────────────────────────────────────────────────────────
-
-/// Global registry for all in-game books.
-#[derive(Debug, Default)]
-pub struct BookRegistry {
-    books: std::collections::HashMap<String, Book>,
-}
-
-impl BookRegistry {
-    pub fn register(&mut self, book: Book) {
-        self.books.insert(book.id.clone(), book);
-    }
-
-    pub fn get(&self, id: &str) -> Option<&Book> {
-        self.books.get(id)
-    }
-
-    pub fn all(&self) -> impl Iterator<Item = &Book> {
-        self.books.values()
-    }
-}
-
-// ── Builder helpers ──────────────────────────────────────────────────────────
-
-pub fn text_page(text: impl Into<String>) -> BookPage {
-    BookPage::Text {
-        text: text.into(),
-        title: None,
-    }
-}
-
-pub fn text_page_titled(title: impl Into<String>, text: impl Into<String>) -> BookPage {
-    BookPage::Text {
-        text: text.into(),
-        title: Some(title.into()),
-    }
-}
-
-pub fn spotlight_page(item: ItemDef) -> BookPage {
-    BookPage::Spotlight {
-        item,
-        title: None,
-        text: None,
-    }
-}
-
-pub fn crafting_page(recipe_id: impl Into<String>) -> BookPage {
-    BookPage::Crafting {
-        recipe_id: recipe_id.into(),
-        text: None,
-    }
-}
-
-pub fn crafting_page_with_text(recipe_id: impl Into<String>, text: impl Into<String>) -> BookPage {
-    BookPage::Crafting {
-        recipe_id: recipe_id.into(),
-        text: Some(text.into()),
-    }
-}
-
-pub fn smelting_page(recipe_id: impl Into<String>) -> BookPage {
-    BookPage::Smelting {
-        recipe_id: recipe_id.into(),
-        text: None,
-    }
-}
-
-pub fn image_page(texture: impl Into<String>) -> BookPage {
-    BookPage::Image {
-        texture: texture.into(),
-        title: None,
-        text: None,
-        border: true,
-    }
-}
-
-pub fn entity_page(entity_type: impl Into<String>) -> BookPage {
-    BookPage::Entity {
-        entity_type: entity_type.into(),
-        name: None,
-        text: None,
-    }
-}
-
-pub fn relations_page(entries: Vec<String>) -> BookPage {
-    BookPage::Relations {
-        entries,
-        text: None,
-    }
-}
-
-pub fn pattern_page(
-    op_id: impl Into<String>,
-    anchor: impl Into<String>,
-    input: impl Into<String>,
-    output: impl Into<String>,
-    text: impl Into<String>,
-) -> BookPage {
-    BookPage::Pattern {
-        op_id: op_id.into(),
-        name: None,
-        anchor: anchor.into(),
-        input: input.into(),
-        output: output.into(),
-        text: text.into(),
-        patterns: Vec::new(),
-    }
-}
-
-// ── Book → yog-ui bridge ─────────────────────────────────────────────────────
-pub mod book_ui {
-    use crate::{Book, BookEntry, BookPage};
-    use yog_ui::widget::{self, Widget};
-    use yog_ui::{Align, FlexDir, UiRoot};
-
-    /// Build a `UiRoot` from a `Book`.
-    /// The UI has: left panel (categories + entries), right panel (pages),
-    /// prev/next buttons at bottom.
-    pub fn build_book_ui(
-        book: &Book,
-        selected_cat: usize,
-        selected_entry: usize,
-        current_page: usize,
-    ) -> UiRoot {
-        let mut cats: Vec<Widget> = Vec::new();
-        for (i, cat) in book.categories.iter().enumerate() {
-            let color = if i == selected_cat {
-                0xFF_FFFF55
-            } else {
-                0xFF_CCCCCC
-            };
-            cats.push(
-                widget::button(&cat.name)
-                    .color(color)
-                    .on_click(format!("cat:{}", i)),
-            );
-        }
-
-        let cat = book.categories.get(selected_cat);
-        let mut entries: Vec<Widget> = Vec::new();
-        if let Some(cat) = cat {
-            let cat_entries: Vec<&BookEntry> = book
-                .entries
-                .iter()
-                .filter(|e| e.category == cat.id)
-                .collect();
-            for (i, entry) in cat_entries.iter().enumerate() {
-                let color = if i == selected_entry {
-                    0xFF_FFFF55
-                } else {
-                    0xFF_CCCCCC
-                };
-                let label = if entry.name.len() > 14 {
-                    &entry.name[..14]
-                } else {
-                    &entry.name
-                };
-                entries.push(
-                    widget::button(label)
-                        .color(color)
-                        .on_click(format!("entry:{}", i)),
-                );
-            }
-        }
-
-        let mut pages: Vec<Widget> = Vec::new();
-        if let Some(cat) = cat {
-            let cat_entries: Vec<&BookEntry> = book
-                .entries
-                .iter()
-                .filter(|e| e.category == cat.id)
-                .collect();
-            if let Some(entry) = cat_entries.get(selected_entry)
-                && let Some(page) = entry.pages.get(current_page)
-            {
-                pages.push(render_page(page));
-            }
-        }
-
-        let nav = widget::panel(FlexDir::Row)
-            .gap(4.0)
-            .child(widget::button("<").w(28.0).on_click("prev_page"))
-            .child(
-                widget::label(format!(
-                    "{}/{}",
-                    current_page + 1,
-                    cat.map_or(0, |c| {
-                        book.entries
-                            .iter()
-                            .filter(|e| e.category == c.id)
-                            .nth(selected_entry)
-                            .map_or(0, |e| e.pages.len())
-                    })
-                ))
-                .color(0xFF_888888)
-                .flex(1.0)
-                .align(Align::Center),
-            )
-            .child(widget::button(">").w(28.0).on_click("next_page"));
-
-        UiRoot::new(
-            &book.id,
-            widget::panel(FlexDir::Row)
-                .gap(2.0)
-                .padding(2.0, 2.0, 2.0, 2.0)
-                .bg(0xFF_2A1A0E)
-                .child(
-                    widget::panel(FlexDir::Column)
-                        .w(104.0)
-                        .child(widget::label("Categories").color(0xFF_888888))
-                        .child(widget::panel(FlexDir::Column).gap(1.0).child_many(cats))
-                        .child(widget::label("Entries").color(0xFF_888888))
-                        .child(widget::panel(FlexDir::Column).gap(1.0).child_many(entries)),
-                )
-                .child(
-                    widget::panel(FlexDir::Column)
-                        .flex(1.0)
-                        .gap(2.0)
-                        .child(widget::panel(FlexDir::Column).flex(1.0).child_many(pages))
-                        .child(nav),
-                ),
-        )
-    }
-
-    fn render_page(page: &BookPage) -> Widget {
-        match page {
-            BookPage::Text { text, .. } => widget::label(text).color(0xFF_CCCCAA),
-            BookPage::Spotlight { item, title, text } => {
-                let mut p = widget::panel(FlexDir::Column).gap(2.0);
-                if let Some(t) = title {
-                    p = p.child(widget::label(t).color(0xFF_FFFF55));
-                }
-                p = p.child(widget::item_slot(&item.id));
-                if let Some(t) = text {
-                    p = p.child(widget::label(t).color(0xFF_CCCCAA));
-                }
-                p
-            }
-            BookPage::Crafting { recipe_id, text } => {
-                let mut p = widget::panel(FlexDir::Column).gap(2.0);
-                p = p.child(widget::label(format!("Crafting: {}", recipe_id)).color(0xFF_888888));
-                if let Some(t) = text {
-                    p = p.child(widget::label(t).color(0xFF_CCCCAA));
-                }
-                p
-            }
-            BookPage::Smelting { recipe_id, text } => {
-                let mut p = widget::panel(FlexDir::Column).gap(2.0);
-                p = p.child(widget::label(format!("Smelting: {}", recipe_id)).color(0xFF_888888));
-                if let Some(t) = text {
-                    p = p.child(widget::label(t).color(0xFF_CCCCAA));
-                }
-                p
-            }
-            BookPage::Empty => widget::spacer(),
-            _ => widget::label("(unsupported page)").color(0xFF_888888),
-        }
-    }
-
-    // Helper: add multiple children to a widget
-    trait WidgetExt {
-        fn child_many(self, children: Vec<Widget>) -> Self;
-    }
-    impl WidgetExt for Widget {
-        fn child_many(mut self, children: Vec<Widget>) -> Self {
-            for c in children {
-                self = self.child(c);
-            }
-            self
-        }
-    }
-}
-
-// ── JSON serialization ────────────────────────────────────────────────────────
-
-
-impl BookPage {
-    /// The page's wire JSON (`{"type": "text", ...}`).
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(self).unwrap_or_default()
-    }
-}
-
-impl BookEntry {
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(self).unwrap_or_default()
-    }
-}
-
-impl BookCategory {
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(self).unwrap_or_default()
-    }
-}
-
-impl Book {
     /// The book as the JSON hosts and `yog build` pass around.
     pub fn to_json(&self) -> String {
         serde_json::to_string(self).unwrap_or_default()
@@ -710,101 +266,66 @@ impl Book {
 }
 
 #[cfg(test)]
-mod wire_format_tests {
+mod tests {
     use super::*;
 
-    /// The hand-written `to_json` wire format must stay parseable by the
-    /// serde `Deserialize` impls (runtime side of the mod ↔ runtime boundary).
+    fn text(t: &str) -> BookPage {
+        BookPage::Text { text: t.into(), title: None, font: None, font_size: None }
+    }
+
     #[test]
-    fn book_to_json_roundtrips_through_serde() {
-        let book = Book::new("yog:test", "Test Book")
-            .subtitle("Tester")
-            .landing_text("hello")
-            .add_category(BookCategory {
-                id: "c1".into(),
-                name: "Cat".into(),
-                description: Some("d".into()),
-                icon: Some("yog:item/ruby".into()),
-                icon_svg: None,
-                sortnum: 0,
-            })
-            .add_entry(BookEntry {
-                id: "e1".into(),
+    fn books_round_trip_through_their_json() {
+        let book = Book {
+            id: "yog:test".into(),
+            name: "Test Book".into(),
+            version: 1,
+            categories: vec![BookCategory { id: "yog:c1".into(), name: "Cat".into(), icon: Some("yog:ruby".into()), ..Default::default() }],
+            entries: vec![BookEntry {
+                id: "yog:e1".into(),
                 name: "Entry".into(),
-                category: "c1".into(),
+                category: "yog:c1".into(),
                 pages: vec![
-                    text_page("plain"),
-                    spotlight_page(yog_registry::ItemDef::new("yog:ruby")),
-                    crafting_page("yog:r1"),
-                    smelting_page("yog:r2"),
+                    text("plain"),
+                    BookPage::Spotlight { item: "yog:ruby".into(), title: None, text: None },
+                    BookPage::Recipe { recipe: "yog:r1".into(), text: None },
                     BookPage::Empty,
                 ],
-                icon: Some("yog:ruby".into()),
-                icon_svg: None,
-                secret: false,
-                priority: 0,
-                read_by_default: false,
-                advancement: None,
-            });
-
-        let json = book.to_json();
-        let parsed: Book = serde_json::from_str(&json)
-            .unwrap_or_else(|e| panic!("wire JSON failed to parse: {e}\njson: {json}"));
-        assert_eq!(parsed.id, "yog:test");
-        assert_eq!(parsed.entries.len(), 1);
-        assert_eq!(parsed.entries[0].pages.len(), 5);
-        match &parsed.entries[0].pages[1] {
-            BookPage::Spotlight { item, .. } => assert_eq!(item.id, "yog:ruby"),
-            p => panic!("expected spotlight, got {p:?}"),
-        }
-        match &parsed.entries[0].pages[2] {
-            BookPage::Crafting { recipe_id, .. } => assert_eq!(recipe_id, "yog:r1"),
-            p => panic!("expected crafting, got {p:?}"),
-        }
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let parsed: Book = serde_json::from_str(&book.to_json()).expect("its JSON parses");
+        assert_eq!(parsed.version, 1);
+        assert_eq!(parsed.entries[0].pages.len(), 4);
+        assert!(matches!(&parsed.entries[0].pages[1], BookPage::Spotlight { item, .. } if item == "yog:ruby"));
+        assert!(matches!(&parsed.entries[0].pages[2], BookPage::Recipe { recipe, .. } if recipe == "yog:r1"));
     }
-}
-
-#[cfg(test)]
-mod localize_tests {
-    use super::*;
 
     #[test]
     fn localized_translates_every_text() {
-        let book = Book::new("m:b", "m.book.name")
-            .landing_text("m.book.landing")
-            .add_category(BookCategory {
-                id: "basics".into(),
-                name: "m.cat".into(),
-                ..Default::default()
-            })
-            .add_entry(BookEntry {
-                id: "e".into(),
+        let book = Book {
+            id: "m:b".into(),
+            name: "m.book.name".into(),
+            landing_text: "m.book.landing".into(),
+            categories: vec![BookCategory { id: "m:basics".into(), name: "m.cat".into(), ..Default::default() }],
+            entries: vec![BookEntry {
+                id: "m:e".into(),
                 name: "m.entry".into(),
-                category: "basics".into(),
-                pages: vec![text_page_titled("m.title", "m.text"), text_page("raw text")],
+                category: "m:basics".into(),
+                pages: vec![
+                    BookPage::Text { text: "m.text".into(), title: Some("m.title".into()), font: None, font_size: None },
+                    text("raw text"),
+                ],
                 ..Default::default()
-            });
-        let out = book.localized(|k| {
-            if k.starts_with("m.") {
-                k.to_uppercase()
-            } else {
-                k.to_string()
-            }
-        });
+            }],
+            ..Default::default()
+        };
+        let out = book.localized(|k| if k.starts_with("m.") { k.to_uppercase() } else { k.to_string() });
         assert_eq!(out.name, "M.BOOK.NAME");
         assert_eq!(out.landing_text, "M.BOOK.LANDING");
         assert_eq!(out.categories[0].name, "M.CAT");
         assert_eq!(out.entries[0].name, "M.ENTRY");
-        match &out.entries[0].pages[0] {
-            BookPage::Text { text, title } => {
-                assert_eq!(text, "M.TEXT");
-                assert_eq!(title.as_deref(), Some("M.TITLE"));
-            }
-            p => panic!("{p:?}"),
-        }
-        assert!(
-            matches!(&out.entries[0].pages[1], BookPage::Text { text, .. } if text == "raw text")
-        );
-        assert_eq!(out.entries[0].id, "e");
+        assert!(matches!(&out.entries[0].pages[0], BookPage::Text { text, title, .. } if text == "M.TEXT" && title.as_deref() == Some("M.TITLE")));
+        assert!(matches!(&out.entries[0].pages[1], BookPage::Text { text, .. } if text == "raw text"));
     }
 }

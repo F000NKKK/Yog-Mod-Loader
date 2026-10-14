@@ -280,12 +280,7 @@ pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
     }
 }
 
-pub use yog_book::{Book, BookCategory, BookEntry, BookMacro, BookPage, BookRegistry};
-pub use yog_book::BookRenderer;
-pub use yog_book::{
-    crafting_page, entity_page, image_page, pattern_page, relations_page, smelting_page,
-    spotlight_page, text_page, text_page_titled,
-};
+pub use yog_book::{Book, BookCategory, BookEntry, BookPage, BookRenderer};
 pub use yog_command::CommandContext;
 pub use yog_config::Config;
 pub use yog_core::{BlockPos, Server};
@@ -372,7 +367,7 @@ pub mod config {
     pub use yog_config::*;
 }
 
-/// In-game book/documentation system (Patchouli-like).
+/// Guide books: the `.ybook` format and its renderer.
 pub mod book {
     pub use yog_book::*;
 }

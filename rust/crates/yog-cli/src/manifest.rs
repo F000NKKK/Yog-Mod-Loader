@@ -70,6 +70,18 @@ pub struct YogToml {
     pub dev_dependencies: Vec<(String, String)>,
     /// Named dev-instance launch configs from `[run.<name>]` sections.
     pub run_configs: Vec<RunConfig>,
+    /// Content of other mods (original Java mods, or Yog mods) this mod
+    /// names, declared up front: `[external.<namespace>]` with `items`,
+    /// `blocks`, `entities`, `recipes` (paths: `["cutting_board"]`).
+    pub externals: Vec<External>,
+}
+
+/// One `[external.<namespace>]` section.
+#[derive(Debug, Default, Clone)]
+pub struct External {
+    pub namespace: String,
+    /// `kind` (`items`, `blocks`, `entities`, `recipes`) → paths.
+    pub ids: Vec<(String, Vec<String>)>,
 }
 
 /// A `[run.<name>]` section: where to drop the built artifact and what to
@@ -146,6 +158,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let mut mod_dependencies: Vec<(String, String)> = Vec::new();
     let mut dev_dependencies: Vec<(String, String)> = Vec::new();
     let mut run_configs: HashMap<String, RunConfig> = HashMap::new();
+    let mut externals: Vec<External> = Vec::new();
 
     for raw in text.lines() {
         let line = raw.trim();
@@ -204,6 +217,17 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
             "dev-dependencies" => {
                 if let Some((name, spec)) = parse_dep_line(line) {
                     dev_dependencies.push((name, spec));
+                }
+            }
+            _ if section.starts_with("external.") => {
+                let ns = &section["external.".len()..];
+                if externals.last().is_none_or(|e| e.namespace != ns) {
+                    externals.push(External { namespace: ns.to_string(), ids: Vec::new() });
+                }
+                if let Some((key, _)) = line.split_once('=')
+                    && let Some(e) = externals.last_mut()
+                {
+                    e.ids.push((key.trim().to_string(), parse_string_array(line)));
                 }
             }
             _ if section.starts_with("run.") => {
@@ -272,6 +296,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         mod_dependencies,
         dev_dependencies,
         run_configs,
+        externals,
         id,
     })
 }
