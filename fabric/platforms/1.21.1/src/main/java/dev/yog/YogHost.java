@@ -1,8 +1,8 @@
 package dev.yog;
 
+import dev.yog.data.YogContent;
 import dev.yog.block.YogConnectingLogic;
 import dev.yog.util.YogInventoryDef;
-import dev.yog.util.YogProps;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.FloatArgumentType;
@@ -85,7 +85,7 @@ public class YogHost implements ModInitializer {
     public static ExtendedScreenHandlerType<YogInventoryMenu, String> INVENTORY_SCREEN_HANDLER_TYPE;
 
     private static void parseInventoryDefs() {
-        INVENTORY_DEFS.putAll(YogInventoryDef.parseAll(NativeBridge.nativeInventoryDefs()));
+        INVENTORY_DEFS.putAll(YogContent.read(NativeBridge.nativeContent()).inventories);
     }
 
     @Override
@@ -410,50 +410,41 @@ public class YogHost implements ModInitializer {
         // under the same Identifier (that used to silently collide in Registries.ITEM
         // and show up as a duplicate, unplaceable ghost entry in the creative tab).
         Set<String> blockIds = new HashSet<>();
-        String blocksRaw = NativeBridge.nativeBlockDefs();
-        if (blocksRaw != null) {
-            for (String line : blocksRaw.split("\n")) {
-                if (line.isBlank()) continue;
-                blockIds.add(line.split("\t", 2)[0]);
-            }
-        }
+        YogContent content = YogContent.read(NativeBridge.nativeContent());
+        for (YogContent.Block b : content.blocks) blockIds.add(b.id());
         Map<String, String> blockItemNames = new HashMap<>();
         Map<String, String> blockItemTooltips = new HashMap<>();
 
-        String items = NativeBridge.nativeItemDefs();
-        if (items != null) {
-            for (String line : items.split("\n")) {
-                if (line.isBlank()) continue;
-                String id = line.split("\t", 2)[0];
+        {
+            for (YogContent.Item p : content.items) {
+                String id = p.id();
                 Identifier ident = Identifier.tryParse(id);
                 if (ident == null) continue;
 
-                Map<String, String> p = YogProps.parse(line);
-
                 if (blockIds.contains(id)) {
-                    blockItemNames.put(id, p.getOrDefault("name", ""));
-                    blockItemTooltips.put(id, p.getOrDefault("tooltip", ""));
+                    blockItemNames.put(id, p.name());
+                    blockItemTooltips.put(id, p.tooltip());
                     continue;
                 }
 
                 Item.Settings settings = new Item.Settings();
 
-                int maxDamage = YogProps.parseInt(p, "max_damage", 0);
+                int maxDamage = p.maxDamage();
                 if (maxDamage > 0) {
                     settings = settings.maxDamage(maxDamage);
                 } else {
-                    settings = settings.maxCount(YogProps.parseInt(p, "max_stack", 64));
+                    settings = settings.maxCount(p.maxStack());
                 }
 
-                if ("1".equals(p.get("fire_resistant"))) settings = settings.fireproof();
+                if (p.fireResistant()) settings = settings.fireproof();
 
-                if (p.containsKey("food")) {
-                    String[] fp = p.get("food").split(":", 3);
-                    if (fp.length >= 2) {
+                if (p.food() != null) {
+                    YogContent.Food fp = p.food();
+                    if (fp != null) {
                         FoodComponent.Builder fb = new FoodComponent.Builder()
-                                .nutrition(Integer.parseInt(fp[0]))
-                                .saturationModifier(Float.parseFloat(fp[1]));
-                    if ("1".equals(fp.length > 2 ? fp[2] : "0")) fb = fb.alwaysEdible();
+                                .nutrition(fp.nutrition())
+                                .saturationModifier(fp.saturation());
+                    if (fp.alwaysEdible()) fb = fb.alwaysEdible();
                     FoodComponent food = fb.build();
                         settings = settings.food(food);
                     }
@@ -464,75 +455,71 @@ public class YogHost implements ModInitializer {
                 Item item;
                 if (bookJson != null && !bookJson.equals("null")) {
                     item = new YogBookItem(settings,
-                            p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""), id);
+                            p.name(), p.tooltip(), id);
                 } else {
                     item = new YogItem(settings,
-                            p.getOrDefault("name", ""), p.getOrDefault("tooltip", ""));
+                            p.name(), p.tooltip());
                 }
                 Registry.register(Registries.ITEM, ident, item);
                 tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(item);
 
-                int fuelTicks = YogProps.parseInt(p, "fuel_ticks", 0);
+                int fuelTicks = p.fuelTicks();
                 if (fuelTicks > 0) FuelRegistry.INSTANCE.add(item, fuelTicks);
             }
         }
 
-        String blocks = blocksRaw;
-        if (blocks != null) {
-            for (String line : blocks.split("\n")) {
-                if (line.isBlank()) continue;
-                String id = line.split("\t", 2)[0];
+        {
+            for (YogContent.Block p : content.blocks) {
+                String id = p.id();
                 Identifier ident = Identifier.tryParse(id);
                 if (ident == null) continue;
-
-                Map<String, String> p = YogProps.parse(line);
-                float hardness   = YogProps.parseFloat(p, "hardness",   1.5f);
-                float resistance = YogProps.parseFloat(p, "resistance",  6.0f);
+                float hardness   = p.hardness();
+                float resistance = p.resistance();
 
                 AbstractBlock.Settings settings = AbstractBlock.Settings.create()
                         .strength(hardness, resistance);
 
-                if (p.containsKey("light")) {
-                    int lv = YogProps.parseInt(p, "light", 0);
+                if (p.light() > 0) {
+                    int lv = p.light();
                     settings = settings.luminance(state -> lv);
                 }
-                if (p.containsKey("sound")) {
-                    settings = settings.sounds(blockSoundGroup(p.get("sound")));
+                if (p.sound() != null) {
+                    settings = settings.sounds(blockSoundGroup(p.sound()));
                 }
-                if ("1".equals(p.get("requires_tool"))) settings = settings.requiresTool();
-                if ("1".equals(p.get("no_collision")))  settings = settings.noCollision();
-                if (p.containsKey("slipperiness")) {
-                    settings = settings.slipperiness(YogProps.parseFloat(p, "slipperiness", 0.6f));
+                if (p.requiresTool()) settings = settings.requiresTool();
+                if (p.noCollision())  settings = settings.noCollision();
+                if (p.slipperiness() > 0) {
+                    settings = settings.slipperiness(p.slipperiness());
                 }
 
                 Block block;
-                if (p.containsKey("inventory_id")) {
-                    YogInventoryDef def = INVENTORY_DEFS.get(p.get("inventory_id"));
+                if (p.inventory() != null) {
+                    YogInventoryDef def = INVENTORY_DEFS.get(p.inventory());
                     int slotCount = def != null ? def.slotCount : 0;
-                    block = new YogInventoryBlock(settings, p.get("inventory_id"), slotCount);
+                    block = new YogInventoryBlock(settings, p.inventory(), slotCount);
                     inventoryBlocks.add(block);
-                } else if ("1".equals(p.get("redstone"))) {
+                } else if (p.redstone()) {
                     block = new YogRedstoneBlock(settings);
-                } else if ("1".equals(p.get("connects"))) {
+                } else if (p.connects()) {
                     double[] core = {6, 0, 6, 10, 16, 10};
-                    if (p.containsKey("shape")) {
-                        String[] sp = p.get("shape").split(":", 6);
-                        for (int i = 0; i < 6; i++) core[i] = Double.parseDouble(sp[i]);
+                    if (p.shape() != null) {
+                        float[] sp = p.shape();
+                        for (int i = 0; i < 6; i++) core[i] = sp[i];
                     }
                     block = new YogConnectingBlock(settings, core[0], core[1], core[2], core[3], core[4], core[5]);
-                } else if (p.containsKey("shape")) {
-                    String[] sp = p.get("shape").split(":", 6);
+                } else if (p.shape() != null) {
+                    float[] sp = p.shape();
                     block = new YogShapedBlock(settings,
-                            Double.parseDouble(sp[0]), Double.parseDouble(sp[1]),
-                            Double.parseDouble(sp[2]), Double.parseDouble(sp[3]),
-                            Double.parseDouble(sp[4]), Double.parseDouble(sp[5]));
+                            sp[0], sp[1],
+                            sp[2], sp[3],
+                            sp[4], sp[5]);
                 } else {
                     block = new Block(settings);
                 }
 
                 Registry.register(Registries.BLOCK, ident, block);
-                if (p.containsKey("connect_groups")) {
-                    YogConnectingLogic.registerGroups(block, p.get("connect_groups").split(","));
+                if (!p.connectGroups().isEmpty()) {
+                    YogConnectingLogic.registerGroups(block, p.connectGroups().toArray(new String[0]));
                 }
                 Item blockItem = new YogBlockItem(block, new Item.Settings(),
                         blockItemNames.getOrDefault(id, ""),

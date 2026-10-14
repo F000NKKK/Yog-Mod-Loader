@@ -1,13 +1,14 @@
 package dev.yog.util;
 
+import dev.yog.data.YogContent;
+import dev.yog.data.YogData;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Runtime-side mirror of {@code yog_inventory::InventoryDef} — parsed from
- * {@code NativeBridge.nativeInventoryDefs()} and shared by every host's block
+ * Runtime-side mirror of {@code yog_inventory::InventoryDef} — read from
+ * the runtime's content blob ({@code YogContent}) and shared by every host's block
  * entity, menu and screen (see rust/crates/yog-inventory/DESIGN.md).
  */
 public final class YogInventoryDef {
@@ -42,47 +43,22 @@ public final class YogInventoryDef {
         this.backgroundH = backgroundH;
     }
 
-    /** Parse the runtime's {@code id\tkey=value...} lines, keyed by id. {@code null} → empty. */
-    public static Map<String, YogInventoryDef> parseAll(String raw) {
-        Map<String, YogInventoryDef> defs = new HashMap<>();
-        if (raw == null) return defs;
-        for (String line : raw.split("\n")) {
-            if (line.isBlank()) continue;
-            String id = line.split("\t", 2)[0];
-            Map<String, String> p = YogProps.parse(line);
-            int slotCount = YogProps.parseInt(p, "slot_count", 0);
-            List<float[]> layout = new ArrayList<>();
-            List<String[]> accepts = new ArrayList<>();
-            String layoutRaw = p.getOrDefault("layout", "");
-            if (!layoutRaw.isEmpty()) {
-                // "x:y" or "x:y:id|#tag|..." per slot.
-                for (String entry : layoutRaw.split(",")) {
-                    String[] parts = entry.split(":", 3);
-                    float[] xy = parts.length >= 2 ? parsePair(parts[0] + ":" + parts[1]) : null;
-                    if (xy == null) continue;
-                    layout.add(xy);
-                    accepts.add(parts.length == 3 && !parts[2].isEmpty() ? parts[2].split("\\|") : new String[0]);
-                }
-            }
-            boolean includePlayerInv = !"0".equals(p.get("include_player_inventory"));
-            float[] playerInv = parsePair(p.getOrDefault("player_inv", ""));
-            if (playerInv == null) playerInv = new float[]{DEFAULT_PLAYER_INV_X, DEFAULT_PLAYER_INV_Y};
-            float[] bgSize = parsePair(p.getOrDefault("background_size", ""));
-            if (bgSize == null) bgSize = new float[]{0f, 0f};
-            defs.put(id, new YogInventoryDef(id, slotCount, layout, accepts, includePlayerInv, playerInv[0], playerInv[1],
-                    p.getOrDefault("background_texture", ""), p.getOrDefault("title", ""), bgSize[0], bgSize[1]));
+    /** One inventory of the runtime's content blob (see {@code dev.yog.data.YogContent}). */
+    public static YogInventoryDef fromData(Map<String, Object> m) {
+        List<float[]> layout = new ArrayList<>();
+        List<String[]> accepts = new ArrayList<>();
+        for (Object o : YogData.list(m.get("slots"))) {
+            Map<String, Object> slot = YogData.map(o);
+            layout.add(YogContent.floats(slot.get("at")));
+            List<Object> acc = YogData.list(slot.get("accepts"));
+            String[] a = new String[acc.size()];
+            for (int i = 0; i < a.length; i++) a[i] = YogData.str(acc.get(i), "");
+            accepts.add(a);
         }
-        return defs;
-    }
-
-    /** {@code "x:y"} → {@code {x, y}}, or {@code null} if malformed. */
-    private static float[] parsePair(String s) {
-        String[] xy = s.split(":", 2);
-        if (xy.length != 2) return null;
-        try {
-            return new float[]{Float.parseFloat(xy[0]), Float.parseFloat(xy[1])};
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        float[] playerInv = m.get("player_inv") != null ? YogContent.floats(m.get("player_inv")) : new float[]{DEFAULT_PLAYER_INV_X, DEFAULT_PLAYER_INV_Y};
+        float[] bg = m.get("background_size") != null ? YogContent.floats(m.get("background_size")) : new float[]{0f, 0f};
+        return new YogInventoryDef(YogData.str(m.get("id"), ""), (int) YogData.integer(m.get("slot_count"), 0), layout, accepts,
+                YogData.bool(m.get("include_player_inventory"), true), playerInv[0], playerInv[1],
+                YogData.str(m.get("background_texture"), ""), YogData.str(m.get("title"), ""), bg[0], bg[1]);
     }
 }

@@ -173,3 +173,50 @@ fn pre_phase_handlers_stop_at_the_first_no_and_skip_retired_mods() {
 fn tsv_values_cannot_break_lines() {
     assert_eq!(tsv_clean("a\tb\nc\rd"), "a b c d");
 }
+
+#[test]
+fn the_hosts_get_content_as_one_yog_data_blob() {
+    let h = registering(|ctx| unsafe {
+        let def = YogItemDef {
+            id: YogStr::from_str("mymod:apple"),
+            max_stack: 16,
+            name: YogStr::from_str("Apple"),
+            tooltip: YogStr::from_str(""),
+            max_damage: 0,
+            fire_resistant: false,
+            fuel_ticks: 200,
+            food_nutrition: 4,
+            food_saturation: 1.5,
+            food_always_eat: true,
+        };
+        api_register_item(ctx, &def);
+    });
+    let bytes = yog_data::binary::encode(&crate::content_blob::snapshot(&h.read().unwrap()));
+    let v = yog_data::binary::decode(&bytes).unwrap();
+    let item = &v.get("items").unwrap().as_list().unwrap()[0];
+    assert_eq!(item.get("id").and_then(|x| x.as_str()), Some("mymod:apple"));
+    assert_eq!(item.get("max_stack").and_then(|x| x.as_i64()), Some(16));
+    assert!(item.get("tooltip").is_none(), "an empty tooltip is no tooltip");
+    let food = item.get("food").unwrap();
+    assert_eq!((food.get("nutrition").and_then(|x| x.as_i64()), food.get("always_edible").and_then(|x| x.as_bool())), (Some(4), Some(true)));
+    assert_eq!(v.get("blocks").unwrap().as_list().unwrap().len(), 0);
+}
+
+/// For checking the Java reader by hand: `YOG_CONTENT_OUT=file cargo test -p yog-runtime write_a_content_blob`.
+#[test]
+fn write_a_content_blob() {
+    let Some(out) = std::env::var_os("YOG_CONTENT_OUT") else { return };
+    let mut h = RuntimeHandlers::default();
+    h.items.push(yog_registry::ItemDef::new("m:apple").max_stack(16).name("Apple").food(yog_registry::FoodDef::new(4, 1.5).can_always_eat()));
+    let mut b = yog_registry::BlockDef::new("m:pipe");
+    b.shape = Some([6.0, 6.0, 6.0, 10.0, 10.0, 10.0]);
+    b.connects = true;
+    b.connect_groups = vec!["m:pipe".into()];
+    b.inventory_id = Some("m:box".into());
+    b.sound = Some("metal".into());
+    h.blocks.push(b);
+    let mut inv = yog_inventory::InventoryDef::new("m:box", 2);
+    inv.title = "Box".into();
+    h.inventories.push(inv);
+    std::fs::write(out, yog_data::binary::encode(&crate::content_blob::snapshot(&h))).unwrap();
+}

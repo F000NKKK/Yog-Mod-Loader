@@ -4192,147 +4192,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
+/// Everything the host registers — items, blocks, inventories — as one
+/// Yog Data blob (see `content_blob`).
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeItemDefs<'l>(
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeContent<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
-) -> jstring {
-    let s = handlers()
-        .items
-        .iter()
-        .map(|d| {
-            let mut parts = vec![d.id.clone()];
-            parts.push(format!("max_stack={}", d.max_stack));
-            if let Some(n) = &d.name {
-                parts.push(format!("name={n}"));
-            }
-            if let Some(t) = &d.tooltip {
-                parts.push(format!("tooltip={t}"));
-            }
-            if d.max_damage > 0 {
-                parts.push(format!("max_damage={}", d.max_damage));
-            }
-            if d.fire_resistant {
-                parts.push("fire_resistant=1".into());
-            }
-            if d.fuel_ticks > 0 {
-                parts.push(format!("fuel_ticks={}", d.fuel_ticks));
-            }
-            if let Some(f) = &d.food {
-                parts.push(format!(
-                    "food={}:{}:{}",
-                    f.nutrition,
-                    f.saturation,
-                    if f.can_always_eat { 1 } else { 0 }
-                ));
-            }
-            parts.join("\t")
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    env.new_string(s)
-        .map(jni::objects::JString::into_raw)
-        .unwrap_or(std::ptr::null_mut())
-}
-
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeBlockDefs<'l>(
-    env: JNIEnv<'l>,
-    _class: JClass<'l>,
-) -> jstring {
-    let s = handlers()
-        .blocks
-        .iter()
-        .map(|d| {
-            let mut parts = vec![d.id.clone()];
-            parts.push(format!("hardness={}", d.hardness));
-            parts.push(format!("resistance={}", d.resistance));
-            if let Some(n) = &d.name {
-                parts.push(format!("name={n}"));
-            }
-            if let Some(sh) = d.shape {
-                parts.push(format!(
-                    "shape={}:{}:{}:{}:{}:{}",
-                    sh[0], sh[1], sh[2], sh[3], sh[4], sh[5]
-                ));
-            }
-            if d.light_level > 0 {
-                parts.push(format!("light={}", d.light_level));
-            }
-            if let Some(snd) = &d.sound {
-                parts.push(format!("sound={snd}"));
-            }
-            if d.requires_tool {
-                parts.push("requires_tool=1".into());
-            }
-            if d.no_collision {
-                parts.push("no_collision=1".into());
-            }
-            if d.slipperiness > 0.0 {
-                parts.push(format!("slipperiness={}", d.slipperiness));
-            }
-            if d.connects {
-                parts.push("connects=1".into());
-            }
-            if !d.connect_groups.is_empty() {
-                parts.push(format!("connect_groups={}", d.connect_groups.join(",")));
-            }
-            if let Some(inv) = &d.inventory_id {
-                parts.push(format!("inventory_id={inv}"));
-            }
-            if d.redstone_source {
-                parts.push("redstone=1".into());
-            }
-            parts.join("\t")
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    env.new_string(s)
-        .map(jni::objects::JString::into_raw)
-        .unwrap_or(std::ptr::null_mut())
-}
-
-/// Tab/newline-encoded inventory defs — one line per registered
-/// `InventoryDef` (see `yog_inventory`): `id\tslot_count=N\tlayout=x:y,...
-/// \tinclude_player_inventory=0|1\tplayer_inv=x:y\tbackground_texture=...\ttitle=...`
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeInventoryDefs<'l>(
-    env: JNIEnv<'l>,
-    _class: JClass<'l>,
-) -> jstring {
-    let s = handlers()
-        .inventories
-        .iter()
-        .map(|d| {
-            let mut parts = vec![d.id.clone()];
-            parts.push(format!("slot_count={}", d.slot_count));
-            parts.push(format!(
-                "layout={}",
-                yog_inventory::encode_layout(&d.resolved_layout())
-            ));
-            parts.push(format!(
-                "include_player_inventory={}",
-                d.include_player_inventory as u8
-            ));
-            parts.push(format!(
-                "player_inv={}:{}",
-                d.player_inv_offset.0, d.player_inv_offset.1
-            ));
-            if let Some(tex) = &d.background_texture {
-                parts.push(format!("background_texture={tex}"));
-            }
-            if !d.title.is_empty() {
-                parts.push(format!("title={}", d.title));
-            }
-            if let Some((w, h)) = d.background_size {
-                parts.push(format!("background_size={w}:{h}"));
-            }
-            parts.join("\t")
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    env.new_string(s)
-        .map(jni::objects::JString::into_raw)
+) -> jni::sys::jbyteArray {
+    let bytes = yog_data::binary::encode(&content_blob::snapshot(&handlers()));
+    env.byte_array_from_slice(&bytes)
+        .map(|a| a.into_raw())
         .unwrap_or(std::ptr::null_mut())
 }
 
@@ -5317,6 +5186,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
 }
 
 mod client_api;
+mod content_blob;
 mod control_socket;
 mod images;
 mod svg;

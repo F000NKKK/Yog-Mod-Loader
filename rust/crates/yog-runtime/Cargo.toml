@@ -27,6 +27,8 @@ yog-book   = "0.63"
 yog-gfx    = "0.25.3"
 yog-inventory = "0.14.1"
 yog-hot-reload = "0.2.2"
+# The content blob the hosts read (`content_blob`).
+yog-data = "0.3"
 
 serde_json.workspace = true
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.

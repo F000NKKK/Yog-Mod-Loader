@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.data.YogContent;
 import static dev.yog.util.YogProps.flag01;
 import static dev.yog.util.YogProps.tsvField;
 
@@ -1545,14 +1546,10 @@ public final class NativeBridge {
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source, String uuid, String dimension);
 
-    /** Declared custom items as `id\tmax_stack` lines. */
-    public static native String nativeItemDefs();
+    /** Everything registered — items, blocks, inventories — as one Yog Data blob ({@code YogContent}). */
+    public static native byte[] nativeContent();
 
-    /** Declared custom blocks as `id\thardness\tresistance` lines. */
-    public static native String nativeBlockDefs();
 
-    /** Declared inventory-backed screens (yog-inventory) — see DESIGN.md. */
-    public static native String nativeInventoryDefs();
 
     // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
 

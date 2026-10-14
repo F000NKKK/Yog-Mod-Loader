@@ -1671,6 +1671,7 @@ dependencies = [
  "yog-abi",
  "yog-api",
  "yog-book",
+ "yog-data",
  "yog-gfx",
  "yog-hot-reload",
  "yog-inventory",

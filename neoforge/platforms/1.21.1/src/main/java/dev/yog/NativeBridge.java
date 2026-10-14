@@ -1430,11 +1430,10 @@ public final class NativeBridge {
     public static native boolean nativeIsUIActive(String uiId);
     public static native String nativeMenuEntries();
     public static native String nativeOnCommand(String name, String args, String source, String uuid, String dimension);
-    public static native String nativeItemDefs();
-    public static native String nativeBlockDefs();
 
-    /** Declared inventory-backed screens (yog-inventory) — see DESIGN.md. */
-    public static native String nativeInventoryDefs();
+    /** Everything registered — items, blocks, inventories — as one Yog Data blob ({@code YogContent}). */
+    public static native byte[] nativeContent();
+
     public static native void nativeOnPacket(String channel, String player, byte[] payload);
     public static native void nativeOnClientPacket(String channel, byte[] payload);
     public static native String nativePacketChannels();
