@@ -33,7 +33,7 @@ public class YogPackProvider implements ResourcePackProvider {
     public void register(Consumer<ResourcePackProfile> adder) {
         Path dir;
         try {
-            dir = YogPackStager.stage(FabricLoader.getInstance().getGameDir(), MC121_LAYOUT, PACK_MCMETA,
+            dir = YogPackStager.stage(FabricLoader.getInstance().getGameDir(), "fabric", "1.20.1", MC121_LAYOUT, PACK_MCMETA,
                     NativeBridge::nativeRecipeJsons, NativeBridge::nativeDimensionJsons);
         } catch (IOException e) {
             System.err.println("[yog] failed to stage mod packs: " + e);

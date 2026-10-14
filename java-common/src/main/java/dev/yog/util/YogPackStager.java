@@ -42,6 +42,15 @@ public final class YogPackStager {
      * {@code <gameDir>/.yog-pack}, then add the mod-registered recipes and
      * dimensions. Returns {@code null} when there is no mods directory.
      *
+     * <p>A {@code .yog} may also carry files for one loader or Minecraft
+     * version only, under {@code when/<loader>/<version>/} ({@code any} for
+     * either): {@code when/any/1.21.1/data/…}, {@code when/fabric/1.20.1/data/…}.
+     * They're staged after the common ones, the more specific last. Tag
+     * files ({@code data/<ns>/tags/…}) from several mods or overlays are
+     * merged, not replaced.
+     *
+     * @param loader this host's loader: {@code fabric}, {@code forge}, {@code neoforge}
+     * @param mcVersion this host's Minecraft version ({@code 1.21.1})
      * @param mc121 Minecraft 1.21+ data layout: singular datapack dir
      *     names and the 1.21 recipe result format (1.20-format recipes are
      *     upgraded on the fly)
@@ -49,7 +58,7 @@ public final class YogPackStager {
      * @param recipeJsons {@code namespace\tname\tjson} lines from the runtime
      * @param dimensionJsons {@code id\tYogDimensionDef json} lines from the runtime
      */
-    public static synchronized Path stage(Path gameDir, boolean mc121, String packMcmeta,
+    public static synchronized Path stage(Path gameDir, String loader, String mcVersion, boolean mc121, String packMcmeta,
                                           Supplier<String> recipeJsons, Supplier<String> dimensionJsons)
             throws IOException {
         Path mods = gameDir.resolve(YogNativeRuntime.MODS_DIR);
@@ -70,30 +79,50 @@ public final class YogPackStager {
         }
         Files.createDirectories(out);
 
-        try (var listing = Files.newDirectoryStream(mods, "*.yog")) {
-            for (Path yog : listing) {
-                try (ZipFile zip = new ZipFile(yog.toFile())) {
-                    var entries = zip.entries();
-                    while (entries.hasMoreElements()) {
-                        ZipEntry e = entries.nextElement();
-                        String n = e.getName();
-                        if (e.isDirectory() || !(n.startsWith("assets/") || n.startsWith("data/"))) {
-                            continue;
-                        }
-                        // Accept both pre-1.21 plural and 1.21+ singular datapack dir names.
-                        n = YogDataLayout.remapDataPath(n, mc121);
-                        Path target = out.resolve(n).normalize();
-                        if (!target.startsWith(out)) {
-                            continue; // zip-slip guard
-                        }
-                        Files.createDirectories(target.getParent());
-                        try (InputStream in = zip.getInputStream(e)) {
-                            if (mc121 && YogDataLayout.isRecipePath(n)) {
-                                // 1.20-format recipe results don't parse on 1.21.
-                                String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-                                Files.writeString(target, YogDataLayout.upgradeRecipeJson(json));
-                            } else {
-                                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+        // The common files, then each overlay that applies, least specific first.
+        // A version directory is the whole version or a release line of it: `1.21` covers 1.21.x.
+        java.util.List<String> versions = new java.util.ArrayList<>(java.util.List.of("any"));
+        String[] parts = mcVersion.split("\\.");
+        for (int i = 2; i <= parts.length; i++) versions.add(String.join(".", java.util.Arrays.copyOf(parts, i)));
+        java.util.List<String> layers = new java.util.ArrayList<>(java.util.List.of(""));
+        for (String v : versions) {
+            layers.add("when/any/" + v + "/");
+            layers.add("when/" + loader + "/" + v + "/");
+        }
+        for (String layer : layers) {
+            try (var listing = Files.newDirectoryStream(mods, "*.yog")) {
+                for (Path yog : listing) {
+                    try (ZipFile zip = new ZipFile(yog.toFile())) {
+                        var entries = zip.entries();
+                        while (entries.hasMoreElements()) {
+                            ZipEntry e = entries.nextElement();
+                            String n = e.getName();
+                            if (e.isDirectory() || !n.startsWith(layer)) {
+                                continue;
+                            }
+                            n = n.substring(layer.length());
+                            if (!(n.startsWith("assets/") || n.startsWith("data/"))) {
+                                continue;
+                            }
+                            // Accept both pre-1.21 plural and 1.21+ singular datapack dir names.
+                            n = YogDataLayout.remapDataPath(n, mc121);
+                            Path target = out.resolve(n).normalize();
+                            if (!target.startsWith(out)) {
+                                continue; // zip-slip guard
+                            }
+                            Files.createDirectories(target.getParent());
+                            try (InputStream in = zip.getInputStream(e)) {
+                                if (mc121 && YogDataLayout.isRecipePath(n)) {
+                                    // 1.20-format recipe results don't parse on 1.21.
+                                    String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                                    Files.writeString(target, YogDataLayout.upgradeRecipeJson(json));
+                                } else if (isTagPath(n) && Files.exists(target)) {
+                                    // Several mods (or overlays) adding to one tag: all of them.
+                                    String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                                    Files.writeString(target, mergeTags(Files.readString(target), json));
+                                } else {
+                                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                                }
                             }
                         }
                     }
@@ -109,6 +138,30 @@ public final class YogPackStager {
 
         Files.writeString(out.resolve("pack.mcmeta"), packMcmeta);
         return out;
+    }
+
+    /** {@code data/<ns>/tags/…} — a tag file. */
+    static boolean isTagPath(String path) {
+        String[] p = path.split("/", 4);
+        return p.length == 4 && p[0].equals("data") && p[2].equals("tags");
+    }
+
+    /** Two tag files as one: the values of both (once each); {@code replace} if either says so. */
+    static String mergeTags(String a, String b) {
+        Gson gson = new Gson();
+        JsonObject x = gson.fromJson(a, JsonObject.class);
+        JsonObject y = gson.fromJson(b, JsonObject.class);
+        if (x == null) return b;
+        if (y == null) return a;
+        com.google.gson.JsonArray values = x.has("values") ? x.getAsJsonArray("values") : new com.google.gson.JsonArray();
+        if (y.has("values")) {
+            for (var v : y.getAsJsonArray("values")) {
+                if (!values.contains(v)) values.add(v);
+            }
+        }
+        x.add("values", values);
+        if (y.has("replace") && y.get("replace").getAsBoolean()) x.addProperty("replace", true);
+        return gson.toJson(x);
     }
 
     private static void injectRecipes(Path packRoot, String lines, boolean mc121) {

@@ -68,12 +68,12 @@ pub struct BlockTag(pub String);
 /// `pickaxe` → `minecraft:mineable/pickaxe`, or any `@tag:block:mymod:mineable/hammer`.
 pub struct ToolTag;
 
-/// `iron` → `minecraft:needs_iron_tool`, or any `@tag:block:mymod:needs_mythril_tool`.
-pub struct TierTag;
+/// A tool level: the game's by short name (`iron` = `@level:minecraft:iron`)
+/// or any `@level:…`.
+pub struct LevelRef;
 
 /// The game's tools and tiers, by short name.
 pub const TOOLS: [&str; 4] = ["pickaxe", "axe", "shovel", "hoe"];
-pub const TIERS: [&str; 3] = ["stone", "iron", "diamond"];
 
 fn block_tag(v: &Value, cx: &mut Reader, short: &[&str], full: fn(&str) -> String, what: &str) -> Option<BlockTag> {
     match v {
@@ -101,17 +101,24 @@ impl yog_data::with::With<BlockTag> for ToolTag {
     }
 }
 
-impl yog_data::with::With<BlockTag> for TierTag {
+impl yog_data::with::With<String> for LevelRef {
     fn shape() -> Shape {
-        Shape::Tag(&["block"])
+        Shape::Ref(&["level"])
     }
-    fn read(v: &Value, cx: &mut Reader) -> Option<BlockTag> {
-        block_tag(v, cx, &TIERS, |s| format!("minecraft:needs_{s}_tool"), "tier")
+    fn read(v: &Value, cx: &mut Reader) -> Option<String> {
+        match v {
+            Value::Str(s) if TOOL_LEVELS.contains(&s.as_str()) => Some(format!("minecraft:{s}")),
+            Value::Str(s) if !s.starts_with('@') => {
+                cx.problem(format!("`{s}`: one of {} — or a level of the tool ladder, `@level:mymod:…` (a .ydef)", TOOL_LEVELS.join(", ")));
+                None
+            }
+            _ => yog_data::with::RefTo::<LevelKind>::read(v, cx),
+        }
     }
-    fn write(f: &BlockTag) -> Value {
-        match f.0.strip_prefix("minecraft:needs_").and_then(|s| s.strip_suffix("_tool")) {
-            Some(s) if TIERS.contains(&s) => Value::from(s),
-            _ => Value::Tag(yog_data::Ref::new("block", f.0.clone())),
+    fn write(f: &String) -> Value {
+        match f.strip_prefix("minecraft:") {
+            Some(s) if TOOL_LEVELS.contains(&s) => Value::from(s),
+            _ => Value::Ref(yog_data::Ref::new("level", f.clone())),
         }
     }
 }
@@ -289,10 +296,10 @@ pub struct BlockProps {
     /// a mod's tool tag (`@tag:block:mymod:mineable/hammer`); one or a list.
     #[data(with = "OneOrMany<ToolTag>")]
     pub tool: Vec<BlockTag>,
-    /// The tool tier it needs: `stone`, `iron`, `diamond`, or a mod's tier
-    /// tag (`@tag:block:mymod:needs_mythril_tool`).
-    #[data(with = "Opt<TierTag>")]
-    pub tool_level: Option<BlockTag>,
+    /// The tool level it needs: `stone`, `iron`, `diamond`, `netherite`, or
+    /// any level of the tool ladder (`@level:mymod:mythril`, a `.ydef`).
+    #[data(with = "Opt<LevelRef>")]
+    pub tool_level: Option<String>,
     /// Drops nothing without the tool.
     #[data(default)]
     pub requires_tool: bool,
@@ -548,3 +555,33 @@ pub struct BlockFile {
     pub block: Option<BlockProps>,
     pub states: Option<States>,
 }
+
+yog_data::kind! {
+    LadderKind = "ladder",
+    LevelKind = "level",
+}
+
+/// A `.ydef`: an entry of some kind of definition, named by reference
+/// (`@<kind>:<id>`) everywhere else. Kinds: `ladder` (an ordered scale) and
+/// `level` (a step on one).
+#[derive(Schema, Debug, Clone)]
+#[data(tag = "kind")]
+pub enum Def {
+    /// An ordered scale — tool tiers (`minecraft:tool`, built in), a mod's
+    /// voltages, rarities, magic circles…
+    Ladder {
+        id: String,
+    },
+    /// A step on a ladder, just above another (the bottom if none).
+    Level {
+        id: String,
+        #[data(with = "RefTo<LadderKind>")]
+        ladder: String,
+        #[data(with = "Opt<RefTo<LevelKind>>")]
+        above: Option<String>,
+    },
+}
+
+/// The game's tool tiers: `@ladder:minecraft:tool`, bottom to top (gold mines like wood).
+pub const TOOL_LADDER: &str = "minecraft:tool";
+pub const TOOL_LEVELS: [&str; 5] = ["wood", "stone", "iron", "diamond", "netherite"];

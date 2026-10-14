@@ -56,6 +56,8 @@ pub enum Kind {
     Book,
     /// `.ylayout` — how books show a kind of recipe (`yog_book::layout`).
     Layout,
+    /// `.ydef` — a definition of some kind: a ladder, a level on one.
+    Def,
 }
 
 impl Kind {
@@ -66,6 +68,7 @@ impl Kind {
             "yrecipe" => Some(Kind::Recipe),
             "ybook" => Some(Kind::Book),
             "ylayout" => Some(Kind::Layout),
+            "ydef" => Some(Kind::Def),
             _ => None,
         }
     }
@@ -77,6 +80,7 @@ impl Kind {
             Kind::Recipe => "recipe",
             Kind::Book => "book",
             Kind::Layout => "layout",
+            Kind::Def => "definition",
         }
     }
 }
@@ -274,8 +278,9 @@ struct BlockProps {
     light: u8,
     /// The tool tags it joins (`minecraft:mineable/pickaxe`, a mod's own).
     tools: Vec<String>,
-    /// The tier tag it joins (`minecraft:needs_iron_tool`, a mod's own).
-    tool_level: Option<String>,
+    /// The tool level it needs (`minecraft:iron`, a mod's `.ydef` level) and
+    /// the line that says so.
+    tool_level: Option<(String, usize)>,
     requires_tool: bool,
     no_collision: bool,
     slipperiness: Option<f64>,
@@ -710,7 +715,7 @@ fn compile_file(
                 return None;
             }
         },
-        Kind::Recipe | Kind::Book | Kind::Layout => unreachable!("only blocks and items get here"),
+        Kind::Recipe | Kind::Book | Kind::Layout | Kind::Def => unreachable!("only blocks and items get here"),
     };
     // What it names (drops) is checked once every file is read.
     for f in &refs {
@@ -793,7 +798,7 @@ fn compile_file(
     props.sound = b.sound.as_ref().map(files::word);
     props.light = b.light.unwrap_or(0);
     props.tools = b.tool.iter().map(|t| t.0.clone()).collect();
-    props.tool_level = b.tool_level.as_ref().map(|t| t.0.clone());
+    props.tool_level = b.tool_level.clone().map(|l| (l, loc(&bat.key("tool_level"))));
     props.requires_tool = b.requires_tool;
     props.no_collision = b.collision == Some(false);
     props.slipperiness = b.slipperiness;
@@ -910,7 +915,8 @@ fn compile_file(
         out.outputs.push((full, pretty(&drops)));
     }
     // Tools and tiers are block tags: the block joins each.
-    for tag in entry.block.tools.iter().chain(&entry.block.tool_level) {
+    // (The tool level's tags come once every `.ydef` is read: `tool_level_tags`.)
+    for tag in &entry.block.tools {
         let (tns, tpath) = tag.split_once(':').unwrap_or(("minecraft", tag));
         out.tags.entry(format!("data/{tns}/tags/block/{tpath}.json")).or_default().insert(id.clone());
     }
@@ -1389,6 +1395,120 @@ fn compile_recipe(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Option<&str>, k
     })
 }
 
+/// Every ladder, its levels bottom to top: the game's tool ladder and the mod's `.ydef`s.
+struct Ladders {
+    order: BTreeMap<String, Vec<String>>,
+}
+
+impl Ladders {
+    /// A level's ladder and place on it.
+    fn level(&self, id: &str) -> Option<(&str, usize)> {
+        self.order.iter().find_map(|(l, levels)| levels.iter().position(|x| x == id).map(|i| (l.as_str(), i)))
+    }
+}
+
+/// Reads the `.ydef`s: ladders, and levels placed on them (`above`, in any order of files).
+fn ladders(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<String>) -> Ladders {
+    let mut order: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    order.insert(files::TOOL_LADDER.into(), files::TOOL_LEVELS.iter().map(|l| format!("minecraft:{l}")).collect());
+    let ns = mod_ns.unwrap_or("minecraft");
+    let full = |id: &str| if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") };
+    // (file, line, id, ladder, above)
+    let mut levels: Vec<(String, usize, String, String, Option<String>)> = Vec::new();
+    for (file, text) in defs {
+        let doc = match yog_data::text::parse(text) {
+            Ok(d) => d,
+            Err(e) => {
+                errors.push(format!("{file}:{}: {}", e.at.line, e.message));
+                continue;
+            }
+        };
+        match yog_data::schema::from_doc::<files::Def>(text, &doc) {
+            Ok(r) => match r.value {
+                files::Def::Ladder { id } => {
+                    if order.insert(full(&id), Vec::new()).is_some() {
+                        errors.push(format!("{file}:1: ladder {} is defined twice", full(&id)));
+                    }
+                }
+                files::Def::Level { id, ladder, above } => levels.push((file.clone(), doc.locate(text, &At::root().key("id")).line as usize, full(&id), ladder, above)),
+            },
+            Err(es) => {
+                for e in es.0 {
+                    let l = e.at.map_or(1, |a| a.line as usize);
+                    errors.push(if e.path.is_root() { format!("{file}:{l}: {}", e.message) } else { format!("{file}:{l}: {}: {}", e.path, e.message) });
+                }
+            }
+        }
+    }
+    // Place each level once what it's above is placed.
+    loop {
+        let before = levels.len();
+        levels.retain(|(file, line, id, ladder, above)| {
+            let Some(list) = order.get_mut(ladder) else {
+                errors.push(format!("{file}:{line}: level {id}: no ladder {ladder}"));
+                return false;
+            };
+            let at = match above {
+                None => 0,
+                Some(a) => match list.iter().position(|x| x == a) {
+                    Some(i) => i + 1,
+                    None => return true, // later
+                },
+            };
+            if list.contains(id) {
+                errors.push(format!("{file}:{line}: level {id} is defined twice"));
+            } else {
+                list.insert(at, id.clone());
+            }
+            false
+        });
+        if levels.is_empty() || levels.len() == before {
+            break;
+        }
+    }
+    for (file, line, id, ladder, above) in levels {
+        let above = above.unwrap_or_default();
+        errors.push(format!("{file}:{line}: level {id}: above {above}, which isn't a level of {ladder} (or the levels go round in a circle)"));
+    }
+    Ladders { order }
+}
+
+/// The tags that make block `id` need tool level `level`, on every version:
+/// the game's `needs_*_tool` where they say it, and — for a level above
+/// diamond — each version's own way (`incorrect_for_*_tool` on 1.21,
+/// Fabric's `needs_tool_level_N` and Forge's `needs_netherite_tool` on 1.20).
+fn tool_level_tags(id: &str, level: &str, ladders: &Ladders, out: &mut Compiled, err: &mut dyn FnMut(String), warn: &mut dyn FnMut(String)) {
+    let Some((ladder, at)) = ladders.level(level) else { return };
+    if ladder != files::TOOL_LADDER {
+        err(format!("{level} is a level of {ladder}, not of the tool ladder ({})", files::TOOL_LADDER));
+        return;
+    }
+    let tools = &ladders.order[files::TOOL_LADDER];
+    let place = |l: &str| tools.iter().position(|x| x == &format!("minecraft:{l}")).unwrap_or(0);
+    // The weakest of the game's tools that mines it.
+    let able = ["wood", "stone", "iron", "diamond", "netherite"].into_iter().find(|v| place(v) >= at);
+    let mut tag = |path: String| {
+        out.tags.entry(path).or_default().insert(id.to_string());
+    };
+    match able {
+        Some("wood") => {}
+        Some(v @ ("stone" | "iron" | "diamond")) => tag(format!("data/minecraft/tags/block/needs_{v}_tool.json")),
+        _ => {
+            // Above diamond: diamond's tag everywhere, then each version's own.
+            tag("data/minecraft/tags/block/needs_diamond_tool.json".into());
+            tag("when/any/1.21/data/minecraft/tags/block/incorrect_for_diamond_tool.json".into());
+            tag(format!("when/fabric/1.20/data/fabric/tags/block/needs_tool_level_{}.json", if able.is_some() { 4 } else { 5 }));
+            for loader in ["forge", "neoforge"] {
+                tag(format!("when/{loader}/1.20/data/forge/tags/block/needs_netherite_tool.json"));
+            }
+            if able.is_none() {
+                tag("when/any/1.21/data/minecraft/tags/block/incorrect_for_netherite_tool.json".into());
+                warn("above netherite: on Forge and NeoForge 1.20 a netherite tool still mines it (their tiers stop at netherite)".into());
+            }
+        }
+    }
+}
+
 /// Ids of the `.yui` screens under `dir` that lay out an inventory (have
 /// `<Slot>`s or a `<PlayerInventory>`).
 fn inventory_screens(dir: &Path) -> BTreeSet<String> {
@@ -1444,6 +1564,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut pending_books: Vec<(String, String)> = Vec::new();
     let mut pending_recipes: Vec<(String, String, PathBuf)> = Vec::new();
     let mut pending_layouts: Vec<(String, String)> = Vec::new();
+    let mut pending_defs: Vec<(String, String)> = Vec::new();
     let mut deferred: Vec<(String, usize, String, yog_data::Ref)> = Vec::new();
     for path in &files {
         let shown = display(root, path);
@@ -1467,6 +1588,10 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         }
         if kind == Kind::Layout {
             pending_layouts.push((shown.clone(), text));
+            continue;
+        }
+        if kind == Kind::Def {
+            pending_defs.push((shown.clone(), text));
             continue;
         }
         let mut cx = Ctx {
@@ -1519,12 +1644,25 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     for r in &recipes {
         known.add(refs::RefKind::Recipe, r.id.clone());
     }
-    // What blocks and items name (drops): known now.
+    // Definitions: the ladders and their levels.
+    let ladders = ladders(&pending_defs, mod_ns, &mut errors);
+    // What blocks and items name (drops, levels): known now.
     for (file, line, path, r) in &deferred {
-        if let Some(kind) = refs::RefKind::from_word(&r.kind)
-            && let Err(e) = known.check(kind, &r.id)
-        {
+        let found = match r.kind.as_str() {
+            "level" => ladders.level(&r.id).map(|_| ()).ok_or_else(|| format!("no level {} — the game's tool levels or a .ydef's", r.id)),
+            "ladder" => ladders.order.contains_key(&r.id).then_some(()).ok_or_else(|| format!("no ladder {}", r.id)),
+            kind => match refs::RefKind::from_word(kind) {
+                Some(k) => known.check(k, &r.id),
+                None => Ok(()),
+            },
+        };
+        if let Err(e) = found {
             errors.push(format!("{file}:{line}: {path}: {e}"));
+        }
+    }
+    for e in &entries {
+        if let Some((level, line)) = &e.block.tool_level {
+            tool_level_tags(&e.id, level, &ladders, &mut out, &mut |m| errors.push(format!("{}:{line}: block.tool_level: {m}", e.file)), &mut |m| warnings.push(format!("{}:{line}: block.tool_level: {m}", e.file)));
         }
     }
     // Recipe layouts: what they name checked; a kind laid out twice is a mistake.
@@ -1695,7 +1833,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile]) -> Str
             );
             let mut b = format!("::yog_api::{def}::new(Self::{upper})");
             match kind {
-                Kind::Recipe | Kind::Book | Kind::Layout => unreachable!("only blocks and items get here"),
+                Kind::Recipe | Kind::Book | Kind::Layout | Kind::Def => unreachable!("only blocks and items get here"),
                 Kind::Block => {
                     let p = &e.block;
                     if p.hardness.is_some() || p.resistance.is_some() {
@@ -1795,7 +1933,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile]) -> Str
         let _ = match e.kind {
             Kind::Block => writeln!(code, "    registry.register_block(Blocks::{ident}());"),
             Kind::Item => writeln!(code, "    registry.register_item(Items::{ident}());"),
-            Kind::Recipe | Kind::Book | Kind::Layout => unreachable!("only blocks and items get here"),
+            Kind::Recipe | Kind::Book | Kind::Layout | Kind::Def => unreachable!("only blocks and items get here"),
         };
     }
     for r in recipes {
@@ -2171,18 +2309,39 @@ mod tests {
     }
 
     #[test]
-    fn tools_and_tiers_are_tags_a_mod_can_add() {
+    fn tools_are_tags_and_levels_are_definitions_a_mod_can_add() {
         let cube = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
-        let block = format!(r#"{{ {cube}, block: {{ tool: ["pickaxe", "@tag:block:mymod:mineable/hammer"], tool_level: "@tag:block:mymod:needs_mythril_tool" }} }}"#);
-        let c = compile(&project(&[("content/ore.yblock", &block)]), "mymod", &yres::Refs::default()).unwrap();
-        for tag in ["data/minecraft/tags/block/mineable/pickaxe.json", "data/mymod/tags/block/mineable/hammer.json", "data/mymod/tags/block/needs_mythril_tool.json"] {
+        let mythril = r#"{ kind: "level", id: "mythril", ladder: "@ladder:minecraft:tool", above: "@level:minecraft:diamond" }"#;
+        let block = format!(r#"{{ {cube}, block: {{ tool: ["pickaxe", "@tag:block:mymod:mineable/hammer"], tool_level: "@level:mymod:mythril" }} }}"#);
+        let c = compile(&project(&[("content/ore.yblock", &block), ("content/mythril.ydef", mythril)]), "mymod", &yres::Refs::default()).unwrap();
+        for tag in [
+            "data/minecraft/tags/block/mineable/pickaxe.json",
+            "data/mymod/tags/block/mineable/hammer.json",
+            // Above diamond, on every version its own way.
+            "data/minecraft/tags/block/needs_diamond_tool.json",
+            "when/any/1.21/data/minecraft/tags/block/incorrect_for_diamond_tool.json",
+            "when/fabric/1.20/data/fabric/tags/block/needs_tool_level_4.json",
+            "when/forge/1.20/data/forge/tags/block/needs_netherite_tool.json",
+        ] {
             assert!(c.tags.get(tag).is_some_and(|ids| ids.contains("mymod:ore")), "{tag}: {:?}", c.tags);
         }
-        let bad = format!(r#"{{ {cube}, block: {{ tool: "hammer", drops: {{ item: "@item:mymod:nope" }} }} }}"#);
+        // The game's levels by name.
+        let iron = format!(r#"{{ {cube}, block: {{ tool: "pickaxe", tool_level: "iron" }} }}"#);
+        let c = compile(&project(&[("content/ore.yblock", &iron)]), "mymod", &yres::Refs::default()).unwrap();
+        assert!(c.tags["data/minecraft/tags/block/needs_iron_tool.json"].contains("mymod:ore"));
+        assert_eq!(c.tags.len(), 2);
+        // Mistakes.
+        let bad = format!(r#"{{ {cube}, block: {{ tool: "hammer", tool_level: "mythril" }} }}"#);
         let e = compile(&project(&[("content/ore.yblock", &bad)]), "mymod", &yres::Refs::default()).unwrap_err();
-        assert!(e.contains("block.tool: `hammer`: one of pickaxe, axe, shovel, hoe — or a tag of the mod's own tools, `@tag:block:mymod:…`"), "{e}");
-        let bad = format!(r#"{{ {cube}, block: {{ drops: {{ item: "@item:mymod:nope" }} }} }}"#);
-        let e = compile(&project(&[("content/ore.yblock", &bad)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("block.tool: `hammer`: one of pickaxe, axe, shovel, hoe — or a tag of the mod's own tools"), "{e}");
+        assert!(e.contains("block.tool_level: `mythril`: one of wood, stone, iron, diamond, netherite — or a level of the tool ladder"), "{e}");
+        let volts = r#"{ kind: "ladder", id: "voltage" }"#;
+        let lv = r#"{ kind: "level", id: "lv", ladder: "@ladder:mymod:voltage" }"#;
+        let loop_ = r#"{ kind: "level", id: "hv", ladder: "@ladder:mymod:voltage", above: "@level:mymod:nope" }"#;
+        let wrong = format!(r#"{{ {cube}, block: {{ tool_level: "@level:mymod:lv", drops: {{ item: "@item:mymod:nope" }} }} }}"#);
+        let e = compile(&project(&[("content/v.ydef", volts), ("content/lv.ydef", lv), ("content/hv.ydef", loop_), ("content/ore.yblock", &wrong)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("level mymod:hv: above mymod:nope, which isn't a level of mymod:voltage"), "{e}");
+        assert!(e.contains("block.tool_level: mymod:lv is a level of mymod:voltage, not of the tool ladder"), "{e}");
         assert!(e.contains("block.drops.item: no item mymod:nope in this mod"), "{e}");
     }
 
