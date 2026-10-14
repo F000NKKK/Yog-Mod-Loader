@@ -1,4 +1,5 @@
-//! What the hosts register — items (and which open a book), blocks, inventories, recipes,
+//! What the hosts register — items (and which open a book), blocks (with
+//! their sound groups whole), inventories, recipes,
 //! dimensions — as one Yog Data
 //! blob (`yog_data::binary`), read by `dev.yog.data.YogContent` in
 //! java-common: one call and one format instead of a TSV dialect per kind.
@@ -37,6 +38,22 @@ fn from_json(j: &serde_json::Value) -> Value {
 
 fn parsed(json: &str) -> Value {
     serde_json::from_str(json).map(|j| from_json(&j)).unwrap_or(Value::Null)
+}
+
+/// A block's sound group: a mod's by id, else the game's (`stone`, `minecraft:stone`).
+fn sound_group<'a>(h: &'a RuntimeHandlers, name: &str) -> Option<&'a yog_registry::SoundGroup> {
+    h.sound_groups.get(name).or_else(|| yog_registry::SoundGroup::built_in(name))
+}
+
+/// The whole group, so the host builds it without a list of its own.
+fn sound(g: &yog_registry::SoundGroup) -> Value {
+    let mut m = Map::new();
+    for (k, v) in [("break", &g.break_sound), ("step", &g.step), ("place", &g.place), ("hit", &g.hit), ("fall", &g.fall)] {
+        put(&mut m, k, v.as_str());
+    }
+    m.insert("volume", float(g.volume));
+    m.insert("pitch", float(g.pitch));
+    Value::Map(m)
 }
 
 /// The registered content: `{ items, blocks, inventories, recipes, dimensions }`.
@@ -85,7 +102,12 @@ pub fn snapshot(h: &RuntimeHandlers) -> Value {
             }
             put(&mut m, "light", d.light_level as i64);
             if let Some(s) = &d.sound {
-                put(&mut m, "sound", s.as_str());
+                match sound_group(h, s) {
+                    Some(g) => {
+                        m.insert("sound", sound(g));
+                    }
+                    None => yog_logging::warn!("block {}: no sound group {s} — the game's or a mod's", d.id),
+                }
             }
             put(&mut m, "requires_tool", d.requires_tool);
             put(&mut m, "no_collision", d.no_collision);

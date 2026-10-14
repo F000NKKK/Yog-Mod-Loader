@@ -323,7 +323,7 @@ pub use yog_network::{Packet, PacketEvent, PacketField};
 pub use yog_player::Player;
 pub use yog_registry::{
     BlockDef, Cooking, FoodDef, ItemDef, Recipe,
-    RecipeKind, StartupGrant,
+    RecipeKind, SoundGroup, StartupGrant,
 };
 pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_ui::{

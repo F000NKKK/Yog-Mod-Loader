@@ -119,7 +119,7 @@ type CommandEntry = (LoadedModule, Option<String>, *mut c_void, YogCommandFn);
 // registered it (see `current_registration()`), so a hot-reload's dispatch
 // sites can skip a retiring module's stale entries (`LoadedModule::
 // is_retiring()`) before they're physically swept by `RuntimeModuleRegistry
-// ::purge`. Content registries — `items`/`blocks`/`inventories`/`books`/
+// ::purge`. Content registries — `items`/`blocks`/`sound_groups`/`inventories`/`books`/
 // `recipes`/`dimensions`/`startup_grants`/`menu_entries` — are deliberately
 // NOT tagged: they're one-time definitions copied into Minecraft's own
 // registries at startup, not callbacks invoked later, and Minecraft itself
@@ -173,6 +173,8 @@ struct RuntimeHandlers {
     client_packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
     items: Vec<ItemDef>,
     blocks: Vec<BlockDef>,
+    /// Mods' sound groups by id; a block's `sound` is one of these or built in.
+    sound_groups: HashMap<String, yog_registry::SoundGroup>,
     inventories: Vec<yog_inventory::InventoryDef>,
     books: HashMap<String, String>,
     book_renderers: Mutex<HashMap<String, yog_book::BookRenderer>>,
@@ -2123,6 +2125,11 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
                 none_if_empty(&mut d.sound);
                 none_if_empty(&mut d.inventory_id);
                 h.blocks.push(d);
+            }
+        }
+        "sound_group" => {
+            if let Some(g) = read::<yog_registry::SoundGroup>(kind, &id, value) {
+                h.sound_groups.insert(g.id.clone(), g);
             }
         }
         "inventory" => {

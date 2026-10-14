@@ -1,18 +1,21 @@
-//! `.ydef` — definitions: an entry of some kind (`ladder`, `level`, …),
-//! named elsewhere by reference (`@<kind>:<id>`). No vocabulary is a
-//! closed list: the game's values are built-in definitions of the same kinds.
+//! `.ydef` — definitions: an entry of some kind (`ladder`, `level`,
+//! `sound_group`, …), named elsewhere by reference (`@<kind>:<id>`). No
+//! vocabulary is a closed list: the game's values are built-in definitions
+//! of the same kinds.
 
 use yog_data::Schema;
 use yog_data::with::{Opt, RefTo};
+pub use yog_registry::SoundGroup;
 
 yog_data::kind! {
     LadderKind = "ladder",
     LevelKind = "level",
+    SoundGroupKind = "sound_group",
 }
 
 /// A `.ydef`: an entry of some kind of definition, named by reference
-/// (`@<kind>:<id>`) everywhere else. Kinds: `ladder` (an ordered scale) and
-/// `level` (a step on one).
+/// (`@<kind>:<id>`) everywhere else. Kinds: `ladder` (an ordered scale),
+/// `level` (a step on one) and `sound_group` (what a block sounds like).
 #[derive(Schema, Debug, Clone)]
 #[data(tag = "kind")]
 pub enum Def {
@@ -27,6 +30,10 @@ pub enum Def {
         #[data(with = "Opt<RefTo<LevelKind>>")]
         above: Option<String>,
     },
+    /// What blocks naming it (`sound: "@sound_group:mymod:crystal"`) sound
+    /// like: five sound events and a volume and pitch. The game's groups
+    /// are built-in ones (`stone`, `amethyst`…).
+    SoundGroup(SoundGroup),
 }
 
 /// The game's tool tiers: `@ladder:minecraft:tool`, bottom to top (gold mines like wood).

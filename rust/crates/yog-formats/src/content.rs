@@ -6,7 +6,7 @@ use yog_data::kinds::Item;
 use yog_data::with::{Opt, RefTo};
 use yog_data::{Ordered, Reader, Res, Schema, Shape, Text, Value};
 
-use crate::def::{LevelKind, TOOL_LEVELS};
+use crate::def::{LevelKind, SoundGroupKind, TOOL_LEVELS};
 
 /// Registered by `yog_api::content!()` (`auto`), or by the mod's code.
 #[derive(Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -46,21 +46,6 @@ pub struct ItemProps {
     pub food: Option<Food>,
 }
 
-/// The sound groups the loaders map.
-#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Sound {
-    Stone,
-    Wood,
-    Grass,
-    Gravel,
-    Sand,
-    Snow,
-    Metal,
-    Glass,
-    Wool,
-    NetherBrick,
-}
-
 /// A block tag a block joins, as its full id. Tools and tool tiers are
 /// tags in Minecraft, so a mod's own are written like any other tag; the
 /// game's have short names.
@@ -69,6 +54,10 @@ pub struct BlockTag(pub String);
 
 /// `pickaxe` → `minecraft:mineable/pickaxe`, or any `@tag:block:mymod:mineable/hammer`.
 pub struct ToolTag;
+
+/// A sound group: the game's by short name (`stone`, `amethyst` =
+/// `@sound_group:minecraft:amethyst`) or any `@sound_group:…` (a `.ydef`).
+pub struct SoundRef;
 
 /// A tool level: the game's by short name (`iron` = `@level:minecraft:iron`)
 /// or any `@level:…`.
@@ -133,6 +122,30 @@ impl yog_data::with::With<String> for LevelRef {
         match f.strip_prefix("minecraft:") {
             Some(s) if TOOL_LEVELS.contains(&s) => Value::from(s),
             _ => Value::Ref(yog_data::Ref::new("level", f.clone())),
+        }
+    }
+}
+
+impl yog_data::with::With<String> for SoundRef {
+    fn shape() -> Shape {
+        Shape::Ref(&["sound_group"])
+    }
+    fn read(v: &Value, cx: &mut Reader) -> Option<String> {
+        match v {
+            Value::Str(s) if !s.starts_with('@') => match yog_registry::SoundGroup::built_in(s) {
+                Some(g) => Some(g.id.clone()),
+                None => {
+                    cx.problem(format!("`{s}`: not one of the game's sound groups (stone, wood, metal, amethyst…) — a mod's is `@sound_group:mymod:…` (a .ydef)"));
+                    None
+                }
+            },
+            _ => yog_data::with::RefTo::<SoundGroupKind>::read(v, cx),
+        }
+    }
+    fn write(f: &String) -> Value {
+        match f.strip_prefix("minecraft:") {
+            Some(s) if yog_registry::SoundGroup::built_in(s).is_some() => Value::from(s),
+            _ => Value::Ref(yog_data::Ref::new("sound_group", f.clone())),
         }
     }
 }
@@ -308,7 +321,10 @@ pub struct BlockProps {
     /// Against explosions.
     #[data(range = "0..=10000000")]
     pub resistance: Option<f64>,
-    pub sound: Option<Sound>,
+    /// How it sounds: one of the game's sound groups (`stone`, `wood`,
+    /// `metal`, `amethyst`, `copper`…) or a mod's (`@sound_group:mymod:crystal`, a `.ydef`).
+    #[data(with = "Opt<SoundRef>")]
+    pub sound: Option<String>,
     /// Light it gives off, 0–15.
     #[data(range = "0..=15")]
     pub light: Option<u8>,

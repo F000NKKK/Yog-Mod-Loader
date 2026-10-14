@@ -1,8 +1,9 @@
 # Yog Data: one language for every format — audit and plan
 
-Status: P0, P1 and P2 done (2026-10-14) — every source format is read
-through Yog Data schemas (`yog-formats`, `yog-book`); P3 (ABI 2.0) next. The project has no backward compatibility: every format and
-API below is replaced, not deprecated.
+Status: P0–P3 done (2026-10-14) — every source format is read through Yog
+Data schemas (`yog-formats`, `yog-book`), and content crosses ABI 2.0 as
+Yog Data blobs; P4 (audit) under way. The project has no backward
+compatibility: every format and API below is replaced, not deprecated.
 
 The goal, in the user's words: analyse every format and make one universal
 language, the way Minecraft has NBT and Office has ODF; check and clean the
@@ -209,10 +210,33 @@ game's group names *or* the mod's own group (`break`, `step`, `place`, `hit`,
 which each host builds as a `SoundType`; tools and tiers are already open
 (block tags).
 
+*P3 done:* mods register every kind of content with one call,
+`register_content(kind, id, data)` — the definition's Yog Data, read by
+its schema in the runtime (`ItemDef`, `BlockDef`, `InventoryDef`,
+`StartupGrant`, `SoundGroup`; books, recipes and dimensions too). The
+hosts get everything back as one blob (`nativeContent()`, read by
+`dev.yog.data.YogContent` in java-common): items (and whether they open a
+book), blocks with their sound group whole, inventories, recipes,
+dimensions. The TSV exports, `nativeRecipeJsons`/`nativeDimensionJsons`,
+`nativeBookJson` and the per-kind C structs are gone. Sound groups are
+open: `.ydef` `kind: "sound_group"` (or `Registry::register_sound_group`)
+declares one; the game's 113 groups (Minecraft 1.21.1's `SoundType`) are
+built-in data of the same format (`yog-registry/assets/sound_groups.ydata`),
+named by short name (`sound: "amethyst"`). A host builds a `SoundType` from
+the five sound event ids — the registered event, else one made by id — so
+no host holds a list of groups.
+
 **P4 — audit and cleanup** of every crate, Yog-IDLE and Substrate: dead
 code, duplication (Yog text in Java, recipe conversion), the generic
 book page drawn by mod code (replacing the Hex-specific pattern page),
 performance where the benches point.
+
+*P4 so far:* the export scanner of `yog publish exports` reads items with
+`syn` (braces in strings and comments no longer cut an item short);
+`LoadedModule::enter` is lock-free (28.7 → 19.7 ns); yog-ui's rich text
+tokenizes lazily and measures without allocating — a book's text wraps in
+2.56 ms instead of 7.3, a spread draws in 4.8 µs instead of 13.4; the
+workspace is clippy-clean. Left: the generic book page drawn by mod code.
 
 ## 4. Decisions (2026-10-14)
 

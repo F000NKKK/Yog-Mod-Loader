@@ -20,9 +20,15 @@ public final class YogContent {
     public record Item(String id, int maxStack, String name, String tooltip, int maxDamage,
                        boolean fireResistant, int fuelTicks, Food food, boolean book) {}
 
+    /**
+     * A sound group, whole — the game's or a mod's: sound event ids the host
+     * looks up (or makes) by id, so it needs no list of groups of its own.
+     */
+    public record Sound(String breakSound, String step, String place, String hit, String fall, float volume, float pitch) {}
+
     /** A block; {@code shape} ({@code x1, y1, z1, x2, y2, z2} in pixels), {@code sound} and {@code inventory} are null when not set. */
     public record Block(String id, float hardness, float resistance, String name, float[] shape, int light,
-                        String sound, boolean requiresTool, boolean noCollision, float slipperiness,
+                        Sound sound, boolean requiresTool, boolean noCollision, float slipperiness,
                         boolean connects, List<String> connectGroups, String inventory, boolean redstone) {}
 
     /** A recipe in Yog's own format, as JSON (what {@code YogDataLayout.yogRecipeToVanilla} reads). */
@@ -77,7 +83,7 @@ public final class YogContent {
             for (Object g : YogData.list(m.get("connect_groups"))) groups.add(YogData.str(g, ""));
             blocks.add(new Block(YogData.str(m.get("id"), ""), (float) YogData.number(m.get("hardness"), 1.5),
                     (float) YogData.number(m.get("resistance"), 6.0), YogData.str(m.get("name"), ""), shape,
-                    (int) YogData.integer(m.get("light"), 0), YogData.str(m.get("sound"), null),
+                    (int) YogData.integer(m.get("light"), 0), sound(m.get("sound")),
                     YogData.bool(m.get("requires_tool"), false), YogData.bool(m.get("no_collision"), false),
                     (float) YogData.number(m.get("slipperiness"), 0), YogData.bool(m.get("connects"), false), groups,
                     YogData.str(m.get("inventory"), null), YogData.bool(m.get("redstone"), false)));
@@ -98,6 +104,14 @@ public final class YogContent {
             dimensions.add(new Dimension(YogData.str(m.get("id"), ""), YogData.toJson(m.get("def"))));
         }
         return new YogContent(items, blocks, inventories, recipes, dimensions);
+    }
+
+    private static Sound sound(Object v) {
+        if (v == null) return null;
+        Map<String, Object> m = YogData.map(v);
+        return new Sound(YogData.str(m.get("break"), ""), YogData.str(m.get("step"), ""), YogData.str(m.get("place"), ""),
+                YogData.str(m.get("hit"), ""), YogData.str(m.get("fall"), ""),
+                (float) YogData.number(m.get("volume"), 1), (float) YogData.number(m.get("pitch"), 1));
     }
 
     /** A list of numbers as floats. */

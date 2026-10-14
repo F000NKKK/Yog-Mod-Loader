@@ -117,19 +117,6 @@ pub const DISPLAY_SLOTS: [&str; 8] = [
     "ground",
     "fixed",
 ];
-/// The sound groups the loaders map (`BlockDef::sound`).
-pub const SOUNDS: [&str; 10] = [
-    "stone",
-    "wood",
-    "grass",
-    "gravel",
-    "sand",
-    "snow",
-    "metal",
-    "glass",
-    "wool",
-    "nether_brick",
-];
 pub const RENDER_LAYERS: [&str; 4] = ["solid", "cutout", "cutout_mipped", "translucent"];
 pub const RECIPE_TYPES: [&str; 8] =
     ["shaped", "shapeless", "smelting", "blasting", "smoking", "campfire_cooking", "stonecutting", "smithing"];
@@ -1393,21 +1380,25 @@ fn compile_recipe(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Option<&str>, k
     })
 }
 
-/// Every ladder, its levels bottom to top: the game's tool ladder and the mod's `.ydef`s.
-struct Ladders {
+/// What the `.ydef`s define: every ladder, its levels bottom to top (the
+/// game's tool ladder and the mod's), and the mod's sound groups.
+struct Defs {
     order: BTreeMap<String, Vec<String>>,
+    sound_groups: Vec<yog_formats::def::SoundGroup>,
 }
 
-impl Ladders {
+impl Defs {
     /// A level's ladder and place on it.
     fn level(&self, id: &str) -> Option<(&str, usize)> {
         self.order.iter().find_map(|(l, levels)| levels.iter().position(|x| x == id).map(|i| (l.as_str(), i)))
     }
 }
 
-/// Reads the `.ydef`s: ladders, and levels placed on them (`above`, in any order of files).
-fn ladders(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<String>) -> Ladders {
+/// Reads the `.ydef`s: ladders, levels placed on them (`above`, in any
+/// order of files) and sound groups.
+fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<String>) -> Defs {
     let mut order: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut sound_groups: Vec<yog_formats::def::SoundGroup> = Vec::new();
     order.insert(yog_formats::def::TOOL_LADDER.into(), yog_formats::def::TOOL_LEVELS.iter().map(|l| format!("minecraft:{l}")).collect());
     let ns = mod_ns.unwrap_or("minecraft");
     let full = |id: &str| if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") };
@@ -1429,6 +1420,19 @@ fn ladders(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<Str
                     }
                 }
                 yog_formats::def::Def::Level { id, ladder, above } => levels.push((file.clone(), doc.locate(text, &At::root().key("id")).line as usize, full(&id), ladder, above)),
+                yog_formats::def::Def::SoundGroup(mut g) => {
+                    // Short ids — the group's and its sounds' — are the mod's.
+                    for s in [&mut g.id, &mut g.break_sound, &mut g.step, &mut g.place, &mut g.hit, &mut g.fall] {
+                        *s = full(s);
+                    }
+                    if yog_formats::def::SoundGroup::built_in(&g.id).is_some() {
+                        errors.push(format!("{file}:1: sound group {} is the game's", g.id));
+                    } else if sound_groups.iter().any(|x| x.id == g.id) {
+                        errors.push(format!("{file}:1: sound group {} is defined twice", g.id));
+                    } else {
+                        sound_groups.push(g);
+                    }
+                }
             },
             Err(es) => {
                 for e in es.0 {
@@ -1468,14 +1472,14 @@ fn ladders(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<Str
         let above = above.unwrap_or_default();
         errors.push(format!("{file}:{line}: level {id}: above {above}, which isn't a level of {ladder} (or the levels go round in a circle)"));
     }
-    Ladders { order }
+    Defs { order, sound_groups }
 }
 
 /// The tags that make block `id` need tool level `level`, on every version:
 /// the game's `needs_*_tool` where they say it, and — for a level above
 /// diamond — each version's own way (`incorrect_for_*_tool` on 1.21,
 /// Fabric's `needs_tool_level_N` and Forge's `needs_netherite_tool` on 1.20).
-fn tool_level_tags(id: &str, level: &str, ladders: &Ladders, out: &mut Compiled, err: &mut dyn FnMut(String), warn: &mut dyn FnMut(String)) {
+fn tool_level_tags(id: &str, level: &str, ladders: &Defs, out: &mut Compiled, err: &mut dyn FnMut(String), warn: &mut dyn FnMut(String)) {
     let Some((ladder, at)) = ladders.level(level) else { return };
     if ladder != yog_formats::def::TOOL_LADDER {
         err(format!("{level} is a level of {ladder}, not of the tool ladder ({})", yog_formats::def::TOOL_LADDER));
@@ -1642,13 +1646,16 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     for r in &recipes {
         known.add(refs::RefKind::Recipe, r.id.clone());
     }
-    // Definitions: the ladders and their levels.
-    let ladders = ladders(&pending_defs, mod_ns, &mut errors);
+    // Definitions: the ladders and their levels, sound groups.
+    let defs = read_defs(&pending_defs, mod_ns, &mut errors);
     // What blocks and items name (drops, levels): known now.
     for (file, line, path, r) in &deferred {
         let found = match r.kind.as_str() {
-            "level" => ladders.level(&r.id).map(|_| ()).ok_or_else(|| format!("no level {} — the game's tool levels or a .ydef's", r.id)),
-            "ladder" => ladders.order.contains_key(&r.id).then_some(()).ok_or_else(|| format!("no ladder {}", r.id)),
+            "level" => defs.level(&r.id).map(|_| ()).ok_or_else(|| format!("no level {} — the game's tool levels or a .ydef's", r.id)),
+            "ladder" => defs.order.contains_key(&r.id).then_some(()).ok_or_else(|| format!("no ladder {}", r.id)),
+            "sound_group" => (defs.sound_groups.iter().any(|g| g.id == r.id) || yog_formats::def::SoundGroup::built_in(&r.id).is_some())
+                .then_some(())
+                .ok_or_else(|| format!("no sound group {} — the game's or a .ydef's", r.id)),
             kind => match refs::RefKind::from_word(kind) {
                 Some(k) => known.check(k, &r.id),
                 None => Ok(()),
@@ -1660,7 +1667,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     for e in &entries {
         if let Some((level, line)) = &e.block.tool_level {
-            tool_level_tags(&e.id, level, &ladders, &mut out, &mut |m| errors.push(format!("{}:{line}: block.tool_level: {m}", e.file)), &mut |m| warnings.push(format!("{}:{line}: block.tool_level: {m}", e.file)));
+            tool_level_tags(&e.id, level, &defs, &mut out, &mut |m| errors.push(format!("{}:{line}: block.tool_level: {m}", e.file)), &mut |m| warnings.push(format!("{}:{line}: block.tool_level: {m}", e.file)));
         }
     }
     // Recipe layouts: what they name checked; a kind laid out twice is a mistake.
@@ -1736,7 +1743,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     out.items = entries.len() - out.blocks;
     out.recipes = recipes.len();
     out.books = books.len();
-    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty())
+    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !defs.sound_groups.is_empty())
         && !mentions_content_macro(&root.join("src"))
     {
         out.warnings.push(format!(
@@ -1744,7 +1751,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             CONTENT_DIR
         ));
     }
-    out.source = Some(rust_source(&entries, &recipes, &books));
+    out.source = Some(rust_source(&entries, &recipes, &books, &defs.sound_groups));
     Ok(out)
 }
 
@@ -1791,7 +1798,7 @@ fn float(n: f64) -> String {
     }
 }
 
-fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile]) -> String {
+fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], sound_groups: &[yog_formats::def::SoundGroup]) -> String {
     let mut code = String::from(
         "// <auto-generated>\n//     Generated by `yog build` from content/**/*.yblock and *.yitem — don't edit,\n//     it's rewritten on every build. Included by `yog_api::content!()`.\n// </auto-generated>\n",
     );
@@ -1934,6 +1941,20 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile]) -> Str
             Kind::Recipe | Kind::Book | Kind::Layout | Kind::Def => unreachable!("only blocks and items get here"),
         };
     }
+    for g in sound_groups {
+        let _ = writeln!(
+            code,
+            "    registry.register_sound_group(::yog_api::SoundGroup::new({:?}).sounds({:?}, {:?}, {:?}, {:?}, {:?}).volume({}).pitch({}));",
+            g.id,
+            g.break_sound,
+            g.step,
+            g.place,
+            g.hit,
+            g.fall,
+            float(g.volume as f64),
+            float(g.pitch as f64)
+        );
+    }
     for r in recipes {
         let _ = writeln!(code, "    {}", r.registration());
     }
@@ -1941,7 +1962,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile]) -> Str
         let _ = writeln!(code, "    registry.register_book_json({:?}, {:?});", b.id, b.json);
     }
     code.push_str("}\n");
-    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() {
+    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !sound_groups.is_empty() {
         code.push_str(
             "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",
         );
@@ -2304,6 +2325,25 @@ mod tests {
         assert!(src.contains(".connects_to_neighbors()"), "{src}");
         assert!(src.contains(".connect_groups(&[\"mymod:pipe\"])"), "{src}");
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn sound_groups_are_the_games_or_a_mods_ydef() {
+        let cube = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+        let crystal = r#"{ kind: "sound_group", id: "crystal", break: "crystal.break", step: "minecraft:block.glass.step",
+  place: "crystal.place", hit: "crystal.hit", fall: "crystal.fall", pitch: 1.5 }"#;
+        let a = format!(r#"{{ {cube}, block: {{ sound: "@sound_group:mymod:crystal" }} }}"#);
+        let b = format!(r#"{{ {cube}, block: {{ sound: "amethyst" }} }}"#);
+        let c = compile(&project(&[("content/a.yblock", &a), ("content/b.yblock", &b), ("content/crystal.ydef", crystal)]), "mymod", &yres::Refs::default()).unwrap();
+        let src = c.source.unwrap();
+        assert!(src.contains(r#"registry.register_sound_group(::yog_api::SoundGroup::new("mymod:crystal").sounds("mymod:crystal.break", "minecraft:block.glass.step", "mymod:crystal.place", "mymod:crystal.hit", "mymod:crystal.fall").volume(1.0).pitch(1.5));"#), "{src}");
+        assert!(src.contains(r#".sound("mymod:crystal")"#) && src.contains(r#".sound("minecraft:amethyst")"#), "{src}");
+
+        let bad = format!(r#"{{ {cube}, block: {{ sound: "crystal" }} }}"#);
+        let missing = format!(r#"{{ {cube}, block: {{ sound: "@sound_group:mymod:nope" }} }}"#);
+        let e = compile(&project(&[("content/a.yblock", &bad), ("content/b.yblock", &missing)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("`crystal`: not one of the game's sound groups"), "{e}");
+        assert!(e.contains("no sound group mymod:nope"), "{e}");
     }
 
     #[test]

@@ -213,6 +213,23 @@ fn the_hosts_get_content_as_one_yog_data_blob() {
     assert_eq!(v.get("blocks").unwrap().as_list().unwrap().len(), 0);
 }
 
+#[test]
+fn a_blocks_sound_group_arrives_whole() {
+    let h = registering(|ctx| unsafe {
+        content(ctx, "sound_group", "mymod:crystal", &yog_registry::SoundGroup::new("mymod:crystal").pitch(1.2).write());
+        for (id, sound) in [("mymod:a", "mymod:crystal"), ("mymod:b", "amethyst"), ("mymod:c", "mymod:nope")] {
+            content(ctx, "block", id, &yog_registry::BlockDef::new(id).sound(sound).write());
+        }
+    });
+    let v = crate::content_blob::snapshot(&h.read().unwrap());
+    let blocks = v.get("blocks").unwrap().as_list().unwrap();
+    let sound = |i: usize, k: &str| blocks[i].get("sound").and_then(|s| s.get(k)).cloned();
+    assert_eq!(sound(0, "break").as_ref().and_then(|x| x.as_str()), Some("mymod:crystal.break"));
+    assert_eq!(sound(0, "pitch").and_then(|x| x.as_f64()).map(|p| (p * 10.0).round()), Some(12.0));
+    assert_eq!(sound(1, "step").as_ref().and_then(|x| x.as_str()), Some("minecraft:block.amethyst_block.step"));
+    assert!(blocks[2].get("sound").is_none(), "an unknown group is left to the default");
+}
+
 /// For checking the Java reader by hand: `YOG_CONTENT_OUT=file cargo test -p yog-runtime write_a_content_blob`.
 #[test]
 fn write_a_content_blob() {
@@ -227,6 +244,10 @@ fn write_a_content_blob() {
     b.connect_groups = vec!["m:pipe".into()];
     b.inventory_id = Some("m:box".into());
     b.sound = Some("metal".into());
+    h.sound_groups.insert("m:crystal".into(), yog_registry::SoundGroup::new("m:crystal"));
+    let mut c = yog_registry::BlockDef::new("m:crystal");
+    c.sound = Some("m:crystal".into());
+    h.blocks.push(c);
     h.blocks.push(b);
     let mut inv = yog_inventory::InventoryDef::new("m:box", 2);
     inv.title = "Box".into();

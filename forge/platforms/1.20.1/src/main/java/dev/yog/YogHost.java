@@ -32,6 +32,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -617,23 +618,17 @@ public class YogHost {
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
+    /** A sound group from its sound event ids: the registered events, else made by id (a mod's, or one this version lacks). */
+    private static SoundType soundType(YogContent.Sound s) {
+        return new SoundType(s.volume(), s.pitch(), soundEvent(s.breakSound()), soundEvent(s.step()),
+                soundEvent(s.place()), soundEvent(s.hit()), soundEvent(s.fall()));
+    }
 
-    
-    
-    
-    private static SoundType soundType(String name) {
-        return switch (name) {
-            case "wood" -> SoundType.WOOD;
-            case "grass" -> SoundType.GRASS;
-            case "gravel" -> SoundType.GRAVEL;
-            case "snow" -> SoundType.SNOW;
-            case "sand" -> SoundType.SAND;
-            case "metal" -> SoundType.METAL;
-            case "glass" -> SoundType.GLASS;
-            case "wool" -> SoundType.WOOL;
-            case "nether_brick" -> SoundType.NETHER_BRICKS;
-            default -> SoundType.STONE;
-        };
+    private static SoundEvent soundEvent(String id) {
+        ResourceLocation rl = ResourceLocation.tryParse(id);
+        if (rl == null) rl = ResourceLocation.tryParse("minecraft:intentionally_empty");
+        SoundEvent e = BuiltInRegistries.SOUND_EVENT.get(rl);
+        return e != null ? e : SoundEvent.createVariableRangeEvent(rl);
     }
 
     // ── Brigadier command builder (same shape as the Fabric host) ────────────

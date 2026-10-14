@@ -32,6 +32,7 @@ import net.minecraft.item.ItemConvertible;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.registry.Registry;
 import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
@@ -540,22 +541,17 @@ public class YogHost implements ModInitializer {
             Registry.register(Registries.ITEM_GROUP, new Identifier(ns, ns), group);
         }
     }
+    /** A sound group from its sound event ids: the registered events, else made by id (a mod's, or one this version lacks). */
+    private static BlockSoundGroup blockSoundGroup(YogContent.Sound s) {
+        return new BlockSoundGroup(s.volume(), s.pitch(), soundEvent(s.breakSound()), soundEvent(s.step()),
+                soundEvent(s.place()), soundEvent(s.hit()), soundEvent(s.fall()));
+    }
 
-    
-    
-    private static BlockSoundGroup blockSoundGroup(String name) {
-        return switch (name) {
-            case "wood"         -> BlockSoundGroup.WOOD;
-            case "grass"        -> BlockSoundGroup.GRASS;
-            case "gravel"       -> BlockSoundGroup.GRAVEL;
-            case "sand"         -> BlockSoundGroup.SAND;
-            case "snow"         -> BlockSoundGroup.SNOW;
-            case "metal"        -> BlockSoundGroup.METAL;
-            case "glass"        -> BlockSoundGroup.GLASS;
-            case "wool"         -> BlockSoundGroup.WOOL;
-            case "nether_brick" -> BlockSoundGroup.NETHER_BRICKS;
-            default             -> BlockSoundGroup.STONE;
-        };
+    private static SoundEvent soundEvent(String id) {
+        Identifier i = Identifier.tryParse(id);
+        if (i == null) i = Identifier.tryParse("minecraft:intentionally_empty");
+        SoundEvent e = Registries.SOUND_EVENT.get(i);
+        return e != null ? e : SoundEvent.of(i);
     }
 
     /**

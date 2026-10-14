@@ -17,7 +17,7 @@ impl Blocks {
     pub fn glass() -> ::yog_api::BlockDef {
         ::yog_api::BlockDef::new(Self::GLASS)
             .strength(0.3, 6.0)
-            .sound("glass")
+            .sound("minecraft:glass")
     }
     /// `gm:ore` — `content/ore.yblock`.
     pub const ORE: &'static str = "gm:ore";
@@ -25,7 +25,7 @@ impl Blocks {
     pub fn ore() -> ::yog_api::BlockDef {
         ::yog_api::BlockDef::new(Self::ORE)
             .strength(3.0, 3.0)
-            .sound("stone")
+            .sound("minecraft:stone")
             .light_level(4)
             .requires_tool()
     }

@@ -32,7 +32,7 @@ use yog_event::{
 };
 use yog_gfx::GfxContext;
 use yog_network::{Packet, PacketEvent};
-use yog_registry::{BlockDef, ItemDef, Recipe, StartupGrant};
+use yog_registry::{BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant};
 
 // ── CServer — implements Server via the YogServer function table ──────────────
 
@@ -2117,6 +2117,13 @@ impl Registry {
     pub fn register_block(&mut self, def: BlockDef) {
         use yog_data::Schema;
         self.content("block", &def.id.clone(), &def.write());
+    }
+
+    /// Register a sound group — what blocks naming it (`BlockDef::sound`)
+    /// sound like. The game's groups are built in.
+    pub fn register_sound_group(&mut self, group: SoundGroup) {
+        use yog_data::Schema;
+        self.content("sound_group", &group.id.clone(), &group.write());
     }
 
     /// Register a real Container/Menu inventory screen — see
