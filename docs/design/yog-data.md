@@ -179,11 +179,8 @@ code, duplication (Yog text in Java, recipe conversion), the generic
 book page drawn by mod code (replacing the Hex-specific pattern page),
 performance where the benches point.
 
-## 4. Decisions to make
+## 4. Decisions (2026-10-14)
 
-1. Text syntax: JSON-compatible strings for typed values (proposed), or
-   Yog Data's own literals (`item:minecraft:stick` unquoted) — terser, but
-   no longer JSON.
-2. `yog.toml`: keep TOML (Cargo's convention) or make it a Yog Data file
-   too (`yog.ymod`), so one parser and one schema system cover everything.
-3. ABI 2.0 in one step (all content as binary blobs) or kind by kind.
+1. Typed values are JSON strings (`"@item:minecraft:stick"`): every file stays JSON.
+2. `yog.toml` becomes a Yog Data file too — one parser, one schema system.
+3. ABI 2.0 ships once, at the end of P3; inside, content kinds move over one at a time.
