@@ -1,0 +1,13 @@
+{
+  "type": "shaped",
+  "pattern": [
+    "RR",
+    "RR"
+  ],
+  "key": {
+    "R": "gm:ruby"
+  },
+  "result": "minecraft:redstone_block",
+  "group": "blocks",
+  "category": "building"
+}

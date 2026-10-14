@@ -1,0 +1,30 @@
+{
+  "id": "b",
+  "categories": [
+    {
+      "id": "c",
+      "name": "C"
+    }
+  ],
+  "entries": [
+    {
+      "id": "e",
+      "name": "E",
+      "category": "c",
+      "pages": [
+        {
+          "type": "spotlight",
+          "item": "minecraft:stick"
+        },
+        {
+          "type": "entity",
+          "entity": "@entity:minecraft:nope"
+        },
+        {
+          "type": "spotlight",
+          "item": "@item:minecraft:short_grass"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "type": "smelting",
+  "ingredient": "minecraft:redstone_ore",
+  "result": "gm:ruby",
+  "experience": 0.7
+}

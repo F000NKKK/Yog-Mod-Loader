@@ -1,0 +1,8 @@
+{
+  "ruby": "Ruby",
+  "ruby.desc": {
+    "value": "Shiny and {b|red}",
+    "comment": "tooltip"
+  },
+  "apple": "Golden Apple"
+}

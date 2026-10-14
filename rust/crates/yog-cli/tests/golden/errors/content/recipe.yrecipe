@@ -1,0 +1,10 @@
+{
+  "type": "shaped",
+  "pattern": [
+    "AB"
+  ],
+  "key": {
+    "A": "minecraft:stick"
+  },
+  "result": "gm:missing"
+}

@@ -1,0 +1,58 @@
+{
+  "id": "guide",
+  "name": "@Book.title",
+  "version": 1,
+  "landing_text": "@Book.landing",
+  "accent": "#aa2233",
+  "categories": [
+    {
+      "id": "gm:basics",
+      "name": "Basics",
+      "icon": "@item:gm:ruby"
+    }
+  ],
+  "entries": [
+    {
+      "id": "gm:ruby",
+      "name": "@item:gm:ruby",
+      "category": "@category:gm:basics",
+      "icon": "minecraft:textures/item/emerald.png",
+      "pages": [
+        {
+          "type": "text",
+          "text": "@Book.intro"
+        },
+        {
+          "type": "spotlight",
+          "item": "@item:gm:ruby"
+        },
+        {
+          "type": "recipe",
+          "recipe": "@recipe:gm:ruby"
+        },
+        {
+          "type": "entity",
+          "entity": "@entity:minecraft:allay",
+          "name": "@entity:minecraft:allay"
+        },
+        {
+          "type": "multiblock",
+          "pattern": [
+            [
+              "F"
+            ]
+          ],
+          "mapping": {
+            "F": "@block:minecraft:furnace[facing=north]"
+          }
+        },
+        {
+          "type": "relations",
+          "entries": [
+            "@entry:gm:ruby"
+          ]
+        }
+      ]
+    }
+  ]
+}

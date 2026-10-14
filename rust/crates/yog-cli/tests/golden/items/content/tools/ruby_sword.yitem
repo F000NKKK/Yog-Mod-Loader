@@ -1,0 +1,13 @@
+{
+  "name": "Ruby Sword",
+  "item": {
+    "durability": 500,
+    "fire_resistant": true
+  },
+  "model": {
+    "parent": "handheld",
+    "textures": {
+      "layer0": "minecraft:item/diamond_sword"
+    }
+  }
+}

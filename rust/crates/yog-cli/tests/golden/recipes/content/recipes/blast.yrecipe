@@ -1,0 +1,6 @@
+{
+  "type": "blasting",
+  "ingredient": "#c:ores",
+  "result": "gm:ruby",
+  "cook_time": 50
+}

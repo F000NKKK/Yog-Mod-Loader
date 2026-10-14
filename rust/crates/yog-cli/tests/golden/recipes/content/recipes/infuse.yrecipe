@@ -1,0 +1,20 @@
+{
+  "type": "gm:infusion",
+  "slots": {
+    "core": [
+      "minecraft:diamond"
+    ],
+    "ring": [
+      [
+        "minecraft:gold_ingot",
+        "minecraft:iron_ingot"
+      ],
+      "#c:gems"
+    ]
+  },
+  "values": {
+    "time": 200,
+    "energy": 1.5
+  },
+  "result": "gm:ruby"
+}

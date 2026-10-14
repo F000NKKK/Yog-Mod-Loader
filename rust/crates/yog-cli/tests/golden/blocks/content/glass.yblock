@@ -1,0 +1,15 @@
+{
+  "name": "Clear Glass",
+  "block": {
+    "hardness": 0.3,
+    "render_layer": "cutout",
+    "drops": "none",
+    "sound": "glass"
+  },
+  "model": {
+    "parent": "cube_all",
+    "textures": {
+      "all": "minecraft:block/glass"
+    }
+  }
+}

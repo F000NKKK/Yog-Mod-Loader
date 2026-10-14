@@ -1,0 +1,17 @@
+{
+  "name": "@Items.apple",
+  "item": {
+    "food": {
+      "nutrition": 4,
+      "saturation": 1.2,
+      "always_edible": true
+    },
+    "fuel_ticks": 200
+  },
+  "model": {
+    "parent": "generated",
+    "textures": {
+      "layer0": "minecraft:item/apple"
+    }
+  }
+}
