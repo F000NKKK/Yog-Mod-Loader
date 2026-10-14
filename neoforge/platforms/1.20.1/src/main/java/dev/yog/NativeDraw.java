@@ -243,4 +243,82 @@ public final class NativeDraw {
             return 0;
         }
     }
+
+    // ── Dynamic textures, resource text, entities ─────────────────────────────
+
+    /** A text resource (an `.svg`) as UTF-8, or "" when it's missing. */
+    public static String readResourceText(String id) {
+        ResourceLocation ident = ResourceLocation.tryParse(id);
+        if (ident == null) return "";
+        var res = Minecraft.getInstance().getResourceManager().getResource(ident);
+        if (res.isEmpty()) return "";
+        try (java.io.InputStream in = res.get().open()) {
+            return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            return "";
+        }
+    }
+
+    /** Registers (or replaces) the texture {@code id} made of {@code w}×{@code h} RGBA pixels. */
+    public static boolean registerTexture(String id, int w, int h, byte[] rgba) {
+        ResourceLocation ident = ResourceLocation.tryParse(id);
+        if (ident == null || w <= 0 || h <= 0 || rgba.length < w * h * 4) return false;
+        com.mojang.blaze3d.platform.NativeImage img = new com.mojang.blaze3d.platform.NativeImage(w, h, false);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int i = (y * w + x) * 4;
+                int abgr = (rgba[i + 3] & 0xFF) << 24 | (rgba[i + 2] & 0xFF) << 16 | (rgba[i + 1] & 0xFF) << 8 | (rgba[i] & 0xFF);
+                img.setPixelRGBA(x, y, abgr);
+            }
+        }
+        Minecraft.getInstance().getTextureManager()
+                .register(ident, new net.minecraft.client.renderer.texture.DynamicTexture(img));
+        return true;
+    }
+
+    /** Lets go of a texture {@link #registerTexture} made. */
+    public static void releaseTexture(String id) {
+        ResourceLocation ident = ResourceLocation.tryParse(id);
+        if (ident != null) Minecraft.getInstance().getTextureManager().release(ident);
+    }
+
+    /** One entity per type, made once, to draw. */
+    private static final java.util.Map<String, net.minecraft.world.entity.LivingEntity> PREVIEWS = new java.util.HashMap<>();
+
+    static net.minecraft.world.entity.LivingEntity preview(String type) {
+        var level = Minecraft.getInstance().level;
+        if (level == null) return null;
+        var cached = PREVIEWS.get(type);
+        if (cached != null && cached.level() == level) return cached;
+        ResourceLocation ident = ResourceLocation.tryParse(type);
+        if (ident == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(ident)) return null;
+        var made = BuiltInRegistries.ENTITY_TYPE.get(ident).create(level);
+        if (!(made instanceof net.minecraft.world.entity.LivingEntity living)) return null;
+        PREVIEWS.put(type, living);
+        return living;
+    }
+
+    /**
+     * A living entity of type {@code type} standing in (x, y, w, h) GUI
+     * pixels, as big as fits, turned {@code yaw} degrees (0 = facing the
+     * viewer) and tilted {@code pitch}.
+     */
+    public static void drawEntity(String type, float x, float y, float w, float h, float yaw, float pitch) {
+        GuiGraphics ctx = hudDrawContext;
+        if (ctx == null) return;
+        var e = preview(type);
+        if (e == null) return;
+        float size = Math.min(h / Math.max(e.getBbHeight(), 0.1f), w / Math.max(e.getBbWidth() * 1.4f, 0.1f)) * 0.9f;
+        e.yBodyRot = 180f + yaw;
+        e.setYRot(180f + yaw);
+        e.yHeadRot = 180f + yaw;
+        e.yHeadRotO = 180f + yaw;
+        e.setXRot(0f);
+        syncGlState();
+        org.joml.Quaternionf pose = new org.joml.Quaternionf().rotateZ((float) Math.PI);
+        pose.mul(new org.joml.Quaternionf().rotateX(pitch * (float) (Math.PI / 180.0)));
+        float cx = x + w / 2f;
+        net.minecraft.client.gui.screens.inventory.InventoryScreen.renderEntityInInventory(
+                ctx, (int) cx, (int) (y + h / 2f + e.getBbHeight() * size / 2f), (int) size, pose, null, e);
+    }
 }

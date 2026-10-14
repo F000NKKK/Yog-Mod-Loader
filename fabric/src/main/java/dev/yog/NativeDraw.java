@@ -259,4 +259,78 @@ public final class NativeDraw {
             return 0;
         }
     }
+
+    // ── Dynamic textures, resource text, entities ─────────────────────────────
+
+    /** A text resource (an `.svg`) as UTF-8, or "" when it's missing. */
+    public static String readResourceText(String id) {
+        Identifier ident = Identifier.tryParse(id);
+        if (ident == null) return "";
+        var res = MinecraftClient.getInstance().getResourceManager().getResource(ident);
+        if (res.isEmpty()) return "";
+        try (java.io.InputStream in = res.get().getInputStream()) {
+            return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            return "";
+        }
+    }
+
+    /** Registers (or replaces) the texture {@code id} made of {@code w}×{@code h} RGBA pixels. */
+    public static boolean registerTexture(String id, int w, int h, byte[] rgba) {
+        Identifier ident = Identifier.tryParse(id);
+        if (ident == null || w <= 0 || h <= 0 || rgba.length < w * h * 4) return false;
+        net.minecraft.client.texture.NativeImage img = new net.minecraft.client.texture.NativeImage(w, h, false);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int i = (y * w + x) * 4;
+                int abgr = (rgba[i + 3] & 0xFF) << 24 | (rgba[i + 2] & 0xFF) << 16 | (rgba[i + 1] & 0xFF) << 8 | (rgba[i] & 0xFF);
+                img.setColor(x, y, abgr);
+            }
+        }
+        MinecraftClient.getInstance().getTextureManager()
+                .registerTexture(ident, new net.minecraft.client.texture.NativeImageBackedTexture(img));
+        return true;
+    }
+
+    /** Lets go of a texture {@link #registerTexture} made. */
+    public static void releaseTexture(String id) {
+        Identifier ident = Identifier.tryParse(id);
+        if (ident != null) MinecraftClient.getInstance().getTextureManager().destroyTexture(ident);
+    }
+
+    /** One entity per type, made once, to draw. */
+    private static final java.util.Map<String, net.minecraft.entity.LivingEntity> PREVIEWS = new java.util.HashMap<>();
+
+    static net.minecraft.entity.LivingEntity preview(String type) {
+        var world = MinecraftClient.getInstance().world;
+        if (world == null) return null;
+        var cached = PREVIEWS.get(type);
+        if (cached != null && cached.getWorld() == world) return cached;
+        Identifier ident = Identifier.tryParse(type);
+        if (ident == null || !Registries.ENTITY_TYPE.containsId(ident)) return null;
+        var made = Registries.ENTITY_TYPE.get(ident).create(world);
+        if (!(made instanceof net.minecraft.entity.LivingEntity living)) return null;
+        PREVIEWS.put(type, living);
+        return living;
+    }
+
+    /**
+     * A living entity of type {@code type} standing in (x, y, w, h) GUI
+     * pixels, as big as fits, turned {@code yaw} degrees (0 = facing the
+     * viewer) and tilted {@code pitch}.
+     */
+    public static void drawEntity(String type, float x, float y, float w, float h, float yaw, float pitch) {
+        DrawContext ctx = hudDrawContext;
+        if (ctx == null) return;
+        var e = preview(type);
+        if (e == null) return;
+        float size = Math.min(h / Math.max(e.getHeight(), 0.1f), w / Math.max(e.getWidth() * 1.4f, 0.1f)) * 0.9f;
+        e.bodyYaw = 180f + yaw;
+        e.setYaw(180f + yaw);
+        e.headYaw = 180f + yaw;
+        e.prevHeadYaw = 180f + yaw;
+        e.setPitch(0f);
+        syncGlState();
+        YogEntityPreview.draw(ctx, e, x + w / 2f, y, h, size, pitch);
+    }
 }

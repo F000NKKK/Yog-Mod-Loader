@@ -1,6 +1,6 @@
 [package]
 name = "yog-book"
-version = "0.60.3"
+version = "0.61.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -10,16 +10,8 @@ description = "In-game book/documentation framework for Yog mods (Patchouli-like
 [dependencies]
 yog-registry = { version = "0.28", features = ["serde"] }
 yog-ui  = "0.40"
-yog-gfx = "0.25"
+yog-gfx = "0.25.2"
 
 # Serialization (for runtime JSON parsing)
 serde.workspace      = true
 serde_json.workspace = true
-
-[features]
-default = []
-# Enable SVG rasterization: add resvg = "0.41" to Cargo.toml, then enable this feature.
-svg   = []
-# Enable custom font rendering: add fontdue = "0.8" to Cargo.toml, then enable this feature.
-fonts = []
-full  = ["svg", "fonts"]

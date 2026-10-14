@@ -1883,6 +1883,8 @@ static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
     text_width: gfx_text_width,
     draw2d_image: images::gfx_draw2d_image,
     image_size: images::gfx_image_size,
+    draw2d_svg: svg::gfx_draw2d_svg,
+    draw2d_entity: svg::gfx_draw2d_entity,
 };
 
 // ── YogApi registration functions ─────────────────────────────────────────────
@@ -5297,5 +5299,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
 mod client_api;
 mod control_socket;
 mod images;
+mod svg;
 mod jcall;
 mod ui_jni;

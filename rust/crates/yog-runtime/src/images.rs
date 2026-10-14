@@ -246,6 +246,10 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
                 }
                 None => warn_once(source, "unknown sprite name (see yog_gfx::image::SPRITES)"),
             },
+            Some(ImageSource::Texture(id)) if id.ends_with(".svg") => match crate::svg::file(&mut env, &id) {
+                Some(doc) => crate::svg::draw(&mut env, &doc, dest, tint),
+                None => warn_once(source, &format!("SVG {id} not found")),
+            },
             Some(ImageSource::Texture(id)) => match texture_size(&mut env, &id) {
                 Some(size) => {
                     let region = if uw > 0.0 && vh > 0.0 {
@@ -279,6 +283,9 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
                 Some(sp) => crate::get_env().map(|mut env| sp.size(has_atlas(&mut env))),
                 None => None,
             },
+            Some(ImageSource::Texture(id)) if id.ends_with(".svg") => crate::get_env()
+                .and_then(|mut env| crate::svg::file(&mut env, &id))
+                .and_then(|doc| crate::svg::size(&doc)),
             Some(ImageSource::Texture(id)) => {
                 crate::get_env().and_then(|mut env| texture_size(&mut env, &id))
             }

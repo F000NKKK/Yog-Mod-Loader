@@ -99,6 +99,24 @@ impl<'ctx> Draw2D<'ctx> {
         unsafe { (a.draw2d_image)(YogStr::from_str(source), x, y, w, h, u, v, uw, vh, tint) }
     }
 
+    /// Draws the SVG document `data` scaled into `(x, y, w, h)` (sharp at
+    /// any GUI scale: the host rasterizes it at the screen's resolution).
+    /// An `.svg` file is an image source like any other —
+    /// `mymod:gui/logo.svg` — for [`Self::image`].
+    pub fn svg(&self, data: &str, x: f32, y: f32, w: f32, h: f32) {
+        let a = self.0.api();
+        unsafe { (a.draw2d_svg)(YogStr::from_str(data), x, y, w, h) }
+    }
+
+    /// Draws a living entity of type `entity` (`minecraft:zombie`,
+    /// `mymod:wisp`) standing in `(x, y, w, h)`, as big as fits, turned
+    /// `yaw` degrees (0 = facing the viewer) and tilted `pitch` degrees.
+    #[allow(clippy::too_many_arguments)]
+    pub fn entity(&self, entity: &str, x: f32, y: f32, w: f32, h: f32, yaw: f32, pitch: f32) {
+        let a = self.0.api();
+        unsafe { (a.draw2d_entity)(YogStr::from_str(entity), x, y, w, h, yaw, pitch) }
+    }
+
     /// Natural size in GUI pixels of the image `source` (`None` if the host
     /// can't resolve it).
     pub fn image_size(&self, source: &str) -> Option<(f32, f32)> {

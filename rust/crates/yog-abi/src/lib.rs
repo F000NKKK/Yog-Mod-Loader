@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 1;
-pub const ABI_MINOR: u32 = 3;
+pub const ABI_MINOR: u32 = 4;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -706,6 +706,16 @@ pub struct YogGfxApi {
     /// when the source can't be resolved. Callable from the render thread at
     /// any time; the pointer stays valid for the life of the process.
     pub image_size: unsafe extern "C" fn(source: YogStr, w: *mut f32, h: *mut f32) -> bool,
+
+    // ── ABI 1.4 ──────────────────────────────────────────────────────────────
+    /// Draws the SVG document `data` scaled into `(x, y, w, h)` GUI pixels
+    /// (rasterized by the host at the screen's resolution, cached).
+    pub draw2d_svg: unsafe extern "C" fn(data: YogStr, x: f32, y: f32, w: f32, h: f32),
+    /// Draws a living entity of type `entity` (`minecraft:zombie`) standing
+    /// in `(x, y, w, h)` GUI pixels, as big as fits, turned `yaw` degrees
+    /// (0 = facing the viewer) and tilted `pitch` degrees.
+    pub draw2d_entity:
+        unsafe extern "C" fn(entity: YogStr, x: f32, y: f32, w: f32, h: f32, yaw: f32, pitch: f32),
 }
 
 unsafe impl Send for YogGfxApi {}

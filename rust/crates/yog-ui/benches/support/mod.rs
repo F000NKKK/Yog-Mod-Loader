@@ -176,6 +176,8 @@ unsafe extern "C" fn image(
     _: u32,
 ) {
 }
+unsafe extern "C" fn draw2d_svg(_: YogStr, _: f32, _: f32, _: f32, _: f32) {}
+unsafe extern "C" fn draw2d_entity(_: YogStr, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32) {}
 unsafe extern "C" fn image_size(_: YogStr, _: *mut f32, _: *mut f32) -> bool {
     false
 }
@@ -227,5 +229,7 @@ pub fn null_gfx() -> YogGfxApi {
         text_width,
         draw2d_image: image,
         image_size,
+        draw2d_svg,
+        draw2d_entity,
     }
 }

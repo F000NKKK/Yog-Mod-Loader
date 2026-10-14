@@ -281,7 +281,7 @@ pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
 }
 
 pub use yog_book::{Book, BookCategory, BookEntry, BookMacro, BookPage, BookRegistry};
-pub use yog_book::{BookFontRegistry, BookRenderer};
+pub use yog_book::BookRenderer;
 pub use yog_book::{
     crafting_page, entity_page, image_page, pattern_page, relations_page, smelting_page,
     spotlight_page, text_page, text_page_titled,

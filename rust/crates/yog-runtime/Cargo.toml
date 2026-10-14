@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.100.10"
+version = "0.100.11"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -18,13 +18,13 @@ crate-type = ["cdylib"]
 # call site to the new API first.
 jni.workspace = true
 
-yog-abi = "0.28.3"
+yog-abi = "0.28.4"
 yog-api = "0.92.2"
 yog-logging = "0.1"
 yog-registry = "0.28.2"
 yog-ui     = "0.40.6"
-yog-book   = "0.60"
-yog-gfx    = "0.25.1"
+yog-book   = "0.61"
+yog-gfx    = "0.25.2"
 yog-inventory = "0.14.1"
 yog-hot-reload = "0.2"
 
@@ -34,6 +34,8 @@ libloading.workspace = true
 zip.workspace = true
 # OpenGL bindings for low-level GPU access (client-side, render thread only).
 glow.workspace = true
+# SVG images (`draw2d_svg`, `.svg` image sources), rasterized here.
+resvg = { version = "0.48", default-features = false }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # `prctl(PR_SET_PTRACER)` + `SO_PEERCRED` — see `control_socket::allow_peer_to_trace`.

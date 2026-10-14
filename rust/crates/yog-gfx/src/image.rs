@@ -9,6 +9,7 @@
 //! | `sprite:<name>` | a vanilla GUI sprite by Yog's stable name (see [`SPRITES`]), e.g. `sprite:button`, `sprite:icon/heart` |
 //! | `mod:<path>` | the mod's own image `assets/<mod id>/textures/<path>.png` (`.yui` files; `yog build` fills in the mod id) |
 //! | `<ns>:<path>` | `assets/<ns>/textures/<path>.png` — another mod's (or your own) image, e.g. `mymod:gui/logo` |
+//! | `<ns>:<path>.svg` | `assets/<ns>/textures/<path>.svg` — an SVG image, sharp at any size |
 //! | `<ns>:textures/<path>.png` | a raw resource id — what `mod:`/`<ns>:<path>` resolve to; `.yui` files reject it in favour of the alias ([`suggest_alias`]) |
 //!
 //! Ids without a namespace are `minecraft:`. The host resolves a source when
@@ -51,10 +52,15 @@ pub fn qualify(id: &str) -> String {
 }
 
 /// `<ns>` + `<path>` → the texture resource id: `gui/logo` →
-/// `<ns>:textures/gui/logo.png`; paths already under `textures/` (or
-/// ending in `.png`) are kept as they are.
+/// `<ns>:textures/gui/logo.png`, `gui/logo.svg` →
+/// `<ns>:textures/gui/logo.svg` (an SVG image); paths already under
+/// `textures/` (or ending in `.png`) are kept as they are.
 pub fn texture_id(ns: &str, path: &str) -> String {
     let path = path.trim_start_matches('/');
+    if path.ends_with(".svg") {
+        let path = path.strip_prefix("textures/").unwrap_or(path);
+        return format!("{ns}:textures/{path}");
+    }
     if path.starts_with("textures/") || path.ends_with(".png") {
         let png = if path.ends_with(".png") { "" } else { ".png" };
         format!("{ns}:{path}{png}")
@@ -545,6 +551,14 @@ mod tests {
         assert_eq!(
             ImageSource::parse("mod:gui/logo").map(|s| s.with_mod_id("mymod")),
             Some(ImageSource::Texture("mymod:textures/gui/logo.png".into()))
+        );
+        assert_eq!(
+            ImageSource::parse("mymod:gui/logo.svg"),
+            Some(ImageSource::Texture("mymod:textures/gui/logo.svg".into()))
+        );
+        assert_eq!(
+            ImageSource::parse("mymod:textures/gui/logo.svg"),
+            Some(ImageSource::Texture("mymod:textures/gui/logo.svg".into()))
         );
         assert_eq!(ImageSource::parse(""), None);
         assert_eq!(ImageSource::parse("apple"), None);

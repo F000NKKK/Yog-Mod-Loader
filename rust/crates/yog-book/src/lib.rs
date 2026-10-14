@@ -6,14 +6,13 @@
 pub mod font;
 pub mod renderer;
 pub mod state;
-pub mod svg;
 pub mod theme;
 
 use serde::{Deserialize, Serialize};
 use yog_registry::ItemDef;
 
-pub use font::{BookFont, BookFontRegistry};
-pub use renderer::BookRenderer;
+pub use font::BookFont;
+pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET};
 pub use state::BookViewState;
 pub use theme::BookTheme;
 
