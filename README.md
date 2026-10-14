@@ -161,7 +161,7 @@ windows-x86_64, macos-x86_64 and macos-aarch64**.
 ## 🚀 Quick Start
 
 ```bash
-cargo install yog-cli      # installs the `yog` command
+cargo install --locked yog-cli      # installs the `yog` command
 yog setup                  # Rust targets, Zig and cargo-zigbuild for cross builds
 yog new my-mod && cd my-mod
 yog build                  # -> artifacts/my-mod.yog
