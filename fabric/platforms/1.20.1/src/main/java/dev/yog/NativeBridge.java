@@ -536,15 +536,51 @@ public final class NativeBridge {
         }
     }
 
-    // yog-inventory (phase 2 stub): no BlockEntity backing exists yet
-    // (see rust/crates/yog-inventory/DESIGN.md, phase 3) — always report
-    // "no such inventory" until that lands.
-    public static String getInventorySlot(String dimension, int x, int y, int z, int slot) {
-        return null;
+    /** The block container at (dimension, x, y, z) — a chest, a Yog inventory block — or null. */
+    private static net.minecraft.inventory.Inventory containerAt(String dimension, int x, int y, int z) {
+        ServerWorld w = worldFor(dimension);
+        if (w == null) return null;
+        return w.getBlockEntity(new net.minecraft.util.math.BlockPos(x, y, z)) instanceof net.minecraft.inventory.Inventory c ? c : null;
     }
 
+    /** A container slot: "item\tcount\tsnbt", or null when empty or not a container. */
+    public static String getInventorySlot(String dimension, int x, int y, int z, int slot) {
+        net.minecraft.inventory.Inventory inv = containerAt(dimension, x, y, z);
+        if (inv == null || slot < 0 || slot >= inv.size()) return null;
+        var stack = inv.getStack(slot);
+        if (stack.isEmpty()) return null;
+        return Registries.ITEM.getId(stack.getItem()) + "\t" + stack.getCount() + "\t" + stackSnbt(stack);
+    }
+
+    /**
+     * Sets a container slot. {@code itemId} may carry the item's SNBT after a
+     * tab ("mymod:blueprint\t{...}"); count 0 empties the slot.
+     */
     public static boolean setInventorySlot(String dimension, int x, int y, int z, int slot, String itemId, int count) {
-        return false;
+        net.minecraft.inventory.Inventory inv = containerAt(dimension, x, y, z);
+        if (inv == null || slot < 0 || slot >= inv.size()) return false;
+        if (count <= 0) {
+            inv.setStack(slot, net.minecraft.item.ItemStack.EMPTY);
+            inv.markDirty();
+            return true;
+        }
+        String[] parts = itemId.split("\t", 2);
+        String item = parts[0];
+        String snbt = parts.length > 1 ? parts[1] : "";
+        Identifier id = Identifier.tryParse(item);
+        if (id == null || !Registries.ITEM.containsId(id)) return false;
+        var stack = new net.minecraft.item.ItemStack(Registries.ITEM.get(id), count);
+        if (!snbt.isEmpty()) {
+            try {
+                stack.setNbt(StringNbtReader.parse(snbt));
+            } catch (Exception e) {
+                System.out.println("[yog] setInventorySlot: bad SNBT for " + item + ": " + e.getMessage());
+                return false;
+            }
+        }
+        inv.setStack(slot, stack);
+        inv.markDirty();
+        return true;
     }
 
     public static String playerInventory(String playerName) {
