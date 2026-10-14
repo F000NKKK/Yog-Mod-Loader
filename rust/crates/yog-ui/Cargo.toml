@@ -12,6 +12,7 @@ yog-gfx = "0.25.3"
 yog-abi = "0.28.1"
 
 [dev-dependencies]
+yog-gfx = { version = "0.25.3", features = ["testing"] }
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
 
 [[bench]]

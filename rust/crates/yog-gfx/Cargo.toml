@@ -9,3 +9,7 @@ description = "Yog graphics subsystem — low-level GPU pipeline access for mods
 
 [dependencies]
 yog-abi = "0.28.5"
+
+[features]
+# A graphics table that draws nothing, for tests and benchmarks.
+testing = []
