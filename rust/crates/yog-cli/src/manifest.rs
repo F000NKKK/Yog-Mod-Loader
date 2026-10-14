@@ -1,7 +1,6 @@
 //! `yog.toml` — a mod project's manifest, the only build file mod authors
 //! write.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 /// The manifest's file name, in the project root.
@@ -142,195 +141,198 @@ impl YogToml {
     }
 }
 
+// ── Reading ─────────────────────────────────────────────────────────────────
+
+use yog_data::{Ordered, Schema, Text, Value};
+
+/// `[mod]`.
+#[derive(Schema)]
+struct ModSection {
+    /// The mod's id — its namespace (`mymod`).
+    id: String,
+    /// Shown name: text or a `.yres` text (`@Strings.mod_name`).
+    name: Option<Text>,
+    version: Option<String>,
+    description: Option<Text>,
+    /// An image source or a `.yres` image (`@Icons.logo`).
+    icon: Option<yog_data::Image>,
+    #[data(default)]
+    authors: Vec<String>,
+    license: Option<String>,
+    /// License of the generated exports crate (default MIT OR Apache-2.0).
+    exports_license: Option<String>,
+    /// Rust edition (default 2024).
+    edition: Option<String>,
+}
+
+/// `[dev]`.
+#[derive(Schema)]
+struct DevSection {
+    /// A local yog-api checkout to build against.
+    yog_api_path: Option<String>,
+}
+
+/// `[run."<name>"]`: a dev instance `yog run <name>` builds into and starts.
+#[derive(Schema)]
+struct RunSection {
+    name: Option<String>,
+    export_dir: Option<String>,
+    command: Option<String>,
+    #[data(default)]
+    args: Vec<String>,
+    cwd: Option<String>,
+    /// `KEY=VALUE` pairs.
+    #[data(default)]
+    env: Vec<String>,
+}
+
+/// `[external.<namespace>]`: the other mods' content this mod names.
+#[derive(Schema)]
+struct ExternalSection {
+    #[data(default)]
+    items: Vec<String>,
+    #[data(default)]
+    blocks: Vec<String>,
+    #[data(default)]
+    entities: Vec<String>,
+    #[data(default)]
+    recipes: Vec<String>,
+}
+
+/// A whole `yog.toml`.
+#[derive(Schema)]
+struct ManifestFile {
+    #[data(rename = "mod")]
+    module: ModSection,
+    dev: Option<DevSection>,
+    /// Crates as Cargo writes them; `exports` is the other Yog mods'.
+    #[data(default)]
+    dependencies: Ordered<Value>,
+    #[data(rename = "dev-dependencies", default)]
+    dev_dependencies: Ordered<Value>,
+    #[data(default)]
+    run: Ordered<RunSection>,
+    #[data(default)]
+    external: Ordered<ExternalSection>,
+}
+
+/// `v` as TOML's inline syntax — how a dependency is written into Cargo.toml.
+fn toml_inline(v: &Value) -> String {
+    let quote = |s: &str| format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""));
+    match v {
+        Value::Map(m) => {
+            let fields: Vec<String> = m
+                .iter()
+                .map(|(k, v)| {
+                    let key = if k.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') { k.to_string() } else { quote(k) };
+                    format!("{key} = {}", toml_inline(v))
+                })
+                .collect();
+            format!("{{ {} }}", fields.join(", "))
+        }
+        Value::List(items) => format!("[{}]", items.iter().map(toml_inline).collect::<Vec<_>>().join(", ")),
+        Value::Bool(b) => b.to_string(),
+        Value::Int(n) => n.to_string(),
+        Value::Float(f) => f.to_string(),
+        other => quote(other.as_str().unwrap_or_default()),
+    }
+}
+
+/// A text of `yog.toml` as `resolve_metadata` reads it: `@Set.key` or the words (`@@` for a leading `@`).
+fn text_form(t: Text) -> Result<String, String> {
+    match t {
+        Text::Literal(s) => Ok(yog_data::typed::escape_at(&s)),
+        Text::Res(r) => Ok(format!("@{}.{}", r.set, r.key)),
+        Text::NameOf(_) | Text::Lang(_) => Err("a mod's name and description are text or a `.yres` text (`@Strings.mod_name`)".into()),
+    }
+}
+
+/// Reads `yog.toml` (TOML, through Yog Data's schema: every problem with its line).
 pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
-    let mut section = "";
-    let mut id = None::<String>;
-    let mut name = None::<String>;
-    let mut version = None::<String>;
-    let mut description = None::<String>;
-    let mut icon = None::<String>;
-    let mut authors: Vec<String> = Vec::new();
-    let mut license = None::<String>;
-    let mut exports_license = None::<String>;
-    let mut edition = None::<String>;
-    let mut yog_api_path = None::<String>;
-    let mut dependencies: Vec<(String, String)> = Vec::new();
-    let mut mod_dependencies: Vec<(String, String)> = Vec::new();
-    let mut dev_dependencies: Vec<(String, String)> = Vec::new();
-    let mut run_configs: HashMap<String, RunConfig> = HashMap::new();
-    let mut externals: Vec<External> = Vec::new();
-
-    for raw in text.lines() {
-        let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        if line.starts_with('[') {
-            section = line.trim_matches(|c| c == '[' || c == ']');
-            continue;
-        }
-        match section {
-            "mod" => {
-                if let Some(v) = field(line, "id") {
-                    id = Some(v);
-                }
-                if let Some(v) = field(line, "name") {
-                    name = Some(v);
-                }
-                if let Some(v) = field(line, "version") {
-                    version = Some(v);
-                }
-                if let Some(v) = field(line, "description") {
-                    description = Some(v);
-                }
-                if let Some(v) = field(line, "icon") {
-                    icon = Some(v);
-                }
-                if let Some(v) = field(line, "license") {
-                    license = Some(v);
-                }
-                if let Some(v) = field(line, "exports_license") {
-                    exports_license = Some(v);
-                }
-                if let Some(v) = field(line, "edition") {
-                    edition = Some(v);
-                }
-                if line.trim_start().starts_with("authors") {
-                    authors = parse_string_array(line);
-                }
-            }
-            "dev" => {
-                if let Some(v) = field(line, "yog_api_path") {
-                    yog_api_path = Some(v);
-                }
-            }
-            "dependencies" => {
-                if let Some((name, spec)) = parse_dep_line(line) {
-                    dependencies.push((name, spec));
-                }
-            }
-            "dependencies.exports" => {
-                if let Some((name, spec)) = parse_dep_line(line) {
-                    mod_dependencies.push((name, spec));
-                }
-            }
-            "dev-dependencies" => {
-                if let Some((name, spec)) = parse_dep_line(line) {
-                    dev_dependencies.push((name, spec));
-                }
-            }
-            _ if section.starts_with("external.") => {
-                let ns = &section["external.".len()..];
-                if externals.last().is_none_or(|e| e.namespace != ns) {
-                    externals.push(External { namespace: ns.to_string(), ids: Vec::new() });
-                }
-                if let Some((key, _)) = line.split_once('=')
-                    && let Some(e) = externals.last_mut()
-                {
-                    e.ids.push((key.trim().to_string(), parse_string_array(line)));
-                }
-            }
-            _ if section.starts_with("run.") => {
-                let run_name = &section["run.".len()..];
-                let cfg = run_configs
-                    .entry(run_name.to_string())
-                    .or_insert_with(|| RunConfig {
-                        name: run_name.to_string(),
-                        ..Default::default()
-                    });
-                if let Some(v) = field(line, "name") {
-                    cfg.display_name = Some(v);
-                }
-                if let Some(v) = field(line, "export_dir") {
-                    cfg.export_dir = Some(v);
-                }
-                if let Some(v) = field(line, "command") {
-                    cfg.command = Some(v);
-                }
-                if let Some(v) = field(line, "cwd") {
-                    cfg.cwd = Some(v);
-                }
-                if line.trim_start().starts_with("args") {
-                    cfg.args = parse_string_array(line);
-                }
-                if line.trim_start().starts_with("env") {
-                    cfg.env = parse_string_array(line)
-                        .into_iter()
-                        .filter_map(|kv| {
-                            kv.split_once('=')
-                                .map(|(k, v)| (k.to_string(), v.to_string()))
-                        })
-                        .collect();
-                }
-            }
-            _ => {}
+    // A dotted run header is nested tables to TOML: say how to write it.
+    for (i, line) in text.lines().enumerate() {
+        let l = line.trim();
+        if let Some(name) = l.strip_prefix("[run.").and_then(|r| r.strip_suffix(']'))
+            && name.contains('.')
+            && !name.starts_with('"')
+        {
+            return Err(format!("yog.toml:{}: write the run target's name in quotes: [run.\"{name}\"]", i + 1));
         }
     }
-    let run_configs: Vec<RunConfig> = run_configs.into_values().collect();
-
-    let id = id.ok_or("yog.toml: missing [mod] id")?;
-    // Extract yog_api_version / yog-api from dependencies if there
+    let read = yog_data::schema::from_toml::<ManifestFile>(text).map_err(|e| {
+        e.0.iter()
+            .map(|l| match l.at {
+                Some(at) => format!("yog.toml:{}: {}{}", at.line, if l.path.is_root() { String::new() } else { format!("{}: ", l.path) }, l.message),
+                None => format!("yog.toml: {}", l.message),
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    })?;
+    let f = read.value;
+    let m = f.module;
+    let mut dependencies = Vec::new();
+    let mut mod_dependencies = Vec::new();
     let mut yog_api_version = None;
-    let mut filtered_deps = Vec::new();
-    for (name, spec) in dependencies {
-        if matches!(name.as_str(), "yog_api_version" | "yog-api" | "yog_api") {
-            yog_api_version = Some(spec.trim_matches('"').to_string());
-        } else {
-            filtered_deps.push((name, spec));
+    for (name, spec) in f.dependencies.0 {
+        match (name.as_str(), &spec) {
+            ("exports", Value::Map(exports)) => mod_dependencies.extend(exports.iter().map(|(k, v)| (k.to_string(), toml_inline(v)))),
+            ("yog-api" | "yog_api" | "yog_api_version", _) => yog_api_version = Some(spec.as_str().map(str::to_string).unwrap_or_else(|| toml_inline(&spec))),
+            _ => dependencies.push((name, toml_inline(&spec))),
         }
     }
+    let run_configs = f
+        .run
+        .0
+        .into_iter()
+        .map(|(name, r)| RunConfig {
+            name,
+            display_name: r.name,
+            export_dir: r.export_dir,
+            command: r.command,
+            args: r.args,
+            cwd: r.cwd,
+            env: r.env.into_iter().filter_map(|kv| kv.split_once('=').map(|(k, v)| (k.to_string(), v.to_string()))).collect(),
+        })
+        .collect();
+    let externals = f
+        .external
+        .0
+        .into_iter()
+        .map(|(namespace, e)| External {
+            namespace,
+            ids: [("items", e.items), ("blocks", e.blocks), ("entities", e.entities), ("recipes", e.recipes)]
+                .into_iter()
+                .filter(|(_, v)| !v.is_empty())
+                .map(|(k, v)| (k.to_string(), v))
+                .collect(),
+        })
+        .collect();
+    let name = m.name.map(text_form).transpose()?;
+    let description = m.description.map(text_form).transpose()?;
+    let icon = m.icon.map(|i| match i {
+        yog_data::Image::Source(s) => s,
+        yog_data::Image::Res(r) => format!("@{}.{}", r.set, r.key),
+    });
     Ok(YogToml {
-        name: name.unwrap_or_else(|| id.clone()),
-        version: version.unwrap_or_else(|| "0.1.0".into()),
+        name: name.unwrap_or_else(|| m.id.clone()),
+        version: m.version.unwrap_or_else(|| "0.1.0".into()),
         description: description.unwrap_or_default(),
         name_key: None,
         description_key: None,
         icon,
-        authors,
-        license: license.unwrap_or_else(|| DEFAULT_LICENSE.into()),
-        exports_license,
-        edition,
-        yog_api_path,
+        authors: m.authors,
+        license: m.license.unwrap_or_else(|| DEFAULT_LICENSE.into()),
+        exports_license: m.exports_license,
+        edition: m.edition,
+        yog_api_path: f.dev.and_then(|d| d.yog_api_path),
         yog_api_version,
-        dependencies: filtered_deps,
+        dependencies,
         mod_dependencies,
-        dev_dependencies,
+        dev_dependencies: f.dev_dependencies.0.into_iter().map(|(k, v)| (k, toml_inline(&v))).collect(),
         run_configs,
         externals,
-        id,
+        id: m.id,
     })
-}
-
-/// Parse a dependency line like `foo = "1.2"` or `bar = { version = "1", features = ["x"] }`
-fn parse_dep_line(line: &str) -> Option<(String, String)> {
-    let trimmed = line.trim();
-    if trimmed.starts_with('#') || trimmed.is_empty() || trimmed.starts_with('[') {
-        return None;
-    }
-    let eq_pos = trimmed.find('=')?;
-    let name = trimmed[..eq_pos].trim().to_string();
-    let spec = trimmed[eq_pos + 1..].trim().to_string();
-    Some((name, spec))
-}
-
-/// Parse `key = "value"` returning the unquoted value.
-fn field(line: &str, key: &str) -> Option<String> {
-    let rest = line.strip_prefix(key)?.trim_start();
-    let rest = rest.strip_prefix('=')?.trim();
-    Some(rest.trim_matches('"').to_string())
-}
-
-/// Parse `key = ["a", "b"]` into a Vec<String>.
-fn parse_string_array(line: &str) -> Vec<String> {
-    let inner = line
-        .find('[')
-        .and_then(|s| line.rfind(']').map(|e| &line[s + 1..e]));
-    inner
-        .unwrap_or("")
-        .split(',')
-        .map(|s| s.trim().trim_matches('"').to_string())
-        .filter(|s| !s.is_empty())
-        .collect()
 }
 
 /// Cargo derives a lib crate name from the package `name` by turning `-` into
@@ -414,7 +416,7 @@ yog-kit    = "0.4"
 yog-pipes = "0.5"
 
 ## a comment
-[run.forge-1.21.1]
+[run."forge-1.21.1"]
 name       = "Forge 1.21.1"
 export_dir = "../Yog-Mod-Loader/forge/run/yog-mods"
 command    = "./gradlew"
@@ -444,6 +446,19 @@ blocks = ["stove"]
         let ext = &t.externals[0];
         assert_eq!(ext.namespace, "farmersdelight");
         assert_eq!(ext.ids[0], ("items".to_string(), vec!["cutting_board".to_string(), "tomato".to_string()]));
+    }
+
+    #[test]
+    fn problems_say_where() {
+        let e = parse_yog_toml("[mod]\nid = \"m\"\n\n[run.forge-1.21.1]\nname = \"F\"\n").unwrap_err();
+        assert_eq!(e, "yog.toml:4: write the run target's name in quotes: [run.\"forge-1.21.1\"]");
+        let e = parse_yog_toml("[mod]\nid = \"m\"\nautors = [\"me\"]\n\n[external.create]\nitem = [\"wrench\"]\n").unwrap_err();
+        assert_eq!(e.lines().collect::<Vec<_>>(), [
+            "yog.toml:3: mod.autors: unknown field `autors` — did you mean `authors`?",
+            "yog.toml:6: external.create.item: unknown field `item` — did you mean `items`?",
+        ]);
+        let t = parse_yog_toml("[mod]\nid = \"m\"\nname = \"@@me\"\n").unwrap();
+        assert_eq!(t.name, "@@me", "a literal @ stays escaped for resolve_metadata");
     }
 
     #[test]

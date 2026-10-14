@@ -22,7 +22,7 @@ yog-gfx = "0.25.1"
 yog-ui = "0.40.8"
 yog-book = "0.63.3"
 # The data model, text syntax and schemas of every Yog format.
-yog-data = "0.3"
+yog-data = { version = "0.3", features = ["toml"] }
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }

@@ -782,7 +782,7 @@ fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> 
         .ok_or_else(|| {
             if meta.run_configs.is_empty() {
                 format!("no [run.{config_name}] section in yog.toml, and no [run.*] sections are defined at all.\n\
-                    Add one, e.g.:\n\n[run.{config_name}]\nexport_dir = \"../my-instance/yog-mods\"\ncommand    = \"java\"\nargs       = [\"-jar\", \"server.jar\", \"--nogui\"]\ncwd        = \"../my-instance\"")
+                    Add one, e.g.:\n\n[run.\"{config_name}\"]\nexport_dir = \"../my-instance/yog-mods\"\ncommand    = \"java\"\nargs       = [\"-jar\", \"server.jar\", \"--nogui\"]\ncwd        = \"../my-instance\"")
             } else {
                 let available: Vec<&str> = meta.run_configs.iter().map(|c| c.name.as_str()).collect();
                 format!("no [run.{config_name}] section in yog.toml. Available: {}", available.join(", "))
