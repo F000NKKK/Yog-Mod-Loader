@@ -1,6 +1,6 @@
 [package]
 name = "yog-cli"
-version = "0.31.8"
+version = "0.31.9"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -20,6 +20,7 @@ serde_json.workspace = true
 yog-gfx = "0.25.1"
 # Themes (`<Screen theme>`) applied to .yui elements.
 yog-ui = "0.40.6"
+yog-book = "0.60.1"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }

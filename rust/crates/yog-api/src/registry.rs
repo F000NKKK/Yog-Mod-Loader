@@ -2215,10 +2215,13 @@ impl Registry {
 
     /// Register a book with its JSON-serialized content.
     pub fn register_book(&mut self, book: &Book) {
-        let json = book.to_json();
-        let id = YogStr::from_str(&book.id);
-        let j = YogStr::from_str(&json);
-        unsafe { ((*self.api).register_book)(self.ctx(), id, j) }
+        self.register_book_json(&book.id, &book.to_json());
+    }
+
+    /// Register a book from its JSON (what `yog build` makes of a
+    /// `content/**/*.ybook`).
+    pub fn register_book_json(&mut self, id: &str, json: &str) {
+        unsafe { ((*self.api).register_book)(self.ctx(), YogStr::from_str(id), YogStr::from_str(json)) }
     }
 
     /// Register (or patch) a dimension's *type* (sky, lighting, physics, ...).

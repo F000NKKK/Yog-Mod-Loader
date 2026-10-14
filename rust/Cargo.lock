@@ -1225,7 +1225,7 @@ version = "0.28.3"
 
 [[package]]
 name = "yog-api"
-version = "0.92.12"
+version = "0.92.13"
 dependencies = [
  "ctor",
  "rkyv",
@@ -1263,10 +1263,11 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.31.8"
+version = "0.31.9"
 dependencies = [
  "criterion",
  "serde_json",
+ "yog-book",
  "yog-gfx",
  "yog-ui",
  "zip",

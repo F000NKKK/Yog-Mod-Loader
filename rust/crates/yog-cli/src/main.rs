@@ -370,7 +370,7 @@ fn prepare() -> Result<Prepared, String> {
 /// the current runtime's ABI (1.3) need — a mod's lock pinning older ones
 /// moves up (the runtime refuses a mod of another ABI; screens generated
 /// for a newer yog-kit don't compile).
-const MIN_VERSIONS: &[(&str, (u64, u64, u64))] = &[("yog-api", (0, 92, 10)), ("yog-kit", (0, 3, 10))];
+const MIN_VERSIONS: &[(&str, (u64, u64, u64))] = &[("yog-api", (0, 92, 13)), ("yog-kit", (0, 3, 10))];
 
 /// Moves crates of the lock at `cargo_lock` older than [`MIN_VERSIONS`] up
 /// to the newest compatible ones (with what they need).
@@ -582,12 +582,13 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
             resources.outputs.len()
         );
     }
-    if content.blocks + content.items + content.recipes > 0 {
+    if content.blocks + content.items + content.recipes + content.books > 0 {
         eprintln!(
-            "    compiled {} block(s), {} item(s) and {} recipe(s) from {}/",
+            "    compiled {} block(s), {} item(s), {} recipe(s) and {} book(s) from {}/",
             content.blocks,
             content.items,
             content.recipes,
+            content.books,
             content::CONTENT_DIR
         );
     }
