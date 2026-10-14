@@ -203,7 +203,7 @@ impl Server for NullServer {
         dimension: &str,
         pos: BlockPos,
         slot: u32,
-    ) -> Option<(String, u32)> {
+    ) -> Option<(String, u32, String)> {
         Default::default()
     }
     fn set_inventory_slot(
@@ -213,6 +213,7 @@ impl Server for NullServer {
         slot: u32,
         item_id: &str,
         count: u32,
+        snbt: &str,
     ) -> bool {
         Default::default()
     }

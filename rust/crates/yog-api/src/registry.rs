@@ -561,7 +561,7 @@ impl Server for CServer {
         dimension: &str,
         pos: yog_core::BlockPos,
         slot: u32,
-    ) -> Option<(String, u32)> {
+    ) -> Option<(String, u32, String)> {
         let s = srv!(self);
         let owned = unsafe {
             (s.get_inventory_slot)(
@@ -576,8 +576,11 @@ impl Server for CServer {
             )
         };
         let text = take_owned(s.free_str, owned)?;
-        let (item_id, count) = text.split_once('\t')?;
-        Some((item_id.to_owned(), count.parse().ok()?))
+        let mut it = text.splitn(3, '\t');
+        let item_id = it.next()?.to_owned();
+        let count = it.next()?.parse().ok()?;
+        let snbt = it.next().unwrap_or("{}").to_owned();
+        Some((item_id, count, snbt))
     }
 
     fn set_inventory_slot(
@@ -587,7 +590,10 @@ impl Server for CServer {
         slot: u32,
         item_id: &str,
         count: u32,
+        snbt: &str,
     ) -> bool {
+        // The ABI's item id carries the SNBT after a tab.
+        let item = if snbt.is_empty() { item_id.to_string() } else { format!("{item_id}\t{snbt}") };
         let s = srv!(self);
         unsafe {
             (s.set_inventory_slot)(
@@ -599,7 +605,7 @@ impl Server for CServer {
                     z: pos.z,
                 },
                 slot,
-                YogStr::from_str(item_id),
+                YogStr::from_str(&item),
                 count,
             )
         }

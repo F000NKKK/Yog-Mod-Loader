@@ -889,16 +889,17 @@ pub struct YogServer {
     ) -> bool,
 
     // ── inventory-backed block slots (ABI minor 25, yog-inventory) ──────────
-    /// `"item_id\tcount"` for the given slot of the inventory-backed block at
-    /// `pos`, or NONE if the slot is empty / there is no such inventory there.
+    /// `"item_id\tcount\tsnbt"` for the given slot of the block container
+    /// at `pos`, or NONE if the slot is empty / there's no container there.
     pub get_inventory_slot: unsafe extern "C" fn(
         ctx: *mut c_void,
         dim: YogStr,
         pos: YogBlockPos,
         slot: u32,
     ) -> YogOwnedStr,
-    /// Set (or clear when count==0) a specific slot of the inventory-backed
-    /// block at `pos`. Returns false if there is no such inventory there.
+    /// Set (or clear when count==0) a slot of the block container at `pos`;
+    /// `item_id` may carry the item's SNBT after a tab. Returns false if
+    /// there's no container there.
     pub set_inventory_slot: unsafe extern "C" fn(
         ctx: *mut c_void,
         dim: YogStr,

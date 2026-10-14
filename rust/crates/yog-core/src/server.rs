@@ -246,18 +246,20 @@ pub trait Server {
 
     // ── inventory-backed block slots (yog-inventory) ─────────────────────────
 
-    /// `(item_id, count)` of one slot of the inventory-backed block at `pos`
-    /// (see `yog_inventory::InventoryDef`). Returns `None` if the slot is
-    /// empty, or there is no such inventory at that position.
+    /// `(item_id, count, snbt)` of one slot of the block container at `pos`
+    /// — a Yog inventory block (see `yog_inventory::InventoryDef`), a chest,
+    /// any container. `snbt` is `"{}"` when the item carries no data.
+    /// `None` if the slot is empty or there's no container there.
     fn get_inventory_slot(
         &self,
         dimension: &str,
         pos: BlockPos,
         slot: u32,
-    ) -> Option<(String, u32)>;
+    ) -> Option<(String, u32, String)>;
 
-    /// Set (or clear when `count == 0`) one slot of the inventory-backed
-    /// block at `pos`. Returns `false` if there is no such inventory there.
+    /// Puts `count` of `item_id`, carrying `snbt` (`""` for none), into one
+    /// slot of the block container at `pos`; `count == 0` empties it.
+    /// `false` if there's no container there (or the item id is unknown).
     fn set_inventory_slot(
         &self,
         dimension: &str,
@@ -265,6 +267,7 @@ pub trait Server {
         slot: u32,
         item_id: &str,
         count: u32,
+        snbt: &str,
     ) -> bool;
 
     // ── inventory ────────────────────────────────────────────────────────────
