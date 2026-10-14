@@ -388,6 +388,14 @@ fn prepare() -> Result<Prepared, String> {
     update_old_deps(&build_dir, &cargo_lock);
     if !cargo_lock.exists() {
         let _ = Command::new("cargo").args(["generate-lockfile", "-q"]).current_dir(&build_dir).status();
+    } else {
+        // The lock as cargo will build with it: a dependency the manifest
+        // changed (yog-api pinned up, a patch) moves, what's left over goes.
+        let _ = Command::new("cargo")
+            .args(["metadata", "-q", "--format-version", "1"])
+            .current_dir(&build_dir)
+            .stdout(std::process::Stdio::null())
+            .status();
     }
     one_loader_version(&cargo_lock)?;
     Ok(Prepared {
