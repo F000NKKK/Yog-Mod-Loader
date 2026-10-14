@@ -37,38 +37,14 @@ pub type Output = (String, Vec<u8>);
 
 // ── Parsing ───────────────────────────────────────────────────────────────────
 
-/// An entry's type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Schema)]
-pub enum Kind {
-    String,
-    Image,
-    File,
-    Sound,
-    Color,
-    Number,
-    Bool,
-}
+pub use yog_formats::yres::{EntryObject, Kind};
 
-impl Kind {
-    fn name(self) -> &'static str {
-        match self {
-            Kind::String => "string",
-            Kind::Image => "image",
-            Kind::File => "file",
-            Kind::Sound => "sound",
-            Kind::Color => "color",
-            Kind::Number => "number",
-            Kind::Bool => "bool",
-        }
-    }
-
-    /// The type of an entry that doesn't say, by its value.
-    fn of(value: &Value) -> Kind {
-        match value {
-            Value::Str(_) => Kind::String,
-            Value::Num(_) => Kind::Number,
-            Value::Bool(_) => Kind::Bool,
-        }
+/// The type of an entry that doesn't say, by its value.
+fn kind_of(value: &Value) -> Kind {
+    match value {
+        Value::Str(_) => Kind::String,
+        Value::Num(_) => Kind::Number,
+        Value::Bool(_) => Kind::Bool,
     }
 }
 
@@ -104,26 +80,6 @@ impl Entry {
     }
 }
 
-/// An entry's object form: `{ "type": ..., "value": ..., "comment": ..., ... }`.
-#[derive(Schema)]
-struct EntryObject {
-    /// What the entry is; by default what its value is (string, number, bool).
-    #[data(rename = "type")]
-    kind: Option<Kind>,
-    /// The text, path, color, number or flag.
-    value: yog_data::Value,
-    /// A note for whoever edits the file — never shipped.
-    comment: Option<String>,
-    /// Texts: the translation key instead of the default one.
-    key: Option<String>,
-    /// Images: the texture path under `assets/<mod id>/textures/`.
-    texture: Option<String>,
-    /// Sounds: the sound event name.
-    event: Option<String>,
-    /// Sounds: the subtitle's translation key.
-    subtitle: Option<String>,
-}
-
 /// A whole `.yres` file: named entries in file order.
 struct YresFile(Vec<Entry>);
 
@@ -155,14 +111,14 @@ fn read_entry(name: &str, v: &yog_data::Value, cx: &mut Reader) -> Option<Entry>
     };
     if !matches!(v, yog_data::Value::Map(_)) {
         entry.value = scalar(v, cx)?;
-        entry.kind = Kind::of(&entry.value);
+        entry.kind = kind_of(&entry.value);
         return Some(entry);
     }
     let o = EntryObject::read(v, cx);
     // The value is checked even when another field is wrong: every problem at once.
     let value = v.get("value").and_then(|val| cx.at(Seg::Key("value".into()), |cx| scalar(val, cx)));
     let (o, value) = (o?, value?);
-    let kind = o.kind.unwrap_or(Kind::of(&value));
+    let kind = o.kind.unwrap_or(kind_of(&value));
     let fits = matches!(
         (kind, &value),
         (Kind::Number, Value::Num(_)) | (Kind::Bool, Value::Bool(_)) | (Kind::String | Kind::Image | Kind::File | Kind::Sound | Kind::Color, Value::Str(_))
@@ -219,13 +175,13 @@ impl Schema for YresFile {
                 Value::Num(n) => n.parse::<i64>().map(yog_data::Value::Int).unwrap_or_else(|_| yog_data::Value::Float(n.parse().unwrap_or_default())),
                 Value::Bool(b) => yog_data::Value::Bool(*b),
             };
-            let plain = e.kind == Kind::of(&e.value) && e.comment.is_none() && e.key.is_none() && e.texture.is_none() && e.event.is_none() && e.subtitle.is_none();
+            let plain = e.kind == kind_of(&e.value) && e.comment.is_none() && e.key.is_none() && e.texture.is_none() && e.event.is_none() && e.subtitle.is_none();
             if plain {
                 map.insert(e.name.clone(), value);
                 continue;
             }
             let o = EntryObject {
-                kind: (e.kind != Kind::of(&e.value)).then_some(e.kind),
+                kind: (e.kind != kind_of(&e.value)).then_some(e.kind),
                 value,
                 comment: e.comment.clone(),
                 key: e.key.clone(),

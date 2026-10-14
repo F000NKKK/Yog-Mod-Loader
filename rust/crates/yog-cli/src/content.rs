@@ -21,8 +21,6 @@
 
 mod import;
 pub mod json;
-mod files;
-mod recipe;
 mod refs;
 
 pub use import::import_command;
@@ -368,10 +366,10 @@ impl Ctx<'_> {
     /// A texture → the model's form: `#slot`, a `.yres` image's id, a
     /// `.png` of `resources/` (bundled), or a texture id (`ns:block/x`,
     /// `block/stone` = `minecraft:block/stone`).
-    fn texture(&mut self, loc: Loc, path: &At, t: &files::Texture) -> Option<String> {
+    fn texture(&mut self, loc: Loc, path: &At, t: &yog_formats::content::Texture) -> Option<String> {
         let s = match t {
-            files::Texture::Slot(slot) => return Some(format!("#{slot}")),
-            files::Texture::Res(r) => {
+            yog_formats::content::Texture::Slot(slot) => return Some(format!("#{slot}")),
+            yog_formats::content::Texture::Res(r) => {
                 let name = format!("{}.{}", r.set, r.key);
                 return match self.refs.images.get(&name) {
                     Some(id) => Some(id.clone()),
@@ -381,7 +379,7 @@ impl Ctx<'_> {
                     }
                 };
             }
-            files::Texture::Plain(s) => s.trim().to_string(),
+            yog_formats::content::Texture::Plain(s) => s.trim().to_string(),
         };
         if let Some(stem) = s.strip_suffix(".png") {
             let rel = stem.trim_start_matches("./").trim_start_matches('/');
@@ -440,7 +438,7 @@ fn nums(ns: &[f64]) -> Value {
 }
 
 /// A model → Minecraft's model JSON. `item` = an item model (sprite templates allowed).
-fn model(cx: &mut Ctx, loc: Loc, at: &At, m: &files::Model, item: bool) -> Option<Model> {
+fn model(cx: &mut Ctx, loc: Loc, at: &At, m: &yog_formats::content::Model, item: bool) -> Option<Model> {
     let mut out = Map::new();
     let mut tpl: Option<&Template> = None;
     let mut raw_parent = false;
@@ -552,13 +550,13 @@ fn model(cx: &mut Ctx, loc: Loc, at: &At, m: &files::Model, item: bool) -> Optio
         out.insert("ambientocclusion".into(), Value::Bool(b));
     }
     if let Some(g) = &m.gui_light {
-        out.insert("gui_light".into(), Value::String(files::word(g)));
+        out.insert("gui_light".into(), Value::String(yog_formats::content::word(g)));
     }
     Some(Model { json: Value::Object(out), bounds })
 }
 
 /// One element → its JSON.
-fn element(cx: &mut Ctx, loc: Loc, at: &At, el: &files::Element, textures: &Map<String, Value>, raw_parent: bool) -> Option<Value> {
+fn element(cx: &mut Ctx, loc: Loc, at: &At, el: &yog_formats::content::Element, textures: &Map<String, Value>, raw_parent: bool) -> Option<Value> {
     let mut out = Map::new();
     out.insert("from".into(), nums(&el.from));
     out.insert("to".into(), nums(&el.to));
@@ -568,7 +566,7 @@ fn element(cx: &mut Ctx, loc: Loc, at: &At, el: &files::Element, textures: &Map<
         }
         let mut rot = Map::new();
         rot.insert("origin".into(), nums(&r.origin.unwrap_or([8.0, 8.0, 8.0])));
-        rot.insert("axis".into(), Value::String(files::word(&r.axis)));
+        rot.insert("axis".into(), Value::String(yog_formats::content::word(&r.axis)));
         rot.insert("angle".into(), num_value(r.angle));
         if r.rescale {
             rot.insert("rescale".into(), Value::Bool(true));
@@ -601,7 +599,7 @@ fn element(cx: &mut Ctx, loc: Loc, at: &At, el: &files::Element, textures: &Map<
                     Some(_) => cx.err_at(loc, &here.key("rotation"), "must be 0, 90, 180 or 270"),
                 }
                 if let Some(c) = &face.cullface {
-                    fo.insert("cullface".into(), Value::String(files::word(c)));
+                    fo.insert("cullface".into(), Value::String(yog_formats::content::word(c)));
                 }
                 if let Some(t) = face.tint
                     && t >= 0
@@ -687,15 +685,15 @@ fn compile_file(
         id: Option<String>,
         name: Option<yog_data::Text>,
         tooltip: Option<yog_data::Text>,
-        register: Option<files::Register>,
-        model: files::Model,
-        item_model: Option<files::Model>,
-        block: Option<files::BlockProps>,
-        states: Option<files::States>,
-        item: Option<files::ItemProps>,
+        register: Option<yog_formats::content::Register>,
+        model: yog_formats::content::Model,
+        item_model: Option<yog_formats::content::Model>,
+        block: Option<yog_formats::content::BlockProps>,
+        states: Option<yog_formats::content::States>,
+        item: Option<yog_formats::content::ItemProps>,
     }
     let (parts, refs) = match kind {
-        Kind::Item => match yog_data::schema::from_doc::<files::ItemFile>(text, &doc) {
+        Kind::Item => match yog_data::schema::from_doc::<yog_formats::content::ItemFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
                 (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item }, r.refs)
@@ -705,7 +703,7 @@ fn compile_file(
                 return None;
             }
         },
-        Kind::Block => match yog_data::schema::from_doc::<files::BlockFile>(text, &doc) {
+        Kind::Block => match yog_data::schema::from_doc::<yog_formats::content::BlockFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
                 (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None }, r.refs)
@@ -729,7 +727,7 @@ fn compile_file(
     let (ns, p) = file_id(cx, loc(&root.key("id")), parts.id.as_deref(), path, mod_ns)?;
     cx.ns = ns.clone();
     let id = format!("{ns}:{p}");
-    let auto = parts.register.unwrap_or_default() == files::Register::Auto;
+    let auto = parts.register.unwrap_or_default() == yog_formats::content::Register::Auto;
 
     // Name and tooltip → lang, under the keys the game looks up.
     let key = format!("{}.{ns}.{}", kind.word(), p.replace('/', "."));
@@ -795,7 +793,7 @@ fn compile_file(
     let props = &mut entry.block;
     props.hardness = b.hardness;
     props.resistance = b.resistance;
-    props.sound = b.sound.as_ref().map(files::word);
+    props.sound = b.sound.as_ref().map(yog_formats::content::word);
     props.light = b.light.unwrap_or(0);
     props.tools = b.tool.iter().map(|t| t.0.clone()).collect();
     props.tool_level = b.tool_level.clone().map(|l| (l, loc(&bat.key("tool_level"))));
@@ -804,8 +802,8 @@ fn compile_file(
     props.slipperiness = b.slipperiness;
     props.redstone = b.redstone;
     props.connect_groups = b.connect_groups.clone();
-    let shape_auto = matches!(b.shape, None | Some(files::BlockShape::Auto));
-    if let Some(files::BlockShape::Box(bx)) = b.shape {
+    let shape_auto = matches!(b.shape, None | Some(yog_formats::content::BlockShape::Auto));
+    if let Some(yog_formats::content::BlockShape::Box(bx)) = b.shape {
         props.shape = Some(bx);
     }
     if let Some(inv) = &b.inventory {
@@ -821,11 +819,11 @@ fn compile_file(
         cx.warn_at(loc, &bat, "tool_level without tool — any tool of that level mines it");
     }
     let drops = match &b.drops {
-        None | Some(files::Drops::Itself) => drops_table(&id, None),
-        Some(files::Drops::Nothing) => Value::Null,
-        Some(files::Drops::Item(d)) => drops_table(d.item.as_deref().unwrap_or(&id), d.count),
+        None | Some(yog_formats::content::Drops::Itself) => drops_table(&id, None),
+        Some(yog_formats::content::Drops::Nothing) => Value::Null,
+        Some(yog_formats::content::Drops::Item(d)) => drops_table(d.item.as_deref().unwrap_or(&id), d.count),
     };
-    let render_layer = b.render_layer.as_ref().map(files::word);
+    let render_layer = b.render_layer.as_ref().map(yog_formats::content::word);
 
     let mut m = model(cx, loc, &root.key("model"), &parts.model, false)?;
     if let (Some(layer), Value::Object(o)) = (&render_layer, &mut m.json) {
@@ -924,12 +922,12 @@ fn compile_file(
 }
 
 /// The loot table dropping `item` (`count` of it), when it survives the explosion.
-fn drops_table(item: &str, count: Option<files::DropCount>) -> Value {
+fn drops_table(item: &str, count: Option<yog_formats::content::DropCount>) -> Value {
     let mut entry = json!({ "type": "minecraft:item", "name": item });
     if let Some(c) = count {
         let count = match c {
-            files::DropCount::Exactly(n) => num_value(n),
-            files::DropCount::Between(min, max) => json!({ "type": "minecraft:uniform", "min": num_value(min), "max": num_value(max) }),
+            yog_formats::content::DropCount::Exactly(n) => num_value(n),
+            yog_formats::content::DropCount::Between(min, max) => json!({ "type": "minecraft:uniform", "min": num_value(min), "max": num_value(max) }),
         };
         entry["functions"] = json!([{ "function": "minecraft:set_count", "count": count }]);
     }
@@ -1149,11 +1147,11 @@ fn compile_layout(cx: &mut Ctx, text: &str, mod_ns: Option<&str>, known: &refs::
     }
     let l = read.value;
     for (i, k) in l.kinds.iter().enumerate() {
-        let game = recipe::TYPES.contains(&k.as_str());
+        let game = yog_formats::recipe::TYPES.contains(&k.as_str());
         let own = mod_ns.is_some_and(|m| k.split_once(':').is_some_and(|(n, p)| n == m && valid_path(p)));
         if !game && !own {
             let path = yog_data::Path::root().key("kinds").index(i);
-            cx.err(doc.locate(text, &path).line as usize, format!("{path}: `{k}`: one of {}, or the mod's own kind `{}:<kind>`", recipe::TYPES.join(", "), mod_ns.unwrap_or("mymod")));
+            cx.err(doc.locate(text, &path).line as usize, format!("{path}: `{k}`: one of {}, or the mod's own kind `{}:<kind>`", yog_formats::recipe::TYPES.join(", "), mod_ns.unwrap_or("mymod")));
             ok = false;
         }
     }
@@ -1240,7 +1238,7 @@ impl Recipe {
 /// names — the mod's content, every Minecraft version's, other mods'
 /// declared ids (`known`).
 fn compile_recipe(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Option<&str>, known: &refs::Known) -> Option<Recipe> {
-    use recipe::{Body, RecipeFile};
+    use yog_formats::recipe::{Body, RecipeFile};
     use yog_data::Path as At;
 
     let doc = match yog_data::text::parse(text) {
@@ -1371,7 +1369,7 @@ fn compile_recipe(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Option<&str>, k
             if !own {
                 cx.err(
                     line(&root.key("type")),
-                    format!("type `{kind}`: one of {}, or the mod's own kind `{}:<kind>`", recipe::TYPES.join(", "), mod_ns.unwrap_or("mymod")),
+                    format!("type `{kind}`: one of {}, or the mod's own kind `{}:<kind>`", yog_formats::recipe::TYPES.join(", "), mod_ns.unwrap_or("mymod")),
                 );
                 return None;
             }
@@ -1410,7 +1408,7 @@ impl Ladders {
 /// Reads the `.ydef`s: ladders, and levels placed on them (`above`, in any order of files).
 fn ladders(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<String>) -> Ladders {
     let mut order: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    order.insert(files::TOOL_LADDER.into(), files::TOOL_LEVELS.iter().map(|l| format!("minecraft:{l}")).collect());
+    order.insert(yog_formats::def::TOOL_LADDER.into(), yog_formats::def::TOOL_LEVELS.iter().map(|l| format!("minecraft:{l}")).collect());
     let ns = mod_ns.unwrap_or("minecraft");
     let full = |id: &str| if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") };
     // (file, line, id, ladder, above)
@@ -1423,14 +1421,14 @@ fn ladders(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<Str
                 continue;
             }
         };
-        match yog_data::schema::from_doc::<files::Def>(text, &doc) {
+        match yog_data::schema::from_doc::<yog_formats::def::Def>(text, &doc) {
             Ok(r) => match r.value {
-                files::Def::Ladder { id } => {
+                yog_formats::def::Def::Ladder { id } => {
                     if order.insert(full(&id), Vec::new()).is_some() {
                         errors.push(format!("{file}:1: ladder {} is defined twice", full(&id)));
                     }
                 }
-                files::Def::Level { id, ladder, above } => levels.push((file.clone(), doc.locate(text, &At::root().key("id")).line as usize, full(&id), ladder, above)),
+                yog_formats::def::Def::Level { id, ladder, above } => levels.push((file.clone(), doc.locate(text, &At::root().key("id")).line as usize, full(&id), ladder, above)),
             },
             Err(es) => {
                 for e in es.0 {
@@ -1479,11 +1477,11 @@ fn ladders(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<Str
 /// Fabric's `needs_tool_level_N` and Forge's `needs_netherite_tool` on 1.20).
 fn tool_level_tags(id: &str, level: &str, ladders: &Ladders, out: &mut Compiled, err: &mut dyn FnMut(String), warn: &mut dyn FnMut(String)) {
     let Some((ladder, at)) = ladders.level(level) else { return };
-    if ladder != files::TOOL_LADDER {
-        err(format!("{level} is a level of {ladder}, not of the tool ladder ({})", files::TOOL_LADDER));
+    if ladder != yog_formats::def::TOOL_LADDER {
+        err(format!("{level} is a level of {ladder}, not of the tool ladder ({})", yog_formats::def::TOOL_LADDER));
         return;
     }
-    let tools = &ladders.order[files::TOOL_LADDER];
+    let tools = &ladders.order[yog_formats::def::TOOL_LADDER];
     let place = |l: &str| tools.iter().position(|x| x == &format!("minecraft:{l}")).unwrap_or(0);
     // The weakest of the game's tools that mines it.
     let able = ["wood", "stone", "iron", "diamond", "netherite"].into_iter().find(|v| place(v) >= at);

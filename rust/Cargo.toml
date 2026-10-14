@@ -16,6 +16,8 @@ members = [
     # the one data model / text / binary / schema of every Yog format
     "crates/yog-data",
     "crates/yog-data-derive",
+    # the schemas of the source formats, for the build and the editors
+    "crates/yog-formats",
     # infrastructure (permissive)
     "crates/yog-logging",
     "crates/yog-storage",
@@ -86,6 +88,8 @@ yog-network  = { path = "crates/yog-network" }
 yog-command  = { path = "crates/yog-command" }
 yog-dimensions = { path = "crates/yog-dimensions" }
 yog-data     = { path = "crates/yog-data" }
+yog-data-derive = { path = "crates/yog-data-derive" }
+yog-formats  = { path = "crates/yog-formats" }
 yog-logging  = { path = "crates/yog-logging" }
 yog-storage  = { path = "crates/yog-storage" }
 yog-config   = { path = "crates/yog-config" }

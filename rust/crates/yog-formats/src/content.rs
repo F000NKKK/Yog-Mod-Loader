@@ -1,10 +1,12 @@
 //! The `.yitem` and `.yblock` formats in Yog Data: an item or a block, its
-//! model (a template or elements) and properties. `content.rs` turns them
+//! model (a template or elements) and properties. `yog build` turns them
 //! into the game's models, block states, loot tables and the Rust glue.
 
 use yog_data::kinds::Item;
 use yog_data::with::{Opt, RefTo};
 use yog_data::{Ordered, Reader, Res, Schema, Shape, Text, Value};
+
+use crate::def::{LevelKind, TOOL_LEVELS};
 
 /// Registered by `yog_api::content!()` (`auto`), or by the mod's code.
 #[derive(Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -75,11 +77,20 @@ pub struct LevelRef;
 /// The game's tools and tiers, by short name.
 pub const TOOLS: [&str; 4] = ["pickaxe", "axe", "shovel", "hoe"];
 
-fn block_tag(v: &Value, cx: &mut Reader, short: &[&str], full: fn(&str) -> String, what: &str) -> Option<BlockTag> {
+fn block_tag(
+    v: &Value,
+    cx: &mut Reader,
+    short: &[&str],
+    full: fn(&str) -> String,
+    what: &str,
+) -> Option<BlockTag> {
     match v {
         Value::Str(s) if short.contains(&s.as_str()) => Some(BlockTag(full(s))),
         Value::Str(s) if !s.starts_with('@') => {
-            cx.problem(format!("`{s}`: one of {} — or a tag of the mod's own {what}s, `@tag:block:mymod:…`", short.join(", ")));
+            cx.problem(format!(
+                "`{s}`: one of {} — or a tag of the mod's own {what}s, `@tag:block:mymod:…`",
+                short.join(", ")
+            ));
             None
         }
         _ => yog_data::TagId::<yog_data::kinds::Block>::read(v, cx).map(|t| BlockTag(t.id)),
@@ -109,7 +120,10 @@ impl yog_data::with::With<String> for LevelRef {
         match v {
             Value::Str(s) if TOOL_LEVELS.contains(&s.as_str()) => Some(format!("minecraft:{s}")),
             Value::Str(s) if !s.starts_with('@') => {
-                cx.problem(format!("`{s}`: one of {} — or a level of the tool ladder, `@level:mymod:…` (a .ydef)", TOOL_LEVELS.join(", ")));
+                cx.problem(format!(
+                    "`{s}`: one of {} — or a level of the tool ladder, `@level:mymod:…` (a .ydef)",
+                    TOOL_LEVELS.join(", ")
+                ));
                 None
             }
             _ => yog_data::with::RefTo::<LevelKind>::read(v, cx),
@@ -189,7 +203,10 @@ impl Schema for BlockShape {
                 Some(BlockShape::Box(b))
             }
             other => {
-                cx.expected("\"auto\" (the model's bounds), \"full\" or [x1, y1, z1, x2, y2, z2] in pixels", other);
+                cx.expected(
+                    "\"auto\" (the model's bounds), \"full\" or [x1, y1, z1, x2, y2, z2] in pixels",
+                    other,
+                );
                 None
             }
         }
@@ -265,7 +282,10 @@ impl Schema for Drops {
             Value::Str(s) if s == "none" => Some(Drops::Nothing),
             Value::Map(_) => DropItem::read(v, cx).map(Drops::Item),
             other => {
-                cx.expected("\"self\", \"none\" or { item: \"@item:ns:item\", count: [1, 3] }", other);
+                cx.expected(
+                    "\"self\", \"none\" or { item: \"@item:ns:item\", count: [1, 3] }",
+                    other,
+                );
                 None
             }
         }
@@ -426,9 +446,16 @@ pub struct Faces {
 
 impl Faces {
     pub fn iter(&self) -> impl Iterator<Item = (&'static str, &Face)> {
-        [("down", &self.down), ("up", &self.up), ("north", &self.north), ("south", &self.south), ("west", &self.west), ("east", &self.east)]
-            .into_iter()
-            .filter_map(|(d, f)| f.as_ref().map(|f| (d, f)))
+        [
+            ("down", &self.down),
+            ("up", &self.up),
+            ("north", &self.north),
+            ("south", &self.south),
+            ("west", &self.west),
+            ("east", &self.east),
+        ]
+        .into_iter()
+        .filter_map(|(d, f)| f.as_ref().map(|f| (d, f)))
     }
 }
 
@@ -555,33 +582,3 @@ pub struct BlockFile {
     pub block: Option<BlockProps>,
     pub states: Option<States>,
 }
-
-yog_data::kind! {
-    LadderKind = "ladder",
-    LevelKind = "level",
-}
-
-/// A `.ydef`: an entry of some kind of definition, named by reference
-/// (`@<kind>:<id>`) everywhere else. Kinds: `ladder` (an ordered scale) and
-/// `level` (a step on one).
-#[derive(Schema, Debug, Clone)]
-#[data(tag = "kind")]
-pub enum Def {
-    /// An ordered scale — tool tiers (`minecraft:tool`, built in), a mod's
-    /// voltages, rarities, magic circles…
-    Ladder {
-        id: String,
-    },
-    /// A step on a ladder, just above another (the bottom if none).
-    Level {
-        id: String,
-        #[data(with = "RefTo<LadderKind>")]
-        ladder: String,
-        #[data(with = "Opt<RefTo<LevelKind>>")]
-        above: Option<String>,
-    },
-}
-
-/// The game's tool tiers: `@ladder:minecraft:tool`, bottom to top (gold mines like wood).
-pub const TOOL_LADDER: &str = "minecraft:tool";
-pub const TOOL_LEVELS: [&str; 5] = ["wood", "stone", "iron", "diamond", "netherite"];

@@ -7,7 +7,16 @@ use yog_data::schema::{Field, StructShape, read_both};
 use yog_data::{ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Schema, Seg, Shape, Value};
 
 /// The game's recipe types.
-pub const TYPES: [&str; 8] = ["shaped", "shapeless", "smelting", "blasting", "smoking", "campfire_cooking", "stonecutting", "smithing"];
+pub const TYPES: [&str; 8] = [
+    "shaped",
+    "shapeless",
+    "smelting",
+    "blasting",
+    "smoking",
+    "campfire_cooking",
+    "stonecutting",
+    "smithing",
+];
 
 /// What every recipe has.
 #[derive(Schema)]
@@ -143,11 +152,21 @@ pub struct RecipeFile {
 impl Schema for RecipeFile {
     fn shape() -> Shape {
         // `type` and the common fields; the kinds' own come with `type`.
-        let mut fields = vec![Field { name: "type", doc: "The game's recipe type, or the mod's own kind (`mymod:infusion`).", shape: String::shape, required: true, range: None }];
+        let mut fields = vec![Field {
+            name: "type",
+            doc: "The game's recipe type, or the mod's own kind (`mymod:infusion`).",
+            shape: String::shape,
+            required: true,
+            range: None,
+        }];
         if let Shape::Struct(c) = Common::shape() {
             fields.extend(c.fields);
         }
-        Shape::Struct(StructShape { name: "Recipe", doc: "A recipe.", fields })
+        Shape::Struct(StructShape {
+            name: "Recipe",
+            doc: "A recipe.",
+            fields,
+        })
     }
 
     fn read(v: &Value, cx: &mut Reader) -> Option<Self> {
@@ -155,27 +174,42 @@ impl Schema for RecipeFile {
         let ty = match map.get("type") {
             Some(Value::Str(t)) => t.clone(),
             Some(other) => {
-                cx.at(Seg::Key("type".into()), |cx| cx.expected("a recipe type", other));
+                cx.at(Seg::Key("type".into()), |cx| {
+                    cx.expected("a recipe type", other)
+                });
                 return None;
             }
             None => {
-                cx.problem(format!("missing `type` ({}, or the mod's own `mymod:kind`)", TYPES.join(", ")));
+                cx.problem(format!(
+                    "missing `type` ({}, or the mod's own `mymod:kind`)",
+                    TYPES.join(", ")
+                ));
                 return None;
             }
         };
         let also = &["type"];
-        let (common, body) = match ty.as_str() {
-            "shaped" => read_both::<Common, Shaped>(v, cx, also).map(|(c, b)| (c, Body::Shaped(b)))?,
-            "shapeless" => read_both::<Common, Shapeless>(v, cx, also).map(|(c, b)| (c, Body::Shapeless(b)))?,
-            "smelting" | "blasting" | "smoking" | "campfire_cooking" => read_both::<Common, Cooking>(v, cx, also).map(|(c, b)| (c, Body::Cooking(ty.clone(), b)))?,
-            "stonecutting" => read_both::<Common, Stonecutting>(v, cx, also).map(|(c, b)| (c, Body::Stonecutting(b)))?,
-            "smithing" => read_both::<Common, Smithing>(v, cx, also).map(|(c, b)| (c, Body::Smithing(b)))?,
-            own if own.contains(':') => read_both::<Common, Custom>(v, cx, also).map(|(c, b)| (c, Body::Custom(ty.clone(), b)))?,
-            other => {
-                cx.at(Seg::Key("type".into()), |cx| cx.unknown_name(other, &TYPES));
-                return None;
-            }
-        };
+        let (common, body) =
+            match ty.as_str() {
+                "shaped" => {
+                    read_both::<Common, Shaped>(v, cx, also).map(|(c, b)| (c, Body::Shaped(b)))?
+                }
+                "shapeless" => read_both::<Common, Shapeless>(v, cx, also)
+                    .map(|(c, b)| (c, Body::Shapeless(b)))?,
+                "smelting" | "blasting" | "smoking" | "campfire_cooking" => {
+                    read_both::<Common, Cooking>(v, cx, also)
+                        .map(|(c, b)| (c, Body::Cooking(ty.clone(), b)))?
+                }
+                "stonecutting" => read_both::<Common, Stonecutting>(v, cx, also)
+                    .map(|(c, b)| (c, Body::Stonecutting(b)))?,
+                "smithing" => read_both::<Common, Smithing>(v, cx, also)
+                    .map(|(c, b)| (c, Body::Smithing(b)))?,
+                own if own.contains(':') => read_both::<Common, Custom>(v, cx, also)
+                    .map(|(c, b)| (c, Body::Custom(ty.clone(), b)))?,
+                other => {
+                    cx.at(Seg::Key("type".into()), |cx| cx.unknown_name(other, &TYPES));
+                    return None;
+                }
+            };
         Some(RecipeFile { common, body })
     }
 

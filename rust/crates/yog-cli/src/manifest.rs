@@ -143,78 +143,8 @@ impl YogToml {
 
 // ── Reading ─────────────────────────────────────────────────────────────────
 
-use yog_data::{Ordered, Schema, Text, Value};
-
-/// `[mod]`.
-#[derive(Schema)]
-struct ModSection {
-    /// The mod's id — its namespace (`mymod`).
-    id: String,
-    /// Shown name: text or a `.yres` text (`@Strings.mod_name`).
-    name: Option<Text>,
-    version: Option<String>,
-    description: Option<Text>,
-    /// An image source or a `.yres` image (`@Icons.logo`).
-    icon: Option<yog_data::Image>,
-    #[data(default)]
-    authors: Vec<String>,
-    license: Option<String>,
-    /// License of the generated exports crate (default MIT OR Apache-2.0).
-    exports_license: Option<String>,
-    /// Rust edition (default 2024).
-    edition: Option<String>,
-}
-
-/// `[dev]`.
-#[derive(Schema)]
-struct DevSection {
-    /// A local yog-api checkout to build against.
-    yog_api_path: Option<String>,
-}
-
-/// `[run."<name>"]`: a dev instance `yog run <name>` builds into and starts.
-#[derive(Schema)]
-struct RunSection {
-    name: Option<String>,
-    export_dir: Option<String>,
-    command: Option<String>,
-    #[data(default)]
-    args: Vec<String>,
-    cwd: Option<String>,
-    /// `KEY=VALUE` pairs.
-    #[data(default)]
-    env: Vec<String>,
-}
-
-/// `[external.<namespace>]`: the other mods' content this mod names.
-#[derive(Schema)]
-struct ExternalSection {
-    #[data(default)]
-    items: Vec<String>,
-    #[data(default)]
-    blocks: Vec<String>,
-    #[data(default)]
-    entities: Vec<String>,
-    #[data(default)]
-    recipes: Vec<String>,
-}
-
-/// A whole `yog.toml`.
-#[derive(Schema)]
-struct ManifestFile {
-    #[data(rename = "mod")]
-    module: ModSection,
-    dev: Option<DevSection>,
-    /// Crates as Cargo writes them; `exports` is the other Yog mods'.
-    #[data(default)]
-    dependencies: Ordered<Value>,
-    #[data(rename = "dev-dependencies", default)]
-    dev_dependencies: Ordered<Value>,
-    #[data(default)]
-    run: Ordered<RunSection>,
-    #[data(default)]
-    external: Ordered<ExternalSection>,
-}
+use yog_data::{Text, Value};
+use yog_formats::manifest::ManifestFile;
 
 /// `v` as TOML's inline syntax — how a dependency is written into Cargo.toml.
 fn toml_inline(v: &Value) -> String {

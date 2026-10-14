@@ -1508,6 +1508,7 @@ dependencies = [
  "serde_json",
  "yog-book",
  "yog-data",
+ "yog-formats",
  "yog-gfx",
  "yog-ui",
  "zip",
@@ -1580,6 +1581,13 @@ name = "yog-event"
 version = "0.4.0"
 dependencies = [
  "yog-core",
+]
+
+[[package]]
+name = "yog-formats"
+version = "0.1.0"
+dependencies = [
+ "yog-data",
 ]
 
 [[package]]
