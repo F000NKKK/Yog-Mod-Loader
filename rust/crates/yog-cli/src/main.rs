@@ -24,6 +24,7 @@ use yog_cli::{bench, content, yres, yui, yui_component};
 
 use std::fmt::Write as _;
 use std::io::Write as _;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -357,6 +358,10 @@ fn prepare() -> Result<Prepared, String> {
         std::fs::copy(&yog_lock, &cargo_lock).map_err(|e| e.to_string())?;
     }
     update_old_deps(&build_dir, &cargo_lock);
+    if !cargo_lock.exists() {
+        let _ = Command::new("cargo").args(["generate-lockfile", "-q"]).current_dir(&build_dir).status();
+    }
+    one_loader_version(&cargo_lock)?;
     Ok(Prepared {
         root,
         meta,
@@ -374,6 +379,41 @@ const MIN_VERSIONS: &[(&str, (u64, u64, u64))] = &[("yog-api", (0, 93, 0)), ("yo
 
 /// Moves crates of the lock at `cargo_lock` older than [`MIN_VERSIONS`] up
 /// to the newest compatible ones (with what they need).
+/// The loader's crates a mod links must be one version each: two
+/// `yog-api`s (a dependency built against another minor) keep two sets of
+/// the loader's statics, and what one registers the other never sees
+/// (cross-mod imports go unbound, …).
+fn one_loader_version(cargo_lock: &Path) -> Result<(), String> {
+    let Ok(lock) = std::fs::read_to_string(cargo_lock) else {
+        return Ok(());
+    };
+    let mut seen: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut lines = lock.lines();
+    while let Some(line) = lines.next() {
+        let Some(name) = line.trim().strip_prefix("name = \"").and_then(|n| n.strip_suffix('"')) else {
+            continue;
+        };
+        if !matches!(name, "yog-api" | "yog-abi" | "yog-ui" | "yog-kit" | "yog-gfx" | "yog-registry") {
+            continue;
+        }
+        if let Some(v) = lines.next().and_then(|l| l.trim().strip_prefix("version = \"")) {
+            seen.entry(name.to_string()).or_default().push(v.trim_end_matches('"').to_string());
+        }
+    }
+    let twice: Vec<String> = seen
+        .iter()
+        .filter(|(_, v)| v.len() > 1)
+        .map(|(name, v)| format!("{name} {}", v.join(" and ")))
+        .collect();
+    if twice.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "the mod would link two versions of the loader's crates: {} — a dependency (an exports crate, …) is built against another minor; update it (or this mod's yog.toml) so they agree",
+        twice.join("; ")
+    ))
+}
+
 fn update_old_deps(build_dir: &Path, cargo_lock: &Path) {
     let Ok(lock) = std::fs::read_to_string(cargo_lock) else {
         return;
