@@ -8,8 +8,8 @@ description = "Yog runtime — native library bridging the Fabric host to Rust m
 
 [lib]
 # cdylib produces libyog_runtime.so / .dylib / yog_runtime.dll, loaded by the
-# Fabric host via System.loadLibrary.
-crate-type = ["cdylib"]
+# Fabric host via System.loadLibrary; rlib so its benches can link it.
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Pinned to 0.21 — 0.22 split `JNIEnv` into `Env`/`EnvUnowned` (a breaking
@@ -46,4 +46,8 @@ criterion = "0.8"
 
 [[bench]]
 name = "jni_calls"
+harness = false
+
+[[bench]]
+name = "dispatch"
 harness = false

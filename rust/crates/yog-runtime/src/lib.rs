@@ -5322,5 +5322,7 @@ mod images;
 mod svg;
 mod jcall;
 mod ui_jni;
+#[doc(hidden)]
+pub mod bench_support;
 #[cfg(test)]
 mod tests;
