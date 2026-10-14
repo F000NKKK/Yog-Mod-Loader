@@ -1388,7 +1388,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.100.7"
+version = "0.100.8"
 dependencies = [
  "criterion",
  "glow",

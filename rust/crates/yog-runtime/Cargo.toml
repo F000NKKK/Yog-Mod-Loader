@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.100.7"
+version = "0.100.8"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
