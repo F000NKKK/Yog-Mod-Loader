@@ -13,25 +13,6 @@ pub enum ExportKind {
     Fn,
 }
 
-impl ExportKind {
-    /// The kind and name of the item whose first line is `first`.
-    fn parse(first: &str) -> Option<(ExportKind, &str)> {
-        const KINDS: [(&str, ExportKind, &[char]); 3] = [
-            (
-                "pub struct ",
-                ExportKind::Struct,
-                &['{', '(', ' ', '<', ';', '\t'],
-            ),
-            ("pub enum ", ExportKind::Enum, &['{', ' ', '<', ';', '\t']),
-            ("pub fn ", ExportKind::Fn, &['(']),
-        ];
-        let (kind, rest, ends) = KINDS
-            .iter()
-            .find_map(|&(prefix, kind, ends)| Some((kind, first.strip_prefix(prefix)?, ends)))?;
-        Some((kind, rest.split(ends).next().unwrap_or("").trim()))
-    }
-}
-
 /// Item found by the export scanner.
 #[derive(Debug)]
 pub struct ExportItem {
@@ -41,69 +22,57 @@ pub struct ExportItem {
     pub source: String,
 }
 
-/// Every `#[yog_export]` item of one source file.
+/// Every `#[yog_export]` item of one source file (inline modules too),
+/// read with `syn`: its exact text — comments, layout — without the
+/// `#[yog_export]` attribute itself. A file that doesn't parse has none
+/// (the build reports it).
 pub fn scan(src: &str) -> Vec<ExportItem> {
-    let mut exports = Vec::new();
-    let lines: Vec<&str> = src.lines().collect();
-    let mut i = 0;
-    while i < lines.len() {
-        let trimmed = lines[i].trim();
-        if trimmed == "#[yog_export]" || trimmed.starts_with("#[yog_export(") {
-            i += 1;
-            // Skip outer attributes that may appear between #[yog_export] and the item
-            while i < lines.len() && lines[i].trim() == "#[yog_export]" {
-                i += 1;
-            }
-            // Collect the item source: pub struct / pub enum / pub fn
-            if i >= lines.len() {
-                break;
-            }
-            let Some((kind, name)) = ExportKind::parse(lines[i].trim()) else {
-                i += 1;
-                continue;
-            };
-            if name.is_empty() {
-                i += 1;
-                continue;
-            }
-            let name = name.to_string();
+    let Ok(file) = syn::parse_file(src) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    collect(&file.items, src, &mut out);
+    out
+}
 
-            // Collect lines until the top-level brace block closes
-            let mut depth: i32 = 0;
-            let mut found_open = false;
-            let mut item_lines: Vec<&str> = Vec::new();
-            while i < lines.len() {
-                let line = lines[i];
-                item_lines.push(line);
-                for ch in line.chars() {
-                    if ch == '{' {
-                        depth += 1;
-                        found_open = true;
-                    } else if ch == '}' {
-                        depth -= 1;
-                    }
+fn collect(items: &[syn::Item], src: &str, out: &mut Vec<ExportItem>) {
+    use syn::spanned::Spanned;
+    for item in items {
+        let (attrs, vis, kind, name) = match item {
+            syn::Item::Struct(s) => (&s.attrs, &s.vis, ExportKind::Struct, s.ident.to_string()),
+            syn::Item::Enum(e) => (&e.attrs, &e.vis, ExportKind::Enum, e.ident.to_string()),
+            syn::Item::Fn(f) => (&f.attrs, &f.vis, ExportKind::Fn, f.sig.ident.to_string()),
+            syn::Item::Mod(m) => {
+                if let Some((_, inner)) = &m.content {
+                    collect(inner, src, out);
                 }
-                if found_open && depth <= 0 {
-                    item_lines.push("");
-                    i += 1;
-                    break;
-                }
-                // Also handle items with no body (empty struct/enum with semicolon)
-                if !found_open && line.trim().ends_with(';') {
-                    i += 1;
-                    break;
-                }
-                i += 1;
+                continue;
             }
-            exports.push(ExportItem {
-                kind,
-                name,
-                source: item_lines.join("\n"),
-            });
+            _ => continue,
+        };
+        let is_export = |a: &syn::Attribute| a.path().segments.last().is_some_and(|s| s.ident == "yog_export");
+        if !attrs.iter().any(is_export) || !matches!(vis, syn::Visibility::Public(_)) {
+            continue;
         }
-        i += 1;
+        let whole = item.span().byte_range();
+        // The item's text with each `#[yog_export]` (and the line it leaves empty) cut out.
+        let mut text = String::new();
+        let mut at = whole.start;
+        for a in attrs.iter().filter(|a| is_export(a)) {
+            let r = a.span().byte_range();
+            text.push_str(&src[at..r.start]);
+            at = r.end;
+            let rest = &src[at..whole.end];
+            let blank = rest.len() - rest.trim_start_matches([' ', '\t']).len();
+            if rest[blank..].starts_with('\n') {
+                at += blank + 1;
+            }
+        }
+        text.push_str(&src[at..whole.end]);
+        // Indentation of nested items stays as written; the text starts at the item.
+        let source = format!("{}\n", text.trim_start());
+        out.push(ExportItem { kind, name, source });
     }
-    exports
 }
 
 /// Names always in scope — primitives and the std/core/alloc prelude and
@@ -801,5 +770,28 @@ pub fn count() -> u64 { 0 }
         assert!(w.contains("static __YOG_SLOT_SEND"), "{w}");
         let none = generate_fn_wrapper("yog-pipes", "count", &items[3].source);
         assert!(none.contains("pub fn count() -> u64"), "{none}");
+    }
+
+    #[test]
+    fn braces_in_strings_and_comments_dont_end_an_item() {
+        let src = r#"
+mod inner {
+    /// Opens `{` — and a doc comment can say so.
+    #[yog_export]
+    pub fn open(s: String) -> String {
+        // } not the end
+        format!("{{{s}")
+    }
+}
+
+#[yog_export]
+pub struct After { pub x: u8 }
+"#;
+        let items = scan(src);
+        let names: Vec<&str> = items.iter().map(|i| i.name.as_str()).collect();
+        assert_eq!(names, ["open", "After"]);
+        assert!(items[0].source.starts_with("/// Opens"), "{}", items[0].source);
+        assert!(items[0].source.trim_end().ends_with('}') && items[0].source.contains("format!(\"{{{s}\")"), "{}", items[0].source);
+        assert!(!items[0].source.contains("yog_export"));
     }
 }

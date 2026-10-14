@@ -1506,7 +1506,9 @@ name = "yog-cli"
 version = "0.38.0"
 dependencies = [
  "criterion",
+ "proc-macro2",
  "serde_json",
+ "syn 3.0.9",
  "yog-book",
  "yog-data",
  "yog-formats",

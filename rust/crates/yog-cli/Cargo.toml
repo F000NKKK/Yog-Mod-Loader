@@ -14,6 +14,9 @@ name = "yog"
 path = "src/main.rs"
 
 [dependencies]
+# `yog publish exports` reads `#[yog_export]` items with syn, by their exact text.
+syn.workspace = true
+proc-macro2 = { workspace = true, features = ["span-locations"] }
 zip.workspace = true
 serde_json.workspace = true
 # Image sources (`item:`, `sprite:`, ...) checked in .yui files.
