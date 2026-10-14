@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 2;
-pub const ABI_MINOR: u32 = 2;
+pub const ABI_MINOR: u32 = 3;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1395,6 +1395,18 @@ pub struct YogApi {
         size: YogTooltipSizeFn,
         draw: YogTooltipDrawFn,
     ),
+
+    // ── ABI 2.3 — other mods ────────────────────────────────────────────────
+    /// Whether mod `id` is loaded — a Yog mod or a Java one (Fabric's,
+    /// Forge's or NeoForge's mod list).
+    pub is_mod_loaded: unsafe extern "C" fn(ctx: *mut c_void, id: YogStr) -> bool,
+    /// Calls into a Java mod's API by reflection: `expr` is a chain from a
+    /// class — `virtuoel.pehkui.api.ScaleTypes.BASE.getScaleData($0).getScale()`
+    /// — `$n` the `n`-th of `args`, a list in Yog Data text (an entity is
+    /// `@entity:<uuid>`). The result in Yog Data text, or
+    /// [`YogOwnedStr::NONE`] when the call failed (said in the log).
+    /// Free with `free_str`.
+    pub java_call: unsafe extern "C" fn(ctx: *mut c_void, expr: YogStr, args: YogStr) -> YogOwnedStr,
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].
@@ -1445,7 +1457,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (20002, 0x76b2_0250_9e6a_09e4), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (20003, 0x6693_5ed1_cfbb_8df4), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]

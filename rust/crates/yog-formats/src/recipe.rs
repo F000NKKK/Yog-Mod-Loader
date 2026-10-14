@@ -34,6 +34,10 @@ pub struct Common {
     pub group: Option<String>,
     /// The recipe book's tab (`building`, `equipment`, `misc`, …).
     pub category: Option<String>,
+    /// Mods it needs — Yog or Java mod ids (`pehkui`): without every one of
+    /// them loaded it isn't there (an optional integration).
+    #[data(default)]
+    pub requires: Vec<String>,
 }
 
 fn one() -> u32 {

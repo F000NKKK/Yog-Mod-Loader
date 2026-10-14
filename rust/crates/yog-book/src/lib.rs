@@ -231,6 +231,11 @@ pub struct BookEntry {
     /// Shown as read before it's opened.
     #[data(default)]
     pub read_by_default: bool,
+    /// Mods it's about — Yog or Java mod ids (`pehkui`): without every one
+    /// of them loaded the book doesn't show it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[data(default)]
+    pub requires: Vec<String>,
     /// The advancement that unlocks it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub advancement: Option<String>,

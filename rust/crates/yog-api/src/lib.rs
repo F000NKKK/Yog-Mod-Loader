@@ -6,6 +6,7 @@
 //! namespaced by domain (`yog_api::world::World`).
 
 pub mod client;
+pub mod java;
 mod interop;
 mod lang;
 mod registry;
@@ -25,6 +26,8 @@ pub use yog_abi::{ABI_VERSION, YogApi};
 /// Yog Data — what content definitions and book pages' `data`
 /// (`Registry::on_book_page`) are; re-exported for mods.
 pub use yog_data;
+
+pub use java::mod_loaded;
 
 /// Inter-mod communication proc-macros.
 pub use yog_interop::{bench, import, yog_export};

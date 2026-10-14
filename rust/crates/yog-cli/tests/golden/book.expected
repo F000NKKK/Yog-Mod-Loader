@@ -142,7 +142,8 @@ fn __yog_content_auto_register() {
       "icon": "minecraft:textures/item/emerald.png",
       "priority": 0,
       "secret": false,
-      "read_by_default": false
+      "read_by_default": false,
+      "requires": []
     }
   ],
   "i18n": true,

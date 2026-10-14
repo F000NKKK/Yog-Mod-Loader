@@ -2186,7 +2186,9 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
         }
         "book" => {
             // Read by its schema; the renderer draws it without a round trip to Java.
-            if let Some(book) = read::<yog_book::Book>(kind, &id, value) {
+            if let Some(mut book) = read::<yog_book::Book>(kind, &id, value) {
+                // Entries about mods that aren't here aren't shown.
+                book.entries.retain(|e| e.requires.iter().all(|m| mod_loaded(m)));
                 h.books.insert(id.clone());
                 let mut renderer = yog_book::BookRenderer::new(book);
                 // i18n books carry translation keys; shown in the game language.
@@ -2335,6 +2337,40 @@ unsafe extern "C" fn api_on_item_tooltip(
             .entry(item.as_str().to_owned())
             .or_default()
             .push((current_registration(), ud, size, draw));
+    }
+}
+
+/// The Yog mods being loaded, by id (all of them, before the first registers).
+static YOG_MOD_IDS: RwLock<std::collections::BTreeSet<String>> = RwLock::new(std::collections::BTreeSet::new());
+
+/// Whether mod `id` is loaded: a Yog mod, else one in the host's list
+/// (Fabric's, Forge's, NeoForge's).
+fn mod_loaded(id: &str) -> bool {
+    YOG_MOD_IDS.read().unwrap_or_else(|e| e.into_inner()).contains(id)
+        || HOT_RELOADER.get().is_some_and(|r| r.all_active().iter().any(|(m, _)| m == id))
+        // SAFETY: a host call with a string argument, on the calling thread.
+        || unsafe { bridge!("isModLoaded", [JArg::S(YogStr::from_str(id))]) }.unwrap_or(false)
+}
+
+unsafe extern "C" fn api_is_mod_loaded(_ctx: *mut c_void, id: YogStr) -> bool {
+    unsafe { mod_loaded(id.as_str()) }
+}
+
+unsafe extern "C" fn api_java_call(_ctx: *mut c_void, expr: YogStr, args: YogStr) -> YogOwnedStr {
+    unsafe {
+        let args = match yog_data::text::parse_value(args.as_str()) {
+            Ok(v) => v,
+            Err(e) => {
+                yog_logging::warn!("java_call {}: its arguments aren't Yog Data: {}", expr.as_str(), e.message);
+                return YogOwnedStr::NONE;
+            }
+        };
+        let bytes = yog_data::binary::encode(&args);
+        let out: Option<Vec<u8>> = host!("dev/yog/data/YogJava", "call", [JArg::S(expr), JArg::Bytes(&bytes)]);
+        match out.map(|b| yog_data::binary::decode(&b)) {
+            Some(Ok(v)) => YogOwnedStr::from_string(yog_data::text::to_string(&v)),
+            _ => YogOwnedStr::NONE,
+        }
     }
 }
 
@@ -2998,6 +3034,8 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         client_key_down: client_api::api_client_key_down,
         on_book_page: api_on_book_page,
         on_item_tooltip: api_on_item_tooltip,
+        is_mod_loaded: api_is_mod_loaded,
+        java_call: api_java_call,
     }
 }
 
@@ -3043,6 +3081,9 @@ fn load_mods(dir: &Path, api: &YogApi) {
 
     // Topological sort by dependencies (Kahn's algorithm)
     let ids: Vec<String> = metas.iter().map(|m| m.id.clone()).collect();
+    // Known before any registers: a mod's optional integrations with a Yog
+    // mod loaded after it still see it.
+    YOG_MOD_IDS.write().unwrap_or_else(|e| e.into_inner()).extend(ids.iter().cloned());
     let deps_list: Vec<Vec<String>> = metas.iter().map(|m| m.deps.clone()).collect();
     let sorted = match topo_sort_mods(&ids, &deps_list) {
         Some(v) => v,

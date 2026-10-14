@@ -715,6 +715,10 @@ pub struct ItemFile {
     pub name: Option<Text>,
     pub tooltip: Option<Text>,
     pub register: Option<Register>,
+    /// Mods it needs — Yog or Java mod ids (`pehkui`): without every one of
+    /// them loaded it isn't there (an optional integration).
+    #[data(default)]
+    pub requires: Vec<String>,
     pub model: Model,
     pub item: Option<ItemProps>,
 }
@@ -727,6 +731,10 @@ pub struct BlockFile {
     pub name: Option<Text>,
     pub tooltip: Option<Text>,
     pub register: Option<Register>,
+    /// Mods it needs — Yog or Java mod ids (`pehkui`): without every one of
+    /// them loaded it isn't there (an optional integration).
+    #[data(default)]
+    pub requires: Vec<String>,
     pub model: Model,
     /// The item form's model; the block's by default.
     pub item_model: Option<Model>,

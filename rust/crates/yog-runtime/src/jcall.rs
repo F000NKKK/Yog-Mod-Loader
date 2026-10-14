@@ -94,6 +94,22 @@ impl FromJava for String {
     }
 }
 
+/// A Java `byte[]`; `null` maps to `None`.
+impl FromJava for Vec<u8> {
+    const DESCRIPTOR: &'static str = "[B";
+    const RETURN: ReturnType = ReturnType::Array;
+    fn from_java(env: &mut JNIEnv, value: JValueOwned) -> Option<Self> {
+        let obj = value.l().ok()?;
+        if obj.as_raw().is_null() {
+            return None;
+        }
+        let arr = jni::objects::JByteArray::from(obj);
+        let out = env.convert_byte_array(&arr).ok();
+        let _ = env.delete_local_ref(arr);
+        out
+    }
+}
+
 /// A static method of a host class, resolved on first use.
 pub(crate) struct StaticMethod {
     class: &'static str,

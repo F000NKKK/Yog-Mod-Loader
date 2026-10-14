@@ -424,6 +424,11 @@ impl BookRenderer {
         }
     }
 
+    /// The book it draws (its long texts flowed onto more pages).
+    pub fn book(&self) -> &Book {
+        &self.book
+    }
+
     /// The game's translations: items' names in recipe titles, and, for
     /// [`Book::i18n`] books, the book's texts — translation keys, looked up
     /// with `tr` (unknown keys stay as they are) and re-looked up whenever

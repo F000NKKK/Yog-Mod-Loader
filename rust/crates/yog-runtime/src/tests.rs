@@ -234,6 +234,20 @@ fn tools_and_armor_arrive_with_their_materials_whole() {
 }
 
 #[test]
+fn a_books_entries_about_absent_mods_are_left_out() {
+    crate::YOG_MOD_IDS.write().unwrap().insert("othermod".into());
+    let book = json(r#"{"id":"mymod:guide","name":"G","categories":[{"id":"mymod:c","name":"C"}],"entries":[
+        {"id":"mymod:a","name":"A","category":"@category:mymod:c","pages":[]},
+        {"id":"mymod:b","name":"B","category":"@category:mymod:c","pages":[],"requires":["othermod"]},
+        {"id":"mymod:c","name":"C","category":"@category:mymod:c","pages":[],"requires":["pehkui"]}]}"#);
+    let h = registering(|ctx| unsafe { content(ctx, "book", "mymod:guide", &book) });
+    let h = h.read().unwrap();
+    let renderers = h.book_renderers.lock().unwrap();
+    let ids: Vec<&str> = renderers["mymod:guide"].book().entries.iter().map(|e| e.id.as_str()).collect();
+    assert_eq!(ids, ["mymod:a", "mymod:b"], "a Yog mod that's loaded counts; a missing one hides its entry");
+}
+
+#[test]
 fn a_blocks_sound_group_arrives_whole() {
     let h = registering(|ctx| unsafe {
         content(ctx, "sound_group", "mymod:crystal", &yog_registry::SoundGroup::new("mymod:crystal").pitch(1.2).write());

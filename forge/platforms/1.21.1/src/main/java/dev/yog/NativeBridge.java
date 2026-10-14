@@ -1538,4 +1538,21 @@ public final class NativeBridge {
     public static String tooltipSnbt(net.minecraft.world.item.ItemStack stack) {
         return stackSnbt(stack);
     }
+
+    // ── Other mods (ABI 2.3) ────────────────────────────────────────────────
+
+    /** Whether Java mod {@code id} is loaded (Yog mods are the runtime's to know). */
+    public static boolean isModLoaded(String id) {
+        try {
+            return net.minecraftforge.fml.ModList.get() != null && net.minecraftforge.fml.ModList.get().isLoaded(id);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    static {
+        // How java_call finds an entity by uuid, and an entity's uuid.
+        dev.yog.data.YogJava.entityByUuid = NativeBridge::entityByUuid;
+        dev.yog.data.YogJava.uuidOf = o -> o instanceof Entity e ? e.getStringUUID() : null;
+    }
 }

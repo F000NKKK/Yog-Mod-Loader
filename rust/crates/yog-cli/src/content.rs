@@ -300,6 +300,8 @@ struct Entry {
     id: String,
     file: String,
     auto: bool,
+    /// Mods it needs (`requires`): registered only when they're all loaded.
+    requires: Vec<String>,
     block: BlockProps,
     item: ItemProps,
 }
@@ -682,12 +684,13 @@ fn compile_file(
         block: Option<yog_formats::content::BlockProps>,
         states: Option<yog_formats::content::States>,
         item: Option<yog_formats::content::ItemProps>,
+        requires: Vec<String>,
     }
     let (parts, refs) = match kind {
         Kind::Item => match yog_data::schema::from_doc::<yog_formats::content::ItemFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item }, r.refs)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, requires: f.requires }, r.refs)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -697,7 +700,7 @@ fn compile_file(
         Kind::Block => match yog_data::schema::from_doc::<yog_formats::content::BlockFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None }, r.refs)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, requires: f.requires }, r.refs)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -758,7 +761,7 @@ fn compile_file(
         out.outputs.push((full, pretty(value)));
     };
 
-    let mut entry = Entry { kind, id: id.clone(), file: cx.file.clone(), auto, block: BlockProps::default(), item: ItemProps::default() };
+    let mut entry = Entry { kind, id: id.clone(), file: cx.file.clone(), auto, requires: parts.requires.clone(), block: BlockProps::default(), item: ItemProps::default() };
 
     if kind == Kind::Item {
         if let Some(it) = &parts.item {
@@ -1272,6 +1275,8 @@ struct Recipe {
     count: u32,
     group: Option<String>,
     category: Option<String>,
+    /// Mods it needs (`requires`): registered only when they're all loaded.
+    requires: Vec<String>,
 }
 
 impl Recipe {
@@ -1541,6 +1546,7 @@ fn compile_recipe(
         count: c.count,
         group: c.group,
         category: c.category,
+        requires: c.requires,
     })
 }
 
@@ -2060,6 +2066,15 @@ fn float(n: f64) -> String {
     }
 }
 
+/// `stmt`, only when the mods `requires` names are all loaded (an optional integration).
+fn when_loaded(requires: &[String], stmt: &str) -> String {
+    if requires.is_empty() {
+        return stmt.to_string();
+    }
+    let cond: Vec<String> = requires.iter().map(|m| format!("::yog_api::mod_loaded({m:?})")).collect();
+    format!("if {} {{ {stmt} }}", cond.join(" && "))
+}
+
 fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: &Defs) -> String {
     let sound_groups = &defs.sound_groups;
     let mut code = String::from(
@@ -2205,8 +2220,8 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
             continue;
         }
         let _ = match e.kind {
-            Kind::Block => writeln!(code, "    registry.register_block(Blocks::{ident}());"),
-            Kind::Item => writeln!(code, "    registry.register_item(Items::{ident}());"),
+            Kind::Block => writeln!(code, "    {}", when_loaded(&e.requires, &format!("registry.register_block(Blocks::{ident}());"))),
+            Kind::Item => writeln!(code, "    {}", when_loaded(&e.requires, &format!("registry.register_item(Items::{ident}());"))),
             Kind::Recipe | Kind::Book | Kind::Def => unreachable!("only blocks and items get here"),
         };
     }
@@ -2240,7 +2255,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
         );
     }
     for r in recipes {
-        let _ = writeln!(code, "    {}", r.registration());
+        let _ = writeln!(code, "    {}", when_loaded(&r.requires, &r.registration()));
     }
     for b in books {
         let _ = writeln!(
@@ -2901,6 +2916,17 @@ mod tests {
         let missing = format!(r#"{{ {model}, item: {{ armor: {{ slot: "feet", material: "@armor_material:mymod:nope" }} }} }}"#);
         let e = compile(&project(&[("content/m.yitem", &missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no armor material mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn content_for_other_mods_is_registered_only_with_them() {
+        let model = r#"model: { parent: "generated", textures: { layer0: "minecraft:item/stick" } }"#;
+        let item = format!(r#"{{ requires: ["pehkui", "create"], {model} }}"#);
+        let recipe = r#"{ requires: ["pehkui"], type: "shapeless", ingredients: ["@item:minecraft:stick"], result: "@item:minecraft:stick" }"#;
+        let c = compile(&project(&[("content/shrink.yitem", &item), ("content/r.yrecipe", recipe)]), "mymod", &yres::Refs::default()).unwrap();
+        let src = c.source.unwrap();
+        assert!(src.contains(r#"if ::yog_api::mod_loaded("pehkui") && ::yog_api::mod_loaded("create") { registry.register_item(Items::shrink()); }"#), "{src}");
+        assert!(src.contains(r#"if ::yog_api::mod_loaded("pehkui") { registry.add_recipe("#), "{src}");
     }
 
     #[test]
