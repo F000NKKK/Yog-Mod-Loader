@@ -77,8 +77,11 @@ the Java and Rust worlds.
   effects, attributes, teleport across dimensions, particles, sounds
 - ✅ **Commands**: plain and typed (`"float float float"`) commands
 - ✅ **Content**: items, blocks, food, fuel, connecting blocks (pipes,
-  fences), shaped/shapeless/furnace recipes, per-mod creative tabs
-- ✅ **Dimensions**: custom dimension types with chunk generators in Rust
+  fences), recipes, per-mod creative tabs
+- ✅ **Redstone and block states**: power in and out, block state properties,
+  regions, item cooldowns, riders, thunder
+- ✅ **Dimensions**: custom dimension types with chunk generators in Rust,
+  plus biomes, structures, features and mob spawning per dimension
 - ✅ **Networking**: raw-byte channels and typed `packet!` structs
 - ✅ **Persistence**: scoped key/value `Storage` (global, per player, world,
   chunk, entity) and `Config` files
@@ -88,7 +91,9 @@ the Java and Rust worlds.
 
 ### Client, graphics and UI
 - 🎨 **`yog-gfx`**: HUD and world rendering hooks with direct GPU access
-  (buffers, shaders, textures) and a 2D helper, with a persistent shader binary cache
+  (buffers, shaders, textures) and `draw2d` — text (scaled, any font),
+  rects, images and SVG, items, 3D blocks and structures, living entities —
+  with a persistent shader binary cache
 - 🪟 **`yog-ui`**: retained-mode UI with flexbox panels, a WPF-style `Grid`,
   scroll views, text boxes, images and focus handling, drawn with Minecraft's font
 - 🧠 **`yog-kit`**: MVVM for `.yui` screens: view models, `{x:Bind}`
@@ -98,8 +103,11 @@ the Java and Rust worlds.
   typed properties and events
 - 🖼️ **Image aliases**: `item:apple`, `block:stone`, `sprite:icon/heart`,
   `mod:gui/logo` resolve correctly on every Minecraft version and loader
-- 📚 **`yog-book`**: Patchouli-style in-game books (9 page types, recipes,
-  macros, themes, custom fonts, translated texts)
+- 📚 **`yog-book`**: guide books in the look of Patchouli, drawn with
+  `draw2d` alone: text, spotlight, crafting and smelting, image, entity,
+  multiblock and spell-pattern pages; text flows across pages; turning
+  entities and structures; the book's own texture and colors; translated
+  texts and names. One renderer runs in the game and in Yog-IDLE
 - 📦 **`yog-inventory`**: real container screens with custom slot layouts
 
 ### Resources and content
@@ -107,12 +115,20 @@ the Java and Rust worlds.
   `Strings.ru_ru.yres`), images, sounds, colors and numbers. One
   `yog_api::resources!()` generates typed accessors (`Strings::screen_title()`)
   and Minecraft lang files
-- 🔗 **`@Set.key` references** work in `.yui`, `.yblock`/`.yitem` and in
-  `yog.toml` (`name = "@Strings.mod_name"`)
+- 🔗 **`@Set.key` references** work in `.yui`, `.yblock`/`.yitem`,
+  `.ybook` and in `yog.toml` (`name = "@Strings.mod_name"`)
+- ✍️ **Yog text**: one format for every text — `{b|bold}`, `{i|…}`,
+  `{u|…}`, `{s|…}`, `{#8d6acc|colored}`, nested spans, `{{`/`}}` for braces —
+  read the same by the Rust UI and the Java hosts
 - 🧊 **`.yblock` / `.yitem`**: a block or item in one JSON file (properties,
   model, states, drops, item form). `yog build` writes the models,
   blockstates, loot tables, tags and lang entries, and `yog_api::content!()`
   registers everything
+- 🍳 **`.yrecipe`**: Yog's own recipe format — shaped, shapeless,
+  smelting/blasting/smoking/campfire, stonecutting, smithing, alternatives
+  per ingredient, groups and categories; each host writes its Minecraft
+  version's JSON
+- 📕 **`.ybook`**: a guide book as a content file, its texts in `.yres`
 - 📥 **Importers**: `yog import resourcepack` and `yog import bbmodel`
   (Blockbench)
 
@@ -409,7 +425,7 @@ re-exported through it.
 | [`yog-kit`](https://crates.io/crates/yog-kit) | MVVM framework for `.yui` screens | MIT/Apache |
 | [`yog-ui`](https://crates.io/crates/yog-ui) | Widgets, flexbox and `Grid` layout, rendering | MIT/Apache |
 | [`yog-gfx`](https://crates.io/crates/yog-gfx) | GPU pipeline facade, 2D drawing, image sources | MIT/Apache |
-| [`yog-book`](https://crates.io/crates/yog-book) | In-game books | MIT/Apache |
+| [`yog-book`](https://crates.io/crates/yog-book) | Guide books: format and renderer | MIT/Apache |
 | `yog-core`, `yog-event`, `yog-world`, `yog-player`, `yog-entity`, `yog-registry`, `yog-command`, `yog-network`, `yog-storage`, `yog-config`, `yog-logging`, `yog-dimensions`, `yog-inventory`, `yog-interop` | Domain crates behind `yog-api` | MIT/Apache |
 | [`yog-abi`](https://crates.io/crates/yog-abi) | The `#[repr(C)]` contract between mods and the runtime | MIT/Apache |
 | [`yog-cli`](https://crates.io/crates/yog-cli) | The `yog` command | MIT/Apache |
@@ -463,11 +479,12 @@ Yog-IDLE does all of this from its Run toolbar.
 | Project | What |
 |---|---|
 | **Yog-Mod-Loader** (this repo) | Loader hosts, runtime, API crates, `yog` CLI |
-| [Yog-IDLE](https://github.com/F000NKKK/Yog-IDLE) | IDE for Yog mods: screen designer, 3D block/item editor, debugger, hot reload |
+| [Yog-IDLE](https://github.com/F000NKKK/Yog-IDLE) | IDE for Yog mods: screen and book designers, 3D block/item editor, debugger, hot reload |
 | [Substrate-Platform](https://github.com/F000NKKK/Substrate-Platform) | The generic IDE core Yog-IDLE is built on |
 | [Yog-Modlist](https://github.com/F000NKKK/Yog-Modlist) | In-game mod browser; the reference view-model screen |
 | [Yog-Pipes](https://github.com/F000NKKK/Yog-Pipes) | Payload-agnostic pipe networks for other mods |
-| [HexMod-Yog](https://github.com/F000NKKK/HexMod-Yog) | A port of Hex Casting to Yog |
+| [HexMod-Yog](https://github.com/F000NKKK/HexMod-Yog) | A port of Hex Casting to Yog, with its whole guide book |
+| [Yog-VLSI](https://github.com/F000NKKK/Yog-VLSI) | Redstone microchips simulated by a Rust VM |
 
 ## 🚧 Status
 
