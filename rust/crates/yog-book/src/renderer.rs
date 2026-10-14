@@ -1272,6 +1272,7 @@ fn build_entry_left(
         theme,
         recipes,
         &book.layouts,
+        &book.page_types,
         bg_sprites,
         overlays,
         ox,
@@ -1581,6 +1582,7 @@ fn build_page(
     theme: &BookTheme,
     recipes: &HashMap<String, RecipeVis>,
     layouts: &[crate::layout::RecipeLayout],
+    page_types: &[crate::page_type::PageType],
     bg_sprites: &mut Vec<BgSprite>,
     overlays: &mut Vec<OverlayCmd>,
     ox: f32,
@@ -1805,6 +1807,59 @@ fn build_page(
         }
 
         BookPage::Empty => {}
+
+        // A mod's own kind of page: its type's elements, top to bottom.
+        BookPage::Custom(c) => {
+            use crate::page_type::PageElement as E;
+            let Some(t) = page_types.iter().find(|t| t.id == c.kind) else {
+                return col.child(lbl(format!("[{}]", c.kind)).color(theme.nav));
+            };
+            let line_h = yog_ui::text::LINE_H + yog_ui::text::LINE_GAP;
+            // How far down the next element starts, in book pixels (pictures are overlays).
+            let mut top = 0.0;
+            for el in &t.body {
+                match el {
+                    E::Header { text, visible } if t.visible(c, visible) => {
+                        col = col.child(title_lbl(t.text(c, text)).color(theme.title).h(10.0 * sy));
+                        top += 14.0;
+                    }
+                    E::Text { text, visible } if t.visible(c, visible) => {
+                        let words = t.text(c, text);
+                        let lines: usize = words.split('\n').map(|p| yog_ui::text::wrap_text(p, TEXT_W, 1.0).len().max(1)).sum();
+                        col = col.child(lbl(words).color(theme.text));
+                        top += lines as f32 * line_h + 4.0;
+                    }
+                    E::Item { item, visible } if t.visible(c, visible) => {
+                        let id = crate::page_type::words(&t.value(c, item));
+                        push_icon(overlays, &id, ox + (PAGE_W / 2.0 - 8.0) * sx, oy + top * sy, 16.0 * sx, 16.0 * sy);
+                        col = col.child(widget::spacer().h(16.0 * sy));
+                        top += 20.0;
+                    }
+                    E::Image { image, height, visible } if t.visible(c, visible) => {
+                        let src = crate::page_type::words(&t.value(c, image));
+                        col = col.child(widget::image(src).stretch(Stretch::Fill).w(PAGE_W * sx).h(height * sy));
+                        top += height + 4.0;
+                    }
+                    E::Drawn { drawer, height, data, visible } if t.visible(c, visible) => {
+                        overlays.push(OverlayCmd::Drawn {
+                            drawer: drawer.clone(),
+                            data: t.value(c, data),
+                            x: ox,
+                            y: oy + top * sy,
+                            w: PAGE_W * sx,
+                            h: height * sy,
+                        });
+                        col = col.child(widget::spacer().h(height * sy));
+                        top += height + 4.0;
+                    }
+                    E::Spacer { height } => {
+                        col = col.child(widget::spacer().h(height * sy));
+                        top += height + 4.0;
+                    }
+                    _ => {}
+                }
+            }
+        }
     }
 
     col
@@ -2003,6 +2058,7 @@ mod tests {
                 &theme,
                 &recipes,
                 std::slice::from_ref(&layout),
+                &[],
                 &mut bg,
                 &mut ov,
                 0.0,
@@ -2122,5 +2178,39 @@ mod tests {
         assert!((drawn[0].2 - PAGE_W / 64.0).abs() < 0.01, "the page's width, 64 high");
         // The JSON form keeps the data.
         assert_eq!(serde_json::to_value(&page).unwrap()["data"]["op_id"], "hexcasting:manual");
+    }
+
+    #[test]
+    fn a_mods_page_type_lays_out_its_pages() {
+        use crate::page_type::{PageElement as E, PageProperty, PageType, PropKind};
+        let ty = PageType {
+            id: "hexcasting:pattern".into(),
+            properties: vec![
+                PageProperty { name: "name".into(), kind: PropKind::BookText, default: None },
+                PageProperty { name: "patterns".into(), kind: PropKind::Data, default: Some(yog_data::Value::List(vec![])) },
+            ],
+            body: vec![
+                E::Header { text: "{x:Bind name}".into(), visible: None },
+                E::Drawn { drawer: "hexcasting:pattern".into(), height: 64.0, data: "{x:Bind patterns}".into(), visible: Some("{x:Bind patterns}".into()) },
+            ],
+        };
+        let page = |json: &str| BookPage::Custom(yog_data::read_value(&yog_data::json::from_json_text(json).unwrap()).unwrap());
+        let mut b = book(vec![
+            page(r#"{"type":"hexcasting:pattern","name":"Manual","patterns":[{"startdir":"EAST","signature":"qaq"}]}"#),
+            page(r#"{"type":"hexcasting:pattern","name":"Bare"}"#),
+        ]);
+        b.page_types.push(ty);
+        b.categories.push(crate::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
+        b.entries[0].category = "c".into();
+        let mut r = BookRenderer::new(b);
+        r.show("e", 0);
+        r.prepare(800.0, 600.0);
+        let drawn: Vec<_> = r.overlays.iter().filter_map(|o| match o {
+            OverlayCmd::Drawn { drawer, data, .. } => Some((drawer.clone(), data.clone())),
+            _ => None,
+        }).collect();
+        assert_eq!(drawn.len(), 1, "the second page has no patterns: no picture");
+        assert_eq!(drawn[0].0, "hexcasting:pattern");
+        assert!(matches!(&drawn[0].1, yog_data::Value::List(l) if l.len() == 1), "the field's whole value");
     }
 }

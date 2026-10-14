@@ -1412,6 +1412,14 @@ fn find_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
 }
 
 /// Every `.yui` file under `dir`, recursively.
+/// Whether `path`'s root is a `<Component book_page="…">`.
+pub fn is_book_page_file(path: &Path) -> bool {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|s| parse_xml(&s).ok())
+        .is_some_and(|r| crate::book_page::is_book_page(&r))
+}
+
 pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
     find_files(dir, "yui")
 }
@@ -1422,6 +1430,10 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
     let files = find_yui_files(&root.join("src"));
     let mut wanted = Vec::new();
     for file in &files {
+        // A kind of book page is the book's (`crate::book_page`), not a widget.
+        if is_book_page_file(file) {
+            continue;
+        }
         wanted.push(generate_file(root, file)?);
     }
     // Components without a code-behind, for `ui_components!()`.

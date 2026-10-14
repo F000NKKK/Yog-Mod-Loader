@@ -36,6 +36,8 @@ struct Attrs {
     tag: Option<String>,
     with: Option<Type>,
     range: Option<(f64, f64)>,
+    /// A tagged enum's variant for every tag the others don't take.
+    other: bool,
 }
 
 fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
@@ -68,9 +70,11 @@ fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
                 a.with = Some(meta.value()?.parse::<LitStr>()?.parse()?);
             } else if meta.path.is_ident("skip") {
                 a.skip = true;
+            } else if meta.path.is_ident("other") {
+                a.other = true;
             } else {
                 return Err(meta
-                    .error("unknown `data` attribute (rename, default, skip, tag, with, range)"));
+                    .error("unknown `data` attribute (rename, default, skip, tag, with, range, other)"));
             }
             Ok(())
         })?;
@@ -299,6 +303,7 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
         key: String,
         doc: String,
         kind: VKind,
+        other: bool,
     }
     enum VKind {
         Unit,
@@ -327,13 +332,22 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
                 "Schema: variants with fields need `#[data(tag = \"type\")]` on the enum",
             ));
         }
+        if a.other && (top.tag.is_none() || !matches!(kind, VKind::Wrap(_))) {
+            return Err(syn::Error::new_spanned(
+                &v.ident,
+                "Schema: `other` is a tagged enum's variant wrapping a type that reads the whole object, tag included",
+            ));
+        }
         vs.push(V {
             key: a.rename.unwrap_or_else(|| snake(&v.ident)),
             ident: v.ident.clone(),
             doc: docs(&v.attrs),
             kind,
+            other: a.other,
         });
     }
+    // The catch-all variant, if any: not a name of its own.
+    let other = vs.iter().position(|v| v.other).map(|i| vs.remove(i));
     let keys: Vec<&String> = vs.iter().map(|v| &v.key).collect();
     let variant_shapes = vs.iter().map(|v| {
         let (key, doc) = (&v.key, &v.doc);
@@ -442,6 +456,21 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
             },
         }
     });
+    let (fallback, other_write) = match &other {
+        Some(V { ident, kind: VKind::Wrap(ty), .. }) => (
+            quote! { _ => <#ty as ::yog_data::Schema>::read(v, cx).map(Self::#ident), },
+            quote! { Self::#ident(inner) => { m = match ::yog_data::Schema::write(inner) { ::yog_data::Value::Map(fields) => fields, _ => m }; } },
+        ),
+        _ => (
+            quote! {
+                other => {
+                    cx.at(::yog_data::Seg::Key(::std::string::String::from(#tag)), |cx| cx.unknown_name(other, &[#(#keys),*]));
+                    ::std::option::Option::None
+                }
+            },
+            quote! {},
+        ),
+    };
     Ok(quote! {
         #shape
         fn read(v: &::yog_data::ValueRef<'_>, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
@@ -456,15 +485,12 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
             };
             match *kind {
                 #(#reads)*
-                other => {
-                    cx.at(::yog_data::Seg::Key(::std::string::String::from(#tag)), |cx| cx.unknown_name(other, &[#(#keys),*]));
-                    ::std::option::Option::None
-                }
+                #fallback
             }
         }
         fn write(&self) -> ::yog_data::Value {
             let mut m = ::yog_data::Map::new();
-            match self { #(#writes)* }
+            match self { #(#writes)* #other_write }
             ::yog_data::Value::Map(m)
         }
     })

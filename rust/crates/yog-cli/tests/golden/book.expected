@@ -146,7 +146,8 @@ fn __yog_content_auto_register() {
     }
   ],
   "i18n": true,
-  "layouts": []
+  "layouts": [],
+  "page_types": []
 }
 
 # assets/gm/items/ruby.json

@@ -981,6 +981,7 @@ fn compile_book(
     known: &refs::Known,
     layouts: &[yog_book::layout::RecipeLayout],
     recipe_kinds: &HashMap<String, String>,
+    page_types: &[yog_book::page_type::PageType],
 ) -> Option<BookFile> {
     use refs::RefKind;
     use yog_data::schema::{Resolve, Text};
@@ -1088,6 +1089,73 @@ fn compile_book(
         cx.err(1, format!("book id `{}`: not a valid id", book.id));
         return None;
     }
+    // Pages of a mod's own kind: their fields checked by their type and
+    // resolved like the rest of the book; the types they use go with it.
+    let mut used: Vec<yog_book::page_type::PageType> = Vec::new();
+    let mut fields_ok = true;
+    for (e, entry) in book.entries.iter_mut().enumerate() {
+        for (p, page) in entry.pages.iter_mut().enumerate() {
+            let yog_book::BookPage::Custom(c) = page else { continue };
+            use yog_book::page_type::PropKind as K;
+            use yog_data::with::With;
+            let at = Path::root().key("entries").index(e).key("pages").index(p);
+            let line = |path: &Path| doc.locate(text, path).line as usize;
+            let Some(t) = page_types.iter().find(|t| t.id == c.kind) else {
+                if c.kind.split(':').next() == mod_ns {
+                    cx.err(line(&at.key("type")), format!("{}.type: no page type {} — a .yui component with book_page=\"{}\"", at, c.kind, c.kind));
+                    fields_ok = false;
+                } else {
+                    cx.warn(line(&at.key("type")), format!("{}.type: {} is another mod's page type — not checked here", at, c.kind));
+                }
+                continue;
+            };
+            for (k, _) in c.fields.iter() {
+                if k != "anchor" && !t.properties.iter().any(|p| p.name == k) {
+                    let names: Vec<&str> = t.properties.iter().map(|p| p.name.as_str()).collect();
+                    cx.err(line(&at.key(k)), format!("{}: {} has no field `{k}` ({})", at.key(k), c.kind, names.join(", ")));
+                    fields_ok = false;
+                }
+            }
+            for prop in &t.properties {
+                let path = at.key(&prop.name);
+                let Some(v) = c.fields.get(&prop.name).cloned() else {
+                    if prop.default.is_none() {
+                        cx.err(line(&at), format!("{at}: missing `{}` ({})", prop.name, c.kind));
+                        fields_ok = false;
+                    }
+                    continue;
+                };
+                let arena = yog_data::Bump::new();
+                let r = v.borrow(&arena);
+                let mut reader = yog_data::Reader::with_resolver(&mut check);
+                let read = match prop.kind {
+                    K::Text => yog_data::with::TextOf::read(&r, &mut reader).map(yog_data::Value::Str),
+                    K::BookText => yog_book::refs::BookText::read(&r, &mut reader).map(yog_data::Value::Str),
+                    K::Item => yog_data::with::RefTo::<(yog_data::kinds::Item, yog_data::kinds::Block)>::read(&r, &mut reader).map(yog_data::Value::Str),
+                    K::Image => yog_book::refs::Icon::read(&r, &mut reader).map(yog_data::Value::Str),
+                    K::Number => <f64 as yog_data::Schema>::read(&r, &mut reader).map(yog_data::Value::Float),
+                    K::Bool => <bool as yog_data::Schema>::read(&r, &mut reader).map(yog_data::Value::Bool),
+                    K::Data => Some(v.clone()),
+                };
+                let problems = std::mem::take(&mut reader.problems);
+                drop(reader);
+                for pr in problems {
+                    cx.err(line(&path), format!("{path}: {}", pr.message));
+                    fields_ok = false;
+                }
+                if let Some(out) = read {
+                    c.fields.insert(prop.name.as_str(), out);
+                }
+            }
+            if !used.contains(t) {
+                used.push(t.clone());
+            }
+        }
+    }
+    if !fields_ok {
+        return None;
+    }
+    book.page_types = used;
     book.i18n |= check.text_refs;
     // Every recipe a page shows needs a layout for its kind (the game's are built in).
     let mut ok = true;
@@ -1706,6 +1774,8 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         }
     }
     let recipe_kinds: HashMap<String, String> = recipes.iter().map(|r| (r.id.clone(), r.ty.clone())).collect();
+    // The mod's own kinds of book page (`.yui` components with `book_page`).
+    let page_types = crate::book_page::find(root, mod_ns.unwrap_or("minecraft"), &mut errors);
     for (shown, text) in &pending_books {
         let mut cx = Ctx {
             root,
@@ -1718,7 +1788,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        if let Some(b) = compile_book(&mut cx, text, mod_ns, &known, &layouts, &recipe_kinds) {
+        if let Some(b) = compile_book(&mut cx, text, mod_ns, &known, &layouts, &recipe_kinds, &page_types) {
             if let Some(other) = book_ids.insert(b.id.clone(), shown.clone()) {
                 errors.push(format!("{shown}: book {} is also defined by {other}", b.id));
             }
@@ -2573,10 +2643,36 @@ mod tests {
 
         let bad = project(&[("content/bad.ybook", r#"{ "id": "x", "entries": [{ "pages": [{ "type": "nope" }] }] }"#)]);
         let e = compile(&bad, "mymod", &yres::Refs::default()).unwrap_err();
-        assert!(e.contains("entries[0].pages[0].type: unknown `nope`"), "{e}");
+        assert!(e.contains("entries[0].pages[0].type: unknown page type `nope`"), "{e}");
         let bad = project(&[("content/bad.ybook", r#"{ "id": "x", "name": "X", "categories": [{ "id": "c", "name": "C" }] }"#)]);
         let e = compile(&bad, "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("categories[0].id: `c`: write its namespace (`mymod:c`)"), "{e}");
+    }
+
+    #[test]
+    fn books_use_the_mods_own_page_types() {
+        let ty = r#"<Component name="PatternPage" book_page="pattern">
+            <Property name="name" type="book_text"/>
+            <Property name="patterns" type="data" default="[]"/>
+            <BookHeader text="{x:Bind name}"/>
+            <Drawn drawer="mymod:pattern" h="64" data="{x:Bind patterns}"/>
+        </Component>"#;
+        let book = |page: &str| format!(r#"{{ id: "guide", name: "G", categories: [{{ id: "mymod:c", name: "C" }}],
+            entries: [{{ id: "mymod:e", name: "E", category: "@category:mymod:c", pages: [{page}] }}] }}"#);
+        let ok = book(r#"{ type: "mymod:pattern", name: "@item:minecraft:stick", patterns: [{ startdir: "EAST", signature: "qaq" }] }"#);
+        let c = compile(&project(&[("src/ui/pattern_page.yui", ty), ("content/guide.ybook", &ok)]), "mymod", &yres::Refs::default()).unwrap();
+        let b = yog_data::read_bytes::<yog_book::Book>(&c.data_files[0].1).unwrap();
+        assert_eq!(b.page_types.len(), 1, "the type goes with the book");
+        let yog_book::BookPage::Custom(p) = &b.entries[0].pages[0] else { panic!("{:?}", b.entries[0].pages[0]) };
+        assert_eq!(p.fields.get("name").and_then(|n| n.as_str()), Some("item.minecraft.stick"), "texts resolve as the book's do");
+        assert!(b.i18n);
+
+        let unknown = book(r#"{ type: "mymod:pattern", name: "N", colour: 3 }"#);
+        let e = compile(&project(&[("src/ui/pattern_page.yui", ty), ("content/guide.ybook", &unknown)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("mymod:pattern has no field `colour` (name, patterns)"), "{e}");
+        let missing = book(r#"{ type: "mymod:nope" }"#);
+        let e = compile(&project(&[("content/guide.ybook", &missing)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("no page type mymod:nope"), "{e}");
     }
 
     #[test]

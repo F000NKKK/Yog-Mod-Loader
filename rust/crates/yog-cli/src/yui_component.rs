@@ -481,7 +481,7 @@ fn is_component_file(path: &Path) -> bool {
     std::fs::read_to_string(path)
         .ok()
         .and_then(|s| yui::parse_xml(&s).ok())
-        .is_some_and(|r| r.name == "Component")
+        .is_some_and(|r| r.name == "Component" && !crate::book_page::is_book_page(&r))
 }
 
 /// Writes [`INDEX_FILE`]: a module per component `.yui` under `src/` that

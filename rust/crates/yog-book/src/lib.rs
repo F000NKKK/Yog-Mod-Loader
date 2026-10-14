@@ -8,6 +8,7 @@
 
 pub mod layout;
 pub mod markup;
+pub mod page_type;
 pub mod refs;
 pub mod renderer;
 pub mod state;
@@ -178,6 +179,11 @@ pub enum BookPage {
     },
     /// Nothing (to start the next on a new spread).
     Empty,
+    /// A page of a mod's own type (`type: "hexcasting:pattern"`), laid out
+    /// by the book's [`page_type::PageType`] of it.
+    #[serde(skip)]
+    #[data(other)]
+    Custom(page_type::CustomPage),
 }
 
 // ── Categories and entries ───────────────────────────────────────────────────
@@ -271,6 +277,11 @@ pub struct Book {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[data(default)]
     pub layouts: Vec<layout::RecipeLayout>,
+    /// The mods' own kinds of page its pages use; the build adds them
+    /// (`.yui` components with `book_page`).
+    #[serde(skip)]
+    #[data(default)]
+    pub page_types: Vec<page_type::PageType>,
 }
 
 fn default_nameplate_color() -> String {
@@ -300,6 +311,7 @@ impl Default for Book {
             entries: Vec::new(),
             i18n: false,
             layouts: Vec::new(),
+            page_types: Vec::new(),
         }
     }
 }
@@ -316,6 +328,7 @@ impl Book {
             }
         };
         let mut b = self.clone();
+        let types = std::mem::take(&mut b.page_types);
         b.name = tr(&b.name);
         b.landing_text = tr(&b.landing_text);
         opt(&mut b.subtitle);
@@ -348,9 +361,19 @@ impl Book {
                         opt(text);
                     }
                     BookPage::Empty => {}
+                    // A mod's page: its texts, as its type says.
+                    BookPage::Custom(c) => {
+                        let Some(t) = types.iter().find(|t| t.id == c.kind) else { continue };
+                        for prop in t.properties.iter().filter(|p| matches!(p.kind, page_type::PropKind::Text | page_type::PropKind::BookText)) {
+                            if let Some(yog_data::Value::Str(s)) = c.fields.get_mut(&prop.name) {
+                                *s = tr(s);
+                            }
+                        }
+                    }
                 }
             }
         }
+        b.page_types = types;
         b
     }
 

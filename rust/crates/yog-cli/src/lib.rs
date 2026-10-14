@@ -6,6 +6,7 @@
 //! its benches share the code. No API stability, not published separately.
 
 pub mod bench;
+pub mod book_page;
 pub mod cargo_toml;
 pub mod content;
 pub mod exports;
