@@ -251,7 +251,13 @@ fn draw_lines(
         if !fits(clip, ly, text::LINE_H * s.font_scale) {
             continue;
         }
-        let line_w = text::str_width_in(&shown, s.font_scale, &s.font);
+        // Placed by the ink: a Minecraft font's advances end in a pixel of
+        // spacing after the last glyph, which would pull centred text half
+        // a pixel left (a lone `i` in a 9-pixel badge sits off-centre).
+        let mut line_w = text::str_width_in(&shown, s.font_scale, &s.font);
+        if text::is_default_font(&s.font) && line_w > 0.0 {
+            line_w -= s.font_scale;
+        }
         let tx = r.x + s.pad[3] + place(avail_w - line_w);
         draw_text(d2d, &shown, &s.font, tx, ly, s.font_scale, s.color, s.text_shadow);
     }
