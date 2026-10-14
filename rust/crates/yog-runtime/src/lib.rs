@@ -181,6 +181,9 @@ struct RuntimeHandlers {
     content_blob: Mutex<Option<std::sync::Arc<Vec<u8>>>>,
     /// Mods' sound groups by id; a block's `sound` is one of these or built in.
     sound_groups: HashMap<String, yog_registry::SoundGroup>,
+    /// Mods' tool and armor materials by id (the game's are built in).
+    tool_materials: HashMap<String, yog_registry::ToolMaterial>,
+    armor_materials: HashMap<String, yog_registry::ArmorMaterial>,
     inventories: Vec<yog_inventory::InventoryDef>,
     /// The ids of the registered books (their renderers are `book_renderers`).
     books: std::collections::HashSet<String>,
@@ -2143,6 +2146,16 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
                 none_if_empty(&mut d.sound);
                 none_if_empty(&mut d.inventory_id);
                 h.blocks.push(d);
+            }
+        }
+        "tool_material" => {
+            if let Some(m) = read::<yog_registry::ToolMaterial>(kind, &id, value) {
+                h.tool_materials.insert(m.id.clone(), m);
+            }
+        }
+        "armor_material" => {
+            if let Some(m) = read::<yog_registry::ArmorMaterial>(kind, &id, value) {
+                h.armor_materials.insert(m.id.clone(), m);
             }
         }
         "sound_group" => {

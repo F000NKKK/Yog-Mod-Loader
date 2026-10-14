@@ -16,9 +16,30 @@ import java.util.Map;
 public final class YogContent {
     public record Food(int nutrition, float saturation, boolean alwaysEdible) {}
 
-    /** An item; {@code name}/{@code tooltip} are empty when not set, {@code food} null; {@code book}: opens the book of its id. */
+    /**
+     * What tools are made of, whole (the game's or a mod's): {@code repair} an item id or {@code #tag};
+     * {@code levelIndex} 1.20's level number, {@code incorrect} 1.21's tag of what it can't mine.
+     */
+    public record ToolMaterial(String id, int durability, float speed, float attackDamage, int enchantability,
+                               String repair, int levelIndex, String incorrect) {}
+
+    /** A tool: {@code pickaxe}, {@code axe}, {@code shovel}, {@code hoe}, {@code sword}, or a mineable tag id. */
+    public record Tool(String kind, float attackDamage, float attackSpeed, ToolMaterial material) {}
+
+    /** What armor is made of, whole; {@code durability} multiplies each piece's base. */
+    public record ArmorMaterial(String id, int durability, int head, int chest, int legs, int feet, int enchantability,
+                                String equipSound, float toughness, float knockbackResistance, String repair,
+                                String texture) {}
+
+    /** A piece of armor: {@code head}, {@code chest}, {@code legs} or {@code feet}. */
+    public record Armor(String slot, ArmorMaterial material) {}
+
+    /**
+     * An item; {@code name}/{@code tooltip} are empty when not set, {@code food}, {@code tool} and
+     * {@code armor} null; {@code book}: opens the book of its id.
+     */
     public record Item(String id, int maxStack, String name, String tooltip, int maxDamage,
-                       boolean fireResistant, int fuelTicks, Food food, boolean book) {}
+                       boolean fireResistant, int fuelTicks, Food food, boolean book, Tool tool, Armor armor) {}
 
     /**
      * A sound group, whole — the game's or a mod's: sound event ids the host
@@ -84,7 +105,8 @@ public final class YogContent {
             items.add(new Item(YogData.str(m.get("id"), ""), (int) YogData.integer(m.get("max_stack"), 64),
                     YogData.str(m.get("name"), ""), YogData.str(m.get("tooltip"), ""),
                     (int) YogData.integer(m.get("max_damage"), 0), YogData.bool(m.get("fire_resistant"), false),
-                    (int) YogData.integer(m.get("fuel_ticks"), 0), food, YogData.bool(m.get("book"), false)));
+                    (int) YogData.integer(m.get("fuel_ticks"), 0), food, YogData.bool(m.get("book"), false),
+                    tool(m.get("tool")), armor(m.get("armor"))));
         }
         List<Block> blocks = new ArrayList<>();
         for (Object o : YogData.list(root.get("blocks"))) {
@@ -116,6 +138,54 @@ public final class YogContent {
             dimensions.add(new Dimension(YogData.str(m.get("id"), ""), object(m.get("def"))));
         }
         return new YogContent(items, blocks, inventories, recipes, dimensions);
+    }
+
+    private static Tool tool(Object v) {
+        if (v == null) return null;
+        Map<String, Object> t = YogData.map(v);
+        Map<String, Object> m = YogData.map(t.get("material"));
+        ToolMaterial material = new ToolMaterial(YogData.str(m.get("id"), ""), (int) YogData.integer(m.get("durability"), 1),
+                (float) YogData.number(m.get("speed"), 1), (float) YogData.number(m.get("attack_damage"), 0),
+                (int) YogData.integer(m.get("enchantability"), 0), YogData.str(m.get("repair"), ""),
+                (int) YogData.integer(m.get("level_index"), 0), YogData.str(m.get("incorrect"), "minecraft:incorrect_for_wooden_tool"));
+        return new Tool(YogData.str(t.get("kind"), "pickaxe"), (float) YogData.number(t.get("attack_damage"), 1),
+                (float) YogData.number(t.get("attack_speed"), -2.8), material);
+    }
+
+    private static Armor armor(Object v) {
+        if (v == null) return null;
+        Map<String, Object> a = YogData.map(v);
+        Map<String, Object> m = YogData.map(a.get("material"));
+        Map<String, Object> d = YogData.map(m.get("defense"));
+        ArmorMaterial material = new ArmorMaterial(YogData.str(m.get("id"), ""), (int) YogData.integer(m.get("durability"), 1),
+                (int) YogData.integer(d.get("head"), 0), (int) YogData.integer(d.get("chest"), 0),
+                (int) YogData.integer(d.get("legs"), 0), (int) YogData.integer(d.get("feet"), 0),
+                (int) YogData.integer(m.get("enchantability"), 0), YogData.str(m.get("equip_sound"), "minecraft:item.armor.equip_generic"),
+                (float) YogData.number(m.get("toughness"), 0), (float) YogData.number(m.get("knockback_resistance"), 0),
+                YogData.str(m.get("repair"), ""), YogData.str(m.get("texture"), ""));
+        return new Armor(YogData.str(a.get("slot"), "head"), material);
+    }
+
+    /** Base durability of an armor piece (helmet 11, chestplate 16, leggings 15, boots 13), times the material's. */
+    public static int armorDurability(Armor a) {
+        int base = switch (a.slot()) {
+            case "chest" -> 16;
+            case "legs" -> 15;
+            case "feet" -> 13;
+            default -> 11;
+        };
+        return base * a.material().durability();
+    }
+
+    /** A piece's defense points. */
+    public static int armorDefense(Armor a) {
+        ArmorMaterial m = a.material();
+        return switch (a.slot()) {
+            case "chest" -> m.chest();
+            case "legs" -> m.legs();
+            case "feet" -> m.feet();
+            default -> m.head();
+        };
     }
 
     private static Sound sound(Object v) {

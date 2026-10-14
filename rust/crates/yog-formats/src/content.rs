@@ -6,7 +6,7 @@ use yog_data::kinds::Item;
 use yog_data::with::{Opt, RefTo};
 use yog_data::{Ordered, Reader, Res, Schema, Shape, Text, Value, ValueRef};
 
-use crate::def::{LevelKind, SoundGroupKind, TOOL_LEVELS};
+use crate::def::{ArmorMaterialKind, LevelKind, SoundGroupKind, TOOL_LEVELS, ToolMaterialKind};
 
 /// Registered by `yog_api::content!()` (`auto`), or by the mod's code.
 #[derive(Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -44,6 +44,141 @@ pub struct ItemProps {
     #[data(range = "0..=1000000000")]
     pub fuel_ticks: Option<u32>,
     pub food: Option<Food>,
+    /// A tool or a weapon: its kind and material.
+    pub tool: Option<ToolProps>,
+    /// A piece of armor: its slot and material.
+    pub armor: Option<ArmorProps>,
+}
+
+/// An item as a tool or weapon.
+#[derive(Schema, Debug, Clone)]
+pub struct ToolProps {
+    /// `pickaxe`, `axe`, `shovel`, `hoe`, `sword`, or a mod's kind of tool
+    /// by the blocks it mines (`@tag:block:mymod:mineable/hammer`).
+    #[data(with = "ToolKindRef")]
+    pub kind: String,
+    /// The game's material (`wood`, `stone`, `iron`, `diamond`, `gold`,
+    /// `netherite`) or a mod's (`@tool_material:mymod:mythril`, a `.ydef`).
+    #[data(with = "MaterialRef<ToolMaterialKind>")]
+    pub material: String,
+    /// Attack damage on top of the material's (default: the kind's — a
+    /// sword 3, an axe 6, a shovel 1.5, a pickaxe 1, a hoe 0).
+    pub attack_damage: Option<f32>,
+    /// Attack speed change (default: the kind's — a sword -2.4, an axe
+    /// -3.1, a shovel -3, a pickaxe -2.8, a hoe -1).
+    pub attack_speed: Option<f32>,
+}
+
+impl ToolProps {
+    /// The kind's attack damage and speed when the file doesn't say.
+    pub fn attack(&self) -> (f32, f32) {
+        let (d, s) = match self.kind.as_str() {
+            "sword" => (3.0, -2.4),
+            "axe" => (6.0, -3.1),
+            "shovel" => (1.5, -3.0),
+            "hoe" => (0.0, -1.0),
+            _ => (1.0, -2.8),
+        };
+        (self.attack_damage.unwrap_or(d), self.attack_speed.unwrap_or(s))
+    }
+}
+
+/// Where a piece of armor is worn.
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArmorSlot {
+    Head,
+    Chest,
+    Legs,
+    Feet,
+}
+
+/// An item as a piece of armor.
+#[derive(Schema, Debug, Clone)]
+pub struct ArmorProps {
+    pub slot: ArmorSlot,
+    /// The game's material (`leather`, `chainmail`, `iron`, `gold`,
+    /// `diamond`, `turtle`, `netherite`) or a mod's
+    /// (`@armor_material:mymod:mythril`, a `.ydef`).
+    #[data(with = "MaterialRef<ArmorMaterialKind>")]
+    pub material: String,
+}
+
+/// The game's kinds of tool, by name.
+pub const TOOL_KINDS: [&str; 5] = ["pickaxe", "axe", "shovel", "hoe", "sword"];
+
+/// A kind of tool: the game's by name, or a mod's mineable tag.
+pub struct ToolKindRef;
+
+impl yog_data::with::With<String> for ToolKindRef {
+    fn shape() -> Shape {
+        Shape::Tag(&["block"])
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
+        match v {
+            ValueRef::Str(s) if TOOL_KINDS.contains(s) => Some(s.to_string()),
+            ValueRef::Str(s) if !s.starts_with('@') => {
+                cx.problem(format!("`{s}`: one of {} — or a mod's kind of tool by its mineable tag, `@tag:block:mymod:mineable/hammer`", TOOL_KINDS.join(", ")));
+                None
+            }
+            _ => yog_data::TagId::<yog_data::kinds::Block>::read(v, cx).map(|t| t.id),
+        }
+    }
+    fn write(f: &String) -> Value {
+        if TOOL_KINDS.contains(&f.as_str()) {
+            Value::from(f.as_str())
+        } else {
+            Value::Tag(yog_data::Ref::new("block", f.clone()))
+        }
+    }
+}
+
+/// A material: one of the game's by short name (built-in data), or a
+/// reference to a mod's (`@tool_material:…`, `@armor_material:…`).
+pub struct MaterialRef<K>(std::marker::PhantomData<K>);
+
+/// Which built-in materials a kind of material has.
+pub trait MaterialKind: yog_data::Kind {
+    fn built_in(name: &str) -> Option<String>;
+    fn names() -> Vec<String>;
+}
+
+impl MaterialKind for ToolMaterialKind {
+    fn built_in(name: &str) -> Option<String> {
+        yog_registry::ToolMaterial::built_in(name).map(|m| m.id.clone())
+    }
+    fn names() -> Vec<String> {
+        yog_registry::ToolMaterial::built_ins().iter().map(|m| m.id.trim_start_matches("minecraft:").to_string()).collect()
+    }
+}
+
+impl MaterialKind for ArmorMaterialKind {
+    fn built_in(name: &str) -> Option<String> {
+        yog_registry::ArmorMaterial::built_in(name).map(|m| m.id.clone())
+    }
+    fn names() -> Vec<String> {
+        yog_registry::ArmorMaterial::built_ins().iter().map(|m| m.id.trim_start_matches("minecraft:").to_string()).collect()
+    }
+}
+
+impl<K: MaterialKind> yog_data::with::With<String> for MaterialRef<K> {
+    fn shape() -> Shape {
+        Shape::Ref(<K as yog_data::Kinds>::NAMES)
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
+        match v {
+            ValueRef::Str(s) if !s.starts_with('@') => K::built_in(s).or_else(|| {
+                cx.problem(format!("`{s}`: one of the game's ({}) — or a mod's, `@{}:mymod:…` (a .ydef)", K::names().join(", "), K::NAME));
+                None
+            }),
+            _ => yog_data::with::RefTo::<K>::read(v, cx),
+        }
+    }
+    fn write(f: &String) -> Value {
+        match f.strip_prefix("minecraft:") {
+            Some(s) if K::built_in(s).is_some() => Value::from(s),
+            _ => Value::Ref(yog_data::Ref::new(K::NAME, f.clone())),
+        }
+    }
 }
 
 /// A block tag a block joins, as its full id. Tools and tool tiers are

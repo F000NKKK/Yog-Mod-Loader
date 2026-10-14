@@ -32,7 +32,7 @@ use yog_event::{
 };
 use yog_gfx::GfxContext;
 use yog_network::{Packet, PacketEvent};
-use yog_registry::{BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant};
+use yog_registry::{ArmorMaterial, BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant, ToolMaterial};
 
 // ── CServer — implements Server via the YogServer function table ──────────────
 
@@ -2163,6 +2163,20 @@ impl Registry {
     pub fn register_block(&mut self, def: BlockDef) {
         use yog_data::Schema;
         self.content("block", &def.id.clone(), &def.write());
+    }
+
+    /// Register a tool material — what tool items naming it
+    /// (`ItemDef::tool`) are made of. The game's are built in.
+    pub fn register_tool_material(&mut self, material: ToolMaterial) {
+        use yog_data::Schema;
+        self.content("tool_material", &material.id.clone(), &material.write());
+    }
+
+    /// Register an armor material — what armor items naming it
+    /// (`ItemDef::armor`) are made of. The game's are built in.
+    pub fn register_armor_material(&mut self, material: ArmorMaterial) {
+        use yog_data::Schema;
+        self.content("armor_material", &material.id.clone(), &material.write());
     }
 
     /// Register a sound group — what blocks naming it (`BlockDef::sound`)

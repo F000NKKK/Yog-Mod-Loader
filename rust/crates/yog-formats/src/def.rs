@@ -6,19 +6,22 @@
 use yog_data::Schema;
 use yog_data::Ordered;
 use yog_data::with::{Opt, RefTo};
-pub use yog_registry::SoundGroup;
+pub use yog_registry::{ArmorMaterial, SoundGroup, ToolMaterial};
 
 yog_data::kind! {
     LadderKind = "ladder",
     LevelKind = "level",
     SoundGroupKind = "sound_group",
+    ToolMaterialKind = "tool_material",
+    ArmorMaterialKind = "armor_material",
 }
 
 /// A `.ydef`: an entry of some kind of definition, named by reference
 /// (`@<kind>:<id>`) everywhere else. Kinds: `ladder` (an ordered scale),
 /// `level` (a step on one), `sound_group` (what a block sounds like),
-/// `recipe_kind` (a mod's kind of recipe) and `recipe_layout` (how books
-/// show the game's or another mod's).
+/// `recipe_kind` (a mod's kind of recipe), `recipe_layout` (how books
+/// show the game's or another mod's), `tool_material` and
+/// `armor_material`.
 #[derive(Schema, Debug, Clone)]
 #[data(tag = "kind")]
 pub enum Def {
@@ -43,6 +46,59 @@ pub enum Def {
     /// How books show kinds of recipe that aren't the mod's own — the
     /// game's (`shaped`), another mod's.
     RecipeLayout(yog_book::layout::RecipeLayout),
+    /// What tools are made of (`@tool_material:mymod:mythril`); the game's
+    /// are built in (`iron`, `diamond`…).
+    ToolMaterial(ToolMaterialDef),
+    /// What armor is made of (`@armor_material:mymod:mythril`); the game's
+    /// are built in (`iron`, `diamond`…).
+    ArmorMaterial(ArmorMaterialDef),
+}
+
+/// `{ kind: "tool_material", id: "mythril", durability: 1800, speed: 10,
+/// attack_damage: 3, enchantability: 18, level: "@level:mymod:mythril",
+/// repair: "@item:mymod:mythril_ingot" }`.
+#[derive(Schema, Debug, Clone)]
+pub struct ToolMaterialDef {
+    pub id: String,
+    /// Uses before it breaks.
+    #[data(range = "1..=1000000")]
+    pub durability: u32,
+    /// How fast it mines (wood 2, stone 4, iron 6, diamond 8, netherite 9, gold 12).
+    pub speed: f32,
+    /// Attack damage it adds (wood 0, stone 1, iron 2, diamond 3, netherite 4).
+    pub attack_damage: f32,
+    #[data(range = "0..=1000")]
+    pub enchantability: u32,
+    /// Its level on the tool ladder: the game's (`iron`) or a mod's (`@level:mymod:mythril`).
+    #[data(with = "crate::content::LevelRef")]
+    pub level: String,
+    /// What repairs it: an item or a tag of items.
+    pub repair: yog_data::ItemIdOrTag,
+}
+
+/// `{ kind: "armor_material", id: "mythril", durability: 30, defense:
+/// { head: 3, chest: 8, legs: 6, feet: 3 }, enchantability: 18,
+/// equip_sound: "minecraft:item.armor.equip_diamond", repair: "@item:mymod:mythril_ingot" }`.
+#[derive(Schema, Debug, Clone)]
+pub struct ArmorMaterialDef {
+    pub id: String,
+    /// Multiplies each piece's base durability (helmet 11, chestplate 16, leggings 15, boots 13).
+    #[data(range = "1..=10000")]
+    pub durability: u32,
+    pub defense: yog_registry::ArmorDefense,
+    #[data(range = "0..=1000")]
+    pub enchantability: u32,
+    /// The sound event of putting it on (`minecraft:item.armor.equip_iron`).
+    pub equip_sound: String,
+    #[data(default)]
+    pub toughness: f32,
+    #[data(default, range = "0..=1")]
+    pub knockback_resistance: f32,
+    /// What repairs it: an item or a tag of items.
+    pub repair: yog_data::ItemIdOrTag,
+    /// Its look on a player (`mymod:mythril`: `mymod:textures/models/armor/mythril_layer_1.png`);
+    /// its id by default.
+    pub texture: Option<String>,
 }
 
 /// A slot of a kind of recipe: how many ingredients it takes.

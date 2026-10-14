@@ -432,8 +432,12 @@ public class YogHost implements ModInitializer {
                 }
 
                 // Check if this item has an associated book
+                // A tool, a weapon or armor of a material, else a plain (or book) item.
+                Item made = YogTools.make(settings, p);
                 Item item;
-                if (p.book()) {
+                if (made != null) {
+                    item = made;
+                } else if (p.book()) {
                     item = new YogBookItem(settings,
                             p.name(), p.tooltip(), id);
                 } else {
@@ -547,7 +551,7 @@ public class YogHost implements ModInitializer {
                 soundEvent(s.place()), soundEvent(s.hit()), soundEvent(s.fall()));
     }
 
-    private static SoundEvent soundEvent(String id) {
+    static SoundEvent soundEvent(String id) {
         Identifier i = Identifier.tryParse(id);
         if (i == null) i = Identifier.tryParse("minecraft:intentionally_empty");
         SoundEvent e = Registries.SOUND_EVENT.get(i);

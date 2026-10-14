@@ -1,0 +1,13 @@
+// The game's armor materials as `ArmorMaterial`s, the same as a `.ydef` of
+// kind `armor_material` writes. `material: "diamond"` on an item is
+// `minecraft:diamond` here. `durability` multiplies each piece's base
+// (helmet 11, chestplate 16, leggings 15, boots 13).
+[
+  { id: "minecraft:leather", durability: 5, defense: { head: 1, chest: 3, legs: 2, feet: 1 }, enchantability: 15, equip_sound: "minecraft:item.armor.equip_leather", repair: "minecraft:leather", texture: "minecraft:leather" },
+  { id: "minecraft:chainmail", durability: 15, defense: { head: 2, chest: 5, legs: 4, feet: 1 }, enchantability: 12, equip_sound: "minecraft:item.armor.equip_chain", repair: "minecraft:iron_ingot", texture: "minecraft:chainmail" },
+  { id: "minecraft:iron", durability: 15, defense: { head: 2, chest: 6, legs: 5, feet: 2 }, enchantability: 9, equip_sound: "minecraft:item.armor.equip_iron", repair: "minecraft:iron_ingot", texture: "minecraft:iron" },
+  { id: "minecraft:gold", durability: 7, defense: { head: 2, chest: 5, legs: 3, feet: 1 }, enchantability: 25, equip_sound: "minecraft:item.armor.equip_gold", repair: "minecraft:gold_ingot", texture: "minecraft:gold" },
+  { id: "minecraft:diamond", durability: 33, defense: { head: 3, chest: 8, legs: 6, feet: 3 }, enchantability: 10, equip_sound: "minecraft:item.armor.equip_diamond", toughness: 2, repair: "minecraft:diamond", texture: "minecraft:diamond" },
+  { id: "minecraft:turtle", durability: 25, defense: { head: 2, chest: 6, legs: 5, feet: 2 }, enchantability: 9, equip_sound: "minecraft:item.armor.equip_turtle", repair: "minecraft:turtle_scute", texture: "minecraft:turtle" },
+  { id: "minecraft:netherite", durability: 37, defense: { head: 3, chest: 8, legs: 6, feet: 3 }, enchantability: 15, equip_sound: "minecraft:item.armor.equip_netherite", toughness: 3, knockback_resistance: 0.1, repair: "minecraft:netherite_ingot", texture: "minecraft:netherite" },
+]

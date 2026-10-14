@@ -15,6 +15,44 @@ fn sound_group<'a>(h: &'a RuntimeHandlers, name: &str) -> Option<&'a yog_registr
     h.sound_groups.get(name).or_else(|| yog_registry::SoundGroup::built_in(name))
 }
 
+fn tool_material<'a>(h: &'a RuntimeHandlers, id: &str) -> Option<&'a yog_registry::ToolMaterial> {
+    h.tool_materials.get(id).or_else(|| yog_registry::ToolMaterial::built_in(id))
+}
+
+fn armor_material<'a>(h: &'a RuntimeHandlers, id: &str) -> Option<&'a yog_registry::ArmorMaterial> {
+    h.armor_materials.get(id).or_else(|| yog_registry::ArmorMaterial::built_in(id))
+}
+
+/// A tool material, whole: the host makes its tier from it.
+fn write_tool_material<'v>(w: &mut Writer<'v>, m: &'v yog_registry::ToolMaterial) {
+    w.map(8);
+    w.key("id").str(&m.id);
+    w.key("durability").int(m.durability as i64);
+    w.key("speed").float(m.speed as f64);
+    w.key("attack_damage").float(m.attack_damage as f64);
+    w.key("enchantability").int(m.enchantability as i64);
+    w.key("repair").str(&m.repair);
+    w.key("level_index").int(m.level_index as i64);
+    w.key("incorrect").str(&m.incorrect);
+}
+
+/// An armor material, whole.
+fn write_armor_material<'v>(w: &mut Writer<'v>, m: &'v yog_registry::ArmorMaterial) {
+    w.map(9);
+    w.key("id").str(&m.id);
+    w.key("durability").int(m.durability as i64);
+    w.key("defense").map(4);
+    for (k, v) in [("head", m.defense.head), ("chest", m.defense.chest), ("legs", m.defense.legs), ("feet", m.defense.feet)] {
+        w.key(k).int(v as i64);
+    }
+    w.key("enchantability").int(m.enchantability as i64);
+    w.key("equip_sound").str(&m.equip_sound);
+    w.key("toughness").float(m.toughness as f64);
+    w.key("knockback_resistance").float(m.knockback_resistance as f64);
+    w.key("repair").str(&m.repair);
+    w.key("texture").str(&m.texture);
+}
+
 fn floats(w: &mut Writer, fs: &[f32]) {
     w.list(fs.len());
     for f in fs {
@@ -48,8 +86,22 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
 
     w.key("items").list(h.items.len());
     for d in &h.items {
+        let tool = d.tool.as_ref().and_then(|t| {
+            let m = tool_material(h, &t.material);
+            if m.is_none() {
+                yog_logging::warn!("item {}: no tool material {} — the game's or a mod's", d.id, t.material);
+            }
+            Some((t, m?))
+        });
+        let armor = d.armor.as_ref().and_then(|a| {
+            let m = armor_material(h, &a.material);
+            if m.is_none() {
+                yog_logging::warn!("item {}: no armor material {} — the game's or a mod's", d.id, a.material);
+            }
+            Some((a, m?))
+        });
         // Always: id, max_stack, max_damage, fire_resistant, fuel_ticks, book.
-        let n = 6 + d.name.is_some() as usize + d.tooltip.is_some() as usize + d.food.is_some() as usize;
+        let n = 6 + d.name.is_some() as usize + d.tooltip.is_some() as usize + d.food.is_some() as usize + tool.is_some() as usize + armor.is_some() as usize;
         w.map(n);
         w.key("id").str(&d.id);
         w.key("max_stack").int(d.max_stack as i64);
@@ -67,6 +119,20 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
             w.key("nutrition").int(f.nutrition as i64);
             w.key("saturation").float(f.saturation as f64);
             w.key("always_edible").bool(f.can_always_eat);
+        }
+        if let Some((t, m)) = tool {
+            w.key("tool").map(4);
+            w.key("kind").str(&t.kind);
+            w.key("attack_damage").float(t.attack_damage as f64);
+            w.key("attack_speed").float(t.attack_speed as f64);
+            w.key("material");
+            write_tool_material(&mut w, m);
+        }
+        if let Some((a, m)) = armor {
+            w.key("armor").map(2);
+            w.key("slot").str(&a.slot);
+            w.key("material");
+            write_armor_material(&mut w, m);
         }
         // A book registered under the item's id: the host makes it open the book.
         w.key("book").bool(h.books.contains(&d.id));

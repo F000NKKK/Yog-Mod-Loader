@@ -287,6 +287,10 @@ struct ItemProps {
     fuel_ticks: u32,
     /// (nutrition, saturation, always_edible)
     food: Option<(u32, f64, bool)>,
+    /// (kind, material, attack damage, attack speed)
+    tool: Option<(String, String, f32, f32)>,
+    /// (slot, material)
+    armor: Option<(String, String)>,
 }
 
 /// One checked content file — what the Rust code needs.
@@ -764,6 +768,14 @@ fn compile_file(
             props.fire_resistant = it.fire_resistant;
             props.fuel_ticks = it.fuel_ticks.unwrap_or(0);
             props.food = it.food.as_ref().map(|f| (f.nutrition, f.saturation, f.always_edible));
+            props.tool = it.tool.as_ref().map(|t| {
+                let (d, s) = t.attack();
+                (t.kind.clone(), t.material.clone(), d, s)
+            });
+            props.armor = it.armor.as_ref().map(|a| (yog_formats::content::word(&a.slot), a.material.clone()));
+            if props.tool.is_some() && props.armor.is_some() {
+                cx.err_at(loc, &root.key("item").key("armor"), "an item is a tool or armor, not both");
+            }
             if props.durability > 0 && props.stack_size.is_some_and(|s| s > 1) {
                 cx.warn_at(loc, &root.key("item").key("stack_size"), "ignored: an item with durability stacks to 1");
             }
@@ -1537,6 +1549,8 @@ fn compile_recipe(
 struct Defs {
     order: BTreeMap<String, Vec<String>>,
     sound_groups: Vec<yog_formats::def::SoundGroup>,
+    tool_materials: Vec<yog_formats::def::ToolMaterial>,
+    armor_materials: Vec<yog_formats::def::ArmorMaterial>,
 }
 
 impl Defs {
@@ -1556,6 +1570,12 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
     let full = |id: &str| if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") };
     // (file, line, id, ladder, above)
     let mut levels: Vec<(String, usize, String, String, Option<String>)> = Vec::new();
+    let mut tools: Vec<(String, yog_formats::def::ToolMaterialDef)> = Vec::new();
+    let mut armor_materials: Vec<yog_formats::def::ArmorMaterial> = Vec::new();
+    let repair = |r: &yog_data::ItemIdOrTag| match r {
+        yog_data::OneOrTag::One(i) => i.id.clone(),
+        yog_data::OneOrTag::Tag(t) => format!("#{}", t.id),
+    };
     for (file, text) in defs {
         let doc = match yog_data::text::parse(text) {
             Ok(d) => d,
@@ -1587,6 +1607,29 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                 }
                 // Read with the recipes (`compile_layout`).
                 yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::RecipeLayout(_) => {}
+                // Its level is placed on the ladder below.
+                yog_formats::def::Def::ToolMaterial(mut m) => {
+                    m.id = full(&m.id);
+                    tools.push((file.clone(), m));
+                }
+                yog_formats::def::Def::ArmorMaterial(m) => {
+                    let id = full(&m.id);
+                    if yog_formats::def::ArmorMaterial::built_in(&id).is_some() || armor_materials.iter().any(|x| x.id == id) {
+                        errors.push(format!("{file}:1: armor material {id} is the game's or defined twice"));
+                        continue;
+                    }
+                    armor_materials.push(yog_formats::def::ArmorMaterial {
+                        texture: m.texture.as_deref().map(full).unwrap_or_else(|| id.clone()),
+                        equip_sound: full(&m.equip_sound),
+                        durability: m.durability,
+                        defense: m.defense,
+                        enchantability: m.enchantability,
+                        toughness: m.toughness,
+                        knockback_resistance: m.knockback_resistance,
+                        repair: repair(&m.repair),
+                        id,
+                    });
+                }
             },
             Err(es) => {
                 for e in es.0 {
@@ -1626,7 +1669,44 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
         let above = above.unwrap_or_default();
         errors.push(format!("{file}:{line}: level {id}: above {above}, which isn't a level of {ladder} (or the levels go round in a circle)"));
     }
-    Defs { order, sound_groups }
+    // Tool materials: what their level is on each version — 1.20's level
+    // number and 1.21's tag of what they can't mine, as blocks of their
+    // level are tagged (`tool_level_tags`: the weakest of the game's levels
+    // at or above it).
+    let ladder = order.get(yog_formats::def::TOOL_LADDER).cloned().unwrap_or_default();
+    let mut tool_materials: Vec<yog_formats::def::ToolMaterial> = Vec::new();
+    for (file, m) in tools {
+        if yog_formats::def::ToolMaterial::built_in(&m.id).is_some() || tool_materials.iter().any(|x| x.id == m.id) {
+            errors.push(format!("{file}:1: tool material {} is the game's or defined twice", m.id));
+            continue;
+        }
+        let Some(at) = ladder.iter().position(|l| l == &m.level) else {
+            errors.push(format!("{file}:1: level: {} isn't a level of the tool ladder", m.level));
+            continue;
+        };
+        let place = |v: &str| ladder.iter().position(|x| x == &format!("minecraft:{v}")).unwrap_or(0);
+        let game = ["wood", "stone", "iron", "diamond", "netherite"];
+        let (level_index, incorrect) = match game.iter().position(|v| place(v) >= at) {
+            Some(i) => (i as u32, format!("minecraft:incorrect_for_{}_tool", if game[i] == "wood" { "wooden" } else { game[i] })),
+            // Above netherite: a tag of its own (the build writes it).
+            None => {
+                let (n, p) = m.level.split_once(':').unwrap_or(("minecraft", &m.level));
+                (5, format!("{n}:incorrect_for_{p}_tool"))
+            }
+        };
+        tool_materials.push(yog_formats::def::ToolMaterial {
+            id: m.id,
+            durability: m.durability,
+            speed: m.speed,
+            attack_damage: m.attack_damage,
+            enchantability: m.enchantability,
+            level: m.level,
+            repair: repair(&m.repair),
+            level_index,
+            incorrect,
+        });
+    }
+    Defs { order, sound_groups, tool_materials, armor_materials }
 }
 
 /// The tags that make block `id` need tool level `level`, on every version:
@@ -1842,6 +1922,12 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         let found = match r.kind.as_str() {
             "level" => defs.level(&r.id).map(|_| ()).ok_or_else(|| format!("no level {} — the game's tool levels or a .ydef's", r.id)),
             "ladder" => defs.order.contains_key(&r.id).then_some(()).ok_or_else(|| format!("no ladder {}", r.id)),
+            "tool_material" => (defs.tool_materials.iter().any(|m| m.id == r.id) || yog_formats::def::ToolMaterial::built_in(&r.id).is_some())
+                .then_some(())
+                .ok_or_else(|| format!("no tool material {} — the game's or a .ydef's", r.id)),
+            "armor_material" => (defs.armor_materials.iter().any(|m| m.id == r.id) || yog_formats::def::ArmorMaterial::built_in(&r.id).is_some())
+                .then_some(())
+                .ok_or_else(|| format!("no armor material {} — the game's or a .ydef's", r.id)),
             "sound_group" => (defs.sound_groups.iter().any(|g| g.id == r.id) || yog_formats::def::SoundGroup::built_in(&r.id).is_some())
                 .then_some(())
                 .ok_or_else(|| format!("no sound group {} — the game's or a .ydef's", r.id)),
@@ -1910,7 +1996,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     out.items = entries.len() - out.blocks;
     out.recipes = recipes.len();
     out.books = books.len();
-    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !defs.sound_groups.is_empty())
+    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty())
         && !mentions_content_macro(&root.join("src"))
     {
         out.warnings.push(format!(
@@ -1919,7 +2005,15 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         ));
     }
     out.data_files = books.iter().map(|b| (b.path(), b.data.clone())).collect();
-    out.source = Some(rust_source(&entries, &recipes, &books, &defs.sound_groups));
+    // A tool level above netherite gets a tag of what its tools can't mine.
+    for m in &defs.tool_materials {
+        if let Some((n, p)) = m.incorrect.split_once(':')
+            && n != "minecraft"
+        {
+            out.tags.entry(format!("when/any/1.21/data/{n}/tags/block/{p}.json")).or_default();
+        }
+    }
+    out.source = Some(rust_source(&entries, &recipes, &books, &defs));
     Ok(out)
 }
 
@@ -1966,7 +2060,8 @@ fn float(n: f64) -> String {
     }
 }
 
-fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], sound_groups: &[yog_formats::def::SoundGroup]) -> String {
+fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: &Defs) -> String {
+    let sound_groups = &defs.sound_groups;
     let mut code = String::from(
         "// <auto-generated>\n//     Generated by `yog build` from content/**/*.yblock and *.yitem — don't edit,\n//     it's rewritten on every build. Included by `yog_api::content!()`.\n// </auto-generated>\n",
     );
@@ -2066,6 +2161,12 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], sound_
                     if p.fuel_ticks > 0 {
                         let _ = write!(b, "\n            .fuel({})", p.fuel_ticks);
                     }
+                    if let Some((kind, material, d, s)) = &p.tool {
+                        let _ = write!(b, "\n            .tool({kind:?}, {material:?}, {d:?}, {s:?})");
+                    }
+                    if let Some((slot, material)) = &p.armor {
+                        let _ = write!(b, "\n            .armor({slot:?}, {material:?})");
+                    }
                     if let Some((n, s, always)) = p.food {
                         let _ = write!(
                             b,
@@ -2123,6 +2224,21 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], sound_
             float(g.pitch as f64)
         );
     }
+    for m in &defs.tool_materials {
+        let _ = writeln!(
+            code,
+            "    registry.register_tool_material(::yog_api::ToolMaterial {{ id: {:?}.into(), durability: {}, speed: {:?}, attack_damage: {:?}, enchantability: {}, level: {:?}.into(), repair: {:?}.into(), level_index: {}, incorrect: {:?}.into() }});",
+            m.id, m.durability, m.speed, m.attack_damage, m.enchantability, m.level, m.repair, m.level_index, m.incorrect
+        );
+    }
+    for m in &defs.armor_materials {
+        let d = m.defense;
+        let _ = writeln!(
+            code,
+            "    registry.register_armor_material(::yog_api::ArmorMaterial {{ id: {:?}.into(), durability: {}, defense: ::yog_api::ArmorDefense {{ head: {}, chest: {}, legs: {}, feet: {} }}, enchantability: {}, equip_sound: {:?}.into(), toughness: {:?}, knockback_resistance: {:?}, repair: {:?}.into(), texture: {:?}.into() }});",
+            m.id, m.durability, d.head, d.chest, d.legs, d.feet, m.enchantability, m.equip_sound, m.toughness, m.knockback_resistance, m.repair, m.texture
+        );
+    }
     for r in recipes {
         let _ = writeln!(code, "    {}", r.registration());
     }
@@ -2135,7 +2251,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], sound_
         );
     }
     code.push_str("}\n");
-    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !sound_groups.is_empty() {
+    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() {
         code.push_str(
             "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",
         );
@@ -2759,6 +2875,32 @@ mod tests {
         let missing = book(r#"{ type: "mymod:nope" }"#);
         let e = compile(&project(&[("content/guide.ybook", &missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no page type mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn tools_and_armor_of_the_games_materials_or_the_mods() {
+        let model = r#"model: { parent: "generated", textures: { layer0: "minecraft:item/iron_pickaxe" } }"#;
+        let level = r#"{ kind: "level", id: "mythril", ladder: "@ladder:minecraft:tool", above: "@level:minecraft:diamond" }"#;
+        let tool = r#"{ kind: "tool_material", id: "mythril", durability: 1800, speed: 10, attack_damage: 3, enchantability: 18,
+            level: "@level:mymod:mythril", repair: "@tag:item:c:ingots" }"#;
+        let armor = r#"{ kind: "armor_material", id: "mythril", durability: 30, defense: { head: 3, chest: 8, legs: 6, feet: 3 },
+            enchantability: 18, equip_sound: "minecraft:item.armor.equip_diamond", repair: "@item:minecraft:diamond" }"#;
+        let pick = format!(r#"{{ {model}, item: {{ tool: {{ kind: "pickaxe", material: "@tool_material:mymod:mythril" }} }} }}"#);
+        let helm = format!(r#"{{ {model}, item: {{ armor: {{ slot: "head", material: "iron" }} }} }}"#);
+        let files = [("content/mythril.ydef", level), ("content/mythril_tools.ydef", tool), ("content/mythril_armor.ydef", armor), ("content/pick.yitem", pick.as_str()), ("content/helm.yitem", helm.as_str())];
+        let c = compile(&project(&files), "mymod", &yres::Refs::default()).unwrap();
+        let src = c.source.unwrap();
+        assert!(src.contains(r#".tool("pickaxe", "mymod:mythril", 1.0, -2.8)"#), "the kind's attack: {src}");
+        assert!(src.contains(r#".armor("head", "minecraft:iron")"#), "{src}");
+        assert!(src.contains(r##"level: "mymod:mythril".into(), repair: "#c:ingots".into(), level_index: 4, incorrect: "minecraft:incorrect_for_netherite_tool".into()"##), "above diamond: netherite's on both versions: {src}");
+        assert!(src.contains(r#"registry.register_armor_material(::yog_api::ArmorMaterial { id: "mymod:mythril".into()"#) && src.contains(r#"texture: "mymod:mythril".into()"#), "{src}");
+
+        let bad = format!(r#"{{ {model}, item: {{ tool: {{ kind: "spoon", material: "bronze" }} }} }}"#);
+        let e = compile(&project(&[("content/bad.yitem", &bad)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("`spoon`: one of pickaxe, axe, shovel, hoe, sword") && e.contains("`bronze`: one of the game's (wood, stone, iron, diamond, gold, netherite)"), "{e}");
+        let missing = format!(r#"{{ {model}, item: {{ armor: {{ slot: "feet", material: "@armor_material:mymod:nope" }} }} }}"#);
+        let e = compile(&project(&[("content/m.yitem", &missing)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("no armor material mymod:nope"), "{e}");
     }
 
     #[test]

@@ -276,9 +276,12 @@ public class YogHost {
                         props = props.food(fb.build());
                     }
                 }
-
+                // A tool, a weapon or armor of a material, else a plain (or book) item.
+                Item made = YogTools.make(props, p);
                 Item item;
-                if (p.book()) {
+                if (made != null) {
+                    item = made;
+                } else if (p.book()) {
                     item = new YogBookItem(props,
                             p.name(), p.tooltip(), id);
                 } else {
@@ -635,7 +638,7 @@ public class YogHost {
                 soundEvent(s.place()), soundEvent(s.hit()), soundEvent(s.fall()));
     }
 
-    private static SoundEvent soundEvent(String id) {
+    static SoundEvent soundEvent(String id) {
         ResourceLocation rl = ResourceLocation.tryParse(id);
         if (rl == null) rl = ResourceLocation.tryParse("minecraft:intentionally_empty");
         SoundEvent e = BuiltInRegistries.SOUND_EVENT.get(rl);

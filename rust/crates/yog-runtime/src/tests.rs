@@ -214,6 +214,26 @@ fn the_hosts_get_content_as_one_yog_data_blob() {
 }
 
 #[test]
+fn tools_and_armor_arrive_with_their_materials_whole() {
+    use yog_registry::{ItemDef, ToolMaterial};
+    let h = registering(|ctx| unsafe {
+        let mythril = ToolMaterial::like("mymod:mythril", "diamond").unwrap();
+        content(ctx, "tool_material", "mymod:mythril", &mythril.write());
+        content(ctx, "item", "mymod:pick", &ItemDef::new("mymod:pick").tool("pickaxe", "mymod:mythril", 1.0, -2.8).write());
+        content(ctx, "item", "mymod:helm", &ItemDef::new("mymod:helm").armor("head", "diamond").write());
+        content(ctx, "item", "mymod:odd", &ItemDef::new("mymod:odd").tool("sword", "mymod:nope", 3.0, -2.4).write());
+    });
+    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read().unwrap())).unwrap();
+    let items = v.get("items").unwrap().as_list().unwrap();
+    let tool = items[0].get("tool").unwrap();
+    assert_eq!(tool.get("kind").and_then(|k| k.as_str()), Some("pickaxe"));
+    assert_eq!(tool.get("material").and_then(|m| m.get("durability")).and_then(|d| d.as_i64()), Some(1561));
+    let armor = items[1].get("armor").unwrap();
+    assert_eq!(armor.get("material").and_then(|m| m.get("defense")).and_then(|d| d.get("chest")).and_then(|c| c.as_i64()), Some(8));
+    assert!(items[2].get("tool").is_none(), "an unknown material: a plain item");
+}
+
+#[test]
 fn a_blocks_sound_group_arrives_whole() {
     let h = registering(|ctx| unsafe {
         content(ctx, "sound_group", "mymod:crystal", &yog_registry::SoundGroup::new("mymod:crystal").pitch(1.2).write());
@@ -237,6 +257,8 @@ fn write_a_content_blob() {
     let mut h = RuntimeHandlers::default();
     h.items.push(yog_registry::ItemDef::new("m:apple").max_stack(16).name("Apple").food(yog_registry::FoodDef::new(4, 1.5).can_always_eat()));
     h.items.push(yog_registry::ItemDef::new("m:guide"));
+    h.items.push(yog_registry::ItemDef::new("m:pick").tool("pickaxe", "minecraft:iron", 1.0, -2.8));
+    h.items.push(yog_registry::ItemDef::new("m:helm").armor("head", "diamond"));
     h.books.insert("m:guide".into());
     let mut b = yog_registry::BlockDef::new("m:pipe");
     b.shape = Some([6.0, 6.0, 6.0, 10.0, 10.0, 10.0]);
