@@ -60,7 +60,7 @@ pub(crate) fn is_common_attr(key: &str) -> bool {
 const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView", "Grid"];
 const LEAVES: &[&str] = &[
     "Label", "Button", "TextBox", "ItemSlot", "InvSlot", "Slot", "PlayerInventory", "Image",
-    "Spacer", "Surface",
+    "Spacer", "Surface", "Machine",
 ];
 const COMMON_ATTRS: &[&str] = &[
     "id",
@@ -108,6 +108,7 @@ fn kind_attrs(kind: &str) -> &'static [&'static str] {
         "Slot" => &["index", "accepts"],
         "Image" => &["source", "stretch", "uv", "tint"],
         "Surface" => &["source"],
+        "Machine" => &["kind", "result", "places"],
         _ => &[],
     }
 }
@@ -599,6 +600,26 @@ impl Gen {
                 "widget::item_slot({:?})",
                 el.attr("item").unwrap_or_default()
             ),
+            // What a <RecipeArea> leaves (`crate::recipe_area`): which slots make what.
+            "Machine" => {
+                let places: Vec<String> = el
+                    .attr("places")
+                    .unwrap_or_default()
+                    .split(',')
+                    .filter(|p| !p.is_empty())
+                    .map(|p| {
+                        let (slot, rest) = p.split_once('/').unwrap_or((p, "0=0"));
+                        let (i, inv) = rest.split_once('=').unwrap_or(("0", "0"));
+                        format!("({slot:?}, {i}, {inv})")
+                    })
+                    .collect();
+                format!(
+                    "widget::machine({:?}, &[{}], {})",
+                    el.attr("kind").unwrap_or_default(),
+                    places.join(", "),
+                    el.attr("result").unwrap_or("0")
+                )
+            }
             "InvSlot" => {
                 let count = match el.attr("count") {
                     Some(c) => c.trim().parse::<u32>().map_err(|_| {
@@ -899,11 +920,22 @@ pub fn generate_for(
     name: &str,
     mod_id: Option<&str>,
 ) -> Result<(String, Vec<String>), String> {
+    generate_with(src, name, mod_id, &[])
+}
+
+/// [`generate_for`] with the mod's recipe layouts, for `<RecipeArea>`s.
+pub fn generate_with(
+    src: &str,
+    name: &str,
+    mod_id: Option<&str>,
+    layouts: &[yog_book::layout::RecipeLayout],
+) -> Result<(String, Vec<String>), String> {
     let mut root = parse_xml(src)?;
     // A book's kind of page or a recipe layout isn't code: the build reads it as data.
     if crate::book_page::is_book_ui(&root) {
         return Ok((String::new(), Vec::new()));
     }
+    crate::recipe_area::expand(&mut root, layouts, mod_id.unwrap_or("minecraft"))?;
     crate::yui_grid::normalize(&mut root)?;
     if root.name == "Component" {
         return crate::yui_component::generate(&root, name, mod_id);
@@ -1166,7 +1198,13 @@ pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
         .ok()
         .and_then(|t| crate::manifest::parse_yog_toml(&t).ok())
         .map(|t| t.id);
-    let (code, warnings) = generate_for(&src, &name, mod_id.as_deref())
+    // The mod's recipe layouts, for the screen's <RecipeArea>s.
+    let layouts: Vec<yog_book::layout::RecipeLayout> = if src.contains("<RecipeArea") {
+        crate::book_page::find_layouts(root, mod_id.as_deref().unwrap_or("minecraft"), &mut Vec::new()).into_iter().map(|(_, l)| l).collect()
+    } else {
+        Vec::new()
+    };
+    let (code, warnings) = generate_with(&src, &name, mod_id.as_deref(), &layouts)
         .map_err(|e| format!("{}: {e}", yui.display()))?;
     for w in warnings {
         eprintln!("    warning: {}: {w}", yui.display());

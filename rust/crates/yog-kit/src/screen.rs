@@ -275,9 +275,33 @@ pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
         }
     }
 
+    /// The machine a `<RecipeArea>` made of it, if any (`widget::machine`).
+    fn machine(w: &Widget) -> Option<yog_api::inventory::Machine> {
+        use yog_api::ui::widget::MACHINE_ID_PREFIX;
+        if let Some(rest) = w.id.as_deref().and_then(|id| id.strip_prefix(MACHINE_ID_PREFIX)) {
+            let mut parts = rest.splitn(3, ';');
+            let kind = parts.next()?.to_string();
+            let result = parts.next()?.parse().ok()?;
+            let places = parts
+                .next()
+                .unwrap_or_default()
+                .split(',')
+                .filter(|p| !p.is_empty())
+                .filter_map(|p| {
+                    let (slot, rest) = p.split_once('/')?;
+                    let (index, inv) = rest.split_once('=')?;
+                    Some(yog_api::inventory::MachinePlace { slot: slot.to_string(), index: index.parse().ok()?, inv: inv.parse().ok()? })
+                })
+                .collect();
+            return Some(yog_api::inventory::Machine { kind, places, result });
+        }
+        w.children.iter().find_map(machine)
+    }
+
     let (_, content, _) = W::build();
     let mut found = Vec::new();
     slots(&content, &mut found);
+    let made = machine(&content);
     let mut ui = UiRoot::new(W::META.id, content);
     ui.layout(W::META.w, W::META.h);
     // A real slot's position is its item's corner, inside the 18px frame.
@@ -306,6 +330,9 @@ pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
         .background_size(W::META.w, W::META.h);
     if let Some((x, y)) = player {
         def = def.player_inv_offset(x, y);
+    }
+    if let Some(m) = made {
+        def = def.machine(m);
     }
     Some(def)
 }

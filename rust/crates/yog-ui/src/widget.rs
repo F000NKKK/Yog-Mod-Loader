@@ -1005,6 +1005,17 @@ pub fn inv_slot(item_id: impl Into<String>, count: u32) -> Widget {
 pub const SLOT_ID_PREFIX: &str = "yog:slot:";
 /// Id of a [`player_inventory`].
 pub const PLAYER_INVENTORY_ID: &str = "yog:player_inventory";
+/// Id prefix of a [`machine`] marker: `yog:machine:<kind>;<result slot>;`
+/// then its places, `,`-joined `<kind's slot>/<index>=<inventory slot>`.
+pub const MACHINE_ID_PREFIX: &str = "yog:machine:";
+
+/// Marks an inventory screen as a machine making recipes of `kind`: its
+/// `places` (`(kind's slot, index, inventory slot)`) and its `result` slot
+/// — what a `.yui` `<RecipeArea>` becomes. Draws nothing.
+pub fn machine(kind: &str, places: &[(&str, usize, usize)], result: usize) -> Widget {
+    let places: Vec<String> = places.iter().map(|(s, i, inv)| format!("{s}/{i}={inv}")).collect();
+    spacer().w(0.0).h(0.0).id(format!("{MACHINE_ID_PREFIX}{kind};{result};{}", places.join(",")))
+}
 /// Gap between the player's main inventory and their hotbar (vanilla).
 pub const HOTBAR_GAP: f32 = 4.0;
 

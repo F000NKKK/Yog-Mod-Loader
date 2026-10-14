@@ -75,6 +75,28 @@ pub struct InventoryDef {
     /// container's top-left corner) land under that decoration instead of
     /// the two disagreeing about where the top-left corner even is.
     pub background_size: Option<(f32, f32)>,
+    /// A machine's part of it (`.yui` `<RecipeArea kind="…">`): its slots
+    /// make recipes of a kind, like a crafting table.
+    pub machine: Option<Machine>,
+}
+
+/// A machine in an inventory: it makes recipes of `kind` from what's in
+/// its `places` — each a slot of the inventory holding one ingredient of
+/// one of the kind's slots — into its `result` slot.
+#[derive(Debug, Clone, PartialEq, Deserialize, yog_data::Schema)]
+pub struct Machine {
+    pub kind: String,
+    pub places: Vec<MachinePlace>,
+    pub result: usize,
+}
+
+/// One ingredient's place: the `index`-th of the kind's slot `slot`, in the
+/// inventory's slot `inv`.
+#[derive(Debug, Clone, PartialEq, Deserialize, yog_data::Schema)]
+pub struct MachinePlace {
+    pub slot: String,
+    pub index: usize,
+    pub inv: usize,
 }
 
 impl InventoryDef {
@@ -88,7 +110,14 @@ impl InventoryDef {
             background_texture: None,
             title: String::new(),
             background_size: None,
+            machine: None,
         }
+    }
+
+    /// Makes part of it a machine (see [`Machine`]).
+    pub fn machine(mut self, machine: Machine) -> Self {
+        self.machine = Some(machine);
+        self
     }
 
     /// Explicit per-slot pixel positions, overriding the default grid.

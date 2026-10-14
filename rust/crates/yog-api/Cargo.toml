@@ -29,7 +29,7 @@ yog-config  = "0.1"
 yog-gfx     = "0.26"
 yog-ui      = "0.41"
 yog-book = "0.64"
-yog-inventory = "0.16"
+yog-inventory = "0.17"
 
 
 rkyv.workspace = true
