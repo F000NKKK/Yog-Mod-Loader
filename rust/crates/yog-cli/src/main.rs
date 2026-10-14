@@ -370,7 +370,7 @@ fn prepare() -> Result<Prepared, String> {
 /// the current runtime's ABI (1.3) need — a mod's lock pinning older ones
 /// moves up (the runtime refuses a mod of another ABI; screens generated
 /// for a newer yog-kit don't compile).
-const MIN_VERSIONS: &[(&str, (u64, u64, u64))] = &[("yog-api", (0, 92, 15)), ("yog-kit", (0, 3, 11))];
+const MIN_VERSIONS: &[(&str, (u64, u64, u64))] = &[("yog-api", (0, 93, 0)), ("yog-kit", (0, 4, 0))];
 
 /// Moves crates of the lock at `cargo_lock` older than [`MIN_VERSIONS`] up
 /// to the newest compatible ones (with what they need).
