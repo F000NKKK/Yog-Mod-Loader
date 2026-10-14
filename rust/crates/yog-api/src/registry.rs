@@ -1184,6 +1184,18 @@ fn bp(pos: yog_core::BlockPos) -> yog_abi::YogBlockPos {
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────
 //
+// A panic must never unwind out of a trampoline: the runtime calls them
+// through `extern "C"`, so it would abort the whole game. `guard` stops it
+// at the boundary — the panic message is already in the log — and the
+// event goes on as if the mod hadn't handled it.
+
+fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(call)).unwrap_or_else(|_| {
+        crate::error!("a mod's callback panicked (see above); carrying on without it");
+        fallback
+    })
+}
+//
 // Each trampoline is a `unsafe extern "C" fn` that:
 //   1. Casts `ud` back to the original boxed closure.
 //   2. Converts ABI C structs to Rust event types.
@@ -1219,7 +1231,7 @@ macro_rules! trampoline_phased {
                 } else {
                     EventPhase::Post
                 };
-                f(&rust_ev, p, &CServer(srv))
+                guard(true, || f(&rust_ev, p, &CServer(srv)))
             }
         }
     };
@@ -1508,7 +1520,7 @@ where
 {
     unsafe {
         let f = &*(ud as *const F);
-        f(&CServer(srv));
+        guard((), || f(&CServer(srv)));
     }
 }
 
@@ -1527,7 +1539,7 @@ unsafe extern "C" fn trampoline_packet<F>(
             player: ev.player.as_str().to_owned(),
             payload: std::slice::from_raw_parts(ev.payload, ev.payload_len as usize).to_vec(),
         };
-        f(&rust_ev, &CServer(srv));
+        guard((), || f(&rust_ev, &CServer(srv)));
     }
 }
 
@@ -1552,7 +1564,7 @@ unsafe extern "C" fn trampoline_command<F>(
             dimension: ev.dimension.as_str().to_owned(),
         };
         *reply_len = 0;
-        if let Some(reply) = f(&ctx, &CServer(srv)) {
+        if let Some(reply) = guard(None, || f(&ctx, &CServer(srv))) {
             let bytes = reply.as_bytes();
             let n = bytes.len().min(reply_cap as usize);
             std::ptr::copy_nonoverlapping(bytes.as_ptr(), reply_buf, n);
@@ -1567,7 +1579,7 @@ where
 {
     unsafe {
         let f = &*(ud as *const F);
-        f(&CServer(srv));
+        guard((), || f(&CServer(srv)));
     }
 }
 
@@ -1579,7 +1591,7 @@ where
 {
     unsafe {
         let f = &*(ud as *const F);
-        f(&ClientTickEvent {});
+        guard((), || f(&ClientTickEvent {}));
     }
 }
 
@@ -1589,7 +1601,7 @@ where
 {
     unsafe {
         let f = &*(ud as *const F);
-        f(&GfxContext::from_raw(gfx));
+        guard((), || f(&GfxContext::from_raw(gfx)));
     }
 }
 
@@ -1599,7 +1611,7 @@ where
 {
     unsafe {
         let f = &*(ud as *const F);
-        f(&GfxContext::from_raw(gfx));
+        guard((), || f(&GfxContext::from_raw(gfx)));
     }
 }
 
@@ -1610,12 +1622,8 @@ where
     unsafe {
         let f = &*(ud as *const F);
         let e = &*ev;
-        f(&KeyPressEvent {
-            key_code: e.key_code,
-            scan_code: e.scan_code,
-            action: e.action,
-            modifiers: e.modifiers,
-        })
+        let ev = KeyPressEvent { key_code: e.key_code, scan_code: e.scan_code, action: e.action, modifiers: e.modifiers };
+        guard(false, || f(&ev))
     }
 }
 
@@ -1625,9 +1633,8 @@ where
 {
     unsafe {
         let f = &*(ud as *const F);
-        f(&ScreenEvent {
-            screen_class: screen_class.as_str().to_owned(),
-        });
+        let ev = ScreenEvent { screen_class: screen_class.as_str().to_owned() };
+        guard((), || f(&ev));
         true
     }
 }
@@ -2431,7 +2438,7 @@ unsafe extern "C" fn trampoline_ui_event<F, R>(
     let f = unsafe { &*(ud as *const F) };
     let ui = unsafe { ui_id.as_str() };
     let ev = unsafe { event_id.as_str() };
-    if f(ui, ev).handled() {
+    if guard(false, || f(ui, ev).handled()) {
         let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
         if !api.is_null() {
             unsafe { ((*api).ui_consume_event)((*api).ctx) }
@@ -2447,7 +2454,7 @@ unsafe extern "C" fn trampoline_chunk_generator<F>(
 {
     let f = unsafe { &*(ud as *const F) };
     let writer = unsafe { ChunkWriter::from_raw(writer) };
-    f(&writer);
+    guard((), || f(&writer));
 }
 
 // ── Mod trait ─────────────────────────────────────────────────────────────────
