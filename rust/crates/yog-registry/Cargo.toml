@@ -18,3 +18,4 @@ serde = ["dep:serde"]
 
 [dev-dependencies]
 serde_json.workspace = true
+yog-data = { version = "0.3.1", features = ["json"] }

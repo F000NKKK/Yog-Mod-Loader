@@ -62,23 +62,102 @@ mod tag {
 
 /// `value` in the binary form.
 pub fn encode(value: &Value) -> Vec<u8> {
-    let mut enc = Encoder {
-        body: Vec::new(),
-        strings: HashMap::default(),
-        table: Vec::new(),
-    };
-    enc.value(value);
-    let table_len: usize = enc.table.iter().map(|s| s.len() + 2).sum();
-    let mut out = Vec::with_capacity(5 + table_len + enc.body.len() + 4);
-    out.extend_from_slice(MAGIC);
-    out.push(VERSION);
-    varint(&mut out, enc.table.len() as u64);
-    for s in &enc.table {
-        varint(&mut out, s.len() as u64);
-        out.extend_from_slice(s.as_bytes());
+    let mut w = Writer::new();
+    w.value(value);
+    w.finish()
+}
+
+/// Writes the binary form piece by piece, from data that isn't a [`Value`]
+/// — nothing is built or copied on the way; strings are borrowed until
+/// [`Writer::finish`]. A map or list is given its length, then that many
+/// entries (`key` then a value) or values.
+///
+/// ```
+/// let mut w = yog_data::binary::Writer::new();
+/// w.map(2).key("id").str("mymod:ruby").key("count").int(3);
+/// let v = yog_data::binary::decode(&w.finish()).unwrap();
+/// assert_eq!(v.get("count").and_then(|c| c.as_i64()), Some(3));
+/// ```
+pub struct Writer<'v>(Encoder<'v>);
+
+impl Default for Writer<'_> {
+    fn default() -> Self {
+        Self::new()
     }
-    out.extend_from_slice(&enc.body);
-    out
+}
+
+impl<'v> Writer<'v> {
+    pub fn new() -> Self {
+        Writer(Encoder { body: Vec::new(), strings: HashMap::default(), table: Vec::new() })
+    }
+
+    pub fn null(&mut self) -> &mut Self {
+        self.0.body.push(tag::NULL);
+        self
+    }
+
+    pub fn bool(&mut self, b: bool) -> &mut Self {
+        self.0.body.push(if b { tag::TRUE } else { tag::FALSE });
+        self
+    }
+
+    pub fn int(&mut self, n: i64) -> &mut Self {
+        self.0.body.push(tag::INT);
+        varint(&mut self.0.body, ((n << 1) ^ (n >> 63)) as u64);
+        self
+    }
+
+    pub fn float(&mut self, f: f64) -> &mut Self {
+        self.0.body.push(tag::FLOAT);
+        self.0.body.extend_from_slice(&f.to_le_bytes());
+        self
+    }
+
+    pub fn str(&mut self, s: &'v str) -> &mut Self {
+        self.0.body.push(tag::STR);
+        self.0.string(s);
+        self
+    }
+
+    /// A list of `len` values.
+    pub fn list(&mut self, len: usize) -> &mut Self {
+        self.0.body.push(tag::LIST);
+        varint(&mut self.0.body, len as u64);
+        self
+    }
+
+    /// A map of `len` entries, each a [`Writer::key`] and a value.
+    pub fn map(&mut self, len: usize) -> &mut Self {
+        self.0.body.push(tag::MAP);
+        varint(&mut self.0.body, len as u64);
+        self
+    }
+
+    pub fn key(&mut self, k: &'v str) -> &mut Self {
+        self.0.string(k);
+        self
+    }
+
+    pub fn value(&mut self, v: &'v Value) -> &mut Self {
+        self.0.value(v);
+        self
+    }
+
+    /// The bytes.
+    pub fn finish(self) -> Vec<u8> {
+        let enc = self.0;
+        let table_len: usize = enc.table.iter().map(|s| s.len() + 2).sum();
+        let mut out = Vec::with_capacity(5 + table_len + enc.body.len() + 4);
+        out.extend_from_slice(MAGIC);
+        out.push(VERSION);
+        varint(&mut out, enc.table.len() as u64);
+        for s in &enc.table {
+            varint(&mut out, s.len() as u64);
+            out.extend_from_slice(s.as_bytes());
+        }
+        out.extend_from_slice(&enc.body);
+        out
+    }
 }
 
 struct Encoder<'v> {
@@ -224,6 +303,7 @@ pub fn decode(bytes: &[u8]) -> Result<Value, DecodeError> {
         b: bytes,
         i: 0,
         strings: Vec::new(),
+        keys: Vec::new(),
     };
     if !bytes.starts_with(MAGIC) {
         return Err(d.error("not Yog Data (no `YOGD` header)"));
@@ -258,6 +338,8 @@ struct Decoder<'b> {
     b: &'b [u8],
     i: usize,
     strings: Vec<&'b str>,
+    /// Map keys made so far, by table index: each key is allocated once.
+    keys: Vec<Option<std::sync::Arc<str>>>,
 }
 
 impl<'b> Decoder<'b> {
@@ -316,6 +398,21 @@ impl<'b> Decoder<'b> {
             .ok_or_else(|| self.error(format!("string {i} isn't in the table")))
     }
 
+    /// A map key: shared with every other map that has it.
+    fn key(&mut self) -> Result<std::sync::Arc<str>, DecodeError> {
+        let i = self.varint()? as usize;
+        if let Some(Some(k)) = self.keys.get(i) {
+            return Ok(k.clone());
+        }
+        let s = *self.strings.get(i).ok_or_else(|| self.error(format!("string {i} isn't in the table")))?;
+        let k: std::sync::Arc<str> = s.into();
+        if self.keys.len() <= i {
+            self.keys.resize(self.strings.len(), None);
+        }
+        self.keys[i] = Some(k.clone());
+        Ok(k)
+    }
+
     fn value(&mut self, depth: usize) -> Result<Value, DecodeError> {
         if depth > MAX_DEPTH {
             return Err(self.error(format!("nested deeper than {MAX_DEPTH} levels")));
@@ -342,7 +439,7 @@ impl<'b> Decoder<'b> {
                 let n = self.count(2)?;
                 let mut map = Map::with_capacity(n);
                 for _ in 0..n {
-                    let k = self.string()?.to_string();
+                    let k = self.key()?;
                     map.push_unchecked(k, self.value(depth + 1)?);
                 }
                 Value::Map(map)

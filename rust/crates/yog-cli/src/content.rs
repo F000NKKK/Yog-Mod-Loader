@@ -97,6 +97,9 @@ pub struct Compiled {
     tags: BTreeMap<String, BTreeSet<String>>,
     /// The generated Rust code; `None` when the mod has no content files.
     pub source: Option<String>,
+    /// Data the code includes (`include_bytes!`), by path under
+    /// `.yog-build/generated/`: the books, as Yog Data.
+    pub data_files: Vec<(String, Vec<u8>)>,
     pub warnings: Vec<String>,
     pub blocks: usize,
     pub items: usize,
@@ -951,8 +954,16 @@ enum RecipeKind {
 /// One checked `.ybook`.
 struct BookFile {
     id: String,
-    /// The book as the runtime reads it, references resolved.
-    json: String,
+    /// The book as the runtime reads it (`yog_book::Book`'s schema), as
+    /// binary Yog Data: the mod hands these bytes over as they are.
+    data: Vec<u8>,
+}
+
+impl BookFile {
+    /// Its file under `.yog-build/generated/`.
+    fn path(&self) -> String {
+        format!("books/{}.ydata", self.id.replace(':', "__"))
+    }
 }
 
 /// Checks one `.ybook` (`yog_book::Book`'s schema), whose references
@@ -1100,7 +1111,7 @@ fn compile_book(
         return None;
     }
     book.layouts = layouts.to_vec();
-    Some(BookFile { id: book.id.clone(), json: book.to_json() })
+    Some(BookFile { id: book.id.clone(), data: yog_data::binary::encode(&yog_data::Schema::write(&book)) })
 }
 
 /// Checks one `.ylayout` (`yog_book::layout::RecipeLayout`): the items it
@@ -1751,6 +1762,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             CONTENT_DIR
         ));
     }
+    out.data_files = books.iter().map(|b| (b.path(), b.data.clone())).collect();
     out.source = Some(rust_source(&entries, &recipes, &books, &defs.sound_groups));
     Ok(out)
 }
@@ -1959,7 +1971,12 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], sound_
         let _ = writeln!(code, "    {}", r.registration());
     }
     for b in books {
-        let _ = writeln!(code, "    registry.register_book_json({:?}, {:?});", b.id, b.json);
+        let _ = writeln!(
+            code,
+            "    registry.register_book_data({:?}, include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/{}\")));",
+            b.id,
+            b.path()
+        );
     }
     code.push_str("}\n");
     if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !sound_groups.is_empty() {
@@ -1990,6 +2007,16 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
         return Ok(());
     };
     crate::write_if_changed(&out, code)?;
+    let dir = out.parent().unwrap_or(root);
+    for (path, bytes) in &compiled.data_files {
+        let file = dir.join(path);
+        if std::fs::read(&file).ok().as_deref() != Some(bytes.as_slice()) {
+            if let Some(parent) = file.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", parent.display()))?;
+            }
+            std::fs::write(&file, bytes).map_err(|e| format!("{}: {e}", file.display()))?;
+        }
+    }
     Ok(())
 }
 
@@ -2516,10 +2543,16 @@ mod tests {
         let out = compile(&root, "mymod", &refs).unwrap();
         assert_eq!(out.books, 1);
         let src = out.source.unwrap();
-        assert!(src.contains("registry.register_book_json(\"mymod:guide\""), "{src}");
-        assert!(src.contains("mymod.book.title") && src.contains("item.mymod.ruby"), "{src}");
-        assert!(src.contains("not a ref") && src.contains("i18n"), "{src}");
-        assert!(src.contains(r#"\"item\":\"mymod:ruby\""#) && src.contains(r#"\"category\":\"mymod:basics\""#), "references become ids: {src}");
+        assert!(src.contains(r#"registry.register_book_data("mymod:guide", include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/books/mymod__guide.ydata")));"#), "{src}");
+        // The runtime reads the bytes by the book's schema; references come back as ids.
+        assert_eq!(out.data_files[0].0, "books/mymod__guide.ydata");
+        let data = yog_data::binary::decode(&out.data_files[0].1).unwrap();
+        let text = yog_data::text::to_string(&data);
+        assert!(text.contains("mymod.book.title") && text.contains("item.mymod.ruby"), "{text}");
+        assert!(text.contains("not a ref") && text.contains("i18n"), "{text}");
+        let read = yog_data::from_value::<yog_book::Book>(&data).unwrap().value;
+        assert_eq!(read.entries[0].category, "mymod:basics");
+        assert!(matches!(&read.entries[0].pages[1], yog_book::BookPage::Spotlight { item, .. } if item == "mymod:ruby"), "references become ids");
 
         // Bare ids, missing content and version-only ids are errors, each on its line.
         let bad = r#"{ "id": "x",
@@ -2561,7 +2594,8 @@ mod tests {
         let e = compile(&project(&files), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("entries[0].pages[0].recipe: no layout for recipe kind mymod:infusion — add content/infusion.ylayout"), "{e}");
         let c = compile(&project(&[files[0], files[1], ("content/infusion.ylayout", layout)]), "mymod", &yres::Refs::default()).unwrap();
-        assert!(c.source.unwrap().contains(r#"\"layouts\":[{\"kinds\":[\"mymod:infusion\"]"#), "the book carries the mod's layouts");
+        let book = yog_data::from_value::<yog_book::Book>(&yog_data::binary::decode(&c.data_files[0].1).unwrap()).unwrap().value;
+        assert_eq!(book.layouts[0].kinds, ["mymod:infusion"], "the book carries the mod's layouts");
         let bad = r#"{ kinds: ["create:mixing"], size: [1, 1], parts: [{ type: "item", item: "@item:minecraft:nope", at: [0, 0] }] }"#;
         let e = compile(&project(&[("content/bad.ylayout", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("kinds[0]: `create:mixing`: one of shaped") && e.contains("parts[0].item: no item minecraft:nope in Minecraft"), "{e}");

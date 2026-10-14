@@ -265,7 +265,11 @@ pub struct Found<T> {
 /// references met (for the build to check against the content there is).
 #[derive(Default)]
 pub struct Reader<'r> {
-    path: Path,
+    /// Where it is, as steps: a field's name stays `&'static` until a
+    /// problem or a reference needs the whole [`Path`].
+    path: Vec<Step>,
+    /// Don't keep the references, tags and resources met (who only wants the value).
+    value_only: bool,
     /// What the tool makes of references and texts (none: kept as written).
     resolver: Option<&'r mut dyn Resolve>,
     pub problems: Vec<Problem>,
@@ -274,6 +278,12 @@ pub struct Reader<'r> {
     pub resources: Vec<Found<Res>>,
     /// Keys a struct being read doesn't report as unknown (an enum's tag).
     allowed: Vec<&'static str>,
+}
+
+/// A step of [`Reader`]'s path.
+enum Step {
+    Seg(Seg),
+    Field(&'static str),
 }
 
 /// Source-only keys every object may have: `$…`, `_…`, `comment`.
@@ -322,7 +332,7 @@ impl<'r> Reader<'r> {
     /// `r` resolved (a problem if it's wrong); its id without a resolver.
     pub fn resolve_ref(&mut self, r: &Ref) -> Option<String> {
         let result = match &mut self.resolver {
-            Some(res) => res.reference(r, &self.path),
+            Some(res) => res.reference(r, &Self::built(&self.path)),
             None => Ok(r.id.clone()),
         };
         result.map_err(|e| self.problem(e)).ok()
@@ -333,10 +343,32 @@ impl<'r> Reader<'r> {
         struct Keep;
         impl Resolve for Keep {}
         let result = match &mut self.resolver {
-            Some(res) => res.text(t, &self.path),
-            None => Keep.text(t, &self.path),
+            Some(res) => res.text(t, &Self::built(&self.path)),
+            None => Keep.text(t, &Path::root()),
         };
         result.map_err(|e| self.problem(e)).ok()
+    }
+
+    /// [`Reader::resolve_text`], taking `t`: without a resolver its words
+    /// move into the result instead of being copied.
+    pub fn take_text(&mut self, t: Text) -> Option<String> {
+        match (t, self.resolver.is_some()) {
+            (Text::Literal(s), false) => Some(s),
+            (t, _) => self.resolve_text(&t),
+        }
+    }
+
+    /// [`Reader::resolve_ref`], taking `r`: without a resolver the id moves.
+    pub fn take_ref(&mut self, r: Ref) -> Option<String> {
+        if self.resolver.is_none() {
+            return Some(r.id);
+        }
+        self.resolve_ref(&r)
+    }
+
+    /// Whether references are kept for the caller ([`read_value`] doesn't).
+    pub fn keeps_found(&self) -> bool {
+        !self.value_only
     }
 
     /// The words of `.yres` text `r`, if the resolver knows them.
@@ -344,14 +376,26 @@ impl<'r> Reader<'r> {
         self.resolver.as_mut()?.words(r)
     }
 
-    pub fn path(&self) -> &Path {
-        &self.path
+    /// Where the reader is.
+    pub fn path(&self) -> Path {
+        Self::built(&self.path)
+    }
+
+    fn built(steps: &[Step]) -> Path {
+        let mut p = Path::root();
+        for s in steps {
+            p.push(match s {
+                Step::Seg(s) => s.clone(),
+                Step::Field(k) => Seg::Key((*k).to_string()),
+            });
+        }
+        p
     }
 
     /// Reports a problem with the value being read.
     pub fn problem(&mut self, message: impl Into<String>) {
         self.problems.push(Problem {
-            path: self.path.clone(),
+            path: self.path(),
             message: message.into(),
             at_key: false,
         });
@@ -364,31 +408,42 @@ impl<'r> Reader<'r> {
 
     /// Runs `f` one step deeper.
     pub fn at<T>(&mut self, seg: Seg, f: impl FnOnce(&mut Self) -> T) -> T {
-        self.path.push(seg);
+        self.path.push(Step::Seg(seg));
+        let r = f(self);
+        self.path.pop();
+        r
+    }
+
+    /// Runs `f` in field `key` (no allocation for the step).
+    fn in_field<T>(&mut self, key: &'static str, f: impl FnOnce(&mut Self) -> T) -> T {
+        self.path.push(Step::Field(key));
         let r = f(self);
         self.path.pop();
         r
     }
 
     pub fn note_ref(&mut self, r: Ref) {
-        self.refs.push(Found {
-            value: r,
-            path: self.path.clone(),
-        });
+        if self.value_only {
+            return;
+        }
+        let path = self.path();
+        self.refs.push(Found { value: r, path });
     }
 
     pub fn note_tag(&mut self, r: Ref) {
-        self.tags.push(Found {
-            value: r,
-            path: self.path.clone(),
-        });
+        if self.value_only {
+            return;
+        }
+        let path = self.path();
+        self.tags.push(Found { value: r, path });
     }
 
     pub fn note_res(&mut self, r: Res) {
-        self.resources.push(Found {
-            value: r,
-            path: self.path.clone(),
-        });
+        if self.value_only {
+            return;
+        }
+        let path = self.path();
+        self.resources.push(Found { value: r, path });
     }
 
     /// `v` as an object, or a problem.
@@ -425,7 +480,7 @@ impl<'r> Reader<'r> {
                     }
                 });
             self.problems.push(Problem {
-                path: self.path.key(key),
+                path: self.path().key(key),
                 message: format!("unknown field `{key}`{hint}"),
                 at_key: true,
             });
@@ -479,7 +534,7 @@ impl<'r> Reader<'r> {
         key: &'static str,
     ) -> Option<F> {
         match map.get(key) {
-            Some(v) => self.at(Seg::Key(key.to_string()), |cx| W::read(v, cx)),
+            Some(v) => self.in_field(key, |cx| W::read(v, cx)),
             None => W::absent().or_else(|| {
                 self.problem(format!("missing `{key}`"));
                 None
@@ -495,7 +550,7 @@ impl<'r> Reader<'r> {
         default: impl FnOnce() -> F,
     ) -> Option<F> {
         match map.get(key) {
-            Some(v) => self.at(Seg::Key(key.to_string()), |cx| W::read(v, cx)),
+            Some(v) => self.in_field(key, |cx| W::read(v, cx)),
             None => Some(default()),
         }
     }
@@ -715,6 +770,13 @@ pub fn read_both<A: Schema, B: Schema>(
 /// Reads `v` as `T`: the value and its references, or every problem.
 pub fn from_value<T: Schema>(v: &Value) -> Result<Read<T>, Vec<Problem>> {
     read_with(v, Reader::new())
+}
+
+/// Reads `v` as `T`, nothing else: what the game wants of content (the
+/// references met aren't kept).
+pub fn read_value<T: Schema>(v: &Value) -> Result<T, Vec<Problem>> {
+    let reader = Reader { value_only: true, ..Reader::new() };
+    read_with(v, reader).map(|r| r.value)
 }
 
 /// `from_value`, references and texts going through `resolver`.

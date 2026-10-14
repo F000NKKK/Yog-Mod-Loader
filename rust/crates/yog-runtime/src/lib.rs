@@ -168,20 +168,25 @@ struct RuntimeHandlers {
     /// schema's arg count matches the actual invocation, in order, until one
     /// produces a reply).
     commands: HashMap<String, Vec<CommandEntry>>,
-    recipes: Vec<(String, String, String)>,
+    /// (namespace, name, the recipe in Yog's own format).
+    recipes: Vec<(String, String, yog_data::Value)>,
     packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
     client_packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
     items: Vec<ItemDef>,
     blocks: Vec<BlockDef>,
+    /// The content blob the hosts read (`nativeContent`), built once —
+    /// dropped when more content registers.
+    content_blob: Mutex<Option<std::sync::Arc<Vec<u8>>>>,
     /// Mods' sound groups by id; a block's `sound` is one of these or built in.
     sound_groups: HashMap<String, yog_registry::SoundGroup>,
     inventories: Vec<yog_inventory::InventoryDef>,
-    books: HashMap<String, String>,
+    /// The ids of the registered books (their renderers are `book_renderers`).
+    books: std::collections::HashSet<String>,
     book_renderers: Mutex<HashMap<String, yog_book::BookRenderer>>,
     /// Declared dimension-type defs: id -> `YogDimensionDef` JSON. Actual
     /// `LevelStem`/`ServerLevel` creation is a host (Java) responsibility —
     /// see `yog-dimensions` crate docs.
-    dimensions: HashMap<String, String>,
+    dimensions: HashMap<String, yog_data::Value>,
     chunk_generators: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogChunkGeneratorFn)>,
     ui_handlers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogUIEventFn)>,
     ui_render_handlers: HashMap<String, Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>>,
@@ -2093,15 +2098,16 @@ unsafe extern "C" fn api_register_content(ctx: *mut c_void, kind: YogStr, id: Yo
                 return;
             }
         };
-        register_content(&mut handlers_mut(ctx), kind, id, &value);
+        register_content(&mut handlers_mut(ctx), kind, id, value);
     }
 }
 
 /// Stores content of `kind` (see `register_content` in yog-abi).
-fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_data::Value) {
+fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: yog_data::Value) {
+    *h.content_blob.get_mut().unwrap_or_else(|e| e.into_inner()) = None;
     fn read<T: yog_data::Schema>(kind: &str, id: &str, v: &yog_data::Value) -> Option<T> {
-        match yog_data::from_value::<T>(v) {
-            Ok(r) => Some(r.value),
+        match yog_data::read_value::<T>(v) {
+            Ok(value) => Some(value),
             Err(problems) => {
                 let list: Vec<String> = problems.iter().map(|p| format!("{}: {}", p.path, p.message)).collect();
                 yog_logging::warn!("{kind} {id}: {}", list.join("; "));
@@ -2114,17 +2120,16 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
             *s = None;
         }
     };
-    let json = || yog_data::json::to_json(value).to_string();
     match kind {
         "item" => {
-            if let Some(mut d) = read::<ItemDef>(kind, &id, value) {
+            if let Some(mut d) = read::<ItemDef>(kind, &id, &value) {
                 none_if_empty(&mut d.name);
                 none_if_empty(&mut d.tooltip);
                 h.items.push(d);
             }
         }
         "block" => {
-            if let Some(mut d) = read::<BlockDef>(kind, &id, value) {
+            if let Some(mut d) = read::<BlockDef>(kind, &id, &value) {
                 none_if_empty(&mut d.name);
                 none_if_empty(&mut d.sound);
                 none_if_empty(&mut d.inventory_id);
@@ -2132,17 +2137,17 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
             }
         }
         "sound_group" => {
-            if let Some(g) = read::<yog_registry::SoundGroup>(kind, &id, value) {
+            if let Some(g) = read::<yog_registry::SoundGroup>(kind, &id, &value) {
                 h.sound_groups.insert(g.id.clone(), g);
             }
         }
         "inventory" => {
-            if let Some(d) = read::<yog_inventory::InventoryDef>(kind, &id, value) {
+            if let Some(d) = read::<yog_inventory::InventoryDef>(kind, &id, &value) {
                 h.inventories.push(d);
             }
         }
         "startup_grant" => {
-            if let Some(mut g) = read::<yog_registry::StartupGrant>(kind, &id, value) {
+            if let Some(mut g) = read::<yog_registry::StartupGrant>(kind, &id, &value) {
                 none_if_empty(&mut g.book);
                 none_if_empty(&mut g.command);
                 h.startup_grants.push(g);
@@ -2150,34 +2155,29 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
         }
         "recipe" => {
             let (ns, name) = id.split_once(':').unwrap_or(("minecraft", &id));
-            let j = json();
             // Feed the recipe to the books already registered (their recipe pages).
             for r in h.book_renderers.lock().unwrap().values_mut() {
-                r.add_recipe(format!("{ns}:{name}"), &j);
+                r.add_recipe(format!("{ns}:{name}"), &value);
             }
-            h.recipes.push((ns.to_string(), name.to_string(), j));
+            h.recipes.push((ns.to_string(), name.to_string(), value));
         }
         "book" => {
-            let j = json();
-            h.books.insert(id.clone(), j.clone());
-            // The renderer draws it without a round trip to Java.
-            match serde_json::from_str::<yog_book::Book>(&j) {
-                Ok(book) => {
-                    let mut renderer = yog_book::BookRenderer::new(book);
-                    // i18n books carry translation keys; shown in the game language.
-                    renderer.set_translator(translate);
-                    // Recipes may register before the book — replay them into the renderer.
-                    for (ns, name, rj) in &h.recipes {
-                        renderer.add_recipe(format!("{ns}:{name}"), rj);
-                    }
-                    h.book_renderers.lock().unwrap().insert(id, renderer);
+            // Read by its schema; the renderer draws it without a round trip to Java.
+            if let Some(book) = read::<yog_book::Book>(kind, &id, &value) {
+                h.books.insert(id.clone());
+                let mut renderer = yog_book::BookRenderer::new(book);
+                // i18n books carry translation keys; shown in the game language.
+                renderer.set_translator(translate);
+                // Recipes may register before the book — replay them into the renderer.
+                for (ns, name, recipe) in &h.recipes {
+                    renderer.add_recipe(format!("{ns}:{name}"), recipe);
                 }
-                Err(e) => yog_logging::warn!("book '{}': not a book: {}", id, e),
+                h.book_renderers.get_mut().unwrap_or_else(|e| e.into_inner()).insert(id, renderer);
             }
         }
         "dimension" => {
             yog_logging::info!("registered dimension type: {}", id);
-            h.dimensions.insert(id, json());
+            h.dimensions.insert(id, value);
         }
         other => yog_logging::warn!("unknown kind of content `{other}` ({id}) — this runtime doesn't know it"),
     }
@@ -4052,14 +4052,18 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnCommand<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-/// Everything the host registers — items, blocks, inventories — as one
-/// Yog Data blob (see `content_blob`).
+/// Everything the host registers as one Yog Data blob (see `content_blob`),
+/// built on the first call and kept.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeContent<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
 ) -> jni::sys::jbyteArray {
-    let bytes = yog_data::binary::encode(&content_blob::snapshot(&handlers()));
+    let h = handlers();
+    let bytes = {
+        let mut cached = h.content_blob.lock().unwrap_or_else(|e| e.into_inner());
+        cached.get_or_insert_with(|| std::sync::Arc::new(content_blob::blob(&h))).clone()
+    };
     env.byte_array_from_slice(&bytes)
         .map(|a| a.into_raw())
         .unwrap_or(std::ptr::null_mut())

@@ -114,9 +114,9 @@ fn books_get_the_recipes_registered_before_and_after_them() {
     assert_eq!(h.recipes.len(), 2);
     assert_eq!(h.recipes[1].1, "b");
     assert!(h.book_renderers.lock().unwrap().contains_key("mymod:guide"));
-    assert!(h.books.contains_key("mymod:broken"), "its JSON is kept for the host");
-    assert!(!h.book_renderers.lock().unwrap().contains_key("mymod:broken"), "but it has no renderer");
-    assert!(!h.books.contains_key("mymod:junk"));
+    assert!(!h.books.contains("mymod:broken"), "not a book: none for the host either");
+    assert!(!h.book_renderers.lock().unwrap().contains_key("mymod:broken"));
+    assert!(!h.books.contains("mymod:junk"), "not Yog Data: not a book");
 }
 
 #[test]
@@ -200,7 +200,7 @@ fn the_hosts_get_content_as_one_yog_data_blob() {
         content(ctx, "item", "mymod:guide", &yog_registry::ItemDef::new("mymod:guide").write());
         content(ctx, "book", "mymod:guide", &json(r#"{"id":"mymod:guide","name":"Guide","categories":[],"entries":[]}"#));
     });
-    let bytes = yog_data::binary::encode(&crate::content_blob::snapshot(&h.read().unwrap()));
+    let bytes = crate::content_blob::blob(&h.read().unwrap());
     let v = yog_data::binary::decode(&bytes).unwrap();
     let item = &v.get("items").unwrap().as_list().unwrap()[0];
     assert_eq!(item.get("id").and_then(|x| x.as_str()), Some("mymod:apple"));
@@ -221,7 +221,7 @@ fn a_blocks_sound_group_arrives_whole() {
             content(ctx, "block", id, &yog_registry::BlockDef::new(id).sound(sound).write());
         }
     });
-    let v = crate::content_blob::snapshot(&h.read().unwrap());
+    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read().unwrap())).unwrap();
     let blocks = v.get("blocks").unwrap().as_list().unwrap();
     let sound = |i: usize, k: &str| blocks[i].get("sound").and_then(|s| s.get(k)).cloned();
     assert_eq!(sound(0, "break").as_ref().and_then(|x| x.as_str()), Some("mymod:crystal.break"));
@@ -237,7 +237,7 @@ fn write_a_content_blob() {
     let mut h = RuntimeHandlers::default();
     h.items.push(yog_registry::ItemDef::new("m:apple").max_stack(16).name("Apple").food(yog_registry::FoodDef::new(4, 1.5).can_always_eat()));
     h.items.push(yog_registry::ItemDef::new("m:guide"));
-    h.books.insert("m:guide".into(), "{}".into());
+    h.books.insert("m:guide".into());
     let mut b = yog_registry::BlockDef::new("m:pipe");
     b.shape = Some([6.0, 6.0, 6.0, 10.0, 10.0, 10.0]);
     b.connects = true;
@@ -254,5 +254,106 @@ fn write_a_content_blob() {
     h.inventories.push(inv);
     h.recipes.push(("m".into(), "pick".into(), r##"{"type":"shaped","pattern":["II"," S"],"key":{"I":"minecraft:iron_ingot","S":["minecraft:stick","#c:rods"]},"result":"m:pick","count":1}"##.into()));
     h.dimensions.insert("m:void".into(), r#"{"dimension_type":{"has_sky_light":false,"ambient_light":0.5}}"#.into());
-    std::fs::write(out, yog_data::binary::encode(&crate::content_blob::snapshot(&h))).unwrap();
+    std::fs::write(out, crate::content_blob::blob(&h)).unwrap();
+}
+
+/// Content exchange, old (TSV and JSON strings) against new (Yog Data), on a
+/// mod's real registrations: `YOG_BENCH_REG=hex_registrations.ydata
+/// YOG_BENCH_OUT=dir cargo test --release -p yog-runtime content_exchange -- --ignored --nocapture`.
+/// Writes what each way hands the host, for the Java side of the measure.
+#[test]
+#[ignore]
+fn content_exchange() {
+    use std::time::Instant;
+    let (Some(reg), Some(out)) = (std::env::var_os("YOG_BENCH_REG"), std::env::var_os("YOG_BENCH_OUT")) else { return };
+    let all = yog_data::binary::decode(&std::fs::read(reg).unwrap()).unwrap();
+    let entries: Vec<(String, String, yog_data::Value)> = all
+        .as_list()
+        .unwrap()
+        .iter()
+        .map(|e| (e.get("kind").unwrap().as_str().unwrap().to_string(), e.get("id").unwrap().as_str().unwrap().to_string(), e.get("data").unwrap().clone()))
+        .collect();
+    let time = |what: &str, n: u32, f: &mut dyn FnMut()| {
+        f();
+        let t = Instant::now();
+        for _ in 0..n {
+            f();
+        }
+        println!("{what:<48} {:>9.1} µs", t.elapsed().as_secs_f64() * 1e6 / n as f64);
+    };
+    // Mod → runtime. New: the mod encodes, the runtime decodes and reads.
+    let blobs: Vec<(String, String, Vec<u8>)> = entries.iter().map(|(k, i, v)| (k.clone(), i.clone(), yog_data::binary::encode(v))).collect();
+    time("mod: encode every definition (books come built)", 200, &mut || {
+        for (_, _, v) in entries.iter().filter(|(k, ..)| k != "book") {
+            std::hint::black_box(yog_data::binary::encode(v));
+        }
+    });
+    let mut handlers = None;
+    time("runtime: register_content (decode + read)", 200, &mut || {
+        handlers = Some(registering(|ctx| unsafe {
+            for (k, i, b) in &blobs {
+                api_register_content(ctx, YogStr::from_str(k), YogStr::from_str(i), b.as_ptr(), b.len());
+            }
+        }));
+    });
+    for kind in ["item", "block", "recipe", "book"] {
+        time(&format!("  of which {kind}s"), 50, &mut || {
+            std::hint::black_box(registering(|ctx| unsafe {
+                for (k, i, b) in blobs.iter().filter(|(k, ..)| k == kind) {
+                    api_register_content(ctx, YogStr::from_str(k), YogStr::from_str(i), b.as_ptr(), b.len());
+                }
+            }));
+        });
+    }
+    let book = blobs.iter().find(|(k, ..)| k == "book").unwrap();
+    let bv = yog_data::binary::decode(&book.2).unwrap();
+    let parsed = yog_data::from_value::<yog_book::Book>(&bv).unwrap().value;
+    let old_json = parsed.to_json();
+    time("  book, old: serde parse of its JSON", 50, &mut || { std::hint::black_box(serde_json::from_str::<yog_book::Book>(&old_json).unwrap()); });
+    time("  book, new: decode", 50, &mut || { std::hint::black_box(yog_data::binary::decode(&book.2).unwrap()); });
+    time("  book, new: read by its schema", 50, &mut || { std::hint::black_box(yog_data::read_value::<yog_book::Book>(&bv).unwrap()); });
+    time("  book: BookRenderer::new (both)", 50, &mut || { std::hint::black_box(yog_book::BookRenderer::new(parsed.clone())); });
+    let h = handlers.unwrap();
+    let h = h.read().unwrap();
+    // Runtime → host. Old: the TSV dialects and `ns\tname\tjson` lines
+    // (the runtime kept each recipe's JSON as the mod sent it).
+    let recipe_json: Vec<(String, String, String)> = h.recipes.iter().map(|(ns, n, v)| (ns.clone(), n.clone(), yog_data::json::to_json(v).to_string())).collect();
+    let old = || {
+        let items: Vec<String> = h.items.iter().map(|d| {
+            let mut p = vec![d.id.clone(), format!("max_stack={}", d.max_stack)];
+            if let Some(n) = &d.name { p.push(format!("name={n}")); }
+            if let Some(t) = &d.tooltip { p.push(format!("tooltip={t}")); }
+            if d.max_damage > 0 { p.push(format!("max_damage={}", d.max_damage)); }
+            if d.fire_resistant { p.push("fire_resistant=1".into()); }
+            if d.fuel_ticks > 0 { p.push(format!("fuel_ticks={}", d.fuel_ticks)); }
+            if let Some(f) = &d.food { p.push(format!("food={}:{}:{}", f.nutrition, f.saturation, f.can_always_eat as u8)); }
+            p.join("\t")
+        }).collect();
+        let blocks: Vec<String> = h.blocks.iter().map(|d| {
+            let mut p = vec![d.id.clone(), format!("hardness={}", d.hardness), format!("resistance={}", d.resistance)];
+            if let Some(n) = &d.name { p.push(format!("name={n}")); }
+            if let Some(s) = d.shape { p.push(format!("shape={}:{}:{}:{}:{}:{}", s[0], s[1], s[2], s[3], s[4], s[5])); }
+            if d.light_level > 0 { p.push(format!("light={}", d.light_level)); }
+            if let Some(s) = &d.sound { p.push(format!("sound={s}")); }
+            if d.requires_tool { p.push("requires_tool=1".into()); }
+            if d.no_collision { p.push("no_collision=1".into()); }
+            if d.slipperiness > 0.0 { p.push(format!("slipperiness={}", d.slipperiness)); }
+            if d.connects { p.push("connects=1".into()); }
+            if !d.connect_groups.is_empty() { p.push(format!("connect_groups={}", d.connect_groups.join(","))); }
+            if let Some(i) = &d.inventory_id { p.push(format!("inventory_id={i}")); }
+            if d.redstone_source { p.push("redstone=1".into()); }
+            p.join("\t")
+        }).collect();
+        let recipes: Vec<String> = recipe_json.iter().map(|(ns, name, json)| format!("{ns}\t{name}\t{json}")).collect();
+        [items.join("\n"), blocks.join("\n"), recipes.join("\n")]
+    };
+    let new = || crate::content_blob::blob(&h);
+    time("host fetch, old: TSV + recipe JSON lines", 2000, &mut || { std::hint::black_box(old()); });
+    time("host fetch, new: the blob, written", 2000, &mut || { std::hint::black_box(new()); });
+    let out = std::path::PathBuf::from(out);
+    let [items, blocks, recipes] = old();
+    std::fs::write(out.join("old_items.tsv"), items).unwrap();
+    std::fs::write(out.join("old_blocks.tsv"), blocks).unwrap();
+    std::fs::write(out.join("old_recipes.txt"), recipes).unwrap();
+    std::fs::write(out.join("new_content.ydata"), new()).unwrap();
 }

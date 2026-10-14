@@ -156,12 +156,18 @@ public final class YogDataLayout {
         } catch (Exception e) {
             return json;
         }
+        return yogRecipeToVanilla(in, namespace, mc121);
+    }
+
+    /** {@link #yogRecipeToVanilla(String, String, boolean)} of a recipe already a JSON tree. */
+    public static String yogRecipeToVanilla(JsonObject in, String namespace, boolean mc121) {
         String type = in.has("type") ? in.get("type").getAsString() : "";
         if (type.contains(":")) {
             // The mod's own kind of recipe (`mymod:infusion`): its data, for
             // its machines and books — not the game's.
             if (type.startsWith(namespace + ":")) return null;
             // Another mod's (a Java mod's `create:mixing`): as written.
+            String json = in.toString();
             return mc121 ? upgradeRecipeJson(json) : json;
         }
         JsonObject out = new JsonObject();
@@ -211,7 +217,7 @@ public final class YogDataLayout {
                 out.add("result", stack(result, count, mc121));
             }
             default -> {
-                return json;
+                return in.toString();
             }
         }
         if (in.has("group")) out.addProperty("group", in.get("group").getAsString());

@@ -332,7 +332,7 @@ impl<const SPANS: bool> Parser<'_, SPANS> {
             self.ws()?;
             let (v, mut s) = self.value()?;
             s.key = Some(key_span);
-            map.push_unchecked(key, v);
+            map.push_unchecked(key.into(), v);
             if SPANS {
                 spans.push(s);
             }

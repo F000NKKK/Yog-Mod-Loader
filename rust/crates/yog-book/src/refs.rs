@@ -61,13 +61,13 @@ impl With<String> for BookText {
 
     fn read(v: &Value, cx: &mut yog_data::Reader) -> Option<String> {
         let t = Text::read(v, cx)?;
-        let words = match &t {
-            Text::Literal(s) => Some(s.clone()),
-            Text::Res(r) => cx.words(r),
-            Text::NameOf(_) | Text::Lang(_) => None,
+        let words: std::borrow::Cow<str> = match &t {
+            Text::Literal(s) => s.as_str().into(),
+            Text::Res(r) => cx.words(r).unwrap_or_default().into(),
+            Text::NameOf(_) | Text::Lang(_) => "".into(),
         };
         let mut ok = true;
-        for l in links(words.as_deref().unwrap_or_default()) {
+        for l in links(&words) {
             if l.starts_with("http://") || l.starts_with("https://") {
                 continue;
             }
@@ -85,7 +85,8 @@ impl With<String> for BookText {
                 }
             }
         }
-        let resolved = cx.resolve_text(&t)?;
+        drop(words);
+        let resolved = cx.take_text(t)?;
         ok.then_some(resolved)
     }
 

@@ -323,54 +323,59 @@ impl Recipe {
         self
     }
 
-    /// The recipe in Yog's own format (the `.yrecipe` shape, compact).
-    pub fn to_json(&self) -> String {
+    /// The recipe in Yog's own format (the `.yrecipe` shape) — what
+    /// `Registry::add_recipe` hands the runtime.
+    pub fn to_data(&self) -> yog_data::Value {
+        use yog_data::{Map, Value};
         let ing = |items: &[String]| match items {
-            [one] => json_str(one),
-            many => format!("[{}]", many.iter().map(|i| json_str(i)).collect::<Vec<_>>().join(",")),
+            [one] => Value::from(one.as_str()),
+            many => Value::List(many.iter().map(|i| Value::from(i.as_str())).collect()),
         };
-        let mut fields = Vec::new();
+        let mut m = Map::with_capacity(8);
+        let ty = |m: &mut Map, t: &str| m.insert("type", Value::from(t));
         match &self.kind {
             RecipeKind::Shaped { pattern, key } => {
-                fields.push("\"type\":\"shaped\"".to_string());
-                let rows: Vec<String> = pattern.iter().map(|r| json_str(r)).collect();
-                fields.push(format!("\"pattern\":[{}]", rows.join(",")));
-                let keys: Vec<String> = key.iter().map(|(c, items)| format!("{}:{}", json_str(&c.to_string()), ing(items))).collect();
-                fields.push(format!("\"key\":{{{}}}", keys.join(",")));
+                ty(&mut m, "shaped");
+                m.insert("pattern", Value::List(pattern.iter().map(|r| Value::from(r.as_str())).collect()));
+                let mut keys = Map::with_capacity(key.len());
+                for (c, items) in key {
+                    keys.insert(c.to_string(), ing(items));
+                }
+                m.insert("key", Value::Map(keys));
             }
             RecipeKind::Shapeless { ingredients } => {
-                fields.push("\"type\":\"shapeless\"".to_string());
-                let list: Vec<String> = ingredients.iter().map(|i| ing(i)).collect();
-                fields.push(format!("\"ingredients\":[{}]", list.join(",")));
+                ty(&mut m, "shapeless");
+                m.insert("ingredients", Value::List(ingredients.iter().map(|i| ing(i)).collect()));
             }
             RecipeKind::Cooking { method, ingredient, experience, cook_time } => {
-                fields.push(format!("\"type\":\"{}\"", method.word()));
-                fields.push(format!("\"ingredient\":{}", ing(ingredient)));
-                fields.push(format!("\"experience\":{experience}"));
-                fields.push(format!("\"cook_time\":{cook_time}"));
+                ty(&mut m, method.word());
+                m.insert("ingredient", ing(ingredient));
+                // As written (`0.7`, not f32's 0.699999988…).
+                m.insert("experience", Value::Float(experience.to_string().parse().unwrap_or(0.0)));
+                m.insert("cook_time", Value::Int(*cook_time as i64));
             }
             RecipeKind::Stonecutting { ingredient } => {
-                fields.push("\"type\":\"stonecutting\"".to_string());
-                fields.push(format!("\"ingredient\":{}", ing(ingredient)));
+                ty(&mut m, "stonecutting");
+                m.insert("ingredient", ing(ingredient));
             }
             RecipeKind::Smithing { template, base, addition } => {
-                fields.push("\"type\":\"smithing\"".to_string());
-                fields.push(format!("\"template\":{}", ing(template)));
-                fields.push(format!("\"base\":{}", ing(base)));
-                fields.push(format!("\"addition\":{}", ing(addition)));
+                ty(&mut m, "smithing");
+                m.insert("template", ing(template));
+                m.insert("base", ing(base));
+                m.insert("addition", ing(addition));
             }
         }
-        fields.push(format!("\"result\":{}", json_str(&self.result)));
+        m.insert("result", Value::from(self.result.as_str()));
         if self.count != 1 {
-            fields.push(format!("\"count\":{}", self.count));
+            m.insert("count", Value::Int(self.count as i64));
         }
         if let Some(g) = &self.group {
-            fields.push(format!("\"group\":{}", json_str(g)));
+            m.insert("group", Value::from(g.as_str()));
         }
         if let Some(c) = &self.category {
-            fields.push(format!("\"category\":{}", json_str(c)));
+            m.insert("category", Value::from(c.as_str()));
         }
-        format!("{{{}}}", fields.join(","))
+        Value::Map(m)
     }
 
     /// Split `namespace:name` from the recipe id.
@@ -513,8 +518,8 @@ impl SoundGroup {
 
     /// One of the game's groups, by short name or id (`stone` = `minecraft:stone`).
     pub fn built_in(name: &str) -> Option<&'static SoundGroup> {
-        let id = if name.contains(':') { name.to_string() } else { format!("minecraft:{name}") };
-        Self::built_ins().iter().find(|g| g.id == id)
+        let name = name.strip_prefix("minecraft:").unwrap_or(name);
+        Self::built_ins().iter().find(|g| g.id.strip_prefix("minecraft:") == Some(name))
     }
 }
 
@@ -698,20 +703,29 @@ mod sound_tests {
 }
 
 #[cfg(test)]
+impl Recipe {
+    fn to_json(&self) -> String {
+        yog_data::json::to_json(&self.to_data()).to_string()
+    }
+}
+
+#[cfg(test)]
 mod recipe_tests {
     use super::*;
 
     #[test]
     fn writes_the_yog_format() {
+        let js = |s: &str| serde_json::from_str::<serde_json::Value>(s).unwrap();
         let shaped = Recipe::shaped("m:a", "m:b", 2).row("D ").key('D', "#c:dusts").key_any('E', ["m:x", "m:y"]).group("g");
         assert_eq!(
-            shaped.to_json(),
-            r##"{"type":"shaped","pattern":["D "],"key":{"D":"#c:dusts","E":["m:x","m:y"]},"result":"m:b","count":2,"group":"g"}"##
+            js(&shaped.to_json()),
+            js(r##"{"type":"shaped","pattern":["D "],"key":{"D":"#c:dusts","E":["m:x","m:y"]},"result":"m:b","count":2,"group":"g"}"##)
         );
-        let blast = Recipe::cooking("m:a", Cooking::Blasting, "#c:ores", "m:b", 1).experience(0.5);
-        assert_eq!(blast.to_json(), r##"{"type":"blasting","ingredient":"#c:ores","experience":0.5,"cook_time":100,"result":"m:b"}"##);
+        assert_eq!(shaped.to_data().as_map().unwrap().keys().next(), Some("type"), "the type first");
+        let blast = Recipe::cooking("m:a", Cooking::Blasting, "#c:ores", "m:b", 1).experience(0.7);
+        assert_eq!(js(&blast.to_json()), js(r##"{"type":"blasting","ingredient":"#c:ores","experience":0.7,"cook_time":100,"result":"m:b"}"##));
         let smith = Recipe::smithing("m:a", "m:t", "m:base", "m:add", "m:out");
-        assert!(smith.to_json().contains(r#""type":"smithing","template":"m:t""#));
+        assert_eq!(js(&smith.to_json())["template"], "m:t");
     }
 }
 

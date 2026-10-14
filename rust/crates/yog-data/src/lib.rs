@@ -30,6 +30,6 @@ pub mod schema;
 pub use schema::{
     BlockId, Color, EntityId, Errors, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds, OneOrTag,
     Ordered, Read, Reader, RecipeId, Resolve, Schema, Shape, TagId, Text, from_doc_with, from_text,
-    from_value, from_value_with, kinds, to_text,
+    from_value, from_value_with, kinds, read_value, to_text,
 };
 pub use yog_data_derive::Schema;

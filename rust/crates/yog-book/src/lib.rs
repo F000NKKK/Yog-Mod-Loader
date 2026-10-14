@@ -267,9 +267,9 @@ pub struct Book {
     /// build turns it on when a text is a `.yres` text or a name).
     #[data(default)]
     pub i18n: bool,
-    /// The mod's recipe layouts (`content/*.ylayout`), which the build adds.
+    /// Recipe layouts of its own; the build adds the mod's (`content/*.ylayout`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[data(skip)]
+    #[data(default)]
     pub layouts: Vec<layout::RecipeLayout>,
 }
 

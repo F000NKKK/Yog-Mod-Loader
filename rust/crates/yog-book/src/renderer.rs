@@ -189,56 +189,50 @@ pub(crate) struct RecipeVis {
 
 /// An ingredient in Yog's recipe format: an id, a `#tag`, or an array of
 /// those (any of them).
-fn ingredient(v: &serde_json::Value) -> Vec<String> {
+fn ingredient(v: &yog_data::Value) -> Vec<String> {
+    use yog_data::Value;
     match v {
-        serde_json::Value::String(s) => vec![s.clone()],
-        serde_json::Value::Array(a) => a.iter().flat_map(ingredient).collect(),
+        Value::Str(s) => vec![s.clone()],
+        Value::Ref(r) => vec![r.id.clone()],
+        Value::Tag(r) => vec![format!("#{}", r.id)],
+        Value::List(a) => a.iter().flat_map(ingredient).collect(),
         _ => Vec::new(),
     }
 }
 
 /// A recipe in Yog's own format (what a `.yrecipe` says, ids resolved —
 /// see `yog_registry::Recipe`), as the book shows it.
-fn parse_recipe(json: &str) -> Option<RecipeVis> {
-    let v: serde_json::Value = serde_json::from_str(json).ok()?;
+fn parse_recipe(v: &yog_data::Value) -> Option<RecipeVis> {
+    use yog_data::Value;
     let kind = v.get("type")?.as_str()?.to_owned();
-    let output = v.get("result")?.as_str()?.to_owned();
-    let count = v.get("count").and_then(|c| c.as_u64()).unwrap_or(1) as u32;
+    let output = match v.get("result")? {
+        Value::Ref(r) => r.id.clone(),
+        r => r.as_str()?.to_owned(),
+    };
+    let count = v.get("count").and_then(|c| c.as_i64()).unwrap_or(1).max(0) as u32;
     let mut slots = BTreeMap::new();
     let mut values = BTreeMap::new();
-    let text = |x: &serde_json::Value| {
-        x.as_str()
-            .map(str::to_owned)
-            .unwrap_or_else(|| x.to_string())
+    let text = |x: &Value| match x {
+        Value::Int(i) => i.to_string(),
+        Value::Float(f) => f.to_string(),
+        Value::Bool(b) => b.to_string(),
+        x => x.as_str().map(str::to_owned).unwrap_or_default(),
     };
     match kind.as_str() {
         "shaped" => {
             // The pattern's cells by position on the 3×3 grid.
-            let key = v.get("key")?.as_object()?;
+            let key = v.get("key")?.as_map()?;
             let mut grid = vec![Vec::new(); 9];
-            for (r, row) in v
-                .get("pattern")?
-                .as_array()?
-                .iter()
-                .filter_map(|p| p.as_str())
-                .take(3)
-                .enumerate()
-            {
+            for (r, row) in v.get("pattern")?.as_list()?.iter().filter_map(|p| p.as_str()).take(3).enumerate() {
+                let mut buf = [0u8; 4];
                 for (c, ch) in row.chars().take(3).enumerate() {
-                    grid[r * 3 + c] = key.get(&ch.to_string()).map(ingredient).unwrap_or_default();
+                    grid[r * 3 + c] = key.get(ch.encode_utf8(&mut buf)).map(ingredient).unwrap_or_default();
                 }
             }
             slots.insert("grid".into(), grid);
         }
         "shapeless" => {
-            slots.insert(
-                "grid".into(),
-                v.get("ingredients")?
-                    .as_array()?
-                    .iter()
-                    .map(ingredient)
-                    .collect(),
-            );
+            slots.insert("grid".into(), v.get("ingredients")?.as_list()?.iter().map(ingredient).collect());
         }
         "smelting" | "blasting" | "smoking" | "campfire_cooking" | "stonecutting" => {
             slots.insert("input".into(), vec![ingredient(v.get("ingredient")?)]);
@@ -248,7 +242,7 @@ fn parse_recipe(json: &str) -> Option<RecipeVis> {
                 "campfire_cooking" => Some(600),
                 _ => None,
             };
-            if let Some(t) = v.get("cook_time").and_then(|t| t.as_u64()).or(default_time) {
+            if let Some(t) = v.get("cook_time").and_then(|t| t.as_i64()).or(default_time) {
                 values.insert("time".into(), t.to_string());
             }
             if let Some(x) = v.get("experience") {
@@ -257,46 +251,20 @@ fn parse_recipe(json: &str) -> Option<RecipeVis> {
         }
         "smithing" => {
             for part in ["template", "base", "addition"] {
-                slots.insert(
-                    part.into(),
-                    vec![v.get(part).map(ingredient).unwrap_or_default()],
-                );
+                slots.insert(part.into(), vec![v.get(part).map(ingredient).unwrap_or_default()]);
             }
         }
         _ => {
             // A mod's own kind: named slots, values.
-            for (name, list) in v
-                .get("slots")
-                .and_then(|s| s.as_object())
-                .into_iter()
-                .flatten()
-            {
-                slots.insert(
-                    name.clone(),
-                    list.as_array()
-                        .into_iter()
-                        .flatten()
-                        .map(ingredient)
-                        .collect(),
-                );
+            for (name, list) in v.get("slots").and_then(|s| s.as_map()).into_iter().flat_map(|m| m.iter()) {
+                slots.insert(name.to_string(), list.as_list().into_iter().flatten().map(ingredient).collect());
             }
-            for (name, x) in v
-                .get("values")
-                .and_then(|s| s.as_object())
-                .into_iter()
-                .flatten()
-            {
-                values.insert(name.clone(), text(x));
+            for (name, x) in v.get("values").and_then(|s| s.as_map()).into_iter().flat_map(|m| m.iter()) {
+                values.insert(name.to_string(), text(x));
             }
         }
     }
-    Some(RecipeVis {
-        kind,
-        slots,
-        output,
-        count,
-        values,
-    })
+    Some(RecipeVis { kind, slots, output, count, values })
 }
 
 /// Normalize icon ids like "yog:item/ruby" / "yog:block/x" to registry item
@@ -494,10 +462,10 @@ impl BookRenderer {
         }
     }
 
-    /// Register a recipe (Yog's recipe JSON) so recipe pages can
+    /// Register a recipe (Yog's recipe, as Yog Data) so recipe pages can
     /// render it visually. Unknown recipe types are ignored.
-    pub fn add_recipe(&mut self, id: impl Into<String>, json: &str) {
-        if let Some(vis) = parse_recipe(json) {
+    pub fn add_recipe(&mut self, id: impl Into<String>, recipe: &yog_data::Value) {
+        if let Some(vis) = parse_recipe(recipe) {
             self.recipes.insert(id.into(), vis);
             self.dirty = true;
         }
@@ -1845,6 +1813,10 @@ fn build_page(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn j(json: &str) -> yog_data::Value {
+        yog_data::json::from_json_text(json).unwrap()
+    }
     use crate::BookEntry;
 
     fn book(pages: Vec<BookPage>) -> Book {
@@ -1972,7 +1944,7 @@ mod tests {
 
     #[test]
     fn reads_yog_recipes() {
-        let shaped = parse_recipe(r##"{"type":"shaped","pattern":["AB"],"key":{"A":"m:a","B":["m:x","#c:t"]},"result":"m:out","count":2}"##).unwrap();
+        let shaped = parse_recipe(&j(r##"{"type":"shaped","pattern":["AB"],"key":{"A":"m:a","B":["m:x","#c:t"]},"result":"m:out","count":2}"##)).unwrap();
         assert_eq!(
             (shaped.kind.as_str(), shaped.output.as_str(), shaped.count),
             ("shaped", "m:out", 2)
@@ -1984,7 +1956,7 @@ mod tests {
             "cells by place on the 3×3 grid"
         );
         let blast =
-            parse_recipe(r##"{"type":"blasting","ingredient":"m:ore","result":"m:ingot"}"##)
+            parse_recipe(&j(r##"{"type":"blasting","ingredient":"m:ore","result":"m:ingot"}"##))
                 .unwrap();
         assert_eq!(
             (
@@ -1993,13 +1965,13 @@ mod tests {
             ),
             ("m:ore", "100")
         );
-        let own = parse_recipe(r##"{"type":"m:infusion","slots":{"ring":["m:a",["m:b","m:c"]]},"values":{"time":40},"result":"m:out"}"##).unwrap();
+        let own = parse_recipe(&j(r##"{"type":"m:infusion","slots":{"ring":["m:a",["m:b","m:c"]]},"values":{"time":40},"result":"m:out"}"##)).unwrap();
         assert_eq!(
             (own.slots["ring"].len(), own.values["time"].as_str()),
             (2, "40")
         );
         assert!(
-            parse_recipe(r#"{"type":"minecraft:crafting_shaped"}"#).is_none(),
+            parse_recipe(&j(r#"{"type":"minecraft:crafting_shaped"}"#)).is_none(),
             "vanilla JSON isn't the book's"
         );
     }
@@ -2008,8 +1980,8 @@ mod tests {
     fn recipe_pages_are_drawn_by_layouts() {
         let theme = BookTheme::default();
         let mut recipes = HashMap::new();
-        recipes.insert("m:r".to_string(), parse_recipe(r##"{"type":"m:infusion","slots":{"ring":["m:a","m:b"]},"values":{"time":40},"result":"m:out"}"##).unwrap());
-        recipes.insert("m:s".to_string(), parse_recipe(r##"{"type":"smithing","template":"m:t","base":"m:b","addition":"m:a","result":"m:out"}"##).unwrap());
+        recipes.insert("m:r".to_string(), parse_recipe(&j(r##"{"type":"m:infusion","slots":{"ring":["m:a","m:b"]},"values":{"time":40},"result":"m:out"}"##)).unwrap());
+        recipes.insert("m:s".to_string(), parse_recipe(&j(r##"{"type":"smithing","template":"m:t","base":"m:b","addition":"m:a","result":"m:out"}"##)).unwrap());
         let layout: crate::layout::RecipeLayout = yog_data::from_text(
             r#"{ kinds: ["m:infusion"], size: [96, 40], parts: [
                 { type: "slots", slot: "ring", at: [[0, 0], [20, 0]], frame: true },

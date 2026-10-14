@@ -57,6 +57,11 @@ fn build(root: &Path, mod_id: &str) -> String {
     if let Some(src) = &c.source {
         let _ = writeln!(out, "# content.g.rs\n{src}");
     }
+    // Data the code includes (books), shown as Yog Data text.
+    for (path, bytes) in &c.data_files {
+        let shown = yog_data::binary::decode(bytes).map(|v| yog_data::text::to_string_pretty(&v)).unwrap_or_else(|e| format!("<not Yog Data: {e}>"));
+        let _ = writeln!(out, "# generated/{path}\n{shown}");
+    }
     let mut outputs = res.outputs;
     if let Err(e) = content::merge_outputs(root, &mut outputs, c) {
         let _ = writeln!(out, "# merging failed\n{e}");

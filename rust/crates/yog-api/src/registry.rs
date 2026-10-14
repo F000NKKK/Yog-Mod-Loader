@@ -2111,7 +2111,7 @@ impl Registry {
     pub fn add_recipe(&mut self, recipe: Recipe) {
         let (ns, name) = recipe.ns_name();
         let id = format!("{ns}:{name}");
-        self.content("recipe", &id, &Self::json(&recipe.to_json()));
+        self.content("recipe", &id, &recipe.to_data());
     }
 
     /// Register a recipe given as Yog's recipe JSON — how `yog build`
@@ -2157,13 +2157,14 @@ impl Registry {
 
     /// Register a book.
     pub fn register_book(&mut self, book: &Book) {
-        self.register_book_json(&book.id, &book.to_json());
+        use yog_data::Schema;
+        self.content("book", &book.id, &book.write());
     }
 
-    /// Register a book from its JSON (what `yog build` makes of a
-    /// `content/**/*.ybook`).
-    pub fn register_book_json(&mut self, id: &str, json: &str) {
-        self.content("book", id, &Self::json(json));
+    /// Register a book given as Yog Data, binary — what `yog build` makes
+    /// of a `content/**/*.ybook`; the bytes go to the runtime as they are.
+    pub fn register_book_data(&mut self, id: &str, data: &[u8]) {
+        unsafe { ((*self.api).register_content)(self.ctx(), YogStr::from_str("book"), YogStr::from_str(id), data.as_ptr(), data.len()) }
     }
 
     /// Register (or patch) a dimension's *type* (sky, lighting, physics, ...).

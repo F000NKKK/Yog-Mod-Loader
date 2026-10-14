@@ -65,7 +65,7 @@ fn book(c: &mut Criterion) {
     // SAFETY: `table` outlives `ctx`, and every function in it does nothing.
     let ctx = unsafe { GfxContext::from_raw(&table) };
     let mut r = BookRenderer::new(parsed);
-    r.add_recipe("b:r", r#"{"type":"shaped","pattern":["AA","AA"],"key":{"A":"minecraft:stick"},"result":"minecraft:crafting_table"}"#);
+    r.add_recipe("b:r", &yog_data::json::from_json_text(r#"{"type":"shaped","pattern":["AA","AA"],"key":{"A":"minecraft:stick"},"result":"minecraft:crafting_table"}"#).unwrap());
     r.show("b:e40", 1);
     c.bench_function("book/render_spread", |b| {
         b.iter(|| r.render(&ctx, 480.0, 270.0))

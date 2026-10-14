@@ -104,7 +104,7 @@ public class YogHost {
     public static MenuType<YogInventoryMenu> INVENTORY_MENU_TYPE;
 
     private static void parseInventoryDefs() {
-        INVENTORY_DEFS.putAll(YogContent.read(NativeBridge.nativeContent()).inventories);
+        INVENTORY_DEFS.putAll(YogContent.cached(NativeBridge::nativeContent).inventories);
     }
 
     public YogHost() {
@@ -170,7 +170,7 @@ public class YogHost {
     }
 
     private void registerBlocks(RegisterEvent event) {
-        for (YogContent.Block p : YogContent.read(NativeBridge.nativeContent()).blocks) {
+        for (YogContent.Block p : YogContent.cached(NativeBridge::nativeContent).blocks) {
             String id = p.id();
             ResourceLocation ident = ResourceLocation.tryParse(id);
             if (ident == null) continue;
@@ -233,7 +233,7 @@ public class YogHost {
     private final Map<String, String> blockItemTooltips = new HashMap<>();
 
     private void registerItems(RegisterEvent event) {
-        YogContent content = YogContent.read(NativeBridge.nativeContent());
+        YogContent content = YogContent.cached(NativeBridge::nativeContent);
         {
             for (YogContent.Item p : content.items) {
                 String id = p.id();
@@ -291,7 +291,7 @@ public class YogHost {
 
         // Block items for blocks registered in the BLOCK phase.
         {
-            for (YogContent.Block p : YogContent.read(NativeBridge.nativeContent()).blocks) {
+            for (YogContent.Block p : YogContent.cached(NativeBridge::nativeContent).blocks) {
                 String id = p.id();
                 ResourceLocation ident = ResourceLocation.tryParse(id);
                 Block block = ident == null ? null : registeredBlocks.get(ident);

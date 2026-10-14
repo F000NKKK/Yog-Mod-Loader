@@ -65,9 +65,10 @@ pub struct Res {
     pub key: String,
 }
 
-/// A map: entries in file order, keys unique.
+/// A map: entries in file order, keys unique. Keys are shared: a decoded
+/// document allocates each distinct key once, however many maps have it.
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct Map(Vec<(String, Value)>);
+pub struct Map(Vec<(std::sync::Arc<str>, Value)>);
 
 impl Map {
     pub fn new() -> Self {
@@ -79,11 +80,11 @@ impl Map {
     }
 
     pub fn get(&self, key: &str) -> Option<&Value> {
-        self.0.iter().find(|(k, _)| k == key).map(|(_, v)| v)
+        self.0.iter().find(|(k, _)| &**k == key).map(|(_, v)| v)
     }
 
     pub fn get_mut(&mut self, key: &str) -> Option<&mut Value> {
-        self.0.iter_mut().find(|(k, _)| k == key).map(|(_, v)| v)
+        self.0.iter_mut().find(|(k, _)| &**k == key).map(|(_, v)| v)
     }
 
     /// The value of the `i`-th entry.
@@ -93,7 +94,7 @@ impl Map {
 
     /// The position of `key` among the entries.
     pub fn index_of(&self, key: &str) -> Option<usize> {
-        self.0.iter().position(|(k, _)| k == key)
+        self.0.iter().position(|(k, _)| &**k == key)
     }
 
     /// Sets `key`, in place if it's there, else at the end; returns the old value.
@@ -102,14 +103,14 @@ impl Map {
         match self.get_mut(&key) {
             Some(slot) => Some(std::mem::replace(slot, value)),
             None => {
-                self.0.push((key, value));
+                self.0.push((key.into(), value));
                 None
             }
         }
     }
 
     /// Appends without checking for the key — for decoders that already did.
-    pub(crate) fn push_unchecked(&mut self, key: String, value: Value) {
+    pub(crate) fn push_unchecked(&mut self, key: std::sync::Arc<str>, value: Value) {
         self.0.push((key, value));
     }
 
@@ -127,11 +128,11 @@ impl Map {
     }
 
     pub fn iter(&self) -> impl ExactSizeIterator<Item = (&str, &Value)> {
-        self.0.iter().map(|(k, v)| (k.as_str(), v))
+        self.0.iter().map(|(k, v)| (&**k, v))
     }
 
     pub fn keys(&self) -> impl ExactSizeIterator<Item = &str> {
-        self.0.iter().map(|(k, _)| k.as_str())
+        self.0.iter().map(|(k, _)| &**k)
     }
 
     pub fn retain(&mut self, mut keep: impl FnMut(&str, &Value) -> bool) {
@@ -141,9 +142,9 @@ impl Map {
 
 impl IntoIterator for Map {
     type Item = (String, Value);
-    type IntoIter = std::vec::IntoIter<(String, Value)>;
+    type IntoIter = std::iter::Map<std::vec::IntoIter<(std::sync::Arc<str>, Value)>, fn((std::sync::Arc<str>, Value)) -> (String, Value)>;
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.0.into_iter().map(|(k, v)| (k.to_string(), v))
     }
 }
 

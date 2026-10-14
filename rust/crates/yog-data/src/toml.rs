@@ -48,7 +48,7 @@ fn table_value(table: DeTable<'_>) -> (Value, Vec<Spans>) {
         let key = to_span(k.span());
         let (value, mut s) = convert(v);
         s.key = Some(key);
-        map.push_unchecked(k.into_inner().into_owned(), value);
+        map.push_unchecked(k.into_inner().as_ref().into(), value);
         spans.push(s);
     }
     (Value::Map(map), spans)

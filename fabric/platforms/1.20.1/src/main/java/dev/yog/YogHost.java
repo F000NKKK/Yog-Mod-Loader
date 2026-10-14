@@ -373,7 +373,7 @@ public class YogHost implements ModInitializer {
     public static ExtendedScreenHandlerType<YogInventoryMenu> INVENTORY_SCREEN_HANDLER_TYPE;
 
     private static void parseInventoryDefs() {
-        INVENTORY_DEFS.putAll(YogContent.read(NativeBridge.nativeContent()).inventories);
+        INVENTORY_DEFS.putAll(YogContent.cached(NativeBridge::nativeContent).inventories);
     }
 
     private static void registerContent() {
@@ -391,7 +391,7 @@ public class YogHost implements ModInitializer {
         // under the same Identifier (that used to silently collide in Registries.ITEM
         // and show up as a duplicate, unplaceable ghost entry in the creative tab).
         Set<String> blockIds = new HashSet<>();
-        YogContent content = YogContent.read(NativeBridge.nativeContent());
+        YogContent content = YogContent.cached(NativeBridge::nativeContent);
         for (YogContent.Block b : content.blocks) blockIds.add(b.id());
         Map<String, String> blockItemNames = new HashMap<>();
         Map<String, String> blockItemTooltips = new HashMap<>();

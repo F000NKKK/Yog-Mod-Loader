@@ -131,7 +131,7 @@ public final class YogPackStager {
             }
         }
 
-        YogContent registered = YogContent.read(content.get());
+        YogContent registered = YogContent.cached(content);
         // Mod-registered recipes as JSON files inside the data pack.
         injectRecipes(out, registered.recipes, mc121);
 
@@ -170,9 +170,8 @@ public final class YogPackStager {
         for (YogContent.Recipe r : recipes) {
             String namespace = r.namespace();
             String name     = r.name();
-            String json     = r.json();
             try {
-                String vanilla = YogDataLayout.yogRecipeToVanilla(json, namespace, mc121);
+                String vanilla = YogDataLayout.yogRecipeToVanilla(r.data(), namespace, mc121);
                 if (vanilla == null) continue;
                 Path target = packRoot
                         .resolve("data").resolve(namespace).resolve(YogDataLayout.recipeDir(mc121))
@@ -207,7 +206,7 @@ public final class YogPackStager {
                 String namespace = colon > 0 ? id.substring(0, colon) : DEFAULT_NAMESPACE;
                 String name = colon > 0 ? id.substring(colon + 1) : id;
 
-                JsonObject def = gson.fromJson(d.json(), JsonObject.class);
+                JsonObject def = d.def();
                 JsonObject dt = def.has("dimension_type") ? def.getAsJsonObject("dimension_type") : new JsonObject();
 
                 JsonObject dimensionType = new JsonObject();

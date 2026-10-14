@@ -45,8 +45,17 @@ impl<K: Kinds> With<String> for RefTo<K> {
         Shape::Ref(K::NAMES)
     }
     fn read(v: &Value, cx: &mut Reader) -> Option<String> {
+        // The usual case, a reference of a kind it takes: nothing copied but its id.
+        if let Value::Ref(r) = v
+            && (K::NAMES.is_empty() || K::NAMES.contains(&r.kind.as_str()))
+        {
+            if cx.keeps_found() {
+                cx.note_ref(r.clone());
+            }
+            return cx.resolve_ref(r);
+        }
         let r = read_ref(v, cx, K::NAMES)?;
-        cx.resolve_ref(&r)
+        cx.take_ref(r)
     }
     fn write(f: &String) -> Value {
         Value::Ref(Ref::new(
@@ -65,7 +74,7 @@ impl With<String> for TextOf {
     }
     fn read(v: &Value, cx: &mut Reader) -> Option<String> {
         let t = Text::read(v, cx)?;
-        cx.resolve_text(&t)
+        cx.take_text(t)
     }
     fn write(f: &String) -> Value {
         Value::Text(f.clone())
