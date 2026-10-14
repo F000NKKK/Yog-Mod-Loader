@@ -42,7 +42,7 @@ fn bench(c: &mut Criterion) {
         .unwrap()
         .source;
     c.bench_function("exports/fn_wrapper", |b| {
-        b.iter(|| exports::generate_fn_wrapper("register_0", black_box(fn_src)))
+        b.iter(|| exports::generate_fn_wrapper("bench-mod", "register_0", black_box(fn_src)))
     });
 }
 

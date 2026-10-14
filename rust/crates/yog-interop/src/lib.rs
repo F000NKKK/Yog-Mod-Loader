@@ -226,6 +226,7 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
     // snake_case since it's a function, not a static.
     let slot_name = format_ident!("__YOG_SLOT_{}", name_str.to_uppercase());
     let bind_name = format_ident!("__yog_bind_{}", name);
+    let ctor_name = format_ident!("__yog_import_ctor_{}", name);
     let fn_sig = &func.sig;
     let vis = &func.vis;
     let inputs = &fn_sig.inputs;
@@ -283,6 +284,18 @@ fn generate_import_fn(func: &syn::ItemFn, mod_name: &str) -> proc_macro2::TokenS
         pub unsafe extern "C" fn #bind_name(ptr: *const ::std::os::raw::c_void) {
             let f: #wrapper_ty = unsafe { ::std::mem::transmute(ptr) };
             #slot_name.set(f).ok();
+        }
+
+        // Queues the binding when this mod's library loads; `export_mod!`
+        // binds it once the exporting mod has exported the function.
+        #[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
+        #[doc(hidden)]
+        fn #ctor_name() {
+            ::yog_api::__yog_import_registry().lock().unwrap().push(::yog_api::YogImportEntry {
+                mod_id: #mod_name,
+                symbol: #name_str,
+                bind_fn: #bind_name as usize,
+            });
         }
     }
 }

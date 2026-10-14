@@ -417,7 +417,7 @@ pub fn strip_derive_attrs(source: &str) -> String {
 /// static __YOG_SLOT_REGISTER_WIDGET: OnceLock<...>;
 /// #[unsafe(no_mangle)] pub unsafe extern "C" fn __yog_bind_register_widget(ptr) { ... }
 /// ```
-pub fn generate_fn_wrapper(name: &str, source: &str) -> String {
+pub fn generate_fn_wrapper(mod_id: &str, name: &str, source: &str) -> String {
     // Flatten the whole source into one line before parsing — a signature
     // may wrap across several lines (one param per line is common rustfmt
     // output), and looking at only the first line would silently drop
@@ -614,6 +614,18 @@ pub unsafe extern "C" fn {bind_name_fmt}(ptr: *const ::std::os::raw::c_void) {{
     let f: {wrapper_ty} = unsafe {{ ::std::mem::transmute(ptr) }};
     {slot_name_fmt}.set(f).ok();
 }}
+
+// Queues the binding when the consuming mod's library loads; `export_mod!`
+// binds it once `{mod_id}` has exported `{name}`.
+#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
+#[doc(hidden)]
+fn __yog_import_ctor_{name}() {{
+    ::yog_api::__yog_import_registry().lock().unwrap().push(::yog_api::YogImportEntry {{
+        mod_id: "{mod_id}",
+        symbol: "{name}",
+        bind_fn: {bind_name_fmt} as usize,
+    }});
+}}
 "#
     )
 }
@@ -736,7 +748,7 @@ pub fn lib_rs(
                     strip_derive_attrs(&item.source)
                 );
             }
-            ExportKind::Fn => lib_rs.push_str(&generate_fn_wrapper(&item.name, &item.source)),
+            ExportKind::Fn => lib_rs.push_str(&generate_fn_wrapper(mod_id, &item.name, &item.source)),
         }
     }
     // Types are already in crate root, no extra re-export needed.
