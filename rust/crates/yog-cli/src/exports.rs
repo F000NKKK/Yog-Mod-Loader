@@ -386,77 +386,33 @@ pub fn strip_derive_attrs(source: &str) -> String {
 /// static __YOG_SLOT_REGISTER_WIDGET: OnceLock<...>;
 /// #[unsafe(no_mangle)] pub unsafe extern "C" fn __yog_bind_register_widget(ptr) { ... }
 /// ```
+/// An exported fn's parameters (`pattern`, `Type`) and return type, each
+/// exactly as written (doc comments, attributes and wrapped lines are no
+/// trouble: it's parsed). Nothing if it doesn't parse.
+fn fn_signature(source: &str) -> (Vec<(String, String)>, String) {
+    use syn::spanned::Spanned;
+    let Ok(f) = syn::parse_str::<syn::ItemFn>(source) else {
+        return (Vec::new(), "()".into());
+    };
+    let text = |s: proc_macro2::Span| source[s.byte_range()].to_string();
+    let params = f
+        .sig
+        .inputs
+        .iter()
+        .filter_map(|a| match a {
+            syn::FnArg::Typed(t) => Some((text(t.pat.span()), text(t.ty.span()))),
+            syn::FnArg::Receiver(_) => None,
+        })
+        .collect();
+    let output = match &f.sig.output {
+        syn::ReturnType::Default => "()".into(),
+        syn::ReturnType::Type(_, ty) => text(ty.span()),
+    };
+    (params, output)
+}
+
 pub fn generate_fn_wrapper(mod_id: &str, name: &str, source: &str) -> String {
-    // Flatten the whole source into one line before parsing — a signature
-    // may wrap across several lines (one param per line is common rustfmt
-    // output), and looking at only the first line would silently drop
-    // every parameter after the first line break.
-    let sig_line = source.lines().map(str::trim).collect::<Vec<_>>().join(" ");
-    let sig_line = sig_line.as_str();
-
-    // Parse: "pub fn name(args: ArgType) -> ReturnType"
-    // Find the opening paren and its matching close paren
-    let paren_start = sig_line.find('(');
-    let paren_end = paren_start.and_then(|ps| {
-        let after = &sig_line[ps..];
-        let mut depth: i32 = 0;
-        for (i, ch) in after.char_indices() {
-            match ch {
-                '(' => depth += 1,
-                ')' => {
-                    depth -= 1;
-                    if depth == 0 {
-                        return Some(ps + i);
-                    }
-                }
-                _ => {}
-            }
-        }
-        None
-    });
-
-    // Split a parameter list on top-level commas (depth-aware: ignores commas
-    // nested inside generics/tuples, e.g. `HashMap<String, f64>`).
-    fn split_params(params: &str) -> Vec<&str> {
-        let mut result = Vec::new();
-        let mut depth: i32 = 0;
-        let mut start = 0;
-        for (i, ch) in params.char_indices() {
-            match ch {
-                '<' | '(' | '[' => depth += 1,
-                '>' | ')' | ']' => depth -= 1,
-                ',' if depth == 0 => {
-                    result.push(params[start..i].trim());
-                    start = i + 1;
-                }
-                _ => {}
-            }
-        }
-        let last = params[start..].trim();
-        if !last.is_empty() {
-            result.push(last);
-        }
-        result
-    }
-
-    // Parse every `name: Type` parameter (not just the first).
-    let mut typed_params: Vec<(String, String)> =
-        if let (Some(ps), Some(pe)) = (paren_start, paren_end) {
-            let params = sig_line[ps + 1..pe].trim();
-            split_params(params)
-                .into_iter()
-                .filter_map(|p| {
-                    let parts: Vec<&str> = p.splitn(2, ':').collect();
-                    if parts.len() == 2 {
-                        Some((parts[0].trim().to_string(), parts[1].trim().to_string()))
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        } else {
-            Vec::new()
-        };
+    let (mut typed_params, output_type) = fn_signature(source);
 
     // A leading `&mut Registry`-shaped parameter is never part of the public
     // signature or the serialized payload — the exporting mod reconstructs
@@ -496,45 +452,6 @@ pub fn generate_fn_wrapper(mod_id: &str, name: &str, source: &str) -> String {
         0 => String::new(),
         1 => arg_names[0].clone(),
         _ => format!("({})", arg_names.join(", ")),
-    };
-
-    // Extract return type.
-    // Find `->` AFTER the closing paren of parameters (paren_end).
-    let output_type = match paren_end {
-        Some(pe) => {
-            let arrow_rel = if pe < sig_line.len() {
-                sig_line[pe..].find("->")
-            } else {
-                None
-            };
-            match arrow_rel {
-                Some(rel) => {
-                    let arrow = pe + rel;
-                    let rest: &str = sig_line[arrow + 2..].trim();
-                    // Take until `{` or `;` handling angle bracket balance
-                    let mut depth: i32 = 0;
-                    let mut end = 0;
-                    for (i, ch) in rest.char_indices() {
-                        match ch {
-                            '<' => depth += 1,
-                            '>' => depth -= 1,
-                            '{' | ';' => break,
-                            _ => {}
-                        }
-                        if depth < 0 {
-                            break;
-                        }
-                        if ch == '=' {
-                            break;
-                        }
-                        end = i + ch.len_utf8();
-                    }
-                    rest[..end].trim().to_string()
-                }
-                None => "()".to_string(),
-            }
-        }
-        None => "()".to_string(),
     };
 
     // Statics use SCREAMING_SNAKE_CASE per Rust convention; the bind fn stays
@@ -770,6 +687,16 @@ pub fn count() -> u64 { 0 }
         assert!(w.contains("static __YOG_SLOT_SEND"), "{w}");
         let none = generate_fn_wrapper("yog-pipes", "count", &items[3].source);
         assert!(none.contains("pub fn count() -> u64"), "{none}");
+    }
+
+    #[test]
+    fn a_doc_comment_with_parentheses_keeps_the_parameters() {
+        let src = "/// Drives `channel` (a pipe or an endpoint); 0 stops.\n#[yog_export]\npub fn emit(\n    capability: String,\n    mut pos: (i32, i32),\n    levels: HashMap<String, u8>,\n) -> Result<(), String> {\n    todo!()\n}\n";
+        let item = &scan(src)[0];
+        assert!(item.source.starts_with("/// Drives"), "{}", item.source);
+        let w = generate_fn_wrapper("yog-pipes", "emit", &item.source);
+        assert!(w.contains("pub fn emit(capability: String, pos: (i32, i32), levels: HashMap<String, u8>) -> Result<(), String>"), "{w}");
+        assert!(w.contains("&(capability, pos, levels)"), "{w}");
     }
 
     #[test]
