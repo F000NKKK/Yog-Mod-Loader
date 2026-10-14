@@ -387,3 +387,69 @@ pub fn latest_yog_api_version() -> String {
         _ => FALLBACK_API_VERSION.into(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Yog-VLSI's manifest, as written — what the TOML reader that replaces
+    /// this one must read the same.
+    const VLSI: &str = r#"
+[mod]
+id          = "yog-vlsi"
+name        = "@Strings.mod_name"
+version     = "0.3.0"
+description = "@Strings.mod_description"
+authors     = ["F000NK", "Yog Team"]
+license     = "AGPL-3.0-only"
+edition     = "2024"
+
+[dependencies]
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+yog-api    = "0.93"
+yog-kit    = "0.4"
+
+[dependencies.exports]
+yog-pipes = "0.5"
+
+## a comment
+[run.forge-1.21.1]
+name       = "Forge 1.21.1"
+export_dir = "../Yog-Mod-Loader/forge/run/yog-mods"
+command    = "./gradlew"
+args       = ["runClient", "-Pminecraft_version=1.21.1"]
+cwd        = "../Yog-Mod-Loader/forge"
+env        = ["JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64"]
+
+[external.farmersdelight]
+items  = ["cutting_board", "tomato"]
+blocks = ["stove"]
+"#;
+
+    #[test]
+    fn reads_a_real_manifest() {
+        let t = parse_yog_toml(VLSI).unwrap();
+        assert_eq!((t.id.as_str(), t.name.as_str(), t.version.as_str()), ("yog-vlsi", "@Strings.mod_name", "0.3.0"));
+        assert_eq!(t.authors, ["F000NK", "Yog Team"]);
+        assert_eq!(t.license, "AGPL-3.0-only");
+        assert_eq!(t.yog_api_version.as_deref(), Some("0.93"), "yog-api is taken out of the dependencies");
+        let deps: Vec<&str> = t.dependencies.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(deps, ["serde", "serde_json", "yog-kit"]);
+        assert_eq!(t.mod_dependencies, [("yog-pipes".to_string(), "\"0.5\"".to_string())]);
+        let run = &t.run_configs[0];
+        assert_eq!((run.name.as_str(), run.display_name.as_deref()), ("forge-1.21.1", Some("Forge 1.21.1")));
+        assert_eq!(run.args, ["runClient", "-Pminecraft_version=1.21.1"]);
+        assert_eq!(run.env, [("JAVA_HOME".to_string(), "/usr/lib/jvm/java-21-openjdk-amd64".to_string())]);
+        let ext = &t.externals[0];
+        assert_eq!(ext.namespace, "farmersdelight");
+        assert_eq!(ext.ids[0], ("items".to_string(), vec!["cutting_board".to_string(), "tomato".to_string()]));
+    }
+
+    #[test]
+    fn needs_an_id() {
+        assert!(parse_yog_toml("[mod]\nname = \"x\"").is_err());
+        let t = parse_yog_toml("[mod]\nid = \"m\"").unwrap();
+        assert_eq!((t.name.as_str(), t.version.as_str()), ("m", "0.1.0"), "defaults");
+    }
+}

@@ -501,8 +501,18 @@ pub fn generate_fn_wrapper(mod_id: &str, name: &str, source: &str) -> String {
         typed_params.remove(0);
     }
 
-    let arg_names: Vec<String> = (0..typed_params.len())
-        .map(|i| format!("__yog_arg{i}"))
+    // The export's own parameter names (callers see them); a pattern that
+    // isn't a plain name (`(a, b): (u32, u32)`) gets a made-up one.
+    let arg_names: Vec<String> = typed_params
+        .iter()
+        .enumerate()
+        .map(|(i, (pat, _))| {
+            let name = pat.trim().trim_start_matches("mut ").trim();
+            let plain = !name.is_empty()
+                && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+                && !name.starts_with(|c: char| c.is_ascii_digit());
+            if plain { name.to_string() } else { format!("__yog_arg{i}") }
+        })
         .collect();
     let data_types: Vec<&str> = typed_params.iter().map(|(_, ty)| ty.as_str()).collect();
 
@@ -742,4 +752,54 @@ pub fn lib_rs(
     }
     // Types are already in crate root, no extra re-export needed.
     lib_rs
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SRC: &str = r#"
+use yog_api::prelude::*;
+
+#[yog_export]
+pub struct Pipe { pub id: u32 }
+
+#[yog_export]
+pub enum Kind { Item, Fluid }
+
+/// Not exported.
+pub fn helper() {}
+
+#[yog_export]
+pub fn send(
+    registry: &mut Registry,
+    pipe: Pipe,
+    amount: u32,
+) -> Option<String> {
+    None
+}
+
+#[yog_export]
+pub fn count() -> u64 { 0 }
+"#;
+
+    #[test]
+    fn scans_every_exported_item_and_nothing_else() {
+        let items = scan(SRC);
+        let names: Vec<(&str, ExportKind)> = items.iter().map(|i| (i.name.as_str(), i.kind)).collect();
+        assert_eq!(names, [("Pipe", ExportKind::Struct), ("Kind", ExportKind::Enum), ("send", ExportKind::Fn), ("count", ExportKind::Fn)]);
+        assert!(!items.iter().any(|i| i.source.contains("#[yog_export]")), "the attribute is stripped");
+        assert!(items[2].source.contains("amount: u32"), "a wrapped signature is whole");
+    }
+
+    #[test]
+    fn wrappers_call_through_one_helper_and_drop_the_registry() {
+        let items = scan(SRC);
+        let w = generate_fn_wrapper("yog-pipes", "send", &items[2].source);
+        assert!(w.contains("pub fn send(pipe: Pipe, amount: u32) -> Option<String>"), "callers see the export's names: {w}");
+        assert!(w.contains("::yog_api::__interop_call("), "{w}");
+        assert!(w.contains("static __YOG_SLOT_SEND"), "{w}");
+        let none = generate_fn_wrapper("yog-pipes", "count", &items[3].source);
+        assert!(none.contains("pub fn count() -> u64"), "{none}");
+    }
 }
