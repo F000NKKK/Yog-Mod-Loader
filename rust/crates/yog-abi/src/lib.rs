@@ -605,7 +605,9 @@ pub struct YogGfxApi {
     pub set_blend: unsafe extern "C" fn(enabled: bool, src: u32, dst: u32),
     /// Enable/disable depth testing and depth writes.
     pub set_depth: unsafe extern "C" fn(test: bool, write: bool),
-    /// Enable scissor clipping (GUI-pixel rectangle).
+    /// Enable the GL scissor: `x, y, w, h` in framebuffer pixels, from the
+    /// bottom-left corner — for the GPU drawing here, not `draw2d_*` (the
+    /// game batches 2D drawing; clip it by hand, as yog-ui does).
     pub set_scissor: unsafe extern "C" fn(x: i32, y: i32, w: i32, h: i32),
     /// Disable scissor clipping.
     pub clear_scissor: unsafe extern "C" fn(),

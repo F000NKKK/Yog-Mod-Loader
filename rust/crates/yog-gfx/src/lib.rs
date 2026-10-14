@@ -251,7 +251,10 @@ impl GfxContext {
         unsafe { (self.api().set_depth)(test, write) }
     }
 
-    /// Enable scissor clipping to a GUI-pixel rectangle.
+    /// Enable the GL scissor: `x, y, w, h` in framebuffer pixels from the
+    /// bottom-left corner. For GPU drawing (`draw_arrays`…), not
+    /// [`draw2d`](Self::draw2d) — the game batches 2D drawing; clip that by
+    /// hand, as yog-ui does.
     pub fn set_scissor(&self, x: i32, y: i32, w: i32, h: i32) {
         unsafe { (self.api().set_scissor)(x, y, w, h) }
     }
