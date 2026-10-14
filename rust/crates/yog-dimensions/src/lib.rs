@@ -205,7 +205,6 @@ impl YogDimensionTypeDef {
 /// the crate-level docs and `Registry::register_chunk_generator`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
-#[derive(Default)]
 pub struct YogDimensionDef {
     /// Registry id. A new id (e.g. `"mymod:my_dim"`) creates a custom
     /// dimension; a vanilla id (`"minecraft:overworld"`, etc.) patches that
@@ -216,9 +215,36 @@ pub struct YogDimensionDef {
     /// (e.g. `"mymod:custom_terrain"`) that this dimension should use. `None`
     /// keeps the dimension's existing/vanilla generator.
     pub generator_type: Option<String>,
+    /// The one biome the dimension is made of (`"minecraft:plains"`): its
+    /// mobs, its features, the structures that may start in it.
+    pub biome: String,
+    /// Structures (villages, …) may generate. Only for dimensions with a
+    /// registered generator.
+    pub structures: bool,
+    /// The biome's features (trees, flowers, ores) are placed. Only for
+    /// dimensions with a registered generator.
+    pub features: bool,
+    /// Mobs spawn naturally (a registered generator also offers none to
+    /// the spawner when off).
+    pub mob_spawning: bool,
     /// Extra platform/metadata mods want the host to know about (arbitrary
     /// JSON-string values), for anything not modeled by `dimension_type`.
     pub extra: HashMap<String, String>,
+}
+
+impl Default for YogDimensionDef {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            dimension_type: YogDimensionTypeDef::default(),
+            generator_type: None,
+            biome: "minecraft:plains".into(),
+            structures: true,
+            features: true,
+            mob_spawning: true,
+            extra: HashMap::new(),
+        }
+    }
 }
 
 impl YogDimensionDef {
@@ -240,6 +266,30 @@ impl YogDimensionDef {
     /// `Registry::register_chunk_generator`).
     pub fn generator_type(mut self, generator_type_id: impl Into<String>) -> Self {
         self.generator_type = Some(generator_type_id.into());
+        self
+    }
+
+    /// The biome the dimension is made of.
+    pub fn biome(mut self, biome: impl Into<String>) -> Self {
+        self.biome = biome.into();
+        self
+    }
+
+    /// Whether structures generate (default: yes).
+    pub fn structures(mut self, on: bool) -> Self {
+        self.structures = on;
+        self
+    }
+
+    /// Whether the biome's features are placed (default: yes).
+    pub fn features(mut self, on: bool) -> Self {
+        self.features = on;
+        self
+    }
+
+    /// Whether mobs spawn (default: yes).
+    pub fn mob_spawning(mut self, on: bool) -> Self {
+        self.mob_spawning = on;
         self
     }
 

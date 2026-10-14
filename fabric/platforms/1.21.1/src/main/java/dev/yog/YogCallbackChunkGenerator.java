@@ -45,7 +45,10 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
                     BiomeSource.CODEC.fieldOf("biome_source").forGetter(g -> g.biomeSource),
                     Codec.STRING.fieldOf("generator_type_id").forGetter(g -> g.generatorTypeId),
                     Codec.INT.fieldOf("min_y").forGetter(g -> g.minY),
-                    Codec.INT.fieldOf("height").forGetter(g -> g.height))
+                    Codec.INT.fieldOf("height").forGetter(g -> g.height),
+                    Codec.BOOL.optionalFieldOf("structures", true).forGetter(g -> g.structures),
+                    Codec.BOOL.optionalFieldOf("features", true).forGetter(g -> g.features),
+                    Codec.BOOL.optionalFieldOf("mob_spawning", true).forGetter(g -> g.mobSpawning))
             .apply(inst, YogCallbackChunkGenerator::new));
 
     /** The chunk currently being filled on this worker thread, if any. */
@@ -55,11 +58,20 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
     private final int minY;
     private final int height;
 
-    public YogCallbackChunkGenerator(BiomeSource biomeSource, String generatorTypeId, int minY, int height) {
+    private final boolean structures;
+    private final boolean features;
+    private final boolean mobSpawning;
+
+    public YogCallbackChunkGenerator(
+            BiomeSource biomeSource, String generatorTypeId, int minY, int height,
+            boolean structures, boolean features, boolean mobSpawning) {
         super(biomeSource);
         this.generatorTypeId = generatorTypeId;
         this.minY = minY;
         this.height = height;
+        this.structures = structures;
+        this.features = features;
+        this.mobSpawning = mobSpawning;
     }
 
     /** Register {@link #CODEC} under {@code yog:callback_generator}. Call once at mod-init. */
@@ -147,5 +159,29 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
 
     @Override
     public void getDebugHudText(List<String> text, NoiseConfig noiseConfig, BlockPos pos) {
+    }
+
+    @Override
+    public void setStructureStarts(net.minecraft.registry.DynamicRegistryManager registryManager,
+            net.minecraft.world.gen.chunk.placement.StructurePlacementCalculator placementCalculator,
+            StructureAccessor structureAccessor, Chunk chunk,
+            net.minecraft.structure.StructureTemplateManager structureTemplateManager) {
+        if (structures) {
+            super.setStructureStarts(registryManager, placementCalculator, structureAccessor, chunk, structureTemplateManager);
+        }
+    }
+
+    @Override
+    public void generateFeatures(net.minecraft.world.StructureWorldAccess world, Chunk chunk, StructureAccessor structureAccessor) {
+        if (features) {
+            super.generateFeatures(world, chunk, structureAccessor);
+        }
+    }
+
+    @Override
+    public net.minecraft.util.collection.Pool<net.minecraft.world.biome.SpawnSettings.SpawnEntry> getEntitySpawnList(
+            net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome> biome, StructureAccessor accessor,
+            net.minecraft.entity.SpawnGroup group, BlockPos pos) {
+        return mobSpawning ? super.getEntitySpawnList(biome, accessor, group, pos) : net.minecraft.util.collection.Pool.empty();
     }
 }

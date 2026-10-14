@@ -176,19 +176,23 @@ public final class YogPackStager {
                 dimensionType.addProperty("infiniburn", "#minecraft:infiniburn_overworld");
                 dimensionType.addProperty("effects", jstr(dt, "effects", "minecraft:overworld"));
                 dimensionType.addProperty("piglin_safe", jbool(dt, "piglin_safe", false));
-                dimensionType.addProperty("has_raids", true);
+                boolean mobs = jbool(def, "mob_spawning", true);
+                dimensionType.addProperty("has_raids", mobs);
                 dimensionType.addProperty("monster_spawn_block_light_limit", 0);
-                dimensionType.addProperty("monster_spawn_light_level", 7);
+                dimensionType.addProperty("monster_spawn_light_level", mobs ? 7 : 0);
 
                 JsonObject biomeSource = new JsonObject();
                 biomeSource.addProperty("type", "minecraft:fixed");
-                biomeSource.addProperty("biome", "minecraft:plains");
+                biomeSource.addProperty("biome", jstr(def, "biome", "minecraft:plains"));
                 JsonObject generator = new JsonObject();
                 if (def.has("generator_type") && !def.get("generator_type").isJsonNull()) {
                     generator.addProperty("type", CALLBACK_GENERATOR);
                     generator.addProperty("generator_type_id", def.get("generator_type").getAsString());
                     generator.addProperty("min_y", (int) jnum(dt, "min_y", DEFAULT_MIN_Y));
                     generator.addProperty("height", (int) jnum(dt, "height", DEFAULT_HEIGHT));
+                    generator.addProperty("structures", jbool(def, "structures", true));
+                    generator.addProperty("features", jbool(def, "features", true));
+                    generator.addProperty("mob_spawning", mobs);
                     generator.add("biome_source", biomeSource);
                 } else {
                     generator.addProperty("type", "minecraft:noise");
