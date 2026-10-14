@@ -3991,41 +3991,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
     allowed(&h.chat, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
 }
 
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeRecipeJsons<'l>(
-    env: JNIEnv<'l>,
-    _class: JClass<'l>,
-) -> jstring {
-    let s = handlers()
-        .recipes
-        .iter()
-        .map(|(ns, name, json)| format!("{ns}\t{name}\t{json}"))
-        .collect::<Vec<_>>()
-        .join("\n");
-    env.new_string(s)
-        .map(jni::objects::JString::into_raw)
-        .unwrap_or(std::ptr::null_mut())
-}
-
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeDimensionJsons<'l>(
-    env: JNIEnv<'l>,
-    _class: JClass<'l>,
-) -> jstring {
-    // One line per declared dimension: `id \t def_json`. The host converts
-    // `def_json` (our YogDimensionDef shape) into vanilla dimension_type /
-    // dimension datapack JSON — see `yog-dimensions` crate docs.
-    let s = handlers()
-        .dimensions
-        .iter()
-        .map(|(id, json)| format!("{id}\t{json}"))
-        .collect::<Vec<_>>()
-        .join("\n");
-    env.new_string(s)
-        .map(jni::objects::JString::into_raw)
-        .unwrap_or(std::ptr::null_mut())
-}
-
 /// Called by a registered chunk-generator closure (via `ChunkWriter::set_block`)
 /// to place one block in the chunk currently being generated. Calls back
 /// into `YogCallbackChunkGenerator.setBlockInGeneratingChunk` on the Java

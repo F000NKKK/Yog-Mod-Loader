@@ -218,5 +218,7 @@ fn write_a_content_blob() {
     let mut inv = yog_inventory::InventoryDef::new("m:box", 2);
     inv.title = "Box".into();
     h.inventories.push(inv);
+    h.recipes.push(("m".into(), "pick".into(), r##"{"type":"shaped","pattern":["II"," S"],"key":{"I":"minecraft:iron_ingot","S":["minecraft:stick","#c:rods"]},"result":"m:pick","count":1}"##.into()));
+    h.dimensions.insert("m:void".into(), r#"{"dimension_type":{"has_sky_light":false,"ambient_light":0.5}}"#.into());
     std::fs::write(out, yog_data::binary::encode(&crate::content_blob::snapshot(&h))).unwrap();
 }

@@ -1,6 +1,7 @@
 package dev.yog.util;
 
 import com.google.gson.Gson;
+import dev.yog.data.YogContent;
 import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,11 +56,11 @@ public final class YogPackStager {
      *     names and the 1.21 recipe result format (1.20-format recipes are
      *     upgraded on the fly)
      * @param packMcmeta contents of the generated {@code pack.mcmeta}
-     * @param recipeJsons {@code namespace\tname\tjson} lines from the runtime
-     * @param dimensionJsons {@code id\tYogDimensionDef json} lines from the runtime
+     * @param content the runtime's content blob ({@code NativeBridge.nativeContent()}):
+     *     its recipes and dimensions become datapack JSON
      */
     public static synchronized Path stage(Path gameDir, String loader, String mcVersion, boolean mc121, String packMcmeta,
-                                          Supplier<String> recipeJsons, Supplier<String> dimensionJsons)
+                                          Supplier<byte[]> content)
             throws IOException {
         Path mods = gameDir.resolve(YogNativeRuntime.MODS_DIR);
         Path out = gameDir.resolve(PACK_DIR);
@@ -130,11 +131,12 @@ public final class YogPackStager {
             }
         }
 
-        // Inject mod-registered recipes as JSON files inside the data pack.
-        injectRecipes(out, recipeJsons.get(), mc121);
+        YogContent registered = YogContent.read(content.get());
+        // Mod-registered recipes as JSON files inside the data pack.
+        injectRecipes(out, registered.recipes, mc121);
 
-        // Inject mod-declared dimensions as vanilla dimension_type/dimension JSON.
-        injectDimensions(out, dimensionJsons.get());
+        // Mod-declared dimensions as vanilla dimension_type/dimension JSON.
+        injectDimensions(out, registered.dimensions);
 
         Files.writeString(out.resolve("pack.mcmeta"), packMcmeta);
         return out;
@@ -164,15 +166,11 @@ public final class YogPackStager {
         return gson.toJson(x);
     }
 
-    private static void injectRecipes(Path packRoot, String lines, boolean mc121) {
-        if (lines == null || lines.isBlank()) return;
-        for (String line : lines.split("\n")) {
-            if (line.isBlank()) continue;
-            String[] parts = line.split("\t", 3);
-            if (parts.length < 3) continue;
-            String namespace = parts[0];
-            String name     = parts[1];
-            String json     = parts[2];
+    private static void injectRecipes(Path packRoot, java.util.List<YogContent.Recipe> recipes, boolean mc121) {
+        for (YogContent.Recipe r : recipes) {
+            String namespace = r.namespace();
+            String name     = r.name();
+            String json     = r.json();
             try {
                 String vanilla = YogDataLayout.yogRecipeToVanilla(json, namespace, mc121);
                 if (vanilla == null) continue;
@@ -200,20 +198,16 @@ public final class YogPackStager {
      * without a {@code generator_type} fall back to a plain vanilla noise
      * generator.
      */
-    private static void injectDimensions(Path packRoot, String lines) {
-        if (lines == null || lines.isBlank()) return;
+    private static void injectDimensions(Path packRoot, java.util.List<YogContent.Dimension> dimensions) {
         Gson gson = new Gson();
-        for (String line : lines.split("\n")) {
-            if (line.isBlank()) continue;
-            String[] parts = line.split("\t", 2);
-            if (parts.length < 2) continue;
-            String id = parts[0];
+        for (YogContent.Dimension d : dimensions) {
+            String id = d.id();
             try {
                 int colon = id.indexOf(':');
                 String namespace = colon > 0 ? id.substring(0, colon) : DEFAULT_NAMESPACE;
                 String name = colon > 0 ? id.substring(colon + 1) : id;
 
-                JsonObject def = gson.fromJson(parts[1], JsonObject.class);
+                JsonObject def = gson.fromJson(d.json(), JsonObject.class);
                 JsonObject dt = def.has("dimension_type") ? def.getAsJsonObject("dimension_type") : new JsonObject();
 
                 JsonObject dimensionType = new JsonObject();

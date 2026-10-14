@@ -1370,8 +1370,6 @@ public final class NativeBridge {
     public static native String nativeTypedCommandSchemas();
     public static native boolean nativeOnBlockBreakPre(String player, String block, int x, int y, int z, String dimension);
     public static native boolean nativeOnChatPre(String player, String message, String dimension);
-    public static native String nativeRecipeJsons();
-    public static native String nativeDimensionJsons();
 
     /**
      * Ask the mod-registered generator type {@code generatorTypeId} to fill

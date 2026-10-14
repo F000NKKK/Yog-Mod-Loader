@@ -25,21 +25,33 @@ public final class YogContent {
                         String sound, boolean requiresTool, boolean noCollision, float slipperiness,
                         boolean connects, List<String> connectGroups, String inventory, boolean redstone) {}
 
+    /** A recipe in Yog's own format, as JSON (what {@code YogDataLayout.yogRecipeToVanilla} reads). */
+    public record Recipe(String namespace, String name, String json) {}
+
+    /** A dimension: its id and {@code YogDimensionDef} as JSON. */
+    public record Dimension(String id, String json) {}
+
     public final List<Item> items;
     public final List<Block> blocks;
     /** By id. */
     public final Map<String, YogInventoryDef> inventories;
+    public final List<Recipe> recipes;
+    public final List<Dimension> dimensions;
 
-    private YogContent(List<Item> items, List<Block> blocks, Map<String, YogInventoryDef> inventories) {
+    private YogContent(List<Item> items, List<Block> blocks, Map<String, YogInventoryDef> inventories,
+                       List<Recipe> recipes, List<Dimension> dimensions) {
         this.items = items;
         this.blocks = blocks;
         this.inventories = inventories;
+        this.recipes = recipes;
+        this.dimensions = dimensions;
     }
 
     /** Reads the runtime's blob; {@code null} (no runtime) is no content. */
     public static YogContent read(byte[] blob) {
         if (blob == null || blob.length == 0) {
-            return new YogContent(Collections.emptyList(), Collections.emptyList(), Collections.emptyMap());
+            return new YogContent(Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(),
+                    Collections.emptyList(), Collections.emptyList());
         }
         Map<String, Object> root = YogData.map(YogData.decode(blob));
         List<Item> items = new ArrayList<>();
@@ -75,7 +87,17 @@ public final class YogContent {
             YogInventoryDef def = YogInventoryDef.fromData(YogData.map(o));
             inventories.put(def.id, def);
         }
-        return new YogContent(items, blocks, inventories);
+        List<Recipe> recipes = new ArrayList<>();
+        for (Object o : YogData.list(root.get("recipes"))) {
+            Map<String, Object> m = YogData.map(o);
+            recipes.add(new Recipe(YogData.str(m.get("namespace"), ""), YogData.str(m.get("name"), ""), YogData.toJson(m.get("recipe"))));
+        }
+        List<Dimension> dimensions = new ArrayList<>();
+        for (Object o : YogData.list(root.get("dimensions"))) {
+            Map<String, Object> m = YogData.map(o);
+            dimensions.add(new Dimension(YogData.str(m.get("id"), ""), YogData.toJson(m.get("def"))));
+        }
+        return new YogContent(items, blocks, inventories, recipes, dimensions);
     }
 
     /** A list of numbers as floats. */

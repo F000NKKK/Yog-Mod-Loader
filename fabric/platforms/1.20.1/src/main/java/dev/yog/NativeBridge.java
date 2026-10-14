@@ -1467,8 +1467,6 @@ public final class NativeBridge {
     public static native boolean nativeOnChatPre(String player, String message, String dimension);
 
     /** Recipe JSONs: `namespace\tname\tJSON` per line. */
-    public static native String nativeRecipeJsons();
-    public static native String nativeDimensionJsons();
 
     /**
      * Ask the mod-registered generator type {@code generatorTypeId} to fill

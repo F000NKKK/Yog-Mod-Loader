@@ -1,4 +1,5 @@
-//! What the hosts register — items, blocks, inventories — as one Yog Data
+//! What the hosts register — items, blocks, inventories, recipes,
+//! dimensions — as one Yog Data
 //! blob (`yog_data::binary`), read by `dev.yog.data.YogContent` in
 //! java-common: one call and one format instead of a TSV dialect per kind.
 
@@ -22,7 +23,23 @@ fn strings(ss: &[String]) -> Value {
     Value::List(ss.iter().map(|s| Value::from(s.as_str())).collect())
 }
 
-/// The registered content: `{ items: [...], blocks: [...], inventories: [...] }`.
+/// A JSON value (recipes and dimensions still arrive from mods as JSON) as Yog Data.
+fn from_json(j: &serde_json::Value) -> Value {
+    match j {
+        serde_json::Value::Null => Value::Null,
+        serde_json::Value::Bool(b) => Value::Bool(*b),
+        serde_json::Value::Number(n) => n.as_i64().map(Value::Int).unwrap_or_else(|| Value::Float(n.as_f64().unwrap_or(0.0))),
+        serde_json::Value::String(s) => Value::Str(s.clone()),
+        serde_json::Value::Array(a) => Value::List(a.iter().map(from_json).collect()),
+        serde_json::Value::Object(o) => Value::Map(o.iter().map(|(k, v)| (k.clone(), from_json(v))).collect()),
+    }
+}
+
+fn parsed(json: &str) -> Value {
+    serde_json::from_str(json).map(|j| from_json(&j)).unwrap_or(Value::Null)
+}
+
+/// The registered content: `{ items, blocks, inventories, recipes, dimensions }`.
 pub fn snapshot(h: &RuntimeHandlers) -> Value {
     let items = h
         .items
@@ -110,9 +127,32 @@ pub fn snapshot(h: &RuntimeHandlers) -> Value {
             Value::Map(m)
         })
         .collect();
+    let recipes = h
+        .recipes
+        .iter()
+        .map(|(ns, name, json)| {
+            let mut m = Map::new();
+            put(&mut m, "namespace", ns.as_str());
+            put(&mut m, "name", name.as_str());
+            m.insert("recipe", parsed(json));
+            Value::Map(m)
+        })
+        .collect();
+    let dimensions = h
+        .dimensions
+        .iter()
+        .map(|(id, json)| {
+            let mut m = Map::new();
+            put(&mut m, "id", id.as_str());
+            m.insert("def", parsed(json));
+            Value::Map(m)
+        })
+        .collect();
     let mut root = Map::new();
     root.insert("items", Value::List(items));
     root.insert("blocks", Value::List(blocks));
     root.insert("inventories", Value::List(inventories));
+    root.insert("recipes", Value::List(recipes));
+    root.insert("dimensions", Value::List(dimensions));
     Value::Map(root)
 }

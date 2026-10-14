@@ -274,6 +274,80 @@ public final class YogData {
         out.write((int) n);
     }
 
+    // ── JSON ─────────────────────────────────────────────────────────────
+
+    /** {@code v} as JSON text (typed values as their string forms: {@code "@item:minecraft:stick"}). */
+    public static String toJson(Object v) {
+        StringBuilder out = new StringBuilder();
+        json(v, out);
+        return out.toString();
+    }
+
+    private static void json(Object v, StringBuilder out) {
+        if (v == null) {
+            out.append("null");
+        } else if (v instanceof Boolean || v instanceof Long || v instanceof Integer) {
+            out.append(v);
+        } else if (v instanceof Double d) {
+            out.append(d.isNaN() || d.isInfinite() ? "null" : (d == Math.rint(d) && Math.abs(d) < 1e15 ? String.valueOf(d.longValue()) + ".0" : String.valueOf(d)));
+        } else if (v instanceof String s) {
+            quote(s, out);
+        } else if (v instanceof List<?> l) {
+            out.append('[');
+            for (int i = 0; i < l.size(); i++) {
+                if (i > 0) out.append(',');
+                json(l.get(i), out);
+            }
+            out.append(']');
+        } else if (v instanceof Map<?, ?> m) {
+            out.append('{');
+            boolean first = true;
+            for (Map.Entry<?, ?> e : m.entrySet()) {
+                if (!first) out.append(',');
+                first = false;
+                quote(String.valueOf(e.getKey()), out);
+                out.append(':');
+                json(e.getValue(), out);
+            }
+            out.append('}');
+        } else if (v instanceof Ref r) {
+            quote("@" + r.kind() + ":" + r.id(), out);
+        } else if (v instanceof Tag t) {
+            quote("@tag:" + t.kind() + ":" + t.id(), out);
+        } else if (v instanceof Res r) {
+            quote("@" + r.set() + "." + r.key(), out);
+        } else if (v instanceof Text t) {
+            quote(t.text(), out);
+        } else if (v instanceof Image i) {
+            quote("@image:" + i.source(), out);
+        } else if (v instanceof Lang l) {
+            quote("@lang:" + l.key(), out);
+        } else if (v instanceof Color c) {
+            quote(String.format("#%08X", c.argb()), out);
+        } else {
+            quote(String.valueOf(v), out);
+        }
+    }
+
+    private static void quote(String s, StringBuilder out) {
+        out.append('"');
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '"' -> out.append("\\\"");
+                case '\\' -> out.append("\\\\");
+                case '\n' -> out.append("\\n");
+                case '\r' -> out.append("\\r");
+                case '\t' -> out.append("\\t");
+                default -> {
+                    if (c < 0x20) out.append(String.format("\\u%04x", (int) c));
+                    else out.append(c);
+                }
+            }
+        }
+        out.append('"');
+    }
+
     // ── Reading values ───────────────────────────────────────────────────
 
     /** {@code v} as a map, or an empty one. */

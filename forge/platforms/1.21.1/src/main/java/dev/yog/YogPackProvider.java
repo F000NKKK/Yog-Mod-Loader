@@ -43,7 +43,7 @@ public class YogPackProvider implements RepositorySource {
         Path dir;
         try {
             dir = YogPackStager.stage(FMLPaths.GAMEDIR.get(), "forge", "1.21.1", MC121_LAYOUT, PACK_MCMETA,
-                    NativeBridge::nativeRecipeJsons, NativeBridge::nativeDimensionJsons);
+                    NativeBridge::nativeContent);
         } catch (IOException e) {
             System.err.println("[yog] failed to stage mod packs: " + e);
             return;
