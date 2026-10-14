@@ -1,0 +1,463 @@
+//! The binary form — what the build compiles content to and the runtime and
+//! the Java hosts read, like NBT:
+//!
+//! ```text
+//! "YOGD" version:u8
+//! strings: varint count, then each as varint length + UTF-8
+//! root value
+//! ```
+//!
+//! A value is a tag byte and its payload; every string (map keys too) is an
+//! index into the table, so repeated keys and ids cost one varint each.
+//!
+//! | Tag | Value | Payload |
+//! |---:|---|---|
+//! | 0 | null | — |
+//! | 1, 2 | false, true | — |
+//! | 3 | int | zigzag varint |
+//! | 4 | float | f64, little-endian |
+//! | 5 | string | string |
+//! | 6 | list | varint count, values |
+//! | 7 | map | varint count, (key string, value) pairs |
+//! | 8 | ref | kind string, id string |
+//! | 9 | tag | kind string, id string |
+//! | 10 | resource | set string, key string |
+//! | 11 | text | string |
+//! | 12 | image | string |
+//! | 13 | color | u32, little-endian (`0xAARRGGBB`) |
+//!
+//! Varints are LEB128. Decoding checks every length against the input, so
+//! malformed bytes are an error, never a panic or a huge allocation.
+
+use std::collections::HashMap;
+use std::fmt;
+use std::hash::{BuildHasherDefault, Hasher};
+
+use crate::value::{Map, Ref, Res, Value};
+
+pub const MAGIC: &[u8; 4] = b"YOGD";
+pub const VERSION: u8 = 1;
+
+/// Nested deeper than this is malformed.
+pub const MAX_DEPTH: usize = 256;
+
+mod tag {
+    pub const NULL: u8 = 0;
+    pub const FALSE: u8 = 1;
+    pub const TRUE: u8 = 2;
+    pub const INT: u8 = 3;
+    pub const FLOAT: u8 = 4;
+    pub const STR: u8 = 5;
+    pub const LIST: u8 = 6;
+    pub const MAP: u8 = 7;
+    pub const REF: u8 = 8;
+    pub const TAG: u8 = 9;
+    pub const RES: u8 = 10;
+    pub const TEXT: u8 = 11;
+    pub const IMAGE: u8 = 12;
+    pub const COLOR: u8 = 13;
+}
+
+/// `value` in the binary form.
+pub fn encode(value: &Value) -> Vec<u8> {
+    let mut enc = Encoder {
+        body: Vec::new(),
+        strings: HashMap::default(),
+        table: Vec::new(),
+    };
+    enc.value(value);
+    let table_len: usize = enc.table.iter().map(|s| s.len() + 2).sum();
+    let mut out = Vec::with_capacity(5 + table_len + enc.body.len() + 4);
+    out.extend_from_slice(MAGIC);
+    out.push(VERSION);
+    varint(&mut out, enc.table.len() as u64);
+    for s in &enc.table {
+        varint(&mut out, s.len() as u64);
+        out.extend_from_slice(s.as_bytes());
+    }
+    out.extend_from_slice(&enc.body);
+    out
+}
+
+struct Encoder<'v> {
+    body: Vec<u8>,
+    strings: HashMap<&'v str, u32, BuildHasherDefault<Fx>>,
+    table: Vec<&'v str>,
+}
+
+impl<'v> Encoder<'v> {
+    fn string(&mut self, s: &'v str) {
+        let next = self.table.len() as u32;
+        let i = *self.strings.entry(s).or_insert_with(|| {
+            self.table.push(s);
+            next
+        });
+        varint(&mut self.body, i as u64);
+    }
+
+    fn value(&mut self, v: &'v Value) {
+        match v {
+            Value::Null => self.body.push(tag::NULL),
+            Value::Bool(false) => self.body.push(tag::FALSE),
+            Value::Bool(true) => self.body.push(tag::TRUE),
+            Value::Int(n) => {
+                self.body.push(tag::INT);
+                varint(&mut self.body, ((n << 1) ^ (n >> 63)) as u64);
+            }
+            Value::Float(f) => {
+                self.body.push(tag::FLOAT);
+                self.body.extend_from_slice(&f.to_le_bytes());
+            }
+            Value::Str(s) => {
+                self.body.push(tag::STR);
+                self.string(s);
+            }
+            Value::List(items) => {
+                self.body.push(tag::LIST);
+                varint(&mut self.body, items.len() as u64);
+                for item in items {
+                    self.value(item);
+                }
+            }
+            Value::Map(map) => {
+                self.body.push(tag::MAP);
+                varint(&mut self.body, map.len() as u64);
+                for (k, v) in map.iter() {
+                    self.string(k);
+                    self.value(v);
+                }
+            }
+            Value::Ref(r) | Value::Tag(r) => {
+                self.body.push(if matches!(v, Value::Ref(_)) {
+                    tag::REF
+                } else {
+                    tag::TAG
+                });
+                self.string(&r.kind);
+                self.string(&r.id);
+            }
+            Value::Res(r) => {
+                self.body.push(tag::RES);
+                self.string(&r.set);
+                self.string(&r.key);
+            }
+            Value::Text(s) => {
+                self.body.push(tag::TEXT);
+                self.string(s);
+            }
+            Value::Image(s) => {
+                self.body.push(tag::IMAGE);
+                self.string(s);
+            }
+            Value::Color(c) => {
+                self.body.push(tag::COLOR);
+                self.body.extend_from_slice(&c.to_le_bytes());
+            }
+        }
+    }
+}
+
+/// rustc's Fx hash — the string table's keys are short and not adversarial.
+#[derive(Default)]
+struct Fx(u64);
+
+impl Fx {
+    fn add(&mut self, word: u64) {
+        self.0 = (self.0.rotate_left(5) ^ word).wrapping_mul(0x51_7c_c1_b7_27_22_0a_95);
+    }
+}
+
+impl Hasher for Fx {
+    fn write(&mut self, bytes: &[u8]) {
+        let (words, rest) = bytes.as_chunks::<8>();
+        for w in words {
+            self.add(u64::from_le_bytes(*w));
+        }
+        if !rest.is_empty() {
+            let mut b = [0u8; 8];
+            b[..rest.len()].copy_from_slice(rest);
+            self.add(u64::from_le_bytes(b));
+        }
+    }
+
+    fn write_u8(&mut self, b: u8) {
+        self.add(b as u64);
+    }
+
+    fn finish(&self) -> u64 {
+        self.0
+    }
+}
+
+fn varint(out: &mut Vec<u8>, mut n: u64) {
+    while n >= 0x80 {
+        out.push((n as u8) | 0x80);
+        n >>= 7;
+    }
+    out.push(n as u8);
+}
+
+/// Malformed binary data.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DecodeError {
+    pub message: String,
+    pub offset: usize,
+}
+
+impl fmt::Display for DecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "byte {}: {}", self.offset, self.message)
+    }
+}
+
+impl std::error::Error for DecodeError {}
+
+/// Reads the binary form.
+pub fn decode(bytes: &[u8]) -> Result<Value, DecodeError> {
+    let mut d = Decoder {
+        b: bytes,
+        i: 0,
+        strings: Vec::new(),
+    };
+    if !bytes.starts_with(MAGIC) {
+        return Err(d.error("not Yog Data (no `YOGD` header)"));
+    }
+    d.i = 4;
+    let version = d.byte()?;
+    if version != VERSION {
+        return Err(d.error(format!(
+            "Yog Data version {version}, this reads version {VERSION}"
+        )));
+    }
+    let count = d.count(1)?;
+    d.strings.reserve(count);
+    for _ in 0..count {
+        let len = d.count(1)?;
+        let start = d.i;
+        let s = std::str::from_utf8(&bytes[start..start + len]).map_err(|_| DecodeError {
+            message: "a string isn't UTF-8".into(),
+            offset: start,
+        })?;
+        d.strings.push(s);
+        d.i += len;
+    }
+    let v = d.value(0)?;
+    if d.i != bytes.len() {
+        return Err(d.error("bytes after the value"));
+    }
+    Ok(v)
+}
+
+struct Decoder<'b> {
+    b: &'b [u8],
+    i: usize,
+    strings: Vec<&'b str>,
+}
+
+impl<'b> Decoder<'b> {
+    fn error(&self, message: impl Into<String>) -> DecodeError {
+        DecodeError {
+            message: message.into(),
+            offset: self.i,
+        }
+    }
+
+    fn byte(&mut self) -> Result<u8, DecodeError> {
+        let b = *self
+            .b
+            .get(self.i)
+            .ok_or_else(|| self.error("unexpected end"))?;
+        self.i += 1;
+        Ok(b)
+    }
+
+    fn varint(&mut self) -> Result<u64, DecodeError> {
+        let mut n = 0u64;
+        for shift in (0..64).step_by(7) {
+            let b = self.byte()?;
+            n |= ((b & 0x7F) as u64) << shift;
+            if b & 0x80 == 0 {
+                return Ok(n);
+            }
+        }
+        Err(self.error("varint longer than 64 bits"))
+    }
+
+    /// A length, checked against what's left: each of the `count` things takes at least `min` bytes.
+    fn count(&mut self, min: usize) -> Result<usize, DecodeError> {
+        let n = self.varint()?;
+        let left = self.b.len() - self.i;
+        if n > (left / min.max(1)) as u64 {
+            return Err(self.error(format!("length {n} past the end ({left} bytes left)")));
+        }
+        Ok(n as usize)
+    }
+
+    fn fixed<const N: usize>(&mut self) -> Result<[u8; N], DecodeError> {
+        let bytes = self
+            .b
+            .get(self.i..self.i + N)
+            .ok_or_else(|| self.error("unexpected end"))?;
+        self.i += N;
+        Ok(bytes.try_into().unwrap())
+    }
+
+    fn string(&mut self) -> Result<&'b str, DecodeError> {
+        let i = self.varint()?;
+        self.strings
+            .get(i as usize)
+            .copied()
+            .ok_or_else(|| self.error(format!("string {i} isn't in the table")))
+    }
+
+    fn value(&mut self, depth: usize) -> Result<Value, DecodeError> {
+        if depth > MAX_DEPTH {
+            return Err(self.error(format!("nested deeper than {MAX_DEPTH} levels")));
+        }
+        Ok(match self.byte()? {
+            tag::NULL => Value::Null,
+            tag::FALSE => Value::Bool(false),
+            tag::TRUE => Value::Bool(true),
+            tag::INT => {
+                let z = self.varint()?;
+                Value::Int(((z >> 1) as i64) ^ -((z & 1) as i64))
+            }
+            tag::FLOAT => Value::Float(f64::from_le_bytes(self.fixed()?)),
+            tag::STR => Value::Str(self.string()?.to_string()),
+            tag::LIST => {
+                let n = self.count(1)?;
+                let mut items = Vec::with_capacity(n);
+                for _ in 0..n {
+                    items.push(self.value(depth + 1)?);
+                }
+                Value::List(items)
+            }
+            tag::MAP => {
+                let n = self.count(2)?;
+                let mut map = Map::with_capacity(n);
+                for _ in 0..n {
+                    let k = self.string()?.to_string();
+                    map.push_unchecked(k, self.value(depth + 1)?);
+                }
+                Value::Map(map)
+            }
+            t @ (tag::REF | tag::TAG) => {
+                let r = Ref {
+                    kind: self.string()?.to_string(),
+                    id: self.string()?.to_string(),
+                };
+                if t == tag::REF {
+                    Value::Ref(r)
+                } else {
+                    Value::Tag(r)
+                }
+            }
+            tag::RES => Value::Res(Res {
+                set: self.string()?.to_string(),
+                key: self.string()?.to_string(),
+            }),
+            tag::TEXT => Value::Text(self.string()?.to_string()),
+            tag::IMAGE => Value::Image(self.string()?.to_string()),
+            tag::COLOR => Value::Color(u32::from_le_bytes(self.fixed()?)),
+            t => {
+                self.i -= 1;
+                return Err(self.error(format!("unknown tag {t}")));
+            }
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample() -> Value {
+        let mut m = Map::new();
+        m.insert("name", Value::Str("Ruby".into()));
+        m.insert(
+            "n",
+            Value::List(vec![
+                Value::Int(0),
+                Value::Int(-1),
+                Value::Int(i64::MAX),
+                Value::Int(i64::MIN),
+                Value::Float(0.5),
+                Value::Null,
+                Value::Bool(true),
+                Value::Bool(false),
+            ]),
+        );
+        m.insert("item", Value::Ref(Ref::new("item", "minecraft:stick")));
+        m.insert("tag", Value::Tag(Ref::new("item", "minecraft:planks")));
+        m.insert(
+            "title",
+            Value::Res(Res {
+                set: "Strings".into(),
+                key: "title".into(),
+            }),
+        );
+        m.insert("text", Value::Text("{b|hi}".into()));
+        m.insert("icon", Value::Image("sprite:x".into()));
+        m.insert("color", Value::Color(0x80FF0000));
+        m.insert("again", Value::Str("Ruby".into()));
+        Value::Map(m)
+    }
+
+    #[test]
+    fn round_trips_every_type() {
+        let v = sample();
+        let bytes = encode(&v);
+        assert_eq!(decode(&bytes).unwrap(), v);
+        // "Ruby" is stored once.
+        assert_eq!(bytes.windows(4).filter(|w| w == b"Ruby").count(), 1);
+    }
+
+    #[test]
+    fn malformed_bytes_are_errors() {
+        let bytes = encode(&sample());
+        // Every truncation fails cleanly.
+        for len in 0..bytes.len() {
+            assert!(decode(&bytes[..len]).is_err(), "truncated at {len}");
+        }
+        let mut extra = bytes.clone();
+        extra.push(0);
+        assert!(
+            decode(&extra)
+                .unwrap_err()
+                .message
+                .contains("after the value")
+        );
+        assert!(
+            decode(b"YOGD\x02\x00\x00")
+                .unwrap_err()
+                .message
+                .contains("version 2")
+        );
+        assert!(
+            decode(b"YOGD\x01\x00\x63")
+                .unwrap_err()
+                .message
+                .contains("unknown tag")
+        );
+        assert!(
+            decode(b"YOGD\x01\x00\x05\x00")
+                .unwrap_err()
+                .message
+                .contains("isn't in the table")
+        );
+        // A huge count with nothing behind it doesn't allocate.
+        assert!(
+            decode(b"YOGD\x01\x00\x06\xff\xff\xff\xff\x0f")
+                .unwrap_err()
+                .message
+                .contains("past the end")
+        );
+        let deep: Vec<u8> = b"YOGD\x01\x00"
+            .iter()
+            .copied()
+            .chain(std::iter::repeat_n([6u8, 1], 300).flatten())
+            .chain([0])
+            .collect();
+        assert!(decode(&deep).unwrap_err().message.contains("nested deeper"));
+    }
+}

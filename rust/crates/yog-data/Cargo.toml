@@ -1,0 +1,21 @@
+[package]
+name = "yog-data"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog Data — the one data model, text syntax, binary form and schema system of every Yog format."
+# The benchmark fixture (a real book, 145 KB) stays in the repository.
+exclude = ["benches/hexbook.ybook"]
+
+[dependencies]
+yog-data-derive = { version = "0.1", path = "../yog-data-derive" }
+
+[dev-dependencies]
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+serde_json.workspace = true
+
+[[bench]]
+name = "data"
+harness = false

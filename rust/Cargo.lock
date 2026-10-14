@@ -1473,6 +1473,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-data"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "serde_json",
+ "yog-data-derive",
+]
+
+[[package]]
+name = "yog-data-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.9",
+]
+
+[[package]]
 name = "yog-debugger"
 version = "0.9.0"
 dependencies = [
