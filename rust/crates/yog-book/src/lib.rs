@@ -4,6 +4,7 @@
 //! yog-ui and yog-gfx, with SVG icon support and custom TTF/OTF fonts.
 
 pub mod font;
+pub mod markup;
 pub mod renderer;
 pub mod state;
 pub mod theme;
@@ -130,6 +131,9 @@ pub enum BookPage {
     /// Custom mod-defined page (e.g. `example:pattern`).
     Pattern {
         op_id: String,
+        /// The action's name (the page's title; `op_id` if none).
+        #[serde(default)]
+        name: Option<String>,
         #[serde(default)]
         anchor: String,
         #[serde(default)]
@@ -346,9 +350,11 @@ impl Book {
                     BookPage::Crafting { text, .. }
                     | BookPage::Smelting { text, .. }
                     | BookPage::Relations { text, .. } => opt(text),
-                    BookPage::Pattern { text, .. } | BookPage::CustomText { text, .. } => {
-                        *text = tr(text)
+                    BookPage::Pattern { text, name, .. } => {
+                        *text = tr(text);
+                        opt(name);
                     }
+                    BookPage::CustomText { text, .. } => *text = tr(text),
                     BookPage::Empty => {}
                 }
             }
@@ -488,6 +494,7 @@ pub fn pattern_page(
 ) -> BookPage {
     BookPage::Pattern {
         op_id: op_id.into(),
+        name: None,
         anchor: anchor.into(),
         input: input.into(),
         output: output.into(),

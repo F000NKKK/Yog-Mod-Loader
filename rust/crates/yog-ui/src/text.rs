@@ -112,9 +112,63 @@ pub fn char_width_in(c: char, font: &str) -> f32 {
         .unwrap_or_else(|| char_width(c))
 }
 
+/// Width of `s` with `advance` per glyph: Minecraft's formatting codes
+/// (`§` and the code after it) take no room, bold (`§l`) glyphs one more.
+fn formatted_width(s: &str, mut advance: impl FnMut(char) -> f32) -> f32 {
+    let (mut w, mut bold) = (0.0, false);
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == '§' {
+            match chars.next().map(|k| k.to_ascii_lowercase()) {
+                Some('l') => bold = true,
+                Some(k) if k == 'r' || k.is_ascii_hexdigit() => bold = false,
+                _ => {}
+            }
+            continue;
+        }
+        w += advance(c) + if bold { 1.0 } else { 0.0 };
+    }
+    w
+}
+
+/// The formatting codes in force at the end of `s` (a color, then the
+/// styles set after it) — what a line wrapped after it starts with, since
+/// every line is drawn on its own.
+pub fn active_codes(s: &str) -> String {
+    let (mut color, mut styles) = (None::<char>, String::new());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c != '§' {
+            continue;
+        }
+        match chars.next().map(|k| k.to_ascii_lowercase()) {
+            Some('r') => {
+                color = None;
+                styles.clear();
+            }
+            Some(k) if k.is_ascii_hexdigit() => {
+                color = Some(k);
+                styles.clear();
+            }
+            Some(k) if "klmno".contains(k) && !styles.contains(k) => styles.push(k),
+            _ => {}
+        }
+    }
+    let mut out = String::new();
+    if let Some(c) = color {
+        out.push('§');
+        out.push(c);
+    }
+    for k in styles.chars() {
+        out.push('§');
+        out.push(k);
+    }
+    out
+}
+
 /// Pixel width of a string at the given font scale.
 pub fn str_width(s: &str, font_scale: f32) -> f32 {
-    s.chars().map(char_width).sum::<f32>() * font_scale
+    formatted_width(s, char_width) * font_scale
 }
 
 /// [`str_width`] in `font` (see [`char_width_in`]).
@@ -125,10 +179,7 @@ pub fn str_width_in(s: &str, font_scale: f32, font: &str) -> f32 {
     let Ok(mut h) = HOST.lock() else {
         return str_width(s, font_scale);
     };
-    s.chars()
-        .map(|c| h.advance(c, font).unwrap_or_else(|| char_width(c)))
-        .sum::<f32>()
-        * font_scale
+    formatted_width(s, |c| h.advance(c, font).unwrap_or_else(|| char_width(c))) * font_scale
 }
 
 /// Break `text` into lines that fit within `max_w` pixels at `font_scale`.
@@ -221,7 +272,14 @@ fn wrap_paragraph(text: &str, max_w: f32, font_scale: f32, font: &str, out: &mut
         }
         // Word is wider than one line — hard-break at glyph boundaries.
         let (mut w, mut line_empty) = (0.0f32, true);
+        let mut code = false;
         for ch in word.chars() {
+            // A formatting code (`§` and its letter) takes no room.
+            if code || ch == '§' {
+                code = ch == '§';
+                out.push_char(ch);
+                continue;
+            }
             let cw = char_width_in(ch, font) * font_scale;
             if w + cw > max_w && !line_empty {
                 out.end_line();
@@ -296,6 +354,10 @@ mod tests {
         assert_eq!(wrap_text("", 40.0, 1.0), [""]);
         assert_eq!(wrap_text("aaa\nbbb", 400.0, 1.0), ["aaa", "bbb"]);
         assert_eq!(wrap_text("aaa\n\nbbb", 400.0, 1.0), ["aaa", "", "bbb"]);
+        assert_eq!(str_width("§5ab§r", 1.0), str_width("ab", 1.0), "codes take no room");
+        assert_eq!(str_width("§lab", 1.0), str_width("ab", 1.0) + 2.0, "bold is wider");
+        assert_eq!(active_codes("x §5§lterm"), "§5§l");
+        assert_eq!(active_codes("§5a§r b"), "");
         assert_eq!(wrap_text("mmmmmmmmmm", 30.0, 1.0), ["mmmmm", "mmmmm"]);
         assert_eq!(
             wrap_text("a mmmmmmmmmm b", 30.0, 1.0),

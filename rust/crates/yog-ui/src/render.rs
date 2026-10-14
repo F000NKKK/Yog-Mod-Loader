@@ -240,14 +240,18 @@ fn draw_lines(
     let total_h = lines.len() as f32 * line_h - text::LINE_GAP;
     let content_h = r.h - s.pad[0] - s.pad[2];
     let start_y = r.y + s.pad[0] + ((content_h - total_h) / 2.0).max(0.0);
+    // Formatting started on one line goes on into the next: each is drawn on its own.
+    let mut carry = String::new();
     for (i, line) in lines.iter().enumerate() {
+        let shown = if carry.is_empty() { line.clone() } else { format!("{carry}{line}") };
+        carry = text::active_codes(&shown);
         let ly = start_y + i as f32 * line_h;
         if !fits(clip, ly, text::LINE_H * s.font_scale) {
             continue;
         }
-        let line_w = text::str_width_in(line, s.font_scale, &s.font);
+        let line_w = text::str_width_in(&shown, s.font_scale, &s.font);
         let tx = r.x + s.pad[3] + place(avail_w - line_w);
-        draw_text(d2d, line, &s.font, tx, ly, s.font_scale, s.color, s.text_shadow);
+        draw_text(d2d, &shown, &s.font, tx, ly, s.font_scale, s.color, s.text_shadow);
     }
 }
 

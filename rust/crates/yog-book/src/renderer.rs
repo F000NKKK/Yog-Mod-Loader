@@ -291,8 +291,8 @@ pub struct BookRenderer {
 impl BookRenderer {
     pub fn new(book: Book) -> Self {
         let theme = BookTheme::default().with_nameplate(&book.nameplate_color);
-        let written = book.clone();
-        let (book, origins) = flow_traced(book);
+        let written = styled(&book);
+        let (book, origins) = flow_traced(written.clone());
         Self {
             book,
             origins,
@@ -335,7 +335,7 @@ impl BookRenderer {
         if probe == self.probe {
             return;
         }
-        self.written = src.localized(|k| tr(k).unwrap_or_else(|| k.to_string()));
+        self.written = src.localized(|k| crate::markup::to_minecraft(&tr(k).unwrap_or_else(|| k.to_string())));
         (self.book, self.origins) = flow_traced(self.written.clone());
         self.probe = probe;
         self.dirty = true;
@@ -527,8 +527,8 @@ impl BookRenderer {
     /// Replaces the book (an edit), keeping the reader where they were.
     pub fn set_book(&mut self, book: Book) {
         let at = self.shown();
-        self.written = book.clone();
-        (self.book, self.origins) = flow_traced(book);
+        self.written = styled(&book);
+        (self.book, self.origins) = flow_traced(self.written.clone());
         self.theme = BookTheme::default().with_nameplate(&self.book.nameplate_color);
         self.dirty = true;
         match at {
@@ -612,6 +612,11 @@ fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
         | BookPage::Relations { text, .. } => text.as_mut(),
         _ => None,
     }
+}
+
+/// `book` with its texts' markup (see [`crate::markup`]) as formatting codes.
+fn styled(book: &Book) -> Book {
+    book.localized(crate::markup::to_minecraft)
 }
 
 /// Text that doesn't fit its page goes on to new text pages after it.
@@ -1542,12 +1547,13 @@ fn build_page(
 
         BookPage::Pattern {
             op_id,
+            name,
             input,
             output,
             text,
             ..
         } => {
-            col = col.child(title_lbl(op_id.as_str()).color(theme.title));
+            col = col.child(title_lbl(name.as_deref().unwrap_or(op_id.as_str())).color(theme.title));
             col = col.child(lbl(format!("{} → {}", input, output)).color(theme.nav));
             if !text.is_empty() {
                 col = col.child(lbl(text.as_str()).color(theme.text));
