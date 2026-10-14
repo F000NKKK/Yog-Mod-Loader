@@ -335,7 +335,8 @@ impl BookRenderer {
         if probe == self.probe {
             return;
         }
-        self.written = src.localized(|k| crate::markup::to_minecraft(&tr(k).unwrap_or_else(|| k.to_string())));
+        let accent = src.accent.clone();
+        self.written = src.localized(|k| crate::markup::to_rich(&tr(k).unwrap_or_else(|| k.to_string()), &accent));
         (self.book, self.origins) = flow_traced(self.written.clone());
         self.probe = probe;
         self.dirty = true;
@@ -616,7 +617,7 @@ fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
 
 /// `book` with its texts' markup (see [`crate::markup`]) as formatting codes.
 fn styled(book: &Book) -> Book {
-    book.localized(crate::markup::to_minecraft)
+    book.localized(|t| crate::markup::to_rich(t, &book.accent))
 }
 
 /// Text that doesn't fit its page goes on to new text pages after it.

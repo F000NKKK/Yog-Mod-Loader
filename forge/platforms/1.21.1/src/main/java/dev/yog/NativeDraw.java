@@ -31,7 +31,11 @@ public final class NativeDraw {
         GuiGraphics ctx = hudDrawContext;
         if (ctx == null) return;
         syncGlState(); // MC-pipeline draw may follow raw GL from Rust
-        ctx.drawString(Minecraft.getInstance().font, text, (int) x, (int) y, color, shadow);
+        if (dev.yog.util.YogText.rich(text)) {
+            ctx.drawString(Minecraft.getInstance().font, styled(text, ""), (int) x, (int) y, color, shadow);
+        } else {
+            ctx.drawString(Minecraft.getInstance().font, text, (int) x, (int) y, color, shadow);
+        }
     }
 
     /** True for "" and minecraft:default — the plain text path. */
@@ -39,11 +43,19 @@ public final class NativeDraw {
         return font == null || font.isEmpty() || font.equals("minecraft:default");
     }
 
-    /** text as a literal in the font id font (unparsable ids: the default font). */
+    /** text — its Yog rich-text spans as styles (see {@link dev.yog.util.YogText}) — in the font id font. */
     private static net.minecraft.network.chat.Component styled(String text, String font) {
-        ResourceLocation id = ResourceLocation.tryParse(font);
-        net.minecraft.network.chat.MutableComponent t = net.minecraft.network.chat.Component.literal(text);
-        return id == null ? t : t.withStyle(net.minecraft.network.chat.Style.EMPTY.withFont(id));
+        ResourceLocation id = isDefaultFont(font) ? null : ResourceLocation.tryParse(font);
+        net.minecraft.network.chat.MutableComponent out = net.minecraft.network.chat.Component.empty();
+        for (dev.yog.util.YogText.Run r : dev.yog.util.YogText.runs(text)) {
+            net.minecraft.network.chat.Style st = net.minecraft.network.chat.Style.EMPTY;
+            if (id != null) st = st.withFont(id);
+            if (r.rgb() >= 0) st = st.withColor(net.minecraft.network.chat.TextColor.fromRgb(r.rgb()));
+            st = st.withBold(r.bold()).withItalic(r.italic()).withUnderlined(r.underline())
+                    .withStrikethrough(r.strike());
+            out.append(net.minecraft.network.chat.Component.literal(r.text()).withStyle(st));
+        }
+        return out;
     }
 
     /** drawText in a font: "minecraft:uniform", a resource-pack font id, ... */
@@ -62,7 +74,7 @@ public final class NativeDraw {
     public static float textWidth(String text, String font) {
         var f = Minecraft.getInstance().font;
         if (f == null) return 0f;
-        return isDefaultFont(font) ? f.width(text) : f.width(styled(text, font));
+        return isDefaultFont(font) && !dev.yog.util.YogText.rich(text) ? f.width(text) : f.width(styled(text, font));
     }
 
     public static void drawRect(float x1, float y1, float x2, float y2, int color) {

@@ -240,11 +240,13 @@ fn draw_lines(
     let total_h = lines.len() as f32 * line_h - text::LINE_GAP;
     let content_h = r.h - s.pad[0] - s.pad[2];
     let start_y = r.y + s.pad[0] + ((content_h - total_h) / 2.0).max(0.0);
-    // Formatting started on one line goes on into the next: each is drawn on its own.
-    let mut carry = String::new();
+    // A span going on past a line goes on into the next: each line is
+    // drawn on its own, its spans closed and the next one's reopened.
+    let mut open: Vec<String> = Vec::new();
     for (i, line) in lines.iter().enumerate() {
-        let shown = if carry.is_empty() { line.clone() } else { format!("{carry}{line}") };
-        carry = text::active_codes(&shown);
+        let mut shown = format!("{}{line}", crate::rich::reopen(&open));
+        open = crate::rich::open_spans(&shown);
+        shown.push_str(&"}".repeat(open.len()));
         let ly = start_y + i as f32 * line_h;
         if !fits(clip, ly, text::LINE_H * s.font_scale) {
             continue;

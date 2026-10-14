@@ -34,8 +34,11 @@ public final class NativeDraw {
         DrawContext ctx = hudDrawContext;
         if (ctx == null) return;
         syncGlState(); // MC-pipeline draw may follow raw GL from Rust
-        ctx.drawText(MinecraftClient.getInstance().textRenderer,
-                text, (int) x, (int) y, color, shadow);
+        if (dev.yog.util.YogText.rich(text)) {
+            ctx.drawText(MinecraftClient.getInstance().textRenderer, styled(text, ""), (int) x, (int) y, color, shadow);
+        } else {
+            ctx.drawText(MinecraftClient.getInstance().textRenderer, text, (int) x, (int) y, color, shadow);
+        }
     }
 
     /** True for "" and minecraft:default — the plain text path. */
@@ -43,11 +46,19 @@ public final class NativeDraw {
         return font == null || font.isEmpty() || font.equals("minecraft:default");
     }
 
-    /** text as a literal in the font id font (unparsable ids: the default font). */
+    /** text — its Yog rich-text spans as styles (see {@link dev.yog.util.YogText}) — in the font id font. */
     private static net.minecraft.text.Text styled(String text, String font) {
-        Identifier id = Identifier.tryParse(font);
-        net.minecraft.text.MutableText t = net.minecraft.text.Text.literal(text);
-        return id == null ? t : t.setStyle(net.minecraft.text.Style.EMPTY.withFont(id));
+        Identifier id = isDefaultFont(font) ? null : Identifier.tryParse(font);
+        net.minecraft.text.MutableText out = net.minecraft.text.Text.empty();
+        for (dev.yog.util.YogText.Run r : dev.yog.util.YogText.runs(text)) {
+            net.minecraft.text.Style st = net.minecraft.text.Style.EMPTY;
+            if (id != null) st = st.withFont(id);
+            if (r.rgb() >= 0) st = st.withColor(net.minecraft.text.TextColor.fromRgb(r.rgb()));
+            st = st.withBold(r.bold()).withItalic(r.italic()).withUnderline(r.underline())
+                    .withStrikethrough(r.strike());
+            out.append(net.minecraft.text.Text.literal(r.text()).setStyle(st));
+        }
+        return out;
     }
 
     /** drawText in a font: "minecraft:uniform", a resource-pack font id, ... */
@@ -67,7 +78,7 @@ public final class NativeDraw {
     public static float textWidth(String text, String font) {
         var tr = MinecraftClient.getInstance().textRenderer;
         if (tr == null) return 0f;
-        return isDefaultFont(font) ? tr.getWidth(text) : tr.getWidth(styled(text, font));
+        return isDefaultFont(font) && !dev.yog.util.YogText.rich(text) ? tr.getWidth(text) : tr.getWidth(styled(text, font));
     }
 
     public static void drawRect(float x1, float y1, float x2, float y2, int color) {

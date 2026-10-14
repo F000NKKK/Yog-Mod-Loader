@@ -237,6 +237,8 @@ pub struct Book {
     pub id: String,
     pub name: String,
     pub nameplate_color: String,
+    /// The color `==terms==` are shown in (`#rrggbb`).
+    pub accent: String,
     pub landing_text: String,
     pub author: Option<String>,
     pub book_texture: String,
@@ -257,6 +259,7 @@ impl Book {
             id: id.into(),
             name: name.into(),
             nameplate_color: "FFDD98".into(), // Patchouli default nameplateColor
+            accent: "#8d6acc".into(),
             landing_text: String::new(),
             author: None,
             book_texture: "yog:gui/book".into(),

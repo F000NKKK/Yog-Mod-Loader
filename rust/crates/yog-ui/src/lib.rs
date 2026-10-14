@@ -23,6 +23,7 @@ pub mod event;
 pub mod image;
 pub mod layout;
 mod render;
+pub mod rich;
 pub mod scroll;
 #[cfg(test)]
 mod state_tests;
