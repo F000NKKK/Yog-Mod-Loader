@@ -22,6 +22,10 @@ pub use yog_gfx::{
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
 pub use yog_abi::{ABI_VERSION, YogApi};
 
+/// Yog Data — what content definitions and book pages' `data`
+/// (`Registry::on_book_page`) are; re-exported for mods.
+pub use yog_data;
+
 /// Inter-mod communication proc-macros.
 pub use yog_interop::{bench, import, yog_export};
 
