@@ -400,33 +400,6 @@ fn text_lines(t: &str, s: &Style, avail_w: f32) -> Vec<String> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn ellipsize_fits_the_width() {
-        assert_eq!(ellipsize("short", 100.0, 1.0, ""), "short");
-        let cut = ellipsize("A rather long description line", 60.0, 1.0, "");
-        assert!(cut.ends_with("..."), "{cut}");
-        assert!(text::str_width(&cut, 1.0) <= 60.0, "{cut}");
-    }
-
-    #[test]
-    fn fits_checks_the_clip_vertically() {
-        let clip = Some(Rect {
-            x: 0.0,
-            y: 10.0,
-            w: 100.0,
-            h: 20.0,
-        });
-        assert!(fits(clip, 10.0, 9.0));
-        assert!(!fits(clip, 5.0, 9.0));
-        assert!(!fits(clip, 25.0, 9.0));
-        assert!(fits(None, -100.0, 9.0));
-    }
-}
-
 /// Vanilla's tooltip box: near-black fill, a purple gradient frame, white
 /// text — 12px right of and above the cursor, flipped to stay on screen.
 pub(crate) fn tooltip(d2d: &Draw2D, text: &str, mx: f32, my: f32, sw: f32, sh: f32) {
@@ -457,5 +430,32 @@ pub(crate) fn tooltip(d2d: &Draw2D, text: &str, mx: f32, my: f32, sw: f32, sh: f
     d2d.rect(x0, y1 - 1.0, x1, y1, BORDER_BOTTOM);
     for (i, line) in lines.iter().enumerate() {
         d2d.text(line, x, y + i as f32 * (crate::text::LINE_H + 1.0), 0xFF_FFFFFF, true);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ellipsize_fits_the_width() {
+        assert_eq!(ellipsize("short", 100.0, 1.0, ""), "short");
+        let cut = ellipsize("A rather long description line", 60.0, 1.0, "");
+        assert!(cut.ends_with("..."), "{cut}");
+        assert!(text::str_width(&cut, 1.0) <= 60.0, "{cut}");
+    }
+
+    #[test]
+    fn fits_checks_the_clip_vertically() {
+        let clip = Some(Rect {
+            x: 0.0,
+            y: 10.0,
+            w: 100.0,
+            h: 20.0,
+        });
+        assert!(fits(clip, 10.0, 9.0));
+        assert!(!fits(clip, 5.0, 9.0));
+        assert!(!fits(clip, 25.0, 9.0));
+        assert!(fits(None, -100.0, 9.0));
     }
 }
