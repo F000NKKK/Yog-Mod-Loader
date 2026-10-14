@@ -94,10 +94,14 @@ pub enum Anchor {
 }
 
 impl Anchor {
-    /// Top-left corner of a `w` × `h` box anchored in a `sw` × `sh` GUI.
+    /// Top-left corner of a `w` × `h` box anchored in a `sw` × `sh` GUI —
+    /// as the game places its screens: a box bigger than the GUI keeps its
+    /// size and is cut at the edges (evenly when centred), and a
+    /// container's picture stays over its real slots (the game's
+    /// whole-pixel `(width - backgroundWidth) / 2`).
     pub fn place(self, sw: f32, sh: f32, w: f32, h: f32) -> (f32, f32) {
-        let cx = ((sw - w) / 2.0).floor();
-        let cy = ((sh - h) / 2.0).floor();
+        let cx = ((sw - w) / 2.0).trunc();
+        let cy = ((sh - h) / 2.0).trunc();
         let (x, y) = match self {
             Anchor::Center => (cx, cy),
             Anchor::TopLeft | Anchor::Fill => (0.0, 0.0),
@@ -109,7 +113,7 @@ impl Anchor {
             Anchor::Bottom => (cx, sh - h),
             Anchor::BottomRight => (sw - w, sh - h),
         };
-        (x.max(0.0), y.max(0.0))
+        (x, y)
     }
 }
 

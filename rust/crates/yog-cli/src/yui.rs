@@ -950,22 +950,26 @@ pub fn generate_for(
 
     let (ax, ay) = match anchor {
         "top_left" => ("0.0", "0.0"),
-        "top" => ("((screen_w - WIDTH) / 2.0).floor()", "0.0"),
+        "top" => ("((screen_w - WIDTH) / 2.0).trunc()", "0.0"),
         "top_right" => ("screen_w - WIDTH", "0.0"),
-        "left" => ("0.0", "((screen_h - HEIGHT) / 2.0).floor()"),
-        "right" => ("screen_w - WIDTH", "((screen_h - HEIGHT) / 2.0).floor()"),
+        "left" => ("0.0", "((screen_h - HEIGHT) / 2.0).trunc()"),
+        "right" => ("screen_w - WIDTH", "((screen_h - HEIGHT) / 2.0).trunc()"),
         "bottom_left" => ("0.0", "screen_h - HEIGHT"),
-        "bottom" => ("((screen_w - WIDTH) / 2.0).floor()", "screen_h - HEIGHT"),
+        "bottom" => ("((screen_w - WIDTH) / 2.0).trunc()", "screen_h - HEIGHT"),
         "bottom_right" => ("screen_w - WIDTH", "screen_h - HEIGHT"),
+        // `trunc`: the game's whole-pixel `(width - backgroundWidth) / 2`.
         _ => (
-            "((screen_w - WIDTH) / 2.0).floor()",
-            "((screen_h - HEIGHT) / 2.0).floor()",
+            "((screen_w - WIDTH) / 2.0).trunc()",
+            "((screen_h - HEIGHT) / 2.0).trunc()",
         ),
     };
+    // As the game places its screens: a bigger one than the window keeps
+    // its size and is cut at the window's edges (evenly, centred), and a
+    // container's picture stays over its real slots.
     let place = if anchor == "fill" {
         "content.w(Units::Percent(100.0)).h(Units::Percent(100.0)).at(0.0, 0.0)".to_string()
     } else {
-        format!("content.at(({ax}).max(0.0), ({ay}).max(0.0))")
+        format!("content.at({ax}, {ay})")
     };
 
     let mut out = String::new();

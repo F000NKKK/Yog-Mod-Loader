@@ -534,10 +534,13 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>, de
         let m = child.style.margin;
         // Absolutely positioned: measured against what's left of the content
         // box past its offset (percent sizes: against the whole content box),
-        // placed after the flow passes.
+        // placed after the flow passes. A size in pixels is kept whatever
+        // fits — a screen bigger than the window keeps its proportions and
+        // is cut at the window's edges, as the game's are, not squeezed.
         if let Some((px, py)) = child.style.pos {
-            let mw = less(content_w, px + m[1] + m[3]);
-            let mh = less(content_h, py + m[0] + m[2]);
+            let fixed = |u: Units| matches!(u, Units::Px(_));
+            let mw = if fixed(child.style.w) { UNBOUNDED } else { less(content_w, px + m[1] + m[3]) };
+            let mh = if fixed(child.style.h) { UNBOUNDED } else { less(content_h, py + m[0] + m[2]) };
             measure(child, &mut cn, mw, mh, content_w, content_h);
             child_nodes.push(cn);
             continue;
@@ -1345,5 +1348,23 @@ mod tests {
             _ => unreachable!(),
         }
         assert!(root.find_mut("missing").is_none());
+    }
+}
+#[cfg(test)]
+mod bigger_than_the_window {
+    use crate::{FlexDir, Units, widget};
+
+    #[test]
+    fn a_screen_bigger_than_the_window_keeps_its_size_and_is_cut() {
+        let content = widget::panel(FlexDir::Column)
+            .w(Units::Px(300.0))
+            .h(Units::Px(200.0))
+            .child(widget::spacer().w(Units::Percent(100.0)).h(Units::Px(40.0)))
+            .at(-50.0, -25.0);
+        let screen = widget::panel(FlexDir::Column).w(Units::Px(200.0)).h(Units::Px(150.0)).child(content);
+        let l = super::compute(&screen, 200.0, 150.0);
+        let c = &l.children[0];
+        assert_eq!((c.rect.x, c.rect.y, c.rect.w, c.rect.h), (-50.0, -25.0, 300.0, 200.0));
+        assert_eq!(c.children[0].rect.w, 300.0, "percent of its own size, not the window's");
     }
 }
