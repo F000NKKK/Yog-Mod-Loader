@@ -184,10 +184,17 @@ impl WrapSink for LineCount {
     }
 }
 
-/// The word-wrapping behind [`wrap_text_in`]: words joined by single
-/// spaces, a word wider than a line hard-broken at glyph boundaries. Always
-/// ends at least one line.
+/// The word-wrapping behind [`wrap_text_in`]: each `\n`-separated
+/// paragraph on lines of its own (see [`wrap_paragraph`]).
 fn wrap(text: &str, max_w: f32, font_scale: f32, font: &str, out: &mut impl WrapSink) {
+    for para in text.split('\n') {
+        wrap_paragraph(para, max_w, font_scale, font, out);
+    }
+}
+
+/// One paragraph: words joined by single spaces, a word wider than a line
+/// hard-broken at glyph boundaries. Always ends at least one line.
+fn wrap_paragraph(text: &str, max_w: f32, font_scale: f32, font: &str, out: &mut impl WrapSink) {
     let space_w = char_width_in(' ', font) * font_scale;
     let mut lines = 0usize;
     let mut cur_w = 0.0f32;
@@ -287,6 +294,8 @@ mod tests {
     fn wraps_words_and_hard_breaks_long_ones() {
         assert_eq!(wrap_text("aaa  bbb ccc", 40.0, 1.0), ["aaa bbb", "ccc"]);
         assert_eq!(wrap_text("", 40.0, 1.0), [""]);
+        assert_eq!(wrap_text("aaa\nbbb", 400.0, 1.0), ["aaa", "bbb"]);
+        assert_eq!(wrap_text("aaa\n\nbbb", 400.0, 1.0), ["aaa", "", "bbb"]);
         assert_eq!(wrap_text("mmmmmmmmmm", 30.0, 1.0), ["mmmmm", "mmmmm"]);
         assert_eq!(
             wrap_text("a mmmmmmmmmm b", 30.0, 1.0),

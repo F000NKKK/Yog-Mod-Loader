@@ -358,7 +358,7 @@ fn text_lines(t: &str, s: &Style, avail_w: f32) -> Vec<String> {
     if s.ellipsis {
         vec![ellipsize(t, avail_w, s.font_scale, &s.font)]
     } else if s.no_wrap {
-        vec![t.to_owned()]
+        t.split('\n').map(str::to_owned).collect()
     } else {
         text::wrap_text_in(t, avail_w, s.font_scale, &s.font)
     }
