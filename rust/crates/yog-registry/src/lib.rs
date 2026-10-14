@@ -149,6 +149,10 @@ fn json_str(s: &str) -> String {
         match c {
             '"' => out.push_str("\\\""),
             '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
             c => out.push(c),
         }
     }
@@ -516,42 +520,19 @@ impl StartupGrant {
     }
 
     pub fn to_json(&self) -> String {
-        let items: Vec<String> = self
-            .items
-            .iter()
-            .map(|i| format!("{{\"item\":\"{i}\"}}"))
-            .collect();
-        let mut entries = String::new();
-        if !items.is_empty() {
-            entries.push_str(&format!("[{}]", items.join(",")));
-        }
+        let mut entries: Vec<String> = self.items.iter().map(|i| format!("{{\"item\":{}}}", json_str(i))).collect();
         if let Some(book) = &self.book {
-            if !entries.is_empty() {
-                entries.push(',');
-            }
-            let book_entry = format!(
-                "{{\"type\":\"item\",\"name\":\"minecraft:written_book\",\"functions\":[{{\"function\":\"set_nbt\",\"tag\":\"{{yog_book:\\\"{book}\\\"}}\"}}]}}"
-            );
-            entries.push_str(&book_entry);
-        }
-        if let Some(cmd) = &self.command {
-            if !entries.is_empty() {
-                entries.push(',');
-            }
-            entries.push_str(&format!(
-                "{{\"type\":\"minecraft:command\",\"command\":\"{}\"}}",
-                cmd.replace('"', "\\\"")
+            // The book's id inside SNBT inside JSON: escaped for both.
+            let tag = format!("{{yog_book:\"{}\"}}", book.replace('\\', "\\\\").replace('"', "\\\""));
+            entries.push(format!(
+                "{{\"type\":\"item\",\"name\":\"minecraft:written_book\",\"functions\":[{{\"function\":\"set_nbt\",\"tag\":{}}}]}}",
+                json_str(&tag)
             ));
         }
-        format!(
-            "{{\"type\":\"yog:startup_grant\",\"entries\":{},\"id\":\"{}\"}}",
-            if entries.is_empty() {
-                "[]".to_string()
-            } else {
-                entries
-            },
-            self.id
-        )
+        if let Some(cmd) = &self.command {
+            entries.push(format!("{{\"type\":\"minecraft:command\",\"command\":{}}}", json_str(cmd)));
+        }
+        format!("{{\"type\":\"yog:startup_grant\",\"entries\":[{}],\"id\":{}}}", entries.join(","), json_str(&self.id))
     }
 }
 
@@ -786,5 +767,43 @@ mod recipe_tests {
         assert_eq!(blast.to_json(), r##"{"type":"blasting","ingredient":"#c:ores","experience":0.5,"cook_time":100,"result":"m:b"}"##);
         let smith = Recipe::smithing("m:a", "m:t", "m:base", "m:add", "m:out");
         assert!(smith.to_json().contains(r#""type":"smithing","template":"m:t""#));
+    }
+}
+
+#[cfg(test)]
+mod json_tests {
+    use super::*;
+
+    /// Every `to_json` makes valid JSON, whatever the strings hold.
+    #[test]
+    fn json_survives_any_string() {
+        let odd = "m:a\"b\\c\nd\te\u{1}";
+        let parse = |j: String| serde_json::from_str::<serde_json::Value>(&j).unwrap_or_else(|e| panic!("{e}: {j}"));
+        for r in [
+            Recipe::shaped(odd, odd, 1).row("A").key('A', odd).group(odd).category(odd),
+            Recipe::shapeless(odd, odd, 3).ingredient(odd).ingredient_any([odd, "m:x"]),
+            Recipe::cooking(odd, Cooking::Smoking, odd, odd, 1).cook_time(5),
+            Recipe::stonecutting(odd, odd, odd, 2),
+            Recipe::smithing(odd, odd, odd, odd, odd),
+        ] {
+            let v = parse(r.to_json());
+            assert_eq!(v["result"], odd, "the string comes back as it was");
+        }
+        let g = StartupGrant::new(odd).item(odd).book("mymod:\"guide\"").command("say \"hi\" \\o/");
+        let v = parse(g.to_json());
+        assert_eq!(v["id"], odd);
+        assert_eq!(v["entries"][2]["command"], "say \"hi\" \\o/");
+    }
+
+    #[test]
+    fn recipes_and_grants_name_their_parts() {
+        let r = Recipe::cooking("mymod:a", Cooking::Campfire, "minecraft:beef", "minecraft:cooked_beef", 1);
+        let v: serde_json::Value = serde_json::from_str(&r.to_json()).unwrap();
+        assert_eq!(v["type"], "campfire_cooking");
+        assert_eq!(v["cook_time"], 600, "the method's default time");
+        assert_eq!(r.ns_name(), ("mymod", "a"));
+        assert_eq!(Recipe::shaped("plain", "x", 1).ns_name().1, "plain");
+        let g = StartupGrant::new("mymod:starter");
+        assert!(g.to_json().contains(r#""entries":[]"#));
     }
 }
