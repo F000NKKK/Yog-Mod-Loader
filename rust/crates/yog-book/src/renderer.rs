@@ -255,6 +255,10 @@ pub struct BookRenderer {
     recipes: HashMap<String, RecipeVis>,
     /// Per entry: which page as written each shown page came from.
     origins: HashMap<String, Vec<usize>>,
+    /// The book as written (localized), before its text flowed.
+    written: Book,
+    /// Flowed with the host's own text metrics (else estimated ones).
+    measured: bool,
     pub ui: Option<UiRoot>,
     bg_sprites: Vec<BgSprite>,
     overlays: Vec<OverlayCmd>,
@@ -271,10 +275,13 @@ pub struct BookRenderer {
 impl BookRenderer {
     pub fn new(book: Book) -> Self {
         let theme = BookTheme::default().with_nameplate(&book.nameplate_color);
+        let written = book.clone();
         let (book, origins) = flow_traced(book);
         Self {
             book,
             origins,
+            written,
+            measured: false,
             state: BookViewState::default(),
             theme,
             recipes: HashMap::new(),
@@ -311,7 +318,8 @@ impl BookRenderer {
         if probe == self.probe {
             return;
         }
-        (self.book, self.origins) = flow_traced(src.localized(|k| tr(k).unwrap_or_else(|| k.to_string())));
+        self.written = src.localized(|k| tr(k).unwrap_or_else(|| k.to_string()));
+        (self.book, self.origins) = flow_traced(self.written.clone());
         self.probe = probe;
         self.dirty = true;
     }
@@ -376,6 +384,12 @@ impl BookRenderer {
     /// `draw2d` (its sprite sheets as the image sources [`BOOK_SHEET`] and
     /// [`CRAFTING_SHEET`]).
     pub fn render(&mut self, ctx: &GfxContext, sw: f32, sh: f32) {
+        // Text flows by the host's own font metrics once it can measure.
+        yog_ui::text::use_host_metrics(ctx);
+        if !self.measured {
+            self.measured = true;
+            self.reflow();
+        }
         let (bx, by, bw, bh) = self.prepare(sw, sh);
         let d2 = ctx.draw2d();
         d2.image_region(BOOK_SHEET, bx, by, bw, bh, [0.0, 0.0, BK_W, BK_H], 0xFFFF_FFFF);
@@ -458,9 +472,20 @@ impl BookRenderer {
         Some((e.id.clone(), page))
     }
 
+    /// Flows the text again (the metrics changed), keeping the reader's place.
+    fn reflow(&mut self) {
+        let at = self.shown();
+        (self.book, self.origins) = flow_traced(self.written.clone());
+        self.dirty = true;
+        if let Some((entry, page)) = at {
+            self.show(&entry, page);
+        }
+    }
+
     /// Replaces the book (an edit), keeping the reader where they were.
     pub fn set_book(&mut self, book: Book) {
         let at = self.shown();
+        self.written = book.clone();
         (self.book, self.origins) = flow_traced(book);
         self.theme = BookTheme::default().with_nameplate(&self.book.nameplate_color);
         self.dirty = true;
@@ -1228,9 +1253,8 @@ fn build_page(
                 col = col.child(widget::spacer().h(sep_h_px));
                 col = col.child(widget::spacer().h((22.0 - 12.0 - SEP_H) * sy));
             }
-            for para in text.split('\n') {
-                col = col.child(lbl(para).color(theme.text));
-            }
+            // One label: its lines are as far apart as the flowing counted.
+            col = col.child(lbl(text.as_str()).color(theme.text));
         }
 
         BookPage::Spotlight { item, title, text } => {
