@@ -160,8 +160,14 @@ void main() {
 
 // ── Embedded textures ─────────────────────────────────────────────────────────
 
-static BOOK_PNG: &[u8] = include_bytes!("../assets/book_brown.png");
-static CRAFTING_PNG: &[u8] = include_bytes!("../assets/crafting.png");
+/// The book's sprite sheet (cover, pages, separators, nameplate).
+pub static BOOK_PNG: &[u8] = include_bytes!("../assets/book_brown.png");
+/// The crafting-grid sprite sheet.
+pub static CRAFTING_PNG: &[u8] = include_bytes!("../assets/crafting.png");
+/// The image source [`BookRenderer::render_2d`] draws [`BOOK_PNG`] as.
+pub const BOOK_SHEET: &str = "yog-book:book";
+/// The image source [`BookRenderer::render_2d`] draws [`CRAFTING_PNG`] as.
+pub const CRAFTING_SHEET: &str = "yog-book:crafting";
 
 fn decode_png(data: &[u8]) -> Option<(Vec<u8>, u32, u32)> {
     use png::Decoder;
@@ -679,12 +685,9 @@ impl BookRenderer {
         }
     }
 
-    pub fn render(&mut self, ctx: &GfxContext, sw: f32, sh: f32) {
-        // Lazy GL init.
-        if self.gl.is_none() {
-            self.gl = BookGl::init(ctx);
-        }
-
+    /// Lays the book out for a `sw`×`sh` screen (when something changed);
+    /// the book's rect.
+    fn prepare(&mut self, sw: f32, sh: f32) -> (f32, f32, f32, f32) {
         // Render at Patchouli-native size (272×180 GUI pixels). Scale DOWN only
         // if the screen is smaller; never scale up (MC font is designed for 1×).
         let scale = ((sw - SCREEN_MARGIN) / BK_W)
@@ -715,6 +718,20 @@ impl BookRenderer {
             self.last_sw = sw;
             self.last_sh = sh;
         }
+        if let Some(ui) = &mut self.ui
+            && ui.needs_layout
+        {
+            ui.layout(sw, sh);
+        }
+        (bx, by, bw, bh)
+    }
+
+    pub fn render(&mut self, ctx: &GfxContext, sw: f32, sh: f32) {
+        // Lazy GL init.
+        if self.gl.is_none() {
+            self.gl = BookGl::init(ctx);
+        }
+        let (bx, by, bw, bh) = self.prepare(sw, sh);
 
         // 1. Draw book background texture first.
         if let Some(gl) = &mut self.gl {
@@ -731,9 +748,6 @@ impl BookRenderer {
 
         // 2. yog-ui: text, buttons, icons (transparent BG — texture is already there).
         if let Some(ui) = &mut self.ui {
-            if ui.needs_layout {
-                ui.layout(sw, sh);
-            }
             ui.render(ctx);
         }
 
@@ -742,65 +756,117 @@ impl BookRenderer {
             gl.begin_frame(ctx, sw, sh);
             for ov in &self.overlays {
                 match *ov {
-                    OverlayCmd::Svg {
-                        ref data,
-                        x,
-                        y,
-                        w,
-                        h,
-                    } => gl.draw_svg(ctx, data, x, y, w, h),
-                    OverlayCmd::Text {
-                        ref text,
-                        ref font,
-                        x,
-                        y,
-                        color,
-                    } => {
+                    OverlayCmd::Svg { ref data, x, y, w, h } => gl.draw_svg(ctx, data, x, y, w, h),
+                    OverlayCmd::Text { ref text, ref font, x, y, color } => {
                         if let Some(ttf) = self.fonts.get(&font.font_id) {
                             gl.draw_text_custom(ctx, ttf, font.size_px, text, x, y, color);
                         }
                     }
-                    OverlayCmd::McText { .. }
-                    | OverlayCmd::McItem { .. }
-                    | OverlayCmd::McTexture { .. } => {}
+                    OverlayCmd::McText { .. } | OverlayCmd::McItem { .. } | OverlayCmd::McTexture { .. } => {}
                 }
             }
         }
 
         // 4. MC-pipeline overlays (item stacks, MC-font text) — after all raw
         //    GL, because item rendering resyncs and mutates MC's GL state.
+        self.draw_mc_overlays(ctx);
+    }
+
+    /// Draws the book with `draw2d` alone — no shaders, no textures of its
+    /// own: its sprite sheets as the image sources [`BOOK_SHEET`] and
+    /// [`CRAFTING_SHEET`] (the host resolves them to [`BOOK_PNG`] and
+    /// [`CRAFTING_PNG`]), SVG pages as their box, custom-font text in the
+    /// Minecraft font. For hosts without GL — Yog-IDLE's book designer.
+    pub fn render_2d(&mut self, ctx: &GfxContext, sw: f32, sh: f32) {
+        let (bx, by, bw, bh) = self.prepare(sw, sh);
+        let d2 = ctx.draw2d();
+        d2.image_region(BOOK_SHEET, bx, by, bw, bh, [0.0, 0.0, BK_W, BK_H], 0xFFFF_FFFF);
+        for spr in &self.bg_sprites {
+            let sheet = match spr.sheet {
+                SpriteSheet::Book => BOOK_SHEET,
+                SpriteSheet::Crafting => CRAFTING_SHEET,
+            };
+            d2.image_region(sheet, spr.x, spr.y, spr.w, spr.h, [spr.u, spr.v, spr.uw, spr.uh], 0xFFFF_FFFF);
+        }
+        if let Some(ui) = &mut self.ui {
+            ui.render(ctx);
+        }
         for ov in &self.overlays {
             match *ov {
-                OverlayCmd::McItem {
-                    ref item_id,
-                    x,
-                    y,
-                    w,
-                    h,
-                } => {
-                    ctx.draw2d()
-                        .item(&normalize_item_id(item_id), x, y, w.min(h));
+                OverlayCmd::Svg { x, y, w, h, .. } => d2.rect(x, y, x + w, y + h, 0x40_000000),
+                OverlayCmd::Text { ref text, x, y, color, .. } => d2.text(text, x, y, color, false),
+                _ => {}
+            }
+        }
+        self.draw_mc_overlays(ctx);
+    }
+
+    fn draw_mc_overlays(&self, ctx: &GfxContext) {
+        for ov in &self.overlays {
+            match *ov {
+                OverlayCmd::McItem { ref item_id, x, y, w, h } => {
+                    ctx.draw2d().item(&normalize_item_id(item_id), x, y, w.min(h));
                 }
-                OverlayCmd::McText {
-                    ref text,
-                    x,
-                    y,
-                    color,
-                } => {
+                OverlayCmd::McText { ref text, x, y, color } => {
                     ctx.draw2d().text(text, x, y, color, false);
                 }
-                OverlayCmd::McTexture {
-                    ref path,
-                    x,
-                    y,
-                    w,
-                    h,
-                } => {
+                OverlayCmd::McTexture { ref path, x, y, w, h } => {
                     // Standalone icon texture, not an atlas region — drawn
                     // whole, scaled into the icon box.
                     ctx.draw2d().image(path, x, y, w, h);
                 }
                 _ => {}
+            }
+        }
+    }
+
+    /// A click at `(x, y)` (screen GUI pixels, as last rendered): what it
+    /// hit does its thing. The action it was (`"next_page"`, `"entry:3"`,
+    /// …), if any.
+    pub fn click(&mut self, x: f32, y: f32) -> Option<String> {
+        let ui = self.ui.as_ref()?;
+        let hit = yog_ui::layout::hit_test(&ui.layout_root, x, y)?;
+        let action = hit.on_click.clone()?;
+        self.handle_event(&action);
+        Some(action)
+    }
+
+    /// Shows `entry` (an entry id) at `page`, as a reader would have got
+    /// there; `false` if there's no such entry.
+    pub fn show(&mut self, entry: &str, page: usize) -> bool {
+        let Some(e) = self.book.entries.iter().find(|e| e.id == entry) else { return false };
+        let Some(cat) = self.book.categories.iter().position(|c| c.id == e.category) else { return false };
+        self.state.cat = cat;
+        self.state.at_home = false;
+        let in_cat = self.state.entries_in_cat(&self.book);
+        let Some(i) = in_cat.iter().position(|x| x.id == entry) else { return false };
+        self.state.entry = i;
+        self.state.page = page.min(e.pages.len().saturating_sub(1));
+        self.dirty = true;
+        true
+    }
+
+    /// The entry shown (its id) and the page of it, or `None` on the
+    /// landing and list pages.
+    pub fn shown(&self) -> Option<(String, usize)> {
+        if self.state.at_home {
+            return None;
+        }
+        self.state.current_entry(&self.book).map(|e| (e.id.clone(), self.state.page))
+    }
+
+    /// Replaces the book (an edit), keeping the reader where they were.
+    pub fn set_book(&mut self, book: Book) {
+        let at = self.shown();
+        self.book = flow(book);
+        self.theme = BookTheme::default().with_nameplate(&self.book.nameplate_color);
+        self.dirty = true;
+        match at {
+            Some((entry, page)) if self.show(&entry, page) => {}
+            _ => {
+                if self.state.cat >= self.book.categories.len() {
+                    self.state = BookViewState::default();
+                }
             }
         }
     }
@@ -1811,6 +1877,24 @@ mod tests {
             _ => 0,
         }).sum();
         assert_eq!(words, 400, "nothing lost");
+    }
+
+    #[test]
+    fn edits_keep_the_reader_where_they_were() {
+        let mut b = book(vec![BookPage::Text { text: "one".into(), title: None }, BookPage::Text { text: "two".into(), title: None }]);
+        b.categories.push(crate::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
+        b.entries[0].category = "c".into();
+        let mut r = BookRenderer::new(b.clone());
+        assert_eq!(r.shown(), None, "opens on the landing page");
+        assert!(r.show("e", 1));
+        assert_eq!(r.shown(), Some(("e".into(), 1)));
+        r.prepare(800.0, 600.0);
+        assert!(r.ui.is_some());
+
+        b.entries[0].pages.push(BookPage::Empty);
+        r.set_book(b);
+        assert_eq!(r.shown(), Some(("e".into(), 1)));
+        assert!(!r.show("missing", 0));
     }
 
     #[test]
