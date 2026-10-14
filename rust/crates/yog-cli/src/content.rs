@@ -312,9 +312,9 @@ struct Ctx<'a> {
     warnings: &'a mut Vec<String>,
     /// Bundled texture path → its source file.
     textures: &'a mut BTreeMap<String, PathBuf>,
-    /// `block.inventory` screen ids it names, by line — checked against the
-    /// mod's screens once every file is read.
-    inventories: Vec<(usize, String)>,
+    /// `block.inventory` screen ids named so far: (file, line, id) —
+    /// checked against the mod's screens once every file is read.
+    inventories: &'a mut Vec<(String, usize, String)>,
 }
 
 impl Ctx<'_> {
@@ -1163,7 +1163,8 @@ fn compile_file(
                 {
                     if valid_id(id) && id.contains(':') {
                         props.inventory = Some(id.to_string());
-                        cx.inventories.push((v.line, id.to_string()));
+                        let at = (cx.file.clone(), v.line, id.to_string());
+                        cx.inventories.push(at);
                     } else {
                         cx.err(v.line, format!("block.inventory `{id}`: the id of an inventory screen — a .yui <Screen id=\"mymod:name\"> with <Slot>s"));
                     }
@@ -1423,6 +1424,257 @@ fn drops_table(cx: &mut Ctx, d: &J, id: &str) -> Value {
 
 /// Compiles the mod's content files (see the module docs). Any error fails
 /// the whole thing, listing every problem.
+// ── Recipes ──────────────────────────────────────────────────────────────────
+
+/// What a recipe takes.
+#[derive(Debug, Clone)]
+enum RecipeKind {
+    /// A crafting grid pattern: rows of key characters (space = empty).
+    Shaped { pattern: Vec<String>, key: Vec<(char, String)> },
+    /// Crafting ingredients in any arrangement.
+    Shapeless(Vec<String>),
+    /// A furnace: one ingredient.
+    Smelting { input: String, experience: f64, cook_time: u32 },
+}
+
+/// One checked `.yrecipe`.
+#[derive(Debug, Clone)]
+struct Recipe {
+    id: String,
+    file: String,
+    kind: RecipeKind,
+    result: String,
+    count: u32,
+    /// Item ids it names (not tags), by line — the mod's own are checked
+    /// against its blocks and items.
+    items: Vec<(usize, String)>,
+}
+
+impl Recipe {
+    /// The `registry.add_*_recipe(...)` call registering it.
+    fn registration(&self) -> String {
+        let (id, result, count) = (&self.id, &self.result, self.count);
+        match &self.kind {
+            RecipeKind::Shaped { pattern, key } => {
+                let mut b = format!("::yog_api::ShapedRecipe::new({id:?}, {result:?}, {count})");
+                for row in pattern {
+                    let _ = write!(b, ".row({row:?})");
+                }
+                for (c, item) in key {
+                    let _ = write!(b, ".key({c:?}, {item:?})");
+                }
+                format!("registry.add_shaped_recipe({b});")
+            }
+            RecipeKind::Shapeless(ingredients) => {
+                let mut b = format!("::yog_api::ShapelessRecipe::new({id:?}, {result:?}, {count})");
+                for item in ingredients {
+                    let _ = write!(b, ".ingredient({item:?})");
+                }
+                format!("registry.add_shapeless_recipe({b});")
+            }
+            RecipeKind::Smelting { input, experience, cook_time } => format!(
+                "registry.add_furnace_recipe(::yog_api::FurnaceRecipe::new({id:?}, {input:?}, {result:?}, {count}).experience({}_f32).cook_time({cook_time}));",
+                float(*experience)
+            ),
+        }
+    }
+}
+
+/// An item id (`minecraft:paper`), or — where `tags` — an item tag
+/// (`#c:dusts`); the namespace is always written out.
+fn recipe_item(cx: &mut Ctx, j: &J, what: &str, tags: bool, items: &mut Vec<(usize, String)>) -> Option<String> {
+    let s = cx.string(j, what)?.trim().to_string();
+    let (tag, id) = match s.strip_prefix('#') {
+        Some(rest) => (true, rest),
+        None => (false, s.as_str()),
+    };
+    if tag && !tags {
+        cx.err(j.line, format!("{what} `{s}`: must be an item, not a tag"));
+        return None;
+    }
+    let ok = id.split_once(':').is_some_and(|(ns, p)| valid_namespace(ns) && valid_path(p));
+    if !ok {
+        let hint = if id.contains(':') { String::new() } else { format!(" — write `minecraft:{id}`") };
+        cx.err(
+            j.line,
+            format!("{what} `{s}`: expected an item id with its namespace (minecraft:paper){}{hint}", if tags { " or an item tag (#c:dusts)" } else { "" }),
+        );
+        return None;
+    }
+    if !tag {
+        items.push((j.line, id.to_string()));
+    }
+    Some(s)
+}
+
+/// Checks one `.yrecipe`.
+fn compile_recipe(cx: &mut Ctx, j: &J, path: &Path, mod_ns: Option<&str>) -> Option<Recipe> {
+    if !j.is_obj() {
+        cx.err(j.line, "a .yrecipe file is one JSON object");
+        return None;
+    }
+    cx.unknown_keys(
+        j,
+        "a .yrecipe",
+        &[
+            "$schema", "format", "id", "type", "pattern", "key", "ingredients", "ingredient",
+            "result", "count", "experience", "cook_time",
+        ],
+    );
+    if let Some(f) = j.get("format")
+        && f.num() != Some(1.0)
+    {
+        cx.err(f.line, "format must be 1 (this yog understands format 1)");
+    }
+    let (ns, p) = entry_id(cx, j, path, mod_ns)?;
+    let Some(t) = j.get("type") else {
+        cx.err(j.line, format!("a recipe needs a \"type\": {}", RECIPE_TYPES.join(", ")));
+        return None;
+    };
+    let ty = cx.one_of(t, "type", &RECIPE_TYPES)?;
+    // Keys of the other types.
+    for (key, owner) in [
+        ("pattern", "shaped"),
+        ("key", "shaped"),
+        ("ingredients", "shapeless"),
+        ("ingredient", "smelting"),
+        ("experience", "smelting"),
+        ("cook_time", "smelting"),
+    ] {
+        if owner != ty
+            && let Some(v) = j.get(key)
+        {
+            cx.err(v.line, format!("{key} is for {owner} recipes, this one is {ty}"));
+        }
+    }
+    let mut items = Vec::new();
+    let result = match j.get("result") {
+        Some(v) => recipe_item(cx, v, "result", false, &mut items),
+        None => {
+            cx.err(j.line, "a recipe needs a \"result\": the item it makes");
+            None
+        }
+    };
+    let count = match j.get("count") {
+        Some(v) => cx.number(v, "count", 1.0, 64.0).map(|n| n as u32),
+        None => Some(1),
+    };
+    let kind = match ty.as_str() {
+        "shaped" => {
+            let Some(pv) = j.get("pattern") else {
+                cx.err(j.line, "a shaped recipe needs a \"pattern\": 1–3 rows of 1–3 key characters, e.g. [\"ISI\", \" S \"]");
+                return None;
+            };
+            let rows: Vec<String> = pv.items().iter().filter_map(|r| cx.string(r, "pattern[]").map(str::to_owned)).collect();
+            let width = rows.first().map_or(0, |r| r.chars().count());
+            if !pv.is_arr() || rows.is_empty() || rows.len() > 3 || width == 0 || width > 3 || rows.iter().any(|r| r.chars().count() != width) {
+                cx.err(pv.line, "pattern must be 1–3 rows of the same 1–3 characters each");
+                return None;
+            }
+            let mut key = Vec::new();
+            match j.get("key") {
+                Some(kv) if kv.is_obj() => {
+                    for (k, v) in kv.members() {
+                        let mut chars = k.chars();
+                        match (chars.next(), chars.next()) {
+                            (Some(c), None) if c != ' ' => {
+                                if let Some(item) = recipe_item(cx, v, &format!("key {k:?}"), true, &mut items) {
+                                    if !rows.iter().any(|r| r.contains(c)) {
+                                        cx.warn(v.line, format!("key {k:?} isn't used by the pattern"));
+                                    }
+                                    key.push((c, item));
+                                }
+                            }
+                            _ => cx.err(v.line, format!("key {k:?}: one character other than space")),
+                        }
+                    }
+                }
+                Some(kv) => cx.err(kv.line, "key must be an object: { \"I\": \"minecraft:iron_ingot\", ... }"),
+                None => cx.err(j.line, "a shaped recipe needs a \"key\": what each pattern character stands for"),
+            }
+            for c in rows.iter().flat_map(|r| r.chars()).filter(|c| *c != ' ') {
+                if !key.iter().any(|(k, _)| *k == c) && j.get("key").is_some_and(|kv| kv.get(&c.to_string()).is_none()) {
+                    cx.err(pv.line, format!("pattern uses {c:?}, which key doesn't define"));
+                    return None;
+                }
+            }
+            RecipeKind::Shaped { pattern: rows, key }
+        }
+        "shapeless" => {
+            let Some(iv) = j.get("ingredients") else {
+                cx.err(j.line, "a shapeless recipe needs \"ingredients\": 1–9 items or tags");
+                return None;
+            };
+            let list: Vec<String> = iv
+                .items()
+                .iter()
+                .filter_map(|i| recipe_item(cx, i, "ingredients[]", true, &mut items))
+                .collect();
+            if !iv.is_arr() || iv.items().is_empty() || iv.items().len() > 9 {
+                cx.err(iv.line, "ingredients must be an array of 1–9 items or tags");
+                return None;
+            }
+            RecipeKind::Shapeless(list)
+        }
+        _ => {
+            let Some(iv) = j.get("ingredient") else {
+                cx.err(j.line, "a smelting recipe needs an \"ingredient\": the item or tag it smelts");
+                return None;
+            };
+            let input = recipe_item(cx, iv, "ingredient", true, &mut items)?;
+            let experience = match j.get("experience") {
+                Some(v) => cx.number(v, "experience", 0.0, 1000.0)?,
+                None => 0.1,
+            };
+            let cook_time = match j.get("cook_time") {
+                Some(v) => cx.number(v, "cook_time", 1.0, 32767.0)? as u32,
+                None => 200,
+            };
+            RecipeKind::Smelting { input, experience, cook_time }
+        }
+    };
+    Some(Recipe {
+        id: format!("{ns}:{p}"),
+        file: cx.file.clone(),
+        kind,
+        result: result?,
+        count: count?,
+        items,
+    })
+}
+
+/// Ids of the `.yui` screens under `dir` that lay out an inventory (have
+/// `<Slot>`s or a `<PlayerInventory>`).
+fn inventory_screens(dir: &Path) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return out;
+    };
+    for e in entries.flatten() {
+        let path = e.path();
+        if path.is_dir() {
+            out.extend(inventory_screens(&path));
+            continue;
+        }
+        if path.extension().is_none_or(|x| x != "yui") {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(&path) else { continue };
+        if !text.contains("<Slot") && !text.contains("<PlayerInventory") {
+            continue;
+        }
+        if let Some(screen) = text.find("<Screen")
+            && let Some(at) = text[screen..].find(" id=\"")
+        {
+            let rest = &text[screen + at + 5..];
+            if let Some(end) = rest.find('"') {
+                out.insert(rest[..end].to_string());
+            }
+        }
+    }
+    out
+}
+
 pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled, String> {
     let mut out = Compiled::default();
     let files = find(root);
@@ -1436,6 +1688,9 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut generated: BTreeMap<String, String> = BTreeMap::new();
     let mut entries: Vec<Entry> = Vec::new();
     let mut ids: HashMap<String, String> = HashMap::new();
+    let mut recipes: Vec<Recipe> = Vec::new();
+    let mut recipe_ids: HashMap<String, String> = HashMap::new();
+    let mut inventories: Vec<(String, usize, String)> = Vec::new();
     for path in &files {
         let shown = display(root, path);
         let Some(kind) = Kind::of(path) else { continue };
@@ -1461,7 +1716,17 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             errors: &mut errors,
             warnings: &mut warnings,
             textures: &mut textures,
+            inventories: &mut inventories,
         };
+        if kind == Kind::Recipe {
+            if let Some(r) = compile_recipe(&mut cx, &j, path, mod_ns) {
+                if let Some(other) = recipe_ids.insert(r.id.clone(), shown.clone()) {
+                    errors.push(format!("{shown}: recipe {} is also defined by {other}", r.id));
+                }
+                recipes.push(r);
+            }
+            continue;
+        }
         if let Some(entry) = compile_file(&mut cx, &j, kind, path, mod_ns, &mut out, &mut generated)
         {
             if let Some(other) = ids.insert(entry.id.clone(), shown.clone()) {
@@ -1471,6 +1736,28 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
                 ));
             }
             entries.push(entry);
+        }
+    }
+    // What recipes name from this mod must be its blocks and items (vanilla
+    // and other mods' ids can't be checked here).
+    if let Some(ns) = mod_ns {
+        for r in &recipes {
+            for (line, item) in &r.items {
+                if item.split_once(':').is_some_and(|(n, _)| n == ns) && !ids.contains_key(item) {
+                    errors.push(format!(
+                        "{}:{line}: no block or item {item} in {CONTENT_DIR}/",
+                        r.file
+                    ));
+                }
+            }
+        }
+        let screens = inventory_screens(&root.join("src"));
+        for (file, line, id) in &inventories {
+            if id.split_once(':').is_some_and(|(n, _)| n == ns) && !screens.contains(id) {
+                errors.push(format!(
+                    "{file}:{line}: block.inventory `{id}`: no .yui <Screen id=\"{id}\"> with <Slot>s in src/"
+                ));
+            }
         }
     }
     for (target, source) in &textures {
@@ -1488,13 +1775,16 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     out.blocks = entries.iter().filter(|e| e.kind == Kind::Block).count();
     out.items = entries.len() - out.blocks;
-    if entries.iter().any(|e| e.auto) && !mentions_content_macro(&root.join("src")) {
+    out.recipes = recipes.len();
+    if (entries.iter().any(|e| e.auto) || !recipes.is_empty())
+        && !mentions_content_macro(&root.join("src"))
+    {
         out.warnings.push(format!(
             "{} has blocks/items, but src/ never calls `yog_api::content!();` — they get models but aren't registered",
             CONTENT_DIR
         ));
     }
-    out.source = Some(rust_source(&entries));
+    out.source = Some(rust_source(&entries, &recipes));
     Ok(out)
 }
 
@@ -1541,7 +1831,7 @@ fn float(n: f64) -> String {
     }
 }
 
-fn rust_source(entries: &[Entry]) -> String {
+fn rust_source(entries: &[Entry], recipes: &[Recipe]) -> String {
     let mut code = String::from(
         "// <auto-generated>\n//     Generated by `yog build` from content/**/*.yblock and *.yitem — don't edit,\n//     it's rewritten on every build. Included by `yog_api::content!()`.\n// </auto-generated>\n",
     );
@@ -1681,8 +1971,11 @@ fn rust_source(entries: &[Entry]) -> String {
             Kind::Recipe => unreachable!("a recipe isn't a block or an item"),
         };
     }
+    for r in recipes {
+        let _ = writeln!(code, "    {}", r.registration());
+    }
     code.push_str("}\n");
-    if entries.iter().any(|e| e.auto) {
+    if entries.iter().any(|e| e.auto) || !recipes.is_empty() {
         code.push_str(
             "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",
         );
@@ -2056,6 +2349,73 @@ mod tests {
             e.contains("content/bad.yblock:10: unknown key \"bogus\""),
             "{e}"
         );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn compiles_recipes() {
+        let root = project(&[
+            ("content/ruby.yitem", r#"{ "model": { "parent": "generated", "textures": { "layer0": "minecraft:item/emerald" } } }"#),
+            (
+                "content/recipes/ruby_block.yrecipe",
+                r##"{ "type": "shaped", "pattern": ["RR", "RR"], "key": { "R": "mymod:ruby" }, "result": "minecraft:emerald_block" }"##,
+            ),
+            (
+                "content/recipes/ruby.yrecipe",
+                r##"{ "type": "shapeless", "ingredients": ["minecraft:emerald", "#c:dusts"], "result": "mymod:ruby", "count": 2 }"##,
+            ),
+            (
+                "content/recipes/smelt_ruby.yrecipe",
+                r##"{ "type": "smelting", "ingredient": "#c:ores", "result": "mymod:ruby", "experience": 0.7 }"##,
+            ),
+        ]);
+        let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
+        assert_eq!(c.recipes, 3);
+        let src = c.source.clone().unwrap();
+        for want in [
+            r#"registry.add_shaped_recipe(::yog_api::ShapedRecipe::new("mymod:ruby_block", "minecraft:emerald_block", 1).row("RR").row("RR").key('R', "mymod:ruby"));"#,
+            r##"registry.add_shapeless_recipe(::yog_api::ShapelessRecipe::new("mymod:ruby", "mymod:ruby", 2).ingredient("minecraft:emerald").ingredient("#c:dusts"));"##,
+            r##"::yog_api::FurnaceRecipe::new("mymod:smelt_ruby", "#c:ores", "mymod:ruby", 1).experience(0.7_f32).cook_time(200)"##,
+        ] {
+            assert!(src.contains(want), "missing {want}\n{src}");
+        }
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn recipe_mistakes() {
+        let bad = |recipe: &str| {
+            let root = project(&[("content/r.yrecipe", recipe)]);
+            let e = compile(&root, "mymod", &yres::Refs::default()).unwrap_err();
+            let _ = std::fs::remove_dir_all(root);
+            e
+        };
+        let e = bad(r#"{ "type": "shaped", "pattern": ["AB"], "key": { "A": "minecraft:stick" }, "result": "minecraft:stick" }"#);
+        assert!(e.contains("pattern uses 'B'"), "{e}");
+        let e = bad(r#"{ "type": "shapeless", "ingredients": ["stick"], "result": "minecraft:stick" }"#);
+        assert!(e.contains("write `minecraft:stick`"), "{e}");
+        let e = bad(r##"{ "type": "smelting", "ingredient": "minecraft:sand", "result": "#c:glass" }"##);
+        assert!(e.contains("must be an item, not a tag"), "{e}");
+        let e = bad(r#"{ "type": "shapeless", "ingredients": ["minecraft:sand"], "result": "mymod:nothing" }"#);
+        assert!(e.contains("no block or item mymod:nothing"), "{e}");
+        let e = bad(r#"{ "type": "shapeless", "pattern": ["A"], "ingredients": ["minecraft:sand"], "result": "minecraft:glass" }"#);
+        assert!(e.contains("pattern is for shaped recipes"), "{e}");
+    }
+
+    #[test]
+    fn block_inventory_names_a_screen() {
+        let block = r#"{ "block": { "inventory": "mymod:bench" }, "model": { "parent": "cube_all", "textures": { "all": "minecraft:block/stone" } } }"#;
+        let root = project(&[
+            ("content/bench.yblock", block),
+            ("src/bench.yui", r#"<Screen id="mymod:bench" width="176" height="166" x:ViewModel="Vm"><Slot index="0"/></Screen>"#),
+        ]);
+        let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
+        assert!(c.source.unwrap().contains(r#".inventory("mymod:bench")"#));
+        let _ = std::fs::remove_dir_all(root);
+
+        let root = project(&[("content/bench.yblock", block)]);
+        let e = compile(&root, "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("no .yui <Screen id=\"mymod:bench\"> with <Slot>s"), "{e}");
         let _ = std::fs::remove_dir_all(root);
     }
 

@@ -575,11 +575,12 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
             resources.outputs.len()
         );
     }
-    if content.blocks + content.items > 0 {
+    if content.blocks + content.items + content.recipes > 0 {
         eprintln!(
-            "    compiled {} block(s) and {} item(s) from {}/",
+            "    compiled {} block(s), {} item(s) and {} recipe(s) from {}/",
             content.blocks,
             content.items,
+            content.recipes,
             content::CONTENT_DIR
         );
     }
