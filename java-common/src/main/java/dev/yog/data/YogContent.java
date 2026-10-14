@@ -55,6 +55,9 @@ public final class YogContent {
     /** A recipe in Yog's own format, as a JSON tree (what {@code YogDataLayout.yogRecipeToVanilla} reads). */
     public record Recipe(String namespace, String name, com.google.gson.JsonObject data) {}
 
+    /** A placed feature (an ore's) added to the biomes of a tag at a generation step ({@code underground_ores}). */
+    public record BiomeFeature(String feature, String biomes, String step) {}
+
     /** A dimension: its id and {@code YogDimensionDef} as a JSON tree. */
     public record Dimension(String id, com.google.gson.JsonObject def) {}
 
@@ -64,14 +67,17 @@ public final class YogContent {
     public final Map<String, YogInventoryDef> inventories;
     public final List<Recipe> recipes;
     public final List<Dimension> dimensions;
+    /** For the hosts that add features to biomes in code (Fabric). */
+    public final List<BiomeFeature> biomeFeatures;
 
     private YogContent(List<Item> items, List<Block> blocks, Map<String, YogInventoryDef> inventories,
-                       List<Recipe> recipes, List<Dimension> dimensions) {
+                       List<Recipe> recipes, List<Dimension> dimensions, List<BiomeFeature> biomeFeatures) {
         this.items = items;
         this.blocks = blocks;
         this.inventories = inventories;
         this.recipes = recipes;
         this.dimensions = dimensions;
+        this.biomeFeatures = biomeFeatures;
     }
 
     private static YogContent cached;
@@ -90,7 +96,7 @@ public final class YogContent {
     public static YogContent read(byte[] blob) {
         if (blob == null || blob.length == 0) {
             return new YogContent(Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(),
-                    Collections.emptyList(), Collections.emptyList());
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         }
         Map<String, Object> root = YogData.map(YogData.decode(blob));
         List<Item> items = new ArrayList<>();
@@ -137,7 +143,13 @@ public final class YogContent {
             Map<String, Object> m = YogData.map(o);
             dimensions.add(new Dimension(YogData.str(m.get("id"), ""), object(m.get("def"))));
         }
-        return new YogContent(items, blocks, inventories, recipes, dimensions);
+        List<BiomeFeature> biomeFeatures = new ArrayList<>();
+        for (Object o : YogData.list(root.get("biome_features"))) {
+            Map<String, Object> m = YogData.map(o);
+            biomeFeatures.add(new BiomeFeature(YogData.str(m.get("feature"), ""), YogData.str(m.get("biomes"), "minecraft:is_overworld"),
+                    YogData.str(m.get("step"), "underground_ores")));
+        }
+        return new YogContent(items, blocks, inventories, recipes, dimensions, biomeFeatures);
     }
 
     private static Tool tool(Object v) {

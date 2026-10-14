@@ -374,6 +374,22 @@ public class YogHost implements ModInitializer {
 
     private static void parseInventoryDefs() {
         INVENTORY_DEFS.putAll(YogContent.cached(NativeBridge::nativeContent).inventories);
+        // Features the mods add to biomes (their ores): Fabric adds them in code,
+        // Forge and NeoForge read the biome modifiers the build wrote.
+        for (YogContent.BiomeFeature f : YogContent.cached(NativeBridge::nativeContent).biomeFeatures) {
+            Identifier feature = Identifier.tryParse(f.feature()), biomes = Identifier.tryParse(f.biomes());
+            if (feature == null || biomes == null) continue;
+            net.minecraft.world.gen.GenerationStep.Feature step;
+            try {
+                step = net.minecraft.world.gen.GenerationStep.Feature.valueOf(f.step().toUpperCase(java.util.Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                System.err.println("[yog] " + f.feature() + ": no generation step " + f.step());
+                continue;
+            }
+            net.fabricmc.fabric.api.biome.v1.BiomeModifications.addFeature(
+                    net.fabricmc.fabric.api.biome.v1.BiomeSelectors.tag(net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.BIOME, biomes)),
+                    step, net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.PLACED_FEATURE, feature));
+        }
     }
 
     private static void registerContent() {

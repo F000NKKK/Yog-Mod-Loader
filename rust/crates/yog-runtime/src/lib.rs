@@ -183,6 +183,8 @@ struct RuntimeHandlers {
     sound_groups: HashMap<String, yog_registry::SoundGroup>,
     /// Mods' tool and armor materials by id (the game's are built in).
     tool_materials: HashMap<String, yog_registry::ToolMaterial>,
+    /// Placed features added to biomes (an ore's): for the hosts that add them in code.
+    biome_features: Vec<yog_registry::BiomeFeature>,
     armor_materials: HashMap<String, yog_registry::ArmorMaterial>,
     inventories: Vec<yog_inventory::InventoryDef>,
     /// The ids of the registered books (their renderers are `book_renderers`).
@@ -2146,6 +2148,11 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
                 none_if_empty(&mut d.sound);
                 none_if_empty(&mut d.inventory_id);
                 h.blocks.push(d);
+            }
+        }
+        "biome_feature" => {
+            if let Some(f) = read::<yog_registry::BiomeFeature>(kind, &id, value) {
+                h.biome_features.push(f);
             }
         }
         "tool_material" => {

@@ -77,12 +77,12 @@ fn sound<'v>(w: &mut Writer<'v>, g: &'v yog_registry::SoundGroup) {
     w.key("pitch").float(g.pitch as f64);
 }
 
-/// The registered content: `{ items, blocks, inventories, recipes, dimensions }`.
+/// The registered content: `{ items, blocks, inventories, recipes, biome_features, dimensions }`.
 pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
     // Inventories' layouts are worked out first: the writer borrows them.
     let layouts: Vec<_> = h.inventories.iter().map(|d| d.resolved_layout()).collect();
     let mut w = Writer::new();
-    w.map(5);
+    w.map(6);
 
     w.key("items").list(h.items.len());
     for d in &h.items {
@@ -212,6 +212,14 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
         w.key("namespace").str(ns);
         w.key("name").str(name);
         w.key("recipe").value(recipe);
+    }
+
+    w.key("biome_features").list(h.biome_features.len());
+    for f in &h.biome_features {
+        w.map(3);
+        w.key("feature").str(&f.feature);
+        w.key("biomes").str(&f.biomes);
+        w.key("step").str(&f.step);
     }
 
     w.key("dimensions").list(h.dimensions.len());

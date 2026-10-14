@@ -1202,6 +1202,7 @@ fn compile_layout(
     text: &str,
     mod_ns: Option<&str>,
     known: &refs::Known,
+    ores: &mut Vec<OreOut>,
 ) -> Option<(Option<yog_book::layout::RecipeLayout>, Option<yog_formats::def::RecipeKindDef>)> {
     use yog_formats::def::Def;
     let doc = match yog_data::text::parse(text) {
@@ -1259,9 +1260,66 @@ fn compile_layout(
             }
             (Some(l), None)
         }
+        Def::Ore(o) => {
+            if ok {
+                ores.push(ore(o, ns));
+            }
+            return None;
+        }
         _ => return None,
     };
     ok.then_some((layout, kind))
+}
+
+/// What an ore makes: its files, and the biome feature (feature, biomes, step) for Fabric's host.
+type OreOut = (Vec<Output>, (String, String, String));
+
+/// An ore: its configured and placed features (the same on every version),
+/// the biome modifiers Forge and NeoForge read (each its own), and the
+/// biome feature the build registers for Fabric's host.
+fn ore(o: yog_formats::def::OreDef, ns: &str) -> OreOut {
+    use serde_json::json;
+    let p = o.id.split_once(':').map_or(o.id.as_str(), |(_, p)| p).to_string();
+    let id = format!("{ns}:{p}");
+    let targets: Vec<Value> = o
+        .targets
+        .iter()
+        .map(|t| {
+            let target = match t.replaces.strip_prefix('#') {
+                Some(tag) => json!({ "predicate_type": "minecraft:tag_match", "tag": tag }),
+                None => json!({ "predicate_type": "minecraft:block_match", "block": t.replaces }),
+            };
+            json!({ "target": target, "state": { "Name": t.block.id } })
+        })
+        .collect();
+    let configured = json!({
+        "type": "minecraft:ore",
+        "config": { "size": o.size, "discard_chance_on_air_exposure": o.air_exposure, "targets": targets }
+    });
+    let shape = match o.height.shape {
+        yog_formats::def::HeightShape::Uniform => "minecraft:uniform",
+        yog_formats::def::HeightShape::Triangle => "minecraft:trapezoid",
+    };
+    let placed = json!({
+        "feature": id,
+        "placement": [
+            { "type": "minecraft:count", "count": o.per_chunk },
+            { "type": "minecraft:in_square" },
+            { "type": "minecraft:height_range", "height": { "type": shape, "min_inclusive": { "absolute": o.height.min }, "max_inclusive": { "absolute": o.height.max } } },
+            { "type": "minecraft:biome" }
+        ]
+    });
+    let biomes = o.biomes.map(|b| b.id).unwrap_or_else(|| "minecraft:is_overworld".into());
+    let modifier = |kind: &str| json!({ "type": kind, "biomes": format!("#{biomes}"), "features": id, "step": "underground_ores" });
+    let mut files: Vec<Output> = Vec::new();
+    let mut put = |path: String, v: Value| files.push((path, pretty(&v)));
+    put(format!("data/{ns}/worldgen/configured_feature/{p}.json"), configured);
+    put(format!("data/{ns}/worldgen/placed_feature/{p}.json"), placed);
+    for (dir, kind) in [("when/forge/any", "forge:add_features"), ("when/neoforge/1.20", "forge:add_features")] {
+        put(format!("{dir}/data/{ns}/forge/biome_modifier/{p}.json"), modifier(kind));
+    }
+    put(format!("when/neoforge/1.21/data/{ns}/neoforge/biome_modifier/{p}.json"), modifier("neoforge:add_features"));
+    (files, (id, biomes, "underground_ores".into()))
 }
 
 /// One checked `.yrecipe`.
@@ -1557,6 +1615,8 @@ struct Defs {
     sound_groups: Vec<yog_formats::def::SoundGroup>,
     tool_materials: Vec<yog_formats::def::ToolMaterial>,
     armor_materials: Vec<yog_formats::def::ArmorMaterial>,
+    /// Placed features the mod adds to biomes (its ores), for the hosts that add them in code.
+    biome_features: Vec<(String, String, String)>,
 }
 
 impl Defs {
@@ -1612,7 +1672,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                     }
                 }
                 // Read with the recipes (`compile_layout`).
-                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::RecipeLayout(_) => {}
+                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::RecipeLayout(_) | yog_formats::def::Def::Ore(_) => {}
                 // Its level is placed on the ladder below.
                 yog_formats::def::Def::ToolMaterial(mut m) => {
                     m.id = full(&m.id);
@@ -1712,7 +1772,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
             incorrect,
         });
     }
-    Defs { order, sound_groups, tool_materials, armor_materials }
+    Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new() }
 }
 
 /// The tags that make block `id` need tool level `level`, on every version:
@@ -1831,7 +1891,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         if kind == Kind::Def {
             // Kinds of recipe and recipe layouts are checked with the recipes.
             let of = yog_data::text::parse_value(&text).ok().and_then(|v| v.get("kind").and_then(|k| k.as_str()).map(str::to_string));
-            if matches!(of.as_deref(), Some("recipe_kind" | "recipe_layout")) {
+            if matches!(of.as_deref(), Some("recipe_kind" | "recipe_layout" | "ore")) {
                 pending_layouts.push((shown.clone(), text));
             } else {
                 pending_defs.push((shown.clone(), text));
@@ -1873,6 +1933,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut layouts: Vec<yog_book::layout::RecipeLayout> = Vec::new();
     let mut recipe_defs: HashMap<String, yog_formats::def::RecipeKindDef> = HashMap::new();
     let mut laid_out: HashMap<String, String> = HashMap::new();
+    let mut ores: Vec<OreOut> = Vec::new();
     for (shown, text) in &pending_layouts {
         let mut cx = Ctx {
             root,
@@ -1885,7 +1946,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        let Some((l, kind)) = compile_layout(&mut cx, text, mod_ns, &known) else { continue };
+        let Some((l, kind)) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores) else { continue };
         if let Some(k) = kind {
             if recipe_defs.contains_key(&k.id) {
                 errors.push(format!("{shown}: recipe kind {} is declared twice", k.id));
@@ -1924,7 +1985,11 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         known.add(refs::RefKind::Recipe, r.id.clone());
     }
     // Definitions: the ladders and their levels, sound groups.
-    let defs = read_defs(&pending_defs, mod_ns, &mut errors);
+    let mut defs = read_defs(&pending_defs, mod_ns, &mut errors);
+    for (files, feature) in ores {
+        out.outputs.extend(files);
+        defs.biome_features.push(feature);
+    }
     // What blocks and items name (drops, levels): known now.
     for (file, line, path, r) in &deferred {
         let found = match r.kind.as_str() {
@@ -2004,7 +2069,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     out.items = entries.len() - out.blocks;
     out.recipes = recipes.len();
     out.books = books.len();
-    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty())
+    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty())
         && !mentions_content_macro(&root.join("src"))
     {
         out.warnings.push(format!(
@@ -2293,6 +2358,9 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
             float(g.pitch as f64)
         );
     }
+    for (feature, biomes, step) in &defs.biome_features {
+        let _ = writeln!(code, "    registry.add_biome_feature({feature:?}, {biomes:?}, {step:?});");
+    }
     for m in &defs.tool_materials {
         let _ = writeln!(
             code,
@@ -2320,7 +2388,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
         );
     }
     code.push_str("}\n");
-    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() {
+    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() {
         code.push_str(
             "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",
         );
@@ -2984,6 +3052,32 @@ mod tests {
         let crafter = format!(r#"{{ {model}, block: {{ drops: {{ item: "@item:minecraft:crafter" }} }} }}"#);
         let c = compile(&project(&[("content/c.yblock", &crafter)]), "mymod", &yres::Refs::default()).unwrap();
         assert!(c.warnings.iter().any(|w| w.contains("minecraft:crafter, which Minecraft 1.20.1 hasn't got")), "{:?}", c.warnings);
+    }
+
+    #[test]
+    fn ores_become_features_in_biomes_on_every_loader() {
+        let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+        let block = format!(r#"{{ {model} }}"#);
+        let ore = r#"{ kind: "ore", id: "mythril_ore", targets: [{ replaces: "stone", block: "@block:mymod:mythril_ore" },
+            { replaces: "@block:minecraft:basalt", block: "@block:mymod:mythril_ore" }], size: 6, per_chunk: 4,
+            height: { min: -48, max: 16, shape: "triangle" } }"#;
+        let c = compile(&project(&[("content/mythril_ore.yblock", &block), ("content/mythril_ore.ydef", ore)]), "mymod", &yres::Refs::default()).unwrap();
+        let get = |p: &str| c.outputs.iter().find(|(q, _)| q == p).map(|(_, b)| serde_json::from_slice::<Value>(b).unwrap()).unwrap_or_else(|| panic!("no {p}"));
+        let cf = get("data/mymod/worldgen/configured_feature/mythril_ore.json");
+        assert_eq!(cf["config"]["targets"][0]["target"]["tag"], "minecraft:stone_ore_replaceables");
+        assert_eq!(cf["config"]["targets"][1]["target"]["block"], "minecraft:basalt");
+        let pf = get("data/mymod/worldgen/placed_feature/mythril_ore.json");
+        assert_eq!(pf["placement"][2]["height"]["type"], "minecraft:trapezoid");
+        assert_eq!(get("when/neoforge/1.21/data/mymod/neoforge/biome_modifier/mythril_ore.json")["type"], "neoforge:add_features");
+        assert_eq!(get("when/forge/any/data/mymod/forge/biome_modifier/mythril_ore.json")["biomes"], "#minecraft:is_overworld");
+        let src = c.source.unwrap();
+        assert!(src.contains(r#"registry.add_biome_feature("mymod:mythril_ore", "minecraft:is_overworld", "underground_ores");"#), "{src}");
+        let bad = r#"{ kind: "ore", id: "x", targets: [{ replaces: "granite", block: "@block:mymod:nope" }], size: 6, per_chunk: 4, height: { min: 0, max: 10 } }"#;
+        let e = compile(&project(&[("content/x.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("`granite`: one of stone, deepslate, netherrack, end_stone"), "{e}");
+        let missing = r#"{ kind: "ore", id: "x", targets: [{ replaces: "stone", block: "@block:mymod:nope" }], size: 6, per_chunk: 4, height: { min: 0, max: 10 } }"#;
+        let e = compile(&project(&[("content/x.ydef", missing)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("no block mymod:nope"), "{e}");
     }
 
     #[test]

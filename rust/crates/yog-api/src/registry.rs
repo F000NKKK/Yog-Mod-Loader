@@ -2165,6 +2165,15 @@ impl Registry {
         self.content("block", &def.id.clone(), &def.write());
     }
 
+    /// Add placed feature `feature` (the mod's datapack's, like an ore's
+    /// `mymod:mythril_ore`) to the biomes of tag `biomes` at generation
+    /// `step` (`underground_ores`). An ore `.ydef` does this for you.
+    pub fn add_biome_feature(&mut self, feature: &str, biomes: &str, step: &str) {
+        use yog_data::Schema;
+        let f = yog_registry::BiomeFeature { feature: feature.into(), biomes: biomes.into(), step: step.into() };
+        self.content("biome_feature", feature, &f.write());
+    }
+
     /// Register a tool material — what tool items naming it
     /// (`ItemDef::tool`) are made of. The game's are built in.
     pub fn register_tool_material(&mut self, material: ToolMaterial) {

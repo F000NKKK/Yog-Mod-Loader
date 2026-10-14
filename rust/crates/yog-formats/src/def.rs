@@ -52,6 +52,100 @@ pub enum Def {
     /// What armor is made of (`@armor_material:mymod:mythril`); the game's
     /// are built in (`iron`, `diamond`…).
     ArmorMaterial(ArmorMaterialDef),
+    /// An ore in the world: veins of the mod's blocks in place of stone,
+    /// in the biomes it says — the overworld's or any dimension's.
+    Ore(OreDef),
+}
+
+/// `{ kind: "ore", id: "mythril_ore", targets: [{ replaces: "stone", block:
+/// "@block:mymod:mythril_ore" }, { replaces: "deepslate", block:
+/// "@block:mymod:deepslate_mythril_ore" }], size: 6, per_chunk: 4, height:
+/// { min: -48, max: 16, shape: "triangle" } }`.
+#[derive(Schema, Debug, Clone)]
+pub struct OreDef {
+    pub id: String,
+    /// What it replaces with what: one ore block for each kind of stone.
+    pub targets: Vec<OreTarget>,
+    /// Blocks in a vein, at most.
+    #[data(range = "1..=64")]
+    pub size: u32,
+    /// Veins a chunk.
+    #[data(range = "0..=256")]
+    pub per_chunk: u32,
+    pub height: OreHeight,
+    /// The chance that a block of a vein touching air isn't placed (0–1;
+    /// the game's diamonds: 0.5 for small veins).
+    #[data(default, range = "0..=1")]
+    pub air_exposure: f32,
+    /// Where: a tag of biomes — the overworld's by default.
+    pub biomes: Option<yog_data::TagId<yog_data::kinds::Biome>>,
+}
+
+/// One kind of stone an ore replaces, and the block that takes its place.
+#[derive(Schema, Debug, Clone)]
+pub struct OreTarget {
+    /// `stone` (the overworld's stones), `deepslate`, `netherrack`,
+    /// `end_stone`, a tag of blocks (`@tag:block:mymod:marble`) or a block
+    /// (`@block:minecraft:basalt`).
+    #[data(with = "OreReplaces")]
+    pub replaces: String,
+    pub block: yog_data::BlockId,
+}
+
+/// Where a vein may be: `min` to `max` blocks high, evenly (`uniform`) or
+/// mostly in the middle (`triangle`).
+#[derive(Schema, Debug, Clone)]
+pub struct OreHeight {
+    pub min: i32,
+    pub max: i32,
+    #[data(default)]
+    pub shape: HeightShape,
+}
+
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HeightShape {
+    #[default]
+    Uniform,
+    Triangle,
+}
+
+/// What an ore replaces: `#tag` or a block id, as the game's ore targets write it.
+pub struct OreReplaces;
+
+/// The game's stones by short name: what their ores replace.
+pub const ORE_STONES: [(&str, &str); 4] = [
+    ("stone", "#minecraft:stone_ore_replaceables"),
+    ("deepslate", "#minecraft:deepslate_ore_replaceables"),
+    ("netherrack", "minecraft:netherrack"),
+    ("end_stone", "minecraft:end_stone"),
+];
+
+impl yog_data::with::With<String> for OreReplaces {
+    fn shape() -> yog_data::Shape {
+        yog_data::Shape::RefOrTag(&["block"])
+    }
+    fn read(v: &yog_data::ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<String> {
+        use yog_data::ValueRef;
+        match v {
+            ValueRef::Str(s) if !s.starts_with('@') => ORE_STONES.iter().find(|(n, _)| n == s).map(|(_, t)| t.to_string()).or_else(|| {
+                let names: Vec<&str> = ORE_STONES.iter().map(|(n, _)| *n).collect();
+                cx.problem(format!("`{s}`: one of {} — or a tag of blocks (`@tag:block:…`) or a block (`@block:…`)", names.join(", ")));
+                None
+            }),
+            ValueRef::Tag { .. } => yog_data::TagId::<yog_data::kinds::Block>::read(v, cx).map(|t| format!("#{}", t.id)),
+            ValueRef::Str(s) if s.starts_with("@tag:") => yog_data::TagId::<yog_data::kinds::Block>::read(v, cx).map(|t| format!("#{}", t.id)),
+            _ => yog_data::with::RefTo::<yog_data::kinds::Block>::read(v, cx),
+        }
+    }
+    fn write(f: &String) -> yog_data::Value {
+        if let Some((n, _)) = ORE_STONES.iter().find(|(_, t)| t == f) {
+            return yog_data::Value::from(*n);
+        }
+        match f.strip_prefix('#') {
+            Some(t) => yog_data::Value::Tag(yog_data::Ref::new("block", t)),
+            None => yog_data::Value::Ref(yog_data::Ref::new("block", f.clone())),
+        }
+    }
 }
 
 /// `{ kind: "tool_material", id: "mythril", durability: 1800, speed: 10,
