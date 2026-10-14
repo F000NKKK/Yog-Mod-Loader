@@ -37,7 +37,7 @@ pub fn multiblock_blocks(
     out
 }
 
-pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET};
+pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET, LANG};
 pub use state::BookViewState;
 pub use theme::BookTheme;
 

@@ -1435,7 +1435,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.62.4"
+version = "0.62.7"
 dependencies = [
  "serde",
  "serde_json",
@@ -1446,7 +1446,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.32.3"
+version = "0.32.4"
 dependencies = [
  "criterion",
  "serde_json",

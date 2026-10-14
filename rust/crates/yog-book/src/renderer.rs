@@ -41,6 +41,12 @@ const MIN_SCALE: f32 = 0.4;
 pub static BOOK_PNG: &[u8] = include_bytes!("../assets/book_brown.png");
 /// The crafting-grid sprite sheet.
 pub static CRAFTING_PNG: &[u8] = include_bytes!("../assets/crafting.png");
+/// The book's own words (`yog.book.*`) per language, as the loader's jars
+/// ship them in `assets/yog/lang/` (for hosts without them, like Yog-IDLE).
+pub static LANG: &[(&str, &str)] = &[
+    ("en_us", include_str!("../assets/lang/en_us.json")),
+    ("ru_ru", include_str!("../assets/lang/ru_ru.json")),
+];
 /// The image source the book draws [`BOOK_PNG`] as: the loader ships it
 /// as `assets/yog/textures/gui/book/book.png` (Yog-IDLE resolves it to
 /// the bytes).
@@ -245,11 +251,6 @@ fn normalize_item_id(id: &str) -> String {
     format!("{ns}:{name}")
 }
 
-/// `0xAARRGGBB` → `#rrggbb`.
-fn theme_hex(argb: u32) -> String {
-    format!("#{:06x}", argb & 0xFF_FFFF)
-}
-
 /// The image source of a book's sheet: its own (`book_texture`, a sheet
 /// laid out as [`BOOK_PNG`]; `ns:textures/x.png` and `ns:x` alike) or Yog's.
 fn book_sheet(texture: &str) -> String {
@@ -262,10 +263,50 @@ fn book_sheet(texture: &str) -> String {
     format!("{ns}:{}", path.strip_suffix(".png").unwrap_or(path))
 }
 
-/// The game's translations, for item names (set with the translator).
+/// The game's translations: item names and the book's own words (set with the translator).
 static ITEM_NAMES: std::sync::RwLock<Option<Translator>> = std::sync::RwLock::new(None);
 
 type Translator = fn(&str) -> Option<String>;
+
+/// The book's own word `yog.book.<key>` in the game's language (`%s`:
+/// `arg`), else English.
+fn word(key: &str, arg: &str) -> String {
+    let k = format!("yog.book.{key}");
+    let tr = *ITEM_NAMES.read().unwrap_or_else(|e| e.into_inner());
+    let text = tr.and_then(|tr| tr(&k)).filter(|t| *t != k).or_else(|| {
+        // English, from the shipped file.
+        static EN: std::sync::LazyLock<HashMap<String, String>> =
+            std::sync::LazyLock::new(|| serde_json::from_str(LANG[0].1).unwrap_or_default());
+        EN.get(&k).cloned()
+    });
+    let text = text.unwrap_or(k);
+    text.replace("%s", arg)
+}
+
+/// "staff/oak" → "Oak Staff".
+fn name_from_path(path: &str) -> String {
+    path.rsplit('/')
+        .flat_map(|seg| seg.split('_'))
+        .filter(|w| !w.is_empty())
+        .map(|w| {
+            let mut c = w.chars();
+            match c.next() {
+                Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// An entity's name: the game's (`entity.<ns>.<path>`), else one made
+/// from its id.
+fn entity_name(id: &str) -> String {
+    let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
+    let k = format!("entity.{ns}.{}", path.replace('/', "."));
+    let tr = *ITEM_NAMES.read().unwrap_or_else(|e| e.into_inner());
+    tr.and_then(|tr| tr(&k)).filter(|t| *t != k).unwrap_or_else(|| name_from_path(path))
+}
 
 /// An item's name: the game's (`item.<ns>.<path>`, else `block.…`), else
 /// one made from its id — "hexcasting:staff/oak" → "Oak Staff".
@@ -280,18 +321,7 @@ fn pretty_item_name(id: &str) -> String {
             }
         }
     }
-    path.rsplit('/')
-        .flat_map(|seg| seg.split('_'))
-        .filter(|w| !w.is_empty())
-        .map(|w| {
-            let mut c = w.chars();
-            match c.next() {
-                Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-                None => String::new(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+    name_from_path(path)
 }
 
 // ── BookRenderer ──────────────────────────────────────────────────────────────
@@ -628,7 +658,7 @@ const BODY_H: f32 = PAGE_H - 22.0 - 12.0 - 14.0;
 /// the gap under it), in book pixels.
 const MB_VIEW: f32 = 70.0;
 /// A pattern page's box for its patterns, in book pixels.
-const PATTERN_H: f32 = 56.0;
+const PATTERN_H: f32 = 64.0;
 const MB_NAME_H: f32 = 14.0;
 
 /// How much of the body a page's own content takes above its text.
@@ -858,7 +888,7 @@ fn build_landing_left(
     });
     if let Some(author) = &book.author {
         overlays.push(OverlayCmd::McText {
-            text: format!("by {}", author),
+            text: word("by", author),
             x: bx + 24.0 * sx,
             y: by + 24.0 * sy,
             color: theme.nameplate,
@@ -887,7 +917,7 @@ fn build_landing_left(
     let total = book.entries.len();
     col = col.child(widget::spacer().flex(1.0));
     col = col.child(
-        title_lbl(format!("{} entries", total))
+        title_lbl(word("entry_count", &total.to_string()))
             .color(theme.nav)
             .h(9.0 * sy)
             .align(Align::Center),
@@ -944,7 +974,7 @@ fn build_categories_right(
         .gap(0.0);
 
     col = col.child(
-        title_lbl("Categories")
+        title_lbl(word("categories", ""))
             .color(theme.divider)
             .h(header_h)
             .align(Align::Center)
@@ -1121,7 +1151,8 @@ fn build_entries_right(
         .categories
         .get(state.cat)
         .map(|c| c.name.as_str())
-        .unwrap_or("Entries");
+        .map(str::to_string)
+        .unwrap_or_else(|| word("entries", ""));
     let spread_count = state.list_spread_count(book);
 
     // Patchouli GuiBookEntryList layout (right page):
@@ -1341,7 +1372,7 @@ fn build_page(
     let mut col = widget::panel(FlexDir::Column).flex(1.0).gap(4.0);
 
     let Some(page) = page else {
-        return col.child(lbl("No entries yet.").color(theme.nav));
+        return col.child(lbl(word("no_entries", "")).color(theme.nav));
     };
 
     match page {
@@ -1575,7 +1606,7 @@ fn build_page(
             if let Some(t) = text {
                 col = col.child(lbl(t.as_str()).color(theme.text));
             }
-            col = col.child(title_lbl("See also:").color(theme.title));
+            col = col.child(title_lbl(word("see_also", "")).color(theme.title));
             for e in entries {
                 col = col.child(lbl(format!("• {}", e)).color(theme.nav));
             }
@@ -1607,7 +1638,7 @@ fn build_page(
             name,
             text,
         } => {
-            let display = name.as_deref().unwrap_or(entity_type.as_str());
+            let display = name.clone().unwrap_or_else(|| entity_name(entity_type));
             col = col.child(title_lbl(display).color(theme.title));
             overlays.push(OverlayCmd::Entity {
                 entity: entity_type.clone(),
@@ -1632,21 +1663,20 @@ fn build_page(
             ..
         } => {
             col = col.child(title_lbl(name.as_deref().unwrap_or(op_id.as_str())).color(theme.title).h(10.0 * sy));
-            // Hex Casting's page: the pattern in a box under the name, then
-            // what it takes and gives.
+            // Hex Casting's page: the patterns in a box the page's width
+            // under the name, then what it takes and gives.
             if !patterns.is_empty() {
-                let (w, h) = (PAGE_W - 8.0, PATTERN_H);
                 overlays.push(OverlayCmd::Svg {
-                    data: crate::pattern::svg(patterns, w, h, &theme_hex(theme.title)),
-                    x: ox + 4.0 * sx,
+                    data: crate::pattern::svg(patterns, PAGE_W, PATTERN_H),
+                    x: ox,
                     y: oy + 14.0 * sy,
-                    w: w * sx,
-                    h: h * sy,
+                    w: PAGE_W * sx,
+                    h: PATTERN_H * sy,
                 });
-                col = col.child(widget::spacer().h(h * sy));
+                col = col.child(widget::spacer().h(PATTERN_H * sy));
             }
             if !input.is_empty() || !output.is_empty() {
-                col = col.child(lbl(format!("{} → {}", input, output)).color(theme.nav).align(Align::Center));
+                col = col.child(lbl(format!("{{u|{input}}} → {{u|{output}}}")).color(theme.text));
             }
             if !text.is_empty() {
                 col = col.child(lbl(text.as_str()).color(theme.text));
