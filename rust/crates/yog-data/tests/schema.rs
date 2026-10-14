@@ -324,3 +324,48 @@ fn codecs_keep_plain_types_and_resolve() {
     );
     assert_eq!(fields[2].get("required"), Some(&Value::Bool(false)));
 }
+
+#[derive(Schema, Debug, PartialEq)]
+struct Ranged {
+    #[data(range = "1..=99")]
+    stack: u32,
+    #[data(range = "-16..=32")]
+    from: Option<[f64; 3]>,
+}
+
+#[test]
+fn ranges_are_checked_and_described() {
+    assert_eq!(
+        from_text::<Ranged>("{ stack: 64, from: [0, 8, 32] }")
+            .unwrap()
+            .value,
+        Ranged {
+            stack: 64,
+            from: Some([0.0, 8.0, 32.0])
+        }
+    );
+    let e = from_text::<Ranged>("{ stack: 100, from: [0, 40.5, 0] }")
+        .unwrap_err()
+        .to_string();
+    assert_eq!(
+        e.lines().collect::<Vec<_>>(),
+        [
+            "1:10: stack: 100 is out of range (1..=99)",
+            "1:21: from: 40.5 is out of range (-16..=32)"
+        ]
+    );
+    let shape = Ranged::shape().describe();
+    let fields = shape
+        .get("defs")
+        .unwrap()
+        .get("Ranged")
+        .unwrap()
+        .get("fields")
+        .unwrap()
+        .as_list()
+        .unwrap();
+    assert_eq!(
+        fields[0].get("range"),
+        Some(&Value::List(vec![Value::Float(1.0), Value::Float(99.0)]))
+    );
+}

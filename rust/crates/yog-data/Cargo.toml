@@ -1,6 +1,6 @@
 [package]
 name = "yog-data"
-version = "0.2.2"
+version = "0.3.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -10,7 +10,7 @@ description = "Yog Data — the one data model, text syntax, binary form and sch
 exclude = ["benches/hexbook.ybook"]
 
 [dependencies]
-yog-data-derive = { version = "0.2", path = "../yog-data-derive" }
+yog-data-derive = { version = "0.3", path = "../yog-data-derive" }
 # `yog.toml` read into the model (`toml` feature).
 toml = { version = "1", optional = true, default-features = false, features = ["std", "parse", "preserve_order"] }
 serde_spanned = { version = "1", optional = true }

@@ -143,7 +143,7 @@ pub struct RecipeFile {
 impl Schema for RecipeFile {
     fn shape() -> Shape {
         // `type` and the common fields; the kinds' own come with `type`.
-        let mut fields = vec![Field { name: "type", doc: "The game's recipe type, or the mod's own kind (`mymod:infusion`).", shape: String::shape, required: true }];
+        let mut fields = vec![Field { name: "type", doc: "The game's recipe type, or the mod's own kind (`mymod:infusion`).", shape: String::shape, required: true, range: None }];
         if let Shape::Struct(c) = Common::shape() {
             fields.extend(c.fields);
         }

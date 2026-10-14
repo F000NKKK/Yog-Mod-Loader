@@ -93,6 +93,8 @@ pub struct Field {
     pub shape: ShapeFn,
     /// Must be written (no default).
     pub required: bool,
+    /// The numbers it holds must be in `min..=max` (`#[data(range = "1..=99")]`).
+    pub range: Option<(f64, f64)>,
 }
 
 #[derive(Debug, Clone)]
@@ -141,6 +143,12 @@ impl Shape {
                         }
                         m.insert("shape", (f.shape)().describe_into(defs));
                         m.insert("required", Value::Bool(f.required));
+                        if let Some((lo, hi)) = f.range {
+                            m.insert(
+                                "range",
+                                Value::List(vec![Value::Float(lo), Value::Float(hi)]),
+                            );
+                        }
                         Value::Map(m)
                     })
                     .collect(),
@@ -605,6 +613,78 @@ pub struct Read<T> {
     pub refs: Vec<Found<Ref>>,
     pub tags: Vec<Found<Ref>>,
     pub resources: Vec<Found<Res>>,
+}
+
+/// The numbers a value holds — what `#[data(range = …)]` checks.
+pub trait Numbers {
+    fn numbers(&self, out: &mut Vec<f64>);
+}
+
+macro_rules! numbers {
+    ($($t:ty),*) => {$(
+        impl Numbers for $t {
+            fn numbers(&self, out: &mut Vec<f64>) {
+                out.push(*self as f64);
+            }
+        }
+    )*};
+}
+numbers!(i8, i16, i32, i64, u8, u16, u32, u64, usize, f32, f64);
+
+impl<T: Numbers> Numbers for Option<T> {
+    fn numbers(&self, out: &mut Vec<f64>) {
+        if let Some(x) = self {
+            x.numbers(out);
+        }
+    }
+}
+
+impl<T: Numbers> Numbers for Vec<T> {
+    fn numbers(&self, out: &mut Vec<f64>) {
+        self.iter().for_each(|x| x.numbers(out));
+    }
+}
+
+impl<T: Numbers, const N: usize> Numbers for [T; N] {
+    fn numbers(&self, out: &mut Vec<f64>) {
+        self.iter().for_each(|x| x.numbers(out));
+    }
+}
+
+impl Reader<'_> {
+    /// `value` (field `key`) checked against `lo..=hi`; `None` (a problem) if it's out.
+    pub fn in_range<T: Numbers>(
+        &mut self,
+        key: &str,
+        value: Option<T>,
+        lo: f64,
+        hi: f64,
+    ) -> Option<T> {
+        let v = value?;
+        let mut ns = Vec::new();
+        v.numbers(&mut ns);
+        match ns.into_iter().find(|n| !(lo..=hi).contains(n)) {
+            None => Some(v),
+            Some(n) => {
+                let show = |x: f64| {
+                    if x.fract() == 0.0 {
+                        format!("{}", x as i64)
+                    } else {
+                        x.to_string()
+                    }
+                };
+                let bad = show(n);
+                self.at(Seg::Key(key.to_string()), |cx| {
+                    cx.problem(format!(
+                        "{bad} is out of range ({}..={})",
+                        show(lo),
+                        show(hi)
+                    ))
+                });
+                None
+            }
+        }
+    }
 }
 
 /// The field names of a struct's shape (none for anything else).

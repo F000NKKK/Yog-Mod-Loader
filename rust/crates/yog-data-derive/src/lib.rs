@@ -35,6 +35,7 @@ struct Attrs {
     skip: bool,
     tag: Option<String>,
     with: Option<Type>,
+    range: Option<(f64, f64)>,
 }
 
 fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
@@ -51,14 +52,25 @@ fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
                 } else {
                     None
                 });
+            } else if meta.path.is_ident("range") {
+                let lit = meta.value()?.parse::<LitStr>()?;
+                let text = lit.value();
+                let parsed = text.split_once("..=").and_then(|(lo, hi)| {
+                    Some((
+                        lo.trim().parse::<f64>().ok()?,
+                        hi.trim().parse::<f64>().ok()?,
+                    ))
+                });
+                a.range = Some(parsed.ok_or_else(|| {
+                    syn::Error::new_spanned(&lit, "range = \"lo..=hi\" (numbers)")
+                })?);
             } else if meta.path.is_ident("with") {
                 a.with = Some(meta.value()?.parse::<LitStr>()?.parse()?);
             } else if meta.path.is_ident("skip") {
                 a.skip = true;
             } else {
-                return Err(
-                    meta.error("unknown `data` attribute (rename, default, skip, tag, with)")
-                );
+                return Err(meta
+                    .error("unknown `data` attribute (rename, default, skip, tag, with, range)"));
             }
             Ok(())
         })?;
@@ -119,6 +131,7 @@ struct NamedField {
     skip: bool,
     /// The codec: `with = "…"`, else `Plain` (the type's own schema).
     with: Type,
+    range: Option<(f64, f64)>,
 }
 
 fn named_fields(fields: &syn::FieldsNamed) -> syn::Result<Vec<NamedField>> {
@@ -141,6 +154,7 @@ fn named_fields(fields: &syn::FieldsNamed) -> syn::Result<Vec<NamedField>> {
                 with: a
                     .with
                     .unwrap_or_else(|| syn::parse_quote!(::yog_data::with::Plain)),
+                range: a.range,
             })
         })
         .collect()
@@ -151,12 +165,17 @@ fn field_shapes(fields: &[NamedField]) -> Tokens {
     let items = fields.iter().filter(|f| !f.skip).map(|f| {
         let (key, doc, ty, w) = (&f.key, &f.doc, &f.ty, &f.with);
         let has_default = f.default.is_some();
+        let range = match f.range {
+            Some((lo, hi)) => quote! { ::std::option::Option::Some((#lo, #hi)) },
+            None => quote! { ::std::option::Option::None },
+        };
         quote! {
             ::yog_data::schema::Field {
                 name: #key,
                 doc: #doc,
                 shape: <#w as ::yog_data::with::With<#ty>>::shape,
                 required: !#has_default && <#w as ::yog_data::with::With<#ty>>::absent().is_none(),
+                range: #range,
             }
         }
     });
@@ -177,6 +196,11 @@ fn read_fields(fields: &[NamedField], ctor: Tokens) -> Tokens {
             Some(Some(path)) => quote! { let #ident = cx.field_or_with::<#w, #ty>(map, #key, #path); },
         }
     });
+    let ranges = fields.iter().filter_map(|f| {
+        let (ident, key) = (&f.ident, &f.key);
+        let (lo, hi) = f.range?;
+        Some(quote! { let #ident = cx.in_range(#key, #ident, #lo, #hi); })
+    });
     let inits = fields.iter().map(|f| {
         let ident = &f.ident;
         quote! { #ident: #ident? }
@@ -185,6 +209,7 @@ fn read_fields(fields: &[NamedField], ctor: Tokens) -> Tokens {
         cx.unknown_keys(map, &[#(#keys),*]);
         cx.own_keys(|cx| {
             #(#lets)*
+            #(#ranges)*
             ::std::option::Option::Some(#ctor { #(#inits),* })
         })
     }

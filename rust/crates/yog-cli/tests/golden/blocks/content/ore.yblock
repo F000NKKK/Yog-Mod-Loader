@@ -9,7 +9,7 @@
     "requires_tool": true,
     "light": 4,
     "drops": {
-      "item": "gm:ruby",
+      "item": "@item:gm:ruby",
       "count": [
         1,
         3
