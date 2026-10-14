@@ -615,7 +615,7 @@ impl BookRenderer {
     pub fn new(book: Book) -> Self {
         let theme = BookTheme::default().with_nameplate(&book.nameplate_color);
         Self {
-            book,
+            book: flow(book),
             state: BookViewState::default(),
             theme,
             fonts: BookFontRegistry::default(),
@@ -639,6 +639,7 @@ impl BookRenderer {
     pub fn set_translator(&mut self, tr: fn(&str) -> Option<String>) {
         if self.book.i18n {
             self.source.get_or_insert_with(|| self.book.clone());
+            // (Already flowed: flowing again only splits what still overflows.)
             self.translator = Some(tr);
             self.probe = None;
         }
@@ -653,7 +654,7 @@ impl BookRenderer {
         if probe == self.probe {
             return;
         }
-        self.book = src.localized(|k| tr(k).unwrap_or_else(|| k.to_string()));
+        self.book = flow(src.localized(|k| tr(k).unwrap_or_else(|| k.to_string())));
         self.probe = probe;
         self.dirty = true;
     }
@@ -807,13 +808,103 @@ impl BookRenderer {
 
 // ── UI builder ────────────────────────────────────────────────────────────────
 
+thread_local! {
+    /// The scale the book is drawn at (≤ 1): its text is drawn at it too,
+    /// so it stays on the page however small the book gets.
+    static TEXT_SCALE: std::cell::Cell<f32> = const { std::cell::Cell::new(1.0) };
+}
+
+fn text_scale() -> f32 {
+    TEXT_SCALE.with(|s| s.get())
+}
+
 /// Book label: MC font, no drop-shadow (Patchouli draws book text shadowless).
 fn lbl(text: impl Into<String>) -> widget::Widget {
-    widget::label(text).shadow(false)
+    widget::label(text).shadow(false).font_scale(text_scale())
 }
 /// Book button: no drop-shadow.
 fn btn(text: impl Into<String>) -> widget::Widget {
-    widget::button(text).shadow(false)
+    widget::button(text).shadow(false).font_scale(text_scale())
+}
+
+/// A title: one line, shrunk (down to half size, then cut short) to fit
+/// the page's width.
+fn title_lbl(text: impl Into<String>) -> widget::Widget {
+    let text = text.into();
+    let fit = ((PAGE_W - 6.0) / yog_ui::text::str_width(&text, 1.0)).clamp(0.5, 1.0);
+    widget::label(text).shadow(false).font_scale(text_scale() * fit).no_wrap().ellipsis()
+}
+
+// ── Flowing text ──────────────────────────────────────────────────────────────
+
+/// Width of a page's text, in book pixels.
+const TEXT_W: f32 = PAGE_W - 8.0;
+/// Height a page's body has for text, in book pixels: the page less its
+/// title and separator, the page navigation and the padding.
+const BODY_H: f32 = PAGE_H - 22.0 - 12.0 - 14.0;
+
+/// How much of the body a page's own content takes above its text.
+fn content_above_text(page: &BookPage) -> Option<f32> {
+    Some(match page {
+        BookPage::Text { title: Some(_), .. } => 22.0,
+        BookPage::Text { .. } => 0.0,
+        BookPage::Spotlight { .. } => 40.0,
+        BookPage::Crafting { .. } => 80.0,
+        BookPage::Smelting { .. } => 40.0,
+        BookPage::Image { .. } | BookPage::Entity { .. } => 104.0,
+        BookPage::Relations { entries, .. } => 12.0 + entries.len() as f32 * 10.0,
+        _ => return None,
+    })
+}
+
+fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
+    match page {
+        BookPage::Text { text, .. } => Some(text),
+        BookPage::Spotlight { text, .. }
+        | BookPage::Crafting { text, .. }
+        | BookPage::Smelting { text, .. }
+        | BookPage::Image { text, .. }
+        | BookPage::Entity { text, .. }
+        | BookPage::Relations { text, .. } => text.as_mut(),
+        _ => None,
+    }
+}
+
+/// Text that doesn't fit its page goes on to new text pages after it.
+fn flow(mut book: Book) -> Book {
+    let line_h = yog_ui::text::LINE_H + yog_ui::text::LINE_GAP;
+    let fits = |h: f32| (((h + yog_ui::text::LINE_GAP) / line_h).floor() as usize).max(1);
+    for entry in &mut book.entries {
+        let mut pages = Vec::with_capacity(entry.pages.len());
+        for mut page in std::mem::take(&mut entry.pages) {
+            let Some(above) = content_above_text(&page) else {
+                pages.push(page);
+                continue;
+            };
+            let Some(text) = page_text_mut(&mut page) else {
+                pages.push(page);
+                continue;
+            };
+            let lines: Vec<String> = text
+                .split('\n')
+                .flat_map(|para| {
+                    if para.is_empty() { vec![String::new()] } else { yog_ui::text::wrap_text(para, TEXT_W, 1.0) }
+                })
+                .collect();
+            let first = fits(BODY_H - above);
+            if lines.len() <= first {
+                pages.push(page);
+                continue;
+            }
+            *text = lines[..first].join("\n");
+            pages.push(page);
+            for chunk in lines[first..].chunks(fits(BODY_H)) {
+                pages.push(BookPage::Text { text: chunk.join("\n"), title: None });
+            }
+        }
+        entry.pages = pages;
+    }
+    book
 }
 
 /// Build the yog-ui widget tree + bg sprites + overlay commands for the current book state.
@@ -833,6 +924,7 @@ fn build_ui(
 
     // Scale from Patchouli's fixed BK_W×BK_H coordinate space → actual bw×bh.
     let sx = bw / BK_W;
+    TEXT_SCALE.with(|s| s.set(sx));
     let sy = bh / BK_H;
 
     // In book-local: left page starts at x=LEFT_X, right at RIGHT_X, both y=TOP_PAD.
@@ -1168,7 +1260,7 @@ fn build_entry_left(
         .padding(0.0, 6.0, 4.0, 4.0)
         .gap(0.0)
         .child(
-            lbl(title_text)
+            title_lbl(title_text)
                 .color(theme.title)
                 .h(title_h)
                 .align(Align::Center)
@@ -1323,7 +1415,7 @@ fn draw_crafting_grid(
 ) {
     let mut c = std::mem::replace(col, widget::panel(FlexDir::Column));
     c = c.child(
-        lbl(pretty_item_name(output))
+        title_lbl(pretty_item_name(output))
             .color(theme.title)
             .h(10.0 * sy)
             .align(Align::Center),
@@ -1431,7 +1523,7 @@ fn build_page(
                 let sep_h_px = (SEP_H * sy).max(1.0);
                 let title_h = 9.0 * sy;
                 col = col.child(
-                    lbl(t.as_str())
+                    title_lbl(t.as_str())
                         .color(theme.title)
                         .h(title_h)
                         .align(Align::Center)
@@ -1480,7 +1572,7 @@ fn build_page(
                 .or(item.name.as_deref())
                 .unwrap_or(item.id.as_str());
             col = col.child(
-                lbl(item_name)
+                title_lbl(item_name)
                     .color(theme.title)
                     .h(10.0 * sy)
                     .align(Align::Center),
@@ -1548,7 +1640,7 @@ fn build_page(
             match recipes.get(recipe_id.as_str()) {
                 Some(RecipeVis::Smelting { input, output }) => {
                     col = col.child(
-                        lbl(pretty_item_name(output))
+                        title_lbl(pretty_item_name(output))
                             .color(theme.title)
                             .h(10.0 * sy)
                             .align(Align::Center),
@@ -1606,7 +1698,7 @@ fn build_page(
             ..
         } => {
             if let Some(t) = title {
-                col = col.child(lbl(t.as_str()).color(theme.title));
+                col = col.child(title_lbl(t.as_str()).color(theme.title));
             }
             col = col.child(
                 widget::image(texture)
@@ -1622,7 +1714,7 @@ fn build_page(
 
         BookPage::Svg { data, title, text } => {
             if let Some(t) = title {
-                col = col.child(lbl(t.as_str()).color(theme.title));
+                col = col.child(title_lbl(t.as_str()).color(theme.title));
             }
             overlays.push(OverlayCmd::Svg {
                 data: data.clone(),
@@ -1652,7 +1744,7 @@ fn build_page(
             if let Some(t) = text {
                 col = col.child(lbl(t.as_str()).color(theme.text));
             }
-            col = col.child(lbl("See also:").color(theme.title));
+            col = col.child(title_lbl("See also:").color(theme.title));
             for e in entries {
                 col = col.child(lbl(format!("• {}", e)).color(theme.nav));
             }
@@ -1664,7 +1756,7 @@ fn build_page(
             text,
         } => {
             let display = name.as_deref().unwrap_or(entity_type.as_str());
-            col = col.child(lbl(display).color(theme.title));
+            col = col.child(title_lbl(display).color(theme.title));
             if let Some(t) = text {
                 col = col.child(lbl(t.as_str()).color(theme.text));
             }
@@ -1677,7 +1769,7 @@ fn build_page(
             text,
             ..
         } => {
-            col = col.child(lbl(op_id.as_str()).color(theme.title));
+            col = col.child(title_lbl(op_id.as_str()).color(theme.title));
             col = col.child(lbl(format!("{} → {}", input, output)).color(theme.nav));
             if !text.is_empty() {
                 col = col.child(lbl(text.as_str()).color(theme.text));
@@ -1688,4 +1780,43 @@ fn build_page(
     }
 
     col
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::BookEntry;
+
+    fn book(pages: Vec<BookPage>) -> Book {
+        let mut book = Book::new("t:b", "B");
+        book.entries.push(BookEntry { id: "e".into(), name: "E".into(), pages, ..Default::default() });
+        book
+    }
+
+    #[test]
+    fn long_text_flows_onto_new_pages() {
+        let long = "word ".repeat(400);
+        let flowed = flow(book(vec![BookPage::Text { text: long.clone(), title: None }, BookPage::Empty]));
+        let pages = &flowed.entries[0].pages;
+        assert!(pages.len() > 3, "{}", pages.len());
+        assert!(matches!(pages.last(), Some(BookPage::Empty)), "what came after stays after");
+        let line_h = yog_ui::text::LINE_H + yog_ui::text::LINE_GAP;
+        for p in &pages[..pages.len() - 1] {
+            let BookPage::Text { text, .. } = p else { panic!("{p:?}") };
+            assert!(text.lines().count() as f32 * line_h <= BODY_H + 1.0);
+            assert!(text.lines().all(|l| yog_ui::text::str_width(l, 1.0) <= TEXT_W));
+        }
+        let words: usize = pages.iter().map(|p| match p {
+            BookPage::Text { text, .. } => text.split_whitespace().count(),
+            _ => 0,
+        }).sum();
+        assert_eq!(words, 400, "nothing lost");
+    }
+
+    #[test]
+    fn short_text_stays_put() {
+        let pages = vec![BookPage::Text { text: "Hello".into(), title: Some("T".into()) }];
+        let flowed = flow(book(pages.clone()));
+        assert_eq!(flowed.entries[0].pages.len(), 1);
+    }
 }
