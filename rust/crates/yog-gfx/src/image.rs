@@ -187,6 +187,8 @@ const CHECKBOX: &str = "minecraft:textures/gui/checkbox.png";
 /// The demo screen's window — vanilla's plain grey window frame, the same
 /// texture on every version.
 const WINDOW: &str = "minecraft:textures/gui/demo_background.png";
+/// The crafting table's screen — its arrow, the same on every version.
+const CRAFTING_TABLE: &str = "minecraft:textures/gui/container/crafting_table.png";
 
 /// A region of a [`LEGACY_TEX_SIZE`]-square texture.
 const fn region(texture: &'static str, u: f32, v: f32, w: f32, h: f32) -> Option<LegacyRegion> {
@@ -281,6 +283,15 @@ pub const SPRITES: &[Sprite] = &[
         atlas: None,
         legacy: None,
         border: 1.0,
+    },
+    Sprite {
+        name: "arrow",
+        description: "Crafting arrow (the crafting table's, ingredients → result)",
+        w: 24.0,
+        h: 17.0,
+        atlas: None,
+        legacy: region(CRAFTING_TABLE, 89.0, 34.0, 24.0, 17.0),
+        border: 0.0,
     },
     sprite_def(
         "scrollbar",

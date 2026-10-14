@@ -61,11 +61,12 @@ fn area(a: &Element, layouts: &[RecipeLayout], ns: &str, next: &mut usize) -> Re
             LayoutPart::Image { source, uv, at } => {
                 let [u, v, w, h] = *uv;
                 let [x, y] = pos(*at, 0.0);
-                canvas.children.push(el(
-                    "Image",
-                    &[("source", source.clone()), ("uv", format!("{u} {v} {w} {h}")), ("w", w.to_string()), ("h", h.to_string()), ("stretch", "Fill".into()), x, y],
-                    line,
-                ));
+                let mut attrs = vec![("source", source.clone()), ("w", w.to_string()), ("h", h.to_string()), ("stretch", "Fill".into()), x, y];
+                // A sprite is whole; an image's region is its uv.
+                if !source.starts_with("sprite:") {
+                    attrs.push(("uv", format!("{u} {v} {w} {h}")));
+                }
+                canvas.children.push(el("Image", &attrs, line));
             }
             // A slot frame is 18 px with the item at +1.
             LayoutPart::Slots { slot, at, .. } => {
