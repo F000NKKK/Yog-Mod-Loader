@@ -169,6 +169,10 @@ public class YogHost implements ModInitializer {
         // Block use (right-click on a block), server side only.
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             if (!world.isClient && player instanceof ServerPlayerEntity sp) {
+                // As vanilla: sneaking with something in hand uses the item (places a block), not the block.
+                if (sp.shouldCancelInteraction() && (!sp.getMainHandStack().isEmpty() || !sp.getOffHandStack().isEmpty())) {
+                    return ActionResult.PASS;
+                }
                 net.minecraft.util.math.BlockPos pos = hitResult.getBlockPos();
                 String blockId = Registries.BLOCK.getId(world.getBlockState(pos).getBlock()).toString();
                 String dim = world.getRegistryKey().getValue().toString();

@@ -503,6 +503,8 @@ public class YogHost {
     public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (event.getSide() != LogicalSide.SERVER) return;
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        // As vanilla: sneaking with something in hand uses the item (places a block), not the block.
+        if (sp.isSecondaryUseActive() && (!sp.getMainHandItem().isEmpty() || !sp.getOffhandItem().isEmpty())) return;
         BlockPos pos = event.getPos();
         String blockId = BuiltInRegistries.BLOCK.getKey(sp.level().getBlockState(pos).getBlock()).toString();
         String dim = sp.level().dimension().location().toString();
