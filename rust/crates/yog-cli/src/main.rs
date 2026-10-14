@@ -34,11 +34,10 @@ use std::process::Command;
 /// as JSON — what editors and docs are generated from.
 fn schema(format: Option<&str>) -> Result<(), String> {
     use yog_data::Schema;
-    let all = || format!("{}, ybook, ylayout", yog_formats::FORMATS.join(", "));
+    let all = || format!("{}, ybook", yog_formats::FORMATS.join(", "));
     let name = format.ok_or_else(|| format!("usage: yog schema <format> — {}", all()))?;
     let shape = match name.trim_start_matches('.') {
         "ybook" => yog_book::Book::shape(),
-        "ylayout" => yog_book::layout::RecipeLayout::shape(),
         other => yog_formats::shape(other).ok_or_else(|| format!("no format `{other}` — {}", all()))?,
     };
     println!("{}", yog_data::text::to_string_pretty(&shape.describe()));
@@ -158,7 +157,7 @@ fn print_usage() {
          \x20 version             Print the yog CLI version\n\
          \x20 add <crate>         Add a Rust dependency to yog.toml\n\
          \x20 remove <crate>      Remove a dependency from yog.toml\n\
-         \x20 schema <format>     Print a format's schema as JSON (yblock, yitem, yrecipe, ydef, yres, yog.toml, ybook, ylayout)\n\
+         \x20 schema <format>     Print a format's schema as JSON (yblock, yitem, yrecipe, ydef, yres, yog.toml, ybook)\n\
          \x20 run <config>        Build, export, and launch a [run.<config>] dev instance\n\
          \x20 run <config> --debug  Same, built with debug info kept (see `build debug`)\n\
          \x20 publish exports     Publish this mod's exported API to crates.io\n\

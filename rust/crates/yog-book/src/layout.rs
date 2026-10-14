@@ -1,19 +1,25 @@
 //! Recipe layouts: how a book shows a kind of recipe — data, not code.
 //! The game's kinds have built-in layouts (Patchouli's: the crafting grid,
-//! the furnace strip, the smithing strip, …); a mod lays out its own kinds
-//! (`mymod:infusion`) the same way, in `content/*.ylayout`:
+//! the furnace strip, the smithing strip, …); a mod lays out its own kind
+//! in the kind's `.ydef` (`kind: "recipe_kind"`, its `layout`), and the
+//! game's or another mod's kinds in a `.ydef` of kind `recipe_layout`:
 //!
 //! ```json5
 //! {
-//!   kinds: ["mymod:infusion"],
-//!   size: [96, 44],
-//!   parts: [
-//!     { type: "image", source: "mymod:gui/infusion", uv: [0, 0, 96, 44] },
-//!     { type: "slots", slot: "ring", at: [[4, 4], [4, 24]], frame: true },
-//!     { type: "slots", slot: "core", at: [[40, 14]], frame: true },
-//!     { type: "result", at: [76, 14] },
-//!     { type: "text", text: "{time} ticks", at: [40, 34] },
-//!   ],
+//!   kind: "recipe_kind",
+//!   id: "infusion",
+//!   slots: { ring: { max: 2 }, core: { required: true } },
+//!   values: { time: "number" },
+//!   layout: {
+//!     size: [96, 44],
+//!     parts: [
+//!       { type: "image", source: "mymod:gui/infusion", uv: [0, 0, 96, 44] },
+//!       { type: "slots", slot: "ring", at: [[4, 4], [4, 24]], frame: true },
+//!       { type: "slots", slot: "core", at: [[40, 14]], frame: true },
+//!       { type: "result", at: [76, 14] },
+//!       { type: "text", text: "{time} ticks", at: [40, 34] },
+//!     ],
+//!   },
 //! }
 //! ```
 //!

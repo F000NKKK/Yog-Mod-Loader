@@ -4,6 +4,7 @@
 //! of the same kinds.
 
 use yog_data::Schema;
+use yog_data::Ordered;
 use yog_data::with::{Opt, RefTo};
 pub use yog_registry::SoundGroup;
 
@@ -15,7 +16,9 @@ yog_data::kind! {
 
 /// A `.ydef`: an entry of some kind of definition, named by reference
 /// (`@<kind>:<id>`) everywhere else. Kinds: `ladder` (an ordered scale),
-/// `level` (a step on one) and `sound_group` (what a block sounds like).
+/// `level` (a step on one), `sound_group` (what a block sounds like),
+/// `recipe_kind` (a mod's kind of recipe) and `recipe_layout` (how books
+/// show the game's or another mod's).
 #[derive(Schema, Debug, Clone)]
 #[data(tag = "kind")]
 pub enum Def {
@@ -34,6 +37,60 @@ pub enum Def {
     /// like: five sound events and a volume and pitch. The game's groups
     /// are built-in ones (`stone`, `amethyst`…).
     SoundGroup(SoundGroup),
+    /// A mod's own kind of recipe (`mymod:infusion`): its slots and values,
+    /// checked in every recipe of the kind, and how books show it.
+    RecipeKind(RecipeKindDef),
+    /// How books show kinds of recipe that aren't the mod's own — the
+    /// game's (`shaped`), another mod's.
+    RecipeLayout(yog_book::layout::RecipeLayout),
+}
+
+/// A slot of a kind of recipe: how many ingredients it takes.
+#[derive(Schema, Debug, Clone, PartialEq)]
+pub struct SlotSpec {
+    /// At most this many (each one item or a list of alternatives).
+    #[data(default = "one", range = "1..=64")]
+    pub max: u32,
+    /// A recipe of the kind must fill it.
+    #[data(default)]
+    pub required: bool,
+}
+
+fn one() -> u32 {
+    1
+}
+
+/// What a recipe's value is.
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ValueType {
+    Number,
+    Text,
+    Bool,
+}
+
+/// A mod's kind of recipe: `{ kind: "recipe_kind", id: "infusion", slots:
+/// { core: { required: true }, ring: { max: 8 } }, values: { time:
+/// "number" }, layout: { size: [96, 24], parts: [ … ] } }`.
+#[derive(Schema, Debug, Clone, PartialEq)]
+pub struct RecipeKindDef {
+    /// `infusion` (the mod's namespace is added) or `mymod:infusion`.
+    pub id: String,
+    #[data(default)]
+    pub slots: Ordered<SlotSpec>,
+    #[data(default)]
+    pub values: Ordered<ValueType>,
+    /// How books show its recipes (`yog_book::layout`): none, and a book
+    /// can't show them.
+    pub layout: Option<KindLayout>,
+}
+
+/// A [`yog_book::layout::RecipeLayout`] of one kind, the kind's own.
+#[derive(Schema, Debug, Clone, PartialEq)]
+pub struct KindLayout {
+    /// Width and height in GUI pixels.
+    pub size: [f32; 2],
+    #[data(default)]
+    pub parts: Vec<yog_book::layout::LayoutPart>,
 }
 
 /// The game's tool tiers: `@ladder:minecraft:tool`, bottom to top (gold mines like wood).

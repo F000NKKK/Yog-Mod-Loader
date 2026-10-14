@@ -1,0 +1,4 @@
+// gm's own kind of recipe: what infuse.yrecipe is checked against.
+{ kind: "recipe_kind", id: "infusion",
+  slots: { core: { required: true }, ring: { max: 8 } },
+  values: { time: "number", energy: "number" } }
