@@ -3974,7 +3974,7 @@ mod tests {
         assert_eq!(check(r#""@tag:item:yog:music_discs""#).unwrap(), "");
         assert_eq!(check(r#"["@tag:item:c:iron_ingots", "@item:minecraft:iron_ingot"]"#).unwrap(), "", "an alternative that's everywhere");
         let w = check(r#""@tag:item:c:iron_ingots""#).unwrap();
-        assert!(w.contains("left out on Minecraft 1.21.1, forge 1.20.1, neoforge 1.20.1") && w.contains("@tag:item:yog:ingots/iron"), "{w}");
+        assert!(w.contains("left out on forge 1.20.1, neoforge 1.20.1, Minecraft 1.21.1") && w.contains("@tag:item:yog:ingots/iron"), "{w}");
         let e = check(r#""@tag:item:c:nope""#).unwrap_err();
         assert!(e.contains("no item tag c:nope in Minecraft or its loaders"), "{e}");
         let e = check(r#""@tag:item:yog:nope""#).unwrap_err();
