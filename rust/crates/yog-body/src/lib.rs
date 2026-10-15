@@ -2,9 +2,9 @@
 //!
 //! - [`format`]: `.ymodel` skeletons and `.yanim` clips, as written;
 //! - [`model`], [`anim`], [`rig`]: those made ready, posed and layered;
-//! - [`wire`]: the frame a host sends about an entity and the [`Ops`] a mod
-//!   answers with — pose vanilla parts, turn the body, draw meshes,
-//!   disguise, hide, capture;
+//! - [`wire`]: the frame a host sends about an entity (with the data it
+//!   keeps, synced from the server) and the [`Ops`] a mod answers with —
+//!   pose vanilla parts, turn the body, draw meshes, disguise, hide, capture;
 //! - [`morph`]: one captured body turning into another;
 //! - [`camera`], [`movement`]: the local player's view and travel step.
 //!

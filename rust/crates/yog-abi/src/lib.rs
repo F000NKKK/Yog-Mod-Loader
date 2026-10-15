@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 1;
+pub const ABI_MINOR: u32 = 2;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1244,6 +1244,16 @@ pub struct YogServer {
     /// (`width` < 0); `false` if there's no such entity.
     pub entity_set_dimensions:
         unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, width: f32, height: f32, eye: f32) -> bool,
+
+    // ── ABI 3.2 — entity data ───────────────────────────────────────────────
+    /// Sets (`flags` & 1) or removes a value an entity keeps under `key`;
+    /// `flags` & 2 saves it with the entity. The players who see the entity
+    /// get it. `false` for an empty uuid or key.
+    pub entity_data_set:
+        unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, key: YogStr, data: *const u8, len: u32, flags: u32) -> bool,
+    /// The value under `key`, written to `sink`; `false` if there's none.
+    pub entity_data_get:
+        unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, key: YogStr, sink: *mut c_void, write: YogBytesSink) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.
@@ -1560,6 +1570,12 @@ pub struct YogApi {
     /// This client's side of `entity_set_dimensions` (the local player
     /// collides with it); `width` < 0 gives vanilla's back.
     pub client_set_dimensions: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, width: f32, height: f32, eye: f32),
+
+    // ── ABI 3.2 — entity data (client) ──────────────────────────────────────
+    /// What this client was told the entity keeps under `key`, written to
+    /// `sink`; `false` if nothing.
+    pub client_entity_data:
+        unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, key: YogStr, sink: *mut c_void, write: YogBytesSink) -> bool,
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].
@@ -1610,7 +1626,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (30001, 0x4dcf_9842_ca61_a33c), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (30002, 0x73ec_636f_fee7_29d4), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]

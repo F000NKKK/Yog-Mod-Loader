@@ -1111,6 +1111,22 @@ impl Server for CServer {
         unsafe { (s.entity_dismount)(s.ctx, YogStr::from_str(uuid)) }
     }
 
+    fn entity_data(&self, uuid: &str, key: &str) -> Option<Vec<u8>> {
+        let s = srv!(self);
+        let mut out = Vec::new();
+        let found = unsafe {
+            (s.entity_data_get)(s.ctx, YogStr::from_str(uuid), YogStr::from_str(key), &mut out as *mut Vec<u8> as *mut c_void, crate::body::collect)
+        };
+        found.then_some(out)
+    }
+
+    fn set_entity_data(&self, uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) -> bool {
+        let s = srv!(self);
+        let flags = value.map_or(0, |_| 1) | if persist { 2 } else { 0 };
+        let v = value.unwrap_or(&[]);
+        unsafe { (s.entity_data_set)(s.ctx, YogStr::from_str(uuid), YogStr::from_str(key), v.as_ptr(), v.len() as u32, flags) }
+    }
+
     fn entity_set_dimensions(&self, uuid: &str, size: Option<(f32, f32, f32)>) -> bool {
         let s = srv!(self);
         let (w, h, e) = size.unwrap_or((-1.0, 0.0, 0.0));

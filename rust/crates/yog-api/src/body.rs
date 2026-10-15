@@ -22,6 +22,27 @@ pub fn track(uuid: &str, on: bool) {
     unsafe { ((*api).client_body_track)((*api).ctx, YogStr::from_str(uuid), on) }
 }
 
+/// What this client was told entity `uuid` keeps under `key`
+/// ([`yog_core::Server::set_entity_data`]); body frames carry it too
+/// ([`Frame::data`]).
+pub fn entity_data(uuid: &str, key: &str) -> Option<Vec<u8>> {
+    let api = global_api();
+    if api.is_null() {
+        return None;
+    }
+    let mut out = Vec::new();
+    let found = unsafe {
+        ((*api).client_entity_data)((*api).ctx, YogStr::from_str(uuid), YogStr::from_str(key), &mut out as *mut Vec<u8> as *mut std::os::raw::c_void, collect)
+    };
+    found.then_some(out)
+}
+
+/// A [`yog_abi::YogBytesSink`] into a `Vec<u8>`.
+pub(crate) unsafe extern "C" fn collect(sink: *mut std::os::raw::c_void, data: *const u8, len: usize) {
+    // SAFETY: `sink` is the `Vec<u8>` the caller passed; `data` is valid for the call.
+    unsafe { (*(sink as *mut Vec<u8>)).extend_from_slice(std::slice::from_raw_parts(data, len)) }
+}
+
 /// This client's side of [`yog_core::Server::entity_set_dimensions`]: the
 /// entity's own hitbox (`Some((width, height, eye height))`, blocks) or
 /// vanilla's again. The mod sends who has which (its own packet); the local

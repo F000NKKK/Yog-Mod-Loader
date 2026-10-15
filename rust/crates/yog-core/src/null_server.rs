@@ -417,6 +417,12 @@ impl Server for NullServer {
     fn entity_dismount(&self, uuid: &str) -> bool {
         Default::default()
     }
+    fn entity_data(&self, uuid: &str, key: &str) -> Option<Vec<u8>> {
+        Default::default()
+    }
+    fn set_entity_data(&self, uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) -> bool {
+        Default::default()
+    }
     fn entity_set_dimensions(&self, uuid: &str, size: Option<(f32, f32, f32)>) -> bool {
         Default::default()
     }

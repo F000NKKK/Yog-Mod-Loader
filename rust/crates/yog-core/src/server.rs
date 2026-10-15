@@ -542,6 +542,17 @@ pub trait Server {
     /// if there's no such entity.
     fn entity_set_dimensions(&self, uuid: &str, size: Option<(f32, f32, f32)>) -> bool;
 
+    /// The value the entity keeps under `key` (`set_entity_data`).
+    fn entity_data(&self, uuid: &str, key: &str) -> Option<Vec<u8>>;
+
+    /// Sets (`Some`) or removes the value the entity keeps under `key`
+    /// (`mymod:morph`) — the loader sends it to every player who sees the
+    /// entity, now and when they start seeing it; their clients read it in
+    /// body frames (`Frame::data`) and with `yog_api::body::entity_data`.
+    /// `persist` saves it with the entity. Only the server writes these: a
+    /// client asks with its mod's packet. `false` for an empty uuid or key.
+    fn set_entity_data(&self, uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) -> bool;
+
     /// Sets how far the entity has fallen — fall damage counts it when it
     /// lands (0: none). `false` if there's no such entity.
     fn entity_set_fall_distance(&self, uuid: &str, distance: f32) -> bool;

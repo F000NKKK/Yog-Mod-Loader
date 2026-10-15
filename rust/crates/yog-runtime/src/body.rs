@@ -49,6 +49,8 @@ unsafe extern "C" fn append(sink: *mut c_void, data: *const u8, len: usize) {
 /// Every body handler's ops for `frame`, one after another.
 fn body_ops(frame: &[u8]) -> Vec<u8> {
     let entries = handlers().body.clone();
+    let frame = super::entity_data::with_data(frame);
+    let frame = frame.as_slice();
     let mut out = Vec::new();
     guard("on_body", || {
         each(&entries, |ud, f| unsafe { f(ud, frame.as_ptr(), frame.len(), &mut out as *mut Vec<u8> as *mut c_void, append) });

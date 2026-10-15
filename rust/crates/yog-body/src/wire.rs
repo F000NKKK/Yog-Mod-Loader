@@ -29,8 +29,14 @@ pub struct Frame {
     pub velocity: Vec3,
     /// `yog_core::query::entity_flags` bits.
     pub flags: u32,
+    /// The world's time in ticks, with `partial` — the same on every
+    /// client, so clips timed by it play alike for everyone.
+    pub game_time: f64,
     /// What was captured last frame (see [`Ops::capture`]).
     pub captures: Vec<Capture>,
+    /// What the entity keeps by key (`Server::set_entity_data`), as this
+    /// client was told.
+    pub data: Vec<(String, Vec<u8>)>,
 }
 
 /// The posed geometry of an entity (entity space, see the design doc).
@@ -269,7 +275,7 @@ impl Frame {
     /// Reads what the host sent.
     pub fn decode(bytes: &[u8]) -> Option<Frame> {
         let mut r = Reader { b: bytes };
-        if r.u8()? != 1 {
+        if r.u8()? != 2 {
             return None;
         }
         let mut f = Frame {
@@ -286,7 +292,9 @@ impl Frame {
             pos: [r.f64()?, r.f64()?, r.f64()?],
             velocity: r.vec()?,
             flags: r.u32()?,
+            game_time: r.f64()?,
             captures: Vec::new(),
+            data: Vec::new(),
         };
         for _ in 0..r.u16()? {
             let source = r.str()?;
@@ -296,12 +304,17 @@ impl Frame {
             }
             f.captures.push(Capture { source, meshes });
         }
+        for _ in 0..r.u16()? {
+            let key = r.str()?;
+            let n = r.u32()? as usize;
+            f.data.push((key, r.take(n)?.to_vec()));
+        }
         Some(f)
     }
 
     /// As the host writes it (for tests and tools).
     pub fn encode(&self) -> Vec<u8> {
-        let mut b = vec![1u8];
+        let mut b = vec![2u8];
         put_str(&mut b, &self.uuid);
         put_str(&mut b, &self.entity_type);
         for f in [self.partial, self.age, self.limb_swing, self.limb_amount, self.head_yaw, self.head_pitch, self.body_yaw, self.pitch] {
@@ -312,6 +325,7 @@ impl Frame {
         }
         put_vec(&mut b, self.velocity);
         b.extend_from_slice(&self.flags.to_le_bytes());
+        b.extend_from_slice(&self.game_time.to_le_bytes());
         b.extend_from_slice(&(self.captures.len() as u16).to_le_bytes());
         for c in &self.captures {
             put_str(&mut b, &c.source);
@@ -320,6 +334,12 @@ impl Frame {
                 put_str(&mut b, &m.texture);
                 put_quads(&mut b, &m.quads);
             }
+        }
+        b.extend_from_slice(&(self.data.len() as u16).to_le_bytes());
+        for (k, v) in &self.data {
+            put_str(&mut b, k);
+            b.extend_from_slice(&(v.len() as u32).to_le_bytes());
+            b.extend_from_slice(v);
         }
         b
     }
@@ -333,9 +353,20 @@ impl Frame {
         self.captures.iter().find(|c| c.source == source)
     }
 
-    /// The entity's age in seconds (for clips).
+    /// The entity's age in seconds (differs between clients: each counts
+    /// from when it saw the entity).
     pub fn seconds(&self) -> f32 {
         self.age / 20.0
+    }
+
+    /// The world's time in seconds — for clips everyone sees alike.
+    pub fn world_seconds(&self) -> f32 {
+        (self.game_time / 20.0) as f32
+    }
+
+    /// The value the entity keeps under `key`.
+    pub fn data(&self, key: &str) -> Option<&[u8]> {
+        self.data.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_slice())
     }
 }
 
@@ -352,6 +383,8 @@ mod tests {
             age: 12.5,
             pos: [1.0, 2.0, 3.0],
             flags: 5,
+            game_time: 1234.5,
+            data: vec![("m:k".into(), vec![1, 2])],
             captures: vec![Capture { source: "self".into(), meshes: vec![Mesh { texture: "t".into(), quads: vec![q] }] }],
             ..Default::default()
         };
