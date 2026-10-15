@@ -68,6 +68,10 @@ pub enum Def {
     DamageType(DamageTypeDef),
     /// A tree the world (or a sapling, a spell) grows: its trunk and leaves.
     Tree(TreeDef),
+    /// Changes to the loot of some tables (chests, block drops, mobs):
+    /// items added — how many, at what chance, finished by a loot function
+    /// of the mod's code — and items scaled.
+    LootModifier(yog_registry::LootModifier),
 }
 
 /// `{ kind: "tree", id: "amethyst_edified_tree", trunk: { blocks: [{ block:

@@ -1578,6 +1578,7 @@ fn compile_layout(
     ores: &mut Vec<OreOut>,
     dimensions: &mut Vec<(String, Vec<u8>)>,
     tables: &mut Vec<table::Table>,
+    loot: &mut Vec<(String, Vec<u8>)>,
     out: &mut Compiled,
 ) -> Option<yog_formats::def::RecipeKindDef> {
     use yog_formats::def::Def;
@@ -1675,6 +1676,18 @@ fn compile_layout(
             }
             return None;
         }
+        Def::LootModifier(mut m) => {
+            m.id = full_id(&m.id, ns);
+            if m.id.split_once(':').is_none_or(|(n, p)| n != ns || !valid_path(p)) {
+                cx.err(doc.locate(text, &yog_data::Path::root().key("id")).line as usize, format!("id: `{}`: the mod's own, `{ns}:<name>`", m.id));
+                ok = false;
+            }
+            if ok {
+                use yog_data::Schema;
+                loot.push((m.id.clone(), yog_data::binary::encode(&m.write())));
+            }
+            return None;
+        }
         Def::Table(t) => {
             match table::check(&cx.file, t, cx.refs, known) {
                 Ok(t) => tables.push(t),
@@ -1692,6 +1705,11 @@ fn compile_layout(
         _ => return None,
     };
     ok.then_some(kind)
+}
+
+/// A loot modifier's file under `.yog-build/generated/`.
+fn loot_path(id: &str) -> String {
+    format!("loot/{}.ydata", id.replace([':', '/'], "__"))
 }
 
 /// `ns:path` for an id the mod writes bare (`water_plants`).
@@ -2307,6 +2325,8 @@ struct Defs {
     dimensions: Vec<String>,
     /// Its tables (`kind: "table"`), each an enum in its code.
     tables: Vec<table::Table>,
+    /// Its loot modifiers' ids (their data in `generated/loot/`).
+    loot_modifiers: Vec<String>,
 }
 
 impl Defs {
@@ -2362,7 +2382,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                     }
                 }
                 // Read with the recipes (`compile_layout`).
-                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) | yog_formats::def::Def::Tag(_) | yog_formats::def::Def::DamageType(_) | yog_formats::def::Def::Tree(_) => {}
+                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) | yog_formats::def::Def::Tag(_) | yog_formats::def::Def::DamageType(_) | yog_formats::def::Def::Tree(_) | yog_formats::def::Def::LootModifier(_) => {}
                 // Its level is placed on the ladder below.
                 yog_formats::def::Def::ToolMaterial(mut m) => {
                     m.id = full(&m.id);
@@ -2462,7 +2482,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
             incorrect,
         });
     }
-    Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new(), dimensions: Vec::new(), tables: Vec::new() }
+    Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new(), dimensions: Vec::new(), tables: Vec::new(), loot_modifiers: Vec::new() }
 }
 
 /// The tags that make block `id` need tool level `level`, on every version:
@@ -2657,6 +2677,8 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut ores: Vec<OreOut> = Vec::new();
     let mut dimensions: Vec<(String, Vec<u8>)> = Vec::new();
     let mut tables: Vec<table::Table> = Vec::new();
+    // Loot modifiers: (id, their data).
+    let mut loot: Vec<(String, Vec<u8>)> = Vec::new();
     for (shown, text) in &pending_layouts {
         let mut cx = Ctx {
             root,
@@ -2669,7 +2691,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        let Some(k) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions, &mut tables, &mut out) else { continue };
+        let Some(k) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions, &mut tables, &mut loot, &mut out) else { continue };
         if recipe_defs.contains_key(&k.id) {
             errors.push(format!("{shown}: recipe kind {} is declared twice", k.id));
         }
@@ -2802,6 +2824,8 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     out.data_files.extend(bodies.iter().map(|b| (b.path(), b.data.clone())));
     out.data_files.extend(entity_files.iter().map(|e| (e.path(), e.data.clone())));
     out.data_files.extend(dimensions.iter().map(|(id, data)| (dimension_path(id), data.clone())));
+    out.data_files.extend(loot.iter().map(|(id, data)| (loot_path(id), data.clone())));
+    defs.loot_modifiers = loot.into_iter().map(|(id, _)| id).collect();
     // A tool level above netherite gets a tag of what its tools can't mine.
     for m in &defs.tool_materials {
         if let Some((n, p)) = m.incorrect.split_once(':')
@@ -3177,6 +3201,13 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
             "    registry.register_book_data({:?}, include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/{}\")));",
             b.id,
             b.path()
+        );
+    }
+    for id in &defs.loot_modifiers {
+        let _ = writeln!(
+            code,
+            "    registry.add_loot_modifier_data({id:?}, include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/{}\")));",
+            loot_path(id)
         );
     }
     for e in entities {
