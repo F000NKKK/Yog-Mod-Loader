@@ -1255,8 +1255,10 @@ public final class NativeBridge {
         if (w == null) return false;
         String key = redstoneKey(dimension, x, y, z);
         int clamped = Math.max(0, Math.min(15, level));
-        Integer before = clamped == 0 ? REDSTONE_OUTPUT.remove(key) : REDSTONE_OUTPUT.put(key, clamped);
-        if (before == null ? clamped != 0 : before != clamped) {
+        // Zeros are kept too: the first level set always updates the
+        // neighbours — a lamp saved lit goes out when its source starts at 0.
+        Integer before = REDSTONE_OUTPUT.put(key, clamped);
+        if (before == null || before != clamped) {
             net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
             w.updateNeighborsAt(pos, w.getBlockState(pos).getBlock());
         }
