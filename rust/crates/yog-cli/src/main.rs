@@ -1414,30 +1414,57 @@ fn generate_rust_toolchain() -> String {
     )
 }
 
-/// Installs the mod toolchain plus `targets` (a no-op when they're already
-/// there), so a build never silently drops a platform for lack of setup.
+/// Installs the mod toolchain plus `targets` that aren't there, so a build
+/// never silently drops a platform for lack of setup. Nothing is updated
+/// (`rustup toolchain install` would update a channel like `1.99` to its
+/// newest patch, every build); and one `yog` installs at a time — builds
+/// running side by side would break each other's downloads.
 fn install_targets(targets: &[&Target]) {
     if targets.is_empty() {
         return;
     }
-    let list: Vec<&str> = targets.iter().map(|t| t.triple).collect();
-    let ok = Command::new("rustup")
-        .args([
-            "toolchain",
-            "install",
-            RUST_TOOLCHAIN,
-            "--profile",
-            "minimal",
-        ])
-        .args(["--target", &list.join(",")])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
+    let lock = std::env::temp_dir().join("yog-rustup.lock");
+    let _lock = std::fs::File::create(&lock).ok().filter(|f| f.lock().is_ok());
+    let rustup = |args: &[&str]| {
+        Command::new("rustup")
+            .args(args)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    };
+    let ok = match toolchain_sysroot() {
+        // The toolchain is there: add the targets it lacks (their files, not
+        // just rustup's word: an interrupted install leaves them listed).
+        Some(sysroot) => {
+            let missing: Vec<&str> = targets.iter().map(|t| t.triple).filter(|t| !has_std(&sysroot, t)).collect();
+            missing.is_empty() || {
+                // Listed but broken: rustup only re-adds what it doesn't list.
+                rustup(&[&["target", "remove", "--toolchain", RUST_TOOLCHAIN][..], &missing].concat());
+                rustup(&[&["target", "add", "--toolchain", RUST_TOOLCHAIN][..], &missing].concat())
+            }
+        }
+        None => {
+            let list: Vec<&str> = targets.iter().map(|t| t.triple).collect();
+            rustup(&["toolchain", "install", RUST_TOOLCHAIN, "--profile", "minimal", "--no-self-update", "--target", &list.join(",")])
+        }
+    };
     if !ok {
         eprintln!("    warning: could not install Rust {RUST_TOOLCHAIN} targets via rustup");
     }
+}
+
+/// The mod toolchain's sysroot, if it's installed.
+fn toolchain_sysroot() -> Option<PathBuf> {
+    let out = Command::new("rustc").args([&format!("+{RUST_TOOLCHAIN}"), "--print", "sysroot"]).output().ok()?;
+    out.status.success().then(|| PathBuf::from(String::from_utf8_lossy(&out.stdout).trim()))
+}
+
+/// Whether `sysroot` has the standard library for `triple`.
+fn has_std(sysroot: &Path, triple: &str) -> bool {
+    std::fs::read_dir(sysroot.join("lib/rustlib").join(triple).join("lib"))
+        .is_ok_and(|d| d.flatten().any(|e| e.file_name().to_string_lossy().starts_with("libstd-")))
 }
 
 fn installed_targets() -> Vec<String> {
