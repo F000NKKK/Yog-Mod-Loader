@@ -149,8 +149,8 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
         });
         // Always: id, hardness, resistance, light, requires_tool, no_collision,
         // slipperiness, connects, connect_groups, redstone, facing, placement,
-        // attach, waterlogged, properties.
-        let n = 15
+        // attach, waterlogged, properties, accepts_items.
+        let n = 16
             + d.name.is_some() as usize
             + d.shape.is_some() as usize
             + group.is_some() as usize
@@ -187,6 +187,7 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
         w.key("placement").str(&d.placement);
         w.key("attach").bool(d.attach);
         w.key("waterlogged").bool(d.waterlogged);
+        w.key("accepts_items").bool(d.accepts_items);
         w.key("properties").list(d.properties.len());
         for p in &d.properties {
             w.map(2);

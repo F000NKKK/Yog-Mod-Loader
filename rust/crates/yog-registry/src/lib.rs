@@ -760,6 +760,8 @@ pub struct BlockDef {
     pub powered: Option<String>,
     /// A yes/no property a comparator reads 15 from while it's on.
     pub comparator: Option<String>,
+    /// Hoppers and droppers can put items into it (`on_item_insert`).
+    pub accepts_items: bool,
 }
 
 /// A property of a block's own: its name and values (the first the
@@ -795,6 +797,7 @@ impl BlockDef {
             properties: Vec::new(),
             powered: None,
             comparator: None,
+            accepts_items: false,
         }
     }
 
@@ -917,6 +920,12 @@ impl BlockDef {
     /// A comparator reads 15 from it while yes/no property `name` is on.
     pub fn comparator(mut self, name: &str) -> Self {
         self.comparator = Some(name.into());
+        self
+    }
+
+    /// Hoppers and droppers can put items into it (`on_item_insert`).
+    pub fn accepts_items(mut self) -> Self {
+        self.accepts_items = true;
         self
     }
 

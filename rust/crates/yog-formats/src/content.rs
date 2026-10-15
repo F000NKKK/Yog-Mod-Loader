@@ -494,6 +494,10 @@ pub struct BlockProps {
     pub powered: Option<String>,
     /// A yes/no property a comparator reads: 15 while it's on.
     pub comparator: Option<String>,
+    /// Hoppers and droppers can put items into it; the mod takes what it
+    /// wants of them (`on_item_insert`).
+    #[data(default)]
+    pub accepts_items: bool,
 }
 
 /// A texture: `#slot`, `@Set.image` (a `.yres` image), a `.png` path in

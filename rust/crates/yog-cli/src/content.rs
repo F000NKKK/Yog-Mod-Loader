@@ -285,6 +285,8 @@ struct BlockProps {
     /// Yes/no properties: kept on by redstone; read by a comparator.
     powered: Option<String>,
     comparator: Option<String>,
+    /// Hoppers and droppers can put items into it.
+    accepts_items: bool,
     /// The inventory screen it opens (a `.yui` `<Screen>` with `<Slot>`s).
     inventory: Option<String>,
     /// Gives off redstone power, set by the mod per position.
@@ -840,6 +842,7 @@ fn compile_file(
     props.no_collision = b.collision == Some(false);
     props.slipperiness = b.slipperiness;
     props.redstone = b.redstone;
+    props.accepts_items = b.accepts_items;
     props.connect_groups = b.connect_groups.clone();
     let shape_auto = matches!(b.shape, None | Some(yog_formats::content::BlockShape::Auto));
     if let Some(yog_formats::content::BlockShape::Box(bx)) = b.shape {
@@ -2561,6 +2564,9 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
                     }
                     if let Some(name) = &p.comparator {
                         let _ = write!(b, "\n            .comparator({name:?})");
+                    }
+                    if p.accepts_items {
+                        b.push_str("\n            .accepts_items()");
                     }
                 }
                 Kind::Item => {
