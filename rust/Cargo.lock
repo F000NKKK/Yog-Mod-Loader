@@ -1503,7 +1503,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.38.2"
+version = "0.38.3"
 dependencies = [
  "criterion",
  "proc-macro2",

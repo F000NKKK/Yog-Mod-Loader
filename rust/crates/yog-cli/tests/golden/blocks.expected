@@ -224,6 +224,7 @@ fn __yog_content_auto_register() {
       ]
     }
   ],
+  "parent": "minecraft:block/block",
   "render_type": "minecraft:cutout",
   "textures": {
     "0": "minecraft:block/stone",
@@ -251,6 +252,7 @@ fn __yog_content_auto_register() {
       ]
     }
   ],
+  "parent": "minecraft:block/block",
   "render_type": "minecraft:cutout",
   "textures": {
     "0": "minecraft:block/stone",
