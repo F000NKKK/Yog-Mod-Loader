@@ -1365,7 +1365,9 @@ fn filter_benign_warnings(stderr: &str) -> String {
             in_block = false;
         }
         // Cargo's per-crate summary counting only the suppressed warning.
-        if suppressed > 0 && t.starts_with("warning:") && t.ends_with("generated 1 warning") {
+        // (`generated 1 warning (1 duplicate)` when it came twice.)
+        let only_one = t.ends_with("generated 1 warning") || t.ends_with("generated 1 warning (1 duplicate)");
+        if suppressed > 0 && t.starts_with("warning:") && only_one {
             suppressed -= 1;
             continue;
         }
@@ -1821,6 +1823,22 @@ warning: linker stderr: ignoring deprecated linker optimization setting '1'
   = note: `#[warn(linker_messages)]` on by default
 
 warning: `example` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 0.03s
+";
+        assert_eq!(
+            filter_benign_warnings(stderr),
+            "    Finished `release` profile [optimized] target(s) in 0.03s\n"
+        );
+    }
+
+    #[test]
+    fn drops_its_summary_when_it_came_twice() {
+        let stderr = "\
+warning: linker stderr: ignoring deprecated linker optimization setting '1'
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `example` (lib) generated 1 warning (1 duplicate)
     Finished `release` profile [optimized] target(s) in 0.03s
 ";
         assert_eq!(
