@@ -565,6 +565,7 @@ pub struct YogCameraOut {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct YogTravelFrame {
+    pub uuid: YogStr,
     pub velocity: [f32; 3],
     pub look: [f32; 3],
     pub yaw: f32,

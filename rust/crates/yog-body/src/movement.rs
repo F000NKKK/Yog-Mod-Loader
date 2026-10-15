@@ -5,8 +5,10 @@
 use crate::math::Vec3;
 
 /// The local player before a travel step.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct TravelFrame {
+    /// The local player.
+    pub uuid: String,
     /// Blocks per tick, as it is now.
     pub velocity: Vec3,
     /// Unit view direction.

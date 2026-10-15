@@ -116,8 +116,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeCamera<'l>(
 #[unsafe(no_mangle)]
 #[allow(clippy::too_many_arguments)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeTravel<'l>(
-    env: JNIEnv<'l>,
+    mut env: JNIEnv<'l>,
     _class: JClass<'l>,
+    uuid: JString<'l>,
     vx: jfloat,
     vy: jfloat,
     vz: jfloat,
@@ -137,7 +138,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeTravel<'l>(
     if entries.is_empty() {
         return std::ptr::null_mut();
     }
+    let uuid = jstr!(env, uuid, std::ptr::null_mut());
     let frame = YogTravelFrame {
+        uuid: YogStr::from_str(&uuid),
         velocity: [vx, vy, vz],
         look: [lx, ly, lz],
         yaw,

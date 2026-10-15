@@ -1794,6 +1794,7 @@ where
         let f = &*(ud as *const F);
         let t = &*frame;
         let frame = yog_body::TravelFrame {
+            uuid: t.uuid.as_str().to_owned(),
             velocity: yog_body::Vec3::from_array(t.velocity),
             look: yog_body::Vec3::from_array(t.look),
             yaw: t.yaw,

@@ -424,7 +424,7 @@ public final class YogBody {
         Vec3 v = p.getDeltaMovement();
         Vec3 look = p.getLookAngle();
         float gravity = v.y <= 0 && p.hasEffect(MobEffects.SLOW_FALLING) ? 0.01F : 0.08F;
-        float[] out = NativeBridge.nativeTravel((float) v.x, (float) v.y, (float) v.z, (float) look.x, (float) look.y, (float) look.z,
+        float[] out = NativeBridge.nativeTravel(p.getStringUUID(), (float) v.x, (float) v.y, (float) v.z, (float) look.x, (float) look.y, (float) look.z,
                 p.getYRot(), p.getXRot(), p.zza, p.xxa, p.input.jumping, p.isShiftKeyDown(), gravity, NativeBridge.entityFlags(p));
         if (out == null) return false;
         Vec3 move = new Vec3(out[0], out[1], out[2]);

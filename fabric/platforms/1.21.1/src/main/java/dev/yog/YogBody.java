@@ -406,7 +406,7 @@ public final class YogBody {
         Vec3d v = p.getVelocity();
         Vec3d look = p.getRotationVector();
         float gravity = v.y <= 0 && p.hasStatusEffect(StatusEffects.SLOW_FALLING) ? 0.01F : 0.08F;
-        float[] out = NativeBridge.nativeTravel((float) v.x, (float) v.y, (float) v.z, (float) look.x, (float) look.y, (float) look.z,
+        float[] out = NativeBridge.nativeTravel(p.getUuidAsString(), (float) v.x, (float) v.y, (float) v.z, (float) look.x, (float) look.y, (float) look.z,
                 p.getYaw(), p.getPitch(), p.forwardSpeed, p.sidewaysSpeed, p.input.jumping, p.isSneaking(), gravity, NativeBridge.entityFlags(p));
         if (out == null) return false;
         Vec3d move = new Vec3d(out[0], out[1], out[2]);

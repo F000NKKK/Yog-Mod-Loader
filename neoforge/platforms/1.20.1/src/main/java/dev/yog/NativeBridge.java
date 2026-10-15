@@ -1574,7 +1574,7 @@ public final class NativeBridge {
     /** yog-body: {right, up, forward, wx, wy, wz, yaw, pitch, roll, fov} for the camera, or null. */
     public static native float[] nativeCamera(String uuid, float partial, double x, double y, double z, float yaw, float pitch, boolean detached, int flags);
     /** yog-body: the velocity to move the local player by instead of its travel step, or null. */
-    public static native float[] nativeTravel(float vx, float vy, float vz, float lx, float ly, float lz, float yaw, float pitch,
+    public static native float[] nativeTravel(String uuid, float vx, float vy, float vz, float lx, float ly, float lz, float yaw, float pitch,
             float forward, float strafe, boolean jumping, boolean sneaking, float gravity, int flags);
 
     /** What machine {@code defId} at a block makes of {@code items} ({@code \n}-joined by slot): {@code recipe\nresult\ncount}, or null. */
