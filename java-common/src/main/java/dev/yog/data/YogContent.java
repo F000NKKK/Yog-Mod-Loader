@@ -47,11 +47,29 @@ public final class YogContent {
      */
     public record Sound(String breakSound, String step, String place, String hit, String fall, float volume, float pitch) {}
 
-    /** A block; {@code shape} ({@code x1, y1, z1, x2, y2, z2} in pixels), {@code sound} and {@code inventory} are null when not set. */
+    /**
+     * A block; {@code shape} ({@code x1, y1, z1, x2, y2, z2} in pixels), {@code sound},
+     * {@code inventory}, {@code powered} and {@code comparator} are null when not set.
+     * {@code facing}: {@code ""}, {@code "horizontal"} or {@code "all"}; {@code placement}:
+     * {@code "toward"} (its front to the placer) or {@code "away"}.
+     */
     public record Block(String id, float hardness, float resistance, String name, float[] shape, int light,
                         Sound sound, boolean requiresTool, boolean noCollision, float slipperiness,
                         boolean connects, List<String> connectGroups, String inventory, boolean redstone,
-                        boolean facing) {}
+                        String facing, String placement, boolean attach, boolean waterlogged,
+                        List<Property> properties, String powered, String comparator) {
+        /** Whether it has states of its own (a {@code YogStateBlock}). */
+        public boolean stateful() {
+            return !facing.isEmpty() || attach || waterlogged || !properties.isEmpty();
+        }
+    }
+
+    /** A property of a block's own: its values, the first the default; {@code false, true} is a yes/no. */
+    public record Property(String name, List<String> values) {
+        public boolean yesNo() {
+            return values.equals(List.of("false", "true"));
+        }
+    }
 
     /** A recipe in Yog's own format, as a JSON tree (what {@code YogDataLayout.yogRecipeToVanilla} reads). */
     public record Recipe(String namespace, String name, com.google.gson.JsonObject data) {}
@@ -128,7 +146,10 @@ public final class YogContent {
                     YogData.bool(m.get("requires_tool"), false), YogData.bool(m.get("no_collision"), false),
                     (float) YogData.number(m.get("slipperiness"), 0), YogData.bool(m.get("connects"), false), groups,
                     YogData.str(m.get("inventory"), null), YogData.bool(m.get("redstone"), false),
-                    YogData.bool(m.get("facing"), false)));
+                    YogData.str(m.get("facing"), ""), YogData.str(m.get("placement"), "toward"),
+                    YogData.bool(m.get("attach"), false), YogData.bool(m.get("waterlogged"), false),
+                    properties(m.get("properties")), YogData.str(m.get("powered"), null),
+                    YogData.str(m.get("comparator"), null)));
         }
         Map<String, YogInventoryDef> inventories = new HashMap<>();
         for (Object o : YogData.list(root.get("inventories"))) {
@@ -220,6 +241,17 @@ public final class YogContent {
         List<Object> l = YogData.list(v);
         float[] out = new float[l.size()];
         for (int i = 0; i < out.length; i++) out[i] = (float) YogData.number(l.get(i), 0);
+        return out;
+    }
+
+    private static List<Property> properties(Object o) {
+        List<Property> out = new ArrayList<>();
+        for (Object p : YogData.list(o)) {
+            Map<String, Object> m = YogData.map(p);
+            List<String> values = new ArrayList<>();
+            for (Object v : YogData.list(m.get("values"))) values.add(YogData.str(v, ""));
+            out.add(new Property(YogData.str(m.get("name"), ""), values));
+        }
         return out;
     }
 }
