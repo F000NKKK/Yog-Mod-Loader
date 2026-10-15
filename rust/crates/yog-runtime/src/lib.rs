@@ -156,6 +156,9 @@ struct RuntimeHandlers {
     projectile_hit: Vec<(LoadedModule, *mut c_void, YogProjectileHitFn)>,
     client_tick: Vec<(LoadedModule, *mut c_void, YogClientFn)>,
     hud_render: Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>,
+    body: Vec<(LoadedModule, *mut c_void, yog_abi::YogBodyFn)>,
+    camera: Vec<(LoadedModule, *mut c_void, yog_abi::YogCameraFn)>,
+    travel: Vec<(LoadedModule, *mut c_void, yog_abi::YogTravelFn)>,
     world_render: Vec<(LoadedModule, *mut c_void, YogWorldRenderFn)>,
     key_press: Vec<(LoadedModule, *mut c_void, YogKeyPressFn)>,
     screen_open: Vec<(LoadedModule, *mut c_void, YogScreenFn)>,
@@ -443,6 +446,18 @@ macro_rules! for_each_handler_list {
         }
         {
             let $list = &mut $h.hud_render;
+            $body;
+        }
+        {
+            let $list = &mut $h.body;
+            $body;
+        }
+        {
+            let $list = &mut $h.camera;
+            $body;
+        }
+        {
+            let $list = &mut $h.travel;
             $body;
         }
         {
@@ -3058,6 +3073,7 @@ fn build_server_table() -> YogServer {
         entity_mount: srv_entity_mount,
         entity_dismount: srv_entity_dismount,
         redstone_power: srv_redstone_power,
+        entity_set_fall_distance: srv_entity_set_fall_distance,
         redstone_signal: srv_redstone_signal,
         set_redstone_output: srv_set_redstone_output,
         get_block_state: srv_get_block_state,
@@ -3089,6 +3105,10 @@ unsafe extern "C" fn srv_entity_mount(_ctx: *mut c_void, rider: YogStr, vehicle:
 
 unsafe extern "C" fn srv_entity_dismount(_ctx: *mut c_void, uuid: YogStr) -> bool {
     unsafe { bridge!("entityDismount", [S(uuid)]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn srv_entity_set_fall_distance(_ctx: *mut c_void, uuid: YogStr, distance: f32) -> bool {
+    unsafe { bridge!("entitySetFallDistance", [S(uuid), F(distance)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_redstone_signal(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32 {
@@ -3247,6 +3267,11 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         is_mod_loaded: api_is_mod_loaded,
         java_call: api_java_call,
         on_item_text: api_on_item_text,
+        client_body_track: body::api_client_body_track,
+        client_body_track_type: body::api_client_body_track_type,
+        on_body: body::api_on_body,
+        on_camera: body::api_on_camera,
+        on_travel: body::api_on_travel,
         on_machine_craft: api_on_machine_craft,
     }
 }
@@ -5404,6 +5429,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
     });
 }
 
+mod body;
 mod client_api;
 mod content_blob;
 mod machine;

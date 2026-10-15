@@ -1111,6 +1111,11 @@ impl Server for CServer {
         unsafe { (s.entity_dismount)(s.ctx, YogStr::from_str(uuid)) }
     }
 
+    fn entity_set_fall_distance(&self, uuid: &str, distance: f32) -> bool {
+        let s = srv!(self);
+        unsafe { (s.entity_set_fall_distance)(s.ctx, YogStr::from_str(uuid), distance) }
+    }
+
     fn redstone_signal(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<u8> {
         let s = srv!(self);
         let p = unsafe { (s.redstone_signal)(s.ctx, YogStr::from_str(dimension), bp(pos)) };
@@ -1726,6 +1731,87 @@ where
         }
         write(sink, YogStr::from_str(&text));
         true
+    }
+}
+
+unsafe extern "C" fn trampoline_body<F>(ud: *mut c_void, frame: *const u8, len: usize, sink: *mut c_void, write: yog_abi::YogBytesSink)
+where
+    F: Fn(&yog_body::Frame, &mut yog_body::Ops) + Send + Sync,
+{
+    unsafe {
+        let f = &*(ud as *const F);
+        let Some(frame) = yog_body::Frame::decode(std::slice::from_raw_parts(frame, len)) else { return };
+        let mut ops = yog_body::Ops::default();
+        guard((), || f(&frame, &mut ops));
+        if !ops.is_empty() {
+            write(sink, ops.0.as_ptr(), ops.0.len());
+        }
+    }
+}
+
+unsafe extern "C" fn trampoline_camera<F>(ud: *mut c_void, frame: *const yog_abi::YogCameraFrame, out: *mut yog_abi::YogCameraOut)
+where
+    F: Fn(&yog_body::CameraFrame, &mut yog_body::CameraOut) + Send + Sync,
+{
+    unsafe {
+        let f = &*(ud as *const F);
+        let c = &*frame;
+        let frame = yog_body::CameraFrame {
+            uuid: c.uuid.as_str().to_owned(),
+            partial: c.partial,
+            pos: c.pos,
+            yaw: c.yaw,
+            pitch: c.pitch,
+            detached: c.detached,
+            flags: c.flags,
+        };
+        let o = &mut *out;
+        let mut cam = yog_body::CameraOut {
+            local_offset: yog_body::Vec3::from_array(o.local_offset),
+            world_offset: yog_body::Vec3::from_array(o.world_offset),
+            yaw: o.yaw,
+            pitch: o.pitch,
+            roll: o.roll,
+            fov: o.fov,
+        };
+        guard((), || f(&frame, &mut cam));
+        *o = yog_abi::YogCameraOut {
+            local_offset: cam.local_offset.to_array(),
+            world_offset: cam.world_offset.to_array(),
+            yaw: cam.yaw,
+            pitch: cam.pitch,
+            roll: cam.roll,
+            fov: cam.fov,
+        };
+    }
+}
+
+unsafe extern "C" fn trampoline_travel<F>(ud: *mut c_void, frame: *const yog_abi::YogTravelFrame, velocity: *mut [f32; 3]) -> bool
+where
+    F: Fn(&yog_body::TravelFrame) -> Option<yog_body::Vec3> + Send + Sync,
+{
+    unsafe {
+        let f = &*(ud as *const F);
+        let t = &*frame;
+        let frame = yog_body::TravelFrame {
+            velocity: yog_body::Vec3::from_array(t.velocity),
+            look: yog_body::Vec3::from_array(t.look),
+            yaw: t.yaw,
+            pitch: t.pitch,
+            forward: t.forward,
+            strafe: t.strafe,
+            jumping: t.jumping,
+            sneaking: t.sneaking,
+            gravity: t.gravity,
+            flags: t.flags,
+        };
+        match guard(None, || f(&frame)) {
+            Some(v) => {
+                *velocity = v.to_array();
+                true
+            }
+            None => false,
+        }
     }
 }
 
@@ -2545,6 +2631,55 @@ impl Registry {
         let ud = Self::leak(text);
         let id = YogStr::from_str(item);
         unsafe { ((*self.api).on_item_text)(self.ctx(), id, ud, trampoline_item_text::<F>) }
+    }
+
+    /// A compiled `.ymodel` (the generated code calls this): found later by
+    /// [`crate::body::model`].
+    pub fn register_body_model(&mut self, id: &str, data: &[u8]) {
+        if let Err(e) = yog_body::register_model(id, data) {
+            crate::error!("{e}");
+        }
+    }
+
+    /// A compiled `.yanim` (the generated code calls this): its clips found
+    /// later by [`crate::body::clip`].
+    pub fn register_body_anims(&mut self, id: &str, data: &[u8]) {
+        if let Err(e) = yog_body::register_anims(id, data) {
+            crate::error!("{e}");
+        }
+    }
+
+    /// Register a handler asked each frame about the body of every tracked
+    /// entity ([`crate::body::track`]): it answers with [`crate::body::Ops`]
+    /// — pose vanilla parts, turn the body, draw meshes (rigs, morphs),
+    /// disguise, hide, capture. Every mod's ops add up.
+    pub fn on_body<F>(&mut self, handler: F)
+    where
+        F: Fn(&yog_body::Frame, &mut yog_body::Ops) + Send + Sync + 'static,
+    {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_body)(self.ctx(), ud, trampoline_body::<F>) }
+    }
+
+    /// Register a handler that moves, turns or zooms the camera each frame;
+    /// it changes the [`crate::body::CameraOut`] the handlers before it made.
+    pub fn on_camera<F>(&mut self, handler: F)
+    where
+        F: Fn(&yog_body::CameraFrame, &mut yog_body::CameraOut) + Send + Sync + 'static,
+    {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_camera)(self.ctx(), ud, trampoline_camera::<F>) }
+    }
+
+    /// Register a handler that may replace the local player's travel step:
+    /// `Some(velocity)` (blocks per tick, drag applied) moves the player by
+    /// it instead of vanilla's walking, swimming, falling or gliding.
+    pub fn on_travel<F>(&mut self, handler: F)
+    where
+        F: Fn(&yog_body::TravelFrame) -> Option<yog_body::Vec3> + Send + Sync + 'static,
+    {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_travel)(self.ctx(), ud, trampoline_travel::<F>) }
     }
 
     /// Register a handler called every frame when the HUD is rendered.

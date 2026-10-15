@@ -535,6 +535,10 @@ pub trait Server {
     /// Gets an entity off what it rides; `false` if it rode nothing.
     fn entity_dismount(&self, uuid: &str) -> bool;
 
+    /// Sets how far the entity has fallen — fall damage counts it when it
+    /// lands (0: none). `false` if there's no such entity.
+    fn entity_set_fall_distance(&self, uuid: &str, distance: f32) -> bool;
+
     /// The strongest signal the block at `pos` gives off (a lever, a torch,
     /// dust: its power); `None` if it isn't a redstone source.
     fn redstone_signal(&self, dimension: &str, pos: BlockPos) -> Option<u8>;

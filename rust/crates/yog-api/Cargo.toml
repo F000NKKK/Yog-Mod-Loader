@@ -29,6 +29,7 @@ yog-config  = "0.1"
 yog-gfx     = "0.26"
 yog-ui      = "0.41.4"
 yog-book = "0.64"
+yog-body = "0.1"
 yog-inventory = "0.17"
 
 

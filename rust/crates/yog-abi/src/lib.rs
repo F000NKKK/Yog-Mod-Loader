@@ -525,6 +525,58 @@ pub type YogTextSink = unsafe extern "C" fn(sink: *mut c_void, text: YogStr);
 /// `snbt`: `false` for the item's own; else one `write` of the name (empty:
 /// the item's own) and the lines that stand instead of its description,
 /// separated by `\n`.
+/// Takes bytes a handler writes (copies them; valid for the call).
+pub type YogBytesSink = unsafe extern "C" fn(sink: *mut c_void, data: *const u8, len: usize);
+/// A body frame (`yog_body::Frame`, its wire form): the handler writes its
+/// ops (`yog_body::Ops`) to `sink`.
+pub type YogBodyFn = unsafe extern "C" fn(ud: *mut c_void, frame: *const u8, len: usize, sink: *mut c_void, write: YogBytesSink);
+/// The camera this frame; the handler changes `out` (each handler sees the
+/// last one's result).
+pub type YogCameraFn = unsafe extern "C" fn(ud: *mut c_void, frame: *const YogCameraFrame, out: *mut YogCameraOut);
+/// The local player's travel step: `true` and `velocity` set replaces it.
+pub type YogTravelFn = unsafe extern "C" fn(ud: *mut c_void, frame: *const YogTravelFrame, velocity: *mut [f32; 3]) -> bool;
+
+/// See `yog_body::CameraFrame`.
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct YogCameraFrame {
+    pub uuid: YogStr,
+    pub partial: f32,
+    pub pos: [f64; 3],
+    pub yaw: f32,
+    pub pitch: f32,
+    pub detached: bool,
+    pub flags: u32,
+}
+
+/// See `yog_body::CameraOut`.
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct YogCameraOut {
+    pub local_offset: [f32; 3],
+    pub world_offset: [f32; 3],
+    pub yaw: f32,
+    pub pitch: f32,
+    pub roll: f32,
+    pub fov: f32,
+}
+
+/// See `yog_body::TravelFrame`.
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct YogTravelFrame {
+    pub velocity: [f32; 3],
+    pub look: [f32; 3],
+    pub yaw: f32,
+    pub pitch: f32,
+    pub forward: f32,
+    pub strafe: f32,
+    pub jumping: bool,
+    pub sneaking: bool,
+    pub gravity: f32,
+    pub flags: u32,
+}
+
 pub type YogItemTextFn =
     unsafe extern "C" fn(ud: *mut c_void, item: YogStr, snbt: YogStr, sink: *mut c_void, write: YogTextSink) -> bool;
 /// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
@@ -1161,6 +1213,8 @@ pub struct YogServer {
     pub entity_dismount: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr) -> bool,
     /// Received redstone power 0–15, or -1 (no such dimension).
     pub redstone_power: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32,
+    /// Sets how far an entity has fallen (fall damage counts it on landing).
+    pub entity_set_fall_distance: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, distance: f32) -> bool,
     /// The strongest signal the block gives off 0–15, or -1 (not a source).
     pub redstone_signal: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32,
     pub set_redstone_output:
@@ -1482,6 +1536,18 @@ pub struct YogApi {
     // ── ABI 2.5 — machines ──────────────────────────────────────────────────
     /// A machine making a recipe — see [`YogMachineCraftEvent`].
     pub on_machine_craft: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogMachineCraftFn),
+
+    // ── ABI 3.0 — bodies, camera, movement (yog-body) ───────────────────────
+    /// Asks the mods about entity `uuid`'s body each frame (`on`) or not.
+    pub client_body_track: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, on: bool),
+    /// The same for every entity of type `entity_type`.
+    pub client_body_track_type: unsafe extern "C" fn(ctx: *mut c_void, entity_type: YogStr, on: bool),
+    /// The body of a tracked entity, each frame — see [`YogBodyFn`].
+    pub on_body: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogBodyFn),
+    /// The camera, each frame — see [`YogCameraFn`].
+    pub on_camera: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogCameraFn),
+    /// The local player's travel step, each tick — see [`YogTravelFn`].
+    pub on_travel: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogTravelFn),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].

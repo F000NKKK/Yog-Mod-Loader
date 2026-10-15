@@ -1244,6 +1244,14 @@ public final class NativeBridge {
     }
 
     /** Gets an entity off what it rides. */
+    /** Sets how far the entity has fallen (fall damage counts it on landing). */
+    public static boolean entitySetFallDistance(String uuid, float distance) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) return false;
+        e.fallDistance = distance;
+        return true;
+    }
+
     public static boolean entityDismount(String uuid) {
         Entity e = entityByUuid(uuid);
         if (e == null || !e.isPassenger()) return false;
