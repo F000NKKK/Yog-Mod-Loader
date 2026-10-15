@@ -1,7 +1,8 @@
 //! Entity data (ABI 3.2): values mods keep on an entity by key — the
 //! loader's `SynchedEntityData`/attachments. The server holds them and sends
 //! each change to the players who see the entity (and to it, if a player);
-//! a player who starts seeing an entity gets all of it. Values marked
+//! a player who starts seeing an entity gets all of it. Changes go out once
+//! a tick, batched per entity. Values marked
 //! `persist` are saved with the entity. Only the server writes them: a
 //! client asks for a change with its mod's packet, the server decides.
 //!
@@ -40,6 +41,10 @@ struct Value {
 type Values = BTreeMap<String, Value>;
 
 static SERVER: LazyLock<Mutex<HashMap<String, Values>>> = LazyLock::new(Default::default);
+/// Changes this tick, by entity, then key (`None`: removed) — sent once, at
+/// the end of the tick: a key set twice goes once, an entity's changes in
+/// one packet.
+static PENDING: LazyLock<Mutex<HashMap<String, BTreeMap<String, Option<Vec<u8>>>>>> = LazyLock::new(Default::default);
 static CLIENT: LazyLock<Mutex<HashMap<String, BTreeMap<String, Vec<u8>>>>> = LazyLock::new(Default::default);
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -129,12 +134,22 @@ pub(crate) fn set(uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) {
         }
     };
     if changed {
+        lock(&PENDING).entry(uuid.to_owned()).or_default().insert(key.to_owned(), value.map(<[u8]>::to_vec));
+    }
+}
+
+/// Sends this tick's changes: one packet per entity, to who sees it.
+pub(crate) fn flush() {
+    let pending = std::mem::take(&mut *lock(&PENDING));
+    for (uuid, keys) in pending {
         let mut b = Vec::new();
-        match value {
-            Some(v) => record(&mut b, SET, uuid, key, v),
-            None => record(&mut b, REMOVE, uuid, key, &[]),
+        for (key, value) in keys {
+            match value {
+                Some(v) => record(&mut b, SET, &uuid, &key, &v),
+                None => record(&mut b, REMOVE, &uuid, &key, &[]),
+            }
         }
-        send_to_watchers(uuid, &b);
+        send_to_watchers(&uuid, &b);
     }
 }
 
@@ -249,6 +264,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataForget<'l>(
 /// The server stops: nothing carries over.
 pub(crate) fn server_stopped() {
     lock(&SERVER).clear();
+    lock(&PENDING).clear();
 }
 
 // ── Client ───────────────────────────────────────────────────────────────────

@@ -127,3 +127,27 @@ arms (clips), belts (scrolling UVs). Next steps for it:
   `"animations": "@anim:mymod:wings"`) or embed them — compiled by
   `yog build`, reusable between content: an item's held model, a block's
   moving parts, an entity's whole body, a mob's animations by state.
+
+## Entity data and the network (ABI 3.2)
+
+`Server::set_entity_data(uuid, key, value, persist)` — the loader's
+`SynchedEntityData`/attachments. Rules the whole sync layer follows:
+
+- **The server decides.** Only the server writes state (entity data,
+  positions, collisions); a client sends intents in its mod's packets and the
+  server checks them. Clients do the heavy, cosmetic work — drawing,
+  animation, morph geometry — from the state they're given.
+- **Only to who needs it.** A change goes to the players who see the entity
+  (and to it, if a player); a player who starts seeing it gets all of it.
+- **Once a tick.** Changes are batched per entity and sent at the end of the
+  server tick; a key set twice in a tick goes once; unchanged values aren't
+  sent.
+- **Saved when asked** (`persist`): with the entity's NBT; an unloaded
+  entity is forgotten from memory.
+- **Shared time.** Body frames carry the world's game time, the same on
+  every client, so clips started at a server tick play alike everywhere.
+
+For moving structures and their collisions (Create's contraptions) the same
+holds: the server simulates and sends snapshots stamped with the tick;
+clients interpolate between snapshots and blend corrections smoothly, so
+nothing drifts apart — the server's position wins.

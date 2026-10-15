@@ -4118,6 +4118,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
 
     guard("startup_grants", process_pending_grants);
 
+    // Entity data changed this tick, to who sees it — after the mods' ticks.
+    guard("entity data", entity_data::flush);
+
     // Scheduler: what's due this tick, run outside the lock (a task may schedule more).
     let due = h.scheduler.lock().expect("scheduler poisoned").due();
     for (module, ud, f) in due {
