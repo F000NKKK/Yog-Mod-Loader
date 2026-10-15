@@ -1,6 +1,6 @@
 [package]
 name = "yog-api"
-version = "0.95.0"
+version = "0.95.1"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -12,8 +12,8 @@ description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 [dependencies]
 # Content crosses the ABI as Yog Data blobs (`register_content`).
 yog-data = { version = "0.4", features = ["json"] }
-yog-abi  = "0.30"
-yog-core = "0.4"
+yog-abi  = "0.30.1"
+yog-core = "0.4.1"
 yog-event = "0.5"
 yog-world = "0.4"
 yog-entity = "0.4"
