@@ -57,6 +57,8 @@ pub enum Anchor {
     Model,
     /// A vanilla part's space (pixels), wherever the part is posed.
     Bone(String),
+    /// A block's space: pixels 0–16, y up, as block models (block bodies).
+    Block,
 }
 
 /// How a mesh is drawn.
@@ -147,6 +149,7 @@ impl Ops {
             Anchor::Entity => (0u8, ""),
             Anchor::Model => (1, ""),
             Anchor::Bone(n) => (2, n.as_str()),
+            Anchor::Block => (3, ""),
         };
         b.push(a);
         put_str(b, bone);
