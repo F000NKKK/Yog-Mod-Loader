@@ -16,6 +16,9 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+pub mod loot;
+pub use loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
+
 // ── Items ────────────────────────────────────────────────────────────────────
 
 /// Nutritional properties for a food item.
