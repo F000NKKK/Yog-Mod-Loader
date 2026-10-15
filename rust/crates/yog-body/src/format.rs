@@ -12,10 +12,14 @@ pub struct ModelFile {
     /// or a full id (`minecraft:textures/entity/elytra.png`).
     pub texture: String,
     /// The texture's size in pixels, as its UVs count them.
-    #[data(default = "[64, 32]")]
+    #[data(default = "default_texture_size")]
     pub texture_size: [u32; 2],
     /// The bones, parents before their children.
     pub bones: Vec<BoneDef>,
+}
+
+fn default_texture_size() -> [u32; 2] {
+    [64, 32]
 }
 
 /// A bone: a pivot, a rest turn, cubes, and points to follow (locators).
@@ -76,8 +80,8 @@ pub enum Loop {
 pub struct ClipDef {
     /// Seconds.
     pub length: f32,
-    #[data(default)]
-    pub r#loop: Loop,
+    #[data(rename = "loop", default)]
+    pub repeat: Loop,
     /// Each bone's tracks — this model's bones, or the vanilla model's
     /// parts (`head`, `body`, `right_arm`…).
     pub bones: Ordered<TracksDef>,
@@ -124,10 +128,10 @@ struct KeyObject {
 
 impl Schema for KeyDef {
     fn shape() -> yog_data::Shape {
-        yog_data::Shape::OneOf(vec![<[f32; 3]>::shape, KeyObject::shape])
+        yog_data::Shape::Any
     }
 
-    fn read(v: yog_data::ValueRef<'_, '_>, cx: &mut yog_data::Reader) -> Option<Self> {
+    fn read(v: &yog_data::ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<Self> {
         if v.as_list().is_some() {
             return <[f32; 3]>::read(v, cx).map(|value| KeyDef { value, ease: Ease::Linear });
         }
