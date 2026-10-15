@@ -272,6 +272,8 @@ public class YogHost {
                 Item item;
                 if (made != null) {
                     item = made;
+                } else if (p.wearable() != null) {
+                    item = new YogWearableItem(props, p.name(), p.tooltip(), p.wearable());
                 } else if (p.book()) {
                     item = new YogBookItem(props,
                             p.name(), p.tooltip(), id);

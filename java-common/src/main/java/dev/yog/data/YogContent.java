@@ -38,8 +38,10 @@ public final class YogContent {
      * An item; {@code name}/{@code tooltip} are empty when not set, {@code food}, {@code tool} and
      * {@code armor} null; {@code book}: opens the book of its id.
      */
+    /** An item; {@code wearable} is the slot it's worn in without being armor ({@code head}, …), or null. */
     public record Item(String id, int maxStack, String name, String tooltip, int maxDamage,
-                       boolean fireResistant, int fuelTicks, Food food, boolean book, Tool tool, Armor armor) {}
+                       boolean fireResistant, int fuelTicks, Food food, boolean book, Tool tool, Armor armor,
+                       String wearable) {}
 
     /**
      * A sound group, whole — the game's or a mod's: sound event ids the host
@@ -131,7 +133,7 @@ public final class YogContent {
                     YogData.str(m.get("name"), ""), YogData.str(m.get("tooltip"), ""),
                     (int) YogData.integer(m.get("max_damage"), 0), YogData.bool(m.get("fire_resistant"), false),
                     (int) YogData.integer(m.get("fuel_ticks"), 0), food, YogData.bool(m.get("book"), false),
-                    tool(m.get("tool")), armor(m.get("armor"))));
+                    tool(m.get("tool")), armor(m.get("armor")), YogData.str(m.get("wearable"), null)));
         }
         List<Block> blocks = new ArrayList<>();
         for (Object o : YogData.list(root.get("blocks"))) {
