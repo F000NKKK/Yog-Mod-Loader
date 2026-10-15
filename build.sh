@@ -217,6 +217,13 @@ ensure_platform_clean() {
         return 0
     fi
     if [ -d "$ROOT/$loader/build" ]; then
+        # Cleaning stops every Gradle daemon — a dev game running from this
+        # loader would die with it. Don't.
+        if pgrep -f "$ROOT/$loader/run" >/dev/null 2>&1 || pgrep -af "devlaunchinjector|KnotClient|net.minecraftforge.bootstrap|cpw.mods.bootstraplauncher" | grep -q "$ROOT/$loader"; then
+            echo "error: a game is running from $loader/ — switching it to $mc would stop it (Gradle daemons, build/)." >&2
+            echo "       Close the game first, or build $(cat "$marker" 2>/dev/null || echo 'the current platform') only." >&2
+            exit 1
+        fi
         echo "    platform switch ($loader -> $mc): cleaning stale build outputs"
         rm -rf "$ROOT/$loader/build"
         # A warm Gradle daemon (Loom especially) keeps zip filesystems open
