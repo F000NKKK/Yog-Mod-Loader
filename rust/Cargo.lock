@@ -1511,7 +1511,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.40.0"
+version = "0.41.0"
 dependencies = [
  "criterion",
  "proc-macro2",
@@ -1601,7 +1601,7 @@ dependencies = [
 
 [[package]]
 name = "yog-formats"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "yog-body",
  "yog-data",
