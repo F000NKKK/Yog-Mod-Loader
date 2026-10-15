@@ -305,6 +305,8 @@ struct ItemProps {
     tool: Option<(String, String, f32, f32)>,
     /// (slot, material)
     armor: Option<(String, String)>,
+    /// Worn in this slot without being armor.
+    wearable: Option<String>,
 }
 
 /// One checked content file — what the Rust code needs.
@@ -815,6 +817,10 @@ fn compile_file(
                 (t.kind.clone(), t.material.clone(), d, s)
             });
             props.armor = it.armor.as_ref().map(|a| (yog_formats::content::word(&a.slot), a.material.clone()));
+            props.wearable = it.wearable.as_ref().map(yog_formats::content::word);
+            if props.wearable.is_some() && props.armor.is_some() {
+                cx.err_at(loc, &root.key("item").key("wearable"), "armor is worn already — leave wearable out");
+            }
             if props.tool.is_some() && props.armor.is_some() {
                 cx.err_at(loc, &root.key("item").key("armor"), "an item is a tool or armor, not both");
             }
@@ -2585,6 +2591,9 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
                     }
                     if let Some((kind, material, d, s)) = &p.tool {
                         let _ = write!(b, "\n            .tool({kind:?}, {material:?}, {d:?}, {s:?})");
+                    }
+                    if let Some(slot) = &p.wearable {
+                        let _ = write!(b, "\n            .wearable({slot:?})");
                     }
                     if let Some((slot, material)) = &p.armor {
                         let _ = write!(b, "\n            .armor({slot:?}, {material:?})");

@@ -65,6 +65,8 @@ pub struct ItemDef {
     pub tool: Option<ToolItem>,
     /// A piece of armor of a material.
     pub armor: Option<ArmorPiece>,
+    /// Worn in this slot without being armor: `head`, `chest`, `legs`, `feet`.
+    pub wearable: Option<String>,
 }
 
 impl ItemDef {
@@ -80,6 +82,7 @@ impl ItemDef {
             food: None,
             tool: None,
             armor: None,
+            wearable: None,
         }
     }
 
@@ -95,6 +98,12 @@ impl ItemDef {
     /// `material` (an [`ArmorMaterial`]: the game's `diamond`… or a mod's).
     pub fn armor(mut self, slot: impl Into<String>, material: impl Into<String>) -> Self {
         self.armor = Some(ArmorPiece { slot: slot.into(), material: material.into() });
+        self
+    }
+
+    /// Worn in `slot` (`head`, `chest`, `legs`, `feet`) without being armor.
+    pub fn wearable(mut self, slot: impl Into<String>) -> Self {
+        self.wearable = Some(slot.into());
         self
     }
 

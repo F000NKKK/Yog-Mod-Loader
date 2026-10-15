@@ -48,6 +48,9 @@ pub struct ItemProps {
     pub tool: Option<ToolProps>,
     /// A piece of armor: its slot and material.
     pub armor: Option<ArmorProps>,
+    /// Worn in this slot without being armor (a monocle, a crown):
+    /// right-click and dispensers put it on.
+    pub wearable: Option<ArmorSlot>,
 }
 
 /// An item as a tool or weapon.

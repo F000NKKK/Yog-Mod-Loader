@@ -101,7 +101,13 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
             Some((a, m?))
         });
         // Always: id, max_stack, max_damage, fire_resistant, fuel_ticks, book.
-        let n = 6 + d.name.is_some() as usize + d.tooltip.is_some() as usize + d.food.is_some() as usize + tool.is_some() as usize + armor.is_some() as usize;
+        let n = 6
+            + d.name.is_some() as usize
+            + d.tooltip.is_some() as usize
+            + d.food.is_some() as usize
+            + tool.is_some() as usize
+            + armor.is_some() as usize
+            + d.wearable.is_some() as usize;
         w.map(n);
         w.key("id").str(&d.id);
         w.key("max_stack").int(d.max_stack as i64);
@@ -133,6 +139,9 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
             w.key("slot").str(&a.slot);
             w.key("material");
             write_armor_material(&mut w, m);
+        }
+        if let Some(slot) = &d.wearable {
+            w.key("wearable").str(slot);
         }
         // A book registered under the item's id: the host makes it open the book.
         w.key("book").bool(h.books.contains(&d.id));
