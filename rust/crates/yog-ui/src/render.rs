@@ -193,8 +193,24 @@ fn render_clipped(
         WidgetKind::Image(image) => crate::image::render(d2d, image, r.inset(s.pad), clip),
         WidgetKind::Spacer => {} // invisible
         WidgetKind::Surface(id) => {
-            if let Some(surface) = crate::surface::get(id) {
-                surface.paint(gfx, r.inset(s.pad));
+            let at = r.inset(s.pad);
+            match crate::surface::get(id) {
+                Some(surface) => surface.paint(gfx, at),
+                // Nothing registered to draw it (a designer previewing the
+                // markup, a mod that didn't): its place and its name.
+                None => {
+                    d2d.rect(at.x, at.y, at.x + at.w, at.y + at.h, 0xFF1E2622);
+                    let edge = 0xFF4A5A52;
+                    d2d.rect(at.x, at.y, at.x + at.w, at.y + 1.0, edge);
+                    d2d.rect(at.x, at.y + at.h - 1.0, at.x + at.w, at.y + at.h, edge);
+                    d2d.rect(at.x, at.y, at.x + 1.0, at.y + at.h, edge);
+                    d2d.rect(at.x + at.w - 1.0, at.y, at.x + at.w, at.y + at.h, edge);
+                    let label = format!("Surface {id}");
+                    let w = d2d.text_width(&label, "");
+                    if w < at.w - 4.0 && at.h >= 10.0 {
+                        d2d.text(&label, at.x + (at.w - w) / 2.0, at.y + (at.h - 8.0) / 2.0, 0xFF8FA399, false);
+                    }
+                }
             }
         }
         WidgetKind::TextBox(tb) => render_text_box(d2d, tb, s, *r, clip, node.focused),
