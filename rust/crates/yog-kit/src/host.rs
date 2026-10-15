@@ -295,8 +295,9 @@ impl<W: View> Host<W> {
             .collect()
     }
 
-    /// A virtualized list's scroller changed size since the last update
-    /// (e.g. the first layout) — its window must be recomputed.
+    /// A virtualized list's scroller changed size or offset since the last
+    /// update (the first layout; a `scroll_key` reset, which happens after
+    /// the update read the old offset) — its window must be recomputed.
     fn viewports_changed(&mut self) -> bool {
         let now = self.viewports();
         let changed = self.parts.lists.iter().any(|l| {
@@ -304,7 +305,7 @@ impl<W: View> Host<W> {
                 return false;
             };
             let (a, b) = (self.seen_viewports.get(s as usize), now.get(s as usize));
-            a.map(|v| v.height) != b.map(|v| v.height)
+            a.map(|v| (v.height, v.offset)) != b.map(|v| (v.height, v.offset))
         });
         if changed {
             self.dirty = true;
