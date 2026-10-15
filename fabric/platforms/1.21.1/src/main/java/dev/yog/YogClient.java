@@ -19,6 +19,20 @@ import org.joml.Matrix4f;
 public class YogClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        // Tints a mod sets per position (client::set_block_tint), on faces with a tint index.
+        NativeBridge.ensureLoaded();
+        java.util.List<net.minecraft.block.Block> yogBlocks = new java.util.ArrayList<>();
+        for (dev.yog.data.YogContent.Block b : dev.yog.data.YogContent.cached(NativeBridge::nativeContent).blocks) {
+            net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(b.id());
+            if (id != null && net.minecraft.registry.Registries.BLOCK.containsId(id)) {
+                yogBlocks.add(net.minecraft.registry.Registries.BLOCK.get(id));
+            }
+        }
+        if (!yogBlocks.isEmpty()) {
+            net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry.BLOCK.register(
+                    (state, world, pos, tintIndex) -> YogClientApi.tint(pos),
+                    yogBlocks.toArray(new net.minecraft.block.Block[0]));
+        }
         // Pictures in item tooltips (ABI 2.2).
         net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback.EVENT.register(
                 data -> data instanceof YogTooltipData d ? new YogClientTooltip(d) : null);
