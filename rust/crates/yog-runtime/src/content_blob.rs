@@ -148,8 +148,15 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
             g
         });
         // Always: id, hardness, resistance, light, requires_tool, no_collision,
-        // slipperiness, connects, connect_groups, redstone, facing.
-        let n = 11 + d.name.is_some() as usize + d.shape.is_some() as usize + group.is_some() as usize + d.inventory_id.is_some() as usize;
+        // slipperiness, connects, connect_groups, redstone, facing, placement,
+        // attach, waterlogged, properties.
+        let n = 15
+            + d.name.is_some() as usize
+            + d.shape.is_some() as usize
+            + group.is_some() as usize
+            + d.inventory_id.is_some() as usize
+            + d.powered.is_some() as usize
+            + d.comparator.is_some() as usize;
         w.map(n);
         w.key("id").str(&d.id);
         w.key("hardness").float(d.hardness as f64);
@@ -176,7 +183,23 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
             w.key("inventory").str(inv);
         }
         w.key("redstone").bool(d.redstone_source);
-        w.key("facing").bool(d.facing);
+        w.key("facing").str(&d.facing);
+        w.key("placement").str(&d.placement);
+        w.key("attach").bool(d.attach);
+        w.key("waterlogged").bool(d.waterlogged);
+        w.key("properties").list(d.properties.len());
+        for p in &d.properties {
+            w.map(2);
+            w.key("name").str(&p.name);
+            w.key("values");
+            strings(&mut w, &p.values);
+        }
+        if let Some(p) = &d.powered {
+            w.key("powered").str(p);
+        }
+        if let Some(c) = &d.comparator {
+            w.key("comparator").str(c);
+        }
     }
 
     w.key("inventories").list(h.inventories.len());

@@ -489,6 +489,11 @@ pub struct BlockProps {
     /// Gives off redstone power, set by the mod per position.
     #[data(default)]
     pub redstone: bool,
+    /// A yes/no property (`states.properties`) the block keeps on while it
+    /// gets redstone power.
+    pub powered: Option<String>,
+    /// A yes/no property a comparator reads: 15 while it's on.
+    pub comparator: Option<String>,
 }
 
 /// A texture: `#slot`, `@Set.image` (a `.yres` image), a `.png` path in
@@ -703,16 +708,51 @@ pub struct Connect {
 pub struct States {
     pub rotations: Option<Vec<Rotation>>,
     pub connect: Option<Connect>,
-    /// The block turns to the player who places it: its model's north side
-    /// toward them (a `facing` property, as a furnace's).
+    /// The block turns when placed (a `facing` property); its model's north
+    /// side is its front.
     pub facing: Option<Facing>,
+    /// Which way it turns when placed: its front toward the player (as a
+    /// furnace, the default) or the way they look (as an observer).
+    pub placement: Option<Placement>,
+    /// It hangs on a floor, wall or ceiling, as a button does: a `face`
+    /// property (`floor`, `wall`, `ceiling`) and a horizontal `facing`. Its
+    /// model lies on the floor.
+    #[data(default)]
+    pub attach: bool,
+    /// It can stand in water (a `waterlogged` property).
+    #[data(default)]
+    pub waterlogged: bool,
+    /// Properties of its own: a name and its values, the first the
+    /// default; `["false", "true"]` is a yes/no.
+    #[data(default)]
+    pub properties: Ordered<Vec<String>>,
+    /// More models, by name, for `variants`.
+    #[data(default)]
+    pub models: Ordered<Model>,
+    /// The model a state shows: some of its properties
+    /// (`"energized=true,facing=up"`) → a name in `models`. The first that
+    /// matches wins, else the block's own model; turning for `facing` and
+    /// `face` is added.
+    #[data(default)]
+    pub variants: Ordered<String>,
 }
 
-/// Which ways a block can turn to face its placer.
+/// Which ways a block can turn.
 #[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Facing {
     /// North, east, south or west.
     Horizontal,
+    /// Any of the six.
+    All,
+}
+
+/// Which way a block turns when placed.
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Placement {
+    /// Its front toward the player.
+    Toward,
+    /// Its front the way the player looks.
+    Away,
 }
 
 /// A `.yitem`.

@@ -329,7 +329,7 @@ pub use yog_network::packet;
 pub use yog_network::{Packet, PacketEvent, PacketField};
 pub use yog_player::Player;
 pub use yog_registry::{
-    BlockDef, Cooking, FoodDef, ItemDef, Recipe,
+    BlockDef, BlockProperty, Cooking, FoodDef, ItemDef, Recipe,
     ArmorDefense, ArmorMaterial, ArmorPiece, RecipeKind, SoundGroup, StartupGrant, ToolItem, ToolMaterial,
 };
 pub use yog_storage::{Storage, StorageScope, Value};

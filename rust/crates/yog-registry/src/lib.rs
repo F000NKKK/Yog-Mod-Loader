@@ -744,9 +744,31 @@ pub struct BlockDef {
     /// Gives off redstone power — how much, per position, the mod sets with
     /// `Server::set_redstone_output`.
     pub redstone_source: bool,
-    /// Turns to the player who places it (a horizontal `facing` property;
-    /// the model's north side faces them).
-    pub facing: bool,
+    /// How it turns when placed (a `facing` property): `""` (it doesn't),
+    /// `"horizontal"` or `"all"`.
+    pub facing: String,
+    /// `"toward"`: its front toward the placer; `"away"`: the way they look.
+    pub placement: String,
+    /// It hangs on a floor, wall or ceiling, as a button (a `face`
+    /// property and a horizontal `facing`).
+    pub attach: bool,
+    /// It can stand in water (a `waterlogged` property).
+    pub waterlogged: bool,
+    /// Properties of its own.
+    pub properties: Vec<BlockProperty>,
+    /// A yes/no property the block keeps on while it gets redstone power.
+    pub powered: Option<String>,
+    /// A yes/no property a comparator reads 15 from while it's on.
+    pub comparator: Option<String>,
+}
+
+/// A property of a block's own: its name and values (the first the
+/// default; `false`, `true` is a yes/no).
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(yog_data::Schema, Debug, Clone, PartialEq, Eq)]
+pub struct BlockProperty {
+    pub name: String,
+    pub values: Vec<String>,
 }
 
 impl BlockDef {
@@ -766,7 +788,13 @@ impl BlockDef {
             connect_groups: Vec::new(),
             inventory_id: None,
             redstone_source: false,
-            facing: false,
+            facing: String::new(),
+            placement: String::new(),
+            attach: false,
+            waterlogged: false,
+            properties: Vec::new(),
+            powered: None,
+            comparator: None,
         }
     }
 
@@ -854,9 +882,41 @@ impl BlockDef {
         self
     }
 
-    /// Turns to the player who places it: the model's north side faces them.
-    pub fn facing(mut self) -> Self {
-        self.facing = true;
+    /// Turns when placed: `"horizontal"` or `"all"` ways, its front (the
+    /// model's north side) `"toward"` the placer or `"away"` (the way they look).
+    pub fn facing(mut self, ways: &str, placement: &str) -> Self {
+        self.facing = ways.to_string();
+        self.placement = placement.to_string();
+        self
+    }
+
+    /// Hangs on a floor, wall or ceiling, as a button.
+    pub fn attach(mut self) -> Self {
+        self.attach = true;
+        self
+    }
+
+    /// Can stand in water.
+    pub fn waterlogged(mut self) -> Self {
+        self.waterlogged = true;
+        self
+    }
+
+    /// A property of its own: `values`, the first the default.
+    pub fn property(mut self, name: &str, values: &[&str]) -> Self {
+        self.properties.push(BlockProperty { name: name.into(), values: values.iter().map(|v| v.to_string()).collect() });
+        self
+    }
+
+    /// Keeps yes/no property `name` on while it gets redstone power.
+    pub fn powered(mut self, name: &str) -> Self {
+        self.powered = Some(name.into());
+        self
+    }
+
+    /// A comparator reads 15 from it while yes/no property `name` is on.
+    pub fn comparator(mut self, name: &str) -> Self {
+        self.comparator = Some(name.into());
         self
     }
 

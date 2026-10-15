@@ -274,7 +274,17 @@ struct BlockProps {
     shape: Option<[f64; 6]>,
     connect_groups: Vec<String>,
     connects: bool,
-    facing: bool,
+    /// `""`, `"horizontal"` or `"all"`.
+    facing: String,
+    /// `"toward"` or `"away"`.
+    placement: String,
+    attach: bool,
+    waterlogged: bool,
+    /// Its own properties: name, values.
+    properties: Vec<(String, Vec<String>)>,
+    /// Yes/no properties: kept on by redstone; read by a comparator.
+    powered: Option<String>,
+    comparator: Option<String>,
     /// The inventory screen it opens (a `.yui` `<Screen>` with `<Slot>`s).
     inventory: Option<String>,
     /// Gives off redstone power, set by the mod per position.
@@ -635,6 +645,26 @@ fn file_id(cx: &mut Ctx, line: usize, id: Option<&str>, path: &Path, mod_ns: Opt
 }
 
 /// The JSON of one block state: `{"model": ..., "x": .., "y": .., ...}`.
+/// How a state turns its model (x, then y, in degrees): `facing` is where
+/// its front (the model's north side) looks; `face`, where an attached
+/// block (its model lying on the floor) hangs.
+fn turn(facing: Option<&str>, face: Option<&str>) -> (f64, f64) {
+    let yaw = |f: &str| match f {
+        "east" => 90.0,
+        "south" => 180.0,
+        "west" => 270.0,
+        _ => 0.0,
+    };
+    match (face, facing) {
+        (Some("wall"), Some(f)) => (90.0, yaw(f)),
+        (Some("ceiling"), Some(f)) => (180.0, (yaw(f) + 180.0) % 360.0),
+        (_, Some("up")) => (270.0, 0.0),
+        (_, Some("down")) => (90.0, 0.0),
+        (_, Some(f)) => (0.0, yaw(f)),
+        _ => (0.0, 0.0),
+    }
+}
+
 fn variant(model: &str, x: f64, y: f64, uvlock: bool, weight: Option<f64>) -> Value {
     let mut v = Map::new();
     v.insert("model".into(), Value::String(model.into()));
@@ -885,11 +915,110 @@ fn compile_file(
                 entry.block.connect_groups.push(id.clone());
             }
         }
-        if s.facing.is_some() {
+        if s.facing.is_some() || s.attach || s.waterlogged || !s.properties.0.is_empty() {
             if s.rotations.is_some() || s.connect.is_some() {
-                cx.err_at(loc, &sat.key("facing"), "can't go with rotations or connect");
+                cx.err_at(loc, &sat, "facing, attach, waterlogged and properties can't go with rotations or connect");
             }
-            entry.block.facing = true;
+            let b = &mut entry.block;
+            use yog_formats::content::{Facing, Placement};
+            if s.attach {
+                if s.facing == Some(Facing::All) {
+                    cx.err_at(loc, &sat.key("facing"), "an attached block turns four ways — leave facing out");
+                }
+                b.attach = true;
+                b.facing = "horizontal".into();
+            } else if let Some(f) = s.facing {
+                b.facing = if f == Facing::All { "all" } else { "horizontal" }.into();
+            }
+            if !b.facing.is_empty() {
+                b.placement = if s.placement == Some(Placement::Away) { "away" } else { "toward" }.into();
+            } else if s.placement.is_some() {
+                cx.err_at(loc, &sat.key("placement"), "placement needs facing (or attach)");
+            }
+            b.waterlogged = s.waterlogged;
+            for (name, values) in &s.properties.0 {
+                let here = sat.key("properties").key(name);
+                let word = |w: &str| !w.is_empty() && w.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+                if !word(name) {
+                    cx.err_at(loc, &here, format!("`{name}`: a property's name is lowercase letters, digits and _"));
+                } else if ["facing", "face", "waterlogged"].contains(&name.as_str()) {
+                    cx.err_at(loc, &here, format!("`{name}` comes from facing, attach or waterlogged — name yours otherwise"));
+                }
+                let mut seen = std::collections::HashSet::new();
+                if values.len() < 2 || !values.iter().all(|v| word(v) && seen.insert(v.as_str())) {
+                    cx.err_at(loc, &here, "two or more different values, lowercase letters, digits and _");
+                }
+                b.properties.push((name.clone(), values.clone()));
+            }
+        } else if s.placement.is_some() || !s.models.0.is_empty() || !s.variants.0.is_empty() {
+            cx.err_at(loc, &sat, "placement, models and variants need facing, attach, waterlogged or properties");
+        }
+    }
+    // A block's own properties with every value — facing, face and
+    // waterlogged as the host makes them.
+    let states: Vec<(String, Vec<String>)> = {
+        let b = &entry.block;
+        let words = |ws: &[&str]| ws.iter().map(|w| w.to_string()).collect::<Vec<_>>();
+        let mut all = Vec::new();
+        match b.facing.as_str() {
+            "all" => all.push(("facing".to_string(), words(&["north", "east", "south", "west", "up", "down"]))),
+            "horizontal" => all.push(("facing".to_string(), words(&["north", "east", "south", "west"]))),
+            _ => {}
+        }
+        if b.attach {
+            all.push(("face".to_string(), words(&["floor", "wall", "ceiling"])));
+        }
+        if b.waterlogged {
+            all.push(("waterlogged".to_string(), words(&["false", "true"])));
+        }
+        all.extend(b.properties.iter().cloned());
+        all.sort_by(|a, b| a.0.cmp(&b.0));
+        all
+    };
+    // Yes/no properties the host drives.
+    let yes_no = |name: &str| states.iter().any(|(n, v)| n == name && *v == ["false", "true"]);
+    for (key, value) in [("powered", &b.powered), ("comparator", &b.comparator)] {
+        if let Some(name) = value {
+            if yes_no(name) {
+                if key == "powered" {
+                    entry.block.powered = Some(name.clone());
+                } else {
+                    entry.block.comparator = Some(name.clone());
+                }
+            } else {
+                cx.err_at(loc, &bat.key(key), format!("`{name}`: a yes/no property of states.properties ([\"false\", \"true\"])"));
+            }
+        }
+    }
+    // Its other models, and which state shows which.
+    let mut rules: Vec<(Vec<(String, String)>, String)> = Vec::new();
+    if let Some(s) = &parts.states {
+        let sat = root.key("states");
+        let mut named = std::collections::HashMap::new();
+        for (name, m) in &s.models.0 {
+            if let Some(mut m) = model(cx, loc, &sat.key("models").key(name), m, false) {
+                if let (Some(layer), Value::Object(o)) = (&render_layer, &mut m.json) {
+                    o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
+                }
+                emit(cx, format!("models/block/{p}/{name}.json"), &m.json);
+                named.insert(name.clone(), format!("{ns}:block/{p}/{name}"));
+            }
+        }
+        for (key, name) in &s.variants.0 {
+            let here = sat.key("variants").key(key);
+            let mut when = Vec::new();
+            for pair in key.split(',').filter(|p| !p.is_empty()) {
+                let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
+                if states.iter().any(|(n, vs)| n == k && vs.iter().any(|x| x == v)) {
+                    when.push((k.to_string(), v.to_string()));
+                } else {
+                    cx.err_at(loc, &here, format!("`{pair}`: no such property and value"));
+                }
+            }
+            match named.get(name) {
+                Some(m) => rules.push((when, m.clone())),
+                None => cx.err_at(loc, &here, format!("`{name}`: not in states.models")),
+            }
         }
     }
     let base: Value = match rotations.len() {
@@ -898,13 +1027,39 @@ fn compile_file(
         _ => Value::Array(rotations),
     };
     let blockstate = match &arm {
-        // The model's north side toward the placer, as a furnace's.
-        None if entry.block.facing => json!({ "variants": {
-            "facing=north": variant(&main, 0.0, 0.0, false, None),
-            "facing=east": variant(&main, 0.0, 90.0, false, None),
-            "facing=south": variant(&main, 0.0, 180.0, false, None),
-            "facing=west": variant(&main, 0.0, 270.0, false, None),
-        } }),
+        // Every state: its model, turned by facing and face.
+        None if !states.is_empty() => {
+            let mut variants = Map::new();
+            let mut combo: Vec<usize> = vec![0; states.len()];
+            loop {
+                let at: Vec<(&str, &str)> = states.iter().zip(&combo).map(|((n, vs), &i)| (n.as_str(), vs[i].as_str())).collect();
+                let value = |k: &str| at.iter().find(|(n, _)| *n == k).map(|(_, v)| *v);
+                let m = rules
+                    .iter()
+                    .find(|(when, _)| when.iter().all(|(k, v)| value(k) == Some(v.as_str())))
+                    .map_or(main.as_str(), |(_, m)| m.as_str());
+                let (x, y) = turn(value("facing"), value("face"));
+                let key: Vec<String> = at.iter().map(|(n, v)| format!("{n}={v}")).collect();
+                variants.insert(key.join(","), variant(m, x, y, false, None));
+                // The next state, the last property fastest.
+                let mut i = states.len();
+                loop {
+                    if i == 0 {
+                        break;
+                    }
+                    i -= 1;
+                    combo[i] += 1;
+                    if combo[i] < states[i].1.len() {
+                        break;
+                    }
+                    combo[i] = 0;
+                }
+                if combo.iter().all(|&c| c == 0) {
+                    break;
+                }
+            }
+            json!({ "variants": variants })
+        }
         None => json!({ "variants": { "": base } }),
         Some((arm, uvlock)) => {
             let mut parts = vec![json!({ "apply": base })];
@@ -2387,8 +2542,24 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
                     if p.redstone {
                         b.push_str("\n            .redstone_source()");
                     }
-                    if p.facing {
-                        b.push_str("\n            .facing()");
+                    if !p.facing.is_empty() {
+                        let _ = write!(b, "\n            .facing({:?}, {:?})", p.facing, p.placement);
+                    }
+                    if p.attach {
+                        b.push_str("\n            .attach()");
+                    }
+                    if p.waterlogged {
+                        b.push_str("\n            .waterlogged()");
+                    }
+                    for (name, values) in &p.properties {
+                        let vs: Vec<String> = values.iter().map(|v| format!("{v:?}")).collect();
+                        let _ = write!(b, "\n            .property({name:?}, &[{}])", vs.join(", "));
+                    }
+                    if let Some(name) = &p.powered {
+                        let _ = write!(b, "\n            .powered({name:?})");
+                    }
+                    if let Some(name) = &p.comparator {
+                        let _ = write!(b, "\n            .comparator({name:?})");
                     }
                 }
                 Kind::Item => {
@@ -2860,7 +3031,7 @@ mod tests {
         let bs = output(&c, "assets/mymod/blockstates/screen.json");
         assert_eq!(bs["variants"]["facing=north"], json!({ "model": "mymod:block/screen" }));
         assert_eq!(bs["variants"]["facing=west"]["y"], json!(270));
-        assert!(c.source.unwrap().contains(".facing()"));
+        assert!(c.source.unwrap().contains(".facing(\"horizontal\", \"toward\")"));
         let _ = std::fs::remove_dir_all(root);
     }
 
