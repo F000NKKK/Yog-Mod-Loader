@@ -23,12 +23,14 @@ struct Tags {
     yog: HashMap<(String, String), Vec<String>>,
     /// What the loaders' tags hold (on any version), by (registry, id).
     has: HashMap<(String, String), Vec<String>>,
+    /// The game's content a `yog:` tag holds on every host, by (registry, path).
+    base: HashMap<(String, String), Vec<String>>,
 }
 
 static TAGS: LazyLock<Tags> = LazyLock::new(|| {
     let mut versions = Vec::new();
     let mut loaders = Vec::new();
-    let (mut tags, mut yog, mut has) = (HashMap::new(), HashMap::new(), HashMap::new());
+    let (mut tags, mut yog, mut has, mut base) = (HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new());
     for line in TABLE.lines() {
         if let Some(v) = line.strip_prefix("# versions:") {
             versions = v.split_whitespace().map(str::to_string).collect();
@@ -49,6 +51,9 @@ static TAGS: LazyLock<Tags> = LazyLock::new(|| {
             ["yog", reg, path, of @ ..] => {
                 yog.insert((reg.to_string(), path.to_string()), of.iter().map(|t| t.to_string()).collect());
             }
+            ["base", reg, path, entries @ ..] => {
+                base.insert((reg.to_string(), path.to_string()), entries.iter().map(|t| t.to_string()).collect());
+            }
             ["has", reg, id, entries @ ..] => {
                 has.insert((reg.to_string(), id.to_string()), entries.iter().map(|t| t.to_string()).collect());
             }
@@ -56,7 +61,7 @@ static TAGS: LazyLock<Tags> = LazyLock::new(|| {
         }
     }
     let hosts = versions.iter().flat_map(|v| loaders.iter().map(move |l| format!("{l}/{v}"))).collect();
-    Tags { hosts, tags, yog, has }
+    Tags { hosts, tags, yog, has, base }
 });
 
 /// Every host Yog supports: `<loader>/<version>`.
@@ -83,7 +88,12 @@ pub fn tags_known(ns: &str) -> bool {
 pub fn tag_hosts(registry: &str, id: &str) -> Option<Hosts> {
     let (ns, path) = id.split_once(':')?;
     if ns == "yog" {
-        let of = TAGS.yog.get(&(registry.to_string(), path.to_string()))?;
+        let key = (registry.to_string(), path.to_string());
+        let of = TAGS.yog.get(&key)?;
+        // It holds the game's content everywhere.
+        if TAGS.base.contains_key(&key) {
+            return Some(None);
+        }
         let mut on = BTreeSet::new();
         for t in of {
             match TAGS.tags.get(&(registry.to_string(), t.clone()))? {
@@ -129,6 +139,11 @@ pub fn yog_tags(registry: &str) -> Vec<(&'static str, &'static [String])> {
     out
 }
 
+/// The game's content `yog:<path>` holds on every host, whatever tags it has there.
+pub fn yog_base(registry: &str, path: &str) -> &'static [String] {
+    TAGS.base.get(&(registry.to_string(), path.to_string())).map_or(&[], Vec::as_slice)
+}
+
 /// What a loader's tag (`c:ingots/iron`) holds — ids and `#tags` — on any
 /// version; the game's own tags are read from its jars instead.
 pub fn loader_tag(registry: &str, id: &str) -> Option<&'static [String]> {
@@ -146,6 +161,8 @@ mod tests {
         assert_eq!(yog_tag_for("item", "c:iron_ingots").as_deref(), Some("yog:ingots/iron"));
         assert_eq!(yog_tag_for("item", "forge:cobblestone").as_deref(), Some("yog:cobblestones"));
         assert_eq!(tag_hosts("item", "yog:nope"), None);
+        assert_eq!(tag_hosts("item", "yog:nuggets/gold"), Some(None), "Fabric 1.20.1 has no such tag, but its base is the game's nugget");
+        assert_eq!(yog_base("item", "nuggets/gold"), &["minecraft:gold_nugget".to_string()][..]);
         assert_eq!(yog_tag("item", "planks"), Some(&["minecraft:planks".to_string()][..]));
         assert!(loader_tag("item", "c:iron_ingots").is_some_and(|e| e.iter().any(|i| i == "minecraft:iron_ingot")));
     }

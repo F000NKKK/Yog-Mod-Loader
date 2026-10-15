@@ -42,6 +42,8 @@ public final class YogTags {
     private static final Map<String, Set<String>> TAGS = new HashMap<>();
     /** {@code <registry> <path>} → the tags {@code yog:<path>} is, the game's first. */
     private static final Map<String, List<String>> YOG = new HashMap<>();
+    /** {@code <registry> <path>} → the game's content {@code yog:<path>} holds on every host. */
+    private static final Map<String, List<String>> BASE = new HashMap<>();
 
     static {
         try (InputStream in = YogTags.class.getResourceAsStream("/yog/tags.txt")) {
@@ -57,6 +59,8 @@ public final class YogTags {
                         TAGS.put(p[1] + " " + p[2], Set.of(p[3].split(",")));
                     } else if (p.length >= 4 && p[0].equals("yog")) {
                         YOG.put(p[1] + " " + p[2], List.of(p).subList(3, p.length));
+                    } else if (p.length >= 4 && p[0].equals("base")) {
+                        BASE.put(p[1] + " " + p[2], List.of(p).subList(3, p.length));
                     }
                 }
             }
@@ -83,8 +87,9 @@ public final class YogTags {
      */
     public static boolean has(String registry, String id) {
         if (id.startsWith("yog:")) {
-            List<String> of = YOG.get(registry + " " + id.substring(4));
-            return of == null || of.stream().anyMatch(t -> has(registry, t));
+            String key = registry + " " + id.substring(4);
+            List<String> of = YOG.get(key);
+            return of == null || BASE.containsKey(key) || of.stream().anyMatch(t -> has(registry, t));
         }
         Set<String> where = TAGS.get(registry + " " + id);
         return where == null || here(where);
@@ -134,6 +139,13 @@ public final class YogTags {
             for (String t : tags) {
                 JsonObject ref = new JsonObject();
                 ref.addProperty("id", "#" + t);
+                ref.addProperty("required", false);
+                values.add(ref);
+            }
+            // The game's content it holds whatever tags this host has.
+            for (String b : BASE.getOrDefault(e.getKey(), List.of())) {
+                JsonObject ref = new JsonObject();
+                ref.addProperty("id", b);
                 ref.addProperty("required", false);
                 values.add(ref);
             }

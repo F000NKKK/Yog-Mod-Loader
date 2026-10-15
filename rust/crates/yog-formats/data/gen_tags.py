@@ -147,6 +147,7 @@ out = [
     "# tag <registry> <id> <where>: * — everywhere; a version — every loader of it; <loader>/<version>.",
     "# yog <registry> <path> <tag>...: yog:<path> is these tags — those a host has; a mod's entries go to the first.",
     "# has <registry> <id> <entry>...: what a loader's tag holds (on any version of it), for the editors.",
+    "# base <registry> <path> <entry>...: the game's content yog:<path> holds on every host, whatever tags it has.",
 ]
 for (reg, tid), hosts in sorted(where.items()):
     out.append(f"tag {reg} {tid} {place(hosts)}")
@@ -155,5 +156,31 @@ for (reg, name), tags in sorted(yog.items()):
 for (reg, tid), entries in sorted(members.items()):
     if entries:
         out.append(f"has {reg} {tid} {' '.join(sorted(entries))}")
+
+
+def game_content(reg, tag, seen):
+    """The game's ids (and tags) loader tag `tag` holds, nested loader tags opened."""
+    out = set()
+    if tag in seen:
+        return out
+    seen.add(tag)
+    for e in members.get((reg, tag), ()):
+        if e.startswith("#minecraft:") or e.startswith("minecraft:"):
+            out.add(e)
+        elif e.startswith("#"):
+            out |= game_content(reg, e[1:], seen)
+    return out
+
+
+# A yog: tag whose loader tags some host lacks still holds the game's content there.
+for (reg, name), tags in sorted(yog.items()):
+    if any(t.startswith("minecraft:") for t in tags):
+        continue
+    base = set()
+    for t in tags:
+        base |= game_content(reg, t, set())
+    if base:
+        out.append(f"base {reg} {name} {' '.join(sorted(base))}")
+
 open(sys.argv[1], "w").write("\n".join(out) + "\n")
 print(len(where), "tags,", len(yog), "yog tags")
