@@ -925,28 +925,34 @@ public final class NativeBridge {
         return stack.hasNbt() ? stack.getNbt().toString() : "{}";
     }
 
+    /** {@code YogEntityFlags} bits of {@code e}. */
+    public static int entityFlags(Entity e) {
+        int flags = 0;
+        if (e instanceof LivingEntity) flags |= YogEntityFlags.LIVING;
+        if (e instanceof PlayerEntity) flags |= YogEntityFlags.PLAYER;
+        if (e instanceof net.minecraft.entity.passive.AnimalEntity
+                || e instanceof net.minecraft.entity.mob.WaterCreatureEntity) flags |= YogEntityFlags.ANIMAL;
+        if (e instanceof net.minecraft.entity.mob.Monster) flags |= YogEntityFlags.MONSTER;
+        if (e instanceof ItemEntity) flags |= YogEntityFlags.ITEM;
+        if (e instanceof net.minecraft.entity.mob.MobEntity) flags |= YogEntityFlags.MOB;
+        if (e instanceof net.minecraft.entity.decoration.ArmorStandEntity) flags |= YogEntityFlags.ARMOR_STAND;
+        if (e.isAlive()) flags |= YogEntityFlags.ALIVE;
+        if (e.isSpectator()) flags |= YogEntityFlags.SPECTATOR;
+        if (e instanceof net.minecraft.entity.boss.dragon.EnderDragonPart) flags |= YogEntityFlags.PART;
+        if (e instanceof net.minecraft.entity.passive.VillagerEntity) flags |= YogEntityFlags.VILLAGER;
+        if (e.isSneaking()) flags |= YogEntityFlags.SNEAKING;
+        if (e.isOnGround()) flags |= YogEntityFlags.ON_GROUND;
+        if (e.horizontalCollision) flags |= YogEntityFlags.HORIZONTAL_COLLISION;
+        if (e instanceof net.minecraft.entity.LivingEntity gliding && gliding.isFallFlying()) flags |= YogEntityFlags.GLIDING;
+        return flags;
+    }
+
     /** "type\tdim\tx\ty\tz\teyeHeight\twidth\theight\tflags\tname", or null. */
     public static String entityInfo(String uuid) {
         try {
             Entity e = entityByUuid(uuid);
             if (e == null) return null;
-            int flags = 0;
-            if (e instanceof LivingEntity) flags |= YogEntityFlags.LIVING;
-            if (e instanceof PlayerEntity) flags |= YogEntityFlags.PLAYER;
-            if (e instanceof net.minecraft.entity.passive.AnimalEntity
-                    || e instanceof net.minecraft.entity.mob.WaterCreatureEntity) flags |= YogEntityFlags.ANIMAL;
-            if (e instanceof net.minecraft.entity.mob.Monster) flags |= YogEntityFlags.MONSTER;
-            if (e instanceof ItemEntity) flags |= YogEntityFlags.ITEM;
-            if (e instanceof net.minecraft.entity.mob.MobEntity) flags |= YogEntityFlags.MOB;
-            if (e instanceof net.minecraft.entity.decoration.ArmorStandEntity) flags |= YogEntityFlags.ARMOR_STAND;
-            if (e.isAlive()) flags |= YogEntityFlags.ALIVE;
-            if (e.isSpectator()) flags |= YogEntityFlags.SPECTATOR;
-            if (e instanceof net.minecraft.entity.boss.dragon.EnderDragonPart) flags |= YogEntityFlags.PART;
-            if (e instanceof net.minecraft.entity.passive.VillagerEntity) flags |= YogEntityFlags.VILLAGER;
-            if (e.isSneaking()) flags |= YogEntityFlags.SNEAKING;
-            if (e.isOnGround()) flags |= YogEntityFlags.ON_GROUND;
-            if (e.horizontalCollision) flags |= YogEntityFlags.HORIZONTAL_COLLISION;
-            if (e instanceof net.minecraft.entity.LivingEntity gliding && gliding.isFallFlying()) flags |= YogEntityFlags.GLIDING;
+            int flags = entityFlags(e);
             return Registries.ENTITY_TYPE.getId(e.getType()) + "\t"
                     + e.getWorld().getRegistryKey().getValue() + "\t"
                     + e.getX() + "\t" + e.getY() + "\t" + e.getZ() + "\t"
@@ -1854,6 +1860,13 @@ public final class NativeBridge {
     /** {@code {w, h}} of the picture a mod gives a stack of {@code item} with custom data {@code snbt}, or null. */
     /** A Yog mod's name and tooltip lines for a stack — `name\nline…` — or null (ABI 2.4). */
     public static native String nativeItemText(String item, String snbt);
+    /** yog-body: the ops for a tracked entity's body this frame, or null. */
+    public static native byte[] nativeBodyPose(byte[] frame);
+    /** yog-body: {right, up, forward, wx, wy, wz, yaw, pitch, roll, fov} for the camera, or null. */
+    public static native float[] nativeCamera(String uuid, float partial, double x, double y, double z, float yaw, float pitch, boolean detached, int flags);
+    /** yog-body: the velocity to move the local player by instead of its travel step, or null. */
+    public static native float[] nativeTravel(float vx, float vy, float vz, float lx, float ly, float lz, float yaw, float pitch,
+            float forward, float strafe, boolean jumping, boolean sneaking, float gravity, int flags);
 
     /** What machine {@code defId} at a block makes of {@code items} ({@code \n}-joined by slot): {@code recipe\nresult\ncount}, or null. */
     public static native String nativeMachineResult(String defId, String dimension, int x, int y, int z, String items);
