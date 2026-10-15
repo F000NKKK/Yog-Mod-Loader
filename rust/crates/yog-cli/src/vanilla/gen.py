@@ -32,6 +32,9 @@ for v in VERSIONS:
         m = re.fullmatch(r"data/minecraft/recipes?/([a-z0-9_/]+)\.json", n)
         if m:
             ids[("recipe", m[1])].add(v)
+        m = re.fullmatch(r"data/minecraft/loot_tables?/([a-z0-9_/]+)\.json", n)
+        if m:
+            ids[("loot_table", m[1])].add(v)
     for k in lang:
         m = re.fullmatch(r"entity\.minecraft\.([a-z0-9_]+)", k)
         if m:

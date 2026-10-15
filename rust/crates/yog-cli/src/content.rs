@@ -2812,7 +2812,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     out.items = entries.len() - out.blocks;
     out.recipes = recipes.len();
     out.books = books.len();
-    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !entity_files.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !dimensions.is_empty())
+    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !entity_files.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !dimensions.is_empty() || !loot.is_empty())
         && !mentions_content_macro(&root.join("src"))
     {
         out.warnings.push(format!(
