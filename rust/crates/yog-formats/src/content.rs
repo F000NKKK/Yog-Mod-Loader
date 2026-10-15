@@ -803,6 +803,9 @@ pub struct ItemFile {
     /// them loaded it isn't there (an optional integration).
     #[data(default)]
     pub requires: Vec<String>,
+    /// Item tags it's in (`minecraft:planks`; a bare name is the mod's own).
+    #[data(default)]
+    pub tags: Vec<String>,
     pub model: Model,
     pub item: Option<ItemProps>,
 }
@@ -819,6 +822,11 @@ pub struct BlockFile {
     /// them loaded it isn't there (an optional integration).
     #[data(default)]
     pub requires: Vec<String>,
+    /// Tags it's in (`minecraft:logs`, `edified_logs` — a bare name is the
+    /// mod's own): the block tag, and the item tag of the same name for its
+    /// item form, as the game pairs them. A tag of blocks only is a `.ydef`.
+    #[data(default)]
+    pub tags: Vec<String>,
     pub model: Model,
     /// The item form's model; the block's by default.
     pub item_model: Option<Model>,

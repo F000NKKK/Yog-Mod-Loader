@@ -739,12 +739,13 @@ fn compile_file(
         states: Option<yog_formats::content::States>,
         item: Option<yog_formats::content::ItemProps>,
         requires: Vec<String>,
+        tags: Vec<String>,
     }
     let (parts, refs) = match kind {
         Kind::Item => match yog_data::schema::from_doc::<yog_formats::content::ItemFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, requires: f.requires }, r.refs)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, requires: f.requires, tags: f.tags }, r.refs)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -754,7 +755,7 @@ fn compile_file(
         Kind::Block => match yog_data::schema::from_doc::<yog_formats::content::BlockFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, requires: f.requires }, r.refs)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, requires: f.requires, tags: f.tags }, r.refs)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -816,6 +817,16 @@ fn compile_file(
     };
 
     let mut entry = Entry { kind, id: id.clone(), file: cx.file.clone(), auto, requires: parts.requires.clone(), block: BlockProps::default(), item: ItemProps::default() };
+
+    // Its tags: a block's block tag, and the item tag of the same name for its item form.
+    for tag in &parts.tags {
+        let tag = full_id(tag.trim_start_matches('#'), &cx.ns);
+        let (tns, tpath) = tag.split_once(':').unwrap_or(("minecraft", &tag));
+        if kind == Kind::Block {
+            out.tags.entry(format!("data/{tns}/tags/block/{tpath}.json")).or_default().insert(id.clone(), true);
+        }
+        out.tags.entry(format!("data/{tns}/tags/item/{tpath}.json")).or_default().insert(id.clone(), true);
+    }
 
     if kind == Kind::Item {
         if let Some(it) = &parts.item {
@@ -3808,6 +3819,19 @@ mod tests {
         let missing = r#"{ kind: "ore", id: "x", targets: [{ replaces: "stone", block: "@block:mymod:nope" }], size: 6, per_chunk: 4, height: { min: 0, max: 10 } }"#;
         let e = compile(&project(&[("content/x.ydef", missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no block mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn blocks_and_items_join_their_tags() {
+        let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+        let log = format!(r#"{{ tags: ["minecraft:logs", "edified_logs"], {model} }}"#);
+        let staff = r#"{ tags: ["staves"], model: { parent: "generated", textures: { layer0: "minecraft:item/stick" } } }"#;
+        let c = compile(&project(&[("content/log.yblock", &log), ("content/staff.yitem", staff)]), "mymod", &yres::Refs::default()).unwrap();
+        for t in ["data/minecraft/tags/block/logs.json", "data/minecraft/tags/item/logs.json", "data/mymod/tags/block/edified_logs.json", "data/mymod/tags/item/edified_logs.json"] {
+            assert!(c.tags[t].contains_key("mymod:log"), "{t}");
+        }
+        assert!(c.tags["data/mymod/tags/item/staves.json"].contains_key("mymod:staff"));
+        assert!(!c.tags.contains_key("data/mymod/tags/block/staves.json"), "an item has no block tag");
     }
 
     #[test]
