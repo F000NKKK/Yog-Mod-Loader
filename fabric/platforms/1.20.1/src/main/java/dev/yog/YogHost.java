@@ -102,6 +102,22 @@ public class YogHost implements ModInitializer {
             }
         }
 
+        // Entity data reaches who sees an entity: all of it when they start
+        // seeing it or come into a world; an entity leaving the server's memory
+        // is forgotten (what it keeps was saved with it).
+        net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register(
+                (entity, player) -> sendEntityData(player, entity));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sendEntityData(handler.player, handler.player));
+        net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents.AFTER_RESPAWN.register(
+                (oldPlayer, newPlayer, alive) -> sendEntityData(newPlayer, newPlayer));
+        net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register(
+                (player, origin, destination) -> sendEntityData(player, player));
+        ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
+            if (!(entity instanceof net.minecraft.entity.player.PlayerEntity)) {
+                NativeBridge.nativeEntityDataForget(entity.getUuidAsString());
+            }
+        });
+
         // Block break — pre (cancellable) then after (observe).
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
             String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
@@ -677,5 +693,11 @@ public class YogHost implements ModInitializer {
             src.sendFeedback(() -> Text.literal(reply), false);
         }
         return Command.SINGLE_SUCCESS;
+    }
+
+    /** Everything entity {@code about} keeps, to {@code to}. */
+    private static void sendEntityData(net.minecraft.server.network.ServerPlayerEntity to, net.minecraft.entity.Entity about) {
+        byte[] data = NativeBridge.nativeEntityDataFor(about.getUuidAsString());
+        if (data != null) NativeBridge.sendToPlayer(to.getName().getString(), "yog:entity_data", data);
     }
 }

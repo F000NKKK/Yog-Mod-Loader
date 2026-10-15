@@ -61,6 +61,10 @@ public class YogClient implements ClientModInitializer {
             }
         }
 
+        // A world left: its entity data is forgotten.
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
+                (handler, client) -> NativeBridge.nativeEntityDataClientReset());
+
         // client tick
         ClientTickEvents.END_CLIENT_TICK.register(client -> NativeBridge.nativeOnClientTick());
 

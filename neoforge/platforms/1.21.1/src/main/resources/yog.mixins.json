@@ -11,6 +11,7 @@
         "ContainerOpenMixin",
         "CraftingMixin",
         "DimensionsMixin",
+        "EntityDataMixin",
         "ExplosionMixin",
         "ItemPickupMixin",
         "PlayerMoveMixin",
