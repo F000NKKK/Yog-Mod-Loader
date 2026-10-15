@@ -84,4 +84,34 @@ public final class YogClientApi {
             return false;
         }
     }
+
+    // ── Block tints (client::set_block_tint) ──────────────────────────────────
+
+    private static final Map<String, Map<Long, Integer>> TINTS = new ConcurrentHashMap<>();
+
+    /** Tints the block at x, y, z in {@code dim} (its faces with a tint index); color -1 clears it. */
+    public static void setBlockTint(String dim, int x, int y, int z, int color) {
+        long key = net.minecraft.util.math.BlockPos.asLong(x, y, z);
+        Map<Long, Integer> here = TINTS.computeIfAbsent(dim, d -> new ConcurrentHashMap<>());
+        if (color < 0) here.remove(key); else here.put(key, color);
+        try {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            mc.execute(() -> {
+                if (mc.world != null && mc.world.getRegistryKey().getValue().toString().equals(dim)) {
+                    mc.worldRenderer.scheduleBlockRenders(x, y, z, x, y, z);
+                }
+            });
+        } catch (Throwable t) {
+            // dedicated server
+        }
+    }
+
+    /** The tint at {@code pos} in the client's world, white if none. */
+    public static int tint(net.minecraft.util.math.BlockPos pos) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.world == null || pos == null) return 0xFFFFFF;
+        Map<Long, Integer> here = TINTS.get(mc.world.getRegistryKey().getValue().toString());
+        Integer c = here == null ? null : here.get(pos.asLong());
+        return c == null ? 0xFFFFFF : c;
+    }
 }
