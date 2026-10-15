@@ -741,11 +741,11 @@ fn compile_file(
         requires: Vec<String>,
         tags: Vec<String>,
     }
-    let (parts, refs) = match kind {
+    let (parts, refs, tag_refs) = match kind {
         Kind::Item => match yog_data::schema::from_doc::<yog_formats::content::ItemFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, requires: f.requires, tags: f.tags }, r.refs)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, requires: f.requires, tags: f.tags }, r.refs, r.tags)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -755,7 +755,7 @@ fn compile_file(
         Kind::Block => match yog_data::schema::from_doc::<yog_formats::content::BlockFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, requires: f.requires, tags: f.tags }, r.refs)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, requires: f.requires, tags: f.tags }, r.refs, r.tags)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -767,6 +767,15 @@ fn compile_file(
     // What it names (drops) is checked once every file is read.
     for f in &refs {
         cx.deferred.push((cx.file.clone(), loc(&f.path), f.path.to_string(), f.value.clone()));
+    }
+    for f in &tag_refs {
+        cx.deferred.push((cx.file.clone(), loc(&f.path), f.path.to_string(), yog_data::Ref::new(format!("{TAG_REF}{}", f.value.kind), f.value.id.clone())));
+    }
+    // Its tags (checked like the rest): a block's are block or item tags.
+    for (i, tag) in parts.tags.iter().enumerate() {
+        let at = root.key("tags").index(i);
+        let of = if kind == Kind::Block { "block|item" } else { "item" };
+        cx.deferred.push((cx.file.clone(), loc(&at), at.to_string(), yog_data::Ref::new(format!("{TAG_REF}{of}"), full_id(tag.trim_start_matches('#'), mod_ns.unwrap_or("minecraft")))));
     }
     if let Some(f) = parts.format
         && f != 1
@@ -1681,15 +1690,8 @@ fn full_id(id: &str, ns: &str) -> String {
     if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") }
 }
 
-/// The datapack folder of tags of content `of` (a `.ydef` tag's kind,
-/// Yog's name or the game registry's): `entity` → `entity_type`.
-fn tag_folder(of: &str) -> &str {
-    match of {
-        "entity" => "entity_type",
-        "biome" => "worldgen/biome",
-        other => other,
-    }
-}
+/// A deferred check of a tag of content `<kinds>`: `tag:item`, `tag:block|item`.
+const TAG_REF: &str = "tag:";
 
 /// A `.ydef` tag: where it's written and its entries (`optional` ones
 /// kept only if present). What it names was checked with the file's refs.
@@ -1713,7 +1715,7 @@ fn tag_entries(t: &yog_formats::def::TagDef, ns: &str) -> Result<(String, BTreeM
         }
     }
     if problems.is_empty() {
-        Ok((format!("data/{tns}/tags/{}/{tpath}.json", tag_folder(&t.of)), entries))
+        Ok((format!("data/{tns}/tags/{}/{tpath}.json", refs::tag_registry(&t.of)), entries))
     } else {
         Err(problems)
     }
@@ -2637,6 +2639,12 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             "sound_group" => (defs.sound_groups.iter().any(|g| g.id == r.id) || yog_formats::def::SoundGroup::built_in(&r.id).is_some())
                 .then_some(())
                 .ok_or_else(|| format!("no sound group {} — the game's or a .ydef's", r.id)),
+            kind if kind.starts_with(TAG_REF) => {
+                // `tag:block|item`: a tag of either.
+                let mut found = kind[TAG_REF.len()..].split('|').map(|k| known.check_tag(k, &r.id));
+                let first = found.next().unwrap_or(Ok(()));
+                if first.is_ok() || found.any(|f| f.is_ok()) { Ok(()) } else { first }
+            }
             kind => match refs::RefKind::from_word(kind) {
                 Some(k) => known.check(k, &r.id),
                 None => Ok(()),
