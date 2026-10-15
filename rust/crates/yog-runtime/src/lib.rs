@@ -31,7 +31,7 @@ use yog_abi::{
     YogBlockPos, YogChatFn, YogClientFn, YogCommandFn, YogContainerCloseEvent,
     YogContainerCloseFn, YogContainerOpenEvent, YogContainerOpenFn, YogCraftEvent, YogCraftFn,
     YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent, YogEntityInteractFn,
-    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogMachineCraftEvent, YogMachineCraftFn, YogKeyPressFn, YogOwnedStr, YogPacketFn,
+    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemInsertEvent, YogItemInsertFn, YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogMachineCraftEvent, YogMachineCraftFn, YogKeyPressFn, YogOwnedStr, YogPacketFn,
     YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn,
     YogPlayerMoveEvent, YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn,
     YogProjectileHitEvent, YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn,
@@ -149,6 +149,7 @@ struct RuntimeHandlers {
     machine_craft: Vec<(LoadedModule, *mut c_void, YogMachineCraftFn)>,
     explosion: Vec<(LoadedModule, *mut c_void, YogExplosionFn)>,
     item_pickup: Vec<(LoadedModule, *mut c_void, YogItemPickupFn)>,
+    item_insert: Vec<(LoadedModule, *mut c_void, YogItemInsertFn)>,
     player_move: Vec<(LoadedModule, *mut c_void, YogPlayerMoveFn)>,
     container_open: Vec<(LoadedModule, *mut c_void, YogContainerOpenFn)>,
     container_close: Vec<(LoadedModule, *mut c_void, YogContainerCloseFn)>,
@@ -414,6 +415,10 @@ macro_rules! for_each_handler_list {
         }
         {
             let $list = &mut $h.item_pickup;
+            $body;
+        }
+        {
+            let $list = &mut $h.item_insert;
             $body;
         }
         {
@@ -2037,6 +2042,7 @@ api_event!(api_on_item_craft, item_craft, YogCraftFn);
 api_event!(api_on_machine_craft, machine_craft, YogMachineCraftFn);
 api_event!(api_on_explosion, explosion, YogExplosionFn);
 api_event!(api_on_item_pickup, item_pickup, YogItemPickupFn);
+api_event!(api_on_item_insert, item_insert, YogItemInsertFn);
 api_event!(api_on_player_move, player_move, YogPlayerMoveFn);
 api_event!(api_on_container_open, container_open, YogContainerOpenFn);
 api_event!(api_on_container_close, container_close, YogContainerCloseFn);
@@ -3192,6 +3198,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_item_craft: api_on_item_craft,
         on_explosion: api_on_explosion,
         on_item_pickup: api_on_item_pickup,
+        on_item_insert: api_on_item_insert,
         on_player_move: api_on_player_move,
         on_container_open: api_on_container_open,
         on_container_close: api_on_container_close,
@@ -4877,6 +4884,50 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnExplosion<'l>(
     guard("on_explosion", || {
         each(&h.explosion, |ud, f| unsafe { f(ud, srv, &ev, 1) });
     });
+}
+
+// ── item insert JNI entry points ─────────────────────────────────────────────
+
+/// A hopper or dropper offers an item to a block that accepts items:
+/// `simulate` asks whether it would take it (Pre), else it takes it (Post).
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnItemInsert<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    block: JString<'l>,
+    x: jint,
+    y: jint,
+    z: jint,
+    dimension: JString<'l>,
+    item_id: JString<'l>,
+    count: jint,
+    nbt: JString<'l>,
+    simulate: jni::sys::jboolean,
+) -> jni::sys::jboolean {
+    let h = handlers();
+    if h.item_insert.is_empty() {
+        return 0;
+    }
+    let (b, d, i, n) = (jstr!(env, block, 0), jstr!(env, dimension, 0), jstr!(env, item_id, 0), jstr!(env, nbt, 0));
+    let ev = YogItemInsertEvent {
+        block: YogStr::from_str(&b),
+        pos: YogBlockPos { x, y, z },
+        dimension: YogStr::from_str(&d),
+        item_id: YogStr::from_str(&i),
+        count: count.max(0) as u32,
+        nbt: YogStr::from_str(&n),
+    };
+    let srv = srv_ptr();
+    if simulate != 0 {
+        // Some handler takes it.
+        !allowed(&h.item_insert, |ud, f| unsafe { !f(ud, srv, &ev, 0) }) as jni::sys::jboolean
+    } else {
+        let mut taken = false;
+        guard("on_item_insert", || {
+            each(&h.item_insert, |ud, f| taken |= unsafe { f(ud, srv, &ev, 1) });
+        });
+        taken as jni::sys::jboolean
+    }
 }
 
 // ── ABI minor 9 JNI entry points ─────────────────────────────────────────────

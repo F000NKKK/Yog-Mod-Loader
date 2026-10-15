@@ -13,7 +13,7 @@ use yog_abi::{
     YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, 
     YogChatEvent, YogCommandEvent, YogContainerCloseEvent, YogContainerOpenEvent, YogCraftEvent,
     YogEntityDamageEvent, YogEntityDeathEvent, YogEntityInteractEvent, YogEntitySpawnEvent,
-    YogExplosionEvent, YogGfxApi, YogItemPickupEvent, YogMachineCraftEvent,
+    YogExplosionEvent, YogGfxApi, YogItemInsertEvent, YogItemPickupEvent, YogMachineCraftEvent,
     YogKeyPressEvent, YogPacketEvent, YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent,
     YogPlayerMoveEvent, YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer,
     YogStr, YogUseBlockEvent, YogUseItemEvent,
@@ -25,7 +25,7 @@ use yog_dimensions::{ChunkWriter, YogDimensionDef};
 use yog_event::{
     AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ClientTickEvent,
     ContainerCloseEvent, ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent,
-    EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent, ItemPickupEvent,
+    EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent, ItemInsertEvent, ItemPickupEvent,
     KeyPressEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerJoinEvent, PlayerLeaveEvent,
     PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent, ScreenEvent, UseBlockEvent,
     UseItemEvent,
@@ -1497,6 +1497,24 @@ trampoline_phased!(
 );
 
 trampoline_phased!(
+    trampoline_item_insert,
+    YogItemInsertEvent,
+    ItemInsertEvent,
+    |ev| ItemInsertEvent {
+        block_id: ev.block.as_str().to_owned(),
+        pos: yog_core::BlockPos {
+            x: ev.pos.x,
+            y: ev.pos.y,
+            z: ev.pos.z
+        },
+        dimension: ev.dimension.as_str().to_owned(),
+        item_id: ev.item_id.as_str().to_owned(),
+        count: ev.count,
+        nbt: ev.nbt.as_str().to_owned(),
+    }
+);
+
+trampoline_phased!(
     trampoline_item_pickup,
     YogItemPickupEvent,
     ItemPickupEvent,
@@ -2062,6 +2080,17 @@ impl Registry {
     {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_explosion)(self.ctx(), ud, trampoline_explosion::<F>) }
+    }
+
+    /// A hopper or dropper offers an item to a block that accepts items
+    /// (`block.accepts_items`): `Pre` returns whether it takes it, `Post`
+    /// takes it.
+    pub fn on_item_insert<F>(&mut self, handler: F)
+    where
+        F: Fn(&ItemInsertEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
+    {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_item_insert)(self.ctx(), ud, trampoline_item_insert::<F>) }
     }
 
     pub fn on_item_pickup<F>(&mut self, handler: F)
