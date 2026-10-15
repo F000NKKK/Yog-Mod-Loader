@@ -5,6 +5,7 @@
     "compatibilityLevel": "JAVA_21",
     "refmap": "yog.refmap.json",
     "mixins": [
+    "LootTableMixin",
         "AdvancementMixin",
         "BlockItemPlaceMixin",
         "ContainerCloseMixin",

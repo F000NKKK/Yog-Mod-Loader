@@ -487,7 +487,7 @@ public final class NativeBridge {
     }
 
     /** Item stack from id + count + optional snbt tag; null if the id is unknown. */
-    private static ItemStack buildStack(String itemId, int count, String snbt) {
+    static ItemStack buildStack(String itemId, int count, String snbt) {
         ResourceLocation id = ResourceLocation.tryParse(itemId);
         if (id == null || count <= 0 || !BuiltInRegistries.ITEM.containsKey(id)) return null;
         ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(id), count);
@@ -501,7 +501,7 @@ public final class NativeBridge {
     }
 
     /** Snbt of a stack's tag ("{}" if none). */
-    private static String stackSnbt(ItemStack stack) {
+    static String stackSnbt(ItemStack stack) {
         return stack.hasTag() ? stack.getTag().toString() : "{}";
     }
 
@@ -1588,6 +1588,13 @@ public final class NativeBridge {
     public static native String nativeItemText(String item, String snbt);
     /** yog-body: the ops for a tracked entity's body this frame, or null. */
     public static native byte[] nativeBodyPose(byte[] frame);
+
+    /** Whether any mod handles loot (ABI 3.4). */
+    public static native boolean nativeHasLoot();
+
+    /** A rolled loot table ({@code yog_registry::Loot}, Yog Data) → the stacks to give instead, or null. */
+    public static native byte[] nativeLoot(byte[] loot);
+
     /** Entity data: everything about an entity, for a player who starts seeing it; null for nothing. */
     public static native byte[] nativeEntityDataFor(String uuid);
     /** Entity data: what the entity keeps when saved; null for nothing. */
