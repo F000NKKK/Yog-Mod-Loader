@@ -17,7 +17,12 @@
     ],
     "client": [
         "HudRenderMixin",
-        "KeyboardMixin"
+        "BodyRenderMixin",
+        "CameraMixin",
+        "KeyboardMixin",
+        "ModelPartAccess",
+        "TravelMixin",
+        "WalkAnimationAccess"
     ],
     "server": []
 }

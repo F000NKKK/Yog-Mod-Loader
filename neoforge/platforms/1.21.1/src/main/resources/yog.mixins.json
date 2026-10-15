@@ -16,7 +16,12 @@
         "ProjectileHitMixin"
     ],
     "client": [
-        "KeyboardMixin"
+        "BodyRenderMixin",
+        "CameraMixin",
+        "KeyboardMixin",
+        "ModelPartAccess",
+        "TravelMixin",
+        "WalkAnimationAccess"
     ],
     "server": []
 }
