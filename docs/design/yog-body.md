@@ -115,3 +115,15 @@ arms (clips), belts (scrolling UVs). Next steps for it:
 - **Entities of a mod's own**: entity types registered from Rust, drawn
   with rigs (`on_body` with the `entity` anchor and `hide`), with AI and
   sync hooks.
+
+## Next: editors and content that uses bodies
+
+- **Yog-IDLE editors** for `.ymodel`/`.yanim` like the `.yblock` designer,
+  but in 3D, Blender-like: orbit/pan/zoom, select bones and cubes, move,
+  rotate, scale with gizmos, edit pivots and UVs, a timeline with
+  keyframes and curves, preview on the player or a mob, morph preview.
+- **Content made of bodies**: `.yblock`, `.yitem`, `.yentity` (and mobs)
+  reference models and clips (`"model": "@model:mymod:wings"`,
+  `"animations": "@anim:mymod:wings"`) or embed them — compiled by
+  `yog build`, reusable between content: an item's held model, a block's
+  moving parts, an entity's whole body, a mob's animations by state.
