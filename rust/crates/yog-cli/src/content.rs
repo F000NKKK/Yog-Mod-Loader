@@ -274,6 +274,7 @@ struct BlockProps {
     shape: Option<[f64; 6]>,
     connect_groups: Vec<String>,
     connects: bool,
+    facing: bool,
     /// The inventory screen it opens (a `.yui` `<Screen>` with `<Slot>`s).
     inventory: Option<String>,
     /// Gives off redstone power, set by the mod per position.
@@ -879,6 +880,12 @@ fn compile_file(
                 entry.block.connect_groups.push(id.clone());
             }
         }
+        if s.facing.is_some() {
+            if s.rotations.is_some() || s.connect.is_some() {
+                cx.err_at(loc, &sat.key("facing"), "can't go with rotations or connect");
+            }
+            entry.block.facing = true;
+        }
     }
     let base: Value = match rotations.len() {
         0 => variant(&main, 0.0, 0.0, false, None),
@@ -886,6 +893,13 @@ fn compile_file(
         _ => Value::Array(rotations),
     };
     let blockstate = match &arm {
+        // The model's north side toward the placer, as a furnace's.
+        None if entry.block.facing => json!({ "variants": {
+            "facing=north": variant(&main, 0.0, 0.0, false, None),
+            "facing=east": variant(&main, 0.0, 90.0, false, None),
+            "facing=south": variant(&main, 0.0, 180.0, false, None),
+            "facing=west": variant(&main, 0.0, 270.0, false, None),
+        } }),
         None => json!({ "variants": { "": base } }),
         Some((arm, uvlock)) => {
             let mut parts = vec![json!({ "apply": base })];
@@ -2368,6 +2382,9 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
                     if p.redstone {
                         b.push_str("\n            .redstone_source()");
                     }
+                    if p.facing {
+                        b.push_str("\n            .facing()");
+                    }
                 }
                 Kind::Item => {
                     let p = &e.item;
@@ -2824,6 +2841,21 @@ mod tests {
         let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
         let m = output(&c, "assets/mymod/models/block/cable.json");
         assert_eq!(m["textures"]["particle"], json!("minecraft:block/stone"));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_facing_block_turns_to_its_placer() {
+        let root = project(&[(
+            "content/screen.yblock",
+            r##"{ "model": { "parent": "cube_all", "textures": { "all": "minecraft:block/stone" } },
+                 "states": { "facing": "horizontal" } }"##,
+        )]);
+        let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
+        let bs = output(&c, "assets/mymod/blockstates/screen.json");
+        assert_eq!(bs["variants"]["facing=north"], json!({ "model": "mymod:block/screen" }));
+        assert_eq!(bs["variants"]["facing=west"]["y"], json!(270));
+        assert!(c.source.unwrap().contains(".facing()"));
         let _ = std::fs::remove_dir_all(root);
     }
 

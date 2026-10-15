@@ -703,6 +703,16 @@ pub struct Connect {
 pub struct States {
     pub rotations: Option<Vec<Rotation>>,
     pub connect: Option<Connect>,
+    /// The block turns to the player who places it: its model's north side
+    /// toward them (a `facing` property, as a furnace's).
+    pub facing: Option<Facing>,
+}
+
+/// Which ways a block can turn to face its placer.
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Facing {
+    /// North, east, south or west.
+    Horizontal,
 }
 
 /// A `.yitem`.

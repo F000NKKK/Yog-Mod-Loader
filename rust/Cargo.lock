@@ -1788,7 +1788,3 @@ dependencies = [
  "log",
  "simd-adler32",
 ]
-
-[[patch.unused]]
-name = "yog_pipes_exports"
-version = "0.6.0"

@@ -744,6 +744,9 @@ pub struct BlockDef {
     /// Gives off redstone power — how much, per position, the mod sets with
     /// `Server::set_redstone_output`.
     pub redstone_source: bool,
+    /// Turns to the player who places it (a horizontal `facing` property;
+    /// the model's north side faces them).
+    pub facing: bool,
 }
 
 impl BlockDef {
@@ -763,6 +766,7 @@ impl BlockDef {
             connect_groups: Vec::new(),
             inventory_id: None,
             redstone_source: false,
+            facing: false,
         }
     }
 
@@ -847,6 +851,12 @@ impl BlockDef {
     /// with `Server::set_redstone_output` (0 until then).
     pub fn redstone_source(mut self) -> Self {
         self.redstone_source = true;
+        self
+    }
+
+    /// Turns to the player who places it: the model's north side faces them.
+    pub fn facing(mut self) -> Self {
+        self.facing = true;
         self
     }
 

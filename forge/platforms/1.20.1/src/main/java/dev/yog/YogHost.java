@@ -201,6 +201,8 @@ public class YogHost {
                 inventoryBlocks.add(block);
             } else if (p.redstone()) {
                 block = new YogRedstoneBlock(props);
+            } else if (p.facing()) {
+                block = new YogFacingBlock(props);
             } else if (p.shape() != null) {
                 float[] sp = p.shape();
                 block = new YogShapedBlock(props,

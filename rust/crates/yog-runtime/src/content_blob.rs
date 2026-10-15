@@ -148,8 +148,8 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
             g
         });
         // Always: id, hardness, resistance, light, requires_tool, no_collision,
-        // slipperiness, connects, connect_groups, redstone.
-        let n = 10 + d.name.is_some() as usize + d.shape.is_some() as usize + group.is_some() as usize + d.inventory_id.is_some() as usize;
+        // slipperiness, connects, connect_groups, redstone, facing.
+        let n = 11 + d.name.is_some() as usize + d.shape.is_some() as usize + group.is_some() as usize + d.inventory_id.is_some() as usize;
         w.map(n);
         w.key("id").str(&d.id);
         w.key("hardness").float(d.hardness as f64);
@@ -176,6 +176,7 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
             w.key("inventory").str(inv);
         }
         w.key("redstone").bool(d.redstone_source);
+        w.key("facing").bool(d.facing);
     }
 
     w.key("inventories").list(h.inventories.len());

@@ -50,7 +50,8 @@ public final class YogContent {
     /** A block; {@code shape} ({@code x1, y1, z1, x2, y2, z2} in pixels), {@code sound} and {@code inventory} are null when not set. */
     public record Block(String id, float hardness, float resistance, String name, float[] shape, int light,
                         Sound sound, boolean requiresTool, boolean noCollision, float slipperiness,
-                        boolean connects, List<String> connectGroups, String inventory, boolean redstone) {}
+                        boolean connects, List<String> connectGroups, String inventory, boolean redstone,
+                        boolean facing) {}
 
     /** A recipe in Yog's own format, as a JSON tree (what {@code YogDataLayout.yogRecipeToVanilla} reads). */
     public record Recipe(String namespace, String name, com.google.gson.JsonObject data) {}
@@ -126,7 +127,8 @@ public final class YogContent {
                     (int) YogData.integer(m.get("light"), 0), sound(m.get("sound")),
                     YogData.bool(m.get("requires_tool"), false), YogData.bool(m.get("no_collision"), false),
                     (float) YogData.number(m.get("slipperiness"), 0), YogData.bool(m.get("connects"), false), groups,
-                    YogData.str(m.get("inventory"), null), YogData.bool(m.get("redstone"), false)));
+                    YogData.str(m.get("inventory"), null), YogData.bool(m.get("redstone"), false),
+                    YogData.bool(m.get("facing"), false)));
         }
         Map<String, YogInventoryDef> inventories = new HashMap<>();
         for (Object o : YogData.list(root.get("inventories"))) {
