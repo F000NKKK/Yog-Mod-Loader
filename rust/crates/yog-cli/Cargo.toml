@@ -27,7 +27,7 @@ yog-book = "0.64"
 # The data model, text syntax and schemas of every Yog format.
 yog-data = { version = "0.4", features = ["toml"] }
 # The schemas of the source formats.
-yog-formats = "0.4"
+yog-formats = "0.5"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }

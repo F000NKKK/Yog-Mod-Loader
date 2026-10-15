@@ -1591,7 +1591,7 @@ dependencies = [
 
 [[package]]
 name = "yog-formats"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "yog-data",
  "yog-registry",
@@ -1644,7 +1644,7 @@ version = "0.1.0"
 
 [[package]]
 name = "yog-network"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
 ]
@@ -1659,7 +1659,7 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.32.0"
+version = "0.32.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1709,7 +1709,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ui"
-version = "0.41.3"
+version = "0.41.4"
 dependencies = [
  "criterion",
  "yog-abi",
