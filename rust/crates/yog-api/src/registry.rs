@@ -1087,16 +1087,28 @@ impl Server for CServer {
         unsafe { (s.set_item_cooldown)(s.ctx, YogStr::from_str(player), YogStr::from_str(item_id), ticks.min(i32::MAX as u32) as i32) }
     }
 
-    fn entity_teleport_with_passengers(&self, uuid: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool {
+    fn entity_vehicle(&self, uuid: &str) -> Option<String> {
         let s = srv!(self);
-        unsafe {
-            (s.entity_teleport_with_passengers)(
-                s.ctx,
-                YogStr::from_str(uuid),
-                YogStr::from_str(dimension),
-                yog_abi::YogVec3 { x, y, z },
-            )
-        }
+        let owned = unsafe { (s.entity_vehicle)(s.ctx, YogStr::from_str(uuid)) };
+        take_owned(s.free_str, owned).filter(|v| !v.is_empty())
+    }
+
+    fn entity_passengers(&self, uuid: &str) -> Vec<String> {
+        let s = srv!(self);
+        let owned = unsafe { (s.entity_passengers)(s.ctx, YogStr::from_str(uuid)) };
+        take_owned(s.free_str, owned)
+            .map(|t| t.lines().filter(|l| !l.is_empty()).map(str::to_string).collect())
+            .unwrap_or_default()
+    }
+
+    fn entity_mount(&self, rider: &str, vehicle: &str, force: bool) -> bool {
+        let s = srv!(self);
+        unsafe { (s.entity_mount)(s.ctx, YogStr::from_str(rider), YogStr::from_str(vehicle), force) }
+    }
+
+    fn entity_dismount(&self, uuid: &str) -> bool {
+        let s = srv!(self);
+        unsafe { (s.entity_dismount)(s.ctx, YogStr::from_str(uuid)) }
     }
 
     fn redstone_power(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<u8> {

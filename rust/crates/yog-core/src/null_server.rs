@@ -405,7 +405,16 @@ impl Server for NullServer {
     fn set_item_cooldown(&self, player: &str, item_id: &str, ticks: u32) -> bool {
         Default::default()
     }
-    fn entity_teleport_with_passengers(&self, uuid: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool {
+    fn entity_vehicle(&self, uuid: &str) -> Option<String> {
+        Default::default()
+    }
+    fn entity_passengers(&self, uuid: &str) -> Vec<String> {
+        Default::default()
+    }
+    fn entity_mount(&self, rider: &str, vehicle: &str, force: bool) -> bool {
+        Default::default()
+    }
+    fn entity_dismount(&self, uuid: &str) -> bool {
         Default::default()
     }
     fn redstone_power(&self, dimension: &str, pos: BlockPos) -> Option<u8> {

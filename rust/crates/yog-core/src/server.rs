@@ -522,9 +522,18 @@ pub trait Server {
     /// player is offline or the item unknown.
     fn set_item_cooldown(&self, player: &str, item_id: &str, ticks: u32) -> bool;
 
-    /// Teleports an entity — a boat, a horse, a player in a minecart — and
-    /// everything riding it, which stays mounted.
-    fn entity_teleport_with_passengers(&self, uuid: &str, dimension: &str, x: f64, y: f64, z: f64) -> bool;
+    /// What an entity rides — a boat, a horse, a minecart — if anything.
+    fn entity_vehicle(&self, uuid: &str) -> Option<String>;
+
+    /// What rides an entity directly.
+    fn entity_passengers(&self, uuid: &str) -> Vec<String>;
+
+    /// Seats `rider` on `vehicle`; `force`: even on one that wouldn't take
+    /// it (a full boat, a mob that doesn't carry riders).
+    fn entity_mount(&self, rider: &str, vehicle: &str, force: bool) -> bool;
+
+    /// Gets an entity off what it rides; `false` if it rode nothing.
+    fn entity_dismount(&self, uuid: &str) -> bool;
 
     /// The redstone power the block at `pos` receives from its neighbours
     /// (0–15); `None` if the dimension doesn't exist.

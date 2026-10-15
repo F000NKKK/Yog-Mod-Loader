@@ -1222,20 +1222,33 @@ public final class NativeBridge {
         return true;
     }
 
-    /** Teleports an entity and everything riding it, which stays mounted. */
-    public static boolean entityTeleportWithPassengers(String uuid, String dimension, double x, double y, double z) {
+    /** The UUID of what an entity rides, or null. */
+    public static String entityVehicle(String uuid) {
         Entity e = entityByUuid(uuid);
-        if (e == null) return false;
-        java.util.List<Entity> riders = new java.util.ArrayList<>(e.getPassengers());
-        for (Entity r : riders) r.stopRiding();
-        if (!entityTeleportToDim(uuid, dimension, x, y, z)) return false;
-        Entity moved = entityByUuid(uuid);
-        for (Entity r : riders) {
-            String id = r.getStringUUID();
-            if (!entityTeleportToDim(id, dimension, x, y, z)) continue;
-            Entity rider = entityByUuid(id);
-            if (rider != null && moved != null) rider.startRiding(moved, true);
-        }
+        Entity v = e == null ? null : e.getVehicle();
+        return v == null ? null : v.getStringUUID();
+    }
+
+    /** The UUIDs of what rides an entity directly, one a line, or null. */
+    public static String entityPassengers(String uuid) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) return null;
+        StringBuilder out = new StringBuilder();
+        for (Entity p : e.getPassengers()) out.append(p.getStringUUID()).append('\n');
+        return out.toString();
+    }
+
+    /** Seats {@code rider} on {@code vehicle}; {@code force}: even one that wouldn't take it. */
+    public static boolean entityMount(String rider, String vehicle, boolean force) {
+        Entity r = entityByUuid(rider), v = entityByUuid(vehicle);
+        return r != null && v != null && r.startRiding(v, force);
+    }
+
+    /** Gets an entity off what it rides. */
+    public static boolean entityDismount(String uuid) {
+        Entity e = entityByUuid(uuid);
+        if (e == null || !e.isPassenger()) return false;
+        e.stopRiding();
         return true;
     }
 

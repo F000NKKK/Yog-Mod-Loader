@@ -156,6 +156,10 @@ public class YogHost implements ModInitializer {
         UseItemCallback.EVENT.register((player, world, hand) -> {
             if (!world.isClient && player instanceof ServerPlayerEntity sp) {
                 ItemStack stack = sp.getStackInHand(hand);
+                // As vanilla (and Forge's event): an item cooling down isn't used.
+                if (sp.getItemCooldownManager().isCoolingDown(stack.getItem())) {
+                    return TypedActionResult.pass(stack);
+                }
                 String itemId = Registries.ITEM.getId(stack.getItem()).toString();
                 String dim = world.getRegistryKey().getValue().toString();
                 boolean allow = NativeBridge.nativeOnUseItemPre(

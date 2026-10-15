@@ -13,8 +13,8 @@ use std::os::raw::c_void;
 
 // ── Version ──────────────────────────────────────────────────────────────────
 
-pub const ABI_MAJOR: u32 = 2;
-pub const ABI_MINOR: u32 = 5;
+pub const ABI_MAJOR: u32 = 3;
+pub const ABI_MINOR: u32 = 0;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1131,8 +1131,15 @@ pub struct YogServer {
     // ── ABI minor 3 ──────────────────────────────────────────────────────────
     pub set_item_cooldown:
         unsafe extern "C" fn(ctx: *mut c_void, player: YogStr, item_id: YogStr, ticks: i32) -> bool,
-    pub entity_teleport_with_passengers:
-        unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, dim: YogStr, pos: YogVec3) -> bool,
+    /// The UUID of what an entity rides, or NONE.
+    pub entity_vehicle: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr,
+    /// The UUIDs of what rides an entity directly, one a line (empty: none).
+    pub entity_passengers: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr,
+    /// Seats `rider` on `vehicle`; `force`: even one that wouldn't take it.
+    pub entity_mount:
+        unsafe extern "C" fn(ctx: *mut c_void, rider: YogStr, vehicle: YogStr, force: bool) -> bool,
+    /// Gets an entity off what it rides.
+    pub entity_dismount: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr) -> bool,
     /// Received redstone power 0–15, or -1 (no such dimension).
     pub redstone_power: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32,
     pub set_redstone_output:
