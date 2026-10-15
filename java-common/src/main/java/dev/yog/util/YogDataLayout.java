@@ -179,7 +179,7 @@ public final class YogDataLayout {
             return toVanilla(in, namespace, mc121);
         } catch (Missing m) {
             // Content of another version: this one hasn't got it, so neither the recipe.
-            System.err.println("[yog] recipe of " + namespace + " left out: " + m.getMessage() + " isn't in this version of Minecraft");
+            System.err.println("[yog] recipe of " + namespace + " left out: " + m.getMessage() + " isn't in this version of Minecraft or on this loader");
             return null;
         }
     }
