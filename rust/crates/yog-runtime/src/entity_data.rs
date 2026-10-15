@@ -2,15 +2,14 @@
 //! loader's `SynchedEntityData`/attachments. The server holds them and sends
 //! each change to the players who see the entity (and to it, if a player);
 //! a player who starts seeing an entity gets all of it. Values marked
-//! `persist` are saved with the entity. A client may write the keys mods
-//! declared client-writable on its own player — the client decides, the
-//! server passes it on (physics and the like stay on the client).
+//! `persist` are saved with the entity. Only the server writes them: a
+//! client asks for a change with its mod's packet, the server decides.
 //!
 //! On the wire (`yog:entity_data`), records one after another:
 //! `[op][uuid][key][len u32][bytes]` — `SET`, `REMOVE`, or `CLEAR` (every key
 //! of the entity, key and value empty). Strings are a u16 length and UTF-8.
 
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::os::raw::c_void;
 use std::sync::{LazyLock, Mutex};
 
@@ -18,8 +17,6 @@ use jni::JNIEnv;
 use jni::objects::{JByteArray, JClass, JString};
 use jni::sys::jbyteArray;
 use yog_abi::{YogBytesSink, YogStr};
-
-use super::guard;
 
 /// The channel the loader syncs entity data on.
 pub(crate) const CHANNEL: &str = "yog:entity_data";
@@ -44,8 +41,6 @@ type Values = BTreeMap<String, Value>;
 
 static SERVER: LazyLock<Mutex<HashMap<String, Values>>> = LazyLock::new(Default::default);
 static CLIENT: LazyLock<Mutex<HashMap<String, BTreeMap<String, Vec<u8>>>>> = LazyLock::new(Default::default);
-/// Keys a client may write on its own player.
-static CLIENT_KEYS: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(Default::default);
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
@@ -256,27 +251,6 @@ pub(crate) fn server_stopped() {
     lock(&SERVER).clear();
 }
 
-/// A client's records about its own player (`client_set_entity_data`):
-/// only declared keys, only its own uuid.
-pub(crate) fn from_client(player: &str, payload: &[u8]) {
-    let Some(uuid) = (unsafe { super::owned_string(bridge!("playerInfo", [S(YogStr::from_str(player))])) })
-        .and_then(|line| line.split('\t').next().map(str::to_owned))
-    else {
-        return;
-    };
-    let allowed = lock(&CLIENT_KEYS).clone();
-    for r in records(payload) {
-        if r.uuid != uuid || !allowed.contains(&r.key) {
-            continue;
-        }
-        match r.op {
-            SET => set(&uuid, &r.key, Some(&r.value), false),
-            REMOVE => set(&uuid, &r.key, None, false),
-            _ => {}
-        }
-    }
-}
-
 // ── Client ───────────────────────────────────────────────────────────────────
 
 /// Records from the server.
@@ -351,44 +325,6 @@ pub(crate) unsafe extern "C" fn api_client_entity_data(
     true
 }
 
-/// The local player writes one of its client keys: kept here at once and
-/// sent to the server, which passes it on.
-pub(crate) unsafe extern "C" fn api_client_set_entity_data(
-    _ctx: *mut c_void,
-    key: YogStr,
-    data: *const u8,
-    len: u32,
-    present: bool,
-) -> bool {
-    let key = unsafe { key.as_str() }.to_owned();
-    let Some(uuid) = (unsafe { host!("dev/yog/YogClientApi", "localPlayerUuid", []) }).and_then(|s: String| (!s.is_empty()).then_some(s))
-    else {
-        return false;
-    };
-    let value = present.then(|| unsafe { std::slice::from_raw_parts(data, len as usize) }.to_vec());
-    let mut b = Vec::new();
-    {
-        let mut store = lock(&CLIENT);
-        let values = store.entry(uuid.clone()).or_default();
-        match &value {
-            Some(v) => {
-                values.insert(key.clone(), v.clone());
-                record(&mut b, SET, &uuid, &key, v);
-            }
-            None => {
-                values.remove(&key);
-                record(&mut b, REMOVE, &uuid, &key, &[]);
-            }
-        }
-    }
-    unsafe { host!("dev/yog/YogClientApi", "sendToServer", [S(YogStr::from_str(CHANNEL)), Bytes(&b)]).unwrap_or(false) }
-}
-
-/// A mod lets clients write `key` on their own player.
-pub(crate) unsafe extern "C" fn api_entity_data_client_key(_ctx: *mut c_void, key: YogStr) {
-    lock(&CLIENT_KEYS).insert(unsafe { key.as_str() }.to_owned());
-}
-
 /// Adds what this client knows of the frame's entity to a body frame
 /// (`yog_body::Frame`): the frame ends with its data.
 pub(crate) fn with_data(frame: &[u8]) -> Vec<u8> {
@@ -408,11 +344,6 @@ pub(crate) fn with_data(frame: &[u8]) -> Vec<u8> {
         out.extend_from_slice(&v);
     }
     out
-}
-
-#[allow(dead_code)]
-fn _guard_used() {
-    guard("entity_data", || {});
 }
 
 #[cfg(test)]
