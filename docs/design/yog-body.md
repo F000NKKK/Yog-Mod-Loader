@@ -106,3 +106,12 @@ arms (clips), belts (scrolling UVs). Next steps for it:
 - captures of block-state models (`block:<state>`) — Create's partial
   models and contraptions (a structure drawn as one moving body);
 - element models (`.yblock` models) baked into quads, next to `.ymodel`.
+
+## Next: collision and entities
+
+- **Dimensions**: an entity's hitbox and eye height set per entity
+  (`entity_set_dimensions`, server and client — one generic hook on
+  `getDimensions`), so a morph into a chicken fits through a chicken's gap.
+- **Entities of a mod's own**: entity types registered from Rust, drawn
+  with rigs (`on_body` with the `entity` anchor and `hide`), with AI and
+  sync hooks.
