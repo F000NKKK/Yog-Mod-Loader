@@ -3673,4 +3673,5 @@ mod tests {
         let bad = r#"{ "texture": "x.png", "bones": [{ "name": "a", "parent": "b" }] }"#;
         let e = compile(&project(&[("content/bad.ymodel", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("must come before it"), "{e}");
-    }}
+    }
+}
