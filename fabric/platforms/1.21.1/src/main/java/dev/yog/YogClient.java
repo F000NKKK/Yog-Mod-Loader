@@ -69,7 +69,9 @@ public class YogClient implements ClientModInitializer {
             NativeBridge.nativeGlInit();  // no-op after first call
             MinecraftClient mc = MinecraftClient.getInstance();
             Matrix4f proj = ctx.projectionMatrix();
-            Matrix4f view = ctx.matrixStack().peek().getPositionMatrix();
+            // Since 1.20.5 the camera's rotation is the position matrix, not the
+            // (identity) matrix stack's — with that one, geometry follows the camera.
+            Matrix4f view = ctx.positionMatrix();
             float[] vp = new float[16];
             new Matrix4f(proj).mul(view).get(vp);
             var camPos = ctx.camera().getPos();

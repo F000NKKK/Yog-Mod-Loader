@@ -510,6 +510,11 @@ fn model(cx: &mut Ctx, loc: Loc, at: &At, m: &yog_formats::content::Model, item:
             }
         }
         out.insert("elements".into(), Value::Array(elements));
+        // Its own shape and no parent: vanilla's block parent gives it how
+        // it's held and shown in a slot — without one it's a flat face-on square.
+        if m.parent.is_none() {
+            out.insert("parent".into(), Value::String("minecraft:block/block".into()));
+        }
     } else if tpl.is_none() && !raw_parent {
         cx.err_at(loc, at, "no parent and no elements — give a template (parent: \"cube_all\") or elements");
     }
@@ -2880,6 +2885,7 @@ mod tests {
         assert_eq!(m["textures"]["particle"], json!("minecraft:block/stone"));
         assert_eq!(m["render_type"], json!("minecraft:cutout"));
         assert_eq!(m["elements"][0]["rotation"]["origin"], json!([8, 8, 8]));
+        assert_eq!(m["parent"], json!("minecraft:block/block"), "shown in a slot and held as a block");
         let bs = output(&c, "assets/mymod/blockstates/pipe.json");
         assert_eq!(bs["multipart"].as_array().unwrap().len(), 7);
         assert_eq!(bs["multipart"][5]["apply"]["x"], json!(270));
