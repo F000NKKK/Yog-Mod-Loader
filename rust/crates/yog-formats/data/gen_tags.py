@@ -1,12 +1,12 @@
 """The tags every Minecraft version and loader Yog supports has, and Yog's
-common tags (`yog:`) over them — for yog-cli's checks and the hosts
-(java-common's yog/tags.txt is a copy). Run with the client and loader jars
+common tags (`yog:`) over them — for yog-cli's checks, the editors and the
+hosts (java-common's yog/tags.txt is a copy). Run with the client and loader jars
 in Gradle's caches (build every host once):
 
-    python3 gen_tags.py tags.txt
+    python3 gen_tags.py tags.txt && cp tags.txt ../../../../java-common/src/main/resources/yog/
 
 Add a version or loader to HOSTS when Yog starts supporting it."""
-import collections, glob, os, re, sys, zipfile
+import collections, glob, json, os, re, sys, zipfile
 
 CACHE = os.path.expanduser("~/.gradle/caches")
 VERSIONS = ["1.20.1", "1.21.1"]
@@ -24,10 +24,15 @@ LOADERS = sorted({h.split("/")[0] for h in HOSTS})
 SINGULAR = {"items": "item", "blocks": "block", "entity_types": "entity_type", "fluids": "fluid", "game_events": "game_event"}
 
 
+# (registry, id) → what the loaders' own tags hold, on any of them.
+members = collections.defaultdict(set)
+
+
 def tags_in(path):
     """(registry, id) of every tag file in a jar."""
     out = set()
-    for n in zipfile.ZipFile(path).namelist():
+    z = zipfile.ZipFile(path)
+    for n in z.namelist():
         m = re.fullmatch(r"data/([a-z0-9_.-]+)/tags/([a-z0-9_/]+)\.json", n)
         if not m:
             continue
@@ -36,7 +41,11 @@ def tags_in(path):
         if len(parts) <= k:
             continue
         reg = SINGULAR.get(parts[0], "/".join(parts[:k]))
-        out.add((reg, f"{m[1]}:{'/'.join(parts[k:])}"))
+        key = (reg, f"{m[1]}:{'/'.join(parts[k:])}")
+        out.add(key)
+        if m[1] in ("c", "forge") and reg in ("item", "block"):
+            for v in json.loads(z.read(n)).get("values", []):
+                members[key].add(v if isinstance(v, str) else v["id"])
     return out
 
 
@@ -137,10 +146,14 @@ out = [
     "# loaders: " + " ".join(LOADERS),
     "# tag <registry> <id> <where>: * — everywhere; a version — every loader of it; <loader>/<version>.",
     "# yog <registry> <path> <tag>...: yog:<path> is these tags — those a host has; a mod's entries go to the first.",
+    "# has <registry> <id> <entry>...: what a loader's tag holds (on any version of it), for the editors.",
 ]
 for (reg, tid), hosts in sorted(where.items()):
     out.append(f"tag {reg} {tid} {place(hosts)}")
 for (reg, name), tags in sorted(yog.items()):
     out.append(f"yog {reg} {name} {' '.join(tags)}")
+for (reg, tid), entries in sorted(members.items()):
+    if entries:
+        out.append(f"has {reg} {tid} {' '.join(sorted(entries))}")
 open(sys.argv[1], "w").write("\n".join(out) + "\n")
 print(len(where), "tags,", len(yog), "yog tags")
