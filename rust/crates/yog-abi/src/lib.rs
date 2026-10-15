@@ -1438,6 +1438,9 @@ pub struct YogApi {
     /// Item id in the local player's main hand (`off_hand` false) or off
     /// hand, `YogOwnedStr::NONE` for air or no player. Free with `free_str`.
     pub client_held_item: unsafe extern "C" fn(ctx: *mut c_void, off_hand: bool) -> YogOwnedStr,
+    /// Tints the block at `pos` in `dim` on this client (its faces with a
+    /// tint index), `color` 0xRRGGBB; -1 clears it.
+    pub client_set_block_tint: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, color: i64),
     /// Whether GLFW key `key` is held down right now (client window).
     pub client_key_down: unsafe extern "C" fn(ctx: *mut c_void, key: i32) -> bool,
 

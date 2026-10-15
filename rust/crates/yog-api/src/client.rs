@@ -67,6 +67,20 @@ pub fn held_item(off_hand: bool) -> Option<String> {
     crate::registry::take_owned(unsafe { (*api).free_str }, owned)
 }
 
+/// Tints the block at `pos` in `dimension` on this client — the faces of
+/// its model with a `tint` index — `0xRRGGBB`; `None` clears it. The mod
+/// sends what to tint (its own packet); the tint lasts till cleared or the
+/// game closes.
+pub fn set_block_tint(dimension: &str, pos: yog_core::BlockPos, color: Option<u32>) {
+    let api = global_api();
+    if api.is_null() {
+        return;
+    }
+    let p = yog_abi::YogBlockPos { x: pos.x, y: pos.y, z: pos.z };
+    let c = color.map_or(-1, |c| (c & 0xFF_FFFF) as i64);
+    unsafe { ((*api).client_set_block_tint)((*api).ctx, YogStr::from_str(dimension), p, c) }
+}
+
 /// GLFW key codes for [`key_down`].
 pub mod keys {
     pub const LEFT_SHIFT: i32 = 340;

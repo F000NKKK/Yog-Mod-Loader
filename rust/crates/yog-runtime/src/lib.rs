@@ -3240,6 +3240,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         client_play_sound: client_api::api_client_play_sound,
         client_stop_sound: client_api::api_client_stop_sound,
         client_held_item: client_api::api_client_held_item,
+        client_set_block_tint: client_api::api_client_set_block_tint,
         client_key_down: client_api::api_client_key_down,
         on_book_page: api_on_book_page,
         on_item_tooltip: api_on_item_tooltip,
