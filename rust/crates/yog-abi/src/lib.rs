@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 3;
+pub const ABI_MINOR: u32 = 4;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -463,6 +463,12 @@ pub type YogProjectileHitFn =
 pub type YogPacketFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
 /// Server lifecycle / tick — no event struct, always fires.
 pub type YogServerFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
+/// A loot table rolled (`yog_registry::Loot`, Yog Data's binary form):
+/// the handler writes the items it should give instead
+/// (`Vec<yog_registry::LootStack>`, the same form) to `sink`, or nothing
+/// to leave them.
+pub type YogLootFn =
+    unsafe extern "C" fn(ud: *mut c_void, server: *const YogServer, loot: *const u8, len: usize, sink: *mut c_void, write: YogBytesSink);
 /// A tick of one entity of a mod's type: `(ud, server, uuid)`.
 pub type YogEntityTickFn = unsafe extern "C" fn(*mut c_void, *const YogServer, YogStr);
 /// Command handler.
@@ -1582,6 +1588,12 @@ pub struct YogApi {
     // ── ABI 3.3 — mod entities ──────────────────────────────────────────────
     /// Each tick of every entity of `entity_type` (a mod's, with `ticks`).
     pub on_entity_tick: unsafe extern "C" fn(ctx: *mut c_void, entity_type: YogStr, ud: *mut c_void, f: YogEntityTickFn),
+
+    // ── ABI 3.4 — loot ──────────────────────────────────────────────────────
+    /// Every loot table rolled — a chest's, a block's drops, a mob's — before
+    /// its items are given: see [`YogLootFn`]. Each handler sees the last
+    /// one's items.
+    pub on_loot: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogLootFn),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].

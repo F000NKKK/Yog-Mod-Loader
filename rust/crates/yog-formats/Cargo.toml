@@ -10,7 +10,7 @@ description = "The schemas of Yog's source formats — .yblock/.yitem, .yrecipe,
 [dependencies]
 yog-data = "0.4.1"
 # Content definitions whose format is the definition itself (`SoundGroup`).
-yog-registry = "0.33.1"
+yog-registry = "0.33.2"
 # A dimension's `terrain`.
 yog-worldgen = "0.1"
 yog-body = "0.1"

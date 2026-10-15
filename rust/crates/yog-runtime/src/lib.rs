@@ -159,6 +159,7 @@ struct RuntimeHandlers {
     body: Vec<(LoadedModule, *mut c_void, yog_abi::YogBodyFn)>,
     camera: Vec<(LoadedModule, *mut c_void, yog_abi::YogCameraFn)>,
     travel: Vec<(LoadedModule, *mut c_void, yog_abi::YogTravelFn)>,
+    loot: Vec<(LoadedModule, *mut c_void, yog_abi::YogLootFn)>,
     world_render: Vec<(LoadedModule, *mut c_void, YogWorldRenderFn)>,
     key_press: Vec<(LoadedModule, *mut c_void, YogKeyPressFn)>,
     screen_open: Vec<(LoadedModule, *mut c_void, YogScreenFn)>,
@@ -462,6 +463,10 @@ macro_rules! for_each_handler_list {
         }
         {
             let $list = &mut $h.travel;
+            $body;
+        }
+        {
+            let $list = &mut $h.loot;
             $body;
         }
         {
@@ -3321,6 +3326,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_travel: body::api_on_travel,
         on_machine_craft: api_on_machine_craft,
         on_entity_tick: api_on_entity_tick,
+        on_loot: loot::api_on_loot,
     }
 }
 
@@ -5487,6 +5493,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
 }
 
 mod body;
+mod loot;
 mod entity_data;
 mod client_api;
 mod content_blob;
