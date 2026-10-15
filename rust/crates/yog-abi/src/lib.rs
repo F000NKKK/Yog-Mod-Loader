@@ -3,11 +3,15 @@
 //! Rules this file must never break:
 //!  - Every type is `#[repr(C)]`.
 //!  - No Rust trait objects, no generics, no std types in public structs.
-//!  - New fields are appended only at the END of structs; increment `ABI_MINOR`.
-//!  - ABI_MAJOR bumps only when an existing field is removed or reordered.
+//!  - Adding is a minor change: new fields go at the END of structs, new
+//!    callback types and functions are new names; increment `ABI_MINOR`.
+//!  - Anything else is a major change: removing (clean out what's obsolete
+//!    then, here, in the runtime, the hosts' JNI, yog-api), reordering,
+//!    changing a type or a meaning; increment `ABI_MAJOR`, `ABI_MINOR` = 0.
 //!
 //! Mods and the runtime are compiled independently; the runtime loads a mod
-//! only when its `ABI_VERSION` is exactly the runtime's.
+//! of its major version and a minor no newer than its own ([`compatible`]):
+//! such a mod sees a prefix of every table, all of it there.
 
 use std::os::raw::c_void;
 
@@ -17,6 +21,12 @@ pub const ABI_MAJOR: u32 = 3;
 pub const ABI_MINOR: u32 = 4;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
+
+/// Whether a mod built for ABI `version` runs on this one: the same major,
+/// a minor no newer (what it knows is all here; later additions it doesn't use).
+pub const fn compatible(version: u32) -> bool {
+    version / 10_000 == ABI_MAJOR && version % 10_000 <= ABI_MINOR
+}
 
 // ── Primitive types ───────────────────────────────────────────────────────────
 
@@ -1645,6 +1655,15 @@ mod tests {
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
         assert_eq!((ABI_VERSION, layout_fingerprint()), (30004, 0x840b_06ee_cd95_a5c4), "layout fingerprint: {:#x}", layout_fingerprint());
+    }
+
+    #[test]
+    fn older_minors_of_the_major_are_compatible() {
+        assert!(compatible(ABI_VERSION));
+        assert!(compatible(ABI_MAJOR * 10_000));
+        assert!(!compatible(ABI_VERSION + 1), "a newer minor may use what isn't here");
+        assert!(!compatible((ABI_MAJOR - 1) * 10_000 + ABI_MINOR), "another major");
+        assert!(!compatible((ABI_MAJOR + 1) * 10_000));
     }
 
     #[test]

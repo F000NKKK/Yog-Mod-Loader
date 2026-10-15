@@ -3479,7 +3479,7 @@ fn load_mod_lib(path: &Path, api: &YogApi, mod_id: &str) -> Option<LoadedModule>
         Some(abi())
     });
     match abi.flatten() {
-        Some(v) if v == ABI_VERSION => {}
+        Some(v) if yog_abi::compatible(v) => {}
         Some(v) => {
             yog_logging::error!(
                 "{}: ABI {} incompatible with runtime ABI {}",
@@ -3770,7 +3770,7 @@ fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
         Some(abi())
     });
     match abi.flatten() {
-        Some(v) if v == ABI_VERSION => {}
+        Some(v) if yog_abi::compatible(v) => {}
         other => {
             yog_logging::error!(
                 "hot-reload {}: ABI {:?} incompatible with runtime ABI {} — mod has no active handlers until a compatible reload succeeds",
