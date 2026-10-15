@@ -1315,6 +1315,7 @@ trampoline_phased!(
             z: ev.pos.z
         },
         dimension: ev.dimension.as_str().to_owned(),
+        sneaking: ev.sneaking,
     }
 );
 
@@ -1379,6 +1380,7 @@ trampoline_phased!(
             z: ev.pos.z
         },
         dimension: ev.dimension.as_str().to_owned(),
+        sneaking: ev.sneaking,
     }
 );
 

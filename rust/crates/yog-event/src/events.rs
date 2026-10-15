@@ -67,6 +67,8 @@ pub struct UseBlockEvent {
     pub block_id: String,
     pub pos: BlockPos,
     pub dimension: String,
+    /// Whether the player was sneaking (shift).
+    pub sneaking: bool,
 }
 
 /// Fired when a player attacks (left-clicks) an entity (server side).
@@ -117,6 +119,8 @@ pub struct PlaceBlockEvent {
     pub block_id: String,
     pub pos: BlockPos,
     pub dimension: String,
+    /// Whether the player was sneaking (shift).
+    pub sneaking: bool,
 }
 
 /// Fired when any entity is loaded into a world (server side).

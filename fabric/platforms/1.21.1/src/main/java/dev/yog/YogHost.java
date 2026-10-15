@@ -230,10 +230,10 @@ public class YogHost implements ModInitializer {
                 String blockId = Registries.BLOCK.getId(world.getBlockState(pos).getBlock()).toString();
                 String dim = world.getRegistryKey().getValue().toString();
                 boolean allow = NativeBridge.nativeOnUseBlockPre(
-                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim);
+                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim, sp.isSneaking());
                 if (!allow) return ActionResult.FAIL;
                 NativeBridge.nativeOnUseBlock(
-                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim);
+                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim, sp.isSneaking());
             }
             return ActionResult.PASS;
         });
@@ -249,7 +249,7 @@ public class YogHost implements ModInitializer {
                     if (!NativeBridge.nativeOnPlaceBlockPre(
                             sp.getName().getString(), blockId,
                             placed.getX(), placed.getY(), placed.getZ(),
-                            world.getRegistryKey().getValue().toString())) {
+                            world.getRegistryKey().getValue().toString(), sp.isSneaking())) {
                         return ActionResult.FAIL;
                     }
                 }

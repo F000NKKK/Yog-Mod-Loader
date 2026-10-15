@@ -502,17 +502,19 @@ public class YogHost {
         if (event.getSide() != LogicalSide.SERVER) return;
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         // As vanilla: sneaking with something in hand uses the item (places a block), not the block.
-        if (sp.isSecondaryUseActive() && (!sp.getMainHandItem().isEmpty() || !sp.getOffhandItem().isEmpty())) return;
+        boolean useBlock = !(sp.isSecondaryUseActive() && (!sp.getMainHandItem().isEmpty() || !sp.getOffhandItem().isEmpty()));
         BlockPos pos = event.getPos();
         String blockId = BuiltInRegistries.BLOCK.getKey(sp.level().getBlockState(pos).getBlock()).toString();
         String dim = sp.level().dimension().location().toString();
-        if (!NativeBridge.nativeOnUseBlockPre(sp.getName().getString(), blockId,
-                pos.getX(), pos.getY(), pos.getZ(), dim)) {
-            event.setCanceled(true);
-            return;
+        if (useBlock) {
+            if (!NativeBridge.nativeOnUseBlockPre(sp.getName().getString(), blockId,
+                    pos.getX(), pos.getY(), pos.getZ(), dim, sp.isShiftKeyDown())) {
+                event.setCanceled(true);
+                return;
+            }
+            NativeBridge.nativeOnUseBlock(sp.getName().getString(), blockId,
+                    pos.getX(), pos.getY(), pos.getZ(), dim, sp.isShiftKeyDown());
         }
-        NativeBridge.nativeOnUseBlock(sp.getName().getString(), blockId,
-                pos.getX(), pos.getY(), pos.getZ(), dim);
 
         // Block placement — Pre (cancellable)
         ItemStack held = sp.getItemInHand(event.getHand());
@@ -520,7 +522,7 @@ public class YogHost {
             BlockPos placed = pos.relative(event.getFace());
             String bid = BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
             if (!NativeBridge.nativeOnPlaceBlockPre(
-                    sp.getName().getString(), bid, placed.getX(), placed.getY(), placed.getZ(), dim)) {
+                    sp.getName().getString(), bid, placed.getX(), placed.getY(), placed.getZ(), dim, sp.isShiftKeyDown())) {
                 event.setCanceled(true);
             }
         }

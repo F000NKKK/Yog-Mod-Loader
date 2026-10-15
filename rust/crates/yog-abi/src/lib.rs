@@ -153,6 +153,8 @@ pub struct YogUseBlockEvent {
     pub block: YogStr,
     pub pos: YogBlockPos,
     pub dimension: YogStr,
+    /// Whether the player was sneaking (shift).
+    pub sneaking: bool,
 }
 
 #[repr(C)]
@@ -349,6 +351,8 @@ pub struct YogPlaceBlockEvent {
     pub block: YogStr,
     pub pos: YogBlockPos,
     pub dimension: YogStr,
+    /// Whether the player was sneaking (shift).
+    pub sneaking: bool,
 }
 
 #[repr(C)]

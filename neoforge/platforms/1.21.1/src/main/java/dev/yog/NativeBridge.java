@@ -1370,14 +1370,14 @@ public final class NativeBridge {
     public static native void nativeOnPlayerJoin(String player, String uuid, String dimension);
     public static native void nativeOnPlayerLeave(String player, String uuid, String dimension);
     public static native void nativeOnUseItem(String player, String item, boolean sneaking, String dimension);
-    public static native void nativeOnUseBlock(String player, String block, int x, int y, int z, String dimension);
+    public static native void nativeOnUseBlock(String player, String block, int x, int y, int z, String dimension, boolean sneaking);
 
     /** Cancel-check for item use (before). Returns true = allow, false = cancel. */
     public static native boolean nativeOnUseItemPre(String player, String item, boolean sneaking, String dimension);
 
     /** Cancel-check for block use / right-click (before). Returns true = allow, false = cancel. */
     public static native boolean nativeOnUseBlockPre(
-            String player, String block, int x, int y, int z, String dimension);
+            String player, String block, int x, int y, int z, String dimension, boolean sneaking);
     public static native void nativeOnAttackEntity(String player, String targetType, String targetUuid, String dimension);
     public static native void nativeOnEntityDamage(String entityType, String uuid, float amount, String source, String dimension);
     public static native void nativeOnEntityDeath(String entityType, String uuid, String source, String dimension);
@@ -1454,8 +1454,8 @@ public final class NativeBridge {
     public static native void nativeOnEntitySpawn(String entityType, String uuid, String dimension);
     public static native boolean nativeOnEntitySpawnPre(String entityType, String uuid, String dimension);
     public static native boolean nativeOnEntityDamagePre(String entityType, String uuid, float amount, String source, String dimension);
-    public static native boolean nativeOnPlaceBlockPre(String player, String block, int x, int y, int z, String dimension);
-    public static native void nativeOnPlaceBlock(String player, String block, int x, int y, int z, String dimension);
+    public static native boolean nativeOnPlaceBlockPre(String player, String block, int x, int y, int z, String dimension, boolean sneaking);
+    public static native void nativeOnPlaceBlock(String player, String block, int x, int y, int z, String dimension, boolean sneaking);
     public static native boolean nativeOnPlayerDeathPre(String player, String uuid, String source, String dimension);
     public static native void nativeOnPlayerDeath(String player, String uuid, String source, String dimension);
     public static native void nativeOnPlayerRespawn(String player, String uuid, boolean atAnchor, String dimension);

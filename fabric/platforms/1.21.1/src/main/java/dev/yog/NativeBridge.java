@@ -1458,14 +1458,14 @@ public final class NativeBridge {
     public static native void nativeOnUseItem(String player, String item, boolean sneaking, String dimension);
 
     public static native void nativeOnUseBlock(
-            String player, String block, int x, int y, int z, String dimension);
+            String player, String block, int x, int y, int z, String dimension, boolean sneaking);
 
     /** Cancel-check for item use (before). Returns true = allow, false = cancel. */
     public static native boolean nativeOnUseItemPre(String player, String item, boolean sneaking, String dimension);
 
     /** Cancel-check for block use / right-click (before). Returns true = allow, false = cancel. */
     public static native boolean nativeOnUseBlockPre(
-            String player, String block, int x, int y, int z, String dimension);
+            String player, String block, int x, int y, int z, String dimension, boolean sneaking);
 
     public static native void nativeOnAttackEntity(
             String player, String targetType, String targetUuid, String dimension);
@@ -1585,10 +1585,10 @@ public final class NativeBridge {
     public static native boolean nativeOnEntityDamagePre(String entityType, String uuid, float amount, String source, String dimension);
 
     /** Player placed a block — Pre phase; return false to cancel placement. */
-    public static native boolean nativeOnPlaceBlockPre(String player, String block, int x, int y, int z, String dimension);
+    public static native boolean nativeOnPlaceBlockPre(String player, String block, int x, int y, int z, String dimension, boolean sneaking);
 
     /** Player placed a block — Post phase (observe only). */
-    public static native void nativeOnPlaceBlock(String player, String block, int x, int y, int z, String dimension);
+    public static native void nativeOnPlaceBlock(String player, String block, int x, int y, int z, String dimension, boolean sneaking);
 
     /** Player about to die — Pre phase; return false to cancel death. */
     public static native boolean nativeOnPlayerDeathPre(String player, String uuid, String source, String dimension);

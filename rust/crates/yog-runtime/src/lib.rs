@@ -3917,6 +3917,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
     y: jint,
     z: jint,
     dimension: JString<'l>,
+    sneaking: jni::sys::jboolean,
 ) {
     let (p, b, d) = (jstr!(env, player), jstr!(env, block), jstr!(env, dimension));
     let ev = yog_abi::YogUseBlockEvent {
@@ -3924,6 +3925,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlock<'l>(
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
         dimension: YogStr::from_str(&d),
+        sneaking: sneaking != 0,
     };
     let srv = srv_ptr();
     guard("on_use_block", || {
@@ -3941,6 +3943,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlockPre<'l>(
     y: jint,
     z: jint,
     dimension: JString<'l>,
+    sneaking: jni::sys::jboolean,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.use_block.is_empty() {
@@ -3954,6 +3957,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnUseBlockPre<'l>(
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
         dimension: YogStr::from_str(&d),
+        sneaking: sneaking != 0,
     };
     let srv = srv_ptr();
     allowed(&h.use_block, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
@@ -4549,6 +4553,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlockPre<'l>(
     y: jint,
     z: jint,
     dimension: JString<'l>,
+    sneaking: jni::sys::jboolean,
 ) -> jni::sys::jboolean {
     let h = handlers();
     if h.player_place_block.is_empty() {
@@ -4562,6 +4567,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlockPre<'l>(
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
         dimension: YogStr::from_str(&d),
+        sneaking: sneaking != 0,
     };
     let srv = srv_ptr();
     allowed(&h.player_place_block, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
@@ -4577,6 +4583,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlock<'l>(
     y: jint,
     z: jint,
     dimension: JString<'l>,
+    sneaking: jni::sys::jboolean,
 ) {
     let h = handlers();
     if h.player_place_block.is_empty() {
@@ -4588,6 +4595,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnPlaceBlock<'l>(
         block: YogStr::from_str(&b),
         pos: YogBlockPos { x, y, z },
         dimension: YogStr::from_str(&d),
+        sneaking: sneaking != 0,
     };
     let srv = srv_ptr();
     guard("on_player_place_block", || {
