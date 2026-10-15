@@ -212,8 +212,8 @@ public class YogHost {
                     for (int i = 0; i < 6; i++) core[i] = sp[i];
                 }
                 block = new YogConnectingBlock(props, core[0], core[1], core[2], core[3], core[4], core[5]);
-            } else if (p.facing()) {
-                block = new YogFacingBlock(props);
+            } else if (p.stateful()) {
+                block = YogStateBlock.create(props, p);
             } else if (p.shape() != null) {
                 float[] sp = p.shape();
                 block = new YogShapedBlock(props,

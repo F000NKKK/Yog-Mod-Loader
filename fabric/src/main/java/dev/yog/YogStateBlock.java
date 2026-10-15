@@ -13,14 +13,13 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.Waterloggable;
-import net.minecraft.block.enums.BlockFace;
+import net.minecraft.block.WallMountedBlock;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.DirectionProperty;
-import net.minecraft.state.property.EnumProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.state.property.Property;
 import net.minecraft.util.BlockMirror;
@@ -52,7 +51,8 @@ public class YogStateBlock extends Block implements Waterloggable {
     private static final class Spec {
         final YogContent.Block def;
         DirectionProperty facing;
-        EnumProperty<BlockFace> face;
+        /** {@code floor}, {@code wall}, {@code ceiling} — named as a button's (the enum's name changed in 1.20.3). */
+        Property<?> face;
         BooleanProperty waterlogged;
         final Map<String, Property<?>> own = new HashMap<>();
         final List<Property<?>> all = new ArrayList<>();
@@ -61,7 +61,7 @@ public class YogStateBlock extends Block implements Waterloggable {
             this.def = def;
             if (def.attach()) {
                 facing = Properties.HORIZONTAL_FACING;
-                face = Properties.BLOCK_FACE;
+                face = WallMountedBlock.FACE;
             } else if (def.facing().equals("all")) {
                 facing = Properties.FACING;
             } else if (def.facing().equals("horizontal")) {
@@ -94,12 +94,13 @@ public class YogStateBlock extends Block implements Waterloggable {
         // The first value of each property, as the .yblock lists them.
         BlockState state = getStateManager().getDefaultState();
         if (spec.facing != null) state = state.with(spec.facing, Direction.NORTH);
-        if (spec.face != null) state = state.with(spec.face, BlockFace.FLOOR);
+        if (spec.face != null) state = withFirst(state, spec.face, "floor");
         if (spec.waterlogged != null) state = state.with(spec.waterlogged, false);
         for (YogContent.Property p : spec.def.properties()) state = withFirst(state, spec.own.get(p.name()), p.values().get(0));
         setDefaultState(state);
     }
 
+    /** {@code state} with property {@code p} at the value named {@code value}. */
     private static <T extends Comparable<T>> BlockState withFirst(BlockState state, Property<T> p, String value) {
         return p.parse(value).map(v -> state.with(p, v)).orElse(state);
     }
@@ -117,10 +118,10 @@ public class YogStateBlock extends Block implements Waterloggable {
             Direction look = ctx.getPlacementDirections()[0];
             if (look.getAxis() == Direction.Axis.Y) {
                 Direction horizontal = ctx.getHorizontalPlayerFacing();
-                state = state.with(spec.face, look == Direction.UP ? BlockFace.CEILING : BlockFace.FLOOR)
+                state = withFirst(state, spec.face, look == Direction.UP ? "ceiling" : "floor")
                         .with(spec.facing, toward ? horizontal.getOpposite() : horizontal);
             } else {
-                state = state.with(spec.face, BlockFace.WALL).with(spec.facing, look.getOpposite());
+                state = withFirst(state, spec.face, "wall").with(spec.facing, look.getOpposite());
             }
         } else if (spec.facing == Properties.FACING) {
             Direction look = ctx.getPlayerLookDirection();
@@ -138,6 +139,10 @@ public class YogStateBlock extends Block implements Waterloggable {
         return state;
     }
 
+    private static <T extends Comparable<T>> String named(BlockState state, Property<T> p) {
+        return p.name(state.get(p));
+    }
+
     private BooleanProperty yesNo(String name) {
         return (BooleanProperty) spec.own.get(name);
     }
@@ -149,7 +154,7 @@ public class YogStateBlock extends Block implements Waterloggable {
         if (box == null) return VoxelShapes.fullCube();
         return shapes.computeIfAbsent(state, s -> {
             String facing = spec.facing == null ? null : s.get(spec.facing).asString();
-            String face = spec.face == null ? null : s.get(spec.face).asString();
+            String face = spec.face == null ? null : named(s, spec.face);
             int[] turn = YogStateLogic.turn(facing, face);
             double[] b = YogStateLogic.turnBox(new double[] {box[0], box[1], box[2], box[3], box[4], box[5]}, turn[0], turn[1]);
             return createCuboidShape(b[0], b[1], b[2], b[3], b[4], b[5]);
