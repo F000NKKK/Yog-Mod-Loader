@@ -22,6 +22,7 @@
 mod import;
 pub mod json;
 mod refs;
+mod table;
 
 pub use import::import_command;
 
@@ -1209,6 +1210,7 @@ fn compile_layout(
     known: &refs::Known,
     ores: &mut Vec<OreOut>,
     dimensions: &mut Vec<(String, Vec<u8>)>,
+    tables: &mut Vec<table::Table>,
 ) -> Option<yog_formats::def::RecipeKindDef> {
     use yog_formats::def::Def;
     let doc = match yog_data::text::parse(text) {
@@ -1258,6 +1260,20 @@ fn compile_layout(
         Def::Dimension(d) => {
             if ok {
                 dimensions.push(dimension(d, ns));
+            }
+            return None;
+        }
+        Def::Table(t) => {
+            match table::check(&cx.file, t, cx.refs, known) {
+                Ok(t) => tables.push(t),
+                Err(errors) => {
+                    for e in errors {
+                        // `rows.wood.size: …` — at its line.
+                        let path = e.split_once(':').map_or("", |(p, _)| p);
+                        let at = path.split('.').fold(yog_data::Path::root(), |at, k| at.key(k));
+                        cx.err(doc.locate(text, &at).line as usize, e);
+                    }
+                }
             }
             return None;
         }
@@ -1692,6 +1708,8 @@ struct Defs {
     biome_features: Vec<(String, String, String)>,
     /// Its dimensions' ids (their data in `generated/dimensions/`).
     dimensions: Vec<String>,
+    /// Its tables (`kind: "table"`), each an enum in its code.
+    tables: Vec<table::Table>,
 }
 
 impl Defs {
@@ -1747,7 +1765,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                     }
                 }
                 // Read with the recipes (`compile_layout`).
-                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) => {}
+                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) => {}
                 // Its level is placed on the ladder below.
                 yog_formats::def::Def::ToolMaterial(mut m) => {
                     m.id = full(&m.id);
@@ -1847,7 +1865,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
             incorrect,
         });
     }
-    Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new(), dimensions: Vec::new() }
+    Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new(), dimensions: Vec::new(), tables: Vec::new() }
 }
 
 /// The tags that make block `id` need tool level `level`, on every version:
@@ -1966,7 +1984,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         if kind == Kind::Def {
             // Kinds of recipe are checked with the recipes, ores and dimensions with what they name.
             let of = yog_data::text::parse_value(&text).ok().and_then(|v| v.get("kind").and_then(|k| k.as_str()).map(str::to_string));
-            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension")) {
+            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table")) {
                 pending_layouts.push((shown.clone(), text));
             } else {
                 pending_defs.push((shown.clone(), text));
@@ -2008,6 +2026,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut recipe_defs: HashMap<String, yog_formats::def::RecipeKindDef> = HashMap::new();
     let mut ores: Vec<OreOut> = Vec::new();
     let mut dimensions: Vec<(String, Vec<u8>)> = Vec::new();
+    let mut tables: Vec<table::Table> = Vec::new();
     for (shown, text) in &pending_layouts {
         let mut cx = Ctx {
             root,
@@ -2020,7 +2039,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        let Some(k) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions) else { continue };
+        let Some(k) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions, &mut tables) else { continue };
         if recipe_defs.contains_key(&k.id) {
             errors.push(format!("{shown}: recipe kind {} is declared twice", k.id));
         }
@@ -2154,6 +2173,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         }
     }
     defs.dimensions = dimensions.iter().map(|(id, _)| id.clone()).collect();
+    defs.tables = tables;
     out.source = Some(rust_source(&entries, &recipes, &books, &defs));
     version_overlays(&mut out, &known.datapack);
     Ok(out)
@@ -2463,6 +2483,9 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], defs: 
         );
     }
     code.push_str("}\n");
+    for t in &defs.tables {
+        code.push_str(&table::rust(t));
+    }
     if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !defs.dimensions.is_empty() {
         code.push_str(
             "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",

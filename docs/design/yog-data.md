@@ -260,6 +260,11 @@ straight from the definitions (`binary::Writer`) once and cached.
 - Tooltip pictures (`Registry::on_item_tooltip`, ABI 2.2).
 - Recipe kinds and layouts as `.ydef` (`recipe_kind`, `recipe_layout`);
   tool and armor materials as `.ydef` with the game's as built-in data.
+- A mod's own tables as `.ydef` (`kind: "table"`): typed columns (numbers,
+  strings, `.yres` texts and colors, `@item:`/`@block:` refs, lists and
+  maps of them), rows checked against them, and an enum in the mod's code —
+  a variant per row, a method per column. VLSI's tiers, resources and
+  crafting costs are tables.
 - Other mods: `requires: [mod ids]` on content and book entries, checked
   at load (`is_mod_loaded`, ABI 2.3); `java_call` reaches a Java mod's API
   by reflection (`dev.yog.data.YogJava`) — Hex's Pehkui patterns use it.

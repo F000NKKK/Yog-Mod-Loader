@@ -56,6 +56,32 @@ pub enum Def {
     /// ground as data (`terrain`, see `yog_worldgen`) — or a generator the
     /// mod's code registers (`generator`).
     Dimension(DimensionDef),
+    /// A mod's own table — tiers, materials, voltages…: rows of the columns
+    /// it declares, which `yog build` makes an enum in the mod's code.
+    Table(TableDef),
+}
+
+/// `{ kind: "table", id: "tier", columns: { size: "u32", chip: "item",
+/// name: "text" }, rows: { wood: { size: 16, chip: "@item:mymod:chip_wood",
+/// name: "@Strings.tier_wood" }, … } }` — in the mod's code an enum `Tier`,
+/// a variant per row (`Tier::Wood`, in order), a method per column
+/// (`Tier::Wood.size()`), `Tier::ALL`, `id()`, `from_id()` and, for an
+/// `item`, `block` or `string` column, `from_<column>()`.
+///
+/// A column is `bool`, an integer (`u8` … `u64`, `i32`, `i64`, `usize`),
+/// `f32`, `f64`, `string`, `text` (a `.yres` string, translated), `color`
+/// (a `.yres` color), `item` or `block` (`@item:`/`@block:`), a list of one
+/// of those but text (`[item]`) or a map of them (`{item: u64}`, in order).
+#[derive(Schema, Debug, Clone)]
+pub struct TableDef {
+    /// `tier`: the enum is `Tier`.
+    pub id: String,
+    pub columns: Ordered<String>,
+    pub rows: Ordered<yog_data::Value>,
+    /// The enum (de)serializes with serde (`Wood` as `"Wood"`): the mod
+    /// depends on serde.
+    #[data(default)]
+    pub serde: bool,
 }
 
 /// `{ kind: "dimension", id: "crystal_caves", dimension_type: { has_sky_light:
