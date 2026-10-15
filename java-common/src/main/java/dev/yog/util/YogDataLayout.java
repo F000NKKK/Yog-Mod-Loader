@@ -252,14 +252,28 @@ public final class YogDataLayout {
     /** An item id, a {@code #tag}, or an array of those (any of them), as a vanilla ingredient. */
     private static JsonElement ingredient(JsonElement v) {
         if (v.isJsonArray()) {
+            // Alternatives: those this version has; the recipe needs one.
             com.google.gson.JsonArray any = new com.google.gson.JsonArray();
-            for (JsonElement e : v.getAsJsonArray()) any.add(ingredient(e));
+            Missing missing = null;
+            for (JsonElement e : v.getAsJsonArray()) {
+                try {
+                    any.add(ingredient(e));
+                } catch (Missing m) {
+                    missing = m;
+                }
+            }
+            if (any.isEmpty() && missing != null) throw missing;
             return any.size() == 1 ? any.get(0) : any;
         }
         String item = v.getAsString();
         JsonObject o = new JsonObject();
-        if (item.startsWith("#")) o.addProperty("tag", item.substring(1));
-        else o.addProperty("item", item(item));
+        if (item.startsWith("#")) {
+            String tag = item.substring(1);
+            if (!dev.yog.data.YogTags.has("item", tag)) throw new Missing("#" + tag);
+            o.addProperty("tag", tag);
+        } else {
+            o.addProperty("item", item(item));
+        }
         return o;
     }
 

@@ -91,7 +91,7 @@ public final class YogTags {
     }
 
     /** The tags {@code yog:<path>} is on this host, where its mods' entries go first. */
-    static List<String> here(String registry, String path) {
+    static List<String> tagsHere(String registry, String path) {
         List<String> out = new ArrayList<>();
         for (String t : YOG.getOrDefault(registry + " " + path, List.of())) {
             if (has(registry, t)) out.add(t);
@@ -109,7 +109,7 @@ public final class YogTags {
         for (Map.Entry<String, List<String>> e : YOG.entrySet()) {
             String[] key = e.getKey().split(" ", 2);
             String registry = key[0], path = key[1];
-            List<String> tags = here(registry, path);
+            List<String> tags = tagsHere(registry, path);
             Path file = tagFile(pack, registry, "yog:" + path, mc121);
             // The mods' entries, to the first tag it is here.
             Set<JsonElement> entries = new LinkedHashSet<>();

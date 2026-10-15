@@ -79,6 +79,7 @@ public final class YogPackStager {
             }
         }
         Files.createDirectories(out);
+        dev.yog.data.YogTags.setHost(loader, mcVersion);
 
         // The common files, then each overlay that applies, least specific first.
         // A version directory is the whole version or a release line of it: `1.21` covers 1.21.x.
@@ -131,6 +132,9 @@ public final class YogPackStager {
             }
         }
 
+        // Yog's common tags: what the mods put in them, to this host's tags.
+        dev.yog.data.YogTags.stage(out, mc121);
+
         YogContent registered = YogContent.cached(content);
         // Mod-registered recipes as JSON files inside the data pack.
         injectRecipes(out, registered.recipes, mc121);
@@ -149,7 +153,7 @@ public final class YogPackStager {
     }
 
     /** Two tag files as one: the values of both (once each); {@code replace} if either says so. */
-    static String mergeTags(String a, String b) {
+    public static String mergeTags(String a, String b) {
         Gson gson = new Gson();
         JsonObject x = gson.fromJson(a, JsonObject.class);
         JsonObject y = gson.fromJson(b, JsonObject.class);
