@@ -280,6 +280,19 @@ pub struct YogExplosionEvent {
 
 // ── ABI minor 9–10 event structs ──────────────────────────────────────────────
 
+/// A hopper or dropper puts an item into a block that accepts items
+/// (Pre: would it take it; Post: it takes it).
+#[repr(C)]
+pub struct YogItemInsertEvent {
+    pub block: YogStr,
+    pub pos: YogBlockPos,
+    pub dimension: YogStr,
+    pub item_id: YogStr,
+    pub count: u32,
+    /// The item's data as SNBT (`{}` for none).
+    pub nbt: YogStr,
+}
+
 /// Fired when a player picks up an item entity (Pre: cancellable; Post: informational).
 #[repr(C)]
 pub struct YogItemPickupEvent {
@@ -433,6 +446,8 @@ pub type YogMachineCraftFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogMachineCraftEvent, u8) -> bool;
 pub type YogExplosionFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogExplosionEvent, u8) -> bool;
+pub type YogItemInsertFn =
+    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogItemInsertEvent, u8) -> bool;
 pub type YogItemPickupFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogItemPickupEvent, u8) -> bool;
 pub type YogPlayerMoveFn =
@@ -1254,6 +1269,7 @@ pub struct YogApi {
     pub on_explosion: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogExplosionFn),
     // ── ABI minor 9 ──────────────────────────────────────────────────────────
     pub on_item_pickup: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogItemPickupFn),
+    pub on_item_insert: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogItemInsertFn),
     pub on_player_move: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerMoveFn),
     pub on_container_open:
         unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogContainerOpenFn),
@@ -1490,7 +1506,7 @@ mod tests {
             YogStr, YogOwnedStr, YogBlockPos, YogVec3, YogBlockBreakEvent, YogChatEvent, YogPlayerEvent,
             YogUseItemEvent, YogUseBlockEvent, YogAttackEntityEvent, YogEntityDamageEvent, YogEntityDeathEvent,
             YogEntitySpawnEvent, YogPlayerDeathEvent, YogPlayerRespawnEvent, YogAdvancementEvent,
-            YogEntityInteractEvent, YogCraftEvent, YogExplosionEvent, YogItemPickupEvent, YogPlayerMoveEvent,
+            YogEntityInteractEvent, YogCraftEvent, YogExplosionEvent, YogItemPickupEvent, YogItemInsertEvent, YogPlayerMoveEvent,
             YogContainerOpenEvent, YogContainerCloseEvent, YogProjectileHitEvent, YogPlaceBlockEvent,
             YogPacketEvent, YogCommandEvent,
             YogKeyPressEvent, YogGfxApi, YogServer, YogChunkWriterApi, YogApi,

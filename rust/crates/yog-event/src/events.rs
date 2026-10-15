@@ -216,6 +216,23 @@ pub struct ExplosionEvent {
 
 // ── ABI minor 9 event types ───────────────────────────────────────────────────
 
+/// A hopper or dropper puts an item into a block that accepts items
+/// (`block.accepts_items`).
+///
+/// - `Pre`  — return whether the block takes it (nothing changes yet).
+/// - `Post` — it takes it: do what taking it means.
+#[derive(Debug, Clone)]
+pub struct ItemInsertEvent {
+    /// Registry id of the block.
+    pub block_id: String,
+    pub pos: BlockPos,
+    pub dimension: String,
+    pub item_id: String,
+    pub count: u32,
+    /// The item's data as SNBT (`{}` for none).
+    pub nbt: String,
+}
+
 /// Fired when a player picks up an item entity.
 ///
 /// - `Pre`  — return `false` to prevent the pickup.
