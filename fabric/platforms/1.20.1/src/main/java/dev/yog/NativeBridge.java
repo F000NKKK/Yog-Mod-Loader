@@ -1320,6 +1320,23 @@ public final class NativeBridge {
         return true;
     }
 
+    /** The strongest signal the block gives off (dust: its power), or -1 if it isn't a source. */
+    public static int redstoneSignal(String dimension, int x, int y, int z) {
+        ServerWorld w = worldFor(dimension);
+        if (w == null) return -1;
+        net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(x, y, z);
+        net.minecraft.block.BlockState state = w.getBlockState(pos);
+        if (state.getBlock() instanceof net.minecraft.block.RedstoneWireBlock) {
+            return state.get(net.minecraft.block.RedstoneWireBlock.POWER);
+        }
+        if (!state.emitsRedstonePower()) return -1;
+        int best = 0;
+        for (net.minecraft.util.math.Direction d : net.minecraft.util.math.Direction.values()) {
+            best = Math.max(best, state.getWeakRedstonePower(w, pos, d));
+        }
+        return best;
+    }
+
     /** The redstone power a block receives from its neighbours (0–15), or -1. */
     public static int redstonePower(String dimension, int x, int y, int z) {
         ServerWorld w = worldFor(dimension);

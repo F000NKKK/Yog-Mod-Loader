@@ -537,6 +537,10 @@ pub trait Server {
 
     /// The redstone power the block at `pos` receives from its neighbours
     /// (0–15); `None` if the dimension doesn't exist.
+    /// The strongest signal the block at `pos` gives off (a lever, a torch,
+    /// dust: its power); `None` if it isn't a redstone source.
+    fn redstone_signal(&self, dimension: &str, pos: BlockPos) -> Option<u8>;
+
     fn redstone_power(&self, dimension: &str, pos: BlockPos) -> Option<u8>;
 
     /// Sets the power (0–15) the block at `pos` gives off — a block

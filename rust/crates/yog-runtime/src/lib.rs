@@ -3058,6 +3058,7 @@ fn build_server_table() -> YogServer {
         entity_mount: srv_entity_mount,
         entity_dismount: srv_entity_dismount,
         redstone_power: srv_redstone_power,
+        redstone_signal: srv_redstone_signal,
         set_redstone_output: srv_set_redstone_output,
         get_block_state: srv_get_block_state,
         set_block_state: srv_set_block_state,
@@ -3088,6 +3089,10 @@ unsafe extern "C" fn srv_entity_mount(_ctx: *mut c_void, rider: YogStr, vehicle:
 
 unsafe extern "C" fn srv_entity_dismount(_ctx: *mut c_void, uuid: YogStr) -> bool {
     unsafe { bridge!("entityDismount", [S(uuid)]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn srv_redstone_signal(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32 {
+    unsafe { bridge!("redstoneSignal", [S(dim), I(pos.x), I(pos.y), I(pos.z)]).unwrap_or(-1) }
 }
 
 unsafe extern "C" fn srv_redstone_power(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32 {

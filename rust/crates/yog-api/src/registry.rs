@@ -1111,6 +1111,12 @@ impl Server for CServer {
         unsafe { (s.entity_dismount)(s.ctx, YogStr::from_str(uuid)) }
     }
 
+    fn redstone_signal(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<u8> {
+        let s = srv!(self);
+        let p = unsafe { (s.redstone_signal)(s.ctx, YogStr::from_str(dimension), bp(pos)) };
+        (0..=15).contains(&p).then_some(p as u8)
+    }
+
     fn redstone_power(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<u8> {
         let s = srv!(self);
         let p = unsafe { (s.redstone_power)(s.ctx, YogStr::from_str(dimension), bp(pos)) };

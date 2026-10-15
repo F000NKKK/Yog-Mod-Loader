@@ -1161,6 +1161,8 @@ pub struct YogServer {
     pub entity_dismount: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr) -> bool,
     /// Received redstone power 0–15, or -1 (no such dimension).
     pub redstone_power: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32,
+    /// The strongest signal the block gives off 0–15, or -1 (not a source).
+    pub redstone_signal: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32,
     pub set_redstone_output:
         unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, level: i32) -> bool,
     /// `"ns:id[prop=value,...]"`, or NONE.
