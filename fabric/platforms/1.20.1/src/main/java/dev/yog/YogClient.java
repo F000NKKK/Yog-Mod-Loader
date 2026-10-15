@@ -35,6 +35,13 @@ public class YogClient implements ClientModInitializer {
                     (state, world, pos, tintIndex) -> YogClientApi.tint(pos),
                     yogBlocks.toArray(new net.minecraft.block.Block[0]));
         }
+        // Gliders' wings (client::set_glider), on every player.
+        net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback.EVENT.register(
+                (type, renderer, helper, ctx) -> {
+                    if (renderer instanceof net.minecraft.client.render.entity.PlayerEntityRenderer players) {
+                        helper.register(new YogWings(players, ctx.getModelLoader()));
+                    }
+                });
         // Pictures in item tooltips (ABI 2.2).
         net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback.EVENT.register(
                 data -> data instanceof YogTooltipData d ? new YogClientTooltip(d) : null);

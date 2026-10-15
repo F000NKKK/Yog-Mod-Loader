@@ -73,3 +73,9 @@ pub(crate) unsafe extern "C" fn api_client_set_block_tint(
         );
     }
 }
+
+pub(crate) unsafe extern "C" fn api_client_set_glider(_ctx: *mut c_void, uuid: YogStr, glide: bool, wings: YogStr) {
+    unsafe {
+        let _: Option<()> = host!("dev/yog/YogClientApi", "setGlider", [S(uuid), Z(glide), S(wings)]);
+    }
+}

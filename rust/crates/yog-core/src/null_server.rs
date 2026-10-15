@@ -417,6 +417,9 @@ impl Server for NullServer {
     fn entity_dismount(&self, uuid: &str) -> bool {
         Default::default()
     }
+    fn entity_set_glider(&self, uuid: &str, glide: bool) -> bool {
+        Default::default()
+    }
     fn redstone_signal(&self, dimension: &str, pos: BlockPos) -> Option<u8> {
         Default::default()
     }

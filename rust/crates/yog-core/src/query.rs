@@ -33,6 +33,13 @@ pub mod entity_flags {
     pub const VILLAGER: u32 = 1 << 10;
     /// Sneaking (shift held).
     pub const SNEAKING: u32 = 1 << 11;
+    /// Standing on the ground.
+    pub const ON_GROUND: u32 = 1 << 12;
+    /// Bumped into something sideways in its last move.
+    pub const HORIZONTAL_COLLISION: u32 = 1 << 13;
+    /// Gliding (an elytra's fall-flying, or a glider's —
+    /// [`Server::entity_set_glider`](crate::Server::entity_set_glider)).
+    pub const GLIDING: u32 = 1 << 14;
 }
 
 /// A loaded entity, as [`Server::entity_info`](crate::Server::entity_info)

@@ -535,11 +535,19 @@ pub trait Server {
     /// Gets an entity off what it rides; `false` if it rode nothing.
     fn entity_dismount(&self, uuid: &str) -> bool;
 
-    /// The redstone power the block at `pos` receives from its neighbours
-    /// (0–15); `None` if the dimension doesn't exist.
+    /// Lets a player glide as if wearing an elytra (`true`) or takes that
+    /// away (`false`): jumping in the air starts the glide, landing ends it,
+    /// as with an elytra. Only the server side — the player's client is told
+    /// with `yog_api::client::set_glider` (the mod's own packet). `false`
+    /// if there's no such player.
+    fn entity_set_glider(&self, uuid: &str, glide: bool) -> bool;
+
     /// The strongest signal the block at `pos` gives off (a lever, a torch,
     /// dust: its power); `None` if it isn't a redstone source.
     fn redstone_signal(&self, dimension: &str, pos: BlockPos) -> Option<u8>;
+
+    /// The redstone power the block at `pos` receives from its neighbours
+    /// (0–15); `None` if the dimension doesn't exist.
 
     fn redstone_power(&self, dimension: &str, pos: BlockPos) -> Option<u8>;
 

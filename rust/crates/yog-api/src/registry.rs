@@ -1111,6 +1111,11 @@ impl Server for CServer {
         unsafe { (s.entity_dismount)(s.ctx, YogStr::from_str(uuid)) }
     }
 
+    fn entity_set_glider(&self, uuid: &str, glide: bool) -> bool {
+        let s = srv!(self);
+        unsafe { (s.entity_set_glider)(s.ctx, YogStr::from_str(uuid), glide) }
+    }
+
     fn redstone_signal(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<u8> {
         let s = srv!(self);
         let p = unsafe { (s.redstone_signal)(s.ctx, YogStr::from_str(dimension), bp(pos)) };

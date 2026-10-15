@@ -32,4 +32,10 @@ public final class YogEntityFlags {
     public static final int VILLAGER = 1 << 10;
     /** Sneaking (shift held). */
     public static final int SNEAKING = 1 << 11;
+    /** Standing on the ground. */
+    public static final int ON_GROUND = 1 << 12;
+    /** Bumped into something sideways in its last move. */
+    public static final int HORIZONTAL_COLLISION = 1 << 13;
+    /** Gliding (elytra fall-flying, or a glider's). */
+    public static final int GLIDING = 1 << 14;
 }

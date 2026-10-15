@@ -10,12 +10,15 @@
     "ContainerOpenMixin",
     "CraftingMixin",
     "ExplosionMixin",
+    "GlideStartMixin",
+    "GlideTickMixin",
     "ItemPickupMixin",
     "PlayerMoveMixin",
     "ProjectileHitMixin",
     "ResourcePackManagerMixin"
   ],
   "client": [
+    "GlideClientMixin",
     "KeyboardMixin"
   ],
   "injectors": {

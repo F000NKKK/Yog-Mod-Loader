@@ -522,6 +522,9 @@ public final class NativeBridge {
                     || e instanceof net.neoforged.neoforge.entity.PartEntity<?>) flags |= YogEntityFlags.PART;
             if (e instanceof net.minecraft.world.entity.npc.Villager) flags |= YogEntityFlags.VILLAGER;
             if (e.isShiftKeyDown()) flags |= YogEntityFlags.SNEAKING;
+            if (e.onGround()) flags |= YogEntityFlags.ON_GROUND;
+            if (e.horizontalCollision) flags |= YogEntityFlags.HORIZONTAL_COLLISION;
+            if (e instanceof net.minecraft.world.entity.LivingEntity gliding && gliding.isFallFlying()) flags |= YogEntityFlags.GLIDING;
             return BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()) + "\t"
                     + e.level().dimension().location() + "\t"
                     + e.getX() + "\t" + e.getY() + "\t" + e.getZ() + "\t"
@@ -1246,6 +1249,15 @@ public final class NativeBridge {
     }
 
     /** Gets an entity off what it rides. */
+    /** Lets a player glide as if wearing an elytra, or takes it away (stopping a glide). */
+    public static boolean entitySetGlider(String uuid, boolean glide) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof net.minecraft.world.entity.player.Player p)) return false;
+        dev.yog.util.YogGlide.setServer(p.getUUID(), glide);
+        if (!glide && p.isFallFlying()) p.stopFallFlying();
+        return true;
+    }
+
     public static boolean entityDismount(String uuid) {
         Entity e = entityByUuid(uuid);
         if (e == null || !e.isPassenger()) return false;
