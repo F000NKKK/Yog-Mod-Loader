@@ -1000,7 +1000,7 @@ fn compile_file(
         }
     }
     // Its other models, and which state shows which.
-    let mut rules: Vec<(Vec<(String, String)>, String)> = Vec::new();
+    let mut rules: Vec<(Vec<(String, String)>, Vec<String>)> = Vec::new();
     if let Some(s) = &parts.states {
         let sat = root.key("states");
         let mut named = std::collections::HashMap::new();
@@ -1013,7 +1013,7 @@ fn compile_file(
                 named.insert(name.clone(), format!("{ns}:block/{p}/{name}"));
             }
         }
-        for (key, name) in &s.variants.0 {
+        for (key, names) in &s.variants.0 {
             let here = sat.key("variants").key(key);
             let mut when = Vec::new();
             for pair in key.split(',').filter(|p| !p.is_empty()) {
@@ -1024,9 +1024,17 @@ fn compile_file(
                     cx.err_at(loc, &here, format!("`{pair}`: no such property and value"));
                 }
             }
-            match named.get(name) {
-                Some(m) => rules.push((when, m.clone())),
-                None => cx.err_at(loc, &here, format!("`{name}`: not in states.models")),
+            let mut models = Vec::new();
+            for name in &names.0 {
+                match named.get(name) {
+                    Some(m) => models.push(m.clone()),
+                    None => cx.err_at(loc, &here, format!("`{name}`: not in states.models")),
+                }
+            }
+            if names.0.is_empty() {
+                cx.err_at(loc, &here, "a model name, or a list of them");
+            } else if !models.is_empty() {
+                rules.push((when, models));
             }
         }
     }
@@ -1044,13 +1052,15 @@ fn compile_file(
             loop {
                 let at: Vec<(&str, &str)> = states.iter().zip(&combo).map(|((n, vs), &i)| (n.as_str(), vs[i].as_str())).collect();
                 let value = |k: &str| at.iter().find(|(n, _)| *n == k).map(|(_, v)| *v);
-                let m = rules
+                let models = rules
                     .iter()
                     .find(|(when, _)| when.iter().all(|(k, v)| value(k) == Some(v.as_str())))
-                    .map_or(main.as_str(), |(_, m)| m.as_str());
+                    .map_or(vec![main.clone()], |(_, m)| m.clone());
                 let (x, y) = turn(value("facing"), value("face"));
                 let key: Vec<String> = at.iter().map(|(n, v)| format!("{n}={v}")).collect();
-                variants.insert(key.join(","), variant(m, x, y, uvlock, None));
+                let picks: Vec<Value> = models.iter().map(|m| variant(m, x, y, uvlock, None)).collect();
+                let v = if picks.len() == 1 { picks.into_iter().next().unwrap() } else { Value::Array(picks) };
+                variants.insert(key.join(","), v);
                 // The next state, the last property fastest.
                 let mut i = states.len();
                 loop {

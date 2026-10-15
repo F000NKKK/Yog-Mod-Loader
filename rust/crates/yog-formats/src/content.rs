@@ -741,11 +741,34 @@ pub struct States {
     #[data(default)]
     pub models: Ordered<Model>,
     /// The model a state shows: some of its properties
-    /// (`"energized=true,facing=up"`) → a name in `models`. The first that
-    /// matches wins, else the block's own model; turning for `facing` and
-    /// `face` is added.
+    /// (`"energized=true,facing=up"`) → a name in `models`, or a list of
+    /// names to pick from at random per position. The first that matches
+    /// wins, else the block's own model; turning for `facing` and `face` is
+    /// added.
     #[data(default)]
-    pub variants: Ordered<String>,
+    pub variants: Ordered<ModelNames>,
+}
+
+/// One model name, or several to pick from at random (a blockstate's list of variants).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelNames(pub Vec<String>);
+
+impl Schema for ModelNames {
+    fn shape() -> Shape {
+        Shape::List(String::shape)
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        match v {
+            ValueRef::List(_) => Vec::<String>::read(v, cx).map(ModelNames),
+            _ => String::read(v, cx).map(|s| ModelNames(vec![s])),
+        }
+    }
+    fn write(&self) -> Value {
+        match self.0.as_slice() {
+            [one] => one.write(),
+            many => Value::List(many.iter().map(Schema::write).collect()),
+        }
+    }
 }
 
 /// Which ways a block can turn.
