@@ -1,6 +1,6 @@
 [package]
 name = "yog-player"
-version = "0.4.1"
+version = "0.5.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -8,5 +8,5 @@ license = "MIT OR Apache-2.0"
 description = "Yog player access (teleport, give items, health)."
 
 [dependencies]
-yog-core = "0.3.1"
-yog-entity = "0.3"
+yog-core = "0.4"
+yog-entity = "0.4"
