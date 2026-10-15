@@ -9,7 +9,7 @@ mod server;
 
 pub use null_server::NullServer;
 pub use query::{BlockHit, BlockInfo, EntityInfo, Face, PlayerInfo, entity_flags};
-pub use server::Server;
+pub use server::{Server, split_state};
 
 /// A block position in the world.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

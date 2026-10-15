@@ -553,6 +553,28 @@ pub trait Server {
     /// their defaults). `false` if it doesn't parse.
     fn set_block_state(&self, dimension: &str, pos: BlockPos, state: &str) -> bool;
 
+    /// Property `name` of the block at `pos` (`"energized"` → `"true"`).
+    fn block_property(&self, dimension: &str, pos: BlockPos, name: &str) -> Option<String> {
+        let state = self.get_block_state(dimension, pos)?;
+        split_state(&state).1.into_iter().find(|(k, _)| *k == name).map(|(_, v)| v.to_string())
+    }
+
+    /// Sets some properties of the block at `pos` (`"energized=true,powered=false"`),
+    /// keeping the rest. `false` if there's no block or the state doesn't take.
+    fn set_block_properties(&self, dimension: &str, pos: BlockPos, properties: &str) -> bool {
+        let Some(state) = self.get_block_state(dimension, pos) else { return false };
+        let (id, mut props) = split_state(&state);
+        for pair in properties.split(',').filter(|p| !p.is_empty()) {
+            let Some((k, v)) = pair.split_once('=') else { return false };
+            match props.iter_mut().find(|(n, _)| *n == k) {
+                Some(p) => p.1 = v,
+                None => props.push((k, v)),
+            }
+        }
+        let props: Vec<String> = props.iter().map(|(k, v)| format!("{k}={v}")).collect();
+        self.set_block_state(dimension, pos, &format!("{id}[{}]", props.join(",")))
+    }
+
     /// Whether a thunderstorm is going on in `dimension`.
     fn world_is_thundering(&self, dimension: &str) -> bool;
 
@@ -569,4 +591,29 @@ pub trait Server {
     /// Every non-air block of the box between `from` and `to` with its full
     /// state (see [`Server::get_block_state`]) — one call for a whole area.
     fn scan_region(&self, dimension: &str, from: BlockPos, to: BlockPos) -> Vec<(BlockPos, String)>;
+}
+
+/// A block state (`"ns:id[k=v,...]"`) as its id and its properties.
+pub fn split_state(state: &str) -> (&str, Vec<(&str, &str)>) {
+    let (id, rest) = state.split_once('[').unwrap_or((state, ""));
+    let props = rest
+        .trim_end_matches(']')
+        .split(',')
+        .filter_map(|p| p.split_once('='))
+        .collect();
+    (id, props)
+}
+
+#[cfg(test)]
+mod state_tests {
+    use super::split_state;
+
+    #[test]
+    fn a_state_splits_into_its_id_and_properties() {
+        assert_eq!(split_state("minecraft:stone"), ("minecraft:stone", vec![]));
+        assert_eq!(
+            split_state("hexcasting:impetus/look[energized=false,facing=up]"),
+            ("hexcasting:impetus/look", vec![("energized", "false"), ("facing", "up")])
+        );
+    }
 }
