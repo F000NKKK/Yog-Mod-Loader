@@ -60,6 +60,8 @@ pub enum Kind {
     Model,
     /// `.yanim` — animation clips (`yog_body`).
     Anim,
+    /// `.yentity` — an entity type: an object, a living thing or a mob.
+    Entity,
 }
 
 impl Kind {
@@ -72,6 +74,7 @@ impl Kind {
             "ydef" => Some(Kind::Def),
             "ymodel" => Some(Kind::Model),
             "yanim" => Some(Kind::Anim),
+            "yentity" => Some(Kind::Entity),
             _ => None,
         }
     }
@@ -85,6 +88,7 @@ impl Kind {
             Kind::Def => "definition",
             Kind::Model => "model",
             Kind::Anim => "animation",
+            Kind::Entity => "entity",
         }
     }
 }
@@ -756,7 +760,7 @@ fn compile_file(
                 return None;
             }
         },
-        Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim => unreachable!("only blocks and items get here"),
+        Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity => unreachable!("only blocks and items get here"),
     };
     // What it names (drops) is checked once every file is read.
     for f in &refs {
@@ -1172,6 +1176,89 @@ struct BookFile {
     /// The book as the runtime reads it (`yog_book::Book`'s schema), as
     /// binary Yog Data: the mod hands these bytes over as they are.
     data: Vec<u8>,
+}
+
+/// One checked `.yentity`.
+struct EntityFile {
+    id: String,
+    file: String,
+    /// Its model and clips, ids with their namespace.
+    model: Option<String>,
+    animations: Option<String>,
+    /// `yog_registry::EntityDef`, as binary Yog Data.
+    data: Vec<u8>,
+}
+
+impl EntityFile {
+    fn path(&self) -> String {
+        format!("entities/{}.ydata", self.id.replace([':', '/'], "__"))
+    }
+}
+
+/// Checks a `.yentity`: its id (the file's name by default), its name into
+/// the lang (`entity.<ns>.<path>`), the rest by `yog_registry::EntityDef`.
+fn compile_entity(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Option<&str>, out: &mut Compiled) -> Option<EntityFile> {
+    use yog_data::Value;
+    let mut value = match yog_data::text::parse_value(text) {
+        Ok(v) => v,
+        Err(e) => {
+            cx.err(e.at.line as usize, e.message);
+            return None;
+        }
+    };
+    let Value::Map(map) = &mut value else {
+        cx.err(1, "an entity is an object: { \"kind\": \"mob\", \"width\": 0.6, \"height\": 1.8, … }");
+        return None;
+    };
+    let given = map.get("id").and_then(Value::as_str).map(str::to_owned);
+    let (ns, p) = file_id(cx, 1, given.as_deref(), path, mod_ns)?;
+    let id = format!("{ns}:{p}");
+    map.insert("id", Value::from(id.as_str()));
+    // The name → lang, as a block's or an item's.
+    if let Some(name) = map.remove("name") {
+        let key = format!("entity.{ns}.{}", p.replace('/', "."));
+        match yog_data::from_value::<yog_data::Text>(&name) {
+            Ok(read) => match read.value {
+                yog_data::Text::Literal(s) => {
+                    out.lang.entry((ns.clone(), yres::NEUTRAL_LOCALE.to_string())).or_default().insert(key, s);
+                }
+                yog_data::Text::Lang(k) => out.lang_aliases.push((k, key)),
+                yog_data::Text::NameOf(r) => {
+                    let (rns, rp) = r.id.split_once(':').unwrap_or(("minecraft", &r.id));
+                    out.lang_aliases.push((format!("{}.{rns}.{}", r.kind, rp.replace('/', ".")), key));
+                }
+                yog_data::Text::Res(r) => match cx.refs.texts.get(&format!("{}.{}", r.set, r.key)) {
+                    Some((k, _)) => out.lang_aliases.push((k.clone(), key)),
+                    None => cx.err(1, format!("name `@{}.{}`: no text `{}.{}` in resources/*.yres", r.set, r.key, r.set, r.key)),
+                },
+            },
+            Err(problems) => {
+                for pr in problems {
+                    cx.err(1, format!("name: {}", pr.message));
+                }
+            }
+        }
+    }
+    let def = match yog_data::from_value::<yog_registry::EntityDef>(&value) {
+        Ok(read) => read.value,
+        Err(problems) => {
+            for pr in problems {
+                cx.err(1, format!("{}: {}", pr.path, pr.message));
+            }
+            return None;
+        }
+    };
+    let qualify = |s: &Option<String>| s.as_ref().map(|s| if s.contains(':') { s.clone() } else { format!("{ns}:{s}") });
+    let mut def = def;
+    def.model = qualify(&def.model);
+    def.animations = qualify(&def.animations);
+    Some(EntityFile {
+        id,
+        file: cx.file.clone(),
+        model: def.model.clone(),
+        animations: def.animations.clone(),
+        data: yog_data::binary::encode(&yog_data::Schema::write(&def)),
+    })
 }
 
 /// One checked `.ymodel` or `.yanim`.
@@ -2215,6 +2302,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut books: Vec<BookFile> = Vec::new();
     let mut book_ids: HashMap<String, String> = HashMap::new();
     let mut bodies: Vec<BodyFile> = Vec::new();
+    let mut entity_files: Vec<EntityFile> = Vec::new();
     let mut body_ids: HashMap<(bool, String), String> = HashMap::new();
     let mut inventories: Vec<(String, usize, String)> = Vec::new();
     let mut pending_books: Vec<(String, String)> = Vec::new();
@@ -2272,6 +2360,15 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
+        if kind == Kind::Entity {
+            if let Some(e) = compile_entity(&mut cx, &text, path, mod_ns, &mut out) {
+                if let Some(other) = ids.insert(e.id.clone(), shown.clone()) {
+                    errors.push(format!("{shown}: id {} is also defined by {other}", e.id));
+                }
+                entity_files.push(e);
+            }
+            continue;
+        }
         if let Some(entry) = compile_file(&mut cx, &text, kind, path, mod_ns, &mut out, &mut generated)
         {
             if let Some(other) = ids.insert(entry.id.clone(), shown.clone()) {
@@ -2290,6 +2387,18 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut known = refs::Known::new(mod_ns.unwrap_or("minecraft"), &externals, datapack.as_deref());
     for e in &entries {
         known.add(if e.kind == Kind::Block { refs::RefKind::Block } else { refs::RefKind::Item }, e.id.clone());
+    }
+    for e in &entity_files {
+        known.add(refs::RefKind::Entity, e.id.clone());
+        // A model or clips of this mod must be among its `.ymodel`/`.yanim`.
+        for (wanted, model, what) in [(&e.model, true, "model"), (&e.animations, false, "animations")] {
+            if let Some(id) = wanted
+                && mod_ns.is_some_and(|ns| id.starts_with(&format!("{ns}:")))
+                && !bodies.iter().any(|b| b.model == model && &b.id == id)
+            {
+                errors.push(format!("{}: {what} `{id}`: no such file in content/ (`{}`)", e.file, if model { ".ymodel" } else { ".yanim" }));
+            }
+        }
     }
     // Kinds of recipe (`.ydef`): what they name checked; a kind declared
     // twice is a mistake.
@@ -2424,7 +2533,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     out.items = entries.len() - out.blocks;
     out.recipes = recipes.len();
     out.books = books.len();
-    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !dimensions.is_empty())
+    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !entity_files.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !dimensions.is_empty())
         && !mentions_content_macro(&root.join("src"))
     {
         out.warnings.push(format!(
@@ -2434,6 +2543,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     out.data_files = books.iter().map(|b| (b.path(), b.data.clone())).collect();
     out.data_files.extend(bodies.iter().map(|b| (b.path(), b.data.clone())));
+    out.data_files.extend(entity_files.iter().map(|e| (e.path(), e.data.clone())));
     out.data_files.extend(dimensions.iter().map(|(id, data)| (dimension_path(id), data.clone())));
     // A tool level above netherite gets a tag of what its tools can't mine.
     for m in &defs.tool_materials {
@@ -2445,7 +2555,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     defs.dimensions = dimensions.iter().map(|(id, _)| id.clone()).collect();
     defs.tables = tables;
-    out.source = Some(rust_source(&entries, &recipes, &books, &bodies, &defs));
+    out.source = Some(rust_source(&entries, &recipes, &books, &bodies, &entity_files, &defs));
     version_overlays(&mut out, &known.datapack);
     Ok(out)
 }
@@ -2553,11 +2663,26 @@ fn when_loaded(requires: &[String], stmt: &str) -> String {
     format!("if {} {{ {stmt} }}", cond.join(" && "))
 }
 
-fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies: &[BodyFile], defs: &Defs) -> String {
+fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies: &[BodyFile], entities: &[EntityFile], defs: &Defs) -> String {
     let sound_groups = &defs.sound_groups;
     let mut code = String::from(
         "// <auto-generated>\n//     Generated by `yog build` from content/**/*.yblock and *.yitem — don't edit,\n//     it's rewritten on every build. Included by `yog_api::content!()`.\n// </auto-generated>\n",
     );
+    if !entities.is_empty() {
+        code.push_str("\n/// The entity types of `content/` (`.yentity`), by id.\n#[allow(dead_code)]\npub struct Entities;\n\n#[allow(dead_code, clippy::all)]\nimpl Entities {\n");
+        let mut used: HashMap<String, usize> = HashMap::new();
+        for e in entities {
+            let path = e.id.split_once(':').map_or(e.id.as_str(), |(_, p)| p);
+            let mut ident = rust_ident(path).to_ascii_uppercase();
+            let n = used.entry(ident.clone()).or_insert(0);
+            *n += 1;
+            if *n > 1 {
+                let _ = write!(ident, "_{n}");
+            }
+            let _ = writeln!(code, "    pub const {ident}: &'static str = {:?};", e.id);
+        }
+        code.push_str("}\n");
+    }
     for (model, set, what) in [(true, "Models", "models (`.ymodel`)"), (false, "Anims", "animations (`.yanim`)")] {
         let mine: Vec<&BodyFile> = bodies.iter().filter(|b| b.model == model).collect();
         if mine.is_empty() {
@@ -2613,7 +2738,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
             );
             let mut b = format!("::yog_api::{def}::new(Self::{upper})");
             match kind {
-                Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim => unreachable!("only blocks and items get here"),
+                Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity => unreachable!("only blocks and items get here"),
                 Kind::Block => {
                     let p = &e.block;
                     if p.hardness.is_some() || p.resistance.is_some() {
@@ -2744,7 +2869,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
         let _ = match e.kind {
             Kind::Block => writeln!(code, "    {}", when_loaded(&e.requires, &format!("registry.register_block(Blocks::{ident}());"))),
             Kind::Item => writeln!(code, "    {}", when_loaded(&e.requires, &format!("registry.register_item(Items::{ident}());"))),
-            Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim => unreachable!("only blocks and items get here"),
+            Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity => unreachable!("only blocks and items get here"),
         };
     }
     for g in sound_groups {
@@ -2797,6 +2922,14 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
             b.path()
         );
     }
+    for e in entities {
+        let _ = writeln!(
+            code,
+            "    registry.register_entity_data({:?}, include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/{}\")));",
+            e.id,
+            e.path()
+        );
+    }
     for b in bodies {
         let _ = writeln!(
             code,
@@ -2810,7 +2943,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
     for t in &defs.tables {
         code.push_str(&table::rust(t));
     }
-    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !defs.dimensions.is_empty() {
+    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !entities.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !defs.dimensions.is_empty() {
         code.push_str(
             "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",
         );
@@ -3674,4 +3807,23 @@ mod tests {
         let e = compile(&project(&[("content/bad.ymodel", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("must come before it"), "{e}");
     }
+
+    #[test]
+    fn entities_compile_register_and_name_their_models() {
+        let model = r#"{ "texture": "entity/wisp.png", "bones": [{ "name": "body", "cubes": [{ "origin": [-2, 0, -2], "size": [4, 4, 4] }] }] }"#;
+        let wisp = r#"{ "name": "Wisp", "kind": "mob", "width": 0.5, "height": 0.5, "model": "wisp", "goals": ["float", "wander"],
+            "attributes": { "max_health": 6, "movement_speed": 0.3 } }"#;
+        let out = compile(&project(&[("content/wisp.ymodel", model), ("content/wisp.yentity", wisp)]), "mymod", &yres::Refs::default()).unwrap();
+        let src = out.source.as_ref().unwrap();
+        assert!(src.contains("registry.register_entity_data(\"mymod:wisp\""), "{src}");
+        assert!(src.contains("pub const WISP: &'static str = \"mymod:wisp\";"), "{src}");
+        assert!(out.data_files.iter().any(|(p, _)| p == "entities/mymod__wisp.ydata"));
+        let (_, data) = out.data_files.iter().find(|(p, _)| p == "entities/mymod__wisp.ydata").unwrap();
+        let def: yog_registry::EntityDef = yog_data::read_bytes(data).unwrap();
+        assert_eq!((def.kind, def.model.as_deref()), (yog_registry::EntityKind::Mob, Some("mymod:wisp")));
+        let missing = r#"{ "kind": "object", "width": 1, "height": 1, "model": "nope" }"#;
+        let e = compile(&project(&[("content/thing.yentity", missing)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("model `mymod:nope`: no such file"), "{e}");
+    }
+
 }

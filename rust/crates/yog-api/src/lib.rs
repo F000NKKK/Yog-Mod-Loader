@@ -7,6 +7,7 @@
 
 pub mod body;
 pub mod client;
+pub mod entities;
 pub mod java;
 pub mod vanilla;
 mod interop;
@@ -331,7 +332,7 @@ pub use yog_network::packet;
 pub use yog_network::{Packet, PacketEvent, PacketField};
 pub use yog_player::Player;
 pub use yog_registry::{
-    BlockDef, BlockProperty, Cooking, FoodDef, ItemDef, Recipe,
+    BlockDef, BlockProperty, Cooking, EntityDef, EntityKind, FoodDef, ItemDef, Recipe,
     ArmorDefense, ArmorMaterial, ArmorPiece, RecipeKind, SoundGroup, StartupGrant, ToolItem, ToolMaterial,
 };
 pub use yog_storage::{Storage, StorageScope, Value};

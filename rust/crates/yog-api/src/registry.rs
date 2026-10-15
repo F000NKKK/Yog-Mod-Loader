@@ -1756,6 +1756,17 @@ where
     }
 }
 
+unsafe extern "C" fn trampoline_entity_tick<F>(ud: *mut c_void, srv: *const yog_abi::YogServer, uuid: YogStr)
+where
+    F: Fn(&dyn Server, &str) + Send + Sync,
+{
+    unsafe {
+        let f = &*(ud as *const F);
+        let s = CServer(srv);
+        guard((), || f(&s, uuid.as_str()));
+    }
+}
+
 unsafe extern "C" fn trampoline_body<F>(ud: *mut c_void, frame: *const u8, len: usize, sink: *mut c_void, write: yog_abi::YogBytesSink)
 where
     F: Fn(&yog_body::Frame, &mut yog_body::Ops) + Send + Sync,
@@ -2385,6 +2396,35 @@ impl Registry {
     pub fn register_block(&mut self, def: BlockDef) {
         use yog_data::Schema;
         self.content("block", &def.id.clone(), &def.write());
+    }
+
+    /// Registers an entity type (what a `.yentity` makes). With a `model`,
+    /// the loader draws it — its body model with the clip of its state
+    /// (`clips`: `idle`, `walk`, or entity data `yog:state`).
+    pub fn register_entity(&mut self, def: yog_registry::EntityDef) {
+        use yog_data::Schema;
+        if crate::entities::drawn(&def) {
+            self.on_body(crate::entities::draw);
+        }
+        self.content("entity", &def.id.clone(), &def.write());
+    }
+
+    /// A compiled `.yentity` (the generated code calls this).
+    pub fn register_entity_data(&mut self, id: &str, data: &[u8]) {
+        match yog_data::read_bytes::<yog_registry::EntityDef>(data) {
+            Ok(def) => self.register_entity(def),
+            Err(e) => crate::error!("entity {id}: {e:?}"),
+        }
+    }
+
+    /// Calls `handler` each tick of every entity of `entity_type` (a mod's
+    /// type with `ticks`), with its uuid — server side.
+    pub fn on_entity_tick<F>(&mut self, entity_type: &str, handler: F)
+    where
+        F: Fn(&dyn Server, &str) + Send + Sync + 'static,
+    {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_entity_tick)(self.ctx(), YogStr::from_str(entity_type), ud, trampoline_entity_tick::<F>) }
     }
 
     /// Add placed feature `feature` (the mod's datapack's, like an ore's

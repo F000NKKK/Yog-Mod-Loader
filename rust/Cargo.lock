@@ -1522,6 +1522,7 @@ dependencies = [
  "yog-data",
  "yog-formats",
  "yog-gfx",
+ "yog-registry",
  "yog-ui",
  "yog-worldgen",
  "zip",

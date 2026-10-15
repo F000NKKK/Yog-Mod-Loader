@@ -1,0 +1,70 @@
+//! Mod entities the loader draws: a type registered with a `model` gets its
+//! body model, playing the clip of its state — `walk` while it walks, else
+//! `idle`, or the state in its entity data `yog:state` (a string the mod
+//! sets on the server) — timed by the world's clock, alike for everyone.
+
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{LazyLock, Mutex};
+
+use yog_body::{Anchor, Frame, Ops, Rig};
+use yog_registry::EntityDef;
+
+/// The entity data key a mod's entity's state goes under.
+pub const STATE: &str = "yog:state";
+
+/// Above this limb swing an entity walks.
+const WALKING: f32 = 0.01;
+
+struct Look {
+    model: String,
+    animations: Option<String>,
+    clips: Vec<(String, String)>,
+}
+
+static LOOKS: LazyLock<Mutex<HashMap<String, Look>>> = LazyLock::new(Default::default);
+static HOOKED: AtomicBool = AtomicBool::new(false);
+
+fn qualify(id: &str, of: &str) -> String {
+    if id.contains(':') {
+        id.to_owned()
+    } else {
+        let ns = of.split_once(':').map_or("minecraft", |(n, _)| n);
+        format!("{ns}:{id}")
+    }
+}
+
+/// Remembers how `def` looks; `true` for the first such type (the caller
+/// hooks [`draw`] then).
+pub(crate) fn drawn(def: &EntityDef) -> bool {
+    let Some(model) = &def.model else { return false };
+    LOOKS.lock().unwrap_or_else(|e| e.into_inner()).insert(
+        def.id.clone(),
+        Look {
+            model: qualify(model, &def.id),
+            animations: def.animations.as_ref().map(|a| qualify(a, &def.id)),
+            clips: def.clips.0.clone(),
+        },
+    );
+    crate::body::track_type(&def.id, true);
+    !HOOKED.swap(true, Ordering::AcqRel)
+}
+
+pub(crate) fn draw(f: &Frame, ops: &mut Ops) {
+    let looks = LOOKS.lock().unwrap_or_else(|e| e.into_inner());
+    let Some(look) = looks.get(&f.entity_type) else { return };
+    let Some(model) = yog_body::model(&look.model) else { return };
+    let state = f
+        .data(STATE)
+        .and_then(|s| std::str::from_utf8(s).ok())
+        .map(str::to_owned)
+        .unwrap_or_else(|| if f.limb_amount > WALKING { "walk" } else { "idle" }.to_owned());
+    let mut rig = Rig::new(model, Anchor::Model);
+    let clip = look.clips.iter().find(|(s, _)| *s == state).map(|(_, c)| c.as_str()).unwrap_or(state.as_str());
+    if let Some(anims) = &look.animations
+        && let Some(c) = yog_body::clip(anims, clip)
+    {
+        rig.play(c, 0.0);
+    }
+    rig.write(ops, f.world_seconds());
+}

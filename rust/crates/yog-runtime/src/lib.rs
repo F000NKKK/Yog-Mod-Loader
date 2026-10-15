@@ -181,6 +181,10 @@ struct RuntimeHandlers {
     packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
     client_packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
     items: Vec<ItemDef>,
+    /// Mods' entity types, as Yog Data (the host reads them whole).
+    entities: Vec<yog_data::Value>,
+    /// Ticks of mods' entities, by type.
+    entity_ticks: HashMap<String, Vec<(LoadedModule, *mut c_void, yog_abi::YogEntityTickFn)>>,
     blocks: Vec<BlockDef>,
     /// The content blob the hosts read (`nativeContent`), built once —
     /// dropped when more content registers.
@@ -518,6 +522,9 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         h.page_drawers
             .retain(|_, (m, ..)| m.generation() != generation);
         for entries in h.item_texts.values_mut() {
+            entries.retain(|(m, ..)| m.generation() != generation);
+        }
+        for entries in h.entity_ticks.values_mut() {
             entries.retain(|(m, ..)| m.generation() != generation);
         }
         for entries in h.item_tooltips.values_mut() {
@@ -2200,6 +2207,11 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
                 h.blocks.push(d);
             }
         }
+        "entity" => {
+            if read::<yog_registry::EntityDef>(kind, &id, value).is_some() {
+                h.entities.push(value.to_value());
+            }
+        }
         "biome_feature" => {
             if let Some(f) = read::<yog_registry::BiomeFeature>(kind, &id, value) {
                 h.biome_features.push(f);
@@ -2405,6 +2417,26 @@ unsafe extern "C" fn api_on_item_tooltip(
             .or_default()
             .push((current_registration(), ud, size, draw));
     }
+}
+
+unsafe extern "C" fn api_on_entity_tick(ctx: *mut c_void, entity_type: YogStr, ud: *mut c_void, f: yog_abi::YogEntityTickFn) {
+    unsafe {
+        handlers_mut(ctx).entity_ticks.entry(entity_type.as_str().to_owned()).or_default().push((current_registration(), ud, f));
+    }
+}
+
+/// `nativeOnEntityTick(String type, String uuid)`: a tick of a mod's entity.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityTick<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    entity_type: JString<'l>,
+    uuid: JString<'l>,
+) {
+    let (t, u) = (jstr!(env, entity_type), jstr!(env, uuid));
+    let entries = handlers().entity_ticks.get(&t).cloned().unwrap_or_default();
+    let srv = srv_ptr();
+    guard("on_entity_tick", || each(&entries, |ud, f| unsafe { f(ud, srv, YogStr::from_str(&u)) }));
 }
 
 unsafe extern "C" fn api_on_item_text(ctx: *mut c_void, item: YogStr, ud: *mut c_void, f: yog_abi::YogItemTextFn) {
@@ -3288,6 +3320,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_camera: body::api_on_camera,
         on_travel: body::api_on_travel,
         on_machine_craft: api_on_machine_craft,
+        on_entity_tick: api_on_entity_tick,
     }
 }
 

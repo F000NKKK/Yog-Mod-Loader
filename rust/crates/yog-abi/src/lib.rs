@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 2;
+pub const ABI_MINOR: u32 = 3;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -463,6 +463,8 @@ pub type YogProjectileHitFn =
 pub type YogPacketFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
 /// Server lifecycle / tick — no event struct, always fires.
 pub type YogServerFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
+/// A tick of one entity of a mod's type: `(ud, server, uuid)`.
+pub type YogEntityTickFn = unsafe extern "C" fn(*mut c_void, *const YogServer, YogStr);
 /// Command handler.
 pub type YogCommandFn = unsafe extern "C" fn(
     ud: *mut c_void,
@@ -1576,6 +1578,10 @@ pub struct YogApi {
     /// `sink`; `false` if nothing.
     pub client_entity_data:
         unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, key: YogStr, sink: *mut c_void, write: YogBytesSink) -> bool,
+
+    // ── ABI 3.3 — mod entities ──────────────────────────────────────────────
+    /// Each tick of every entity of `entity_type` (a mod's, with `ticks`).
+    pub on_entity_tick: unsafe extern "C" fn(ctx: *mut c_void, entity_type: YogStr, ud: *mut c_void, f: YogEntityTickFn),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].
@@ -1626,7 +1632,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (30002, 0x73ec_636f_fee7_29d4), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (30003, 0xeba8_25c0_1533_09dc), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]
