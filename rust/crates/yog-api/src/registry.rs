@@ -1767,6 +1767,30 @@ where
     }
 }
 
+unsafe extern "C" fn trampoline_loot<F>(
+    ud: *mut c_void,
+    srv: *const yog_abi::YogServer,
+    loot: *const u8,
+    len: usize,
+    sink: *mut c_void,
+    write: yog_abi::YogBytesSink,
+) where
+    F: Fn(&dyn Server, &mut crate::loot::Loot) + Send + Sync,
+{
+    use yog_data::Schema;
+    unsafe {
+        let f = &*(ud as *const F);
+        let Ok(mut loot) = yog_data::read_bytes::<crate::loot::Loot>(std::slice::from_raw_parts(loot, len)) else { return };
+        let before = loot.items.clone();
+        let s = CServer(srv);
+        guard((), || f(&s, &mut loot));
+        if loot.items != before {
+            let bytes = yog_data::binary::encode(&loot.items.write());
+            write(sink, bytes.as_ptr(), bytes.len());
+        }
+    }
+}
+
 unsafe extern "C" fn trampoline_body<F>(ud: *mut c_void, frame: *const u8, len: usize, sink: *mut c_void, write: yog_abi::YogBytesSink)
 where
     F: Fn(&yog_body::Frame, &mut yog_body::Ops) + Send + Sync,
@@ -2722,6 +2746,44 @@ impl Registry {
     {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_body)(self.ctx(), ud, trampoline_body::<F>) }
+    }
+
+    /// Register a handler that sees every loot table rolled — a chest's, a
+    /// block's drops, a mob's — and may change what it gives
+    /// ([`crate::loot::Loot::items`]); each handler sees the one before's
+    /// result. Server side. For adding and scaling items on some tables, a
+    /// [`crate::loot::LootModifier`] says it as data.
+    pub fn on_loot<F>(&mut self, handler: F)
+    where
+        F: Fn(&dyn Server, &mut crate::loot::Loot) + Send + Sync + 'static,
+    {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_loot)(self.ctx(), ud, trampoline_loot::<F>) }
+    }
+
+    /// Change the loot of some tables as `modifier` says.
+    pub fn add_loot_modifier(&mut self, modifier: crate::loot::LootModifier) {
+        self.on_loot(move |srv, loot| crate::loot::apply(srv, &modifier, loot));
+    }
+
+    /// A compiled `.ydef` loot modifier (the generated code calls this).
+    pub fn add_loot_modifier_data(&mut self, id: &str, data: &[u8]) {
+        match yog_data::read_bytes::<crate::loot::LootModifier>(data) {
+            Ok(m) => self.add_loot_modifier(m),
+            Err(e) => crate::error!("loot modifier {id}: {e:?}"),
+        }
+    }
+
+    /// Register loot function `name` (`mymod:pattern_scroll`): what loot
+    /// modifiers naming it (`function`) run on each stack they add — set
+    /// its custom data, say.
+    pub fn loot_function<F>(&mut self, name: &str, function: F)
+    where
+        F: Fn(&dyn Server, &mut crate::loot::LootStack, &crate::loot::Loot) + Send + Sync + 'static,
+    {
+        if let Ok(mut f) = crate::loot::functions().write() {
+            f.insert(name.to_string(), std::sync::Arc::new(function));
+        }
     }
 
     /// Register a handler that moves, turns or zooms the camera each frame;
