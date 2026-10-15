@@ -1,6 +1,7 @@
 """The game's ids as constants for mod code: yog-api's `vanilla` module
 (`yog_api::vanilla::items::REDSTONE`), so mods don't spell ids in strings.
-Blocks, items and entities come from ids.txt; effects, sounds and tags from
+Blocks, items and entities come from ids.txt; effects, enchantments,
+particles, damage types, dimensions, sounds and tags from
 the client jars of every supported version (Loom's cache):
 
     python3 gen.py ids.txt && python3 gen_api.py ../../../yog-api/src/vanilla.rs
@@ -26,9 +27,19 @@ for v in VERSIONS:
     names = z.namelist()
     lang = __import__("json").loads(z.read("assets/minecraft/lang/en_us.json"))
     for k in lang:
-        m = re.fullmatch(r"effect\.minecraft\.([a-z0-9_]+)", k)
+        m = re.fullmatch(r"(effect|enchantment)\.minecraft\.([a-z0-9_]+)", k)
         if m:
-            found["effect"][m[1]].add(v)
+            found[m[1]][m[2]].add(v)
+    for n in names:
+        m = re.fullmatch(r"assets/minecraft/particles/([a-z0-9_]+)\.json", n)
+        if m:
+            found["particle"][m[1]].add(v)
+        m = re.fullmatch(r"data/minecraft/damage_type/([a-z0-9_]+)\.json", n)
+        if m:
+            found["damage_type"][m[1]].add(v)
+        m = re.fullmatch(r"data/minecraft/dimension_type/([a-z0-9_]+)\.json", n)
+        if m:
+            found["dimension"][m[1]].add(v)
     for n in names:
         m = re.fullmatch(r"data/minecraft/tags/(blocks?|items?|entity_types?)/([a-z0-9_/]+)\.json", n)
         if m:
@@ -73,6 +84,10 @@ TITLES = {
     "item": ("items", "Items."),
     "entity": ("entities", "Entity types."),
     "effect": ("effects", "Mob effects."),
+    "enchantment": ("enchantments", "Enchantments."),
+    "particle": ("particles", "Particle types."),
+    "damage_type": ("damage_types", "Damage types."),
+    "dimension": ("dimensions", "Dimensions (and their types)."),
     "sound": ("sounds", "Sound events."),
     "block_tag": ("block_tags", "Block tags (`tag` paths)."),
     "item_tag": ("item_tags", "Item tags."),

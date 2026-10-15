@@ -2742,6 +2742,233 @@ pub mod effects {
     pub const WITHER: &str = "minecraft:wither";
 }
 
+/// Enchantments.
+pub mod enchantments {
+    pub const AQUA_AFFINITY: &str = "minecraft:aqua_affinity";
+    pub const BANE_OF_ARTHROPODS: &str = "minecraft:bane_of_arthropods";
+    pub const BINDING_CURSE: &str = "minecraft:binding_curse";
+    pub const BLAST_PROTECTION: &str = "minecraft:blast_protection";
+    /// Only in 1.21.1.
+    pub const BREACH: &str = "minecraft:breach";
+    pub const CHANNELING: &str = "minecraft:channeling";
+    /// Only in 1.21.1.
+    pub const DENSITY: &str = "minecraft:density";
+    pub const DEPTH_STRIDER: &str = "minecraft:depth_strider";
+    pub const EFFICIENCY: &str = "minecraft:efficiency";
+    pub const FEATHER_FALLING: &str = "minecraft:feather_falling";
+    pub const FIRE_ASPECT: &str = "minecraft:fire_aspect";
+    pub const FIRE_PROTECTION: &str = "minecraft:fire_protection";
+    pub const FLAME: &str = "minecraft:flame";
+    pub const FORTUNE: &str = "minecraft:fortune";
+    pub const FROST_WALKER: &str = "minecraft:frost_walker";
+    pub const IMPALING: &str = "minecraft:impaling";
+    pub const INFINITY: &str = "minecraft:infinity";
+    pub const KNOCKBACK: &str = "minecraft:knockback";
+    pub const LOOTING: &str = "minecraft:looting";
+    pub const LOYALTY: &str = "minecraft:loyalty";
+    pub const LUCK_OF_THE_SEA: &str = "minecraft:luck_of_the_sea";
+    pub const LURE: &str = "minecraft:lure";
+    pub const MENDING: &str = "minecraft:mending";
+    pub const MULTISHOT: &str = "minecraft:multishot";
+    pub const PIERCING: &str = "minecraft:piercing";
+    pub const POWER: &str = "minecraft:power";
+    pub const PROJECTILE_PROTECTION: &str = "minecraft:projectile_protection";
+    pub const PROTECTION: &str = "minecraft:protection";
+    pub const PUNCH: &str = "minecraft:punch";
+    pub const QUICK_CHARGE: &str = "minecraft:quick_charge";
+    pub const RESPIRATION: &str = "minecraft:respiration";
+    pub const RIPTIDE: &str = "minecraft:riptide";
+    pub const SHARPNESS: &str = "minecraft:sharpness";
+    pub const SILK_TOUCH: &str = "minecraft:silk_touch";
+    pub const SMITE: &str = "minecraft:smite";
+    pub const SOUL_SPEED: &str = "minecraft:soul_speed";
+    pub const SWEEPING: &str = "minecraft:sweeping";
+    /// Only in 1.21.1.
+    pub const SWEEPING_EDGE: &str = "minecraft:sweeping_edge";
+    pub const SWIFT_SNEAK: &str = "minecraft:swift_sneak";
+    pub const THORNS: &str = "minecraft:thorns";
+    pub const UNBREAKING: &str = "minecraft:unbreaking";
+    pub const VANISHING_CURSE: &str = "minecraft:vanishing_curse";
+    /// Only in 1.21.1.
+    pub const WIND_BURST: &str = "minecraft:wind_burst";
+}
+
+/// Particle types.
+pub mod particles {
+    pub const AMBIENT_ENTITY_EFFECT: &str = "minecraft:ambient_entity_effect";
+    pub const ANGRY_VILLAGER: &str = "minecraft:angry_villager";
+    pub const ASH: &str = "minecraft:ash";
+    pub const BUBBLE: &str = "minecraft:bubble";
+    pub const BUBBLE_COLUMN_UP: &str = "minecraft:bubble_column_up";
+    pub const BUBBLE_POP: &str = "minecraft:bubble_pop";
+    pub const CAMPFIRE_COSY_SMOKE: &str = "minecraft:campfire_cosy_smoke";
+    pub const CAMPFIRE_SIGNAL_SMOKE: &str = "minecraft:campfire_signal_smoke";
+    pub const CHERRY_LEAVES: &str = "minecraft:cherry_leaves";
+    pub const CLOUD: &str = "minecraft:cloud";
+    pub const COMPOSTER: &str = "minecraft:composter";
+    pub const CRIMSON_SPORE: &str = "minecraft:crimson_spore";
+    pub const CRIT: &str = "minecraft:crit";
+    pub const CURRENT_DOWN: &str = "minecraft:current_down";
+    pub const DAMAGE_INDICATOR: &str = "minecraft:damage_indicator";
+    pub const DOLPHIN: &str = "minecraft:dolphin";
+    pub const DRAGON_BREATH: &str = "minecraft:dragon_breath";
+    pub const DRIPPING_DRIPSTONE_LAVA: &str = "minecraft:dripping_dripstone_lava";
+    pub const DRIPPING_DRIPSTONE_WATER: &str = "minecraft:dripping_dripstone_water";
+    pub const DRIPPING_HONEY: &str = "minecraft:dripping_honey";
+    pub const DRIPPING_LAVA: &str = "minecraft:dripping_lava";
+    pub const DRIPPING_OBSIDIAN_TEAR: &str = "minecraft:dripping_obsidian_tear";
+    pub const DRIPPING_WATER: &str = "minecraft:dripping_water";
+    pub const DUST: &str = "minecraft:dust";
+    pub const DUST_COLOR_TRANSITION: &str = "minecraft:dust_color_transition";
+    /// Only in 1.21.1.
+    pub const DUST_PLUME: &str = "minecraft:dust_plume";
+    pub const EFFECT: &str = "minecraft:effect";
+    pub const EGG_CRACK: &str = "minecraft:egg_crack";
+    pub const ELECTRIC_SPARK: &str = "minecraft:electric_spark";
+    pub const ENCHANT: &str = "minecraft:enchant";
+    pub const ENCHANTED_HIT: &str = "minecraft:enchanted_hit";
+    pub const END_ROD: &str = "minecraft:end_rod";
+    pub const ENTITY_EFFECT: &str = "minecraft:entity_effect";
+    pub const EXPLOSION: &str = "minecraft:explosion";
+    pub const FALLING_DRIPSTONE_LAVA: &str = "minecraft:falling_dripstone_lava";
+    pub const FALLING_DRIPSTONE_WATER: &str = "minecraft:falling_dripstone_water";
+    pub const FALLING_DUST: &str = "minecraft:falling_dust";
+    pub const FALLING_HONEY: &str = "minecraft:falling_honey";
+    pub const FALLING_LAVA: &str = "minecraft:falling_lava";
+    pub const FALLING_NECTAR: &str = "minecraft:falling_nectar";
+    pub const FALLING_OBSIDIAN_TEAR: &str = "minecraft:falling_obsidian_tear";
+    pub const FALLING_SPORE_BLOSSOM: &str = "minecraft:falling_spore_blossom";
+    pub const FALLING_WATER: &str = "minecraft:falling_water";
+    pub const FIREWORK: &str = "minecraft:firework";
+    pub const FISHING: &str = "minecraft:fishing";
+    pub const FLAME: &str = "minecraft:flame";
+    pub const FLASH: &str = "minecraft:flash";
+    pub const GLOW: &str = "minecraft:glow";
+    pub const GLOW_SQUID_INK: &str = "minecraft:glow_squid_ink";
+    /// Only in 1.21.1.
+    pub const GUST: &str = "minecraft:gust";
+    pub const HAPPY_VILLAGER: &str = "minecraft:happy_villager";
+    pub const HEART: &str = "minecraft:heart";
+    /// Only in 1.21.1.
+    pub const INFESTED: &str = "minecraft:infested";
+    pub const INSTANT_EFFECT: &str = "minecraft:instant_effect";
+    pub const LANDING_HONEY: &str = "minecraft:landing_honey";
+    pub const LANDING_LAVA: &str = "minecraft:landing_lava";
+    pub const LANDING_OBSIDIAN_TEAR: &str = "minecraft:landing_obsidian_tear";
+    pub const LARGE_SMOKE: &str = "minecraft:large_smoke";
+    pub const LAVA: &str = "minecraft:lava";
+    pub const MYCELIUM: &str = "minecraft:mycelium";
+    pub const NAUTILUS: &str = "minecraft:nautilus";
+    pub const NOTE: &str = "minecraft:note";
+    /// Only in 1.21.1.
+    pub const OMINOUS_SPAWNING: &str = "minecraft:ominous_spawning";
+    pub const POOF: &str = "minecraft:poof";
+    pub const PORTAL: &str = "minecraft:portal";
+    /// Only in 1.21.1.
+    pub const RAID_OMEN: &str = "minecraft:raid_omen";
+    pub const RAIN: &str = "minecraft:rain";
+    pub const REVERSE_PORTAL: &str = "minecraft:reverse_portal";
+    pub const SCRAPE: &str = "minecraft:scrape";
+    pub const SCULK_CHARGE: &str = "minecraft:sculk_charge";
+    pub const SCULK_CHARGE_POP: &str = "minecraft:sculk_charge_pop";
+    pub const SCULK_SOUL: &str = "minecraft:sculk_soul";
+    pub const SHRIEK: &str = "minecraft:shriek";
+    pub const SMALL_FLAME: &str = "minecraft:small_flame";
+    /// Only in 1.21.1.
+    pub const SMALL_GUST: &str = "minecraft:small_gust";
+    pub const SMOKE: &str = "minecraft:smoke";
+    pub const SNEEZE: &str = "minecraft:sneeze";
+    pub const SNOWFLAKE: &str = "minecraft:snowflake";
+    pub const SONIC_BOOM: &str = "minecraft:sonic_boom";
+    pub const SOUL: &str = "minecraft:soul";
+    pub const SOUL_FIRE_FLAME: &str = "minecraft:soul_fire_flame";
+    pub const SPIT: &str = "minecraft:spit";
+    pub const SPLASH: &str = "minecraft:splash";
+    pub const SPORE_BLOSSOM_AIR: &str = "minecraft:spore_blossom_air";
+    pub const SQUID_INK: &str = "minecraft:squid_ink";
+    pub const SWEEP_ATTACK: &str = "minecraft:sweep_attack";
+    pub const TOTEM_OF_UNDYING: &str = "minecraft:totem_of_undying";
+    /// Only in 1.21.1.
+    pub const TRIAL_OMEN: &str = "minecraft:trial_omen";
+    /// Only in 1.21.1.
+    pub const TRIAL_SPAWNER_DETECTION: &str = "minecraft:trial_spawner_detection";
+    /// Only in 1.21.1.
+    pub const TRIAL_SPAWNER_DETECTION_OMINOUS: &str = "minecraft:trial_spawner_detection_ominous";
+    pub const UNDERWATER: &str = "minecraft:underwater";
+    /// Only in 1.21.1.
+    pub const VAULT_CONNECTION: &str = "minecraft:vault_connection";
+    pub const VIBRATION: &str = "minecraft:vibration";
+    pub const WARPED_SPORE: &str = "minecraft:warped_spore";
+    pub const WAX_OFF: &str = "minecraft:wax_off";
+    pub const WAX_ON: &str = "minecraft:wax_on";
+    pub const WHITE_ASH: &str = "minecraft:white_ash";
+    /// Only in 1.21.1.
+    pub const WHITE_SMOKE: &str = "minecraft:white_smoke";
+    pub const WITCH: &str = "minecraft:witch";
+}
+
+/// Damage types.
+pub mod damage_types {
+    pub const ARROW: &str = "minecraft:arrow";
+    pub const BAD_RESPAWN_POINT: &str = "minecraft:bad_respawn_point";
+    pub const CACTUS: &str = "minecraft:cactus";
+    /// Only in 1.21.1.
+    pub const CAMPFIRE: &str = "minecraft:campfire";
+    pub const CRAMMING: &str = "minecraft:cramming";
+    pub const DRAGON_BREATH: &str = "minecraft:dragon_breath";
+    pub const DROWN: &str = "minecraft:drown";
+    pub const DRY_OUT: &str = "minecraft:dry_out";
+    pub const EXPLOSION: &str = "minecraft:explosion";
+    pub const FALL: &str = "minecraft:fall";
+    pub const FALLING_ANVIL: &str = "minecraft:falling_anvil";
+    pub const FALLING_BLOCK: &str = "minecraft:falling_block";
+    pub const FALLING_STALACTITE: &str = "minecraft:falling_stalactite";
+    pub const FIREBALL: &str = "minecraft:fireball";
+    pub const FIREWORKS: &str = "minecraft:fireworks";
+    pub const FLY_INTO_WALL: &str = "minecraft:fly_into_wall";
+    pub const FREEZE: &str = "minecraft:freeze";
+    pub const GENERIC: &str = "minecraft:generic";
+    pub const GENERIC_KILL: &str = "minecraft:generic_kill";
+    pub const HOT_FLOOR: &str = "minecraft:hot_floor";
+    pub const IN_FIRE: &str = "minecraft:in_fire";
+    pub const IN_WALL: &str = "minecraft:in_wall";
+    pub const INDIRECT_MAGIC: &str = "minecraft:indirect_magic";
+    pub const LAVA: &str = "minecraft:lava";
+    pub const LIGHTNING_BOLT: &str = "minecraft:lightning_bolt";
+    pub const MAGIC: &str = "minecraft:magic";
+    pub const MOB_ATTACK: &str = "minecraft:mob_attack";
+    pub const MOB_ATTACK_NO_AGGRO: &str = "minecraft:mob_attack_no_aggro";
+    pub const MOB_PROJECTILE: &str = "minecraft:mob_projectile";
+    pub const ON_FIRE: &str = "minecraft:on_fire";
+    pub const OUT_OF_WORLD: &str = "minecraft:out_of_world";
+    pub const OUTSIDE_BORDER: &str = "minecraft:outside_border";
+    pub const PLAYER_ATTACK: &str = "minecraft:player_attack";
+    pub const PLAYER_EXPLOSION: &str = "minecraft:player_explosion";
+    pub const SONIC_BOOM: &str = "minecraft:sonic_boom";
+    /// Only in 1.21.1.
+    pub const SPIT: &str = "minecraft:spit";
+    pub const STALAGMITE: &str = "minecraft:stalagmite";
+    pub const STARVE: &str = "minecraft:starve";
+    pub const STING: &str = "minecraft:sting";
+    pub const SWEET_BERRY_BUSH: &str = "minecraft:sweet_berry_bush";
+    pub const THORNS: &str = "minecraft:thorns";
+    pub const THROWN: &str = "minecraft:thrown";
+    pub const TRIDENT: &str = "minecraft:trident";
+    pub const UNATTRIBUTED_FIREBALL: &str = "minecraft:unattributed_fireball";
+    /// Only in 1.21.1.
+    pub const WIND_CHARGE: &str = "minecraft:wind_charge";
+    pub const WITHER: &str = "minecraft:wither";
+    pub const WITHER_SKULL: &str = "minecraft:wither_skull";
+}
+
+/// Dimensions (and their types).
+pub mod dimensions {
+    pub const OVERWORLD: &str = "minecraft:overworld";
+    pub const OVERWORLD_CAVES: &str = "minecraft:overworld_caves";
+    pub const THE_END: &str = "minecraft:the_end";
+    pub const THE_NETHER: &str = "minecraft:the_nether";
+}
+
 /// Sound events.
 pub mod sounds {
     pub const AMBIENT_BASALT_DELTAS_ADDITIONS: &str = "minecraft:ambient.basalt_deltas.additions";
