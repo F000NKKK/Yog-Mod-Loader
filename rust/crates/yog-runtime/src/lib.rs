@@ -1688,6 +1688,9 @@ unsafe extern "C" fn gfx_tex_create(w: u32, h: u32, rgba: *const u8, linear: boo
             glow::CLAMP_TO_EDGE as i32,
         );
         let pixels = std::slice::from_raw_parts(rgba, (w * h * 4) as usize);
+        // The game leaves its own unpacking (row length, skips) set from its
+        // atlas uploads: read with those, a tight buffer is overrun.
+        unpack_tightly(gl);
         gl.tex_image_2d(
             glow::TEXTURE_2D,
             0,
@@ -1701,6 +1704,17 @@ unsafe extern "C" fn gfx_tex_create(w: u32, h: u32, rgba: *const u8, linear: boo
         );
         gl.bind_texture(glow::TEXTURE_2D, None);
         tex.0.get()
+    }
+}
+
+/// Pixel unpacking as a tightly packed client buffer needs it.
+unsafe fn unpack_tightly(gl: &glow::Context) {
+    unsafe {
+        gl.bind_buffer(glow::PIXEL_UNPACK_BUFFER, None);
+        gl.pixel_store_i32(glow::UNPACK_ROW_LENGTH, 0);
+        gl.pixel_store_i32(glow::UNPACK_SKIP_ROWS, 0);
+        gl.pixel_store_i32(glow::UNPACK_SKIP_PIXELS, 0);
+        gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 4);
     }
 }
 
