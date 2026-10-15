@@ -803,7 +803,9 @@ pub struct ItemFile {
     /// them loaded it isn't there (an optional integration).
     #[data(default)]
     pub requires: Vec<String>,
-    /// Item tags it's in (`minecraft:planks`; a bare name is the mod's own).
+    /// Item tags it's in: Yog's common tags (`yog:planks`, `yog:ingots/iron`
+    /// — the game's or each loader's tag of that meaning), the game's
+    /// (`minecraft:planks`), or the mod's own (a bare name).
     #[data(default)]
     pub tags: Vec<String>,
     pub model: Model,
@@ -822,9 +824,10 @@ pub struct BlockFile {
     /// them loaded it isn't there (an optional integration).
     #[data(default)]
     pub requires: Vec<String>,
-    /// Tags it's in (`minecraft:logs`, `edified_logs` — a bare name is the
-    /// mod's own): the block tag, and the item tag of the same name for its
-    /// item form, as the game pairs them. A tag of blocks only is a `.ydef`.
+    /// Tags it's in (`yog:logs` — Yog's common tags, `minecraft:logs`,
+    /// `edified_logs` — a bare name is the mod's own): the block tag, and the
+    /// item tag of the same name for its item form, as the game pairs them.
+    /// A tag of blocks only is a `.ydef`.
     #[data(default)]
     pub tags: Vec<String>,
     pub model: Model,
