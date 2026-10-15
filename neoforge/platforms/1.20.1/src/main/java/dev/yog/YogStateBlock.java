@@ -11,6 +11,10 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.WorldlyContainer;
+import net.minecraft.world.WorldlyContainerHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -41,7 +45,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * yes/no property can follow redstone ({@code block.powered}) or feed a
  * comparator ({@code block.comparator}). Its shape turns with its model.
  */
-public class YogStateBlock extends Block implements SimpleWaterloggedBlock {
+public class YogStateBlock extends Block implements SimpleWaterloggedBlock, WorldlyContainerHolder {
     /** The properties a block being made has: they're added in {@code Block}'s constructor, before its own fields. */
     private static final ThreadLocal<Spec> PENDING = new ThreadLocal<>();
 
@@ -214,6 +218,81 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock {
     @Override
     public BlockState mirror(BlockState state, Mirror mirror) {
         return spec.facing == null ? state : state.rotate(mirror.getRotation(state.getValue(spec.facing)));
+    }
+
+    // ── Hoppers and droppers put items into it ({@code block.accepts_items}) ──
+
+    @Override
+    public WorldlyContainer getContainer(BlockState state, LevelAccessor level, BlockPos pos) {
+        return spec.def.acceptsItems() && level instanceof Level l && !l.isClientSide ? new Input(l, pos) : null;
+    }
+
+    /** One slot that's always empty: what's put in goes to the mod ({@code on_item_insert}). */
+    private record Input(Level level, BlockPos pos) implements WorldlyContainer {
+        private static final int[] SLOTS = {0};
+
+        @Override
+        public int[] getSlotsForFace(Direction side) {
+            return SLOTS;
+        }
+
+        @Override
+        public boolean canPlaceItem(int slot, ItemStack stack) {
+            return !stack.isEmpty() && NativeBridge.itemInsert(level, pos, stack, true);
+        }
+
+        @Override
+        public boolean canPlaceItemThroughFace(int slot, ItemStack stack, Direction side) {
+            return canPlaceItem(slot, stack);
+        }
+
+        @Override
+        public boolean canTakeItemThroughFace(int slot, ItemStack stack, Direction side) {
+            return false;
+        }
+
+        @Override
+        public void setItem(int slot, ItemStack stack) {
+            if (!stack.isEmpty()) NativeBridge.itemInsert(level, pos, stack, false);
+        }
+
+        @Override
+        public int getContainerSize() {
+            return 1;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public ItemStack getItem(int slot) {
+            return ItemStack.EMPTY;
+        }
+
+        @Override
+        public ItemStack removeItem(int slot, int amount) {
+            return ItemStack.EMPTY;
+        }
+
+        @Override
+        public ItemStack removeItemNoUpdate(int slot) {
+            return ItemStack.EMPTY;
+        }
+
+        @Override
+        public void setChanged() {
+        }
+
+        @Override
+        public boolean stillValid(Player player) {
+            return false;
+        }
+
+        @Override
+        public void clearContent() {
+        }
     }
 
     /** A property of named values, in the order the .yblock lists them. */
