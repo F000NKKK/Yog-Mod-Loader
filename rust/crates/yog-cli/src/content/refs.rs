@@ -190,11 +190,6 @@ pub fn yog_tag_for(registry: &str, id: &str) -> Option<String> {
     TAGS.yog.iter().find(|((r, _), of)| r == registry && of.iter().any(|t| t == id)).map(|((_, p), _)| format!("yog:{p}"))
 }
 
-/// Yog's common tags of `registry`, and the tags each is.
-pub fn yog_tags(registry: &str) -> impl Iterator<Item = (&'static str, &'static [String])> {
-    TAGS.yog.iter().filter(move |((r, _), _)| r == registry).map(|((_, p), of)| (p.as_str(), of.as_slice()))
-}
-
 /// `hosts` for people: `Fabric 1.20.1, Minecraft 1.21.1` (every loader of a version).
 pub fn describe_hosts(hosts: &BTreeSet<String>) -> String {
     let versions: BTreeSet<&str> = TAGS.hosts.iter().filter_map(|h| h.split_once('/').map(|(_, v)| v)).collect();
