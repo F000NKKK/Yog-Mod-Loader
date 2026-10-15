@@ -114,4 +114,14 @@ public final class YogClientApi {
         Integer c = here == null ? null : here.get(pos.asLong());
         return c == null ? 0xFFFFFF : c;
     }
+
+    /** yog-body: ask the mods about entity {@code uuid}'s body each frame, or stop. */
+    public static void bodyTrack(String uuid, boolean on) {
+        dev.yog.util.YogBodyWire.track(uuid, on);
+    }
+
+    /** yog-body: the same for every entity of a type. */
+    public static void bodyTrackType(String type, boolean on) {
+        dev.yog.util.YogBodyWire.trackType(type, on);
+    }
 }

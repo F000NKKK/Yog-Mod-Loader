@@ -16,7 +16,13 @@
     "ResourcePackManagerMixin"
   ],
   "client": [
-    "KeyboardMixin"
+    "BodyRenderMixin",
+    "CameraMixin",
+    "KeyboardMixin",
+    "LimbAnimatorAccess",
+    "ModelPartAccess",
+    "TravelMixin",
+    "ViewMixin"
   ],
   "injectors": {
     "defaultRequire": 1
