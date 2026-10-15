@@ -3134,6 +3134,7 @@ fn is_keyword(s: &str) -> bool {
 /// Writes `compiled.source` to [`GENERATED_FILE`] (only when it changed);
 /// deletes it when the mod has no content files.
 pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
+    write_tags(root, compiled)?;
     let out = root.join(GENERATED_FILE);
     let Some(code) = &compiled.source else {
         let _ = std::fs::remove_file(&out);
@@ -3151,6 +3152,25 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// Where the mod's tags are listed for tools (`#ns:path` → its entries, by
+/// kind) — the IDE shows a tag's items from here, as the build makes them.
+pub const TAGS_FILE: &str = ".yog-build/generated/tags.json";
+
+/// Writes [`TAGS_FILE`]: `{ "item": { "ns:path": ["ns:id", "#ns:tag", …] }, "block": … }`.
+fn write_tags(root: &Path, compiled: &Compiled) -> Result<(), String> {
+    let mut by_kind: BTreeMap<String, BTreeMap<String, Vec<String>>> = BTreeMap::new();
+    for (path, entries) in &compiled.tags {
+        // `[when/<loader>/<version>/]data/<ns>/tags/<kind>/<path>.json`
+        let data = path.find("data/").map_or(path.as_str(), |i| &path[i + 5..]);
+        let Some((ns, rest)) = data.split_once("/tags/") else { continue };
+        let Some((kind, tag)) = rest.split_once('/') else { continue };
+        let tag = tag.trim_end_matches(".json");
+        by_kind.entry(kind.to_string()).or_default().entry(format!("{ns}:{tag}")).or_default().extend(entries.keys().cloned());
+    }
+    let text = serde_json::to_string_pretty(&by_kind).map_err(|e| e.to_string())?;
+    crate::write_if_changed(&root.join(TAGS_FILE), &text)
 }
 
 /// Outputs in order, keyed by path: [`OutputSet::put`] replaces a path's
