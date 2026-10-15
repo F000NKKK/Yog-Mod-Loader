@@ -4,7 +4,9 @@
 //! client jars) and the other mods' ids it declares in `yog.toml`
 //! (`[external.<namespace>]`).
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
+
+pub use yog_formats::tags::{describe_hosts, hosts, tag_hosts, tag_registry, tags_known, yog_tag_for};
 use std::sync::LazyLock;
 
 use yog_book::refs::bare;
@@ -102,108 +104,6 @@ pub fn equivalent(kind: RefKind, id: &str, version: &str) -> Option<String> {
         let other = VANILLA.renamed.get(&(*k, path.to_string()))?;
         in_version(*k, other, version).then(|| format!("minecraft:{other}"))
     })
-}
-
-/// Where a tag is: every Minecraft version and loader (`None`), or these
-/// hosts (`<loader>/<version>`).
-pub type Hosts = Option<BTreeSet<String>>;
-
-/// The tags of every version and loader Yog supports (`vanilla/tags.txt`,
-/// generated from their jars): (registry, id) → where; and Yog's common
-/// tags: (registry, path) → the tags `yog:<path>` is, the game's first.
-struct Tags {
-    hosts: Vec<String>,
-    tags: HashMap<(String, String), Hosts>,
-    yog: HashMap<(String, String), Vec<String>>,
-}
-
-static TAGS: LazyLock<Tags> = LazyLock::new(|| {
-    let mut versions = Vec::new();
-    let mut loaders = Vec::new();
-    let (mut tags, mut yog) = (HashMap::new(), HashMap::new());
-    for line in include_str!("../vanilla/tags.txt").lines() {
-        if let Some(v) = line.strip_prefix("# versions:") {
-            versions = v.split_whitespace().map(str::to_string).collect();
-        } else if let Some(l) = line.strip_prefix("# loaders:") {
-            loaders = l.split_whitespace().map(str::to_string).collect();
-        }
-        let p: Vec<&str> = line.split_whitespace().collect();
-        match p.as_slice() {
-            ["tag", reg, id, place] => {
-                let hosts = (*place != "*").then(|| {
-                    place
-                        .split(',')
-                        .flat_map(|w| if w.contains('/') { vec![w.to_string()] } else { loaders.iter().map(|l| format!("{l}/{w}")).collect() })
-                        .collect()
-                });
-                tags.insert((reg.to_string(), id.to_string()), hosts);
-            }
-            ["yog", reg, path, of @ ..] => {
-                yog.insert((reg.to_string(), path.to_string()), of.iter().map(|t| t.to_string()).collect());
-            }
-            _ => {}
-        }
-    }
-    let hosts = versions.iter().flat_map(|v| loaders.iter().map(move |l| format!("{l}/{v}"))).collect();
-    Tags { hosts, tags, yog }
-});
-
-/// Every host Yog supports: `<loader>/<version>`.
-pub fn hosts() -> &'static [String] {
-    &TAGS.hosts
-}
-
-/// The tag registry of a reference kind: `entity` → `entity_type`.
-pub fn tag_registry(kind: &str) -> &str {
-    match kind {
-        "entity" => "entity_type",
-        "biome" => "worldgen/biome",
-        other => other,
-    }
-}
-
-/// Whether the tables know tags of namespace `ns` (the game's, the loaders', Yog's).
-pub fn tags_known(ns: &str) -> bool {
-    matches!(ns, "minecraft" | "c" | "forge" | "yog")
-}
-
-/// Where tag `id` (of `registry`) is, if the tables know it: a `yog:` tag
-/// is wherever one of its tags is. `None` for a tag they don't know.
-pub fn tag_hosts(registry: &str, id: &str) -> Option<Hosts> {
-    let (ns, path) = id.split_once(':')?;
-    if ns == "yog" {
-        let of = TAGS.yog.get(&(registry.to_string(), path.to_string()))?;
-        let mut on = BTreeSet::new();
-        for t in of {
-            match TAGS.tags.get(&(registry.to_string(), t.clone()))? {
-                None => return Some(None),
-                Some(h) => on.extend(h.iter().cloned()),
-            }
-        }
-        return Some((on.len() < TAGS.hosts.len()).then_some(on));
-    }
-    TAGS.tags.get(&(registry.to_string(), id.to_string())).cloned()
-}
-
-/// The `yog:` tag that is `id` (`c:iron_ingots` → `yog:ingots/iron`).
-pub fn yog_tag_for(registry: &str, id: &str) -> Option<String> {
-    TAGS.yog.iter().find(|((r, _), of)| r == registry && of.iter().any(|t| t == id)).map(|((_, p), _)| format!("yog:{p}"))
-}
-
-/// `hosts` for people: `Fabric 1.20.1, Minecraft 1.21.1` (every loader of a version).
-pub fn describe_hosts(hosts: &BTreeSet<String>) -> String {
-    let versions: BTreeSet<&str> = TAGS.hosts.iter().filter_map(|h| h.split_once('/').map(|(_, v)| v)).collect();
-    let mut out = Vec::new();
-    for v in versions {
-        let all: Vec<&String> = TAGS.hosts.iter().filter(|h| h.ends_with(&format!("/{v}"))).collect();
-        let on: Vec<&String> = all.iter().copied().filter(|h| hosts.contains(*h)).collect();
-        if on.len() == all.len() {
-            out.push(format!("Minecraft {v}"));
-        } else {
-            out.extend(on.iter().map(|h| h.replace('/', " ")));
-        }
-    }
-    out.join(", ")
 }
 
 /// The ids a mod's references may name.
@@ -329,9 +229,9 @@ mod tests {
     #[test]
     fn the_hosts_know_the_tags_the_build_does() {
         assert_eq!(
-            include_str!("../vanilla/tags.txt"),
+            yog_formats::tags::TABLE,
             include_str!("../../../../../java-common/src/main/resources/yog/tags.txt"),
-            "java-common's yog/tags.txt is a copy of vanilla/tags.txt"
+            "java-common's yog/tags.txt is a copy of yog-formats/data/tags.txt"
         );
     }
 

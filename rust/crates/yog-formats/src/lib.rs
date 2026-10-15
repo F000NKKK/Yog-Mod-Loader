@@ -6,6 +6,7 @@ pub mod content;
 pub mod def;
 pub mod manifest;
 pub mod recipe;
+pub mod tags;
 pub mod yres;
 
 use yog_data::{Schema, Shape};

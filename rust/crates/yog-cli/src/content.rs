@@ -3986,15 +3986,6 @@ mod tests {
     }
 
     #[test]
-    fn yog_tags_are_the_game_and_loader_tags_of_each_host() {
-        assert_eq!(refs::tag_hosts("item", "yog:ingots/iron"), Some(None));
-        assert_eq!(refs::tag_hosts("item", "minecraft:music_discs").flatten().map(|h| h.len()), Some(3), "1.20.1, every loader");
-        assert_eq!(refs::yog_tag_for("item", "c:iron_ingots").as_deref(), Some("yog:ingots/iron"));
-        assert_eq!(refs::yog_tag_for("item", "forge:cobblestone").as_deref(), Some("yog:cobblestones"));
-        assert_eq!(refs::tag_hosts("item", "yog:nope"), None);
-    }
-
-    #[test]
     fn tags_and_damage_types_are_definitions() {
         let tag = r#"{ kind: "tag", of: "entity", id: "sticky_teleporters", values: ["@entity:minecraft:pig", "@tag:entity:c:bosses"],
             optional: ["@entity:create:seat"] }"#;
