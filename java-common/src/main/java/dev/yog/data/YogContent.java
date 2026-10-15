@@ -57,10 +57,10 @@ public final class YogContent {
                         Sound sound, boolean requiresTool, boolean noCollision, float slipperiness,
                         boolean connects, List<String> connectGroups, String inventory, boolean redstone,
                         String facing, String placement, boolean attach, boolean waterlogged,
-                        List<Property> properties, String powered, String comparator) {
-        /** Whether it has states of its own (a {@code YogStateBlock}). */
+                        List<Property> properties, String powered, String comparator, boolean acceptsItems) {
+        /** Whether it's a {@code YogStateBlock}: states of its own, or it takes items. */
         public boolean stateful() {
-            return !facing.isEmpty() || attach || waterlogged || !properties.isEmpty();
+            return !facing.isEmpty() || attach || waterlogged || !properties.isEmpty() || acceptsItems;
         }
     }
 
@@ -149,7 +149,7 @@ public final class YogContent {
                     YogData.str(m.get("facing"), ""), YogData.str(m.get("placement"), "toward"),
                     YogData.bool(m.get("attach"), false), YogData.bool(m.get("waterlogged"), false),
                     properties(m.get("properties")), YogData.str(m.get("powered"), null),
-                    YogData.str(m.get("comparator"), null)));
+                    YogData.str(m.get("comparator"), null), YogData.bool(m.get("accepts_items"), false)));
         }
         Map<String, YogInventoryDef> inventories = new HashMap<>();
         for (Object o : YogData.list(root.get("inventories"))) {

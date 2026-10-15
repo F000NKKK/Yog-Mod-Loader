@@ -10,11 +10,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.block.Block;
+import net.minecraft.block.InventoryProvider;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.Waterloggable;
 import net.minecraft.block.WallMountedBlock;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.FluidState;
+import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.ItemStack;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
@@ -40,7 +44,7 @@ import net.minecraft.world.WorldAccess;
  * yes/no property can follow redstone ({@code block.powered}) or feed a
  * comparator ({@code block.comparator}). Its shape turns with its model.
  */
-public class YogStateBlock extends Block implements Waterloggable {
+public class YogStateBlock extends Block implements Waterloggable, InventoryProvider {
     /** The properties a block being made has: they're added in {@code Block}'s constructor, before its own fields. */
     private static final ThreadLocal<Spec> PENDING = new ThreadLocal<>();
 
@@ -227,6 +231,81 @@ public class YogStateBlock extends Block implements Waterloggable {
     @Override
     public BlockState mirror(BlockState state, BlockMirror mirror) {
         return spec.facing == null ? state : state.rotate(mirror.getRotation(state.get(spec.facing)));
+    }
+
+    // ── Hoppers and droppers put items into it ({@code block.accepts_items}) ──
+
+    @Override
+    public SidedInventory getInventory(BlockState state, WorldAccess world, BlockPos pos) {
+        return spec.def.acceptsItems() && world instanceof World w && !w.isClient ? new Input(w, pos) : null;
+    }
+
+    /** One slot that's always empty: what's put in goes to the mod ({@code on_item_insert}). */
+    private record Input(World world, BlockPos pos) implements SidedInventory {
+        private static final int[] SLOTS = {0};
+
+        @Override
+        public int[] getAvailableSlots(Direction side) {
+            return SLOTS;
+        }
+
+        @Override
+        public boolean isValid(int slot, ItemStack stack) {
+            return !stack.isEmpty() && NativeBridge.itemInsert(world, pos, stack, true);
+        }
+
+        @Override
+        public boolean canInsert(int slot, ItemStack stack, Direction side) {
+            return isValid(slot, stack);
+        }
+
+        @Override
+        public boolean canExtract(int slot, ItemStack stack, Direction side) {
+            return false;
+        }
+
+        @Override
+        public void setStack(int slot, ItemStack stack) {
+            if (!stack.isEmpty()) NativeBridge.itemInsert(world, pos, stack, false);
+        }
+
+        @Override
+        public int size() {
+            return 1;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public ItemStack getStack(int slot) {
+            return ItemStack.EMPTY;
+        }
+
+        @Override
+        public ItemStack removeStack(int slot, int amount) {
+            return ItemStack.EMPTY;
+        }
+
+        @Override
+        public ItemStack removeStack(int slot) {
+            return ItemStack.EMPTY;
+        }
+
+        @Override
+        public void markDirty() {
+        }
+
+        @Override
+        public boolean canPlayerUse(PlayerEntity player) {
+            return false;
+        }
+
+        @Override
+        public void clear() {
+        }
     }
 
     /** A property of named values, in the order the .yblock lists them. */
