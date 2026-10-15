@@ -1611,6 +1611,15 @@ fn compile_layout(
             ok = false;
         }
     }
+    for f in &read.tags {
+        if matches!(read.value, Def::Tag(_)) && f.path.to_string().starts_with("optional") {
+            continue;
+        }
+        if let Err(e) = known.check_tag(&f.value.kind, &f.value.id) {
+            cx.err(doc.locate(text, &f.path).line as usize, format!("{}: {e}", f.path));
+            ok = false;
+        }
+    }
     let ns = mod_ns.unwrap_or("minecraft");
     let kind = match read.value {
         Def::RecipeKind(mut k) => {
@@ -1707,9 +1716,14 @@ fn tag_entries(t: &yog_formats::def::TagDef, ns: &str) -> Result<(String, BTreeM
                 problems.push(format!("`{v}` in a tag of {}", t.of));
                 continue;
             }
-            let entry = match v {
-                AnyRefOrTag::One(r) => full_id(&r.id, "minecraft"),
-                AnyRefOrTag::Tag(r) => format!("#{}", full_id(&r.id, "minecraft")),
+            let (entry, required) = match v {
+                AnyRefOrTag::One(r) => (full_id(&r.id, "minecraft"), required),
+                // A tag only some versions or loaders have: where it isn't, the rest still counts.
+                AnyRefOrTag::Tag(r) => {
+                    let tag = full_id(&r.id, "minecraft");
+                    let everywhere = !matches!(refs::tag_hosts(refs::tag_registry(&t.of), &tag), Some(Some(_)));
+                    (format!("#{tag}"), required && everywhere)
+                }
             };
             entries.insert(entry, required);
         }
@@ -2043,6 +2057,18 @@ fn compile_recipe(
             ok = false;
         }
     }
+    for f in &read.tags {
+        if let Err(e) = known.check_tag(&f.value.kind, &f.value.id) {
+            cx.err(line(&f.path), format!("{}: {e}", f.path));
+            ok = false;
+        }
+    }
+    // What's only on some versions or loaders keeps the recipe out of the others.
+    if ok {
+        for (missing, why) in recipe_gaps(&read.refs, &read.tags) {
+            cx.warn(line(&At::root()), format!("left out on {}: {why}", refs::describe_hosts(&missing)));
+        }
+    }
     let RecipeFile { common: c, body } = read.value;
     let ty = match &body {
         Body::Shaped(_) => "shaped".to_string(),
@@ -2212,6 +2238,60 @@ fn compile_recipe(
         category: c.category,
         requires: c.requires,
     })
+}
+
+/// The hosts (`<loader>/<version>`) a recipe naming `refs` and `tags` can't
+/// be on, with why: an item or tag one hasn't got. Alternatives (`["a",
+/// "#b"]`, one list in the file) count as there when any of them is.
+fn recipe_gaps(items: &[yog_data::schema::Found<yog_data::Ref>], tags: &[yog_data::schema::Found<yog_data::Ref>]) -> Vec<(BTreeSet<String>, String)> {
+    use refs::RefKind;
+    // Where each reference is (`None`: everywhere), grouped by the list it's in.
+    let mut lists: BTreeMap<String, Vec<(String, Option<BTreeSet<String>>)>> = BTreeMap::new();
+    let parent = |p: &yog_data::Path| {
+        let mut p = p.clone();
+        if matches!(p.segments().last(), Some(yog_data::Seg::Index(_))) {
+            p.pop();
+        }
+        p.to_string()
+    };
+    for f in items {
+        let Some(kind) = RefKind::from_word(&f.value.kind) else { continue };
+        if !f.value.id.starts_with("minecraft:") {
+            continue;
+        }
+        let on: BTreeSet<String> = refs::hosts()
+            .iter()
+            .filter(|h| h.split_once('/').is_some_and(|(_, v)| refs::equivalent(kind, &f.value.id, v).is_some()))
+            .cloned()
+            .collect();
+        let on = (on.len() < refs::hosts().len()).then_some(on);
+        lists.entry(parent(&f.path)).or_default().push((f.value.id.clone(), on));
+    }
+    for f in tags {
+        let Some(on) = refs::tag_hosts(refs::tag_registry(&f.value.kind), &f.value.id) else { continue };
+        lists.entry(parent(&f.path)).or_default().push((format!("#{}", f.value.id), on));
+    }
+    let mut out = Vec::new();
+    for alts in lists.values() {
+        if alts.iter().any(|(_, on)| on.is_none()) {
+            continue;
+        }
+        let on: BTreeSet<String> = alts.iter().flat_map(|(_, on)| on.iter().flatten().cloned()).collect();
+        let missing: BTreeSet<String> = refs::hosts().iter().filter(|h| !on.contains(*h)).cloned().collect();
+        if missing.is_empty() {
+            continue;
+        }
+        let names: Vec<&str> = alts.iter().map(|(id, _)| id.as_str()).collect();
+        // A Yog tag that's everywhere, if one is these.
+        let hint = alts
+            .iter()
+            .filter_map(|(id, _)| id.strip_prefix('#').and_then(|t| refs::yog_tag_for("item", t)))
+            .find(|y| refs::tag_hosts("item", y) == Some(None))
+            .map(|y| format!(" — @tag:item:{y} is on every version and loader"))
+            .unwrap_or_default();
+        out.push((missing, format!("{} isn't there{hint}", names.join(" / "))));
+    }
+    out
 }
 
 /// What the `.ydef`s define: every ladder, its levels bottom to top (the
