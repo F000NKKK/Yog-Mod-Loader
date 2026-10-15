@@ -1026,6 +1026,7 @@ fn compile_file(
         1 => rotations.remove(0),
         _ => Value::Array(rotations),
     };
+    let uvlock = parts.states.as_ref().is_some_and(|s| s.uvlock);
     let blockstate = match &arm {
         // Every state: its model, turned by facing and face.
         None if !states.is_empty() => {
@@ -1040,7 +1041,7 @@ fn compile_file(
                     .map_or(main.as_str(), |(_, m)| m.as_str());
                 let (x, y) = turn(value("facing"), value("face"));
                 let key: Vec<String> = at.iter().map(|(n, v)| format!("{n}={v}")).collect();
-                variants.insert(key.join(","), variant(m, x, y, false, None));
+                variants.insert(key.join(","), variant(m, x, y, uvlock, None));
                 // The next state, the last property fastest.
                 let mut i = states.len();
                 loop {

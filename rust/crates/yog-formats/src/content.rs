@@ -722,6 +722,10 @@ pub struct States {
     /// It can stand in water (a `waterlogged` property).
     #[data(default)]
     pub waterlogged: bool,
+    /// Its textures stay as they are in the world when it turns (a
+    /// blockstate's `uvlock`).
+    #[data(default)]
+    pub uvlock: bool,
     /// Properties of its own: a name and its values, the first the
     /// default; `["false", "true"]` is a yes/no.
     #[data(default)]
