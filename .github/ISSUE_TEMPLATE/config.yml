@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/F000NKKK/Yog-Mod-Loader/security/advisories/new
+    about: Please report security problems privately.
+  - name: Yog project
+    url: https://github.com/F000NKKK/Yog-Mod-Loader
+    about: The loader, its documentation and the other Yog repositories.

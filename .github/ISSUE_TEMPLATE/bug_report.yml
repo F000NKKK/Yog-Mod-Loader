@@ -1,0 +1,35 @@
+name: Bug report
+description: Something doesn't work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+  - type: input
+    id: version
+    attributes:
+      label: Yog-Mod-Loader version
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Minecraft version and loader.
+      placeholder: Windows 11, Minecraft 1.21.1, Fabric
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      render: text
