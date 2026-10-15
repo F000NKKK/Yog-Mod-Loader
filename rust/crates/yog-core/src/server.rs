@@ -545,7 +545,6 @@ pub trait Server {
 
     /// The redstone power the block at `pos` receives from its neighbours
     /// (0–15); `None` if the dimension doesn't exist.
-
     fn redstone_power(&self, dimension: &str, pos: BlockPos) -> Option<u8>;
 
     /// Sets the power (0–15) the block at `pos` gives off — a block
