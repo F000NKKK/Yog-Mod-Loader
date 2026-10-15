@@ -2,6 +2,14 @@
 //! as the mods see it before it's handed out ([`Loot`]), and what a mod
 //! changes in it declaratively ([`LootModifier`], a `.ydef`).
 
+use yog_data::kinds::Item;
+use yog_data::with::{List, RefTo};
+
+// A loot table: `@loot_table:minecraft:chests/simple_dungeon`.
+yog_data::kind! {
+    LootTable = "loot_table",
+}
+
 /// A stack of items: its id, how many, and its custom data (SNBT, `{}` for none).
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct LootStack {
@@ -54,7 +62,8 @@ impl Loot {
 #[derive(yog_data::Schema, Debug, Clone, Default, PartialEq)]
 pub struct LootModifier {
     pub id: String,
-    /// The tables it changes (`minecraft:chests/simple_dungeon`).
+    /// The tables it changes (`@loot_table:minecraft:chests/simple_dungeon`).
+    #[data(with = "List<RefTo<LootTable>>")]
     pub tables: Vec<String>,
     /// Items added.
     #[data(default)]
@@ -67,6 +76,7 @@ pub struct LootModifier {
 /// An item a [`LootModifier`] adds.
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct LootAdd {
+    #[data(with = "RefTo<Item>")]
     pub item: String,
     /// How many: from `count[0]` to `count[1]`, evenly; below 1 adds none.
     #[data(default = "one_each")]
@@ -83,6 +93,7 @@ pub struct LootAdd {
 /// Item counts a [`LootModifier`] scales.
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct LootScale {
+    #[data(with = "RefTo<Item>")]
     pub item: String,
     /// The factor; the count is rounded down (`0.5`: half, at least none).
     #[data(range = "0..=64")]
