@@ -8,6 +8,7 @@
 pub mod body;
 pub mod client;
 pub mod java;
+pub mod vanilla;
 mod interop;
 mod lang;
 mod registry;
