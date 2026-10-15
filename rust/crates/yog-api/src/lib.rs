@@ -314,7 +314,7 @@ pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
 pub use yog_book::{Book, BookCategory, BookEntry, BookPage, BookRenderer};
 pub use yog_command::CommandContext;
 pub use yog_config::Config;
-pub use yog_core::{BlockPos, Server};
+pub use yog_core::{BlockPos, Server, split_state};
 pub use yog_dimensions::{ChunkWriter, YogDimensionDef, YogDimensionTypeDef};
 pub use yog_entity::Entity;
 pub use yog_event::{
