@@ -1459,11 +1459,11 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "yog-abi"
-version = "0.30.2"
+version = "0.30.3"
 
 [[package]]
 name = "yog-api"
-version = "0.95.2"
+version = "0.95.3"
 dependencies = [
  "ctor",
  "rkyv",
@@ -1511,7 +1511,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.39.0"
+version = "0.39.1"
 dependencies = [
  "criterion",
  "proc-macro2",
@@ -1601,7 +1601,7 @@ dependencies = [
 
 [[package]]
 name = "yog-formats"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "yog-body",
  "yog-data",
@@ -1670,7 +1670,7 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.33.0"
+version = "0.33.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1680,7 +1680,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.103.2"
+version = "0.103.3"
 dependencies = [
  "criterion",
  "glow",
