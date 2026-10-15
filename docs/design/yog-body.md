@@ -92,3 +92,17 @@ Blockbench's "Modded Entity" exports):
 ```
 
 A clip's bones that the model lacks act on the vanilla model's parts.
+
+## Blocks (planned — for porting Create)
+
+The same rigs, clips and ops drive **block bodies**: a block (entity) asks
+the mods each frame like an entity does, with the `block` anchor (pixels
+0–16, y up, as block models). That covers Create's kinetic parts — shafts
+and cogs turning at a speed (a manual bone turn per frame), pistons and
+arms (clips), belts (scrolling UVs). Next steps for it:
+
+- a block frame (dimension, position, state, the block entity's data) and a
+  host hook in the block-entity renderer, plus instancing for many parts;
+- captures of block-state models (`block:<state>`) — Create's partial
+  models and contraptions (a structure drawn as one moving body);
+- element models (`.yblock` models) baked into quads, next to `.ymodel`.
