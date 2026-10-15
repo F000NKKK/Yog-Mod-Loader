@@ -418,6 +418,8 @@ public class YogHost implements ModInitializer {
 
     private static void registerContent() {
         YogCallbackChunkGenerator.registerCodec();
+        // Mods' entity types first: spawn eggs (items) name them.
+        YogEntityTypes.register(YogContent.cached(NativeBridge::nativeContent).entities);
         parseInventoryDefs();
 
         // Group items and blocks by namespace for per-mod creative tabs.
@@ -588,6 +590,8 @@ public class YogHost implements ModInitializer {
                     .build();
             Registry.register(Registries.ITEM_GROUP, new Identifier(ns, ns), group);
         }
+
+        YogEntityTypes.eggs();
     }
     /** A sound group from its sound event ids: the registered events, else made by id (a mod's, or one this version lacks). */
     private static BlockSoundGroup blockSoundGroup(YogContent.Sound s) {

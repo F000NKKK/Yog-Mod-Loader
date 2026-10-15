@@ -63,6 +63,11 @@ public class YogClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
                 (handler, client) -> NativeBridge.nativeEntityDataClientReset());
 
+        // Mods' entities: drawn by what the mods give (yog-body).
+        for (net.minecraft.entity.EntityType<?> type : YogEntityTypes.types()) {
+            registerRenderer(type);
+        }
+
         // client tick
         ClientTickEvents.END_CLIENT_TICK.register(client -> NativeBridge.nativeOnClientTick());
 
@@ -157,5 +162,11 @@ public class YogClient implements ClientModInitializer {
         } catch (Throwable t) {
             return false;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void registerRenderer(net.minecraft.entity.EntityType<?> type) {
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                (net.minecraft.entity.EntityType<net.minecraft.entity.Entity>) type, YogEntityRenderer::new);
     }
 }

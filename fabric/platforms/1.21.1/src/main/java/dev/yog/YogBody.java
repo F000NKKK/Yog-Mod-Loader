@@ -221,7 +221,43 @@ public final class YogBody {
         float[] v = m.verts;
         for (int i = 0; i + 8 <= v.length; i += 8) {
             vc.vertex(last, v[i], v[i + 1], v[i + 2]).color(r, g, b, a).texture(v[i + 3], v[i + 4])
-                    .overlay(OverlayTexture.DEFAULT_UV).light(lit).normal(last, v[i + 5], v[i + 6], v[i + 7]);
+                    .overlay(overlay).light(lit).normal(last, v[i + 5], v[i + 6], v[i + 7]);
+        }
+    }
+
+    /** The overlay meshes are drawn with: a mod entity's hurt flash, else none. */
+    private static int overlay = OverlayTexture.DEFAULT_UV;
+
+    /**
+     * A mod's own entity ({@link YogEntityRenderer}): no vanilla model, only
+     * what the mods draw — entity space after its yaw, then model space.
+     */
+    public static void drawEntity(Entity e, float partial, MatrixStack pose, VertexConsumerProvider buffers, int light) {
+        if (capturing > 0 || !YogBodyWire.tracked(e.getUuid(), typeId(e))) return;
+        LivingEntity living = e instanceof LivingEntity l ? l : null;
+        float body = living != null ? bodyYaw(living, partial) : MathHelper.lerpAngleDegrees(partial, e.prevYaw, e.getYaw());
+        float head = living != null ? MathHelper.lerpAngleDegrees(partial, living.prevHeadYaw, living.headYaw) : body;
+        boolean walks = living != null && living.isAlive() && !living.hasVehicle();
+        Vec3d v = e.getVelocity();
+        byte[] frame = YogBodyWire.frame(e.getUuid(), typeId(e), partial, e.age + partial,
+                walks ? living.limbAnimator.getPos(partial) : 0, walks ? Math.min(1, living.limbAnimator.getSpeed(partial)) : 0,
+                head - body, MathHelper.lerp(partial, e.prevPitch, e.getPitch()), body, e.getPitch(),
+                MathHelper.lerp(partial, e.prevX, e.getX()), MathHelper.lerp(partial, e.prevY, e.getY()), MathHelper.lerp(partial, e.prevZ, e.getZ()),
+                (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.getWorld().getTime() + (double) partial);
+        Ops ops = Ops.parse(NativeBridge.nativeBodyPose(frame));
+        if (ops == Ops.NONE) return;
+        overlay = living != null ? net.minecraft.client.render.entity.LivingEntityRenderer.getOverlay(living, 0) : OverlayTexture.DEFAULT_UV;
+        try {
+            pose.push();
+            pose.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0F - body));
+            if (ops.root != null) pose.multiplyPositionMatrix(new Matrix4f().set(ops.root));
+            draw(ops, YogBodyWire.ANCHOR_ENTITY, null, pose, buffers, light);
+            pose.scale(-1.0F, -1.0F, 1.0F);
+            pose.translate(0.0F, -1.501F, 0.0F);
+            draw(ops, YogBodyWire.ANCHOR_MODEL, null, pose, buffers, light);
+            pose.pop();
+        } finally {
+            overlay = OverlayTexture.DEFAULT_UV;
         }
     }
 
