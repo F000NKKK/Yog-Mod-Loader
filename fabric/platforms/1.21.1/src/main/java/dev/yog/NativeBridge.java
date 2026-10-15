@@ -1870,4 +1870,16 @@ public final class NativeBridge {
         // Which vanilla items this version has, for content named by another version's ids.
         dev.yog.data.YogVersions.itemExists = id -> { var i = net.minecraft.util.Identifier.tryParse(id); return i != null && net.minecraft.registry.Registries.ITEM.containsId(i); };
     }
+
+    /** A hopper or dropper offers {@code stack} to the Yog block at {@code pos} ({@code block.accepts_items}). */
+    public static boolean itemInsert(net.minecraft.world.World world, net.minecraft.util.math.BlockPos pos,
+                                     ItemStack stack, boolean simulate) {
+        String block = Registries.BLOCK.getId(world.getBlockState(pos).getBlock()).toString();
+        String item = Registries.ITEM.getId(stack.getItem()).toString();
+        return nativeOnItemInsert(block, pos.getX(), pos.getY(), pos.getZ(),
+                world.getRegistryKey().getValue().toString(), item, stack.getCount(), stackSnbt(stack), simulate);
+    }
+
+    public static native boolean nativeOnItemInsert(String block, int x, int y, int z, String dimension,
+                                                    String item, int count, String nbt, boolean simulate);
 }
