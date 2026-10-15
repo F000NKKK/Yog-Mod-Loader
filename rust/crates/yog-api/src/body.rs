@@ -22,6 +22,19 @@ pub fn track(uuid: &str, on: bool) {
     unsafe { ((*api).client_body_track)((*api).ctx, YogStr::from_str(uuid), on) }
 }
 
+/// This client's side of [`yog_core::Server::entity_set_dimensions`]: the
+/// entity's own hitbox (`Some((width, height, eye height))`, blocks) or
+/// vanilla's again. The mod sends who has which (its own packet); the local
+/// player moves and collides with it.
+pub fn set_dimensions(uuid: &str, size: Option<(f32, f32, f32)>) {
+    let api = global_api();
+    if api.is_null() {
+        return;
+    }
+    let (w, h, e) = size.unwrap_or((-1.0, 0.0, 0.0));
+    unsafe { ((*api).client_set_dimensions)((*api).ctx, YogStr::from_str(uuid), w, h, e) }
+}
+
 /// Asks the body handlers about every entity of `entity_type` (`on`), or stops.
 pub fn track_type(entity_type: &str, on: bool) {
     let api = global_api();

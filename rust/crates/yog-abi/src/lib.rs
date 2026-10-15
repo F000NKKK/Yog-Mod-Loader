@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 0;
+pub const ABI_MINOR: u32 = 1;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1238,6 +1238,12 @@ pub struct YogServer {
     /// The non-air blocks of the box `from..=to`: `"x y z state"` lines, or NONE.
     pub scan_region:
         unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, from: YogBlockPos, to: YogBlockPos) -> YogOwnedStr,
+
+    // ── ABI 3.1 — entity dimensions ─────────────────────────────────────────
+    /// An entity's own hitbox and eye height (blocks), or vanilla's again
+    /// (`width` < 0); `false` if there's no such entity.
+    pub entity_set_dimensions:
+        unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, width: f32, height: f32, eye: f32) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.
@@ -1549,6 +1555,11 @@ pub struct YogApi {
     pub on_camera: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogCameraFn),
     /// The local player's travel step, each tick — see [`YogTravelFn`].
     pub on_travel: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogTravelFn),
+
+    // ── ABI 3.1 — entity dimensions (client) ────────────────────────────────
+    /// This client's side of `entity_set_dimensions` (the local player
+    /// collides with it); `width` < 0 gives vanilla's back.
+    pub client_set_dimensions: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, width: f32, height: f32, eye: f32),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].
@@ -1599,7 +1610,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (30000, 0xb7fd_42bd_7c0f_b56c), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (30001, 0x4dcf_9842_ca61_a33c), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]

@@ -35,6 +35,12 @@ pub(crate) unsafe extern "C" fn api_client_body_track_type(_ctx: *mut c_void, en
     }
 }
 
+pub(crate) unsafe extern "C" fn api_client_set_dimensions(_ctx: *mut c_void, uuid: YogStr, w: f32, h: f32, eye: f32) {
+    unsafe {
+        let _: Option<()> = host!("dev/yog/YogClientApi", "setDimensions", [S(uuid), F(w), F(h), F(eye)]);
+    }
+}
+
 unsafe extern "C" fn append(sink: *mut c_void, data: *const u8, len: usize) {
     // SAFETY: `sink` is the `Vec<u8>` `body_ops` passes; `data` is valid for the call.
     unsafe { (*(sink as *mut Vec<u8>)).extend_from_slice(std::slice::from_raw_parts(data, len)) }

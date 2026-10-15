@@ -535,6 +535,13 @@ pub trait Server {
     /// Gets an entity off what it rides; `false` if it rode nothing.
     fn entity_dismount(&self, uuid: &str) -> bool;
 
+    /// Gives the entity its own hitbox — `Some((width, height, eye
+    /// height))` in blocks — or vanilla's again (`None`); it stays till
+    /// changed, through pose changes. The server side: the clients are told
+    /// with `yog_api::body::set_dimensions` (the mod's own packet). `false`
+    /// if there's no such entity.
+    fn entity_set_dimensions(&self, uuid: &str, size: Option<(f32, f32, f32)>) -> bool;
+
     /// Sets how far the entity has fallen — fall damage counts it when it
     /// lands (0: none). `false` if there's no such entity.
     fn entity_set_fall_distance(&self, uuid: &str, distance: f32) -> bool;

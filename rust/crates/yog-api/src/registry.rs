@@ -1111,6 +1111,12 @@ impl Server for CServer {
         unsafe { (s.entity_dismount)(s.ctx, YogStr::from_str(uuid)) }
     }
 
+    fn entity_set_dimensions(&self, uuid: &str, size: Option<(f32, f32, f32)>) -> bool {
+        let s = srv!(self);
+        let (w, h, e) = size.unwrap_or((-1.0, 0.0, 0.0));
+        unsafe { (s.entity_set_dimensions)(s.ctx, YogStr::from_str(uuid), w, h, e) }
+    }
+
     fn entity_set_fall_distance(&self, uuid: &str, distance: f32) -> bool {
         let s = srv!(self);
         unsafe { (s.entity_set_fall_distance)(s.ctx, YogStr::from_str(uuid), distance) }

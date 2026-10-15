@@ -3073,6 +3073,7 @@ fn build_server_table() -> YogServer {
         entity_mount: srv_entity_mount,
         entity_dismount: srv_entity_dismount,
         redstone_power: srv_redstone_power,
+        entity_set_dimensions: srv_entity_set_dimensions,
         entity_set_fall_distance: srv_entity_set_fall_distance,
         redstone_signal: srv_redstone_signal,
         set_redstone_output: srv_set_redstone_output,
@@ -3105,6 +3106,10 @@ unsafe extern "C" fn srv_entity_mount(_ctx: *mut c_void, rider: YogStr, vehicle:
 
 unsafe extern "C" fn srv_entity_dismount(_ctx: *mut c_void, uuid: YogStr) -> bool {
     unsafe { bridge!("entityDismount", [S(uuid)]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn srv_entity_set_dimensions(_ctx: *mut c_void, uuid: YogStr, w: f32, h: f32, eye: f32) -> bool {
+    unsafe { bridge!("entitySetDimensions", [S(uuid), F(w), F(h), F(eye)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_entity_set_fall_distance(_ctx: *mut c_void, uuid: YogStr, distance: f32) -> bool {
@@ -3269,6 +3274,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_item_text: api_on_item_text,
         client_body_track: body::api_client_body_track,
         client_body_track_type: body::api_client_body_track_type,
+        client_set_dimensions: body::api_client_set_dimensions,
         on_body: body::api_on_body,
         on_camera: body::api_on_camera,
         on_travel: body::api_on_travel,

@@ -417,6 +417,9 @@ impl Server for NullServer {
     fn entity_dismount(&self, uuid: &str) -> bool {
         Default::default()
     }
+    fn entity_set_dimensions(&self, uuid: &str, size: Option<(f32, f32, f32)>) -> bool {
+        Default::default()
+    }
     fn entity_set_fall_distance(&self, uuid: &str, distance: f32) -> bool {
         Default::default()
     }
