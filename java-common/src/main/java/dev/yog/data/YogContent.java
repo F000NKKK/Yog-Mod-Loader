@@ -82,6 +82,24 @@ public final class YogContent {
     /** A dimension: its id and {@code YogDimensionDef} as a JSON tree. */
     public record Dimension(String id, com.google.gson.JsonObject def) {}
 
+    /**
+     * A mod's entity type ({@code yog_registry::EntityDef}). {@code kind}:
+     * {@code object}, {@code living} or {@code mob}; attributes by id;
+     * {@code spawnEgg} {base, spots} or null.
+     */
+    public record Entity(String id, String kind, String category, float width, float height, Float eyeHeight,
+                         boolean fireImmune, boolean noGravity, Boolean pushable, boolean solid,
+                         int trackingRange, int updateInterval, Map<String, Double> attributes,
+                         int[] spawnEgg, List<String> goals, boolean ticks) {
+        public boolean living() {
+            return !kind.equals("object");
+        }
+
+        public boolean mob() {
+            return kind.equals("mob");
+        }
+    }
+
     public final List<Item> items;
     public final List<Block> blocks;
     /** By id. */
@@ -90,9 +108,12 @@ public final class YogContent {
     public final List<Dimension> dimensions;
     /** For the hosts that add features to biomes in code (Fabric). */
     public final List<BiomeFeature> biomeFeatures;
+    public final List<Entity> entities;
 
     private YogContent(List<Item> items, List<Block> blocks, Map<String, YogInventoryDef> inventories,
-                       List<Recipe> recipes, List<Dimension> dimensions, List<BiomeFeature> biomeFeatures) {
+                       List<Recipe> recipes, List<Dimension> dimensions, List<BiomeFeature> biomeFeatures,
+                       List<Entity> entities) {
+        this.entities = entities;
         this.items = items;
         this.blocks = blocks;
         this.inventories = inventories;
@@ -117,7 +138,7 @@ public final class YogContent {
     public static YogContent read(byte[] blob) {
         if (blob == null || blob.length == 0) {
             return new YogContent(Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(),
-                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         }
         Map<String, Object> root = YogData.map(YogData.decode(blob));
         List<Item> items = new ArrayList<>();
@@ -174,7 +195,33 @@ public final class YogContent {
             biomeFeatures.add(new BiomeFeature(YogData.str(m.get("feature"), ""), YogData.str(m.get("biomes"), "minecraft:is_overworld"),
                     YogData.str(m.get("step"), "underground_ores")));
         }
-        return new YogContent(items, blocks, inventories, recipes, dimensions, biomeFeatures);
+        List<Entity> entities = new ArrayList<>();
+        for (Object o : YogData.list(root.get("entities"))) {
+            Map<String, Object> m = YogData.map(o);
+            Map<String, Double> attributes = new java.util.LinkedHashMap<>();
+            if (m.get("attributes") != null) {
+                for (Map.Entry<String, Object> a : YogData.map(m.get("attributes")).entrySet()) {
+                    attributes.put(a.getKey(), YogData.number(a.getValue(), 0));
+                }
+            }
+            int[] egg = null;
+            List<Object> eggColors = m.get("spawn_egg") == null ? null : YogData.list(m.get("spawn_egg"));
+            if (eggColors != null && eggColors.size() == 2) {
+                egg = new int[] {(int) YogData.integer(eggColors.get(0), 0), (int) YogData.integer(eggColors.get(1), 0)};
+            }
+            List<String> goals = new ArrayList<>();
+            for (Object g : YogData.list(m.get("goals"))) goals.add(YogData.str(g, ""));
+            entities.add(new Entity(YogData.str(m.get("id"), ""), YogData.str(m.get("kind"), "object"),
+                    YogData.str(m.get("category"), "misc"), (float) YogData.number(m.get("width"), 1),
+                    (float) YogData.number(m.get("height"), 1),
+                    m.get("eye_height") == null ? null : (float) YogData.number(m.get("eye_height"), 0),
+                    YogData.bool(m.get("fire_immune"), false), YogData.bool(m.get("no_gravity"), false),
+                    m.get("pushable") == null ? null : YogData.bool(m.get("pushable"), false),
+                    YogData.bool(m.get("solid"), false), (int) YogData.integer(m.get("tracking_range"), 8),
+                    (int) YogData.integer(m.get("update_interval"), 3), attributes, egg, goals,
+                    YogData.bool(m.get("ticks"), false)));
+        }
+        return new YogContent(items, blocks, inventories, recipes, dimensions, biomeFeatures, entities);
     }
 
     private static Tool tool(Object v) {

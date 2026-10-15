@@ -230,7 +230,43 @@ public final class YogBody {
         float[] v = m.verts;
         for (int i = 0; i + 8 <= v.length; i += 8) {
             vc.addVertex(last, v[i], v[i + 1], v[i + 2]).setColor(r, g, b, a).setUv(v[i + 3], v[i + 4])
-                    .setOverlay(OverlayTexture.NO_OVERLAY).setLight(lit).setNormal(last, v[i + 5], v[i + 6], v[i + 7]);
+                    .setOverlay(overlay).setLight(lit).setNormal(last, v[i + 5], v[i + 6], v[i + 7]);
+        }
+    }
+
+    /** The overlay meshes are drawn with: a mod entity's hurt flash, else none. */
+    private static int overlay = OverlayTexture.NO_OVERLAY;
+
+    /**
+     * A mod's own entity ({@link YogEntityRenderer}): no vanilla model, only
+     * what the mods draw — entity space after its yaw, then model space.
+     */
+    public static void drawEntity(Entity e, float partial, PoseStack pose, MultiBufferSource buffers, int light) {
+        if (capturing > 0 || !YogBodyWire.tracked(e.getUUID(), typeId(e))) return;
+        LivingEntity living = e instanceof LivingEntity l ? l : null;
+        float body = living != null ? bodyYaw(living, partial) : Mth.rotLerp(partial, e.yRotO, e.getYRot());
+        float head = living != null ? Mth.rotLerp(partial, living.yHeadRotO, living.yHeadRot) : body;
+        boolean walks = living != null && living.isAlive() && !living.isPassenger();
+        Vec3 v = e.getDeltaMovement();
+        byte[] frame = YogBodyWire.frame(e.getUUID(), typeId(e), partial, e.tickCount + partial,
+                walks ? living.walkAnimation.position(partial) : 0, walks ? Math.min(1, living.walkAnimation.speed(partial)) : 0,
+                head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
+                Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
+                (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial);
+        Ops ops = Ops.parse(NativeBridge.nativeBodyPose(frame));
+        if (ops == Ops.NONE) return;
+        overlay = living != null ? LivingEntityRenderer.getOverlayCoords(living, 0) : OverlayTexture.NO_OVERLAY;
+        try {
+            pose.pushPose();
+            pose.mulPose(Axis.YP.rotationDegrees(180.0F - body));
+            if (ops.root != null) pose.mulPose(new Matrix4f().set(ops.root));
+            draw(ops, YogBodyWire.ANCHOR_ENTITY, null, pose, buffers, light);
+            pose.scale(-1.0F, -1.0F, 1.0F);
+            pose.translate(0.0F, -1.501F, 0.0F);
+            draw(ops, YogBodyWire.ANCHOR_MODEL, null, pose, buffers, light);
+            pose.popPose();
+        } finally {
+            overlay = OverlayTexture.NO_OVERLAY;
         }
     }
 

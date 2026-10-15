@@ -126,8 +126,12 @@ public class YogHost {
     private void onRegister(RegisterEvent event) {
         if (event.getRegistryKey().equals(Registries.BLOCK)) {
             registerBlocks(event);
+        } else if (event.getRegistryKey().equals(Registries.ENTITY_TYPE)) {
+            YogEntityTypes.build(YogContent.cached(NativeBridge::nativeContent).entities,
+                    (id, type) -> event.register(Registries.ENTITY_TYPE, id, () -> type));
         } else if (event.getRegistryKey().equals(Registries.ITEM)) {
             registerItems(event);
+            YogEntityTypes.eggs((id, item) -> event.register(Registries.ITEM, id, () -> item));
         } else if (event.getRegistryKey().equals(Registries.CREATIVE_MODE_TAB)) {
             registerTabs(event);
         } else if (event.getRegistryKey().equals(Registries.BLOCK_ENTITY_TYPE)) {

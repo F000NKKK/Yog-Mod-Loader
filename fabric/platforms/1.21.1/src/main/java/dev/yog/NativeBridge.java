@@ -1904,6 +1904,8 @@ public final class NativeBridge {
     public static native void nativeEntityDataForget(String uuid);
     /** Entity data: the client left its world. */
     public static native void nativeEntityDataClientReset();
+    /** A tick of a mod's entity whose type asked for it. */
+    public static native void nativeOnEntityTick(String type, String uuid);
     /** yog-body: {right, up, forward, wx, wy, wz, yaw, pitch, roll, fov} for the camera, or null. */
     public static native float[] nativeCamera(String uuid, float partial, double x, double y, double z, float yaw, float pitch, boolean detached, int flags);
     /** yog-body: the velocity to move the local player by instead of its travel step, or null. */
