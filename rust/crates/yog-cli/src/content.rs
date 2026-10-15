@@ -3963,6 +3963,38 @@ mod tests {
     }
 
     #[test]
+    fn what_a_version_or_loader_hasnt_got_keeps_a_recipe_out_of_it() {
+        let recipe = |key: &str| format!(r#"{{ type: "shaped", pattern: ["D"], key: {{ D: {key} }}, result: "@item:minecraft:stick" }}"#);
+        let check = |key: &str| {
+            let c = compile(&project(&[("content/r.yrecipe", &recipe(key))]), "mymod", &yres::Refs::default());
+            c.map(|c| c.warnings.iter().filter(|w| w.contains("left out")).cloned().collect::<Vec<_>>().join("\n"))
+        };
+        let w = check(r#""@tag:item:minecraft:music_discs""#).unwrap();
+        assert!(w.contains("left out on Minecraft 1.21.1: #minecraft:music_discs isn't there — @tag:item:yog:music_discs is on every version and loader"), "{w}");
+        assert_eq!(check(r#""@tag:item:yog:music_discs""#).unwrap(), "");
+        assert_eq!(check(r#"["@tag:item:c:iron_ingots", "@item:minecraft:iron_ingot"]"#).unwrap(), "", "an alternative that's everywhere");
+        let w = check(r#""@tag:item:c:iron_ingots""#).unwrap();
+        assert!(w.contains("left out on Minecraft 1.21.1, forge 1.20.1, neoforge 1.20.1") && w.contains("@tag:item:yog:ingots/iron"), "{w}");
+        let e = check(r#""@tag:item:c:nope""#).unwrap_err();
+        assert!(e.contains("no item tag c:nope in Minecraft or its loaders"), "{e}");
+        let e = check(r#""@tag:item:yog:nope""#).unwrap_err();
+        assert!(e.contains("no item tag yog:nope among Yog's common tags"), "{e}");
+        assert!(check(r#""@tag:item:othermod:anything""#).is_ok(), "another mod's tags aren't known here");
+        let block = r#"{ tags: ["yog:planks", "yog:nope"], model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } } }"#;
+        let e = compile(&project(&[("content/p.yblock", block)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("tags[1]: no block tag yog:nope") && !e.contains("yog:planks"), "{e}");
+    }
+
+    #[test]
+    fn yog_tags_are_the_game_and_loader_tags_of_each_host() {
+        assert_eq!(refs::tag_hosts("item", "yog:ingots/iron"), Some(None));
+        assert_eq!(refs::tag_hosts("item", "minecraft:music_discs").flatten().map(|h| h.len()), Some(3), "1.20.1, every loader");
+        assert_eq!(refs::yog_tag_for("item", "c:iron_ingots").as_deref(), Some("yog:ingots/iron"));
+        assert_eq!(refs::yog_tag_for("item", "forge:cobblestone").as_deref(), Some("yog:cobblestones"));
+        assert_eq!(refs::tag_hosts("item", "yog:nope"), None);
+    }
+
+    #[test]
     fn tags_and_damage_types_are_definitions() {
         let tag = r#"{ kind: "tag", of: "entity", id: "sticky_teleporters", values: ["@entity:minecraft:pig", "@tag:entity:c:bosses"],
             optional: ["@entity:create:seat"] }"#;
@@ -3970,7 +4002,7 @@ mod tests {
         let dmg = r#"{ kind: "damage_type", id: "overcast", scaling: "never", tags: ["minecraft:bypasses_armor", "bypasses_effects"] }"#;
         let c = compile(&project(&[("content/a.ydef", tag), ("content/b.ydef", logs), ("content/c.ydef", dmg)]), "mymod", &yres::Refs::default()).unwrap();
         let sticky = &c.tags["data/mymod/tags/entity_type/sticky_teleporters.json"];
-        assert_eq!(sticky.iter().map(|(k, v)| (k.as_str(), *v)).collect::<Vec<_>>(), vec![("#c:bosses", true), ("create:seat", false), ("minecraft:pig", true)]);
+        assert_eq!(sticky.iter().map(|(k, v)| (k.as_str(), *v)).collect::<Vec<_>>(), vec![("#c:bosses", false), ("create:seat", false), ("minecraft:pig", true)], "c:bosses isn't on every loader: where it isn't, the tag still loads");
         assert!(c.tags["data/minecraft/tags/block/logs.json"].contains_key("minecraft:stone"));
         let get = |p: &str| c.outputs.iter().find(|(q, _)| q == p).map(|(_, b)| serde_json::from_slice::<Value>(b).unwrap()).unwrap_or_else(|| panic!("no {p}"));
         let d = get("data/mymod/damage_type/overcast.json");

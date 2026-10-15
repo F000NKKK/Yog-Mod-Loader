@@ -327,6 +327,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn the_hosts_know_the_tags_the_build_does() {
+        assert_eq!(
+            include_str!("../vanilla/tags.txt"),
+            include_str!("../../../../../java-common/src/main/resources/yog/tags.txt"),
+            "java-common's yog/tags.txt is a copy of vanilla/tags.txt"
+        );
+    }
+
+    #[test]
     fn the_hosts_rename_as_the_build_does() {
         assert_eq!(
             include_str!("../vanilla/renames.txt"),
