@@ -103,15 +103,17 @@ FABRIC_1_20 = {  # c:<old> on fabric 1.20 → the 1.21 name
 def modern(ns, path, hosts):
     """The 1.21 name of a convention tag `ns:path` of `hosts`."""
     if ns == "forge":
-        return FORGE_1_20.get(path, path)
+        if path in FORGE_1_20:
+            return FORGE_1_20[path]
+        head, _, rest = path.partition("/")
+        return f"{FORGE_1_20[head]}/{rest}" if rest and head in FORGE_1_20 and head in ("cobblestone", "sand") else path
     if ns == "c" and not any(h.endswith("/1.21.1") for h in hosts):
-        if True:
-            if path in FABRIC_1_20:
-                return FABRIC_1_20[path]
-            # `iron_ingots` → `ingots/iron`, `brown_dyes` → `dyes/brown`.
-            m = re.fullmatch(r"([a-z0-9_]+?)_([a-z]+s)", path)
-            if m:
-                return f"{m[2]}/{m[1]}"
+        if path in FABRIC_1_20:
+            return FABRIC_1_20[path]
+        # Fabric 1.20's `iron_ingots`, `brown_dyes`: `ingots/iron`, `dyes/brown`.
+        m = re.fullmatch(r"([a-z0-9_]+?)_(ingots|nuggets|dusts|dyes|gems|ores|rods|plates|gears|seeds|crops)", path)
+        if m:
+            return f"{m[2]}/{m[1]}"
     return path
 
 
