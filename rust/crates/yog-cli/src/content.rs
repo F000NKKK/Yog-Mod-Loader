@@ -103,8 +103,9 @@ pub struct Compiled {
     lang: BTreeMap<(String, String), BTreeMap<String, String>>,
     /// `.yres` text keys to copy under another key: (from, to).
     lang_aliases: Vec<(String, String)>,
-    /// Block tag path (`data/minecraft/tags/block/...json`) → entries.
-    tags: BTreeMap<String, BTreeSet<String>>,
+    /// Tag path (`data/minecraft/tags/block/...json`) → its entries:
+    /// id (`#ns:tag` for a tag) → required (`false`: kept only if present).
+    tags: BTreeMap<String, BTreeMap<String, bool>>,
     /// The generated Rust code; `None` when the mod has no content files.
     pub source: Option<String>,
     /// Data the code includes (`include_bytes!`), by path under
@@ -1125,7 +1126,7 @@ fn compile_file(
     // (The tool level's tags come once every `.ydef` is read: `tool_level_tags`.)
     for tag in &entry.block.tools {
         let (tns, tpath) = tag.split_once(':').unwrap_or(("minecraft", tag));
-        out.tags.entry(format!("data/{tns}/tags/block/{tpath}.json")).or_default().insert(id.clone());
+        out.tags.entry(format!("data/{tns}/tags/block/{tpath}.json")).or_default().insert(id.clone(), true);
     }
     Some(entry)
 }
@@ -1557,6 +1558,7 @@ fn compile_layout(
     ores: &mut Vec<OreOut>,
     dimensions: &mut Vec<(String, Vec<u8>)>,
     tables: &mut Vec<table::Table>,
+    out: &mut Compiled,
 ) -> Option<yog_formats::def::RecipeKindDef> {
     use yog_formats::def::Def;
     let doc = match yog_data::text::parse(text) {
@@ -1578,6 +1580,10 @@ fn compile_layout(
     };
     let mut ok = true;
     for f in &read.refs {
+        // A tag's `optional` entries are other mods' — there or not.
+        if matches!(read.value, Def::Tag(_)) && f.path.to_string().starts_with("optional") {
+            continue;
+        }
         if let Some(kind) = refs::RefKind::from_word(&f.value.kind)
             && let Err(e) = known.check(kind, &f.value.id)
         {
@@ -1609,6 +1615,37 @@ fn compile_layout(
             }
             return None;
         }
+        Def::Tag(t) => {
+            let line = doc.locate(text, &yog_data::Path::root().key("values")).line as usize;
+            match tag_entries(&t, ns) {
+                Ok((path, entries)) => out.tags.entry(path).or_default().extend(entries),
+                Err(problems) => problems.into_iter().for_each(|p| cx.err(line, p)),
+            }
+            return None;
+        }
+        Def::DamageType(d) => {
+            match damage_type(&d, ns) {
+                Ok((file, tags)) => {
+                    out.outputs.push(file);
+                    for (path, id) in tags {
+                        out.tags.entry(path).or_default().insert(id, true);
+                    }
+                }
+                Err(e) => cx.err(doc.locate(text, &yog_data::Path::root().key("id")).line as usize, e),
+            }
+            return None;
+        }
+        Def::Tree(t) => {
+            match tree(&t, ns) {
+                Ok(file) => {
+                    if ok {
+                        out.outputs.push(file);
+                    }
+                }
+                Err(e) => cx.err(doc.locate(text, &yog_data::Path::root().key("id")).line as usize, e),
+            }
+            return None;
+        }
         Def::Table(t) => {
             match table::check(&cx.file, t, cx.refs, known) {
                 Ok(t) => tables.push(t),
@@ -1626,6 +1663,127 @@ fn compile_layout(
         _ => return None,
     };
     ok.then_some(kind)
+}
+
+/// `ns:path` for an id the mod writes bare (`water_plants`).
+fn full_id(id: &str, ns: &str) -> String {
+    if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") }
+}
+
+/// The datapack folder of tags of content `of` (a `.ydef` tag's kind,
+/// Yog's name or the game registry's): `entity` → `entity_type`.
+fn tag_folder(of: &str) -> &str {
+    match of {
+        "entity" => "entity_type",
+        "biome" => "worldgen/biome",
+        other => other,
+    }
+}
+
+/// A `.ydef` tag: where it's written and its entries (`optional` ones
+/// kept only if present). What it names was checked with the file's refs.
+fn tag_entries(t: &yog_formats::def::TagDef, ns: &str) -> Result<(String, BTreeMap<String, bool>), Vec<String>> {
+    use yog_data::AnyRefOrTag;
+    let id = full_id(&t.id, ns);
+    let (tns, tpath) = id.split_once(':').unwrap_or(("minecraft", &id));
+    let mut problems = Vec::new();
+    let mut entries = BTreeMap::new();
+    for (list, required) in [(&t.values, true), (&t.optional, false)] {
+        for v in list {
+            if v.kind() != t.of {
+                problems.push(format!("`{v}` in a tag of {}", t.of));
+                continue;
+            }
+            let entry = match v {
+                AnyRefOrTag::One(r) => full_id(&r.id, "minecraft"),
+                AnyRefOrTag::Tag(r) => format!("#{}", full_id(&r.id, "minecraft")),
+            };
+            entries.insert(entry, required);
+        }
+    }
+    if problems.is_empty() {
+        Ok((format!("data/{tns}/tags/{}/{tpath}.json", tag_folder(&t.of)), entries))
+    } else {
+        Err(problems)
+    }
+}
+
+/// A `.ydef` tree: the game's `minecraft:tree` configured feature.
+fn tree(t: &yog_formats::def::TreeDef, ns: &str) -> Result<Output, String> {
+    use serde_json::json;
+    let id = full_id(&t.id, ns);
+    let (tns, tpath) = id.split_once(':').unwrap_or((ns, &id));
+    if tns != ns || !valid_path(tpath) {
+        return Err(format!("id: `{}`: the mod's own tree, `{ns}:<name>`", t.id));
+    }
+    // One block, or blocks by weight.
+    let provider = |blocks: &[yog_formats::def::WeightedBlock]| match blocks {
+        [one] => json!({ "type": "minecraft:simple_state_provider", "state": { "Name": one.block.id } }),
+        many => json!({
+            "type": "minecraft:weighted_state_provider",
+            "entries": many.iter().map(|b| json!({ "data": { "Name": b.block.id }, "weight": b.weight })).collect::<Vec<_>>()
+        }),
+    };
+    // The game's placers by their short name (`fancy`), a mod's by id.
+    let placer = |shape: &str, what: &str| if shape.contains(':') { shape.to_string() } else { format!("minecraft:{shape}_{what}_placer") };
+    if t.trunk.blocks.is_empty() || t.leaves.blocks.is_empty() {
+        return Err("a tree needs trunk and leaves blocks".into());
+    }
+    let mut foliage = json!({ "type": placer(&t.leaves.shape, "foliage"), "radius": t.leaves.radius, "offset": t.leaves.offset });
+    if let Some(h) = t.leaves.height {
+        foliage["height"] = h.into();
+    }
+    let mut size = json!({ "type": "minecraft:two_layers_feature_size", "limit": 1, "lower_size": 0, "upper_size": 1 });
+    if let Some(h) = t.min_clipped_height {
+        size = json!({ "type": "minecraft:two_layers_feature_size", "limit": 0, "lower_size": 0, "upper_size": 0, "min_clipped_height": h });
+    }
+    let dirt = t.dirt.as_ref().map_or("minecraft:dirt", |b| b.id.as_str());
+    let v = json!({
+        "type": "minecraft:tree",
+        "config": {
+            "trunk_provider": provider(&t.trunk.blocks),
+            "trunk_placer": { "type": placer(&t.trunk.shape, "trunk"), "base_height": t.trunk.base_height, "height_rand_a": t.trunk.random_a, "height_rand_b": t.trunk.random_b },
+            "foliage_provider": provider(&t.leaves.blocks),
+            "foliage_placer": foliage,
+            "dirt_provider": { "type": "minecraft:simple_state_provider", "state": { "Name": dirt } },
+            "minimum_size": size,
+            "decorators": [],
+            "ignore_vines": t.ignore_vines,
+            "force_dirt": t.force_dirt
+        }
+    });
+    Ok((format!("data/{tns}/worldgen/configured_feature/{tpath}.json"), pretty(&v)))
+}
+
+/// A `.ydef` damage type: its `damage_type/` file, and the damage type
+/// tags it joins (path, its id).
+fn damage_type(d: &yog_formats::def::DamageTypeDef, ns: &str) -> Result<(Output, Vec<(String, String)>), String> {
+    let id = full_id(&d.id, ns);
+    let (dns, dpath) = id.split_once(':').unwrap_or((ns, &id));
+    if dns != ns || !valid_path(dpath) {
+        return Err(format!("id: `{}`: the mod's own damage type, `{ns}:<name>`", d.id));
+    }
+    let mut v = serde_json::json!({
+        "message_id": d.message_id.clone().unwrap_or_else(|| format!("{dns}.{dpath}")),
+        "scaling": d.scaling,
+        "exhaustion": d.exhaustion,
+    });
+    if let Some(e) = &d.effects {
+        v["effects"] = Value::String(e.clone());
+    }
+    if let Some(m) = &d.death_message_type {
+        v["death_message_type"] = Value::String(m.clone());
+    }
+    let tags = d
+        .tags
+        .iter()
+        .map(|t| {
+            let t = full_id(t, "minecraft");
+            let (tns, tpath) = t.split_once(':').unwrap_or(("minecraft", &t));
+            (format!("data/{tns}/tags/damage_type/{tpath}.json"), id.clone())
+        })
+        .collect();
+    Ok(((format!("data/{dns}/damage_type/{dpath}.json"), pretty(&v)), tags))
 }
 
 /// The mod's recipe layouts (`.yui` `<Component recipe_layout="…">`),
@@ -2111,7 +2269,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                     }
                 }
                 // Read with the recipes (`compile_layout`).
-                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) => {}
+                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) | yog_formats::def::Def::Tag(_) | yog_formats::def::Def::DamageType(_) | yog_formats::def::Def::Tree(_) => {}
                 // Its level is placed on the ladder below.
                 yog_formats::def::Def::ToolMaterial(mut m) => {
                     m.id = full(&m.id);
@@ -2229,7 +2387,7 @@ fn tool_level_tags(id: &str, level: &str, ladders: &Defs, out: &mut Compiled, er
     // The weakest of the game's tools that mines it.
     let able = ["wood", "stone", "iron", "diamond", "netherite"].into_iter().find(|v| place(v) >= at);
     let mut tag = |path: String| {
-        out.tags.entry(path).or_default().insert(id.to_string());
+        out.tags.entry(path).or_default().insert(id.to_string(), true);
     };
     match able {
         Some("wood") => {}
@@ -2342,7 +2500,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         if kind == Kind::Def {
             // Kinds of recipe are checked with the recipes, ores and dimensions with what they name.
             let of = yog_data::text::parse_value(&text).ok().and_then(|v| v.get("kind").and_then(|k| k.as_str()).map(str::to_string));
-            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table")) {
+            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table" | "tag" | "damage_type" | "tree")) {
                 pending_layouts.push((shown.clone(), text));
             } else {
                 pending_defs.push((shown.clone(), text));
@@ -2418,7 +2576,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        let Some(k) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions, &mut tables) else { continue };
+        let Some(k) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions, &mut tables, &mut out) else { continue };
         if recipe_defs.contains_key(&k.id) {
             errors.push(format!("{shown}: recipe kind {} is declared twice", k.id));
         }
@@ -3132,9 +3290,10 @@ pub fn merge_outputs(
             .entry("values")
             .or_insert_with(|| Value::Array(Vec::new()));
         if let Value::Array(list) = values {
-            for id in ids {
-                if !list.iter().any(|v| v.as_str() == Some(id)) {
-                    list.push(Value::String(id.clone()));
+            for (id, &required) in ids {
+                let listed = |v: &Value| v.as_str().or_else(|| v.get("id").and_then(Value::as_str)) == Some(id.as_str());
+                if !list.iter().any(listed) {
+                    list.push(if required { Value::String(id.clone()) } else { serde_json::json!({ "id": id, "required": false }) });
                 }
             }
         }
@@ -3368,12 +3527,12 @@ mod tests {
             "when/fabric/1.20/data/fabric/tags/block/needs_tool_level_4.json",
             "when/forge/1.20/data/forge/tags/block/needs_netherite_tool.json",
         ] {
-            assert!(c.tags.get(tag).is_some_and(|ids| ids.contains("mymod:ore")), "{tag}: {:?}", c.tags);
+            assert!(c.tags.get(tag).is_some_and(|ids| ids.contains_key("mymod:ore")), "{tag}: {:?}", c.tags);
         }
         // The game's levels by name.
         let iron = format!(r#"{{ {cube}, block: {{ tool: "pickaxe", tool_level: "iron" }} }}"#);
         let c = compile(&project(&[("content/ore.yblock", &iron)]), "mymod", &yres::Refs::default()).unwrap();
-        assert!(c.tags["data/minecraft/tags/block/needs_iron_tool.json"].contains("mymod:ore"));
+        assert!(c.tags["data/minecraft/tags/block/needs_iron_tool.json"].contains_key("mymod:ore"));
         assert_eq!(c.tags.len(), 2);
         // Mistakes.
         let bad = format!(r#"{{ {cube}, block: {{ tool: "hammer", tool_level: "mythril" }} }}"#);
@@ -3649,6 +3808,47 @@ mod tests {
         let missing = r#"{ kind: "ore", id: "x", targets: [{ replaces: "stone", block: "@block:mymod:nope" }], size: 6, per_chunk: 4, height: { min: 0, max: 10 } }"#;
         let e = compile(&project(&[("content/x.ydef", missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no block mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn trees_are_definitions() {
+        let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+        let block = format!(r#"{{ {model} }}"#);
+        let tree = r#"{ kind: "tree", id: "glass_tree", min_clipped_height: 6,
+            trunk: { blocks: [{ block: "@block:mymod:log", weight: 8 }, { block: "@block:minecraft:oak_log" }], shape: "fancy", base_height: 5, random_a: 5, random_b: 3 },
+            leaves: { blocks: [{ block: "@block:mymod:leaves" }], shape: "fancy", radius: 1, offset: 5, height: 5 } }"#;
+        let c = compile(&project(&[("content/log.yblock", &block), ("content/leaves.yblock", &block), ("content/glass_tree.ydef", tree)]), "mymod", &yres::Refs::default()).unwrap();
+        let get = |p: &str| c.outputs.iter().find(|(q, _)| q == p).map(|(_, b)| serde_json::from_slice::<Value>(b).unwrap()).unwrap_or_else(|| panic!("no {p}"));
+        let f = &get("data/mymod/worldgen/configured_feature/glass_tree.json")["config"];
+        assert_eq!(f["trunk_placer"]["type"], "minecraft:fancy_trunk_placer");
+        assert_eq!(f["trunk_provider"]["entries"][0]["weight"], 8);
+        assert_eq!(f["foliage_provider"]["state"]["Name"], "mymod:leaves");
+        assert_eq!((f["foliage_placer"]["height"].as_u64(), f["minimum_size"]["min_clipped_height"].as_u64()), (Some(5), Some(6)));
+        let bad = r#"{ kind: "tree", id: "t", trunk: { blocks: [{ block: "@block:mymod:nope" }], shape: "straight", base_height: 4 },
+            leaves: { blocks: [{ block: "@block:minecraft:oak_leaves" }], shape: "blob", radius: 2 } }"#;
+        let e = compile(&project(&[("content/t.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("no block mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn tags_and_damage_types_are_definitions() {
+        let tag = r#"{ kind: "tag", of: "entity", id: "sticky_teleporters", values: ["@entity:minecraft:pig", "@tag:entity:c:bosses"],
+            optional: ["@entity:create:seat"] }"#;
+        let logs = r#"{ kind: "tag", of: "block", id: "minecraft:logs", values: ["@block:minecraft:stone"] }"#;
+        let dmg = r#"{ kind: "damage_type", id: "overcast", scaling: "never", tags: ["minecraft:bypasses_armor", "bypasses_effects"] }"#;
+        let c = compile(&project(&[("content/a.ydef", tag), ("content/b.ydef", logs), ("content/c.ydef", dmg)]), "mymod", &yres::Refs::default()).unwrap();
+        let sticky = &c.tags["data/mymod/tags/entity_type/sticky_teleporters.json"];
+        assert_eq!(sticky.iter().map(|(k, v)| (k.as_str(), *v)).collect::<Vec<_>>(), vec![("#c:bosses", true), ("create:seat", false), ("minecraft:pig", true)]);
+        assert!(c.tags["data/minecraft/tags/block/logs.json"].contains_key("minecraft:stone"));
+        let get = |p: &str| c.outputs.iter().find(|(q, _)| q == p).map(|(_, b)| serde_json::from_slice::<Value>(b).unwrap()).unwrap_or_else(|| panic!("no {p}"));
+        let d = get("data/mymod/damage_type/overcast.json");
+        assert_eq!((d["message_id"].as_str(), d["scaling"].as_str()), (Some("mymod.overcast"), Some("never")));
+        for t in ["data/minecraft/tags/damage_type/bypasses_armor.json", "data/minecraft/tags/damage_type/bypasses_effects.json"] {
+            assert!(c.tags[t].contains_key("mymod:overcast"), "{t}");
+        }
+        let bad = r#"{ kind: "tag", of: "entity", id: "x", values: ["@entity:minecraft:nope", "@block:minecraft:stone"] }"#;
+        let e = compile(&project(&[("content/x.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(e.contains("nope") && e.contains("`@block:minecraft:stone` in a tag of entity"), "{e}");
     }
 
     #[test]

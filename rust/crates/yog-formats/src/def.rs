@@ -21,7 +21,8 @@ yog_data::kind! {
 /// `level` (a step on one), `sound_group` (what a block sounds like),
 /// `recipe_kind` (a mod's kind of recipe; how it's shown is a `.yui`
 /// `recipe_layout`, see `yog_book::layout`), `tool_material`,
-/// `armor_material`, `ore` and `dimension`.
+/// `armor_material`, `ore`, `dimension`, `table`, `tag` (content of one
+/// kind grouped under a name) and `damage_type`.
 #[derive(Schema, Debug, Clone)]
 #[data(tag = "kind")]
 pub enum Def {
@@ -59,6 +60,128 @@ pub enum Def {
     /// A mod's own table — tiers, materials, voltages…: rows of the columns
     /// it declares, which `yog build` makes an enum in the mod's code.
     Table(TableDef),
+    /// A tag: content of one kind under a name (`hexcasting:water_plants`,
+    /// blocks), or more of it added to another's (`minecraft:logs`).
+    Tag(TagDef),
+    /// A kind of damage (`hexcasting:overcast`): how it's scaled, what it
+    /// exhausts, its death message, the tags it's in (`minecraft:bypasses_armor`).
+    DamageType(DamageTypeDef),
+    /// A tree the world (or a sapling, a spell) grows: its trunk and leaves.
+    Tree(TreeDef),
+}
+
+/// `{ kind: "tree", id: "amethyst_edified_tree", trunk: { blocks: [{ block:
+/// "@block:hexcasting:edified_log", weight: 8 }, …], shape: "fancy",
+/// base_height: 5, random_a: 5, random_b: 3 }, leaves: { blocks: [{ block:
+/// "@block:hexcasting:amethyst_edified_leaves" }], shape: "fancy", radius:
+/// 1, offset: 5, height: 5 } }` — the game's `minecraft:tree` feature.
+#[derive(Schema, Debug, Clone)]
+pub struct TreeDef {
+    /// `amethyst_edified_tree` (the mod's).
+    pub id: String,
+    pub trunk: TreeTrunk,
+    pub leaves: TreeLeaves,
+    /// What the ground under it turns into (default dirt).
+    pub dirt: Option<yog_data::BlockId>,
+    /// It grows no shorter than this, clipping into what's above (the
+    /// game's `min_clipped_height`).
+    pub min_clipped_height: Option<u32>,
+    #[data(default)]
+    pub ignore_vines: bool,
+    /// The ground turns to `dirt` even where it's grass.
+    #[data(default)]
+    pub force_dirt: bool,
+}
+
+/// A trunk: its blocks, how it's shaped and how tall.
+#[derive(Schema, Debug, Clone)]
+pub struct TreeTrunk {
+    pub blocks: Vec<WeightedBlock>,
+    /// `straight`, `forking`, `giant`, `mega_jungle`, `dark_oak`, `fancy`,
+    /// `bending`, `upwards_branching`, `cherry` (the game's) or a mod's
+    /// trunk placer by id.
+    pub shape: String,
+    pub base_height: u32,
+    /// Random height added: `0..=random_a`, then `0..=random_b`.
+    #[data(default)]
+    pub random_a: u32,
+    #[data(default)]
+    pub random_b: u32,
+}
+
+/// Leaves: their blocks and the shape they're placed in.
+#[derive(Schema, Debug, Clone)]
+pub struct TreeLeaves {
+    pub blocks: Vec<WeightedBlock>,
+    /// `blob`, `spruce`, `pine`, `acacia`, `bush`, `fancy`, `jungle`,
+    /// `mega_pine`, `dark_oak`, `random_spread`, `cherry` (the game's) or a
+    /// mod's foliage placer by id.
+    pub shape: String,
+    pub radius: u32,
+    #[data(default)]
+    pub offset: i32,
+    /// How many layers (the shapes that have it: `blob`, `fancy`, `bush`, `jungle`).
+    pub height: Option<u32>,
+}
+
+/// A block, picked `weight` times as often as a weight-1 one.
+#[derive(Schema, Debug, Clone)]
+pub struct WeightedBlock {
+    pub block: yog_data::BlockId,
+    #[data(default = "one")]
+    pub weight: u32,
+}
+
+
+/// `{ kind: "tag", of: "entity", id: "sticky_teleporters", values:
+/// ["@entity:minecraft:pig", "@tag:entity:c:bosses"], optional:
+/// ["@entity:create:seat"] }` — written for each game version the way it
+/// spells tags (`tags/entity_type/`, `tags/entity_types/`).
+#[derive(Schema, Debug, Clone)]
+pub struct TagDef {
+    /// The kind of content: `item`, `block`, `entity`, `fluid`, `biome`,
+    /// `damage_type` — or any of the game's registries by its name.
+    pub of: String,
+    /// `water_plants` (the mod's) or another's to add to (`minecraft:logs`).
+    pub id: String,
+    /// What's in it: `@<kind>:<id>` — checked to exist — or `@tag:<kind>:<id>`.
+    #[data(default)]
+    pub values: Vec<yog_data::AnyRefOrTag>,
+    /// What's in it if it's there — another mod's content
+    /// (`@entity:create:seat`), not checked.
+    #[data(default)]
+    pub optional: Vec<yog_data::AnyRefOrTag>,
+}
+
+fn scaled_by_mobs() -> String {
+    "when_caused_by_living_non_player".into()
+}
+
+/// `{ kind: "damage_type", id: "overcast", scaling: "never", exhaustion:
+/// 0, tags: ["minecraft:bypasses_armor"] }`.
+#[derive(Schema, Debug, Clone)]
+pub struct DamageTypeDef {
+    /// `overcast` (the mod's).
+    pub id: String,
+    /// Whether difficulty scales it: `never`, `always`,
+    /// `when_caused_by_living_non_player` (the game's default).
+    #[data(default = "scaled_by_mobs")]
+    pub scaling: String,
+    /// Hunger it costs.
+    #[data(default)]
+    pub exhaustion: f32,
+    /// Its death message is `death.attack.<message_id>` (default `<ns>.<id>`).
+    pub message_id: Option<String>,
+    /// The sound when it hurts: `hurt` (default), `thorns`, `drowning`,
+    /// `burning`, `poking`, `freezing`.
+    pub effects: Option<String>,
+    /// How its death message reads: `default`, `fall_variants`,
+    /// `intentional_game_design`.
+    pub death_message_type: Option<String>,
+    /// Damage type tags it's in (`minecraft:bypasses_armor`,
+    /// `minecraft:bypasses_effects`, a mod's).
+    #[data(default)]
+    pub tags: Vec<String>,
 }
 
 /// `{ kind: "table", id: "tier", columns: { size: "u32", chip: "item",

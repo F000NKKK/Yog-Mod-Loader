@@ -31,7 +31,7 @@ pub use value::{Map, Path, Ref, Res, Seg, Value};
 pub mod schema;
 
 pub use schema::{
-    BlockId, Color, EntityId, Errors, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds, OneOrTag,
+    AnyRefOrTag, BlockId, Color, EntityId, Errors, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds, OneOrTag,
     Ordered, Read, Reader, RecipeId, Resolve, Schema, Shape, TagId, Text, from_doc_with, from_text,
     from_value, from_value_with, kinds, read_bytes, read_ref_value, read_value, to_text,
 };

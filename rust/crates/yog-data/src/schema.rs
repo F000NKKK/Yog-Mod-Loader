@@ -1401,6 +1401,76 @@ impl Schema for Ref {
     }
 }
 
+/// Content of any kind or a tag of it: `@entity:minecraft:pig`,
+/// `@tag:entity:c:bosses` — a tag's entries, whose kind the tag says.
+#[derive(Debug, Clone, PartialEq)]
+pub enum AnyRefOrTag {
+    One(Ref),
+    Tag(Ref),
+}
+
+impl AnyRefOrTag {
+    /// The kind it names (`entity`).
+    pub fn kind(&self) -> &str {
+        match self {
+            AnyRefOrTag::One(r) | AnyRefOrTag::Tag(r) => &r.kind,
+        }
+    }
+}
+
+impl fmt::Display for AnyRefOrTag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AnyRefOrTag::One(r) => write!(f, "@{}:{}", r.kind, r.id),
+            AnyRefOrTag::Tag(r) => write!(f, "@tag:{}:{}", r.kind, r.id),
+        }
+    }
+}
+
+impl Schema for AnyRefOrTag {
+    fn shape() -> Shape {
+        Shape::RefOrTag(&[])
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        let is_tag = match v {
+            ValueRef::Tag { .. } => true,
+            ValueRef::Str(s) => s.starts_with("@tag:"),
+            _ => false,
+        };
+        if is_tag {
+            let r = match v {
+                ValueRef::Tag { kind, id } => Ref::new(*kind, *id),
+                ValueRef::Str(s) => match typed::classify(s) {
+                    Ok(Value::Tag(r)) => r,
+                    Ok(_) => {
+                        cx.problem(format!("expected a tag `@tag:kind:id`, found {s:?}"));
+                        return None;
+                    }
+                    Err(e) => {
+                        cx.problem(e);
+                        return None;
+                    }
+                },
+                _ => return None,
+            };
+            return Some(AnyRefOrTag::Tag(r));
+        }
+        if let ValueRef::Str(s) = v
+            && !s.starts_with('@')
+        {
+            cx.problem(format!("`{s}`: write `@<kind>:{s}` or a tag `@tag:<kind>:{s}`"));
+            return None;
+        }
+        read_ref(v, cx, &[]).map(AnyRefOrTag::One)
+    }
+    fn write(&self) -> Value {
+        match self {
+            AnyRefOrTag::One(r) => Value::Ref(r.clone()),
+            AnyRefOrTag::Tag(r) => Value::Tag(r.clone()),
+        }
+    }
+}
+
 /// A tag of content of kind `K`: `@tag:item:minecraft:planks`.
 pub struct TagId<K> {
     pub id: String,
