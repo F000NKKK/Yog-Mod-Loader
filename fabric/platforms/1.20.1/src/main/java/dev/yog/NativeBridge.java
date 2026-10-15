@@ -1322,6 +1322,15 @@ public final class NativeBridge {
     }
 
     /** Gets an entity off what it rides. */
+    /** An entity's own hitbox (blocks), or vanilla's again (width &lt; 0). */
+    public static boolean entitySetDimensions(String uuid, float width, float height, float eye) {
+        Entity e = entityByUuid(uuid);
+        if (e == null) return false;
+        dev.yog.util.YogDimensions.set(false, e.getUuid(), width, height, eye);
+        e.calculateDimensions();
+        return true;
+    }
+
     /** Sets how far the entity has fallen (fall damage counts it on landing). */
     public static boolean entitySetFallDistance(String uuid, float distance) {
         Entity e = entityByUuid(uuid);

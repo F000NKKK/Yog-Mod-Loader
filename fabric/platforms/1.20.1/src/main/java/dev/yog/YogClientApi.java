@@ -124,4 +124,18 @@ public final class YogClientApi {
     public static void bodyTrackType(String type, boolean on) {
         dev.yog.util.YogBodyWire.trackType(type, on);
     }
+
+    /** yog-body: entity {@code uuid}'s own hitbox on this client, or vanilla's again (width &lt; 0). */
+    public static void setDimensions(String uuid, float width, float height, float eye) {
+        try {
+            java.util.UUID id = java.util.UUID.fromString(uuid);
+            dev.yog.util.YogDimensions.set(true, id, width, height, eye);
+            net.minecraft.client.world.ClientWorld w = net.minecraft.client.MinecraftClient.getInstance().world;
+            if (w == null) return;
+            for (net.minecraft.entity.Entity e : w.getEntities()) {
+                if (e.getUuid().equals(id)) e.calculateDimensions();
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
 }

@@ -9,6 +9,7 @@
     "ContainerCloseMixin",
     "ContainerOpenMixin",
     "CraftingMixin",
+    "DimensionsMixin",
     "ExplosionMixin",
     "ItemPickupMixin",
     "PlayerMoveMixin",
