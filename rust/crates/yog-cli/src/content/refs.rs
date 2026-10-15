@@ -1,5 +1,5 @@
 //! What a mod's content files may name: checks `@item:`, `@block:`,
-//! `@entity:`, `@recipe:` references against the mod's own content, every
+//! `@entity:`, `@recipe:`, `@loot_table:` references against the mod's own content, every
 //! Minecraft version Yog supports (`vanilla/ids.txt`, generated from their
 //! client jars) and the other mods' ids it declares in `yog.toml`
 //! (`[external.<namespace>]`).
@@ -20,10 +20,11 @@ pub enum RefKind {
     Block,
     Entity,
     Recipe,
+    LootTable,
 }
 
 impl RefKind {
-    pub const ALL: [RefKind; 4] = [RefKind::Item, RefKind::Block, RefKind::Entity, RefKind::Recipe];
+    pub const ALL: [RefKind; 5] = [RefKind::Item, RefKind::Block, RefKind::Entity, RefKind::Recipe, RefKind::LootTable];
 
     /// Its prefix: `item` for `@item:`.
     pub fn word(self) -> &'static str {
@@ -32,6 +33,7 @@ impl RefKind {
             RefKind::Block => "block",
             RefKind::Entity => "entity",
             RefKind::Recipe => "recipe",
+            RefKind::LootTable => "loot_table",
         }
     }
 
@@ -133,6 +135,7 @@ impl Known {
                     "blocks" => RefKind::Block,
                     "entities" => RefKind::Entity,
                     "recipes" => RefKind::Recipe,
+                    "loot_tables" => RefKind::LootTable,
                     _ => continue,
                 };
                 let set = k.external.entry(kind).or_default();
@@ -177,6 +180,10 @@ impl Known {
         let what = kind.word();
         // An item may be a block's item.
         let kinds: &[RefKind] = if kind == RefKind::Item { &[RefKind::Item, RefKind::Block] } else { std::slice::from_ref(&kind) };
+        // The mod's loot tables are its blocks' and its data's.
+        if ns == self.ns && kind == RefKind::LootTable {
+            return Ok(());
+        }
         if ns == self.ns {
             return if kinds.iter().any(|k| self.own.get(k).is_some_and(|s| s.contains(id))) {
                 Ok(())
@@ -215,6 +222,7 @@ impl Known {
                 RefKind::Item => "items",
                 RefKind::Block => "blocks",
                 RefKind::Entity => "entities",
+                RefKind::LootTable => "loot_tables",
                 _ => "recipes",
             };
             format!("{id} is another mod's: declare it in yog.toml — {section} {list} = [\"{path}\"]")
