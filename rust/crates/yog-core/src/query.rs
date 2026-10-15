@@ -37,8 +37,7 @@ pub mod entity_flags {
     pub const ON_GROUND: u32 = 1 << 12;
     /// Bumped into something sideways in its last move.
     pub const HORIZONTAL_COLLISION: u32 = 1 << 13;
-    /// Gliding (an elytra's fall-flying, or a glider's —
-    /// [`Server::entity_set_glider`](crate::Server::entity_set_glider)).
+    /// Fall-flying with an elytra.
     pub const GLIDING: u32 = 1 << 14;
 }
 

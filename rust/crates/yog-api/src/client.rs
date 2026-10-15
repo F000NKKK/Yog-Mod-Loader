@@ -81,21 +81,6 @@ pub fn set_block_tint(dimension: &str, pos: yog_core::BlockPos, color: Option<u3
     unsafe { ((*api).client_set_block_tint)((*api).ctx, YogStr::from_str(dimension), p, c) }
 }
 
-/// Tells this client that player `uuid` may glide as if wearing an elytra
-/// — the client side of [`yog_core::Server::entity_set_glider`]: the
-/// local player starts gliding when they jump in the air, and others are
-/// drawn with wings. `wings` is the texture of the wings (an elytra's
-/// layout, `"ns:textures/….png"`; `""` draws none), `None` takes it away.
-/// The mod sends who glides (its own packet).
-pub fn set_glider(uuid: &str, wings: Option<&str>) {
-    let api = global_api();
-    if api.is_null() {
-        return;
-    }
-    let w = YogStr::from_str(wings.unwrap_or(""));
-    unsafe { ((*api).client_set_glider)((*api).ctx, YogStr::from_str(uuid), wings.is_some(), w) }
-}
-
 /// GLFW key codes for [`key_down`].
 pub mod keys {
     pub const LEFT_SHIFT: i32 = 340;

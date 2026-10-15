@@ -3058,7 +3058,6 @@ fn build_server_table() -> YogServer {
         entity_mount: srv_entity_mount,
         entity_dismount: srv_entity_dismount,
         redstone_power: srv_redstone_power,
-        entity_set_glider: srv_entity_set_glider,
         redstone_signal: srv_redstone_signal,
         set_redstone_output: srv_set_redstone_output,
         get_block_state: srv_get_block_state,
@@ -3090,10 +3089,6 @@ unsafe extern "C" fn srv_entity_mount(_ctx: *mut c_void, rider: YogStr, vehicle:
 
 unsafe extern "C" fn srv_entity_dismount(_ctx: *mut c_void, uuid: YogStr) -> bool {
     unsafe { bridge!("entityDismount", [S(uuid)]).unwrap_or(false) }
-}
-
-unsafe extern "C" fn srv_entity_set_glider(_ctx: *mut c_void, uuid: YogStr, glide: bool) -> bool {
-    unsafe { bridge!("entitySetGlider", [S(uuid), Z(glide)]).unwrap_or(false) }
 }
 
 unsafe extern "C" fn srv_redstone_signal(_ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32 {
@@ -3246,7 +3241,6 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         client_stop_sound: client_api::api_client_stop_sound,
         client_held_item: client_api::api_client_held_item,
         client_set_block_tint: client_api::api_client_set_block_tint,
-        client_set_glider: client_api::api_client_set_glider,
         client_key_down: client_api::api_client_key_down,
         on_book_page: api_on_book_page,
         on_item_tooltip: api_on_item_tooltip,

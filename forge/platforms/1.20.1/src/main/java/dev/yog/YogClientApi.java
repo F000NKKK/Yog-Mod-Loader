@@ -115,12 +115,4 @@ public final class YogClientApi {
         Integer c = here == null ? null : here.get(pos.asLong());
         return c == null ? 0xFFFFFF : c;
     }
-
-    /** Whether player {@code uuid} may glide as with an elytra here, and the texture of its wings ("" for none). */
-    public static void setGlider(String uuid, boolean glide, String wings) {
-        try {
-            dev.yog.util.YogGlide.setClient(java.util.UUID.fromString(uuid), glide, wings);
-        } catch (IllegalArgumentException ignored) {
-        }
-    }
 }

@@ -11,14 +11,11 @@
         "ContainerOpenMixin",
         "CraftingMixin",
         "ExplosionMixin",
-        "GlideStartMixin",
-        "GlideTickMixin",
         "ItemPickupMixin",
         "PlayerMoveMixin",
         "ProjectileHitMixin"
     ],
     "client": [
-        "GlideClientMixin",
         "KeyboardMixin"
     ],
     "server": []

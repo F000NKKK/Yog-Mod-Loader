@@ -1328,15 +1328,6 @@ public final class NativeBridge {
     }
 
     /** Gets an entity off what it rides. */
-    /** Lets a player glide as if wearing an elytra, or takes it away (stopping a glide). */
-    public static boolean entitySetGlider(String uuid, boolean glide) {
-        Entity e = entityByUuid(uuid);
-        if (!(e instanceof net.minecraft.entity.player.PlayerEntity p)) return false;
-        dev.yog.util.YogGlide.setServer(p.getUuid(), glide);
-        if (!glide && p.isFallFlying()) p.stopFallFlying();
-        return true;
-    }
-
     public static boolean entityDismount(String uuid) {
         Entity e = entityByUuid(uuid);
         if (e == null || !e.hasVehicle()) return false;

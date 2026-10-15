@@ -1161,9 +1161,6 @@ pub struct YogServer {
     pub entity_dismount: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr) -> bool,
     /// Received redstone power 0–15, or -1 (no such dimension).
     pub redstone_power: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32,
-    /// Lets a player glide as with an elytra (`glide`) or not; `false` if
-    /// there's no such player.
-    pub entity_set_glider: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, glide: bool) -> bool,
     /// The strongest signal the block gives off 0–15, or -1 (not a source).
     pub redstone_signal: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> i32,
     pub set_redstone_output:
@@ -1444,9 +1441,6 @@ pub struct YogApi {
     /// Tints the block at `pos` in `dim` on this client (its faces with a
     /// tint index), `color` 0xRRGGBB; -1 clears it.
     pub client_set_block_tint: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos, color: i64),
-    /// Tells this client whether player `uuid` may glide as with an elytra
-    /// (`wings`: the texture its wings are drawn with, empty for none).
-    pub client_set_glider: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, glide: bool, wings: YogStr),
     /// Whether GLFW key `key` is held down right now (client window).
     pub client_key_down: unsafe extern "C" fn(ctx: *mut c_void, key: i32) -> bool,
 
