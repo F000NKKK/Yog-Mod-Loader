@@ -38,6 +38,12 @@ public final class YogNetworkBridge {
         return true;
     }
 
+    /** Server -> everyone who sees {@code entity}, and it if a player. */
+    public static boolean sendToTracking(net.minecraft.world.entity.Entity entity, String channelName, byte[] data) {
+        PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity, new YogPayload(channelName, data));
+        return true;
+    }
+
     /** Client -> server. */
     public static boolean sendToServer(String channelName, byte[] data) {
         PacketDistributor.sendToServer(new YogPayload(channelName, data));

@@ -113,7 +113,7 @@ public final class YogBody {
                 alive ? e.limbAnimator.getPos(partial) : 0, alive ? Math.min(1, e.limbAnimator.getSpeed(partial)) : 0,
                 head - body, MathHelper.lerp(partial, e.prevPitch, e.getPitch()), body, e.getPitch(),
                 MathHelper.lerp(partial, e.prevX, e.getX()), MathHelper.lerp(partial, e.prevY, e.getY()), MathHelper.lerp(partial, e.prevZ, e.getZ()),
-                (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e));
+                (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.getWorld().getTime() + (double) partial);
         Ops ops = Ops.parse(NativeBridge.nativeBodyPose(frame));
         if (!ops.captures.isEmpty()) capture(self, e, ops.captures, partial, light);
         if (ops.disguise != null) {

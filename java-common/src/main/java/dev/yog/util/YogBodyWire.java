@@ -274,13 +274,16 @@ public final class YogBodyWire {
         }
     }
 
-    /** The frame the mods read ({@code yog_body::Frame}), with the entity's last captures. */
+    /**
+     * The frame the mods read ({@code yog_body::Frame}), with the entity's
+     * last captures; the runtime adds the data it keeps.
+     */
     public static byte[] frame(UUID id, String type, float partial, float age, float limbSwing, float limbAmount,
                                float headYaw, float headPitch, float bodyYaw, float pitch,
-                               double x, double y, double z, float vx, float vy, float vz, int flags) {
-        Out o = new Out().u8(1).str(id.toString()).str(type);
+                               double x, double y, double z, float vx, float vy, float vz, int flags, double gameTime) {
+        Out o = new Out().u8(2).str(id.toString()).str(type);
         o.f32(partial).f32(age).f32(limbSwing).f32(limbAmount).f32(headYaw).f32(headPitch).f32(bodyYaw).f32(pitch);
-        o.f64(x).f64(y).f64(z).f32(vx).f32(vy).f32(vz).u32(flags);
+        o.f64(x).f64(y).f64(z).f32(vx).f32(vy).f32(vz).u32(flags).f64(gameTime);
         List<Captured> caps = CAPTURED.remove(id);
         if (caps == null) caps = List.of();
         o.u16(caps.size());

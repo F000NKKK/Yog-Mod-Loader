@@ -151,6 +151,12 @@ public final class NativeBridge {
         return true;
     }
 
+    /** Send a raw-byte packet to everyone who sees entity {@code uuid}, and to it if a player. */
+    public static boolean sendToTracking(String uuid, String channel, byte[] data) {
+        Entity e = entityByUuid(uuid);
+        return e != null && YogNetworkBridge.sendToTracking(e, channel, data);
+    }
+
     public static boolean sendToPlayer(String player, String channel, byte[] data) {
         ServerPlayer p = playerByName(player);
         if (p == null) return false;
@@ -1592,6 +1598,16 @@ public final class NativeBridge {
     public static native String nativeItemText(String item, String snbt);
     /** yog-body: the ops for a tracked entity's body this frame, or null. */
     public static native byte[] nativeBodyPose(byte[] frame);
+    /** Entity data: everything about an entity, for a player who starts seeing it; null for nothing. */
+    public static native byte[] nativeEntityDataFor(String uuid);
+    /** Entity data: what the entity keeps when saved; null for nothing. */
+    public static native byte[] nativeEntityDataSave(String uuid);
+    /** Entity data: what it kept, back as it loads. */
+    public static native void nativeEntityDataLoad(String uuid, byte[] saved);
+    /** Entity data: the entity left the server's memory. */
+    public static native void nativeEntityDataForget(String uuid);
+    /** Entity data: the client left its world. */
+    public static native void nativeEntityDataClientReset();
     /** yog-body: {right, up, forward, wx, wy, wz, yaw, pitch, roll, fov} for the camera, or null. */
     public static native float[] nativeCamera(String uuid, float partial, double x, double y, double z, float yaw, float pitch, boolean detached, int flags);
     /** yog-body: the velocity to move the local player by instead of its travel step, or null. */
