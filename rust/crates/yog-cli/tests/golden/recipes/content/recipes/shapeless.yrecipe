@@ -6,7 +6,7 @@
       "@item:minecraft:coal",
       "@item:minecraft:charcoal"
     ],
-    "@tag:item:c:dusts"
+    "@tag:item:yog:dusts"
   ],
   "result": "@item:minecraft:torch",
   "count": 4

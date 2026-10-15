@@ -9,7 +9,7 @@
         "@item:minecraft:gold_ingot",
         "@item:minecraft:iron_ingot"
       ],
-      "@tag:item:c:gems"
+      "@tag:item:yog:gems"
     ]
   },
   "values": {

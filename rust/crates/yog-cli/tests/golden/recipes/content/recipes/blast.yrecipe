@@ -1,6 +1,6 @@
 {
   "type": "blasting",
-  "ingredient": "@tag:item:c:ores",
+  "ingredient": "@tag:item:yog:ores",
   "result": "@item:gm:ruby",
   "cook_time": 50
 }
