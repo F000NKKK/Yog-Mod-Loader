@@ -31,6 +31,8 @@ pub mod entity_flags {
     pub const PART: u32 = 1 << 9;
     /// A villager.
     pub const VILLAGER: u32 = 1 << 10;
+    /// Sneaking (shift held).
+    pub const SNEAKING: u32 = 1 << 11;
 }
 
 /// A loaded entity, as [`Server::entity_info`](crate::Server::entity_info)

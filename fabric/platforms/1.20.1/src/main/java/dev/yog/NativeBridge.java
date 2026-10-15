@@ -943,6 +943,7 @@ public final class NativeBridge {
             if (e.isSpectator()) flags |= YogEntityFlags.SPECTATOR;
             if (e instanceof net.minecraft.entity.boss.dragon.EnderDragonPart) flags |= YogEntityFlags.PART;
             if (e instanceof net.minecraft.entity.passive.VillagerEntity) flags |= YogEntityFlags.VILLAGER;
+            if (e.isSneaking()) flags |= YogEntityFlags.SNEAKING;
             return Registries.ENTITY_TYPE.getId(e.getType()) + "\t"
                     + e.getWorld().getRegistryKey().getValue() + "\t"
                     + e.getX() + "\t" + e.getY() + "\t" + e.getZ() + "\t"

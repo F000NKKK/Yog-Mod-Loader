@@ -30,4 +30,6 @@ public final class YogEntityFlags {
     public static final int PART = 1 << 9;
     /** A villager. */
     public static final int VILLAGER = 1 << 10;
+    /** Sneaking (shift held). */
+    public static final int SNEAKING = 1 << 11;
 }

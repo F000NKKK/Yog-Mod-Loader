@@ -518,6 +518,7 @@ public final class NativeBridge {
             if (e instanceof net.minecraft.world.entity.boss.EnderDragonPart
                     || e instanceof net.minecraftforge.entity.PartEntity<?>) flags |= YogEntityFlags.PART;
             if (e instanceof net.minecraft.world.entity.npc.Villager) flags |= YogEntityFlags.VILLAGER;
+            if (e.isShiftKeyDown()) flags |= YogEntityFlags.SNEAKING;
             return BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()) + "\t"
                     + e.level().dimension().location() + "\t"
                     + e.getX() + "\t" + e.getY() + "\t" + e.getZ() + "\t"
