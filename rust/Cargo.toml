@@ -28,6 +28,8 @@ members = [
     "crates/yog-api",
     # in-game book/documentation system (Patchouli-like)
     "crates/yog-book",
+    # bodies: skeletons, animations, morphs, camera, movement
+    "crates/yog-body",
     # graphics subsystem — low-level GL pipeline access for mods (permissive)
     "crates/yog-gfx",
     # UI framework — flexbox layout + widgets on top of yog-gfx
@@ -98,6 +100,7 @@ yog-storage  = { path = "crates/yog-storage" }
 yog-config   = { path = "crates/yog-config" }
 yog-api      = { path = "crates/yog-api" }
 yog-book     = { path = "crates/yog-book" }
+yog-body     = { path = "crates/yog-body" }
 yog-gfx      = { path = "crates/yog-gfx" }
 yog-ui       = { path = "crates/yog-ui" }
 yog-kit      = { path = "crates/yog-kit" }
