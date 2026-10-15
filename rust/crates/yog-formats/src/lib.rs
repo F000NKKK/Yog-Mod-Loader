@@ -11,7 +11,7 @@ pub mod yres;
 use yog_data::{Schema, Shape};
 
 /// The formats `shape` describes.
-pub const FORMATS: [&str; 6] = ["yblock", "yitem", "yrecipe", "ydef", "yres", "yog.toml"];
+pub const FORMATS: [&str; 8] = ["yblock", "yitem", "yrecipe", "ydef", "yres", "ymodel", "yanim", "yog.toml"];
 
 /// What the format `name` (a file extension without the dot, or `yog.toml`) looks like.
 pub fn shape(name: &str) -> Option<Shape> {
@@ -21,6 +21,8 @@ pub fn shape(name: &str) -> Option<Shape> {
         "yrecipe" => recipe::RecipeFile::shape(),
         "ydef" => def::Def::shape(),
         "yres" => Shape::Map(yres::EntryObject::shape),
+        "ymodel" => yog_body::format::ModelFile::shape(),
+        "yanim" => yog_body::format::AnimFile::shape(),
         "yog.toml" => manifest::ManifestFile::shape(),
         _ => return None,
     })

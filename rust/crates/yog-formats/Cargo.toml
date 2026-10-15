@@ -13,3 +13,4 @@ yog-data = "0.4"
 yog-registry = "0.32"
 # A dimension's `terrain`.
 yog-worldgen = "0.1"
+yog-body = "0.1"
