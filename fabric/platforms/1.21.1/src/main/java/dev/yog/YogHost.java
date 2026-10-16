@@ -439,6 +439,7 @@ public class YogHost implements ModInitializer {
         YogCallbackChunkGenerator.registerCodec();
         // Mods' entity types first: spawn eggs (items) name them.
         YogEntityTypes.register(YogContent.cached(NativeBridge::nativeContent).entities);
+        YogEffects.register(YogContent.cached(NativeBridge::nativeContent));
 
         parseInventoryDefs();
 

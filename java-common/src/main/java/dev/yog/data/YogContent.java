@@ -100,6 +100,28 @@ public final class YogContent {
         }
     }
 
+    /** A number every player has; effects change it. */
+    public record Attribute(String id, double defaultValue, double min, double max) {}
+
+    /** An attribute an effect changes, by {@code amount} a level: {@code add}, {@code multiply_base}, {@code multiply_total}. */
+    public record Modifier(String attribute, double amount, String operation) {}
+
+    /** A mob effect: {@code beneficial}, {@code harmful} or {@code neutral}; {@code 0xRRGGBB}. */
+    public record Effect(String id, String category, int color, List<Modifier> modifiers) {}
+
+    /** An effect a potion gives: ticks, 0 for level I. */
+    public record PotionEffect(String effect, int duration, int amplifier) {}
+
+    /** A brewing stand recipe: the potion it's brewed from and the ingredient. */
+    public record Brew(String from, String with) {}
+
+    /** A potion: its translations' name, its effects, how it's brewed. */
+    public record Potion(String id, String name, List<PotionEffect> effects, List<Brew> brewed) {}
+
+    public final List<Attribute> attributes = new ArrayList<>();
+    public final List<Effect> effects = new ArrayList<>();
+    public final List<Potion> potions = new ArrayList<>();
+
     public final List<Item> items;
     public final List<Block> blocks;
     /** By id. */
@@ -226,7 +248,46 @@ public final class YogContent {
                     (int) YogData.integer(m.get("update_interval"), 3), attributes, egg, goals,
                     YogData.bool(m.get("ticks"), false)));
         }
-        return new YogContent(items, blocks, inventories, recipes, dimensions, biomeFeatures, entities);
+        YogContent c = new YogContent(items, blocks, inventories, recipes, dimensions, biomeFeatures, entities);
+        for (Object o : YogData.list(root.get("attributes"))) {
+            Map<String, Object> m = YogData.map(o);
+            c.attributes.add(new Attribute(YogData.str(m.get("id"), ""), YogData.number(m.get("default"), 0),
+                    YogData.number(m.get("min"), 0), YogData.number(m.get("max"), 1)));
+        }
+        for (Object o : YogData.list(root.get("effects"))) {
+            Map<String, Object> m = YogData.map(o);
+            List<Modifier> modifiers = new ArrayList<>();
+            for (Object mo : YogData.list(m.get("modifiers"))) {
+                Map<String, Object> mm = YogData.map(mo);
+                modifiers.add(new Modifier(id(mm.get("attribute")), YogData.number(mm.get("amount"), 0), YogData.str(mm.get("operation"), "add")));
+            }
+            c.effects.add(new Effect(YogData.str(m.get("id"), ""), YogData.str(m.get("category"), "neutral"),
+                    (int) YogData.integer(m.get("color"), 0), modifiers));
+        }
+        for (Object o : YogData.list(root.get("potions"))) {
+            Map<String, Object> m = YogData.map(o);
+            String id = YogData.str(m.get("id"), "");
+            List<PotionEffect> potionEffects = new ArrayList<>();
+            for (Object eo : YogData.list(m.get("effects"))) {
+                Map<String, Object> em = YogData.map(eo);
+                potionEffects.add(new PotionEffect(id(em.get("effect")), (int) YogData.integer(em.get("duration"), 0),
+                        (int) YogData.integer(em.get("amplifier"), 0)));
+            }
+            List<Brew> brewed = new ArrayList<>();
+            for (Object bo : YogData.list(m.get("brewed"))) {
+                Map<String, Object> bm = YogData.map(bo);
+                brewed.add(new Brew(id(bm.get("from")), id(bm.get("with"))));
+            }
+            String name = YogData.str(m.get("name"), null);
+            c.potions.add(new Potion(id, name != null ? name : id.substring(id.indexOf(':') + 1), potionEffects, brewed));
+        }
+        return c;
+    }
+
+    /** A reference's id ({@code @effect:mymod:clarity}) or a plain one. */
+    private static String id(Object v) {
+        if (v instanceof YogData.Ref r) return r.id();
+        return YogData.str(v, "");
     }
 
     private static Tool tool(Object v) {
