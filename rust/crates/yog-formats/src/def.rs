@@ -72,6 +72,18 @@ pub enum Def {
     /// items added — how many, at what chance, finished by a loot function
     /// of the mod's code — and items scaled.
     LootModifier(yog_registry::LootModifier),
+    /// A loot table of the mod's own (`hexcasting:random_scroll`, for `/loot`
+    /// and other tables to roll): what it gives, as a loot modifier's `add`.
+    LootTable(LootTableDef),
+}
+
+/// `{ kind: "loot_table", id: "random_scroll", add: [{ item: "@item:…",
+/// function: "mymod:…" }] }`.
+#[derive(Schema, Debug, Clone)]
+pub struct LootTableDef {
+    /// `random_scroll` (the mod's).
+    pub id: String,
+    pub add: Vec<yog_registry::LootAdd>,
 }
 
 /// `{ kind: "tree", id: "amethyst_edified_tree", trunk: { blocks: [{ block:

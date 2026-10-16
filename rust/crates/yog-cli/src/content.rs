@@ -1700,6 +1700,22 @@ fn compile_layout(
             }
             return None;
         }
+        // A table of its own: an empty one in the datapack (so it exists for
+        // `/loot` and other tables), filled by a modifier on it.
+        Def::LootTable(t) => {
+            let id = full_id(&t.id, ns);
+            let Some(path) = id.strip_prefix(&format!("{ns}:")).filter(|p| valid_path(p)) else {
+                cx.err(doc.locate(text, &yog_data::Path::root().key("id")).line as usize, format!("id: `{id}`: the mod's own, `{ns}:<name>`"));
+                return None;
+            };
+            if ok {
+                use yog_data::Schema;
+                out.outputs.push((format!("data/{ns}/loot_table/{path}.json"), pretty(&json!({ "type": "minecraft:generic", "pools": [] }))));
+                let fill = yog_registry::LootModifier { id: id.clone(), tables: vec![id.clone()], add: t.add, scale: Vec::new() };
+                loot.push((id, yog_data::binary::encode(&fill.write())));
+            }
+            return None;
+        }
         Def::Table(t) => {
             match table::check(&cx.file, t, cx.refs, known) {
                 Ok(t) => tables.push(t),
@@ -2430,7 +2446,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                     }
                 }
                 // Read with the recipes (`compile_layout`).
-                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) | yog_formats::def::Def::Tag(_) | yog_formats::def::Def::DamageType(_) | yog_formats::def::Def::Tree(_) | yog_formats::def::Def::LootModifier(_) => {}
+                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) | yog_formats::def::Def::Tag(_) | yog_formats::def::Def::DamageType(_) | yog_formats::def::Def::Tree(_) | yog_formats::def::Def::LootModifier(_) | yog_formats::def::Def::LootTable(_) => {}
                 // Its level is placed on the ladder below.
                 yog_formats::def::Def::ToolMaterial(mut m) => {
                     m.id = full(&m.id);
@@ -2661,7 +2677,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         if kind == Kind::Def {
             // Kinds of recipe are checked with the recipes, ores and dimensions with what they name.
             let of = yog_data::text::parse_value(&text).ok().and_then(|v| v.get("kind").and_then(|k| k.as_str()).map(str::to_string));
-            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table" | "tag" | "damage_type" | "tree")) {
+            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table" | "tag" | "damage_type" | "tree" | "loot_modifier" | "loot_table")) {
                 pending_layouts.push((shown.clone(), text));
             } else {
                 pending_defs.push((shown.clone(), text));
@@ -4026,6 +4042,23 @@ mod tests {
         let missing = r#"{ kind: "ore", id: "x", targets: [{ replaces: "stone", block: "@block:mymod:nope" }], size: 6, per_chunk: 4, height: { min: 0, max: 10 } }"#;
         let e = compile(&project(&[("content/x.ydef", missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no block mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn a_mod_has_loot_tables_of_its_own() {
+        let table = r#"{ kind: "loot_table", id: "random_gem", add: [{ item: "@item:minecraft:diamond", count: [1, 3] }] }"#;
+        let c = compile(&project(&[("content/random_gem.ydef", table)]), "mymod", &yres::Refs::default()).unwrap();
+        let get = |p: &str| c.outputs.iter().find(|(q, _)| q == p).map(|(_, b)| serde_json::from_slice::<Value>(b).unwrap());
+        assert_eq!(get("data/mymod/loot_table/random_gem.json").expect("the table")["pools"], json!([]));
+        let src = c.source.unwrap();
+        assert!(src.contains(r#"registry.add_loot_modifier_data("mymod:random_gem""#), "{src}");
+        let modifier = r#"{ kind: "loot_modifier", id: "more_gems", tables: ["@loot_table:minecraft:chests/simple_dungeon"], add: [{ item: "@item:minecraft:emerald", chance: 0.5 }] }"#;
+        let c = compile(&project(&[("content/more_gems.ydef", modifier)]), "mymod", &yres::Refs::default()).unwrap();
+        assert!(c.source.unwrap().contains(r#"registry.add_loot_modifier_data("mymod:more_gems""#));
+        let missing = r#"{ kind: "loot_modifier", id: "m", tables: ["@loot_table:minecraft:chests/nope"], add: [] }"#;
+        assert!(compile(&project(&[("content/m.ydef", missing)]), "mymod", &yres::Refs::default()).unwrap_err().contains("chests/nope"));
+        let bad = r#"{ kind: "loot_table", id: "minecraft:nope", add: [] }"#;
+        assert!(compile(&project(&[("content/x.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err().contains("the mod's own"));
     }
 
     #[test]
