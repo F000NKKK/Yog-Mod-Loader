@@ -667,6 +667,27 @@ public final class NativeBridge {
         return s.getSavePath(net.minecraft.util.WorldSavePath.ROOT).toAbsolutePath().normalize().toString();
     }
 
+    /** Awards advancement {@code id} to the player {@code uuid}: every criterion it has left. */
+    public static boolean advancementGrant(String uuid, String id) {
+        MinecraftServer s = server;
+        if (s == null || id == null || !(entityByUuid(uuid) instanceof net.minecraft.server.network.ServerPlayerEntity p)) return false;
+        net.minecraft.advancement.AdvancementEntry adv = s.getAdvancementLoader().get(net.minecraft.util.Identifier.tryParse(id));
+        if (adv == null) return false;
+        var progress = p.getAdvancementTracker().getProgress(adv);
+        java.util.List<String> left = new java.util.ArrayList<>();
+        progress.getUnobtainedCriteria().forEach(left::add);
+        for (String c : left) p.getAdvancementTracker().grantCriterion(adv, c);
+        return true;
+    }
+
+    /** Whether the player {@code uuid} has advancement {@code id}. */
+    public static boolean advancementDone(String uuid, String id) {
+        MinecraftServer s = server;
+        if (s == null || id == null || !(entityByUuid(uuid) instanceof net.minecraft.server.network.ServerPlayerEntity p)) return false;
+        net.minecraft.advancement.AdvancementEntry adv = s.getAdvancementLoader().get(net.minecraft.util.Identifier.tryParse(id));
+        return adv != null && p.getAdvancementTracker().getProgress(adv).isDone();
+    }
+
     public static boolean entityAddEffect(
             String uuid, String effectId, int durationTicks, int amplifier, boolean showParticles) {
         Entity e = entityByUuid(uuid);

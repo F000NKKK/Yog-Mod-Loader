@@ -149,4 +149,15 @@ public final class YogClientApi {
         net.minecraft.entity.attribute.EntityAttributeInstance inst = le.getAttributeInstance(attr);
         return inst == null ? Double.NaN : inst.getValue();
     }
+
+    /** Whether this client's player has advancement {@code id} (a book's locked entries ask). */
+    public static boolean advancementDone(String id) {
+        var h = net.minecraft.client.MinecraftClient.getInstance().getNetworkHandler();
+        if (h == null) return false;
+        var map = ((dev.yog.mixin.ClientAdvancementsAccess) h.getAdvancementHandler()).yog$progress();
+        for (var e : map.entrySet()) {
+            if (e.getKey().getId().toString().equals(id)) return e.getValue().isDone();
+        }
+        return false;
+    }
 }
