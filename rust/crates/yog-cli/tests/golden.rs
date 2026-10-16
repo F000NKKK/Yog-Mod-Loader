@@ -55,7 +55,10 @@ fn build(root: &Path, mod_id: &str) -> String {
         let _ = writeln!(out, "# resources: {set}.g.rs\n{src}");
     }
     if let Some(src) = &c.source {
-        let _ = writeln!(out, "# content.g.rs\n{src}");
+        let _ = writeln!(out, "# content.g.rs\n{}", src.root);
+        for (name, code) in &src.parts {
+            let _ = writeln!(out, "# content/{name}.g.rs\n{code}");
+        }
     }
     // Data the code includes (books), shown as Yog Data text.
     for (path, bytes) in &c.data_files {

@@ -1264,11 +1264,13 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
     let res_dir = root.join(crate::yres::GENERATED_DIR);
     // So do `content/` blocks and items (`crate::content`).
     let content_file = root.join(crate::content::GENERATED_FILE);
+    let content_parts = content_file.parent().map(|d| d.join(crate::content::GENERATED_PARTS_DIR)).unwrap_or_default();
     for stale in find_files(&root.join(GENERATED_DIR), "rs") {
         if stale.to_string_lossy().ends_with(".g.rs")
             && !wanted.contains(&stale)
             && stale != res_index
             && stale != content_file
+            && !stale.starts_with(&content_parts)
             && !stale.starts_with(&res_dir)
         {
             let _ = std::fs::remove_file(&stale);

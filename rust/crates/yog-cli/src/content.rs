@@ -3881,7 +3881,7 @@ mod tests {
                 .iter()
                 .any(|(p, _)| p == "assets/mymod/textures/block/ruby_ore.png")
         );
-        let src = c.source.as_ref().unwrap();
+        let src = &c.source.as_ref().unwrap().all();
         assert!(
             src.contains("pub const RUBY_ORE: &'static str = \"mymod:ruby_ore\";"),
             "{src}"
@@ -3937,7 +3937,7 @@ mod tests {
         let bs = output(&c, "assets/mymod/blockstates/screen.json");
         assert_eq!(bs["variants"]["facing=north"], json!({ "model": "mymod:block/screen" }));
         assert_eq!(bs["variants"]["facing=west"]["y"], json!(270));
-        assert!(c.source.unwrap().contains(".facing(\"horizontal\", \"toward\")"));
+        assert!(c.source.unwrap().all().contains(".facing(\"horizontal\", \"toward\")"));
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -3966,7 +3966,7 @@ mod tests {
         let bs = output(&c, "assets/mymod/blockstates/pipe.json");
         assert_eq!(bs["multipart"].as_array().unwrap().len(), 7);
         assert_eq!(bs["multipart"][5]["apply"]["x"], json!(270));
-        let src = c.source.unwrap();
+        let src = c.source.unwrap().all();
         assert!(
             src.contains(".shape(6.0, 6.0, 6.0, 10.0, 10.0, 10.0)"),
             "{src}"
@@ -3984,7 +3984,7 @@ mod tests {
         let a = format!(r#"{{ {cube}, block: {{ sound: "@sound_group:mymod:crystal" }} }}"#);
         let b = format!(r#"{{ {cube}, block: {{ sound: "amethyst" }} }}"#);
         let c = compile(&project(&[("content/a.yblock", &a), ("content/b.yblock", &b), ("content/crystal.ydef", crystal)]), "mymod", &yres::Refs::default()).unwrap();
-        let src = c.source.unwrap();
+        let src = c.source.unwrap().all();
         assert!(src.contains(r#"registry.register_sound_group(::yog_api::SoundGroup::new("mymod:crystal").sounds("mymod:crystal.break", "minecraft:block.glass.step", "mymod:crystal.place", "mymod:crystal.hit", "mymod:crystal.fall").volume(1.0).pitch(1.5));"#), "{src}");
         assert!(src.contains(r#".sound("mymod:crystal")"#) && src.contains(r#".sound("minecraft:amethyst")"#), "{src}");
 
@@ -4087,7 +4087,7 @@ mod tests {
         ]);
         let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
         assert_eq!(c.recipes, 4);
-        let src = c.source.clone().unwrap();
+        let src = c.source.clone().unwrap().all();
         for want in [
             r#"kind: ::yog_api::RecipeKind::Shaped { pattern: vec!["RR".into(), "RR".into()], key: vec![('R', vec!["mymod:ruby".into()])] }, result: "minecraft:emerald_block".into(), count: 1"#,
             r##"Shapeless { ingredients: vec![vec!["minecraft:emerald".into()], vec!["#c:dusts".into()]] }, result: "mymod:ruby".into(), count: 2"##,
@@ -4134,7 +4134,7 @@ mod tests {
             ("src/bench.yui", r#"<Screen id="mymod:bench" width="176" height="166" x:ViewModel="Vm"><Slot index="0"/></Screen>"#),
         ]);
         let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
-        assert!(c.source.unwrap().contains(r#".inventory("mymod:bench")"#));
+        assert!(c.source.unwrap().all().contains(r#".inventory("mymod:bench")"#));
         let _ = std::fs::remove_dir_all(root);
 
         let root = project(&[("content/bench.yblock", block)]);
@@ -4164,7 +4164,7 @@ mod tests {
         refs.texts.insert("Book.title".into(), ("mymod.book.title".into(), "Guide".into()));
         let out = compile(&root, "mymod", &refs).unwrap();
         assert_eq!(out.books, 1);
-        let src = out.source.unwrap();
+        let src = out.source.unwrap().all();
         assert!(src.contains(r#"registry.register_book_data("mymod:guide", include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/books/mymod__guide.ydata")));"#), "{src}");
         // The runtime reads the bytes by the book's schema; references come back as ids.
         assert_eq!(out.data_files[0].0, "books/mymod__guide.ydata");
@@ -4239,7 +4239,7 @@ mod tests {
         let helm = format!(r#"{{ {model}, item: {{ armor: {{ slot: "head", material: "iron" }} }} }}"#);
         let files = [("content/mythril.ydef", level), ("content/mythril_tools.ydef", tool), ("content/mythril_armor.ydef", armor), ("content/pick.yitem", pick.as_str()), ("content/helm.yitem", helm.as_str())];
         let c = compile(&project(&files), "mymod", &yres::Refs::default()).unwrap();
-        let src = c.source.unwrap();
+        let src = c.source.unwrap().all();
         assert!(src.contains(r#".tool("pickaxe", "mymod:mythril", 1.0, -2.8)"#), "the kind's attack: {src}");
         assert!(src.contains(r#".armor("head", "minecraft:iron")"#), "{src}");
         assert!(src.contains(r##"level: "mymod:mythril".into(), repair: "#c:ingots".into(), level_index: 4, incorrect: "minecraft:incorrect_for_netherite_tool".into()"##), "above diamond: netherite's on both versions: {src}");
@@ -4283,7 +4283,7 @@ mod tests {
         assert_eq!(pf["placement"][2]["height"]["type"], "minecraft:trapezoid");
         assert_eq!(get("when/neoforge/1.21/data/mymod/neoforge/biome_modifier/mythril_ore.json")["type"], "neoforge:add_features");
         assert_eq!(get("when/forge/any/data/mymod/forge/biome_modifier/mythril_ore.json")["biomes"], "#minecraft:is_overworld");
-        let src = c.source.unwrap();
+        let src = c.source.unwrap().all();
         assert!(src.contains(r#"registry.add_biome_feature("mymod:mythril_ore", "minecraft:is_overworld", "underground_ores");"#), "{src}");
         let bad = r#"{ kind: "ore", id: "x", targets: [{ replaces: "granite", block: "@block:mymod:nope" }], size: 6, per_chunk: 4, height: { min: 0, max: 10 } }"#;
         let e = compile(&project(&[("content/x.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
@@ -4312,7 +4312,7 @@ mod tests {
         assert_eq!((one["parent"].as_str(), one["criteria"]["c0"]["trigger"].as_str()), (Some("mymod:root"), Some("minecraft:impossible")));
         assert_eq!(c.lang[&("mymod".to_string(), yres::NEUTRAL_LOCALE.to_string())]["advancement.mymod.root"], "Gems");
         // The code names them by constant.
-        let src = c.source.as_deref().unwrap();
+        let src = &c.source.as_ref().unwrap().all();
         assert!(src.contains("pub const LORE_ONE: &'static str = \"mymod:lore/one\";"), "{src}");
         let bad = r#"{ kind: "advancement", id: "x", icon: "@item:minecraft:paper", title: "X", criteria: [{ granted: true, used_item: "@item:minecraft:paper" }] }"#;
         assert!(compile(&project(&[("content/x.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err().contains("one of granted"));
@@ -4324,11 +4324,11 @@ mod tests {
         let c = compile(&project(&[("content/random_gem.ydef", table)]), "mymod", &yres::Refs::default()).unwrap();
         let get = |p: &str| c.outputs.iter().find(|(q, _)| q == p).map(|(_, b)| serde_json::from_slice::<Value>(b).unwrap());
         assert_eq!(get("data/mymod/loot_table/random_gem.json").expect("the table")["pools"], json!([]));
-        let src = c.source.unwrap();
+        let src = c.source.unwrap().all();
         assert!(src.contains(r#"registry.add_loot_modifier_data("mymod:random_gem""#), "{src}");
         let modifier = r#"{ kind: "loot_modifier", id: "more_gems", tables: ["@loot_table:minecraft:chests/simple_dungeon"], add: [{ item: "@item:minecraft:emerald", chance: 0.5 }] }"#;
         let c = compile(&project(&[("content/more_gems.ydef", modifier)]), "mymod", &yres::Refs::default()).unwrap();
-        assert!(c.source.unwrap().contains(r#"registry.add_loot_modifier_data("mymod:more_gems""#));
+        assert!(c.source.unwrap().all().contains(r#"registry.add_loot_modifier_data("mymod:more_gems""#));
         let missing = r#"{ kind: "loot_modifier", id: "m", tables: ["@loot_table:minecraft:chests/nope"], add: [] }"#;
         assert!(compile(&project(&[("content/m.ydef", missing)]), "mymod", &yres::Refs::default()).unwrap_err().contains("chests/nope"));
         let bad = r#"{ kind: "loot_table", id: "minecraft:nope", add: [] }"#;
@@ -4341,7 +4341,7 @@ mod tests {
         let block = format!(r#"{{ item: {{ stack_size: 16, fire_resistant: true, fuel_ticks: 300 }}, {model} }}"#);
         let plain = format!(r#"{{ {model} }}"#);
         let c = compile(&project(&[("content/log.yblock", &block), ("content/stone.yblock", &plain)]), "mymod", &yres::Refs::default()).unwrap();
-        let src = c.source.unwrap();
+        let src = c.source.unwrap().all();
         assert!(src.contains(r#"registry.register_item(::yog_api::ItemDef::new("mymod:log").max_stack(16).fire_resistant().fuel(300));"#), "{src}");
         assert!(!src.contains(r#"ItemDef::new("mymod:stone")"#), "no item form of its own: the host's default");
     }
@@ -4436,7 +4436,7 @@ mod tests {
         assert_eq!(v.get("generator_type"), Some(&yog_data::Value::from("mymod:flatlands")));
         let t = yog_data::read_value::<yog_worldgen::Terrain>(v.get("terrain").unwrap()).unwrap();
         assert_eq!((t.base_height, t.fill.as_str()), (70, "minecraft:sandstone"));
-        let src = c.source.unwrap();
+        let src = c.source.unwrap().all();
         assert!(src.contains(r#"registry.register_dimension_data("mymod:flatlands", include_bytes!("#), "{src}");
         let bad = r#"{ kind: "dimension", id: "x", terrain: { fill: "@block:minecraft:nope" } }"#;
         let e = compile(&project(&[("content/x.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
@@ -4449,7 +4449,7 @@ mod tests {
         let item = format!(r#"{{ requires: ["pehkui", "create"], {model} }}"#);
         let recipe = r#"{ requires: ["pehkui"], type: "shapeless", ingredients: ["@item:minecraft:stick"], result: "@item:minecraft:stick" }"#;
         let c = compile(&project(&[("content/shrink.yitem", &item), ("content/r.yrecipe", recipe)]), "mymod", &yres::Refs::default()).unwrap();
-        let src = c.source.unwrap();
+        let src = c.source.unwrap().all();
         assert!(src.contains(r#"if ::yog_api::mod_loaded("pehkui") && ::yog_api::mod_loaded("create") { registry.register_item(Items::shrink()); }"#), "{src}");
         assert!(src.contains(r#"if ::yog_api::mod_loaded("pehkui") { registry.add_recipe("#), "{src}");
     }
@@ -4487,7 +4487,7 @@ mod tests {
         let r = r##"{ type: "mymod:infusion", slots: { core: ["@item:minecraft:diamond"], ring: [["@item:minecraft:coal", "@item:minecraft:charcoal"], "@tag:item:c:dusts"] },
                      values: { time: 200 }, result: "@item:minecraft:emerald", count: 2 }"##;
         let c = compile(&project(&[("content/infusion.ydef", kind), ("content/infusion.yrecipe", r)]), "mymod", &yres::Refs::default()).unwrap();
-        let src = c.source.unwrap();
+        let src = c.source.unwrap().all();
         assert!(src.contains("registry.add_recipe_json(\"mymod:infusion\""), "{src}");
         assert!(src.contains(r#"\"type\":\"mymod:infusion\""#) && src.contains(r#"\"time\":200"#), "{src}");
 
@@ -4534,7 +4534,7 @@ mod tests {
             output(&c, "assets/mymod/models/item/ruby.json"),
             json!({ "parent": "minecraft:item/generated", "textures": { "layer0": "mymod:item/ruby" } })
         );
-        let src = c.source.clone().unwrap();
+        let src = c.source.clone().unwrap().all();
         assert!(src.contains(".max_stack(16)"), "{src}");
         assert!(
             src.contains(".food(::yog_api::FoodDef::new(4, 0.3))"),
@@ -4571,7 +4571,7 @@ mod tests {
         let anim = r#"{ "spread": { "length": 0.5, "bones": { "wing": { "rotation": { "0": [0, 0, 0], "0.5": [0, 0, -90] } } } } }"#;
         let out = compile(&project(&[("content/wings.ymodel", model), ("content/wings.yanim", anim)]), "mymod", &yres::Refs::default()).unwrap();
         assert!(out.data_files.iter().any(|(p, _)| p == "body/models/mymod__wings.ydata"));
-        let src = out.source.unwrap();
+        let src = out.source.unwrap().all();
         assert!(src.contains("registry.register_body_model(\"mymod:wings\""), "{src}");
         assert!(src.contains("registry.register_body_anims(\"mymod:wings\""), "{src}");
         assert!(src.contains("pub const WINGS: &'static str = \"mymod:wings\";"), "{src}");
@@ -4586,9 +4586,12 @@ mod tests {
         let wisp = r#"{ "name": "Wisp", "kind": "mob", "width": 0.5, "height": 0.5, "model": "wisp", "goals": ["float", "wander"],
             "attributes": { "max_health": 6, "movement_speed": 0.3 } }"#;
         let out = compile(&project(&[("content/wisp.ymodel", model), ("content/wisp.yentity", wisp)]), "mymod", &yres::Refs::default()).unwrap();
+        // Each part in its file; the root only includes them.
         let src = out.source.as_ref().unwrap();
-        assert!(src.contains("registry.register_entity_data(\"mymod:wisp\""), "{src}");
-        assert!(src.contains("pub const WISP: &'static str = \"mymod:wisp\";"), "{src}");
+        assert!(src.part("register").contains("registry.register_entity_data(\"mymod:wisp\""), "{src:?}");
+        assert!(src.part("entities").contains("pub const WISP: &'static str = \"mymod:wisp\";"), "{src:?}");
+        assert!(src.root.contains("\"/generated/content/entities.g.rs\""), "{}", src.root);
+        assert!(src.root.lines().all(|l| l.starts_with("//") || l.starts_with("include!(")), "{}", src.root);
         assert!(out.data_files.iter().any(|(p, _)| p == "entities/mymod__wisp.ydata"));
         let (_, data) = out.data_files.iter().find(|(p, _)| p == "entities/mymod__wisp.ydata").unwrap();
         let def: yog_registry::EntityDef = yog_data::read_bytes(data).unwrap();
