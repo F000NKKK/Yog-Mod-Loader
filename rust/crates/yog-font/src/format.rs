@@ -7,6 +7,7 @@
 //! never a notion of what it's for.
 
 use yog_data::Schema;
+use yog_graphics::{Color, Seg};
 
 /// A font: its metrics, its glyphs, which characters they draw and the
 /// rules that turn text into glyphs ([`crate::shape`]).
@@ -75,8 +76,8 @@ pub enum Op {
 #[derive(Schema, Debug, Clone, PartialEq)]
 pub struct Fill {
     pub path: Vec<Seg>,
-    /// `0xAARRGGBB`; none: the text's colour.
-    pub color: Option<u32>,
+    /// None: the text's colour.
+    pub color: Option<Color>,
 }
 
 #[derive(Schema, Debug, Clone, PartialEq)]
@@ -84,8 +85,8 @@ pub struct Stroke {
     pub path: Vec<Seg>,
     /// How wide, in units.
     pub width: f32,
-    /// `0xAARRGGBB`; none: the text's colour.
-    pub color: Option<u32>,
+    /// None: the text's colour.
+    pub color: Option<Color>,
 }
 
 /// A picture in the box `x, y` (bottom-left) `w × h` units.
@@ -98,27 +99,12 @@ pub struct Image {
     /// Its pixels' size.
     pub px_w: u32,
     pub px_h: u32,
-    /// `0xAARRGGBB`, row by row from the top.
-    pub argb: Vec<u32>,
+    /// Its pixels, row by row from the top.
+    pub pixels: Vec<Color>,
     /// Whether the text's colour tints it (a picture in one colour, white
     /// for the text's own); else it keeps its colours.
     #[data(default)]
     pub tinted: bool,
-}
-
-/// A path segment.
-#[derive(Schema, Debug, Clone, Copy, PartialEq)]
-#[data(tag = "s")]
-pub enum Seg {
-    /// Starts a contour at `x, y`.
-    Move { x: f32, y: f32 },
-    Line { x: f32, y: f32 },
-    /// A quadratic curve through control point `x1, y1`.
-    Quad { x1: f32, y1: f32, x: f32, y: f32 },
-    /// A cubic curve through control points `x1, y1` and `x2, y2`.
-    Cubic { x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32 },
-    /// Closes the contour.
-    Close,
 }
 
 /// Character `char` (a Unicode scalar) is drawn by glyph `glyph`.

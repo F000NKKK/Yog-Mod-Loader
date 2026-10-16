@@ -9,3 +9,4 @@ description = "Yog fonts — one format for every font of the system: glyphs as 
 
 [dependencies]
 yog-data = "0.4"
+yog-graphics = "0.1"
