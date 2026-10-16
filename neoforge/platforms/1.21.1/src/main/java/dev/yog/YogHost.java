@@ -115,6 +115,7 @@ public class YogHost {
         parseInventoryDefs();
 
         modBus.addListener(this::onRegister);
+        YogEffects.listen(modBus);
         modBus.addListener(this::onAddPackFinders);
 
         NeoForge.EVENT_BUS.register(this);

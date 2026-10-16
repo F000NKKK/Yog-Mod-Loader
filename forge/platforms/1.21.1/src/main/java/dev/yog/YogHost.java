@@ -118,6 +118,7 @@ public class YogHost {
 
         var modBus = context.getModEventBus();
         modBus.addListener(this::onRegister);
+        YogEffects.listen(modBus);
         modBus.addListener(this::onAddPackFinders);
 
         MinecraftForge.EVENT_BUS.register(this);
