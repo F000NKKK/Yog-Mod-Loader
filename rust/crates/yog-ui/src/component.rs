@@ -238,9 +238,9 @@ pub fn build(name: &str, attrs: &[(&str, &str)]) -> Widget {
 /// What [`build`] shows for a component it can't build.
 pub fn error_box(message: &str) -> Widget {
     widget::panel(FlexDir::Column)
-        .bg(0xC0_400000)
+        .bg(Color(0xC0_400000))
         .padding(2.0, 2.0, 2.0, 2.0)
-        .child(widget::label(message).color(0xFF_FF8080))
+        .child(widget::label(message).color(Color(0xFF_FF8080)))
         .min_w(16.0)
         .min_h(12.0)
 }
@@ -525,22 +525,8 @@ pub fn apply_style(w: Widget, key: &str, value: &str) -> Widget {
 
 /// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB` (as `.yui` colors), or a decimal
 /// `0xAARRGGBB` value (what a bound `u32` property arrives as).
-pub fn parse_color(value: &str) -> Option<u32> {
-    let v = value.trim();
-    if !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit()) {
-        return v.parse().ok();
-    }
-    let hex = v
-        .strip_prefix('#')
-        .or_else(|| v.strip_prefix("0x"))
-        .or_else(|| v.strip_prefix("0X"))?
-        .replace('_', "");
-    let n = u32::from_str_radix(&hex, 16).ok()?;
-    match hex.len() {
-        6 => Some(0xFF00_0000 | n),
-        8 => Some(n),
-        _ => None,
-    }
+pub fn parse_color(value: &str) -> Option<Color> {
+    Color::parse(value)
 }
 
 /// The screen designer's protocol (see the [module docs](self)): one C-ABI

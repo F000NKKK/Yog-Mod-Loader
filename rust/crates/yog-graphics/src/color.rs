@@ -57,6 +57,22 @@ impl Color {
         Color::from_f32([a[0] * b[0], a[1] * b[1], a[2] * b[2], a[3] * b[3]])
     }
 
+    /// `#RRGGBB` / `#AARRGGBB` (or `0x…`, `_` allowed), or a decimal
+    /// `0xAARRGGBB`.
+    pub fn parse(value: &str) -> Option<Color> {
+        let v = value.trim();
+        if !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit()) {
+            return v.parse().ok().map(Color);
+        }
+        let hex = v.strip_prefix('#').or_else(|| v.strip_prefix("0x")).or_else(|| v.strip_prefix("0X"))?.replace('_', "");
+        let n = u32::from_str_radix(&hex, 16).ok()?;
+        match hex.len() {
+            6 => Some(Color::rgb(n)),
+            8 => Some(Color(n)),
+            _ => None,
+        }
+    }
+
     /// With alpha `a`.
     pub const fn with_alpha(self, a: u8) -> Color {
         Color(self.0 & 0x00ff_ffff | (a as u32) << 24)
