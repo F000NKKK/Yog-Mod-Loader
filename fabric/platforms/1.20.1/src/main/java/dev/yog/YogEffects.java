@@ -73,7 +73,7 @@ final class YogEffects {
         for (YogContent.Potion p : content.potions) {
             Potion to = Registries.POTION.get(new Identifier(p.id()));
             for (YogContent.Brew b : p.brewed()) {
-                Identifier from = new Identifier(b.from());
+                Identifier from = potionId(b.from());
                 Identifier with = new Identifier(b.with());
                 if (!Registries.POTION.containsId(from) || !Registries.ITEM.containsId(with)) {
                     System.err.println("[yog] potion " + p.id() + ": can't brew from " + b.from() + " with " + b.with());
@@ -83,6 +83,10 @@ final class YogEffects {
                         net.minecraft.recipe.Ingredient.ofItems(Registries.ITEM.get(with)), to);
             }
         }
+    }
+
+    private static Identifier potionId(String id) {
+        return id.startsWith("yog:") ? new Identifier("minecraft", id.substring(4)) : new Identifier(id);
     }
 
     private static StatusEffectCategory category(String c) {

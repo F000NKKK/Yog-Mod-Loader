@@ -180,6 +180,10 @@ impl Known {
             return Err(format!("`{id}`: write its namespace (`minecraft:{id}`, `{}:{id}`)", self.ns));
         };
         let what = kind.word();
+        // `yog:` potion ids are stable aliases resolved by each game backend.
+        if kind == RefKind::Potion && ns == "yog" {
+            return Ok(());
+        }
         // An item may be a block's item.
         let kinds: &[RefKind] = if kind == RefKind::Item { &[RefKind::Item, RefKind::Block] } else { std::slice::from_ref(&kind) };
         // The mod's loot tables are its blocks' and its data's.
@@ -194,20 +198,6 @@ impl Known {
             };
         }
         if ns == "minecraft" {
-            if kind == RefKind::Potion {
-                const POTIONS: &[&str] = &[
-                    "water", "mundane", "thick", "awkward", "night_vision", "long_night_vision", "invisibility",
-                    "long_invisibility", "leaping", "long_leaping", "strong_leaping", "fire_resistance",
-                    "long_fire_resistance", "swiftness", "long_swiftness", "strong_swiftness", "slowness",
-                    "long_slowness", "strong_slowness", "water_breathing", "long_water_breathing", "healing",
-                    "strong_healing", "harming", "strong_harming", "poison", "long_poison", "strong_poison",
-                    "regeneration", "long_regeneration", "strong_regeneration", "strength", "long_strength",
-                    "strong_strength", "weakness", "long_weakness", "luck", "turtle_master", "long_turtle_master",
-                    "strong_turtle_master", "slow_falling", "long_slow_falling", "wind_charged", "weaving",
-                    "oozing", "infested",
-                ];
-                return if POTIONS.contains(&path) { Ok(()) } else { Err(format!("no potion {id} in Minecraft")) };
-            }
             let v = &*VANILLA;
             if !v.versions.contains(&self.datapack) {
                 return Err(format!("the mod's datapack is Minecraft {}, which Yog doesn't know ({})", self.datapack, v.versions.join(", ")));

@@ -49,6 +49,10 @@ final class YogEffects {
         return new ResourceLocation(id);
     }
 
+    private static ResourceLocation potionId(String id) {
+        return id.startsWith("yog:") ? new ResourceLocation("minecraft", id.substring(4)) : id(id);
+    }
+
     private static void onRegister(RegisterEvent event) {
         if (event.getRegistryKey().equals(Registries.MOB_EFFECT)) {
             for (YogContent.Effect e : content().effects) {
@@ -107,7 +111,7 @@ final class YogEffects {
             for (YogContent.Potion p : content().potions) {
                 Potion to = BuiltInRegistries.POTION.get(id(p.id()));
                 for (YogContent.Brew b : p.brewed()) {
-                    ResourceLocation from = id(b.from()), with = id(b.with());
+                    ResourceLocation from = potionId(b.from()), with = id(b.with());
                     if (!BuiltInRegistries.POTION.containsKey(from) || !BuiltInRegistries.ITEM.containsKey(with)) {
                         System.err.println("[yog] potion " + p.id() + ": can't brew from " + b.from() + " with " + b.with());
                         continue;

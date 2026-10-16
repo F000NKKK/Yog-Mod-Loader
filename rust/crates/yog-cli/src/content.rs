@@ -810,9 +810,14 @@ fn compile_file(
     let id = format!("{ns}:{p}");
     let auto = parts.register.unwrap_or_default() == yog_formats::content::Register::Auto;
 
+    let potion_only = parts.item.as_ref().is_some_and(|it| it.potion.is_some());
     // Name and tooltip → lang, under the keys the game looks up.
     let key = format!("{}.{ns}.{}", kind.word(), p.replace('/', "."));
-    for (field, text, target) in [("name", &parts.name, key.clone()), ("tooltip", &parts.tooltip, format!("{key}.desc"))] {
+    for (field, text, target) in (!potion_only)
+        .then_some([("name", &parts.name, key.clone()), ("tooltip", &parts.tooltip, format!("{key}.desc"))])
+        .into_iter()
+        .flatten()
+    {
         let Some(t) = text else { continue };
         let from = match t {
             yog_data::Text::Literal(s) => {
@@ -2851,7 +2856,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                     }
                 }
                 // Read with the recipes (`compile_layout`).
-                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) | yog_formats::def::Def::Tag(_) | yog_formats::def::Def::DamageType(_) | yog_formats::def::Def::Tree(_) | yog_formats::def::Def::LootModifier(_) | yog_formats::def::Def::LootTable(_) | yog_formats::def::Def::Attribute(_) | yog_formats::def::Def::Effect(_) | yog_formats::def::Def::Potion(_) | yog_formats::def::Def::Advancement(_) => {}
+                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) | yog_formats::def::Def::Tag(_) | yog_formats::def::Def::DamageType(_) | yog_formats::def::Def::Tree(_) | yog_formats::def::Def::LootModifier(_) | yog_formats::def::Def::LootTable(_) | yog_formats::def::Def::Attribute(_) | yog_formats::def::Def::Effect(_) | yog_formats::def::Def::Advancement(_) => {}
                 // Its level is placed on the ladder below.
                 yog_formats::def::Def::ToolMaterial(mut m) => {
                     m.id = full(&m.id);
