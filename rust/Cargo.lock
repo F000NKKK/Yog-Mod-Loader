@@ -1600,6 +1600,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-font"
+version = "0.1.0"
+dependencies = [
+ "yog-data",
+]
+
+[[package]]
 name = "yog-formats"
 version = "0.7.8"
 dependencies = [
