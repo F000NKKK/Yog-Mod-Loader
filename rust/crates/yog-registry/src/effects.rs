@@ -98,6 +98,9 @@ pub struct Brew {
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct PotionDef {
     pub id: String,
+    /// The name its translations go by (`item.minecraft.potion.effect.<name>`):
+    /// its id's by default — a longer or stronger kind shares the plain one's.
+    pub name: Option<String>,
     pub effects: Vec<PotionEffect>,
     #[data(default)]
     pub brewed: Vec<Brew>,
@@ -118,8 +121,10 @@ mod tests {
         };
         let back = yog_data::read_bytes::<EffectDef>(&yog_data::binary::encode(&e.write())).unwrap();
         assert_eq!(back, e);
+        assert_eq!(yog_data::text::to_string(&e.write()).contains("\"multiply_total\"") && yog_data::text::to_string(&e.write()).contains("\"beneficial\""), true, "{}", yog_data::text::to_string(&e.write()));
         let p = PotionDef {
             id: "mymod:clarity".into(),
+            name: None,
             effects: vec![PotionEffect { effect: "mymod:clarity".into(), duration: 3600, amplifier: 0 }],
             brewed: vec![Brew { from: "minecraft:awkward".into(), with: "mymod:dust".into() }],
         };
