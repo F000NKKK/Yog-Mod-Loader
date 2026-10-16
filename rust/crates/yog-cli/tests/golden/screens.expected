@@ -359,7 +359,7 @@ struct __T1 {
     b0: ::yog_kit::bind::Slot<String>,
     b1: ::yog_kit::bind::Slot<String>,
     b2: ::yog_kit::bind::Slot<String>,
-    b3: ::yog_kit::bind::Slot<u32>,
+    b3: ::yog_kit::bind::Slot<::yog_api::ui::Color>,
     b4: ::yog_kit::bind::Slot<String>,
     b5: ::yog_kit::bind::Slot<String>,
     b6: ::yog_kit::bind::Slot<String>,

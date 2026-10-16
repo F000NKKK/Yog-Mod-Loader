@@ -734,7 +734,7 @@ impl VmGen<'_> {
                 ("String", "::yog_kit::bind::text(&(E))".to_string())
             }
             Target::Count => ("u32", "::yog_kit::bind::count(E)".into()),
-            Target::Color(_) => ("u32", "::yog_kit::bind::color(E)".into()),
+            Target::Color(_) => ("::yog_api::ui::Color", "::yog_kit::bind::color(E)".into()),
             Target::Enabled | Target::Visible | Target::Checked => {
                 ("bool", "::yog_kit::bind::flag(E)".into())
             }

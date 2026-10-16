@@ -6,7 +6,7 @@
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 
-use yog_api::ui::{StateFlags, Units, Widget};
+use yog_api::ui::{Color, StateFlags, Units, Widget};
 
 /// The last value of one binding.
 #[derive(Debug, Clone, Default)]
@@ -52,23 +52,29 @@ impl<T: Display + ?Sized> BindText for T {
     }
 }
 
-/// A value used as a `0xAARRGGBB` colour by a `.yui` binding.
+/// A value used as a colour by a `.yui` binding.
 #[diagnostic::on_unimplemented(
     message = "`{Self}` can't be used as a colour in a .yui binding",
-    note = "colours are u32 values 0xAARRGGBB (a .yres colour, or a view-model method returning u32)"
+    note = "colours are `Color` or u32 values 0xAARRGGBB (a .yres colour, or a view-model method returning one)"
 )]
 pub trait BindColor {
-    fn bind_color(&self) -> u32;
+    fn bind_color(&self) -> Color;
 }
 
-impl BindColor for u32 {
-    fn bind_color(&self) -> u32 {
+impl BindColor for Color {
+    fn bind_color(&self) -> Color {
         *self
     }
 }
 
+impl BindColor for u32 {
+    fn bind_color(&self) -> Color {
+        Color(*self)
+    }
+}
+
 impl<T: BindColor + ?Sized> BindColor for &T {
-    fn bind_color(&self) -> u32 {
+    fn bind_color(&self) -> Color {
         (**self).bind_color()
     }
 }
@@ -79,7 +85,7 @@ pub fn text<T: BindText + ?Sized>(v: &T) -> String {
 }
 
 /// Colour of a bound value.
-pub fn color<T: BindColor>(v: T) -> u32 {
+pub fn color<T: BindColor>(v: T) -> Color {
     v.bind_color()
 }
 
@@ -190,9 +196,9 @@ mod tests {
     fn conversions() {
         assert_eq!(text(&5), "5");
         assert_eq!(text("x"), "x");
-        assert_eq!(color(0xFF00FF00u32), 0xFF00FF00);
+        assert_eq!(color(0xFF00FF00u32), Color(0xFF00FF00));
         let seven: &u32 = &7;
-        assert_eq!(color(seven), 7);
+        assert_eq!(color(seven), Color(7));
         assert_eq!(count(-1i32), 0);
         assert_eq!(count(3usize), 3);
         assert_eq!(key("a"), key(&"a".to_string()));
