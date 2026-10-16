@@ -1235,6 +1235,7 @@ pub mod kinds {
         Fluid = "fluid",
         Biome = "biome",
         Dimension = "dimension",
+        Potion = "potion",
     }
 }
 

@@ -350,6 +350,7 @@ struct Entry {
     requires: Vec<String>,
     block: BlockProps,
     item: ItemProps,
+    potion: Option<yog_registry::PotionDef>,
 }
 
 /// Per-file checking state.
@@ -846,7 +847,22 @@ fn compile_file(
         out.outputs.push((full, pretty(value)));
     };
 
-    let mut entry = Entry { kind, id: id.clone(), file: cx.file.clone(), auto, requires: parts.requires.clone(), block: BlockProps::default(), item: ItemProps::default() };
+    let potion = parts.item.as_ref().and_then(|it| it.potion.as_ref()).map(|p| yog_registry::PotionDef {
+        id: id.clone(),
+        name: p.name.clone(),
+        effects: p.effects.clone(),
+        brewed: Vec::new(),
+    });
+    let mut entry = Entry {
+        kind,
+        id: id.clone(),
+        file: cx.file.clone(),
+        auto,
+        requires: parts.requires.clone(),
+        block: BlockProps::default(),
+        item: ItemProps::default(),
+        potion,
+    };
 
     // Its tags: a block's block tag, and the item tag of the same name for its item form.
     for tag in &parts.tags {

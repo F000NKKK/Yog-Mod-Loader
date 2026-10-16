@@ -27,8 +27,9 @@ pub struct Common {
     pub format: Option<u32>,
     /// Its id (`mymod:ruby_block`); the file's name in the mod's namespace by default.
     pub id: Option<String>,
-    /// The item it makes.
-    pub result: ItemId,
+    /// The item it makes, or the potion it brews.
+    #[data(with = "RefTo<(yog_data::kinds::Item, yog_data::kinds::Potion)>")]
+    pub result: String,
     /// How many (1–64).
     #[data(default = "one")]
     pub count: u32,
@@ -131,7 +132,7 @@ pub struct Smithing {
 #[derive(Schema)]
 pub struct Brewing {
     /// The potion in the bottle before brewing.
-    #[data(with = "RefTo<yog_registry::Potion>")]
+    #[data(with = "RefTo<yog_data::kinds::Potion>")]
     pub from: String,
     /// The item added to the brewing stand.
     #[data(with = "RefTo<yog_data::kinds::Item>")]
