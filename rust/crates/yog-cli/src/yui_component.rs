@@ -591,7 +591,7 @@ mod tests {
             code.contains(r##"Prop::color("fill", "#FF010203")"##),
             "{code}"
         );
-        assert!(code.contains(".bg(0xFF010203)"), "{code}");
+        assert!(code.contains(".bg(::yog_api::ui::Color(0xFF010203))"), "{code}");
         let (screen, _) = screen.unwrap();
         assert!(screen.contains(r##"("fill", "#FF010203")"##), "{screen}");
     }

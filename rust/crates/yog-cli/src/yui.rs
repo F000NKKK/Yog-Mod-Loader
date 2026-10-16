@@ -1310,7 +1310,7 @@ mod tests {
             "{code}"
         );
         assert!(
-            code.contains(".bg(0xFF000000)") && code.contains(".w(Units::Px(80.0))"),
+            code.contains(".bg(::yog_api::ui::Color(0xFF000000))") && code.contains(".w(Units::Px(80.0))"),
             "{code}"
         );
         assert!(!code.contains(".value("), "{code}");
@@ -1347,7 +1347,7 @@ mod tests {
             None,
         )
         .unwrap();
-        assert!(code.contains(r#"widget::image("item:apple").stretch(::yog_api::ui::Stretch::UniformToFill).tint(0x80FFFFFF)"#), "{code}");
+        assert!(code.contains(r#"widget::image("item:apple").stretch(::yog_api::ui::Stretch::UniformToFill).tint(::yog_api::ui::Color(0x80FFFFFF))"#), "{code}");
         assert!(
             code.contains(".w(Units::Px(156.0))") || code.contains("w(156"),
             "{code}"
@@ -1401,7 +1401,7 @@ mod tests {
             .unwrap()
             .0;
         assert!(code.contains(r#"bg_image("sprite:panel")"#), "{code}");
-        assert!(code.contains("bg(0xFF000000)"), "{code}");
+        assert!(code.contains("bg(::yog_api::ui::Color(0xFF000000))"), "{code}");
         let err = generate_for(&screen(r#"<Column bg="sprite:nope"/>"#), "s", None).unwrap_err();
         assert!(err.contains("<Column> bg=\"sprite:nope\": unknown sprite"), "{err}");
     }
@@ -1456,8 +1456,8 @@ mod tests {
         assert!(code.contains(r#"pub const ID: &str = "mymod:main";"#));
         assert!(code.contains(r#"widget::label("Main & Menu")"#));
         assert!(code.contains(".at(8.0, 6.0)"));
-        assert!(code.contains(".color(0xFFFFFFFF)"));
-        assert!(code.contains(".bg(0xC0101010)"));
+        assert!(code.contains(".color(::yog_api::ui::Color(0xFFFFFFFF))"));
+        assert!(code.contains(".bg(::yog_api::ui::Color(0xC0101010))"));
         assert!(code.contains(".no_wrap()"));
         assert!(code.contains(".w(Units::Percent(50.0))"));
         assert!(code.contains("widget::inv_slot(\"minecraft:diamond\", 3)"));

@@ -1742,7 +1742,7 @@ mod tests {
         let code = crate::yui::generate_for(src, "s", None).unwrap().0;
         assert!(code.contains(r#".bg_image("sprite:panel")"#), "{code}");
         assert_eq!(code.matches(r#".bg_image("sprite:button")"#).count(), 1, "{code}");
-        assert!(code.contains("bg(0xFF00FF00)") && code.contains("bg(0xFFFF0000)"), "{code}");
+        assert!(code.contains("bg(::yog_api::ui::Color(0xFF00FF00))") && code.contains("bg(::yog_api::ui::Color(0xFFFF0000))"), "{code}");
         let bad = src.replace("minecraft:vanilla", "nope:nope");
         assert!(crate::yui::generate_for(&bad, "s", None).unwrap_err().contains("no such theme"));
     }
@@ -1826,12 +1826,12 @@ mod tests {
         crate::yui::set_resource_refs(&crate::yres::Refs::default());
         let code = code.unwrap();
         for want in [
-            ".color(0xFF112233)",
-            "StateFlags::SELECTED, ::yog_api::ui::StylePatch { color: ::std::option::Option::Some(0xFF112233)",
-            "StateFlags::DISABLED, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(0xFF445566)",
-            ".bg(0xFF112233)",
-            "StateFlags::HOVER, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(0xFF445566)",
-            ".tint(0x80778899)",
+            ".color(::yog_api::ui::Color(0xFF112233))",
+            "StateFlags::SELECTED, ::yog_api::ui::StylePatch { color: ::std::option::Option::Some(::yog_api::ui::Color(0xFF112233))",
+            "StateFlags::DISABLED, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(::yog_api::ui::Color(0xFF445566))",
+            ".bg(::yog_api::ui::Color(0xFF112233))",
+            "StateFlags::HOVER, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(::yog_api::ui::Color(0xFF445566))",
+            ".tint(::yog_api::ui::Color(0x80778899))",
         ] {
             assert!(code.contains(want), "missing {want}:\n{code}");
         }
@@ -1860,12 +1860,12 @@ mod tests {
         for want in [
             "const _: () = ::yog_kit::__codegen::require(2);",
             "type Vm = Vm;",
-            ".color(0xFFFFD700)",
+            ".color(::yog_api::ui::Color(0xFFFFD700))",
             r#".id("count")"#,
             "pub const COUNT: &str = \"count\";",
             "if self.b0.set(::yog_kit::bind::text(&(vm.count_text()))) { root.at_path_mut(&[0, 0]).set_text(",
             r#"::yog_kit::bind::text(&(::yog_api::tr("mymod.title")))"#,
-            ".state_style(::yog_api::ui::StateFlags::HOVER, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(0xFF444444), ..::std::default::Default::default() })",
+            ".state_style(::yog_api::ui::StateFlags::HOVER, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(::yog_api::ui::Color(0xFF444444)), ..::std::default::Default::default() })",
             ".state_style(::yog_api::ui::StateFlags::CHECKED",
             ".action(::yog_api::ui::Action { owner: 0, slot: 0, index: 0 })",
             ".action(::yog_api::ui::Action { owner: 0, slot: 1, index: 0 })",
