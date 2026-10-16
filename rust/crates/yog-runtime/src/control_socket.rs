@@ -1,203 +1,165 @@
-//! A control channel to whatever launched this game instance — Yog-IDLE,
-//! in practice, though nothing here is Yog-IDLE-specific. Solves two
-//! problems a host process previously had no real answer to:
+//! A control channel to whatever launched this game instance — Yog-IDLE or
+//! `dev.sh`, though nothing here is specific to either (dev builds only).
+//! It answers two things a launcher otherwise can't:
 //!
 //! - "what's the actual pid to attach a debugger to" — a launcher wrapper
 //!   (`./gradlew runClient`) is very often *not* an ancestor of the real
-//!   JVM once Gradle's daemon is involved, making any process-tree-walking
-//!   discovery fundamentally unreliable. This just tells the client
-//!   directly, from inside the one process that unambiguously knows.
-//! - "trigger a hot reload from outside" — previously impossible without
-//!   either a JNI-attach from the external process or `ptrace` function
-//!   injection. The socket handler runs *inside* this process already, so
-//!   it just calls [`crate::trigger_hot_reload`] directly.
+//!   JVM once Gradle's daemon is involved. This tells the client directly.
+//! - "hot-reload this mod" — the handler runs inside this process, so it
+//!   just calls [`crate::trigger_hot_reload`].
 //!
-//! Entirely opt-in: only starts if `YOG_CONTROL_SOCKET` is set in the
-//! environment (Yog-IDLE sets it before spawning `yog run`) — a normal
-//! player's game never has it set, so this is a complete no-op for them.
-//!
-//! Unix only: std has no Unix domain sockets on Windows, and Yog-IDLE's
-//! launch/debug path is Linux-only anyway.
+//! Opt-in: it starts only when `YOG_CONTROL_SOCKET` (a loopback address,
+//! `127.0.0.1:<port>`) and `YOG_CONTROL_TOKEN` are set. TCP on loopback works
+//! on every platform; the token keeps other local processes out: a client's
+//! first line is `{"cmd":"hello","token":…,"pid":<its pid>}`, anything else
+//! closes the connection. The JSON-lines protocol follows: the runtime
+//! answers `hello` with `ready` (its pid, its mods), then commands
+//! (`hot_reload_check`, `hot_reload`, `reload_resources`, `list_mods`) with
+//! their events.
 
-#[cfg(unix)]
-pub use unix::start_if_requested;
+use std::io::{BufRead, BufReader, Write};
+use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::path::Path;
 
-/// No control channel off Unix — log once if a launcher asked for one.
-#[cfg(not(unix))]
+/// Reads `YOG_CONTROL_SOCKET` and `YOG_CONTROL_TOKEN`; with both, listens on
+/// the address (loopback only) on a background thread. Call once, after
+/// `load_mods` (so `ready`'s mod list is complete) — see `nativeInit`.
 pub fn start_if_requested() {
-    if std::env::var_os("YOG_CONTROL_SOCKET").is_some() {
-        yog_logging::warn!("control socket: not supported on this platform");
+    let (Ok(addr), Ok(token)) = (std::env::var("YOG_CONTROL_SOCKET"), std::env::var("YOG_CONTROL_TOKEN")) else {
+        return;
+    };
+    let addr: SocketAddr = match addr.parse() {
+        Ok(a) => a,
+        Err(e) => {
+            yog_logging::error!("control socket: `{addr}` isn't an address ({e})");
+            return;
+        }
+    };
+    if !addr.ip().is_loopback() {
+        yog_logging::error!("control socket: {addr} isn't a loopback address — not listening");
+        return;
     }
+    let listener = match TcpListener::bind(addr) {
+        Ok(l) => l,
+        Err(e) => {
+            yog_logging::error!("control socket: failed to bind {addr}: {e}");
+            return;
+        }
+    };
+    std::thread::spawn(move || {
+        // One client at a time (the launcher); it may reconnect.
+        for stream in listener.incoming().flatten() {
+            handle_client(stream, &token);
+        }
+    });
 }
 
-#[cfg(unix)]
-mod unix {
-    use std::io::{BufRead, BufReader, Write};
-    use std::os::unix::net::{UnixListener, UnixStream};
-    use std::path::Path;
-
-    /// Reads `YOG_CONTROL_SOCKET`; if present, binds a Unix domain socket
-    /// there and spawns the accept loop on a background thread. Call once,
-    /// after `load_mods` has finished (so the `ready` message's mod list is
-    /// complete) — see `nativeInit`.
-    pub fn start_if_requested() {
-        let Ok(path) = std::env::var("YOG_CONTROL_SOCKET") else {
-            return;
-        };
-
-        // A crashed previous run can leave the socket file behind; bind fails
-        // on an existing path otherwise.
-        let _ = std::fs::remove_file(&path);
-
-        let listener = match UnixListener::bind(&path) {
-            Ok(l) => l,
-            Err(e) => {
-                yog_logging::error!("control socket: failed to bind {}: {}", path, e);
-                return;
-            }
-        };
-
-        std::thread::spawn(move || {
-            // Exactly one client is expected (Yog-IDLE, for this one launch) —
-            // subsequent connection attempts after it drops are accepted too,
-            // in case the client reconnects, but there's no fan-out to several
-            // clients at once.
-            for stream in listener.incoming().flatten() {
-                handle_client(stream);
-            }
-        });
+/// Lets process `pid` (the client, which proved itself with the token)
+/// `ptrace` this one. Yama's default policy (`ptrace_scope = 1`) only allows
+/// tracing descendants, and the game usually isn't one of the IDE's
+/// (Gradle's daemon launches it) — but a process may name a tracer itself
+/// (`PR_SET_PTRACER`), which needs no privileges. Without Yama, `prctl`
+/// fails with `EINVAL`: nothing to lift then.
+///
+/// Returns whether `pid` may now trace us — reported in `ready` as
+/// `ptracer`, so the client can tell an outdated runtime (no field) from a
+/// policy that really refuses it.
+#[cfg(target_os = "linux")]
+fn allow_to_trace(pid: i64) -> bool {
+    if pid <= 0 {
+        return false;
     }
+    // SAFETY: plain `prctl` call with integer arguments.
+    let rc = unsafe { libc::prctl(libc::PR_SET_PTRACER, pid as libc::c_ulong, 0, 0, 0) };
+    if rc == 0 {
+        return true;
+    }
+    let err = std::io::Error::last_os_error();
+    if err.raw_os_error() == Some(libc::EINVAL) {
+        return true;
+    }
+    yog_logging::warn!("control socket: PR_SET_PTRACER({pid}) failed: {err}");
+    false
+}
 
-    /// Lets the connected client `ptrace` this process. Yama's default
-    /// policy (`ptrace_scope = 1`) only allows tracing descendants, and the
-    /// game usually isn't one of the IDE's (Gradle's daemon launches it) —
-    /// but a process may name a tracer itself (`PR_SET_PTRACER`), which needs
-    /// no privileges or system settings. The peer is taken from the socket
-    /// (`SO_PEERCRED`), and only a client running as our own user counts —
-    /// it could `ptrace` us without Yama anyway. Without Yama, `prctl`
-    /// fails with `EINVAL`: nothing to lift then.
-    ///
-    /// Returns whether the peer may now trace us — reported in `ready` as
-    /// `ptracer`, so the client can tell an outdated runtime (no field) from
-    /// a policy that really refuses it.
+fn write_line(stream: &mut TcpStream, json: &serde_json::Value) {
+    let mut line = json.to_string();
+    line.push('\n');
+    let _ = stream.write_all(line.as_bytes());
+}
+
+fn mod_list_json() -> Vec<serde_json::Value> {
+    crate::MOD_INFOS
+        .lock()
+        .expect("mod infos lock poisoned")
+        .iter()
+        .map(|m| serde_json::json!({ "id": m[0], "name": m[1], "version": m[2] }))
+        .collect()
+}
+
+fn str_of<'a>(cmd: &'a serde_json::Value, key: &str) -> &'a str {
+    cmd.get(key).and_then(|v| v.as_str()).unwrap_or_default()
+}
+
+fn handle_client(mut stream: TcpStream, token: &str) {
+    let Ok(read_half) = stream.try_clone() else { return };
+    let mut lines = BufReader::new(read_half).lines().map_while(Result::ok);
+
+    // The client proves it's the launcher first.
+    let Some(hello) = lines.next().and_then(|l| serde_json::from_str::<serde_json::Value>(&l).ok()) else { return };
+    if str_of(&hello, "cmd") != "hello" || str_of(&hello, "token") != token {
+        yog_logging::warn!("control socket: a client without the token — closed");
+        return;
+    }
     #[cfg(target_os = "linux")]
-    fn allow_peer_to_trace(stream: &UnixStream) -> bool {
-        use std::os::fd::AsRawFd;
-
-        let mut cred = libc::ucred {
-            pid: 0,
-            uid: 0,
-            gid: 0,
-        };
-        let mut len = std::mem::size_of::<libc::ucred>() as libc::socklen_t;
-        // SAFETY: `cred`/`len` are a valid out-buffer of the size passed.
-        let rc = unsafe {
-            libc::getsockopt(
-                stream.as_raw_fd(),
-                libc::SOL_SOCKET,
-                libc::SO_PEERCRED,
-                (&mut cred as *mut libc::ucred).cast(),
-                &mut len,
-            )
-        };
-        // SAFETY: `getuid` has no preconditions.
-        if rc != 0 || cred.pid <= 0 || cred.uid != unsafe { libc::getuid() } {
-            return false;
-        }
-        // SAFETY: plain `prctl` call with integer arguments.
-        let rc = unsafe { libc::prctl(libc::PR_SET_PTRACER, cred.pid as libc::c_ulong, 0, 0, 0) };
-        if rc == 0 {
-            return true;
-        }
-        let err = std::io::Error::last_os_error();
-        if err.raw_os_error() == Some(libc::EINVAL) {
-            return true;
-        }
-        yog_logging::warn!(
-            "control socket: PR_SET_PTRACER({}) failed: {}",
-            cred.pid,
-            err
-        );
-        false
-    }
-
-    fn write_line(stream: &mut UnixStream, json: &serde_json::Value) {
-        let mut line = json.to_string();
-        line.push('\n');
-        let _ = stream.write_all(line.as_bytes());
-    }
-
-    fn mod_list_json() -> Vec<serde_json::Value> {
-        crate::MOD_INFOS
-            .lock()
-            .expect("mod infos lock poisoned")
-            .iter()
-            .map(|m| serde_json::json!({ "id": m[0], "name": m[1], "version": m[2] }))
-            .collect()
-    }
-
-    fn handle_client(mut stream: UnixStream) {
-        #[cfg(target_os = "linux")]
-        let ptracer = allow_peer_to_trace(&stream);
-        #[cfg(not(target_os = "linux"))]
-        let ptracer = false;
-        let ready = serde_json::json!({
+    let ptracer = allow_to_trace(hello.get("pid").and_then(|v| v.as_i64()).unwrap_or(0));
+    #[cfg(not(target_os = "linux"))]
+    let ptracer = false;
+    write_line(
+        &mut stream,
+        &serde_json::json!({
             "event": "ready",
             "pid": std::process::id(),
             "mods": mod_list_json(),
             "ptracer": ptracer,
-        });
-        write_line(&mut stream, &ready);
+        }),
+    );
 
-        let reader = match stream.try_clone() {
-            Ok(s) => BufReader::new(s),
-            Err(_) => return,
+    for line in lines {
+        let Ok(cmd) = serde_json::from_str::<serde_json::Value>(&line) else {
+            continue;
         };
-
-        for line in reader.lines().map_while(Result::ok) {
-            let Ok(cmd) = serde_json::from_str::<serde_json::Value>(&line) else {
-                continue;
-            };
-            match cmd.get("cmd").and_then(|c| c.as_str()) {
-                Some("hot_reload") => {
-                    let mod_id = cmd
-                        .get("mod_id")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or_default();
-                    let yog_path = cmd
-                        .get("yog_path")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or_default();
-                    let ok = crate::trigger_hot_reload(mod_id, Path::new(yog_path));
-                    // `"resources": true`: the game rereads its data and resources too.
-                    if ok && cmd.get("resources").and_then(|v| v.as_bool()).unwrap_or(false) {
-                        crate::registrations::reload_game_resources();
-                    }
-                    let response = serde_json::json!({ "event": "hot-reload-done", "mod_id": mod_id, "ok": ok });
-                    write_line(&mut stream, &response);
+        match str_of(&cmd, "cmd") {
+            "hot_reload" => {
+                let mod_id = str_of(&cmd, "mod_id");
+                let ok = crate::trigger_hot_reload(mod_id, Path::new(str_of(&cmd, "yog_path")));
+                // `"resources": true`: the game rereads its data and resources too.
+                if ok && cmd.get("resources").and_then(|v| v.as_bool()).unwrap_or(false) {
+                    crate::registrations::reload_game_resources();
                 }
-                // What a new `.yog` registers differently from the game as
-                // it started — changes only a restart applies.
-                Some("hot_reload_check") => {
-                    let mod_id = cmd.get("mod_id").and_then(|v| v.as_str()).unwrap_or_default();
-                    let yog_path = cmd.get("yog_path").and_then(|v| v.as_str()).unwrap_or_default();
-                    let (added, removed, changed) = crate::registrations::changes(mod_id, Path::new(yog_path));
-                    let response = serde_json::json!({
+                write_line(&mut stream, &serde_json::json!({ "event": "hot-reload-done", "mod_id": mod_id, "ok": ok }));
+            }
+            // What a new `.yog` registers differently from the game as it
+            // started — changes only a restart applies.
+            "hot_reload_check" => {
+                let mod_id = str_of(&cmd, "mod_id");
+                let (added, removed, changed) = crate::registrations::changes(mod_id, Path::new(str_of(&cmd, "yog_path")));
+                write_line(
+                    &mut stream,
+                    &serde_json::json!({
                         "event": "hot-reload-check", "mod_id": mod_id,
                         "added": added, "removed": removed, "changed": changed,
-                    });
-                    write_line(&mut stream, &response);
-                }
-                Some("reload_resources") => {
-                    crate::registrations::reload_game_resources();
-                    write_line(&mut stream, &serde_json::json!({ "event": "resources-reloaded" }));
-                }
-                Some("list_mods") => {
-                    let response = serde_json::json!({ "event": "mods", "mods": mod_list_json() });
-                    write_line(&mut stream, &response);
-                }
-                _ => {}
+                    }),
+                );
             }
+            "reload_resources" => {
+                crate::registrations::reload_game_resources();
+                write_line(&mut stream, &serde_json::json!({ "event": "resources-reloaded" }));
+            }
+            "list_mods" => {
+                write_line(&mut stream, &serde_json::json!({ "event": "mods", "mods": mod_list_json() }));
+            }
+            _ => {}
         }
     }
 }
