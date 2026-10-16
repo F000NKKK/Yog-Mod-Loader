@@ -1,0 +1,6 @@
+{
+  "kind": "stairs",
+  "tags": ["yog:wooden_stairs"],
+  "block": { "hardness": 2, "sound": "wood", "tool": "axe", "base": "@block:gm:planks" },
+  "model": { "textures": { "bottom": "minecraft:block/oak_planks", "top": "minecraft:block/oak_planks", "side": "minecraft:block/oak_planks" } }
+}

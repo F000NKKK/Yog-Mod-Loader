@@ -1,6 +1,16 @@
 # content failed
 invalid blocks/items in content/:
   content/bad.yitem:1: expected `,` or `}`, found the end of the file
+  content/doorless.yblock:1: (root): kind door has no item model of its own — give item_model
+  content/kinds.yblock:3: block.redstone: redstone doesn't go with kind stairs (the game's block)
+  content/kinds.yblock:4: states: kind stairs has the game's states — leave states out
+  content/kinds.yblock:3: block: kind stairs is made from a block — base: "@block:mymod:planks"
+  content/kinds.yblock:3: block.set: kind stairs doesn't take set
+  content/kinds.yblock:5: model: kind stairs has the game's models — give only textures (bottom, top, side)
+  content/kinds.yblock:5: model: kind stairs needs textures.bottom
+  content/kinds.yblock:5: model: kind stairs needs textures.top
+  content/nokind.yblock:1: block.press_ticks: only a block of a kind takes it (kind: "stairs", "door"…)
+  content/odd.yblock:1: kind: `ladder`: one of the game's kinds of block — stairs, slab, door, trapdoor, button, pressure_plate, fence, fence_gate
   content/recipe.yrecipe:9: result: no item gm:missing in this mod
   content/recipe.yrecipe:3: pattern uses 'B', which key doesn't define
   content/book.ybook:1: missing `name`

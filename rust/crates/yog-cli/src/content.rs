@@ -307,6 +307,15 @@ struct BlockProps {
     inventory: Option<String>,
     /// Gives off redstone power, set by the mod per position.
     redstone: bool,
+    /// Doesn't hide the faces behind it or stop light.
+    no_occlusion: bool,
+    /// One of the game's kinds of block (`stairs`…); `""`: Yog's own.
+    kind: String,
+    /// What a kind is made from, its set, a button's press and who sets it off.
+    base: Option<String>,
+    set: Option<String>,
+    press_ticks: Option<u32>,
+    mobs_only: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -745,12 +754,14 @@ fn compile_file(
         block_item: Option<yog_formats::content::BlockItemProps>,
         requires: Vec<String>,
         tags: Vec<String>,
+        /// One of the game's kinds of block.
+        kind: Option<String>,
     }
     let (parts, refs, tag_refs) = match kind {
         Kind::Item => match yog_data::schema::from_doc::<yog_formats::content::ItemFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, block_item: None, requires: f.requires, tags: f.tags }, r.refs, r.tags)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, block_item: None, requires: f.requires, tags: f.tags, kind: None }, r.refs, r.tags)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -760,7 +771,7 @@ fn compile_file(
         Kind::Block => match yog_data::schema::from_doc::<yog_formats::content::BlockFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, block_item: f.item, requires: f.requires, tags: f.tags }, r.refs, r.tags)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, block_item: f.item, requires: f.requires, tags: f.tags, kind: f.kind }, r.refs, r.tags)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -882,6 +893,7 @@ fn compile_file(
     // A block.
     let b = parts.block.clone().unwrap_or_default();
     let bat = root.key("block");
+    let kind_of = parts.kind.as_deref().and_then(yog_formats::content::BlockKind::built_in);
     let props = &mut entry.block;
     props.hardness = b.hardness;
     props.resistance = b.resistance;
@@ -890,7 +902,8 @@ fn compile_file(
     props.tools = b.tool.iter().map(|t| t.0.clone()).collect();
     props.tool_level = b.tool_level.clone().map(|l| (l, loc(&bat.key("tool_level"))));
     props.requires_tool = b.requires_tool;
-    props.no_collision = b.collision == Some(false);
+    props.no_collision = !b.collision.or(kind_of.and_then(|k| k.collision)).unwrap_or(true);
+    props.no_occlusion = !b.occludes.or(kind_of.and_then(|k| k.occludes)).unwrap_or(true);
     props.slipperiness = b.slipperiness;
     props.redstone = b.redstone;
     props.accepts_items = b.accepts_items;
@@ -911,235 +924,282 @@ fn compile_file(
     if props.tool_level.is_some() && props.tools.is_empty() {
         cx.warn_at(loc, &bat, "tool_level without tool — any tool of that level mines it");
     }
+    // A kind of the game's: what it's made of and its set; nothing of Yog's own blocks.
+    if let Some(k) = kind_of {
+        props.kind = k.name.clone();
+        props.base = b.base.clone();
+        props.set = b.set.clone();
+        props.press_ticks = b.press_ticks;
+        props.mobs_only = b.triggered_by == Some(yog_formats::content::TriggeredBy::Mobs);
+        let own = [
+            ("shape", b.shape.is_some()),
+            ("connect_groups", !b.connect_groups.is_empty()),
+            ("inventory", b.inventory.is_some()),
+            ("redstone", b.redstone),
+            ("powered", b.powered.is_some()),
+            ("comparator", b.comparator.is_some()),
+            ("accepts_items", b.accepts_items),
+        ];
+        for (field, _) in own.iter().filter(|(_, given)| *given) {
+            cx.err_at(loc, &bat.key(field), format!("{field} doesn't go with kind {} (the game's block)", k.name));
+        }
+        if parts.states.is_some() {
+            cx.err_at(loc, &root.key("states"), format!("kind {} has the game's states — leave states out", k.name));
+        }
+        if k.takes("base") && b.base.is_none() {
+            cx.err_at(loc, &bat, format!("kind {} is made from a block — base: \"@block:mymod:planks\"", k.name));
+        }
+    }
+    let kind_fields = [("base", b.base.is_some()), ("set", b.set.is_some()), ("press_ticks", b.press_ticks.is_some()), ("triggered_by", b.triggered_by.is_some())];
+    for (field, _) in kind_fields.iter().filter(|(_, given)| *given) {
+        match kind_of {
+            Some(k) if k.takes(field) => {}
+            Some(k) => cx.err_at(loc, &bat.key(field), format!("kind {} doesn't take {field}", k.name)),
+            None => cx.err_at(loc, &bat.key(field), "only a block of a kind takes it (kind: \"stairs\", \"door\"…)"),
+        }
+    }
     let drops = match &b.drops {
-        None | Some(yog_formats::content::Drops::Itself) => drops_table(&id, None),
+        None | Some(yog_formats::content::Drops::Itself) => match kind_of {
+            Some(k) => kind_drops(&id, k),
+            None => drops_table(&id, None),
+        },
         Some(yog_formats::content::Drops::Nothing) => Value::Null,
         Some(yog_formats::content::Drops::Item(d)) => drops_table(d.item.as_deref().unwrap_or(&id), d.count),
     };
     let render_layer = b.render_layer.as_ref().map(yog_formats::content::word);
 
-    let mut m = model(cx, loc, &root.key("model"), &parts.model, false)?;
-    if let (Some(layer), Value::Object(o)) = (&render_layer, &mut m.json) {
-        // Forge/NeoForge read it from the model; Fabric ignores it.
-        o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
-    }
-    if shape_auto {
-        entry.block.shape = m
-            .bounds
-            .filter(|b| *b != [0.0, 0.0, 0.0, 16.0, 16.0, 16.0])
-            .map(|b| [b[0].max(0.0), b[1].max(0.0), b[2].max(0.0), b[3].min(16.0), b[4].min(16.0), b[5].min(16.0)]);
-    }
-    let main = format!("{ns}:block/{p}");
-    emit(cx, format!("models/block/{p}.json"), &m.json);
+    // Its models and states: a kind's, or its own.
+    let item_parent = if let Some(k) = kind_of {
+        kind_models(cx, loc, k, &parts.model, b.base.as_deref(), render_layer.as_deref(), &ns, &p, &mut emit)
+    } else {
+        let mut m = model(cx, loc, &root.key("model"), &parts.model, false)?;
+        if let (Some(layer), Value::Object(o)) = (&render_layer, &mut m.json) {
+            // Forge/NeoForge read it from the model; Fabric ignores it.
+            o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
+        }
+        if shape_auto {
+            entry.block.shape = m
+                .bounds
+                .filter(|b| *b != [0.0, 0.0, 0.0, 16.0, 16.0, 16.0])
+                .map(|b| [b[0].max(0.0), b[1].max(0.0), b[2].max(0.0), b[3].min(16.0), b[4].min(16.0), b[5].min(16.0)]);
+        }
+        let main = format!("{ns}:block/{p}");
+        emit(cx, format!("models/block/{p}.json"), &m.json);
 
-    // Block states.
-    let mut rotations: Vec<Value> = Vec::new();
-    let mut arm: Option<(String, bool)> = None;
-    if let Some(s) = &parts.states {
-        let sat = root.key("states");
-        if let Some(rs) = &s.rotations {
-            if rs.is_empty() {
-                cx.err_at(loc, &sat.key("rotations"), "a non-empty list of { x: 0, y: 90, weight: 1, uvlock: false }");
+        // Block states.
+        let mut rotations: Vec<Value> = Vec::new();
+        let mut arm: Option<(String, bool)> = None;
+        if let Some(s) = &parts.states {
+            let sat = root.key("states");
+            if let Some(rs) = &s.rotations {
+                if rs.is_empty() {
+                    cx.err_at(loc, &sat.key("rotations"), "a non-empty list of { x: 0, y: 90, weight: 1, uvlock: false }");
+                }
+                for (i, r) in rs.iter().enumerate() {
+                    let here = sat.key("rotations").index(i);
+                    let mut angle = |k: &str, v: Option<u32>| match v {
+                        None => 0.0,
+                        Some(n @ (0 | 90 | 180 | 270)) => n as f64,
+                        Some(_) => {
+                            cx.err_at(loc, &here.key(k), "must be 0, 90, 180 or 270");
+                            0.0
+                        }
+                    };
+                    let (x, y) = (angle("x", r.x), angle("y", r.y));
+                    rotations.push(variant(&main, x, y, r.uvlock, r.weight));
+                }
             }
-            for (i, r) in rs.iter().enumerate() {
-                let here = sat.key("rotations").index(i);
-                let mut angle = |k: &str, v: Option<u32>| match v {
-                    None => 0.0,
-                    Some(n @ (0 | 90 | 180 | 270)) => n as f64,
-                    Some(_) => {
-                        cx.err_at(loc, &here.key(k), "must be 0, 90, 180 or 270");
-                        0.0
+            if let Some(c) = &s.connect {
+                if let Some(am) = model(cx, loc, &sat.key("connect").key("arm"), &c.arm, false) {
+                    let mut json = am.json;
+                    if let (Some(layer), Value::Object(o)) = (&render_layer, &mut json) {
+                        o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
                     }
-                };
-                let (x, y) = (angle("x", r.x), angle("y", r.y));
-                rotations.push(variant(&main, x, y, r.uvlock, r.weight));
-            }
-        }
-        if let Some(c) = &s.connect {
-            if let Some(am) = model(cx, loc, &sat.key("connect").key("arm"), &c.arm, false) {
-                let mut json = am.json;
-                if let (Some(layer), Value::Object(o)) = (&render_layer, &mut json) {
-                    o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
+                    emit(cx, format!("models/block/{p}_arm.json"), &json);
+                    arm = Some((format!("{ns}:block/{p}_arm"), c.uvlock));
                 }
-                emit(cx, format!("models/block/{p}_arm.json"), &json);
-                arm = Some((format!("{ns}:block/{p}_arm"), c.uvlock));
-            }
-            entry.block.connects = true;
-            if entry.block.connect_groups.is_empty() {
-                entry.block.connect_groups.push(id.clone());
-            }
-        }
-        if s.facing.is_some() || s.attach || s.waterlogged || !s.properties.0.is_empty() {
-            if s.rotations.is_some() || s.connect.is_some() {
-                cx.err_at(loc, &sat, "facing, attach, waterlogged and properties can't go with rotations or connect");
-            }
-            let b = &mut entry.block;
-            use yog_formats::content::{Facing, Placement};
-            if s.attach {
-                if s.facing == Some(Facing::All) {
-                    cx.err_at(loc, &sat.key("facing"), "an attached block turns four ways — leave facing out");
+                entry.block.connects = true;
+                if entry.block.connect_groups.is_empty() {
+                    entry.block.connect_groups.push(id.clone());
                 }
-                b.attach = true;
-                b.facing = "horizontal".into();
-            } else if let Some(f) = s.facing {
-                b.facing = if f == Facing::All { "all" } else { "horizontal" }.into();
             }
-            if !b.facing.is_empty() {
-                b.placement = if s.placement == Some(Placement::Away) { "away" } else { "toward" }.into();
-            } else if s.placement.is_some() {
-                cx.err_at(loc, &sat.key("placement"), "placement needs facing (or attach)");
-            }
-            b.waterlogged = s.waterlogged;
-            for (name, values) in &s.properties.0 {
-                let here = sat.key("properties").key(name);
-                let word = |w: &str| !w.is_empty() && w.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
-                if !word(name) {
-                    cx.err_at(loc, &here, format!("`{name}`: a property's name is lowercase letters, digits and _"));
-                } else if ["facing", "face", "waterlogged"].contains(&name.as_str()) {
-                    cx.err_at(loc, &here, format!("`{name}` comes from facing, attach or waterlogged — name yours otherwise"));
+            if s.facing.is_some() || s.attach || s.waterlogged || !s.properties.0.is_empty() {
+                if s.rotations.is_some() || s.connect.is_some() {
+                    cx.err_at(loc, &sat, "facing, attach, waterlogged and properties can't go with rotations or connect");
                 }
-                let mut seen = std::collections::HashSet::new();
-                if values.len() < 2 || !values.iter().all(|v| word(v) && seen.insert(v.as_str())) {
-                    cx.err_at(loc, &here, "two or more different values, lowercase letters, digits and _");
+                let b = &mut entry.block;
+                use yog_formats::content::{Facing, Placement};
+                if s.attach {
+                    if s.facing == Some(Facing::All) {
+                        cx.err_at(loc, &sat.key("facing"), "an attached block turns four ways — leave facing out");
+                    }
+                    b.attach = true;
+                    b.facing = "horizontal".into();
+                } else if let Some(f) = s.facing {
+                    b.facing = if f == Facing::All { "all" } else { "horizontal" }.into();
                 }
-                b.properties.push((name.clone(), values.clone()));
+                if !b.facing.is_empty() {
+                    b.placement = if s.placement == Some(Placement::Away) { "away" } else { "toward" }.into();
+                } else if s.placement.is_some() {
+                    cx.err_at(loc, &sat.key("placement"), "placement needs facing (or attach)");
+                }
+                b.waterlogged = s.waterlogged;
+                for (name, values) in &s.properties.0 {
+                    let here = sat.key("properties").key(name);
+                    let word = |w: &str| !w.is_empty() && w.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+                    if !word(name) {
+                        cx.err_at(loc, &here, format!("`{name}`: a property's name is lowercase letters, digits and _"));
+                    } else if ["facing", "face", "waterlogged"].contains(&name.as_str()) {
+                        cx.err_at(loc, &here, format!("`{name}` comes from facing, attach or waterlogged — name yours otherwise"));
+                    }
+                    let mut seen = std::collections::HashSet::new();
+                    if values.len() < 2 || !values.iter().all(|v| word(v) && seen.insert(v.as_str())) {
+                        cx.err_at(loc, &here, "two or more different values, lowercase letters, digits and _");
+                    }
+                    b.properties.push((name.clone(), values.clone()));
+                }
+            } else if s.placement.is_some() || !s.models.0.is_empty() || !s.variants.0.is_empty() {
+                cx.err_at(loc, &sat, "placement, models and variants need facing, attach, waterlogged or properties");
             }
-        } else if s.placement.is_some() || !s.models.0.is_empty() || !s.variants.0.is_empty() {
-            cx.err_at(loc, &sat, "placement, models and variants need facing, attach, waterlogged or properties");
         }
-    }
-    // A block's own properties with every value — facing, face and
-    // waterlogged as the host makes them.
-    let states: Vec<(String, Vec<String>)> = {
-        let b = &entry.block;
-        let words = |ws: &[&str]| ws.iter().map(|w| w.to_string()).collect::<Vec<_>>();
-        let mut all = Vec::new();
-        match b.facing.as_str() {
-            "all" => all.push(("facing".to_string(), words(&["north", "east", "south", "west", "up", "down"]))),
-            "horizontal" => all.push(("facing".to_string(), words(&["north", "east", "south", "west"]))),
-            _ => {}
-        }
-        if b.attach {
-            all.push(("face".to_string(), words(&["floor", "wall", "ceiling"])));
-        }
-        if b.waterlogged {
-            all.push(("waterlogged".to_string(), words(&["false", "true"])));
-        }
-        all.extend(b.properties.iter().cloned());
-        all.sort_by(|a, b| a.0.cmp(&b.0));
-        all
-    };
-    // Yes/no properties the host drives.
-    let yes_no = |name: &str| states.iter().any(|(n, v)| n == name && *v == ["false", "true"]);
-    for (key, value) in [("powered", &b.powered), ("comparator", &b.comparator)] {
-        if let Some(name) = value {
-            if yes_no(name) {
-                if key == "powered" {
-                    entry.block.powered = Some(name.clone());
+        // A block's own properties with every value — facing, face and
+        // waterlogged as the host makes them.
+        let states: Vec<(String, Vec<String>)> = {
+            let b = &entry.block;
+            let words = |ws: &[&str]| ws.iter().map(|w| w.to_string()).collect::<Vec<_>>();
+            let mut all = Vec::new();
+            match b.facing.as_str() {
+                "all" => all.push(("facing".to_string(), words(&["north", "east", "south", "west", "up", "down"]))),
+                "horizontal" => all.push(("facing".to_string(), words(&["north", "east", "south", "west"]))),
+                _ => {}
+            }
+            if b.attach {
+                all.push(("face".to_string(), words(&["floor", "wall", "ceiling"])));
+            }
+            if b.waterlogged {
+                all.push(("waterlogged".to_string(), words(&["false", "true"])));
+            }
+            all.extend(b.properties.iter().cloned());
+            all.sort_by(|a, b| a.0.cmp(&b.0));
+            all
+        };
+        // Yes/no properties the host drives.
+        let yes_no = |name: &str| states.iter().any(|(n, v)| n == name && *v == ["false", "true"]);
+        for (key, value) in [("powered", &b.powered), ("comparator", &b.comparator)] {
+            if let Some(name) = value {
+                if yes_no(name) {
+                    if key == "powered" {
+                        entry.block.powered = Some(name.clone());
+                    } else {
+                        entry.block.comparator = Some(name.clone());
+                    }
                 } else {
-                    entry.block.comparator = Some(name.clone());
+                    cx.err_at(loc, &bat.key(key), format!("`{name}`: a yes/no property of states.properties ([\"false\", \"true\"])"));
                 }
-            } else {
-                cx.err_at(loc, &bat.key(key), format!("`{name}`: a yes/no property of states.properties ([\"false\", \"true\"])"));
             }
         }
-    }
-    // Its other models, and which state shows which.
-    let mut rules: Vec<(Vec<(String, String)>, Vec<String>)> = Vec::new();
-    if let Some(s) = &parts.states {
-        let sat = root.key("states");
-        let mut named = std::collections::HashMap::new();
-        for (name, m) in &s.models.0 {
-            if let Some(mut m) = model(cx, loc, &sat.key("models").key(name), m, false) {
-                if let (Some(layer), Value::Object(o)) = (&render_layer, &mut m.json) {
-                    o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
+        // Its other models, and which state shows which.
+        let mut rules: Vec<(Vec<(String, String)>, Vec<String>)> = Vec::new();
+        if let Some(s) = &parts.states {
+            let sat = root.key("states");
+            let mut named = std::collections::HashMap::new();
+            for (name, m) in &s.models.0 {
+                if let Some(mut m) = model(cx, loc, &sat.key("models").key(name), m, false) {
+                    if let (Some(layer), Value::Object(o)) = (&render_layer, &mut m.json) {
+                        o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
+                    }
+                    emit(cx, format!("models/block/{p}/{name}.json"), &m.json);
+                    named.insert(name.clone(), format!("{ns}:block/{p}/{name}"));
                 }
-                emit(cx, format!("models/block/{p}/{name}.json"), &m.json);
-                named.insert(name.clone(), format!("{ns}:block/{p}/{name}"));
+            }
+            for (key, names) in &s.variants.0 {
+                let here = sat.key("variants").key(key);
+                let mut when = Vec::new();
+                for pair in key.split(',').filter(|p| !p.is_empty()) {
+                    let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
+                    if states.iter().any(|(n, vs)| n == k && vs.iter().any(|x| x == v)) {
+                        when.push((k.to_string(), v.to_string()));
+                    } else {
+                        cx.err_at(loc, &here, format!("`{pair}`: no such property and value"));
+                    }
+                }
+                let mut models = Vec::new();
+                for name in &names.0 {
+                    match named.get(name) {
+                        Some(m) => models.push(m.clone()),
+                        None => cx.err_at(loc, &here, format!("`{name}`: not in states.models")),
+                    }
+                }
+                if names.0.is_empty() {
+                    cx.err_at(loc, &here, "a model name, or a list of them");
+                } else if !models.is_empty() {
+                    rules.push((when, models));
+                }
             }
         }
-        for (key, names) in &s.variants.0 {
-            let here = sat.key("variants").key(key);
-            let mut when = Vec::new();
-            for pair in key.split(',').filter(|p| !p.is_empty()) {
-                let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
-                if states.iter().any(|(n, vs)| n == k && vs.iter().any(|x| x == v)) {
-                    when.push((k.to_string(), v.to_string()));
-                } else {
-                    cx.err_at(loc, &here, format!("`{pair}`: no such property and value"));
-                }
-            }
-            let mut models = Vec::new();
-            for name in &names.0 {
-                match named.get(name) {
-                    Some(m) => models.push(m.clone()),
-                    None => cx.err_at(loc, &here, format!("`{name}`: not in states.models")),
-                }
-            }
-            if names.0.is_empty() {
-                cx.err_at(loc, &here, "a model name, or a list of them");
-            } else if !models.is_empty() {
-                rules.push((when, models));
-            }
-        }
-    }
-    let base: Value = match rotations.len() {
-        0 => variant(&main, 0.0, 0.0, false, None),
-        1 => rotations.remove(0),
-        _ => Value::Array(rotations),
-    };
-    let uvlock = parts.states.as_ref().is_some_and(|s| s.uvlock);
-    let blockstate = match &arm {
-        // Every state: its model, turned by facing and face.
-        None if !states.is_empty() => {
-            let mut variants = Map::new();
-            let mut combo: Vec<usize> = vec![0; states.len()];
-            loop {
-                let at: Vec<(&str, &str)> = states.iter().zip(&combo).map(|((n, vs), &i)| (n.as_str(), vs[i].as_str())).collect();
-                let value = |k: &str| at.iter().find(|(n, _)| *n == k).map(|(_, v)| *v);
-                let models = rules
-                    .iter()
-                    .find(|(when, _)| when.iter().all(|(k, v)| value(k) == Some(v.as_str())))
-                    .map_or(vec![main.clone()], |(_, m)| m.clone());
-                let (x, y) = turn(value("facing"), value("face"));
-                let key: Vec<String> = at.iter().map(|(n, v)| format!("{n}={v}")).collect();
-                let picks: Vec<Value> = models.iter().map(|m| variant(m, x, y, uvlock, None)).collect();
-                let v = if picks.len() == 1 { picks.into_iter().next().unwrap() } else { Value::Array(picks) };
-                variants.insert(key.join(","), v);
-                // The next state, the last property fastest.
-                let mut i = states.len();
+        let base: Value = match rotations.len() {
+            0 => variant(&main, 0.0, 0.0, false, None),
+            1 => rotations.remove(0),
+            _ => Value::Array(rotations),
+        };
+        let uvlock = parts.states.as_ref().is_some_and(|s| s.uvlock);
+        let blockstate = match &arm {
+            // Every state: its model, turned by facing and face.
+            None if !states.is_empty() => {
+                let mut variants = Map::new();
+                let mut combo: Vec<usize> = vec![0; states.len()];
                 loop {
-                    if i == 0 {
+                    let at: Vec<(&str, &str)> = states.iter().zip(&combo).map(|((n, vs), &i)| (n.as_str(), vs[i].as_str())).collect();
+                    let value = |k: &str| at.iter().find(|(n, _)| *n == k).map(|(_, v)| *v);
+                    let models = rules
+                        .iter()
+                        .find(|(when, _)| when.iter().all(|(k, v)| value(k) == Some(v.as_str())))
+                        .map_or(vec![main.clone()], |(_, m)| m.clone());
+                    let (x, y) = turn(value("facing"), value("face"));
+                    let key: Vec<String> = at.iter().map(|(n, v)| format!("{n}={v}")).collect();
+                    let picks: Vec<Value> = models.iter().map(|m| variant(m, x, y, uvlock, None)).collect();
+                    let v = if picks.len() == 1 { picks.into_iter().next().unwrap() } else { Value::Array(picks) };
+                    variants.insert(key.join(","), v);
+                    // The next state, the last property fastest.
+                    let mut i = states.len();
+                    loop {
+                        if i == 0 {
+                            break;
+                        }
+                        i -= 1;
+                        combo[i] += 1;
+                        if combo[i] < states[i].1.len() {
+                            break;
+                        }
+                        combo[i] = 0;
+                    }
+                    if combo.iter().all(|&c| c == 0) {
                         break;
                     }
-                    i -= 1;
-                    combo[i] += 1;
-                    if combo[i] < states[i].1.len() {
-                        break;
-                    }
-                    combo[i] = 0;
                 }
-                if combo.iter().all(|&c| c == 0) {
-                    break;
+                json!({ "variants": variants })
+            }
+            None => json!({ "variants": { "": base } }),
+            Some((arm, uvlock)) => {
+                let mut parts = vec![json!({ "apply": base })];
+                for (dir, x, y) in [("north", 0.0, 0.0), ("east", 0.0, 90.0), ("south", 0.0, 180.0), ("west", 0.0, 270.0), ("up", 270.0, 0.0), ("down", 90.0, 0.0)] {
+                    parts.push(json!({ "when": { dir: "true" }, "apply": variant(arm, x, y, *uvlock, None) }));
                 }
+                json!({ "multipart": parts })
             }
-            json!({ "variants": variants })
-        }
-        None => json!({ "variants": { "": base } }),
-        Some((arm, uvlock)) => {
-            let mut parts = vec![json!({ "apply": base })];
-            for (dir, x, y) in [("north", 0.0, 0.0), ("east", 0.0, 90.0), ("south", 0.0, 180.0), ("west", 0.0, 270.0), ("up", 270.0, 0.0), ("down", 90.0, 0.0)] {
-                parts.push(json!({ "when": { dir: "true" }, "apply": variant(arm, x, y, *uvlock, None) }));
-            }
-            json!({ "multipart": parts })
-        }
+        };
+        emit(cx, format!("blockstates/{p}.json"), &blockstate);
+        Some(main)
     };
-    emit(cx, format!("blockstates/{p}.json"), &blockstate);
 
     // The item form: the block model, or its own.
-    let item_model = match &parts.item_model {
-        None => Some(json!({ "parent": main })),
-        Some(im) => model(cx, loc, &root.key("item_model"), im, true).map(|m| m.json),
+    let item_model = match (&parts.item_model, item_parent) {
+        (None, Some(parent)) => Some(json!({ "parent": parent })),
+        (None, None) => {
+            cx.err_at(loc, &root, format!("kind {} has no item model of its own — give item_model", parts.kind.as_deref().unwrap_or_default()));
+            None
+        }
+        (Some(im), _) => model(cx, loc, &root.key("item_model"), im, true).map(|m| m.json),
     };
     if let Some(im) = item_model {
         emit(cx, format!("models/item/{p}.json"), &im);
@@ -1181,6 +1241,108 @@ fn drops_table(item: &str, count: Option<yog_formats::content::DropCount>) -> Va
             "conditions": [{ "condition": "minecraft:survives_explosion" }]
         }]
     })
+}
+
+/// A block of one of the game's kinds: the kind's template models with the
+/// file's textures, its states as the kind's, and the model its item shows
+/// (none: the file gives it).
+#[allow(clippy::too_many_arguments)]
+fn kind_models(
+    cx: &mut Ctx,
+    loc: Loc,
+    k: &yog_formats::content::BlockKind,
+    m: &yog_formats::content::Model,
+    base: Option<&str>,
+    render_layer: Option<&str>,
+    ns: &str,
+    p: &str,
+    emit: &mut dyn FnMut(&mut Ctx, String, &Value),
+) -> Option<String> {
+    let at = At::root().key("model");
+    if m.parent.is_some() || m.elements.is_some() || m.display.is_some() || m.ambient_occlusion.is_some() || m.gui_light.is_some() {
+        cx.err_at(loc, &at, format!("kind {} has the game's models — give only textures ({})", k.name, k.slots.join(", ")));
+    }
+    let mut textures = Map::new();
+    for (slot, tex) in &m.textures.0 {
+        let here = at.key("textures").key(slot);
+        if slot != "particle" && !k.slots.contains(slot) {
+            cx.warn_at(loc, &here, format!("kind {} has no slot `{slot}` ({})", k.name, k.slots.join(", ")));
+        }
+        if let Some(t) = cx.texture(loc, &here, tex) {
+            textures.insert(slot.clone(), Value::String(t));
+        }
+    }
+    for slot in k.slots.iter().filter(|s| !textures.contains_key(*s)) {
+        cx.err_at(loc, &at, format!("kind {} needs textures.{slot}", k.name));
+    }
+    // `""` is the block's own model, `base` its base block's, another name `<block>_<name>`.
+    let path = |name: &str| if name.is_empty() { p.to_string() } else { format!("{p}_{name}") };
+    let id = |name: &str| match (name, base) {
+        ("base", Some(b)) => {
+            let (bns, bp) = b.split_once(':').unwrap_or(("minecraft", b));
+            format!("{bns}:block/{bp}")
+        }
+        _ => format!("{ns}:block/{}", path(name)),
+    };
+    for (name, parent) in &k.models.0 {
+        let mut json = json!({ "parent": parent, "textures": textures });
+        if let (Some(layer), Value::Object(o)) = (render_layer, &mut json) {
+            o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
+        }
+        emit(cx, format!("models/block/{}.json", path(name)), &json);
+    }
+    let shown = |km: &yog_formats::content::KindModel| variant(&id(&km.model), km.x.unwrap_or(0) as f64, km.y.unwrap_or(0) as f64, km.uvlock, None);
+    let blockstate = if k.multipart.is_empty() {
+        let variants: Map<String, Value> = k.variants.0.iter().map(|(state, km)| (state.clone(), shown(km))).collect();
+        json!({ "variants": variants })
+    } else {
+        let parts: Vec<Value> = k
+            .multipart
+            .iter()
+            .map(|part| {
+                let mut o = Map::new();
+                o.insert("apply".into(), shown(&part.apply));
+                if let Some(when) = &part.when {
+                    o.insert("when".into(), Value::Object(state_properties(when)));
+                }
+                Value::Object(o)
+            })
+            .collect();
+        json!({ "multipart": parts })
+    };
+    emit(cx, format!("blockstates/{p}.json"), &blockstate);
+    k.item.as_deref().map(id)
+}
+
+/// `half=lower,open=true` → `{"half": "lower", "open": "true"}`.
+fn state_properties(state: &str) -> Map<String, Value> {
+    state
+        .split(',')
+        .filter_map(|pair| pair.split_once('='))
+        .map(|(k, v)| (k.to_string(), Value::String(v.to_string())))
+        .collect()
+}
+
+/// What a block of a game's kind drops: itself — only in its `drops_when`
+/// states (a door's bottom half), two in its `drops_two_when` (a double slab).
+fn kind_drops(id: &str, k: &yog_formats::content::BlockKind) -> Value {
+    let mut table = drops_table(id, None);
+    let when = |state: &str| json!({ "condition": "minecraft:block_state_property", "block": id, "properties": state_properties(state) });
+    let pool = &mut table["pools"][0];
+    if let Some(state) = &k.drops_when
+        && let Some(conditions) = pool["conditions"].as_array_mut()
+    {
+        conditions.insert(0, when(state));
+    }
+    if let Some(state) = &k.drops_two_when {
+        // As the game's slab: two when double, and explosions take their share.
+        pool.as_object_mut().map(|o| o.remove("conditions"));
+        pool["entries"][0]["functions"] = json!([
+            { "function": "minecraft:set_count", "count": 2, "conditions": [when(state)] },
+            { "function": "minecraft:explosion_decay" }
+        ]);
+    }
+    table
 }
 
 // ── Recipes ──────────────────────────────────────────────────────────────────
@@ -3413,6 +3575,24 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
                     }
                     if p.accepts_items {
                         b.push_str("\n            .accepts_items()");
+                    }
+                    if p.no_occlusion {
+                        b.push_str("\n            .no_occlusion()");
+                    }
+                    if !p.kind.is_empty() {
+                        let _ = write!(b, "\n            .kind({:?})", p.kind);
+                    }
+                    if let Some(base) = &p.base {
+                        let _ = write!(b, "\n            .base({base:?})");
+                    }
+                    if let Some(set) = &p.set {
+                        let _ = write!(b, "\n            .set({set:?})");
+                    }
+                    if let Some(t) = p.press_ticks {
+                        let _ = write!(b, "\n            .press_ticks({t})");
+                    }
+                    if p.mobs_only {
+                        b.push_str("\n            .mobs_only()");
                     }
                 }
                 Kind::Item => b.push_str(&item_props(&e.item)),

@@ -2243,6 +2243,8 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
                 none_if_empty(&mut d.name);
                 none_if_empty(&mut d.sound);
                 none_if_empty(&mut d.inventory_id);
+                none_if_empty(&mut d.base);
+                none_if_empty(&mut d.set);
                 h.blocks.push(d);
             }
         }

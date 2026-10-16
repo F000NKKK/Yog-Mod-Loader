@@ -1,0 +1,1 @@
+{ "block": { "press_ticks": 4 }, "model": { "parent": "cube_all", "textures": { "all": "minecraft:block/stone" } } }

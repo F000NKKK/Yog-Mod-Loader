@@ -1,0 +1,1 @@
+{ "kind": "button", "block": { "set": "stone", "press_ticks": 20, "triggered_by": "mobs" }, "model": { "textures": { "texture": "minecraft:block/stone" } } }
