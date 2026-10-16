@@ -2544,10 +2544,6 @@ fn compile_recipe(
     }
     let RecipeFile { common: c, body } = read.value;
     let brewing = matches!(&body, Body::Brewing(_));
-    if brewing != c.result.is_potion() {
-        cx.err(line(&At::root().key("result")), if brewing { "a brewing recipe result must be a potion reference" } else { "this recipe type must make an item" });
-        ok = false;
-    }
     let ty = match &body {
         Body::Shaped(_) => "shaped".to_string(),
         Body::Shapeless(_) => "shapeless".to_string(),
@@ -3155,7 +3151,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         known.add(if e.kind == Kind::Block { refs::RefKind::Block } else { refs::RefKind::Item }, e.id.clone());
     }
     for id in potion_defs.keys() {
-        known.add(refs::RefKind::Potion, id.clone());
+        known.add(refs::RefKind::Item, id.clone());
     }
     for e in &entity_files {
         known.add(refs::RefKind::Entity, e.id.clone());

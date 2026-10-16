@@ -21,11 +21,10 @@ pub enum RefKind {
     Entity,
     Recipe,
     LootTable,
-    Potion,
 }
 
 impl RefKind {
-    pub const ALL: [RefKind; 6] = [RefKind::Item, RefKind::Block, RefKind::Entity, RefKind::Recipe, RefKind::LootTable, RefKind::Potion];
+    pub const ALL: [RefKind; 5] = [RefKind::Item, RefKind::Block, RefKind::Entity, RefKind::Recipe, RefKind::LootTable];
 
     /// Its prefix: `item` for `@item:`.
     pub fn word(self) -> &'static str {
@@ -35,7 +34,6 @@ impl RefKind {
             RefKind::Entity => "entity",
             RefKind::Recipe => "recipe",
             RefKind::LootTable => "loot_table",
-            RefKind::Potion => "potion",
         }
     }
 
@@ -180,8 +178,9 @@ impl Known {
             return Err(format!("`{id}`: write its namespace (`minecraft:{id}`, `{}:{id}`)", self.ns));
         };
         let what = kind.word();
-        // `yog:` potion ids are stable aliases resolved by each game backend.
-        if kind == RefKind::Potion && ns == "yog" {
+        // Stable aliases for vanilla potion stacks; backends resolve these to
+        // the version's Potion registry entry.
+        if kind == RefKind::Item && ns == "yog" && path.starts_with("potion/") {
             return Ok(());
         }
         // An item may be a block's item.
@@ -229,7 +228,6 @@ impl Known {
                 RefKind::Block => "blocks",
                 RefKind::Entity => "entities",
                 RefKind::LootTable => "loot_tables",
-                RefKind::Potion => "potions",
                 _ => "recipes",
             };
             format!("{id} is another mod's: declare it in yog.toml — {section} {list} = [\"{path}\"]")
@@ -267,8 +265,7 @@ mod tests {
         assert!(k.check(RefKind::Item, "mymod:ruby").is_ok());
         assert!(k.check(RefKind::Item, "mymod:nope").unwrap_err().contains("no item mymod:nope"));
         assert!(k.check(RefKind::Item, "minecraft:stick").is_ok());
-        assert!(k.check(RefKind::Potion, "yog:awkward").is_ok(), "Yog's stable vanilla potion alias");
-        assert!(k.check(RefKind::Potion, "minecraft:awkward").is_ok(), "versioned vanilla potion ids");
+        assert!(k.check(RefKind::Item, "yog:potion/awkward").is_ok(), "Yog's stable vanilla potion item alias");
         assert!(k.check(RefKind::Item, "minecraft:stone").is_ok(), "a block's item");
         assert!(k.check(RefKind::Block, "minecraft:furnace[facing=north]").is_ok());
         assert!(k.check(RefKind::Entity, "minecraft:allay").is_ok());

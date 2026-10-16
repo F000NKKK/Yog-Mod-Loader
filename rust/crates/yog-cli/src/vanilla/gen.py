@@ -39,9 +39,6 @@ for v in VERSIONS:
         m = re.fullmatch(r"entity\.minecraft\.([a-z0-9_]+)", k)
         if m:
             ids[("entity", m[1])].add(v)
-        m = re.fullmatch(r"item\.minecraft\.potion\.effect\.([a-z0-9_]+)", k)
-        if m:
-            ids[("potion", m[1])].add(v)
 out = ["# Vanilla ids per Minecraft version: <kind> <path> <versions>; generated from the client jars.",
        "# versions: " + " ".join(VERSIONS)]
 for (kind, path), vs in sorted(ids.items()):
