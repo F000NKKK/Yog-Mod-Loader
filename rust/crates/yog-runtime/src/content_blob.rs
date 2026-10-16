@@ -69,7 +69,7 @@ fn strings<'v>(w: &mut Writer<'v>, ss: &'v [String]) {
 
 /// The whole group, so the host builds it without a list of its own.
 fn sound<'v>(w: &mut Writer<'v>, g: &'v yog_registry::SoundGroup) {
-    w.map(7);
+    w.map(10);
     for (k, v) in [("break", &g.break_sound), ("step", &g.step), ("place", &g.place), ("hit", &g.hit), ("fall", &g.fall)] {
         w.key(k).str(v);
     }
@@ -77,7 +77,7 @@ fn sound<'v>(w: &mut Writer<'v>, g: &'v yog_registry::SoundGroup) {
     w.key("pitch").float(g.pitch as f64);
 }
 
-/// The registered content: `{ items, blocks, inventories, recipes, biome_features, entities, dimensions }`.
+/// The registered content: `{ items, blocks, inventories, recipes, biome_features, entities, dimensions, attributes, effects, potions }`.
 pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
     // Inventories' layouts are worked out first: the writer borrows them.
     let layouts: Vec<_> = h.inventories.iter().map(|d| d.resolved_layout()).collect();
@@ -275,6 +275,13 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
         w.map(2);
         w.key("id").str(id);
         w.key("def").value(def);
+    }
+
+    for (key, defs) in [("attributes", &h.attributes), ("effects", &h.effects), ("potions", &h.potions)] {
+        w.key(key).list(defs.len());
+        for d in defs {
+            w.value(d);
+        }
     }
     w.finish()
 }

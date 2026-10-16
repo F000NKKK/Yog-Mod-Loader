@@ -184,6 +184,10 @@ struct RuntimeHandlers {
     items: Vec<ItemDef>,
     /// Mods' entity types, as Yog Data (the host reads them whole).
     entities: Vec<yog_data::Value>,
+    /// Mods' attributes, mob effects and potions, as Yog Data (read whole too).
+    attributes: Vec<yog_data::Value>,
+    effects: Vec<yog_data::Value>,
+    potions: Vec<yog_data::Value>,
     /// Ticks of mods' entities, by type.
     entity_ticks: HashMap<String, Vec<(LoadedModule, *mut c_void, yog_abi::YogEntityTickFn)>>,
     blocks: Vec<BlockDef>,
@@ -2219,6 +2223,21 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
         "entity" => {
             if read::<yog_registry::EntityDef>(kind, &id, value).is_some() {
                 h.entities.push(value.to_value());
+            }
+        }
+        "attribute" => {
+            if read::<yog_registry::AttributeDef>(kind, &id, value).is_some() {
+                h.attributes.push(value.to_value());
+            }
+        }
+        "effect" => {
+            if read::<yog_registry::EffectDef>(kind, &id, value).is_some() {
+                h.effects.push(value.to_value());
+            }
+        }
+        "potion" => {
+            if read::<yog_registry::PotionDef>(kind, &id, value).is_some() {
+                h.potions.push(value.to_value());
             }
         }
         "biome_feature" => {
