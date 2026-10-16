@@ -236,11 +236,11 @@ fn path_bounds(path: &[Seg], r: f32, b: &mut Bounds) {
     for s in path {
         match *s {
             Seg::Move { x, y } | Seg::Line { x, y } => b.add(x, y, r),
-            Seg::Quad { cx, cy, x, y } => {
+            Seg::Quad { x1: cx, y1: cy, x, y } => {
                 b.add(cx, cy, r);
                 b.add(x, y, r);
             }
-            Seg::Cubic { c1x, c1y, c2x, c2y, x, y } => {
+            Seg::Cubic { x1: c1x, y1: c1y, x2: c2x, y2: c2y, x, y } => {
                 b.add(c1x, c1y, r);
                 b.add(c2x, c2y, r);
                 b.add(x, y, r);

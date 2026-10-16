@@ -138,7 +138,7 @@ impl Canvas {
                     cur.push((at, p));
                     at = p;
                 }
-                Seg::Quad { cx, cy, x, y } => {
+                Seg::Quad { x1: cx, y1: cy, x, y } => {
                     let (c, p) = (self.to_px(s, dx, dy, cx, cy), self.to_px(s, dx, dy, x, y));
                     let (n, from) = (steps(at, c, p), at);
                     for i in 1..=n {
@@ -149,7 +149,7 @@ impl Canvas {
                     }
                     at = p;
                 }
-                Seg::Cubic { c1x, c1y, c2x, c2y, x, y } => {
+                Seg::Cubic { x1: c1x, y1: c1y, x2: c2x, y2: c2y, x, y } => {
                     let (c1, c2, p) = (self.to_px(s, dx, dy, c1x, c1y), self.to_px(s, dx, dy, c2x, c2y), self.to_px(s, dx, dy, x, y));
                     let n = steps(at, c1, p).max(steps(c1, c2, p));
                     let from = at;

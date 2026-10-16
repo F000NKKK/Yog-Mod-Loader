@@ -113,10 +113,10 @@ pub enum Seg {
     /// Starts a contour at `x, y`.
     Move { x: f32, y: f32 },
     Line { x: f32, y: f32 },
-    /// A quadratic curve through control point `cx, cy`.
-    Quad { cx: f32, cy: f32, x: f32, y: f32 },
-    /// A cubic curve through control points `c1`, `c2`.
-    Cubic { c1x: f32, c1y: f32, c2x: f32, c2y: f32, x: f32, y: f32 },
+    /// A quadratic curve through control point `x1, y1`.
+    Quad { x1: f32, y1: f32, x: f32, y: f32 },
+    /// A cubic curve through control points `x1, y1` and `x2, y2`.
+    Cubic { x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32 },
     /// Closes the contour.
     Close,
 }
