@@ -35,6 +35,7 @@ pub mod widget;
 
 pub use event::UiEvent;
 pub use layout::{Align, FlexDir, GridLines, LayoutNode, Rect, hit_path, node_at, set_focus};
+pub use yog_gfx::{Color, Vec2};
 pub use scroll::ScrollState;
 pub use surface::{Pointer, Surface};
 pub use textbox::{TextBoxEvent, TextBoxState};

@@ -937,7 +937,7 @@ impl VmGen<'_> {
                     }
                     "bg" | "color" | "focus_color" => {
                         let c = yui::color_attr(el, k, v)?;
-                        format!("{attr}: ::std::option::Option::Some(0x{c:08X})")
+                        format!("{attr}: ::std::option::Option::Some(::yog_api::ui::Color(0x{c:08X}))")
                     }
                     "shadow" => format!(
                         "shadow: ::std::option::Option::Some({})",

@@ -542,7 +542,7 @@ impl Gen {
             let _ = write!(expr, ".region([{}, {}, {}, {}])", f(u), f(vv), f(w), f(h));
         }
         if let Some(v) = el.attr("tint") {
-            let _ = write!(expr, ".tint(0x{:08X})", color_attr(el, "tint", v)?);
+            let _ = write!(expr, ".tint(::yog_api::ui::Color(0x{:08X}))", color_attr(el, "tint", v)?);
         }
         Ok(expr)
     }
@@ -772,7 +772,7 @@ impl Gen {
                     call(format!("bg_image({src:?})"));
                 }
                 "bg" | "color" | "focus_color" => {
-                    call(format!("{key}(0x{:08X})", color_attr(el, key, v)?));
+                    call(format!("{key}(::yog_api::ui::Color(0x{:08X}))", color_attr(el, key, v)?));
                 }
                 "shadow" | "enabled" => call(format!("{key}({})", boolean(el, key, v)?)),
                 "no_wrap" if boolean(el, key, v)? => call("no_wrap()".to_string()),
