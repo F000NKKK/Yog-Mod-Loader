@@ -1602,7 +1602,6 @@ public final class NativeBridge {
 
     /** A rolled loot table ({@code yog_registry::Loot}, Yog Data) → the stacks to give instead, or null. */
     public static native byte[] nativeLoot(byte[] loot);
-    }
 
     /** Entity data: everything about an entity, for a player who starts seeing it; null for nothing. */
     public static native byte[] nativeEntityDataFor(String uuid);
