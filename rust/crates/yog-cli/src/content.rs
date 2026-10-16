@@ -33,6 +33,7 @@ use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
+use yog_data::Schema;
 
 /// Where content files live, under the mod root.
 pub const CONTENT_DIR: &str = "content";
@@ -751,7 +752,7 @@ fn compile_file(
         name: Option<yog_data::Text>,
         tooltip: Option<yog_data::Text>,
         register: Option<yog_formats::content::Register>,
-        model: yog_formats::content::Model,
+        model: Option<yog_formats::content::Model>,
         item_model: Option<yog_formats::content::Model>,
         block: Option<yog_formats::content::BlockProps>,
         states: Option<yog_formats::content::States>,
@@ -777,7 +778,7 @@ fn compile_file(
         Kind::Block => match yog_data::schema::from_doc::<yog_formats::content::BlockFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, block_item: f.item, requires: f.requires, tags: f.tags, kind: f.kind }, r.refs, r.tags)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: Some(f.model), item_model: f.item_model, block: f.block, states: f.states, item: None, block_item: f.item, requires: f.requires, tags: f.tags, kind: f.kind }, r.refs, r.tags)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -909,7 +910,14 @@ fn compile_file(
                 cx.warn_at(loc, &root.key("item").key("stack_size"), "ignored: an item with durability stacks to 1");
             }
         }
-        let m = model(cx, loc, &root.key("model"), &parts.model, true)?;
+        if entry.potion.is_some() {
+            return Some(entry);
+        }
+        let Some(item_model) = parts.model.as_ref() else {
+            cx.err_at(loc, &root.key("model"), "an item without potion effects needs a model");
+            return None;
+        };
+        let m = model(cx, loc, &root.key("model"), item_model, true)?;
         emit(cx, format!("models/item/{p}.json"), &m.json);
         emit(cx, format!("items/{p}.json"), &json!({ "model": { "type": "minecraft:model", "model": format!("{ns}:item/{p}") } }));
         return Some(entry);
@@ -995,9 +1003,9 @@ fn compile_file(
 
     // Its models and states: a kind's, or its own.
     let item_parent = if let Some(k) = kind_of {
-        kind_models(cx, loc, k, &parts.model, b.base.as_deref(), render_layer.as_deref(), &ns, &p, &mut emit)
+        kind_models(cx, loc, k, parts.model.as_ref().expect("blocks always have a model"), b.base.as_deref(), render_layer.as_deref(), &ns, &p, &mut emit)
     } else {
-        let mut m = model(cx, loc, &root.key("model"), &parts.model, false)?;
+        let mut m = model(cx, loc, &root.key("model"), parts.model.as_ref().expect("blocks always have a model"), false)?;
         if let (Some(layer), Value::Object(o)) = (&render_layer, &mut m.json) {
             // Forge/NeoForge read it from the model; Fabric ignores it.
             o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
@@ -1948,11 +1956,6 @@ fn compile_layout(
             content_def(cx, &doc, text, ns, "effect", e.id.clone(), &e, ok, definitions);
             return None;
         }
-        Def::Potion(mut p) => {
-            p.id = full_id(&p.id, ns);
-            content_def(cx, &doc, text, ns, "potion", p.id.clone(), &p, ok, definitions);
-            return None;
-        }
         Def::LootTable(t) => {
             let id = full_id(&t.id, ns);
             let Some(path) = id.strip_prefix(&format!("{ns}:")).filter(|p| valid_path(p)) else {
@@ -2490,6 +2493,7 @@ fn compile_recipe(
     mod_ns: Option<&str>,
     known: &refs::Known,
     kinds: &HashMap<String, yog_formats::def::RecipeKindDef>,
+    brews: &mut Vec<(String, yog_registry::Brew)>,
 ) -> Option<Recipe> {
     use yog_formats::recipe::{Body, RecipeFile};
     use yog_data::Path as At;
@@ -2540,6 +2544,7 @@ fn compile_recipe(
         Body::Cooking(t, _) | Body::Custom(t, _) => t.clone(),
         Body::Stonecutting(_) => "stonecutting".to_string(),
         Body::Smithing(_) => "smithing".to_string(),
+        Body::Brewing(_) => "brewing".to_string(),
     };
     let root = At::root();
     if let Some(f) = c.format
@@ -2628,6 +2633,20 @@ fn compile_recipe(
         }
         Body::Stonecutting(k) => RecipeKind::Stonecutting(k.ingredient.ids()),
         Body::Smithing(k) => RecipeKind::Smithing { template: k.template.ids(), base: k.base.ids(), addition: k.addition.ids() },
+        Body::Brewing(k) => {
+            if c.count != 1 {
+                cx.err(line(&root.key("count")), "brewing recipes make one potion");
+                ok = false;
+            }
+            if c.category.is_some() {
+                cx.err(line(&root.key("category")), "brewing recipes don't have a recipe-book category");
+                ok = false;
+            }
+            if ok {
+                brews.push((c.result.clone(), yog_registry::Brew { from: k.from, with: k.ingredient }));
+            }
+            return None;
+        }
         Body::Custom(kind, k) => {
             // The mod's own kind of recipe: `<mod id>:<kind>`.
             let own = mod_ns.is_some_and(|m| kind.split_once(':').is_some_and(|(n, p)| n == m && valid_path(p)));
@@ -2696,7 +2715,7 @@ fn compile_recipe(
         id: format!("{ns}:{p}"),
         ty,
         kind,
-        result: c.result.id,
+        result: c.result,
         count: c.count,
         group: c.group,
         category: c.category,
@@ -3074,7 +3093,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         if kind == Kind::Def {
             // Kinds of recipe are checked with the recipes, ores and dimensions with what they name.
             let of = yog_data::text::parse_value(&text).ok().and_then(|v| v.get("kind").and_then(|k| k.as_str()).map(str::to_string));
-            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table" | "tag" | "damage_type" | "tree" | "loot_modifier" | "loot_table" | "attribute" | "effect" | "potion" | "advancement")) {
+            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table" | "tag" | "damage_type" | "tree" | "loot_modifier" | "loot_table" | "attribute" | "effect" | "advancement")) {
                 pending_layouts.push((shown.clone(), text));
             } else {
                 pending_defs.push((shown.clone(), text));
@@ -3112,6 +3131,11 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             entries.push(entry);
         }
     }
+    let mut potion_defs: BTreeMap<String, yog_registry::PotionDef> = entries
+        .iter()
+        .filter_map(|e| e.potion.clone().map(|p| (e.id.clone(), p)))
+        .collect();
+    entries.retain(|e| e.potion.is_none());
     // Books name the mod's content, vanilla's and other mods' declared ids.
     let manifest = crate::manifest::YogToml::read(&root.join("yog.toml")).ok();
     let externals = manifest.as_ref().map(|t| t.externals.clone()).unwrap_or_default();
@@ -3119,6 +3143,9 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut known = refs::Known::new(mod_ns.unwrap_or("minecraft"), &externals, datapack.as_deref());
     for e in &entries {
         known.add(if e.kind == Kind::Block { refs::RefKind::Block } else { refs::RefKind::Item }, e.id.clone());
+    }
+    for id in potion_defs.keys() {
+        known.add(refs::RefKind::Potion, id.clone());
     }
     for e in &entity_files {
         known.add(refs::RefKind::Entity, e.id.clone());
@@ -3142,6 +3169,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut loot: Vec<(String, Vec<u8>)> = Vec::new();
     // Attributes, effects, potions: (kind, id, their data).
     let mut definitions: Vec<(&'static str, String, Vec<u8>)> = Vec::new();
+    let mut brews: Vec<(String, yog_registry::Brew)> = Vec::new();
     let mut advancements: Vec<String> = Vec::new();
     for (shown, text) in &pending_layouts {
         let mut cx = Ctx {
@@ -3175,7 +3203,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        if let Some(r) = compile_recipe(&mut cx, text, path, mod_ns, &known, &recipe_defs) {
+        if let Some(r) = compile_recipe(&mut cx, text, path, mod_ns, &known, &recipe_defs, &mut brews) {
             if let Some(other) = recipe_ids.insert(r.id.clone(), shown.clone()) {
                 errors.push(format!("{shown}: recipe {} is also defined by {other}", r.id));
             }
@@ -3185,8 +3213,16 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     for r in &recipes {
         known.add(refs::RefKind::Recipe, r.id.clone());
     }
+    for (to, brew) in brews {
+        if let Some(potion) = potion_defs.get_mut(&to) {
+            potion.brewed.push(brew);
+        } else {
+            errors.push(format!("brewing recipe result `{to}`: no potion `.yitem` defines it"));
+        }
+    }
     // Definitions: the ladders and their levels, sound groups.
     let mut defs = read_defs(&pending_defs, mod_ns, &mut errors);
+    definitions.extend(potion_defs.into_iter().map(|(id, potion)| ("potion", id, yog_data::binary::encode(&potion.write()))));
     for (files, feature) in ores {
         out.outputs.extend(files);
         defs.biome_features.push(feature);

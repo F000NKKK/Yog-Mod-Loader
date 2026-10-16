@@ -21,10 +21,11 @@ pub enum RefKind {
     Entity,
     Recipe,
     LootTable,
+    Potion,
 }
 
 impl RefKind {
-    pub const ALL: [RefKind; 5] = [RefKind::Item, RefKind::Block, RefKind::Entity, RefKind::Recipe, RefKind::LootTable];
+    pub const ALL: [RefKind; 6] = [RefKind::Item, RefKind::Block, RefKind::Entity, RefKind::Recipe, RefKind::LootTable, RefKind::Potion];
 
     /// Its prefix: `item` for `@item:`.
     pub fn word(self) -> &'static str {
@@ -34,6 +35,7 @@ impl RefKind {
             RefKind::Entity => "entity",
             RefKind::Recipe => "recipe",
             RefKind::LootTable => "loot_table",
+            RefKind::Potion => "potion",
         }
     }
 
@@ -192,6 +194,20 @@ impl Known {
             };
         }
         if ns == "minecraft" {
+            if kind == RefKind::Potion {
+                const POTIONS: &[&str] = &[
+                    "water", "mundane", "thick", "awkward", "night_vision", "long_night_vision", "invisibility",
+                    "long_invisibility", "leaping", "long_leaping", "strong_leaping", "fire_resistance",
+                    "long_fire_resistance", "swiftness", "long_swiftness", "strong_swiftness", "slowness",
+                    "long_slowness", "strong_slowness", "water_breathing", "long_water_breathing", "healing",
+                    "strong_healing", "harming", "strong_harming", "poison", "long_poison", "strong_poison",
+                    "regeneration", "long_regeneration", "strong_regeneration", "strength", "long_strength",
+                    "strong_strength", "weakness", "long_weakness", "luck", "turtle_master", "long_turtle_master",
+                    "strong_turtle_master", "slow_falling", "long_slow_falling", "wind_charged", "weaving",
+                    "oozing", "infested",
+                ];
+                return if POTIONS.contains(&path) { Ok(()) } else { Err(format!("no potion {id} in Minecraft")) };
+            }
             let v = &*VANILLA;
             if !v.versions.contains(&self.datapack) {
                 return Err(format!("the mod's datapack is Minecraft {}, which Yog doesn't know ({})", self.datapack, v.versions.join(", ")));
@@ -223,6 +239,7 @@ impl Known {
                 RefKind::Block => "blocks",
                 RefKind::Entity => "entities",
                 RefKind::LootTable => "loot_tables",
+                RefKind::Potion => "potions",
                 _ => "recipes",
             };
             format!("{id} is another mod's: declare it in yog.toml — {section} {list} = [\"{path}\"]")

@@ -973,7 +973,8 @@ pub struct ItemFile {
     /// (`minecraft:planks`), or the mod's own (a bare name).
     #[data(default)]
     pub tags: Vec<String>,
-    pub model: Model,
+    /// Items need a model; potion-only `.yitem` files don't register one.
+    pub model: Option<Model>,
     pub item: Option<ItemProps>,
 }
 
