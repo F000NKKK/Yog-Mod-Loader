@@ -16,6 +16,7 @@ pub enum Align {
 }
 
 pub use yog_gfx::graphics::Rect;
+use yog_gfx::Vec2;
 
 /// Width of the strip a [`scrollbar`](crate::widget::Style::scrollbar)
 /// container reserves on its right edge.
@@ -295,7 +296,7 @@ fn layout_widget(
                 hh = fit_h(text::LINE_H * s.font_scale + TEXT_BOX_CHROME_H);
             }
             WidgetKind::Image(image) => {
-                let (nw, nh) = crate::image::natural_size(image);
+                let Vec2 { x: nw, y: nh } = crate::image::natural_size(image);
                 ww = fit_w(nw);
                 hh = fit_h(nh);
             }
@@ -775,7 +776,7 @@ fn finish(
 /// Children only count where they're inside their parent's rect, so rows
 /// scrolled out of a clipping container can't be clicked.
 pub fn hit_test(node: &LayoutNode, mx: f32, my: f32) -> Option<&LayoutNode> {
-    if !node.visible || !node.rect.contains(mx, my) {
+    if !node.visible || !node.rect.contains(Vec2::new(mx, my)) {
         return None;
     }
     for child in node.children.iter().rev() {
@@ -794,7 +795,7 @@ pub fn hit_test(node: &LayoutNode, mx: f32, my: f32) -> Option<&LayoutNode> {
 /// [`hit_test`] finds at `(mx, my)`; `None` on a miss.
 pub fn hit_path(node: &LayoutNode, mx: f32, my: f32) -> Option<Vec<u16>> {
     fn walk(node: &LayoutNode, mx: f32, my: f32, path: &mut Vec<u16>) -> bool {
-        if !node.visible || !node.rect.contains(mx, my) {
+        if !node.visible || !node.rect.contains(Vec2::new(mx, my)) {
             return false;
         }
         for (i, child) in node.children.iter().enumerate().rev() {
@@ -813,14 +814,14 @@ pub fn hit_path(node: &LayoutNode, mx: f32, my: f32) -> Option<Vec<u16>> {
 /// The path of the deepest visible node at `(mx, my)`, clickable or not
 /// (for hover routing: which scroll view is under the cursor).
 pub fn deepest_path(node: &LayoutNode, mx: f32, my: f32) -> Option<Vec<u16>> {
-    if !node.visible || !node.rect.contains(mx, my) {
+    if !node.visible || !node.rect.contains(Vec2::new(mx, my)) {
         return None;
     }
     let mut path = Vec::new();
     let mut n = node;
     'outer: loop {
         for (i, child) in n.children.iter().enumerate().rev() {
-            if child.visible && child.rect.contains(mx, my) {
+            if child.visible && child.rect.contains(Vec2::new(mx, my)) {
                 path.push(i as u16);
                 n = child;
                 continue 'outer;

@@ -35,6 +35,8 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, PoisonError};
 
+use yog_gfx::Color;
+
 use crate::FlexDir;
 use crate::widget::{self, Widget};
 
@@ -246,7 +248,7 @@ pub fn error_box(message: &str) -> Widget {
 }
 
 /// A color value that is missing or malformed: opaque white.
-const FALLBACK_COLOR: u32 = 0xFF_FFFFFF;
+const FALLBACK_COLOR: Color = Color::WHITE;
 
 /// A component's property values: what the element set, else the defaults.
 #[derive(Debug, Clone, Default)]
@@ -300,8 +302,8 @@ impl Props {
         self.get(name).is_some_and(|v| v.trim() == "true")
     }
 
-    /// A color `0xAARRGGBB` (opaque white if missing or malformed).
-    pub fn color(&self, name: &str) -> u32 {
+    /// A color (opaque white if missing or malformed).
+    pub fn color(&self, name: &str) -> Color {
         self.get(name)
             .and_then(parse_color)
             .unwrap_or(FALLBACK_COLOR)
@@ -318,6 +320,8 @@ impl Props {
 pub mod bind {
     use std::fmt::Display;
 
+    use yog_gfx::Color;
+
     use crate::Units;
 
     /// `text`, `placeholder`, image sources, nested component properties.
@@ -325,9 +329,9 @@ pub mod bind {
         v.to_string()
     }
 
-    /// `bg`, `color`, `focus_color`, `tint`: `0xAARRGGBB`, or a `.yui` color string.
-    pub fn color<T: BindColor>(v: T) -> u32 {
-        v.to_argb()
+    /// `bg`, `color`, `focus_color`, `tint`: a colour, `0xAARRGGBB`, or a `.yui` color string.
+    pub fn color<T: BindColor>(v: T) -> Color {
+        v.to_color()
     }
 
     /// `enabled`, `visible`, `shadow`.
@@ -351,36 +355,46 @@ pub mod bind {
     }
 
     pub trait BindColor {
-        fn to_argb(self) -> u32;
+        fn to_color(self) -> Color;
     }
-    impl BindColor for u32 {
-        fn to_argb(self) -> u32 {
+    impl BindColor for Color {
+        fn to_color(self) -> Color {
             self
         }
     }
-    impl BindColor for &u32 {
-        fn to_argb(self) -> u32 {
+    impl BindColor for &Color {
+        fn to_color(self) -> Color {
             *self
         }
     }
+    impl BindColor for u32 {
+        fn to_color(self) -> Color {
+            Color(self)
+        }
+    }
+    impl BindColor for &u32 {
+        fn to_color(self) -> Color {
+            Color(*self)
+        }
+    }
     impl BindColor for &str {
-        fn to_argb(self) -> u32 {
+        fn to_color(self) -> Color {
             super::parse_color(self).unwrap_or(super::FALLBACK_COLOR)
         }
     }
     impl BindColor for &&str {
-        fn to_argb(self) -> u32 {
-            (*self).to_argb()
+        fn to_color(self) -> Color {
+            (*self).to_color()
         }
     }
     impl BindColor for &String {
-        fn to_argb(self) -> u32 {
-            self.as_str().to_argb()
+        fn to_color(self) -> Color {
+            self.as_str().to_color()
         }
     }
     impl BindColor for String {
-        fn to_argb(self) -> u32 {
-            self.as_str().to_argb()
+        fn to_color(self) -> Color {
+            self.as_str().to_color()
         }
     }
 
