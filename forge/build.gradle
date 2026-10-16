@@ -64,7 +64,8 @@ minecraft {
         client {
             workingDirectory project.file('run')
             jvmArg '-Djava.library.path=' + file('run/natives').absolutePath
-            args '--mixin.config', 'yog.mixins.json'
+            // One player across dev launches (per-player data survives a restart).
+            args '--mixin.config', 'yog.mixins.json', '--username', 'Dev'
             mods { yog { source sourceSets.main } }
         }
         server {

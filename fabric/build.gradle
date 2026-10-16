@@ -57,6 +57,9 @@ loom {
         }
         client {
             vmArg "-Djava.library.path=${file('run/natives').absolutePath}"
+            // One player across dev launches: mods' per-player data (keyed by
+            // the offline UUID of the name) survives a restart.
+            programArgs "--username", "Dev"
         }
     }
 }

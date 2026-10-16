@@ -50,6 +50,8 @@ runs {
         // Mixin configs are read from the jar manifest in production; in dev
         // runs they must be passed explicitly.
         arguments.addAll('--mixin.config', 'yog.mixins.json')
+        // One player across dev launches (per-player data survives a restart).
+        arguments.addAll('--username', 'Dev')
         jvmArgument '-Djava.library.path=' + file('run/natives').absolutePath
     }
     server {
