@@ -125,7 +125,9 @@ fn glyphs_draw_filled_and_stroked() {
     // A stroke 100 long, 10 wide, round-capped.
     let mid = s.pixel((50 - s.left) as u32, (s.top) as u32);
     assert_eq!(mid, [255, 0, 0, 255]);
-    assert_eq!(s.pixel((50 - s.left) as u32, (s.top - 9) as u32)[3], 0);
+    // 5 units to each side of the line, then nothing.
+    assert_eq!(s.pixel((50 - s.left) as u32, (s.top - 4) as u32)[3], 255);
+    assert_eq!(s.pixel((50 - s.left) as u32, 0)[3], 0);
 }
 
 #[test]
