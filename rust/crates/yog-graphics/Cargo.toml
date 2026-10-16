@@ -1,0 +1,11 @@
+[package]
+name = "yog-graphics"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog graphics primitives every crate shares: colours, vectors, matrices, rectangles, paths, RGBA images and a rasterizer."
+
+[dependencies]
+yog-data = "0.4"
