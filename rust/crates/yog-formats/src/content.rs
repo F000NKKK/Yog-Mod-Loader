@@ -51,6 +51,19 @@ pub struct ItemProps {
     /// Worn in this slot without being armor (a monocle, a crown):
     /// right-click and dispensers put it on.
     pub wearable: Option<ArmorSlot>,
+    /// Used on a block's side, it hangs there (a painting, a scroll on a wall).
+    pub hangs: Option<HangsProps>,
+}
+
+/// What an item hangs on a wall: an entity of a hanging type that keeps one
+/// of the item and drops it when it breaks.
+#[derive(Schema, Debug, Clone)]
+pub struct HangsProps {
+    /// The entity (`@entity:mymod:wall_scroll`, a `.yentity` of `kind: hanging`).
+    #[data(with = "RefTo<yog_data::kinds::Entity>")]
+    pub entity: String,
+    /// Whole blocks of wall, wide and high; default: the entity type's size.
+    pub size: Option<[u32; 2]>,
 }
 
 /// A block's item form.

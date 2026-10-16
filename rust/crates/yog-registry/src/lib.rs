@@ -97,6 +97,18 @@ pub struct ItemDef {
     pub armor: Option<ArmorPiece>,
     /// Worn in this slot without being armor: `head`, `chest`, `legs`, `feet`.
     pub wearable: Option<String>,
+    /// Used on a block's side, it hangs there as an entity of a hanging type.
+    pub hangs: Option<Hangs>,
+}
+
+/// What an item hangs on a wall ([`ItemDef::hangs`]).
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(yog_data::Schema, Debug, Clone, PartialEq)]
+pub struct Hangs {
+    /// A hanging entity type ([`EntityKind::Hanging`]).
+    pub entity: String,
+    /// Whole blocks of wall, wide and high; `None`: the type's size.
+    pub size: Option<[u32; 2]>,
 }
 
 impl ItemDef {
@@ -113,6 +125,7 @@ impl ItemDef {
             tool: None,
             armor: None,
             wearable: None,
+            hangs: None,
         }
     }
 
@@ -134,6 +147,14 @@ impl ItemDef {
     /// Worn in `slot` (`head`, `chest`, `legs`, `feet`) without being armor.
     pub fn wearable(mut self, slot: impl Into<String>) -> Self {
         self.wearable = Some(slot.into());
+        self
+    }
+
+    /// Used on a block's side, it hangs an `entity` (a hanging type) there,
+    /// `size` blocks wide and high (`None`: the type's own); the entity
+    /// keeps one of this item and drops it when it breaks.
+    pub fn hangs(mut self, entity: impl Into<String>, size: Option<[u32; 2]>) -> Self {
+        self.hangs = Some(Hangs { entity: entity.into(), size });
         self
     }
 
@@ -987,6 +1008,11 @@ pub enum EntityKind {
     Living,
     /// A creature with AI: `goals`, and walking about.
     Mob,
+    /// Hangs on a block's side, as a painting: `width`×`height` whole
+    /// blocks of wall (the item it's placed from may say another size —
+    /// [`ItemDef::hangs`]); it stays while the blocks behind hold it, and
+    /// breaking it, or losing its wall, drops the item it was placed from.
+    Hanging,
 }
 
 /// An entity type to register (`.yentity`). Its look is a body model
@@ -1049,6 +1075,10 @@ pub struct EntityDef {
     /// (`on_entity_tick`).
     #[data(default)]
     pub ticks: bool,
+    /// A hanging thing's sound events when it's placed and when it breaks;
+    /// default: a painting's.
+    pub place_sound: Option<String>,
+    pub break_sound: Option<String>,
 }
 
 fn eight() -> u32 {
@@ -1086,6 +1116,8 @@ impl EntityDef {
             spawn_egg: None,
             goals: Vec::new(),
             ticks: false,
+            place_sound: None,
+            break_sound: None,
         }
     }
 }

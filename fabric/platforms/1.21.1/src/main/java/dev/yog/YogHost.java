@@ -502,6 +502,8 @@ public class YogHost implements ModInitializer {
                 Item item;
                 if (made != null) {
                     item = made;
+                } else if (p.hangs() != null) {
+                    item = new YogHangingItem(settings, p.name(), p.tooltip(), p.hangs());
                 } else if (p.wearable() != null) {
                     item = new YogWearableItem(settings, p.name(), p.tooltip(), p.wearable());
                 } else if (p.book()) {

@@ -167,6 +167,6 @@ public class YogClient implements ClientModInitializer {
     @SuppressWarnings("unchecked")
     private static void registerRenderer(net.minecraft.entity.EntityType<?> type) {
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
-                (net.minecraft.entity.EntityType<net.minecraft.entity.Entity>) type, YogEntityRenderer::new);
+                (net.minecraft.entity.EntityType<net.minecraft.entity.Entity>) type, ctx -> new YogEntityRenderer(ctx, YogEntityTypes.def(type)));
     }
 }

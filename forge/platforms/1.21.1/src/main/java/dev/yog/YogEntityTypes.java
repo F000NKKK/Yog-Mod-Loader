@@ -25,14 +25,16 @@ import net.minecraftforge.fml.common.Mod;
 
 /**
  * Mods' entity types ({@code .yentity}): objects ({@link YogObject}),
- * living things and mobs ({@link YogMob}), their attributes, spawn eggs and
- * renderer ({@link YogEntityRenderer}).
+ * living things and mobs ({@link YogMob}), hanging things ({@link YogHanging}),
+ * their attributes, spawn eggs and renderer ({@link YogEntityRenderer}).
  */
 @Mod.EventBusSubscriber(modid = "yog", bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class YogEntityTypes {
     private YogEntityTypes() {}
 
     private static final Map<EntityType<?>, YogContent.Entity> DEFS = new HashMap<>();
+    /** A hanging thing's type's box, blocks (a painting's). */
+    private static final float HANGING_BOX = 0.5F;
     private static final Map<String, EntityType<?>> TYPES = new LinkedHashMap<>();
 
     /** The definition of a mod's type, or null. */
@@ -56,8 +58,13 @@ public final class YogEntityTypes {
             if (id == null || TYPES.containsKey(def.id())) continue;
             EntityType.Builder b = def.living()
                     ? EntityType.Builder.<YogMob>of(YogMob::new, category(def.category()))
+                    : def.hanging()
+                    ? EntityType.Builder.<YogHanging>of(YogHanging::new, category(def.category()))
                     : EntityType.Builder.<YogObject>of(YogObject::new, category(def.category()));
-            b = b.sized(def.width(), def.height()).clientTrackingRange(def.trackingRange()).updateInterval(def.updateInterval());
+            // A hanging thing's box is its size on the wall, its type's a painting's; it doesn't move, so it's sent once.
+            b = def.hanging()
+                    ? b.sized(HANGING_BOX, HANGING_BOX).clientTrackingRange(def.trackingRange()).updateInterval(Integer.MAX_VALUE)
+                    : b.sized(def.width(), def.height()).clientTrackingRange(def.trackingRange()).updateInterval(def.updateInterval());
             if (def.eyeHeight() != null) b = b.eyeHeight(def.eyeHeight());
             if (def.fireImmune()) b = b.fireImmune();
             EntityType<?> type = b.build(def.id());
@@ -130,7 +137,7 @@ public final class YogEntityTypes {
         @SuppressWarnings("unchecked")
         public static void onRenderers(EntityRenderersEvent.RegisterRenderers event) {
             for (EntityType<?> type : TYPES.values()) {
-                event.registerEntityRenderer((EntityType<Entity>) type, YogEntityRenderer::new);
+                event.registerEntityRenderer((EntityType<Entity>) type, ctx -> new YogEntityRenderer(ctx, DEFS.get(type)));
             }
         }
     }
