@@ -54,7 +54,7 @@ static HOT_RELOADER: OnceLock<HotReloader<RuntimeModuleRegistry>> = OnceLock::ne
 /// through the stable C ABI (an ABI break, and edits to every mod's
 /// source). Valid because a mod's entire registration always happens
 /// synchronously inside one `yog_mod_register` call — see `load_mod_lib`
-/// and `Java_dev_yog_NativeBridge_nativeHotReload`.
+/// and, in dev builds, `trigger_hot_reload`.
 static CURRENT_REGISTRATION: Mutex<Option<LoadedModule>> = Mutex::new(None);
 /// Metadata of loaded .yog mods: [id, name, version, authors, description,
 /// name_key, description_key] (the keys empty unless the mod's yog.toml
@@ -3400,6 +3400,7 @@ fn load_mods(dir: &Path, api: &YogApi) {
         };
         if let Some(module) = load_mod_lib(&lib_path, api, &meta.id) {
             loaded.push(module);
+            #[cfg(feature = "dev")]
             registrations::record(&meta.id, &meta.yog_path);
             MOD_INFOS
                 .lock()
@@ -3706,29 +3707,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
         load_mods(Path::new(&dir), api);
     });
 
+    #[cfg(feature = "dev")]
     control_socket::start_if_requested();
 
     yog_logging::info!("runtime initialised — the gate is open.");
-}
-
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeHotReload<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    mod_id: JString<'l>,
-    new_yog_path: JString<'l>,
-) -> jni::sys::jboolean {
-    let Ok(mod_id) = env.get_string(&mod_id).map(String::from) else {
-        return 0;
-    };
-    let Ok(yog_path) = env.get_string(&new_yog_path).map(String::from) else {
-        return 0;
-    };
-    let ok = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        trigger_hot_reload(&mod_id, Path::new(&yog_path))
-    }))
-    .unwrap_or(false);
-    ok as jni::sys::jboolean
 }
 
 /// Rebuilds and re-registers `mod_id` from a freshly built `.yog` at
@@ -3740,6 +3722,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeHotReload<'l>(
 /// generation. How this actually gets triggered — a keybind, a file-watch,
 /// an IDE-driven socket — is a separate, later concern; this only needs to
 /// work correctly once called.
+#[cfg(feature = "dev")]
 pub(crate) fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
     let Some(native_path) = extract_yog(new_yog_path) else {
         yog_logging::error!(
@@ -5495,11 +5478,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
 
 mod body;
 mod loot;
+// Hot reload: dev builds only (release ones are optimised past it).
+#[cfg(feature = "dev")]
 mod registrations;
 mod entity_data;
 mod client_api;
 mod content_blob;
 mod machine;
+#[cfg(feature = "dev")]
 mod control_socket;
 mod images;
 mod svg;

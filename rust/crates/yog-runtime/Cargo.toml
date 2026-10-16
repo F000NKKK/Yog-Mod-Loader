@@ -45,6 +45,10 @@ resvg = { version = "0.48", default-features = false }
 libc = "0.2"
 
 [features]
+# Hot reload and the control socket a launcher drives it through (Yog-IDLE,
+# `dev.sh --reload`): dev builds only — release builds are optimised past
+# what reloading a mod's code needs, and carry none of it.
+dev = []
 # The benchmarks' entry points (`cargo bench --features bench`); never in a
 # build of the loader.
 bench = ["yog-hot-reload/testing"]
