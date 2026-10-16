@@ -4,8 +4,7 @@
 //! are references (`@item:minecraft:stick`), tags `@tag:item:c:dusts`.
 
 use yog_data::schema::{Field, StructShape, read_both};
-use yog_data::with::RefTo;
-use yog_data::{ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Ref, Schema, Seg, Shape, Value, ValueRef};
+use yog_data::{ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Schema, Seg, Shape, Value, ValueRef};
 
 /// The game's recipe types.
 pub const TYPES: [&str; 9] = [
@@ -27,8 +26,8 @@ pub struct Common {
     pub format: Option<u32>,
     /// Its id (`mymod:ruby_block`); the file's name in the mod's namespace by default.
     pub id: Option<String>,
-    /// The item it makes, or the potion it brews.
-    pub result: RecipeResult,
+    /// The item stack it makes.
+    pub result: ItemId,
     /// How many (1–64).
     #[data(default = "one")]
     pub count: u32,
@@ -40,47 +39,6 @@ pub struct Common {
     /// them loaded it isn't there (an optional integration).
     #[data(default)]
     pub requires: Vec<String>,
-}
-
-/// A recipe result keeps its registry kind so read/write round-trips preserve
-/// `@item:` versus `@potion:` references.
-#[derive(Debug, Clone, PartialEq)]
-pub enum RecipeResult {
-    Item(String),
-    Potion(String),
-}
-
-impl RecipeResult {
-    pub fn id(&self) -> &str {
-        match self {
-            Self::Item(id) | Self::Potion(id) => id,
-        }
-    }
-
-    pub fn is_potion(&self) -> bool {
-        matches!(self, Self::Potion(_))
-    }
-}
-
-impl Schema for RecipeResult {
-    fn shape() -> Shape {
-        Shape::Ref(&["item", "potion"])
-    }
-
-    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
-        if matches!(v, ValueRef::Ref { kind: "potion", .. }) {
-            RefTo::<yog_data::kinds::Potion>::read(v, cx).map(Self::Potion)
-        } else {
-            RefTo::<yog_data::kinds::Item>::read(v, cx).map(Self::Item)
-        }
-    }
-
-    fn write(&self) -> Value {
-        match self {
-            Self::Item(id) => Value::Ref(Ref::new("item", id.clone())),
-            Self::Potion(id) => Value::Ref(Ref::new("potion", id.clone())),
-        }
-    }
 }
 
 fn one() -> u32 {
@@ -172,7 +130,7 @@ pub struct Smithing {
 #[derive(Schema)]
 pub struct Brewing {
     /// The potion in the bottle before brewing.
-    #[data(with = "RefTo<yog_data::kinds::Potion>")]
+    #[data(with = "RefTo<yog_data::kinds::Item>")]
     pub from: String,
     /// The item added to the brewing stand.
     #[data(with = "RefTo<yog_data::kinds::Item>")]
@@ -228,12 +186,8 @@ impl Schema for RecipeFile {
 
             #[test]
             fn recipe_result_round_trips_its_registry_kind() {
-                let potion = yog_data::from_text::<RecipeResult>("@potion:yog:awkward").unwrap().value;
-                assert_eq!(potion, RecipeResult::Potion("yog:awkward".into()));
-                assert_eq!(yog_data::text::to_string(&potion.write()), "@potion:yog:awkward");
-
-                let item = yog_data::from_text::<RecipeResult>("@item:minecraft:stick").unwrap().value;
-                assert_eq!(item, RecipeResult::Item("minecraft:stick".into()));
+                let item = yog_data::from_text::<ItemId>("@item:minecraft:stick").unwrap().value;
+                assert_eq!(item.id, "minecraft:stick");
                 assert_eq!(yog_data::text::to_string(&item.write()), "@item:minecraft:stick");
             }
         }

@@ -84,8 +84,8 @@ pub struct PotionEffect {
 /// A brewing stand recipe making a potion: one potion and an ingredient.
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct Brew {
-    /// The potion brewed from (`@potion:minecraft:awkward`).
-    #[data(with = "RefTo<Potion>")]
+    /// The potion item brewed from (`@item:yog:potion/awkward`).
+    #[data(with = "RefTo<Item>")]
     pub from: String,
     /// The ingredient.
     #[data(with = "RefTo<Item>")]
