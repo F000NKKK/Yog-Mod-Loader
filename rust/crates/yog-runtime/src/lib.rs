@@ -3400,6 +3400,7 @@ fn load_mods(dir: &Path, api: &YogApi) {
         };
         if let Some(module) = load_mod_lib(&lib_path, api, &meta.id) {
             loaded.push(module);
+            registrations::record(&meta.id, &meta.yog_path);
             MOD_INFOS
                 .lock()
                 .expect("mod infos lock poisoned")
@@ -3739,7 +3740,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeHotReload<'l>(
 /// generation. How this actually gets triggered — a keybind, a file-watch,
 /// an IDE-driven socket — is a separate, later concern; this only needs to
 /// work correctly once called.
-fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
+pub(crate) fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
     let Some(native_path) = extract_yog(new_yog_path) else {
         yog_logging::error!(
             "hot-reload {}: no native for {} in {}",
@@ -5494,6 +5495,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
 
 mod body;
 mod loot;
+mod registrations;
 mod entity_data;
 mod client_api;
 mod content_blob;

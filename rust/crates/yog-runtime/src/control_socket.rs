@@ -169,8 +169,28 @@ mod unix {
                         .and_then(|v| v.as_str())
                         .unwrap_or_default();
                     let ok = crate::trigger_hot_reload(mod_id, Path::new(yog_path));
+                    // `"resources": true`: the game rereads its data and resources too.
+                    if ok && cmd.get("resources").and_then(|v| v.as_bool()).unwrap_or(false) {
+                        crate::registrations::reload_game_resources();
+                    }
                     let response = serde_json::json!({ "event": "hot-reload-done", "mod_id": mod_id, "ok": ok });
                     write_line(&mut stream, &response);
+                }
+                // What a new `.yog` registers differently from the game as
+                // it started — changes only a restart applies.
+                Some("hot_reload_check") => {
+                    let mod_id = cmd.get("mod_id").and_then(|v| v.as_str()).unwrap_or_default();
+                    let yog_path = cmd.get("yog_path").and_then(|v| v.as_str()).unwrap_or_default();
+                    let (added, removed, changed) = crate::registrations::changes(mod_id, Path::new(yog_path));
+                    let response = serde_json::json!({
+                        "event": "hot-reload-check", "mod_id": mod_id,
+                        "added": added, "removed": removed, "changed": changed,
+                    });
+                    write_line(&mut stream, &response);
+                }
+                Some("reload_resources") => {
+                    crate::registrations::reload_game_resources();
+                    write_line(&mut stream, &serde_json::json!({ "event": "resources-reloaded" }));
                 }
                 Some("list_mods") => {
                     let response = serde_json::json!({ "event": "mods", "mods": mod_list_json() });

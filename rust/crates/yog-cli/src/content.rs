@@ -2838,7 +2838,50 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     defs.tables = tables;
     out.source = Some(rust_source(&entries, &recipes, &books, &bodies, &entity_files, &defs));
     version_overlays(&mut out, &known.datapack);
+    let registrations = registrations(&entries, &entity_files, &dimensions, &defs);
+    out.outputs.push((yog_registry::REGISTRATIONS_FILE.to_string(), registrations.into_bytes()));
     Ok(out)
+}
+
+/// [`yog_registry::REGISTRATIONS_FILE`]: what the mod registers at the
+/// game's start, each with a hash of what can't change while it runs — a
+/// block's properties and states, not its model, name or tags (the game
+/// reloads those).
+fn registrations(entries: &[Entry], entities: &[EntityFile], dimensions: &[(String, Vec<u8>)], defs: &Defs) -> String {
+    fn hash(text: &str) -> String {
+        // FNV-1a: the same on every build of the CLI.
+        let h = text.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| (h ^ b as u64).wrapping_mul(0x0100_0000_01b3));
+        format!("{h:016x}")
+    }
+    let mut lines = Vec::new();
+    for e in entries {
+        let what = match e.kind {
+            Kind::Block => {
+                // Its tool tags and level are data (tags), reloaded with the rest.
+                let b = BlockProps { tools: Vec::new(), tool_level: None, ..e.block.clone() };
+                format!("{b:?} {:?} {:?}", e.item, e.requires)
+            }
+            _ => format!("{:?} {:?}", e.item, e.requires),
+        };
+        lines.push(format!("{} {} {}", e.kind.word(), e.id, hash(&what)));
+    }
+    for e in entities {
+        lines.push(format!("entity {} {}", e.id, hash(&format!("{:?}", e.data))));
+    }
+    for (id, data) in dimensions {
+        lines.push(format!("dimension {id} {}", hash(&format!("{data:?}"))));
+    }
+    for g in &defs.sound_groups {
+        lines.push(format!("sound_group {} {}", g.id, hash(&format!("{g:?}"))));
+    }
+    for m in &defs.tool_materials {
+        lines.push(format!("tool_material {} {}", m.id, hash(&format!("{m:?}"))));
+    }
+    for m in &defs.armor_materials {
+        lines.push(format!("armor_material {} {}", m.id, hash(&format!("{m:?}"))));
+    }
+    lines.sort();
+    lines.join("\n") + "\n"
 }
 
 /// The mod's data names vanilla content as its datapack version does; for

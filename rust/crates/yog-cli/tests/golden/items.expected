@@ -152,3 +152,5 @@ fn __yog_content_auto_register() {
     "layer0": "minecraft:item/diamond_sword"
   }
 }
+# registrations.txt
+<97 bytes>

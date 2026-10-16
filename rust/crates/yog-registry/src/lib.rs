@@ -17,6 +17,31 @@
 use serde::{Deserialize, Serialize};
 
 pub mod loot;
+
+/// What a `.yog` registers when the game starts — content the game can't
+/// add or change while it runs (blocks, items, entity types, sound groups,
+/// materials, dimensions): a line each, `<kind> <id> <hash>`, the hash of
+/// what can't change. A hot reload compares the new `.yog`'s with what's
+/// registered ([`registration_changes`]).
+pub const REGISTRATIONS_FILE: &str = "registrations.txt";
+
+/// How `new` (a [`REGISTRATIONS_FILE`]) differs from `registered`: what it
+/// adds, removes and changes — `<kind> <id>` each.
+pub fn registration_changes(registered: &str, new: &str) -> (Vec<String>, Vec<String>, Vec<String>) {
+    fn read(text: &str) -> std::collections::BTreeMap<String, String> {
+        text.lines()
+            .filter_map(|l| {
+                let (key, hash) = l.trim().rsplit_once(' ')?;
+                Some((key.to_string(), hash.to_string()))
+            })
+            .collect()
+    }
+    let (old, new) = (read(registered), read(new));
+    let added = new.keys().filter(|k| !old.contains_key(*k)).cloned().collect();
+    let removed = old.keys().filter(|k| !new.contains_key(*k)).cloned().collect();
+    let changed = new.iter().filter(|(k, h)| old.get(*k).is_some_and(|o| o != *h)).map(|(k, _)| k.clone()).collect();
+    (added, removed, changed)
+}
 pub use loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
 
 // ── Items ────────────────────────────────────────────────────────────────────
@@ -1060,6 +1085,20 @@ impl EntityDef {
             goals: Vec::new(),
             ticks: false,
         }
+    }
+}
+
+#[cfg(test)]
+mod registration_tests {
+    #[test]
+    fn a_hot_reload_sees_what_registration_changed() {
+        let old = "block mymod:a 11\nblock mymod:b 22\nitem mymod:c 33\n";
+        let new = "block mymod:a 11\nblock mymod:b 99\nitem mymod:d 44\n";
+        let (added, removed, changed) = super::registration_changes(old, new);
+        assert_eq!(added, ["item mymod:d"]);
+        assert_eq!(removed, ["item mymod:c"]);
+        assert_eq!(changed, ["block mymod:b"]);
+        assert_eq!(super::registration_changes(old, old), (vec![], vec![], vec![]));
     }
 }
 

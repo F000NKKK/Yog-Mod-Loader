@@ -134,6 +134,11 @@ public final class YogContent {
         return cached;
     }
 
+    /** Forgets the content read (a hot reload brought new code): the next phase reads it again. */
+    public static synchronized void invalidate() {
+        cached = null;
+    }
+
     /** Reads the runtime's blob; {@code null} (no runtime) is no content. */
     public static YogContent read(byte[] blob) {
         if (blob == null || blob.length == 0) {
