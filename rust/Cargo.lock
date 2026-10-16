@@ -1494,6 +1494,7 @@ name = "yog-body"
 version = "0.1.1"
 dependencies = [
  "yog-data",
+ "yog-graphics",
 ]
 
 [[package]]

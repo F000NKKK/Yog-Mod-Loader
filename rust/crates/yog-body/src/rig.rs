@@ -72,7 +72,7 @@ impl Rig {
         let mut out: Vec<Mat4> = Vec::with_capacity(self.model.bones.len());
         for b in &self.model.bones {
             let p = pose.get(&b.name);
-            let local = Mat4::part(b.pivot + p.position, b.rotation + p.rotation, p.scale);
+            let local = crate::math::part(b.pivot + p.position, b.rotation + p.rotation, p.scale);
             out.push(match b.parent {
                 Some(i) => out[i] * local,
                 None => local,
