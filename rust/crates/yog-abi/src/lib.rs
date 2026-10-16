@@ -18,7 +18,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 5;
+pub const ABI_MINOR: u32 = 6;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1278,6 +1278,12 @@ pub struct YogServer {
     /// on a client, the level directory on a server) — where a mod keeps
     /// what belongs to this world. Free with `free_str`.
     pub world_dir: unsafe extern "C" fn(ctx: *mut c_void) -> YogOwnedStr,
+
+    // ── ABI 3.6 — attribute values ──────────────────────────────────────────
+    /// An attribute's value on a living entity — its base changed by every
+    /// modifier (effects, equipment); `f64::NAN` if there's no such entity
+    /// or attribute.
+    pub entity_attribute_value: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, attribute_id: YogStr) -> f64,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.
@@ -1610,6 +1616,11 @@ pub struct YogApi {
     /// its items are given: see [`YogLootFn`]. Each handler sees the last
     /// one's items.
     pub on_loot: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogLootFn),
+
+    // ── ABI 3.6 — attribute values (client) ─────────────────────────────────
+    /// An attribute's value on this client's player (a casting grid's size
+    /// from an effect, say); `f64::NAN` without a player or attribute.
+    pub client_attribute_value: unsafe extern "C" fn(ctx: *mut c_void, attribute_id: YogStr) -> f64,
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].
@@ -1660,7 +1671,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (30005, 0x0c3c_8040_2f5e_f32c), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (30006, 0x017b_bccd_c36f_283c), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]

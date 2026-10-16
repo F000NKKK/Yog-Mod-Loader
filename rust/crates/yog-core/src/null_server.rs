@@ -260,6 +260,9 @@ impl Server for NullServer {
     fn entity_attribute_get(&self, uuid: &str, attribute_id: &str) -> Option<f64> {
         Default::default()
     }
+    fn entity_attribute_value(&self, uuid: &str, attribute_id: &str) -> Option<f64> {
+        Default::default()
+    }
     fn entity_attribute_set(&self, uuid: &str, attribute_id: &str, value: f64) -> bool {
         Default::default()
     }

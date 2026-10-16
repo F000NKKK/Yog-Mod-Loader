@@ -1230,6 +1230,14 @@ unsafe extern "C" fn srv_spawn_particles(
     }
 }
 
+unsafe extern "C" fn srv_entity_attribute_value(_ctx: *mut c_void, uuid: YogStr, attr: YogStr) -> f64 {
+    unsafe { bridge!("entityAttributeValue", [S(uuid), S(attr)]).unwrap_or(f64::NAN) }
+}
+
+unsafe extern "C" fn api_client_attribute_value(_ctx: *mut c_void, attr: YogStr) -> f64 {
+    unsafe { host!("dev/yog/YogClientApi", "attributeValue", [S(attr)]).unwrap_or(f64::NAN) }
+}
+
 unsafe extern "C" fn srv_entity_attribute_get(
     _ctx: *mut c_void,
     uuid: YogStr,
@@ -3137,6 +3145,7 @@ fn build_server_table() -> YogServer {
         entity_data_set: entity_data::srv_entity_data_set,
         entity_data_get: entity_data::srv_entity_data_get,
         world_dir: srv_world_dir,
+        entity_attribute_value: srv_entity_attribute_value,
         entity_set_fall_distance: srv_entity_set_fall_distance,
         redstone_signal: srv_redstone_signal,
         set_redstone_output: srv_set_redstone_output,
@@ -3351,6 +3360,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_machine_craft: api_on_machine_craft,
         on_entity_tick: api_on_entity_tick,
         on_loot: loot::api_on_loot,
+        client_attribute_value: api_client_attribute_value,
     }
 }
 

@@ -67,6 +67,18 @@ pub fn held_item(off_hand: bool) -> Option<String> {
     crate::registry::take_owned(unsafe { (*api).free_str }, owned)
 }
 
+/// Attribute `attribute_id`'s value on this client's player — its base
+/// changed by every modifier (effects, equipment); `None` without a player
+/// or such an attribute.
+pub fn attribute_value(attribute_id: &str) -> Option<f64> {
+    let api = global_api();
+    if api.is_null() {
+        return None;
+    }
+    let v = unsafe { ((*api).client_attribute_value)((*api).ctx, YogStr::from_str(attribute_id)) };
+    (!v.is_nan()).then_some(v)
+}
+
 /// Tints the block at `pos` in `dimension` on this client — the faces of
 /// its model with a `tint` index — `0xRRGGBB`; `None` clears it. The mod
 /// sends what to tint (its own packet); the tint lasts till cleared or the

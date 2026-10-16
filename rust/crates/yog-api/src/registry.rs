@@ -723,6 +723,12 @@ impl Server for CServer {
         }
     }
 
+    fn entity_attribute_value(&self, uuid: &str, attribute_id: &str) -> Option<f64> {
+        let s = srv!(self);
+        let v = unsafe { (s.entity_attribute_value)(s.ctx, YogStr::from_str(uuid), YogStr::from_str(attribute_id)) };
+        (!v.is_nan()).then_some(v)
+    }
+
     fn entity_attribute_get(&self, uuid: &str, attribute_id: &str) -> Option<f64> {
         let s = srv!(self);
         let v = unsafe {

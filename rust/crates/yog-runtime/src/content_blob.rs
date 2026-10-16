@@ -69,7 +69,7 @@ fn strings<'v>(w: &mut Writer<'v>, ss: &'v [String]) {
 
 /// The whole group, so the host builds it without a list of its own.
 fn sound<'v>(w: &mut Writer<'v>, g: &'v yog_registry::SoundGroup) {
-    w.map(10);
+    w.map(7);
     for (k, v) in [("break", &g.break_sound), ("step", &g.step), ("place", &g.place), ("hit", &g.hit), ("fall", &g.fall)] {
         w.key(k).str(v);
     }
@@ -82,7 +82,7 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
     // Inventories' layouts are worked out first: the writer borrows them.
     let layouts: Vec<_> = h.inventories.iter().map(|d| d.resolved_layout()).collect();
     let mut w = Writer::new();
-    w.map(7);
+    w.map(10);
 
     w.key("items").list(h.items.len());
     for d in &h.items {

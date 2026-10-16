@@ -1048,6 +1048,18 @@ public final class NativeBridge {
         return inst == null ? Double.NaN : inst.getBaseValue();
     }
 
+    /** An attribute's value: its base changed by every modifier (effects, equipment). */
+    public static double entityAttributeValue(String uuid, String attributeId) {
+        Entity e = entityByUuid(uuid);
+        if (!(e instanceof LivingEntity le)) return Double.NaN;
+        ResourceLocation id = ResourceLocation.tryParse(attributeId);
+        if (id == null || !BuiltInRegistries.ATTRIBUTE.containsKey(id)) return Double.NaN;
+        Attribute attr = BuiltInRegistries.ATTRIBUTE.get(id);
+        if (attr == null) return Double.NaN;
+        AttributeInstance inst = le.getAttribute(attr);
+        return inst == null ? Double.NaN : inst.getValue();
+    }
+
     public static boolean entityAttributeSet(String uuid, String attributeId, double value) {
         Entity e = entityByUuid(uuid);
         if (!(e instanceof LivingEntity le)) return false;

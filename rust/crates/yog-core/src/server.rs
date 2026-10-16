@@ -334,6 +334,11 @@ pub trait Server {
     /// Returns `None` if the entity or attribute is not found.
     fn entity_attribute_get(&self, uuid: &str, attribute_id: &str) -> Option<f64>;
 
+    /// An attribute's value on a living entity: its base changed by every
+    /// modifier (effects, equipment). `None` if the entity or attribute is
+    /// not found.
+    fn entity_attribute_value(&self, uuid: &str, attribute_id: &str) -> Option<f64>;
+
     /// Set the base value of an attribute. Returns false if not found.
     fn entity_attribute_set(&self, uuid: &str, attribute_id: &str, value: f64) -> bool;
 

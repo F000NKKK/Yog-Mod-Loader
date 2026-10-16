@@ -138,4 +138,16 @@ public final class YogClientApi {
         } catch (IllegalArgumentException ignored) {
         }
     }
+
+    /** An attribute's value on this client's player: its base changed by every modifier. */
+    public static double attributeValue(String attributeId) {
+        net.minecraft.world.entity.LivingEntity le = net.minecraft.client.Minecraft.getInstance().player;
+        if (le == null) return Double.NaN;
+        net.minecraft.resources.ResourceLocation id = net.minecraft.resources.ResourceLocation.tryParse(attributeId);
+        if (id == null || !net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE.containsKey(id)) return Double.NaN;
+        net.minecraft.world.entity.ai.attributes.Attribute attr = net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE.get(id);
+        if (attr == null) return Double.NaN;
+        net.minecraft.world.entity.ai.attributes.AttributeInstance inst = le.getAttribute(net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr));
+        return inst == null ? Double.NaN : inst.getValue();
+    }
 }
