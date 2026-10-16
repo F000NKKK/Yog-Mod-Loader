@@ -1253,7 +1253,7 @@ fn client_advancement_done(id: &str) -> bool {
 }
 
 unsafe extern "C" fn api_client_advancement_done(_ctx: *mut c_void, id: YogStr) -> bool {
-    client_advancement_done(id.as_str())
+    client_advancement_done(unsafe { id.as_str() })
 }
 
 unsafe extern "C" fn srv_entity_attribute_get(
