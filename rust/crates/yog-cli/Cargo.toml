@@ -1,6 +1,6 @@
 [package]
 name = "yog-cli"
-version = "0.42.5"
+version = "0.43.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -20,16 +20,16 @@ proc-macro2 = { workspace = true, features = ["span-locations"] }
 zip.workspace = true
 serde_json.workspace = true
 # Image sources (`item:`, `sprite:`, ...) checked in .yui files.
-yog-gfx = "0.27"
+yog-gfx = "0.28"
 # Themes (`<Screen theme>`) applied to .yui elements.
-yog-ui = "0.42"
-yog-book = "0.65"
-yog-body = "0.1"
-yog-registry = "0.33.3"
+yog-ui = "0.43"
+yog-book = "0.66"
+yog-body = "0.2"
+yog-registry = "0.34"
 # The data model, text syntax and schemas of every Yog format.
 yog-data = { version = "0.4.1", features = ["toml"] }
 # The schemas of the source formats.
-yog-formats = "0.7.8"
+yog-formats = "0.8"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
