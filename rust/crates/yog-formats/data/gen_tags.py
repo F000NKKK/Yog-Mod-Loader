@@ -3,7 +3,8 @@ common tags (`yog:`) over them — for yog-cli's checks, the editors and the
 hosts (java-common's yog/tags.txt is a copy). Run with the client and loader jars
 in Gradle's caches (build every host once):
 
-    python3 gen_tags.py tags.txt && cp tags.txt ../../../../java-common/src/main/resources/yog/
+    python3 gen_tags.py tags.txt ../../../../java-common/src/main/resources/assets/yog_tags/lang
+    cp tags.txt ../../../../java-common/src/main/resources/yog/
 
 Add a version or loader to HOSTS when Yog starts supporting it."""
 import collections, glob, json, os, re, sys, zipfile
@@ -184,3 +185,31 @@ for (reg, name), tags in sorted(yog.items()):
 
 open(sys.argv[1], "w").write("\n".join(out) + "\n")
 print(len(where), "tags,", len(yog), "yog tags")
+
+# Names of Yog's common tags in every language the loaders name theirs in
+# (`tag.<registry>.yog.<path>`, the key recipe viewers show): a yog: tag is
+# named as its common (c:) tag; one of the game's alone gets its path in
+# English. Written for the hosts (java-common's assets/yog_tags/lang: generated, apart from the hand-written assets/yog).
+if len(sys.argv) > 2:
+    lang_dir = sys.argv[2]
+    fabric = glob.glob(os.path.join(CACHE, HOSTS["fabric/1.21.1"][0]))[0]
+    z = zipfile.ZipFile(fabric)
+    locales = {}
+    for n in z.namelist():
+        m = re.fullmatch(r"assets/fabric-convention-tags-v2/lang/([a-z_]+)\.json", n)
+        if m:
+            locales[m[1]] = json.loads(z.read(n))
+    def key(reg, ns, path):
+        return f"tag.{reg.replace('/', '.')}.{ns}.{path.replace('/', '.')}"
+    os.makedirs(lang_dir, exist_ok=True)
+    for loc, names in sorted(locales.items()):
+        out_lang = {}
+        for (reg, path), tags in sorted(yog.items()):
+            name = next((names[key(reg, "c", t[2:])] for t in tags if t.startswith("c:") and key(reg, "c", t[2:]) in names), None)
+            if name is None and loc == "en_us":
+                name = path.split("/")[-1].replace("_", " ").title()
+            if name is not None:
+                out_lang[key(reg, "yog", path)] = name
+        with open(os.path.join(lang_dir, f"{loc}.json"), "w") as f:
+            json.dump(out_lang, f, ensure_ascii=False, indent=1, sort_keys=True)
+    print(len(locales), "languages")

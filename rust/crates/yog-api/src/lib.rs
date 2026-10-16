@@ -16,7 +16,7 @@ mod lang;
 mod registry;
 
 pub use interop::Interop;
-pub use lang::{format_translation, tr, tr_args, translation};
+pub use lang::{format_translation, tag_name, tr, tr_args, translation};
 pub use registry::{
     CServer, MachineCraftEvent, Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui, server,
 };

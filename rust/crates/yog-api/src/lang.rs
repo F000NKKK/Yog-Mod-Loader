@@ -32,6 +32,20 @@ pub fn tr(key: &str) -> String {
     }
 }
 
+/// A tag's name in the player's language — `kind` the content's
+/// (`item`, `block`, `entity`, `fluid`, `biome`), `id` the tag's
+/// (`yog:ingots/iron`): the translation recipe viewers show
+/// (`tag.item.yog.ingots.iron`), else the id itself.
+pub fn tag_name(kind: &str, id: &str) -> String {
+    let registry = match kind {
+        "entity" => "entity_type",
+        "biome" => "worldgen.biome",
+        other => other,
+    };
+    let key = format!("tag.{registry}.{}", id.replace([':', '/'], "."));
+    translation(&key).map_or_else(|| id.to_string(), |text| format_translation(&text, &[]))
+}
+
 /// [`tr`] with arguments for the text's format specifiers — see
 /// [`format_translation`]. The [`tr!`](crate::tr!) macro is shorter.
 pub fn tr_args(key: &str, args: &[&dyn Display]) -> String {
