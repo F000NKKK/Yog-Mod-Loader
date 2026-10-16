@@ -28,6 +28,14 @@ pub struct Food {
     pub always_edible: bool,
 }
 
+/// A potion type attached to the item file: the effects the bottle gives.
+#[derive(Schema, Debug, Clone)]
+pub struct PotionProps {
+    /// Translation suffix shared by the bottle variants (optional).
+    pub name: Option<String>,
+    pub effects: Vec<yog_registry::PotionEffect>,
+}
+
 /// An item's properties.
 #[derive(Schema, Debug, Clone, Default)]
 pub struct ItemProps {
@@ -51,6 +59,8 @@ pub struct ItemProps {
     /// Worn in this slot without being armor (a monocle, a crown):
     /// right-click and dispensers put it on.
     pub wearable: Option<ArmorSlot>,
+    /// A potion's effects. Brewing recipes live in `.yrecipe` files.
+    pub potion: Option<PotionProps>,
     /// Used on a block's side, it hangs there (a painting, a scroll on a wall).
     pub hangs: Option<HangsProps>,
 }

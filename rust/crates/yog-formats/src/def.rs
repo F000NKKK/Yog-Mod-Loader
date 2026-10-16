@@ -81,8 +81,6 @@ pub enum Def {
     Attribute(yog_registry::AttributeDef),
     /// A mob effect: good or bad, its colour, the attributes it changes.
     Effect(yog_registry::EffectDef),
-    /// A potion: the effects it gives and how it's brewed.
-    Potion(yog_registry::PotionDef),
     /// An advancement: where it hangs, how it looks, what earns it.
     Advancement(AdvancementDef),
 }

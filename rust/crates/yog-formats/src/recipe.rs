@@ -1,9 +1,10 @@
 //! The `.yrecipe` format: a recipe of the game's kinds (`shaped`,
-//! `shapeless`, cooking, `stonecutting`, `smithing`) or of the mod's own
+//! `shapeless`, cooking, `stonecutting`, `smithing`, brewing) or of the mod's own
 //! (`mymod:infusion`, with named `slots` and `values`), in Yog Data. Items
 //! are references (`@item:minecraft:stick`), tags `@tag:item:c:dusts`.
 
 use yog_data::schema::{Field, StructShape, read_both};
+use yog_data::with::RefTo;
 use yog_data::{ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Schema, Seg, Shape, Value, ValueRef};
 
 /// The game's recipe types.
@@ -16,6 +17,7 @@ pub const TYPES: [&str; 8] = [
     "campfire_cooking",
     "stonecutting",
     "smithing",
+    "brewing",
 ];
 
 /// What every recipe has.
@@ -125,6 +127,17 @@ pub struct Smithing {
     pub addition: Ingredient,
 }
 
+/// A brewing-stand recipe. `result` is the potion id in the common fields.
+#[derive(Schema)]
+pub struct Brewing {
+    /// The potion in the bottle before brewing.
+    #[data(with = "RefTo<yog_registry::Potion>")]
+    pub from: String,
+    /// The item added to the brewing stand.
+    #[data(with = "RefTo<yog_data::kinds::Item>")]
+    pub ingredient: String,
+}
+
 /// A recipe of the mod's own kind: named slots and values, for its
 /// machines and books.
 #[derive(Schema)]
@@ -143,6 +156,7 @@ pub enum Body {
     Cooking(String, Cooking),
     Stonecutting(Stonecutting),
     Smithing(Smithing),
+    Brewing(Brewing),
     /// The kind (`mymod:infusion`).
     Custom(String, Custom),
 }
@@ -207,6 +221,8 @@ impl Schema for RecipeFile {
                     .map(|(c, b)| (c, Body::Stonecutting(b)))?,
                 "smithing" => read_both::<Common, Smithing>(v, cx, also)
                     .map(|(c, b)| (c, Body::Smithing(b)))?,
+                "brewing" => read_both::<Common, Brewing>(v, cx, also)
+                    .map(|(c, b)| (c, Body::Brewing(b)))?,
                 own if own.contains(':') => read_both::<Common, Custom>(v, cx, also)
                     .map(|(c, b)| (c, Body::Custom(ty.clone(), b)))?,
                 other => {
@@ -224,6 +240,7 @@ impl Schema for RecipeFile {
             Body::Cooking(t, b) => (t.clone(), b.write()),
             Body::Stonecutting(b) => ("stonecutting".to_string(), b.write()),
             Body::Smithing(b) => ("smithing".to_string(), b.write()),
+            Body::Brewing(b) => ("brewing".to_string(), b.write()),
             Body::Custom(t, b) => (t.clone(), b.write()),
         };
         let mut m = yog_data::Map::new();
