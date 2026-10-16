@@ -19,6 +19,11 @@ impl Rect {
         Rect { x, y, w, h }
     }
 
+    /// The rectangle from `x0, y0` to `x1, y1` (`x1 ≥ x0`, `y1 ≥ y0`).
+    pub const fn from_edges(x0: f32, y0: f32, x1: f32, y1: f32) -> Rect {
+        Rect { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+    }
+
     /// The rectangle from corner `a` to corner `b`, in any order.
     pub fn from_corners(a: Vec2, b: Vec2) -> Rect {
         Rect { x: a.x.min(b.x), y: a.y.min(b.y), w: (a.x - b.x).abs(), h: (a.y - b.y).abs() }

@@ -12,7 +12,7 @@
 //! struct Graph;
 //! impl yog_ui::Surface for Graph {
 //!     fn paint(&self, gfx: &GfxContext, rect: Rect) {
-//!         gfx.draw2d().rect(rect.x, rect.y, rect.x + rect.w, rect.y + 1.0, 0xFFFFFFFF);
+//!         gfx.draw2d().rect(Rect::from_edges(rect.x, rect.y, rect.x + rect.w, rect.y + 1.0), Color(0xFFFFFFFF));
 //!     }
 //! }
 //! yog_ui::surface::register("mymod:graph", std::sync::Arc::new(Graph));

@@ -1,24 +1,24 @@
 //! GPU rendering for the UI tree via `yog-gfx` draw2d.
 //! Only valid inside `on_hud_render`.
 
-use crate::layout::{LayoutNode, Rect};
+use crate::layout::LayoutNode;
 use crate::text;
 use crate::widget::{self, FocusStyle, SLOT_SIZE, Style, Widget, WidgetKind};
-use yog_gfx::GfxContext;
+use yog_gfx::{Color, GfxContext, Rect, Vec2};
 use yog_gfx::draw2d::Draw2D;
 
 /// Scrollbar track and knob colors.
-const TRACK_COLOR: u32 = 0x44_000000;
-const KNOB_COLOR: u32 = 0xAA_888888;
+const TRACK_COLOR: Color = Color(0x44_000000);
+const KNOB_COLOR: Color = Color(0xAA_888888);
 /// Item slot: border and face.
-const ITEM_SLOT_BORDER: u32 = 0xFF_444444;
-const ITEM_SLOT_FACE: u32 = 0xFF_888888;
+const ITEM_SLOT_BORDER: Color = Color(0xFF_444444);
+const ITEM_SLOT_FACE: Color = Color(0xFF_888888);
 /// Inventory slot (vanilla's): face, top/left shadow, bottom/right light.
-const INV_SLOT_FACE: u32 = 0xFF_8B8B8B;
-const INV_SLOT_SHADOW: u32 = 0xFF_373737;
-const INV_SLOT_LIGHT: u32 = 0xFF_FFFFFF;
+const INV_SLOT_FACE: Color = Color(0xFF_8B8B8B);
+const INV_SLOT_SHADOW: Color = Color(0xFF_373737);
+const INV_SLOT_LIGHT: Color = Color(0xFF_FFFFFF);
 /// Stack count text color.
-const COUNT_COLOR: u32 = 0xFF_FFFFFF;
+const COUNT_COLOR: Color = Color(0xFF_FFFFFF);
 /// Side of an item icon inside a slot (1 px inset).
 const ICON_SIZE: f32 = 16.0;
 /// Slack for "drawn whole or not at all" clip checks — absorbs rounding.
@@ -29,14 +29,8 @@ pub fn render_node(gfx: &GfxContext, d2d: &Draw2D, widget: &Widget, node: &Layou
     render_clipped(gfx, d2d, widget, node, None);
 }
 
-/// Fills `x0..x1 × y0..y1`, cut to `clip`.
-fn fill(d2d: &Draw2D, clip: Option<Rect>, x0: f32, y0: f32, x1: f32, y1: f32, color: u32) {
-    let r = Rect {
-        x: x0,
-        y: y0,
-        w: x1 - x0,
-        h: y1 - y0,
-    };
+/// Fills `r`, cut to `clip`.
+fn fill(d2d: &Draw2D, clip: Option<Rect>, r: Rect, color: Color) {
     let r = match clip {
         Some(c) => match r.intersect(&c) {
             Some(r) => r,
@@ -44,19 +38,15 @@ fn fill(d2d: &Draw2D, clip: Option<Rect>, x0: f32, y0: f32, x1: f32, y1: f32, co
         },
         None => r,
     };
-    d2d.rect(r.x, r.y, r.x + r.w, r.y + r.h, color);
-}
-
-fn fill_rect(d2d: &Draw2D, clip: Option<Rect>, r: Rect, color: u32) {
-    fill(d2d, clip, r.x, r.y, r.x + r.w, r.y + r.h, color);
+    d2d.rect(r, color);
 }
 
 /// A 1 px border just inside `r`, cut to `clip`.
-fn outline(d2d: &Draw2D, clip: Option<Rect>, r: Rect, color: u32) {
-    fill(d2d, clip, r.x, r.y, r.x + r.w, r.y + 1.0, color);
-    fill(d2d, clip, r.x, r.y + r.h - 1.0, r.x + r.w, r.y + r.h, color);
-    fill(d2d, clip, r.x, r.y, r.x + 1.0, r.y + r.h, color);
-    fill(d2d, clip, r.x + r.w - 1.0, r.y, r.x + r.w, r.y + r.h, color);
+fn outline(d2d: &Draw2D, clip: Option<Rect>, r: Rect, color: Color) {
+    fill(d2d, clip, Rect::from_edges(r.x, r.y, r.x + r.w, r.y + 1.0), color);
+    fill(d2d, clip, Rect::from_edges(r.x, r.y + r.h - 1.0, r.x + r.w, r.y + r.h), color);
+    fill(d2d, clip, Rect::from_edges(r.x, r.y, r.x + 1.0, r.y + r.h), color);
+    fill(d2d, clip, Rect::from_edges(r.x + r.w - 1.0, r.y, r.x + r.w, r.y + r.h), color);
 }
 
 /// Whether a box spanning `y..y + h` lies inside `clip` vertically (text
@@ -106,24 +96,24 @@ fn render_clipped(
     }
 
     // Background
-    if s.bg != 0 {
-        fill(d2d, clip, r.x, r.y, r.x + r.w, r.y + r.h, s.bg);
+    if s.bg != Color::TRANSPARENT {
+        fill(d2d, clip, Rect::from_edges(r.x, r.y, r.x + r.w, r.y + r.h), s.bg);
     }
     // An image can't be cut: drawn while it's inside the clip.
     if !s.bg_image.is_empty() && fits(clip, r.y, r.h) {
-        d2d.image(&s.bg_image, r.x, r.y, r.w, r.h);
+        d2d.image(&s.bg_image, Rect::new(r.x, r.y, r.w, r.h));
     }
     // Focus indicator — style controlled per-widget. Text boxes draw their
     // own (a white border).
     if node.focused && !matches!(widget.kind, WidgetKind::TextBox(_)) {
-        let fc = if s.focus_color != 0 {
+        let fc = if s.focus_color != Color::TRANSPARENT {
             s.focus_color
         } else {
             widget::DEFAULT_FOCUS_COLOR
         };
         match s.focus_style {
             FocusStyle::Outline => outline(d2d, clip, *r, fc),
-            FocusStyle::Fill => fill_rect(d2d, clip, *r, fc),
+            FocusStyle::Fill => fill(d2d, clip, *r, fc),
             FocusStyle::None => {}
         }
     }
@@ -150,17 +140,11 @@ fn render_clipped(
                 return;
             }
             let sz = SLOT_SIZE;
-            d2d.rect(ix, iy, ix + sz, iy + sz, ITEM_SLOT_BORDER);
-            d2d.rect(
-                ix + 1.0,
-                iy + 1.0,
-                ix + sz - 1.0,
-                iy + sz - 1.0,
-                ITEM_SLOT_FACE,
-            );
+            d2d.rect(Rect::from_edges(ix, iy, ix + sz, iy + sz), ITEM_SLOT_BORDER);
+            d2d.rect(Rect::from_edges(ix + 1.0, iy + 1.0, ix + sz - 1.0, iy + sz - 1.0), ITEM_SLOT_FACE);
             // The item renderer: modded items, 3D block items, any version.
             if !item_id.is_empty() {
-                d2d.item(item_id, ix + 1.0, iy + 1.0, ICON_SIZE);
+                d2d.item(item_id, Vec2::new(ix + 1.0, iy + 1.0), ICON_SIZE);
             }
         }
         WidgetKind::InvSlot { item_id, count } => {
@@ -169,24 +153,18 @@ fn render_clipped(
                 return;
             }
             let sz = SLOT_SIZE;
-            d2d.rect(ix, iy, ix + sz, iy + sz, INV_SLOT_FACE);
-            d2d.rect(ix, iy, ix + sz, iy + 1.0, INV_SLOT_SHADOW);
-            d2d.rect(ix, iy + sz - 1.0, ix + sz, iy + sz, INV_SLOT_LIGHT);
-            d2d.rect(ix, iy, ix + 1.0, iy + sz, INV_SLOT_SHADOW);
-            d2d.rect(ix + sz - 1.0, iy, ix + sz, iy + sz, INV_SLOT_LIGHT);
+            d2d.rect(Rect::from_edges(ix, iy, ix + sz, iy + sz), INV_SLOT_FACE);
+            d2d.rect(Rect::from_edges(ix, iy, ix + sz, iy + 1.0), INV_SLOT_SHADOW);
+            d2d.rect(Rect::from_edges(ix, iy + sz - 1.0, ix + sz, iy + sz), INV_SLOT_LIGHT);
+            d2d.rect(Rect::from_edges(ix, iy, ix + 1.0, iy + sz), INV_SLOT_SHADOW);
+            d2d.rect(Rect::from_edges(ix + sz - 1.0, iy, ix + sz, iy + sz), INV_SLOT_LIGHT);
             // Item icon + count
             if !item_id.is_empty() {
-                d2d.item(item_id, ix + 1.0, iy + 1.0, ICON_SIZE);
+                d2d.item(item_id, Vec2::new(ix + 1.0, iy + 1.0), ICON_SIZE);
                 if *count > 1 {
                     let count_str = count.to_string();
                     let cw = text::str_width(&count_str, 0.7);
-                    d2d.text(
-                        &count_str,
-                        ix + sz - cw - 1.0,
-                        iy + sz - 10.0,
-                        COUNT_COLOR,
-                        true,
-                    );
+                    d2d.text(&count_str, Vec2::new(ix + sz - cw - 1.0, iy + sz - 10.0), COUNT_COLOR, true);
                 }
             }
         }
@@ -199,16 +177,16 @@ fn render_clipped(
                 // Nothing registered to draw it (a designer previewing the
                 // markup, a mod that didn't): its place and its name.
                 None => {
-                    d2d.rect(at.x, at.y, at.x + at.w, at.y + at.h, 0xFF1E2622);
-                    let edge = 0xFF4A5A52;
-                    d2d.rect(at.x, at.y, at.x + at.w, at.y + 1.0, edge);
-                    d2d.rect(at.x, at.y + at.h - 1.0, at.x + at.w, at.y + at.h, edge);
-                    d2d.rect(at.x, at.y, at.x + 1.0, at.y + at.h, edge);
-                    d2d.rect(at.x + at.w - 1.0, at.y, at.x + at.w, at.y + at.h, edge);
+                    d2d.rect(Rect::from_edges(at.x, at.y, at.x + at.w, at.y + at.h), Color(0xFF1E2622));
+                    let edge = Color(0xFF4A5A52);
+                    d2d.rect(Rect::from_edges(at.x, at.y, at.x + at.w, at.y + 1.0), edge);
+                    d2d.rect(Rect::from_edges(at.x, at.y + at.h - 1.0, at.x + at.w, at.y + at.h), edge);
+                    d2d.rect(Rect::from_edges(at.x, at.y, at.x + 1.0, at.y + at.h), edge);
+                    d2d.rect(Rect::from_edges(at.x + at.w - 1.0, at.y, at.x + at.w, at.y + at.h), edge);
                     let label = format!("Surface {id}");
                     let w = d2d.text_width(&label, "");
                     if w < at.w - 4.0 && at.h >= 10.0 {
-                        d2d.text(&label, at.x + (at.w - w) / 2.0, at.y + (at.h - 8.0) / 2.0, 0xFF8FA399, false);
+                        d2d.text(&label, Vec2::new(at.x + (at.w - w) / 2.0, at.y + (at.h - 8.0) / 2.0), Color(0xFF8FA399), false);
                     }
                 }
             }
@@ -235,8 +213,8 @@ fn render_clipped(
     }
 
     if let Some((track, knob)) = node.scrollbar_rects() {
-        fill_rect(d2d, clip, track, TRACK_COLOR);
-        fill_rect(d2d, clip, knob, KNOB_COLOR);
+        fill(d2d, clip, track, TRACK_COLOR);
+        fill(d2d, clip, knob, KNOB_COLOR);
     }
 }
 
@@ -301,13 +279,13 @@ fn draw_lines(
 }
 
 /// Text in the widget's font — the plain call for the default font.
-fn draw_text(d2d: &Draw2D, line: &str, font: &str, x: f32, y: f32, scale: f32, color: u32, shadow: bool) {
+fn draw_text(d2d: &Draw2D, line: &str, font: &str, x: f32, y: f32, scale: f32, color: Color, shadow: bool) {
     if scale != 1.0 {
-        d2d.text_scaled(line, font, x, y, scale, color, shadow);
+        d2d.text_scaled(line, font, Vec2::new(x, y), scale, color, shadow);
     } else if text::is_default_font(font) {
-        d2d.text(line, x, y, color, shadow);
+        d2d.text(line, Vec2::new(x, y), color, shadow);
     } else {
-        d2d.text_font(line, font, x, y, color, shadow);
+        d2d.text_font(line, font, Vec2::new(x, y), color, shadow);
     }
 }
 
@@ -322,7 +300,7 @@ fn render_text_box(
     focused: bool,
 ) {
     let border = if focused {
-        if s.focus_color != 0 {
+        if s.focus_color != Color::TRANSPARENT {
             s.focus_color
         } else {
             widget::TEXT_BOX_FOCUS_BORDER
@@ -376,15 +354,7 @@ fn render_text_box(
         if a < b && b > first && a < last {
             let sx0 = xs[a.max(first) - first];
             let sx1 = xs[b.min(last) - first];
-            fill(
-                d2d,
-                clip,
-                sx0,
-                ty - 1.0,
-                sx1,
-                ty + line_h,
-                widget::SELECTION_COLOR,
-            );
+            fill(d2d, clip, Rect::from_edges(sx0, ty - 1.0, sx1, ty + line_h), widget::SELECTION_COLOR);
         }
         draw_text(d2d, &visible, &s.font, x0, ty, fs, s.color, s.text_shadow);
     }
@@ -400,7 +370,7 @@ fn render_text_box(
                 .map(cw)
                 .sum::<f32>();
         let cx = cx.min(x0 + inner_w);
-        fill(d2d, clip, cx, ty - 1.0, cx + 1.0, ty + line_h, s.color);
+        fill(d2d, clip, Rect::from_edges(cx, ty - 1.0, cx + 1.0, ty + line_h), s.color);
     }
 }
 
@@ -419,9 +389,9 @@ fn text_lines(t: &str, s: &Style, avail_w: f32) -> Vec<String> {
 /// Vanilla's tooltip box: near-black fill, a purple gradient frame, white
 /// text — 12px right of and above the cursor, flipped to stay on screen.
 pub(crate) fn tooltip(d2d: &Draw2D, text: &str, mx: f32, my: f32, sw: f32, sh: f32) {
-    const BG: u32 = 0xF0_100010;
-    const BORDER_TOP: u32 = 0x50_5000FF;
-    const BORDER_BOTTOM: u32 = 0x50_28007F;
+    const BG: Color = Color(0xF0_100010);
+    const BORDER_TOP: Color = Color(0x50_5000FF);
+    const BORDER_BOTTOM: Color = Color(0x50_28007F);
     let lines: Vec<&str> = text.lines().collect();
     if lines.is_empty() {
         return;
@@ -435,17 +405,17 @@ pub(crate) fn tooltip(d2d: &Draw2D, text: &str, mx: f32, my: f32, sw: f32, sh: f
     }
     y = y.clamp(4.0, (sh - h - 4.0).max(4.0));
     let (x0, y0, x1, y1) = (x - 3.0, y - 3.0, x + w + 3.0, y + h + 3.0);
-    d2d.rect(x0, y0 - 1.0, x1, y0, BG);
-    d2d.rect(x0, y1, x1, y1 + 1.0, BG);
-    d2d.rect(x0, y0, x1, y1, BG);
-    d2d.rect(x0 - 1.0, y0, x0, y1, BG);
-    d2d.rect(x1, y0, x1 + 1.0, y1, BG);
-    d2d.gradient(x0, y0 + 1.0, x0 + 1.0, y1 - 1.0, BORDER_TOP, BORDER_BOTTOM);
-    d2d.gradient(x1 - 1.0, y0 + 1.0, x1, y1 - 1.0, BORDER_TOP, BORDER_BOTTOM);
-    d2d.rect(x0, y0, x1, y0 + 1.0, BORDER_TOP);
-    d2d.rect(x0, y1 - 1.0, x1, y1, BORDER_BOTTOM);
+    d2d.rect(Rect::from_edges(x0, y0 - 1.0, x1, y0), BG);
+    d2d.rect(Rect::from_edges(x0, y1, x1, y1 + 1.0), BG);
+    d2d.rect(Rect::from_edges(x0, y0, x1, y1), BG);
+    d2d.rect(Rect::from_edges(x0 - 1.0, y0, x0, y1), BG);
+    d2d.rect(Rect::from_edges(x1, y0, x1 + 1.0, y1), BG);
+    d2d.gradient(Rect::from_edges(x0, y0 + 1.0, x0 + 1.0, y1 - 1.0), BORDER_TOP, BORDER_BOTTOM);
+    d2d.gradient(Rect::from_edges(x1 - 1.0, y0 + 1.0, x1, y1 - 1.0), BORDER_TOP, BORDER_BOTTOM);
+    d2d.rect(Rect::from_edges(x0, y0, x1, y0 + 1.0), BORDER_TOP);
+    d2d.rect(Rect::from_edges(x0, y1 - 1.0, x1, y1), BORDER_BOTTOM);
     for (i, line) in lines.iter().enumerate() {
-        d2d.text(line, x, y + i as f32 * (crate::text::LINE_H + 1.0), 0xFF_FFFFFF, true);
+        d2d.text(line, Vec2::new(x, y + i as f32 * (crate::text::LINE_H + 1.0)), Color(0xFF_FFFFFF), true);
     }
 }
 

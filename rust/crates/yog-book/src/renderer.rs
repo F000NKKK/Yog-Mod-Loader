@@ -541,30 +541,14 @@ impl BookRenderer {
         let (bx, by, bw, bh) = self.prepare(sw, sh);
         let d2 = ctx.draw2d();
         let book_sheet = book_sheet(&self.book.book_texture);
-        d2.image_region(
-            &book_sheet,
-            bx,
-            by,
-            bw,
-            bh,
-            [0.0, 0.0, BK_W, BK_H],
-            0xFFFF_FFFF,
-        );
+        d2.image_region(&book_sheet, Rect::new(bx, by, bw, bh), Some(Rect::new(0.0, 0.0, BK_W, BK_H)), Color(0xFFFF_FFFF));
         for spr in &self.bg_sprites {
             let sheet = match &spr.sheet {
                 SpriteSheet::Book => &book_sheet,
                 SpriteSheet::Crafting => CRAFTING_SHEET,
                 SpriteSheet::Image(source) => source.as_str(),
             };
-            d2.image_region(
-                sheet,
-                spr.x,
-                spr.y,
-                spr.w,
-                spr.h,
-                [spr.u, spr.v, spr.uw, spr.uh],
-                0xFFFF_FFFF,
-            );
+            d2.image_region(sheet, Rect::new(spr.x, spr.y, spr.w, spr.h), Some(Rect::new(spr.u, spr.v, spr.uw, spr.uh)), Color(0xFFFF_FFFF));
         }
         if let Some(ui) = &mut self.ui {
             ui.render(ctx);
@@ -588,7 +572,7 @@ impl BookRenderer {
                     y,
                     w,
                     h,
-                } => d2.entity(entity, x, y, w, h, -30.0 + t * 30.0, 0.0),
+                } => d2.entity(entity, Rect::new(x, y, w, h), -30.0 + t * 30.0, 0.0),
                 OverlayCmd::Blocks {
                     ref blocks,
                     x,
@@ -598,7 +582,7 @@ impl BookRenderer {
                 } => {
                     let list: Vec<((i32, i32, i32), &str)> =
                         blocks.iter().map(|(p, b)| (*p, b.as_str())).collect();
-                    d2.blocks(&list, x, y, w, h, -45.0 + t * 20.0, 30.0);
+                    d2.blocks(&list, Rect::new(x, y, w, h), -45.0 + t * 20.0, 30.0);
                 }
                 _ => {}
             }
@@ -622,7 +606,7 @@ impl BookRenderer {
                         items.iter().filter(|i| !i.starts_with('#')).collect();
                     if !shown.is_empty() {
                         let item = shown[second % shown.len()];
-                        ctx.draw2d().item(&normalize_item_id(item), x, y, w.min(h));
+                        ctx.draw2d().item(&normalize_item_id(item), Vec2::new(x, y), w.min(h));
                     }
                 }
                 OverlayCmd::McItem {
@@ -633,7 +617,7 @@ impl BookRenderer {
                     h,
                 } => {
                     ctx.draw2d()
-                        .item(&normalize_item_id(item_id), x, y, w.min(h));
+                        .item(&normalize_item_id(item_id), Vec2::new(x, y), w.min(h));
                 }
                 OverlayCmd::McText {
                     ref text,
@@ -641,7 +625,7 @@ impl BookRenderer {
                     y,
                     color,
                 } => {
-                    ctx.draw2d().text(text, x, y, color, false);
+                    ctx.draw2d().text(text, Vec2::new(x, y), color, false);
                 }
                 OverlayCmd::McTexture {
                     ref path,
@@ -652,7 +636,7 @@ impl BookRenderer {
                 } => {
                     // Standalone icon texture, not an atlas region — drawn
                     // whole, scaled into the icon box.
-                    ctx.draw2d().image(path, x, y, w, h);
+                    ctx.draw2d().image(path, Rect::new(x, y, w, h));
                 }
                 _ => {}
             }
