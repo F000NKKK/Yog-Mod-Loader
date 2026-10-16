@@ -17,8 +17,7 @@ pub mod format;
 pub mod raster;
 pub mod shape;
 
-pub use format::{CharGlyph, Fill, Fit, Font, Glyph, GlyphClass, Image, Kern, Ligature, Machine, Op, Seg, Stroke, Transition};
-pub use raster::Bitmap;
+pub use format::{CharGlyph, Fill, Fit, Font, Glyph, GlyphClass, Image, Kern, Ligature, Machine, Op, Stroke, Transition};
 pub use shape::{Placed, Shaped, shape};
 
 #[cfg(test)]

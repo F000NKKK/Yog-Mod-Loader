@@ -1,3 +1,5 @@
+use yog_graphics::{Color, Seg};
+
 use crate::format::*;
 use crate::{raster, shape};
 
@@ -115,26 +117,27 @@ fn without_its_start_a_rune_letter_stands_alone() {
 #[test]
 fn glyphs_draw_filled_and_stroked() {
     let f = latin();
-    let a = raster::glyph(&f, 0, 1.0, 0xff_ffffff);
-    // The box 10..90 × 0..80 units at a pixel a unit, a pixel of margin.
-    assert_eq!((a.left, a.top, a.width, a.height), (9, 81, 82, 82));
-    assert_eq!(a.pixel(41, 41), [255, 255, 255, 255]);
-    assert_eq!(a.pixel(0, 0)[3], 0);
+    let a = raster::glyph(&f, 0, 1.0, Color::WHITE);
+    // The box 10..90 × 0..80 units at a pixel a unit, a pixel of margin;
+    // its top-left 9 right of the origin and 81 above it.
+    assert_eq!((a.x, a.y, a.image.width, a.image.height), (9, -81, 82, 82));
+    assert_eq!(a.image.pixel(41, 41), Color::WHITE);
+    assert_eq!(a.image.pixel(0, 0).a(), 0);
     let r = runes();
-    let s = raster::glyph(&r, 0, 1.0, 0xff_ff0000);
-    // A stroke 100 long, 10 wide, round-capped.
-    let mid = s.pixel((50 - s.left) as u32, (s.top) as u32);
-    assert_eq!(mid, [255, 0, 0, 255]);
+    let s = raster::glyph(&r, 0, 1.0, Color::rgb(0xff0000));
+    // A stroke 100 long along the baseline, 10 wide, round-capped.
+    let (x, base) = ((50 - s.x) as u32, (-s.y) as u32);
+    assert_eq!(s.image.pixel(x, base), Color::rgb(0xff0000));
     // 5 units to each side of the line, then nothing.
-    assert_eq!(s.pixel((50 - s.left) as u32, (s.top - 4) as u32)[3], 255);
-    assert_eq!(s.pixel((50 - s.left) as u32, 0)[3], 0);
+    assert_eq!(s.image.pixel(x, base - 4).a(), 255);
+    assert_eq!(s.image.pixel(x, 0).a(), 0);
 }
 
 #[test]
 fn a_run_draws_whole_and_a_font_survives_its_file() {
     let f = runes();
     let s = shape(&f, ">wqq");
-    let b = raster::run(&f, &s, 1.0, 0xff_ffffff);
-    assert!(b.width > 0 && b.rgba.chunks(4).any(|p| p[3] == 255));
+    let b = raster::run(&f, &s, 1.0, Color::WHITE);
+    assert!(b.image.width > 0 && b.image.rgba.chunks(4).any(|p| p[3] == 255));
     assert_eq!(Font::from_bytes(&f.to_bytes()).unwrap(), f);
 }

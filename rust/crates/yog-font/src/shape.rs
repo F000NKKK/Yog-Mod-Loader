@@ -2,7 +2,9 @@
 //! machines, then positions — advances and kerning, joined glyphs point to
 //! point, joined runs fitted into the line.
 
-use crate::format::{Font, Glyph, Op, Seg};
+use yog_graphics::{Rect, Vec2, path};
+
+use crate::format::{Font, Glyph, Op};
 
 /// A glyph where shaping put it, in font units from the run's origin on the
 /// baseline (`y` up), drawn `scale` times its size.
@@ -140,112 +142,40 @@ fn place(font: &Font, run: &[(u32, usize)]) -> (Vec<Placed>, f32) {
 ///
 /// [`Fit`]: crate::format::Fit
 fn fit_joined(font: &Font, joined: &mut [Placed], pen: f32) -> f32 {
-    let mut b = Bounds::EMPTY;
-    for p in joined.iter() {
-        if let Some(g) = font.glyphs.get(p.glyph as usize) {
-            b = b.union(glyph_bounds(g).offset(p.x, p.y));
-        }
-    }
-    if b.is_empty() {
-        b = Bounds { x0: 0.0, y0: 0.0, x1: 0.0, y1: 0.0 };
-    }
+    let b = joined
+        .iter()
+        .filter_map(|p| font.glyphs.get(p.glyph as usize).and_then(glyph_bounds).map(|r| r.translate(Vec2::new(p.x, p.y))))
+        .reduce(|a, b| a.union(&b))
+        .unwrap_or_default();
     let (scale, dy) = match font.fit {
         Some(f) => {
-            let s = if b.height() > f.height && b.height() > 0.0 { f.height / b.height() } else { 1.0 };
-            (s, f.center - (b.y0 + b.y1) / 2.0 * s)
+            let s = if b.h > f.height && b.h > 0.0 { f.height / b.h } else { 1.0 };
+            (s, f.center - b.center().y * s)
         }
         None => (1.0, 0.0),
     };
     for p in joined.iter_mut() {
-        p.x = pen + (p.x - b.x0) * scale;
+        p.x = pen + (p.x - b.x) * scale;
         p.y = p.y * scale + dy;
         p.scale = scale;
     }
     let tail = joined.last().and_then(|p| font.glyphs.get(p.glyph as usize)).map_or(0, |g| g.advance);
-    b.width() * scale + tail as f32
+    b.w * scale + tail as f32
 }
 
 fn kern(font: &Font, left: u32, right: u32) -> f32 {
     font.kerning.iter().find(|k| k.left == left && k.right == right).map_or(0.0, |k| k.x as f32)
 }
 
-/// A box in font units, `y` up.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Bounds {
-    pub x0: f32,
-    pub y0: f32,
-    pub x1: f32,
-    pub y1: f32,
-}
-
-impl Bounds {
-    pub const EMPTY: Bounds = Bounds { x0: f32::MAX, y0: f32::MAX, x1: f32::MIN, y1: f32::MIN };
-
-    pub fn is_empty(&self) -> bool {
-        self.x0 > self.x1 || self.y0 > self.y1
-    }
-
-    pub fn width(&self) -> f32 {
-        (self.x1 - self.x0).max(0.0)
-    }
-
-    pub fn height(&self) -> f32 {
-        (self.y1 - self.y0).max(0.0)
-    }
-
-    pub fn union(self, o: Bounds) -> Bounds {
-        Bounds { x0: self.x0.min(o.x0), y0: self.y0.min(o.y0), x1: self.x1.max(o.x1), y1: self.y1.max(o.y1) }
-    }
-
-    fn add(&mut self, x: f32, y: f32, r: f32) {
-        *self = self.union(Bounds { x0: x - r, y0: y - r, x1: x + r, y1: y + r });
-    }
-
-    pub fn offset(self, dx: f32, dy: f32) -> Bounds {
-        if self.is_empty() {
-            return self;
-        }
-        Bounds { x0: self.x0 + dx, y0: self.y0 + dy, x1: self.x1 + dx, y1: self.y1 + dy }
-    }
-
-    pub fn scaled(self, s: f32) -> Bounds {
-        if self.is_empty() {
-            return self;
-        }
-        Bounds { x0: self.x0 * s, y0: self.y0 * s, x1: self.x1 * s, y1: self.y1 * s }
-    }
-}
-
-/// What a glyph's drawing covers (control points included).
-pub fn glyph_bounds(g: &Glyph) -> Bounds {
-    let mut b = Bounds::EMPTY;
-    for op in &g.ops {
-        match op {
-            Op::Fill(f) => path_bounds(&f.path, 0.0, &mut b),
-            Op::Stroke(s) => path_bounds(&s.path, s.width / 2.0, &mut b),
-            Op::Image(i) => {
-                b.add(i.x, i.y, 0.0);
-                b.add(i.x + i.w, i.y + i.h, 0.0);
-            }
-        }
-    }
-    b
-}
-
-fn path_bounds(path: &[Seg], r: f32, b: &mut Bounds) {
-    for s in path {
-        match *s {
-            Seg::Move { x, y } | Seg::Line { x, y } => b.add(x, y, r),
-            Seg::Quad { x1: cx, y1: cy, x, y } => {
-                b.add(cx, cy, r);
-                b.add(x, y, r);
-            }
-            Seg::Cubic { x1: c1x, y1: c1y, x2: c2x, y2: c2y, x, y } => {
-                b.add(c1x, c1y, r);
-                b.add(c2x, c2y, r);
-                b.add(x, y, r);
-            }
-            Seg::Close => {}
-        }
-    }
+/// What a glyph's drawing covers, in font units (`y` up; control points
+/// included); `None` for a glyph that draws nothing.
+pub fn glyph_bounds(g: &Glyph) -> Option<Rect> {
+    g.ops
+        .iter()
+        .filter_map(|op| match op {
+            Op::Fill(f) => path::bounds(&f.path, 0.0),
+            Op::Stroke(s) => path::bounds(&s.path, s.width / 2.0),
+            Op::Image(i) => Some(Rect::new(i.x, i.y, i.w, i.h)),
+        })
+        .reduce(|a, b| a.union(&b))
 }
