@@ -53,6 +53,20 @@ pub struct ItemProps {
     pub wearable: Option<ArmorSlot>,
 }
 
+/// A block's item form.
+#[derive(Schema, Debug, Clone, Default)]
+pub struct BlockItemProps {
+    /// How many stack (1–99; 64 by default).
+    #[data(range = "1..=99")]
+    pub stack_size: Option<u8>,
+    /// Survives fire and lava.
+    #[data(default)]
+    pub fire_resistant: bool,
+    /// Ticks it burns in a furnace.
+    #[data(range = "0..=1000000000")]
+    pub fuel_ticks: Option<u32>,
+}
+
 /// An item as a tool or weapon.
 #[derive(Schema, Debug, Clone)]
 pub struct ToolProps {
@@ -833,6 +847,9 @@ pub struct BlockFile {
     pub model: Model,
     /// The item form's model; the block's by default.
     pub item_model: Option<Model>,
+    /// The item form: how many stack, whether it survives fire, how long it
+    /// burns as fuel.
+    pub item: Option<BlockItemProps>,
     pub block: Option<BlockProps>,
     pub states: Option<States>,
 }

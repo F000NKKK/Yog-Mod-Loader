@@ -741,6 +741,8 @@ fn compile_file(
         block: Option<yog_formats::content::BlockProps>,
         states: Option<yog_formats::content::States>,
         item: Option<yog_formats::content::ItemProps>,
+        /// A block's item form.
+        block_item: Option<yog_formats::content::BlockItemProps>,
         requires: Vec<String>,
         tags: Vec<String>,
     }
@@ -748,7 +750,7 @@ fn compile_file(
         Kind::Item => match yog_data::schema::from_doc::<yog_formats::content::ItemFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, requires: f.requires, tags: f.tags }, r.refs, r.tags)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, block_item: None, requires: f.requires, tags: f.tags }, r.refs, r.tags)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -758,7 +760,7 @@ fn compile_file(
         Kind::Block => match yog_data::schema::from_doc::<yog_formats::content::BlockFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
-                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, requires: f.requires, tags: f.tags }, r.refs, r.tags)
+                (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: f.item_model, block: f.block, states: f.states, item: None, block_item: f.item, requires: f.requires, tags: f.tags }, r.refs, r.tags)
             }
             Err(e) => {
                 cx.schema_errors(e);
@@ -838,6 +840,13 @@ fn compile_file(
             out.tags.entry(format!("data/{tns}/tags/block/{tpath}.json")).or_default().insert(id.clone(), true);
         }
         out.tags.entry(format!("data/{tns}/tags/item/{tpath}.json")).or_default().insert(id.clone(), true);
+    }
+
+    // A block's item form: its stack, fire and fuel.
+    if let Some(it) = &parts.block_item {
+        entry.item.stack_size = it.stack_size;
+        entry.item.fire_resistant = it.fire_resistant;
+        entry.item.fuel_ticks = it.fuel_ticks.unwrap_or(0);
     }
 
     if kind == Kind::Item {
@@ -1708,6 +1717,42 @@ fn compile_layout(
         _ => return None,
     };
     ok.then_some(kind)
+}
+
+/// The builder calls (`.max_stack(16)`…) for an item's properties; empty
+/// when it has none of its own.
+fn item_props(p: &ItemProps) -> String {
+    let mut b = String::new();
+    if let Some(s) = p.stack_size {
+        let _ = write!(b, "\n            .max_stack({s})");
+    }
+    if p.durability > 0 {
+        let _ = write!(b, "\n            .max_damage({})", p.durability);
+    }
+    if p.fire_resistant {
+        b.push_str("\n            .fire_resistant()");
+    }
+    if p.fuel_ticks > 0 {
+        let _ = write!(b, "\n            .fuel({})", p.fuel_ticks);
+    }
+    if let Some((kind, material, d, s)) = &p.tool {
+        let _ = write!(b, "\n            .tool({kind:?}, {material:?}, {d:?}, {s:?})");
+    }
+    if let Some(slot) = &p.wearable {
+        let _ = write!(b, "\n            .wearable({slot:?})");
+    }
+    if let Some((slot, material)) = &p.armor {
+        let _ = write!(b, "\n            .armor({slot:?}, {material:?})");
+    }
+    if let Some((n, s, always)) = p.food {
+        let _ = write!(
+            b,
+            "\n            .food(::yog_api::FoodDef::new({n}, {}){})",
+            float(s),
+            if always { ".can_always_eat()" } else { "" }
+        );
+    }
+    b
 }
 
 /// A loot modifier's file under `.yog-build/generated/`.
@@ -3132,38 +3177,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
                         b.push_str("\n            .accepts_items()");
                     }
                 }
-                Kind::Item => {
-                    let p = &e.item;
-                    if let Some(s) = p.stack_size {
-                        let _ = write!(b, "\n            .max_stack({s})");
-                    }
-                    if p.durability > 0 {
-                        let _ = write!(b, "\n            .max_damage({})", p.durability);
-                    }
-                    if p.fire_resistant {
-                        b.push_str("\n            .fire_resistant()");
-                    }
-                    if p.fuel_ticks > 0 {
-                        let _ = write!(b, "\n            .fuel({})", p.fuel_ticks);
-                    }
-                    if let Some((kind, material, d, s)) = &p.tool {
-                        let _ = write!(b, "\n            .tool({kind:?}, {material:?}, {d:?}, {s:?})");
-                    }
-                    if let Some(slot) = &p.wearable {
-                        let _ = write!(b, "\n            .wearable({slot:?})");
-                    }
-                    if let Some((slot, material)) = &p.armor {
-                        let _ = write!(b, "\n            .armor({slot:?}, {material:?})");
-                    }
-                    if let Some((n, s, always)) = p.food {
-                        let _ = write!(
-                            b,
-                            "\n            .food(::yog_api::FoodDef::new({n}, {}){})",
-                            float(s),
-                            if always { ".can_always_eat()" } else { "" }
-                        );
-                    }
-                }
+                Kind::Item => b.push_str(&item_props(&e.item)),
             }
             let _ = writeln!(
                 code,
@@ -3193,7 +3207,16 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
             continue;
         }
         let _ = match e.kind {
-            Kind::Block => writeln!(code, "    {}", when_loaded(&e.requires, &format!("registry.register_block(Blocks::{ident}());"))),
+            Kind::Block => {
+                // Its item form, when the file says how it stacks, burns or survives fire.
+                let item = item_props(&e.item);
+                let stmt = if item.is_empty() {
+                    format!("registry.register_block(Blocks::{ident}());")
+                } else {
+                    format!("{{ registry.register_block(Blocks::{ident}()); registry.register_item(::yog_api::ItemDef::new({:?}){}); }}", e.id, item.replace("\n            ", ""))
+                };
+                writeln!(code, "    {}", when_loaded(&e.requires, &stmt))
+            }
             Kind::Item => writeln!(code, "    {}", when_loaded(&e.requires, &format!("registry.register_item(Items::{ident}());"))),
             Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity => unreachable!("only blocks and items get here"),
         };
@@ -4003,6 +4026,17 @@ mod tests {
         let missing = r#"{ kind: "ore", id: "x", targets: [{ replaces: "stone", block: "@block:mymod:nope" }], size: 6, per_chunk: 4, height: { min: 0, max: 10 } }"#;
         let e = compile(&project(&[("content/x.ydef", missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no block mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn a_block_says_how_its_item_stacks() {
+        let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+        let block = format!(r#"{{ item: {{ stack_size: 16, fire_resistant: true, fuel_ticks: 300 }}, {model} }}"#);
+        let plain = format!(r#"{{ {model} }}"#);
+        let c = compile(&project(&[("content/log.yblock", &block), ("content/stone.yblock", &plain)]), "mymod", &yres::Refs::default()).unwrap();
+        let src = c.source.unwrap();
+        assert!(src.contains(r#"registry.register_item(::yog_api::ItemDef::new("mymod:log").max_stack(16).fire_resistant().fuel(300));"#), "{src}");
+        assert!(!src.contains(r#"ItemDef::new("mymod:stone")"#), "no item form of its own: the host's default");
     }
 
     #[test]
