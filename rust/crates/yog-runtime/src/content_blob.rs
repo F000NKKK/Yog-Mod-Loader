@@ -15,6 +15,16 @@ fn sound_group<'a>(h: &'a RuntimeHandlers, name: &str) -> Option<&'a yog_registr
     h.sound_groups.get(name).or_else(|| yog_registry::SoundGroup::built_in(name))
 }
 
+/// How many blocks wide and high an item hangs its entity: its own size,
+/// else the entity type's (at least one block each way).
+fn hanging_size(h: &RuntimeHandlers, hangs: &yog_registry::Hangs) -> [u32; 2] {
+    hangs.size.unwrap_or_else(|| {
+        let def = h.entities.iter().find(|e| e.get("id").and_then(|v| v.as_str()) == Some(hangs.entity.as_str()));
+        let blocks = |key: &str| def.and_then(|e| e.get(key)?.as_f64()).map_or(1, |n| n.round().max(1.0) as u32);
+        [blocks("width"), blocks("height")]
+    })
+}
+
 fn tool_material<'a>(h: &'a RuntimeHandlers, id: &str) -> Option<&'a yog_registry::ToolMaterial> {
     h.tool_materials.get(id).or_else(|| yog_registry::ToolMaterial::built_in(id))
 }
@@ -107,7 +117,8 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
             + d.food.is_some() as usize
             + tool.is_some() as usize
             + armor.is_some() as usize
-            + d.wearable.is_some() as usize;
+            + d.wearable.is_some() as usize
+            + d.hangs.is_some() as usize;
         w.map(n);
         w.key("id").str(&d.id);
         w.key("max_stack").int(d.max_stack as i64);
@@ -142,6 +153,13 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
         }
         if let Some(slot) = &d.wearable {
             w.key("wearable").str(slot);
+        }
+        if let Some(hangs) = &d.hangs {
+            let [width, height] = hanging_size(h, hangs);
+            w.key("hangs").map(3);
+            w.key("entity").str(&hangs.entity);
+            w.key("width").int(width as i64);
+            w.key("height").int(height as i64);
         }
         // A book registered under the item's id: the host makes it open the book.
         w.key("book").bool(h.books.contains(&d.id));

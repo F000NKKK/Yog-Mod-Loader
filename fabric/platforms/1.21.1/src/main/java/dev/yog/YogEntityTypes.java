@@ -21,13 +21,15 @@ import net.minecraft.util.Identifier;
 
 /**
  * Mods' entity types ({@code .yentity}): objects ({@link YogObject}),
- * living things and mobs ({@link YogMob}), their attributes, spawn eggs and
- * renderer ({@link YogEntityRenderer}).
+ * living things and mobs ({@link YogMob}), hanging things ({@link YogHanging}),
+ * their attributes, spawn eggs and renderer ({@link YogEntityRenderer}).
  */
 public final class YogEntityTypes {
     private YogEntityTypes() {}
 
     private static final Map<EntityType<?>, YogContent.Entity> DEFS = new HashMap<>();
+    /** A hanging thing's type's box, blocks (a painting's); its own box is its size on the wall. */
+    private static final float HANGING_BOX = 0.5F;
     private static final Map<String, EntityType<?>> TYPES = new LinkedHashMap<>();
 
     /** The definition of a mod's type, or null. */
@@ -51,10 +53,13 @@ public final class YogEntityTypes {
             if (id == null || TYPES.containsKey(def.id())) continue;
             EntityType.Builder b = def.living()
                     ? EntityType.Builder.<YogMob>create(YogMob::new, category(def.category()))
+                    : def.hanging()
+                    ? EntityType.Builder.<YogHanging>create(YogHanging::new, category(def.category()))
                     : EntityType.Builder.<YogObject>create(YogObject::new, category(def.category()));
-            b = b.dimensions(def.width(), def.height());
+            b = b.dimensions(def.hanging() ? HANGING_BOX : def.width(), def.hanging() ? HANGING_BOX : def.height());
             if (def.eyeHeight() != null) b = b.eyeHeight(def.eyeHeight());
-            b = b.maxTrackingRange(def.trackingRange()).trackingTickInterval(def.updateInterval());
+            // A hanging thing doesn't move: as a painting, it's sent once.
+            b = b.maxTrackingRange(def.trackingRange()).trackingTickInterval(def.hanging() ? Integer.MAX_VALUE : def.updateInterval());
             if (def.fireImmune()) b = b.makeFireImmune();
             EntityType<?> type = b.build(def.id());
             DEFS.put(type, def);

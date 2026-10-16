@@ -9,9 +9,10 @@ import net.minecraft.world.entity.Entity;
 
 /** Draws a mod's entity: its body as the mods give it ({@link YogBody#drawEntity}), then its name. */
 public class YogEntityRenderer extends EntityRenderer<Entity> {
-    public YogEntityRenderer(EntityRendererProvider.Context ctx) {
+    /** A hanging thing ({@code def}'s kind) casts no shadow, as a painting. */
+    public YogEntityRenderer(EntityRendererProvider.Context ctx, dev.yog.data.YogContent.Entity def) {
         super(ctx);
-        this.shadowRadius = 0.4F;
+        this.shadowRadius = def != null && def.hanging() ? 0.0F : 0.4F;
     }
 
     @Override

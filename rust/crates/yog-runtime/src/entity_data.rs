@@ -249,6 +249,25 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataLoad<'l>(
     }
 }
 
+/// `nativeEntityDataSet(String uuid, String key, byte[] value)`: the host's
+/// own value about an entity (a hanging entity's `yog:hanging`), sent like a
+/// mod's; null removes it. Not saved: the host keeps its entity's state.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataSet<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    uuid: JString<'l>,
+    key: JString<'l>,
+    value: JByteArray<'l>,
+) {
+    let uuid = jstr!(env, uuid);
+    let key = jstr!(env, key);
+    let value = if value.is_null() { None } else { env.convert_byte_array(&value).ok() };
+    if !uuid.is_empty() && !key.is_empty() {
+        set(&uuid, &key, value.as_deref(), false);
+    }
+}
+
 /// `nativeEntityDataForget(String uuid)`: the entity left the server's
 /// memory (unloaded, gone); what it keeps was saved with it.
 #[unsafe(no_mangle)]

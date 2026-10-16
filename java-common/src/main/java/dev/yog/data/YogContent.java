@@ -38,10 +38,16 @@ public final class YogContent {
      * An item; {@code name}/{@code tooltip} are empty when not set, {@code food}, {@code tool} and
      * {@code armor} null; {@code book}: opens the book of its id.
      */
-    /** An item; {@code wearable} is the slot it's worn in without being armor ({@code head}, …), or null. */
+    /**
+     * An item; {@code wearable} is the slot it's worn in without being armor ({@code head}, …), or null;
+     * {@code hangs} what it hangs on a wall, or null.
+     */
     public record Item(String id, int maxStack, String name, String tooltip, int maxDamage,
                        boolean fireResistant, int fuelTicks, Food food, boolean book, Tool tool, Armor armor,
-                       String wearable) {}
+                       String wearable, Hangs hangs) {}
+
+    /** What an item hangs on a block's side: an entity of a hanging type, {@code width}×{@code height} blocks. */
+    public record Hangs(String entity, int width, int height) {}
 
     /**
      * A sound group, whole — the game's or a mod's: sound event ids the host
@@ -89,15 +95,21 @@ public final class YogContent {
 
     /**
      * A mod's entity type ({@code yog_registry::EntityDef}). {@code kind}:
-     * {@code object}, {@code living} or {@code mob}; attributes by id;
-     * {@code spawnEgg} {base, spots} or null.
+     * {@code object}, {@code living}, {@code mob} or {@code hanging} (then
+     * {@code width}×{@code height} are blocks of wall); attributes by id;
+     * {@code spawnEgg} {base, spots} or null; a hanging thing's sound
+     * events, its place and break ones.
      */
     public record Entity(String id, String kind, String category, float width, float height, Float eyeHeight,
                          boolean fireImmune, boolean noGravity, Boolean pushable, boolean solid,
                          int trackingRange, int updateInterval, Map<String, Double> attributes,
-                         int[] spawnEgg, List<String> goals, boolean ticks) {
+                         int[] spawnEgg, List<String> goals, boolean ticks, String placeSound, String breakSound) {
         public boolean living() {
-            return !kind.equals("object");
+            return kind.equals("living") || kind.equals("mob");
+        }
+
+        public boolean hanging() {
+            return kind.equals("hanging");
         }
 
         public boolean mob() {
@@ -186,7 +198,8 @@ public final class YogContent {
                     YogData.str(m.get("name"), ""), YogData.str(m.get("tooltip"), ""),
                     (int) YogData.integer(m.get("max_damage"), 0), YogData.bool(m.get("fire_resistant"), false),
                     (int) YogData.integer(m.get("fuel_ticks"), 0), food, YogData.bool(m.get("book"), false),
-                    tool(m.get("tool")), armor(m.get("armor")), YogData.str(m.get("wearable"), null)));
+                    tool(m.get("tool")), armor(m.get("armor")), YogData.str(m.get("wearable"), null),
+                    hangs(m.get("hangs"))));
         }
         List<Block> blocks = new ArrayList<>();
         for (Object o : YogData.list(root.get("blocks"))) {
@@ -260,7 +273,9 @@ public final class YogContent {
                     m.get("pushable") == null ? null : YogData.bool(m.get("pushable"), false),
                     YogData.bool(m.get("solid"), false), (int) YogData.integer(m.get("tracking_range"), 8),
                     (int) YogData.integer(m.get("update_interval"), 3), attributes, egg, goals,
-                    YogData.bool(m.get("ticks"), false)));
+                    YogData.bool(m.get("ticks"), false),
+                    YogData.str(m.get("place_sound"), "minecraft:entity.painting.place"),
+                    YogData.str(m.get("break_sound"), "minecraft:entity.painting.break")));
         }
         YogContent c = new YogContent(items, blocks, inventories, recipes, dimensions, biomeFeatures, entities);
         for (Object o : YogData.list(root.get("attributes"))) {
@@ -314,6 +329,13 @@ public final class YogContent {
                 (int) YogData.integer(m.get("level_index"), 0), YogData.str(m.get("incorrect"), "minecraft:incorrect_for_wooden_tool"));
         return new Tool(YogData.str(t.get("kind"), "pickaxe"), (float) YogData.number(t.get("attack_damage"), 1),
                 (float) YogData.number(t.get("attack_speed"), -2.8), material);
+    }
+
+    private static Hangs hangs(Object v) {
+        if (v == null) return null;
+        Map<String, Object> m = YogData.map(v);
+        return new Hangs(YogData.str(m.get("entity"), ""), (int) YogData.integer(m.get("width"), 1),
+                (int) YogData.integer(m.get("height"), 1));
     }
 
     private static Armor armor(Object v) {

@@ -332,6 +332,8 @@ struct ItemProps {
     armor: Option<(String, String)>,
     /// Worn in this slot without being armor.
     wearable: Option<String>,
+    /// The hanging entity it places, and its size in blocks.
+    hangs: Option<(String, Option<[u32; 2]>)>,
 }
 
 /// One checked content file — what the Rust code needs.
@@ -874,6 +876,10 @@ fn compile_file(
             });
             props.armor = it.armor.as_ref().map(|a| (yog_formats::content::word(&a.slot), a.material.clone()));
             props.wearable = it.wearable.as_ref().map(yog_formats::content::word);
+            props.hangs = it.hangs.as_ref().map(|h| (h.entity.clone(), h.size));
+            if it.hangs.as_ref().and_then(|h| h.size).is_some_and(|[w, h]| w == 0 || h == 0) {
+                cx.err_at(loc, &root.key("item").key("hangs").key("size"), "a hanging thing is at least a block wide and high");
+            }
             if props.wearable.is_some() && props.armor.is_some() {
                 cx.err_at(loc, &root.key("item").key("wearable"), "armor is worn already — leave wearable out");
             }
@@ -1948,6 +1954,9 @@ fn item_props(p: &ItemProps) -> String {
     }
     if let Some(slot) = &p.wearable {
         let _ = write!(b, "\n            .wearable({slot:?})");
+    }
+    if let Some((entity, size)) = &p.hangs {
+        let _ = write!(b, "\n            .hangs({entity:?}, {size:?})");
     }
     if let Some((slot, material)) = &p.armor {
         let _ = write!(b, "\n            .armor({slot:?}, {material:?})");

@@ -1954,6 +1954,8 @@ public final class NativeBridge {
     public static native void nativeEntityDataLoad(String uuid, byte[] saved);
     /** Entity data: the entity left the server's memory. */
     public static native void nativeEntityDataForget(String uuid);
+    /** Sets ({@code value}) or removes (null) the host's own value about an entity, sent like a mod's, not saved. */
+    public static native void nativeEntityDataSet(String uuid, String key, byte[] value);
     /** Entity data: the client left its world. */
     public static native void nativeEntityDataClientReset();
     /** A tick of a mod's entity whose type asked for it. */
