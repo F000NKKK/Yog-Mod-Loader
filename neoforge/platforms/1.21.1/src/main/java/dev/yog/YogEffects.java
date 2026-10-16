@@ -52,6 +52,7 @@ final class YogEffects {
     }
 
     private static ResourceLocation potionId(String id) {
+        if (id.startsWith("yog:potion/")) return ResourceLocation.fromNamespaceAndPath("minecraft", id.substring("yog:potion/".length()));
         return id.startsWith("yog:") ? ResourceLocation.fromNamespaceAndPath("minecraft", id.substring(4)) : id(id);
     }
 
@@ -74,7 +75,7 @@ final class YogEffects {
                     effects.add(new MobEffectInstance(effect.get(), pe.duration(), pe.amplifier()));
                 }
                 Potion potion = new Potion(p.name(), effects.toArray(new MobEffectInstance[0]));
-                event.register(Registries.POTION, id(p.id()), () -> potion);
+                if (!p.id().startsWith("yog:potion/")) event.register(Registries.POTION, id(p.id()), () -> potion);
             }
         } else if (event.getRegistryKey().equals(Registries.ATTRIBUTE)) {
             for (YogContent.Attribute a : content().attributes) {
@@ -112,7 +113,7 @@ final class YogEffects {
 
     private static void onBrewing(RegisterBrewingRecipesEvent event) {
         for (YogContent.Potion p : content().potions) {
-            var to = BuiltInRegistries.POTION.getHolder(ResourceKey.create(Registries.POTION, id(p.id())));
+            var to = BuiltInRegistries.POTION.getHolder(ResourceKey.create(Registries.POTION, potionId(p.id())));
             for (YogContent.Brew b : p.brewed()) {
                 var from = BuiltInRegistries.POTION.getHolder(ResourceKey.create(Registries.POTION, potionId(b.from())));
                 ResourceLocation with = id(b.with());

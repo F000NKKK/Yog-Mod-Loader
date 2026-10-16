@@ -3220,10 +3220,20 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         known.add(refs::RefKind::Recipe, r.id.clone());
     }
     for (to, brew) in brews {
+        if !potion_defs.contains_key(&brew.from) && !refs::is_vanilla_potion(&brew.from) {
+            errors.push(format!("brewing recipe input `{}`: no potion `.yitem` or Yog default potion alias defines it", brew.from));
+            continue;
+        }
         if let Some(potion) = potion_defs.get_mut(&to) {
             potion.brewed.push(brew);
+        } else if refs::is_vanilla_potion(&to) {
+            potion_defs
+                .entry(to.clone())
+                .or_insert_with(|| yog_registry::PotionDef { id: to, name: None, effects: Vec::new(), brewed: Vec::new() })
+                .brewed
+                .push(brew);
         } else {
-            errors.push(format!("brewing recipe result `{to}`: no potion `.yitem` defines it"));
+            errors.push(format!("brewing recipe result `{to}`: no potion `.yitem` or Yog default potion alias defines it"));
         }
     }
     // Definitions: the ladders and their levels, sound groups.

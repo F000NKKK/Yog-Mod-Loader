@@ -68,10 +68,13 @@ final class YogEffects {
                 }
                 effects.add(new StatusEffectInstance(effect.get(), pe.duration(), pe.amplifier()));
             }
-            Registry.register(Registries.POTION, new Identifier(p.id()), new Potion(p.name(), effects.toArray(new StatusEffectInstance[0])));
+            Identifier id = potionId(p.id());
+            if (!p.id().startsWith("yog:potion/") && Registries.POTION.getEntry(id).isEmpty()) {
+                Registry.register(Registries.POTION, id, new Potion(p.name(), effects.toArray(new StatusEffectInstance[0])));
+            }
         }
         for (YogContent.Potion p : content.potions) {
-            Potion to = Registries.POTION.get(new Identifier(p.id()));
+            Potion to = Registries.POTION.get(potionId(p.id()));
             for (YogContent.Brew b : p.brewed()) {
                 Identifier from = potionId(b.from());
                 Identifier with = new Identifier(b.with());
@@ -86,6 +89,7 @@ final class YogEffects {
     }
 
     private static Identifier potionId(String id) {
+        if (id.startsWith("yog:potion/")) return new Identifier("minecraft", id.substring("yog:potion/".length()));
         return id.startsWith("yog:") ? new Identifier("minecraft", id.substring(4)) : new Identifier(id);
     }
 

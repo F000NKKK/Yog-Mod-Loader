@@ -5,7 +5,7 @@ use yog_data::kinds::Item;
 use yog_data::with::RefTo;
 
 // What these definitions name: `@attribute:mymod:grid_zoom`,
-// `@effect:mymod:clarity`, `@potion:minecraft:awkward`.
+// `@effect:mymod:clarity`, `@item:yog:potion/awkward`.
 yog_data::kind! {
     Attribute = "attribute",
     Effect = "effect",

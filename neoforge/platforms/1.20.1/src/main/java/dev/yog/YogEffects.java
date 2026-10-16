@@ -72,7 +72,7 @@ final class YogEffects {
                     effects.add(new MobEffectInstance(effect, pe.duration(), pe.amplifier()));
                 }
                 Potion potion = new Potion(p.name(), effects.toArray(new MobEffectInstance[0]));
-                event.register(Registries.POTION, id(p.id()), () -> potion);
+                if (!p.id().startsWith("yog:potion/")) event.register(Registries.POTION, id(p.id()), () -> potion);
             }
         } else if (event.getRegistryKey().equals(Registries.ATTRIBUTE)) {
             for (YogContent.Attribute a : content().attributes) {
@@ -109,7 +109,7 @@ final class YogEffects {
                 }
             }
             for (YogContent.Potion p : content().potions) {
-                Potion to = BuiltInRegistries.POTION.get(id(p.id()));
+                Potion to = BuiltInRegistries.POTION.get(potionId(p.id()));
                 for (YogContent.Brew b : p.brewed()) {
                     ResourceLocation from = potionId(b.from()), with = id(b.with());
                     if (!BuiltInRegistries.POTION.containsKey(from) || !BuiltInRegistries.ITEM.containsKey(with)) {

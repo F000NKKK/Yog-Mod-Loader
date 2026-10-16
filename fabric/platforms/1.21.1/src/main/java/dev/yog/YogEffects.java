@@ -67,11 +67,14 @@ final class YogEffects {
                 }
                 effects.add(new StatusEffectInstance(effect.get(), pe.duration(), pe.amplifier()));
             }
-            Registry.register(Registries.POTION, Identifier.of(p.id()), new Potion(p.name(), effects.toArray(new StatusEffectInstance[0])));
+            Identifier id = potionId(p.id());
+            if (!p.id().startsWith("yog:potion/") && Registries.POTION.getEntry(id).isEmpty()) {
+                Registry.register(Registries.POTION, id, new Potion(p.name(), effects.toArray(new StatusEffectInstance[0])));
+            }
         }
         FabricBrewingRecipeRegistryBuilder.BUILD.register(builder -> {
             for (YogContent.Potion p : content.potions) {
-                var to = Registries.POTION.getEntry(Identifier.of(p.id()));
+                var to = Registries.POTION.getEntry(potionId(p.id()));
                 for (YogContent.Brew b : p.brewed()) {
                     var from = Registries.POTION.getEntry(potionId(b.from()));
                     Identifier with = Identifier.of(b.with());
@@ -86,6 +89,7 @@ final class YogEffects {
     }
 
     private static Identifier potionId(String id) {
+        if (id.startsWith("yog:potion/")) return Identifier.of("minecraft", id.substring("yog:potion/".length()));
         return id.startsWith("yog:") ? Identifier.of("minecraft", id.substring(4)) : Identifier.of(id);
     }
 

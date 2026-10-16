@@ -98,6 +98,13 @@ pub fn is_vanilla(id: &str) -> bool {
     [RefKind::Item, RefKind::Block].iter().any(|k| VANILLA.ids.contains_key(&(*k, path.to_string())))
 }
 
+/// Whether `id` is one of Yog's stable aliases for a vanilla potion item.
+pub fn is_vanilla_potion(id: &str) -> bool {
+    let id = bare(id);
+    let Some((ns, path)) = id.split_once(':') else { return false };
+    ns == "yog" && path.strip_prefix("potion/").is_some_and(|p| VANILLA.potion_aliases.contains(p))
+}
+
 /// What vanilla `id` (`minecraft:short_grass`) is on Minecraft `version`:
 /// itself, what it's called there (`minecraft:grass` on 1.20.1), or `None`
 /// when that version doesn't have it.
@@ -186,14 +193,12 @@ impl Known {
         let what = kind.word();
         // Stable aliases for vanilla potion stacks; backends resolve these to
         // the version's Potion registry entry.
-        if kind == RefKind::Item && ns == "yog" {
-            if let Some(potion) = path.strip_prefix("potion/") {
-                return if VANILLA.potion_aliases.contains(potion) {
-                    Ok(())
-                } else {
-                    Err(format!("no item {id} among Yog's versioned default potion aliases"))
-                };
-            }
+        if kind == RefKind::Item && ns == "yog" && path.starts_with("potion/") {
+            return if is_vanilla_potion(id) {
+                Ok(())
+            } else {
+                Err(format!("no item {id} among Yog's versioned default potion aliases"))
+            };
         }
         // An item may be a block's item.
         let kinds: &[RefKind] = if kind == RefKind::Item { &[RefKind::Item, RefKind::Block] } else { std::slice::from_ref(&kind) };
