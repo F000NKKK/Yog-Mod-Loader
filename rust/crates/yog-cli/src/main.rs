@@ -91,10 +91,12 @@ fn main() {
         }
         Some("run") => {
             let debug = args[2..].iter().any(|a| a == "--debug");
+            // `--dev`: built for a game that hot-reloads it (Yog-IDLE decides).
+            let dev = args[2..].iter().any(|a| a == "--dev");
             match args[2..].iter().find(|a| !a.starts_with("--")) {
-                Some(name) => run_config(name, debug),
+                Some(name) => run_config(name, debug, dev),
                 None => Err(
-                    "usage: yog run <config_name> [--debug]  (see [run.<config_name>] in yog.toml)"
+                    "usage: yog run <config_name> [--debug] [--dev]  (see [run.<config_name>] in yog.toml)"
                         .into(),
                 ),
             }
@@ -817,7 +819,7 @@ fn resolve_metadata(meta: &mut YogToml, refs: &yres::Refs) -> Result<(), String>
 /// Build, optionally export the artifact into a dev instance's mod folder,
 /// then optionally launch a configured command (e.g. the instance's server
 /// or client launcher) — driven by a `[run.<config_name>]` section.
-fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> {
+fn run_config(config_name: &str, debugging_symbols: bool, dev: bool) -> Result<(), String> {
     let root = project_root()?;
     let yog_toml_path = root.join(MANIFEST);
     let meta = YogToml::read(&yog_toml_path)?;
@@ -834,8 +836,7 @@ fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> 
         })?
         .clone();
 
-    // `yog run` starts a game that can hot-reload the mod.
-    let (meta, artifact) = build(debugging_symbols, true)?;
+    let (meta, artifact) = build(debugging_symbols, dev)?;
 
     if let Some(export_dir) = &cfg.export_dir {
         let dir = resolve(&root, export_dir);
