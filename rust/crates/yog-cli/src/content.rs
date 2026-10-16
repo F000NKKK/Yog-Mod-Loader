@@ -916,6 +916,10 @@ fn compile_file(
             }
         }
         if entry.potion.is_some() {
+            if let Some(item_model) = parts.model.as_ref() {
+                let m = model(cx, loc, &root.key("model"), item_model, true)?;
+                emit(cx, format!("models/item/{p}.json"), &m.json);
+            }
             return Some(entry);
         }
         let Some(item_model) = parts.model.as_ref() else {
@@ -4872,6 +4876,29 @@ mod tests {
         merge_outputs(&root, &mut outputs, c).unwrap();
         let ru: Value = serde_json::from_slice(&outputs[0].1).unwrap();
         assert_eq!(ru["item.mymod.ruby.desc"], json!("Блестит"));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn compiles_a_potion_item_model_without_registering_a_second_item() {
+        let root = project(&[(
+            "content/items/potion.yitem",
+            r#"{ "item": { "potion": { "effects": [] } },
+                 "model": { "parent": "minecraft:item/potion",
+                            "textures": { "layer0": "minecraft:item/potion_overlay" } } }"#,
+        )]);
+        let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
+        assert_eq!(
+            output(&c, "assets/mymod/models/item/potion.json"),
+            json!({
+                "parent": "minecraft:item/potion",
+                "textures": { "layer0": "minecraft:item/potion_overlay" }
+            })
+        );
+        assert!(
+            !c.outputs.iter().any(|(path, _)| path == "assets/mymod/items/potion.json"),
+            "a potion registry entry must not create a second item definition"
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 
