@@ -801,6 +801,33 @@ pub struct BlockDef {
     pub comparator: Option<String>,
     /// Hoppers and droppers can put items into it (`on_item_insert`).
     pub accepts_items: bool,
+    /// It doesn't hide the faces behind it or stop light (as glass, a door).
+    #[data(default)]
+    pub no_occlusion: bool,
+    /// One of the game's kinds of block it is (`stairs`, `slab`, `door`,
+    /// `trapdoor`, `button`, `pressure_plate`, `fence`, `fence_gate`): the
+    /// host makes it of the game's class, with that class's states; `""`: a
+    /// block of Yog's own.
+    #[data(default)]
+    pub kind: String,
+    /// The block a kind is made from (stairs act as it).
+    #[data(default)]
+    pub base: Option<String>,
+    /// A kind's set — a registered block set by name (`oak`, `iron`…; a
+    /// fence gate's wood type); `None`: `oak`.
+    #[data(default)]
+    pub set: Option<String>,
+    /// How long a button stays pressed, ticks.
+    #[data(default = "thirty")]
+    pub press_ticks: u32,
+    /// Only living things set off a button or a pressure plate (not items
+    /// or arrows).
+    #[data(default)]
+    pub mobs_only: bool,
+}
+
+fn thirty() -> u32 {
+    30
 }
 
 /// A property of a block's own: its name and values (the first the
@@ -837,6 +864,12 @@ impl BlockDef {
             powered: None,
             comparator: None,
             accepts_items: false,
+            no_occlusion: false,
+            kind: String::new(),
+            base: None,
+            set: None,
+            press_ticks: thirty(),
+            mobs_only: false,
         }
     }
 
@@ -970,6 +1003,42 @@ impl BlockDef {
 
     pub fn inventory(mut self, id: impl Into<String>) -> Self {
         self.inventory_id = Some(id.into());
+        self
+    }
+
+    /// Doesn't hide the faces behind it or stop light (as glass).
+    pub fn no_occlusion(mut self) -> Self {
+        self.no_occlusion = true;
+        self
+    }
+
+    /// One of the game's kinds of block (`"stairs"`, `"door"`…).
+    pub fn kind(mut self, kind: &str) -> Self {
+        self.kind = kind.into();
+        self
+    }
+
+    /// The block a kind is made from.
+    pub fn base(mut self, id: impl Into<String>) -> Self {
+        self.base = Some(id.into());
+        self
+    }
+
+    /// A kind's block set (`"oak"`, `"dark_oak"`, `"iron"`…).
+    pub fn set(mut self, name: &str) -> Self {
+        self.set = Some(name.into());
+        self
+    }
+
+    /// How long a button stays pressed, ticks (30 by default).
+    pub fn press_ticks(mut self, ticks: u32) -> Self {
+        self.press_ticks = ticks;
+        self
+    }
+
+    /// Only living things set off a button or a pressure plate.
+    pub fn mobs_only(mut self) -> Self {
+        self.mobs_only = true;
         self
     }
 }

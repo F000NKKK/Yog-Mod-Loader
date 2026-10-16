@@ -539,12 +539,18 @@ public class YogHost implements ModInitializer {
                 }
                 if (p.requiresTool()) settings = settings.requiresTool();
                 if (p.noCollision())  settings = settings.noCollision();
+                if (p.noOcclusion())  settings = settings.nonOpaque();
                 if (p.slipperiness() > 0) {
                     settings = settings.slipperiness(p.slipperiness());
                 }
 
                 Block block;
-                if (p.inventory() != null) {
+                if (!p.kind().isEmpty()) {
+                    block = YogBlockKinds.make(settings, p, baseId -> {
+                        Identifier r = Identifier.tryParse(baseId);
+                        return r == null ? null : Registries.BLOCK.getOrEmpty(r).orElse(null);
+                    });
+                } else if (p.inventory() != null) {
                     YogInventoryDef def = INVENTORY_DEFS.get(p.inventory());
                     int slotCount = def != null ? def.slotCount : 0;
                     block = new YogInventoryBlock(settings, p.inventory(), slotCount);

@@ -158,9 +158,12 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
         });
         // Always: id, hardness, resistance, light, requires_tool, no_collision,
         // slipperiness, connects, connect_groups, redstone, facing, placement,
-        // attach, waterlogged, properties, accepts_items.
-        let n = 16
+        // attach, waterlogged, properties, accepts_items, no_occlusion, kind,
+        // press_ticks, mobs_only.
+        let n = 20
             + d.name.is_some() as usize
+            + d.base.is_some() as usize
+            + d.set.is_some() as usize
             + d.shape.is_some() as usize
             + group.is_some() as usize
             + d.inventory_id.is_some() as usize
@@ -210,6 +213,16 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
         if let Some(c) = &d.comparator {
             w.key("comparator").str(c);
         }
+        w.key("no_occlusion").bool(d.no_occlusion);
+        w.key("kind").str(&d.kind);
+        if let Some(b) = &d.base {
+            w.key("base").str(b);
+        }
+        if let Some(s) = &d.set {
+            w.key("set").str(s);
+        }
+        w.key("press_ticks").int(d.press_ticks as i64);
+        w.key("mobs_only").bool(d.mobs_only);
     }
 
     w.key("inventories").list(h.inventories.len());

@@ -1,0 +1,6 @@
+{
+  "kind": "door",
+  "block": { "set": "oak", "render_layer": "cutout" },
+  "model": { "textures": { "bottom": "minecraft:block/oak_door_bottom", "top": "minecraft:block/oak_door_top" } },
+  "item_model": { "parent": "generated", "textures": { "layer0": "minecraft:item/oak_door" } }
+}

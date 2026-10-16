@@ -1,0 +1,6 @@
+{
+  "kind": "stairs",
+  "block": { "set": "oak", "redstone": true },
+  "states": { "facing": "horizontal" },
+  "model": { "parent": "cube_all", "textures": { "side": "minecraft:block/stone", "all": "minecraft:block/stone" } }
+}

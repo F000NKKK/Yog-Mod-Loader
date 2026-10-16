@@ -54,12 +54,17 @@ public final class YogContent {
      * {@code inventory}, {@code powered} and {@code comparator} are null when not set.
      * {@code facing}: {@code ""}, {@code "horizontal"} or {@code "all"}; {@code placement}:
      * {@code "toward"} (its front to the placer) or {@code "away"}.
+     * {@code kind}: one of the game's kinds of block ({@code "stairs"}, {@code "door"}…, see
+     * {@code YogBlockKinds}) or {@code ""}; {@code base} (the block it's made from) and {@code set}
+     * (a block set or wood type by name) are null when not set.
      */
     public record Block(String id, float hardness, float resistance, String name, float[] shape, int light,
                         Sound sound, boolean requiresTool, boolean noCollision, float slipperiness,
                         boolean connects, List<String> connectGroups, String inventory, boolean redstone,
                         String facing, String placement, boolean attach, boolean waterlogged,
-                        List<Property> properties, String powered, String comparator, boolean acceptsItems) {
+                        List<Property> properties, String powered, String comparator, boolean acceptsItems,
+                        boolean noOcclusion, String kind, String base, String set, int pressTicks,
+                        boolean mobsOnly) {
         /** Whether it's a {@code YogStateBlock}: states of its own, or it takes items. */
         public boolean stateful() {
             return !facing.isEmpty() || attach || waterlogged || !properties.isEmpty() || acceptsItems;
@@ -199,8 +204,17 @@ public final class YogContent {
                     YogData.str(m.get("facing"), ""), YogData.str(m.get("placement"), "toward"),
                     YogData.bool(m.get("attach"), false), YogData.bool(m.get("waterlogged"), false),
                     properties(m.get("properties")), YogData.str(m.get("powered"), null),
-                    YogData.str(m.get("comparator"), null), YogData.bool(m.get("accepts_items"), false)));
+                    YogData.str(m.get("comparator"), null), YogData.bool(m.get("accepts_items"), false),
+                    YogData.bool(m.get("no_occlusion"), false), YogData.str(m.get("kind"), ""),
+                    YogData.str(m.get("base"), null), YogData.str(m.get("set"), null),
+                    (int) YogData.integer(m.get("press_ticks"), 30), YogData.bool(m.get("mobs_only"), false)));
         }
+        // A block made from another (stairs from planks) comes after it: the host makes it of it.
+        List<Block> bases = new ArrayList<>();
+        List<Block> made = new ArrayList<>();
+        for (Block b : blocks) (b.base() == null ? bases : made).add(b);
+        blocks = new ArrayList<>(bases);
+        blocks.addAll(made);
         Map<String, YogInventoryDef> inventories = new HashMap<>();
         for (Object o : YogData.list(root.get("inventories"))) {
             YogInventoryDef def = YogInventoryDef.fromData(YogData.map(o));

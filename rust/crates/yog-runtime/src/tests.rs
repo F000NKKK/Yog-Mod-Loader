@@ -264,6 +264,25 @@ fn a_blocks_sound_group_arrives_whole() {
     assert!(blocks[2].get("sound").is_none(), "an unknown group is left to the default");
 }
 
+#[test]
+fn a_block_of_a_game_kind_arrives_with_its_base_and_set() {
+    let h = registering(|ctx| unsafe {
+        let stairs = yog_registry::BlockDef::new("mymod:stairs").kind("stairs").base("mymod:planks");
+        content(ctx, "block", "mymod:stairs", &stairs.write());
+        let button = yog_registry::BlockDef::new("mymod:button").kind("button").set("dark_oak").press_ticks(20).mobs_only().no_occlusion();
+        content(ctx, "block", "mymod:button", &button.write());
+        content(ctx, "block", "mymod:plain", &yog_registry::BlockDef::new("mymod:plain").write());
+    });
+    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read().unwrap())).unwrap();
+    let blocks = v.get("blocks").unwrap().as_list().unwrap();
+    let str = |i: usize, k: &str| blocks[i].get(k).and_then(|x| x.as_str()).map(String::from);
+    let int = |i: usize, k: &str| blocks[i].get(k).and_then(|x| x.as_i64());
+    let yes = |i: usize, k: &str| blocks[i].get(k).and_then(|x| x.as_bool());
+    assert_eq!((str(0, "kind"), str(0, "base"), str(0, "set")), (Some("stairs".into()), Some("mymod:planks".into()), None));
+    assert_eq!((str(1, "set"), int(1, "press_ticks"), yes(1, "mobs_only"), yes(1, "no_occlusion")), (Some("dark_oak".into()), Some(20), Some(true), Some(true)));
+    assert_eq!((str(2, "kind"), int(2, "press_ticks"), yes(2, "no_occlusion")), (Some(String::new()), Some(30), Some(false)), "a plain block: no kind");
+}
+
 /// For checking the Java reader by hand: `YOG_CONTENT_OUT=file cargo test -p yog-runtime write_a_content_blob`.
 #[test]
 fn write_a_content_blob() {

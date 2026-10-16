@@ -1,0 +1,1 @@
+{ "kind": "fence_gate", "block": { "set": "dark_oak" }, "model": { "textures": { "texture": "minecraft:block/oak_planks" } } }

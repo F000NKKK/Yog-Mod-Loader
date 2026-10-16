@@ -193,12 +193,19 @@ public class YogHost {
             }
             if (p.requiresTool()) props = props.requiresCorrectToolForDrops();
             if (p.noCollision()) props = props.noCollission();
+            if (p.noOcclusion()) props = props.noOcclusion();
             if (p.slipperiness() > 0) {
                 props = props.friction(p.slipperiness());
             }
 
             Block block;
-            if (p.inventory() != null) {
+            if (!p.kind().isEmpty()) {
+                block = YogBlockKinds.make(props, p, baseId -> {
+                    ResourceLocation r = ResourceLocation.tryParse(baseId);
+                    if (r == null) return null;
+                    return registeredBlocks.containsKey(r) ? registeredBlocks.get(r) : BuiltInRegistries.BLOCK.getOptional(r).orElse(null);
+                });
+            } else if (p.inventory() != null) {
                 YogInventoryDef def = INVENTORY_DEFS.get(p.inventory());
                 int slotCount = def != null ? def.slotCount : 0;
                 block = new YogInventoryBlock(props, p.inventory(), slotCount);
