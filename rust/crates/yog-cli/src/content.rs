@@ -1703,6 +1703,15 @@ fn compile_layout(
         }
         // A table of its own: an empty one in the datapack (so it exists for
         // `/loot` and other tables), filled by a modifier on it.
+        Def::Advancement(a) => {
+            let at = |key: &str| doc.locate(text, &yog_data::Path::root().key(key)).line as usize;
+            match advancement(cx, &mut out.lang, &a, ns) {
+                Ok(files) if ok => out.outputs.extend(files),
+                Ok(_) => {}
+                Err((key, e)) => cx.err(at(key), format!("{key}: {e}")),
+            }
+            return None;
+        }
         // Registered with the game: the host reads them from the content.
         Def::Attribute(mut a) => {
             a.id = full_id(&a.id, ns);
@@ -1786,6 +1795,106 @@ fn item_props(p: &ItemProps) -> String {
         );
     }
     b
+}
+
+/// The translation key a text names (`@Lang.…`, `@lang:…`, an item's name),
+/// or for words, `key` with the words put in the mod's lang.
+fn text_key(cx: &mut Ctx, lang: &mut Lang, t: &yog_data::Text, ns: &str, key: String) -> Result<String, String> {
+    Ok(match t {
+        yog_data::Text::Literal(words) => {
+            lang.entry((ns.to_string(), yres::NEUTRAL_LOCALE.to_string())).or_default().insert(key.clone(), words.clone());
+            key
+        }
+        yog_data::Text::Lang(k) => k.clone(),
+        yog_data::Text::NameOf(r) => {
+            let (rns, rp) = r.id.split_once(':').unwrap_or(("minecraft", &r.id));
+            format!("{}.{rns}.{}", r.kind, rp.replace('/', "."))
+        }
+        yog_data::Text::Res(r) => cx
+            .refs
+            .texts
+            .get(&format!("{}.{}", r.set, r.key))
+            .map(|(k, _)| k.clone())
+            .ok_or_else(|| format!("`@{}.{}`: no text `{}.{}` in resources/*.yres", r.set, r.key, r.set, r.key))?,
+    })
+}
+
+/// The mod's lang: (namespace, locale) → key → text.
+type Lang = BTreeMap<(String, String), BTreeMap<String, String>>;
+
+/// Minecraft versions before 1.20.5 write advancements the old way: an
+/// icon's `item`, item predicates' `items` lists and `tag`s.
+fn old_advancement_format(version: &str) -> bool {
+    let mut p = version.split('.').map(|n| n.parse::<u32>().unwrap_or(0));
+    let (major, minor, patch) = (p.next().unwrap_or(0), p.next().unwrap_or(0), p.next().unwrap_or(0));
+    (major, minor, patch) < (1, 20, 5)
+}
+
+/// A `.ydef` advancement: its JSON in the newest format, and the old one as
+/// an overlay for the versions that read that. `Err((field, why))`.
+fn advancement(cx: &mut Ctx, lang: &mut Lang, a: &yog_formats::def::AdvancementDef, ns: &str) -> Result<Vec<Output>, (&'static str, String)> {
+    use serde_json::json;
+    let id = full_id(&a.id, ns);
+    let path = id.strip_prefix(&format!("{ns}:")).filter(|p| valid_path(p)).ok_or(("id", format!("`{id}`: the mod's own, `{ns}:<name>`")))?.to_string();
+    if !matches!(a.frame.as_str(), "task" | "goal" | "challenge") {
+        return Err(("frame", format!("`{}`: task, goal or challenge", a.frame)));
+    }
+    let base_key = format!("advancement.{ns}.{}", path.replace('/', "."));
+    let title = text_key(cx, lang, &a.title, ns, base_key.clone()).map_err(|e| ("title", e))?;
+    let description = match &a.description {
+        Some(d) => json!({ "translate": text_key(cx, lang, d, ns, format!("{base_key}.desc")).map_err(|e| ("description", e))? }),
+        None => json!({ "text": "" }),
+    };
+    let make = |old: bool| -> Result<Value, (&'static str, String)> {
+        let item_predicate = |item: &str| if old { json!({ "items": [item] }) } else { json!({ "items": item }) };
+        let mut criteria = Map::new();
+        let mut requirements = Vec::new();
+        for (i, c) in a.criteria.iter().enumerate() {
+            let kinds = c.granted as u8 + c.has_item.is_some() as u8 + c.used_item.is_some() as u8;
+            if kinds != 1 {
+                return Err(("criteria", format!("criteria[{i}]: one of granted, has_item, used_item")));
+            }
+            let name = format!("c{i}");
+            let criterion = if c.granted {
+                json!({ "trigger": "minecraft:impossible" })
+            } else if let Some(item) = &c.has_item {
+                let predicate = match item {
+                    yog_data::OneOrTag::One(i) => item_predicate(&full_id(&i.id, "minecraft")),
+                    yog_data::OneOrTag::Tag(t) if old => json!({ "tag": full_id(&t.id, "minecraft") }),
+                    yog_data::OneOrTag::Tag(t) => json!({ "items": format!("#{}", full_id(&t.id, "minecraft")) }),
+                };
+                json!({ "trigger": "minecraft:inventory_changed", "conditions": { "items": [predicate] } })
+            } else {
+                let item = c.used_item.as_ref().map(|i| full_id(&i.id, "minecraft")).unwrap_or_default();
+                json!({ "trigger": "minecraft:consume_item", "conditions": { "item": item_predicate(&item) } })
+            };
+            criteria.insert(name.clone(), criterion);
+            requirements.push(json!([name]));
+        }
+        let mut display = json!({
+            "icon": if old { json!({ "item": a.icon }) } else { json!({ "id": a.icon }) },
+            "title": { "translate": title },
+            "description": description,
+            "frame": a.frame,
+            "hidden": a.hidden,
+            "show_toast": true,
+            "announce_to_chat": true,
+        });
+        if let Some(bg) = &a.background {
+            display["background"] = Value::String(bg.clone());
+        }
+        let mut v = json!({ "display": display, "criteria": criteria, "requirements": requirements });
+        if let Some(parent) = &a.parent {
+            v["parent"] = Value::String(full_id(parent, ns));
+        }
+        Ok(v)
+    };
+    let file = format!("data/{ns}/advancement/{path}.json");
+    let mut out = vec![(file.clone(), pretty(&make(false)?))];
+    for version in refs::versions().iter().filter(|v| old_advancement_format(v)) {
+        out.push((format!("when/any/{version}/{file}"), pretty(&make(true)?)));
+    }
+    Ok(out)
 }
 
 /// A definition the game registers (`attribute`, `effect`, `potion`): the
@@ -2493,7 +2602,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
                     }
                 }
                 // Read with the recipes (`compile_layout`).
-                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) | yog_formats::def::Def::Tag(_) | yog_formats::def::Def::DamageType(_) | yog_formats::def::Def::Tree(_) | yog_formats::def::Def::LootModifier(_) | yog_formats::def::Def::LootTable(_) | yog_formats::def::Def::Attribute(_) | yog_formats::def::Def::Effect(_) | yog_formats::def::Def::Potion(_) => {}
+                yog_formats::def::Def::RecipeKind(_) | yog_formats::def::Def::Ore(_) | yog_formats::def::Def::Dimension(_) | yog_formats::def::Def::Table(_) | yog_formats::def::Def::Tag(_) | yog_formats::def::Def::DamageType(_) | yog_formats::def::Def::Tree(_) | yog_formats::def::Def::LootModifier(_) | yog_formats::def::Def::LootTable(_) | yog_formats::def::Def::Attribute(_) | yog_formats::def::Def::Effect(_) | yog_formats::def::Def::Potion(_) | yog_formats::def::Def::Advancement(_) => {}
                 // Its level is placed on the ladder below.
                 yog_formats::def::Def::ToolMaterial(mut m) => {
                     m.id = full(&m.id);
@@ -2724,7 +2833,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         if kind == Kind::Def {
             // Kinds of recipe are checked with the recipes, ores and dimensions with what they name.
             let of = yog_data::text::parse_value(&text).ok().and_then(|v| v.get("kind").and_then(|k| k.as_str()).map(str::to_string));
-            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table" | "tag" | "damage_type" | "tree" | "loot_modifier" | "loot_table" | "attribute" | "effect" | "potion")) {
+            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table" | "tag" | "damage_type" | "tree" | "loot_modifier" | "loot_table" | "attribute" | "effect" | "potion" | "advancement")) {
                 pending_layouts.push((shown.clone(), text));
             } else {
                 pending_defs.push((shown.clone(), text));
@@ -4100,6 +4209,28 @@ mod tests {
         let missing = r#"{ kind: "ore", id: "x", targets: [{ replaces: "stone", block: "@block:mymod:nope" }], size: 6, per_chunk: 4, height: { min: 0, max: 10 } }"#;
         let e = compile(&project(&[("content/x.ydef", missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no block mymod:nope"), "{e}");
+    }
+
+    #[test]
+    fn advancements_are_definitions_for_every_version() {
+        let root = r#"{ kind: "advancement", id: "root", icon: "@item:minecraft:amethyst_shard", title: "Gems",
+            background: "minecraft:textures/block/calcite.png", criteria: [{ has_item: "@tag:item:yog:gems/amethyst" }] }"#;
+        let lore = r#"{ kind: "advancement", id: "lore/one", parent: "@advancement:mymod:root", icon: "@item:minecraft:paper",
+            title: "@lang:advancement.mymod.lore.one", hidden: true, criteria: [{ granted: true }] }"#;
+        let c = compile(&project(&[("content/root.ydef", root), ("content/lore.ydef", lore)]), "mymod", &yres::Refs::default()).unwrap();
+        let get = |p: &str| c.outputs.iter().find(|(q, _)| q == p).map(|(_, b)| serde_json::from_slice::<Value>(b).unwrap()).unwrap_or_else(|| panic!("no {p}"));
+        let new = get("data/mymod/advancement/root.json");
+        assert_eq!(new["display"]["icon"]["id"], "minecraft:amethyst_shard");
+        assert_eq!(new["criteria"]["c0"]["conditions"]["items"][0]["items"], "#yog:gems/amethyst");
+        assert_eq!(new["display"]["title"]["translate"], "advancement.mymod.root");
+        let old = get("when/any/1.20.1/data/mymod/advancement/root.json");
+        assert_eq!(old["display"]["icon"]["item"], "minecraft:amethyst_shard");
+        assert_eq!(old["criteria"]["c0"]["conditions"]["items"][0]["tag"], "yog:gems/amethyst");
+        let one = get("data/mymod/advancement/lore/one.json");
+        assert_eq!((one["parent"].as_str(), one["criteria"]["c0"]["trigger"].as_str()), (Some("mymod:root"), Some("minecraft:impossible")));
+        assert_eq!(c.lang[&("mymod".to_string(), yres::NEUTRAL_LOCALE.to_string())]["advancement.mymod.root"], "Gems");
+        let bad = r#"{ kind: "advancement", id: "x", icon: "@item:minecraft:paper", title: "X", criteria: [{ granted: true, used_item: "@item:minecraft:paper" }] }"#;
+        assert!(compile(&project(&[("content/x.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err().contains("one of granted"));
     }
 
     #[test]

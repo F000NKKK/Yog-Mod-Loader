@@ -9,6 +9,7 @@ use yog_data::with::{Opt, RefTo};
 pub use yog_registry::{ArmorMaterial, SoundGroup, ToolMaterial};
 
 yog_data::kind! {
+    AdvancementKind = "advancement",
     LadderKind = "ladder",
     LevelKind = "level",
     SoundGroupKind = "sound_group",
@@ -82,6 +83,51 @@ pub enum Def {
     Effect(yog_registry::EffectDef),
     /// A potion: the effects it gives and how it's brewed.
     Potion(yog_registry::PotionDef),
+    /// An advancement: where it hangs, how it looks, what earns it.
+    Advancement(AdvancementDef),
+}
+
+/// `{ kind: "advancement", id: "lore/cardamom1", parent: "@advancement:hexcasting:lore",
+/// icon: "@item:hexcasting:lore_fragment", title: "@Lang.…", hidden: true,
+/// criteria: [{ granted: true }] }` — the game's advancement, its JSON for
+/// every version.
+#[derive(Schema, Debug, Clone)]
+pub struct AdvancementDef {
+    /// `lore/cardamom1` (the mod's).
+    pub id: String,
+    /// The one it hangs under; a tab's root has none.
+    #[data(with = "Opt<RefTo<AdvancementKind>>")]
+    pub parent: Option<String>,
+    #[data(with = "RefTo<yog_data::kinds::Item>")]
+    pub icon: String,
+    /// A `.yres` text (`@Lang.…`), a translation key or words.
+    pub title: yog_data::Text,
+    pub description: Option<yog_data::Text>,
+    /// `task` (default), `goal`, `challenge`.
+    #[data(default = "task_frame")]
+    pub frame: String,
+    /// Not shown before it's had.
+    #[data(default)]
+    pub hidden: bool,
+    /// A root's background texture (`minecraft:textures/block/calcite.png`).
+    pub background: Option<String>,
+    /// What earns it — every one of them.
+    pub criteria: Vec<CriterionDef>,
+}
+
+fn task_frame() -> String {
+    "task".into()
+}
+
+/// One way to earn an advancement — one of: `granted` (the mod's code
+/// awards it), `has_item` (an item or a tag of them in the inventory),
+/// `used_item` (eaten, drunk, used up).
+#[derive(Schema, Debug, Clone, Default)]
+pub struct CriterionDef {
+    #[data(default)]
+    pub granted: bool,
+    pub has_item: Option<yog_data::ItemIdOrTag>,
+    pub used_item: Option<yog_data::ItemId>,
 }
 
 /// `{ kind: "loot_table", id: "random_scroll", add: [{ item: "@item:…",

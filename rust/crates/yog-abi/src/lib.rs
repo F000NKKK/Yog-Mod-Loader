@@ -1683,7 +1683,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (30006, 0x017b_bccd_c36f_283c), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (30007, 0x932a_1f5e_aa4f_7b94), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]
