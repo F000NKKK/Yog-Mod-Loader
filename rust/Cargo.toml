@@ -15,6 +15,8 @@ members = [
     "crates/yog-dimensions",
     # declarative terrain: noise, layers, caves, ores — the runtime's and the IDE's preview
     "crates/yog-worldgen",
+    # graphics primitives every crate shares: colours, vectors, rects, paths, images, a rasterizer
+    "crates/yog-graphics",
     # fonts: one format for every text of the system, shaping and rasterizing
     "crates/yog-font",
     # the one data model / text / binary / schema of every Yog format
@@ -96,6 +98,7 @@ yog-dimensions = { path = "crates/yog-dimensions" }
 yog-data     = { path = "crates/yog-data" }
 yog-worldgen = { path = "crates/yog-worldgen" }
 yog-font = { path = "crates/yog-font" }
+yog-graphics = { path = "crates/yog-graphics" }
 yog-data-derive = { path = "crates/yog-data-derive" }
 yog-formats  = { path = "crates/yog-formats" }
 yog-logging  = { path = "crates/yog-logging" }
