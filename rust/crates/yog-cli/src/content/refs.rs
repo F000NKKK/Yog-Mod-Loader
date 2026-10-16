@@ -267,6 +267,8 @@ mod tests {
         assert!(k.check(RefKind::Item, "mymod:ruby").is_ok());
         assert!(k.check(RefKind::Item, "mymod:nope").unwrap_err().contains("no item mymod:nope"));
         assert!(k.check(RefKind::Item, "minecraft:stick").is_ok());
+        assert!(k.check(RefKind::Potion, "yog:awkward").is_ok(), "Yog's stable vanilla potion alias");
+        assert!(k.check(RefKind::Potion, "minecraft:awkward").is_ok(), "versioned vanilla potion ids");
         assert!(k.check(RefKind::Item, "minecraft:stone").is_ok(), "a block's item");
         assert!(k.check(RefKind::Block, "minecraft:furnace[facing=north]").is_ok());
         assert!(k.check(RefKind::Entity, "minecraft:allay").is_ok());

@@ -2543,6 +2543,11 @@ fn compile_recipe(
         }
     }
     let RecipeFile { common: c, body } = read.value;
+    let brewing = matches!(&body, Body::Brewing(_));
+    if brewing != c.result.is_potion() {
+        cx.err(line(&At::root().key("result")), if brewing { "a brewing recipe result must be a potion reference" } else { "this recipe type must make an item" });
+        ok = false;
+    }
     let ty = match &body {
         Body::Shaped(_) => "shaped".to_string(),
         Body::Shapeless(_) => "shapeless".to_string(),
@@ -2648,7 +2653,7 @@ fn compile_recipe(
                 ok = false;
             }
             if ok {
-                brews.push((c.result.clone(), yog_registry::Brew { from: k.from, with: k.ingredient }));
+                brews.push((c.result.id().to_string(), yog_registry::Brew { from: k.from, with: k.ingredient }));
             }
             return None;
         }
@@ -2720,7 +2725,7 @@ fn compile_recipe(
         id: format!("{ns}:{p}"),
         ty,
         kind,
-        result: c.result,
+        result: c.result.id().to_string(),
         count: c.count,
         group: c.group,
         category: c.category,
