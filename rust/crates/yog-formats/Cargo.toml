@@ -1,6 +1,6 @@
 [package]
 name = "yog-formats"
-version = "0.7.6"
+version = "0.7.7"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -10,7 +10,7 @@ description = "The schemas of Yog's source formats — .yblock/.yitem, .yrecipe,
 [dependencies]
 yog-data = "0.4.1"
 # Content definitions whose format is the definition itself (`SoundGroup`).
-yog-registry = "0.33.2"
+yog-registry = "0.33.3"
 # A dimension's `terrain`.
 yog-worldgen = "0.1"
 yog-body = "0.1"

@@ -1459,11 +1459,11 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "yog-abi"
-version = "0.30.5"
+version = "0.30.6"
 
 [[package]]
 name = "yog-api"
-version = "0.96.1"
+version = "0.97.0"
 dependencies = [
  "ctor",
  "rkyv",
@@ -1511,7 +1511,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "criterion",
  "proc-macro2",
@@ -1538,7 +1538,7 @@ version = "0.1.1"
 
 [[package]]
 name = "yog-core"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "criterion",
 ]
@@ -1587,21 +1587,21 @@ dependencies = [
 
 [[package]]
 name = "yog-entity"
-version = "0.5.0"
-dependencies = [
- "yog-core",
-]
-
-[[package]]
-name = "yog-event"
 version = "0.6.0"
 dependencies = [
  "yog-core",
 ]
 
 [[package]]
+name = "yog-event"
+version = "0.7.0"
+dependencies = [
+ "yog-core",
+]
+
+[[package]]
 name = "yog-formats"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "yog-body",
  "yog-data",
@@ -1644,7 +1644,7 @@ dependencies = [
 
 [[package]]
 name = "yog-kit"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "yog-api",
 ]
@@ -1662,7 +1662,7 @@ dependencies = [
 
 [[package]]
 name = "yog-player"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "yog-core",
  "yog-entity",
@@ -1670,7 +1670,7 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.33.2"
+version = "0.33.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -1680,7 +1680,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.103.6"
+version = "0.103.7"
 dependencies = [
  "criterion",
  "glow",
@@ -1729,7 +1729,7 @@ dependencies = [
 
 [[package]]
 name = "yog-world"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "yog-core",
 ]

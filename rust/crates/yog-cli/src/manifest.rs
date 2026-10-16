@@ -16,7 +16,7 @@ pub const DEFAULT_EDITION: &str = "2024";
 /// License of a mod, and of its exports crate, when none is given.
 pub const DEFAULT_LICENSE: &str = "MIT OR Apache-2.0";
 /// `yog-api` version when crates.io can't be asked (offline, etc.).
-const FALLBACK_API_VERSION: &str = "0.96";
+const FALLBACK_API_VERSION: &str = "0.97";
 
 /// The current directory, if it's a mod project (has a `yog.toml`).
 pub fn project_root() -> Result<PathBuf, String> {
