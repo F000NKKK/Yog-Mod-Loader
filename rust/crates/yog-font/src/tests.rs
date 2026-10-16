@@ -16,7 +16,7 @@ fn latin() -> Font {
         ascent: 80,
         descent: -20,
         glyphs: vec![
-            glyph("a", 100, vec![Op::Fill { path: rect(10.0, 0.0, 90.0, 80.0), color: None }]),
+            glyph("a", 100, vec![Op::Fill(Fill { path: rect(10.0, 0.0, 90.0, 80.0), color: None })]),
             glyph("b", 50, vec![]),
             glyph("a_b", 300, vec![]),
         ],
@@ -47,14 +47,14 @@ fn runes() -> Font {
     let stroke = |name: &str, dx: i32, dy: i32| Glyph {
         name: name.into(),
         advance: 10,
-        ops: vec![Op::Stroke { path: vec![Seg::Move { x: 0.0, y: 0.0 }, Seg::Line { x: dx as f32, y: dy as f32 }], width: 10.0, color: None }],
+        ops: vec![Op::Stroke(Stroke { path: vec![Seg::Move { x: 0.0, y: 0.0 }, Seg::Line { x: dx as f32, y: dy as f32 }], width: 10.0, color: None })],
         entry: Some([0, 0]),
         exit: Some([dx, dy]),
     };
     // Glyphs 0–3: a stroke heading east, north, west, south; 4, 5: `w`, `q` on their own.
     let mut glyphs = vec![stroke("e", 100, 0), stroke("n", 0, 100), stroke("w", -100, 0), stroke("s", 0, -100)];
-    glyphs.push(glyph("letter_w", 60, vec![Op::Fill { path: rect(0.0, 0.0, 50.0, 50.0), color: None }]));
-    glyphs.push(glyph("letter_q", 60, vec![Op::Fill { path: rect(0.0, 0.0, 50.0, 50.0), color: None }]));
+    glyphs.push(glyph("letter_w", 60, vec![Op::Fill(Fill { path: rect(0.0, 0.0, 50.0, 50.0), color: None })]));
+    glyphs.push(glyph("letter_q", 60, vec![Op::Fill(Fill { path: rect(0.0, 0.0, 50.0, 50.0), color: None })]));
     // States: 0 none, 1 + heading.
     let (start, straight, left) = (1, 2, 3);
     let mut transitions = Vec::new();

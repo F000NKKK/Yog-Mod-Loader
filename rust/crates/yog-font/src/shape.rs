@@ -221,11 +221,11 @@ pub fn glyph_bounds(g: &Glyph) -> Bounds {
     let mut b = Bounds::EMPTY;
     for op in &g.ops {
         match op {
-            Op::Fill { path, .. } => path_bounds(path, 0.0, &mut b),
-            Op::Stroke { path, width, .. } => path_bounds(path, width / 2.0, &mut b),
-            Op::Image { x, y, w, h, .. } => {
-                b.add(*x, *y, 0.0);
-                b.add(x + w, y + h, 0.0);
+            Op::Fill(f) => path_bounds(&f.path, 0.0, &mut b),
+            Op::Stroke(s) => path_bounds(&s.path, s.width / 2.0, &mut b),
+            Op::Image(i) => {
+                b.add(i.x, i.y, 0.0);
+                b.add(i.x + i.w, i.y + i.h, 0.0);
             }
         }
     }

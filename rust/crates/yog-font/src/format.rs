@@ -65,33 +65,45 @@ pub struct Glyph {
 #[data(tag = "op")]
 pub enum Op {
     /// A path's inside painted (non-zero winding).
-    Fill {
-        path: Vec<Seg>,
-        /// `0xAARRGGBB`; none: the text's colour.
-        color: Option<u32>,
-    },
-    /// A path's outline painted, `width` units wide, round-joined and capped.
-    Stroke {
-        path: Vec<Seg>,
-        width: f32,
-        color: Option<u32>,
-    },
-    /// A picture in the box `x, y` (bottom-left) `w × h` units.
-    Image {
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
-        /// Its pixels' size.
-        px_w: u32,
-        px_h: u32,
-        /// `0xAARRGGBB`, row by row from the top.
-        argb: Vec<u32>,
-        /// Whether the text's colour tints it (a picture in one colour,
-        /// white for the text's own); else it keeps its colours.
-        #[data(default)]
-        tinted: bool,
-    },
+    Fill(Fill),
+    /// A path's outline painted, round-joined and capped.
+    Stroke(Stroke),
+    /// A picture in a box.
+    Image(Image),
+}
+
+#[derive(Schema, Debug, Clone, PartialEq)]
+pub struct Fill {
+    pub path: Vec<Seg>,
+    /// `0xAARRGGBB`; none: the text's colour.
+    pub color: Option<u32>,
+}
+
+#[derive(Schema, Debug, Clone, PartialEq)]
+pub struct Stroke {
+    pub path: Vec<Seg>,
+    /// How wide, in units.
+    pub width: f32,
+    /// `0xAARRGGBB`; none: the text's colour.
+    pub color: Option<u32>,
+}
+
+/// A picture in the box `x, y` (bottom-left) `w × h` units.
+#[derive(Schema, Debug, Clone, PartialEq)]
+pub struct Image {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+    /// Its pixels' size.
+    pub px_w: u32,
+    pub px_h: u32,
+    /// `0xAARRGGBB`, row by row from the top.
+    pub argb: Vec<u32>,
+    /// Whether the text's colour tints it (a picture in one colour, white
+    /// for the text's own); else it keeps its colours.
+    #[data(default)]
+    pub tinted: bool,
 }
 
 /// A path segment.

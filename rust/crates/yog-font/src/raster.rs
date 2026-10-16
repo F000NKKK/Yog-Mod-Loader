@@ -85,13 +85,15 @@ impl Canvas {
         }
         for op in &g.ops {
             match op {
-                Op::Fill { path, color } => {
+                Op::Fill(f) => {
+                    let (path, color) = (&f.path, f.color);
                     let lines = self.flatten(path, s, dx, dy, true);
                     let cov = coverage(self.w, self.h, lines.iter().flatten().copied());
                     self.paint(&cov, color.unwrap_or(text_color));
                 }
-                Op::Stroke { path, width, color } => {
-                    let r = (width * s / 2.0).max(0.35);
+                Op::Stroke(st) => {
+                    let (path, color) = (&st.path, st.color);
+                    let r = (st.width * s / 2.0).max(0.35);
                     let mut polys: Vec<Vec<(f32, f32)>> = Vec::new();
                     for line in self.flatten(path, s, dx, dy, false) {
                         let pts: Vec<(f32, f32)> = line.iter().map(|l| l.0).chain(line.last().map(|l| l.1)).collect();
@@ -106,7 +108,7 @@ impl Canvas {
                     let cov = coverage(self.w, self.h, lines);
                     self.paint(&cov, color.unwrap_or(text_color));
                 }
-                Op::Image { x, y, w, h, px_w, px_h, argb, tinted } => self.image(s, dx, dy, [*x, *y, *w, *h], (*px_w, *px_h), argb, tinted.then_some(text_color)),
+                Op::Image(i) => self.image(s, dx, dy, [i.x, i.y, i.w, i.h], (i.px_w, i.px_h), &i.argb, i.tinted.then_some(text_color)),
             }
         }
     }
