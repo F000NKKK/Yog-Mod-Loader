@@ -7,14 +7,13 @@ use std::sync::Mutex;
 
 use yog_gfx::draw2d::{self, Draw2D};
 use yog_gfx::image::{self as img, ImageSource, Stretch, fit};
-use yog_gfx::{GfxContext, ImageSizeFn};
+use yog_gfx::{GfxContext, ImageSizeFn, Rect, Vec2};
 
-use crate::layout::Rect;
 use crate::widget::Image;
 
 struct Host {
     size: Option<ImageSizeFn>,
-    cache: Option<HashMap<String, (f32, f32)>>,
+    cache: Option<HashMap<String, Vec2>>,
 }
 
 static HOST: Mutex<Host> = Mutex::new(Host {
@@ -32,13 +31,13 @@ pub fn use_host_images(ctx: &GfxContext) {
 }
 
 /// The size of an image the host can't tell (an item's, offline).
-const FALLBACK_SIZE: (f32, f32) = (16.0, 16.0);
+const FALLBACK_SIZE: Vec2 = Vec2::new(16.0, 16.0);
 /// Most image sizes cached before the cache starts over.
 const SIZE_CACHE_CAP: usize = 4096;
 
 /// The size `source` has without a host to ask: 16×16 items, the sprite
 /// table's size, 16×16 for the rest.
-fn offline_size(source: &str) -> (f32, f32) {
+fn offline_size(source: &str) -> Vec2 {
     match ImageSource::parse(source) {
         Some(ImageSource::Sprite(name)) => {
             img::sprite(&name).map_or(FALLBACK_SIZE, |s| s.size(true))
@@ -48,7 +47,7 @@ fn offline_size(source: &str) -> (f32, f32) {
 }
 
 /// Natural size of `source` in GUI pixels.
-pub fn source_size(source: &str) -> (f32, f32) {
+pub fn source_size(source: &str) -> Vec2 {
     let Ok(mut h) = HOST.lock() else {
         return offline_size(source);
     };
@@ -73,9 +72,9 @@ pub fn source_size(source: &str) -> (f32, f32) {
 }
 
 /// The image's natural size: its region's, or the whole source's.
-pub fn natural_size(image: &Image) -> (f32, f32) {
+pub fn natural_size(image: &Image) -> Vec2 {
     match image.region {
-        Some([_, _, w, h]) if w > 0.0 && h > 0.0 => (w, h),
+        Some(r) if r.w > 0.0 && r.h > 0.0 => Vec2::new(r.w, r.h),
         _ => source_size(&image.source),
     }
 }
@@ -90,60 +89,43 @@ fn whole_only(source: &str) -> bool {
 
 /// Draws `image` into the content box `bx`, cut to `clip`.
 pub(crate) fn render(d2d: &Draw2D, image: &Image, bx: Rect, clip: Option<Rect>) {
-    let (nw, nh) = natural_size(image);
+    let natural = natural_size(image);
     let whole = whole_only(&image.source);
     let stretch = match image.stretch {
         // Can't be cut: shown whole instead.
         Stretch::UniformToFill if whole => Stretch::Uniform,
         s => s,
     };
-    let ([x, y, w, h], [u0, v0, u1, v1]) = fit(stretch, nw, nh, bx.x, bx.y, bx.w, bx.h);
-    if w <= 0.0 || h <= 0.0 {
+    let (dest, shown) = fit(stretch, natural, bx);
+    if dest.w <= 0.0 || dest.h <= 0.0 {
         return;
     }
-    let dest = Rect { x, y, w, h };
     if whole {
         // Drawn whole or not at all — like text lines and item icons.
-        let slack = crate::render::CLIP_SLACK;
         let inside = clip.is_none_or(|c| {
-            x >= c.x - slack
-                && y >= c.y - slack
-                && x + w <= c.x + c.w + slack
-                && y + h <= c.y + c.h + slack
+            let c = c.outset(crate::render::CLIP_SLACK);
+            dest.x >= c.x && dest.y >= c.y && dest.right() <= c.right() && dest.bottom() <= c.bottom()
         });
         if inside {
-            d2d.image_region(&image.source, x, y, w, h, [0.0; 4], image.tint);
+            d2d.image_region(&image.source, dest, None, image.tint);
         }
         return;
     }
     // The source region shown, in image pixels.
-    let [ru, rv, rw, rh] = match image.region {
-        Some(r) if r[2] > 0.0 && r[3] > 0.0 => r,
-        _ => [0.0, 0.0, nw, nh],
+    let region = match image.region {
+        Some(r) if r.w > 0.0 && r.h > 0.0 => r,
+        _ => Rect::new(0.0, 0.0, natural.x, natural.y),
     };
-    let mut src = [ru + u0 * rw, rv + v0 * rh, (u1 - u0) * rw, (v1 - v0) * rh];
+    let mut src = Rect::new(region.x + shown.x * region.w, region.y + shown.y * region.h, shown.w * region.w, shown.h * region.h);
     let mut dest = dest;
     if let Some(c) = clip {
         let Some(cut) = dest.intersect(&c) else {
             return;
         };
         // Texture pixels per GUI pixel.
-        let (sx, sy) = (src[2] / dest.w, src[3] / dest.h);
-        src = [
-            src[0] + (cut.x - dest.x) * sx,
-            src[1] + (cut.y - dest.y) * sy,
-            cut.w * sx,
-            cut.h * sy,
-        ];
+        let (sx, sy) = (src.w / dest.w, src.h / dest.h);
+        src = Rect::new(src.x + (cut.x - dest.x) * sx, src.y + (cut.y - dest.y) * sy, cut.w * sx, cut.h * sy);
         dest = cut;
     }
-    d2d.image_region(
-        &image.source,
-        dest.x,
-        dest.y,
-        dest.w,
-        dest.h,
-        src,
-        image.tint,
-    );
+    d2d.image_region(&image.source, dest, Some(src), image.tint);
 }
