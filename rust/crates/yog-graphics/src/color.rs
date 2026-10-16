@@ -68,3 +68,26 @@ impl From<u32> for Color {
         Color(v)
     }
 }
+
+/// In Yog Data, a colour value: `#RRGGBB`/`#AARRGGBB` in text.
+impl yog_data::Schema for Color {
+    fn shape() -> yog_data::schema::Shape {
+        yog_data::schema::Shape::Color
+    }
+    fn read(v: &yog_data::ValueRef<'_>, cx: &mut yog_data::schema::Reader) -> Option<Self> {
+        match v {
+            yog_data::ValueRef::Color(c) => Some(Color(*c)),
+            yog_data::ValueRef::Str(s) if s.starts_with('#') => yog_data::typed::parse_color(s).map(Color).or_else(|| {
+                cx.problem(format!("`{s}` isn't a color (#RRGGBB or #AARRGGBB)"));
+                None
+            }),
+            other => {
+                cx.expected("a color (#RRGGBB or #AARRGGBB)", other);
+                None
+            }
+        }
+    }
+    fn write(&self) -> yog_data::Value {
+        yog_data::Value::Color(self.0)
+    }
+}
