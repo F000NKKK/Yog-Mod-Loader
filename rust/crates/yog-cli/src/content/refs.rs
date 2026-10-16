@@ -48,12 +48,14 @@ struct Vanilla {
     versions: Vec<String>,
     ids: HashMap<(RefKind, String), Option<Vec<String>>>,
     renamed: HashMap<(RefKind, String), String>,
+    potion_aliases: HashSet<String>,
 }
 
 static VANILLA: LazyLock<Vanilla> = LazyLock::new(|| {
     let text = include_str!("../vanilla/ids.txt");
     let mut versions = Vec::new();
     let mut ids = HashMap::new();
+    let mut potion_aliases = HashSet::new();
     for line in text.lines() {
         if let Some(v) = line.strip_prefix("# versions:") {
             versions = v.split_whitespace().map(str::to_string).collect();
@@ -61,6 +63,10 @@ static VANILLA: LazyLock<Vanilla> = LazyLock::new(|| {
         }
         let mut p = line.split_whitespace();
         let (Some(kind), Some(path), Some(vs)) = (p.next(), p.next(), p.next()) else { continue };
+        if kind == "potion" {
+            potion_aliases.insert(path.to_string());
+            continue;
+        }
         let Some(kind) = RefKind::ALL.into_iter().find(|k| k.word() == kind) else { continue };
         let vs = (vs != "*").then(|| vs.split(',').map(str::to_string).collect());
         ids.insert((kind, path.to_string()), vs);
@@ -73,7 +79,7 @@ static VANILLA: LazyLock<Vanilla> = LazyLock::new(|| {
         renamed.insert((kind, old.to_string()), new.to_string());
         renamed.insert((kind, new.to_string()), old.to_string());
     }
-    Vanilla { versions, ids, renamed }
+    Vanilla { versions, ids, renamed, potion_aliases }
 });
 
 /// The Minecraft versions Yog supports, oldest first.
@@ -180,8 +186,14 @@ impl Known {
         let what = kind.word();
         // Stable aliases for vanilla potion stacks; backends resolve these to
         // the version's Potion registry entry.
-        if kind == RefKind::Item && ns == "yog" && path.starts_with("potion/") {
-            return Ok(());
+        if kind == RefKind::Item && ns == "yog" {
+            if let Some(potion) = path.strip_prefix("potion/") {
+                return if VANILLA.potion_aliases.contains(potion) {
+                    Ok(())
+                } else {
+                    Err(format!("no item {id} among Yog's versioned default potion aliases"))
+                };
+            }
         }
         // An item may be a block's item.
         let kinds: &[RefKind] = if kind == RefKind::Item { &[RefKind::Item, RefKind::Block] } else { std::slice::from_ref(&kind) };
