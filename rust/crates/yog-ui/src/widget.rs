@@ -497,14 +497,14 @@ impl Default for Style {
             cell: Cell::default(),
             halign: None,
             valign: None,
-            bg: 0,
+            bg: Color::TRANSPARENT,
             bg_image: String::new(),
-            color: 0xFF_CCCCAA,
+            color: Color(0xFF_CCCCAA),
             align: Align::Start,
             font_scale: 1.0,
             text_shadow: true,
             focus_style: FocusStyle::default(),
-            focus_color: 0,
+            focus_color: Color::TRANSPARENT,
             no_wrap: false,
             pos: None,
             ellipsis: false,
@@ -815,14 +815,14 @@ impl Widget {
         }
         self
     }
-    /// Image: draw only `[u, v, w, h]` of it (texture pixels).
-    pub fn region(mut self, region: [f32; 4]) -> Self {
+    /// Image: draw only `region` of it (texture pixels).
+    pub fn region(mut self, region: Rect) -> Self {
         if let WidgetKind::Image(i) = &mut self.kind {
             i.region = Some(region);
         }
         self
     }
-    /// Image: multiply its colors by `tint` (`0xAARRGGBB`).
+    /// Image: multiply its colors by `tint`.
     pub fn tint(mut self, tint: Color) -> Self {
         if let WidgetKind::Image(i) = &mut self.kind {
             i.tint = tint;
@@ -1057,7 +1057,7 @@ pub fn image(source: impl Into<String>) -> Widget {
         source: source.into(),
         stretch: Stretch::Uniform,
         region: None,
-        tint: 0xFFFF_FFFF,
+        tint: Color::WHITE,
     }))
 }
 pub fn spacer() -> Widget {
@@ -1078,7 +1078,7 @@ pub fn text_box(text: impl Into<String>) -> Widget {
         text: text.into(),
         ..TextBox::default()
     }))
-    .bg(0xFF_000000)
-    .color(0xFF_E0E0E0)
+    .bg(Color::BLACK)
+    .color(Color(0xFF_E0E0E0))
     .padding(0.0, TEXT_BOX_PAD_X, 0.0, TEXT_BOX_PAD_X)
 }

@@ -311,7 +311,7 @@ impl TextBoxState {
     fn handle_inner(&mut self, event: &UiEvent<'_>, node: &LayoutNode) -> TextBoxEvent {
         let (k, mods) = match *event {
             UiEvent::Click { x: mx, y: my } => {
-                if node.visible && node.enabled && node.rect.contains(mx, my) {
+                if node.visible && node.enabled && node.rect.contains(yog_gfx::Vec2::new(mx, my)) {
                     self.focused = true;
                     self.dragging = true;
                     let i = self.index_at(node, mx);

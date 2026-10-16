@@ -72,10 +72,10 @@ impl ScrollState {
                 let Some((track, knob)) = view.scrollbar_rects() else {
                     return false;
                 };
-                if !track.contains(mx, my) {
+                if !track.contains(yog_gfx::Vec2::new(mx, my)) {
                     return false;
                 }
-                let grab = if knob.contains(mx, my) {
+                let grab = if knob.contains(yog_gfx::Vec2::new(mx, my)) {
                     my - knob.y
                 } else {
                     knob.h / 2.0
