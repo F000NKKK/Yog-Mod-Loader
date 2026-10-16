@@ -53,9 +53,12 @@ fn main() {
         // `yog-debugger` to load. Still a `--release` cargo build either
         // way — "debug" here names what ships in the artifact, not the
         // cargo profile.
+        // `--dev`: for a game that hot-reloads it (Yog-IDLE, dev.sh) — the
+        // `.yog` carries what hot reload checks; a release one doesn't.
         Some("build") => {
             let debug = args.get(2).map(String::as_str) == Some("debug");
-            build(debug).map(|_| ())
+            let dev = args[2..].iter().any(|a| a == "--dev");
+            build(debug, dev).map(|_| ())
         }
         Some("check") => check(),
         Some("schema") => schema(args.get(2).map(String::as_str)),
@@ -149,6 +152,7 @@ fn print_usage() {
          \x20 new <name>          Create a new mod project in ./<name>/\n\
          \x20 build               Compile the current mod and package it as artifacts/<id>.yog\n\
          \x20 build debug         Same, but keep debug info in the native (for yog-debugger)\n\
+         \x20 build [debug] --dev For a game that hot-reloads it (Yog-IDLE, dev.sh): what hot reload checks\n\
          \x20 check               Generate .yog-build/ and `cargo check` the mod (host only)\n\
          \x20 bench [filter]      Run the mod's benches/*.rs #[yog_api::bench] functions (host only)\n\
          \x20 designer-lib        Build the mod's library for this machine (Yog-IDLE's designer); prints its path\n\
@@ -575,13 +579,13 @@ fn designer_lib() -> Result<(), String> {
 /// and step through line by line. No separate artifact layout: the native
 /// this produces is simply larger, slower and symbol-ful, packaged the same
 /// way.
-fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
+fn build(debugging_symbols: bool, dev: bool) -> Result<(YogToml, PathBuf), String> {
     let Prepared {
         root,
         meta,
         build_dir,
         resources,
-        content,
+        mut content,
     } = prepare()?;
     let yog_lock = root.join("yog.lock");
 
@@ -669,7 +673,11 @@ fn build(debugging_symbols: bool) -> Result<(YogToml, PathBuf), String> {
         );
     }
     let mut compiled_assets = resources.outputs;
+    let registrations = std::mem::take(&mut content.registrations);
     content::merge_outputs(&root, &mut compiled_assets, content)?;
+    if dev {
+        compiled_assets.push((yog_registry::REGISTRATIONS_FILE.to_string(), registrations.into_bytes()));
+    }
     let assets = gather_assets(&root, compiled_assets);
     if !assets.is_empty() {
         eprintln!("    bundled {} asset file(s)", assets.len());
@@ -826,7 +834,8 @@ fn run_config(config_name: &str, debugging_symbols: bool) -> Result<(), String> 
         })?
         .clone();
 
-    let (meta, artifact) = build(debugging_symbols)?;
+    // `yog run` starts a game that can hot-reload the mod.
+    let (meta, artifact) = build(debugging_symbols, true)?;
 
     if let Some(export_dir) = &cfg.export_dir {
         let dir = resolve(&root, export_dir);

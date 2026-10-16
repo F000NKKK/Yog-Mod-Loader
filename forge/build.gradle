@@ -39,6 +39,10 @@ sourceSets {
             srcDir "${platformDir}/src/main/java"
             // Loader- and mapping-agnostic Java shared with other loader hosts.
             srcDir "../java-common/src/main/java"
+            // Hot reload is for dev builds: a release jar (`build.sh publish`) leaves it out.
+            if (project.hasProperty('yog_release')) {
+                exclude 'dev/yog/YogDevReload*.java'
+            }
         }
         resources {
             srcDir "${platformDir}/src/main/resources"

@@ -176,5 +176,3 @@ fn __yog_content_auto_register() {
     "layer0": "minecraft:item/emerald"
   }
 }
-# registrations.txt
-<30 bytes>

@@ -88,6 +88,11 @@ public final class NativeBridge {
     }
 
     /** Remember the running server so Rust-initiated actions can reach it. */
+    /** The running server, or null. */
+    static MinecraftServer currentServer() {
+        return server;
+    }
+
     public static void setServer(MinecraftServer s) {
         server = s;
     }
@@ -1892,26 +1897,6 @@ public final class NativeBridge {
 
     /** A rolled loot table ({@code yog_registry::Loot}, Yog Data) → the stacks to give instead, or null. */
     public static native byte[] nativeLoot(byte[] loot);
-
-    /**
-     * After a hot reload: the server rereads its data as {@code /reload}
-     * does — packs scanned again (the mods' new {@code .yog}s staged), then
-     * recipes, tags, loot. Returns once it's done.
-     */
-    public static void reloadData() {
-        dev.yog.data.YogContent.invalidate();
-        MinecraftServer s = server;
-        if (s == null) return;
-        java.util.concurrent.CompletableFuture<Void> done = new java.util.concurrent.CompletableFuture<>();
-        s.execute(() -> {
-            s.getDataPackManager().scanPacks();
-            s.reloadResources(s.getDataPackManager().getEnabledNames()).whenComplete((v, e) -> done.complete(null));
-        });
-        try {
-            done.get(120, java.util.concurrent.TimeUnit.SECONDS);
-        } catch (Exception e) {
-            System.err.println("[yog] reloading data after a hot reload: " + e);
-        }
     }
 
     /** Entity data: everything about an entity, for a player who starts seeing it; null for nothing. */

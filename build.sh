@@ -11,6 +11,7 @@ LOADERS=(fabric neoforge forge)
 # Version-specific Mixin sources live under <loader>/platforms/<mc_version>/.
 
 CONFIG="Release"   # Debug | Release
+DEV=1              # build: hot reload in (dev builds); publish: out
 RUN_CLIENT=0
 NO_BUILD=0
 MC_VERSION=""      # --mc <version>: override the loader's active MC platform
@@ -140,6 +141,7 @@ gradle_in() {
     find_java "$jv" >/dev/null || die "JDK $jv not found (set YOG_JAVA${jv}_HOME=/path/to/jdk$jv)"
     jh="$(find_java "$jv")"
     [ -n "$MC_VERSION" ] && extra+=("-Pminecraft_version=$MC_VERSION")
+    [ "$DEV" = 0 ] && extra+=("-Pyog_release=true")
     ( cd "$ROOT/$dir" && JAVA_HOME="$jh" ./gradlew "${extra[@]}" "$@" )
 }
 
@@ -176,6 +178,8 @@ build_rust() {
     local builder profile installed built l
     builder="$(cargo_builder)"
     profile=""; [ "$CONFIG" = "Release" ] && profile="--release"
+    # Hot reload only in dev builds (`publish` builds without it).
+    local features=""; [ "$DEV" = 1 ] && features="--features dev"
     installed="$(rustup target list --installed 2>/dev/null)"
     built=()
     for spec in "${RUNTIME_TARGETS[@]}"; do
@@ -188,7 +192,7 @@ build_rust() {
             echo "    skip $tag (target not installed)"
             continue
         fi
-        if cargo "$builder" $profile --target "$triple" -p yog-runtime \
+        if cargo "$builder" $profile $features --target "$triple" -p yog-runtime \
                 --manifest-path "$ROOT/rust/Cargo.toml" >/dev/null 2>&1; then
             local src="$ROOT/rust/target/$triple/$(cargo_profile_dir)/$(runtime_lib_for_os "$os")"
             if [ -f "$src" ]; then
@@ -331,6 +335,7 @@ list_versions() {
 cmd_publish() {
     [ -n "${1:-}" ] || die "publish needs a target: a loader (${LOADERS[*]}) or 'all'"
     CONFIG="Release"
+    DEV=0           # a release: no hot reload, in the runtime or the jars
     build_rust      # embeds all-platform natives into the loader jars
 
     if [ "$1" = "all" ]; then

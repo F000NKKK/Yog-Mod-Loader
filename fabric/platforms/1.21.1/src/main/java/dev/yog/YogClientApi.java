@@ -138,10 +138,4 @@ public final class YogClientApi {
         } catch (IllegalArgumentException ignored) {
         }
     }
-
-    /** After a hot reload: the client rereads its resources as F3+T does (textures, models, sounds, lang). */
-    public static void reloadResources() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        mc.execute(mc::reloadResources);
-    }
 }

@@ -112,6 +112,9 @@ pub struct Compiled {
     /// `.yog-build/generated/`: the books, as Yog Data.
     pub data_files: Vec<(String, Vec<u8>)>,
     pub warnings: Vec<String>,
+    /// [`yog_registry::REGISTRATIONS_FILE`]: what the mod registers at the
+    /// game's start — packaged by dev builds only, for hot reload.
+    pub registrations: String,
     pub blocks: usize,
     pub items: usize,
     pub recipes: usize,
@@ -2838,8 +2841,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     defs.tables = tables;
     out.source = Some(rust_source(&entries, &recipes, &books, &bodies, &entity_files, &defs));
     version_overlays(&mut out, &known.datapack);
-    let registrations = registrations(&entries, &entity_files, &dimensions, &defs);
-    out.outputs.push((yog_registry::REGISTRATIONS_FILE.to_string(), registrations.into_bytes()));
+    out.registrations = registrations(&entries, &entity_files, &dimensions, &defs);
     Ok(out)
 }
 

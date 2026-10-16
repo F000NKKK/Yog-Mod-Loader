@@ -41,7 +41,7 @@ pub(crate) fn changes(mod_id: &str, new_yog: &Path) -> (Vec<String>, Vec<String>
 pub(crate) fn reload_game_resources() {
     // SAFETY: static host methods taking nothing; the JVM env is this thread's.
     unsafe {
-        let _: Option<()> = host!("dev/yog/NativeBridge", "reloadData", []);
-        let _: Option<()> = host!("dev/yog/YogClientApi", "reloadResources", []);
+        let _: Option<()> = host!("dev/yog/YogDevReload", "reloadData", []);
+        let _: Option<()> = host!("dev/yog/YogDevReloadClient", "reloadResources", []);
     }
 }
