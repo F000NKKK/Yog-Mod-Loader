@@ -242,6 +242,22 @@ pub struct BookEntry {
     pub advancement: Option<String>,
 }
 
+/// Whether the reader has advancement `id` — set by the host the book is
+/// read in (the runtime asks the game); everything is unlocked without one
+/// (an editor's preview).
+static UNLOCKED: std::sync::OnceLock<fn(&str) -> bool> = std::sync::OnceLock::new();
+
+/// Tells the books how to know what the reader has unlocked.
+pub fn set_unlocked(check: fn(&str) -> bool) {
+    let _ = UNLOCKED.set(check);
+}
+
+/// Whether `entry` shows in the book's lists: not secret, and its
+/// advancement (if it waits for one) had.
+pub fn shown(entry: &BookEntry) -> bool {
+    !entry.secret && entry.advancement.as_deref().is_none_or(|a| UNLOCKED.get().is_none_or(|check| check(a)))
+}
+
 // ── Book ─────────────────────────────────────────────────────────────────────
 
 /// A guide book: what a `.ybook` file holds.

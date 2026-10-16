@@ -79,6 +79,12 @@ pub fn attribute_value(attribute_id: &str) -> Option<f64> {
     (!v.is_nan()).then_some(v)
 }
 
+/// Whether this client's player has advancement `id`.
+pub fn advancement_done(id: &str) -> bool {
+    let api = global_api();
+    !api.is_null() && unsafe { ((*api).client_advancement_done)((*api).ctx, YogStr::from_str(id)) }
+}
+
 /// Tints the block at `pos` in `dimension` on this client — the faces of
 /// its model with a `tint` index — `0xRRGGBB`; `None` clears it. The mod
 /// sends what to tint (its own packet); the tint lasts till cleared or the

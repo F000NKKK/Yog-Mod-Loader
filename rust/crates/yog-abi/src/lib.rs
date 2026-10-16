@@ -18,7 +18,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 6;
+pub const ABI_MINOR: u32 = 7;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1284,6 +1284,13 @@ pub struct YogServer {
     /// modifier (effects, equipment); `f64::NAN` if there's no such entity
     /// or attribute.
     pub entity_attribute_value: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, attribute_id: YogStr) -> f64,
+
+    // ── ABI 3.7 — advancements ──────────────────────────────────────────────
+    /// Awards advancement `id` to the player `uuid` (every criterion it has
+    /// left); `false` if there's no such player or advancement.
+    pub advancement_grant: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, id: YogStr) -> bool,
+    /// Whether the player `uuid` has advancement `id`.
+    pub advancement_done: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, id: YogStr) -> bool,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.
@@ -1621,6 +1628,11 @@ pub struct YogApi {
     /// An attribute's value on this client's player (a casting grid's size
     /// from an effect, say); `f64::NAN` without a player or attribute.
     pub client_attribute_value: unsafe extern "C" fn(ctx: *mut c_void, attribute_id: YogStr) -> f64,
+
+    // ── ABI 3.7 — advancements (client) ─────────────────────────────────────
+    /// Whether this client's player has advancement `id` (what a book's
+    /// locked entries wait for).
+    pub client_advancement_done: unsafe extern "C" fn(ctx: *mut c_void, id: YogStr) -> bool,
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].

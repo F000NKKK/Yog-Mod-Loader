@@ -2049,6 +2049,16 @@ impl UiHandled for bool {
 /// registration — including client-side ones that don't receive `&dyn Server`
 /// (UI event handlers, client tick). Server-world actions are no-ops client
 /// side, but networking (`send_to_server`) and similar client-safe calls work.
+/// The server's table, if there's a server.
+pub(crate) fn server_table() -> Option<&'static yog_abi::YogServer> {
+    let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
+    if api.is_null() {
+        return None;
+    }
+    let srv = unsafe { (*api).server };
+    (!srv.is_null()).then(|| unsafe { &*srv })
+}
+
 pub fn server() -> Option<CServer> {
     let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
     if api.is_null() {

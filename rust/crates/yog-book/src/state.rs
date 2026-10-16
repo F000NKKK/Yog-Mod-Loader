@@ -89,7 +89,7 @@ impl BookViewState {
             .unwrap_or("");
         book.entries
             .iter()
-            .filter(|e| e.category == cat_id)
+            .filter(|e| e.category == cat_id && crate::shown(e))
             .collect()
     }
 

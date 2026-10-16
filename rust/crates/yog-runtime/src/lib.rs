@@ -1238,6 +1238,24 @@ unsafe extern "C" fn api_client_attribute_value(_ctx: *mut c_void, attr: YogStr)
     unsafe { host!("dev/yog/YogClientApi", "attributeValue", [S(attr)]).unwrap_or(f64::NAN) }
 }
 
+unsafe extern "C" fn srv_advancement_grant(_ctx: *mut c_void, uuid: YogStr, id: YogStr) -> bool {
+    unsafe { bridge!("advancementGrant", [S(uuid), S(id)]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn srv_advancement_done(_ctx: *mut c_void, uuid: YogStr, id: YogStr) -> bool {
+    unsafe { bridge!("advancementDone", [S(uuid), S(id)]).unwrap_or(false) }
+}
+
+/// Whether this client's player has advancement `id` — also what books ask
+/// of their locked entries (see `nativeInit`).
+fn client_advancement_done(id: &str) -> bool {
+    unsafe { host!("dev/yog/YogClientApi", "advancementDone", [JArg::S(YogStr::from_str(id))]).unwrap_or(false) }
+}
+
+unsafe extern "C" fn api_client_advancement_done(_ctx: *mut c_void, id: YogStr) -> bool {
+    client_advancement_done(id.as_str())
+}
+
 unsafe extern "C" fn srv_entity_attribute_get(
     _ctx: *mut c_void,
     uuid: YogStr,
@@ -3146,6 +3164,8 @@ fn build_server_table() -> YogServer {
         entity_data_get: entity_data::srv_entity_data_get,
         world_dir: srv_world_dir,
         entity_attribute_value: srv_entity_attribute_value,
+        advancement_grant: srv_advancement_grant,
+        advancement_done: srv_advancement_done,
         entity_set_fall_distance: srv_entity_set_fall_distance,
         redstone_signal: srv_redstone_signal,
         set_redstone_output: srv_set_redstone_output,
@@ -3361,6 +3381,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_entity_tick: api_on_entity_tick,
         on_loot: loot::api_on_loot,
         client_attribute_value: api_client_attribute_value,
+        client_advancement_done: api_client_advancement_done,
     }
 }
 
@@ -3736,6 +3757,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     let api: &'static YogApi = API_TABLE.get_or_init(|| build_api_table(handlers_ptr, server_ptr));
 
     let _ = HOT_RELOADER.get_or_init(|| HotReloader::new(RuntimeModuleRegistry));
+    // A book's entries an advancement unlocks wait for this client's player to have it.
+    yog_book::set_unlocked(client_advancement_done);
 
     guard("mod loading", || {
         load_mods(Path::new(&dir), api);
