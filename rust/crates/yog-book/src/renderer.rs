@@ -2070,7 +2070,7 @@ mod tests {
         // The game's kinds: built-in layouts (smithing had none before).
         let (bg, ov) = draw("m:s");
         assert!(
-            bg.iter().any(|b| b.u == 11.0 && b.v == 135.0),
+            bg.iter().any(|b| b.src.x == 11.0 && b.src.y == 135.0),
             "Patchouli's smithing strip"
         );
         assert_eq!(

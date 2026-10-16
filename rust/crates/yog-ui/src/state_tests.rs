@@ -1,6 +1,7 @@
 //! Tests of actions, visibility and state styles.
 
 use yog_gfx::Color;
+
 use crate::layout::{self, FlexDir, hit_path, node_at};
 use crate::widget::{self, Action, StateFlags, StylePatch, Units};
 
