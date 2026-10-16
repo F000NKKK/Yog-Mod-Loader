@@ -1592,6 +1592,7 @@ fn compile_layout(
     tables: &mut Vec<table::Table>,
     loot: &mut Vec<(String, Vec<u8>)>,
     definitions: &mut Vec<(&'static str, String, Vec<u8>)>,
+    advancements: &mut Vec<String>,
     out: &mut Compiled,
 ) -> Option<yog_formats::def::RecipeKindDef> {
     use yog_formats::def::Def;
@@ -1706,7 +1707,10 @@ fn compile_layout(
         Def::Advancement(a) => {
             let at = |key: &str| doc.locate(text, &yog_data::Path::root().key(key)).line as usize;
             match advancement(cx, &mut out.lang, &a, ns) {
-                Ok(files) if ok => out.outputs.extend(files),
+                Ok(files) if ok => {
+                    out.outputs.extend(files);
+                    advancements.push(full_id(&a.id, ns));
+                }
                 Ok(_) => {}
                 Err((key, e)) => cx.err(at(key), format!("{key}: {e}")),
             }
@@ -2547,6 +2551,8 @@ struct Defs {
     loot_modifiers: Vec<String>,
     /// Its attributes, effects and potions: (kind, id).
     definitions: Vec<(&'static str, String)>,
+    /// Its advancements' ids (their data in the datapack).
+    advancements: Vec<String>,
 }
 
 impl Defs {
@@ -2702,7 +2708,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
             incorrect,
         });
     }
-    Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new(), dimensions: Vec::new(), tables: Vec::new(), loot_modifiers: Vec::new(), definitions: Vec::new() }
+    Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new(), dimensions: Vec::new(), tables: Vec::new(), loot_modifiers: Vec::new(), definitions: Vec::new(), advancements: Vec::new() }
 }
 
 /// The tags that make block `id` need tool level `level`, on every version:
@@ -2901,6 +2907,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut loot: Vec<(String, Vec<u8>)> = Vec::new();
     // Attributes, effects, potions: (kind, id, their data).
     let mut definitions: Vec<(&'static str, String, Vec<u8>)> = Vec::new();
+    let mut advancements: Vec<String> = Vec::new();
     for (shown, text) in &pending_layouts {
         let mut cx = Ctx {
             root,
@@ -2913,7 +2920,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        let Some(k) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions, &mut tables, &mut loot, &mut definitions, &mut out) else { continue };
+        let Some(k) = compile_layout(&mut cx, text, mod_ns, &known, &mut ores, &mut dimensions, &mut tables, &mut loot, &mut definitions, &mut advancements, &mut out) else { continue };
         if recipe_defs.contains_key(&k.id) {
             errors.push(format!("{shown}: recipe kind {} is declared twice", k.id));
         }
@@ -3050,6 +3057,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     out.data_files.extend(definitions.iter().map(|(kind, id, data)| (definition_path(kind, id), data.clone())));
     defs.definitions = definitions.iter().map(|(kind, id, _)| (*kind, id.clone())).collect();
     defs.loot_modifiers = loot.into_iter().map(|(id, _)| id).collect();
+    defs.advancements = advancements;
     // A tool level above netherite gets a tag of what its tools can't mine.
     for m in &defs.tool_materials {
         if let Some((n, p)) = m.incorrect.split_once(':')
@@ -3227,6 +3235,21 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
                 let _ = write!(ident, "_{n}");
             }
             let _ = writeln!(code, "    pub const {ident}: &'static str = {:?};", e.id);
+        }
+        code.push_str("}\n");
+    }
+    if !defs.advancements.is_empty() {
+        code.push_str("\n/// The advancements of `content/` (`.ydef` kind `advancement`), by id\n/// (`yog_api::advancements::grant`/`done`).\n#[allow(dead_code)]\npub struct Advancements;\n\n#[allow(dead_code, clippy::all)]\nimpl Advancements {\n");
+        let mut used: HashMap<String, usize> = HashMap::new();
+        for id in &defs.advancements {
+            let path = id.split_once(':').map_or(id.as_str(), |(_, p)| p);
+            let mut ident = rust_ident(path).to_ascii_uppercase();
+            let n = used.entry(ident.clone()).or_insert(0);
+            *n += 1;
+            if *n > 1 {
+                let _ = write!(ident, "_{n}");
+            }
+            let _ = writeln!(code, "    pub const {ident}: &'static str = {id:?};");
         }
         code.push_str("}\n");
     }
@@ -4229,6 +4252,9 @@ mod tests {
         let one = get("data/mymod/advancement/lore/one.json");
         assert_eq!((one["parent"].as_str(), one["criteria"]["c0"]["trigger"].as_str()), (Some("mymod:root"), Some("minecraft:impossible")));
         assert_eq!(c.lang[&("mymod".to_string(), yres::NEUTRAL_LOCALE.to_string())]["advancement.mymod.root"], "Gems");
+        // The code names them by constant.
+        let src = c.source.as_deref().unwrap();
+        assert!(src.contains("pub const LORE_ONE: &'static str = \"mymod:lore/one\";"), "{src}");
         let bad = r#"{ kind: "advancement", id: "x", icon: "@item:minecraft:paper", title: "X", criteria: [{ granted: true, used_item: "@item:minecraft:paper" }] }"#;
         assert!(compile(&project(&[("content/x.ydef", bad)]), "mymod", &yres::Refs::default()).unwrap_err().contains("one of granted"));
     }

@@ -1,6 +1,6 @@
 [package]
 name = "yog-cli"
-version = "0.42.4"
+version = "0.42.5"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -29,7 +29,7 @@ yog-registry = "0.33.3"
 # The data model, text syntax and schemas of every Yog format.
 yog-data = { version = "0.4.1", features = ["toml"] }
 # The schemas of the source formats.
-yog-formats = "0.7.7"
+yog-formats = "0.7.8"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
