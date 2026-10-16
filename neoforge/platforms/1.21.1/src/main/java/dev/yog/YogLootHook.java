@@ -41,7 +41,7 @@ public final class YogLootHook {
         for (ItemStack s : rolled) items.add(stack(s));
         Vec3 origin = ctx.getParamOrNull(LootContextParams.ORIGIN);
         Entity entity = ctx.getParamOrNull(LootContextParams.THIS_ENTITY);
-        Entity killer = ctx.getParamOrNull(LootContextParams.KILLER_ENTITY);
+        Entity killer = ctx.getParamOrNull(LootContextParams.ATTACKING_ENTITY);
         ItemStack tool = ctx.getParamOrNull(LootContextParams.TOOL);
         YogLoot.Context c = new YogLoot.Context(
                 id,
