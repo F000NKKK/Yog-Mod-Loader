@@ -2531,6 +2531,11 @@ impl Registry {
         unsafe { ((*self.api).register_content)(self.ctx(), YogStr::from_str("book"), YogStr::from_str(id), data.as_ptr(), data.len()) }
     }
 
+    /// Register a font given as a compiled `.yfont` Yog Data blob.
+    pub fn register_font_data(&mut self, id: &str, data: &[u8]) {
+        unsafe { ((*self.api).register_content)(self.ctx(), YogStr::from_str("font"), YogStr::from_str(id), data.as_ptr(), data.len()) }
+    }
+
     /// Register (or patch) a dimension's *type* (sky, lighting, physics, ...).
     ///
     /// `def.id` need not be a new custom id — pass a vanilla id

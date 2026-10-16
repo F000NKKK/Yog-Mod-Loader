@@ -1521,6 +1521,7 @@ dependencies = [
  "yog-body",
  "yog-book",
  "yog-data",
+ "yog-font",
  "yog-formats",
  "yog-gfx",
  "yog-registry",

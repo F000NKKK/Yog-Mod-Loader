@@ -62,8 +62,9 @@ pub enum Kind {
     Anim,
     /// `.yentity` — an entity type: an object, a living thing or a mob.
     Entity,
+    /// `.yfont` — a font in Yog's vector-glyph format.
+    Font,
 }
-
 impl Kind {
     pub fn of(path: &Path) -> Option<Kind> {
         match path.extension()?.to_str()? {
@@ -75,6 +76,7 @@ impl Kind {
             "ymodel" => Some(Kind::Model),
             "yanim" => Some(Kind::Anim),
             "yentity" => Some(Kind::Entity),
+            "yfont" => Some(Kind::Font),
             _ => None,
         }
     }
@@ -89,6 +91,7 @@ impl Kind {
             Kind::Model => "model",
             Kind::Anim => "animation",
             Kind::Entity => "entity",
+            Kind::Font => "font",
         }
     }
 }
@@ -780,7 +783,7 @@ fn compile_file(
                 return None;
             }
         },
-        Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity => unreachable!("only blocks and items get here"),
+        Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity | Kind::Font => unreachable!("only blocks and items get here"),
     };
     // What it names (drops) is checked once every file is read.
     for f in &refs {
@@ -1469,6 +1472,40 @@ struct BodyFile {
     id: String,
     /// As `yog_body` reads it: binary Yog Data.
     data: Vec<u8>,
+}
+
+/// One checked `.yfont`.
+struct FontFile {
+    /// `<mod>:<path under content/ without the extension>`.
+    id: String,
+    /// The built `.yfont`, as binary Yog Data.
+    data: Vec<u8>,
+}
+
+impl FontFile {
+    fn path(&self) -> String {
+        format!("fonts/{}.yfont", self.id.replace([':', '/'], "__"))
+    }
+}
+
+/// Checks a `.yfont` and stores it as binary Yog Data.
+fn compile_font(shown: &str, text: &str, root: &Path, path: &Path, ns: &str, errors: &mut Vec<String>) -> Option<FontFile> {
+    let font = match yog_data::from_text::<yog_font::Font>(text) {
+        Ok(read) => read.value,
+        Err(problems) => {
+            for problem in problems.0 {
+                errors.push(format!("{shown}: {problem}"));
+            }
+            return None;
+        }
+    };
+    if let Err(problems) = font.validate() {
+        errors.extend(problems.into_iter().map(|problem| format!("{shown}: {problem}")));
+        return None;
+    }
+    let rel = path.strip_prefix(root.join(CONTENT_DIR)).unwrap_or(path).with_extension("");
+    let id = format!("{ns}:{}", rel.to_string_lossy().replace('\\', "/"));
+    Some(FontFile { id, data: font.to_bytes() })
 }
 
 impl BodyFile {
@@ -2970,6 +3007,8 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut books: Vec<BookFile> = Vec::new();
     let mut book_ids: HashMap<String, String> = HashMap::new();
     let mut bodies: Vec<BodyFile> = Vec::new();
+    let mut fonts: Vec<FontFile> = Vec::new();
+    let mut font_ids: HashMap<String, String> = HashMap::new();
     let mut entity_files: Vec<EntityFile> = Vec::new();
     let mut body_ids: HashMap<(bool, String), String> = HashMap::new();
     let mut inventories: Vec<(String, usize, String)> = Vec::new();
@@ -2994,6 +3033,15 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
                     errors.push(format!("{shown}: {} {} is also defined by {other}", kind.word(), b.id));
                 }
                 bodies.push(b);
+            }
+            continue;
+        }
+        if kind == Kind::Font {
+            if let Some(font) = compile_font(&shown, &text, root, path, mod_ns.unwrap_or("minecraft"), &mut errors) {
+                if let Some(other) = font_ids.insert(font.id.clone(), shown.clone()) {
+                    errors.push(format!("{shown}: font {} is also defined by {other}", font.id));
+                }
+                fonts.push(font);
             }
             continue;
         }
@@ -3212,7 +3260,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     out.items = entries.len() - out.blocks;
     out.recipes = recipes.len();
     out.books = books.len();
-    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !entity_files.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !dimensions.is_empty() || !loot.is_empty() || !definitions.is_empty())
+    if (entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !entity_files.is_empty() || !fonts.is_empty() || !defs.sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !dimensions.is_empty() || !loot.is_empty() || !definitions.is_empty())
         && !mentions_content_macro(&root.join("src"))
     {
         out.warnings.push(format!(
@@ -3222,6 +3270,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     out.data_files = books.iter().map(|b| (b.path(), b.data.clone())).collect();
     out.data_files.extend(bodies.iter().map(|b| (b.path(), b.data.clone())));
+    out.data_files.extend(fonts.iter().map(|f| (f.path(), f.data.clone())));
     out.data_files.extend(entity_files.iter().map(|e| (e.path(), e.data.clone())));
     out.data_files.extend(dimensions.iter().map(|(id, data)| (dimension_path(id), data.clone())));
     out.data_files.extend(loot.iter().map(|(id, data)| (loot_path(id), data.clone())));
@@ -3239,7 +3288,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     defs.dimensions = dimensions.iter().map(|(id, _)| id.clone()).collect();
     defs.tables = tables;
-    out.source = Some(rust_source(&entries, &recipes, &books, &bodies, &entity_files, &defs));
+    out.source = Some(rust_source(&entries, &recipes, &books, &bodies, &entity_files, &fonts, &defs));
     version_overlays(&mut out, &known.datapack);
     out.registrations = registrations(&entries, &entity_files, &dimensions, &defs);
     Ok(out)
@@ -3426,7 +3475,7 @@ fn flush(parts: &mut Vec<(String, String)>, code: &mut String, name: &str) {
     code.clear();
 }
 
-fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies: &[BodyFile], entities: &[EntityFile], defs: &Defs) -> Source {
+fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies: &[BodyFile], entities: &[EntityFile], fonts: &[FontFile], defs: &Defs) -> Source {
     let sound_groups = &defs.sound_groups;
     let mut files: Vec<(String, String)> = Vec::new();
     let mut code = String::new();
@@ -3518,7 +3567,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
             );
             let mut b = format!("::yog_api::{def}::new(Self::{upper})");
             match kind {
-                Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity => unreachable!("only blocks and items get here"),
+                Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity | Kind::Font => unreachable!("only blocks and items get here"),
                 Kind::Block => {
                     let p = &e.block;
                     if p.hardness.is_some() || p.resistance.is_some() {
@@ -3646,7 +3695,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
                 writeln!(code, "    {}", when_loaded(&e.requires, &stmt))
             }
             Kind::Item => writeln!(code, "    {}", when_loaded(&e.requires, &format!("registry.register_item(Items::{ident}());"))),
-            Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity => unreachable!("only blocks and items get here"),
+            Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity | Kind::Font => unreachable!("only blocks and items get here"),
         };
     }
     for g in sound_groups {
@@ -3730,8 +3779,16 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
             b.path()
         );
     }
+    for font in fonts {
+        let _ = writeln!(
+            code,
+            "    registry.register_font_data({:?}, include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/{}\")));",
+            font.id,
+            font.path()
+        );
+    }
     code.push_str("}\n");
-    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !entities.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !defs.dimensions.is_empty() {
+    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !entities.is_empty() || !fonts.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !defs.dimensions.is_empty() {
         code.push_str(
             "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",
         );
@@ -4767,6 +4824,26 @@ mod tests {
         let bad = r#"{ "texture": "x.png", "bones": [{ "name": "a", "parent": "b" }] }"#;
         let e = compile(&project(&[("content/bad.ymodel", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("must come before it"), "{e}");
+    }
+
+    #[test]
+    fn font_files_compile_validate_and_register() {
+        let font = r#"{ units_per_em: 100, ascent: 80, descent: -20,
+            glyphs: [{ name: "a", advance: 100, ops: [] }],
+            chars: [{ char: 97, glyph: 0 }] }"#;
+        let out = compile(&project(&[("content/type/a.yfont", font)]), "mymod", &yres::Refs::default()).unwrap();
+        let (_, bytes) = out.data_files.iter().find(|(p, _)| p == "fonts/mymod__type__a.yfont").unwrap();
+        let built = yog_font::Font::from_bytes(bytes).unwrap();
+        assert_eq!(built.glyph_of('a'), Some(0));
+        let src = out.source.unwrap().part("register").to_string();
+        assert!(src.contains("registry.register_font_data(\"mymod:type/a\""), "{src}");
+        assert!(src.contains("/generated/fonts/mymod__type__a.yfont"), "{src}");
+
+        let invalid = r#"{ units_per_em: 100, ascent: 80, descent: -20,
+            glyphs: [{ advance: 100, ops: [] }],
+            chars: [{ char: 97, glyph: 4 }] }"#;
+        let error = compile(&project(&[("content/bad.yfont", invalid)]), "mymod", &yres::Refs::default()).unwrap_err();
+        assert!(error.contains("chars[0].glyph 4 does not name a glyph"), "{error}");
     }
 
     #[test]

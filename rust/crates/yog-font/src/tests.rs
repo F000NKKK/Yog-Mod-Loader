@@ -141,3 +141,14 @@ fn a_run_draws_whole_and_a_font_survives_its_file() {
     assert!(b.image.width > 0 && b.image.rgba.chunks(4).any(|p| p[3] == 255));
     assert_eq!(Font::from_bytes(&f.to_bytes()).unwrap(), f);
 }
+
+#[test]
+fn invalid_font_references_are_reported() {
+    let mut f = latin();
+    f.chars[0].glyph = 99;
+    f.ligatures[0].glyphs = vec![0];
+    let problems = f.validate().unwrap_err();
+    assert!(problems.iter().any(|p| p.contains("chars[0].glyph 99")));
+    assert!(problems.iter().any(|p| p.contains("at least two glyphs")));
+    assert!(Font::from_bytes(&f.to_bytes()).is_err());
+}

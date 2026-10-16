@@ -120,9 +120,87 @@ pub struct Fit {
 }
 
 impl Font {
+    /// Checks the references and metrics that must be valid before a font is
+    /// shaped or rasterized.
+    pub fn validate(&self) -> Result<(), Vec<String>> {
+        let mut errors = Vec::new();
+        if self.units_per_em == 0 {
+            errors.push("units_per_em must be greater than zero".to_string());
+        }
+        if self.glyphs.is_empty() {
+            errors.push("a font must have at least one glyph".to_string());
+        }
+        for (i, m) in self.chars.iter().enumerate() {
+            if char::from_u32(m.char).is_none() {
+                errors.push(format!("chars[{i}].char is not a Unicode scalar value"));
+            }
+            if m.glyph as usize >= self.glyphs.len() {
+                errors.push(format!("chars[{i}].glyph {} does not name a glyph", m.glyph));
+            }
+        }
+        for (i, ligature) in self.ligatures.iter().enumerate() {
+            if ligature.glyphs.len() < 2 {
+                errors.push(format!("ligatures[{i}] must contain at least two glyphs"));
+            }
+            for &glyph in ligature.glyphs.iter().chain(std::iter::once(&ligature.glyph)) {
+                if glyph as usize >= self.glyphs.len() {
+                    errors.push(format!("ligatures[{i}] references missing glyph {glyph}"));
+                }
+            }
+        }
+        for (i, machine) in self.machines.iter().enumerate() {
+            let mut classes = std::collections::HashSet::new();
+            let mut members = std::collections::HashSet::new();
+            for class in &machine.classes {
+                if !classes.insert(class.class) {
+                    errors.push(format!("machines[{i}] repeats class {}", class.class));
+                }
+                for &glyph in &class.glyphs {
+                    if glyph as usize >= self.glyphs.len() {
+                        errors.push(format!("machines[{i}] class {} references missing glyph {glyph}", class.class));
+                    }
+                    if !members.insert(glyph) {
+                        errors.push(format!("machines[{i}] assigns glyph {glyph} to more than one class"));
+                    }
+                }
+            }
+            let mut transitions = std::collections::HashSet::new();
+            for transition in &machine.transitions {
+                if !classes.contains(&transition.class) {
+                    errors.push(format!("machines[{i}] transition references missing class {}", transition.class));
+                }
+                if !transitions.insert((transition.state, transition.class)) {
+                    errors.push(format!("machines[{i}] repeats transition from state {} for class {}", transition.state, transition.class));
+                }
+                if let Some(glyph) = transition.glyph
+                    && glyph as usize >= self.glyphs.len()
+                {
+                    errors.push(format!("machines[{i}] transition references missing glyph {glyph}"));
+                }
+            }
+        }
+        let mut kerning = std::collections::HashSet::new();
+        for kern in &self.kerning {
+            if kern.left as usize >= self.glyphs.len() || kern.right as usize >= self.glyphs.len() {
+                errors.push(format!("kerning pair ({}, {}) references a missing glyph", kern.left, kern.right));
+            }
+            if !kerning.insert((kern.left, kern.right)) {
+                errors.push(format!("kerning pair ({}, {}) is repeated", kern.left, kern.right));
+            }
+        }
+        if let Some(fit) = self.fit
+            && (!fit.height.is_finite() || fit.height <= 0.0 || !fit.center.is_finite())
+        {
+            errors.push("fit.height must be positive and fit values must be finite".to_string());
+        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
+    }
+
     /// A built font from its file's bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<Font, String> {
-        yog_data::read_bytes::<Font>(bytes).map_err(|e| format!("{e:?}"))
+        let font = yog_data::read_bytes::<Font>(bytes).map_err(|e| format!("{e:?}"))?;
+        font.validate().map_err(|errors| errors.join("; "))?;
+        Ok(font)
     }
 
     /// The font's file.

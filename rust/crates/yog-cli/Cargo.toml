@@ -25,6 +25,7 @@ yog-gfx = "0.28"
 yog-ui = "0.43"
 yog-book = "0.66"
 yog-body = "0.2"
+yog-font = "0.1"
 yog-registry = "0.34"
 # The data model, text syntax and schemas of every Yog format.
 yog-data = { version = "0.4.1", features = ["toml"] }
