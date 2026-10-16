@@ -280,7 +280,7 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
         let size = match ImageSource::parse(source) {
             Some(ImageSource::Item(_) | ImageSource::Block(_)) => Some((16.0, 16.0)),
             Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
-                Some(sp) => crate::get_env().map(|mut env| sp.size(has_atlas(&mut env))),
+                Some(sp) => crate::get_env().map(|mut env| { let s = sp.size(has_atlas(&mut env)); (s.x, s.y) }),
                 None => None,
             },
             Some(ImageSource::Texture(id)) if id.ends_with(".svg") => crate::get_env()
