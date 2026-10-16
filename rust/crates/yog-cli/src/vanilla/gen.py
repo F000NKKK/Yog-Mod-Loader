@@ -4,7 +4,7 @@ Run with the client jars of every supported version (Loom's cache):
     python3 gen.py ids.txt
 
 Add a version to VERSIONS when Yog starts supporting it."""
-import zipfile, json, re, os, sys, collections
+import zipfile, json, re, os, sys, glob, subprocess, collections
 VERSIONS = ["1.20.1", "1.21.1"]
 ids = collections.defaultdict(set)   # (kind, id) -> versions
 for v in VERSIONS:
@@ -39,9 +39,28 @@ for v in VERSIONS:
         m = re.fullmatch(r"entity\.minecraft\.([a-z0-9_]+)", k)
         if m:
             ids[("entity", m[1])].add(v)
-        m = re.fullmatch(r"item\.minecraft\.potion\.effect\.([a-z0-9_]+)", k)
-        if m:
-            ids[("potion", m[1])].add(v)
+    mappings = glob.glob(os.path.expanduser(f"~/.gradle/caches/fabric-loom/{v}/*/mappings.tiny"))
+    registry_class = None
+    for mapping in mappings:
+        with open(mapping) as f:
+            for line in f:
+                columns = line.rstrip("\n").split("\t")
+                if len(columns) >= 4 and columns[0] == "c" and columns[-1] == "net/minecraft/potion/Potions":
+                    registry_class = columns[1]
+                    break
+        if registry_class:
+            break
+    if registry_class is None:
+        raise RuntimeError(f"no Yarn mapping for Minecraft {v}'s potion registry")
+    bytecode = subprocess.run(
+        ["javap", "-classpath", os.path.expanduser(f"~/.gradle/caches/fabric-loom/{v}/minecraft-client.jar"), "-c", "-p", registry_class],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    # These are the identifiers registered by Potions, not status-effect names from en_us.json.
+    for potion in re.findall(r"// String ([a-z0-9_]+)\s*$", bytecode, re.MULTILINE):
+        ids[("potion", potion)].add(v)
 out = ["# Vanilla ids per Minecraft version: <kind> <path> <versions>; generated from the client jars.",
        "# versions: " + " ".join(VERSIONS)]
 for (kind, path), vs in sorted(ids.items()):

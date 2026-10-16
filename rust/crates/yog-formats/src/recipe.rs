@@ -4,6 +4,7 @@
 //! are references (`@item:minecraft:stick`), tags `@tag:item:c:dusts`.
 
 use yog_data::schema::{Field, StructShape, read_both};
+use yog_data::with::RefTo;
 use yog_data::{ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Schema, Seg, Shape, Value, ValueRef};
 
 /// The game's recipe types.
@@ -180,17 +181,6 @@ impl Schema for RecipeFile {
             fields.extend(c.fields);
         }
 
-        #[cfg(test)]
-        mod tests {
-            use super::*;
-
-            #[test]
-            fn recipe_result_round_trips_its_registry_kind() {
-                let item = yog_data::from_text::<ItemId>("@item:minecraft:stick").unwrap().value;
-                assert_eq!(item.id, "minecraft:stick");
-                assert_eq!(yog_data::text::to_string(&item.write()), "@item:minecraft:stick");
-            }
-        }
         Shape::Struct(StructShape {
             name: "Recipe",
             doc: "A recipe.",
@@ -264,5 +254,19 @@ impl Schema for RecipeFile {
             }
         }
         Value::Map(m)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn item_reference_round_trips() {
+        let item = yog_data::from_text::<ItemId>(r#""@item:minecraft:stick""#).unwrap().value;
+        assert_eq!(item.id, "minecraft:stick");
+        let encoded = yog_data::text::to_string(&item.write());
+        assert_eq!(encoded, r#""@item:minecraft:stick""#);
+        assert_eq!(yog_data::from_text::<ItemId>(&encoded).unwrap().value, item);
     }
 }

@@ -48,14 +48,14 @@ struct Vanilla {
     versions: Vec<String>,
     ids: HashMap<(RefKind, String), Option<Vec<String>>>,
     renamed: HashMap<(RefKind, String), String>,
-    potion_aliases: HashSet<String>,
+    potion_aliases: HashMap<String, Option<Vec<String>>>,
 }
 
 static VANILLA: LazyLock<Vanilla> = LazyLock::new(|| {
     let text = include_str!("../vanilla/ids.txt");
     let mut versions = Vec::new();
     let mut ids = HashMap::new();
-    let mut potion_aliases = HashSet::new();
+    let mut potion_aliases = HashMap::new();
     for line in text.lines() {
         if let Some(v) = line.strip_prefix("# versions:") {
             versions = v.split_whitespace().map(str::to_string).collect();
@@ -63,12 +63,12 @@ static VANILLA: LazyLock<Vanilla> = LazyLock::new(|| {
         }
         let mut p = line.split_whitespace();
         let (Some(kind), Some(path), Some(vs)) = (p.next(), p.next(), p.next()) else { continue };
+        let vs = (vs != "*").then(|| vs.split(',').map(str::to_string).collect());
         if kind == "potion" {
-            potion_aliases.insert(path.to_string());
+            potion_aliases.insert(path.to_string(), vs);
             continue;
         }
         let Some(kind) = RefKind::ALL.into_iter().find(|k| k.word() == kind) else { continue };
-        let vs = (vs != "*").then(|| vs.split(',').map(str::to_string).collect());
         ids.insert((kind, path.to_string()), vs);
     }
     let mut renamed = HashMap::new();
@@ -102,7 +102,20 @@ pub fn is_vanilla(id: &str) -> bool {
 pub fn is_vanilla_potion(id: &str) -> bool {
     let id = bare(id);
     let Some((ns, path)) = id.split_once(':') else { return false };
-    ns == "yog" && path.strip_prefix("potion/").is_some_and(|p| VANILLA.potion_aliases.contains(p))
+    ns == "yog" && path.strip_prefix("potion/").is_some_and(|p| VANILLA.potion_aliases.contains_key(p))
+}
+
+/// Whether a stable Yog alias names a potion registered by this Minecraft version.
+pub fn is_vanilla_potion_in(id: &str, version: &str) -> bool {
+    let id = bare(id);
+    let Some((ns, path)) = id.split_once(':') else { return false };
+    ns == "yog"
+        && path.strip_prefix("potion/").is_some_and(|p| {
+            VANILLA
+                .potion_aliases
+                .get(p)
+                .is_some_and(|versions| versions.as_ref().is_none_or(|versions| versions.iter().any(|v| v == version)))
+        })
 }
 
 /// What vanilla `id` (`minecraft:short_grass`) is on Minecraft `version`:
@@ -194,8 +207,10 @@ impl Known {
         // Stable aliases for vanilla potion stacks; backends resolve these to
         // the version's Potion registry entry.
         if kind == RefKind::Item && ns == "yog" && path.starts_with("potion/") {
-            return if is_vanilla_potion(id) {
+            return if is_vanilla_potion_in(id, &self.datapack) {
                 Ok(())
+            } else if is_vanilla_potion(id) {
+                Err(format!("potion alias {id} isn't registered in Minecraft {}", self.datapack))
             } else {
                 Err(format!("no item {id} among Yog's versioned default potion aliases"))
             };
@@ -283,12 +298,17 @@ mod tests {
         assert!(k.check(RefKind::Item, "mymod:nope").unwrap_err().contains("no item mymod:nope"));
         assert!(k.check(RefKind::Item, "minecraft:stick").is_ok());
         assert!(k.check(RefKind::Item, "yog:potion/awkward").is_ok(), "Yog's stable vanilla potion item alias");
+        assert!(k.check(RefKind::Item, "yog:potion/long_swiftness").is_ok());
+        assert!(k.check(RefKind::Item, "yog:potion/wind_charged").is_ok());
+        assert!(k.check(RefKind::Item, "yog:potion/levitation").is_err(), "an effect name isn't a potion registry id");
         assert!(k.check(RefKind::Item, "minecraft:stone").is_ok(), "a block's item");
         assert!(k.check(RefKind::Block, "minecraft:furnace[facing=north]").is_ok());
         assert!(k.check(RefKind::Entity, "minecraft:allay").is_ok());
         assert!(k.check(RefKind::Item, "minecraft:short_grass").is_ok(), "the datapack is the newest by default");
         assert!(k.check(RefKind::Item, "minecraft:grass").unwrap_err().contains("isn't in Minecraft 1.21.1 (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass"));
         let old = Known::new("mymod", &[ext], Some("1.20.1"));
+        assert!(old.check(RefKind::Item, "yog:potion/awkward").is_ok());
+        assert!(old.check(RefKind::Item, "yog:potion/wind_charged").is_err());
         assert!(old.check(RefKind::Item, "minecraft:grass").is_ok());
         assert!(old.check(RefKind::Block, "minecraft:crafter").unwrap_err().contains("isn't in Minecraft 1.20.1"));
         assert_eq!(equivalent(RefKind::Item, "minecraft:short_grass", "1.20.1").as_deref(), Some("minecraft:grass"));

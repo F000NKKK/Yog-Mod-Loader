@@ -2543,7 +2543,6 @@ fn compile_recipe(
         }
     }
     let RecipeFile { common: c, body } = read.value;
-    let brewing = matches!(&body, Body::Brewing(_));
     let ty = match &body {
         Body::Shaped(_) => "shaped".to_string(),
         Body::Shapeless(_) => "shapeless".to_string(),
@@ -2649,7 +2648,7 @@ fn compile_recipe(
                 ok = false;
             }
             if ok {
-                brews.push((c.result.id().to_string(), yog_registry::Brew { from: k.from, with: k.ingredient }));
+                brews.push((c.result.id.clone(), yog_registry::Brew { from: k.from, with: k.ingredient }));
             }
             return None;
         }
@@ -2721,7 +2720,7 @@ fn compile_recipe(
         id: format!("{ns}:{p}"),
         ty,
         kind,
-        result: c.result.id().to_string(),
+        result: c.result.id.clone(),
         count: c.count,
         group: c.group,
         category: c.category,
@@ -2745,12 +2744,21 @@ fn recipe_gaps(items: &[yog_data::schema::Found<yog_data::Ref>], tags: &[yog_dat
     };
     for f in items {
         let Some(kind) = RefKind::from_word(&f.value.kind) else { continue };
-        if !f.value.id.starts_with("minecraft:") {
+        let potion_alias = kind == RefKind::Item && f.value.id.starts_with("yog:potion/");
+        if !potion_alias && !f.value.id.starts_with("minecraft:") {
             continue;
         }
         let on: BTreeSet<String> = refs::hosts()
             .iter()
-            .filter(|h| h.split_once('/').is_some_and(|(_, v)| refs::equivalent(kind, &f.value.id, v).is_some()))
+            .filter(|h| {
+                h.split_once('/').is_some_and(|(_, v)| {
+                    if potion_alias {
+                        refs::is_vanilla_potion_in(&f.value.id, v)
+                    } else {
+                        refs::equivalent(kind, &f.value.id, v).is_some()
+                    }
+                })
+            })
             .cloned()
             .collect();
         let on = (on.len() < refs::hosts().len()).then_some(on);

@@ -69,7 +69,7 @@ final class YogEffects {
                 effects.add(new StatusEffectInstance(effect.get(), pe.duration(), pe.amplifier()));
             }
             Identifier id = potionId(p.id());
-            if (!p.id().startsWith("yog:potion/") && Registries.POTION.getEntry(id).isEmpty()) {
+            if (!p.id().startsWith("yog:potion/") && !Registries.POTION.containsId(id)) {
                 Registry.register(Registries.POTION, id, new Potion(p.name(), effects.toArray(new StatusEffectInstance[0])));
             }
         }
