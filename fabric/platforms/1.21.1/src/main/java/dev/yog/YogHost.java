@@ -456,6 +456,7 @@ public class YogHost implements ModInitializer {
         YogContent content = YogContent.cached(NativeBridge::nativeContent);
         for (YogContent.Block b : content.blocks) blockIds.add(b.id());
         Map<String, String> blockItemNames = new HashMap<>();
+        Map<String, YogContent.Item> blockItemDefs = new HashMap<>();
         Map<String, String> blockItemTooltips = new HashMap<>();
 
         {
@@ -466,6 +467,7 @@ public class YogHost implements ModInitializer {
 
                 if (blockIds.contains(id)) {
                     blockItemNames.put(id, p.name());
+                    blockItemDefs.put(id, p);
                     blockItemTooltips.put(id, p.tooltip());
                     continue;
                 }
@@ -571,10 +573,12 @@ public class YogHost implements ModInitializer {
                 if (!p.connectGroups().isEmpty()) {
                     YogConnectingLogic.registerGroups(block, p.connectGroups().toArray(new String[0]));
                 }
-                Item blockItem = new YogBlockItem(block, new Item.Settings(),
+                Item blockItem = new YogBlockItem(block, blockItemSettings(blockItemDefs.get(id)),
                         blockItemNames.getOrDefault(id, ""),
                         blockItemTooltips.getOrDefault(id, ""));
                 Registry.register(Registries.ITEM, ident, blockItem);
+                YogContent.Item ownItem = blockItemDefs.get(id);
+                if (ownItem != null && ownItem.fuelTicks() > 0) FuelRegistry.INSTANCE.add(blockItem, ownItem.fuelTicks());
                 tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(blockItem);
             }
         }
@@ -723,5 +727,16 @@ public class YogHost implements ModInitializer {
     private static void sendEntityData(net.minecraft.server.network.ServerPlayerEntity to, net.minecraft.entity.Entity about) {
         byte[] data = NativeBridge.nativeEntityDataFor(about.getUuidAsString());
         if (data != null) NativeBridge.sendToPlayer(to.getName().getString(), "yog:entity_data", data);
+    }
+
+    /**
+     * A block's item form as the mod's {@code .yblock} says ({@code item}:
+     * how it stacks, whether it survives fire); the game's defaults otherwise.
+     */
+    private static Item.Settings blockItemSettings(YogContent.Item own) {
+        Item.Settings s = new Item.Settings();
+        if (own == null) return s;
+        s = s.maxCount(own.maxStack());
+        return own.fireResistant() ? s.fireproof() : s;
     }
 }

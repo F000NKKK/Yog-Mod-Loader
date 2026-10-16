@@ -236,6 +236,7 @@ public class YogHost {
     // register_item(...) call — mods use `ItemDef::new(block_id).name(..).tooltip(..)`
     // as the block's display metadata (BlockDef itself carries neither yet).
     private final Map<String, String> blockItemNames = new HashMap<>();
+    private final Map<String, YogContent.Item> blockItemDefs = new HashMap<>();
     private final Map<String, String> blockItemTooltips = new HashMap<>();
 
     private void registerItems(RegisterEvent event) {
@@ -252,6 +253,7 @@ public class YogHost {
                     // as a duplicate, unplaceable ghost entry in the creative tab). Just
                     // hand its name/tooltip to the block-item loop below.
                     blockItemNames.put(id, p.name());
+                    blockItemDefs.put(id, p);
                     blockItemTooltips.put(id, p.tooltip());
                     continue;
                 }
@@ -308,10 +310,12 @@ public class YogHost {
                 Block block = ident == null ? null : registeredBlocks.get(ident);
                 if (block == null) continue;
 
-                Item blockItem = new YogBlockItem(block, new Item.Properties(),
+                Item blockItem = new YogBlockItem(block, blockItemSettings(blockItemDefs.get(id)),
                         blockItemNames.getOrDefault(id, ""),
                         blockItemTooltips.getOrDefault(id, ""));
                 event.register(Registries.ITEM, ident, () -> blockItem);
+                YogContent.Item ownItem = blockItemDefs.get(id);
+                if (ownItem != null && ownItem.fuelTicks() > 0) FUEL.put(blockItem, ownItem.fuelTicks());
                 tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(blockItem);
             }
         }
@@ -739,5 +743,16 @@ public class YogHost {
             src.sendSuccess(() -> Component.literal(reply), false);
         }
         return Command.SINGLE_SUCCESS;
+    }
+
+    /**
+     * A block's item form as the mod's {@code .yblock} says ({@code item}:
+     * how it stacks, whether it survives fire); the game's defaults otherwise.
+     */
+    private static Item.Properties blockItemSettings(YogContent.Item own) {
+        Item.Properties s = new Item.Properties();
+        if (own == null) return s;
+        s = s.stacksTo(own.maxStack());
+        return own.fireResistant() ? s.fireResistant() : s;
     }
 }
