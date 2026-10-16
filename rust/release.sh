@@ -138,10 +138,13 @@ fi
 # ── Функция замены версии-ссылки в файле ──────────────────────────────────────
 update_ref() {
     local dep="$1" file="$2" old="$3" new="$4"
+    local old_re="${old//./\\.}"
     # Простая форма:  yog-foo = "0.9"  /  "0.9.2"
-    sed -i -E "s|(${dep}[[:space:]]*=[[:space:]]*\")${old}([.\"])|\1${new}\2|g" "$file"
+    # Replace the whole major.minor prefix, not only its first two parts:
+    # otherwise "0.65.1" would become the invalid "0.66.1" on a minor bump.
+    sed -i -E "s|(${dep}[[:space:]]*=[[:space:]]*\")${old_re}([.][0-9]+)?(\")|\1${new}\3|g" "$file"
     # Сложная форма:  yog-foo = { version = "0.9", ... }
-    sed -i -E "s|(${dep}[[:space:]]*=[[:space:]]*\{[^}]*version[[:space:]]*=[[:space:]]*\")${old}([.\"])|\1${new}\2|g" "$file"
+    sed -i -E "s|(${dep}[[:space:]]*=[[:space:]]*\{[^}]*version[[:space:]]*=[[:space:]]*\")${old_re}([.][0-9]+)?(\")|\1${new}\3|g" "$file"
 }
 
 # ── Бамп одного крейта + обновление ссылок на него по воркспейсу ──────────────
