@@ -1,30 +1,31 @@
 //! Visual theme for book rendering.
 
-/// All colors are 0xAARRGGBB.
+use yog_gfx::Color;
+
 #[derive(Debug, Clone)]
 pub struct BookTheme {
     /// Outer book background (dark border frame).
-    pub bg: u32,
+    pub bg: Color,
     /// Left page background (light parchment).
-    pub page_bg: u32,
+    pub page_bg: Color,
     /// Right page background (slightly warmer parchment).
-    pub page_bg_right: u32,
+    pub page_bg_right: Color,
     /// Default body text.
-    pub text: u32,
+    pub text: Color,
     /// Entry/category titles.
-    pub title: u32,
+    pub title: Color,
     /// Unselected navigation text.
-    pub nav: u32,
+    pub nav: Color,
     /// Selected navigation item text.
-    pub nav_selected: u32,
+    pub nav_selected: Color,
     /// Selected navigation item background.
-    pub nav_selected_bg: u32,
+    pub nav_selected_bg: Color,
     /// Border/separator line color.
-    pub border: u32,
+    pub border: Color,
     /// Book nameplate (title) color.
-    pub nameplate: u32,
+    pub nameplate: Color,
     /// Divider line between sections.
-    pub divider: u32,
+    pub divider: Color,
 }
 
 impl Default for BookTheme {
@@ -32,17 +33,17 @@ impl Default for BookTheme {
         Self {
             // Patchouli defaults: textColor=000000, headerColor=333333,
             // nameplateColor=FFDD98.
-            bg: 0xFF_2A1A08,              // dark brown outer frame
-            page_bg: 0xFF_F5E6C8,         // left page: warm cream parchment
-            page_bg_right: 0xFF_EECF9A,   // right page: slightly golden parchment
-            text: 0xFF_000000,            // body text (Patchouli textColor)
-            title: 0xFF_333333,           // headers (Patchouli headerColor)
-            nav: 0xFF_5C4020,             // nav links (unselected)
-            nav_selected: 0xFF_C87820,    // nav links (selected, amber)
-            nav_selected_bg: 0x50_C87820, // selected row tint (semi-transparent amber)
-            border: 0xFF_5C3A10,          // spine + divider lines
-            nameplate: 0xFF_FFDD98,       // book title color (Patchouli nameplateColor)
-            divider: 0xFF_333333,         // section headers ("Categories" etc.)
+            bg: Color(0xFF_2A1A08),              // dark brown outer frame
+            page_bg: Color(0xFF_F5E6C8),         // left page: warm cream parchment
+            page_bg_right: Color(0xFF_EECF9A),   // right page: slightly golden parchment
+            text: Color(0xFF_000000),            // body text (Patchouli textColor)
+            title: Color(0xFF_333333),           // headers (Patchouli headerColor)
+            nav: Color(0xFF_5C4020),             // nav links (unselected)
+            nav_selected: Color(0xFF_C87820),    // nav links (selected, amber)
+            nav_selected_bg: Color(0x50_C87820), // selected row tint (semi-transparent amber)
+            border: Color(0xFF_5C3A10),          // spine + divider lines
+            nameplate: Color(0xFF_FFDD98),       // book title color (Patchouli nameplateColor)
+            divider: Color(0xFF_333333),         // section headers ("Categories" etc.)
         }
     }
 }
@@ -52,8 +53,8 @@ impl BookTheme {
     /// Like Patchouli, this only affects the nameplate text — headers keep
     /// their own headerColor.
     pub fn with_nameplate(mut self, hex: &str) -> Self {
-        if let Ok(v) = u32::from_str_radix(hex.trim_start_matches('#'), 16) {
-            self.nameplate = 0xFF_000000 | v;
+        if let Some(c) = Color::parse(&format!("#{}", hex.trim_start_matches('#'))) {
+            self.nameplate = c.with_alpha(0xff);
         }
         self
     }

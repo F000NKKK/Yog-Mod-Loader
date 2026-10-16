@@ -4,7 +4,7 @@
 //! book designer run the same code.
 
 use std::collections::{BTreeMap, HashMap};
-use yog_gfx::GfxContext;
+use yog_gfx::{Color, GfxContext, Rect, Vec2};
 use yog_ui::{Align, FlexDir, Stretch, UiRoot, widget};
 
 use crate::state::BookViewState;
@@ -69,15 +69,9 @@ pub(crate) enum SpriteSheet {
 pub(crate) struct BgSprite {
     pub sheet: SpriteSheet,
     /// Source rect in pixels on the sheet.
-    pub u: f32,
-    pub v: f32,
-    pub uw: f32,
-    pub uh: f32,
+    pub src: Rect,
     /// Destination on screen.
-    pub x: f32,
-    pub y: f32,
-    pub w: f32,
-    pub h: f32,
+    pub dst: Rect,
 }
 
 // ── Pending overlay draw commands ─────────────────────────────────────────────
@@ -126,7 +120,7 @@ pub(crate) enum OverlayCmd {
         text: String,
         x: f32,
         y: f32,
-        color: u32,
+        color: Color,
     },
     /// Item icon rendered through our GL pipeline from an MC-managed texture.
     McItem {
@@ -541,14 +535,14 @@ impl BookRenderer {
         let (bx, by, bw, bh) = self.prepare(sw, sh);
         let d2 = ctx.draw2d();
         let book_sheet = book_sheet(&self.book.book_texture);
-        d2.image_region(&book_sheet, Rect::new(bx, by, bw, bh), Some(Rect::new(0.0, 0.0, BK_W, BK_H)), Color(0xFFFF_FFFF));
+        d2.image_region(&book_sheet, Rect::new(bx, by, bw, bh), Some(Rect::new(0.0, 0.0, BK_W, BK_H)), Color::WHITE);
         for spr in &self.bg_sprites {
             let sheet = match &spr.sheet {
                 SpriteSheet::Book => &book_sheet,
                 SpriteSheet::Crafting => CRAFTING_SHEET,
                 SpriteSheet::Image(source) => source.as_str(),
             };
-            d2.image_region(sheet, Rect::new(spr.x, spr.y, spr.w, spr.h), Some(Rect::new(spr.u, spr.v, spr.uw, spr.uh)), Color(0xFFFF_FFFF));
+            d2.image_region(sheet, spr.dst, Some(spr.src), Color::WHITE);
         }
         if let Some(ui) = &mut self.ui {
             ui.render(ctx);
@@ -964,28 +958,16 @@ fn build_ui(
         // Nameplate banner: book-local (-8, 12) from LEFT_PAGE_X, size 140×31.
         bg_sprites.push(BgSprite {
             sheet: SpriteSheet::Book,
-            u: 0.0,
-            v: 180.0,
-            uw: 140.0,
-            uh: 31.0,
-            x: bx + (LEFT_X - 8.0) * sx,
-            y: by + 12.0 * sy,
-            w: 140.0 * sx,
-            h: 31.0 * sy,
+            src: Rect::new(0.0, 180.0, 140.0, 31.0),
+            dst: Rect::new(bx + (LEFT_X - 8.0) * sx, by + 12.0 * sy, 140.0 * sx, 31.0 * sy),
         });
     }
     // Separator on the right page below its header ("Categories" or the
     // category name; y=12 page-local), centered.
     bg_sprites.push(BgSprite {
         sheet: SpriteSheet::Book,
-        u: SEP_U,
-        v: SEP_V,
-        uw: SEP_W,
-        uh: SEP_H,
-        x: rx + sep_cx,
-        y: by + (TOP_PAD + 12.0) * sy,
-        w: SEP_W * sx,
-        h: (SEP_H * sy).max(1.0),
+        src: Rect::new(SEP_U, SEP_V, SEP_W, SEP_H),
+        dst: Rect::new(rx + sep_cx, by + (TOP_PAD + 12.0) * sy, SEP_W * sx, (SEP_H * sy).max(1.0)),
     });
 
     let (left_page, right_page) = if state.at_home {
@@ -1191,7 +1173,7 @@ fn build_categories_right(
             }
             let cat = &cats[idx];
             let selected = !state.at_home && idx == state.cat;
-            let bg = if selected { theme.nav_selected_bg } else { 0 };
+            let bg = if selected { theme.nav_selected_bg } else { Color::TRANSPARENT };
 
             if let Some(icon_id) = &cat.icon {
                 push_icon(
@@ -1250,14 +1232,8 @@ fn build_entry_left(
 
     bg_sprites.push(BgSprite {
         sheet: SpriteSheet::Book,
-        u: SEP_U,
-        v: SEP_V,
-        uw: SEP_W,
-        uh: SEP_H,
-        x: ox + sep_cx,
-        y: sep_y,
-        w: SEP_W * sx,
-        h: sep_h_px,
+        src: Rect::new(SEP_U, SEP_V, SEP_W, SEP_H),
+        dst: Rect::new(ox + sep_cx, sep_y, SEP_W * sx, sep_h_px),
     });
 
     let page_label = format!("{}/{}", state.page + 1, page_count);
@@ -1382,7 +1358,7 @@ fn build_entries_right(
     for (i, entry) in entries.iter().enumerate() {
         let abs_i = abs_start + i;
         let selected = abs_i == state.entry;
-        let bg = if selected { theme.nav_selected_bg } else { 0 };
+        let bg = if selected { theme.nav_selected_bg } else { Color::TRANSPARENT };
         let color = if selected {
             theme.nav_selected
         } else {
@@ -1488,14 +1464,8 @@ fn draw_layout(
         let [u, v, uw, uh] = FRAME_UV;
         bg.push(BgSprite {
             sheet: SpriteSheet::Crafting,
-            u,
-            v,
-            uw,
-            uh,
-            x,
-            y,
-            w: uw * sx,
-            h: uh * sy,
+            src: Rect::new(u, v, uw, uh),
+            dst: Rect::new(x, y, uw * sx, uh * sy),
         });
     };
     for part in &layout.parts {
@@ -1509,15 +1479,9 @@ fn draw_layout(
                 };
                 let [u, v, uw, uh] = *uv;
                 bg_sprites.push(BgSprite {
-                    sheet,
-                    u,
-                    v,
-                    uw,
-                    uh,
-                    x,
-                    y,
-                    w: uw * sx,
-                    h: uh * sy,
+                    sheet: sheet,
+                    src: Rect::new(u, v, uw, uh),
+                    dst: Rect::new(x, y, uw * sx, uh * sy),
                 });
             }
             LayoutPart::Slots {
@@ -1649,14 +1613,8 @@ fn build_page(
                 // sep at y=12 page-local, centered
                 bg_sprites.push(BgSprite {
                     sheet: SpriteSheet::Book,
-                    u: SEP_U,
-                    v: SEP_V,
-                    uw: SEP_W,
-                    uh: SEP_H,
-                    x: ox + (PAGE_W / 2.0 - SEP_W / 2.0) * sx,
-                    y: oy + 12.0 * sy,
-                    w: SEP_W * sx,
-                    h: sep_h_px,
+                    src: Rect::new(SEP_U, SEP_V, SEP_W, SEP_H),
+                    dst: Rect::new(ox + (PAGE_W / 2.0 - SEP_W / 2.0) * sx, oy + 12.0 * sy, SEP_W * sx, sep_h_px),
                 });
                 col = col.child(widget::spacer().h((12.0 - 9.0) * sy));
                 col = col.child(widget::spacer().h(sep_h_px));
@@ -1680,14 +1638,8 @@ fn build_page(
             //   text at y=40.
             bg_sprites.push(BgSprite {
                 sheet: SpriteSheet::Crafting,
-                u: 0.0,
-                v: 102.0,
-                uw: 66.0,
-                uh: 26.0,
-                x: ox + (PAGE_W / 2.0 - 33.0) * sx,
-                y: oy + 10.0 * sy,
-                w: 66.0 * sx,
-                h: 26.0 * sy,
+                src: Rect::new(0.0, 102.0, 66.0, 26.0),
+                dst: Rect::new(ox + (PAGE_W / 2.0 - 33.0) * sx, oy + 10.0 * sy, 66.0 * sx, 26.0 * sy),
             });
 
             let item_name = title.clone().unwrap_or_else(|| pretty_item_name(item));
@@ -1741,7 +1693,7 @@ fn build_page(
             }
             col = col.child(
                 widget::image(texture)
-                    .region([0.0, 0.0, 80.0, 80.0])
+                    .region(Rect::new(0.0, 0.0, 80.0, 80.0))
                     .stretch(Stretch::Fill)
                     .w(80.0)
                     .h(80.0),
