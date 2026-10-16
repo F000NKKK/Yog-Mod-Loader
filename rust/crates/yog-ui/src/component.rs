@@ -791,7 +791,7 @@ mod tests {
     fn props_fall_back_to_defaults() {
         let p = Props::new(Badge::PROPS, &[("label", "@@x"), ("n", " 2.5 ")]);
         assert_eq!(p.text("label"), "@x");
-        assert_eq!(p.color("fill"), 0xFF3060C0);
+        assert_eq!(p.color("fill"), Color(0xFF3060C0));
         assert_eq!(p.word("size"), "small");
         assert_eq!(p.number("n"), 2.5);
         assert_eq!(p.int("missing"), 0);
@@ -803,7 +803,7 @@ mod tests {
         register::<Badge>();
         let w = build("TestBadge", &[("label", "hi")]);
         assert!(matches!(&w.kind, crate::widget::WidgetKind::Label(t) if t == "hi"));
-        assert_eq!(w.style.bg, 0xFF3060C0);
+        assert_eq!(w.style.bg, Color(0xFF3060C0));
         let missing = build("Nope", &[]);
         assert!(!missing.children.is_empty());
     }

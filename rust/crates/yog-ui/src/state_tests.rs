@@ -1,5 +1,6 @@
 //! Tests of actions, visibility and state styles.
 
+use yog_gfx::Color;
 use crate::layout::{self, FlexDir, hit_path, node_at};
 use crate::widget::{self, Action, StateFlags, StylePatch, Units};
 
@@ -59,53 +60,53 @@ fn deeper_actions_win_and_disabled_is_not_hit() {
 #[test]
 fn state_styles_and_inheritance() {
     let mut row = widget::panel(FlexDir::Row)
-        .bg(1)
+        .bg(Color(1))
         .action(Action::new(0))
         .state_style(
             StateFlags::HOVER,
             StylePatch {
-                bg: Some(2),
+                bg: Some(Color(2)),
                 ..Default::default()
             },
         )
         .state_style(
             StateFlags::SELECTED,
             StylePatch {
-                bg: Some(3),
+                bg: Some(Color(3)),
                 ..Default::default()
             },
         )
-        .child(widget::label("x").color(10).state_style(
+        .child(widget::label("x").color(Color(10)).state_style(
             StateFlags::SELECTED,
             StylePatch {
-                color: Some(11),
+                color: Some(Color(11)),
                 ..Default::default()
             },
         ))
         .child(widget::button("b").action(Action::new(1)));
-    assert_eq!(row.effective_style().bg, 1);
+    assert_eq!(row.effective_style().bg, Color(1));
     row.set_state_inherited(StateFlags::HOVER, true);
-    assert_eq!(row.effective_style().bg, 2);
+    assert_eq!(row.effective_style().bg, Color(2));
     row.set_state_inherited(StateFlags::SELECTED, true);
     // Later rules win.
-    assert_eq!(row.effective_style().bg, 3);
-    assert_eq!(row.children[0].effective_style().color, 11);
+    assert_eq!(row.effective_style().bg, Color(3));
+    assert_eq!(row.children[0].effective_style().color, Color(11));
     // Stops at the interactive button.
     assert!(row.children[1].state.is_empty());
     row.set_state_inherited(StateFlags::SELECTED | StateFlags::HOVER, false);
-    assert_eq!(row.effective_style().bg, 1);
-    assert_eq!(row.children[0].effective_style().color, 10);
+    assert_eq!(row.effective_style().bg, Color(1));
+    assert_eq!(row.children[0].effective_style().color, Color(10));
 }
 
 #[test]
 fn disabled_patch_follows_enabled() {
-    let b = widget::button("b").color(1).state_style(
+    let b = widget::button("b").color(Color(1)).state_style(
         StateFlags::DISABLED,
         StylePatch {
-            color: Some(2),
+            color: Some(Color(2)),
             ..Default::default()
         },
     );
-    assert_eq!(b.effective_style().color, 1);
-    assert_eq!(b.enabled(false).effective_style().color, 2);
+    assert_eq!(b.effective_style().color, Color(1));
+    assert_eq!(b.enabled(false).effective_style().color, Color(2));
 }

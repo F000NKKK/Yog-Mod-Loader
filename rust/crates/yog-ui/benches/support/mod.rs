@@ -25,7 +25,7 @@ pub fn list_row(i: usize) -> Widget {
         .child(
             widget::panel(FlexDir::Column)
                 .w(Units::Percent(60.0))
-                .child(widget::label(format!("Entry number {i}")).color(0xFF_FFFFFF))
+                .child(widget::label(format!("Entry number {i}")).color(yog_gfx::Color::WHITE))
                 .child(widget::label(
                     "A longer description line that has to wrap inside the column width",
                 )),
