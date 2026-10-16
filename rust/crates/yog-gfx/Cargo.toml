@@ -9,6 +9,8 @@ description = "Yog graphics subsystem — low-level GPU pipeline access for mods
 
 [dependencies]
 yog-abi = "0.30"
+# The graphics primitives every crate shares (colours, rects, images).
+yog-graphics = "0.1"
 
 [features]
 # A graphics table that draws nothing, for tests and benchmarks.

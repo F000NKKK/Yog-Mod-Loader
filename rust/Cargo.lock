@@ -1622,6 +1622,7 @@ name = "yog-gfx"
 version = "0.27.0"
 dependencies = [
  "yog-abi",
+ "yog-graphics",
 ]
 
 [[package]]

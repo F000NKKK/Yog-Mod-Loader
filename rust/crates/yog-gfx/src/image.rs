@@ -19,6 +19,9 @@
 //! This module is the shared definition (the runtime and Yog-IDLE's designer
 //! resolve with it); mods normally only pass strings.
 
+
+use yog_graphics::{Rect, Vec2};
+
 /// A parsed image source — see the [module docs](self).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ImageSource {
@@ -132,13 +135,10 @@ pub fn suggest_alias(id: &str) -> Option<String> {
 pub struct LegacyRegion {
     /// Texture resource id.
     pub texture: &'static str,
-    pub u: f32,
-    pub v: f32,
-    pub w: f32,
-    pub h: f32,
-    /// Full texture size.
-    pub tex_w: f32,
-    pub tex_h: f32,
+    /// The region, in the texture's pixels.
+    pub region: Rect,
+    /// The whole texture's size.
+    pub texture_size: Vec2,
 }
 
 /// One entry of Yog's GUI sprite table.
@@ -149,8 +149,7 @@ pub struct Sprite {
     /// What it is, for editors' pickers.
     pub description: &'static str,
     /// Natural size in GUI pixels (1.20.2+; 1.20.1 uses the legacy region's).
-    pub w: f32,
-    pub h: f32,
+    pub size: Vec2,
     /// GUI-atlas sprite id on Minecraft 1.20.2+ (`minecraft:<id>`, i.e.
     /// `textures/gui/sprites/<id>.png`).
     pub atlas: Option<&'static str>,
@@ -162,10 +161,10 @@ pub struct Sprite {
 
 impl Sprite {
     /// Natural size on a host with (`true`) or without the GUI sprite atlas.
-    pub fn size(&self, atlas: bool) -> (f32, f32) {
+    pub fn size(&self, atlas: bool) -> Vec2 {
         match (atlas, self.legacy) {
-            (false, Some(l)) => (l.w, l.h),
-            _ => (self.w, self.h),
+            (false, Some(l)) => Vec2::new(l.region.w, l.region.h),
+            _ => self.size,
         }
     }
 
@@ -203,15 +202,7 @@ const fn region_of(
     w: f32,
     h: f32,
 ) -> Option<LegacyRegion> {
-    Some(LegacyRegion {
-        texture,
-        u,
-        v,
-        w,
-        h,
-        tex_w: size,
-        tex_h: size,
-    })
+    Some(LegacyRegion { texture, region: Rect::new(u, v, w, h), texture_size: Vec2::new(size, size) })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -227,8 +218,7 @@ const fn sprite_def(
     Sprite {
         name,
         description,
-        w,
-        h,
+        size: Vec2::new(w, h),
         atlas: Some(atlas),
         legacy,
         border,
@@ -269,8 +259,7 @@ pub const SPRITES: &[Sprite] = &[
     Sprite {
         name: "panel",
         description: "Window background (vanilla's grey frame)",
-        w: 248.0,
-        h: 166.0,
+        size: Vec2::new(248.0, 166.0),
         atlas: None,
         legacy: region(WINDOW, 0.0, 0.0, 248.0, 166.0),
         border: 4.0,
@@ -278,8 +267,7 @@ pub const SPRITES: &[Sprite] = &[
     Sprite {
         name: "slot",
         description: "Inventory slot (18×18)",
-        w: 18.0,
-        h: 18.0,
+        size: Vec2::new(18.0, 18.0),
         atlas: None,
         legacy: None,
         border: 1.0,
@@ -287,8 +275,7 @@ pub const SPRITES: &[Sprite] = &[
     Sprite {
         name: "arrow",
         description: "Crafting arrow (the crafting table's, ingredients → result)",
-        w: 24.0,
-        h: 17.0,
+        size: Vec2::new(24.0, 17.0),
         atlas: None,
         legacy: region(CRAFTING_TABLE, 89.0, 34.0, 24.0, 17.0),
         border: 0.0,
@@ -490,41 +477,34 @@ pub enum Stretch {
     UniformToFill = 3,
 }
 
-/// Where a `nat_w × nat_h` image goes in the box `(x, y, w, h)` under
-/// `stretch`: `(dest, src_fraction)` — the destination rect and the part of
-/// the image shown, as fractions `(u0, v0, u1, v1)` of the image (less than
-/// the whole for `None`/`UniformToFill` images bigger than the box).
-pub fn fit(
-    stretch: Stretch,
-    nat_w: f32,
-    nat_h: f32,
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-) -> ([f32; 4], [f32; 4]) {
-    if nat_w <= 0.0 || nat_h <= 0.0 || w <= 0.0 || h <= 0.0 {
-        return ([x, y, 0.0, 0.0], [0.0, 0.0, 1.0, 1.0]);
+/// Where an image of size `natural` goes in the box `bx` under `stretch`:
+/// `(dest, src)` — the destination rect and the part of the image shown, as
+/// a rect in fractions of the image (less than the whole for
+/// `None`/`UniformToFill` images bigger than the box).
+pub fn fit(stretch: Stretch, natural: Vec2, bx: Rect) -> (Rect, Rect) {
+    let whole = Rect::new(0.0, 0.0, 1.0, 1.0);
+    if natural.x <= 0.0 || natural.y <= 0.0 || bx.w <= 0.0 || bx.h <= 0.0 {
+        return (Rect::new(bx.x, bx.y, 0.0, 0.0), whole);
     }
     let scale = match stretch {
-        Stretch::Fill => return ([x, y, w, h], [0.0, 0.0, 1.0, 1.0]),
+        Stretch::Fill => return (bx, whole),
         Stretch::None => 1.0,
-        Stretch::Uniform => (w / nat_w).min(h / nat_h),
-        Stretch::UniformToFill => (w / nat_w).max(h / nat_h),
+        Stretch::Uniform => (bx.w / natural.x).min(bx.h / natural.y),
+        Stretch::UniformToFill => (bx.w / natural.x).max(bx.h / natural.y),
     };
-    let (dw, dh) = (nat_w * scale, nat_h * scale);
+    let d = natural * scale;
     // Per axis: centered when it fits, else cut evenly on both sides.
     let axis = |pos: f32, size: f32, d: f32| -> (f32, f32, f32, f32) {
         if d <= size {
             ((pos + (size - d) / 2.0).floor(), d, 0.0, 1.0)
         } else {
             let cut = (d - size) / 2.0 / d;
-            (pos, size, cut, 1.0 - cut)
+            (pos, size, cut, 1.0 - 2.0 * cut)
         }
     };
-    let (dx, dw, u0, u1) = axis(x, w, dw);
-    let (dy, dh, v0, v1) = axis(y, h, dh);
-    ([dx, dy, dw, dh], [u0, v0, u1, v1])
+    let (dx, dw, u, uw) = axis(bx.x, bx.w, d.x);
+    let (dy, dh, v, vh) = axis(bx.y, bx.h, d.y);
+    (Rect::new(dx, dy, dw, dh), Rect::new(u, v, uw, vh))
 }
 
 #[cfg(test)]
@@ -613,31 +593,26 @@ mod tests {
         assert!(sprite("slot").unwrap().is_procedural());
         assert_eq!(
             sprite("hotbar_selection").unwrap().size(false),
-            (24.0, 24.0)
+            Vec2::new(24.0, 24.0)
         );
-        assert_eq!(sprite("hotbar_selection").unwrap().size(true), (24.0, 23.0));
+        assert_eq!(sprite("hotbar_selection").unwrap().size(true), Vec2::new(24.0, 23.0));
     }
 
     #[test]
     fn fits_like_wpf() {
+        let icon = Vec2::new(16.0, 16.0);
+        let bx = Rect::new(0.0, 0.0, 156.0, 29.0);
+        let whole = Rect::new(0.0, 0.0, 1.0, 1.0);
         // 16×16 into 156×29.
-        let (d, s) = fit(Stretch::Uniform, 16.0, 16.0, 0.0, 0.0, 156.0, 29.0);
-        assert_eq!(d, [63.0, 0.0, 29.0, 29.0]);
-        assert_eq!(s, [0.0, 0.0, 1.0, 1.0]);
-        assert_eq!(
-            fit(Stretch::Fill, 16.0, 16.0, 1.0, 2.0, 156.0, 29.0).0,
-            [1.0, 2.0, 156.0, 29.0]
-        );
-        assert_eq!(
-            fit(Stretch::None, 16.0, 16.0, 0.0, 0.0, 156.0, 29.0).0,
-            [70.0, 6.0, 16.0, 16.0]
-        );
-        let (d, s) = fit(Stretch::UniformToFill, 16.0, 16.0, 0.0, 0.0, 156.0, 29.0);
-        assert_eq!(d, [0.0, 0.0, 156.0, 29.0]);
-        assert!((s[1] - (156.0 - 29.0) / 2.0 / 156.0).abs() < 1e-5, "{s:?}");
+        assert_eq!(fit(Stretch::Uniform, icon, bx), (Rect::new(63.0, 0.0, 29.0, 29.0), whole));
+        assert_eq!(fit(Stretch::Fill, icon, Rect::new(1.0, 2.0, 156.0, 29.0)).0, Rect::new(1.0, 2.0, 156.0, 29.0));
+        assert_eq!(fit(Stretch::None, icon, bx).0, Rect::new(70.0, 6.0, 16.0, 16.0));
+        let (d, s) = fit(Stretch::UniformToFill, icon, bx);
+        assert_eq!(d, bx);
+        assert!((s.y - (156.0 - 29.0) / 2.0 / 156.0).abs() < 1e-5, "{s:?}");
         // None, bigger than the box: cut to it.
-        let (d, s) = fit(Stretch::None, 40.0, 10.0, 0.0, 0.0, 20.0, 10.0);
-        assert_eq!(d, [0.0, 0.0, 20.0, 10.0]);
-        assert_eq!(s, [0.25, 0.0, 0.75, 1.0]);
+        let (d, s) = fit(Stretch::None, Vec2::new(40.0, 10.0), Rect::new(0.0, 0.0, 20.0, 10.0));
+        assert_eq!(d, Rect::new(0.0, 0.0, 20.0, 10.0));
+        assert_eq!(s, Rect::new(0.25, 0.0, 0.5, 1.0));
     }
 }

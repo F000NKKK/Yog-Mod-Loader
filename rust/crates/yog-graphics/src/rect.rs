@@ -60,6 +60,13 @@ impl Rect {
         Rect::from_corners(Vec2::new(self.x * s, self.y * s), Vec2::new(self.right() * s, self.bottom() * s))
     }
 
+    /// The overlap of two rects; `None` when they don't overlap.
+    pub fn intersect(&self, o: &Rect) -> Option<Rect> {
+        let (x0, y0) = (self.x.max(o.x), self.y.max(o.y));
+        let (x1, y1) = (self.right().min(o.right()), self.bottom().min(o.bottom()));
+        (x1 > x0 && y1 > y0).then_some(Rect { x: x0, y: y0, w: x1 - x0, h: y1 - y0 })
+    }
+
     pub fn union(&self, o: &Rect) -> Rect {
         let (x, y) = (self.x.min(o.x), self.y.min(o.y));
         Rect { x, y, w: self.right().max(o.right()) - x, h: self.bottom().max(o.bottom()) - y }

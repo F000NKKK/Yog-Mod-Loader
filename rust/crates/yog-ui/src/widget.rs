@@ -1,5 +1,7 @@
 //! Widget types and styling.
 
+use yog_gfx::{Color, Rect};
+
 use crate::layout::{Align, FlexDir};
 
 /// A single widget in the UI tree.
@@ -98,11 +100,11 @@ impl std::ops::BitOr for StateFlags {
 /// Paint-only style overrides — never affect layout.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct StylePatch {
-    pub bg: Option<u32>,
+    pub bg: Option<Color>,
     pub bg_image: Option<String>,
-    pub color: Option<u32>,
+    pub color: Option<Color>,
     pub shadow: Option<bool>,
-    pub focus_color: Option<u32>,
+    pub focus_color: Option<Color>,
 }
 
 impl StylePatch {
@@ -302,9 +304,9 @@ pub struct Image {
     pub stretch: Stretch,
     /// The part of the image drawn, `[u, v, w, h]` in the image's pixels
     /// (`None` = all of it). Textures only — items and sprites are whole.
-    pub region: Option<[f32; 4]>,
+    pub region: Option<Rect>,
     /// Color multiplier, `0xAARRGGBB` (`0xFFFFFFFF` = none; items ignore it).
-    pub tint: u32,
+    pub tint: Color,
 }
 
 pub use yog_gfx::image::Stretch;
@@ -337,18 +339,18 @@ pub struct TextBox {
 /// Side of an item / inventory slot box in GUI pixels (vanilla's 18).
 pub const SLOT_SIZE: f32 = 18.0;
 /// Focus indicator color when `focus_color` is 0 (amber).
-pub const DEFAULT_FOCUS_COLOR: u32 = 0xFF_FFE040;
+pub const DEFAULT_FOCUS_COLOR: Color = Color(0xFF_FFE040);
 
 /// A text box's default left/right padding.
 pub(crate) const TEXT_BOX_PAD_X: f32 = 4.0;
 /// Placeholder text color of a text box.
-pub const PLACEHOLDER_COLOR: u32 = 0xFF_707070;
+pub const PLACEHOLDER_COLOR: Color = Color(0xFF_707070);
 /// Border of an unfocused text box (vanilla `EditBox`).
-pub const TEXT_BOX_BORDER: u32 = 0xFF_A0A0A0;
+pub const TEXT_BOX_BORDER: Color = Color(0xFF_A0A0A0);
 /// Border of a focused text box unless `focus_color` is set.
-pub const TEXT_BOX_FOCUS_BORDER: u32 = 0xFF_FFFFFF;
+pub const TEXT_BOX_FOCUS_BORDER: Color = Color(0xFF_FFFFFF);
 /// Selection highlight behind selected text.
-pub const SELECTION_COLOR: u32 = 0xFF_2850A0;
+pub const SELECTION_COLOR: Color = Color(0xFF_2850A0);
 
 /// WinForms-style dock — which edge(s) the widget attaches to inside its parent.
 ///
@@ -437,17 +439,17 @@ pub struct Style {
     /// Vertical placement in its slot (grid cell, or a Row's height) — see
     /// [`VAlign`]. `None` = the parent's default.
     pub valign: Option<VAlign>,
-    pub bg: u32,    // background colour 0xAARRGGBB; 0 = transparent
+    pub bg: Color, // background colour; transparent = none
     /// Background image, drawn over `bg` and stretched to the box — a Yog
     /// image source (`sprite:button`, `sprite:panel`, `mymod:gui/frame`);
     /// sprites are nine-sliced, so frames keep their edges. Empty = none.
     pub bg_image: String,
-    pub color: u32, // text colour
+    pub color: Color, // text colour
     pub align: Align,
     pub font_scale: f32,
     pub text_shadow: bool, // MC drop-shadow behind text (HUD default; books disable it)
     pub focus_style: FocusStyle,
-    pub focus_color: u32, // 0 = DEFAULT_FOCUS_COLOR
+    pub focus_color: Color, // transparent = DEFAULT_FOCUS_COLOR
     /// Labels/buttons: never word-wrap, even if narrower than the text.
     /// For single-line titles/headers that must stay on one line — matches
     /// Patchouli, where such text overflows its box horizontally rather than
@@ -698,7 +700,7 @@ impl Widget {
         self.style.gap = v;
         self
     }
-    pub fn bg(mut self, v: u32) -> Self {
+    pub fn bg(mut self, v: Color) -> Self {
         self.style.bg = v;
         self
     }
@@ -707,7 +709,7 @@ impl Widget {
         self.style.bg_image = source.into();
         self
     }
-    pub fn color(mut self, v: u32) -> Self {
+    pub fn color(mut self, v: Color) -> Self {
         self.style.color = v;
         self
     }
@@ -731,7 +733,7 @@ impl Widget {
         self.style.focus_style = v;
         self
     }
-    pub fn focus_color(mut self, v: u32) -> Self {
+    pub fn focus_color(mut self, v: Color) -> Self {
         self.style.focus_color = v;
         self
     }
@@ -821,7 +823,7 @@ impl Widget {
         self
     }
     /// Image: multiply its colors by `tint` (`0xAARRGGBB`).
-    pub fn tint(mut self, tint: u32) -> Self {
+    pub fn tint(mut self, tint: Color) -> Self {
         if let WidgetKind::Image(i) = &mut self.kind {
             i.tint = tint;
         }

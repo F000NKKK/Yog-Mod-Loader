@@ -15,50 +15,13 @@ pub enum Align {
     End,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Rect {
-    pub x: f32,
-    pub y: f32,
-    pub w: f32,
-    pub h: f32,
-}
+pub use yog_gfx::graphics::Rect;
 
 /// Width of the strip a [`scrollbar`](crate::widget::Style::scrollbar)
 /// container reserves on its right edge.
 pub const SCROLLBAR_W: f32 = 6.0;
 /// Shortest a scrollbar knob gets.
 pub const MIN_KNOB_H: f32 = 16.0;
-
-impl Rect {
-    /// The rect shrunk by `pad` (top, right, bottom, left), never negative.
-    pub fn inset(&self, pad: [f32; 4]) -> Rect {
-        Rect {
-            x: self.x + pad[3],
-            y: self.y + pad[0],
-            w: (self.w - pad[1] - pad[3]).max(0.0),
-            h: (self.h - pad[0] - pad[2]).max(0.0),
-        }
-    }
-
-    /// Whether `(px, py)` lies inside (edges included).
-    pub fn contains(&self, px: f32, py: f32) -> bool {
-        px >= self.x && py >= self.y && px <= self.x + self.w && py <= self.y + self.h
-    }
-
-    /// The overlap of two rects; `None` when they don't overlap.
-    pub fn intersect(&self, o: &Rect) -> Option<Rect> {
-        let x0 = self.x.max(o.x);
-        let y0 = self.y.max(o.y);
-        let x1 = (self.x + self.w).min(o.x + o.w);
-        let y1 = (self.y + self.h).min(o.y + o.h);
-        (x1 > x0 && y1 > y0).then_some(Rect {
-            x: x0,
-            y: y0,
-            w: x1 - x0,
-            h: y1 - y0,
-        })
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct LayoutNode {

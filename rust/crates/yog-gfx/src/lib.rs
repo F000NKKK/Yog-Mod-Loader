@@ -57,6 +57,10 @@ pub mod draw2d;
 pub mod gl;
 pub mod image;
 
+/// The graphics primitives every Yog crate shares.
+pub use yog_graphics as graphics;
+pub use yog_graphics::{Color, Rect, Vec2};
+
 use yog_abi::YogGfxApi;
 
 /// Handle to the GPU and draw capabilities for a single render frame.
