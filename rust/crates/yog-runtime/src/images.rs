@@ -162,26 +162,26 @@ fn draw_slot(env: &mut JNIEnv, [x, y, w, h]: [f32; 4]) {
 /// A 1.20.1 texture region, nine-sliced by `border` when stretched.
 fn draw_legacy(env: &mut JNIEnv, l: LegacyRegion, border: f32, dest: [f32; 4], tint: u32) {
     let [x, y, w, h] = dest;
-    let tex = (l.tex_w, l.tex_h);
+    let tex = (l.texture_size.x, l.texture_size.y);
     let b = border
-        .min(l.w / 2.0)
-        .min(l.h / 2.0)
+        .min(l.region.w / 2.0)
+        .min(l.region.h / 2.0)
         .min(w / 2.0)
         .min(h / 2.0);
-    if b <= 0.0 || (w == l.w && h == l.h) {
-        draw_texture(env, l.texture, dest, [l.u, l.v, l.w, l.h], tex, tint);
+    if b <= 0.0 || (w == l.region.w && h == l.region.h) {
+        draw_texture(env, l.texture, dest, [l.region.x, l.region.y, l.region.w, l.region.h], tex, tint);
         return;
     }
     // Columns/rows: (dest pos, dest size, src pos, src size).
     let cols = [
-        (x, b, l.u, b),
-        (x + b, w - 2.0 * b, l.u + b, l.w - 2.0 * b),
-        (x + w - b, b, l.u + l.w - b, b),
+        (x, b, l.region.x, b),
+        (x + b, w - 2.0 * b, l.region.x + b, l.region.w - 2.0 * b),
+        (x + w - b, b, l.region.x + l.region.w - b, b),
     ];
     let rows = [
-        (y, b, l.v, b),
-        (y + b, h - 2.0 * b, l.v + b, l.h - 2.0 * b),
-        (y + h - b, b, l.v + l.h - b, b),
+        (y, b, l.region.y, b),
+        (y + b, h - 2.0 * b, l.region.y + b, l.region.h - 2.0 * b),
+        (y + h - b, b, l.region.y + l.region.h - b, b),
     ];
     for (dy, dh, sv, sh) in rows {
         for (dx, dw, su, sw) in cols {

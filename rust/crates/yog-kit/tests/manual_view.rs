@@ -67,7 +67,7 @@ impl T0 {
             .state_style(
                 StateFlags::SELECTED,
                 StylePatch {
-                    bg: Some(0xFF333366),
+                    bg: Some(yog_gfx::Color(0xFF333366)),
                     ..Default::default()
                 },
             )
