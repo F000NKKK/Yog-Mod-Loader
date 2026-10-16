@@ -189,6 +189,10 @@ impl Server for NullServer {
     fn game_dir(&self) -> String {
         self.game_dir.clone()
     }
+
+    fn world_dir(&self) -> String {
+        self.game_dir.clone()
+    }
     fn online_players(&self) -> Vec<String> {
         Default::default()
     }
