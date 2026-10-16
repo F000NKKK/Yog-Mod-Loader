@@ -163,6 +163,20 @@ pub fn local_api_patch(api_path: &Path, extra: &[&str]) -> String {
             names.push((*name).to_string());
         }
     }
+    // Transitively: a local yog-ui may need a yog-graphics that crates.io
+    // hasn't got yet.
+    let mut i = 0;
+    while i < names.len() {
+        let deps = std::fs::read_to_string(crates_dir.join(&names[i]).join("Cargo.toml"))
+            .map(|t| yog_dependencies(&t))
+            .unwrap_or_default();
+        for dep in deps {
+            if !names.contains(&dep) {
+                names.push(dep);
+            }
+        }
+        i += 1;
+    }
     let mut out = String::from("\n[patch.crates-io]\n");
     for name in names {
         let dir = crates_dir.join(&name);
