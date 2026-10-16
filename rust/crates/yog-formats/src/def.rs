@@ -75,6 +75,13 @@ pub enum Def {
     /// A loot table of the mod's own (`hexcasting:random_scroll`, for `/loot`
     /// and other tables to roll): what it gives, as a loot modifier's `add`.
     LootTable(LootTableDef),
+    /// A number every player has, which effects change
+    /// (`hexcasting:grid_zoom`).
+    Attribute(yog_registry::AttributeDef),
+    /// A mob effect: good or bad, its colour, the attributes it changes.
+    Effect(yog_registry::EffectDef),
+    /// A potion: the effects it gives and how it's brewed.
+    Potion(yog_registry::PotionDef),
 }
 
 /// `{ kind: "loot_table", id: "random_scroll", add: [{ item: "@item:…",

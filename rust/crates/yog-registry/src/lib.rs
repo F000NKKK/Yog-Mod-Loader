@@ -16,6 +16,7 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+pub mod effects;
 pub mod loot;
 
 /// What a `.yog` registers when the game starts — content the game can't
@@ -42,6 +43,7 @@ pub fn registration_changes(registered: &str, new: &str) -> (Vec<String>, Vec<St
     let changed = new.iter().filter(|(k, h)| old.get(*k).is_some_and(|o| o != *h)).map(|(k, _)| k.clone()).collect();
     (added, removed, changed)
 }
+pub use effects::{AttributeDef, Brew, EffectCategory, EffectDef, EffectModifier, ModifierOperation, PotionDef, PotionEffect};
 pub use loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
 
 // ── Items ────────────────────────────────────────────────────────────────────

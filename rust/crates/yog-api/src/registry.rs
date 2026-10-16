@@ -2772,6 +2772,31 @@ impl Registry {
         self.on_loot(move |srv, loot| crate::loot::apply(srv, &modifier, loot));
     }
 
+    /// Register an attribute every player has — what effects change and
+    /// [`Server::entity_attribute_value`] reads.
+    pub fn register_attribute(&mut self, def: yog_registry::AttributeDef) {
+        use yog_data::Schema;
+        self.content("attribute", &def.id.clone(), &def.write());
+    }
+
+    /// Register a mob effect.
+    pub fn register_effect(&mut self, def: yog_registry::EffectDef) {
+        use yog_data::Schema;
+        self.content("effect", &def.id.clone(), &def.write());
+    }
+
+    /// Register a potion and its brewing.
+    pub fn register_potion(&mut self, def: yog_registry::PotionDef) {
+        use yog_data::Schema;
+        self.content("potion", &def.id.clone(), &def.write());
+    }
+
+    /// A compiled `.ydef` the game registers (`attribute`, `effect`,
+    /// `potion`) — the generated code calls this.
+    pub fn register_definition_data(&mut self, kind: &str, id: &str, data: &[u8]) {
+        unsafe { ((*self.api).register_content)(self.ctx(), YogStr::from_str(kind), YogStr::from_str(id), data.as_ptr(), data.len()) }
+    }
+
     /// A compiled `.ydef` loot modifier (the generated code calls this).
     pub fn add_loot_modifier_data(&mut self, id: &str, data: &[u8]) {
         match yog_data::read_bytes::<crate::loot::LootModifier>(data) {
