@@ -1624,6 +1624,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-graphics"
+version = "0.1.0"
+dependencies = [
+ "yog-data",
+]
+
+[[package]]
 name = "yog-hot-reload"
 version = "0.2.3"
 dependencies = [
