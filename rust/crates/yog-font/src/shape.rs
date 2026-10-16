@@ -2,9 +2,9 @@
 //! machines, then positions — advances and kerning, joined glyphs point to
 //! point, joined runs fitted into the line.
 
-use yog_graphics::{Rect, Vec2, path};
+use yog_graphics::{Rect, Vec2};
 
-use crate::format::{Font, Glyph, Op};
+use crate::format::{Font, Glyph};
 
 /// A glyph where shaping put it, in font units from the run's origin on the
 /// baseline (`y` up), drawn `scale` times its size.
@@ -167,15 +167,8 @@ fn kern(font: &Font, left: u32, right: u32) -> f32 {
     font.kerning.iter().find(|k| k.left == left && k.right == right).map_or(0.0, |k| k.x as f32)
 }
 
-/// What a glyph's drawing covers, in font units (`y` up; control points
-/// included); `None` for a glyph that draws nothing.
+/// What a glyph's drawing covers, in font units (`y` up); `None` for a
+/// glyph that draws nothing.
 pub fn glyph_bounds(g: &Glyph) -> Option<Rect> {
-    g.ops
-        .iter()
-        .filter_map(|op| match op {
-            Op::Fill(f) => path::bounds(&f.path, 0.0),
-            Op::Stroke(s) => path::bounds(&s.path, s.width / 2.0),
-            Op::Image(i) => Some(Rect::new(i.x, i.y, i.w, i.h)),
-        })
-        .reduce(|a, b| a.union(&b))
+    yog_graphics::draw::bounds(&g.ops)
 }

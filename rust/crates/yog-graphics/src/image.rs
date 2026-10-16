@@ -1,9 +1,11 @@
 //! RGBA images.
 
+use yog_data::Schema;
+
 use crate::color::Color;
 
 /// Pixels, RGBA8 row by row from the top, straight alpha.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Schema, Debug, Clone, PartialEq, Default)]
 pub struct Image {
     pub width: u32,
     pub height: u32,

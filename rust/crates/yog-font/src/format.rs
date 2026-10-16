@@ -3,11 +3,11 @@
 //! script's rules). Yog Data, binary.
 //!
 //! Units are the font's own (`units_per_em` to an em), `y` up from the
-//! baseline. A glyph is drawing — paths filled or stroked, pictures —
-//! never a notion of what it's for.
+//! baseline. A glyph is a drawing ([`Op`]: paths filled or stroked,
+//! images) — never a notion of what it's for.
 
 use yog_data::Schema;
-use yog_graphics::{Color, Seg};
+use yog_graphics::Op;
 
 /// A font: its metrics, its glyphs, which characters they draw and the
 /// rules that turn text into glyphs ([`crate::shape`]).
@@ -50,7 +50,7 @@ pub struct Glyph {
     /// How far the pen moves after it.
     #[data(default)]
     pub advance: i32,
-    /// Its drawing, in order.
+    /// Its drawing, in order; parts without a colour take the text's.
     #[data(default)]
     pub ops: Vec<Op>,
     /// Where the glyph before it, if that one has an [`Glyph::exit`], joins it
@@ -59,52 +59,6 @@ pub struct Glyph {
     pub entry: Option<[i32; 2]>,
     /// Where the glyph after it joins it.
     pub exit: Option<[i32; 2]>,
-}
-
-/// One step of a glyph's drawing.
-#[derive(Schema, Debug, Clone, PartialEq)]
-#[data(tag = "op")]
-pub enum Op {
-    /// A path's inside painted (non-zero winding).
-    Fill(Fill),
-    /// A path's outline painted, round-joined and capped.
-    Stroke(Stroke),
-    /// A picture in a box.
-    Image(Image),
-}
-
-#[derive(Schema, Debug, Clone, PartialEq)]
-pub struct Fill {
-    pub path: Vec<Seg>,
-    /// None: the text's colour.
-    pub color: Option<Color>,
-}
-
-#[derive(Schema, Debug, Clone, PartialEq)]
-pub struct Stroke {
-    pub path: Vec<Seg>,
-    /// How wide, in units.
-    pub width: f32,
-    /// None: the text's colour.
-    pub color: Option<Color>,
-}
-
-/// A picture in the box `x, y` (bottom-left) `w × h` units.
-#[derive(Schema, Debug, Clone, PartialEq)]
-pub struct Image {
-    pub x: f32,
-    pub y: f32,
-    pub w: f32,
-    pub h: f32,
-    /// Its pixels' size.
-    pub px_w: u32,
-    pub px_h: u32,
-    /// Its pixels, row by row from the top.
-    pub pixels: Vec<Color>,
-    /// Whether the text's colour tints it (a picture in one colour, white
-    /// for the text's own); else it keeps its colours.
-    #[data(default)]
-    pub tinted: bool,
 }
 
 /// Character `char` (a Unicode scalar) is drawn by glyph `glyph`.

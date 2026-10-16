@@ -3,8 +3,8 @@
 //! draw text with.
 //!
 //! A font ([`Font`], a `.yfont` file) is drawing, as a PDF is: its glyphs
-//! are paths filled or stroked and pictures, never a notion of what they're
-//! for. Whatever it's built from — a TrueType file, a picture of glyphs,
+//! are `yog_graphics` drawings — paths filled or stroked, images — never a
+//! notion of what they're for. Whatever it's built from — a TrueType file, a picture of glyphs,
 //! pixels drawn in the editor, a script's rules — it ends up this.
 //!
 //! Text becomes glyphs by [`shape`]: characters to glyphs, ligatures,
@@ -17,7 +17,7 @@ pub mod format;
 pub mod raster;
 pub mod shape;
 
-pub use format::{CharGlyph, Fill, Fit, Font, Glyph, GlyphClass, Image, Kern, Ligature, Machine, Op, Stroke, Transition};
+pub use format::{CharGlyph, Fit, Font, Glyph, GlyphClass, Kern, Ligature, Machine, Transition};
 pub use shape::{Placed, Shaped, shape};
 
 #[cfg(test)]

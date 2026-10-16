@@ -1,8 +1,8 @@
 //! Glyphs to pixels, on a [`Canvas`].
 
-use yog_graphics::{Canvas, Color, PlacedImage, Rect, Vec2, path};
+use yog_graphics::{Canvas, Color, PlacedImage, Rect, Vec2};
 
-use crate::format::{Font, Glyph, Op};
+use crate::format::{Font, Glyph};
 use crate::shape::{Shaped, glyph_bounds};
 
 /// Glyph `glyph` of `font` drawn `scale` pixels to a unit, its text-coloured
@@ -53,22 +53,7 @@ impl Drawing {
 
     fn glyph(&mut self, g: &Glyph, s: f32, at: Vec2, text_color: Color) {
         let (left, top) = (self.left, self.top);
-        let to_px = |p: Vec2| Vec2::new(p.x * s + at.x - left, top - (p.y * s + at.y));
-        for op in &g.ops {
-            match op {
-                Op::Fill(f) => self.canvas.fill(&path::flatten(&f.path, to_px), f.color.unwrap_or(text_color)),
-                Op::Stroke(st) => self.canvas.stroke(&path::flatten(&st.path, to_px), st.width * s, st.color.unwrap_or(text_color)),
-                Op::Image(i) => {
-                    let image = yog_graphics::Image {
-                        width: i.px_w,
-                        height: i.px_h,
-                        rgba: i.pixels.iter().flat_map(|c| c.to_rgba8()).collect(),
-                    };
-                    let dst = Rect::from_corners(to_px(Vec2::new(i.x, i.y)), to_px(Vec2::new(i.x + i.w, i.y + i.h)));
-                    self.canvas.image(&image, dst, i.tinted.then_some(text_color));
-                }
-            }
-        }
+        self.canvas.draw(&g.ops, |p: Vec2| Vec2::new(p.x * s + at.x - left, top - (p.y * s + at.y)), s, text_color);
     }
 
     fn finish(self) -> PlacedImage {

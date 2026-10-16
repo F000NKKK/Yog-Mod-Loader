@@ -1,10 +1,12 @@
 //! Axis-aligned rectangles.
 
+use yog_data::Schema;
+
 use crate::math::Vec2;
 
 /// A rectangle: its corner `x, y` (the one with the smallest coordinates)
 /// and its size.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Default)]
 pub struct Rect {
     pub x: f32,
     pub y: f32,

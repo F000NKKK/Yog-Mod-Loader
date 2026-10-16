@@ -1,4 +1,4 @@
-use yog_graphics::{Color, Seg};
+use yog_graphics::{Color, Fill, Op, Seg, Stroke};
 
 use crate::format::*;
 use crate::{raster, shape};
