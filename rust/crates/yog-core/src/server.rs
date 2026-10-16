@@ -228,8 +228,17 @@ pub trait Server {
 
     // ── misc ────────────────────────────────────────────────────────────────
 
-    /// Absolute path of the game / server root directory.
+    /// Absolute path of the game / server root directory: what belongs to
+    /// the install (configs), not to a world.
     fn game_dir(&self) -> String;
+
+    /// Absolute path of the directory of the world being played (its save) —
+    /// where what belongs to this world is kept ([`crate`]'s users open
+    /// their world storage here). The game's directory where a host can't
+    /// say (an older one).
+    fn world_dir(&self) -> String {
+        self.game_dir()
+    }
 
     /// Names of all currently connected players.
     fn online_players(&self) -> Vec<String>;

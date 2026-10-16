@@ -5,25 +5,32 @@
 //! use yog_storage::{Storage, Value};
 //!
 //! // Global store — one file per mod
-//! let mut store = Storage::open("/path/to/game", "mymod");
+//! let mut store = Storage::open("/path/to/world", "mymod");
 //! store.set("motd", "Hello!");
 //! store.set("spawn_x", 0i64);
 //!
 //! // Per-player store — one file per UUID
-//! let mut ps = Storage::open_player("/path/to/game", "mymod", "player-uuid");
+//! let mut ps = Storage::open_player("/path/to/world", "mymod", "player-uuid");
 //! ps.set("coins", 100i64);
 //! let coins = ps.get_int("coins").unwrap_or(0);
 //!
 //! // Auto-flushed on drop.  Call flush() explicitly for earlier persistence.
 //! ```
 //!
+//! # Where
+//! Every store lives under a `root`: the world's directory
+//! (`Server::world_dir`) for what belongs to the world being played — its
+//! blocks' state, its players' progress, its dimensions — or the game's
+//! (`Server::game_dir`) for what belongs to the install, whatever world
+//! (settings).
+//!
 //! # File layout
 //! ```text
-//! <game_dir>/yog-data/<mod_id>/global.kv
-//! <game_dir>/yog-data/<mod_id>/player/<uuid>.kv
-//! <game_dir>/yog-data/<mod_id>/world/<dim_safe>.kv
-//! <game_dir>/yog-data/<mod_id>/entity/<uuid>.kv
-//! <game_dir>/yog-data/<mod_id>/chunk/<dim_safe>_<cx>_<cz>.kv
+//! <root>/yog-data/<mod_id>/global.kv
+//! <root>/yog-data/<mod_id>/player/<uuid>.kv
+//! <root>/yog-data/<mod_id>/world/<dim_safe>.kv
+//! <root>/yog-data/<mod_id>/entity/<uuid>.kv
+//! <root>/yog-data/<mod_id>/chunk/<dim_safe>_<cx>_<cz>.kv
 //! ```
 //!
 //! # File format
@@ -185,43 +192,43 @@ pub struct Storage {
 impl Storage {
     // ── constructors ─────────────────────────────────────────────────────────
 
-    /// Open the **global** store for `mod_id`.
-    pub fn open(game_dir: &str, mod_id: &str) -> Self {
-        Self::from_path(scope_path(game_dir, mod_id, StorageScope::Global))
+    /// Open the **global** store for `mod_id` under `root` (see [the crate docs](crate)).
+    pub fn open(root: &str, mod_id: &str) -> Self {
+        Self::from_path(scope_path(root, mod_id, StorageScope::Global))
     }
 
     /// Open a store with an explicit [`StorageScope`].
-    pub fn open_scoped(game_dir: &str, mod_id: &str, scope: StorageScope<'_>) -> Self {
-        Self::from_path(scope_path(game_dir, mod_id, scope))
+    pub fn open_scoped(root: &str, mod_id: &str, scope: StorageScope<'_>) -> Self {
+        Self::from_path(scope_path(root, mod_id, scope))
     }
 
     /// Open a **per-player** store (keyed by player UUID).
-    pub fn open_player(game_dir: &str, mod_id: &str, player_uuid: &str) -> Self {
+    pub fn open_player(root: &str, mod_id: &str, player_uuid: &str) -> Self {
         Self::from_path(scope_path(
-            game_dir,
+            root,
             mod_id,
             StorageScope::Player(player_uuid),
         ))
     }
 
     /// Open a **per-dimension** store.
-    pub fn open_world(game_dir: &str, mod_id: &str, dimension: &str) -> Self {
-        Self::from_path(scope_path(game_dir, mod_id, StorageScope::World(dimension)))
+    pub fn open_world(root: &str, mod_id: &str, dimension: &str) -> Self {
+        Self::from_path(scope_path(root, mod_id, StorageScope::World(dimension)))
     }
 
     /// Open a **per-entity** store (keyed by entity UUID).
-    pub fn open_entity(game_dir: &str, mod_id: &str, entity_uuid: &str) -> Self {
+    pub fn open_entity(root: &str, mod_id: &str, entity_uuid: &str) -> Self {
         Self::from_path(scope_path(
-            game_dir,
+            root,
             mod_id,
             StorageScope::Entity(entity_uuid),
         ))
     }
 
     /// Open a **per-chunk** store.
-    pub fn open_chunk(game_dir: &str, mod_id: &str, dimension: &str, cx: i32, cz: i32) -> Self {
+    pub fn open_chunk(root: &str, mod_id: &str, dimension: &str, cx: i32, cz: i32) -> Self {
         Self::from_path(scope_path(
-            game_dir,
+            root,
             mod_id,
             StorageScope::Chunk(dimension, cx, cz),
         ))
@@ -349,9 +356,9 @@ impl Drop for Storage {
 
 // ── internal helpers ──────────────────────────────────────────────────────────
 
-fn scope_path(game_dir: &str, mod_id: &str, scope: StorageScope<'_>) -> PathBuf {
+fn scope_path(root: &str, mod_id: &str, scope: StorageScope<'_>) -> PathBuf {
     let safe_mod = mod_id.replace([':', '/'], "_");
-    let base = Path::new(game_dir).join("yog-data").join(safe_mod);
+    let base = Path::new(root).join("yog-data").join(safe_mod);
     match scope {
         StorageScope::Global => base.join("global.kv"),
         StorageScope::Player(uuid) => base.join("player").join(format!("{uuid}.kv")),

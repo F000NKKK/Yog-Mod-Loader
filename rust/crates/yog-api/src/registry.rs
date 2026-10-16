@@ -373,6 +373,12 @@ impl Server for CServer {
         take_owned(s.free_str, owned).unwrap_or_default()
     }
 
+    fn world_dir(&self) -> String {
+        let s = srv!(self);
+        let owned = unsafe { (s.world_dir)(s.ctx) };
+        take_owned(s.free_str, owned).unwrap_or_default()
+    }
+
     fn play_sound(
         &self,
         dimension: &str,

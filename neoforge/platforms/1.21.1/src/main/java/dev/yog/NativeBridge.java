@@ -431,6 +431,13 @@ public final class NativeBridge {
         return s.getServerDirectory().toAbsolutePath().toString();
     }
 
+    /** The directory of the world being played (its save): where mods keep what belongs to it. */
+    public static String worldDir() {
+        MinecraftServer s = server;
+        if (s == null) return null;
+        return s.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toAbsolutePath().normalize().toString();
+    }
+
     public static boolean entityAddEffect(String uuid, String effectId, int durationTicks, int amplifier, boolean showParticles) {
         Entity e = entityByUuid(uuid);
         if (!(e instanceof LivingEntity le)) return false;

@@ -1,6 +1,6 @@
 [package]
 name = "yog-abi"
-version = "0.30.4"
+version = "0.30.5"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true

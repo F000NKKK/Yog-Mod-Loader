@@ -1183,6 +1183,10 @@ unsafe extern "C" fn srv_game_dir(_ctx: *mut c_void) -> YogOwnedStr {
     unsafe { owned(bridge!("gameDir", [])) }
 }
 
+unsafe extern "C" fn srv_world_dir(_ctx: *mut c_void) -> YogOwnedStr {
+    unsafe { owned(bridge!("worldDir", [])) }
+}
+
 unsafe extern "C" fn srv_entity_get_nbt(_ctx: *mut c_void, uuid: YogStr) -> YogOwnedStr {
     unsafe { owned(bridge!("entityGetNbt", [S(uuid)])) }
 }
@@ -3113,6 +3117,7 @@ fn build_server_table() -> YogServer {
         entity_set_dimensions: srv_entity_set_dimensions,
         entity_data_set: entity_data::srv_entity_data_set,
         entity_data_get: entity_data::srv_entity_data_get,
+        world_dir: srv_world_dir,
         entity_set_fall_distance: srv_entity_set_fall_distance,
         redstone_signal: srv_redstone_signal,
         set_redstone_output: srv_set_redstone_output,

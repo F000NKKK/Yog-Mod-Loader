@@ -18,7 +18,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 4;
+pub const ABI_MINOR: u32 = 5;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1272,6 +1272,12 @@ pub struct YogServer {
     /// The value under `key`, written to `sink`; `false` if there's none.
     pub entity_data_get:
         unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, key: YogStr, sink: *mut c_void, write: YogBytesSink) -> bool,
+
+    // ── ABI 3.5 — the world's save ──────────────────────────────────────────
+    /// The directory of the world being played (its save: `saves/<world>`
+    /// on a client, the level directory on a server) — where a mod keeps
+    /// what belongs to this world. Free with `free_str`.
+    pub world_dir: unsafe extern "C" fn(ctx: *mut c_void) -> YogOwnedStr,
 }
 
 // ctx = *mut JavaVM which is global/stable. All fn ptrs are pure C-ABI.
@@ -1654,7 +1660,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (30004, 0x840b_06ee_cd95_a5c4), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (30005, 0x0c3c_8040_2f5e_f32c), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]
