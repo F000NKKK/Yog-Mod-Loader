@@ -35,9 +35,18 @@ public final class YogNativeRuntime {
                 throw new IllegalStateException("embedded Yog runtime not found: " + resource);
             }
             Path tmp = Files.createTempFile(LIB_BASE_NAME, "-" + libName());
-            Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+            try {
+                Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+                System.load(tmp.toAbsolutePath().toString());
+            } catch (IOException | RuntimeException | Error e) {
+                try {
+                    Files.deleteIfExists(tmp);
+                } catch (IOException cleanup) {
+                    e.addSuppressed(cleanup);
+                }
+                throw e;
+            }
             tmp.toFile().deleteOnExit();
-            System.load(tmp.toAbsolutePath().toString());
         } catch (IOException e) {
             throw new RuntimeException("failed to load the Yog native runtime", e);
         }
