@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 /**
  * Locating and loading the embedded native Yog runtime. Pure Java — shared
@@ -30,6 +31,7 @@ public final class YogNativeRuntime {
      */
     public static void loadEmbedded() {
         String resource = NATIVES_ROOT + platformTag() + "/" + libName();
+        cleanupStaleNativeExtractions(Path.of(System.getProperty("java.io.tmpdir")));
         try (InputStream in = YogNativeRuntime.class.getResourceAsStream(resource)) {
             if (in == null) {
                 throw new IllegalStateException("embedded Yog runtime not found: " + resource);
@@ -50,6 +52,65 @@ public final class YogNativeRuntime {
         } catch (IOException e) {
             throw new RuntimeException("failed to load the Yog native runtime", e);
         }
+    }
+
+    private static void cleanupStaleNativeExtractions(Path tempDir) {
+        if (!Files.isDirectory(tempDir)) {
+            return;
+        }
+        try (Stream<Path> files = Files.list(tempDir)) {
+            for (Path file : files.toList()) {
+                Long pid = extractionOwnerPid(file.getFileName().toString());
+                if (pid != null && !ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)) {
+                    Files.deleteIfExists(file);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("failed to clean stale Yog native extractions", e);
+        }
+    }
+
+    private static Long extractionOwnerPid(String fileName) {
+        if (!fileName.startsWith("yog-")) {
+            return null;
+        }
+        String baseName;
+        if (fileName.endsWith(".so")) {
+            baseName = fileName.substring(0, fileName.length() - 3);
+        } else if (fileName.endsWith(".dll")) {
+            baseName = fileName.substring(0, fileName.length() - 4);
+        } else if (fileName.endsWith(".dylib")) {
+            baseName = fileName.substring(0, fileName.length() - 6);
+        } else {
+            return null;
+        }
+
+        int counterSeparator = baseName.lastIndexOf('-');
+        int pidSeparator = counterSeparator > 0 ? baseName.lastIndexOf('-', counterSeparator - 1) : -1;
+        if (pidSeparator <= "yog-".length()
+                || !isDigits(baseName, pidSeparator + 1, counterSeparator)
+                || !isDigits(baseName, counterSeparator + 1, baseName.length())) {
+            return null;
+        }
+        try {
+            long pid = Long.parseLong(baseName.substring(pidSeparator + 1, counterSeparator));
+            return pid > 0 ? pid : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static boolean isDigits(String value, int start, int end) {
+        if (start >= end) {
+            return false;
+        }
+        for (int i = start; i < end; i++) {
+            char digit = value.charAt(i);
+            if (digit < '0' || digit > '9') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** {@code <gameDir>/yog-mods}, created if missing; absolute path string for {@code nativeInit}. */
