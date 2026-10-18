@@ -94,7 +94,7 @@ yog-font = { version = "0.3.0", path = "crates/yog-font" }
 yog-formats = { version = "0.11.2", path = "crates/yog-formats" }
 yog-gfx = { version = "0.30.0", path = "crates/yog-gfx" }
 yog-graphics = { version = "0.3.0", path = "crates/yog-graphics" }
-yog-home = { version = "0.1.1", path = "crates/yog-home" }
+yog-home = { version = "0.2.0", path = "crates/yog-home" }
 yog-hot-reload = { version = "0.2.3", path = "crates/yog-hot-reload" }
 yog-ids = { version = "0.2.1", path = "crates/yog-ids" }
 yog-media = { version = "0.3.0", path = "crates/yog-media" }
