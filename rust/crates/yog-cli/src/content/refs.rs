@@ -6,7 +6,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-pub use yog_formats::tags::{describe_hosts, hosts, tag_hosts, tag_registry, tags_known, yog_tag_for};
+pub use yog_formats::tags::{describe_hosts, hosts, tag_hosts, tags_known, yog_tag_for};
 use std::sync::LazyLock;
 
 use yog_formats::book::refs::bare;
@@ -185,7 +185,7 @@ impl Known {
         let Some((ns, _)) = id.split_once(':') else {
             return Err(format!("`{id}`: write the tag's namespace (`yog:{id}`, `{}:{id}`)", self.ns));
         };
-        if !tags_known(ns) || tag_hosts(tag_registry(kind), id).is_some() {
+        if !tags_known(ns) || tag_hosts(yog_ids::registry_of(kind), id).is_some() {
             return Ok(());
         }
         Err(if ns == "yog" {

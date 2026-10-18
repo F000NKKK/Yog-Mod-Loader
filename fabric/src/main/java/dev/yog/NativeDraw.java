@@ -41,14 +41,10 @@ public final class NativeDraw {
         }
     }
 
-    /** True for "" and minecraft:default — the plain text path. */
-    private static boolean isDefaultFont(String font) {
-        return font == null || font.isEmpty() || font.equals("minecraft:default");
-    }
 
     /** text — its Yog rich-text spans as styles (see {@link dev.yog.util.YogText}) — in the font id font. */
     private static net.minecraft.text.Text styled(String text, String font) {
-        Identifier id = isDefaultFont(font) ? null : Identifier.tryParse(font);
+        Identifier id = YogIds.isDefaultFont(font) ? null : Identifier.tryParse(font);
         net.minecraft.text.MutableText out = net.minecraft.text.Text.empty();
         for (dev.yog.util.YogText.Run r : dev.yog.util.YogText.runs(text)) {
             net.minecraft.text.Style st = net.minecraft.text.Style.EMPTY;
@@ -63,7 +59,7 @@ public final class NativeDraw {
 
     /** drawText in a font: "minecraft:uniform", a resource-pack font id, ... */
     public static void drawTextFont(String text, String font, float x, float y, int color, boolean shadow) {
-        if (isDefaultFont(font)) {
+        if (YogIds.isDefaultFont(font)) {
             drawText(text, x, y, color, shadow);
             return;
         }
@@ -78,7 +74,7 @@ public final class NativeDraw {
     public static float textWidth(String text, String font) {
         var tr = MinecraftClient.getInstance().textRenderer;
         if (tr == null) return 0f;
-        return isDefaultFont(font) && !dev.yog.util.YogText.rich(text) ? tr.getWidth(text) : tr.getWidth(styled(text, font));
+        return YogIds.isDefaultFont(font) && !dev.yog.util.YogText.rich(text) ? tr.getWidth(text) : tr.getWidth(styled(text, font));
     }
 
     public static void drawRect(float x1, float y1, float x2, float y2, int color) {
@@ -354,7 +350,7 @@ public final class NativeDraw {
         ctx.getMatrices().push();
         ctx.getMatrices().translate(x, y, 0f);
         ctx.getMatrices().scale(scale, scale, 1f);
-        if (isDefaultFont(font)) drawText(text, 0, 0, color, shadow);
+        if (YogIds.isDefaultFont(font)) drawText(text, 0, 0, color, shadow);
         else drawTextFont(text, font, 0, 0, color, shadow);
         ctx.getMatrices().pop();
     }

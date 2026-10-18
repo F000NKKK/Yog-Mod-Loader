@@ -2,6 +2,7 @@
 //! `yog_formats::book`) are drawn with, in the game and in Yog-IDLE
 //! ([`BookRenderer`], `draw2d` alone).
 
+pub mod layout_picture;
 pub mod markup;
 pub mod recipe_area;
 pub mod renderer;

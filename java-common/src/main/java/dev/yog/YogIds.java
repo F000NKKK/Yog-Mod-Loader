@@ -1,32 +1,45 @@
 package dev.yog;
 
 /**
- * The namespaces and id forms Yog's content uses, in one place for every
- * host: the version-neutral side of ids (strings); each host wraps the
- * results in its game version's id type.
+ * Working with ids — the version-neutral side (strings) of what every host
+ * does with them; the names themselves are {@link YogNames} (generated from
+ * yog-ids). Each host wraps the results in its game version's id type.
  */
 public final class YogIds {
     private YogIds() {}
 
-    /** The game's namespace. */
-    public static final String MINECRAFT = "minecraft";
-    /** Yog's own namespace: its tags and its stable aliases of the game's content. */
-    public static final String YOG = "yog";
-    /** Yog's alias of one of the game's potions: {@code yog:potion/<name>}. */
-    public static final String POTION_ALIAS = YOG + ":potion/";
-    private static final String YOG_PREFIX = YOG + ":";
+    private static final String YOG_PREFIX = YogNames.Ns.YOG + YogNames.Sep.NAMESPACE;
+    private static final String ATTRIBUTE_NAME_KEY = "attribute.name.";
+
+    /** {@code id}'s namespace; a bare path is the game's. */
+    public static String namespace(String id) {
+        int sep = id.indexOf(YogNames.Sep.NAMESPACE);
+        return sep < 0 ? YogNames.Ns.MINECRAFT : id.substring(0, sep);
+    }
+
+    /** {@code id}'s path. */
+    public static String path(String id) {
+        return id.substring(id.indexOf(YogNames.Sep.NAMESPACE) + 1);
+    }
+
+    /** {@code ns:path}. */
+    public static String join(String ns, String path) {
+        return ns + YogNames.Sep.NAMESPACE + path;
+    }
 
     /** The translation key of attribute {@code id}'s name: {@code attribute.name.<ns>.<path>}. */
     public static String attributeNameKey(String id) {
-        int colon = id.indexOf(':');
-        String ns = colon < 0 ? MINECRAFT : id.substring(0, colon);
-        String path = id.substring(colon + 1);
-        return "attribute.name." + ns + "." + path;
+        return ATTRIBUTE_NAME_KEY + namespace(id) + "." + path(id);
+    }
+
+    /** Whether {@code font} is the game's default font (an empty one is). */
+    public static boolean isDefaultFont(String font) {
+        return font == null || font.isEmpty() || font.equals(YogNames.Game.DEFAULT_FONT);
     }
 
     /** Whether {@code id} is Yog's alias of one of the game's potions. */
     public static boolean isPotionAlias(String id) {
-        return id.startsWith(POTION_ALIAS);
+        return id.startsWith(YogNames.Yog.POTION_ALIAS);
     }
 
     /**
@@ -35,8 +48,8 @@ public final class YogIds {
      * ({@code minecraft:awkward}); a mod's id is itself.
      */
     public static String gamePotionId(String id) {
-        if (isPotionAlias(id)) return MINECRAFT + ":" + id.substring(POTION_ALIAS.length());
-        if (id.startsWith(YOG_PREFIX)) return MINECRAFT + ":" + id.substring(YOG_PREFIX.length());
+        if (isPotionAlias(id)) return join(YogNames.Ns.MINECRAFT, id.substring(YogNames.Yog.POTION_ALIAS.length()));
+        if (id.startsWith(YOG_PREFIX)) return join(YogNames.Ns.MINECRAFT, id.substring(YOG_PREFIX.length()));
         return id;
     }
 }

@@ -13,7 +13,7 @@ public final class YogHangingWire {
     private YogHangingWire() {}
 
     /** The entity data key ({@code yog_api::entities::HANGING}). */
-    public static final String KEY = "yog:hanging";
+    public static final String KEY = dev.yog.YogNames.Yog.HANGING;
 
     /** {@code facing}: {@code north}, {@code south}, {@code west} or {@code east}; {@code nbt}: the item's custom data. */
     public static byte[] encode(String facing, int width, int height, String item, String nbt) {

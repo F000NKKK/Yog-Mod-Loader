@@ -37,11 +37,7 @@ pub fn tr(key: &str) -> String {
 /// (`yog:ingots/iron`): the translation recipe viewers show
 /// (`tag.item.yog.ingots.iron`), else the id itself.
 pub fn tag_name(kind: &str, id: &str) -> String {
-    let registry = match kind {
-        "entity" => "entity_type",
-        "biome" => "worldgen.biome",
-        other => other,
-    };
+    let registry = yog_ids::registry_of(kind).replace(yog_ids::sep::PATH, ".");
     let key = format!("tag.{registry}.{}", id.replace([':', '/'], "."));
     translation(&key).map_or_else(|| id.to_string(), |text| format_translation(&text, &[]))
 }

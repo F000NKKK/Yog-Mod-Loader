@@ -18,7 +18,7 @@ pub fn for_version(version: &str, file: &str) -> String {
 /// (`block`, `item`, …).
 pub fn tag_file(kind: &str, tag: &str) -> String {
     let (ns, path) = yog_ids::split(tag);
-    format!("{DATA}/{ns}/{TAGS}/{}/{path}.json", yog_formats::tags::tag_registry(kind))
+    format!("{DATA}/{ns}/{TAGS}/{}/{path}.json", yog_ids::registry_of(kind))
 }
 
 #[cfg(test)]

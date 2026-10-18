@@ -59,7 +59,7 @@ public final class YogTags {
                     String[] p = line.trim().split("\\s+");
                     if (p.length == 4 && p[0].equals("tag")) {
                         TAGS.put(p[1] + " " + p[2], Set.of(p[3].split(",")));
-                    } else if (p.length >= 4 && p[0].equals("yog")) {
+                    } else if (p.length >= 4 && p[0].equals(dev.yog.YogNames.Ns.YOG)) {
                         YOG.put(p[1] + " " + p[2], List.of(p).subList(3, p.length));
                     } else if (p.length >= 4 && p[0].equals("base")) {
                         BASE.put(p[1] + " " + p[2], List.of(p).subList(3, p.length));
@@ -88,7 +88,7 @@ public final class YogTags {
      * (a mod's own, a datapack's) are taken to be.
      */
     public static boolean has(String registry, String id) {
-        if (id.startsWith("yog:")) {
+        if (id.startsWith(dev.yog.YogNames.Ns.YOG + dev.yog.YogNames.Sep.NAMESPACE)) {
             String key = registry + " " + id.substring(4);
             List<String> of = YOG.get(key);
             return of == null || BASE.containsKey(key) || of.stream().anyMatch(t -> has(registry, t));
@@ -117,7 +117,7 @@ public final class YogTags {
             String[] key = e.getKey().split(" ", 2);
             String registry = key[0], path = key[1];
             List<String> tags = tagsHere(registry, path);
-            Path file = tagFile(pack, registry, "yog:" + path, mc121);
+            Path file = tagFile(pack, registry, dev.yog.YogIds.join(dev.yog.YogNames.Ns.YOG, path), mc121);
             // The mods' entries, to the first tag it is here.
             Set<JsonElement> entries = new LinkedHashSet<>();
             if (Files.exists(file)) {

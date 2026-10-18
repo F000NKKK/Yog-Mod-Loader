@@ -39,14 +39,10 @@ public final class NativeDraw {
         }
     }
 
-    /** True for "" and minecraft:default — the plain text path. */
-    private static boolean isDefaultFont(String font) {
-        return font == null || font.isEmpty() || font.equals("minecraft:default");
-    }
 
     /** text — its Yog rich-text spans as styles (see {@link dev.yog.util.YogText}) — in the font id font. */
     private static net.minecraft.network.chat.Component styled(String text, String font) {
-        ResourceLocation id = isDefaultFont(font) ? null : ResourceLocation.tryParse(font);
+        ResourceLocation id = YogIds.isDefaultFont(font) ? null : ResourceLocation.tryParse(font);
         net.minecraft.network.chat.MutableComponent out = net.minecraft.network.chat.Component.empty();
         for (dev.yog.util.YogText.Run r : dev.yog.util.YogText.runs(text)) {
             net.minecraft.network.chat.Style st = net.minecraft.network.chat.Style.EMPTY;
@@ -61,7 +57,7 @@ public final class NativeDraw {
 
     /** drawText in a font: "minecraft:uniform", a resource-pack font id, ... */
     public static void drawTextFont(String text, String font, float x, float y, int color, boolean shadow) {
-        if (isDefaultFont(font)) {
+        if (YogIds.isDefaultFont(font)) {
             drawText(text, x, y, color, shadow);
             return;
         }
@@ -75,7 +71,7 @@ public final class NativeDraw {
     public static float textWidth(String text, String font) {
         var f = Minecraft.getInstance().font;
         if (f == null) return 0f;
-        return isDefaultFont(font) && !dev.yog.util.YogText.rich(text) ? f.width(text) : f.width(styled(text, font));
+        return YogIds.isDefaultFont(font) && !dev.yog.util.YogText.rich(text) ? f.width(text) : f.width(styled(text, font));
     }
 
     public static void drawRect(float x1, float y1, float x2, float y2, int color) {
@@ -343,7 +339,7 @@ public final class NativeDraw {
         ctx.pose().pushPose();
         ctx.pose().translate(x, y, 0f);
         ctx.pose().scale(scale, scale, 1f);
-        if (font == null || font.isEmpty() || font.equals("minecraft:default")) drawText(text, 0, 0, color, shadow);
+        if (YogIds.isDefaultFont(font)) drawText(text, 0, 0, color, shadow);
         else drawTextFont(text, font, 0, 0, color, shadow);
         ctx.pose().popPose();
     }

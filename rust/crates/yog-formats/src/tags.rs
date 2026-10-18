@@ -69,14 +69,6 @@ pub fn hosts() -> &'static [String] {
     &TAGS.hosts
 }
 
-/// The tag registry of a reference kind: `entity` → `entity_type`.
-pub fn tag_registry(kind: &str) -> &str {
-    match kind {
-        "entity" => "entity_type",
-        "biome" => "worldgen/biome",
-        other => other,
-    }
-}
 
 /// Whether the tables know tags of namespace `ns` (the game's, the loaders', Yog's).
 pub fn tags_known(ns: &str) -> bool {

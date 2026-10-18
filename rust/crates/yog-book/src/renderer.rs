@@ -55,8 +55,6 @@ pub static LANG: &[(&str, &str)] = &[
 /// The image source the book draws [`CRAFTING_PNG`] as.
 pub use yog_ids::yog::{BOOK_SHEET, CRAFTING_SHEET};
 
-/// A slot frame on [`CRAFTING_SHEET`], 24×24, the item inside at +4,+4.
-pub const FRAME_UV: [f32; 4] = [83.0, 71.0, 24.0, 24.0];
 
 /// Blocks shown at a slot's angle (a station), as the game shows a block
 /// item; a multiblock turns slowly about the vertical, swaying this far.
@@ -1462,6 +1460,7 @@ fn draw_layout(
     sx: f32,
     sy: f32,
 ) {
+    use crate::layout_picture::Piece;
     use yog_formats::book::layout::LayoutPart;
     let mut c = std::mem::replace(col, widget::panel(FlexDir::Column));
     c = c.child(
@@ -1473,96 +1472,49 @@ fn draw_layout(
     let (lx, ly) = (PAGE_W / 2.0 - 1.0 - layout.size[0] / 2.0, 10.0);
     let at = |p: [f32; 2]| (ox + (lx + p[0]) * sx, oy + (ly + p[1]) * sy);
     let icon_s = ICON_PX * sx.min(sy);
-    let frame = |bg: &mut Vec<BgSprite>, p: [f32; 2]| {
-        let (x, y) = at([p[0] - 4.0, p[1] - 4.0]);
-        let [u, v, uw, uh] = FRAME_UV;
-        bg.push(BgSprite {
-            sheet: SpriteSheet::Crafting,
-            src: Rect::new(u, v, uw, uh),
-            dst: Rect::new(x, y, uw * sx, uh * sy),
-        });
+    let scaled = |r: Rect| {
+        let (x, y) = at([r.x, r.y]);
+        Rect::new(x, y, r.w * sx, r.h * sy)
     };
+    for piece in crate::layout_picture::pieces(layout) {
+        match piece {
+            Piece::Image { source, uv, at: r } => bg_sprites.push(BgSprite {
+                sheet: if source == CRAFTING_SHEET { SpriteSheet::Crafting } else { SpriteSheet::Image(source.to_string()) },
+                src: uv,
+                dst: scaled(r),
+            }),
+            Piece::Item { item, at: r } => {
+                let r = scaled(r);
+                overlays.push(OverlayCmd::McItem { item_id: item.to_string(), x: r.x, y: r.y, w: icon_s, h: icon_s });
+            }
+            Piece::Block { block, at: r } => {
+                let side = icon_s * r.w / ICON_PX;
+                let r = scaled(r);
+                overlays.push(OverlayCmd::Blocks { blocks: vec![((0, 0, 0), block.to_string())], x: r.x, y: r.y, w: side, h: side, turning: false });
+            }
+        }
+    }
+    // What the recipe puts in.
     for part in &layout.parts {
         match part {
-            LayoutPart::Image { source, uv, at: p } => {
-                let (x, y) = at(*p);
-                let sheet = if source == CRAFTING_SHEET {
-                    SpriteSheet::Crafting
-                } else {
-                    SpriteSheet::Image(source.clone())
-                };
-                let [u, v, uw, uh] = *uv;
-                bg_sprites.push(BgSprite {
-                    sheet: sheet,
-                    src: Rect::new(u, v, uw, uh),
-                    dst: Rect::new(x, y, uw * sx, uh * sy),
-                });
-            }
-            LayoutPart::Slots {
-                slot,
-                at: places,
-                frame: framed,
-            } => {
+            LayoutPart::Slots { slot, at: places, .. } => {
                 let ingredients = vis.slots.get(slot);
                 for (i, p) in places.iter().enumerate() {
-                    if *framed {
-                        frame(bg_sprites, *p);
-                    }
-                    if let Some(items) =
-                        ingredients.and_then(|l| l.get(i)).filter(|x| !x.is_empty())
-                    {
+                    if let Some(items) = ingredients.and_then(|l| l.get(i)).filter(|x| !x.is_empty()) {
                         let (x, y) = at(*p);
-                        overlays.push(OverlayCmd::McItems {
-                            items: items.clone(),
-                            x,
-                            y,
-                            w: icon_s,
-                            h: icon_s,
-                        });
+                        overlays.push(OverlayCmd::McItems { items: items.clone(), x, y, w: icon_s, h: icon_s });
                     }
                 }
             }
-            LayoutPart::Result {
-                at: p,
-                frame: framed,
-            } => {
-                if *framed {
-                    frame(bg_sprites, *p);
-                }
+            LayoutPart::Result { at: p, .. } => {
                 let (x, y) = at(*p);
-                overlays.push(OverlayCmd::McItem {
-                    item_id: vis.output.clone(),
-                    x,
-                    y,
-                    w: icon_s,
-                    h: icon_s,
-                });
+                overlays.push(OverlayCmd::McItem { item_id: vis.output.clone(), x, y, w: icon_s, h: icon_s });
             }
             LayoutPart::Count { at: p } => {
                 if vis.count > 1 {
                     let (x, y) = at(*p);
-                    overlays.push(OverlayCmd::McText {
-                        text: format!("x{}", vis.count),
-                        x,
-                        y,
-                        color: theme.title,
-                    });
+                    overlays.push(OverlayCmd::McText { text: format!("x{}", vis.count), x, y, color: theme.title });
                 }
-            }
-            LayoutPart::Block { block, at: p, size } => {
-                let (x, y) = at(*p);
-                let side = icon_s * size / ICON_PX;
-                overlays.push(OverlayCmd::Blocks { blocks: vec![((0, 0, 0), block.clone())], x, y, w: side, h: side, turning: false });
-            }
-            LayoutPart::Item { item, at: p } => {
-                let (x, y) = at(*p);
-                overlays.push(OverlayCmd::McItem {
-                    item_id: item.clone(),
-                    x,
-                    y,
-                    w: icon_s,
-                    h: icon_s,
-                });
             }
             LayoutPart::Text { text, at: p } => {
                 let mut shown = text.clone();
@@ -1570,13 +1522,9 @@ fn draw_layout(
                     shown = shown.replace(&format!("{{{name}}}"), value);
                 }
                 let (x, y) = at(*p);
-                overlays.push(OverlayCmd::McText {
-                    text: shown,
-                    x,
-                    y,
-                    color: theme.text,
-                });
+                overlays.push(OverlayCmd::McText { text: shown, x, y, color: theme.text });
             }
+            LayoutPart::Image { .. } | LayoutPart::Item { .. } | LayoutPart::Block { .. } => {}
         }
     }
     // The title is 10 high; the layout, and a little room under it.

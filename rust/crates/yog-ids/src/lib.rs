@@ -136,6 +136,8 @@ names! {
         OVERLAYS = "when",
         /// An overlay's loader when it's for every loader.
         ANY_LOADER = "any",
+        /// An overlay's version when it's for every version.
+        ANY_VERSION = "any",
     }
 
     /// Yog's programs.
@@ -280,6 +282,17 @@ impl Format {
     }
 }
 
+/// The game's registry of content `kind` — what its tags' and data's
+/// folders are named: `entity` → `entity_type`, `biome` → `worldgen/biome`.
+#[must_use]
+pub fn registry_of(kind: &str) -> &str {
+    match kind {
+        kind::ENTITY => "entity_type",
+        kind::BIOME => "worldgen/biome",
+        other => other,
+    }
+}
+
 /// `ns:path`.
 pub fn join(ns: &str, path: &str) -> String {
     format!("{ns}{}{path}", sep::NAMESPACE)
@@ -364,7 +377,20 @@ mod tests {
         assert_eq!(split("stone"), ("minecraft", "stone"));
         assert_eq!(qualify("mymod:x"), "mymod:x");
         assert_eq!(Format::of(".yblock"), Some(Format::Block));
+        assert_eq!(registry_of(kind::BIOME), "worldgen/biome");
         assert_eq!(Format::Anim.file("walk"), "walk.yanim");
+    }
+
+    /// The hosts' copy (`java-common`), when this crate is in its repository.
+    #[test]
+    fn the_java_names_are_current() {
+        let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../java-common/src/main/java/dev/yog/YogNames.java");
+        let Ok(java) = std::fs::read_to_string(&file) else { return };
+        assert!(
+            java == export::java("dev.yog", "YogNames"),
+            "{} is stale: cargo run -p yog-ids --bin yog-ids-export -- --java ../java-common/src/main/java/dev/yog dev.yog YogNames",
+            file.display()
+        );
     }
 
     #[test]

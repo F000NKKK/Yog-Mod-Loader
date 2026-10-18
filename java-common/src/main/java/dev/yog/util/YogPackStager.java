@@ -34,7 +34,7 @@ public final class YogPackStager {
     public static final String PACK_DIR = ".yog-pack";
 
     /** Namespace for dimension ids that don't specify one. */
-    private static final String DEFAULT_NAMESPACE = "yog";
+    private static final String DEFAULT_NAMESPACE = dev.yog.YogNames.Ns.YOG;
     /** Chunk generator that forwards each chunk to the native per-chunk callback. */
     private static final String CALLBACK_GENERATOR = "yog:callback_generator";
     private static final int DEFAULT_MIN_Y = -64;
@@ -85,13 +85,13 @@ public final class YogPackStager {
 
         // The common files, then each overlay that applies, least specific first.
         // A version directory is the whole version or a release line of it: `1.21` covers 1.21.x.
-        java.util.List<String> versions = new java.util.ArrayList<>(java.util.List.of("any"));
+        java.util.List<String> versions = new java.util.ArrayList<>(java.util.List.of(dev.yog.YogNames.Pack.ANY_VERSION));
         String[] parts = mcVersion.split("\\.");
         for (int i = 2; i <= parts.length; i++) versions.add(String.join(".", java.util.Arrays.copyOf(parts, i)));
         java.util.List<String> layers = new java.util.ArrayList<>(java.util.List.of(""));
         for (String v : versions) {
-            layers.add("when/any/" + v + "/");
-            layers.add("when/" + loader + "/" + v + "/");
+            layers.add(overlay(dev.yog.YogNames.Pack.ANY_LOADER, v));
+            layers.add(overlay(loader, v));
         }
         for (String layer : layers) {
             try (var listing = Files.newDirectoryStream(mods, "*.yog")) {
@@ -280,5 +280,11 @@ public final class YogPackStager {
 
     private static String jstr(JsonObject o, String key, String def) {
         return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsString() : def;
+    }
+
+    /** The overlay folder of {@code loader} on {@code version}: {@code when/<loader>/<version>/}. */
+    private static String overlay(String loader, String version) {
+        String sep = dev.yog.YogNames.Sep.PATH;
+        return dev.yog.YogNames.Pack.OVERLAYS + sep + loader + sep + version + sep;
     }
 }
