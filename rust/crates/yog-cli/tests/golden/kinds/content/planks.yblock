@@ -1,1 +1,1 @@
-{ "block": { "hardness": 2, "sound": "wood", "tool": "axe" }, "model": { "parent": "cube_all", "textures": { "all": "minecraft:block/oak_planks" } } }
+{ "block": { "hardness": 2, "sound": "wood", "tool": "axe" }, "model": { "parent": "cube_all", "textures": { "all": "@texture:minecraft:block/oak_planks" } } }

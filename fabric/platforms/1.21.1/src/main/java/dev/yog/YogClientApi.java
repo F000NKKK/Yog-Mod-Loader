@@ -161,4 +161,15 @@ public final class YogClientApi {
         }
         return false;
     }
+
+    /** The items of item tag {@code id} ({@code hexcasting:edified_planks}), {@link YogNames.Sep#FIELD}-separated: what a book's recipe shows in turn. */
+    public static String tagItems(String id) {
+        Identifier tag = Identifier.tryParse(id);
+        if (tag == null) return "";
+        var items = new java.util.StringJoiner(YogNames.Sep.FIELD);
+        for (var e : Registries.ITEM.iterateEntries(net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.ITEM, tag))) {
+            items.add(Registries.ITEM.getId(e.value()).toString());
+        }
+        return items.toString();
+    }
 }

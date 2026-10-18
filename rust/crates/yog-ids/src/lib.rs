@@ -50,6 +50,8 @@ names! {
         TAG_SHOWN = "#",
         /// What joins an ingredient's alternatives where it's shown: `a | b`.
         ALTERNATIVES = "|",
+        /// What separates the fields of a host's reply to the runtime.
+        FIELD = "\t",
     }
 
     /// The kinds of content: what a reference names (`@item:…`), what a
@@ -86,6 +88,8 @@ names! {
         TREE = "tree",
         LOOT_MODIFIER = "loot_modifier",
         LOOT_TABLE = "loot_table",
+        TEXTURE = "texture",
+        MATERIAL = "material",
     }
 
     /// What a reference to content of a kind starts with: `@item:`.
@@ -99,6 +103,8 @@ names! {
         FLUID = concatcp!(sep::TYPED, kind::FLUID, sep::NAMESPACE),
         BIOME = concatcp!(sep::TYPED, kind::BIOME, sep::NAMESPACE),
         DIMENSION = concatcp!(sep::TYPED, kind::DIMENSION, sep::NAMESPACE),
+        TEXTURE = concatcp!(sep::TYPED, kind::TEXTURE, sep::NAMESPACE),
+        MATERIAL = concatcp!(sep::TYPED, kind::MATERIAL, sep::NAMESPACE),
     }
 
     /// Typed values that aren't references to content.
@@ -255,6 +261,10 @@ formats! {
     Model = "ymodel", "model";
     Anim = "yanim", "animation";
     Font = "yfont", "font";
+    /// A texture: its picture as given and how it animates.
+    Texture = "ytexture", kind::TEXTURE;
+    /// A material: the textures a surface is drawn with, and how.
+    Material = "ymaterial", kind::MATERIAL;
     /// Compiled Yog Data.
     Data = "ydata", "compiled data";
     /// A built mod.

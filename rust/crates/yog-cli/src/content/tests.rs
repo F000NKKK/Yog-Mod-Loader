@@ -17,6 +17,12 @@ fn project(files: &[(&str, &str)]) -> PathBuf {
     dir
 }
 
+/// A 1×1 PNG at `rel` under `root`.
+fn picture(root: &Path, rel: &str) {
+    let png = yog_media::image::encode_png(&yog_media::image::Image { width: 1, height: 1, rgba: vec![255, 0, 0, 255] }).unwrap();
+    std::fs::write(root.join(rel), png).unwrap();
+}
+
 fn output(c: &Compiled, path: &str) -> Value {
     let (_, b) = c
         .outputs
@@ -34,18 +40,19 @@ fn output(c: &Compiled, path: &str) -> Value {
 #[test]
 fn compiles_a_cube_block() {
     let root = project(&[
-        ("resources/block/ruby_ore.png", "png"),
-        ("content/ruby.yitem", r#"{ model: { parent: "generated", textures: { layer0: "minecraft:item/emerald" } } }"#),
+        ("resources/block/ruby_ore.ytexture", r#"{ source: "ruby_ore.png" }"#),
+        ("content/ruby.yitem", r#"{ model: { parent: "generated", textures: { layer0: "@texture:minecraft:item/emerald" } } }"#),
         (
             "content/blocks/ruby_ore.yblock",
             r#"{
   "name": "Ruby Ore",
   "block": { "hardness": 3, "resistance": 3, "sound": "stone", "tool": "pickaxe", "tool_level": "iron", "requires_tool": true,
          "drops": { "item": "@item:mymod:ruby", "count": [1, 3] } },
-  "model": { "parent": "cube_all", "textures": { "all": "block/ruby_ore.png" } }
+  "model": { "parent": "cube_all", "textures": { "all": "@texture:mymod:block/ruby_ore" } }
 }"#,
         ),
     ]);
+    picture(&root, "resources/block/ruby_ore.png");
     let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
     assert_eq!(c.blocks, 1);
     assert_eq!(
@@ -111,7 +118,7 @@ fn compiles_a_cube_block() {
 fn raw_parent_with_elements_gets_a_particle() {
     let root = project(&[(
         "content/cable.yblock",
-        r##"{ "model": { "parent": "minecraft:block/block", "textures": { "all": "minecraft:block/stone" },
+        r##"{ "model": { "parent": "minecraft:block/block", "textures": { "all": "@texture:minecraft:block/stone" },
              "elements": [ { "from": [5, 5, 5], "to": [11, 11, 11], "faces": { "up": { "texture": "#all" } } } ] } }"##,
     )]);
     let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
@@ -124,7 +131,7 @@ fn raw_parent_with_elements_gets_a_particle() {
 fn a_facing_block_turns_to_its_placer() {
     let root = project(&[(
         "content/screen.yblock",
-        r##"{ "model": { "parent": "cube_all", "textures": { "all": "minecraft:block/stone" } },
+        r##"{ "model": { "parent": "cube_all", "textures": { "all": "@texture:minecraft:block/stone" } },
              "states": { "facing": "horizontal" } }"##,
     )]);
     let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
@@ -142,12 +149,12 @@ fn compiles_elements_shape_and_connect() {
         r##"{
   "block": { "render_layer": "cutout" },
   "model": {
-"textures": { "0": "minecraft:block/stone" },
+"textures": { "0": "@texture:minecraft:block/stone" },
 "elements": [ { "from": [6, 6, 6], "to": [10, 10, 10],
                 "rotation": { "axis": "y", "angle": 22.5 },
                 "faces": { "north": { "texture": "#0", "uv": [0, 0, 4, 4], "cullface": "north" } } } ]
   },
-  "states": { "connect": { "arm": { "textures": { "0": "minecraft:block/stone" },
+  "states": { "connect": { "arm": { "textures": { "0": "@texture:minecraft:block/stone" },
  "elements": [ { "from": [6, 6, 0], "to": [10, 10, 6], "faces": { "up": { "texture": "#0" } } } ] } } }
 }"##,
     )]);
@@ -172,7 +179,7 @@ fn compiles_elements_shape_and_connect() {
 
 #[test]
 fn sound_groups_are_the_games_or_a_mods_ydef() {
-    let cube = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+    let cube = r#"model: { parent: "cube_all", textures: { all: "@texture:minecraft:block/stone" } }"#;
     let crystal = r#"{ kind: "sound_group", id: "crystal", break: "crystal.break", step: "minecraft:block.glass.step",
   place: "crystal.place", hit: "crystal.hit", fall: "crystal.fall", pitch: 1.5 }"#;
     let a = format!(r#"{{ {cube}, block: {{ sound: "@sound_group:mymod:crystal" }} }}"#);
@@ -191,7 +198,7 @@ fn sound_groups_are_the_games_or_a_mods_ydef() {
 
 #[test]
 fn tools_are_tags_and_levels_are_definitions_a_mod_can_add() {
-    let cube = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+    let cube = r#"model: { parent: "cube_all", textures: { all: "@texture:minecraft:block/stone" } }"#;
     let mythril = r#"{ kind: "level", id: "mythril", ladder: "@ladder:minecraft:tool", above: "@level:minecraft:diamond" }"#;
     let block = format!(r#"{{ {cube}, block: {{ tool: ["pickaxe", "@tag:block:mymod:mineable/hammer"], tool_level: "@level:mymod:mythril" }} }}"#);
     let c = compile(&project(&[("content/ore.yblock", &block), ("content/mythril.ydef", mythril)]), "mymod", &yres::Refs::default()).unwrap();
@@ -231,7 +238,7 @@ fn reports_errors_with_lines() {
     // The schema first: every structural problem, with its line and path.
     let root = project(&[(
         "content/bad.yblock",
-        "{\n  \"model\": {\n    \"textures\": { \"0\": \"minecraft:block/stone\" },\n    \"elements\": [ {\n      \"from\": [0, 0, 0], \"to\": [16, 16, 99],\n      \"rotation\": { \"axis\": \"q\", \"angle\": 30 },\n      \"faces\": { \"nort\": { \"texture\": \"#1\" } }\n    } ]\n  },\n  \"bogus\": 1\n}",
+        "{\n  \"model\": {\n    \"textures\": { \"0\": \"@texture:minecraft:block/stone\" },\n    \"elements\": [ {\n      \"from\": [0, 0, 0], \"to\": [16, 16, 99],\n      \"rotation\": { \"axis\": \"q\", \"angle\": 30 },\n      \"faces\": { \"nort\": { \"texture\": \"#1\" } }\n    } ]\n  },\n  \"bogus\": 1\n}",
     )]);
     let e = compile(&root, "mymod", &yres::Refs::default()).unwrap_err();
     for want in [
@@ -246,7 +253,7 @@ fn reports_errors_with_lines() {
     // Then what it means: rotations Minecraft can't do, slots that aren't there.
     let root = project(&[(
         "content/bad.yblock",
-        "{\n  model: {\n    textures: { \"0\": \"minecraft:block/stone\" },\n    elements: [ {\n      from: [0, 0, 0], to: [16, 16, 16],\n      rotation: { axis: \"x\", angle: 30 },\n      faces: { north: { texture: \"#1\" } }\n    } ]\n  },\n}",
+        "{\n  model: {\n    textures: { \"0\": \"@texture:minecraft:block/stone\" },\n    elements: [ {\n      from: [0, 0, 0], to: [16, 16, 16],\n      rotation: { axis: \"x\", angle: 30 },\n      faces: { north: { texture: \"#1\" } }\n    } ]\n  },\n}",
     )]);
     let e = compile(&root, "mymod", &yres::Refs::default()).unwrap_err();
     for want in [
@@ -261,7 +268,7 @@ fn reports_errors_with_lines() {
 #[test]
 fn compiles_recipes() {
     let root = project(&[
-        ("content/ruby.yitem", r#"{ "model": { "parent": "generated", "textures": { "layer0": "minecraft:item/emerald" } } }"#),
+        ("content/ruby.yitem", r#"{ "model": { "parent": "generated", "textures": { "layer0": "@texture:minecraft:item/emerald" } } }"#),
         (
             "content/recipes/ruby_block.yrecipe",
             r##"{ "type": "shaped", "pattern": ["RR", "RR"], "key": { "R": "@item:mymod:ruby" }, "result": "@item:minecraft:emerald_block" }"##,
@@ -322,7 +329,7 @@ fn recipe_mistakes() {
 
 #[test]
 fn block_inventory_names_a_screen() {
-    let block = r#"{ "block": { "inventory": "mymod:bench" }, "model": { "parent": "cube_all", "textures": { "all": "minecraft:block/stone" } } }"#;
+    let block = r#"{ "block": { "inventory": "mymod:bench" }, "model": { "parent": "cube_all", "textures": { "all": "@texture:minecraft:block/stone" } } }"#;
     let root = project(&[
         ("content/bench.yblock", block),
         ("src/bench.yui", r#"<Screen id="mymod:bench" width="176" height="166" x:ViewModel="Vm"><Slot index="0"/></Screen>"#),
@@ -352,7 +359,7 @@ fn compiles_a_book() {
             ]
         }]
     }"#;
-    let ruby = r#"{ "name": "Ruby", "model": { "parent": "generated", "textures": { "layer0": "minecraft:item/emerald" } } }"#;
+    let ruby = r#"{ "name": "Ruby", "model": { "parent": "generated", "textures": { "layer0": "@texture:minecraft:item/emerald" } } }"#;
     let root = project(&[("content/guide.ybook", book), ("content/ruby.yitem", ruby)]);
     let mut refs = yres::Refs::default();
     refs.texts.insert("Book.title".into(), ("mymod.book.title".into(), "Guide".into()));
@@ -423,7 +430,7 @@ fn books_use_the_mods_own_page_types() {
 
 #[test]
 fn tools_and_armor_of_the_games_materials_or_the_mods() {
-    let model = r#"model: { parent: "generated", textures: { layer0: "minecraft:item/iron_pickaxe" } }"#;
+    let model = r#"model: { parent: "generated", textures: { layer0: "@texture:minecraft:item/iron_pickaxe" } }"#;
     let level = r#"{ kind: "level", id: "mythril", ladder: "@ladder:minecraft:tool", above: "@level:minecraft:diamond" }"#;
     let tool = r#"{ kind: "tool_material", id: "mythril", durability: 1800, speed: 10, attack_damage: 3, enchantability: 18,
         level: "@level:mymod:mythril", repair: "@tag:item:c:ingots" }"#;
@@ -449,7 +456,7 @@ fn tools_and_armor_of_the_games_materials_or_the_mods() {
 
 #[test]
 fn data_naming_renamed_content_gets_each_versions_name() {
-    let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+    let model = r#"model: { parent: "cube_all", textures: { all: "@texture:minecraft:block/stone" } }"#;
     let block = format!(r#"{{ {model}, block: {{ drops: {{ item: "@item:minecraft:short_grass" }} }} }}"#);
     let c = compile(&project(&[("content/tuft.yblock", &block)]), "mymod", &yres::Refs::default()).unwrap();
     let loot = |p: &str| c.outputs.iter().find(|(q, _)| q == p).map(|(_, b)| String::from_utf8_lossy(b).to_string());
@@ -463,7 +470,7 @@ fn data_naming_renamed_content_gets_each_versions_name() {
 
 #[test]
 fn ores_become_features_in_biomes_on_every_loader() {
-    let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+    let model = r#"model: { parent: "cube_all", textures: { all: "@texture:minecraft:block/stone" } }"#;
     let block = format!(r#"{{ {model} }}"#);
     let ore = r#"{ kind: "ore", id: "mythril_ore", targets: [{ replaces: "stone", block: "@block:mymod:mythril_ore" },
         { replaces: "@block:minecraft:basalt", block: "@block:mymod:mythril_ore" }], size: 6, per_chunk: 4,
@@ -531,7 +538,7 @@ fn a_mod_has_loot_tables_of_its_own() {
 
 #[test]
 fn a_block_says_how_its_item_stacks() {
-    let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+    let model = r#"model: { parent: "cube_all", textures: { all: "@texture:minecraft:block/stone" } }"#;
     let block = format!(r#"{{ item: {{ stack_size: 16, fire_resistant: true, fuel_ticks: 300 }}, {model} }}"#);
     let plain = format!(r#"{{ {model} }}"#);
     let c = compile(&project(&[("content/log.yblock", &block), ("content/stone.yblock", &plain)]), "mymod", &yres::Refs::default()).unwrap();
@@ -542,9 +549,9 @@ fn a_block_says_how_its_item_stacks() {
 
 #[test]
 fn blocks_and_items_join_their_tags() {
-    let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+    let model = r#"model: { parent: "cube_all", textures: { all: "@texture:minecraft:block/stone" } }"#;
     let log = format!(r#"{{ tags: ["minecraft:logs", "edified_logs"], {model} }}"#);
-    let staff = r#"{ tags: ["staves"], model: { parent: "generated", textures: { layer0: "minecraft:item/stick" } } }"#;
+    let staff = r#"{ tags: ["staves"], model: { parent: "generated", textures: { layer0: "@texture:minecraft:item/stick" } } }"#;
     let c = compile(&project(&[("content/log.yblock", &log), ("content/staff.yitem", staff)]), "mymod", &yres::Refs::default()).unwrap();
     for t in ["data/minecraft/tags/block/logs.json", "data/minecraft/tags/item/logs.json", "data/mymod/tags/block/edified_logs.json", "data/mymod/tags/item/edified_logs.json"] {
         assert!(c.tags[t].contains_key("mymod:log"), "{t}");
@@ -555,7 +562,7 @@ fn blocks_and_items_join_their_tags() {
 
 #[test]
 fn trees_are_definitions() {
-    let model = r#"model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } }"#;
+    let model = r#"model: { parent: "cube_all", textures: { all: "@texture:minecraft:block/stone" } }"#;
     let block = format!(r#"{{ {model} }}"#);
     let tree = r#"{ kind: "tree", id: "glass_tree", min_clipped_height: 6,
         trunk: { blocks: [{ block: "@block:mymod:log", weight: 8 }, { block: "@block:minecraft:oak_log" }], shape: "fancy", base_height: 5, random_a: 5, random_b: 3 },
@@ -591,7 +598,7 @@ fn what_a_version_or_loader_hasnt_got_keeps_a_recipe_out_of_it() {
     let e = check(r#""@tag:item:yog:nope""#).unwrap_err();
     assert!(e.contains("no item tag yog:nope among Yog's common tags"), "{e}");
     assert!(check(r#""@tag:item:othermod:anything""#).is_ok(), "another mod's tags aren't known here");
-    let block = r#"{ tags: ["yog:planks", "yog:nope"], model: { parent: "cube_all", textures: { all: "minecraft:block/stone" } } }"#;
+    let block = r#"{ tags: ["yog:planks", "yog:nope"], model: { parent: "cube_all", textures: { all: "@texture:minecraft:block/stone" } } }"#;
     let e = compile(&project(&[("content/p.yblock", block)]), "mymod", &yres::Refs::default()).unwrap_err();
     assert!(e.contains("tags[1]: no block tag yog:nope") && !e.contains("yog:planks"), "{e}");
 }
@@ -639,7 +646,7 @@ fn a_dimension_and_its_terrain_go_to_the_runtime_as_data() {
 
 #[test]
 fn content_for_other_mods_is_registered_only_with_them() {
-    let model = r#"model: { parent: "generated", textures: { layer0: "minecraft:item/stick" } }"#;
+    let model = r#"model: { parent: "generated", textures: { layer0: "@texture:minecraft:item/stick" } }"#;
     let item = format!(r#"{{ requires: ["pehkui", "create"], {model} }}"#);
     let recipe = r#"{ requires: ["pehkui"], type: "shapeless", ingredients: ["@item:minecraft:stick"], result: "@item:minecraft:stick" }"#;
     let c = compile(&project(&[("content/shrink.yitem", &item), ("content/r.yrecipe", recipe)]), "mymod", &yres::Refs::default()).unwrap();
@@ -706,12 +713,16 @@ fn compiles_a_recipe_of_the_mods_own_kind() {
 
 #[test]
 fn compiles_an_item_with_resource_refs() {
-    let root = project(&[(
-        "content/items/ruby.yitem",
-        r#"{ "name": "@Items.ruby", "tooltip": "@Strings.ruby_tip",
+    let root = project(&[
+        (
+            "content/items/ruby.yitem",
+            r#"{ "name": "@Items.ruby", "tooltip": "@Strings.ruby_tip",
              "item": { "stack_size": 16, "food": { "nutrition": 4, "saturation": 0.3 } },
-             "model": { "parent": "generated", "textures": { "layer0": "@Textures.ruby" } } }"#,
-    )]);
+             "model": { "parent": "generated", "textures": { "layer0": "@texture:mymod:item/ruby" } } }"#,
+        ),
+        ("resources/item/ruby.ytexture", r#"{ source: "ruby.png" }"#),
+    ]);
+    picture(&root, "resources/item/ruby.png");
     let mut refs = yres::Refs::default();
     refs.texts.insert(
         "Items.ruby".into(),
@@ -721,8 +732,6 @@ fn compiles_an_item_with_resource_refs() {
         "Strings.ruby_tip".into(),
         ("mymod.ruby_tip".into(), "Shiny".into()),
     );
-    refs.images
-        .insert("Textures.ruby".into(), "mymod:item/ruby".into());
     let c = compile(&root, "mymod", &refs).unwrap();
     assert_eq!(
         output(&c, "assets/mymod/models/item/ruby.json"),
@@ -753,7 +762,7 @@ fn compiles_a_potion_item_model_without_registering_a_second_item() {
         "content/items/potion.yitem",
         r#"{ "item": { "potion": { "effects": [] } },
              "model": { "parent": "minecraft:item/potion",
-                        "textures": { "layer0": "minecraft:item/potion_overlay" } } }"#,
+                        "textures": { "layer0": "@texture:minecraft:item/potion_overlay" } } }"#,
     )]);
     let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
     assert_eq!(
@@ -774,7 +783,7 @@ fn compiles_a_potion_item_model_without_registering_a_second_item() {
 fn namespace_needed_for_odd_mod_ids() {
     let root = project(&[(
         "content/x.yitem",
-        r#"{ "model": { "parent": "generated", "textures": { "layer0": "minecraft:item/apple" } } }"#,
+        r#"{ "model": { "parent": "generated", "textures": { "layer0": "@texture:minecraft:item/apple" } } }"#,
     )]);
     let e = compile(&root, "Example-Mod", &yres::Refs::default()).unwrap_err();
     assert!(e.contains("give the namespace"), "{e}");

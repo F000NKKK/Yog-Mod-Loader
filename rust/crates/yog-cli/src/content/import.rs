@@ -15,6 +15,10 @@ use std::collections::BTreeMap;
 use std::io::Read as _;
 use std::path::{Path, PathBuf};
 
+use crate::yres::RESOURCES_DIR;
+use yog_data::Schema;
+use yog_ids::Format;
+
 const USAGE: &str = "usage:\n  yog import resourcepack <pack.zip|dir> [--model <ns:block/name|ns:item/name>] [--all] [--force]\n  yog import bbmodel <file.bbmodel> [--id <name>] [--item] [--force]";
 
 /// `yog import ...` (args after `import`).
@@ -133,15 +137,17 @@ impl Target {
         Ok(())
     }
 
-    /// Copies a texture into `resources/<path>.png` → its value in a
-    /// content file (`path.png`).
+    /// Copies a texture into `resources/<path>.png` with its
+    /// `<path>.ytexture` (the animation an `.mcmeta` gave) → its value in a
+    /// content file (`@texture:<ns>:<path>`).
     fn put_texture(
         &mut self,
+        ns: &str,
         path: &str,
         png: &[u8],
         mcmeta: Option<&[u8]>,
     ) -> Result<String, String> {
-        let rel = format!("resources/{path}.png");
+        let rel = format!("{RESOURCES_DIR}/{path}{}", yog_ids::res::PNG);
         let existing = self.root.join(&rel);
         if !(existing.is_file() && std::fs::read(&existing).ok().as_deref() == Some(png)) {
             let force = self.force;
@@ -154,13 +160,13 @@ impl Target {
                 self.write_file(&rel, png)?;
             }
         }
-        if let Some(meta) = mcmeta {
-            let rel = format!("resources/{path}.png.mcmeta");
-            if !self.root.join(&rel).is_file() || self.force {
-                self.write_file(&rel, meta)?;
-            }
+        let rel = format!("{RESOURCES_DIR}/{}", Format::Texture.file(path));
+        if !self.root.join(&rel).is_file() || self.force {
+            let file_name = std::path::Path::new(path).file_name().map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+            let texture = super::textures::from_mcmeta(&format!("{file_name}{}", yog_ids::res::PNG), mcmeta);
+            self.write_file(&rel, yog_data::text::to_string_pretty(&texture.write()).as_bytes())?;
         }
-        Ok(format!("{path}.png"))
+        Ok(format!("{}{}", yog_ids::reference::TEXTURE, yog_ids::join(ns, path)))
     }
 }
 
@@ -461,9 +467,9 @@ fn convert_model(
                             "{id}: texture {ns}:{path} is bundled as {tex_ns}:{path}"
                         ));
                     }
-                    t.put_texture(path, &png, meta.as_deref())?
+                    t.put_texture(&tex_ns, path, &png, meta.as_deref())?
                 }
-                _ => yog_ids::qualify(v),
+                _ => format!("{}{}", yog_ids::reference::TEXTURE, yog_ids::qualify(v)),
             }
         };
         tex.set(slot, J::string(value));
@@ -914,7 +920,8 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
                 .and_then(Value::as_str)
                 .filter(|f| valid_path(f))
                 .unwrap_or(folder);
-            t.put_texture(&format!("{tex_folder}/{tex_name}"), &png, None)?
+            let tns = t.texture_ns(&ns);
+            t.put_texture(&tns, &format!("{tex_folder}/{tex_name}"), &png, None)?
         } else {
             let tns = tx
                 .get("namespace")
@@ -927,7 +934,7 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
                 .filter(|s| !s.is_empty())
                 .unwrap_or(folder);
             t.warnings.push(format!("texture {tex_name} isn't embedded in the .bbmodel — referenced as {tns}:{tfolder}/{tex_name}"));
-            format!("{tns}:{tfolder}/{tex_name}")
+            format!("{}{tns}:{tfolder}/{tex_name}", yog_ids::reference::TEXTURE)
         };
         if tx.get("particle").and_then(Value::as_bool) == Some(true) {
             particle = Some(value.clone());
@@ -1168,6 +1175,11 @@ mod tests {
         assert_eq!(base64_decode("aGk").unwrap(), b"hi");
     }
 
+    /// A 1×1 PNG.
+    fn picture() -> Vec<u8> {
+        yog_media::image::encode_png(&yog_media::image::Image { width: 1, height: 1, rgba: vec![255, 0, 0, 255] }).unwrap()
+    }
+
     #[test]
     fn imports_a_pack_block_and_compiles_it() {
         let pack_dir = temp("pack");
@@ -1191,7 +1203,7 @@ mod tests {
             "assets/foo/models/item/lamp.json",
             br#"{"parent":"foo:block/lamp"}"#,
         );
-        w("assets/foo/textures/block/lamp.png", b"PNG");
+        w("assets/foo/textures/block/lamp.png", &picture());
         w(
             "assets/foo/lang/en_us.json",
             br#"{"block.foo.lamp":"Lamp"}"#,
@@ -1208,11 +1220,12 @@ mod tests {
         let text = std::fs::read_to_string(root.join("content/blocks/lamp.yblock")).unwrap();
         assert!(text.contains("\"name\": \"Lamp\""), "{text}");
         assert!(text.contains("\"render_layer\": \"cutout\""), "{text}");
-        assert!(text.contains("\"0\": \"block/lamp.png\""), "{text}");
+        assert!(text.contains("\"0\": \"@texture:mymod:block/lamp\""), "{text}");
+        assert!(root.join("resources/block/lamp.ytexture").is_file());
         assert!(!text.contains("item_model"), "{text}");
         assert_eq!(
             std::fs::read(root.join("resources/block/lamp.png")).unwrap(),
-            b"PNG"
+            picture()
         );
         let c = super::super::compile(&root, "mymod", &crate::yres::Refs::default()).unwrap();
         let bs = c
@@ -1233,7 +1246,7 @@ mod tests {
         std::fs::write(
             &bb,
             r#"{"meta":{"model_format":"java_block"},"name":"Thing","resolution":{"width":32,"height":32},
-                "textures":[{"name":"thing.png","uuid":"u1","source":"data:image/png;base64,aGVsbG8="}],
+                "textures":[{"name":"thing.png","uuid":"u1","source":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="}],
                 "elements":[{"name":"cube","from":[0,0,0],"to":[16,8,16],"origin":[8,8,8],"rotation":[0,45,0],
                   "faces":{"north":{"uv":[0,0,32,16],"texture":0},"up":{"uv":[0,0,32,32],"texture":null}}}]}"#,
         )
@@ -1244,8 +1257,8 @@ mod tests {
         assert!(text.contains("\"uv\": [0, 0, 16, 8]"), "{text}");
         assert!(!text.contains("\"up\""), "{text}");
         assert_eq!(
-            std::fs::read(root.join("resources/block/thing.png")).unwrap(),
-            b"hello"
+            yog_media::image::decode(&std::fs::read(root.join("resources/block/thing.png")).unwrap()).unwrap().width,
+            1
         );
         super::super::compile(&root, "mymod", &crate::yres::Refs::default()).unwrap();
         let _ = std::fs::remove_dir_all(root);

@@ -3,7 +3,7 @@
   "model": {
     "parent": "generated",
     "textures": {
-      "layer0": "minecraft:item/emerald"
+      "layer0": "@texture:minecraft:item/emerald"
     }
   }
 }

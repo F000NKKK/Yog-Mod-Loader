@@ -1,1 +1,1 @@
-{ "kind": "door", "model": { "textures": { "bottom": "minecraft:block/stone", "top": "minecraft:block/stone" } } }
+{ "kind": "door", "model": { "textures": { "bottom": "@texture:minecraft:block/stone", "top": "@texture:minecraft:block/stone" } } }

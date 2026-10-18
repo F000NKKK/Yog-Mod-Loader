@@ -101,7 +101,7 @@ pub(crate) enum OverlayCmd {
         h: f32,
     },
     /// One of `items` at a time, a new one every second (an ingredient's
-    /// alternatives); tags (`#…`) are skipped.
+    /// alternatives, its tags' items among them).
     McItems {
         items: Vec<String>,
         x: f32,
@@ -1502,7 +1502,7 @@ fn draw_layout(
                 for (i, p) in places.iter().enumerate() {
                     if let Some(items) = ingredients.and_then(|l| l.get(i)).filter(|x| !x.is_empty()) {
                         let (x, y) = at(*p);
-                        overlays.push(OverlayCmd::McItems { items: items.clone(), x, y, w: icon_s, h: icon_s });
+                        overlays.push(OverlayCmd::McItems { items: crate::ingredient_items(items), x, y, w: icon_s, h: icon_s });
                     }
                 }
             }

@@ -4,7 +4,7 @@
 
 use yog_data::kinds::Item;
 use yog_data::with::{Opt, RefTo};
-use yog_data::{Ordered, Reader, Res, Schema, Shape, Text, Value, ValueRef};
+use yog_data::{Ordered, Reader, Schema, Shape, Text, Value, ValueRef};
 
 use yog_registry::ToolLadder;
 use crate::def::{ArmorMaterialKind, LevelKind, SoundGroupKind, ToolMaterialKind};
@@ -669,43 +669,54 @@ impl yog_data::with::With<String> for KindRef {
     }
 }
 
-/// A texture: `#slot`, `@Set.image` (a `.yres` image), a `.png` path in
-/// `resources/`, or a texture id (`minecraft:block/stone`).
+/// A texture: a slot of the model (`#side`), or a texture by id —
+/// `@texture:mymod:block/ruby` (the mod's `.ytexture`) or the game's
+/// (`@texture:minecraft:block/stone`).
 #[derive(Debug, Clone, PartialEq)]
 pub enum Texture {
     Slot(String),
-    Res(Res),
-    /// A `.png` path or a texture id, as written.
-    Plain(String),
+    /// A texture's id, its namespace given (the game's if none).
+    Ref(String),
 }
+
+/// What a texture slot starts with: `#side`.
+pub const SLOT_MARK: char = '#';
 
 impl Schema for Texture {
     fn shape() -> Shape {
-        Shape::Image
+        Shape::Ref(&[yog_ids::kind::TEXTURE])
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         match v {
-            ValueRef::Res { .. } => Res::read(v, cx).map(Texture::Res),
-            ValueRef::Str(s) if s.starts_with('#') => {
-                if s.len() == 1 {
+            ValueRef::Str(s) if s.starts_with(SLOT_MARK) => {
+                if s.len() == SLOT_MARK.len_utf8() {
                     cx.problem("`#` needs a slot name");
                     return None;
                 }
-                Some(Texture::Slot(s[1..].to_string()))
+                Some(Texture::Slot(s[SLOT_MARK.len_utf8()..].to_string()))
             }
-            ValueRef::Str(s) if s.starts_with('@') => Res::read(v, cx).map(Texture::Res),
-            ValueRef::Str(s) => Some(Texture::Plain(s.to_string())),
+            ValueRef::Ref { kind, id } if *kind == yog_ids::kind::TEXTURE => Some(Texture::Ref(yog_ids::qualify(id))),
+            ValueRef::Str(s) if s.starts_with(yog_ids::sep::TYPED) => match yog_data::typed::classify(s) {
+                Ok(Value::Ref(r)) if r.kind == yog_ids::kind::TEXTURE => Some(Texture::Ref(yog_ids::qualify(&r.id))),
+                Ok(_) => {
+                    cx.problem(format!("`{s}`: a texture is `#slot` or `@texture:<ns>:<path>` (a .ytexture, or the game's)"));
+                    None
+                }
+                Err(e) => {
+                    cx.problem(e);
+                    None
+                }
+            },
             other => {
-                cx.expected("a texture", other);
+                cx.expected("a texture: `#slot` or `@texture:<ns>:<path>` (a .ytexture, or the game's)", other);
                 None
             }
         }
     }
     fn write(&self) -> Value {
         match self {
-            Texture::Slot(s) => Value::Str(format!("#{s}")),
-            Texture::Res(r) => Value::Res(r.clone()),
-            Texture::Plain(s) => Value::Str(s.clone()),
+            Texture::Slot(s) => Value::Str(format!("{SLOT_MARK}{s}")),
+            Texture::Ref(id) => Value::Ref(yog_data::Ref::new(yog_ids::kind::TEXTURE, id.clone())),
         }
     }
 }

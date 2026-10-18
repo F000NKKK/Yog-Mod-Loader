@@ -17,6 +17,8 @@ members = [
     "crates/yog-worldgen",
     # the names every part shares (namespaces, kinds, schemes, Yog's ids), exported to TS/Java
     "crates/yog-ids",
+    # Media as the game takes it: pictures (and sound, video) in any format
+    "crates/yog-media",
     # graphics primitives every crate shares: colors, vectors, rects, paths, images, a rasterizer
     "crates/yog-graphics",
     # fonts: one format for every text of the system, shaping and rasterizing
@@ -92,6 +94,7 @@ yog-gfx = { version = "0.28.1", path = "crates/yog-gfx" }
 yog-graphics = { version = "0.1.1", path = "crates/yog-graphics" }
 yog-hot-reload = { version = "0.2.3", path = "crates/yog-hot-reload" }
 yog-ids = { version = "0.1.0", path = "crates/yog-ids" }
+yog-media = { version = "0.1.0", path = "crates/yog-media" }
 yog-interop = { version = "0.21.4", path = "crates/yog-interop" }
 yog-inventory = { version = "0.18.0", path = "crates/yog-inventory" }
 yog-logging = { version = "0.1.1", path = "crates/yog-logging" }
@@ -111,6 +114,7 @@ serde = { version = "1", features = ["derive"] }
 linkme = "0.3"
 serde_json = "1"
 png = "0.18"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "tga"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
 jni = "0.21"
 libloading = "0.9"

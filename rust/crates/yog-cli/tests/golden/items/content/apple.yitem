@@ -11,7 +11,7 @@
   "model": {
     "parent": "generated",
     "textures": {
-      "layer0": "minecraft:item/apple"
+      "layer0": "@texture:minecraft:item/apple"
     }
   }
 }

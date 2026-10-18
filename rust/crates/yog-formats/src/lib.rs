@@ -6,8 +6,10 @@ pub mod book;
 pub mod content;
 pub mod def;
 pub mod manifest;
+pub mod material;
 pub mod recipe;
 pub mod tags;
+pub mod texture;
 pub mod yres;
 pub mod yui;
 
@@ -30,6 +32,8 @@ pub fn shape(format: Format) -> Option<Shape> {
         Format::Model => yog_body::format::ModelFile::shape(),
         Format::Anim => yog_body::format::AnimFile::shape(),
         Format::Font => yog_font::Font::shape(),
+        Format::Texture => texture::TextureFile::shape(),
+        Format::Material => material::MaterialFile::shape(),
         Format::Ui | Format::Data | Format::Mod => return None,
     })
 }

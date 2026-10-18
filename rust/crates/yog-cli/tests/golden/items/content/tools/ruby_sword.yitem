@@ -7,7 +7,7 @@
   "model": {
     "parent": "handheld",
     "textures": {
-      "layer0": "minecraft:item/diamond_sword"
+      "layer0": "@texture:minecraft:item/diamond_sword"
     }
   }
 }

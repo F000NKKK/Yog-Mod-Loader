@@ -4,7 +4,7 @@
   },
   "model": {
     "textures": {
-      "0": "minecraft:block/stone"
+      "0": "@texture:minecraft:block/stone"
     },
     "elements": [
       {
@@ -30,7 +30,7 @@
     "connect": {
       "arm": {
         "textures": {
-          "0": "minecraft:block/stone"
+          "0": "@texture:minecraft:block/stone"
         },
         "elements": [
           {

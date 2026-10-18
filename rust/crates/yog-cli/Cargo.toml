@@ -15,6 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 yog-ids = { workspace = true }
+yog-media = { workspace = true }
 # `yog publish exports` reads `#[yog_export]` items with syn, by their exact text.
 syn = { workspace = true }
 proc-macro2 = { workspace = true, features = ["span-locations"] }

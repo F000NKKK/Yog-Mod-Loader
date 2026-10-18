@@ -9,7 +9,7 @@
   "model": {
     "parent": "cube_all",
     "textures": {
-      "all": "minecraft:block/glass"
+      "all": "@texture:minecraft:block/glass"
     }
   }
 }

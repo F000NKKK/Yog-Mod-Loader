@@ -20,6 +20,7 @@ public final class YogNames {
         public static final String TYPED = "@";
         public static final String TAG_SHOWN = "#";
         public static final String ALTERNATIVES = "|";
+        public static final String FIELD = "\t";
     }
 
     public static final class Kind {
@@ -55,6 +56,8 @@ public final class YogNames {
         public static final String TREE = "tree";
         public static final String LOOT_MODIFIER = "loot_modifier";
         public static final String LOOT_TABLE = "loot_table";
+        public static final String TEXTURE = "texture";
+        public static final String MATERIAL = "material";
     }
 
     public static final class Reference {
@@ -69,6 +72,8 @@ public final class YogNames {
         public static final String FLUID = "@fluid:";
         public static final String BIOME = "@biome:";
         public static final String DIMENSION = "@dimension:";
+        public static final String TEXTURE = "@texture:";
+        public static final String MATERIAL = "@material:";
     }
 
     public static final class Typed {
@@ -173,6 +178,8 @@ public final class YogNames {
         public static final String MODEL = "ymodel";
         public static final String ANIM = "yanim";
         public static final String FONT = "yfont";
+        public static final String TEXTURE = "ytexture";
+        public static final String MATERIAL = "ymaterial";
         public static final String DATA = "ydata";
         public static final String MOD = "yog";
     }

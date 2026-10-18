@@ -1,5 +1,5 @@
 {
   "kind": "slab",
   "block": { "base": "@block:gm:planks" },
-  "model": { "textures": { "bottom": "minecraft:block/oak_planks", "top": "minecraft:block/oak_planks", "side": "minecraft:block/oak_planks" } }
+  "model": { "textures": { "bottom": "@texture:minecraft:block/oak_planks", "top": "@texture:minecraft:block/oak_planks", "side": "@texture:minecraft:block/oak_planks" } }
 }

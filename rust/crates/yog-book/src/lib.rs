@@ -25,6 +25,28 @@ pub fn set_unlocked(check: fn(&str) -> bool) {
     let _ = UNLOCKED.set(check);
 }
 
+/// The items of an item tag, as the host the book is read in knows them
+/// (the game's tags, the IDE's); a tag shows none without one.
+static TAG_ITEMS: std::sync::OnceLock<fn(&str) -> Vec<String>> = std::sync::OnceLock::new();
+
+/// Tells the books how to find an item tag's items.
+pub fn set_tag_items(items: fn(&str) -> Vec<String>) {
+    let _ = TAG_ITEMS.set(items);
+}
+
+/// `ingredient` — items, and tags (`#ns:path`) — as the items it shows in
+/// turn: each tag replaced by its items.
+pub fn ingredient_items(ingredient: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    for i in ingredient {
+        match i.strip_prefix(yog_ids::sep::TAG_SHOWN) {
+            Some(tag) => out.extend(TAG_ITEMS.get().map(|f| f(tag)).unwrap_or_default()),
+            None => out.push(i.clone()),
+        }
+    }
+    out
+}
+
 /// Whether `entry` shows in the book's lists: not secret, and its
 /// advancement (if it waits for one) had.
 pub fn shown(entry: &BookEntry) -> bool {

@@ -1214,8 +1214,8 @@ pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
     Ok(out)
 }
 
-/// Every `*.<ext>` file under `dir`, recursively.
-fn find_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
+/// Every `*.<ext>` file under `dir`, recursively, sorted.
+pub(crate) fn find_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     let mut found = Vec::new();
     let Ok(entries) = std::fs::read_dir(dir) else {
         return found;

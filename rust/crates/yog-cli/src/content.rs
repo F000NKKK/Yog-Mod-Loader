@@ -12,7 +12,7 @@
 //! - puts their names and tooltips into the lang files (a `@<Set>.<name>`
 //!   text of a `.yres` file under the key Minecraft looks up, a literal into
 //!   `en_us`);
-//! - bundles textures given as paths inside `resources/`;
+//! - builds the mod's textures (`.ytexture`, see `textures`);
 //! - generates `.yog-build/generated/yog-content.g.rs` — `Blocks`/`Items`
 //!   with an id constant and a `BlockDef`/`ItemDef` builder per entry and
 //!   a `register` function — pulled in by `yog_api::content!();`, which
@@ -32,6 +32,7 @@ mod recipe;
 mod refs;
 mod source;
 mod table;
+mod textures;
 
 pub use import::import_command;
 pub use source::write_source;
@@ -42,7 +43,7 @@ use crate::yres;
 use yog_data::Path as At;
 use json::num_value;
 use serde_json::{Map, Value, json};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use yog_data::Schema;
 use crate::content::block_item::compile_file;
@@ -354,8 +355,8 @@ struct Ctx<'a> {
     ns: String,
     errors: &'a mut Vec<String>,
     warnings: &'a mut Vec<String>,
-    /// Bundled texture path → its source file.
-    textures: &'a mut BTreeMap<String, PathBuf>,
+    /// The mod's own textures' ids (`.ytexture` files).
+    own_textures: &'a BTreeSet<String>,
     /// `block.inventory` screen ids named so far: (file, line, id) —
     /// checked against the mod's screens once every file is read.
     inventories: &'a mut Vec<(String, usize, String)>,
@@ -396,63 +397,21 @@ impl Ctx<'_> {
         }
     }
 
-    /// A texture → the model's form: `#slot`, a `.yres` image's id, a
-    /// `.png` of `resources/` (bundled), or a texture id (`ns:block/x`,
-    /// `block/stone` = `minecraft:block/stone`).
+    /// A texture → the model's form: `#slot`, or a texture id — the mod's
+    /// own must be one of its `.ytexture`s.
     fn texture(&mut self, loc: Loc, path: &At, t: &yog_formats::content::Texture) -> Option<String> {
-        let s = match t {
-            yog_formats::content::Texture::Slot(slot) => return Some(format!("#{slot}")),
-            yog_formats::content::Texture::Res(r) => {
-                let name = format!("{}.{}", r.set, r.key);
-                return match self.refs.images.get(&name) {
-                    Some(id) => Some(id.clone()),
-                    None => {
-                        self.err_at(loc, path, format!("`@{name}`: no image `{name}` in resources/*.yres"));
-                        None
-                    }
-                };
-            }
-            yog_formats::content::Texture::Plain(s) => s.trim().to_string(),
-        };
-        if let Some(stem) = s.strip_suffix(".png") {
-            let rel = stem.trim_start_matches("./").trim_start_matches('/');
-            let rel = rel.strip_prefix("resources/").unwrap_or(rel);
-            if rel.split('/').any(|p| p == "..") || !valid_path(rel) {
-                self.err_at(loc, path, format!("`{s}`: a path inside resources/ — lower case a-z, 0-9, `_`, `-`, `.`, `/`"));
-                return None;
-            }
-            let file = self.root.join(yres::RESOURCES_DIR).join(format!("{rel}.png"));
-            if !file.is_file() {
-                self.err_at(loc, path, format!("resources/{rel}.png doesn't exist"));
-                return None;
-            }
-            let target = format!("assets/{}/textures/{rel}.png", self.ns);
-            if let Some(other) = self.textures.insert(target.clone(), file.clone())
-                && other != file
-            {
-                let shown = display(self.root, &other);
-                self.err_at(loc, path, format!("{target} also comes from {shown}"));
-            }
-            let meta = self.root.join(yres::RESOURCES_DIR).join(format!("{rel}.png.mcmeta"));
-            if meta.is_file() {
-                self.textures.insert(format!("{target}.mcmeta"), meta);
-            }
-            return Some(format!("{}:{rel}", self.ns));
-        }
-        if !valid_id(&s) {
-            self.err_at(loc, path, format!("`{s}` isn't a texture — `#slot`, `@Set.image`, `path/in/resources.png` or a texture id like `minecraft:block/stone`"));
-            return None;
-        }
-        let id = if s.contains(':') { s } else { format!("minecraft:{s}") };
-        let (ns, tex) = id.split_once(':').unwrap_or_default();
-        if ns == self.ns {
-            let file = self.root.join("assets").join(ns).join("textures").join(format!("{tex}.png"));
-            let bundled = self.textures.contains_key(&format!("assets/{ns}/textures/{tex}.png")) || self.refs.images.values().any(|v| *v == id);
-            if !file.is_file() && !bundled {
-                self.warn_at(loc, path, format!("texture {id} isn't in assets/{ns}/textures/ or resources/"));
+        use yog_formats::content::{SLOT_MARK, Texture};
+        match t {
+            Texture::Slot(slot) => Some(format!("{SLOT_MARK}{slot}")),
+            Texture::Ref(id) => {
+                let (ns, tex) = yog_ids::split(id);
+                if ns == self.ns && !self.own_textures.contains(id) {
+                    self.err_at(loc, path, format!("`{}{id}`: no {}/{tex}.{}", yog_ids::reference::TEXTURE, yres::RESOURCES_DIR, Format::Texture.ext()));
+                    return None;
+                }
+                Some(id.clone())
             }
         }
-        Some(id)
     }
 }
 
@@ -674,7 +633,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mod_ns = valid_namespace(mod_id).then_some(mod_id);
     let mut errors: Vec<String> = Vec::new();
     let mut warnings: Vec<String> = Vec::new();
-    let mut textures: BTreeMap<String, PathBuf> = BTreeMap::new();
+    let own_textures = textures::compile(root, mod_id, &mut errors);
     let mut generated: BTreeMap<String, String> = BTreeMap::new();
     let mut entries: Vec<Entry> = Vec::new();
     let mut ids: HashMap<String, String> = HashMap::new();
@@ -748,7 +707,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             ns: mod_ns.unwrap_or("minecraft").to_string(),
             errors: &mut errors,
             warnings: &mut warnings,
-            textures: &mut textures,
+            own_textures: &own_textures.ids,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
@@ -820,7 +779,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             ns: mod_ns.unwrap_or("minecraft").to_string(),
             errors: &mut errors,
             warnings: &mut warnings,
-            textures: &mut textures,
+            own_textures: &own_textures.ids,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
@@ -840,7 +799,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             ns: mod_ns.unwrap_or("minecraft").to_string(),
             errors: &mut errors,
             warnings: &mut warnings,
-            textures: &mut textures,
+            own_textures: &own_textures.ids,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
@@ -923,7 +882,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             ns: mod_ns.unwrap_or("minecraft").to_string(),
             errors: &mut errors,
             warnings: &mut warnings,
-            textures: &mut textures,
+            own_textures: &own_textures.ids,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
@@ -946,12 +905,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             }
         }
     }
-    for (target, source) in &textures {
-        match std::fs::read(source) {
-            Ok(bytes) => out.outputs.push((target.clone(), bytes)),
-            Err(e) => errors.push(format!("{}: {e}", display(root, source))),
-        }
-    }
+    out.outputs.extend(own_textures.outputs);
     out.warnings = warnings;
     if !errors.is_empty() {
         return Err(format!(

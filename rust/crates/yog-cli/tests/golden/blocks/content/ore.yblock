@@ -19,7 +19,7 @@
   "model": {
     "parent": "cube_all",
     "textures": {
-      "all": "minecraft:block/redstone_ore"
+      "all": "@texture:minecraft:block/redstone_ore"
     }
   }
 }

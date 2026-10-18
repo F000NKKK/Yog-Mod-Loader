@@ -604,7 +604,7 @@ fn owned(s: Option<String>) -> YogOwnedStr {
 /// The first `N` tab-separated values of a host reply.
 fn parse_tsv<T: std::str::FromStr, const N: usize>(s: &str) -> Option<[T; N]> {
     let values: Vec<T> = s
-        .split('\t')
+        .split(yog_ids::sep::FIELD)
         .take(N)
         .map(|v| v.parse().ok())
         .collect::<Option<_>>()?;
@@ -1248,6 +1248,12 @@ unsafe extern "C" fn srv_advancement_done(_ctx: *mut c_void, uuid: YogStr, id: Y
 
 /// Whether this client's player has advancement `id` — also what books ask
 /// of their locked entries (see `nativeInit`).
+/// The items of item tag `id`, as this client has them.
+fn client_tag_items(id: &str) -> Vec<String> {
+    let items: Option<String> = unsafe { host!("dev/yog/YogClientApi", "tagItems", [JArg::S(YogStr::from_str(id))]) };
+    items.map(|s| s.split(yog_ids::sep::FIELD).filter(|i| !i.is_empty()).map(str::to_string).collect()).unwrap_or_default()
+}
+
 fn client_advancement_done(id: &str) -> bool {
     unsafe { host!("dev/yog/YogClientApi", "advancementDone", [JArg::S(YogStr::from_str(id))]).unwrap_or(false) }
 }
@@ -3790,6 +3796,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     let _ = HOT_RELOADER.get_or_init(|| HotReloader::new(RuntimeModuleRegistry));
     // A book's entries an advancement unlocks wait for this client's player to have it.
     yog_book::set_unlocked(client_advancement_done);
+    // A book's recipe shows a tag's items in turn.
+    yog_book::set_tag_items(client_tag_items);
 
     guard("mod loading", || {
         load_mods(Path::new(&dir), api);
