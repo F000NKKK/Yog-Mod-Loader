@@ -1,0 +1,167 @@
+package dev.yog;
+
+import dev.yog.data.YogContent;
+import dev.yog.util.YogHangingWire;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.decoration.HangingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * A mod's hanging entity ({@code kind: hanging}): on a block's side as a
+ * painting, {@code width}×{@code height} blocks, keeping the item it was
+ * placed from — dropped when it breaks or loses its wall. The mods read how
+ * it hangs from its entity data {@link YogHangingWire#KEY} and draw it.
+ */
+public class YogHanging extends HangingEntity {
+    private static final EntityDataAccessor<Integer> WIDTH = SynchedEntityData.defineId(YogHanging.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> HEIGHT = SynchedEntityData.defineId(YogHanging.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<ItemStack> ITEM = SynchedEntityData.defineId(YogHanging.class, EntityDataSerializers.ITEM_STACK);
+
+    public YogHanging(EntityType<? extends YogHanging> type, Level world) {
+        super(type, world);
+    }
+
+    /** A new one on the {@code facing} side of the block before {@code pos}, keeping {@code item}. */
+    public YogHanging(EntityType<? extends YogHanging> type, Level world, BlockPos pos, Direction facing, int width, int height, ItemStack item) {
+        super(type, world, pos);
+        entityData.set(WIDTH, width);
+        entityData.set(HEIGHT, height);
+        entityData.set(ITEM, item);
+        setDirection(facing);
+    }
+
+    private YogContent.Entity def() {
+        return YogEntityTypes.def(getType());
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        YogContent.Entity def = def();
+        builder.define(WIDTH, def == null ? 1 : Math.max(1, Math.round(def.width())));
+        builder.define(HEIGHT, def == null ? 1 : Math.max(1, Math.round(def.height())));
+        builder.define(ITEM, ItemStack.EMPTY);
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> data) {
+        if (WIDTH.equals(data) || HEIGHT.equals(data)) recalculateBoundingBox();
+    }
+
+    /** The item it keeps. */
+    public ItemStack item() {
+        return entityData.get(ITEM);
+    }
+
+    /** Tells the mods how it hangs (server side). */
+    public void share() {
+        if (level().isClientSide() || getDirection() == null) return;
+        ItemStack item = item();
+        NativeBridge.nativeEntityDataSet(getStringUUID(), YogHangingWire.KEY, YogHangingWire.encode(getDirection().getSerializedName(),
+                entityData.get(WIDTH), entityData.get(HEIGHT), BuiltInRegistries.ITEM.getKey(item.getItem()).toString(),
+                NativeBridge.stackSnbt(item)));
+    }
+
+    /** As a painting's: on the wall, a pixel thick, centred on its blocks. */
+    @Override
+    protected AABB calculateBoundingBox(BlockPos pos, Direction side) {
+        int w = entityData.get(WIDTH), h = entityData.get(HEIGHT);
+        Vec3 c = Vec3.atCenterOf(pos).relative(side, -0.46875)
+                .relative(side.getCounterClockWise(), w % 2 == 0 ? 0.5 : 0.0)
+                .relative(Direction.UP, h % 2 == 0 ? 0.5 : 0.0);
+        Direction.Axis axis = side.getAxis();
+        return AABB.ofSize(c, axis == Direction.Axis.X ? 0.0625 : w, h, axis == Direction.Axis.Z ? 0.0625 : w);
+    }
+
+    private void play(String sound) {
+        Identifier id = Identifier.tryParse(sound);
+        if (id != null) playSound(SoundEvent.createVariableRangeEvent(id), 1.0F, 1.0F);
+    }
+
+    @Override
+    public void dropItem(net.minecraft.server.level.ServerLevel level, Entity breaker) {
+        if (!level.getGameRules().get(GameRules.ENTITY_DROPS)) return;
+        YogContent.Entity def = def();
+        if (def != null) play(def.breakSound());
+        if (breaker instanceof Player p && p.getAbilities().instabuild) return;
+        if (!item().isEmpty()) spawnAtLocation(level, item().copy());
+    }
+
+    @Override
+    public void playPlacementSound() {
+        YogContent.Entity def = def();
+        if (def != null) play(def.placeSound());
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        YogEntityTypes.tick(this);
+    }
+
+    @Override
+    protected void addAdditionalSaveData(ValueOutput out) {
+        out.putByte("facing", (byte) getDirection().get2DDataValue());
+        out.putInt("width", entityData.get(WIDTH));
+        out.putInt("height", entityData.get(HEIGHT));
+        if (!item().isEmpty()) out.store("item", ItemStack.CODEC, item());
+        super.addAdditionalSaveData(out);
+    }
+
+    @Override
+    protected void readAdditionalSaveData(ValueInput in) {
+        entityData.set(WIDTH, Math.max(1, in.getIntOr("width", 1)));
+        entityData.set(HEIGHT, Math.max(1, in.getIntOr("height", 1)));
+        entityData.set(ITEM, in.read("item", ItemStack.CODEC).orElse(ItemStack.EMPTY));
+        Direction facing = Direction.from2DDataValue(in.getByteOr("facing", (byte) 0));
+        super.readAdditionalSaveData(in);
+        setDirection(facing);
+        share();
+    }
+
+    // As a painting: it stays on its block, wherever the packets say it is.
+    @Override
+    public void snapTo(double x, double y, double z, float yaw, float pitch) {
+        setPos(x, y, z);
+    }
+
+    @Override
+    public Vec3 trackingPosition() {
+        return Vec3.atLowerCornerOf(pos);
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getAddEntityPacket(ServerEntity entry) {
+        return new ClientboundAddEntityPacket(this, getDirection().get3DDataValue(), getPos());
+    }
+
+    @Override
+    public void recreateFromPacket(ClientboundAddEntityPacket packet) {
+        super.recreateFromPacket(packet);
+        setDirection(Direction.from3DDataValue(packet.getData()));
+    }
+
+    @Override
+    public ItemStack getPickResult() {
+        return item().isEmpty() ? null : item().copy();
+    }
+}

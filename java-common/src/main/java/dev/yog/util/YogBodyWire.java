@@ -179,7 +179,11 @@ public final class YogBodyWire {
         if (captures.isEmpty()) CAPTURED.remove(id); else CAPTURED.put(id, captures);
     }
 
-    private static final Pattern TEXTURE = Pattern.compile("texture\\[Optional\\[([^\\]]+)\\]");
+    /**
+     * A render type's texture in its description: {@code texture[Optional[id]]}
+     * before 26.1, a {@code TextureBinding[location=id, ...]} in 26.x.
+     */
+    private static final Pattern TEXTURE = Pattern.compile("(?:texture\\[Optional\\[|TextureBinding\\[location=)([^\\],]+)");
 
     /** The texture a render type draws with, from its description; null for none. */
     public static String textureOf(Object renderType) {

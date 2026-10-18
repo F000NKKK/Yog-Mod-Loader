@@ -1,0 +1,35 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "dev.yog.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "LootTableMixin",
+    "LootLookupMixin",
+    "AdvancementMixin",
+    "BlockItemPlaceMixin",
+    "ContainerCloseMixin",
+    "ContainerOpenMixin",
+    "CraftingMixin",
+    "DimensionsMixin",
+    "EntityDataMixin",
+    "ExplosionMixin",
+    "ItemPickupMixin",
+    "PlayerMoveMixin",
+    "ProjectileHitMixin",
+    "ResourcePackManagerMixin"
+  ],
+  "client": [
+    "ClientAdvancementsAccess",
+    "BodyRenderMixin",
+    "CameraMixin",
+    "KeyboardMixin",
+    "LimbAnimatorAccess",
+    "ModelPartAccess",
+    "TravelMixin",
+    "ModelPoseMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
