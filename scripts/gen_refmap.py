@@ -7,7 +7,7 @@ and writes an identity refmap (Mojang → Mojang) that ForgeGradle / NeoGradle's
 reobfuscateJar can remap to SRG.
 
 Usage:
-    python3 gen_refmap.py <src_root> <output_refmap.json>
+    python3 gen_refmap.py <src_root>... <output_refmap.json>
 """
 
 import json, os, re, sys
@@ -115,12 +115,15 @@ def scan_sources(src_root: str) -> dict:
     return {"mappings": mappings}
 
 def main():
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <src_root> <output.json>", file=sys.stderr)
+    if len(sys.argv) < 3:
+        print(f"Usage: {sys.argv[0]} <src_root>... <output.json>", file=sys.stderr)
         sys.exit(1)
-    src_root = sys.argv[1]
-    out_path = sys.argv[2]
-    refmap = scan_sources(src_root)
+    out_path = sys.argv[-1]
+    # Every source root's mixins: the platform's and the version's shared ones.
+    refmap = {"mappings": {}}
+    for src_root in sys.argv[1:-1]:
+        if os.path.isdir(src_root):
+            refmap["mappings"].update(scan_sources(src_root)["mappings"])
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(refmap, f, indent=2)
