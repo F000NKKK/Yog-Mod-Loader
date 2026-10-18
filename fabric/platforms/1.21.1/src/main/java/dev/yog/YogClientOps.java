@@ -136,11 +136,12 @@ public final class YogClientOps {
         o.jumpKey.setPressed(flag(a, "jump"));
         o.sneakKey.setPressed(flag(a, "sneak"));
         o.sprintKey.setPressed(flag(a, "sprint"));
+        o.useKey.setPressed(flag(a, "use_item"));
         return true;
     }
 
     private static Object release(GameOptions o) {
-        for (var k : new net.minecraft.client.option.KeyBinding[] {o.forwardKey, o.backKey, o.leftKey, o.rightKey, o.jumpKey, o.sneakKey, o.sprintKey}) {
+        for (var k : new net.minecraft.client.option.KeyBinding[] {o.forwardKey, o.backKey, o.leftKey, o.rightKey, o.jumpKey, o.sneakKey, o.sprintKey, o.useKey}) {
             k.setPressed(false);
         }
         // The keys the player really holds, back.
@@ -297,6 +298,10 @@ public final class YogClientOps {
             o.addProperty("y", e.getY());
             o.addProperty("z", e.getZ());
             o.addProperty("eye_height", (double) e.getStandingEyeHeight());
+            Vec3d motion = e.getVelocity();
+            o.addProperty("vx", motion.x);
+            o.addProperty("vy", motion.y);
+            o.addProperty("vz", motion.z);
             if (e instanceof LivingEntity l) o.addProperty("health", l.getHealth());
             if (e instanceof PlayerEntity pl) o.addProperty("name", pl.getGameProfile().getName());
             o.addProperty("hostile", e instanceof Monster);

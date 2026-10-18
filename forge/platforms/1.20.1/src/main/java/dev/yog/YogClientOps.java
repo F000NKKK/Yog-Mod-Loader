@@ -137,11 +137,12 @@ public final class YogClientOps {
         o.keyJump.setDown(flag(a, "jump"));
         o.keyShift.setDown(flag(a, "sneak"));
         o.keySprint.setDown(flag(a, "sprint"));
+        o.keyUse.setDown(flag(a, "use_item"));
         return true;
     }
 
     private static Object release(Options o) {
-        for (KeyMapping k : new KeyMapping[] {o.keyUp, o.keyDown, o.keyLeft, o.keyRight, o.keyJump, o.keyShift, o.keySprint}) {
+        for (KeyMapping k : new KeyMapping[] {o.keyUp, o.keyDown, o.keyLeft, o.keyRight, o.keyJump, o.keyShift, o.keySprint, o.keyUse}) {
             k.setDown(false);
         }
         // The keys the player really holds, back.
@@ -298,6 +299,10 @@ public final class YogClientOps {
             o.addProperty("y", e.getY());
             o.addProperty("z", e.getZ());
             o.addProperty("eye_height", (double) e.getEyeHeight());
+            Vec3 motion = e.getDeltaMovement();
+            o.addProperty("vx", motion.x);
+            o.addProperty("vy", motion.y);
+            o.addProperty("vz", motion.z);
             if (e instanceof LivingEntity l) o.addProperty("health", l.getHealth());
             if (e instanceof Player pl) o.addProperty("name", pl.getGameProfile().getName());
             o.addProperty("hostile", e instanceof Enemy);
