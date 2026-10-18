@@ -1,0 +1,221 @@
+#!/usr/bin/env python3
+"""Checks every source file of the Yog repositories against the automatic
+items of CODE_STANDARDS.md and writes the review journal.
+
+    tools/standards_check.py            # all repositories, writes docs/standards-review.tsv
+    tools/standards_check.py FILE...    # just these files, findings printed
+
+The journal keeps each file's review status (column `status`) across runs:
+a file is `todo` until it has been read by hand against the checklist and
+fixed, then `ok`. A file with automatic findings is never `ok`.
+"""
+
+import csv
+import os
+import re
+import subprocess
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+
+LOADER = Path(__file__).resolve().parent.parent
+WORKSPACE = LOADER.parent
+REPOS = ["Yog-Mod-Loader", "Yog-IDLE", "Substrate-Platform", "HexMod-Yog", "Yog-VLSI", "Yog-Pipes", "Yog-Modlist"]
+JOURNAL = LOADER / "docs" / "standards-review.tsv"
+
+SOURCE = re.compile(r"\.(rs|ts|tsx|java)$")
+# Not reviewed: generated code, fixtures, test data.
+SKIP = re.compile(r"(^|/)(tests/golden|fixtures|generated|target|node_modules)/|\.g\.rs$|\.d\.ts$")
+
+MAX_FILE_LINES = 800
+MAX_FN_LINES = 80
+MAX_PARAMS = 5
+
+# Words that name a kind, a namespace or a registry: as a string literal they
+# are a fact defined somewhere else, repeated.
+KIND_WORDS = (
+    "item|block|entity|recipe|tag|fluid|biome|potion|effect|attribute|sound|texture|model|"
+    "advancement|loot_table|loot_modifier|dimension|font|enchantment|particle|menu"
+)
+LITERAL_FACT = re.compile(
+    r'"(?:(?:' + KIND_WORDS + r')|minecraft|yog|(?:minecraft|yog):[a-z0-9_/.]*'
+    r'|[a-z_]+\.(?:yitem|yblock|yentity|ydef|yrecipe|ymodel|yanim|yres|yui|ybook|yfont|ydata)'
+    r'|\.(?:yitem|yblock|yentity|ydef|yrecipe|ymodel|yanim|yres|yui|ybook|yfont|ydata|png|json))"'
+)
+HEX_COLOR = re.compile(r"\b0x[0-9A-Fa-f_]{8,11}\b")
+FLOAT_MAGIC = re.compile(r"(?<![\w.])(?!(?:0|1|2|0\.5)(?:\.0)?\b)\d+\.\d+(?:f32|f64|f)?\b")
+INT_MAGIC = re.compile(r"(?<![\w.#\[])(?!(?:0|1|2|10|100)\b)\d{2,}(?:u8|u16|u32|u64|usize|i32|i64)?\b(?!\.)")
+CONST_LINE = re.compile(r"^\s*(pub(\([^)]*\))?\s+)?(const|static)\s|^\s*(export\s+)?const\s+[A-Z_][A-Z0-9_]*\s*[:=]|static final")
+
+SILENCE = re.compile(r"#!?\[allow\(|@ts-ignore|@ts-expect-error|eslint-disable|@SuppressWarnings")
+PANIC = re.compile(r"\.unwrap\(\)|\.expect\(|\bpanic!\(|\bunreachable!\(|\btodo!\(|\bunimplemented!\(")
+PRINT = re.compile(r"\b(println!|eprintln!|dbg!|print!)\(|System\.(out|err)\.print|console\.(log|debug)\(")
+TODO = re.compile(r"\b(TODO|FIXME|XXX|HACK)\b")
+COMMENTED_CODE = re.compile(r"^\s*//\s*(let |fn |pub |use |if \(|for |return |import |const |\}|[\w.]+\(.*\);\s*$)")
+
+
+@dataclass
+class Findings:
+    lines: int = 0
+    long_fns: list = field(default_factory=list)
+    many_params: list = field(default_factory=list)
+    silenced: int = 0
+    panics: int = 0
+    prints: int = 0
+    literal_facts: int = 0
+    magic_numbers: int = 0
+    todos: int = 0
+    commented_code: int = 0
+
+    def summary(self):
+        out = []
+        if self.lines > MAX_FILE_LINES:
+            out.append(f"file:{self.lines}")
+        if self.long_fns:
+            out.append("long-fn:" + ",".join(self.long_fns[:5]) + ("…" if len(self.long_fns) > 5 else ""))
+        if self.many_params:
+            out.append("params:" + ",".join(self.many_params[:5]) + ("…" if len(self.many_params) > 5 else ""))
+        for name in ("silenced", "panics", "prints", "literal_facts", "magic_numbers", "todos", "commented_code"):
+            n = getattr(self, name)
+            if n:
+                out.append(f"{name}:{n}")
+        return " ".join(out)
+
+
+def test_start(lines, path):
+    """Index of the first line of the file's test module (Rust), or len."""
+    if "/tests/" in path or path.endswith("_test.rs") or path.endswith("tests.rs") or re.search(r"\.(test|bench)\.tsx?$", path):
+        return 0
+    for i, l in enumerate(lines):
+        if l.strip().startswith("#[cfg(test)]"):
+            return i
+    return len(lines)
+
+
+def functions(lines, lang):
+    """(name, first line, line count, params) of each function body."""
+    if lang == "rs":
+        start = re.compile(r"^\s*(pub(\([^)]*\))?\s+)?(const\s+)?(async\s+)?(unsafe\s+)?(extern\s+\"[^\"]*\"\s+)?fn\s+(\w+)")
+    elif lang == "java":
+        start = re.compile(r"^\s*(public|private|protected|static|final|synchronized|\s)+[\w<>\[\],.? ]+\s+(\w+)\s*\(")
+    else:
+        start = re.compile(r"^\s*(export\s+)?(default\s+)?(async\s+)?function\s+(\w+)|^\s*(export\s+)?const\s+(\w+)\s*=\s*(async\s*)?\(")
+    out = []
+    i = 0
+    while i < len(lines):
+        m = start.match(lines[i])
+        if not m:
+            i += 1
+            continue
+        name = [g for g in m.groups() if g and re.fullmatch(r"\w+", g) and g not in ("pub", "const", "async", "unsafe", "export", "default", "public", "private", "protected", "static", "final", "synchronized")]
+        name = name[-1] if name else "?"
+        # The signature runs to the body's `{` (or `;` for a declaration).
+        sig, j = "", i
+        while j < len(lines) and "{" not in lines[j] and not lines[j].rstrip().endswith(";"):
+            sig += lines[j]
+            j += 1
+        if j >= len(lines) or "{" not in lines[j]:
+            i = j + 1
+            continue
+        sig += lines[j].split("{")[0]
+        params = sig[sig.find("(") + 1 : sig.rfind(")")] if "(" in sig else ""
+        depth, n = 0, 0
+        params_n = 0
+        if params.strip():
+            d = 0
+            params_n = 1
+            for c in params:
+                d += c in "<([{"
+                d -= c in ">)]}"
+                if c == "," and d == 0:
+                    params_n += 1
+            if params.rstrip().endswith(","):
+                params_n -= 1
+            if re.search(r"&\s*(mut\s+)?self\b|\bself\b", params.split(",")[0]):
+                params_n -= 1
+        k = j
+        while k < len(lines):
+            depth += lines[k].count("{") - lines[k].count("}")
+            if depth <= 0 and k >= j:
+                break
+            k += 1
+        out.append((name, i + 1, k - i + 1, params_n))
+        i = j + 1
+    return out
+
+
+def check(path, text):
+    lang = path.rsplit(".", 1)[1]
+    lang = "ts" if lang in ("ts", "tsx") else lang
+    lines = text.split("\n")
+    f = Findings(lines=len(lines))
+    tests = test_start(lines, path)
+    for name, line, length, params in functions(lines[:tests], lang):
+        if length > MAX_FN_LINES:
+            f.long_fns.append(f"{name}@{line}({length})")
+        if params > MAX_PARAMS and "extern" not in lines[line - 1]:
+            f.many_params.append(f"{name}@{line}({params})")
+    for i, l in enumerate(lines[:tests]):
+        code = l.split("//")[0] if lang != "java" or "//" in l else l
+        if SILENCE.search(l) and "//" not in l and (i == 0 or "//" not in lines[i - 1]):
+            f.silenced += 1
+        if lang == "rs" and PANIC.search(code):
+            f.panics += 1
+        if PRINT.search(code):
+            f.prints += 1
+        if TODO.search(l):
+            f.todos += 1
+        if COMMENTED_CODE.match(l):
+            f.commented_code += 1
+        if CONST_LINE.search(l) or l.strip().startswith(("///", "//", "*", "/*")):
+            continue
+        f.literal_facts += len(LITERAL_FACT.findall(code))
+        f.magic_numbers += len(HEX_COLOR.findall(code)) + len(FLOAT_MAGIC.findall(code))
+    return f
+
+
+def tracked_files():
+    for repo in REPOS:
+        root = WORKSPACE / repo
+        files = subprocess.run(["git", "-C", str(root), "ls-files"], capture_output=True, text=True).stdout.split("\n")
+        for rel in files:
+            if SOURCE.search(rel) and not SKIP.search(rel):
+                yield f"{repo}/{rel}"
+
+
+def read_journal():
+    if not JOURNAL.exists():
+        return {}
+    with open(JOURNAL, newline="") as fh:
+        return {r["path"]: r for r in csv.DictReader(fh, delimiter="\t")}
+
+
+def main(argv):
+    if argv:
+        for p in argv:
+            rel = os.path.relpath(os.path.abspath(p), WORKSPACE)
+            print(f"{rel}\t{check(rel, Path(p).read_text(errors='replace')).summary()}")
+        return 0
+    old = read_journal()
+    rows = []
+    for rel in tracked_files():
+        text = (WORKSPACE / rel).read_text(errors="replace")
+        summary = check(rel, text).summary()
+        status = old.get(rel, {}).get("status", "todo")
+        if summary and status == "ok":
+            status = "todo"
+        rows.append({"path": rel, "findings": summary, "status": status})
+    JOURNAL.parent.mkdir(parents=True, exist_ok=True)
+    with open(JOURNAL, "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=["path", "findings", "status"], delimiter="\t")
+        w.writeheader()
+        w.writerows(rows)
+    total = len(rows)
+    clean = sum(1 for r in rows if not r["findings"])
+    ok = sum(1 for r in rows if r["status"] == "ok")
+    print(f"{total} files: {total - clean} with automatic findings, {ok} reviewed ok → {JOURNAL.relative_to(LOADER)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
