@@ -82,6 +82,7 @@ public final class YogPackStager {
         }
         Files.createDirectories(out);
         dev.yog.data.YogTags.setHost(loader, mcVersion);
+        YogDataLayout.setVersion(mcVersion);
 
         // The common files, then each overlay that applies, least specific first.
         // A version directory is the whole version or a release line of it: `1.21` covers 1.21.x.

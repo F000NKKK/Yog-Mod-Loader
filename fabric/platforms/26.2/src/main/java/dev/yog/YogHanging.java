@@ -56,6 +56,7 @@ public class YogHanging extends HangingEntity {
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
         YogContent.Entity def = def();
         builder.define(WIDTH, def == null ? 1 : Math.max(1, Math.round(def.width())));
         builder.define(HEIGHT, def == null ? 1 : Math.max(1, Math.round(def.height())));

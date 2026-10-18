@@ -110,9 +110,10 @@ public final class YogDataLayout {
         } catch (RuntimeException e) {
             return json;
         }
+        upgradeIngredients(root);
         JsonElement result = root.get("result");
         if (result == null) {
-            return json;
+            return root.toString();
         }
         if (result.isJsonPrimitive() && result.getAsJsonPrimitive().isString()) {
             JsonObject stack = new JsonObject();
@@ -125,13 +126,68 @@ public final class YogDataLayout {
         } else if (result.isJsonObject()) {
             JsonObject stack = result.getAsJsonObject();
             if (stack.has("id") || !stack.has("item")) {
-                return json;
+                return root.toString();
             }
             stack.add("id", stack.remove("item"));
-        } else {
-            return json;
         }
         return root.toString();
+    }
+
+    /** The first version whose ingredients are bare ids and {@code #tags} (not {@code {"item": …}} objects). */
+    private static final int[] ID_INGREDIENTS_SINCE = {1, 21, 2};
+    /** The fields of a recipe that hold ingredients: a map of them, a list of them, or one. */
+    private static final String KEY = "key", INGREDIENTS = "ingredients";
+    private static final java.util.List<String> ONE_INGREDIENT = java.util.List.of("ingredient", "template", "base", "addition");
+    private static final String ITEM = "item", TAG = "tag", TAG_MARK = "#";
+
+    /** Whether this host's game takes ingredients as bare ids (1.21.2+); set by {@link #setVersion}. */
+    private static boolean idIngredients;
+
+    /** The game version recipes are written for ({@code 1.21.1}, {@code 26.2}). */
+    public static void setVersion(String mcVersion) {
+        idIngredients = atLeast(mcVersion, ID_INGREDIENTS_SINCE);
+    }
+
+    private static boolean atLeast(String version, int[] since) {
+        String[] parts = version.split("\\.");
+        for (int i = 0; i < since.length; i++) {
+            int v;
+            try {
+                v = i < parts.length ? Integer.parseInt(parts[i]) : 0;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+            if (v != since[i]) return v > since[i];
+        }
+        return true;
+    }
+
+    /** A recipe's ingredients as this version writes them: on 1.21.2+, {@code {"item": x}} → {@code "x"}, {@code {"tag": t}} → {@code "#t"}. */
+    private static void upgradeIngredients(JsonObject recipe) {
+        if (!idIngredients) return;
+        if (recipe.get(KEY) instanceof JsonObject key) {
+            for (Map.Entry<String, JsonElement> e : key.entrySet()) e.setValue(asId(e.getValue()));
+        }
+        if (recipe.get(INGREDIENTS) instanceof com.google.gson.JsonArray list) {
+            for (int i = 0; i < list.size(); i++) list.set(i, asId(list.get(i)));
+        }
+        for (String field : ONE_INGREDIENT) {
+            if (recipe.has(field)) recipe.add(field, asId(recipe.get(field)));
+        }
+    }
+
+    /** One ingredient as a bare id or {@code #tag} (alternatives: a list of those). */
+    private static JsonElement asId(JsonElement v) {
+        if (v instanceof com.google.gson.JsonArray any) {
+            com.google.gson.JsonArray out = new com.google.gson.JsonArray();
+            for (JsonElement e : any) out.add(asId(e));
+            return out;
+        }
+        if (v instanceof JsonObject o) {
+            if (o.has(ITEM)) return o.get(ITEM);
+            if (o.has(TAG)) return new com.google.gson.JsonPrimitive(TAG_MARK + o.get(TAG).getAsString());
+        }
+        return v;
     }
 
     private static Map<String, String> invert(Map<String, String> m) {
@@ -246,6 +302,7 @@ public final class YogDataLayout {
                 return in.toString();
             }
         }
+        upgradeIngredients(out);
         if (in.has("group")) out.addProperty("group", in.get("group").getAsString());
         if (in.has("category")) out.addProperty("category", in.get("category").getAsString());
         return out.toString();
