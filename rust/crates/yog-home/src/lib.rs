@@ -15,6 +15,7 @@
 pub mod components;
 pub mod local;
 pub mod targets;
+pub mod version;
 
 use std::path::{Path, PathBuf};
 
@@ -26,10 +27,15 @@ const HOME_DIR: &str = ".yog";
 const LOCAL_FILE: &str = "local.toml";
 /// What Yog Installer installed, under the home.
 const COMPONENTS_FILE: &str = "components.json";
-/// Where Yog Installer installs, under the home: loader SDKs, JDKs, game instances.
+/// Where Yog Installer installs, under the home: products (Yog IDLE), loader
+/// SDKs, JDKs, game instances, tools (zig), and its downloads while it does.
+const PRODUCTS_DIR: &str = "products";
 const SDK_DIR: &str = "sdk";
+const LOADER_SDK_DIR: &str = "loader";
 const JDK_DIR: &str = "jdk";
 const INSTANCES_DIR: &str = "instances";
+const TOOLS_DIR: &str = "tools";
+const CACHE_DIR: &str = "cache";
 
 /// Yog's home folder.
 #[derive(Debug, Clone)]
@@ -64,16 +70,33 @@ impl Home {
         self.root.join(COMPONENTS_FILE)
     }
 
-    pub fn sdk_dir(&self) -> PathBuf {
-        self.root.join(SDK_DIR)
+    /// A product's version: `products/<id>/<version>`.
+    pub fn product_dir(&self, product: &str, version: &str) -> PathBuf {
+        self.root.join(PRODUCTS_DIR).join(product).join(version)
     }
 
-    pub fn jdk_dir(&self) -> PathBuf {
-        self.root.join(JDK_DIR)
+    /// A loader SDK's version: `sdk/loader/<version>`.
+    pub fn loader_sdk_dir(&self, version: &str) -> PathBuf {
+        self.root.join(SDK_DIR).join(LOADER_SDK_DIR).join(version)
+    }
+
+    /// A JDK: `jdk/<major>/<version>`.
+    pub fn jdk_dir(&self, major: u32, version: &str) -> PathBuf {
+        self.root.join(JDK_DIR).join(major.to_string()).join(version)
     }
 
     pub fn instances_dir(&self) -> PathBuf {
         self.root.join(INSTANCES_DIR)
+    }
+
+    /// A tool's version: `tools/<name>/<version>`.
+    pub fn tool_dir(&self, name: &str, version: &str) -> PathBuf {
+        self.root.join(TOOLS_DIR).join(name).join(version)
+    }
+
+    /// Where downloads wait to be installed.
+    pub fn cache_dir(&self) -> PathBuf {
+        self.root.join(CACHE_DIR)
     }
 
     /// The local patch; empty when there's none.

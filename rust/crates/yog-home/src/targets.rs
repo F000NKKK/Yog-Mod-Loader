@@ -11,7 +11,6 @@ use crate::components::{self, Components};
 use crate::local::{Local, RunSection, pairs};
 use crate::{Home, resolve_in};
 use serde::Serialize;
-use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 
 /// What a Yog Mod Loader source tree is laid out as (its `build.sh` and Gradle builds).
@@ -201,7 +200,7 @@ fn loader_targets(sdk: &Path) -> Result<Vec<Target>, String> {
                 Some((mc, properties(&p, sdk::JAVA_VERSION).and_then(|j| j.parse().ok())))
             })
             .collect();
-        versions.sort_by(|a, b| compare_versions(&a.0, &b.0));
+        versions.sort_by(|a, b| crate::version::compare(&a.0, &b.0));
         for (mc, java) in versions {
             out.push(Target {
                 id: format!("{loader}-{mc}"),
@@ -227,24 +226,6 @@ fn properties(path: &Path, key: &str) -> Option<String> {
         .map(|(_, v)| v.trim().to_string())
 }
 
-/// Versions part by part, numbers as numbers (`1.20.1` < `1.21.1` < `26.2`).
-pub fn compare_versions(a: &str, b: &str) -> Ordering {
-    let parts = |v: &str| v.split(['.', '-', '+']).map(|p| p.parse::<u64>().map_err(|_| p.to_string())).collect::<Vec<_>>();
-    let (a, b) = (parts(a), parts(b));
-    for (x, y) in a.iter().zip(&b) {
-        let o = match (x, y) {
-            (Ok(x), Ok(y)) => x.cmp(y),
-            (Err(x), Err(y)) => x.cmp(y),
-            (Ok(_), Err(_)) => Ordering::Greater,
-            (Err(_), Ok(_)) => Ordering::Less,
-        };
-        if o != Ordering::Equal {
-            return o;
-        }
-    }
-    a.len().cmp(&b.len())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -258,13 +239,6 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("yog-home-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         dir
-    }
-
-    #[test]
-    fn versions_compare_as_numbers() {
-        assert_eq!(compare_versions("1.20.1", "1.21.1"), Ordering::Less);
-        assert_eq!(compare_versions("26.2", "1.21.1"), Ordering::Greater);
-        assert_eq!(compare_versions("0.6.1", "0.6.1"), Ordering::Equal);
     }
 
     #[test]
