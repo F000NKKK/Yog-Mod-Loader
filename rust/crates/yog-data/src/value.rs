@@ -53,7 +53,7 @@ impl Ref {
 
     /// The namespace of the id (`minecraft` for an id without one).
     pub fn namespace(&self) -> &str {
-        self.id.split_once(':').map_or("minecraft", |(ns, _)| ns)
+        yog_ids::split(&self.id).0
     }
 }
 

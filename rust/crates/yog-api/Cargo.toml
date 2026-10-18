@@ -11,26 +11,26 @@ description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 
 [dependencies]
 # Content crosses the ABI as Yog Data blobs (`register_content`).
-yog-data = { version = "0.4.2", features = ["json"] }
-yog-abi  = "0.30.8"
-yog-core = "0.6.0"
-yog-event = "0.7.0"
-yog-world = "0.6.0"
-yog-entity = "0.6.0"
-yog-player = "0.7.0"
-yog-registry = "0.35.0"
-yog-network = "0.1.1"
-yog-command = "0.2.1"
-yog-dimensions = "0.13.0"
-yog-logging = "0.1.1"
-yog-interop = "0.21.4"
-yog-storage = "0.1.2"
-yog-config  = "0.1.1"
-yog-gfx     = "0.28.1"
-yog-ui      = "0.43.1"
-yog-book = "0.67.0"
-yog-body = "0.2.0"
-yog-inventory = "0.18.0"
+yog-data = { workspace = true, features = ["json"] }
+yog-abi = { workspace = true }
+yog-core = { workspace = true }
+yog-event = { workspace = true }
+yog-world = { workspace = true }
+yog-entity = { workspace = true }
+yog-player = { workspace = true }
+yog-registry = { workspace = true }
+yog-network = { workspace = true }
+yog-command = { workspace = true }
+yog-dimensions = { workspace = true }
+yog-logging = { workspace = true }
+yog-interop = { workspace = true }
+yog-storage = { workspace = true }
+yog-config = { workspace = true }
+yog-gfx = { workspace = true }
+yog-ui = { workspace = true }
+yog-book = { workspace = true }
+yog-body = { workspace = true }
+yog-inventory = { workspace = true }
 
 
 rkyv.workspace = true

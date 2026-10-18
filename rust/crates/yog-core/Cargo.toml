@@ -11,7 +11,7 @@ description = "Yog core types and handles shared across all API modules."
 [dependencies]
 
 [dev-dependencies]
-criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+criterion = { workspace = true, features = ["cargo_bench_support"] }
 
 [[bench]]
 name = "query_decode"

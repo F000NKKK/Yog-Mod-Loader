@@ -15,8 +15,7 @@
 
 use crate::value::{Ref, Res, Value};
 
-/// Ids without a namespace are vanilla's, as in Minecraft.
-pub const DEFAULT_NAMESPACE: &str = "minecraft";
+use yog_ids::typed;
 
 /// `s` as a typed value if it's written as one (`@…`), the plain string
 /// otherwise; `@@` escapes a leading `@`.
@@ -52,7 +51,7 @@ pub fn classify(s: &str) -> Result<Value, String> {
         ));
     }
     match head {
-        "tag" => {
+        typed::TAG => {
             let (kind, id) = tail.split_once(':').ok_or_else(|| {
                 format!("`{s}`: a tag is `@tag:kind:id` (`@tag:item:minecraft:planks`)")
             })?;
@@ -64,7 +63,7 @@ pub fn classify(s: &str) -> Result<Value, String> {
                 id: resource_id(s, id)?,
             }))
         }
-        "lang" => {
+        typed::LANG => {
             if tail.is_empty()
                 || !tail.bytes().all(|b| {
                     b.is_ascii_alphanumeric() || matches!(b, b'_' | b'.' | b'-' | b':' | b'/')
@@ -76,7 +75,7 @@ pub fn classify(s: &str) -> Result<Value, String> {
             }
             Ok(Value::Lang(tail.to_string()))
         }
-        "image" => {
+        typed::IMAGE => {
             if tail.is_empty() {
                 return Err(format!("`{s}`: no image source after `@image:`"));
             }
@@ -118,7 +117,7 @@ pub fn escape_at(s: &str) -> String {
 pub fn resource_id(whole: &str, id: &str) -> Result<String, String> {
     let base_end = id.find(['[', '{']).unwrap_or(id.len());
     let (base, suffix) = id.split_at(base_end);
-    let (ns, path) = base.split_once(':').unwrap_or((DEFAULT_NAMESPACE, base));
+    let (ns, path) = yog_ids::split(base);
     let ok_ns = !ns.is_empty()
         && ns
             .bytes()

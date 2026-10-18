@@ -39,19 +39,12 @@ pub enum ImageSource {
     Texture(String),
 }
 
-/// The namespace of ids that don't name one.
-const DEFAULT_NS: &str = "minecraft";
 /// Side of the square 1.20.1 GUI textures most legacy regions live in.
 const LEGACY_TEX_SIZE: f32 = 256.0;
 
 /// `apple` → `minecraft:apple`; namespaced ids are kept.
 pub fn qualify(id: &str) -> String {
-    let id = id.trim();
-    if id.contains(':') {
-        id.to_string()
-    } else {
-        format!("{DEFAULT_NS}:{id}")
-    }
+    yog_ids::qualify(id.trim())
 }
 
 /// `<ns>` + `<path>` → the texture resource id: `gui/logo` →
@@ -73,12 +66,7 @@ pub fn texture_id(ns: &str, path: &str) -> String {
 }
 
 /// The schemes an image source starts with (`item:apple`).
-pub mod scheme {
-    pub const ITEM: &str = "item";
-    pub const BLOCK: &str = "block";
-    pub const SPRITE: &str = "sprite";
-    pub const MOD: &str = "mod";
-}
+pub use yog_ids::image_scheme as scheme;
 
 /// The source as written: `item:minecraft:apple`, `sprite:button`; a
 /// texture as its resource id.
@@ -131,7 +119,7 @@ pub fn suggest_alias(id: &str) -> Option<String> {
     let stem = path.strip_suffix(".png").unwrap_or(path);
     // `minecraft:` is the default namespace of every alias.
     let short = |id: &str| -> String {
-        if ns == DEFAULT_NS {
+        if ns == yog_ids::ns::MINECRAFT {
             id.to_string()
         } else {
             format!("{ns}:{id}")
@@ -143,7 +131,7 @@ pub fn suggest_alias(id: &str) -> Option<String> {
     if let Some(block) = stem.strip_prefix("block/") {
         return Some(format!("block:{}", short(block)));
     }
-    if ns == DEFAULT_NS
+    if ns == yog_ids::ns::MINECRAFT
         && let Some(atlas_id) = stem.strip_prefix("gui/sprites/")
         && let Some(sprite) = SPRITES.iter().find(|s| s.atlas == Some(atlas_id))
     {
@@ -201,15 +189,15 @@ pub fn sprite(name: &str) -> Option<&'static Sprite> {
     SPRITES.iter().find(|s| s.name == name.trim())
 }
 
-const WIDGETS: &str = "minecraft:textures/gui/widgets.png";
-const ICONS: &str = "minecraft:textures/gui/icons.png";
-const TABS: &str = "minecraft:textures/gui/container/creative_inventory/tabs.png";
-const CHECKBOX: &str = "minecraft:textures/gui/checkbox.png";
+const WIDGETS: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/widgets.png");
+const ICONS: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/icons.png");
+const TABS: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/container/creative_inventory/tabs.png");
+const CHECKBOX: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/checkbox.png");
 /// The demo screen's window — vanilla's plain grey window frame, the same
 /// texture on every version.
-const WINDOW: &str = "minecraft:textures/gui/demo_background.png";
+const WINDOW: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/demo_background.png");
 /// The crafting table's screen — its arrow, the same on every version.
-const CRAFTING_TABLE: &str = "minecraft:textures/gui/container/crafting_table.png";
+const CRAFTING_TABLE: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/container/crafting_table.png");
 
 /// A region of a [`LEGACY_TEX_SIZE`]-square texture.
 const fn region(texture: &'static str, u: f32, v: f32, w: f32, h: f32) -> Option<LegacyRegion> {

@@ -1,0 +1,11 @@
+[package]
+name = "yog-ids"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Yog's shared names — namespaces, content kinds, schemes, separators, its own ids — defined once, exported to TypeScript and Java."
+
+[dependencies]
+const_format = { workspace = true }

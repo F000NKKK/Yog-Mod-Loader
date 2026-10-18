@@ -8,4 +8,4 @@ license = "MIT OR Apache-2.0"
 description = "Yog declarative terrain — noise, layers, caves and ores, as the game generates them and the IDE previews them."
 
 [dependencies]
-yog-data = "0.4.2"
+yog-data = { workspace = true }

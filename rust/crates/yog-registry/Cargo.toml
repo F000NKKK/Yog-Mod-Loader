@@ -8,9 +8,9 @@ license = "MIT OR Apache-2.0"
 description = "Yog content registry — register items, blocks, recipes, etc."
 
 [dependencies]
-yog-abi = "0.30.8"
+yog-abi = { workspace = true }
 # Definitions cross the ABI as Yog Data (`register_content`).
-yog-data = "0.4.2"
+yog-data = { workspace = true }
 serde = { workspace = true, optional = true }
 
 [features]
@@ -18,4 +18,4 @@ serde = ["dep:serde"]
 
 [dev-dependencies]
 serde_json.workspace = true
-yog-data = { version = "0.4.2", features = ["json"] }
+yog-data = { workspace = true, features = ["json"] }

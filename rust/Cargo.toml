@@ -15,6 +15,8 @@ members = [
     "crates/yog-dimensions",
     # declarative terrain: noise, layers, caves, ores — the runtime's and the IDE's preview
     "crates/yog-worldgen",
+    # the names every part shares (namespaces, kinds, schemes, Yog's ids), exported to TS/Java
+    "crates/yog-ids",
     # graphics primitives every crate shares: colors, vectors, rects, paths, images, a rasterizer
     "crates/yog-graphics",
     # fonts: one format for every text of the system, shaping and rasterizing
@@ -65,6 +67,42 @@ authors = ["F000NK, Yog Team, Voluntas Progressus"]
 license = "AGPL-3.0-only"
 
 [workspace.dependencies]
+bumpalo = "3"
+const_format = "0.2.36"
+criterion = { version = "0.8", default-features = false }
+libc = "0.2"
+resvg = { version = "0.48", default-features = false }
+serde_spanned = "1"
+toml = { version = "1", default-features = false }
+yog-abi = { version = "0.30.8", path = "crates/yog-abi" }
+yog-api = { version = "0.98.1", path = "crates/yog-api" }
+yog-body = { version = "0.2.0", path = "crates/yog-body" }
+yog-book = { version = "0.67.0", path = "crates/yog-book" }
+yog-command = { version = "0.2.1", path = "crates/yog-command" }
+yog-config = { version = "0.1.1", path = "crates/yog-config" }
+yog-core = { version = "0.6.0", path = "crates/yog-core" }
+yog-data = { version = "0.4.2", path = "crates/yog-data" }
+yog-data-derive = { version = "0.4.1", path = "crates/yog-data-derive" }
+yog-dimensions = { version = "0.13.0", path = "crates/yog-dimensions" }
+yog-entity = { version = "0.6.0", path = "crates/yog-entity" }
+yog-event = { version = "0.7.0", path = "crates/yog-event" }
+yog-font = { version = "0.1.1", path = "crates/yog-font" }
+yog-formats = { version = "0.9.0", path = "crates/yog-formats" }
+yog-gfx = { version = "0.28.1", path = "crates/yog-gfx" }
+yog-graphics = { version = "0.1.1", path = "crates/yog-graphics" }
+yog-hot-reload = { version = "0.2.3", path = "crates/yog-hot-reload" }
+yog-ids = { version = "0.1.0", path = "crates/yog-ids" }
+yog-interop = { version = "0.21.4", path = "crates/yog-interop" }
+yog-inventory = { version = "0.18.0", path = "crates/yog-inventory" }
+yog-logging = { version = "0.1.1", path = "crates/yog-logging" }
+yog-network = { version = "0.1.1", path = "crates/yog-network" }
+yog-player = { version = "0.7.0", path = "crates/yog-player" }
+yog-registry = { version = "0.35.0", path = "crates/yog-registry" }
+yog-storage = { version = "0.1.2", path = "crates/yog-storage" }
+yog-symbols = { version = "0.4.1", path = "crates/yog-symbols" }
+yog-ui = { version = "0.43.1", path = "crates/yog-ui" }
+yog-world = { version = "0.6.0", path = "crates/yog-world" }
+yog-worldgen = { version = "0.1.0", path = "crates/yog-worldgen" }
 syn = { version = "3", features = ["full", "extra-traits"] }
 quote = "1"
 proc-macro2 = "1"
@@ -85,32 +123,3 @@ nix = { version = "0.31", features = ["ptrace", "signal", "process"] }
 iced-x86 = { version = "1.21", default-features = false, features = ["std", "decoder", "instr_info"] }
 
 [patch.crates-io]
-yog-abi      = { path = "crates/yog-abi" }
-yog-core     = { path = "crates/yog-core" }
-yog-event    = { path = "crates/yog-event" }
-yog-world    = { path = "crates/yog-world" }
-yog-entity   = { path = "crates/yog-entity" }
-yog-player   = { path = "crates/yog-player" }
-yog-registry = { path = "crates/yog-registry" }
-yog-network  = { path = "crates/yog-network" }
-yog-command  = { path = "crates/yog-command" }
-yog-dimensions = { path = "crates/yog-dimensions" }
-yog-data     = { path = "crates/yog-data" }
-yog-worldgen = { path = "crates/yog-worldgen" }
-yog-font = { path = "crates/yog-font" }
-yog-graphics = { path = "crates/yog-graphics" }
-yog-data-derive = { path = "crates/yog-data-derive" }
-yog-formats  = { path = "crates/yog-formats" }
-yog-logging  = { path = "crates/yog-logging" }
-yog-storage  = { path = "crates/yog-storage" }
-yog-config   = { path = "crates/yog-config" }
-yog-api      = { path = "crates/yog-api" }
-yog-book     = { path = "crates/yog-book" }
-yog-body     = { path = "crates/yog-body" }
-yog-gfx      = { path = "crates/yog-gfx" }
-yog-ui       = { path = "crates/yog-ui" }
-yog-kit      = { path = "crates/yog-kit" }
-yog-inventory = { path = "crates/yog-inventory" }
-yog-interop   = { path = "crates/yog-interop" }
-yog-symbols    = { path = "crates/yog-symbols" }
-yog-hot-reload = { path = "crates/yog-hot-reload" }

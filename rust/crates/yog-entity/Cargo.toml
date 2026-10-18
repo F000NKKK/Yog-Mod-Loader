@@ -8,4 +8,4 @@ license = "MIT OR Apache-2.0"
 description = "Yog entity access — universal handle to any entity by UUID."
 
 [dependencies]
-yog-core = "0.6.0"
+yog-core = { workspace = true }

@@ -8,19 +8,19 @@ license = "MIT OR Apache-2.0"
 description = "In-game book/documentation framework for Yog mods (Patchouli-like)."
 
 [dependencies]
-yog-registry = { version = "0.35.0", features = ["serde"] }
-yog-ui  = "0.43.1"
-yog-gfx = "0.28.1"
+yog-registry = { workspace = true, features = ["serde"] }
+yog-ui = { workspace = true }
+yog-gfx = { workspace = true }
 # The .ybook format: schema, references, texts.
-yog-data = { version = "0.4.2", features = ["json"] }
+yog-data = { workspace = true, features = ["json"] }
 
 # Serialization (for runtime JSON parsing)
 serde.workspace      = true
 serde_json.workspace = true
 
 [dev-dependencies]
-criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
-yog-gfx = { version = "0.28.1", features = ["testing"] }
+criterion = { workspace = true, features = ["cargo_bench_support"] }
+yog-gfx = { workspace = true, features = ["testing"] }
 
 [[bench]]
 name = "book"

@@ -20,21 +20,21 @@ proc-macro2 = { workspace = true, features = ["span-locations"] }
 zip.workspace = true
 serde_json.workspace = true
 # Image sources (`item:`, `sprite:`, ...) checked in .yui files.
-yog-gfx = "0.28.1"
+yog-gfx = { workspace = true }
 # Themes (`<Screen theme>`) applied to .yui elements.
-yog-ui = "0.43.1"
-yog-book = "0.67.0"
-yog-body = "0.2.0"
-yog-font = "0.1.1"
-yog-registry = "0.35.0"
+yog-ui = { workspace = true }
+yog-book = { workspace = true }
+yog-body = { workspace = true }
+yog-font = { workspace = true }
+yog-registry = { workspace = true }
 # The data model, text syntax and schemas of every Yog format.
-yog-data = { version = "0.4.2", features = ["toml"] }
+yog-data = { workspace = true, features = ["toml"] }
 # The schemas of the source formats.
-yog-formats = "0.9.0"
+yog-formats = { workspace = true }
 
 [dev-dependencies]
-criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
-yog-worldgen = "0.1.0"
+criterion = { workspace = true, features = ["cargo_bench_support"] }
+yog-worldgen = { workspace = true }
 
 [[bench]]
 name = "exports"

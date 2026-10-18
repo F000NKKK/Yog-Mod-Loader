@@ -1214,7 +1214,7 @@ impl<A: Kind, B: Kind, C: Kind> Kinds for (A, B, C) {
 /// Declares kinds of content: `yog_data::kind!(Pattern = "pattern");`.
 #[macro_export]
 macro_rules! kind {
-    ($($name:ident = $kind:literal),* $(,)?) => {$(
+    ($($name:ident = $kind:expr),* $(,)?) => {$(
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
         pub struct $name;
         impl $crate::Kind for $name {
@@ -1226,15 +1226,15 @@ macro_rules! kind {
 /// The kinds every Yog format knows.
 pub mod kinds {
     crate::kind! {
-        Item = "item",
-        Block = "block",
-        Entity = "entity",
-        Recipe = "recipe",
-        Entry = "entry",
-        Category = "category",
-        Fluid = "fluid",
-        Biome = "biome",
-        Dimension = "dimension",
+        Item = yog_ids::kind::ITEM,
+        Block = yog_ids::kind::BLOCK,
+        Entity = yog_ids::kind::ENTITY,
+        Recipe = yog_ids::kind::RECIPE,
+        Entry = yog_ids::kind::ENTRY,
+        Category = yog_ids::kind::CATEGORY,
+        Fluid = yog_ids::kind::FLUID,
+        Biome = yog_ids::kind::BIOME,
+        Dimension = yog_ids::kind::DIMENSION,
     }
 }
 

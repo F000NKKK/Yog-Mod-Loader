@@ -18,18 +18,18 @@ crate-type = ["cdylib", "rlib"]
 # call site to the new API first.
 jni.workspace = true
 
-yog-abi = "0.30.8"
-yog-api = "0.98.1"
-yog-logging = "0.1.1"
-yog-registry = "0.35.0"
-yog-ui     = "0.43.1"
-yog-book   = "0.67.0"
-yog-gfx    = "0.28.1"
-yog-inventory = "0.18.0"
-yog-worldgen = "0.1.0"
-yog-hot-reload = "0.2.3"
+yog-abi = { workspace = true }
+yog-api = { workspace = true }
+yog-logging = { workspace = true }
+yog-registry = { workspace = true }
+yog-ui = { workspace = true }
+yog-book = { workspace = true }
+yog-gfx = { workspace = true }
+yog-inventory = { workspace = true }
+yog-worldgen = { workspace = true }
+yog-hot-reload = { workspace = true }
 # The content blob the hosts read (`content_blob`).
-yog-data = { version = "0.4.2", features = ["json"] }
+yog-data = { workspace = true, features = ["json"] }
 
 serde_json.workspace = true
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.
@@ -38,11 +38,11 @@ zip.workspace = true
 # OpenGL bindings for low-level GPU access (client-side, render thread only).
 glow.workspace = true
 # SVG images (`draw2d_svg`, `.svg` image sources), rasterized here.
-resvg = { version = "0.48", default-features = false }
+resvg = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # `prctl(PR_SET_PTRACER)` + `SO_PEERCRED` — see `control_socket::allow_peer_to_trace`.
-libc = "0.2"
+libc = { workspace = true }
 
 [features]
 # Hot reload and the control socket a launcher drives it through (Yog-IDLE,
@@ -54,8 +54,8 @@ dev = []
 bench = ["yog-hot-reload/testing"]
 
 [dev-dependencies]
-yog-hot-reload = { version = "0.2.3", features = ["testing"] }
-criterion = "0.8"
+yog-hot-reload = { workspace = true, features = ["testing"] }
+criterion = { workspace = true }
 
 [[bench]]
 name = "jni_calls"

@@ -8,9 +8,9 @@ license = "MIT OR Apache-2.0"
 description = "The schemas of Yog's source formats — .yblock/.yitem, .yrecipe, .ydef, .yres, yog.toml — for the build and the editors."
 
 [dependencies]
-yog-data = "0.4.2"
+yog-data = { workspace = true }
 # Content definitions whose format is the definition itself (`SoundGroup`).
-yog-registry = "0.35.0"
+yog-registry = { workspace = true }
 # A dimension's `terrain`.
-yog-worldgen = "0.1.0"
-yog-body = "0.2.0"
+yog-worldgen = { workspace = true }
+yog-body = { workspace = true }
