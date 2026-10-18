@@ -6,6 +6,7 @@
     "refmap": "yog.refmap.json",
     "mixins": [
     "LootTableMixin",
+        "LootLookupMixin",
         "AdvancementMixin",
         "BlockItemPlaceMixin",
         "ContainerCloseMixin",

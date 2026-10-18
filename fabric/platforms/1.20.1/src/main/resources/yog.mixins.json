@@ -17,17 +17,18 @@
     "ItemPickupMixin",
     "PlayerMoveMixin",
     "ProjectileHitMixin",
+    "PotionBrewingAccess",
     "ResourcePackManagerMixin"
   ],
   "client": [
     "ClientAdvancementsAccess",
     "BodyRenderMixin",
     "CameraMixin",
+    "ViewMixin",
     "KeyboardMixin",
-    "LimbAnimatorAccess",
     "ModelPartAccess",
     "TravelMixin",
-    "ViewMixin"
+    "WalkAnimationAccess"
   ],
   "injectors": {
     "defaultRequire": 1

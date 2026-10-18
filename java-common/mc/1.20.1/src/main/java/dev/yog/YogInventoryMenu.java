@@ -162,7 +162,7 @@ public class YogInventoryMenu extends AbstractContainerMenu {
         for (int p : def.machinePlaces) {
             if (p >= inventory.getContainerSize() || inventory.getItem(p).isEmpty()) continue;
             // What an ingredient leaves (a milk bucket's bucket): in its slot if that's empty, else the player's.
-            ItemStack left = inventory.getItem(p).getCraftingRemainingItem().copy();
+            ItemStack left = new ItemStack(inventory.getItem(p).getItem().getCraftingRemainingItem());
             inventory.removeItem(p, 1);
             if (left.isEmpty()) continue;
             if (inventory.getItem(p).isEmpty()) inventory.setItem(p, left);

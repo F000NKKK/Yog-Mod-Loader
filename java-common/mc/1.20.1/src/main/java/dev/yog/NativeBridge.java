@@ -496,7 +496,7 @@ public final class NativeBridge {
         if (id == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(id)) return -1;
         EntityType<?> targetType = BuiltInRegistries.ENTITY_TYPE.get(id);
         int count = 0;
-        for (Entity e : w.getEntities().getAll()) {
+        for (Entity e : w.getAllEntities()) {
             if (e.getType() == targetType) count++;
         }
         return count;
