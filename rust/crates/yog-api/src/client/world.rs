@@ -68,6 +68,13 @@ pub struct Entity {
     pub y: f64,
     pub z: f64,
     pub eye_height: f64,
+    /// Its motion, blocks a tick (0 from a host that doesn't tell it).
+    #[serde(default)]
+    pub vx: f64,
+    #[serde(default)]
+    pub vy: f64,
+    #[serde(default)]
+    pub vz: f64,
     pub health: Option<f32>,
     /// A player's name.
     pub name: Option<String>,

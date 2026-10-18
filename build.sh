@@ -134,10 +134,23 @@ java_for() {
 }
 
 # Run a gradle task inside a loader dir on the platform-matching JDK.
+# The Gradle project of the loader's active MC platform: the loader's own,
+# or the subproject its versions/<mc>.properties names (`gradle_project`) —
+# fabric's unobfuscated releases build in fabric/modern.
+gradle_dir() {
+    local loader="$1"
+    local mc="${MC_VERSION:-$(grep '^minecraft_version=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)}"
+    local vf="$ROOT/$loader/versions/$mc.properties"
+    local sub=""
+    [ -f "$vf" ] && sub="$(grep '^gradle_project=' "$vf" | cut -d= -f2)"
+    echo "$loader${sub:+/$sub}"
+}
+
 gradle_in() {
-    local dir="$1"; shift
-    local jv jh extra=()
-    jv="$(java_for "$dir")"
+    local loader="$1"; shift
+    local dir jv jh extra=()
+    dir="$(gradle_dir "$loader")"
+    jv="$(java_for "$loader")"
     find_java "$jv" >/dev/null || die "JDK $jv not found (set YOG_JAVA${jv}_HOME=/path/to/jdk$jv)"
     jh="$(find_java "$jv")"
     [ -n "$MC_VERSION" ] && extra+=("-Pminecraft_version=$MC_VERSION")

@@ -27,6 +27,8 @@ pub struct Drive {
     pub jump: bool,
     pub sneak: bool,
     pub sprint: bool,
+    /// The use key held: a shield raised, a bow drawn, food eaten.
+    pub use_item: bool,
 }
 
 /// Holds `keys` for the player each tick, till [`release`].

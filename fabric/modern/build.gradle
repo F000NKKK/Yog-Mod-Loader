@@ -1,0 +1,114 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.19.1'
+    id 'java'
+}
+
+// The mod version lives in one place for all loaders: ../version.properties.
+def rootVersion = new Properties()
+file("../../version.properties").withInputStream { rootVersion.load(it) }
+version = "${rootVersion.getProperty('mod_version')}+${project.minecraft_version}"
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+// Version-specific sources live under platforms/<minecraft_version>/.
+// Changing minecraft_version in gradle.properties automatically switches
+// to the matching platform directory.
+def platformDir = "../platforms/${project.minecraft_version}"
+
+// Per-version toolchain versions (yarn/loader/api/java) come from
+// versions/<minecraft_version>.properties so adding a platform doesn't
+// require touching this build script.
+def versionProps = new Properties()
+file("../versions/${project.minecraft_version}.properties").withInputStream { versionProps.load(it) }
+versionProps.each { k, v -> if (!project.hasProperty(k)) project.ext[k] = v }
+
+// Scaffolded platforms have build plumbing but unported sources — fail fast
+// with a clear message instead of a wall of compile errors.
+// NB: read from versionProps, not project.status — Gradle projects have a
+// built-in 'status' property that shadows the one from the versions file.
+if (versionProps.getProperty('status') == 'scaffold' && !project.hasProperty('allowScaffold')) {
+    throw new GradleException("Platform ${project.minecraft_version} is scaffolded: host/mixin sources are not ported yet. " +
+        "Use a ported platform (see versions/*.properties) or pass -PallowScaffold to try anyway.")
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "${platformDir}/src/main/java"
+            // Loader- and mapping-agnostic Java shared with other loader hosts.
+            srcDir "../../java-common/src/main/java"
+            // Hot reload is for dev builds: a release jar (`build.sh publish`) leaves it out.
+            if (project.hasProperty('yog_release')) {
+                exclude 'dev/yog/YogDevReload*.java'
+            }
+        }
+        resources {
+            srcDir "${platformDir}/src/main/resources"
+            srcDir "../../java-common/src/main/resources"
+        }
+    }
+}
+
+// Point the game JVM (not the Gradle daemon) at the native Yog runtime staged
+// by ../build.sh. Lets `./gradlew runServer` / `runClient` find libyog_runtime.
+// The dev run's folders are ../'s, shared with the other platforms.
+loom {
+    runs {
+        server {
+            vmArg "-Djava.library.path=${file('../run/natives').absolutePath}"
+        }
+        client {
+            vmArg "-Djava.library.path=${file('../run/natives').absolutePath}"
+            // One player across dev launches: mods' per-player data (keyed by
+            // the offline UUID of the name) survives a restart.
+            programArgs "--username", "Dev"
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    // Unobfuscated releases: no mappings, the game's own names.
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+               "minecraft_version": project.minecraft_version
+    }
+}
+
+java {
+    // Java version comes from versions/<mc>.properties (17 for 1.20.1,
+    // 21 for 1.21.1+). The toolchain pins compile + run regardless of the
+    // default JDK (foojay can fetch it if missing).
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version as String))
+    }
+    withSourcesJar()
+}
+
+// The dev client/server load the runtime from this checkout's rust/, built
+// for this machine — not whatever ../build.sh embedded last: the runtime
+// refuses mods of another ABI, so a stale one would drop every mod.
+def hostRuntimeTag = {
+    def os = System.getProperty('os.name').toLowerCase()
+    def arch = System.getProperty('os.arch') in ['aarch64', 'arm64'] ? 'aarch64' : 'x86_64'
+    (os.contains('win') ? 'windows' : os.contains('mac') ? 'macos' : 'linux') + '-' + arch
+}
+def refreshHostRuntime = tasks.register('refreshHostRuntime', Exec) {
+    description = 'Builds the host runtime from ../rust into src/main/resources/natives'
+    onlyIf { !System.getProperty('os.name').toLowerCase().contains('win') }
+    workingDir rootDir.parentFile.parentFile
+    environment 'YOG_TARGETS', hostRuntimeTag()
+    commandLine 'bash', './build.sh', 'build', 'rust'
+}
+tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach { dependsOn refreshHostRuntime }
+tasks.named('processResources').configure { mustRunAfter refreshHostRuntime }
