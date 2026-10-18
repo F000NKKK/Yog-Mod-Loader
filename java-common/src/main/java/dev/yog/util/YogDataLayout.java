@@ -176,12 +176,27 @@ public final class YogDataLayout {
         }
     }
 
-    /** One ingredient as a bare id or {@code #tag} (alternatives: a list of those). */
+    /**
+     * One ingredient as a bare id or {@code #tag}. Alternatives are a list of
+     * ids only (1.21.2+ takes a tag alone, not in a list): with a tag among
+     * them the tag stands for them all — Yog's alternatives name an item and
+     * the common tag it's in ({@code [copper_ingot, #yog:ingots/copper]}).
+     */
     private static JsonElement asId(JsonElement v) {
         if (v instanceof com.google.gson.JsonArray any) {
             com.google.gson.JsonArray out = new com.google.gson.JsonArray();
-            for (JsonElement e : any) out.add(asId(e));
-            return out;
+            JsonElement tag = null;
+            for (JsonElement e : any) {
+                JsonElement id = asId(e);
+                if (id.isJsonPrimitive() && id.getAsString().startsWith(TAG_MARK)) {
+                    if (tag == null) tag = id;
+                    else YogLog.warn("ingredient " + any + ": only " + tag + " of its tags is kept (a list holds no tags)");
+                } else {
+                    out.add(id);
+                }
+            }
+            if (tag != null) return tag;
+            return out.size() == 1 ? out.get(0) : out;
         }
         if (v instanceof JsonObject o) {
             if (o.has(ITEM)) return o.get(ITEM);
