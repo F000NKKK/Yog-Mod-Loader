@@ -78,8 +78,9 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
         }
         // The service's version: a tool restarts it when the binary changes.
         "version" => Ok(json!(env!("CARGO_PKG_VERSION"))),
-        // `.yres` text → its entries; media values as their text form (`@bytes:…`).
-        "yres.parse" => yres_parse(str_param(params, "text")?),
+        // `.yres` text → its entries; media values as their text form (`@bytes:…`). With the
+        // file's `set` and the `mod` id, a text's translation key too.
+        "yres.parse" => yres_parse(str_param(params, "text")?, params.get("set").and_then(Value::as_str).zip(params.get("mod").and_then(Value::as_str))),
         // Entries (as `yres.parse` gives them) → `.yres` text.
         "yres.write" => yres_write(params.get("entries").ok_or_else(|| json!("missing `entries`"))?),
         // Yog Data text → its value as JSON text (maps in file order, typed values as written).
@@ -155,17 +156,18 @@ fn mod_root(file: &Path) -> Result<PathBuf, Value> {
         .ok_or_else(|| json!(format!("{} isn't in a mod", file.display())))
 }
 
-fn yres_parse(text: &str) -> Result<Value, Value> {
+fn yres_parse(text: &str, set_and_mod: Option<(&str, &str)>) -> Result<Value, Value> {
     let entries = yog_formats::yres::parse(text).map_err(|e| {
         // `line:column: message` → {line, message}.
         let line = e.split(':').next().and_then(|l| l.trim().parse::<u64>().ok());
         json!({ "message": e, "line": line })
     })?;
-    Ok(json!({ "entries": entries.iter().map(entry_json).collect::<Vec<_>>() }))
+    Ok(json!({ "entries": entries.iter().map(|e| entry_json(e, set_and_mod)).collect::<Vec<_>>() }))
 }
 
-/// An entry as a tool takes it.
-fn entry_json(e: &Entry) -> Value {
+/// An entry as a tool takes it: with its accessor, what's wrong with its
+/// name, and (a text of a known set and mod) its translation key.
+fn entry_json(e: &Entry, set_and_mod: Option<(&str, &str)>) -> Value {
     let mut m = Map::new();
     m.insert("name".into(), json!(e.name));
     m.insert("type".into(), json!(e.kind.name()));
@@ -176,6 +178,14 @@ fn entry_json(e: &Entry) -> Value {
         yog_formats::yres::Value::Bytes(b) => json!(yog_data::typed::typed_string(&yog_data::Value::Bytes(b.clone()))),
     });
     m.insert("line".into(), json!(e.line));
+    m.insert("accessor".into(), json!(crate::yres::accessor_name(&e.name)));
+    if let Some(problem) = crate::yres::name_problem(&e.name) {
+        m.insert("nameProblem".into(), json!(problem));
+    }
+    if let (Some((set, mod_id)), Kind::String) = (set_and_mod, e.kind) {
+        let key = e.key.clone().unwrap_or_else(|| crate::yres::default_key(set, mod_id, &e.name));
+        m.insert("translationKey".into(), json!(key));
+    }
     for (k, v) in [("comment", &e.comment), ("key", &e.key), ("event", &e.event), ("subtitle", &e.subtitle)] {
         if let Some(v) = v {
             m.insert(k.into(), json!(v));
@@ -221,6 +231,11 @@ mod tests {
         let entries = &parsed["entries"];
         assert_eq!(entries[2]["type"], "image");
         assert_eq!(entries[2]["value"], "@bytes:iVBORw0KGgo=");
+        let named = dispatch("yres.parse", &json!({ "text": "{ \"cad.0_x\": \"a\", \"1a\": \"b\" }", "set": "Items", "mod": "m" })).unwrap();
+        assert_eq!(named["entries"][0]["accessor"], "cad_0_x");
+        assert!(named["entries"][0].get("nameProblem").is_none());
+        assert!(named["entries"][1]["nameProblem"].is_string());
+        assert_eq!(named["entries"][0]["translationKey"], "item.m.cad.0_x");
         let written = dispatch("yres.write", &json!({ "entries": entries })).unwrap();
         let again = dispatch("yres.parse", &json!({ "text": written.as_str().unwrap() })).unwrap();
         assert_eq!(again["entries"][3]["comment"], "red");

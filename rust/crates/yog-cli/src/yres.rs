@@ -59,6 +59,11 @@ pub fn valid_name(name: &str) -> bool {
     yog_data::typed::is_res_key(name)
 }
 
+/// What's wrong with entry name `name`, if anything.
+pub fn name_problem(name: &str) -> Option<String> {
+    (!valid_name(name)).then(|| format!("{name:?} isn't a valid name — identifiers joined by `.`, like screen.title"))
+}
+
 /// A resource set name: one identifier (`Strings`, `Icons`).
 pub fn valid_set_name(name: &str) -> bool {
     ident_part(name) && !RUST_KEYWORDS.contains(&name)
@@ -376,11 +381,8 @@ fn load(root: &Path, errors: &mut Vec<String>) -> BTreeMap<String, Set> {
             }
         };
         for e in &entries {
-            if !valid_name(&e.name) {
-                errors.push(format!(
-                    "{shown}:{}: {:?} isn't a valid name — identifiers joined by `.`, like screen.title",
-                    e.line, e.name
-                ));
+            if let Some(problem) = name_problem(&e.name) {
+                errors.push(format!("{shown}:{}: {problem}", e.line));
             }
         }
         let file = ResFile { path, entries };
