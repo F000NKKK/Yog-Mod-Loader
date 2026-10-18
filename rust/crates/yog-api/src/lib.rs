@@ -11,7 +11,7 @@ pub mod client;
 pub mod entities;
 pub mod java;
 pub mod loot;
-pub mod pilot;
+pub mod control;
 pub mod vanilla;
 mod interop;
 mod lang;

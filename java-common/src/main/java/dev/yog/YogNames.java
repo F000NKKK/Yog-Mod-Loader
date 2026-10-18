@@ -268,8 +268,8 @@ public final class YogNames {
         public static final String COLOR = "color";
     }
 
-    public static final class Pilot {
-        private Pilot() {}
+    public static final class ClientOp {
+        private ClientOp() {}
 
         public static final String STATE = "state";
         public static final String DRIVE = "drive";

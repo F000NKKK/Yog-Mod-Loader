@@ -38,14 +38,14 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 
 /**
- * Piloting the local player for Rust mods (ABI 3.9, `client_pilot`): one
- * call per operation of `YogNames.Pilot`, arguments and answer as JSON.
+ * The local player and what it sees, for Rust mods (ABI 3.9, `client_op`):
+ * one call per operation of `YogNames.ClientOp`, arguments and answer as JSON.
  * Movement is the player's own keys held down, so the game sends the
  * server what a player's input would. Called on the client thread (a
  * mod's client tick); every operation answers null without a player.
  */
-public final class YogPilot {
-    private YogPilot() {}
+public final class YogClientOps {
+    private YogClientOps() {}
 
     private static final Gson GSON = new Gson();
     /** At most this many blocks are scanned or sent in one call. */
@@ -67,26 +67,26 @@ public final class YogPilot {
             if (p == null || w == null) return null;
             JsonObject a = args == null || args.isBlank() ? new JsonObject() : parse(args);
             Object answer = switch (op) {
-                case YogNames.Pilot.STATE -> state(p, w);
-                case YogNames.Pilot.DRIVE -> drive(mc.options, a);
-                case YogNames.Pilot.RELEASE -> release(mc.options);
-                case YogNames.Pilot.LOOK -> look(p, a);
-                case YogNames.Pilot.ATTACK -> attack(mc, p, w, a);
-                case YogNames.Pilot.USE -> mc.interactionManager.interactItem(p, a.has("off_hand") && a.get("off_hand").getAsBoolean() ? Hand.OFF_HAND : Hand.MAIN_HAND).isAccepted();
-                case YogNames.Pilot.MINE -> mine(mc, p, w, a);
-                case YogNames.Pilot.PLACE -> place(mc, p, a);
-                case YogNames.Pilot.SLOT -> slot(p, a);
-                case YogNames.Pilot.SCAN -> scan(w, a);
-                case YogNames.Pilot.AREA -> area(w, a);
-                case YogNames.Pilot.ENTITIES -> entities(p, w, a);
-                case YogNames.Pilot.INVENTORY -> inventory(p);
-                case YogNames.Pilot.CLICK -> click(mc, p, a);
-                case YogNames.Pilot.CHAT -> chat(mc, a);
+                case YogNames.ClientOp.STATE -> state(p, w);
+                case YogNames.ClientOp.DRIVE -> drive(mc.options, a);
+                case YogNames.ClientOp.RELEASE -> release(mc.options);
+                case YogNames.ClientOp.LOOK -> look(p, a);
+                case YogNames.ClientOp.ATTACK -> attack(mc, p, w, a);
+                case YogNames.ClientOp.USE -> mc.interactionManager.interactItem(p, a.has("off_hand") && a.get("off_hand").getAsBoolean() ? Hand.OFF_HAND : Hand.MAIN_HAND).isAccepted();
+                case YogNames.ClientOp.MINE -> mine(mc, p, w, a);
+                case YogNames.ClientOp.PLACE -> place(mc, p, a);
+                case YogNames.ClientOp.SLOT -> slot(p, a);
+                case YogNames.ClientOp.SCAN -> scan(w, a);
+                case YogNames.ClientOp.AREA -> area(w, a);
+                case YogNames.ClientOp.ENTITIES -> entities(p, w, a);
+                case YogNames.ClientOp.INVENTORY -> inventory(p);
+                case YogNames.ClientOp.CLICK -> click(mc, p, a);
+                case YogNames.ClientOp.CHAT -> chat(mc, a);
                 default -> null;
             };
             return answer == null ? null : GSON.toJson(answer);
         } catch (Throwable t) {
-            YogLog.warn("pilot " + op + ": " + t);
+            YogLog.warn("client op " + op + ": " + t);
             return null;
         }
     }

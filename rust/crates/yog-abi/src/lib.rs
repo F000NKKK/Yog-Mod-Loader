@@ -1640,10 +1640,11 @@ pub struct YogApi {
     /// they're in the log with the game's instead of on a stdout nobody reads.
     pub log: unsafe extern "C" fn(level: u32, message: YogStr),
 
-    // ── ABI 3.9 — piloting the local player (client) ────────────────────────
-    /// Does or tells `op` (`yog_ids::pilot`) for this client's player with
-    /// `args` (JSON); its answer as JSON, or none (no player, a server).
-    pub client_pilot: unsafe extern "C" fn(ctx: *mut c_void, op: YogStr, args: YogStr) -> YogOwnedStr,
+    // ── ABI 3.9 — the local player and what it sees (client) ────────────────
+    /// Tells or does `op` (`yog_ids::client_op`) on this client with `args`
+    /// (JSON): the player's state, the blocks and entities around it, its
+    /// actions; the answer as JSON, or none (no player, a server).
+    pub client_op: unsafe extern "C" fn(ctx: *mut c_void, op: YogStr, args: YogStr) -> YogOwnedStr,
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].

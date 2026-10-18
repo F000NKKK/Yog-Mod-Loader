@@ -10,6 +10,10 @@
 //! client::stop_sound(loop_);
 //! ```
 
+pub(crate) mod op;
+pub mod player;
+pub mod world;
+
 use yog_abi::YogStr;
 pub use yog_abi::ui_flags;
 

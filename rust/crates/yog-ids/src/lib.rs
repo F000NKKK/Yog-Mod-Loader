@@ -339,9 +339,9 @@ names! {
         COLOR = "color",
     }
 
-    /// What a mod asks the local player to do or tell (`client_pilot`, ABI
-    /// 3.9): its operations — arguments and answers are JSON.
-    pilot {
+    /// What a mod asks of this client (`client_op`, ABI 3.9) — what the
+    /// local player is and sees, and what it does: arguments and answers are JSON.
+    client_op {
         /// Where it is and how it's doing: position, look, motion, health, food, dimension, slot.
         STATE = "state",
         /// Moves as if keys were held — `forward`, `strafe` in -1..1, `jump`, `sneak`, `sprint` — till `release`.

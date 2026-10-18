@@ -3416,7 +3416,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_loot: loot::api_on_loot,
         client_attribute_value: api_client_attribute_value,
         client_advancement_done: api_client_advancement_done,
-        client_pilot: client_api::api_client_pilot,
+        client_op: client_api::api_client_op,
         log: api_log,
     }
 }
