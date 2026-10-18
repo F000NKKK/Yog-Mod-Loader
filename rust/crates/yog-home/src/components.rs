@@ -10,6 +10,8 @@ pub mod id {
     pub const INSTALLER: &str = "yog.installer";
     /// A Yog Mod Loader source tree: its loaders and versions, built and run with its `build.sh`.
     pub const LOADER_SDK: &str = "yog.sdk.loader";
+    /// zig, the linker `yog build` cross-links every platform with (a folder holding `zig`).
+    pub const ZIG: &str = "zig";
     /// The prefix of a JDK's id: `yog.jdk.21`.
     pub const JDK_PREFIX: &str = "yog.jdk.";
 
