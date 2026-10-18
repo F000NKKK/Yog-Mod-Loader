@@ -198,12 +198,13 @@ fn ingredient(v: &yog_data::Value) -> Vec<String> {
 /// see `yog_registry::Recipe`), as the book shows it.
 fn parse_recipe(v: &yog_data::Value) -> Option<RecipeVis> {
     use yog_data::Value;
-    let kind = v.get("type")?.as_str()?.to_owned();
-    let output = match v.get("result")? {
+    use yog_registry::recipe_kinds::{self, GRID_SIDE, fields};
+    let kind = v.get(fields::TYPE)?.as_str()?.to_owned();
+    let output = match v.get(fields::RESULT)? {
         Value::Ref(r) => r.id.clone(),
         r => r.as_str()?.to_owned(),
     };
-    let count = v.get("count").and_then(|c| c.as_i64()).unwrap_or(1).max(0) as u32;
+    let count = v.get(fields::COUNT).and_then(|c| c.as_i64()).unwrap_or(1).max(0) as u32;
     let mut slots = BTreeMap::new();
     let mut values = BTreeMap::new();
     let text = |x: &Value| match x {
@@ -212,48 +213,47 @@ fn parse_recipe(v: &yog_data::Value) -> Option<RecipeVis> {
         Value::Bool(b) => b.to_string(),
         x => x.as_str().map(str::to_owned).unwrap_or_default(),
     };
-    match kind.as_str() {
-        "shaped" => {
-            // The pattern's cells by position on the 3×3 grid.
-            let key = v.get("key")?.as_map()?;
-            let mut grid = vec![Vec::new(); 9];
-            for (r, row) in v.get("pattern")?.as_list()?.iter().filter_map(|p| p.as_str()).take(3).enumerate() {
-                let mut buf = [0u8; 4];
-                for (c, ch) in row.chars().take(3).enumerate() {
-                    grid[r * 3 + c] = key.get(ch.encode_utf8(&mut buf)).map(ingredient).unwrap_or_default();
+    match recipe_kinds::game_kind(&kind) {
+        // The game's kind: its slots where its definition says they're written.
+        Some(def) => {
+            for (name, spec) in &def.slots.0 {
+                let places = if spec.grid {
+                    // The pattern's cells by position on the grid.
+                    let key = v.get(fields::KEY)?.as_map()?;
+                    let mut grid = vec![Vec::new(); GRID_SIDE * GRID_SIDE];
+                    for (r, row) in v.get(fields::PATTERN)?.as_list()?.iter().filter_map(|p| p.as_str()).take(GRID_SIDE).enumerate() {
+                        let mut buf = [0u8; 4];
+                        for (c, ch) in row.chars().take(GRID_SIDE).enumerate() {
+                            grid[r * GRID_SIDE + c] = key.get(ch.encode_utf8(&mut buf)).map(ingredient).unwrap_or_default();
+                        }
+                    }
+                    grid
+                } else {
+                    let field = v.get(spec.field.as_deref()?);
+                    match (field, spec.max) {
+                        // Several places: a list of them.
+                        (Some(list), max) if max > 1 => list.as_list()?.iter().map(ingredient).collect(),
+                        // One place: an ingredient (or a list of alternatives).
+                        (Some(x), _) => vec![ingredient(x)],
+                        (None, _) if spec.required => return None,
+                        (None, _) => vec![Vec::new()],
+                    }
+                };
+                slots.insert(name.clone(), places);
+            }
+            for (name, _) in &def.values.0 {
+                let given = v.get(name).map(text);
+                if let Some(x) = given.or_else(|| def.default_of(name).map(|d| d.to_string())) {
+                    values.insert(name.clone(), x);
                 }
             }
-            slots.insert("grid".into(), grid);
         }
-        "shapeless" => {
-            slots.insert("grid".into(), v.get("ingredients")?.as_list()?.iter().map(ingredient).collect());
-        }
-        "smelting" | "blasting" | "smoking" | "campfire_cooking" | "stonecutting" => {
-            slots.insert("input".into(), vec![ingredient(v.get("ingredient")?)]);
-            let default_time = match kind.as_str() {
-                "smelting" => Some(200),
-                "blasting" | "smoking" => Some(100),
-                "campfire_cooking" => Some(600),
-                _ => None,
-            };
-            if let Some(t) = v.get("cook_time").and_then(|t| t.as_i64()).or(default_time) {
-                values.insert("time".into(), t.to_string());
-            }
-            if let Some(x) = v.get("experience") {
-                values.insert("experience".into(), text(x));
-            }
-        }
-        "smithing" => {
-            for part in ["template", "base", "addition"] {
-                slots.insert(part.into(), vec![v.get(part).map(ingredient).unwrap_or_default()]);
-            }
-        }
-        _ => {
-            // A mod's own kind: named slots, values.
-            for (name, list) in v.get("slots").and_then(|s| s.as_map()).into_iter().flat_map(|m| m.iter()) {
+        // A mod's own kind: named slots, values.
+        None => {
+            for (name, list) in v.get(fields::SLOTS).and_then(|s| s.as_map()).into_iter().flat_map(|m| m.iter()) {
                 slots.insert(name.to_string(), list.as_list().into_iter().flatten().map(ingredient).collect());
             }
-            for (name, x) in v.get("values").and_then(|s| s.as_map()).into_iter().flat_map(|m| m.iter()) {
+            for (name, x) in v.get(fields::VALUES).and_then(|s| s.as_map()).into_iter().flat_map(|m| m.iter()) {
                 values.insert(name.to_string(), text(x));
             }
         }
@@ -1998,7 +1998,7 @@ mod tests {
         assert_eq!(
             (
                 blast.slots["input"][0][0].as_str(),
-                blast.values["time"].as_str()
+                blast.values["cook_time"].as_str()
             ),
             ("m:ore", "100")
         );
@@ -2019,6 +2019,7 @@ mod tests {
         let mut recipes = HashMap::new();
         recipes.insert("m:r".to_string(), parse_recipe(&j(r##"{"type":"m:infusion","slots":{"ring":["m:a","m:b"]},"values":{"time":40},"result":"m:out"}"##)).unwrap());
         recipes.insert("m:s".to_string(), parse_recipe(&j(r##"{"type":"smithing","template":"m:t","base":"m:b","addition":"m:a","result":"m:out"}"##)).unwrap());
+        recipes.insert("m:p".to_string(), parse_recipe(&j(r##"{"type":"brewing","from":"m:awkward","ingredient":"m:dust","result":"m:clarity"}"##)).unwrap());
         let layout: crate::layout::RecipeLayout = yog_data::from_text(
             r#"{ kinds: ["m:infusion"], size: [96, 40], parts: [
                 { type: "slots", slot: "ring", at: [[0, 0], [20, 0]], frame: true },
@@ -2079,6 +2080,11 @@ mod tests {
                 .count(),
             3
         );
+        // Brewing: Yog's own strip — ingredient, potion, the stand, result.
+        let (bg, ov) = draw("m:p");
+        assert!(bg.iter().any(|b| b.src.x == 11.0 && b.src.y == 181.0), "the brewing strip");
+        // Its two slots (ingredient, potion); the stand and the result are drawn apart.
+        assert_eq!(ov.iter().filter(|o| matches!(o, OverlayCmd::McItems { .. })).count(), 2);
     }
 
     #[test]

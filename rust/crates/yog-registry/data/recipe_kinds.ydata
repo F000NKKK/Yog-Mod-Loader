@@ -1,0 +1,66 @@
+// The game's kinds of recipe, as `recipe_kind` definitions: each slot names
+// the `.yrecipe` field it's written in. Their layouts are yog-book's
+// (`assets/layouts.ydata`); the hosts write each kind's recipe JSON.
+[
+  // Crafting, by position: `pattern` rows and a `key`.
+  { id: "shaped", name: "Shaped", slots: { grid: { max: 9, required: true, grid: true } } },
+  // Crafting, in any arrangement.
+  { id: "shapeless", name: "Shapeless", slots: { grid: { max: 9, required: true, field: "ingredients" } } },
+  {
+    id: "smelting",
+    name: "Smelting",
+    slots: { input: { required: true, field: "ingredient" } },
+    values: { cook_time: "number", experience: "number" },
+    defaults: { cook_time: 200, experience: 0.1 },
+  },
+  {
+    id: "blasting",
+    name: "Blasting",
+    slots: { input: { required: true, field: "ingredient" } },
+    values: { cook_time: "number", experience: "number" },
+    defaults: { cook_time: 100, experience: 0.1 },
+  },
+  {
+    id: "smoking",
+    name: "Smoking",
+    slots: { input: { required: true, field: "ingredient" } },
+    values: { cook_time: "number", experience: "number" },
+    defaults: { cook_time: 100, experience: 0.1 },
+  },
+  {
+    id: "campfire_cooking",
+    name: "Campfire Cooking",
+    slots: { input: { required: true, field: "ingredient" } },
+    values: { cook_time: "number", experience: "number" },
+    defaults: { cook_time: 600, experience: 0.1 },
+  },
+  { id: "stonecutting", name: "Stonecutting", slots: { input: { required: true, field: "ingredient" } } },
+  // A smithing table: `base` upgraded with `addition`, `template` used up.
+  {
+    id: "smithing",
+    name: "Smithing",
+    slots: {
+      template: {
+        name: "Template", required: true, field: "template",
+        description: "The smithing template, used up (minecraft:netherite_upgrade_smithing_template).",
+      },
+      base: {
+        name: "Base", required: true, field: "base",
+        description: "The item upgraded: its enchantments and name carry over to the result.",
+      },
+      addition: {
+        name: "Addition", required: true, field: "addition",
+        description: "What the base is upgraded with (minecraft:netherite_ingot).",
+      },
+    },
+  },
+  // A brewing stand: the potion `from` becomes the result with `ingredient`.
+  {
+    id: "brewing",
+    name: "Brewing",
+    slots: {
+      from: { name: "Potion", required: true, field: "from", description: "The potion in the bottle, brewed into the result." },
+      input: { name: "Ingredient", required: true, field: "ingredient", description: "What's put in the brewing stand's top slot." },
+    },
+  },
+]

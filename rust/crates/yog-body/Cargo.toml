@@ -9,4 +9,4 @@ description = "Bodies for Yog mods: skeletons and animations (.ymodel/.yanim), v
 
 [dependencies]
 yog-data = "0.4"
-yog-graphics = "0.1"
+yog-graphics = "0.1.1"

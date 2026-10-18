@@ -1252,6 +1252,32 @@ fn client_advancement_done(id: &str) -> bool {
     unsafe { host!("dev/yog/YogClientApi", "advancementDone", [JArg::S(YogStr::from_str(id))]).unwrap_or(false) }
 }
 
+// ── Logging (ABI 3.8) ────────────────────────────────────────────────────────
+
+thread_local! {
+    /// Set while a record is on its way to Java: a record the call itself
+    /// logs (a JNI failure) goes to stderr instead of looping.
+    static LOGGING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Writes a record to the game's log (`YogLog.log`); before there's a JVM, or from inside
+/// a failing log call, to stderr.
+fn host_log(level: yog_logging::Level, message: &str) {
+    let sent = !LOGGING.with(|busy| busy.replace(true)) && {
+        let r: Option<()> = unsafe { host!("dev/yog/YogLog", "log", [JArg::I(level as i32), JArg::S(YogStr::from_str(message))]) };
+        LOGGING.with(|busy| busy.set(false));
+        r.is_some()
+    };
+    if !sent {
+        eprintln!("[yog] [{level:?}] {message}");
+    }
+}
+
+/// `YogApi::log`: a mod's record.
+unsafe extern "C" fn api_log(level: u32, message: YogStr) {
+    host_log(yog_logging::Level::from_u32(level), unsafe { message.as_str() });
+}
+
 unsafe extern "C" fn api_client_advancement_done(_ctx: *mut c_void, id: YogStr) -> bool {
     client_advancement_done(unsafe { id.as_str() })
 }
@@ -3384,6 +3410,7 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         on_loot: loot::api_on_loot,
         client_attribute_value: api_client_attribute_value,
         client_advancement_done: api_client_advancement_done,
+        log: api_log,
     }
 }
 
@@ -3738,6 +3765,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     if let Ok(vm) = env.get_java_vm() {
         let _ = JAVA_VM.set(vm);
     }
+    // From here on the runtime's records go to the game's log.
+    yog_logging::set_sink(host_log);
 
     let dir = env
         .get_string(&mods_dir)

@@ -1,6 +1,6 @@
 [package]
 name = "yog-registry"
-version = "0.34.0"
+version = "0.35.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 description = "Yog content registry — register items, blocks, recipes, etc."
 
 [dependencies]
-yog-abi = "0.30"
+yog-abi = "0.30.8"
 # Definitions cross the ABI as Yog Data (`register_content`).
 yog-data = "0.4"
 serde = { workspace = true, optional = true }

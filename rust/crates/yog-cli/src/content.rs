@@ -139,8 +139,6 @@ pub const DISPLAY_SLOTS: [&str; 8] = [
     "fixed",
 ];
 pub const RENDER_LAYERS: [&str; 4] = ["solid", "cutout", "cutout_mipped", "translucent"];
-pub const RECIPE_TYPES: [&str; 8] =
-    ["shaped", "shapeless", "smelting", "blasting", "smoking", "campfire_cooking", "stonecutting", "smithing"];
 
 /// A model template — `"parent": "cube_all"` — and the texture slots it takes.
 pub struct Template {
@@ -1397,8 +1395,7 @@ enum RecipeKind {
     Shaped { pattern: Vec<String>, key: Vec<(char, Vec<String>)> },
     /// Crafting ingredients in any arrangement.
     Shapeless(Vec<Vec<String>>),
-    /// Cooking (`method`: `Smelting`, `Blasting`, `Smoking`, `Campfire`).
-    Cooking { method: &'static str, input: Vec<String>, experience: f64, cook_time: u32 },
+    Cooking { method: yog_registry::Cooking, input: Vec<String>, experience: f64, cook_time: u32 },
     Stonecutting(Vec<String>),
     Smithing { template: Vec<String>, base: Vec<String>, addition: Vec<String> },
     /// The mod's own kind of recipe (`mymod:infusion`), for its machines
@@ -2451,7 +2448,7 @@ impl Recipe {
                 format!("Shapeless {{ ingredients: vec![{}] }}", all.join(", "))
             }
             RecipeKind::Cooking { method, input, experience, cook_time } => format!(
-                "Cooking {{ method: ::yog_api::Cooking::{method}, ingredient: {}, experience: {}_f32, cook_time: {cook_time} }}",
+                "Cooking {{ method: ::yog_api::Cooking::{method:?}, ingredient: {}, experience: {}_f32, cook_time: {cook_time} }}",
                 list(input),
                 float(*experience)
             ),
@@ -2547,14 +2544,7 @@ fn compile_recipe(
         }
     }
     let RecipeFile { common: c, body } = read.value;
-    let ty = match &body {
-        Body::Shaped(_) => "shaped".to_string(),
-        Body::Shapeless(_) => "shapeless".to_string(),
-        Body::Cooking(t, _) | Body::Custom(t, _) => t.clone(),
-        Body::Stonecutting(_) => "stonecutting".to_string(),
-        Body::Smithing(_) => "smithing".to_string(),
-        Body::Brewing(_) => "brewing".to_string(),
-    };
+    let ty = body.kind().to_string();
     let root = At::root();
     if let Some(f) = c.format
         && f != 1
@@ -2616,26 +2606,24 @@ fn compile_recipe(
             RecipeKind::Shaped { pattern: s.pattern, key }
         }
         Body::Shapeless(s) => {
-            if s.ingredients.is_empty() || s.ingredients.len() > 9 {
-                cx.err(line(&root.key("ingredients")), "ingredients must be 1–9 items or tags");
+            if s.ingredients.is_empty() || s.ingredients.len() > yog_formats::recipe::MAX_SHAPELESS {
+                cx.err(line(&root.key("ingredients")), format!("ingredients must be 1–{} items or tags", yog_formats::recipe::MAX_SHAPELESS));
                 return None;
             }
             RecipeKind::Shapeless(s.ingredients.iter().map(|i| i.ids()).collect())
         }
         Body::Cooking(ty, k) => {
-            let (method, default_time) = match ty.as_str() {
-                "smelting" => ("Smelting", 200),
-                "blasting" => ("Blasting", 100),
-                "smoking" => ("Smoking", 100),
-                _ => ("Campfire", 600),
-            };
-            if !(0.0..=1000.0).contains(&k.experience) {
-                cx.err(line(&root.key("experience")), "experience: 0–1000");
+            use yog_formats::recipe::{COOK_TIME, EXPERIENCE};
+            let kind = yog_registry::recipe_kinds::game_kind(&ty).expect("a cooking body is one of the game's kinds");
+            let method = yog_registry::Cooking::of_kind(&ty).expect("a cooking body is a cooking kind");
+            if !EXPERIENCE.contains(&k.experience) {
+                cx.err(line(&root.key("experience")), format!("experience: {}–{}", EXPERIENCE.start(), EXPERIENCE.end()));
                 ok = false;
             }
+            let default_time = kind.default_of("cook_time").map_or(*COOK_TIME.start(), |t| t as u32);
             let cook_time = k.cook_time.unwrap_or(default_time);
-            if !(1..=32767).contains(&cook_time) {
-                cx.err(line(&root.key("cook_time")), "cook_time: 1–32767 ticks");
+            if !COOK_TIME.contains(&cook_time) {
+                cx.err(line(&root.key("cook_time")), format!("cook_time: {}–{} ticks", COOK_TIME.start(), COOK_TIME.end()));
                 ok = false;
             }
             RecipeKind::Cooking { method, input: k.ingredient.ids(), experience: k.experience, cook_time }

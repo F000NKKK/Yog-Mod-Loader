@@ -1,6 +1,6 @@
 [package]
 name = "yog-gfx"
-version = "0.28.0"
+version = "0.28.1"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -8,9 +8,9 @@ license = "MIT OR Apache-2.0"
 description = "Yog graphics subsystem — low-level GPU pipeline access for mods."
 
 [dependencies]
-yog-abi = "0.30"
+yog-abi = "0.30.8"
 # The graphics primitives every crate shares (colors, rects, images).
-yog-graphics = "0.1"
+yog-graphics = "0.1.1"
 
 [features]
 # A graphics table that draws nothing, for tests and benchmarks.

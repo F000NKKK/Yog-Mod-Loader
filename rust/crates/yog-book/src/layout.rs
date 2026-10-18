@@ -24,7 +24,7 @@
 //! order (`index` to say which). The game's kinds name their slots:
 //! `grid` (crafting, 9 places; a shaped recipe's cells by position),
 //! `input` (cooking, stonecutting), `template`/`base`/`addition`
-//! (smithing). A label's bindings are the recipe's values (`time`,
+//! (smithing), `from`/`input` (brewing). A label's bindings are the recipe's values (`time`,
 //! `experience`, or a mod kind's `values`).
 
 use std::sync::LazyLock;
@@ -247,6 +247,7 @@ mod tests {
             "campfire_cooking",
             "stonecutting",
             "smithing",
+            "brewing",
         ] {
             assert!(find(&[], kind).is_some(), "{kind}");
         }

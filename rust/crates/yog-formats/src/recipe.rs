@@ -7,18 +7,9 @@ use yog_data::schema::{Field, StructShape, read_both};
 use yog_data::with::RefTo;
 use yog_data::{ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Schema, Seg, Shape, Value, ValueRef};
 
-/// The game's recipe types.
-pub const TYPES: [&str; 9] = [
-    "shaped",
-    "shapeless",
-    "smelting",
-    "blasting",
-    "smoking",
-    "campfire_cooking",
-    "stonecutting",
-    "smithing",
-    "brewing",
-];
+/// The game's recipe types (the registry's kinds).
+pub use yog_registry::recipe_kinds::ids::ALL as TYPES;
+use yog_registry::recipe_kinds::ids;
 
 /// What every recipe has.
 #[derive(Schema)]
@@ -161,6 +152,27 @@ pub enum Body {
     Custom(String, Custom),
 }
 
+impl Body {
+    /// Its kind of recipe: the game's id (`shaped`) or the mod's (`mymod:infusion`).
+    pub fn kind(&self) -> &str {
+        match self {
+            Body::Shaped(_) => ids::SHAPED,
+            Body::Shapeless(_) => ids::SHAPELESS,
+            Body::Cooking(t, _) | Body::Custom(t, _) => t,
+            Body::Stonecutting(_) => ids::STONECUTTING,
+            Body::Smithing(_) => ids::SMITHING,
+            Body::Brewing(_) => ids::BREWING,
+        }
+    }
+}
+
+/// Most ingredients a shapeless recipe takes: a crafting grid's places.
+pub const MAX_SHAPELESS: usize = yog_registry::recipe_kinds::GRID_SIDE * yog_registry::recipe_kinds::GRID_SIDE;
+/// The experience a cooking recipe may give (the game's codec's bound).
+pub const EXPERIENCE: std::ops::RangeInclusive<f64> = 0.0..=1000.0;
+/// The ticks a cooking recipe may take (the game's codec's bound).
+pub const COOK_TIME: std::ops::RangeInclusive<u32> = 1..=32767;
+
 /// A whole `.yrecipe`.
 pub struct RecipeFile {
     pub common: Common,
@@ -209,20 +221,20 @@ impl Schema for RecipeFile {
         let also = &["type"];
         let (common, body) =
             match ty.as_str() {
-                "shaped" => {
+                ids::SHAPED => {
                     read_both::<Common, Shaped>(v, cx, also).map(|(c, b)| (c, Body::Shaped(b)))?
                 }
-                "shapeless" => read_both::<Common, Shapeless>(v, cx, also)
+                ids::SHAPELESS => read_both::<Common, Shapeless>(v, cx, also)
                     .map(|(c, b)| (c, Body::Shapeless(b)))?,
-                "smelting" | "blasting" | "smoking" | "campfire_cooking" => {
+                ids::SMELTING | ids::BLASTING | ids::SMOKING | ids::CAMPFIRE_COOKING => {
                     read_both::<Common, Cooking>(v, cx, also)
                         .map(|(c, b)| (c, Body::Cooking(ty.clone(), b)))?
                 }
-                "stonecutting" => read_both::<Common, Stonecutting>(v, cx, also)
+                ids::STONECUTTING => read_both::<Common, Stonecutting>(v, cx, also)
                     .map(|(c, b)| (c, Body::Stonecutting(b)))?,
-                "smithing" => read_both::<Common, Smithing>(v, cx, also)
+                ids::SMITHING => read_both::<Common, Smithing>(v, cx, also)
                     .map(|(c, b)| (c, Body::Smithing(b)))?,
-                "brewing" => read_both::<Common, Brewing>(v, cx, also)
+                ids::BREWING => read_both::<Common, Brewing>(v, cx, also)
                     .map(|(c, b)| (c, Body::Brewing(b)))?,
                 own if own.contains(':') => read_both::<Common, Custom>(v, cx, also)
                     .map(|(c, b)| (c, Body::Custom(ty.clone(), b)))?,
@@ -235,14 +247,15 @@ impl Schema for RecipeFile {
     }
 
     fn write(&self) -> Value {
-        let (ty, body) = match &self.body {
-            Body::Shaped(b) => ("shaped".to_string(), b.write()),
-            Body::Shapeless(b) => ("shapeless".to_string(), b.write()),
-            Body::Cooking(t, b) => (t.clone(), b.write()),
-            Body::Stonecutting(b) => ("stonecutting".to_string(), b.write()),
-            Body::Smithing(b) => ("smithing".to_string(), b.write()),
-            Body::Brewing(b) => ("brewing".to_string(), b.write()),
-            Body::Custom(t, b) => (t.clone(), b.write()),
+        let ty = self.body.kind().to_string();
+        let body = match &self.body {
+            Body::Shaped(b) => b.write(),
+            Body::Shapeless(b) => b.write(),
+            Body::Cooking(_, b) => b.write(),
+            Body::Stonecutting(b) => b.write(),
+            Body::Smithing(b) => b.write(),
+            Body::Brewing(b) => b.write(),
+            Body::Custom(_, b) => b.write(),
         };
         let mut m = yog_data::Map::new();
         m.insert("type", Value::from(ty));

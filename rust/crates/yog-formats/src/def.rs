@@ -460,40 +460,11 @@ pub struct ArmorMaterialDef {
     pub texture: Option<String>,
 }
 
-/// A slot of a kind of recipe: how many ingredients it takes.
-#[derive(Schema, Debug, Clone, PartialEq)]
-pub struct SlotSpec {
-    /// At most this many (each one item or a list of alternatives).
-    #[data(default = "one", range = "1..=64")]
-    pub max: u32,
-    /// A recipe of the kind must fill it.
-    #[data(default)]
-    pub required: bool,
-}
+/// Kinds of recipe are the registry's: the game's built in, a mod's here.
+pub use yog_registry::recipe_kinds::{RecipeKindDef, SlotSpec, ValueType};
 
 fn one() -> u32 {
     1
-}
-
-/// What a recipe's value is.
-#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ValueType {
-    Number,
-    Text,
-    Bool,
-}
-
-/// A mod's kind of recipe: `{ kind: "recipe_kind", id: "infusion", slots:
-/// { core: { required: true }, ring: { max: 8 } }, values: { time:
-/// "number" } }`. A `.yui` `<Component recipe_layout="infusion">` shows it.
-#[derive(Schema, Debug, Clone, PartialEq)]
-pub struct RecipeKindDef {
-    /// `infusion` (the mod's namespace is added) or `mymod:infusion`.
-    pub id: String,
-    #[data(default)]
-    pub slots: Ordered<SlotSpec>,
-    #[data(default)]
-    pub values: Ordered<ValueType>,
 }
 
 /// The game's tool tiers: `@ladder:minecraft:tool`, bottom to top (gold mines like wood).

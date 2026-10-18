@@ -17,6 +17,7 @@
 use serde::{Deserialize, Serialize};
 
 pub mod effects;
+pub mod recipe_kinds;
 pub mod loot;
 
 /// What a `.yog` registers when the game starts — content the game can't
@@ -243,14 +244,17 @@ pub enum Cooking {
 }
 
 impl Cooking {
-    /// Its `type` in Yog's recipe format.
+    /// Every one, in [`recipe_kinds::ids::COOKING`]'s order.
+    pub const ALL: [Cooking; 4] = [Cooking::Smelting, Cooking::Blasting, Cooking::Smoking, Cooking::Campfire];
+
+    /// Its kind of recipe (`smelting`).
     pub fn word(self) -> &'static str {
-        match self {
-            Cooking::Smelting => "smelting",
-            Cooking::Blasting => "blasting",
-            Cooking::Smoking => "smoking",
-            Cooking::Campfire => "campfire_cooking",
-        }
+        recipe_kinds::ids::COOKING[self as usize]
+    }
+
+    /// The cooking of kind `id`, if `id` is one.
+    pub fn of_kind(id: &str) -> Option<Cooking> {
+        Cooking::ALL.into_iter().find(|c| c.word() == id)
     }
 }
 

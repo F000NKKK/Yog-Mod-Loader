@@ -95,4 +95,18 @@
       { type: "result", at: [76, 15] },
     ],
   },
+  // Brewing: the ingredient dropping into the brewing stand, the potion in
+  // the bottle becoming the one brewed — Yog's own strip on the sheet
+  // (Patchouli has no brewing page).
+  {
+    kinds: ["brewing"],
+    size: [96, 55],
+    parts: [
+      { type: "image", source: "yog:gui/book/crafting", uv: [11, 181, 96, 55] },
+      { type: "slots", slot: "input", at: [[40, 4]] },
+      { type: "slots", slot: "from", at: [[4, 35]] },
+      { type: "item", item: "@item:minecraft:brewing_stand", at: [40, 35] },
+      { type: "result", at: [76, 35] },
+    ],
+  },
 ]

@@ -1,6 +1,6 @@
 [package]
 name = "yog-font"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -9,4 +9,4 @@ description = "Yog fonts — one format for every font of the system: glyphs as 
 
 [dependencies]
 yog-data = "0.4"
-yog-graphics = "0.1"
+yog-graphics = "0.1.1"

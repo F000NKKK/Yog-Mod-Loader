@@ -18,7 +18,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 7;
+pub const ABI_MINOR: u32 = 8;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1633,6 +1633,12 @@ pub struct YogApi {
     /// Whether this client's player has advancement `id` (what a book's
     /// locked entries wait for).
     pub client_advancement_done: unsafe extern "C" fn(ctx: *mut c_void, id: YogStr) -> bool,
+
+    // ── ABI 3.8 — logging ───────────────────────────────────────────────────
+    /// Writes `message` to the game's log at `level` (`yog_logging::Level`
+    /// as a number: 0 info, 1 warn, 2 error) — where a mod's records go, so
+    /// they're in the log with the game's instead of on a stdout nobody reads.
+    pub log: unsafe extern "C" fn(level: u32, message: YogStr),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].
@@ -1683,7 +1689,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (30007, 0x932a_1f5e_aa4f_7b94), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (30008, 0x0ae5_e1ae_c09b_5b9c), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]

@@ -2079,6 +2079,15 @@ pub struct Registry {
 unsafe impl Send for Registry {}
 unsafe impl Sync for Registry {}
 
+/// A record of this mod's (`yog_api::info!`…) handed to the runtime's log.
+fn log_to_host(level: yog_logging::Level, message: &str) {
+    let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
+    if api.is_null() {
+        return;
+    }
+    unsafe { ((*api).log)(level as u32, YogStr::from_str(message)) }
+}
+
 impl Registry {
     /// Build from the pointer passed by the runtime. Only called by `export_mod!`.
     ///
@@ -2088,6 +2097,8 @@ impl Registry {
     /// the process.
     pub unsafe fn from_raw(api: *const YogApi) -> Self {
         GLOBAL_API.store(api as *mut YogApi, std::sync::atomic::Ordering::Release);
+        // The mod's records go to the game's log, through the runtime.
+        yog_logging::set_sink(log_to_host);
         Self { api }
     }
 

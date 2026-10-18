@@ -8,6 +8,6 @@ license = "MIT OR Apache-2.0"
 description = "Yog custom dimensions — dimension-type definitions and runtime chunk generation."
 
 [dependencies]
-yog-abi = "0.30"
+yog-abi = "0.30.8"
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
