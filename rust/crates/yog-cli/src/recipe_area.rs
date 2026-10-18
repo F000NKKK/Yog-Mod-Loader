@@ -1,11 +1,11 @@
 //! `<RecipeArea kind="crusher" x="…" y="…"/>` in an inventory screen: the
-//! kind's layout (its `.yui` `recipe_layout`, see `yog_book::layout`) made
+//! kind's layout (its `.yui` `recipe_layout`, see `yog_formats::book::layout`) made
 //! real — its places become the container's slots (numbered after the
 //! screen's own), its result an output slot, its pictures and stations
 //! drawn — and a `<Machine>` that tells the game which slot is which: the
 //! block makes recipes of the kind like a crafting table.
 
-use yog_book::layout::RecipeLayout;
+use yog_formats::book::layout::RecipeLayout;
 
 use crate::yui::Element;
 
@@ -53,7 +53,7 @@ fn area(a: &Element, layouts: &[RecipeLayout], ns: &str, next: &mut usize) -> Re
             canvas.attrs.push((k.to_string(), v.to_string()));
         }
     }
-    let area = yog_book::layout::screen_area(layout, *next);
+    let area = yog_book::recipe_area::screen_area(layout, *next);
     for e in &area.elements {
         let attrs: Vec<(&str, String)> = e.attrs.iter().map(|(k, v)| (*k, v.clone())).collect();
         canvas.children.push(el(e.kind, &attrs, line));
@@ -74,8 +74,8 @@ mod tests {
 
     #[test]
     fn a_recipe_area_becomes_slots_after_the_screens_own_and_a_machine() {
-        let layout = yog_book::layout::compile(
-            &yog_book::ui::parse(
+        let layout = yog_formats::book::layout::compile(
+            &yog_formats::yui::parse(
                 r#"<Component recipe_layout="crusher" width="60" height="24">
                     <RecipeSlot slot="input" x="4" y="4"/><RecipeSlot slot="input" x="22" y="4"/>
                     <ItemSlot item="minecraft:grindstone" x="30" y="4"/><RecipeResult x="44" y="4"/>

@@ -8,9 +8,7 @@ use yog_core::{BlockPos, Server};
 
 /// Well-known vanilla dimension ids.
 pub mod dimension {
-    pub const OVERWORLD: &str = "minecraft:overworld";
-    pub const THE_NETHER: &str = "minecraft:the_nether";
-    pub const THE_END: &str = "minecraft:the_end";
+    pub use yog_ids::game::{OVERWORLD, THE_END, THE_NETHER};
 }
 
 /// An ergonomic handle to one dimension's blocks, bound to a [`Server`].

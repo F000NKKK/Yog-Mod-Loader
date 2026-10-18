@@ -201,7 +201,7 @@ fn draw_sprite(env: &mut JNIEnv, source: &str, sp: &Sprite, dest: [f32; 4], tint
     if sp.is_procedural() {
         draw_slot(env, dest);
     } else if let (true, Some(atlas)) = (has_atlas(env), sp.atlas) {
-        draw_atlas_sprite(env, &format!("minecraft:{atlas}"), dest, tint);
+        draw_atlas_sprite(env, &yog_ids::join(yog_ids::ns::MINECRAFT, atlas), dest, tint);
     } else if let Some(l) = sp.legacy {
         draw_legacy(env, l, sp.border, dest, tint);
     } else {

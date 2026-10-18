@@ -52,7 +52,9 @@ names! {
         ALTERNATIVES = "|",
     }
 
-    /// The kinds of content a reference names (`@item:…`).
+    /// The kinds of content: what a reference names (`@item:…`), what a
+    /// `.ydef` defines (`kind: "ladder"`), what a mod registers with the
+    /// host (`content("potion", …)`).
     kind {
         ITEM = "item",
         BLOCK = "block",
@@ -60,14 +62,48 @@ names! {
         RECIPE = "recipe",
         ENTRY = "entry",
         CATEGORY = "category",
+        BOOK = "book",
         FLUID = "fluid",
         BIOME = "biome",
+        BIOME_FEATURE = "biome_feature",
         DIMENSION = "dimension",
+        ATTRIBUTE = "attribute",
+        EFFECT = "effect",
+        POTION = "potion",
+        INVENTORY = "inventory",
+        STARTUP_GRANT = "startup_grant",
+        ADVANCEMENT = "advancement",
+        LADDER = "ladder",
+        LEVEL = "level",
+        SOUND_GROUP = "sound_group",
+        RECIPE_KIND = "recipe_kind",
+        TOOL_MATERIAL = "tool_material",
+        ARMOR_MATERIAL = "armor_material",
+        ORE = "ore",
+        TABLE = "table",
+        TAG = "tag",
+        DAMAGE_TYPE = "damage_type",
+        TREE = "tree",
+        LOOT_MODIFIER = "loot_modifier",
+        LOOT_TABLE = "loot_table",
+    }
+
+    /// What a reference to content of a kind starts with: `@item:`.
+    reference {
+        ITEM = concatcp!(sep::TYPED, kind::ITEM, sep::NAMESPACE),
+        BLOCK = concatcp!(sep::TYPED, kind::BLOCK, sep::NAMESPACE),
+        ENTITY = concatcp!(sep::TYPED, kind::ENTITY, sep::NAMESPACE),
+        RECIPE = concatcp!(sep::TYPED, kind::RECIPE, sep::NAMESPACE),
+        ENTRY = concatcp!(sep::TYPED, kind::ENTRY, sep::NAMESPACE),
+        CATEGORY = concatcp!(sep::TYPED, kind::CATEGORY, sep::NAMESPACE),
+        FLUID = concatcp!(sep::TYPED, kind::FLUID, sep::NAMESPACE),
+        BIOME = concatcp!(sep::TYPED, kind::BIOME, sep::NAMESPACE),
+        DIMENSION = concatcp!(sep::TYPED, kind::DIMENSION, sep::NAMESPACE),
     }
 
     /// Typed values that aren't references to content.
     typed {
-        TAG = "tag",
+        TAG = kind::TAG,
         LANG = "lang",
         IMAGE = "image",
     }
@@ -80,6 +116,36 @@ names! {
         MOD = "mod",
     }
 
+    /// Yog's files with a fixed name.
+    file {
+        /// A mod's manifest.
+        MANIFEST = "yog.toml",
+        /// The versions a mod's build resolved.
+        LOCK = "yog.lock",
+    }
+
+    /// Yog's programs.
+    program {
+        /// The command-line tool (`yog build`, `yog schema`, …).
+        CLI = "yog",
+    }
+
+    /// Where the game keeps resources, and what their files end with.
+    res {
+        /// The textures' folder: `<ns>:textures/<path>.png`.
+        TEXTURES = concatcp!("textures", sep::PATH),
+        /// Items' textures and models: `item/apple`.
+        ITEM_DIR = concatcp!(kind::ITEM, sep::PATH),
+        /// Blocks' textures and models: `block/stone`.
+        BLOCK_DIR = concatcp!(kind::BLOCK, sep::PATH),
+        /// The GUI atlas's sprites under `textures/` (1.20.2+).
+        GUI_SPRITES = concatcp!("gui", sep::PATH, "sprites", sep::PATH),
+        PNG = ".png",
+        SVG = ".svg",
+        JSON = ".json",
+        MCMETA = ".mcmeta",
+    }
+
     /// Yog's own ids.
     yog {
         /// An entity's data the hosts keep for the mods.
@@ -88,7 +154,8 @@ names! {
         HANGING = id!(ns::YOG, "hanging"),
         /// The channel entity data is synced on.
         ENTITY_DATA = id!(ns::YOG, "entity_data"),
-        /// The channel dimensions' data is synced on.
+        /// The entity data key an entity's own hitbox travels under: width,
+        /// height, eye height as three little-endian f32.
         DIMENSIONS = id!(ns::YOG, "dimensions"),
         /// An inventory slot widget's id: `yog:slot:<index>`.
         SLOT_PREFIX = id!(ns::YOG, "slot:"),
@@ -103,6 +170,12 @@ names! {
         CRAFTING_SHEET = id!(ns::YOG, "gui/book/crafting"),
         /// A screen being designed in the IDE.
         DESIGNER_SCREEN = id!(ns::YOG, "designer"),
+        /// A book's default texture (its sheet is [`BOOK_SHEET`]).
+        BOOK_TEXTURE = id!(ns::YOG, "gui/book"),
+        /// An image source that draws nothing (a bare surface).
+        NO_IMAGE = id!(ns::YOG, "none"),
+        /// The textures the runtime renders SVG images into: `<prefix><key>_<w>x<h>`.
+        DYNAMIC_SVG_PREFIX = id!(ns::YOG, "dynamic/svg_"),
     }
 
     /// The game's ids Yog's code names.
@@ -114,6 +187,82 @@ names! {
         OVERWORLD = id!(ns::MINECRAFT, "overworld"),
         THE_NETHER = id!(ns::MINECRAFT, "the_nether"),
         THE_END = id!(ns::MINECRAFT, "the_end"),
+        /// What a book is given to players as.
+        WRITTEN_BOOK = id!(ns::MINECRAFT, "written_book"),
+    }
+}
+
+macro_rules! formats {
+    ($( $(#[$doc:meta])* $variant:ident = $ext:expr, $noun:expr; )*) => {
+        /// Yog's file formats: each one's extension and what a file of it is
+        /// called in messages. What each looks like is `yog_formats::shape`.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum Format { $( $(#[$doc])* $variant ),* }
+
+        impl Format {
+            /// Every format.
+            pub const ALL: &'static [Format] = &[$(Format::$variant),*];
+
+            /// Its extension, without the dot: `yblock`.
+            #[must_use]
+            pub const fn ext(self) -> &'static str {
+                match self { $(Format::$variant => $ext),* }
+            }
+
+            /// What one file of it is: `block`, `animation`.
+            #[must_use]
+            pub const fn noun(self) -> &'static str {
+                match self { $(Format::$variant => $noun),* }
+            }
+        }
+    };
+}
+
+formats! {
+    Block = "yblock", kind::BLOCK;
+    Item = "yitem", kind::ITEM;
+    Entity = "yentity", kind::ENTITY;
+    Recipe = "yrecipe", kind::RECIPE;
+    Book = "ybook", kind::BOOK;
+    /// A definition of some kind (`kind: "ladder"`).
+    Def = "ydef", "definition";
+    /// Named resources: strings, colours, sounds, numbers.
+    Res = "yres", "resources";
+    /// A screen or a component.
+    Ui = "yui", "screen";
+    Model = "ymodel", "model";
+    Anim = "yanim", "animation";
+    Font = "yfont", "font";
+    /// Compiled Yog Data.
+    Data = "ydata", "compiled data";
+    /// A built mod.
+    Mod = "yog", "mod";
+}
+
+impl Format {
+    /// The format with extension `ext` (with or without the dot).
+    #[must_use]
+    pub fn of(ext: &str) -> Option<Format> {
+        let ext = ext.trim_start_matches('.');
+        Format::ALL.iter().copied().find(|f| f.ext() == ext)
+    }
+
+    /// The format of the file at `path`, by its extension.
+    #[must_use]
+    pub fn of_path(path: &std::path::Path) -> Option<Format> {
+        Format::of(path.extension()?.to_str()?)
+    }
+
+    /// Whether `path` is a file of this format.
+    #[must_use]
+    pub fn is(self, path: &std::path::Path) -> bool {
+        Format::of_path(path) == Some(self)
+    }
+
+    /// `name` with this format's extension: `stone` → `stone.yblock`.
+    #[must_use]
+    pub fn file(self, name: &str) -> String {
+        format!("{name}.{}", self.ext())
     }
 }
 
@@ -129,7 +278,12 @@ pub fn split(id: &str) -> (&str, &str) {
 
 /// `id` with a namespace: the game's if it has none.
 pub fn qualify(id: &str) -> String {
-    if id.contains(sep::NAMESPACE) { id.to_string() } else { join(ns::MINECRAFT, id) }
+    qualify_in(ns::MINECRAFT, id)
+}
+
+/// `id` with a namespace: `ns` if it has none (what a mod writes bare is its own).
+pub fn qualify_in(ns: &str, id: &str) -> String {
+    if id.contains(sep::NAMESPACE) { id.to_string() } else { join(ns, id) }
 }
 
 /// The names for the other languages: generated, never edited by hand.
@@ -148,6 +302,11 @@ pub mod export {
             }
             out.push_str("} as const;\n");
         }
+        out.push_str("\n/** Yog's file formats: extension and noun (`Format`). */\nexport const formats = {\n");
+        for f in crate::Format::ALL {
+            out.push_str(&format!("  {}: {{ ext: {:?}, noun: {:?} }},\n", camel(&format!("{f:?}").to_lowercase()), f.ext(), f.noun()));
+        }
+        out.push_str("} as const;\n");
         out
     }
 
@@ -161,7 +320,11 @@ pub mod export {
             }
             out.push_str("    }\n");
         }
-        out.push_str("}\n");
+        out.push_str("\n    /** Yog's file formats' extensions (`Format`). */\n    public static final class Ext {\n        private Ext() {}\n\n");
+        for f in crate::Format::ALL {
+            out.push_str(&format!("        public static final String {} = {:?};\n", format!("{f:?}").to_uppercase(), f.ext()));
+        }
+        out.push_str("    }\n}\n");
         out
     }
 
@@ -186,12 +349,15 @@ mod tests {
         assert_eq!(image_scheme::ITEM, kind::ITEM);
         assert_eq!(split("stone"), ("minecraft", "stone"));
         assert_eq!(qualify("mymod:x"), "mymod:x");
+        assert_eq!(Format::of(".yblock"), Some(Format::Block));
+        assert_eq!(Format::Anim.file("walk"), "walk.yanim");
     }
 
     #[test]
     fn the_exports_name_every_group() {
         let ts = export::typescript();
         assert!(ts.contains("export const imageScheme = {") && ts.contains("  YOG: \"yog\","), "{ts}");
+        assert!(ts.contains("  block: { ext: \"yblock\", noun: \"block\" },"), "{ts}");
         let java = export::java("dev.yog.generated", "YogNames");
         assert!(java.contains("public static final class ImageScheme {") && java.contains("public static final String STATE = \"yog:state\";"), "{java}");
     }

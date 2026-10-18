@@ -204,33 +204,6 @@ impl ItemDef {
 
 // ── Recipes ──────────────────────────────────────────────────────────────────
 
-/// Namespace for recipe ids given without one.
-const VANILLA_NS: &str = "minecraft";
-
-/// Split `namespace:name`, falling back to `default_ns` for a bare name.
-fn split_id<'a>(id: &'a str, default_ns: &'a str) -> (&'a str, &'a str) {
-    id.split_once(':').unwrap_or((default_ns, id))
-}
-
-
-/// `s` as a JSON string.
-fn json_str(s: &str) -> String {
-    let mut out = String::with_capacity(s.len() + 2);
-    out.push('"');
-    for c in s.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
-            c => out.push(c),
-        }
-    }
-    out.push('"');
-    out
-}
 
 
 /// How a cooking recipe cooks.
@@ -465,7 +438,7 @@ impl Recipe {
 
     /// Split `namespace:name` from the recipe id.
     pub fn ns_name(&self) -> (&str, &str) {
-        split_id(&self.id, VANILLA_NS)
+        yog_ids::split(&self.id)
     }
 }
 
@@ -513,22 +486,6 @@ impl StartupGrant {
     pub fn command(mut self, cmd: impl Into<String>) -> Self {
         self.command = Some(cmd.into());
         self
-    }
-
-    pub fn to_json(&self) -> String {
-        let mut entries: Vec<String> = self.items.iter().map(|i| format!("{{\"item\":{}}}", json_str(i))).collect();
-        if let Some(book) = &self.book {
-            // The book's id inside SNBT inside JSON: escaped for both.
-            let tag = format!("{{yog_book:\"{}\"}}", book.replace('\\', "\\\\").replace('"', "\\\""));
-            entries.push(format!(
-                "{{\"type\":\"item\",\"name\":\"minecraft:written_book\",\"functions\":[{{\"function\":\"set_nbt\",\"tag\":{}}}]}}",
-                json_str(&tag)
-            ));
-        }
-        if let Some(cmd) = &self.command {
-            entries.push(format!("{{\"type\":\"minecraft:command\",\"command\":{}}}", json_str(cmd)));
-        }
-        format!("{{\"type\":\"yog:startup_grant\",\"entries\":[{}],\"id\":{}}}", entries.join(","), json_str(&self.id))
     }
 }
 
@@ -638,8 +595,8 @@ static BUILT_IN_ARMOR_MATERIALS: std::sync::LazyLock<Vec<ArmorMaterial>> = std::
 
 /// One of `list` by short name or id (`iron` = `minecraft:iron`).
 fn built_in<'a, T>(list: &'a [T], id: impl Fn(&T) -> &str, name: &str) -> Option<&'a T> {
-    let name = name.strip_prefix("minecraft:").unwrap_or(name);
-    list.iter().find(|x| id(x).strip_prefix("minecraft:") == Some(name))
+    let name = yog_ids::qualify(name);
+    list.iter().find(|x| id(x) == name)
 }
 
 impl ToolMaterial {
@@ -760,8 +717,7 @@ impl SoundGroup {
 
     /// One of the game's groups, by short name or id (`stone` = `minecraft:stone`).
     pub fn built_in(name: &str) -> Option<&'static SoundGroup> {
-        let name = name.strip_prefix("minecraft:").unwrap_or(name);
-        Self::built_ins().iter().find(|g| g.id.strip_prefix("minecraft:") == Some(name))
+        built_in(Self::built_ins(), |g| &g.id, name)
     }
 }
 
@@ -1295,10 +1251,6 @@ mod json_tests {
             let v = parse(r.to_json());
             assert_eq!(v["result"], odd, "the string comes back as it was");
         }
-        let g = StartupGrant::new(odd).item(odd).book("mymod:\"guide\"").command("say \"hi\" \\o/");
-        let v = parse(g.to_json());
-        assert_eq!(v["id"], odd);
-        assert_eq!(v["entries"][2]["command"], "say \"hi\" \\o/");
     }
 
     #[test]
@@ -1309,7 +1261,5 @@ mod json_tests {
         assert_eq!(v["cook_time"], 600, "the method's default time");
         assert_eq!(r.ns_name(), ("mymod", "a"));
         assert_eq!(Recipe::shaped("plain", "x", 1).ns_name().1, "plain");
-        let g = StartupGrant::new("mymod:starter");
-        assert!(g.to_json().contains(r#""entries":[]"#));
     }
 }

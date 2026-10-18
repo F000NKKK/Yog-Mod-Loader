@@ -1,6 +1,6 @@
 //! Per-book navigation state.
 
-use crate::Book;
+use yog_formats::book::Book;
 
 /// Max entries shown on the first list spread (right page only).
 pub const ENTRIES_FIRST: usize = 10;
@@ -81,7 +81,7 @@ impl BookViewState {
     }
 
     /// All entries in the current category, unfiltered.
-    pub fn entries_in_cat<'b>(&self, book: &'b Book) -> Vec<&'b crate::BookEntry> {
+    pub fn entries_in_cat<'b>(&self, book: &'b Book) -> Vec<&'b yog_formats::book::BookEntry> {
         let cat_id = book
             .categories
             .get(self.cat)
@@ -112,7 +112,7 @@ impl BookViewState {
     }
 
     /// The slice of entries visible on the current list spread.
-    pub fn entries_visible<'b>(&self, book: &'b Book) -> Vec<&'b crate::BookEntry> {
+    pub fn entries_visible<'b>(&self, book: &'b Book) -> Vec<&'b yog_formats::book::BookEntry> {
         let all = self.entries_in_cat(book);
         let start = self.list_spread_start();
         let count = if self.list_spread == 0 {
@@ -123,7 +123,7 @@ impl BookViewState {
         all.into_iter().skip(start).take(count).collect()
     }
 
-    pub fn current_entry<'b>(&self, book: &'b Book) -> Option<&'b crate::BookEntry> {
+    pub fn current_entry<'b>(&self, book: &'b Book) -> Option<&'b yog_formats::book::BookEntry> {
         self.entries_in_cat(book).into_iter().nth(self.entry)
     }
 

@@ -314,7 +314,8 @@ pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
     }
 }
 
-pub use yog_book::{Book, BookCategory, BookEntry, BookPage, BookRenderer};
+pub use yog_book::BookRenderer;
+pub use yog_formats::book::{Book, BookCategory, BookEntry, BookPage};
 pub use yog_command::CommandContext;
 pub use yog_config::Config;
 pub use yog_core::{BlockPos, Server, split_state};
@@ -404,6 +405,7 @@ pub mod config {
 /// Guide books: the `.ybook` format and its renderer.
 pub mod book {
     pub use yog_book::*;
+    pub use yog_formats::book::*;
 }
 
 /// UI framework — flexbox layout + widgets on top of yog-gfx.

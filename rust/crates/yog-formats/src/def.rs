@@ -9,19 +9,19 @@ use yog_data::with::{Opt, RefTo};
 pub use yog_registry::{ArmorMaterial, SoundGroup, ToolMaterial};
 
 yog_data::kind! {
-    AdvancementKind = "advancement",
-    LadderKind = "ladder",
-    LevelKind = "level",
-    SoundGroupKind = "sound_group",
-    ToolMaterialKind = "tool_material",
-    ArmorMaterialKind = "armor_material",
+    AdvancementKind = yog_ids::kind::ADVANCEMENT,
+    LadderKind = yog_ids::kind::LADDER,
+    LevelKind = yog_ids::kind::LEVEL,
+    SoundGroupKind = yog_ids::kind::SOUND_GROUP,
+    ToolMaterialKind = yog_ids::kind::TOOL_MATERIAL,
+    ArmorMaterialKind = yog_ids::kind::ARMOR_MATERIAL,
 }
 
 /// A `.ydef`: an entry of some kind of definition, named by reference
 /// (`@<kind>:<id>`) everywhere else. Kinds: `ladder` (an ordered scale),
 /// `level` (a step on one), `sound_group` (what a block sounds like),
 /// `recipe_kind` (a mod's kind of recipe; how it's shown is a `.yui`
-/// `recipe_layout`, see `yog_book::layout`), `tool_material`,
+/// `recipe_layout`, see [`crate::book::layout`]), `tool_material`,
 /// `armor_material`, `ore`, `dimension`, `table`, `tag` (content of one
 /// kind grouped under a name) and `damage_type`.
 #[derive(Schema, Debug, Clone)]
@@ -387,7 +387,7 @@ pub const ORE_STONES: [(&str, &str); 4] = [
 
 impl yog_data::with::With<String> for OreReplaces {
     fn shape() -> yog_data::Shape {
-        yog_data::Shape::RefOrTag(&["block"])
+        yog_data::Shape::RefOrTag(&[yog_ids::kind::BLOCK])
     }
     fn read(v: &yog_data::ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<String> {
         use yog_data::ValueRef;
@@ -407,8 +407,8 @@ impl yog_data::with::With<String> for OreReplaces {
             return yog_data::Value::from(*n);
         }
         match f.strip_prefix('#') {
-            Some(t) => yog_data::Value::Tag(yog_data::Ref::new("block", t)),
-            None => yog_data::Value::Ref(yog_data::Ref::new("block", f.clone())),
+            Some(t) => yog_data::Value::Tag(yog_data::Ref::new(yog_ids::kind::BLOCK, t)),
+            None => yog_data::Value::Ref(yog_data::Ref::new(yog_ids::kind::BLOCK, f.clone())),
         }
     }
 }
@@ -470,3 +470,16 @@ fn one() -> u32 {
 /// The game's tool tiers: `@ladder:minecraft:tool`, bottom to top (gold mines like wood).
 pub const TOOL_LADDER: &str = "minecraft:tool";
 pub const TOOL_LEVELS: [&str; 5] = ["wood", "stone", "iron", "diamond", "netherite"];
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn every_kind_of_definition_is_a_kind_of_content() {
+        use yog_data::{Schema, Shape};
+        let Shape::Enum(e) = super::Def::shape() else { panic!("a definition is an enum by its kind") };
+        let kinds = yog_ids::ALL.iter().find(|(g, _)| *g == "kind").expect("yog-ids has kinds").1;
+        for v in &e.variants {
+            assert!(kinds.iter().any(|(_, k)| *k == v.name), "`{}` isn't in yog_ids::kind", v.name);
+        }
+    }
+}

@@ -667,7 +667,7 @@ pub mod designer {
         // Measured like the game measures: through the host's text/image metrics.
         crate::text::use_host_metrics(ctx);
         crate::image::use_host_images(ctx);
-        let mut ui = UiRoot::new("yog:designer", screen);
+        let mut ui = UiRoot::new(yog_ids::yog::DESIGNER_SCREEN, screen);
         ui.layout(aw, ah);
         let rect = ui
             .layout_root

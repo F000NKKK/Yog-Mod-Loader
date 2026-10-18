@@ -2257,14 +2257,14 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
         }
     };
     match kind {
-        "item" => {
+        yog_ids::kind::ITEM => {
             if let Some(mut d) = read::<ItemDef>(kind, &id, value) {
                 none_if_empty(&mut d.name);
                 none_if_empty(&mut d.tooltip);
                 h.items.push(d);
             }
         }
-        "block" => {
+        yog_ids::kind::BLOCK => {
             if let Some(mut d) = read::<BlockDef>(kind, &id, value) {
                 none_if_empty(&mut d.name);
                 none_if_empty(&mut d.sound);
@@ -2274,60 +2274,60 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
                 h.blocks.push(d);
             }
         }
-        "entity" => {
+        yog_ids::kind::ENTITY => {
             if read::<yog_registry::EntityDef>(kind, &id, value).is_some() {
                 h.entities.push(value.to_value());
             }
         }
-        "attribute" => {
+        yog_ids::kind::ATTRIBUTE => {
             if read::<yog_registry::AttributeDef>(kind, &id, value).is_some() {
                 h.attributes.push(value.to_value());
             }
         }
-        "effect" => {
+        yog_ids::kind::EFFECT => {
             if read::<yog_registry::EffectDef>(kind, &id, value).is_some() {
                 h.effects.push(value.to_value());
             }
         }
-        "potion" => {
+        yog_ids::kind::POTION => {
             if read::<yog_registry::PotionDef>(kind, &id, value).is_some() {
                 h.potions.push(value.to_value());
             }
         }
-        "biome_feature" => {
+        yog_ids::kind::BIOME_FEATURE => {
             if let Some(f) = read::<yog_registry::BiomeFeature>(kind, &id, value) {
                 h.biome_features.push(f);
             }
         }
-        "tool_material" => {
+        yog_ids::kind::TOOL_MATERIAL => {
             if let Some(m) = read::<yog_registry::ToolMaterial>(kind, &id, value) {
                 h.tool_materials.insert(m.id.clone(), m);
             }
         }
-        "armor_material" => {
+        yog_ids::kind::ARMOR_MATERIAL => {
             if let Some(m) = read::<yog_registry::ArmorMaterial>(kind, &id, value) {
                 h.armor_materials.insert(m.id.clone(), m);
             }
         }
-        "sound_group" => {
+        yog_ids::kind::SOUND_GROUP => {
             if let Some(g) = read::<yog_registry::SoundGroup>(kind, &id, value) {
                 h.sound_groups.insert(g.id.clone(), g);
             }
         }
-        "inventory" => {
+        yog_ids::kind::INVENTORY => {
             if let Some(d) = read::<yog_inventory::InventoryDef>(kind, &id, value) {
                 h.inventories.push(d);
             }
         }
-        "startup_grant" => {
+        yog_ids::kind::STARTUP_GRANT => {
             if let Some(mut g) = read::<yog_registry::StartupGrant>(kind, &id, value) {
                 none_if_empty(&mut g.book);
                 none_if_empty(&mut g.command);
                 h.startup_grants.push(g);
             }
         }
-        "recipe" => {
-            let (ns, name) = id.split_once(':').unwrap_or(("minecraft", &id));
+        yog_ids::kind::RECIPE => {
+            let (ns, name) = yog_ids::split(&id);
             let recipe = value.to_value();
             // Feed the recipe to the books already registered (their recipe pages).
             for r in h.book_renderers.lock().unwrap().values_mut() {
@@ -2335,9 +2335,9 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
             }
             h.recipes.push((ns.to_string(), name.to_string(), recipe));
         }
-        "book" => {
+        yog_ids::kind::BOOK => {
             // Read by its schema; the renderer draws it without a round trip to Java.
-            if let Some(mut book) = read::<yog_book::Book>(kind, &id, value) {
+            if let Some(mut book) = read::<yog_formats::book::Book>(kind, &id, value) {
                 // Entries about mods that aren't here aren't shown.
                 book.entries.retain(|e| e.requires.iter().all(|m| mod_loaded(m)));
                 h.books.insert(id.clone());
@@ -2351,7 +2351,7 @@ fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog
                 h.book_renderers.get_mut().unwrap_or_else(|e| e.into_inner()).insert(id, renderer);
             }
         }
-        "dimension" => {
+        yog_ids::kind::DIMENSION => {
             yog_logging::info!("registered dimension type: {}", id);
             let mut def = value.to_value();
             // The terrain stays here; the host gets the dimension, its generator this one.
@@ -3983,7 +3983,7 @@ fn process_pending_grants() {
             if unsafe { bridge!("playerHasTag", [S(player), S(tag)]) }.unwrap_or(false) {
                 continue;
             }
-            let book = sg.book.as_ref().map(|_| "minecraft:written_book");
+            let book = sg.book.as_ref().map(|_| yog_ids::game::WRITTEN_BOOK);
             let mut ok = true;
             for item_id in sg.items.iter().map(String::as_str).chain(book) {
                 ok &= unsafe { srv_give_item(std::ptr::null_mut(), player, YogStr::from_str(item_id), 1) };
@@ -4579,7 +4579,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientPacket<'l>(
         .map(String::from)
         .unwrap_or_default();
     let data = env.convert_byte_array(&payload).unwrap_or_default();
-    if ch == entity_data::CHANNEL {
+    if ch == entity_data::ENTITY_DATA {
         guard("entity data", || entity_data::receive(&data));
         return;
     }
@@ -4627,7 +4627,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
         .client_packets
         .keys()
         .cloned()
-        .chain([entity_data::CHANNEL.to_owned()])
+        .chain([entity_data::ENTITY_DATA.to_owned()])
         .collect::<Vec<_>>()
         .join("\n");
     env.new_string(s)

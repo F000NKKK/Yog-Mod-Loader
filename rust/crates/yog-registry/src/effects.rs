@@ -7,9 +7,9 @@ use yog_data::with::RefTo;
 // What these definitions name: `@attribute:mymod:grid_zoom`,
 // `@effect:mymod:clarity`, `@item:yog:potion/awkward`.
 yog_data::kind! {
-    Attribute = "attribute",
-    Effect = "effect",
-    Potion = "potion",
+    Attribute = yog_ids::kind::ATTRIBUTE,
+    Effect = yog_ids::kind::EFFECT,
+    Potion = yog_ids::kind::POTION,
 }
 
 /// A number every player has (`hexcasting:grid_zoom`) — what effects

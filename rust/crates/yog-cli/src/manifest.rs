@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 
 /// The manifest's file name, in the project root.
-pub const MANIFEST: &str = "yog.toml";
+pub use yog_ids::file::MANIFEST;
 /// Where `yog build` generates the cargo project, under the project root.
 pub const BUILD_DIR: &str = ".yog-build";
 /// Plain crates.io dependencies.

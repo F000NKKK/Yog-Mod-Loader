@@ -1,5 +1,5 @@
 //! A mod's own kinds of book page: `.yui` components with `book_page`,
-//! compiled into `yog_book::page_type::PageType`s for the books that use
+//! compiled into `yog_formats::book::page_type::PageType`s for the books that use
 //! them (see that module).
 //!
 //! ```xml
@@ -13,14 +13,14 @@
 
 use std::path::Path;
 
-use yog_book::page_type::{PageType, compile, is_book_page};
+use yog_formats::book::page_type::{PageType, compile, is_book_page};
 
 use crate::yui::{self, Element};
 
 /// Whether `root` is a book's own UI — a kind of page (`book_page`) or a
 /// recipe layout (`recipe_layout`) — not a screen or a component.
 pub fn is_book_ui(root: &Element) -> bool {
-    is_book_page(root) || yog_book::layout::is_recipe_layout(root)
+    is_book_page(root) || yog_formats::book::layout::is_recipe_layout(root)
 }
 
 /// The mod's page types: every `book_page` component under `src/`.
@@ -42,16 +42,16 @@ pub fn find(root: &Path, ns: &str, errors: &mut Vec<String>) -> Vec<PageType> {
 }
 
 /// The mod's recipe layouts: every `recipe_layout` component under `src/`.
-pub fn find_layouts(root: &Path, ns: &str, errors: &mut Vec<String>) -> Vec<(String, yog_book::layout::RecipeLayout)> {
+pub fn find_layouts(root: &Path, ns: &str, errors: &mut Vec<String>) -> Vec<(String, yog_formats::book::layout::RecipeLayout)> {
     let mut out = Vec::new();
     for file in yui::find_yui_files(&root.join("src")) {
         let Ok(text) = std::fs::read_to_string(&file) else { continue };
         let Ok(el) = yui::parse_xml(&text) else { continue };
-        if !yog_book::layout::is_recipe_layout(&el) {
+        if !yog_formats::book::layout::is_recipe_layout(&el) {
             continue;
         }
         let shown = file.strip_prefix(root).unwrap_or(&file).display().to_string();
-        match yog_book::layout::compile(&el, ns) {
+        match yog_formats::book::layout::compile(&el, ns) {
             Ok(l) => out.push((shown, l)),
             Err(e) => errors.push(format!("{shown}: {e}")),
         }

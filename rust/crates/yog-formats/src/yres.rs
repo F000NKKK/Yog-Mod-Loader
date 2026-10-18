@@ -47,3 +47,12 @@ pub struct EntryObject {
     /// Sounds: the subtitle's translation key.
     pub subtitle: Option<String>,
 }
+
+/// `resources/.../Strings.ru_ru.yres` → `("Strings", Some("ru_ru"))`.
+pub fn split_file_name(file_name: &str) -> Option<(&str, Option<&str>)> {
+    let stem = file_name.strip_suffix(yog_ids::Format::Res.ext())?.strip_suffix('.')?;
+    Some(match stem.split_once('.') {
+        Some((set, locale)) => (set, Some(locale)),
+        None => (stem, None),
+    })
+}

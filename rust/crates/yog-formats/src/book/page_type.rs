@@ -3,7 +3,7 @@
 //! fields, its body what the page shows — and `yog build` hands it to the
 //! book as a [`PageType`]. A page of the kind ([`CustomPage`]) is laid
 //! out by the book like the built-in ones; what only code can draw is a
-//! `drawn` element ([`crate::BookPage::Drawn`]'s primitive).
+//! `drawn` element ([`super::BookPage::Drawn`]'s primitive).
 //!
 //! ```xml
 //! <Component name="PatternPage" book_page="hexcasting:pattern">
@@ -202,7 +202,7 @@ impl PageType {
 
 // ── From `.yui` ────────────────────────────────────────────────────────────────
 
-use crate::ui::Element;
+use crate::yui::Element;
 
 /// Whether `root` declares a kind of book page.
 pub fn is_book_page(root: &Element) -> bool {
@@ -353,7 +353,7 @@ mod tests {
     }
     #[test]
     fn compiles_a_page_type() {
-        let el = crate::ui::parse(
+        let el = crate::yui::parse(
             r#"<Component name="PatternPage" book_page="pattern">
                 <Property name="name" type="book_text"/>
                 <Property name="patterns" type="data" default="[]"/>
@@ -370,9 +370,9 @@ mod tests {
         assert_eq!(t.properties[1].default, Some(yog_data::Value::List(vec![])));
         assert!(matches!(&t.body[1], PageElement::Drawn { height, .. } if *height == 64.0));
 
-        let bad = crate::ui::parse(r#"<Component book_page="p"><BookText text="{x:Bind nope}"/></Component>"#).unwrap();
+        let bad = crate::yui::parse(r#"<Component book_page="p"><BookText text="{x:Bind nope}"/></Component>"#).unwrap();
         assert!(compile(&bad, "m").unwrap_err().contains("`nope` isn't a property"));
-        let bad = crate::ui::parse(r#"<Component book_page="p"><Row/></Component>"#).unwrap();
+        let bad = crate::yui::parse(r#"<Component book_page="p"><Row/></Component>"#).unwrap();
         assert!(compile(&bad, "m").unwrap_err().contains("not a book page's element"));
     }
 }

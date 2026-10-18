@@ -8,6 +8,7 @@ license = "MIT OR Apache-2.0"
 description = "Yog UI framework — flexbox and WPF-style grid layout + GPU rendering via yog-gfx"
 
 [dependencies]
+yog-ids = { workspace = true }
 yog-gfx = { workspace = true }
 yog-abi = { workspace = true }
 

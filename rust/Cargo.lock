@@ -1444,7 +1444,9 @@ dependencies = [
  "yog-dimensions",
  "yog-entity",
  "yog-event",
+ "yog-formats",
  "yog-gfx",
+ "yog-ids",
  "yog-interop",
  "yog-inventory",
  "yog-logging",
@@ -1472,7 +1474,9 @@ dependencies = [
  "serde",
  "serde_json",
  "yog-data",
+ "yog-formats",
  "yog-gfx",
+ "yog-ids",
  "yog-registry",
  "yog-ui",
 ]
@@ -1491,6 +1495,7 @@ dependencies = [
  "yog-font",
  "yog-formats",
  "yog-gfx",
+ "yog-ids",
  "yog-registry",
  "yog-ui",
  "yog-worldgen",
@@ -1581,8 +1586,12 @@ dependencies = [
 name = "yog-formats"
 version = "0.9.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "yog-body",
  "yog-data",
+ "yog-font",
+ "yog-ids",
  "yog-registry",
  "yog-worldgen",
 ]
@@ -1668,8 +1677,8 @@ version = "0.35.0"
 dependencies = [
  "serde",
  "serde_json",
- "yog-abi",
  "yog-data",
+ "yog-ids",
 ]
 
 [[package]]
@@ -1684,11 +1693,12 @@ dependencies = [
  "resvg",
  "serde_json",
  "yog-abi",
- "yog-api",
  "yog-book",
  "yog-data",
+ "yog-formats",
  "yog-gfx",
  "yog-hot-reload",
+ "yog-ids",
  "yog-inventory",
  "yog-logging",
  "yog-registry",
@@ -1719,6 +1729,7 @@ dependencies = [
  "criterion",
  "yog-abi",
  "yog-gfx",
+ "yog-ids",
 ]
 
 [[package]]
@@ -1726,6 +1737,7 @@ name = "yog-world"
 version = "0.6.0"
 dependencies = [
  "yog-core",
+ "yog-ids",
 ]
 
 [[package]]

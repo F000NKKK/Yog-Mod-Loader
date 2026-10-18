@@ -124,7 +124,7 @@ impl Scalar {
                 _ => want("a color, `@Colors.<key>`"),
             },
             Scalar::Item | Scalar::Block => {
-                let (kind, word) = if self == Scalar::Item { (RefKind::Item, "item") } else { (RefKind::Block, "block") };
+                let (kind, word) = if self == Scalar::Item { (RefKind::Item, yog_ids::kind::ITEM) } else { (RefKind::Block, yog_ids::kind::BLOCK) };
                 match v {
                     Value::Ref(r) if r.kind == word => known.check(kind, &r.id).map(|()| format!("{:?}", r.id)),
                     _ => want(&format!("`@{word}:<id>`")),
@@ -215,8 +215,8 @@ pub fn check(file: &str, t: TableDef, refs: &yres::Refs, known: &refs::Known) ->
                         .map(|(key, x)| {
                             // A key is written bare: `minecraft:redstone`, not `@item:…`.
                             let key = match k {
-                                Scalar::Item => Value::Ref(yog_data::Ref::new("item", key)),
-                                Scalar::Block => Value::Ref(yog_data::Ref::new("block", key)),
+                                Scalar::Item => Value::Ref(yog_data::Ref::new(yog_ids::kind::ITEM, key)),
+                                Scalar::Block => Value::Ref(yog_data::Ref::new(yog_ids::kind::BLOCK, key)),
                                 _ => yog_data::text::parse_value(key).unwrap_or_else(|_| Value::Str(key.to_string())),
                             };
                             Ok(format!("({}, {})", k.expr(&key, refs, known)?, val.expr(x, refs, known)?))

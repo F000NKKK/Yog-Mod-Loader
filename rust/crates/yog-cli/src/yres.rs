@@ -292,15 +292,6 @@ pub fn default_key(set: &str, mod_id: &str, name: &str) -> String {
     }
 }
 
-/// `resources/.../Strings.ru_ru.yres` → `("Strings", Some("ru_ru"))`.
-pub fn split_file_name(file_name: &str) -> Option<(&str, Option<&str>)> {
-    let stem = file_name.strip_suffix(".yres")?;
-    Some(match stem.split_once('.') {
-        Some((set, locale)) => (set, Some(locale)),
-        None => (stem, None),
-    })
-}
-
 // ── Placeholders ──────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -492,7 +483,7 @@ pub fn find(root: &Path) -> Vec<PathBuf> {
             let path = entry.path();
             if path.is_dir() {
                 walk(&path, out);
-            } else if path.extension().is_some_and(|e| e == "yres") {
+            } else if yog_ids::Format::Res.is(&path) {
                 out.push(path);
             }
         }
@@ -521,7 +512,7 @@ fn load(root: &Path, errors: &mut Vec<String>) -> BTreeMap<String, Set> {
             .unwrap_or_default()
             .to_string_lossy()
             .into_owned();
-        let Some((set, locale)) = split_file_name(&file_name) else {
+        let Some((set, locale)) = yog_formats::yres::split_file_name(&file_name) else {
             continue;
         };
         if !valid_set_name(set) {
@@ -1161,10 +1152,10 @@ mod tests {
         assert_eq!(default_key("Items", "m", "ruby"), "item.m.ruby");
         assert_eq!(default_key("Strings", "m", "title"), "m.title");
         assert_eq!(
-            split_file_name("Strings.ru_ru.yres"),
+            yog_formats::yres::split_file_name("Strings.ru_ru.yres"),
             Some(("Strings", Some("ru_ru")))
         );
-        assert_eq!(split_file_name("Icons.yres"), Some(("Icons", None)));
+        assert_eq!(yog_formats::yres::split_file_name("Icons.yres"), Some(("Icons", None)));
     }
 
     #[test]

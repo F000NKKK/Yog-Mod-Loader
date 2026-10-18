@@ -1,7 +1,7 @@
 //! References in a book: what a `.ybook` names — items, blocks, entities,
 //! recipes, its own entries and categories — it names through a typed
 //! reference, `@item:minecraft:stick`, never a bare game id. The schema
-//! ([`crate::Book`]'s `#[derive(Schema)]`) says which field takes what;
+//! ([`super::Book`]'s `#[derive(Schema)]`) says which field takes what;
 //! tools check every reference through a [`Resolve`] (`yog build`: does it
 //! exist on every Minecraft version the mod targets?) and get the id the
 //! game uses.
@@ -25,7 +25,7 @@ use yog_data::schema::{Read, Resolve, Text, read_ref};
 use yog_data::with::With;
 use yog_data::{Errors, Ref, Schema, Shape, Value, ValueRef, typed};
 
-use crate::Book;
+use super::Book;
 
 /// The id without a block state: `minecraft:furnace[facing=north]` → `minecraft:furnace`.
 pub fn bare(id: &str) -> &str {
@@ -72,7 +72,7 @@ impl With<String> for BookText {
                 continue;
             }
             match typed::classify(l) {
-                Ok(Value::Ref(r)) if r.kind == "entry" => {
+                Ok(Value::Ref(r)) if r.kind == yog_ids::kind::ENTRY => {
                     cx.note_ref(r.clone());
                     if let Err(e) = resolve_link(cx, &r) {
                         cx.problem(format!("link: {e}"));
@@ -111,7 +111,7 @@ pub struct Icon;
 
 impl With<String> for Icon {
     fn shape() -> Shape {
-        Shape::RefOrImage(&["item", "block"])
+        Shape::RefOrImage(&[yog_ids::kind::ITEM, yog_ids::kind::BLOCK])
     }
 
     fn read(v: &ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<String> {
@@ -119,7 +119,7 @@ impl With<String> for Icon {
             ValueRef::Str(s) if !s.starts_with('@') => Some(s.to_string()),
             ValueRef::Image(s) => Some(s.to_string()),
             _ => {
-                let r = read_ref(v, cx, &["item", "block"])?;
+                let r = read_ref(v, cx, &[yog_ids::kind::ITEM, yog_ids::kind::BLOCK])?;
                 cx.resolve_ref(&r)
             }
         }
@@ -148,7 +148,7 @@ impl Book {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::BookPage;
+    use crate::book::BookPage;
     use yog_data::Path;
 
     struct Check(Vec<String>);

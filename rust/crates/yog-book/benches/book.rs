@@ -3,7 +3,8 @@
 //! (against a graphics table that draws nothing).
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use yog_book::{Book, BookCategory, BookEntry, BookPage, BookRenderer};
+use yog_book::BookRenderer;
+use yog_formats::book::{Book, BookCategory, BookEntry, BookPage};
 use yog_gfx::GfxContext;
 
 fn big_book() -> Book {

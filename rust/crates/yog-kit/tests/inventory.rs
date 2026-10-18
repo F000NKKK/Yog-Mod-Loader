@@ -78,7 +78,7 @@ fn slots_come_from_the_layout() {
 fn the_player_inventory_is_the_vanilla_grid() {
     let mut ui = yog_api::ui::UiRoot::new("t", widget::player_inventory());
     ui.layout(400.0, 400.0);
-    let r = ui.find_rect(widget::PLAYER_INVENTORY_ID).unwrap();
+    let r = ui.find_rect(widget::PLAYER_INVENTORY).unwrap();
     assert_eq!((r.w, r.h), (9.0 * 18.0, 4.0 * 18.0 + widget::HOTBAR_GAP));
 }
 

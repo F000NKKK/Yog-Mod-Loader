@@ -256,13 +256,13 @@ impl<W: View> Screen<W> {
 /// screen. Its id is the screen's: a block opens it with
 /// `BlockDef::inventory(ID)`.
 pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
-    use yog_api::ui::widget::{PLAYER_INVENTORY_ID, SLOT_ID_PREFIX};
+    use yog_api::ui::widget::{PLAYER_INVENTORY, SLOT_PREFIX};
     use yog_api::ui::{UiRoot, Widget};
 
     /// Each slot: (index, its id, what it accepts).
     fn slots(w: &Widget, out: &mut Vec<(usize, String, Vec<String>)>) {
         if let Some(id) = w.id.as_deref()
-            && let Some(rest) = id.strip_prefix(SLOT_ID_PREFIX)
+            && let Some(rest) = id.strip_prefix(SLOT_PREFIX)
         {
             let (index, accepts) = rest.split_once('=').unwrap_or((rest, ""));
             if let Ok(i) = index.parse::<usize>() {
@@ -277,8 +277,8 @@ pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
 
     /// The machine a `<RecipeArea>` made of it, if any (`widget::machine`).
     fn machine(w: &Widget) -> Option<yog_api::inventory::Machine> {
-        use yog_api::ui::widget::MACHINE_ID_PREFIX;
-        if let Some(rest) = w.id.as_deref().and_then(|id| id.strip_prefix(MACHINE_ID_PREFIX)) {
+        use yog_api::ui::widget::MACHINE_PREFIX;
+        if let Some(rest) = w.id.as_deref().and_then(|id| id.strip_prefix(MACHINE_PREFIX)) {
             let mut parts = rest.splitn(3, ';');
             let kind = parts.next()?.to_string();
             let result = parts.next()?.parse().ok()?;
@@ -306,7 +306,7 @@ pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
     ui.layout(W::META.w, W::META.h);
     // A real slot's position is its item's corner, inside the 18px frame.
     let corner = |id: &str| ui.find_rect(id).map(|r| (r.x + 1.0, r.y + 1.0));
-    let player = corner(PLAYER_INVENTORY_ID);
+    let player = corner(PLAYER_INVENTORY);
     if found.is_empty() && player.is_none() {
         return None;
     }

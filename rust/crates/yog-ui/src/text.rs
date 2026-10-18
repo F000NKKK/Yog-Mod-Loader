@@ -20,7 +20,7 @@ pub const LINE_H: f32 = 9.0;
 /// Gap between wrapped lines.
 pub const LINE_GAP: f32 = 1.0;
 /// Minecraft's default font id — what an empty `Style::font` means.
-pub const DEFAULT_FONT: &str = "minecraft:default";
+pub use yog_ids::game::DEFAULT_FONT;
 
 /// Advance width in pixels (including 1px inter-glyph spacing) of one char
 /// in Minecraft's default ASCII font at GUI scale 1.

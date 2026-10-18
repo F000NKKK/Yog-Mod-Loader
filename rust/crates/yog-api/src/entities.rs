@@ -13,12 +13,10 @@ use std::sync::{LazyLock, Mutex};
 use yog_body::{Anchor, Frame, Ops, Rig};
 use yog_registry::EntityDef;
 
-/// The entity data key a mod's entity's state goes under.
-pub const STATE: &str = "yog:state";
-
-/// The entity data key a hanging entity's [`Hanging`] goes under — the
-/// loader sets it, on the server and for every client that sees it.
-pub const HANGING: &str = "yog:hanging";
+/// The entity data keys: a mod's entity's state ([`STATE`]) and a hanging
+/// entity's [`Hanging`] ([`HANGING`], set by the loader on the server and for
+/// every client that sees it).
+pub use yog_ids::yog::{HANGING, STATE};
 
 /// How a hanging entity hangs: on which side, how big, and the item it was
 /// placed from (what it drops).
@@ -83,15 +81,6 @@ struct Look {
 static LOOKS: LazyLock<Mutex<HashMap<String, Look>>> = LazyLock::new(Default::default);
 static HOOKED: AtomicBool = AtomicBool::new(false);
 
-fn qualify(id: &str, of: &str) -> String {
-    if id.contains(':') {
-        id.to_owned()
-    } else {
-        let ns = of.split_once(':').map_or("minecraft", |(n, _)| n);
-        format!("{ns}:{id}")
-    }
-}
-
 /// Remembers how `def` looks; `true` for the first such type (the caller
 /// hooks [`draw`] then).
 pub(crate) fn drawn(def: &EntityDef) -> bool {
@@ -99,8 +88,8 @@ pub(crate) fn drawn(def: &EntityDef) -> bool {
     LOOKS.lock().unwrap_or_else(|e| e.into_inner()).insert(
         def.id.clone(),
         Look {
-            model: qualify(model, &def.id),
-            animations: def.animations.as_ref().map(|a| qualify(a, &def.id)),
+            model: yog_ids::qualify_in(yog_ids::split(&def.id).0, model),
+            animations: def.animations.as_ref().map(|a| yog_ids::qualify_in(yog_ids::split(&def.id).0, a)),
             clips: def.clips.0.clone(),
         },
     );

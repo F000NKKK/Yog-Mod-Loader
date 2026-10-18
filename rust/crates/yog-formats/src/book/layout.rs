@@ -29,8 +29,6 @@
 
 use std::sync::LazyLock;
 
-use yog_gfx::image::ImageSource;
-
 use serde::{Deserialize, Serialize};
 use yog_data::Schema;
 use yog_data::kinds::Item;
@@ -102,16 +100,10 @@ pub enum LayoutPart {
     Text { text: String, at: [f32; 2] },
 }
 
-/// The image the built-in layouts are drawn from (Patchouli's crafting sheet).
-pub const SHEET: &str = crate::renderer::CRAFTING_SHEET;
-
-/// A slot frame on [`SHEET`], 24×24, the item inside at +4,+4.
-pub const FRAME_UV: [f32; 4] = [83.0, 71.0, 24.0, 24.0];
-
 /// The game's kinds' layouts.
 pub static BUILT_IN: LazyLock<Vec<RecipeLayout>> = LazyLock::new(|| {
-    yog_data::from_text::<Vec<RecipeLayout>>(include_str!("../assets/layouts.ydata"))
-        .unwrap_or_else(|e| panic!("yog-book's built-in layouts: {e}"))
+    yog_data::from_text::<Vec<RecipeLayout>>(include_str!("../../assets/layouts.ydata"))
+        .unwrap_or_else(|e| panic!("yog-formats' built-in recipe layouts: {e}"))
         .value
 });
 
@@ -124,7 +116,7 @@ pub fn find<'a>(own: &'a [RecipeLayout], kind: &str) -> Option<&'a RecipeLayout>
 
 // ── From `.yui` ────────────────────────────────────────────────────────────────
 
-use crate::ui::Element;
+use crate::yui::Element;
 
 /// Whether `root` is a recipe layout (`<Component recipe_layout="…">`).
 pub fn is_recipe_layout(root: &Element) -> bool {
@@ -216,14 +208,12 @@ pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
             "RecipeCount" => parts.push(LayoutPart::Count { at: at(el)? }),
             "ItemSlot" => {
                 let item = el.attr("item").map(Ok).unwrap_or_else(|| err(el, "needs item=\"…\" (the station: minecraft:furnace)"))?;
-                let item = item.trim().trim_start_matches("@item:").to_string();
-                let item = if item.contains(':') { item } else { format!("minecraft:{item}") };
+                let item = yog_ids::qualify(item.trim().trim_start_matches(yog_ids::reference::ITEM));
                 parts.push(LayoutPart::Item { item, at: at(el)? });
             }
             "BlockSlot" => {
                 let block = el.attr("block").map(Ok).unwrap_or_else(|| err(el, "needs block=\"…\" (a block state: minecraft:brewing_stand[has_bottle_0=true])"))?;
-                let block = block.trim().trim_start_matches("@block:").to_string();
-                let block = if block.split('[').next().is_some_and(|id| id.contains(':')) { block } else { format!("minecraft:{block}") };
+                let block = yog_ids::qualify(block.trim().trim_start_matches(yog_ids::reference::BLOCK));
                 let size = el.attr("size").map(|s| s.trim().parse::<f32>().map_err(|_| format!("size=\"{s}\": a number of pixels"))).transpose().or_else(|e| err(el, e))?.unwrap_or(ICON_PX);
                 parts.push(LayoutPart::Block { block, at: at(el)?, size });
             }
@@ -252,86 +242,11 @@ pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
     Ok(RecipeLayout { kinds, size, parts })
 }
 
-/// One element of a layout on an inventory screen (`<RecipeArea>`): a
-/// `.yui` element's name and attributes.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ScreenElement {
-    pub kind: &'static str,
-    pub attrs: Vec<(&'static str, String)>,
-}
-
-/// A layout as an inventory screen shows it: its pictures and stations,
-/// its places and result as real slots numbered from `first`.
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct ScreenArea {
-    pub elements: Vec<ScreenElement>,
-    /// Each place: its slot, its index in the slot, its screen slot.
-    pub places: Vec<(String, usize, usize)>,
-    pub result: Option<usize>,
-    /// The next free screen slot.
-    pub next: usize,
-}
-
 /// An item's side, in GUI pixels.
 pub const ICON_PX: f32 = 16.0;
 
 fn icon_px() -> f32 {
     ICON_PX
-}
-/// A slot is drawn this far up and left of its item.
-const SLOT_BORDER: f32 = 1.0;
-/// Text a layout shows as it is (no `{value}`), in the game's dark grey.
-const LABEL_COLOR: &str = "#FF404040";
-
-/// `layout`'s parts as screen elements, its places and result slots `first`
-/// onward. A text bound to a recipe's values has nothing to show on a
-/// screen; a block shows as its item does (a screen's images aren't 3D).
-pub fn screen_area(layout: &RecipeLayout, first: usize) -> ScreenArea {
-    let mut out = ScreenArea { next: first, ..ScreenArea::default() };
-    let xy = |p: [f32; 2], d: f32| [("x", (p[0] - d).to_string()), ("y", (p[1] - d).to_string())];
-    let icon = |source: String, at: [f32; 2]| {
-        let [x, y] = xy(at, 0.0);
-        ScreenElement { kind: "Image", attrs: vec![("source", source), ("w", ICON_PX.to_string()), ("h", ICON_PX.to_string()), x, y] }
-    };
-    for part in &layout.parts {
-        match part {
-            LayoutPart::Image { source, uv, at } => {
-                let [u, v, w, h] = *uv;
-                let [x, y] = xy(*at, 0.0);
-                let mut attrs = vec![("source", source.clone()), ("w", w.to_string()), ("h", h.to_string()), ("stretch", "Fill".into()), x, y];
-                // A sprite is whole; an image's region is its uv.
-                if !matches!(ImageSource::parse(source), Some(ImageSource::Sprite(_))) {
-                    attrs.push(("uv", format!("{u} {v} {w} {h}")));
-                }
-                out.elements.push(ScreenElement { kind: "Image", attrs });
-            }
-            LayoutPart::Slots { slot, at, .. } => {
-                for (i, p) in at.iter().enumerate() {
-                    let [x, y] = xy(*p, SLOT_BORDER);
-                    out.elements.push(ScreenElement { kind: "Slot", attrs: vec![("index", out.next.to_string()), x, y] });
-                    out.places.push((slot.clone(), i, out.next));
-                    out.next += 1;
-                }
-            }
-            LayoutPart::Result { at, .. } => {
-                let [x, y] = xy(*at, SLOT_BORDER);
-                out.elements.push(ScreenElement { kind: "Slot", attrs: vec![("index", out.next.to_string()), x, y] });
-                out.result = Some(out.next);
-                out.next += 1;
-            }
-            LayoutPart::Item { item, at } => out.elements.push(icon(ImageSource::Item(item.clone()).to_string(), *at)),
-            LayoutPart::Block { block, at, .. } => {
-                let id = block.split('[').next().unwrap_or(block);
-                out.elements.push(icon(ImageSource::Block(id.to_string()).to_string(), *at));
-            }
-            LayoutPart::Text { text, at } if !text.contains('{') => {
-                let [x, y] = xy(*at, 0.0);
-                out.elements.push(ScreenElement { kind: "Label", attrs: vec![("text", text.clone()), ("color", LABEL_COLOR.into()), ("shadow", "false".into()), x, y] });
-            }
-            LayoutPart::Text { .. } | LayoutPart::Count { .. } => {}
-        }
-    }
-    out
 }
 
 #[cfg(test)]
@@ -379,7 +294,7 @@ mod tests {
 
     #[test]
     fn a_layout_compiles_from_yui() {
-        let el = crate::ui::parse(
+        let el = crate::yui::parse(
             r#"<Component name="Infusion" recipe_layout="infusion shaped" width="96" height="44">
                 <Canvas>
                     <Image source="mymod:gui/infusion" uv="0 0 96 44"/>
@@ -400,9 +315,9 @@ mod tests {
         assert!(matches!(&l.parts[2], LayoutPart::Item { item, .. } if item == "minecraft:beacon"));
         assert!(matches!(&l.parts[4], LayoutPart::Text { text, .. } if text == "{time} ticks"));
 
-        let bad = crate::ui::parse(r#"<Component recipe_layout="x" width="1" height="1"><Button/></Component>"#).unwrap();
+        let bad = crate::yui::parse(r#"<Component recipe_layout="x" width="1" height="1"><Button/></Component>"#).unwrap();
         assert!(compile(&bad, "m").unwrap_err().contains("not a recipe layout's element (`Button`)"));
-        let gap = crate::ui::parse(r#"<Component recipe_layout="x" width="1" height="1"><RecipeSlot slot="a" index="1"/></Component>"#).unwrap();
+        let gap = crate::yui::parse(r#"<Component recipe_layout="x" width="1" height="1"><RecipeSlot slot="a" index="1"/></Component>"#).unwrap();
         assert!(compile(&gap, "m").unwrap_err().contains("place 0 isn't laid out"));
     }
 }

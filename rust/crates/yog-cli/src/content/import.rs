@@ -75,7 +75,7 @@ pub fn import_command(args: &[String]) -> Result<(), String> {
 }
 
 fn read_mod_id(root: &Path) -> Result<String, String> {
-    let text = std::fs::read_to_string(root.join("yog.toml")).map_err(|_| {
+    let text = std::fs::read_to_string(root.join(yog_ids::file::MANIFEST)).map_err(|_| {
         "no yog.toml in the current directory — run `yog import` in a mod".to_string()
     })?;
     let mut in_mod = false;
@@ -320,7 +320,7 @@ struct Models<'a> {
 
 impl Models<'_> {
     fn model(&mut self, id: &str) -> Option<(Map<String, Value>, bool)> {
-        let (ns, path) = split(id);
+        let (ns, path) = yog_ids::split(id);
         let rel = format!("assets/{ns}/models/{path}.json");
         if let Some(b) = self.pack.read(&rel) {
             return serde_json::from_slice(&b).ok().map(|m| (m, true));
@@ -339,19 +339,10 @@ impl Models<'_> {
     }
 }
 
-/// `ns:path` / `path` (minecraft).
-fn split(id: &str) -> (&str, &str) {
-    id.split_once(':').unwrap_or(("minecraft", id))
-}
-
-fn full_id(id: &str) -> String {
-    let (ns, p) = split(id);
-    format!("{ns}:{p}")
-}
 
 /// The template a vanilla model id is.
 fn template_of(id: &str) -> Option<&'static super::Template> {
-    let id = full_id(id);
+    let id = yog_ids::qualify(id);
     TEMPLATES.iter().find(|t| t.parent == id)
 }
 
@@ -370,8 +361,8 @@ fn convert_model(
     let mut gui_light: Option<String> = None;
     let mut render_type: Option<String> = None;
     let mut parent: Option<String> = None;
-    let mut current = full_id(id);
-    let mut from_ns = split(&current).0.to_string();
+    let mut current = yog_ids::qualify(id);
+    let mut from_ns = yog_ids::split(&current).0.to_string();
     for depth in 0.. {
         if depth > 16 {
             return Err(format!("{id}: parent chain too long"));
@@ -387,7 +378,7 @@ fn convert_model(
             break;
         };
         if depth == 0 {
-            from_ns = split(&current).0.to_string();
+            from_ns = yog_ids::split(&current).0.to_string();
         }
         if let Some(Value::Object(tx)) = m.get("textures") {
             for (k, v) in tx {
@@ -437,7 +428,7 @@ fn convert_model(
             parent = Some(tpl.name.to_string());
             break;
         }
-        current = full_id(p);
+        current = yog_ids::qualify(p);
     }
     // A sprite parent reached through the jar: `item/generated` itself.
     if elements.is_none() && parent.is_none() {
@@ -460,7 +451,7 @@ fn convert_model(
         let value = if v.starts_with('#') {
             v.clone()
         } else {
-            let (ns, path) = split(v);
+            let (ns, path) = yog_ids::split(v);
             let rel = format!("assets/{ns}/textures/{path}.png");
             match pack.read(&rel) {
                 Some(png) if valid_path(path) => {
@@ -472,7 +463,7 @@ fn convert_model(
                     }
                     t.put_texture(path, &png, meta.as_deref())?
                 }
-                _ => full_id(v),
+                _ => yog_ids::qualify(v),
             }
         };
         tex.set(slot, J::string(value));
@@ -700,7 +691,7 @@ fn import_block(
     // Its own item model, unless it's just the block's.
     if let Some((im, _)) = models.model(&format!("{ns}:item/{name}")) {
         let plain = im.len() == 1
-            && im.get("parent").and_then(Value::as_str).map(full_id) == Some(full_id(&model_id));
+            && im.get("parent").and_then(Value::as_str).map(yog_ids::qualify) == Some(yog_ids::qualify(&model_id));
         if !plain {
             let (item_model, _) =
                 convert_model(t, models, pack, &format!("{ns}:item/{name}"), true)?;
@@ -745,7 +736,7 @@ fn import_pack(t: &mut Target, pack: &Pack, model: Option<&str>, all: bool) -> R
     let block_models = pack.list("models/block");
     let item_models = pack.list("models/item");
     if let Some(m) = model {
-        let (ns, path) = split(m);
+        let (ns, path) = yog_ids::split(m);
         let ns = if m.contains(':') {
             ns.to_string()
         } else {
@@ -1093,7 +1084,7 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
     if let Some(p) = parent {
         match template_of(p) {
             Some(tpl) if elements.is_empty() => model.set("parent", J::string(tpl.name)),
-            _ if elements.is_empty() => model.set("parent", J::string(full_id(p))),
+            _ if elements.is_empty() => model.set("parent", J::string(yog_ids::qualify(p))),
             _ => {}
         }
     } else if elements.is_empty() {

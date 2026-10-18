@@ -100,7 +100,7 @@ pub fn draw(env: &mut JNIEnv, data: &str, [x, y, w, h]: [f32; 4], tint: u32) {
                         unsafe { jcall!(env, "dev/yog/NativeDraw", "releaseTexture", [S(YogStr::from_str(&id))]) };
                 }
             }
-            let id = format!("yog:dynamic/svg_{:x}_{pw}x{ph}", key.0);
+            let id = format!("{}{:x}_{pw}x{ph}", yog_ids::yog::DYNAMIC_SVG_PREFIX, key.0);
             let ok: Option<bool> = unsafe {
                 jcall!(
                     env,

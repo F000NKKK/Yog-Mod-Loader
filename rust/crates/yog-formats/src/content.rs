@@ -151,7 +151,7 @@ pub struct ToolKindRef;
 
 impl yog_data::with::With<String> for ToolKindRef {
     fn shape() -> Shape {
-        Shape::Tag(&["block"])
+        Shape::Tag(&[yog_ids::kind::BLOCK])
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
@@ -167,7 +167,7 @@ impl yog_data::with::With<String> for ToolKindRef {
         if TOOL_KINDS.contains(&f.as_str()) {
             Value::from(f.as_str())
         } else {
-            Value::Tag(yog_data::Ref::new("block", f.clone()))
+            Value::Tag(yog_data::Ref::new(yog_ids::kind::BLOCK, f.clone()))
         }
     }
 }
@@ -263,7 +263,7 @@ fn block_tag(
 
 impl yog_data::with::With<BlockTag> for ToolTag {
     fn shape() -> Shape {
-        Shape::Tag(&["block"])
+        Shape::Tag(&[yog_ids::kind::BLOCK])
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<BlockTag> {
         block_tag(v, cx, &TOOLS, |s| format!("minecraft:mineable/{s}"), "tool")
@@ -271,14 +271,14 @@ impl yog_data::with::With<BlockTag> for ToolTag {
     fn write(f: &BlockTag) -> Value {
         match f.0.strip_prefix("minecraft:mineable/") {
             Some(s) if TOOLS.contains(&s) => Value::from(s),
-            _ => Value::Tag(yog_data::Ref::new("block", f.0.clone())),
+            _ => Value::Tag(yog_data::Ref::new(yog_ids::kind::BLOCK, f.0.clone())),
         }
     }
 }
 
 impl yog_data::with::With<String> for LevelRef {
     fn shape() -> Shape {
-        Shape::Ref(&["level"])
+        Shape::Ref(&[yog_ids::kind::LEVEL])
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
@@ -296,14 +296,14 @@ impl yog_data::with::With<String> for LevelRef {
     fn write(f: &String) -> Value {
         match f.strip_prefix("minecraft:") {
             Some(s) if TOOL_LEVELS.contains(&s) => Value::from(s),
-            _ => Value::Ref(yog_data::Ref::new("level", f.clone())),
+            _ => Value::Ref(yog_data::Ref::new(yog_ids::kind::LEVEL, f.clone())),
         }
     }
 }
 
 impl yog_data::with::With<String> for SoundRef {
     fn shape() -> Shape {
-        Shape::Ref(&["sound_group"])
+        Shape::Ref(&[yog_ids::kind::SOUND_GROUP])
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
@@ -320,7 +320,7 @@ impl yog_data::with::With<String> for SoundRef {
     fn write(f: &String) -> Value {
         match f.strip_prefix("minecraft:") {
             Some(s) if yog_registry::SoundGroup::built_in(s).is_some() => Value::from(s),
-            _ => Value::Ref(yog_data::Ref::new("sound_group", f.clone())),
+            _ => Value::Ref(yog_data::Ref::new(yog_ids::kind::SOUND_GROUP, f.clone())),
         }
     }
 }

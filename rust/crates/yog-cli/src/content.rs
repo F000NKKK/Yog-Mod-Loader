@@ -26,6 +26,7 @@ mod table;
 
 pub use import::import_command;
 
+use yog_ids::Format;
 use crate::yres;
 use yog_data::Path as At;
 use json::num_value;
@@ -43,58 +44,22 @@ pub const GENERATED_FILE: &str = ".yog-build/generated/yog-content.g.rs";
 /// A generated file: path inside the `.yog` and its bytes.
 pub type Output = (String, Vec<u8>);
 
-/// What a content file defines.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Kind {
-    /// `.yblock` — a block and its item form.
-    Block,
-    /// `.yitem` — an item.
-    Item,
-    /// `.yrecipe` — a recipe.
-    Recipe,
-    /// `.ybook` — a guide book (`yog_book::Book` as JSON).
-    Book,
-    /// `.ydef` — a definition of some kind: a ladder, a level on one, a
-    /// sound group, a kind of recipe, a recipe layout.
-    Def,
-    /// `.ymodel` — a skeleton of bones and cubes (`yog_body`).
-    Model,
-    /// `.yanim` — animation clips (`yog_body`).
-    Anim,
-    /// `.yentity` — an entity type: an object, a living thing or a mob.
-    Entity,
-    /// `.yfont` — a font in Yog's vector-glyph format.
-    Font,
-}
-impl Kind {
-    pub fn of(path: &Path) -> Option<Kind> {
-        match path.extension()?.to_str()? {
-            "yblock" => Some(Kind::Block),
-            "yitem" => Some(Kind::Item),
-            "yrecipe" => Some(Kind::Recipe),
-            "ybook" => Some(Kind::Book),
-            "ydef" => Some(Kind::Def),
-            "ymodel" => Some(Kind::Model),
-            "yanim" => Some(Kind::Anim),
-            "yentity" => Some(Kind::Entity),
-            "yfont" => Some(Kind::Font),
-            _ => None,
-        }
-    }
+/// The formats a content file under `content/` is written in.
+const CONTENT: [Format; 9] = [
+    Format::Block,
+    Format::Item,
+    Format::Recipe,
+    Format::Book,
+    Format::Def,
+    Format::Model,
+    Format::Anim,
+    Format::Entity,
+    Format::Font,
+];
 
-    fn word(self) -> &'static str {
-        match self {
-            Kind::Block => "block",
-            Kind::Item => "item",
-            Kind::Recipe => "recipe",
-            Kind::Book => "book",
-            Kind::Def => "definition",
-            Kind::Model => "model",
-            Kind::Anim => "animation",
-            Kind::Entity => "entity",
-            Kind::Font => "font",
-        }
-    }
+/// The content format of the file at `path`.
+fn content_format(path: &Path) -> Option<Format> {
+    Format::of_path(path).filter(|f| CONTENT.contains(f))
 }
 
 /// Everything `yog build` makes of a mod's content files.
@@ -244,7 +209,7 @@ pub fn valid_id(s: &str) -> bool {
 
 // ── Finding ──────────────────────────────────────────────────────────────────
 
-/// Every content file (`Kind`) under `content/` of the mod at `root`, sorted.
+/// Every content file (`CONTENT`) under `content/` of the mod at `root`, sorted.
 pub fn find(root: &Path) -> Vec<PathBuf> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         let Ok(entries) = std::fs::read_dir(dir) else {
@@ -254,7 +219,7 @@ pub fn find(root: &Path) -> Vec<PathBuf> {
             let path = entry.path();
             if path.is_dir() {
                 walk(&path, out);
-            } else if Kind::of(&path).is_some() {
+            } else if content_format(&path).is_some() {
                 out.push(path);
             }
         }
@@ -341,7 +306,7 @@ struct ItemProps {
 /// One checked content file — what the Rust code needs.
 #[derive(Debug, Clone)]
 struct Entry {
-    kind: Kind,
+    kind: Format,
     id: String,
     file: String,
     auto: bool,
@@ -728,7 +693,7 @@ fn pretty(v: &Value) -> Vec<u8> {
 fn compile_file(
     cx: &mut Ctx,
     text: &str,
-    kind: Kind,
+    kind: Format,
     path: &Path,
     mod_ns: Option<&str>,
     out: &mut Compiled,
@@ -763,7 +728,7 @@ fn compile_file(
         kind: Option<String>,
     }
     let (parts, refs, tag_refs) = match kind {
-        Kind::Item => match yog_data::schema::from_doc::<yog_formats::content::ItemFile>(text, &doc) {
+        Format::Item => match yog_data::schema::from_doc::<yog_formats::content::ItemFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
                 (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: f.model, item_model: None, block: None, states: None, item: f.item, block_item: None, requires: f.requires, tags: f.tags, kind: None }, r.refs, r.tags)
@@ -773,7 +738,7 @@ fn compile_file(
                 return None;
             }
         },
-        Kind::Block => match yog_data::schema::from_doc::<yog_formats::content::BlockFile>(text, &doc) {
+        Format::Block => match yog_data::schema::from_doc::<yog_formats::content::BlockFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
                 (Parts { format: f.format, id: f.id, name: f.name, tooltip: f.tooltip, register: f.register, model: Some(f.model), item_model: f.item_model, block: f.block, states: f.states, item: None, block_item: f.item, requires: f.requires, tags: f.tags, kind: f.kind }, r.refs, r.tags)
@@ -783,7 +748,7 @@ fn compile_file(
                 return None;
             }
         },
-        Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity | Kind::Font => unreachable!("only blocks and items get here"),
+        _ => unreachable!("only blocks and items get here"),
     };
     // What it names (drops) is checked once every file is read.
     for f in &refs {
@@ -795,8 +760,8 @@ fn compile_file(
     // Its tags (checked like the rest): a block's are block or item tags.
     for (i, tag) in parts.tags.iter().enumerate() {
         let at = root.key("tags").index(i);
-        let of = if kind == Kind::Block { "block|item" } else { "item" };
-        cx.deferred.push((cx.file.clone(), loc(&at), at.to_string(), yog_data::Ref::new(format!("{TAG_REF}{of}"), full_id(tag.trim_start_matches('#'), mod_ns.unwrap_or("minecraft")))));
+        let of = if kind == Format::Block { "block|item" } else { "item" };
+        cx.deferred.push((cx.file.clone(), loc(&at), at.to_string(), yog_data::Ref::new(format!("{TAG_REF}{of}"), yog_ids::qualify_in(mod_ns.unwrap_or("minecraft"), tag.trim_start_matches('#')))));
     }
     if let Some(f) = parts.format
         && f != 1
@@ -810,7 +775,7 @@ fn compile_file(
 
     let potion_only = parts.item.as_ref().is_some_and(|it| it.potion.is_some());
     // Name and tooltip → lang, under the keys the game looks up.
-    let key = format!("{}.{ns}.{}", kind.word(), p.replace('/', "."));
+    let key = format!("{}.{ns}.{}", kind.noun(), p.replace('/', "."));
     for (field, text, target) in (!potion_only)
         .then_some([("name", &parts.name, key.clone()), ("tooltip", &parts.tooltip, format!("{key}.desc"))])
         .into_iter()
@@ -870,9 +835,9 @@ fn compile_file(
 
     // Its tags: a block's block tag, and the item tag of the same name for its item form.
     for tag in &parts.tags {
-        let tag = full_id(tag.trim_start_matches('#'), &cx.ns);
+        let tag = yog_ids::qualify_in(&cx.ns, tag.trim_start_matches('#'));
         let (tns, tpath) = tag.split_once(':').unwrap_or(("minecraft", &tag));
-        if kind == Kind::Block {
+        if kind == Format::Block {
             out.tags.entry(format!("data/{tns}/tags/block/{tpath}.json")).or_default().insert(id.clone(), true);
         }
         out.tags.entry(format!("data/{tns}/tags/item/{tpath}.json")).or_default().insert(id.clone(), true);
@@ -885,7 +850,7 @@ fn compile_file(
         entry.item.fuel_ticks = it.fuel_ticks.unwrap_or(0);
     }
 
-    if kind == Kind::Item {
+    if kind == Format::Item {
         if let Some(it) = &parts.item {
             let props = &mut entry.item;
             props.stack_size = it.stack_size;
@@ -1407,7 +1372,7 @@ enum RecipeKind {
 /// One checked `.ybook`.
 struct BookFile {
     id: String,
-    /// The book as the runtime reads it (`yog_book::Book`'s schema), as
+    /// The book as the runtime reads it (`yog_formats::book::Book`'s schema), as
     /// binary Yog Data: the mod hands these bytes over as they are.
     data: Vec<u8>,
 }
@@ -1548,7 +1513,7 @@ impl BodyFile {
 
 /// Checks a `.ymodel` (its schema, and that it makes a model: parents
 /// before children, names once) or a `.yanim` (schema, times).
-fn compile_body(shown: &str, text: &str, kind: Kind, root: &Path, path: &Path, ns: &str, errors: &mut Vec<String>) -> Option<BodyFile> {
+fn compile_body(shown: &str, text: &str, kind: Format, root: &Path, path: &Path, ns: &str, errors: &mut Vec<String>) -> Option<BodyFile> {
     let rel = path.strip_prefix(root.join(CONTENT_DIR)).unwrap_or(path).with_extension("");
     let id = format!("{ns}:{}", rel.to_string_lossy().replace('\\', "/"));
     let report = |errors: &mut Vec<String>, e: yog_data::Errors| {
@@ -1556,7 +1521,7 @@ fn compile_body(shown: &str, text: &str, kind: Kind, root: &Path, path: &Path, n
             errors.push(format!("{shown}:{l}"));
         }
     };
-    let value = if kind == Kind::Model {
+    let value = if kind == Format::Model {
         let file = match yog_data::from_text::<yog_body::format::ModelFile>(text) {
             Ok(r) => r.value,
             Err(e) => {
@@ -1583,7 +1548,7 @@ fn compile_body(shown: &str, text: &str, kind: Kind, root: &Path, path: &Path, n
         }
         yog_data::Schema::write(&file)
     };
-    Some(BodyFile { model: kind == Kind::Model, id, data: yog_data::binary::encode(&value) })
+    Some(BodyFile { model: kind == Format::Model, id, data: yog_data::binary::encode(&value) })
 }
 
 /// A dimension's data file under `.yog-build/generated/`.
@@ -1598,8 +1563,8 @@ impl BookFile {
     }
 }
 
-/// Checks one `.ybook` (`yog_book::Book`'s schema), whose references
-/// (`@item:minecraft:stick`, see `yog_book::refs`) must name what exists
+/// Checks one `.ybook` (`yog_formats::book::Book`'s schema), whose references
+/// (`@item:minecraft:stick`, see `yog_formats::book::refs`) must name what exists
 /// — in this mod, on every Minecraft version, or among the other mods'
 /// ids `yog.toml` declares — and come out as plain ids. Texts may be
 /// `@<Set>.<name>` (a `.yres` text), `@item:<id>` / `@block:<id>` /
@@ -1611,9 +1576,9 @@ fn compile_book(
     text: &str,
     mod_ns: Option<&str>,
     known: &refs::Known,
-    layouts: &[yog_book::layout::RecipeLayout],
+    layouts: &[yog_formats::book::layout::RecipeLayout],
     recipe_kinds: &HashMap<String, String>,
-    page_types: &[yog_book::page_type::PageType],
+    page_types: &[yog_formats::book::page_type::PageType],
 ) -> Option<BookFile> {
     use refs::RefKind;
     use yog_data::schema::{Resolve, Text};
@@ -1647,11 +1612,11 @@ fn compile_book(
                 Text::Literal(s) => Ok(s.clone()),
                 // A name: the game's translation of the item, block or entity.
                 Text::NameOf(r) => {
-                    if !matches!(r.kind.as_str(), "item" | "block" | "entity") {
+                    if !matches!(r.kind.as_str(), yog_ids::kind::ITEM | yog_ids::kind::BLOCK | yog_ids::kind::ENTITY) {
                         return Err(format!("`@{}:{}` has no name to show", r.kind, r.id));
                     }
                     self.known.check(RefKind::from_word(&r.kind).unwrap(), &r.id)?;
-                    let (ns, p) = yog_book::refs::bare(&r.id).split_once(':').unwrap_or(("minecraft", &r.id));
+                    let (ns, p) = yog_formats::book::refs::bare(&r.id).split_once(':').unwrap_or(("minecraft", &r.id));
                     self.text_refs = true;
                     Ok(format!("{}.{ns}.{}", r.kind, p.replace('/', ".")))
                 }
@@ -1687,7 +1652,7 @@ fn compile_book(
         doc.value.get(key).and_then(|v| v.as_list()).unwrap_or_default().iter().filter_map(|e| e.get("id")?.as_str().map(str::to_string)).collect()
     };
     let mut check = Check { known, texts: &cx.refs.texts, entries: ids("entries"), categories: ids("categories"), text_refs: false };
-    let mut book = match yog_data::from_doc_with::<yog_book::Book>(text, &doc, &mut check) {
+    let mut book = match yog_data::from_doc_with::<yog_formats::book::Book>(text, &doc, &mut check) {
         Ok(read) => read.value,
         Err(errors) => {
             for e in errors.0 {
@@ -1723,12 +1688,12 @@ fn compile_book(
     }
     // Pages of a mod's own kind: their fields checked by their type and
     // resolved like the rest of the book; the types they use go with it.
-    let mut used: Vec<yog_book::page_type::PageType> = Vec::new();
+    let mut used: Vec<yog_formats::book::page_type::PageType> = Vec::new();
     let mut fields_ok = true;
     for (e, entry) in book.entries.iter_mut().enumerate() {
         for (p, page) in entry.pages.iter_mut().enumerate() {
-            let yog_book::BookPage::Custom(c) = page else { continue };
-            use yog_book::page_type::PropKind as K;
+            let yog_formats::book::BookPage::Custom(c) = page else { continue };
+            use yog_formats::book::page_type::PropKind as K;
             use yog_data::with::With;
             let at = Path::root().key("entries").index(e).key("pages").index(p);
             let line = |path: &Path| doc.locate(text, path).line as usize;
@@ -1762,9 +1727,9 @@ fn compile_book(
                 let mut reader = yog_data::Reader::with_resolver(&mut check);
                 let read = match prop.kind {
                     K::Text => yog_data::with::TextOf::read(&r, &mut reader).map(yog_data::Value::Str),
-                    K::BookText => yog_book::refs::BookText::read(&r, &mut reader).map(yog_data::Value::Str),
+                    K::BookText => yog_formats::book::refs::BookText::read(&r, &mut reader).map(yog_data::Value::Str),
                     K::Item => yog_data::with::RefTo::<(yog_data::kinds::Item, yog_data::kinds::Block)>::read(&r, &mut reader).map(yog_data::Value::Str),
-                    K::Image => yog_book::refs::Icon::read(&r, &mut reader).map(yog_data::Value::Str),
+                    K::Image => yog_formats::book::refs::Icon::read(&r, &mut reader).map(yog_data::Value::Str),
                     K::Number => <f64 as yog_data::Schema>::read(&r, &mut reader).map(yog_data::Value::Float),
                     K::Bool => <bool as yog_data::Schema>::read(&r, &mut reader).map(yog_data::Value::Bool),
                     K::Data => Some(v.clone()),
@@ -1793,15 +1758,15 @@ fn compile_book(
     let mut ok = true;
     for (e, entry) in book.entries.iter().enumerate() {
         for (p, page) in entry.pages.iter().enumerate() {
-            if let yog_book::BookPage::Recipe { recipe, .. } = page
+            if let yog_formats::book::BookPage::Recipe { recipe, .. } = page
                 && let Some(kind) = recipe_kinds.get(recipe)
-                && yog_book::layout::find(layouts, kind).is_none()
+                && yog_formats::book::layout::find(layouts, kind).is_none()
             {
                 let path = yog_data::Path::root().key("entries").index(e).key("pages").index(p).key("recipe");
                 let short = kind.split_once(':').map_or(kind.as_str(), |(_, k)| k);
                 cx.err(
                     doc.locate(text, &path).line as usize,
-                    format!("{path}: no layout for recipe kind {kind} — lay it out in a .yui: <Component recipe_layout=\"{short}\" width=\"…\" height=\"…\"> (see yog_book::layout)"),
+                    format!("{path}: no layout for recipe kind {kind} — lay it out in a .yui: <Component recipe_layout=\"{short}\" width=\"…\" height=\"…\"> (see yog_formats::book::layout)"),
                 );
                 ok = false;
             }
@@ -1926,7 +1891,7 @@ fn compile_layout(
             return None;
         }
         Def::LootModifier(mut m) => {
-            m.id = full_id(&m.id, ns);
+            m.id = yog_ids::qualify_in(ns, &m.id);
             if m.id.split_once(':').is_none_or(|(n, p)| n != ns || !valid_path(p)) {
                 cx.err(doc.locate(text, &yog_data::Path::root().key("id")).line as usize, format!("id: `{}`: the mod's own, `{ns}:<name>`", m.id));
                 ok = false;
@@ -1944,7 +1909,7 @@ fn compile_layout(
             match advancement(cx, &mut out.lang, &a, ns) {
                 Ok(files) if ok => {
                     out.outputs.extend(files);
-                    advancements.push(full_id(&a.id, ns));
+                    advancements.push(yog_ids::qualify_in(ns, &a.id));
                 }
                 Ok(_) => {}
                 Err((key, e)) => cx.err(at(key), format!("{key}: {e}")),
@@ -1953,17 +1918,17 @@ fn compile_layout(
         }
         // Registered with the game: the host reads them from the content.
         Def::Attribute(mut a) => {
-            a.id = full_id(&a.id, ns);
-            content_def(cx, &doc, text, ns, "attribute", a.id.clone(), &a, ok, definitions);
+            a.id = yog_ids::qualify_in(ns, &a.id);
+            content_def(cx, &doc, text, ns, yog_ids::kind::ATTRIBUTE, a.id.clone(), &a, ok, definitions);
             return None;
         }
         Def::Effect(mut e) => {
-            e.id = full_id(&e.id, ns);
-            content_def(cx, &doc, text, ns, "effect", e.id.clone(), &e, ok, definitions);
+            e.id = yog_ids::qualify_in(ns, &e.id);
+            content_def(cx, &doc, text, ns, yog_ids::kind::EFFECT, e.id.clone(), &e, ok, definitions);
             return None;
         }
         Def::LootTable(t) => {
-            let id = full_id(&t.id, ns);
+            let id = yog_ids::qualify_in(ns, &t.id);
             let Some(path) = id.strip_prefix(&format!("{ns}:")).filter(|p| valid_path(p)) else {
                 cx.err(doc.locate(text, &yog_data::Path::root().key("id")).line as usize, format!("id: `{id}`: the mod's own, `{ns}:<name>`"));
                 return None;
@@ -2071,7 +2036,7 @@ fn old_advancement_format(version: &str) -> bool {
 /// an overlay for the versions that read that. `Err((field, why))`.
 fn advancement(cx: &mut Ctx, lang: &mut Lang, a: &yog_formats::def::AdvancementDef, ns: &str) -> Result<Vec<Output>, (&'static str, String)> {
     use serde_json::json;
-    let id = full_id(&a.id, ns);
+    let id = yog_ids::qualify_in(ns, &a.id);
     let path = id.strip_prefix(&format!("{ns}:")).filter(|p| valid_path(p)).ok_or(("id", format!("`{id}`: the mod's own, `{ns}:<name>`")))?.to_string();
     if !matches!(a.frame.as_str(), "task" | "goal" | "challenge") {
         return Err(("frame", format!("`{}`: task, goal or challenge", a.frame)));
@@ -2096,13 +2061,13 @@ fn advancement(cx: &mut Ctx, lang: &mut Lang, a: &yog_formats::def::AdvancementD
                 json!({ "trigger": "minecraft:impossible" })
             } else if let Some(item) = &c.has_item {
                 let predicate = match item {
-                    yog_data::OneOrTag::One(i) => item_predicate(&full_id(&i.id, "minecraft")),
-                    yog_data::OneOrTag::Tag(t) if old => json!({ "tag": full_id(&t.id, "minecraft") }),
-                    yog_data::OneOrTag::Tag(t) => json!({ "items": format!("#{}", full_id(&t.id, "minecraft")) }),
+                    yog_data::OneOrTag::One(i) => item_predicate(&yog_ids::qualify_in("minecraft", &i.id)),
+                    yog_data::OneOrTag::Tag(t) if old => json!({ "tag": yog_ids::qualify_in("minecraft", &t.id) }),
+                    yog_data::OneOrTag::Tag(t) => json!({ "items": format!("#{}", yog_ids::qualify_in("minecraft", &t.id)) }),
                 };
                 json!({ "trigger": "minecraft:inventory_changed", "conditions": { "items": [predicate] } })
             } else {
-                let item = c.used_item.as_ref().map(|i| full_id(&i.id, "minecraft")).unwrap_or_default();
+                let item = c.used_item.as_ref().map(|i| yog_ids::qualify_in("minecraft", &i.id)).unwrap_or_default();
                 json!({ "trigger": "minecraft:consume_item", "conditions": { "item": item_predicate(&item) } })
             };
             criteria.insert(name.clone(), criterion);
@@ -2122,7 +2087,7 @@ fn advancement(cx: &mut Ctx, lang: &mut Lang, a: &yog_formats::def::AdvancementD
         }
         let mut v = json!({ "display": display, "criteria": criteria, "requirements": requirements });
         if let Some(parent) = &a.parent {
-            v["parent"] = Value::String(full_id(parent, ns));
+            v["parent"] = Value::String(yog_ids::qualify_in(ns, parent));
         }
         Ok(v)
     };
@@ -2167,10 +2132,6 @@ fn loot_path(id: &str) -> String {
     format!("loot/{}.ydata", id.replace([':', '/'], "__"))
 }
 
-/// `ns:path` for an id the mod writes bare (`water_plants`).
-fn full_id(id: &str, ns: &str) -> String {
-    if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") }
-}
 
 /// A deferred check of a tag of content `<kinds>`: `tag:item`, `tag:block|item`.
 const TAG_REF: &str = "tag:";
@@ -2179,7 +2140,7 @@ const TAG_REF: &str = "tag:";
 /// kept only if present). What it names was checked with the file's refs.
 fn tag_entries(t: &yog_formats::def::TagDef, ns: &str) -> Result<(String, BTreeMap<String, bool>), Vec<String>> {
     use yog_data::AnyRefOrTag;
-    let id = full_id(&t.id, ns);
+    let id = yog_ids::qualify_in(ns, &t.id);
     let (tns, tpath) = id.split_once(':').unwrap_or(("minecraft", &id));
     let mut problems = Vec::new();
     let mut entries = BTreeMap::new();
@@ -2190,10 +2151,10 @@ fn tag_entries(t: &yog_formats::def::TagDef, ns: &str) -> Result<(String, BTreeM
                 continue;
             }
             let (entry, required) = match v {
-                AnyRefOrTag::One(r) => (full_id(&r.id, "minecraft"), required),
+                AnyRefOrTag::One(r) => (yog_ids::qualify_in("minecraft", &r.id), required),
                 // A tag only some versions or loaders have: where it isn't, the rest still counts.
                 AnyRefOrTag::Tag(r) => {
-                    let tag = full_id(&r.id, "minecraft");
+                    let tag = yog_ids::qualify_in("minecraft", &r.id);
                     let everywhere = !matches!(refs::tag_hosts(refs::tag_registry(&t.of), &tag), Some(Some(_)));
                     (format!("#{tag}"), required && everywhere)
                 }
@@ -2211,7 +2172,7 @@ fn tag_entries(t: &yog_formats::def::TagDef, ns: &str) -> Result<(String, BTreeM
 /// A `.ydef` tree: the game's `minecraft:tree` configured feature.
 fn tree(t: &yog_formats::def::TreeDef, ns: &str) -> Result<Output, String> {
     use serde_json::json;
-    let id = full_id(&t.id, ns);
+    let id = yog_ids::qualify_in(ns, &t.id);
     let (tns, tpath) = id.split_once(':').unwrap_or((ns, &id));
     if tns != ns || !valid_path(tpath) {
         return Err(format!("id: `{}`: the mod's own tree, `{ns}:<name>`", t.id));
@@ -2258,7 +2219,7 @@ fn tree(t: &yog_formats::def::TreeDef, ns: &str) -> Result<Output, String> {
 /// A `.ydef` damage type: its `damage_type/` file, and the damage type
 /// tags it joins (path, its id).
 fn damage_type(d: &yog_formats::def::DamageTypeDef, ns: &str) -> Result<(Output, Vec<(String, String)>), String> {
-    let id = full_id(&d.id, ns);
+    let id = yog_ids::qualify_in(ns, &d.id);
     let (dns, dpath) = id.split_once(':').unwrap_or((ns, &id));
     if dns != ns || !valid_path(dpath) {
         return Err(format!("id: `{}`: the mod's own damage type, `{ns}:<name>`", d.id));
@@ -2278,7 +2239,7 @@ fn damage_type(d: &yog_formats::def::DamageTypeDef, ns: &str) -> Result<(Output,
         .tags
         .iter()
         .map(|t| {
-            let t = full_id(t, "minecraft");
+            let t = yog_ids::qualify_in("minecraft", t);
             let (tns, tpath) = t.split_once(':').unwrap_or(("minecraft", &t));
             (format!("data/{tns}/tags/damage_type/{tpath}.json"), id.clone())
         })
@@ -2295,8 +2256,8 @@ fn recipe_layouts(
     kinds: &HashMap<String, yog_formats::def::RecipeKindDef>,
     known: &refs::Known,
     errors: &mut Vec<String>,
-) -> Vec<yog_book::layout::RecipeLayout> {
-    use yog_book::layout::LayoutPart;
+) -> Vec<yog_formats::book::layout::RecipeLayout> {
+    use yog_formats::book::layout::LayoutPart;
     let mut laid_out: HashMap<String, String> = HashMap::new();
     let mut out = Vec::new();
     for (shown, l) in crate::book_page::find_layouts(root, ns, errors) {
@@ -3009,7 +2970,7 @@ fn inventory_screens(dir: &Path) -> BTreeSet<String> {
             out.extend(inventory_screens(&path));
             continue;
         }
-        if path.extension().is_none_or(|x| x != "yui") {
+        if !Format::Ui.is(&path) {
             continue;
         }
         let Ok(text) = std::fs::read_to_string(&path) else { continue };
@@ -3060,7 +3021,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut deferred: Vec<(String, usize, String, yog_data::Ref)> = Vec::new();
     for path in &files {
         let shown = display(root, path);
-        let Some(kind) = Kind::of(path) else { continue };
+        let Some(kind) = content_format(path) else { continue };
         let text = match std::fs::read_to_string(path) {
             Ok(t) => t,
             Err(e) => {
@@ -3068,16 +3029,16 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
                 continue;
             }
         };
-        if matches!(kind, Kind::Model | Kind::Anim) {
+        if matches!(kind, Format::Model | Format::Anim) {
             if let Some(b) = compile_body(&shown, &text, kind, root, path, mod_ns.unwrap_or("minecraft"), &mut errors) {
-                if let Some(other) = body_ids.insert((kind == Kind::Model, b.id.clone()), shown.clone()) {
-                    errors.push(format!("{shown}: {} {} is also defined by {other}", kind.word(), b.id));
+                if let Some(other) = body_ids.insert((kind == Format::Model, b.id.clone()), shown.clone()) {
+                    errors.push(format!("{shown}: {} {} is also defined by {other}", kind.noun(), b.id));
                 }
                 bodies.push(b);
             }
             continue;
         }
-        if kind == Kind::Font {
+        if kind == Format::Font {
             if let Some(font) = compile_font(&shown, &text, root, path, mod_ns.unwrap_or("minecraft"), &mut errors) {
                 if let Some(other) = font_ids.insert(font.id.clone(), shown.clone()) {
                     errors.push(format!("{shown}: font {} is also defined by {other}", font.id));
@@ -3086,20 +3047,20 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             }
             continue;
         }
-        if kind == Kind::Book {
+        if kind == Format::Book {
             // Checked once every block, item and recipe is known.
             pending_books.push((shown.clone(), text));
             continue;
         }
-        if kind == Kind::Recipe {
+        if kind == Format::Recipe {
             // Checked once every block and item is known.
             pending_recipes.push((shown.clone(), text, path.clone()));
             continue;
         }
-        if kind == Kind::Def {
+        if kind == Format::Def {
             // Kinds of recipe are checked with the recipes, ores and dimensions with what they name.
             let of = yog_data::text::parse_value(&text).ok().and_then(|v| v.get("kind").and_then(|k| k.as_str()).map(str::to_string));
-            if matches!(of.as_deref(), Some("recipe_kind" | "ore" | "dimension" | "table" | "tag" | "damage_type" | "tree" | "loot_modifier" | "loot_table" | "attribute" | "effect" | "advancement")) {
+            if matches!(of.as_deref(), Some(yog_ids::kind::RECIPE_KIND | yog_ids::kind::ORE | yog_ids::kind::DIMENSION | yog_ids::kind::TABLE | yog_ids::kind::TAG | yog_ids::kind::DAMAGE_TYPE | yog_ids::kind::TREE | yog_ids::kind::LOOT_MODIFIER | yog_ids::kind::LOOT_TABLE | yog_ids::kind::ATTRIBUTE | yog_ids::kind::EFFECT | yog_ids::kind::ADVANCEMENT)) {
                 pending_layouts.push((shown.clone(), text));
             } else {
                 pending_defs.push((shown.clone(), text));
@@ -3117,7 +3078,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        if kind == Kind::Entity {
+        if kind == Format::Entity {
             if let Some(e) = compile_entity(&mut cx, &text, path, mod_ns, &mut out) {
                 if let Some(other) = ids.insert(e.id.clone(), shown.clone()) {
                     errors.push(format!("{shown}: id {} is also defined by {other}", e.id));
@@ -3143,12 +3104,12 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         .collect();
     entries.retain(|e| e.potion.is_none());
     // Books name the mod's content, vanilla's and other mods' declared ids.
-    let manifest = crate::manifest::YogToml::read(&root.join("yog.toml")).ok();
+    let manifest = crate::manifest::YogToml::read(&root.join(yog_ids::file::MANIFEST)).ok();
     let externals = manifest.as_ref().map(|t| t.externals.clone()).unwrap_or_default();
     let datapack = manifest.as_ref().and_then(|t| t.datapack.clone());
     let mut known = refs::Known::new(mod_ns.unwrap_or("minecraft"), &externals, datapack.as_deref());
     for e in &entries {
-        known.add(if e.kind == Kind::Block { refs::RefKind::Block } else { refs::RefKind::Item }, e.id.clone());
+        known.add(if e.kind == Format::Block { refs::RefKind::Block } else { refs::RefKind::Item }, e.id.clone());
     }
     for id in potion_defs.keys() {
         known.add(refs::RefKind::Item, id.clone());
@@ -3161,7 +3122,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
                 && mod_ns.is_some_and(|ns| id.starts_with(&format!("{ns}:")))
                 && !bodies.iter().any(|b| b.model == model && &b.id == id)
             {
-                errors.push(format!("{}: {what} `{id}`: no such file in content/ (`{}`)", e.file, if model { ".ymodel" } else { ".yanim" }));
+                errors.push(format!("{}: {what} `{id}`: no such file in content/ (`.{}`)", e.file, if model { Format::Model } else { Format::Anim }.ext()));
             }
         }
     }
@@ -3238,7 +3199,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     // Definitions: the ladders and their levels, sound groups.
     let mut defs = read_defs(&pending_defs, mod_ns, &mut errors);
-    definitions.extend(potion_defs.into_iter().map(|(id, potion)| ("potion", id, yog_data::binary::encode(&potion.write()))));
+    definitions.extend(potion_defs.into_iter().map(|(id, potion)| (yog_ids::kind::POTION, id, yog_data::binary::encode(&potion.write()))));
     for (files, feature) in ores {
         out.outputs.extend(files);
         defs.biome_features.push(feature);
@@ -3246,15 +3207,15 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     // What blocks and items name (drops, levels): known now.
     for (file, line, path, r) in &deferred {
         let found = match r.kind.as_str() {
-            "level" => defs.level(&r.id).map(|_| ()).ok_or_else(|| format!("no level {} — the game's tool levels or a .ydef's", r.id)),
-            "ladder" => defs.order.contains_key(&r.id).then_some(()).ok_or_else(|| format!("no ladder {}", r.id)),
-            "tool_material" => (defs.tool_materials.iter().any(|m| m.id == r.id) || yog_formats::def::ToolMaterial::built_in(&r.id).is_some())
+            yog_ids::kind::LEVEL => defs.level(&r.id).map(|_| ()).ok_or_else(|| format!("no level {} — the game's tool levels or a .ydef's", r.id)),
+            yog_ids::kind::LADDER => defs.order.contains_key(&r.id).then_some(()).ok_or_else(|| format!("no ladder {}", r.id)),
+            yog_ids::kind::TOOL_MATERIAL => (defs.tool_materials.iter().any(|m| m.id == r.id) || yog_formats::def::ToolMaterial::built_in(&r.id).is_some())
                 .then_some(())
                 .ok_or_else(|| format!("no tool material {} — the game's or a .ydef's", r.id)),
-            "armor_material" => (defs.armor_materials.iter().any(|m| m.id == r.id) || yog_formats::def::ArmorMaterial::built_in(&r.id).is_some())
+            yog_ids::kind::ARMOR_MATERIAL => (defs.armor_materials.iter().any(|m| m.id == r.id) || yog_formats::def::ArmorMaterial::built_in(&r.id).is_some())
                 .then_some(())
                 .ok_or_else(|| format!("no armor material {} — the game's or a .ydef's", r.id)),
-            "sound_group" => (defs.sound_groups.iter().any(|g| g.id == r.id) || yog_formats::def::SoundGroup::built_in(&r.id).is_some())
+            yog_ids::kind::SOUND_GROUP => (defs.sound_groups.iter().any(|g| g.id == r.id) || yog_formats::def::SoundGroup::built_in(&r.id).is_some())
                 .then_some(())
                 .ok_or_else(|| format!("no sound group {} — the game's or a .ydef's", r.id)),
             kind if kind.starts_with(TAG_REF) => {
@@ -3324,7 +3285,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             errors.join("\n  ")
         ));
     }
-    out.blocks = entries.iter().filter(|e| e.kind == Kind::Block).count();
+    out.blocks = entries.iter().filter(|e| e.kind == Format::Block).count();
     out.items = entries.len() - out.blocks;
     out.recipes = recipes.len();
     out.books = books.len();
@@ -3375,14 +3336,14 @@ fn registrations(entries: &[Entry], entities: &[EntityFile], dimensions: &[(Stri
     let mut lines = Vec::new();
     for e in entries {
         let what = match e.kind {
-            Kind::Block => {
+            Format::Block => {
                 // Its tool tags and level are data (tags), reloaded with the rest.
                 let b = BlockProps { tools: Vec::new(), tool_level: None, ..e.block.clone() };
                 format!("{b:?} {:?} {:?}", e.item, e.requires)
             }
             _ => format!("{:?} {:?}", e.item, e.requires),
         };
-        lines.push(format!("{} {} {}", e.kind.word(), e.id, hash(&what)));
+        lines.push(format!("{} {} {}", e.kind.noun(), e.id, hash(&what)));
     }
     for e in entities {
         lines.push(format!("entity {} {}", e.id, hash(&format!("{:?}", e.data))));
@@ -3600,14 +3561,14 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
         flush(&mut files, &mut code, &set.to_ascii_lowercase());
     }
     for (kind, set, def) in [
-        (Kind::Block, "Blocks", "BlockDef"),
-        (Kind::Item, "Items", "ItemDef"),
+        (Format::Block, "Blocks", "BlockDef"),
+        (Format::Item, "Items", "ItemDef"),
     ] {
         let mine: Vec<&Entry> = entries.iter().filter(|e| e.kind == kind).collect();
         let _ = writeln!(
             code,
             "\n/// The {} of `content/`: the id and a [`::yog_api::{def}`] of each.\n#[allow(dead_code)]\npub struct {set};\n\n#[allow(dead_code, clippy::all)]\nimpl {set} {{",
-            if kind == Kind::Block {
+            if kind == Format::Block {
                 "blocks"
             } else {
                 "items"
@@ -3635,8 +3596,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
             );
             let mut b = format!("::yog_api::{def}::new(Self::{upper})");
             match kind {
-                Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity | Kind::Font => unreachable!("only blocks and items get here"),
-                Kind::Block => {
+                Format::Block => {
                     let p = &e.block;
                     if p.hardness.is_some() || p.resistance.is_some() {
                         let _ = write!(
@@ -3721,7 +3681,8 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
                         b.push_str("\n            .mobs_only()");
                     }
                 }
-                Kind::Item => b.push_str(&item_props(&e.item)),
+                Format::Item => b.push_str(&item_props(&e.item)),
+                _ => unreachable!("only blocks and items get here"),
             }
             let _ = writeln!(
                 code,
@@ -3734,7 +3695,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
     }
 
     code.push_str("\n/// Registers every block and item of `content/` whose file doesn't say\n/// `\"register\": \"manual\"` — `yog_api::content!()` calls it after\n/// `Mod::register`.\n#[allow(unused_variables)]\npub fn register(registry: &mut ::yog_api::Registry) {\n");
-    let mut used: HashMap<(Kind, String), usize> = HashMap::new();
+    let mut used: HashMap<(Format, String), usize> = HashMap::new();
     for e in entries {
         let path = e.id.split_once(':').map_or(e.id.as_str(), |(_, p)| p);
         let mut ident = rust_ident(path);
@@ -3752,7 +3713,7 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
             continue;
         }
         let _ = match e.kind {
-            Kind::Block => {
+            Format::Block => {
                 // Its item form, when the file says how it stacks, burns or survives fire.
                 let item = item_props(&e.item);
                 let stmt = if item.is_empty() {
@@ -3762,8 +3723,8 @@ fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies
                 };
                 writeln!(code, "    {}", when_loaded(&e.requires, &stmt))
             }
-            Kind::Item => writeln!(code, "    {}", when_loaded(&e.requires, &format!("registry.register_item(Items::{ident}());"))),
-            Kind::Recipe | Kind::Book | Kind::Def | Kind::Model | Kind::Anim | Kind::Entity | Kind::Font => unreachable!("only blocks and items get here"),
+            Format::Item => writeln!(code, "    {}", when_loaded(&e.requires, &format!("registry.register_item(Items::{ident}());"))),
+            _ => unreachable!("only blocks and items get here"),
         };
     }
     for g in sound_groups {
@@ -4486,9 +4447,9 @@ mod tests {
         let text = yog_data::text::to_string(&data);
         assert!(text.contains("mymod.book.title") && text.contains("item.mymod.ruby"), "{text}");
         assert!(text.contains("not a ref") && text.contains("i18n"), "{text}");
-        let read = yog_data::from_value::<yog_book::Book>(&data).unwrap().value;
+        let read = yog_data::from_value::<yog_formats::book::Book>(&data).unwrap().value;
         assert_eq!(read.entries[0].category, "mymod:basics");
-        assert!(matches!(&read.entries[0].pages[1], yog_book::BookPage::Spotlight { item, .. } if item == "mymod:ruby"), "references become ids");
+        assert!(matches!(&read.entries[0].pages[1], yog_formats::book::BookPage::Spotlight { item, .. } if item == "mymod:ruby"), "references become ids");
 
         // Bare ids, missing content and version-only ids are errors, each on its line.
         let bad = r#"{ "id": "x",
@@ -4527,9 +4488,9 @@ mod tests {
             entries: [{{ id: "mymod:e", name: "E", category: "@category:mymod:c", pages: [{page}] }}] }}"#);
         let ok = book(r#"{ type: "mymod:pattern", name: "@item:minecraft:stick", patterns: [{ startdir: "EAST", signature: "qaq" }] }"#);
         let c = compile(&project(&[("src/ui/pattern_page.yui", ty), ("content/guide.ybook", &ok)]), "mymod", &yres::Refs::default()).unwrap();
-        let b = yog_data::read_bytes::<yog_book::Book>(&c.data_files[0].1).unwrap();
+        let b = yog_data::read_bytes::<yog_formats::book::Book>(&c.data_files[0].1).unwrap();
         assert_eq!(b.page_types.len(), 1, "the type goes with the book");
-        let yog_book::BookPage::Custom(p) = &b.entries[0].pages[0] else { panic!("{:?}", b.entries[0].pages[0]) };
+        let yog_formats::book::BookPage::Custom(p) = &b.entries[0].pages[0] else { panic!("{:?}", b.entries[0].pages[0]) };
         assert_eq!(p.fields.get("name").and_then(|n| n.as_str()), Some("item.minecraft.stick"), "texts resolve as the book's do");
         assert!(b.i18n);
 
@@ -4784,7 +4745,7 @@ mod tests {
         let e = compile(&project(&files), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("entries[0].pages[0].recipe: no layout for recipe kind mymod:infusion"), "{e}");
         let c = compile(&project(&[files[0], files[1], files[2], ("src/ui/infusion.yui", layout)]), "mymod", &yres::Refs::default()).unwrap();
-        let book = yog_data::read_bytes::<yog_book::Book>(&c.data_files[0].1).unwrap();
+        let book = yog_data::read_bytes::<yog_formats::book::Book>(&c.data_files[0].1).unwrap();
         assert_eq!(book.layouts[0].kinds, ["mymod:infusion"], "the book carries the mod's layouts");
         // What a layout names is checked: the kinds, a mod kind's slots, the stations.
         let bad = r#"<Component recipe_layout="create:mixing infusion" width="1" height="1">

@@ -18,7 +18,7 @@ use yog_abi::{
     YogPlayerMoveEvent, YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer,
     YogStr, YogUseBlockEvent, YogUseItemEvent,
 };
-use yog_book::Book;
+use yog_formats::book::Book;
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_dimensions::{ChunkWriter, YogDimensionDef};
@@ -2434,25 +2434,25 @@ impl Registry {
     pub fn add_recipe(&mut self, recipe: Recipe) {
         let (ns, name) = recipe.ns_name();
         let id = format!("{ns}:{name}");
-        self.content("recipe", &id, &recipe.to_data());
+        self.content(yog_ids::kind::RECIPE, &id, &recipe.to_data());
     }
 
     /// Register a recipe given as Yog's recipe JSON — how `yog build`
     /// registers the mod's own kinds (`{"type": "mymod:infusion", "slots":
     /// …}`), which stay the mod's data: for its machines and its books.
     pub fn add_recipe_json(&mut self, id: &str, json: &str) {
-        let id = if id.contains(':') { id.to_string() } else { format!("minecraft:{id}") };
-        self.content("recipe", &id, &Self::json(json));
+        let id = yog_ids::qualify(id);
+        self.content(yog_ids::kind::RECIPE, &id, &Self::json(json));
     }
 
     pub fn register_item(&mut self, def: ItemDef) {
         use yog_data::Schema;
-        self.content("item", &def.id.clone(), &def.write());
+        self.content(yog_ids::kind::ITEM, &def.id.clone(), &def.write());
     }
 
     pub fn register_block(&mut self, def: BlockDef) {
         use yog_data::Schema;
-        self.content("block", &def.id.clone(), &def.write());
+        self.content(yog_ids::kind::BLOCK, &def.id.clone(), &def.write());
     }
 
     /// Registers an entity type (what a `.yentity` makes). With a `model`,
@@ -2463,7 +2463,7 @@ impl Registry {
         if crate::entities::drawn(&def) {
             self.on_body(crate::entities::draw);
         }
-        self.content("entity", &def.id.clone(), &def.write());
+        self.content(yog_ids::kind::ENTITY, &def.id.clone(), &def.write());
     }
 
     /// A compiled `.yentity` (the generated code calls this).
@@ -2490,28 +2490,28 @@ impl Registry {
     pub fn add_biome_feature(&mut self, feature: &str, biomes: &str, step: &str) {
         use yog_data::Schema;
         let f = yog_registry::BiomeFeature { feature: feature.into(), biomes: biomes.into(), step: step.into() };
-        self.content("biome_feature", feature, &f.write());
+        self.content(yog_ids::kind::BIOME_FEATURE, feature, &f.write());
     }
 
     /// Register a tool material — what tool items naming it
     /// (`ItemDef::tool`) are made of. The game's are built in.
     pub fn register_tool_material(&mut self, material: ToolMaterial) {
         use yog_data::Schema;
-        self.content("tool_material", &material.id.clone(), &material.write());
+        self.content(yog_ids::kind::TOOL_MATERIAL, &material.id.clone(), &material.write());
     }
 
     /// Register an armor material — what armor items naming it
     /// (`ItemDef::armor`) are made of. The game's are built in.
     pub fn register_armor_material(&mut self, material: ArmorMaterial) {
         use yog_data::Schema;
-        self.content("armor_material", &material.id.clone(), &material.write());
+        self.content(yog_ids::kind::ARMOR_MATERIAL, &material.id.clone(), &material.write());
     }
 
     /// Register a sound group — what blocks naming it (`BlockDef::sound`)
     /// sound like. The game's groups are built in.
     pub fn register_sound_group(&mut self, group: SoundGroup) {
         use yog_data::Schema;
-        self.content("sound_group", &group.id.clone(), &group.write());
+        self.content(yog_ids::kind::SOUND_GROUP, &group.id.clone(), &group.write());
     }
 
     /// Register a real Container/Menu inventory screen — see
@@ -2519,7 +2519,7 @@ impl Registry {
     /// `BlockDef::inventory(id)`.
     pub fn register_inventory(&mut self, def: yog_inventory::InventoryDef) {
         use yog_data::Schema;
-        self.content("inventory", &def.id.clone(), &def.write());
+        self.content(yog_ids::kind::INVENTORY, &def.id.clone(), &def.write());
     }
 
     // ── startup grants ───────────────────────────────────────────────────────
@@ -2527,19 +2527,19 @@ impl Registry {
     /// Register a startup grant: items/books to give once when a player first joins.
     pub fn register_startup_grant(&mut self, grant: StartupGrant) {
         use yog_data::Schema;
-        self.content("startup_grant", &grant.id.clone(), &grant.write());
+        self.content(yog_ids::kind::STARTUP_GRANT, &grant.id.clone(), &grant.write());
     }
 
     /// Register a book.
     pub fn register_book(&mut self, book: &Book) {
         use yog_data::Schema;
-        self.content("book", &book.id, &book.write());
+        self.content(yog_ids::kind::BOOK, &book.id, &book.write());
     }
 
     /// Register a book given as Yog Data, binary — what `yog build` makes
     /// of a `content/**/*.ybook`; the bytes go to the runtime as they are.
     pub fn register_book_data(&mut self, id: &str, data: &[u8]) {
-        unsafe { ((*self.api).register_content)(self.ctx(), YogStr::from_str("book"), YogStr::from_str(id), data.as_ptr(), data.len()) }
+        unsafe { ((*self.api).register_content)(self.ctx(), YogStr::from_str(yog_ids::kind::BOOK), YogStr::from_str(id), data.as_ptr(), data.len()) }
     }
 
     /// Register a font given as a compiled `.yfont` Yog Data blob.
@@ -2563,14 +2563,14 @@ impl Registry {
     /// [`Registry::register_chunk_generator`].
     pub fn register_dimension(&mut self, def: &YogDimensionDef) {
         let value = Self::json(&def.to_json());
-        self.content("dimension", &def.id.clone(), &value);
+        self.content(yog_ids::kind::DIMENSION, &def.id.clone(), &value);
     }
 
     /// Register a dimension given as Yog Data, binary — what `yog build`
     /// makes of a `.ydef` of kind `dimension` (its `terrain` generated by
     /// the runtime itself); the bytes go to the runtime as they are.
     pub fn register_dimension_data(&mut self, id: &str, data: &[u8]) {
-        unsafe { ((*self.api).register_content)(self.ctx(), YogStr::from_str("dimension"), YogStr::from_str(id), data.as_ptr(), data.len()) }
+        unsafe { ((*self.api).register_content)(self.ctx(), YogStr::from_str(yog_ids::kind::DIMENSION), YogStr::from_str(id), data.as_ptr(), data.len()) }
     }
 
     /// Register a named, reusable chunk-generator type under
@@ -2808,19 +2808,19 @@ impl Registry {
     /// [`Server::entity_attribute_value`] reads.
     pub fn register_attribute(&mut self, def: yog_registry::AttributeDef) {
         use yog_data::Schema;
-        self.content("attribute", &def.id.clone(), &def.write());
+        self.content(yog_ids::kind::ATTRIBUTE, &def.id.clone(), &def.write());
     }
 
     /// Register a mob effect.
     pub fn register_effect(&mut self, def: yog_registry::EffectDef) {
         use yog_data::Schema;
-        self.content("effect", &def.id.clone(), &def.write());
+        self.content(yog_ids::kind::EFFECT, &def.id.clone(), &def.write());
     }
 
     /// Register a potion and its brewing.
     pub fn register_potion(&mut self, def: yog_registry::PotionDef) {
         use yog_data::Schema;
-        self.content("potion", &def.id.clone(), &def.write());
+        self.content(yog_ids::kind::POTION, &def.id.clone(), &def.write());
     }
 
     /// A compiled `.ydef` the game registers (`attribute`, `effect`,

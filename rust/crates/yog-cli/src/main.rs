@@ -33,13 +33,9 @@ use std::process::Command;
 /// `yog schema <format>`: the format's shape (`yog_data::Shape::describe`)
 /// as JSON — what editors and docs are generated from.
 fn schema(format: Option<&str>) -> Result<(), String> {
-    use yog_data::Schema;
-    let all = || format!("{}, ybook", yog_formats::FORMATS.join(", "));
+    let all = || yog_formats::names().collect::<Vec<_>>().join(", ");
     let name = format.ok_or_else(|| format!("usage: yog schema <format> — {}", all()))?;
-    let shape = match name.trim_start_matches('.') {
-        "ybook" => yog_book::Book::shape(),
-        other => yog_formats::shape(other).ok_or_else(|| format!("no format `{other}` — {}", all()))?,
-    };
+    let shape = yog_formats::shape_of(name).ok_or_else(|| format!("no format `{name}` — {}", all()))?;
     println!("{}", yog_data::text::to_string_pretty(&shape.describe()));
     Ok(())
 }
@@ -386,7 +382,7 @@ fn prepare() -> Result<Prepared, String> {
     )?;
 
     // Restore yog.lock → .yog-build/Cargo.lock so cargo respects pinned versions
-    let yog_lock = root.join("yog.lock");
+    let yog_lock = root.join(yog_ids::file::LOCK);
     let cargo_lock = build_dir.join("Cargo.lock");
     if yog_lock.exists() && !cargo_lock.exists() {
         std::fs::copy(&yog_lock, &cargo_lock).map_err(|e| e.to_string())?;
@@ -589,7 +585,7 @@ fn build(debugging_symbols: bool, dev: bool) -> Result<(YogToml, PathBuf), Strin
         resources,
         mut content,
     } = prepare()?;
-    let yog_lock = root.join("yog.lock");
+    let yog_lock = root.join(yog_ids::file::LOCK);
 
     let builder = Builder::detect();
     eprintln!(

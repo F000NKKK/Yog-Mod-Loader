@@ -64,7 +64,7 @@ impl<K: Kinds> With<String> for RefTo<K> {
     }
     fn write(f: &String) -> Value {
         Value::Ref(Ref::new(
-            K::NAMES.first().copied().unwrap_or("item"),
+            K::NAMES.first().copied().unwrap_or(yog_ids::kind::ITEM),
             f.clone(),
         ))
     }

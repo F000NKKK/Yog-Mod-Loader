@@ -8,9 +8,9 @@ use yog_gfx::{Color, GfxContext, Rect, Vec2};
 use yog_ui::{Align, FlexDir, Stretch, UiRoot, widget};
 
 use crate::state::BookViewState;
-use crate::layout::ICON_PX;
+use yog_formats::book::layout::ICON_PX;
 use crate::theme::BookTheme;
-use crate::{Book, BookPage};
+use yog_formats::book::{Book, BookPage};
 
 // Patchouli-compatible book texture layout (512×256 sprite sheet).
 // UV coordinates are in pixels on a 512×256 sheet.
@@ -51,9 +51,12 @@ pub static LANG: &[(&str, &str)] = &[
 /// The image source the book draws [`BOOK_PNG`] as: the loader ships it
 /// as `assets/yog/textures/gui/book/book.png` (Yog-IDLE resolves it to
 /// the bytes).
-pub const BOOK_SHEET: &str = "yog:gui/book/book";
+
 /// The image source the book draws [`CRAFTING_PNG`] as.
-pub const CRAFTING_SHEET: &str = "yog:gui/book/crafting";
+pub use yog_ids::yog::{BOOK_SHEET, CRAFTING_SHEET};
+
+/// A slot frame on [`CRAFTING_SHEET`], 24×24, the item inside at +4,+4.
+pub const FRAME_UV: [f32; 4] = [83.0, 71.0, 24.0, 24.0];
 
 /// Blocks shown at a slot's angle (a station), as the game shows a block
 /// item; a multiblock turns slowly about the vertical, swaying this far.
@@ -158,7 +161,7 @@ pub(crate) enum OverlayCmd {
 /// overlay kind. Matches Patchouli's `BookIcon.from(String)`: `.png` → raw
 /// texture blit, anything else → item stack render.
 fn push_icon(overlays: &mut Vec<OverlayCmd>, icon: &str, x: f32, y: f32, w: f32, h: f32) {
-    if icon.ends_with(".png") {
+    if icon.ends_with(yog_ids::res::PNG) {
         overlays.push(OverlayCmd::McTexture {
             path: icon.to_string(),
             x,
@@ -179,7 +182,7 @@ fn push_icon(overlays: &mut Vec<OverlayCmd>, icon: &str, x: f32, y: f32, w: f32,
 
 // ── Recipe visuals (parsed from registered recipe JSON) ───────────────────────
 
-/// A recipe as a book shows it: its kind (which [`crate::layout`] draws
+/// A recipe as a book shows it: its kind (which [`yog_formats::book::layout`] draws
 /// it), each slot's ingredients (each one's alternatives; empty: none),
 /// result and values.
 #[derive(Debug, Clone, PartialEq)]
@@ -275,23 +278,21 @@ fn parse_recipe(v: &yog_data::Value) -> Option<RecipeVis> {
 /// Normalize icon ids like "yog:item/ruby" / "yog:block/x" to registry item
 /// ids ("yog:ruby") accepted by the MC item renderer.
 fn normalize_item_id(id: &str) -> String {
-    let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
+    let (ns, path) = yog_ids::split(id);
     let name = path
-        .trim_start_matches("item/")
-        .trim_start_matches("block/");
-    format!("{ns}:{name}")
+        .trim_start_matches(yog_ids::res::ITEM_DIR)
+        .trim_start_matches(yog_ids::res::BLOCK_DIR);
+    yog_ids::join(ns, name)
 }
 
 /// The image source of a book's sheet: its own (`book_texture`, a sheet
 /// laid out as [`BOOK_PNG`]; `ns:textures/x.png` and `ns:x` alike) or Yog's.
 fn book_sheet(texture: &str) -> String {
     let t = texture.trim();
-    if t.is_empty() || t == "yog:gui/book" {
+    if t.is_empty() || t == yog_ids::yog::BOOK_TEXTURE {
         return BOOK_SHEET.to_string();
     }
-    let (ns, path) = t.split_once(':').unwrap_or(("minecraft", t));
-    let path = path.strip_prefix("textures/").unwrap_or(path);
-    format!("{ns}:{}", path.strip_suffix(".png").unwrap_or(path))
+    yog_gfx::image::short_source(t)
 }
 
 /// The game's translations: item names and the book's own words (set with the translator).
@@ -365,7 +366,7 @@ fn pretty_item_name(id: &str) -> String {
     let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
     if let Some(tr) = *ITEM_NAMES.read().unwrap_or_else(|e| e.into_inner()) {
         let key = path.replace('/', ".");
-        for kind in ["item", "block"] {
+        for kind in [yog_ids::kind::ITEM, yog_ids::kind::BLOCK] {
             let k = format!("{kind}.{ns}.{key}");
             if let Some(name) = tr(&k).filter(|n| *n != k) {
                 return name;
@@ -866,8 +867,8 @@ fn flow_traced(mut book: Book) -> (Book, HashMap<String, Vec<usize>>) {
 /// A mod's page's room for its text: the property its last text shows
 /// (`<BookText text="{x:Bind text}"/>`, nothing else in it), and the
 /// height the rest of the page takes, in book pixels.
-fn custom_text(page: &crate::page_type::CustomPage, types: &[crate::page_type::PageType]) -> Option<(String, f32)> {
-    use crate::page_type::PageElement as E;
+fn custom_text(page: &yog_formats::book::page_type::CustomPage, types: &[yog_formats::book::page_type::PageType]) -> Option<(String, f32)> {
+    use yog_formats::book::page_type::PageElement as E;
     let t = types.iter().find(|t| t.id == page.kind)?;
     let line_h = yog_ui::text::LINE_H + yog_ui::text::LINE_GAP;
     let shown: Vec<&E> = t.body.iter().filter(|el| match el {
@@ -890,7 +891,7 @@ fn custom_text(page: &crate::page_type::CustomPage, types: &[crate::page_type::P
 }
 
 /// `page`, and the text pages its overflowing text goes on to.
-fn split_page(mut page: BookPage, types: &[crate::page_type::PageType], fits: &dyn Fn(f32) -> usize) -> Vec<BookPage> {
+fn split_page(mut page: BookPage, types: &[yog_formats::book::page_type::PageType], fits: &dyn Fn(f32) -> usize) -> Vec<BookPage> {
     let (above, text) = match &mut page {
         BookPage::Custom(c) => {
             let Some((name, above)) = custom_text(c, types) else { return vec![page] };
@@ -1455,13 +1456,13 @@ fn draw_layout(
     overlays: &mut Vec<OverlayCmd>,
     col: &mut widget::Widget,
     vis: &RecipeVis,
-    layout: &crate::layout::RecipeLayout,
+    layout: &yog_formats::book::layout::RecipeLayout,
     ox: f32,
     oy: f32,
     sx: f32,
     sy: f32,
 ) {
-    use crate::layout::{FRAME_UV, LayoutPart};
+    use yog_formats::book::layout::LayoutPart;
     let mut c = std::mem::replace(col, widget::panel(FlexDir::Column));
     c = c.child(
         title_lbl(pretty_item_name(&vis.output))
@@ -1593,8 +1594,8 @@ fn build_page(
     page_num: usize,
     theme: &BookTheme,
     recipes: &HashMap<String, RecipeVis>,
-    layouts: &[crate::layout::RecipeLayout],
-    page_types: &[crate::page_type::PageType],
+    layouts: &[yog_formats::book::layout::RecipeLayout],
+    page_types: &[yog_formats::book::page_type::PageType],
     bg_sprites: &mut Vec<BgSprite>,
     overlays: &mut Vec<OverlayCmd>,
     ox: f32,
@@ -1688,7 +1689,7 @@ fn build_page(
         BookPage::Recipe { recipe, text } => {
             match recipes
                 .get(recipe.as_str())
-                .and_then(|vis| crate::layout::find(layouts, &vis.kind).map(|l| (vis, l)))
+                .and_then(|vis| yog_formats::book::layout::find(layouts, &vis.kind).map(|l| (vis, l)))
             {
                 Some((vis, layout)) => draw_layout(
                     theme, bg_sprites, overlays, &mut col, vis, layout, ox, oy, sx, sy,
@@ -1745,7 +1746,7 @@ fn build_page(
                 0.0
             };
             overlays.push(OverlayCmd::Blocks {
-                blocks: crate::multiblock_blocks(pattern, mapping),
+                blocks: yog_formats::book::multiblock_blocks(pattern, mapping),
                 x: ox + (PAGE_W / 2.0 - MB_VIEW / 2.0) * sx,
                 y: oy + top * sy,
                 w: MB_VIEW * sx,
@@ -1811,7 +1812,7 @@ fn build_page(
 
         // A mod's own kind of page: its type's elements, top to bottom.
         BookPage::Custom(c) => {
-            use crate::page_type::PageElement as E;
+            use yog_formats::book::page_type::PageElement as E;
             let Some(t) = page_types.iter().find(|t| t.id == c.kind) else {
                 return col.child(lbl(format!("[{}]", c.kind)).color(theme.nav));
             };
@@ -1831,13 +1832,13 @@ fn build_page(
                         top += lines as f32 * line_h + 4.0;
                     }
                     E::Item { item, visible } if t.visible(c, visible) => {
-                        let id = crate::page_type::words(&t.value(c, item));
+                        let id = yog_formats::book::page_type::words(&t.value(c, item));
                         push_icon(overlays, &id, ox + (PAGE_W - ICON_PX) / 2.0 * sx, oy + top * sy, ICON_PX * sx, ICON_PX * sy);
                         col = col.child(widget::spacer().h(ICON_PX * sy));
                         top += 20.0;
                     }
                     E::Image { image, height, visible } if t.visible(c, visible) => {
-                        let src = crate::page_type::words(&t.value(c, image));
+                        let src = yog_formats::book::page_type::words(&t.value(c, image));
                         col = col.child(widget::image(src).stretch(Stretch::Fill).w(PAGE_W * sx).h(height * sy));
                         top += height + 4.0;
                     }
@@ -1873,7 +1874,7 @@ mod tests {
     fn j(json: &str) -> yog_data::Value {
         yog_data::json::from_json_text(json).unwrap()
     }
-    use crate::BookEntry;
+    use yog_formats::book::BookEntry;
 
     fn book(pages: Vec<BookPage>) -> Book {
         let mut book = Book {
@@ -1945,7 +1946,7 @@ mod tests {
                 font_size: None,
             },
         ]);
-        b.categories.push(crate::BookCategory {
+        b.categories.push(yog_formats::book::BookCategory {
             id: "c".into(),
             name: "C".into(),
             ..Default::default()
@@ -1976,7 +1977,7 @@ mod tests {
             },
             BookPage::Empty,
         ]);
-        b.categories.push(crate::BookCategory {
+        b.categories.push(yog_formats::book::BookCategory {
             id: "c".into(),
             name: "C".into(),
             ..Default::default()
@@ -2039,7 +2040,7 @@ mod tests {
         recipes.insert("m:r".to_string(), parse_recipe(&j(r##"{"type":"m:infusion","slots":{"ring":["m:a","m:b"]},"values":{"time":40},"result":"m:out"}"##)).unwrap());
         recipes.insert("m:s".to_string(), parse_recipe(&j(r##"{"type":"smithing","template":"m:t","base":"m:b","addition":"m:a","result":"m:out"}"##)).unwrap());
         recipes.insert("m:p".to_string(), parse_recipe(&j(r##"{"type":"brewing","from":"m:awkward","ingredient":"m:dust","result":"m:clarity"}"##)).unwrap());
-        let layout: crate::layout::RecipeLayout = yog_data::from_text(
+        let layout: yog_formats::book::layout::RecipeLayout = yog_data::from_text(
             r#"{ kinds: ["m:infusion"], size: [96, 40], parts: [
                 { type: "slots", slot: "ring", at: [[0, 0], [20, 0]], frame: true },
                 { type: "result", at: [76, 10] },
@@ -2114,7 +2115,7 @@ mod tests {
             ("S".to_string(), "minecraft:stone".to_string()),
         ]
         .into();
-        let blocks = crate::multiblock_blocks(&pattern, &mapping);
+        let blocks = yog_formats::book::multiblock_blocks(&pattern, &mapping);
         assert_eq!(
             blocks,
             [
@@ -2129,7 +2130,7 @@ mod tests {
             mapping,
             text: None,
         }]);
-        b.categories.push(crate::BookCategory {
+        b.categories.push(yog_formats::book::BookCategory {
             id: "c".into(),
             name: "C".into(),
             ..Default::default()
@@ -2171,7 +2172,7 @@ mod tests {
         assert!(matches!(&page, BookPage::Drawn { data: d, height, .. } if *d == data && *height == 64.0));
         assert_eq!(content_above_text(&page), Some(14.0 + 68.0 + 14.0));
         let mut b = book(vec![page.clone()]);
-        b.categories.push(crate::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
+        b.categories.push(yog_formats::book::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
         b.entries[0].category = "c".into();
         let mut r = BookRenderer::new(b);
         r.show("e", 0);
@@ -2189,7 +2190,7 @@ mod tests {
 
     #[test]
     fn a_mods_page_type_lays_out_its_pages() {
-        use crate::page_type::{PageElement as E, PageProperty, PageType, PropKind};
+        use yog_formats::book::page_type::{PageElement as E, PageProperty, PageType, PropKind};
         let ty = PageType {
             id: "hexcasting:pattern".into(),
             properties: vec![
@@ -2207,7 +2208,7 @@ mod tests {
             page(r#"{"type":"hexcasting:pattern","name":"Bare"}"#),
         ]);
         b.page_types.push(ty);
-        b.categories.push(crate::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
+        b.categories.push(yog_formats::book::BookCategory { id: "c".into(), name: "C".into(), ..Default::default() });
         b.entries[0].category = "c".into();
         let mut r = BookRenderer::new(b);
         r.show("e", 0);
@@ -2223,7 +2224,7 @@ mod tests {
 
     #[test]
     fn a_mods_page_flows_its_long_text_onto_text_pages() {
-        use crate::page_type::{PageElement as E, PageProperty, PageType, PropKind};
+        use yog_formats::book::page_type::{PageElement as E, PageProperty, PageType, PropKind};
         let ty = PageType {
             id: "m:p".into(),
             properties: vec![

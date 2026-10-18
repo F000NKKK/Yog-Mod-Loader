@@ -1318,7 +1318,7 @@ pub fn read_ref(v: &ValueRef, cx: &mut Reader, kinds: &[&str]) -> Option<Ref> {
             }
         },
         ValueRef::Str(s) => {
-            let kind = kinds.first().copied().unwrap_or("item");
+            let kind = kinds.first().copied().unwrap_or(yog_ids::kind::ITEM);
             cx.problem(format!("`{s}`: name it by a reference — `@{kind}:{s}`"));
             return None;
         }

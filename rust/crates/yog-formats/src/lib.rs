@@ -1,42 +1,61 @@
 //! The schemas of Yog's source formats (Yog Data, see `yog-data`): what
 //! `yog build` reads and checks, and what Yog-IDLE's editors are generated
-//! from (`shape`). Books and recipe layouts are `yog-book`'s.
+//! from (`shape`). Books too (`book`); `yog-book` draws them.
 
+pub mod book;
 pub mod content;
 pub mod def;
 pub mod manifest;
 pub mod recipe;
 pub mod tags;
 pub mod yres;
+pub mod yui;
 
 use yog_data::{Schema, Shape};
 
-/// The formats `shape` describes.
-pub const FORMATS: [&str; 9] = ["yblock", "yitem", "yentity", "yrecipe", "ydef", "yres", "ymodel", "yanim", "yog.toml"];
+use yog_ids::{Format, file};
 
-/// What the format `name` (a file extension without the dot, or `yog.toml`) looks like.
-pub fn shape(name: &str) -> Option<Shape> {
-    Some(match name {
-        "yblock" => content::BlockFile::shape(),
-        "yitem" => content::ItemFile::shape(),
-        "yrecipe" => recipe::RecipeFile::shape(),
-        "ydef" => def::Def::shape(),
-        "yres" => Shape::Map(yres::EntryObject::shape),
-        "yentity" => yog_registry::EntityDef::shape(),
-        "ymodel" => yog_body::format::ModelFile::shape(),
-        "yanim" => yog_body::format::AnimFile::shape(),
-        "yog.toml" => manifest::ManifestFile::shape(),
-        _ => return None,
+/// What files of `format` look like; `None` for one that isn't Yog Data
+/// written by hand (screens, compiled data, built mods).
+#[must_use]
+pub fn shape(format: Format) -> Option<Shape> {
+    Some(match format {
+        Format::Block => content::BlockFile::shape(),
+        Format::Item => content::ItemFile::shape(),
+        Format::Entity => yog_registry::EntityDef::shape(),
+        Format::Recipe => recipe::RecipeFile::shape(),
+        Format::Book => book::Book::shape(),
+        Format::Def => def::Def::shape(),
+        Format::Res => Shape::Map(yres::EntryObject::shape),
+        Format::Model => yog_body::format::ModelFile::shape(),
+        Format::Anim => yog_body::format::AnimFile::shape(),
+        Format::Font => yog_font::Font::shape(),
+        Format::Ui | Format::Data | Format::Mod => return None,
     })
+}
+
+/// What the file `name` describes looks like: a format's extension (with or
+/// without the dot) or the manifest's name.
+#[must_use]
+pub fn shape_of(name: &str) -> Option<Shape> {
+    if name == file::MANIFEST {
+        return Some(manifest::ManifestFile::shape());
+    }
+    shape(Format::of(name)?)
+}
+
+/// The names [`shape_of`] knows: every format with a shape, and the manifest.
+pub fn names() -> impl Iterator<Item = &'static str> {
+    Format::ALL.iter().filter(|f| shape(**f).is_some()).map(|f| f.ext()).chain([file::MANIFEST])
 }
 
 #[cfg(test)]
 mod tests {
     #[test]
     fn every_format_describes_itself() {
-        for f in super::FORMATS {
-            let d = super::shape(f).unwrap().describe();
-            assert!(d.get("root").is_some(), "{f}");
+        for name in super::names() {
+            let d = super::shape_of(name).unwrap().describe();
+            assert!(d.get("root").is_some(), "{name}");
         }
     }
 }

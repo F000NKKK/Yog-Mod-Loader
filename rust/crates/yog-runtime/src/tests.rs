@@ -362,10 +362,10 @@ fn content_exchange() {
     }
     let book = blobs.iter().find(|(k, ..)| k == "book").unwrap();
     let bv = yog_data::binary::decode(&book.2).unwrap();
-    let parsed = yog_data::from_value::<yog_book::Book>(&bv).unwrap().value;
+    let parsed = yog_data::from_value::<yog_formats::book::Book>(&bv).unwrap().value;
     let old_json = parsed.to_json();
-    time("  book, old: serde parse of its JSON", 50, &mut || { std::hint::black_box(serde_json::from_str::<yog_book::Book>(&old_json).unwrap()); });
-    time("  book, new: borrowed decode + read by its schema", 50, &mut || { std::hint::black_box(yog_data::read_bytes::<yog_book::Book>(&book.2).unwrap()); });
+    time("  book, old: serde parse of its JSON", 50, &mut || { std::hint::black_box(serde_json::from_str::<yog_formats::book::Book>(&old_json).unwrap()); });
+    time("  book, new: borrowed decode + read by its schema", 50, &mut || { std::hint::black_box(yog_data::read_bytes::<yog_formats::book::Book>(&book.2).unwrap()); });
     time("    of which the borrowed decode", 50, &mut || { std::hint::black_box(yog_data::binary::decode_ref(&book.2, &yog_data::Bump::new()).is_ok()); });
     time("  (owned decode, for comparison)", 50, &mut || { std::hint::black_box(yog_data::binary::decode(&book.2).unwrap()); });
     time("  book: BookRenderer::new (both)", 50, &mut || { std::hint::black_box(yog_book::BookRenderer::new(parsed.clone())); });

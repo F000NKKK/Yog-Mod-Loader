@@ -7,7 +7,7 @@ use yog_data::with::{List, RefTo};
 
 // A loot table: `@loot_table:minecraft:chests/simple_dungeon`.
 yog_data::kind! {
-    LootTable = "loot_table",
+    LootTable = yog_ids::kind::LOOT_TABLE,
 }
 
 /// A stack of items: its id, how many, and its custom data (SNBT, `{}` for none).

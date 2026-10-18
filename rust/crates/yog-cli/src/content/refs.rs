@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 pub use yog_formats::tags::{describe_hosts, hosts, tag_hosts, tag_registry, tags_known, yog_tag_for};
 use std::sync::LazyLock;
 
-use yog_book::refs::bare;
+use yog_formats::book::refs::bare;
 
 use crate::manifest::External;
 
@@ -29,11 +29,11 @@ impl RefKind {
     /// Its prefix: `item` for `@item:`.
     pub fn word(self) -> &'static str {
         match self {
-            RefKind::Item => "item",
-            RefKind::Block => "block",
-            RefKind::Entity => "entity",
-            RefKind::Recipe => "recipe",
-            RefKind::LootTable => "loot_table",
+            RefKind::Item => yog_ids::kind::ITEM,
+            RefKind::Block => yog_ids::kind::BLOCK,
+            RefKind::Entity => yog_ids::kind::ENTITY,
+            RefKind::Recipe => yog_ids::kind::RECIPE,
+            RefKind::LootTable => yog_ids::kind::LOOT_TABLE,
         }
     }
 
@@ -64,7 +64,7 @@ static VANILLA: LazyLock<Vanilla> = LazyLock::new(|| {
         let mut p = line.split_whitespace();
         let (Some(kind), Some(path), Some(vs)) = (p.next(), p.next(), p.next()) else { continue };
         let vs = (vs != "*").then(|| vs.split(',').map(str::to_string).collect());
-        if kind == "potion" {
+        if kind == yog_ids::kind::POTION {
             potion_aliases.insert(path.to_string(), vs);
             continue;
         }

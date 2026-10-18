@@ -10,6 +10,7 @@ license = "MIT OR Apache-2.0"
 description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 
 [dependencies]
+yog-ids = { workspace = true }
 # Content crosses the ABI as Yog Data blobs (`register_content`).
 yog-data = { workspace = true, features = ["json"] }
 yog-abi = { workspace = true }
@@ -29,6 +30,7 @@ yog-config = { workspace = true }
 yog-gfx = { workspace = true }
 yog-ui = { workspace = true }
 yog-book = { workspace = true }
+yog-formats = { workspace = true }
 yog-body = { workspace = true }
 yog-inventory = { workspace = true }
 

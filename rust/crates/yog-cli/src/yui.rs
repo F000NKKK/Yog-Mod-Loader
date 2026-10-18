@@ -28,7 +28,7 @@ use yog_gfx::image::ImageSource;
 
 // ── XML subset (yog-book's) ───────────────────────────────────────────────────
 
-pub use yog_book::ui::{Element, parse as parse_xml};
+pub use yog_formats::yui::{Element, parse as parse_xml};
 
 // ── Screen model ──────────────────────────────────────────────────────────────
 
@@ -363,7 +363,7 @@ pub fn text_expr(value: &str) -> Result<String, String> {
                 .map(|k| tr(&k))
                 .ok_or_else(|| format!("no text `{name}` in resources/*.yres"))
         }
-        Ok(yog_data::Value::Ref(r)) if matches!(r.kind.as_str(), "item" | "block" | "entity") => {
+        Ok(yog_data::Value::Ref(r)) if matches!(r.kind.as_str(), yog_ids::kind::ITEM | yog_ids::kind::BLOCK | yog_ids::kind::ENTITY) => {
             let (ns, path) = r.id.split('[').next().unwrap_or(&r.id).split_once(':').unwrap_or(("minecraft", &r.id));
             Ok(tr(&format!("{}.{ns}.{}", r.kind, path.replace('/', "."))))
         }
@@ -928,7 +928,7 @@ pub fn generate_with(
     src: &str,
     name: &str,
     mod_id: Option<&str>,
-    layouts: &[yog_book::layout::RecipeLayout],
+    layouts: &[yog_formats::book::layout::RecipeLayout],
 ) -> Result<(String, Vec<String>), String> {
     let mut root = parse_xml(src)?;
     // A book's kind of page or a recipe layout isn't code: the build reads it as data.
@@ -1199,7 +1199,7 @@ pub fn generate_file(root: &Path, yui: &Path) -> Result<PathBuf, String> {
         .and_then(|t| crate::manifest::parse_yog_toml(&t).ok())
         .map(|t| t.id);
     // The mod's recipe layouts, for the screen's <RecipeArea>s.
-    let layouts: Vec<yog_book::layout::RecipeLayout> = if src.contains("<RecipeArea") {
+    let layouts: Vec<yog_formats::book::layout::RecipeLayout> = if src.contains("<RecipeArea") {
         crate::book_page::find_layouts(root, mod_id.as_deref().unwrap_or("minecraft"), &mut Vec::new()).into_iter().map(|(_, l)| l).collect()
     } else {
         Vec::new()
@@ -1242,7 +1242,7 @@ pub fn is_book_page_file(path: &Path) -> bool {
 }
 
 pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
-    find_files(dir, "yui")
+    find_files(dir, yog_ids::Format::Ui.ext())
 }
 
 /// `yog build`'s step: regenerates every `src/**/*.yui`'s `.g.rs` and drops

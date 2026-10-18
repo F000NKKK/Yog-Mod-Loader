@@ -19,11 +19,7 @@ use jni::objects::{JByteArray, JClass, JString};
 use jni::sys::jbyteArray;
 use yog_abi::{YogBytesSink, YogStr};
 
-/// The channel the loader syncs entity data on.
-pub(crate) const CHANNEL: &str = "yog:entity_data";
-/// The key an entity's own hitbox travels under (`entity_set_dimensions`):
-/// width, height, eye height as three little-endian f32.
-pub(crate) const DIMENSIONS: &str = "yog:dimensions";
+pub(crate) use yog_ids::yog::{DIMENSIONS, ENTITY_DATA};
 
 const SET: u8 = 1;
 const REMOVE: u8 = 2;
@@ -109,7 +105,7 @@ fn records(mut b: &[u8]) -> Vec<Record> {
 /// Sends records about `uuid` to the players who see it, and to it.
 fn send_to_watchers(uuid: &str, bytes: &[u8]) {
     unsafe {
-        let _: Option<bool> = bridge!("sendToTracking", [S(YogStr::from_str(uuid)), S(YogStr::from_str(CHANNEL)), Bytes(bytes)]);
+        let _: Option<bool> = bridge!("sendToTracking", [S(YogStr::from_str(uuid)), S(YogStr::from_str(ENTITY_DATA)), Bytes(bytes)]);
     }
 }
 

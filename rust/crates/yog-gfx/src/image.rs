@@ -42,27 +42,31 @@ pub enum ImageSource {
 /// Side of the square 1.20.1 GUI textures most legacy regions live in.
 const LEGACY_TEX_SIZE: f32 = 256.0;
 
-/// `apple` → `minecraft:apple`; namespaced ids are kept.
-pub fn qualify(id: &str) -> String {
-    yog_ids::qualify(id.trim())
-}
-
 /// `<ns>` + `<path>` → the texture resource id: `gui/logo` →
 /// `<ns>:textures/gui/logo.png`, `gui/logo.svg` →
 /// `<ns>:textures/gui/logo.svg` (an SVG image); paths already under
 /// `textures/` (or ending in `.png`) are kept as they are.
 pub fn texture_id(ns: &str, path: &str) -> String {
-    let path = path.trim_start_matches('/');
-    if path.ends_with(".svg") {
-        let path = path.strip_prefix("textures/").unwrap_or(path);
-        return format!("{ns}:textures/{path}");
+    use yog_ids::res::{PNG, SVG, TEXTURES};
+    let path = path.trim_start_matches(yog_ids::sep::PATH);
+    if path.ends_with(SVG) {
+        let path = path.strip_prefix(TEXTURES).unwrap_or(path);
+        return yog_ids::join(ns, &format!("{TEXTURES}{path}"));
     }
-    if path.starts_with("textures/") || path.ends_with(".png") {
-        let png = if path.ends_with(".png") { "" } else { ".png" };
-        format!("{ns}:{path}{png}")
+    if path.starts_with(TEXTURES) || path.ends_with(PNG) {
+        let png = if path.ends_with(PNG) { "" } else { PNG };
+        yog_ids::join(ns, &format!("{path}{png}"))
     } else {
-        format!("{ns}:textures/{path}.png")
+        yog_ids::join(ns, &format!("{TEXTURES}{path}{PNG}"))
     }
+}
+
+/// A texture named either way — `ns:textures/x.png` or `ns:x` (`x` alone is
+/// the game's) — as the short source `ns:x`.
+pub fn short_source(texture: &str) -> String {
+    let (ns, path) = yog_ids::split(texture.trim());
+    let path = path.strip_prefix(yog_ids::res::TEXTURES).unwrap_or(path);
+    yog_ids::join(ns, path.strip_suffix(yog_ids::res::PNG).unwrap_or(path))
 }
 
 /// The schemes an image source starts with (`item:apple`).
@@ -86,13 +90,13 @@ impl ImageSource {
     /// Parses a source string; `None` for an empty or malformed one.
     pub fn parse(source: &str) -> Option<ImageSource> {
         let s = source.trim();
-        let (scheme, rest) = s.split_once(':')?;
+        let (scheme, rest) = s.split_once(yog_ids::sep::NAMESPACE)?;
         if rest.is_empty() {
             return None;
         }
         Some(match scheme {
-            scheme::ITEM => ImageSource::Item(qualify(rest)),
-            scheme::BLOCK => ImageSource::Block(qualify(rest)),
+            scheme::ITEM => ImageSource::Item(yog_ids::qualify(rest.trim())),
+            scheme::BLOCK => ImageSource::Block(yog_ids::qualify(rest.trim())),
             scheme::SPRITE => ImageSource::Sprite(rest.to_string()),
             scheme::MOD => ImageSource::ModPath(rest.to_string()),
             ns if !ns.is_empty() => ImageSource::Texture(texture_id(ns, rest)),
@@ -114,30 +118,30 @@ impl ImageSource {
 /// `sprite:` with the same image, or the short `<ns>:<path>` form. `None`
 /// when `id` isn't a raw texture id.
 pub fn suggest_alias(id: &str) -> Option<String> {
-    let (ns, path) = id.trim().split_once(':')?;
-    let path = path.strip_prefix("textures/")?;
-    let stem = path.strip_suffix(".png").unwrap_or(path);
+    let (ns, path) = id.trim().split_once(yog_ids::sep::NAMESPACE)?;
+    let path = path.strip_prefix(yog_ids::res::TEXTURES)?;
+    let stem = path.strip_suffix(yog_ids::res::PNG).unwrap_or(path);
     // `minecraft:` is the default namespace of every alias.
     let short = |id: &str| -> String {
         if ns == yog_ids::ns::MINECRAFT {
             id.to_string()
         } else {
-            format!("{ns}:{id}")
+            yog_ids::join(ns, id)
         }
     };
-    if let Some(item) = stem.strip_prefix("item/") {
-        return Some(format!("item:{}", short(item)));
+    if let Some(item) = stem.strip_prefix(yog_ids::res::ITEM_DIR) {
+        return Some(ImageSource::Item(short(item)).to_string());
     }
-    if let Some(block) = stem.strip_prefix("block/") {
-        return Some(format!("block:{}", short(block)));
+    if let Some(block) = stem.strip_prefix(yog_ids::res::BLOCK_DIR) {
+        return Some(ImageSource::Block(short(block)).to_string());
     }
     if ns == yog_ids::ns::MINECRAFT
-        && let Some(atlas_id) = stem.strip_prefix("gui/sprites/")
+        && let Some(atlas_id) = stem.strip_prefix(yog_ids::res::GUI_SPRITES)
         && let Some(sprite) = SPRITES.iter().find(|s| s.atlas == Some(atlas_id))
     {
-        return Some(format!("sprite:{}", sprite.name));
+        return Some(ImageSource::Sprite(sprite.name.to_string()).to_string());
     }
-    Some(format!("{ns}:{stem}"))
+    Some(yog_ids::join(ns, stem))
 }
 
 /// A region of a texture on Minecraft 1.20.1 (before the GUI sprite atlas).

@@ -56,13 +56,13 @@ impl Theme {
     /// A built-in theme by id: `minecraft:vanilla`.
     pub fn builtin(id: &str) -> Option<Theme> {
         match id {
-            "minecraft:vanilla" => Some(Theme::from_static(VANILLA)),
+            yog_ids::game::VANILLA_THEME => Some(Theme::from_static(VANILLA)),
             _ => None,
         }
     }
 
     /// Ids of the built-in themes.
-    pub const BUILTIN: &'static [&'static str] = &["minecraft:vanilla"];
+    pub const BUILTIN: &'static [&'static str] = &[yog_ids::game::VANILLA_THEME];
 
     pub fn from_rules(rules: Vec<Rule>) -> Theme {
         Theme { rules }

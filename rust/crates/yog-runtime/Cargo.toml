@@ -12,6 +12,7 @@ description = "Yog runtime — native library bridging the Fabric host to Rust m
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+yog-ids = { workspace = true }
 # Pinned to 0.21 — 0.22 split `JNIEnv` into `Env`/`EnvUnowned` (a breaking
 # rewrite of the whole FFI surface this crate uses); don't bump past 0.21.x
 # without migrating every `Java_dev_yog_NativeBridge_*` signature and env
@@ -19,11 +20,11 @@ crate-type = ["cdylib", "rlib"]
 jni = { workspace = true }
 
 yog-abi = { workspace = true }
-yog-api = { workspace = true }
 yog-logging = { workspace = true }
 yog-registry = { workspace = true }
 yog-ui = { workspace = true }
 yog-book = { workspace = true }
+yog-formats = { workspace = true }
 yog-gfx = { workspace = true }
 yog-inventory = { workspace = true }
 yog-worldgen = { workspace = true }
