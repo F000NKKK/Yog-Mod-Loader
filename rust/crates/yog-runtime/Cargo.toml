@@ -1,9 +1,9 @@
 [package]
 name = "yog-runtime"
 version = "0.104.1"
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
 description = "Yog runtime — native library bridging the Fabric host to Rust mods via JNI."
 
 [lib]
@@ -16,7 +16,7 @@ crate-type = ["cdylib", "rlib"]
 # rewrite of the whole FFI surface this crate uses); don't bump past 0.21.x
 # without migrating every `Java_dev_yog_NativeBridge_*` signature and env
 # call site to the new API first.
-jni.workspace = true
+jni = { workspace = true }
 
 yog-abi = { workspace = true }
 yog-api = { workspace = true }
@@ -31,12 +31,12 @@ yog-hot-reload = { workspace = true }
 # The content blob the hosts read (`content_blob`).
 yog-data = { workspace = true, features = ["json"] }
 
-serde_json.workspace = true
+serde_json = { workspace = true }
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.
-libloading.workspace = true
-zip.workspace = true
+libloading = { workspace = true }
+zip = { workspace = true }
 # OpenGL bindings for low-level GPU access (client-side, render thread only).
-glow.workspace = true
+glow = { workspace = true }
 # SVG images (`draw2d_svg`, `.svg` image sources), rasterized here.
 resvg = { workspace = true }
 

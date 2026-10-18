@@ -1,9 +1,9 @@
 [package]
 name = "yog-data-derive"
 version = "0.4.1"
-edition.workspace = true
-rust-version.workspace = true
-authors.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
 license = "MIT OR Apache-2.0"
 description = "#[derive(Schema)] for Yog Data."
 
@@ -11,6 +11,6 @@ description = "#[derive(Schema)] for Yog Data."
 proc-macro = true
 
 [dependencies]
-syn.workspace = true
-quote.workspace = true
-proc-macro2.workspace = true
+syn = { workspace = true }
+quote = { workspace = true }
+proc-macro2 = { workspace = true }

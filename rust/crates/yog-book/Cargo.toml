@@ -1,9 +1,9 @@
 [package]
 name = "yog-book"
 version = "0.67.0"
-edition.workspace = true
-rust-version.workspace = true
-authors.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
 license = "MIT OR Apache-2.0"
 description = "In-game book/documentation framework for Yog mods (Patchouli-like)."
 
@@ -15,8 +15,8 @@ yog-gfx = { workspace = true }
 yog-data = { workspace = true, features = ["json"] }
 
 # Serialization (for runtime JSON parsing)
-serde.workspace      = true
-serde_json.workspace = true
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }

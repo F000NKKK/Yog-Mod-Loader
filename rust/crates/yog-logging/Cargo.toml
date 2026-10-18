@@ -1,8 +1,8 @@
 [package]
 name = "yog-logging"
 version = "0.1.1"
-edition.workspace = true
-rust-version.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
 license = "MIT OR Apache-2.0"
 description = "Yog logging — lightweight, zero-overhead logging macros."
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# release.sh — bump, publish, и обновить ссылки в воркспейсе.
+# release.sh — bump, publish, и обновить ссылки (корневой [workspace.dependencies] и Yog-IDLE).
 # Использование: ./release.sh <crate-name> --patch|--minor|--major [--dry-run] [--no-publish] [--no-cascade]
 #                ./release.sh <crate-name> --publish-only
 #
@@ -10,7 +10,7 @@
 #
 # Примеры:
 #   ./release.sh yog-abi --minor          # каскад: abi → gfx → ui → ... → runtime
-#   ./release.sh yog-book --patch         # patch: ссылки совместимы, каскада нет
+#   ./release.sh yog-book --patch         # patch: только ссылки, каскада нет
 #   ./release.sh yog-api --publish-only   # только публикация текущей версии
 
 set -euo pipefail
@@ -32,7 +32,7 @@ dryrun()  { echo -e "${YELLOW}[dry-run]${RESET} $*"; }
 usage() {
     echo -e "${BOLD}Использование:${RESET} $0 <crate-name> --patch|--minor|--major [--dry-run] [--no-publish] [--no-cascade]"
     echo ""
-    echo "  --patch          0.9.3 → 0.9.4  (ссылки не меняются — semver совместимость)"
+    echo "  --patch          0.9.3 → 0.9.4  (ссылки пинятся новой версией, каскада нет)"
     echo "  --minor          0.9.3 → 0.10.0 (обновит ссылки и каскадно сбампит зависимые крейты)"
     echo "  --major          0.9.3 → 1.0.0  (аналогично)"
     echo "  --dry-run        только показать, что изменится"
@@ -68,7 +68,7 @@ done
 if ! $PUBLISH_ONLY && [[ -z "$BUMP" ]]; then
     echo "Не указан тип бампа."; usage
 fi
-# patch-бамп совместим по ссылкам — каскад не нужен
+# patch-бамп совместим — зависимые пересобирать не нужно
 [[ "$BUMP" == "--patch" ]] && CASCADE=false
 
 crate_toml() { echo "$WS/crates/$1/Cargo.toml"; }
@@ -135,16 +135,20 @@ if $PUBLISH_ONLY; then
     exit 0
 fi
 
-# ── Функция замены версии-ссылки в файле ──────────────────────────────────────
-update_ref() {
-    local dep="$1" file="$2" old="$3" new="$4"
-    local old_re="${old//./\\.}"
-    # Простая форма:  yog-foo = "0.9"  /  "0.9.2"
-    # Replace the whole major.minor prefix, not only its first two parts:
-    # otherwise "0.65.1" would become the invalid "0.66.1" on a minor bump.
-    sed -i -E "s|(${dep}[[:space:]]*=[[:space:]]*\")${old_re}([.][0-9]+)?(\")|\1${new}\3|g" "$file"
-    # Сложная форма:  yog-foo = { version = "0.9", ... }
-    sed -i -E "s|(${dep}[[:space:]]*=[[:space:]]*\{[^}]*version[[:space:]]*=[[:space:]]*\")${old_re}([.][0-9]+)?(\")|\1${new}\3|g" "$file"
+# ── Ссылки на версию крейта ───────────────────────────────────────────────────
+# Версии внутренних крейтов живут в одном месте — корневом
+# [workspace.dependencies] (крейты берут их через `{ workspace = true }`).
+# Требования пинятся полной версией, поэтому обновляются при любом бампе.
+# Вне воркспейса на крейты ссылается только Yog-IDLE (через [patch] на пути).
+REF_FILES=("$WS/Cargo.toml" "$WS/../../Yog-IDLE/src-tauri/Cargo.toml")
+
+# set_ref <crate> <file> <new>: `crate = "x"` и `crate = { version = "x", ... }`.
+set_ref() {
+    local dep="$1" file="$2" new="$3"
+    sed -i -E \
+        -e "s|^(${dep}[[:space:]]*=[[:space:]]*\")[^\"]*(\")|\1${new}\2|" \
+        -e "s|^(${dep}[[:space:]]*=[[:space:]]*\{[^}]*version[[:space:]]*=[[:space:]]*\")[^\"]*(\")|\1${new}\2|" \
+        "$file"
 }
 
 # ── Бамп одного крейта + обновление ссылок на него по воркспейсу ──────────────
@@ -163,9 +167,6 @@ bump_crate() {
         --patch) pat=$((pat + 1)) ;;
     esac
     local new_version="$maj.$min.$pat"
-    local old_short new_short
-    old_short="$(echo "$current" | cut -d. -f1-2)"
-    new_short="$maj.$min"
 
     # Статусы — в stderr: stdout этой функции захватывается как результат.
     if $DRY_RUN; then
@@ -182,22 +183,17 @@ bump_crate() {
         ok "$crate: $current → $new_version" >&2
     fi
 
-    # Ссылки обновляем только когда минор/мажор реально сменился.
-    if [[ "$old_short" != "$new_short" ]]; then
-        local t
-        for t in "$WS/crates"/*/Cargo.toml "$WS/Cargo.toml"; do
-            [[ "$t" == "$toml" ]] && continue
-            [[ -f "$t" ]] || continue
-            if grep -qE "${crate}[[:space:]]*=.*\"${old_short}" "$t" 2>/dev/null; then
-                if $DRY_RUN; then
-                    dryrun "  ${t#$WS/} : $crate $old_short → $new_short" >&2
-                else
-                    update_ref "$crate" "$t" "$old_short" "$new_short"
-                    ok "  ссылка: ${t#$WS/}" >&2
-                fi
-            fi
-        done
-    fi
+    local t
+    for t in "${REF_FILES[@]}"; do
+        [[ -f "$t" ]] || continue
+        grep -qE "^${crate}[[:space:]]*=.*\"" "$t" || continue
+        if $DRY_RUN; then
+            dryrun "  $(realpath --relative-to="$WS" "$t") : $crate → $new_version" >&2
+        else
+            set_ref "$crate" "$t" "$new_version"
+            ok "  ссылка: $(realpath --relative-to="$WS" "$t")" >&2
+        fi
+    done
 
     echo "$new_version"
 }

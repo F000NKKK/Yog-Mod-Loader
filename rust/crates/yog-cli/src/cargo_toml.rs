@@ -135,7 +135,8 @@ pub fn yog_dependencies(cargo_toml: &str) -> Vec<String> {
         let Some((name, _)) = line.split_once('=') else {
             continue;
         };
-        let name = name.trim();
+        // `yog-x = { workspace = true }` or the dotted `yog-x.workspace = true`.
+        let name = name.split('.').next().unwrap_or(name).trim();
         if name.starts_with("yog-") && !out.iter().any(|n| n == name) {
             out.push(name.to_string());
         }
@@ -194,6 +195,12 @@ mod tests {
     #[test]
     fn yog_dependencies_reads_the_dependencies_table() {
         let toml = "[package]\nname = \"yog-api\"\n\n[dependencies]\nyog-abi  = \"0.25\"\nyog-ui = { version = \"0.35\" }\nserde = \"1\"\n\n[dev-dependencies]\nyog-test = \"1\"\n";
+        assert_eq!(super::yog_dependencies(toml), ["yog-abi", "yog-ui"]);
+    }
+
+    #[test]
+    fn yog_dependencies_reads_workspace_inherited_lines() {
+        let toml = "[dependencies]\nyog-abi = { workspace = true }\nyog-ui = { workspace = true }\nlibc = { workspace = true }\n";
         assert_eq!(super::yog_dependencies(toml), ["yog-abi", "yog-ui"]);
     }
 }

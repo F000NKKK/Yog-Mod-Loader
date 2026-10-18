@@ -1,9 +1,9 @@
 [package]
 name = "yog-api"
 version = "0.98.1"
-edition.workspace = true
-rust-version.workspace = true
-authors.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
 # Permissive ON PURPOSE: mods link this crate, so AGPL here would force every
 # mod to be AGPL and kill the ecosystem. The protected part is the runtime/host.
 license = "MIT OR Apache-2.0"
@@ -33,5 +33,5 @@ yog-body = { workspace = true }
 yog-inventory = { workspace = true }
 
 
-rkyv.workspace = true
-ctor.workspace = true
+rkyv = { workspace = true }
+ctor = { workspace = true }

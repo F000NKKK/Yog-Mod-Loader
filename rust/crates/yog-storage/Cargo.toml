@@ -1,8 +1,8 @@
 [package]
 name = "yog-storage"
 version = "0.1.2"
-edition.workspace = true
-rust-version.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
 license = "MIT OR Apache-2.0"
 description = "Yog persistent key-value storage for mod data."
 

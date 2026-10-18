@@ -1,9 +1,9 @@
 [package]
 name = "yog-registry"
 version = "0.35.0"
-edition.workspace = true
-rust-version.workspace = true
-authors.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
 license = "MIT OR Apache-2.0"
 description = "Yog content registry — register items, blocks, recipes, etc."
 
@@ -17,5 +17,5 @@ serde = { workspace = true, optional = true }
 serde = ["dep:serde"]
 
 [dev-dependencies]
-serde_json.workspace = true
+serde_json = { workspace = true }
 yog-data = { workspace = true, features = ["json"] }

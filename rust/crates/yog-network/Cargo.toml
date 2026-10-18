@@ -1,8 +1,8 @@
 [package]
 name = "yog-network"
 version = "0.1.1"
-edition.workspace = true
-rust-version.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
 license = "MIT OR Apache-2.0"
 description = "Yog networking — raw-byte packets over channels (no NBT on the wire)."
 

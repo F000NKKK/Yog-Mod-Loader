@@ -1,16 +1,16 @@
 [package]
 name = "yog-debugger"
 version = "0.9.1"
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
 description = "ptrace-based native debugger for Yog mods, speaking the Debug Adapter Protocol (DAP)."
 
 [dependencies]
 yog-symbols = { workspace = true }
 yog-hot-reload = { workspace = true }
-serde_json.workspace = true
+serde_json = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-nix.workspace = true
-iced-x86.workspace = true
+nix = { workspace = true }
+iced-x86 = { workspace = true }

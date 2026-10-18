@@ -1,9 +1,9 @@
 [package]
 name = "yog-font"
 version = "0.1.1"
-edition.workspace = true
-rust-version.workspace = true
-authors.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
 license = "MIT OR Apache-2.0"
 description = "Yog fonts — one format for every font of the system: glyphs as drawing, shaping (ligatures, contextual forms, cursive joining), layout and rasterization."
 

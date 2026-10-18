@@ -1,9 +1,9 @@
 [package]
 name = "yog-data"
 version = "0.4.2"
-edition.workspace = true
-rust-version.workspace = true
-authors.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
 license = "MIT OR Apache-2.0"
 description = "Yog Data — the one data model, text syntax, binary form and schema system of every Yog format."
 # The benchmark fixture (a real book, 145 KB) stays in the repository.
@@ -29,7 +29,7 @@ json = ["dep:serde", "dep:serde_json"]
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
-serde_json.workspace = true
+serde_json = { workspace = true }
 
 [[bench]]
 name = "data"

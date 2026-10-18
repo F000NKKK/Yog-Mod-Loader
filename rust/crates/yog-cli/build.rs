@@ -1,38 +1,33 @@
 //! Embeds workspace dependency versions at compile time.
+//!
+//! In the workspace the crate's own `Cargo.toml` says `rkyv = { workspace = true }`
+//! and the version is in the root's `[workspace.dependencies]`; a published
+//! package has it inlined. So: the nearest manifest, upward, that names one.
 
 use std::path::Path;
 
-fn main() {
-    let dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    let mut path = Path::new(&dir);
-    let mut rkyv_ver = String::new();
-
-    for _ in 0..5 {
-        let candidate = path.join("Cargo.toml");
-        if candidate.exists()
-            && let Ok(content) = std::fs::read_to_string(&candidate)
-        {
-            for line in content.lines() {
-                let line = line.trim();
-                if line.starts_with("rkyv = ")
-                    && rkyv_ver.is_empty()
-                    && let Some(ver) = line.split('"').nth(1)
-                {
-                    rkyv_ver = ver.to_string();
-                }
-            }
-            if !rkyv_ver.is_empty() {
-                break;
-            }
+/// `dep = "x"` or `dep = { version = "x", ... }` → `x`.
+fn version_of(manifest: &str, dep: &str) -> Option<String> {
+    manifest.lines().find_map(|line| {
+        let (name, value) = line.split_once('=')?;
+        if name.trim() != dep {
+            return None;
         }
-        path = match path.parent() {
-            Some(p) => p,
-            None => break,
+        let value = value.trim();
+        let quoted = match value.strip_prefix('{') {
+            Some(table) => table.split_once("version")?.1.split_once('=')?.1,
+            None => value,
         };
-    }
+        Some(quoted.split('"').nth(1)?.to_string())
+    })
+}
 
-    if rkyv_ver.is_empty() {
-        rkyv_ver = "0.8".into();
-    }
-    println!("cargo:rustc-env=RKYV_VERSION={rkyv_ver}");
+fn main() {
+    let dir = std::env::var("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR");
+    let rkyv = Path::new(&dir)
+        .ancestors()
+        .filter_map(|p| std::fs::read_to_string(p.join("Cargo.toml")).ok())
+        .find_map(|m| version_of(&m, "rkyv"))
+        .expect("rkyv's version: in this manifest or the workspace root's");
+    println!("cargo:rustc-env=RKYV_VERSION={rkyv}");
 }

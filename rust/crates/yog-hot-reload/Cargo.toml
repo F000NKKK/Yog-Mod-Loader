@@ -1,13 +1,13 @@
 [package]
 name = "yog-hot-reload"
 version = "0.2.3"
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
+edition = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
 description = "Safe dlopen/dlclose swap primitives for reloading a mod's native library without dangling references into retired code."
 
 [dependencies]
-libloading.workspace = true
+libloading = { workspace = true }
 
 [features]
 # `LoadedModule::this_process`, for tests and benchmarks; never in the loader.
