@@ -54,6 +54,8 @@ public final class YogPilot {
     private static final Set<Block> HARMFUL = Set.of(Blocks.CACTUS, Blocks.SWEET_BERRY_BUSH, Blocks.MAGMA_BLOCK, Blocks.WITHER_ROSE, Blocks.POWDER_SNOW);
     /** A face's hit point: this far from the block's centre toward the face. */
     private static final double FACE_OFFSET = 0.5;
+    /** The partial tick the attack's charge is read at, as the game's crosshair does. */
+    private static final float HALF_TICK = 0.5f;
     /** What a tag reference starts with, in a scan's ids. */
     private static final String TAG_MARK = "#";
 
@@ -112,6 +114,7 @@ public final class YogPilot {
         m.put("food", p.getHungerManager().getFoodLevel());
         m.put("dimension", w.getRegistryKey().getValue().toString());
         m.put("slot", p.getInventory().selectedSlot);
+        m.put("attack_strength", p.getAttackCooldownProgress(HALF_TICK));
         return m;
     }
 

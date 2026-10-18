@@ -57,6 +57,8 @@ pub struct State {
     pub dimension: String,
     /// The selected hotbar slot, 0–8.
     pub slot: i32,
+    /// How charged the next attack is: 1 does full damage.
+    pub attack_strength: f32,
 }
 
 /// Where the local player is and how it fares; `None` without one.

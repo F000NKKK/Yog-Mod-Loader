@@ -101,6 +101,7 @@ pub fn set_block_tint(dimension: &str, pos: yog_core::BlockPos, color: Option<u3
 
 /// GLFW key codes for [`key_down`].
 pub mod keys {
+    pub const HOME: i32 = 268;
     pub const LEFT_SHIFT: i32 = 340;
     pub const LEFT_CONTROL: i32 = 341;
     pub const LEFT_ALT: i32 = 342;
