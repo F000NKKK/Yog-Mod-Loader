@@ -499,7 +499,7 @@ public final class NativeBridge {
         if (id == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(id)) return -1;
         EntityType<?> targetType = BuiltInRegistries.ENTITY_TYPE.get(id);
         int count = 0;
-        for (Entity e : w.getEntities().getAll()) {
+        for (Entity e : w.getAllEntities()) {
             if (e.getType() == targetType) count++;
         }
         return count;
@@ -715,7 +715,7 @@ public final class NativeBridge {
             ServerLevel w = worldFor(dim);
             if (w == null) return false;
             BlockPos pos = new BlockPos(x, y, z);
-            boolean ok = BoneMealItem.applyBonemeal(new ItemStack(Items.BONE_MEAL), w, pos, null)
+            boolean ok = BoneMealItem.growCrop(new ItemStack(Items.BONE_MEAL), w, pos)
                     || BoneMealItem.growWaterPlant(new ItemStack(Items.BONE_MEAL), w, pos, null);
             if (ok) w.levelEvent(LevelEvent.PARTICLES_AND_SOUND_PLANT_GROWTH, pos, 15);
             return ok;
@@ -1220,7 +1220,7 @@ public final class NativeBridge {
             if (!(BuiltInRegistries.ITEM.get(id) instanceof net.minecraft.world.item.BucketItem bucket)) return false;
             BlockPos pos = new BlockPos(x, y, z);
             BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
-            return bucket.emptyContents(null, w, pos, hit, null);
+            return bucket.emptyContents(null, w, pos, hit);
         } catch (Throwable t) {
             return false;
         }

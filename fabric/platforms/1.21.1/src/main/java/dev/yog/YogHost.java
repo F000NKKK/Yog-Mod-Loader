@@ -1,754 +1,147 @@
 package dev.yog;
 
 import dev.yog.data.YogContent;
-import dev.yog.block.YogConnectingLogic;
-import dev.yog.util.YogInventoryDef;
 
-import com.mojang.brigadier.Command;
-import com.mojang.brigadier.arguments.FloatArgumentType;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.builder.ArgumentBuilder;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.command.argument.BlockPosArgumentType;
-import net.minecraft.command.argument.EntityArgumentType;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
-import net.fabricmc.fabric.api.registry.FuelRegistry;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.component.type.FoodComponent;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemConvertible;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.registry.Registry;
-import net.minecraft.sound.BlockSoundGroup;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.Identifier;
+import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
+import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
+import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.TypedActionResult;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.block.entity.BlockEntity;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
-import net.minecraft.network.codec.PacketCodecs;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.fabricmc.fabric.api.registry.FabricBrewingRecipeRegistryBuilder;
+import net.fabricmc.fabric.api.registry.FuelRegistry;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.levelgen.GenerationStep;
 
 /**
- * Fabric entry point. Boots the native Yog runtime and forwards server events
- * to it via {@link NativeBridge}. "The Gate and the Key."
- *
- * <p>We use Fabric API events rather than raw Mixins here: they are more stable
- * across mapping/version changes. Mixins return later for deeper hooks (e.g.
- * client rendering) that Fabric API does not cover.
+ * Fabric's entry point: boots the runtime, registers the mods' content
+ * ({@link YogContentRegistry}) and hooks Fabric's events up to
+ * {@link YogServerEvents}. All it knows is Fabric.
  */
 public class YogHost implements ModInitializer {
-    /** UUID → [name, retriesLeft] for players waiting to appear in the server list. */
-    private static final java.util.concurrent.ConcurrentHashMap<String, String[]> PENDING_JOINS =
-            new java.util.concurrent.ConcurrentHashMap<>();
-
-    // ── yog-inventory (see rust/crates/yog-inventory/DESIGN.md) ────────────────
-
-    /** Parsed `InventoryDef`s, keyed by id — shared by the block entity/menu/screen. */
-    public static final Map<String, YogInventoryDef> INVENTORY_DEFS = new HashMap<>();
-    /** One generic block entity type valid for every block with an `inventory_id`. */
-    public static BlockEntityType<YogInventoryBlockEntity> INVENTORY_BLOCK_ENTITY_TYPE;
-    /** One generic menu type for every `InventoryDef` — the def id is synced as the
-     *  screen-opening data so the client knows which layout/slot-count to build. */
-    public static ExtendedScreenHandlerType<YogInventoryMenu, String> INVENTORY_SCREEN_HANDLER_TYPE;
-
-    private static void parseInventoryDefs() {
-        INVENTORY_DEFS.putAll(YogContent.cached(NativeBridge::nativeContent).inventories);
-        // Features the mods add to biomes (their ores): Fabric adds them in code,
-        // Forge and NeoForge read the biome modifiers the build wrote.
-        for (YogContent.BiomeFeature f : YogContent.cached(NativeBridge::nativeContent).biomeFeatures) {
-            Identifier feature = Identifier.tryParse(f.feature()), biomes = Identifier.tryParse(f.biomes());
-            if (feature == null || biomes == null) continue;
-            net.minecraft.world.gen.GenerationStep.Feature step;
-            try {
-                step = net.minecraft.world.gen.GenerationStep.Feature.valueOf(f.step().toUpperCase(java.util.Locale.ROOT));
-            } catch (IllegalArgumentException e) {
-                YogLog.warn("" + f.feature() + ": no generation step " + f.step());
-                continue;
-            }
-            net.fabricmc.fabric.api.biome.v1.BiomeModifications.addFeature(
-                    net.fabricmc.fabric.api.biome.v1.BiomeSelectors.tag(net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.BIOME, biomes)),
-                    step, net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.PLACED_FEATURE, feature));
-        }
-    }
-
     @Override
     public void onInitialize() {
         NativeBridge.ensureLoaded();
         YogLog.info("Fabric host initialised.");
 
-        // Register mod-declared content now, before the registries freeze.
-        registerContent();
-
-        // Server-side packet receivers (client -> server), raw bytes.
-        String channels = NativeBridge.nativePacketChannels();
-        if (channels != null) {
-            for (String channel : channels.split("\n")) {
-                if (channel.isBlank()) {
-                    continue;
-                }
-                Identifier id = Identifier.tryParse(channel);
-                if (id == null) {
-                    continue;
-                }
-                YogPayload.register(id);
-                ServerPlayNetworking.registerGlobalReceiver(YogPayload.idFor(id), (payload, context) -> {
-                    byte[] data = payload.data();
-                    var player = context.player();
-                    player.getServer().execute(() ->
-                            NativeBridge.nativeOnPacket(channel, player.getName().getString(), data));
-                });
-            }
+        YogContentRegistry.schedule();
+        YogRegistrar.runAll(YogHost::register);
+        YogEffects.linkModifiers();
+        addBiomeFeatures();
+        YogContentRegistry.FUELS.forEach(FuelRegistry.INSTANCE::add);
+        FabricBrewingRecipeRegistryBuilder.BUILD.register(builder -> YogEffects.mixes(builder::addMix));
+        YogEntityTypes.attributes(FabricDefaultAttributeRegistry::register);
+        var playerAttributes = YogEffects.playerAttributes();
+        if (!playerAttributes.isEmpty()) {
+            AttributeSupplier.Builder player = Player.createAttributes();
+            playerAttributes.forEach(player::add);
+            FabricDefaultAttributeRegistry.register(EntityType.PLAYER, player);
         }
 
-        // Channels a mod only ever *sends* to a client (e.g. `send_to_player`
-        // from an `on_use_block` handler, to trigger a client-side `open_ui`)
-        // are declared via `on_client_packet` — the server itself never
-        // receives them, but Fabric's 1.20.5+ typed networking still requires
-        // the S2C codec to be registered here before `ServerPlayNetworking.send`
-        // will accept them, or the send throws and silently no-ops the whole
-        // interaction. Register those too (registration is idempotent).
-        String clientChannels = NativeBridge.nativeClientPacketChannels();
-        if (clientChannels != null) {
-            for (String channel : clientChannels.split("\n")) {
-                if (channel.isBlank()) continue;
-                Identifier id = Identifier.tryParse(channel);
-                if (id == null) continue;
-                YogPayload.register(id);
+        PayloadTypeRegistry.playS2C().register(YogPayload.TYPE, YogPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(YogPayload.TYPE, YogPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(YogPayload.TYPE, (payload, context) -> {
+            ServerPlayer player = context.player();
+            player.server.execute(() -> payload.toServer(player));
+        });
+
+        hookServerEvents();
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> YogCommands.register(dispatcher));
+    }
+
+    private static <T> void register(ResourceKey<? extends Registry<T>> registry, ResourceLocation id, T value) {
+        @SuppressWarnings("unchecked")
+        Registry<T> r = (Registry<T>) BuiltInRegistries.REGISTRY.get(registry.location());
+        Registry.register(r, id, value);
+    }
+
+    /** The mods' features in biomes (their ores): Fabric adds them in code; Forge and NeoForge read the biome modifiers the build wrote. */
+    private static void addBiomeFeatures() {
+        for (YogContent.BiomeFeature f : YogContent.cached(NativeBridge::nativeContent).biomeFeatures) {
+            ResourceLocation feature = ResourceLocation.tryParse(f.feature()), biomes = ResourceLocation.tryParse(f.biomes());
+            if (feature == null || biomes == null) continue;
+            GenerationStep.Decoration step;
+            try {
+                step = GenerationStep.Decoration.valueOf(f.step().toUpperCase(java.util.Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                YogLog.warn(f.feature() + ": no generation step " + f.step());
+                continue;
             }
+            BiomeModifications.addFeature(BiomeSelectors.tag(TagKey.create(Registries.BIOME, biomes)), step,
+                    ResourceKey.create(Registries.PLACED_FEATURE, feature));
         }
+    }
 
-        // Entity data reaches who sees an entity: all of it when they start
-        // seeing it or come into a world; an entity leaving the server's memory
-        // is forgotten (what it keeps was saved with it).
-        net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register(
-                (entity, player) -> sendEntityData(player, entity));
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sendEntityData(handler.player, handler.player));
-        net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents.AFTER_RESPAWN.register(
-                (oldPlayer, newPlayer, alive) -> sendEntityData(newPlayer, newPlayer));
-        net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register(
-                (player, origin, destination) -> sendEntityData(player, player));
-        ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
-            if (!(entity instanceof net.minecraft.entity.player.PlayerEntity)) {
-                NativeBridge.nativeEntityDataForget(entity.getUuidAsString());
-            }
-        });
+    private static InteractionResult allow(boolean allowed) {
+        return allowed ? InteractionResult.PASS : InteractionResult.FAIL;
+    }
 
-        // Block break — pre (cancellable) then after (observe).
-        PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
-            String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
-            String dim = world.getRegistryKey().getValue().toString();
-            return NativeBridge.nativeOnBlockBreakPre(
-                    player.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim);
-        });
-        PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
-            String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
-            String dim = world.getRegistryKey().getValue().toString();
-            NativeBridge.nativeOnBlockBreak(
-                    player.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim);
+    private static void hookServerEvents() {
+        ServerLifecycleEvents.SERVER_STARTED.register(YogServerEvents::serverStarted);
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> YogServerEvents.serverStopping());
+        ServerTickEvents.END_SERVER_TICK.register(YogServerEvents::serverTick);
 
-            // Phase 6: drop inventory contents so items survive block breaking.
-            if (blockEntity instanceof YogInventoryBlockEntity inv && !inv.isEmpty()) {
-                net.minecraft.util.ItemScatterer.spawn(world, pos, inv);
-                inv.clear();
-            }
-        });
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> YogServerEvents.playerJoined(handler.player));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> YogServerEvents.playerLeft(handler.player));
+        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> YogServerEvents.respawned(newPlayer, alive));
+        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> YogServerEvents.changedLevel(player));
+        EntityTrackingEvents.START_TRACKING.register(YogServerEvents::startedTracking);
 
-        // Chat — pre (cancellable).
+        PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, be) -> YogServerEvents.blockBreakPre(level, player, pos, state));
+        PlayerBlockBreakEvents.AFTER.register(YogServerEvents::blockBroken);
+
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) ->
-                NativeBridge.nativeOnChatPre(
-                        sender.getName().getString(), message.getContent().getString(),
-                        sender.getWorld().getRegistryKey().getValue().toString()));
-
-        // Chat — after (observe).
+                YogServerEvents.chatPre(sender, message.decoratedContent().getString()));
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) ->
-                NativeBridge.nativeOnChat(
-                        sender.getName().getString(), message.getContent().getString(),
-                        sender.getWorld().getRegistryKey().getValue().toString()));
+                YogServerEvents.chat(sender, message.decoratedContent().getString()));
 
-        // Player join / leave.
-        // We don't call nativeOnPlayerJoin immediately because ServerPlayConnectionEvents.JOIN
-        // fires before the player is fully in the server's player list. We queue the UUID and
-        // check each server tick (via END_SERVER_TICK) until the player appears.
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            String pUuid = handler.player.getUuidAsString();
-            String pName = handler.player.getName().getString();
-            PENDING_JOINS.put(pUuid, new String[]{pName, "40"});
+        UseItemCallback.EVENT.register((player, level, hand) -> {
+            var stack = player.getItemInHand(hand);
+            boolean ok = level.isClientSide() || !(player instanceof ServerPlayer sp) || YogServerEvents.useItem(sp, hand);
+            return ok ? InteractionResultHolder.pass(stack) : InteractionResultHolder.fail(stack);
+        });
+        UseBlockCallback.EVENT.register((player, level, hand, hit) ->
+                !level.isClientSide() && player instanceof ServerPlayer sp ? allow(YogServerEvents.useBlock(sp, hand, hit)) : InteractionResult.PASS);
+        UseEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
+                !level.isClientSide() && player instanceof ServerPlayer sp ? allow(YogServerEvents.interactEntity(sp, hand, entity)) : InteractionResult.PASS);
+        AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
+            if (!level.isClientSide() && player instanceof ServerPlayer sp) YogServerEvents.attackEntity(sp, entity);
+            return InteractionResult.PASS;
         });
 
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            String pUuid = handler.player.getUuidAsString();
-            PENDING_JOINS.remove(pUuid); // cancel pending join if player disconnects before we process it
-            NativeBridge.nativeOnPlayerLeave(
-                    handler.player.getName().getString(), pUuid,
-                    handler.player.getWorld().getRegistryKey().getValue().toString());
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register(YogServerEvents::damage);
+        ServerLivingEntityEvents.AFTER_DEATH.register(YogServerEvents::died);
+        ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) ->
+                !(entity instanceof ServerPlayer sp) || YogServerEvents.playerDeathPre(sp, source));
+        ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+            if (!YogServerEvents.entityLoaded(entity, level)) entity.discard();
         });
-
-        // Item use (right-click), server side only.
-        UseItemCallback.EVENT.register((player, world, hand) -> {
-            if (!world.isClient && player instanceof ServerPlayerEntity sp) {
-                ItemStack stack = sp.getStackInHand(hand);
-                // As vanilla (and Forge's event): an item cooling down isn't used.
-                if (sp.getItemCooldownManager().isCoolingDown(stack.getItem())) {
-                    return TypedActionResult.pass(stack);
-                }
-                String itemId = Registries.ITEM.getId(stack.getItem()).toString();
-                String dim = world.getRegistryKey().getValue().toString();
-                boolean allow = NativeBridge.nativeOnUseItemPre(
-                        sp.getName().getString(), itemId, sp.isSneaking(), dim);
-                if (!allow) return TypedActionResult.fail(stack);
-                NativeBridge.nativeOnUseItem(sp.getName().getString(), itemId, sp.isSneaking(), dim);
-            }
-            return TypedActionResult.pass(player.getStackInHand(hand));
-        });
-
-        // Block use (right-click on a block), server side only.
-        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-            if (!world.isClient && player instanceof ServerPlayerEntity sp) {
-                // As vanilla: sneaking with something in hand uses the item (places a block), not the block.
-                if (sp.shouldCancelInteraction() && (!sp.getMainHandStack().isEmpty() || !sp.getOffHandStack().isEmpty())) {
-                    return ActionResult.PASS;
-                }
-                net.minecraft.util.math.BlockPos pos = hitResult.getBlockPos();
-                String blockId = Registries.BLOCK.getId(world.getBlockState(pos).getBlock()).toString();
-                String dim = world.getRegistryKey().getValue().toString();
-                boolean allow = NativeBridge.nativeOnUseBlockPre(
-                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim, sp.isSneaking());
-                if (!allow) return ActionResult.FAIL;
-                NativeBridge.nativeOnUseBlock(
-                        sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(), dim, sp.isSneaking());
-            }
-            return ActionResult.PASS;
-        });
-
-        // Block placement — Pre (cancellable). Fires when a player uses a BlockItem on a surface.
-        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-            if (!world.isClient && player instanceof ServerPlayerEntity sp) {
-                ItemStack held = sp.getStackInHand(hand);
-                if (held.getItem() instanceof BlockItem bi) {
-                    net.minecraft.util.math.BlockPos placed =
-                            hitResult.getBlockPos().offset(hitResult.getSide());
-                    String blockId = Registries.BLOCK.getId(bi.getBlock()).toString();
-                    if (!NativeBridge.nativeOnPlaceBlockPre(
-                            sp.getName().getString(), blockId,
-                            placed.getX(), placed.getY(), placed.getZ(),
-                            world.getRegistryKey().getValue().toString(), sp.isSneaking())) {
-                        return ActionResult.FAIL;
-                    }
-                }
-            }
-            return ActionResult.PASS;
-        });
-
-        // Entity interact (right-click on entity) — Pre (cancellable) then Post.
-        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (!world.isClient && player instanceof net.minecraft.server.network.ServerPlayerEntity sp) {
-                String pName    = sp.getName().getString();
-                String pUuid    = sp.getUuidAsString();
-                String eType    = net.minecraft.registry.Registries.ENTITY_TYPE.getId(entity.getType()).toString();
-                String eUuid    = entity.getUuidAsString();
-                String handStr  = hand == net.minecraft.util.Hand.MAIN_HAND ? "main_hand" : "off_hand";
-                String dim      = world.getRegistryKey().getValue().toString();
-                boolean allow = NativeBridge.nativeOnEntityInteractPre(pName, pUuid, eType, eUuid, handStr, dim);
-                if (!allow) return ActionResult.FAIL;
-                NativeBridge.nativeOnEntityInteract(pName, pUuid, eType, eUuid, handStr, dim);
-            }
-            return ActionResult.PASS;
-        });
-
-        // Attack (left-click on an entity), server side only.
-        AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (!world.isClient && player instanceof ServerPlayerEntity sp) {
-                String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
-                NativeBridge.nativeOnAttackEntity(
-                        sp.getName().getString(), type, entity.getUuidAsString(),
-                        world.getRegistryKey().getValue().toString());
-            }
-            return ActionResult.PASS;
-        });
-
-        // Living-entity damage — pre (cancellable) then observe.
-        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
-            String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
-            String dim = entity.getWorld().getRegistryKey().getValue().toString();
-            boolean allow = NativeBridge.nativeOnEntityDamagePre(
-                    type, entity.getUuidAsString(), amount, source.getName(), dim);
-            if (allow) {
-                NativeBridge.nativeOnEntityDamage(
-                        type, entity.getUuidAsString(), amount, source.getName(), dim);
-            }
-            return allow;
-        });
-
-        // Entity spawn — fire when an entity is loaded into a server world.
-        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
-            String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
-            String uuid = entity.getUuidAsString();
-            String dim  = world.getRegistryKey().getValue().toString();
-            // Pre (cancellable) — discard entity if any handler returns false.
-            if (!NativeBridge.nativeOnEntitySpawnPre(type, uuid, dim)) {
-                entity.discard();
-                return;
-            }
-            // Observe-only handlers.
-            NativeBridge.nativeOnEntitySpawn(type, uuid, dim);
-        });
-
-        // Living-entity death (server side — non-player entity post).
-        ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
-            if (entity instanceof ServerPlayerEntity) return; // handled separately below
-            String type = Registries.ENTITY_TYPE.getId(entity.getType()).toString();
-            NativeBridge.nativeOnEntityDeath(
-                    type, entity.getUuidAsString(), source.getName(),
-                    entity.getWorld().getRegistryKey().getValue().toString());
-        });
-
-        // Player death — pre (cancellable) and post.
-        ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
-            if (!(entity instanceof ServerPlayerEntity sp)) return true;
-            String dim = sp.getWorld().getRegistryKey().getValue().toString();
-            boolean allow = NativeBridge.nativeOnPlayerDeathPre(
-                    sp.getName().getString(), sp.getUuidAsString(), source.getName(), dim);
-            if (!allow) return false;
-            NativeBridge.nativeOnPlayerDeath(
-                    sp.getName().getString(), sp.getUuidAsString(), source.getName(), dim);
-            return true;
-        });
-
-        // Player respawn.
-        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
-            if (alive) return; // dimension-change respawn, not death respawn
-            NativeBridge.nativeOnPlayerRespawn(
-                    newPlayer.getName().getString(), newPlayer.getUuidAsString(), false,
-                    newPlayer.getWorld().getRegistryKey().getValue().toString());
-        });
-
-        // End-of-tick (20×/second).
-        ServerTickEvents.END_SERVER_TICK.register(server -> {
-            // Resolve pending player joins: fire nativeOnPlayerJoin once the player is in the list.
-            if (!PENDING_JOINS.isEmpty()) {
-                java.util.List<String> toRemove = new java.util.ArrayList<>();
-                PENDING_JOINS.forEach((uuid, entry) -> {
-                    String name = entry[0];
-                    int retries = Integer.parseInt(entry[1]);
-                    java.util.UUID parsed = java.util.UUID.fromString(uuid);
-                    ServerPlayerEntity found = server.getPlayerManager().getPlayer(parsed);
-                    if (found != null) {
-                        NativeBridge.nativeOnPlayerJoin(found.getName().getString(), uuid,
-                                found.getWorld().getRegistryKey().getValue().toString());
-                        toRemove.add(uuid);
-                    } else if (retries <= 0) {
-                        YogLog.warn("player join: " + name + " never appeared after retries");
-                        toRemove.add(uuid);
-                    } else {
-                        entry[1] = String.valueOf(retries - 1);
-                    }
-                });
-                toRemove.forEach(PENDING_JOINS::remove);
-            }
-            NativeBridge.nativeOnTick();
-        });
-
-        // Server lifecycle. Capture the server first so Rust can act on it
-        // (e.g. NativeBridge.broadcast).
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            NativeBridge.setServer(server);
-            String worldDir = server.getSavePath(net.minecraft.util.WorldSavePath.ROOT)
-                    .toAbsolutePath().toString();
-            NativeBridge.nativeOnServerStarted(worldDir);
-        });
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> NativeBridge.nativeOnServerStopping());
-
-        // Commands: register each mod-declared command with Brigadier and route to Rust.
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            // Typed commands: build proper Brigadier argument chains. A single
-            // command name can have MULTIPLE distinct schemas (subcommands with
-            // different arg counts) — each is registered separately; Brigadier
-            // merges repeated `dispatcher.register()` calls that share a root
-            // literal name into one command-tree node, so this produces one
-            // root node with a sibling branch per distinct arg shape, instead
-            // of collapsing them all down to whichever schema was seen last.
-            java.util.Set<String> typedNames = new java.util.HashSet<>();
-            String schemaLines = NativeBridge.nativeTypedCommandSchemas();
-            if (schemaLines != null) {
-                for (String line : typedSchemaOrder(schemaLines)) {
-                    if (line.isBlank()) continue;
-                    int tab = line.indexOf('\t');
-                    if (tab <= 0) continue;
-                    String name   = line.substring(0, tab);
-                    String schema = line.substring(tab + 1);
-                    typedNames.add(name);
-                    dispatcher.register(buildTypedCommand(name, schema.split("\\s+")));
-                }
-            }
-
-            // Plain commands: greedy-string arg (or no args).
-            String names = NativeBridge.nativeCommandNames();
-            if (names == null || names.isBlank()) return;
-            for (String name : names.split("\n")) {
-                if (name.isBlank()) continue;
-                dispatcher.register(CommandManager.literal(name)
-                        .executes(ctx -> runCommand(name, "", ctx))
-                        .then(CommandManager.argument("args", StringArgumentType.greedyString())
-                                .executes(ctx -> runCommand(
-                                        name, StringArgumentType.getString(ctx, "args").trim().replaceAll("\\s+", "\t"), ctx))));
-            }
-        });
-    }
-
-    /**
-     * Register custom items/blocks declared by Rust mods, apply their name and
-     * tooltip, and collect them into per-namespace creative tabs.
-     */
-    /** Parse `id\tkey=value\t...` into a map. First element is the id. */
-    
-    private static void registerContent() {
-        YogCallbackChunkGenerator.registerCodec();
-        // Mods' entity types first: spawn eggs (items) name them.
-        YogEntityTypes.register(YogContent.cached(NativeBridge::nativeContent).entities);
-        YogEffects.register(YogContent.cached(NativeBridge::nativeContent));
-
-        parseInventoryDefs();
-
-        // Group items and blocks by namespace for per-mod creative tabs.
-        Map<String, List<ItemConvertible>> tabGroups = new LinkedHashMap<>();
-        List<Block> inventoryBlocks = new ArrayList<>();
-
-        // Mods register a block's item form as `register_item(same_id, name, tooltip)`
-        // alongside `register_block(same_id)` — BlockDef itself carries neither. Collect
-        // those ids up front so the item loop below hands their name/tooltip to the
-        // block's YogBlockItem instead of ALSO registering a second, non-block Item
-        // under the same Identifier (that used to silently collide in Registries.ITEM
-        // and show up as a duplicate, unplaceable ghost entry in the creative tab).
-        Set<String> blockIds = new HashSet<>();
-        YogContent content = YogContent.cached(NativeBridge::nativeContent);
-        for (YogContent.Block b : content.blocks) blockIds.add(b.id());
-        Map<String, String> blockItemNames = new HashMap<>();
-        Map<String, YogContent.Item> blockItemDefs = new HashMap<>();
-        Map<String, String> blockItemTooltips = new HashMap<>();
-
-        {
-            for (YogContent.Item p : content.items) {
-                String id = p.id();
-                Identifier ident = Identifier.tryParse(id);
-                if (ident == null) continue;
-
-                if (blockIds.contains(id)) {
-                    blockItemNames.put(id, p.name());
-                    blockItemDefs.put(id, p);
-                    blockItemTooltips.put(id, p.tooltip());
-                    continue;
-                }
-
-                Item.Settings settings = new Item.Settings();
-
-                int maxDamage = p.maxDamage();
-                if (maxDamage > 0) {
-                    settings = settings.maxDamage(maxDamage);
-                } else {
-                    settings = settings.maxCount(p.maxStack());
-                }
-
-                if (p.fireResistant()) settings = settings.fireproof();
-
-                if (p.food() != null) {
-                    YogContent.Food fp = p.food();
-                    if (fp != null) {
-                        FoodComponent.Builder fb = new FoodComponent.Builder()
-                                .nutrition(fp.nutrition())
-                                .saturationModifier(fp.saturation());
-                    if (fp.alwaysEdible()) fb = fb.alwaysEdible();
-                    FoodComponent food = fb.build();
-                        settings = settings.food(food);
-                    }
-                }
-
-                // Check if this item has an associated book
-                // A tool, a weapon or armor of a material, else a plain (or book) item.
-                Item made = YogTools.make(settings, p);
-                Item item;
-                if (made != null) {
-                    item = made;
-                } else if (p.hangs() != null) {
-                    item = new YogHangingItem(settings, p.name(), p.tooltip(), p.hangs());
-                } else if (p.wearable() != null) {
-                    item = new YogWearableItem(settings, p.name(), p.tooltip(), p.wearable());
-                } else if (p.book()) {
-                    item = new YogBookItem(settings,
-                            p.name(), p.tooltip(), id);
-                } else {
-                    item = new YogItem(settings,
-                            p.name(), p.tooltip());
-                }
-                Registry.register(Registries.ITEM, ident, item);
-                tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(item);
-
-                int fuelTicks = p.fuelTicks();
-                if (fuelTicks > 0) FuelRegistry.INSTANCE.add(item, fuelTicks);
-            }
-        }
-
-        {
-            for (YogContent.Block p : content.blocks) {
-                String id = p.id();
-                Identifier ident = Identifier.tryParse(id);
-                if (ident == null) continue;
-                float hardness   = p.hardness();
-                float resistance = p.resistance();
-
-                AbstractBlock.Settings settings = AbstractBlock.Settings.create()
-                        .strength(hardness, resistance);
-
-                if (p.light() > 0) {
-                    int lv = p.light();
-                    settings = settings.luminance(state -> lv);
-                }
-                if (p.sound() != null) {
-                    settings = settings.sounds(blockSoundGroup(p.sound()));
-                }
-                if (p.requiresTool()) settings = settings.requiresTool();
-                if (p.noCollision())  settings = settings.noCollision();
-                if (p.noOcclusion())  settings = settings.nonOpaque();
-                if (p.slipperiness() > 0) {
-                    settings = settings.slipperiness(p.slipperiness());
-                }
-
-                Block block;
-                if (!p.kind().isEmpty()) {
-                    block = YogBlockKinds.make(settings, p, baseId -> {
-                        Identifier r = Identifier.tryParse(baseId);
-                        return r == null ? null : Registries.BLOCK.getOrEmpty(r).orElse(null);
-                    });
-                } else if (p.inventory() != null) {
-                    YogInventoryDef def = INVENTORY_DEFS.get(p.inventory());
-                    int slotCount = def != null ? def.slotCount : 0;
-                    block = new YogInventoryBlock(settings, p.inventory(), slotCount);
-                    inventoryBlocks.add(block);
-                } else if (p.redstone()) {
-                    block = new YogRedstoneBlock(settings);
-                } else if (p.connects()) {
-                    double[] core = {6, 0, 6, 10, 16, 10};
-                    if (p.shape() != null) {
-                        float[] sp = p.shape();
-                        for (int i = 0; i < 6; i++) core[i] = sp[i];
-                    }
-                    block = new YogConnectingBlock(settings, core[0], core[1], core[2], core[3], core[4], core[5]);
-                } else if (p.stateful()) {
-                    block = YogStateBlock.create(settings, p);
-                } else if (p.shape() != null) {
-                    float[] sp = p.shape();
-                    block = new YogShapedBlock(settings,
-                            sp[0], sp[1],
-                            sp[2], sp[3],
-                            sp[4], sp[5]);
-                } else {
-                    block = new Block(settings);
-                }
-
-                Registry.register(Registries.BLOCK, ident, block);
-                if (!p.connectGroups().isEmpty()) {
-                    YogConnectingLogic.registerGroups(block, p.connectGroups().toArray(new String[0]));
-                }
-                Item blockItem = new YogBlockItem(block, blockItemSettings(blockItemDefs.get(id)),
-                        blockItemNames.getOrDefault(id, ""),
-                        blockItemTooltips.getOrDefault(id, ""));
-                Registry.register(Registries.ITEM, ident, blockItem);
-                YogContent.Item ownItem = blockItemDefs.get(id);
-                if (ownItem != null && ownItem.fuelTicks() > 0) FuelRegistry.INSTANCE.add(blockItem, ownItem.fuelTicks());
-                tabGroups.computeIfAbsent(ident.getNamespace(), k -> new ArrayList<>()).add(blockItem);
-            }
-        }
-
-        // One generic block entity type valid for every inventory-backed block,
-        // and one generic menu type for every InventoryDef (see yog-inventory's DESIGN.md).
-        if (!inventoryBlocks.isEmpty()) {
-            INVENTORY_BLOCK_ENTITY_TYPE = Registry.register(Registries.BLOCK_ENTITY_TYPE,
-                    Identifier.of("yog", "inventory"),
-                    BlockEntityType.Builder.<YogInventoryBlockEntity>create(
-                            (pos, state) -> {
-                                YogInventoryBlock ib = (YogInventoryBlock) state.getBlock();
-                                return new YogInventoryBlockEntity(pos, state, ib.defId(), ib.slotCount());
-                            },
-                            inventoryBlocks.toArray(new Block[0])
-                    ).build(null));
-        }
-        INVENTORY_SCREEN_HANDLER_TYPE = Registry.register(Registries.SCREEN_HANDLER,
-                Identifier.of("yog", "inventory"),
-                new ExtendedScreenHandlerType<>(YogInventoryMenu::createClient, PacketCodecs.STRING));
-
-        // Create one creative tab per namespace, using the first item from each as icon.
-        for (Map.Entry<String, List<ItemConvertible>> entry : tabGroups.entrySet()) {
-            String ns = entry.getKey();
-            List<ItemConvertible> entries = entry.getValue();
-            if (entries.isEmpty()) continue;
-
-            ItemConvertible icon = entries.get(0);
-            ItemGroup group = FabricItemGroup.builder()
-                    .icon(() -> new ItemStack(icon))
-                    .displayName(Text.literal(ns))
-                    .entries((displayContext, tabEntries) -> {
-                        entries.forEach(tabEntries::add);
-                        YogEffects.addTabStacks(ns, tabEntries::add);
-                    })
-                    .build();
-            Registry.register(Registries.ITEM_GROUP, Identifier.of(ns, ns), group);
-        }
-
-        YogEntityTypes.eggs();
-    }
-    /** A sound group from its sound event ids: the registered events, else made by id (a mod's, or one this version lacks). */
-    private static BlockSoundGroup blockSoundGroup(YogContent.Sound s) {
-        return new BlockSoundGroup(s.volume(), s.pitch(), soundEvent(s.breakSound()), soundEvent(s.step()),
-                soundEvent(s.place()), soundEvent(s.hit()), soundEvent(s.fall()));
-    }
-
-    static SoundEvent soundEvent(String id) {
-        Identifier i = Identifier.tryParse(id);
-        if (i == null) i = Identifier.tryParse("minecraft:intentionally_empty");
-        SoundEvent e = Registries.SOUND_EVENT.get(i);
-        return e != null ? e : SoundEvent.of(i);
-    }
-
-    /**
-     * Build a Brigadier literal node with typed argument chain from a schema like
-     * {@code ["int", "player", "blockpos"]}.  Each arg is named {@code arg_N}.
-     * All resolved args are serialised tab-separated and forwarded to Rust.
-     */
-    private static LiteralArgumentBuilder<ServerCommandSource>
-            buildTypedCommand(String name, String[] schema) {
-        var root = CommandManager.literal(name);
-        if (schema.length == 0) {
-            root.executes(ctx -> runCommand(name, "", ctx));
-            return root;
-        }
-        // Build argument chain from last to first, wrapping inner with outer.
-        ArgumentBuilder<ServerCommandSource, ?> chain = buildLeaf(name, schema, schema.length - 1);
-        for (int i = schema.length - 2; i >= 0; i--) {
-            chain = buildArgNode(schema[i], argName(i, schema[i])).then(chain);
-            // Also allow executing with fewer args (partial match not standard; just attach executes at leaf).
-        }
-        root.then(chain);
-        return root;
-    }
-
-    /**
-     * A typed argument's node name — its position and type, so schemas that
-     * differ there get separate Brigadier branches instead of being merged
-     * into the first one's (Brigadier merges same-named nodes).
-     */
-    private static String argName(int index, String type) {
-        return "arg_" + index + "_" + type;
-    }
-
-    /** Schema lines with greedy `string` args last: Brigadier tries a command's branches in registration order, so word chains go first. */
-    private static java.util.List<String> typedSchemaOrder(String lines) {
-        java.util.List<String> out = new java.util.ArrayList<>(java.util.Arrays.asList(lines.split("\n")));
-        out.sort(java.util.Comparator.comparing(l -> l.contains("string")));
-        return out;
-    }
-
-    private static RequiredArgumentBuilder<ServerCommandSource, ?> buildArgNode(String type, String argName) {
-        return switch (type) {
-            case "int"      -> CommandManager.argument(argName, IntegerArgumentType.integer());
-            case "float"    -> CommandManager.argument(argName, FloatArgumentType.floatArg());
-            case "word"     -> CommandManager.argument(argName, StringArgumentType.word());
-            case "string"   -> CommandManager.argument(argName, StringArgumentType.greedyString());
-            case "player"   -> CommandManager.argument(argName, EntityArgumentType.player());
-            case "blockpos" -> CommandManager.argument(argName, BlockPosArgumentType.blockPos());
-            default         -> CommandManager.argument(argName, StringArgumentType.word());
-        };
-    }
-
-    private static ArgumentBuilder<ServerCommandSource, ?> buildLeaf(String cmdName, String[] schema, int idx) {
-        String type    = schema[idx];
-        String argName = argName(idx, type);
-        return buildArgNode(type, argName).executes(ctx -> {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i <= idx; i++) {
-                if (i > 0) sb.append('\t');
-                sb.append(resolveArg(schema[i], argName(i, schema[i]), ctx));
-            }
-            return runCommand(cmdName, sb.toString(), ctx);
-        });
-    }
-
-    private static String resolveArg(String type, String argName, CommandContext<ServerCommandSource> ctx) {
-        try {
-            return switch (type) {
-                case "int"      -> String.valueOf(IntegerArgumentType.getInteger(ctx, argName));
-                case "float"    -> String.valueOf(FloatArgumentType.getFloat(ctx, argName));
-                case "word", "string" -> StringArgumentType.getString(ctx, argName);
-                case "player"   -> EntityArgumentType.getPlayer(ctx, argName).getName().getString();
-                case "blockpos" -> {
-                    net.minecraft.util.math.BlockPos pos = BlockPosArgumentType.getBlockPos(ctx, argName);
-                    yield pos.getX() + "," + pos.getY() + "," + pos.getZ();
-                }
-                default -> StringArgumentType.getString(ctx, argName);
-            };
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    private static int runCommand(String name, String args, CommandContext<ServerCommandSource> ctx) {
-        ServerCommandSource src = ctx.getSource();
-        net.minecraft.entity.Entity entity = src.getEntity();
-        String uuid = entity != null ? entity.getUuidAsString() : "";
-        String dim = src.getWorld().getRegistryKey().getValue().toString();
-        String reply = NativeBridge.nativeOnCommand(name, args, src.getName(), uuid, dim);
-        if (reply != null && !reply.isEmpty()) {
-            src.sendFeedback(() -> Text.literal(reply), false);
-        }
-        return Command.SINGLE_SUCCESS;
-    }
-
-    /** Everything entity {@code about} keeps, to {@code to}. */
-    private static void sendEntityData(net.minecraft.server.network.ServerPlayerEntity to, net.minecraft.entity.Entity about) {
-        byte[] data = NativeBridge.nativeEntityDataFor(about.getUuidAsString());
-        if (data != null) NativeBridge.sendToPlayer(to.getName().getString(), "yog:entity_data", data);
-    }
-
-    /**
-     * A block's item form as the mod's {@code .yblock} says ({@code item}:
-     * how it stacks, whether it survives fire); the game's defaults otherwise.
-     */
-    private static Item.Settings blockItemSettings(YogContent.Item own) {
-        Item.Settings s = new Item.Settings();
-        if (own == null) return s;
-        s = s.maxCount(own.maxStack());
-        return own.fireResistant() ? s.fireproof() : s;
+        ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> YogServerEvents.entityUnloaded(entity));
     }
 }

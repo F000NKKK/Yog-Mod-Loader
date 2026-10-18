@@ -82,8 +82,8 @@ public class YogInventoryBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public ItemStack getCloneItemStack(BlockState state, HitResult target, LevelReader level, BlockPos pos, Player player) {
-        ItemStack stack = super.getCloneItemStack(state, target, level, pos, player);
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+        ItemStack stack = super.getCloneItemStack(level, pos, state);
         if (level instanceof Level lvl) {
             BlockEntity be = lvl.getBlockEntity(pos);
             if (be instanceof YogInventoryBlockEntity inv) {

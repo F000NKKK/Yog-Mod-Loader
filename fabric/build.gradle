@@ -34,10 +34,21 @@ if (versionProps.getProperty('status') == 'scaffold' && !project.hasProperty('al
         "Use a ported platform (see versions/*.properties) or pass -PallowScaffold to try anyway.")
 }
 
+// A version on the game's own (Mojang) names shares its code with the other
+// loaders (java-common/mc/<version>); one still on Yarn has its own, with the
+// Yarn code its versions share in src/main/java.
+def mojangNames = versionProps.getProperty('mappings') == 'mojang'
+
 sourceSets {
     main {
         java {
+            srcDirs = []
             srcDir "${platformDir}/src/main/java"
+            if (mojangNames) {
+                srcDir "../java-common/mc/${project.minecraft_version}/src/main/java"
+            } else {
+                srcDir "src/main/java"
+            }
             // Loader- and mapping-agnostic Java shared with other loader hosts.
             srcDir "../java-common/src/main/java"
             // Hot reload is for dev builds: a release jar (`build.sh publish`) leaves it out.
@@ -72,9 +83,14 @@ loom {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    // Yog uses Yarn mappings (libre). We deliberately do NOT bundle Mojmaps,
-    // whose license forbids redistribution.
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    // The game's own names where its code is shared with the other loaders
+    // (they compile against them too; the jar ships in intermediary, no
+    // mappings in it), else Yarn.
+    if (mojangNames) {
+        mappings loom.officialMojangMappings()
+    } else {
+        mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    }
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }

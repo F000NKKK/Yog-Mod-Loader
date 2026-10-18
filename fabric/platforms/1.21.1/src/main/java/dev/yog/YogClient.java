@@ -2,186 +2,55 @@ package dev.yog;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.TitleScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import org.joml.Matrix4f;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.world.level.block.Block;
 
-/** Client-side entry point: wires client packet receivers and client-side event hooks. */
+/** Fabric's client entry point: hooks Fabric's client events up to {@link YogClientEvents}. */
 public class YogClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
-        // Tints a mod sets per position (client::set_block_tint), on faces with a tint index.
         NativeBridge.ensureLoaded();
-        java.util.List<net.minecraft.block.Block> yogBlocks = new java.util.ArrayList<>();
-        for (dev.yog.data.YogContent.Block b : dev.yog.data.YogContent.cached(NativeBridge::nativeContent).blocks) {
-            net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(b.id());
-            if (id != null && net.minecraft.registry.Registries.BLOCK.containsId(id)) {
-                yogBlocks.add(net.minecraft.registry.Registries.BLOCK.get(id));
-            }
-        }
-        if (!yogBlocks.isEmpty()) {
-            net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry.BLOCK.register(
-                    (state, world, pos, tintIndex) -> YogClientApi.tint(pos),
-                    yogBlocks.toArray(new net.minecraft.block.Block[0]));
-        }
+        var tinted = YogClientEvents.tintedBlocks();
+        if (!tinted.isEmpty()) ColorProviderRegistry.BLOCK.register(YogClientEvents.tint, tinted.toArray(new Block[0]));
         // Pictures in item tooltips (ABI 2.2).
-        net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback.EVENT.register(
-                data -> data instanceof YogTooltipData d ? new YogClientTooltip(d) : null);
-        NativeBridge.ensureLoaded();
+        TooltipComponentCallback.EVENT.register(data -> data instanceof YogTooltipData d ? new YogClientTooltip(d) : null);
+        MenuScreens.register(YogContentRegistry.INVENTORY_MENU_TYPE, YogInventoryScreen::new);
 
-        // yog-inventory: register the generic Container/Menu screen (see
-        // rust/crates/yog-inventory/DESIGN.md). registerContent() (common init,
-        // runs before onInitializeClient) has already set the type.
-        net.minecraft.client.gui.screen.ingame.HandledScreens.register(
-                YogHost.INVENTORY_SCREEN_HANDLER_TYPE, YogInventoryScreen::new);
+        ClientPlayNetworking.registerGlobalReceiver(YogPayload.TYPE, (payload, context) -> context.client().execute(payload::toClient));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> YogClientEvents.disconnected());
 
-        // client packets — typed payloads since 1.20.5 (one codec per channel)
-        String channels = NativeBridge.nativeClientPacketChannels();
-        if (channels != null) {
-            for (String channel : channels.split("\n")) {
-                if (channel.isBlank()) continue;
-                Identifier id = Identifier.tryParse(channel);
-                if (id == null) continue;
-                YogPayload.register(id);
-                ClientPlayNetworking.registerGlobalReceiver(YogPayload.idFor(id), (payload, context) -> {
-                    byte[] data = payload.data();
-                    context.client().execute(() -> NativeBridge.nativeOnClientPacket(channel, data));
-                });
-            }
-        }
+        for (KeyMapping key : YogClientEvents.keyMappings()) KeyBindingHelper.registerKeyBinding(key);
+        YogClientEvents.renderers(EntityRendererRegistry::register);
 
-        // A world left: its entity data is forgotten.
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
-                (handler, client) -> NativeBridge.nativeEntityDataClientReset());
-
-        // Mods' entities: drawn by what the mods give (yog-body).
-        for (net.minecraft.entity.EntityType<?> type : YogEntityTypes.types()) {
-            registerRenderer(type);
-        }
-
-        // The mods' key bindings, in the game's controls.
-        registerKeyBindings();
-
-        // client tick
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
-            NativeBridge.nativeOnClientTick();
-        });
-
-        // HUD render — store DrawContext for Rust draw calls, then clear it
-        HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
-            NativeBridge.nativeGlInit();  // no-op after first call; deferred here so GL is active
-            NativeDraw.hudDrawContext = ctx;
-            MinecraftClient mc = MinecraftClient.getInstance();
-            var playerPos = mc.player != null ? mc.player.getEyePos() : net.minecraft.util.math.Vec3d.ZERO;
-            NativeBridge.nativeOnHudRender(
-                tickCounter.getTickDelta(false),
-                mc.getWindow().getScaledWidth(),
-                mc.getWindow().getScaledHeight(),
-                (float) mc.getWindow().getScaleFactor(),
-                (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
-            NativeDraw.hudDrawContext = null;
-            NativeDraw.syncGlState(); // raw GL from Rust desyncs GlStateManager caches
-        });
-
-        // World render — fires at end of world render frame with camera matrices
-        WorldRenderEvents.LAST.register(ctx -> {
-            NativeBridge.nativeGlInit();  // no-op after first call
-            MinecraftClient mc = MinecraftClient.getInstance();
-            Matrix4f proj = ctx.projectionMatrix();
-            // Since 1.20.5 the camera's rotation is the position matrix, not the
-            // (identity) matrix stack's — with that one, geometry follows the camera.
-            Matrix4f view = ctx.positionMatrix();
-            float[] vp = new float[16];
-            new Matrix4f(proj).mul(view).get(vp);
-            var camPos = ctx.camera().getPos();
-            var playerPos = mc.player != null ? mc.player.getEyePos() : camPos;
-            NativeBridge.nativeOnWorldRender(
-                ctx.tickCounter().getTickDelta(false),
-                mc.getWindow().getScaledWidth(),
-                mc.getWindow().getScaledHeight(),
-                (float) mc.getWindow().getScaleFactor(),
-                vp,
-                (float) camPos.x, (float) camPos.y, (float) camPos.z,
-                (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
-            NativeDraw.syncGlState(); // raw GL (e.g. plumbob demo) desyncs GL caches
-        });
-
-        // screen open / close + menu entry injection
-        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            String screenClass = screen.getClass().getSimpleName();
-            NativeBridge.nativeOnScreenOpen(screenClass);
-            ScreenEvents.remove(screen).register(s -> NativeBridge.nativeOnScreenClose(screenClass));
-
-            // Inject menu entry buttons on TitleScreen
-            if (screen instanceof TitleScreen) {
-                injectMenuButtons(screen);
-            }
+        ClientTickEvents.END_CLIENT_TICK.register(client -> YogClientEvents.tick());
+        HudRenderCallback.EVENT.register((ctx, delta) -> YogClientEvents.hud(ctx, delta.getGameTimeDeltaPartialTick(false)));
+        WorldRenderEvents.LAST.register(ctx -> YogClientEvents.world(ctx.projectionMatrix(), ctx.positionMatrix(),
+                ctx.camera().getPosition(), ctx.tickCounter().getGameTimeDeltaPartialTick(false)));
+        ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
+            YogClientEvents.screenOpened(screen);
+            ScreenEvents.remove(screen).register(YogClientEvents::screenClosed);
+            Screens.getButtons(screen).addAll(YogClientEvents.menuButtons(screen));
         });
     }
 
-    /** Each mod key binding as a game key under its mod's category; its presses go to the mods each tick. */
-    private static void registerKeyBindings() {
-        for (dev.yog.util.YogKeyBindings.Binding b : dev.yog.util.YogKeyBindings.declared(NativeBridge.nativeKeyBindings())) {
-            var key = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(new net.minecraft.client.option.KeyBinding(
-                    b.name(), net.minecraft.client.util.InputUtil.Type.KEYSYM, b.defaultKey(), b.categoryKey()));
-            dev.yog.util.YogKeyBindings.track(b.id(), key::wasPressed);
-        }
-    }
-
-    private static void injectMenuButtons(Screen screen) {
-        String raw = NativeBridge.nativeMenuEntries();
-        if (raw == null || raw.isEmpty()) return;
-
-        String[] lines = raw.split("\\n");
-        // Top-left corner — the one spot vanilla title/pause layouts leave
-        // free, so we never collide with (or shift) existing buttons.
-        int x = 4;
-        int y = 4;
-
-        for (String line : lines) {
-            String[] parts = line.split("\\t", 2);
-            if (parts.length < 2) continue;
-            String label = parts[0];
-            String uiId  = parts[1];
-
-            // Screen.addDrawableChild is protected — Fabric API exposes the
-            // screen's button list for exactly this kind of injection.
-            Screens.getButtons(screen).add(
-                ButtonWidget.builder(Text.translatable(label), btn -> {
-                    YogUIScreen.open(uiId, false, false);
-                }).position(x, y).size(100, 20).build()
-            );
-            y += 24;
-        }
-    }
-
-    /** Send a raw-byte packet to the server (client -> server). */
+    /** Raw bytes to the server (client → server); the runtime calls it by name. */
     public static boolean sendToServer(String channel, byte[] data) {
-        Identifier id = Identifier.tryParse(channel);
-        if (id == null) {
-            return false;
-        }
         try {
-            ClientPlayNetworking.send(new YogPayload(YogPayload.idFor(id), data));
+            YogPlatform.sendToServer(channel, data);
             return true;
         } catch (Throwable t) {
             return false;
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static void registerRenderer(net.minecraft.entity.EntityType<?> type) {
-        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
-                (net.minecraft.entity.EntityType<net.minecraft.entity.Entity>) type, ctx -> new YogEntityRenderer(ctx, YogEntityTypes.def(type)));
     }
 }

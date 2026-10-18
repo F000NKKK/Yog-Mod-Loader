@@ -42,7 +42,11 @@ public class YogInventoryMenu extends AbstractContainerMenu {
      * throwaway inventory just to hold synced slot contents (same convention vanilla's
      * generic chest menu uses). */
     public static YogInventoryMenu createClient(int windowId, Inventory playerInv, net.minecraft.network.FriendlyByteBuf buf) {
-        String defId = buf.readUtf();
+        return createClient(windowId, playerInv, buf.readUtf());
+    }
+
+    /** The client's menu of inventory {@code defId} (a loader that decodes the id itself). */
+    public static YogInventoryMenu createClient(int windowId, Inventory playerInv, String defId) {
         YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
         int slotCount = def != null ? def.slotCount : 0;
         return new YogInventoryMenu(windowId, playerInv, new SimpleContainer(slotCount), defId);
@@ -158,7 +162,7 @@ public class YogInventoryMenu extends AbstractContainerMenu {
         for (int p : def.machinePlaces) {
             if (p >= inventory.getContainerSize() || inventory.getItem(p).isEmpty()) continue;
             // What an ingredient leaves (a milk bucket's bucket): in its slot if that's empty, else the player's.
-            ItemStack left = inventory.getItem(p).getCraftingRemainingItem().copy();
+            ItemStack left = new ItemStack(inventory.getItem(p).getItem().getCraftingRemainingItem());
             inventory.removeItem(p, 1);
             if (left.isEmpty()) continue;
             if (inventory.getItem(p).isEmpty()) inventory.setItem(p, left);

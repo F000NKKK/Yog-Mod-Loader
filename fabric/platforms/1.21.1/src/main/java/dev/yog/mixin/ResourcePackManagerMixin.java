@@ -4,10 +4,11 @@ import dev.yog.YogLog;
 
 import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.PackRepository;
+import net.minecraft.server.packs.repository.RepositorySource;
+import net.minecraft.server.packs.repository.ServerPacksSource;
 import dev.yog.YogPackProvider;
-import net.minecraft.resource.ResourcePackManager;
-import net.minecraft.resource.ResourcePackProvider;
-import net.minecraft.resource.ResourceType;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -20,30 +21,30 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Adds the Yog pack provider to every resource/data pack manager, so the assets
  * and data bundled in .yog mods are served to the client and the server.
  */
-@Mixin(ResourcePackManager.class)
+@Mixin(PackRepository.class)
 public class ResourcePackManagerMixin {
     @Shadow
     @Final
     @Mutable
-    private Set<ResourcePackProvider> providers;
+    private Set<RepositorySource> sources;
 
     @Inject(method = "<init>", at = @At("TAIL"))
-    private void yog$addProvider(ResourcePackProvider[] providers, CallbackInfo ci) {
+    private void yog$addProvider(RepositorySource[] providers, CallbackInfo ci) {
         try {
-            // The data-pack manager is constructed with a *DataPack* provider;
-            // the client resource manager is not. Use that to pick the type.
+            // The data-pack repository is built with the server's built-in
+            // packs; the client resource one is not. Use that to pick the type.
             boolean isData = false;
-            for (ResourcePackProvider p : providers) {
-                if (p.getClass().getName().contains("DataPack")) {
+            for (RepositorySource p : providers) {
+                if (p instanceof ServerPacksSource) {
                     isData = true;
                     break;
                 }
             }
-            ResourceType type = isData ? ResourceType.SERVER_DATA : ResourceType.CLIENT_RESOURCES;
+            PackType type = isData ? PackType.SERVER_DATA : PackType.CLIENT_RESOURCES;
 
-            Set<ResourcePackProvider> updated = new HashSet<>(this.providers);
+            Set<RepositorySource> updated = new HashSet<>(this.sources);
             updated.add(new YogPackProvider(type));
-            this.providers = updated;
+            this.sources = updated;
         } catch (Throwable t) {
             YogLog.warn("could not register pack provider: " + t);
         }
