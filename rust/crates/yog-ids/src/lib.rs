@@ -207,6 +207,8 @@ names! {
         OVERWORLD = id!(ns::MINECRAFT, "overworld"),
         THE_NETHER = id!(ns::MINECRAFT, "the_nether"),
         THE_END = id!(ns::MINECRAFT, "the_end"),
+        /// The texture the game draws where one is missing.
+        MISSING_TEXTURE = id!(ns::MINECRAFT, "missingno"),
         /// What a book is given to players as.
         WRITTEN_BOOK = id!(ns::MINECRAFT, "written_book"),
     }

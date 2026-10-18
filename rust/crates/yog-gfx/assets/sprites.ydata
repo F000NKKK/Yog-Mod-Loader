@@ -40,4 +40,7 @@
   { name: "brewing/progress", description: "Brewing stand, brewing progress", size: [9, 28], atlas: "container/brewing_stand/brew_progress", legacy: { texture: "minecraft:textures/gui/container/brewing_stand.png", region: [176, 0, 9, 28] } },
   { name: "brewing/bubbles", description: "Brewing stand, bubbles", size: [12, 29], atlas: "container/brewing_stand/bubbles", legacy: { texture: "minecraft:textures/gui/container/brewing_stand.png", region: [185, 0, 12, 29] } },
   { name: "brewing/fuel", description: "Brewing stand, fuel", size: [18, 4], atlas: "container/brewing_stand/fuel_length", legacy: { texture: "minecraft:textures/gui/container/brewing_stand.png", region: [176, 29, 18, 4] } },
+  { name: "advancement/box", description: "Advancement title bar (drawn as a left and a right part)", size: [200, 26], atlas: "advancements/box_unobtained", legacy: { texture: "minecraft:textures/gui/advancements/widgets.png", region: [0, 26, 200, 26] } },
+  { name: "advancement/box_obtained", description: "Advancement title bar, obtained", size: [200, 26], atlas: "advancements/box_obtained", legacy: { texture: "minecraft:textures/gui/advancements/widgets.png", region: [0, 0, 200, 26] } },
+  { name: "advancement/description", description: "Advancement description box", size: [200, 26], atlas: "advancements/title_box", legacy: { texture: "minecraft:textures/gui/advancements/widgets.png", region: [0, 52, 200, 26] }, border: 10 },
 ]

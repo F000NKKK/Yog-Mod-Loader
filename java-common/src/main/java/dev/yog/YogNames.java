@@ -154,6 +154,7 @@ public final class YogNames {
         public static final String OVERWORLD = "minecraft:overworld";
         public static final String THE_NETHER = "minecraft:the_nether";
         public static final String THE_END = "minecraft:the_end";
+        public static final String MISSING_TEXTURE = "minecraft:missingno";
         public static final String WRITTEN_BOOK = "minecraft:written_book";
     }
 
