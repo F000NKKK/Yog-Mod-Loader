@@ -28,7 +28,8 @@
     "TravelMixin",
     "ModelPoseMixin",
     "LevelProjectionMixin",
-    "EntityRenderStateMixin"
+    "EntityRenderStateMixin",
+    "LevelMainPassMixin"
   ],
   "injectors": {
     "defaultRequire": 1
