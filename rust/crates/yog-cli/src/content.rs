@@ -67,7 +67,7 @@ use crate::content::source::registrations;
 use crate::content::source::{Content, rust_source};
 
 /// Where content files live, under the mod root.
-pub const CONTENT_DIR: &str = "content";
+pub const CONTENT_DIR: &str = yog_ids::project::CONTENT;
 /// The generated Rust code, under the mod root.
 pub const GENERATED_FILE: &str = ".yog-build/generated/yog-content.g.rs";
 

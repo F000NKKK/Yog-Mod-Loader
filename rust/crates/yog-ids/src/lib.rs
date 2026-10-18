@@ -148,6 +148,16 @@ names! {
         ANY_VERSION = "any",
     }
 
+    /// A mod project's folders.
+    project {
+        /// Its resources: `.yres` sets, `.ytexture`s, ….
+        RESOURCES = "resources",
+        /// Its content: blocks, items, recipes, books, definitions.
+        CONTENT = "content",
+        /// Its code and screens.
+        SRC = "src",
+    }
+
     /// Yog's programs.
     program {
         /// The command-line tool (`yog build`, `yog schema`, …).

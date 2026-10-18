@@ -112,6 +112,14 @@ public final class YogNames {
         public static final String ANY_VERSION = "any";
     }
 
+    public static final class Project {
+        private Project() {}
+
+        public static final String RESOURCES = "resources";
+        public static final String CONTENT = "content";
+        public static final String SRC = "src";
+    }
+
     public static final class Program {
         private Program() {}
 
