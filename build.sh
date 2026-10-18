@@ -318,17 +318,19 @@ publish_loader() {
     local loader="$1"
     local mc="$2"
     echo "==> publish $loader $mc"
+    # The jars are where that platform's Gradle project builds them.
+    local libs="$ROOT/$(MC_VERSION="$mc" gradle_dir "$loader")/build/libs"
     # Jars from previous mod versions linger in build/libs (Gradle never
     # removes them) and would be copied into artifacts/ alongside the fresh
     # one — always start from an empty libs dir.
-    rm -f "$ROOT/$loader/build/libs/"*.jar
+    rm -f "$libs/"*.jar
     # Scaffold / unported platforms fail to compile — skip with a warning
     # rather than aborting the whole publish.
     if MC_VERSION="$mc" build_loader "$loader"; then
         local out="$ROOT/artifacts/$loader/$mc"
         rm -rf "$out"; mkdir -p "$out"
         local archive="$(grep '^archives_base_name=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)"
-        find "$ROOT/$loader/build/libs" -maxdepth 1 -name "${archive}*${mc}*.jar" \
+        find "$libs" -maxdepth 1 -name "${archive}*${mc}*.jar" \
             ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
         echo "    artifacts/$loader/$mc/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
     else
