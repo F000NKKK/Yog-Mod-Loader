@@ -64,6 +64,15 @@ fn base64(bytes: &[u8]) -> String {
 /// `{message, line}` for a file that doesn't parse.
 pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
     match method {
+        // A file taken into a `.yres` entry: its value (`@bytes:…`) and the type its bytes are.
+        "media.import" => {
+            let file = path_param(params, "file")?;
+            let bytes = std::fs::read(&file).map_err(|e| json!(format!("{}: {e}", file.display())))?;
+            let value = yog_formats::yres::Value::Bytes(bytes);
+            let kind = yog_formats::yres::kind_of(&value);
+            let yog_formats::yres::Value::Bytes(bytes) = value else { unreachable!("made as bytes") };
+            Ok(json!({ "value": yog_data::typed::typed_string(&yog_data::Value::Bytes(bytes)), "type": kind.name() }))
+        }
         // The service's version: a tool restarts it when the binary changes.
         "version" => Ok(json!(env!("CARGO_PKG_VERSION"))),
         // `.yres` text → its entries; media values as their text form (`@bytes:…`).
