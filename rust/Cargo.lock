@@ -1766,7 +1766,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.47.0"
+version = "0.47.1"
 dependencies = [
  "base64",
  "criterion",
@@ -1914,7 +1914,7 @@ dependencies = [
 
 [[package]]
 name = "yog-home"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "dirs",
  "serde",
