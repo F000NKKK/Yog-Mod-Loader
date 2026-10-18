@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
-import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.Model;
@@ -77,7 +76,14 @@ public final class YogBody {
         }
     }
 
-    public static final RenderStateDataKey<Frame> FRAME = RenderStateDataKey.create(() -> "yog:body");
+    /** The mods' answer kept on {@code state} this frame, if any. */
+    private static Frame frameOf(EntityRenderState state) {
+        return (Frame) ((YogBodyState) state).yog$frame();
+    }
+
+    private static void setFrame(EntityRenderState state, Frame frame) {
+        ((YogBodyState) state).yog$setFrame(frame);
+    }
 
     /** Drawing a capture or a stand-in: the mods aren't asked. */
     private static int capturing;
@@ -112,7 +118,7 @@ public final class YogBody {
 
     /** LivingEntityRenderer.extractRenderState TAIL: asks the mods, keeps the answer on the state. */
     public static void extract(LivingEntityRenderer<?, ?, ?> self, LivingEntity e, LivingEntityRenderState state, float partial) {
-        state.setData(FRAME, null);
+        setFrame(state, null);
         if (capturing > 0 || !YogBodyWire.anyTracked() || !YogBodyWire.tracked(e.getUUID(), typeId(e))) return;
         Ops ops = ask(e, partial);
         if (ops == Ops.NONE) return;
@@ -131,7 +137,7 @@ public final class YogBody {
                 }
             }
         }
-        state.setData(FRAME, new Frame(ops, disguise, renderer, OverlayTexture.NO_OVERLAY));
+        setFrame(state, new Frame(ops, disguise, renderer, OverlayTexture.NO_OVERLAY));
     }
 
     @SuppressWarnings("unchecked")
@@ -147,7 +153,7 @@ public final class YogBody {
 
     /** Submit HEAD: the disguise; true if the entity itself isn't drawn. */
     public static boolean begin(LivingEntityRenderState state, PoseStack pose, SubmitNodeCollector out, CameraRenderState camera) {
-        Frame f = state.getData(FRAME);
+        Frame f = frameOf(state);
         if (f == null) return false;
         if (f.disguise != null) f.disguiseRenderer.submit(f.disguise, pose, out, camera);
         if (!f.ops.hide) return false;
@@ -164,7 +170,7 @@ public final class YogBody {
 
     /** After vanilla turned the body: the mods' turn, then their entity-space meshes. */
     public static void rotated(LivingEntityRenderState state, PoseStack pose, SubmitNodeCollector out) {
-        Frame f = state.getData(FRAME);
+        Frame f = frameOf(state);
         if (f == null) return;
         if (f.ops.root != null) pose.mulPose(new Matrix4f().set(f.ops.root));
         draw(f, YogBodyWire.ANCHOR_ENTITY, null, pose, out, state.lightCoords);
@@ -173,7 +179,7 @@ public final class YogBody {
     /** After a model was animated for {@code state}: the mods' part changes (it's reset at each animation). */
     public static void posed(Model<?> model, Object state) {
         if (!(state instanceof EntityRenderState s)) return;
-        Frame f = s.getData(FRAME);
+        Frame f = frameOf(s);
         if (f == null || f.ops.bones.isEmpty()) return;
         Map<String, ModelPart[]> parts = parts(model);
         for (BoneOp o : f.ops.bones) {
@@ -201,7 +207,7 @@ public final class YogBody {
     /** Before the model space is left: the mods' model- and part-space meshes. */
     @SuppressWarnings("unchecked")
     public static void drawn(EntityModel<?> model, LivingEntityRenderState state, PoseStack pose, SubmitNodeCollector out) {
-        Frame f = state.getData(FRAME);
+        Frame f = frameOf(state);
         if (f == null || f.ops.meshes.isEmpty()) return;
         draw(f, YogBodyWire.ANCHOR_MODEL, null, pose, out, state.lightCoords);
         if (!f.ops.has(YogBodyWire.ANCHOR_BONE)) return;
@@ -250,26 +256,24 @@ public final class YogBody {
      * draw for it, kept on its state; nothing when they draw nothing.
      */
     public static void extractEntity(Entity e, EntityRenderState state, float partial) {
-        state.setData(FRAME, null);
+        setFrame(state, null);
         if (capturing > 0 || !YogBodyWire.tracked(e.getUUID(), typeId(e))) return;
         Ops ops = ask(e, partial);
         if (ops == Ops.NONE) return;
         int overlay = e instanceof LivingEntity l
                 ? OverlayTexture.pack(0, l.hurtTime > 0 || l.deathTime > 0)
                 : OverlayTexture.NO_OVERLAY;
-        state.setData(BODY_YAW, e instanceof LivingEntity l ? bodyYaw(l, partial) : Mth.rotLerp(partial, e.yRotO, e.getYRot()));
-        state.setData(FRAME, new Frame(ops, null, null, overlay));
+        ((YogBodyState) state).yog$setBodyYaw(e instanceof LivingEntity l ? bodyYaw(l, partial) : Mth.rotLerp(partial, e.yRotO, e.getYRot()));
+        setFrame(state, new Frame(ops, null, null, overlay));
     }
 
-    /** A mod entity's body yaw at extraction (its state has none of its own). */
-    private static final RenderStateDataKey<Float> BODY_YAW = RenderStateDataKey.create(() -> "yog:body_yaw");
 
     /** A mod's own entity: no vanilla model, only what the mods draw — entity space after its yaw, then model space. */
     public static void drawEntity(EntityRenderState state, PoseStack pose, SubmitNodeCollector out) {
-        Frame f = state.getData(FRAME);
+        Frame f = frameOf(state);
         if (f == null) return;
         pose.pushPose();
-        pose.mulPose(Axis.YP.rotationDegrees(HALF_TURN - state.getDataOrDefault(BODY_YAW, 0f)));
+        pose.mulPose(Axis.YP.rotationDegrees(HALF_TURN - ((YogBodyState) state).yog$bodyYaw()));
         if (f.ops.root != null) pose.mulPose(new Matrix4f().set(f.ops.root));
         draw(f, YogBodyWire.ANCHOR_ENTITY, null, pose, out, state.lightCoords);
         pose.scale(-1.0F, -1.0F, 1.0F);

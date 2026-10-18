@@ -28,9 +28,9 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
         // from imageWidth/Height in `init()`) land under that
         // decoration instead of the two disagreeing about where the
         // container's top-left corner is.
-        super(handler, inv, title, width(YogHost.INVENTORY_DEFS.get(handler.defId)), height(YogHost.INVENTORY_DEFS.get(handler.defId)));
+        super(handler, inv, title, width(YogContentRegistry.INVENTORY_DEFS.get(handler.defId)), height(YogContentRegistry.INVENTORY_DEFS.get(handler.defId)));
         this.uiId = handler.defId;
-        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(handler.defId);
+        YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(handler.defId);
         if (def != null) {
             this.titleLabelX = TITLE_X;
             this.titleLabelY = TITLE_Y;

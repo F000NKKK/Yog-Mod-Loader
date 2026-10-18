@@ -4,7 +4,6 @@ import dev.yog.util.YogPackStager;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.function.Consumer;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.PackLocationInfo;
@@ -18,7 +17,7 @@ import net.minecraft.server.packs.repository.RepositorySource;
 
 /**
  * Exposes the {@code assets/} and {@code data/} bundled inside {@code .yog} mods
- * to the game as a single always-on pack — the same way Fabric exposes a mod
+ * to the game as a single always-on pack — the same way a loader exposes a mod
  * jar's resources, but for our runtime-loaded mods.
  */
 public class YogPackProvider implements RepositorySource {
@@ -45,7 +44,7 @@ public class YogPackProvider implements RepositorySource {
     public void loadPacks(Consumer<Pack> adder) {
         Path dir;
         try {
-            dir = YogPackStager.stage(FabricLoader.getInstance().getGameDir(), "fabric", SharedConstants.getCurrentVersion().name(), MC121_LAYOUT, PACK_MCMETA,
+            dir = YogPackStager.stage(YogPlatform.gameDir(), YogPlatform.LOADER, SharedConstants.getCurrentVersion().name(), MC121_LAYOUT, PACK_MCMETA,
                     NativeBridge::nativeContent);
         } catch (IOException e) {
             YogLog.warn("failed to stage mod packs: " + e);

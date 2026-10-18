@@ -74,8 +74,10 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
     }
 
     /** Register {@link #CODEC} under {@code yog:callback_generator}. Call once at mod-init. */
-    public static void registerCodec() {
-        Registry.register(BuiltInRegistries.CHUNK_GENERATOR, Identifier.fromNamespaceAndPath("yog", "callback_generator"), CODEC);
+    /** Its codec, with {@link YogRegistrar}: dimensions name the generator {@code yog:callback_generator}. */
+    public static void schedule() {
+        YogRegistrar.add(net.minecraft.core.registries.Registries.CHUNK_GENERATOR, sink -> sink.register(
+                net.minecraft.core.registries.Registries.CHUNK_GENERATOR, Identifier.fromNamespaceAndPath(YogNames.Ns.YOG, "callback_generator"), CODEC));
     }
 
     @Override

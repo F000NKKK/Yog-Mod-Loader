@@ -1,0 +1,33 @@
+# NeoForge 26.2 mod metadata — Yog Mod Loader host for NeoForge
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "AGPL-3.0-only"
+
+[[mods]]
+modId = "yog"
+version = "${mod_version}"
+displayName = "Yog"
+authors = "Yog Team"
+description = '''
+Yog Mod Loader — run Rust mods inside Minecraft via NeoForge.
+The Gate and the Key between Java and Rust worlds.
+'''
+logoFile = ""
+
+# Unobfuscated releases declare the mixin configs here (no jar manifest, no refmap).
+[[mixins]]
+config = "yog.mixins.json"
+
+[[dependencies.yog]]
+    modId = "neoforge"
+    type = "required"
+    versionRange = "[26.2,)"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.yog]]
+    modId = "minecraft"
+    type = "required"
+    versionRange = "${minecraft_version_range}"
+    ordering = "NONE"
+    side = "BOTH"

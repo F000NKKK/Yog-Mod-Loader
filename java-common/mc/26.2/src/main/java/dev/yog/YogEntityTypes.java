@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -48,9 +46,13 @@ public final class YogEntityTypes {
         }
     }
 
-    /** Registers every mod's type, with its attributes. */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static void register(List<YogContent.Entity> defs) {
+    /** Every mod's type, with {@link YogRegistrar}; their attributes go to the loader's hook ({@link #attributes}). */
+    static void schedule(List<YogContent.Entity> defs) {
+        YogRegistrar.add(Registries.ENTITY_TYPE, sink -> register(defs, sink));
+    }
+
+    @SuppressWarnings({"rawtypes"})
+    private static void register(List<YogContent.Entity> defs, YogRegistrar.Sink sink) {
         for (YogContent.Entity def : defs) {
             Identifier id = Identifier.tryParse(def.id());
             if (id == null || TYPES.containsKey(def.id())) continue;
@@ -67,20 +69,36 @@ public final class YogEntityTypes {
             EntityType<?> type = b.build(ResourceKey.create(Registries.ENTITY_TYPE, id));
             DEFS.put(type, def);
             TYPES.put(def.id(), type);
-            Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type);
-            if (def.living()) FabricDefaultAttributeRegistry.register((EntityType<? extends Mob>) type, attributes(def));
+            sink.register(Registries.ENTITY_TYPE, id, type);
         }
     }
 
-    /** Spawn eggs of the living types that have one ({@code <id>_spawn_egg}). */
+    /** How a loader gives a living type its default attributes. */
+    public interface Attributes {
+        void put(EntityType<? extends Mob> type, AttributeSupplier.Builder attributes);
+    }
+
+    /** The living types' attributes, to the loader's hook (the attributes are registered by then). */
     @SuppressWarnings("unchecked")
-    public static void eggs() {
+    public static void attributes(Attributes out) {
+        for (EntityType<?> type : TYPES.values()) {
+            YogContent.Entity def = DEFS.get(type);
+            if (def.living()) out.put((EntityType<? extends Mob>) type, attributes(def));
+        }
+    }
+
+    /** Spawn eggs of the living types that have one ({@code <id>_spawn_egg}), with {@link YogRegistrar}. */
+    static void scheduleEggs() {
+        YogRegistrar.add(Registries.ITEM, YogEntityTypes::eggs);
+    }
+
+    private static void eggs(YogRegistrar.Sink sink) {
         for (Map.Entry<String, EntityType<?>> t : TYPES.entrySet()) {
             YogContent.Entity def = DEFS.get(t.getValue());
             if (def.spawnEgg() == null || !def.living()) continue;
             Identifier id = Identifier.tryParse(def.id() + "_spawn_egg");
             if (id == null) continue;
-            Registry.register(BuiltInRegistries.ITEM, id,
+            sink.register(Registries.ITEM, id,
                     new SpawnEggItem(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).spawnEgg(t.getValue())));
         }
     }

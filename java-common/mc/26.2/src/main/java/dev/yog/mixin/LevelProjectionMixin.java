@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogClient;
+import dev.yog.YogClientEvents;
 import net.minecraft.client.renderer.GameRenderer;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,7 +17,7 @@ public abstract class LevelProjectionMixin {
     @ModifyArg(method = "renderLevel", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;getBuffer(Lorg/joml/Matrix4f;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;"))
     private Matrix4f yog$projection(Matrix4f projection) {
-        YogClient.levelProjection.set(projection);
+        YogClientEvents.levelProjection.set(projection);
         return projection;
     }
 }

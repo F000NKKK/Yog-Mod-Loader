@@ -62,7 +62,7 @@ public final class YogTools {
             defense.put(ArmorType.BOOTS, m.feet());
             defense.put(ArmorType.BODY, m.chest());
             ArmorMaterial material = new ArmorMaterial(m.durability(), defense, m.enchantability(),
-                    BuiltInRegistries.SOUND_EVENT.wrapAsHolder(YogHost.soundEvent(m.equipSound())),
+                    BuiltInRegistries.SOUND_EVENT.wrapAsHolder(YogContentRegistry.soundEvent(m.equipSound())),
                     m.toughness(), m.knockbackResistance(), repairTag(m.repair()), asset(m.texture()));
             Item.Properties armor = s.humanoidArmor(material, armorType(a.slot()));
             return new Named(repairable(armor, m.repair()), p.name(), p.tooltip());

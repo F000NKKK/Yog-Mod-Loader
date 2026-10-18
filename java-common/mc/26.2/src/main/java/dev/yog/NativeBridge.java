@@ -8,9 +8,7 @@ import dev.yog.util.YogEntityFlags;
 import dev.yog.util.YogNativeRuntime;
 import java.util.Locale;
 import java.util.Optional;
-import net.fabricmc.loader.api.FabricLoader;
 import java.util.UUID;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.commands.arguments.ParticleArgument;
 import net.minecraft.commands.arguments.blocks.BlockInput;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
@@ -82,7 +80,7 @@ import org.lwjgl.glfw.GLFW;
 import com.mojang.brigadier.StringReader;
 
 /**
- * Bridge between the Fabric host and the native Yog runtime ({@code libyog_runtime}).
+ * Bridge between the host (any loader: {@link YogPlatform}) and the native Yog runtime ({@code libyog_runtime}).
  * Calls into Rust go through the {@code native} methods; calls back from Rust into
  * the game (e.g. {@link #broadcast}) are static methods invoked over JNI.
  */
@@ -200,10 +198,10 @@ public final class NativeBridge {
         Entity e = entityByUuid(uuid);
         Identifier id = Identifier.tryParse(channel);
         if (e == null || id == null) return false;
-        java.util.Set<ServerPlayer> to = new java.util.LinkedHashSet<>(net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(e));
+        java.util.Set<ServerPlayer> to = new java.util.LinkedHashSet<>(YogPlatform.tracking(e));
         if (e instanceof ServerPlayer self) to.add(self);
         for (ServerPlayer p : to) {
-            ServerPlayNetworking.send(p, new YogPayload(YogPayload.idFor(id), data));
+            YogPlatform.sendToClient(p, channel, data);
         }
         return true;
     }
@@ -214,7 +212,7 @@ public final class NativeBridge {
         if (p == null || id == null) {
             return false;
         }
-        ServerPlayNetworking.send(p, new YogPayload(YogPayload.idFor(id), data));
+        YogPlatform.sendToClient(p, channel, data);
         return true;
     }
 
@@ -1556,7 +1554,7 @@ public final class NativeBridge {
             return;
         }
         YogNativeRuntime.loadEmbedded();
-        nativeInit(YogNativeRuntime.modsDir(FabricLoader.getInstance().getGameDir()));
+        nativeInit(YogNativeRuntime.modsDir(YogPlatform.gameDir()));
         loaded = true;
     }
 
@@ -1839,18 +1837,13 @@ public final class NativeBridge {
     /** TSV lines: id \t name \t version \t authors \t description. */
     public static String listPlatformMods() {
         StringBuilder sb = new StringBuilder();
-        for (net.fabricmc.loader.api.ModContainer c
-                : net.fabricmc.loader.api.FabricLoader.getInstance().getAllMods()) {
-            var m = c.getMetadata();
-            String authors = m.getAuthors().stream()
-                    .map(p -> p.getName())
-                    .reduce((a, b) -> a + ", " + b).orElse("");
+        for (dev.yog.util.YogModInfo m : YogPlatform.mods()) {
             if (sb.length() > 0) sb.append('\n');
-            sb.append(tsvField(m.getId())).append('\t')
-              .append(tsvField(m.getName())).append('\t')
-              .append(tsvField(m.getVersion().getFriendlyString())).append('\t')
-              .append(tsvField(authors)).append('\t')
-              .append(tsvField(m.getDescription()));
+            sb.append(tsvField(m.id())).append('\t')
+              .append(tsvField(m.name())).append('\t')
+              .append(tsvField(m.version())).append('\t')
+              .append(tsvField(m.authors())).append('\t')
+              .append(tsvField(m.description()));
         }
         return sb.toString();
     }
@@ -2007,7 +2000,7 @@ public final class NativeBridge {
     /** Whether Java mod {@code id} is loaded (Yog mods are the runtime's to know). */
     public static boolean isModLoaded(String id) {
         try {
-            return net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded(id);
+            return YogPlatform.isModLoaded(id);
         } catch (Throwable t) {
             return false;
         }

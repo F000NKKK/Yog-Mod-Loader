@@ -1,7 +1,6 @@
 package dev.yog;
 
 import dev.yog.util.YogInventoryDef;
-import net.fabricmc.fabric.api.menu.v1.ExtendedMenuProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
@@ -22,14 +21,14 @@ import net.minecraft.world.level.storage.ValueOutput;
  * `.inventory(id)` — see rust/crates/yog-inventory/DESIGN.md. One instance
  * per block position; `defId` names the `InventoryDef` (slot count, layout,
  * player-inventory inclusion) it was built from, looked up from
- * {@link YogHost#INVENTORY_DEFS}.
+ * {@link YogContentRegistry#INVENTORY_DEFS}.
  */
-public class YogInventoryBlockEntity extends BlockEntity implements Container, ExtendedMenuProvider<String> {
+public class YogInventoryBlockEntity extends BlockEntity implements Container, net.minecraft.world.MenuProvider {
     private final String defId;
     private NonNullList<ItemStack> items;
 
     public YogInventoryBlockEntity(BlockPos pos, BlockState state, String defId, int slotCount) {
-        super(YogHost.INVENTORY_BLOCK_ENTITY_TYPE, pos, state);
+        super(YogContentRegistry.INVENTORY_BLOCK_ENTITY_TYPE, pos, state);
         this.defId = defId;
         this.items = NonNullList.withSize(slotCount, ItemStack.EMPTY);
     }
@@ -76,7 +75,7 @@ public class YogInventoryBlockEntity extends BlockEntity implements Container, E
 
     @Override
     public Component getDisplayName() {
-        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
         String title = def != null ? def.title : "";
         return title == null || title.isEmpty() ? Component.literal("Inventory") : Component.literal(title);
     }
@@ -84,11 +83,6 @@ public class YogInventoryBlockEntity extends BlockEntity implements Container, E
     @Override
     public AbstractContainerMenu createMenu(int syncId, net.minecraft.world.entity.player.Inventory playerInv, Player player) {
         return YogInventoryMenu.create(syncId, playerInv, this, defId);
-    }
-
-    @Override
-    public String getScreenOpeningData(ServerPlayer player) {
-        return defId;
     }
 
     /** Unused — Yog inventories have no synced int properties (progress bars, etc.) yet. */

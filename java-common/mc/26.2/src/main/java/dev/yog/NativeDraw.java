@@ -14,7 +14,7 @@ import net.minecraft.world.item.Items;
 /**
  * Client-only HUD draw helpers called from Rust via JNI during on_hud_render.
  *
- * {@link #hudDrawContext} is set by {@link YogClient} immediately before
+ * {@link #hudDrawContext} is set by {@link YogClientEvents} immediately before
  * {@code nativeOnHudRender} and cleared immediately after. Since 1.21.6 the
  * GUI is first extracted (these calls record what to draw) and drawn after.
  */
