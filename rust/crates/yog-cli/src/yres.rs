@@ -832,16 +832,11 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                     };
                     let (target, id) = match e.kind {
                         Kind::Image => {
-                            let Some(stem) = rel.strip_suffix(".png") else {
+                            let Some(texture) = yog_formats::yres::image_texture(&rel, e.texture.as_deref()) else {
                                 errors
                                     .push(format!("{at}: {:?}: images must be .png files", e.name));
                                 continue;
                             };
-                            let texture = e
-                                .texture
-                                .as_deref()
-                                .map(|t| t.trim_matches('/').trim_end_matches(".png").to_string())
-                                .unwrap_or_else(|| stem.to_string());
                             let source = format!("{mod_id}:{texture}");
                             c.refs.images.insert(reference, source.clone());
                             (format!("assets/{mod_id}/textures/{texture}.png"), source)

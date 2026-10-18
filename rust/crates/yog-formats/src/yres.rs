@@ -56,3 +56,13 @@ pub fn split_file_name(file_name: &str) -> Option<(&str, Option<&str>)> {
         None => (stem, None),
     })
 }
+
+/// Where an image entry's texture goes, under `assets/<mod id>/textures/`:
+/// its `texture`, else its file's path under `resources/` (`rel`) without
+/// `.png`. `None` for a file that isn't a `.png`.
+#[must_use]
+pub fn image_texture(rel: &str, texture: Option<&str>) -> Option<String> {
+    let png = yog_ids::res::PNG;
+    let stem = rel.strip_suffix(png)?;
+    Some(texture.map_or_else(|| stem.to_string(), |t| t.trim_matches('/').trim_end_matches(png).to_string()))
+}
