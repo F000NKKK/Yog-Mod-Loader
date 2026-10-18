@@ -137,6 +137,7 @@ public final class YogNames {
         public static final String ITEM_DIR = "item/";
         public static final String BLOCK_DIR = "block/";
         public static final String GUI_SPRITES = "gui/sprites/";
+        public static final String ATLASES = "atlases/";
         public static final String LANG = "lang/";
         public static final String BUILTIN = "builtin/";
         public static final String PNG = ".png";

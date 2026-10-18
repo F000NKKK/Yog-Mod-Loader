@@ -104,7 +104,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>)
             }));
         }
         let (ns, path) = yog_ids::split(&atlas);
-        out.outputs.push((format!("{}/{ns}/atlases/{path}{}", yog_ids::pack::ASSETS, yog_ids::res::JSON), super::pretty(&json!({ "sources": sources }))));
+        out.outputs.push((format!("{}/{ns}/{}{path}{}", yog_ids::pack::ASSETS, yog_ids::res::ATLASES, yog_ids::res::JSON), super::pretty(&json!({ "sources": sources }))));
     }
     out
 }

@@ -182,6 +182,8 @@ names! {
         BLOCK_DIR = concatcp!(kind::BLOCK, sep::PATH),
         /// The GUI atlas's sprites under `textures/` (1.20.2+).
         GUI_SPRITES = concatcp!("gui", sep::PATH, "sprites", sep::PATH),
+        /// The atlases' definitions: `<ns>:atlases/<atlas>.json` (every pack's sources combine).
+        ATLASES = concatcp!("atlases", sep::PATH),
         /// The language files' folder: `<ns>:lang/<locale>.json`.
         LANG = concatcp!("lang", sep::PATH),
         /// Models the game draws in code (`builtin/entity`), not from elements.

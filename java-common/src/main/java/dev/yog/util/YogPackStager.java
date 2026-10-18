@@ -124,6 +124,10 @@ public final class YogPackStager {
                                     // Several mods (or overlays) adding to one tag: all of them.
                                     String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
                                     Files.writeString(target, mergeTags(Files.readString(target), json));
+                                } else if (isAtlasPath(n) && Files.exists(target)) {
+                                    // Several mods' textures in one atlas: every mod's sources.
+                                    String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                                    Files.writeString(target, mergeAtlases(Files.readString(target), json));
                                 } else {
                                     Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
                                 }
@@ -153,6 +157,28 @@ public final class YogPackStager {
         String[] p = path.split("/", 4);
         return p.length == 4 && p[0].equals("data") && p[2].equals("tags");
     }
+
+    /** {@code assets/<ns>/atlases/<atlas>.json} — an atlas's sources. */
+    static boolean isAtlasPath(String path) {
+        String[] p = path.split("/", 4);
+        return p.length == 4 && p[0].equals(dev.yog.YogNames.Pack.ASSETS) && (p[2] + "/").equals(dev.yog.YogNames.Res.ATLASES);
+    }
+
+    /** Two atlas definitions as one: the sources of both, in order. */
+    public static String mergeAtlases(String a, String b) {
+        Gson gson = new Gson();
+        JsonObject x = gson.fromJson(a, JsonObject.class);
+        JsonObject y = gson.fromJson(b, JsonObject.class);
+        if (x == null) return b;
+        if (y == null) return a;
+        com.google.gson.JsonArray sources = x.has(ATLAS_SOURCES) ? x.getAsJsonArray(ATLAS_SOURCES) : new com.google.gson.JsonArray();
+        if (y.has(ATLAS_SOURCES)) sources.addAll(y.getAsJsonArray(ATLAS_SOURCES));
+        x.add(ATLAS_SOURCES, sources);
+        return gson.toJson(x);
+    }
+
+    /** An atlas definition's list of where its sprites come from. */
+    private static final String ATLAS_SOURCES = "sources";
 
     /** Two tag files as one: the values of both (once each); {@code replace} if either says so. */
     public static String mergeTags(String a, String b) {
