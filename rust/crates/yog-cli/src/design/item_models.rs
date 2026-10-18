@@ -39,7 +39,7 @@ pub fn look(res: &Resources, id: &str) -> Option<Look> {
     let (parents, textures) = model_chain(
         res,
         &model,
-        appearance.as_ref().and_then(|(item, _)| item.get("model")),
+        appearance.as_ref().and_then(|(item, _)| item.get(yog_ids::content_field::MODEL)),
     );
     let is = |m: &str| parents.iter().any(|x| yog_ids::qualify(x) == m);
     if looks.models.heads.iter().any(|m| is(m))
@@ -120,14 +120,14 @@ fn model_chain(
         let Some(json) = json else {
             break;
         };
-        if let Some(t) = json.get("textures").and_then(Value::as_object) {
+        if let Some(t) = json.get(yog_ids::model::TEXTURES).and_then(Value::as_object) {
             for (k, v) in t {
                 if let Some(v) = v.as_str() {
                     textures.entry(k.clone()).or_insert_with(|| v.to_string());
                 }
             }
         }
-        match json.get("parent").and_then(Value::as_str) {
+        match json.get(yog_ids::model::PARENT).and_then(Value::as_str) {
             Some(p) => at = p.to_string(),
             None => break,
         }

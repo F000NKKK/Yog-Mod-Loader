@@ -224,6 +224,49 @@ public final class YogNames {
         public static final String RECIPE_COUNT = "RecipeCount";
     }
 
+    public static final class Model {
+        private Model() {}
+
+        public static final String PARENT = "parent";
+        public static final String TEXTURES = "textures";
+        public static final String ELEMENTS = "elements";
+        public static final String DISPLAY = "display";
+        public static final String FACES = "faces";
+        public static final String FROM = "from";
+        public static final String TO = "to";
+        public static final String UV = "uv";
+        public static final String ROTATION = "rotation";
+        public static final String TEXTURE = "texture";
+        public static final String LAYER0 = "layer0";
+        public static final String PARTICLE = "particle";
+        public static final String MODEL = "model";
+        public static final String ORIGIN = "origin";
+        public static final String AXIS = "axis";
+        public static final String ANGLE = "angle";
+        public static final String RESCALE = "rescale";
+        public static final String VARIANTS = "variants";
+        public static final String MULTIPART = "multipart";
+        public static final String WHEN = "when";
+        public static final String APPLY = "apply";
+        public static final String OR = "OR";
+        public static final String AND = "AND";
+    }
+
+    public static final class ContentField {
+        private ContentField() {}
+
+        public static final String ID = "id";
+        public static final String KIND = "kind";
+        public static final String MODEL = "model";
+        public static final String ITEM_MODEL = "item_model";
+        public static final String ITEM = "item";
+        public static final String POTION = "potion";
+        public static final String EFFECTS = "effects";
+        public static final String EFFECT = "effect";
+        public static final String OF = "of";
+        public static final String COLOR = "color";
+    }
+
     public static final class YuiAttr {
         private YuiAttr() {}
 

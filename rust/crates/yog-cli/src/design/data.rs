@@ -59,3 +59,8 @@ pub fn runtime_ids(v: &mut Value) {
         _ => {}
     }
 }
+
+/// The value at `keys` of `v`, one map key after another.
+pub fn at<'a>(v: &'a Value, keys: &[&str]) -> Option<&'a Value> {
+    keys.iter().try_fold(v, |v, k| v.get(*k))
+}

@@ -292,6 +292,52 @@ names! {
         RECIPE_COUNT = "RecipeCount",
     }
 
+    /// The fields of the game's model JSON (block and item models, block states' variants).
+    model {
+        PARENT = "parent",
+        TEXTURES = "textures",
+        ELEMENTS = "elements",
+        DISPLAY = "display",
+        FACES = "faces",
+        FROM = "from",
+        TO = "to",
+        UV = "uv",
+        ROTATION = "rotation",
+        TEXTURE = "texture",
+        /// A sprite item's (`item/generated`) first layer.
+        LAYER0 = "layer0",
+        /// The texture a block's particles take, and what a face falls back to.
+        PARTICLE = "particle",
+        /// A block state variant's model.
+        MODEL = "model",
+        /// An element's rotation.
+        ORIGIN = "origin",
+        AXIS = "axis",
+        ANGLE = "angle",
+        RESCALE = "rescale",
+        /// Block states: variants by property values, or parts applied when they match.
+        VARIANTS = "variants",
+        MULTIPART = "multipart",
+        WHEN = "when",
+        APPLY = "apply",
+        OR = "OR",
+        AND = "AND",
+    }
+
+    /// The fields of Yog's content files (`.yblock`, `.yitem`, `.ydef`) the tools read directly.
+    content_field {
+        ID = "id",
+        KIND = "kind",
+        MODEL = "model",
+        ITEM_MODEL = "item_model",
+        ITEM = "item",
+        POTION = "potion",
+        EFFECTS = "effects",
+        EFFECT = "effect",
+        OF = "of",
+        COLOR = "color",
+    }
+
     /// The attributes of `.yui` elements.
     yui_attr {
         ID = "id",

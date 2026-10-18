@@ -139,14 +139,14 @@ pub fn shape_of(elements: &[Value], texture: &mut dyn FnMut(&str) -> Option<Arc<
     elements
         .iter()
         .filter_map(|e| {
-            let (from, to) = (triple(e.get("from"))?, triple(e.get("to"))?);
+            let (from, to) = (triple(e.get(yog_ids::model::FROM))?, triple(e.get(yog_ids::model::TO))?);
             let (f, t) = ([0, 1, 2].map(|i| from[i].min(to[i])), [0, 1, 2].map(|i| from[i].max(to[i])));
-            let faces = e.get("faces")?;
+            let faces = e.get(yog_ids::model::FACES)?;
             let faces: Faces = std::array::from_fn(|slot| {
                 let face = faces.get(FACE_NAMES[slot])?;
-                let img = face.get("texture").and_then(Value::as_str).and_then(&mut *texture).unwrap_or_else(|| Arc::new(missing_image()));
+                let img = face.get(yog_ids::model::TEXTURE).and_then(Value::as_str).and_then(&mut *texture).unwrap_or_else(|| Arc::new(missing_image()));
                 let uv = face
-                    .get("uv")
+                    .get(yog_ids::model::UV)
                     .and_then(Value::as_array)
                     .and_then(|a| Some([a.first()?.as_f64()? as f32, a.get(1)?.as_f64()? as f32, a.get(2)?.as_f64()? as f32, a.get(3)?.as_f64()? as f32]))
                     .unwrap_or_else(|| default_uv(slot, f, t));
@@ -159,12 +159,12 @@ pub fn shape_of(elements: &[Value], texture: &mut dyn FnMut(&str) -> Option<Arc<
 
 /// An element's `rotation`: `{ origin, axis: "x"|"y"|"z", angle, rescale }`.
 fn element_turn(e: &Value) -> Option<Turn> {
-    let r = e.get("rotation")?;
-    let o = r.get("origin")?.as_array()?;
+    let r = e.get(yog_ids::model::ROTATION)?;
+    let o = r.get(yog_ids::model::ORIGIN)?.as_array()?;
     let origin = [o.first()?.as_f64()? as f32, o.get(1)?.as_f64()? as f32, o.get(2)?.as_f64()? as f32];
-    let axis = ["x", "y", "z"].iter().position(|a| r.get("axis").and_then(Value::as_str) == Some(*a))?;
-    let degrees = r.get("angle")?.as_f64()? as f32;
-    Some(Turn { origin, axis, degrees, rescale: r.get("rescale").and_then(Value::as_bool).unwrap_or(false) })
+    let axis = ["x", "y", "z"].iter().position(|a| r.get(yog_ids::model::AXIS).and_then(Value::as_str) == Some(*a))?;
+    let degrees = r.get(yog_ids::model::ANGLE)?.as_f64()? as f32;
+    Some(Turn { origin, axis, degrees, rescale: r.get(yog_ids::model::RESCALE).and_then(Value::as_bool).unwrap_or(false) })
 }
 
 /// The first `elements` up a model's parents.
@@ -175,10 +175,10 @@ fn model_elements(res: &Resources, model: &str, depth: usize) -> Option<Vec<Valu
     let (ns, path) = yog_ids::split(model);
     let path = path.strip_prefix("block/").map_or(format!("block/{path}"), |p| format!("block/{p}"));
     let json: Value = serde_json::from_slice(&res.read(ns, &yog_ids::model_file(&path))?).ok()?;
-    if let Some(e) = json.get("elements").and_then(Value::as_array) {
+    if let Some(e) = json.get(yog_ids::model::ELEMENTS).and_then(Value::as_array) {
         return Some(e.clone());
     }
-    model_elements(res, json.get("parent")?.as_str()?, depth + 1)
+    model_elements(res, json.get(yog_ids::model::PARENT)?.as_str()?, depth + 1)
 }
 
 /// The texture variables of a block model, its parents' included.
@@ -192,10 +192,10 @@ fn model_textures(res: &Resources, model: &str, depth: usize) -> HashMap<String,
     let Some(json) = res.read(ns, &yog_ids::model_file(&path)).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else {
         return out;
     };
-    if let Some(parent) = json.get("parent").and_then(Value::as_str) {
+    if let Some(parent) = json.get(yog_ids::model::PARENT).and_then(Value::as_str) {
         out = model_textures(res, parent, depth + 1);
     }
-    if let Some(t) = json.get("textures").and_then(Value::as_object) {
+    if let Some(t) = json.get(yog_ids::model::TEXTURES).and_then(Value::as_object) {
         for (k, v) in t {
             if let Some(v) = v.as_str() {
                 out.insert(k.clone(), v.to_string());
@@ -217,10 +217,10 @@ fn split_state(state: &str) -> (&str, HashMap<&str, &str>) {
 /// doesn't name meets nothing.
 fn meets(when: &Value, props: &HashMap<&str, &str>) -> bool {
     let Some(map) = when.as_object() else { return true };
-    if let Some(any) = map.get("OR").and_then(Value::as_array) {
+    if let Some(any) = map.get(yog_ids::model::OR).and_then(Value::as_array) {
         return any.iter().any(|w| meets(w, props));
     }
-    if let Some(all) = map.get("AND").and_then(Value::as_array) {
+    if let Some(all) = map.get(yog_ids::model::AND).and_then(Value::as_array) {
         return all.iter().all(|w| meets(w, props));
     }
     map.iter().all(|(k, v)| {
@@ -234,7 +234,7 @@ fn meets(when: &Value, props: &HashMap<&str, &str>) -> bool {
 /// an axis).
 fn applied(v: &Value) -> Option<(String, Vec<Turn>)> {
     let v = if v.is_array() { v.get(0)? } else { v };
-    let model = v.get("model")?.as_str()?.to_string();
+    let model = v.get(yog_ids::model::MODEL)?.as_str()?.to_string();
     let mut turns = Vec::new();
     for (axis, key) in [(0, "x"), (1, "y")] {
         let deg = v.get(key).and_then(Value::as_f64).unwrap_or(0.0) as f32;
@@ -253,17 +253,17 @@ fn block_models(res: &Resources, state: &str) -> Vec<(String, Vec<Turn>)> {
     let Some(json) = res.read(ns, &yog_ids::blockstate_file(path)).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else {
         return Vec::new();
     };
-    if let Some(variants) = json.get("variants").and_then(Value::as_object) {
+    if let Some(variants) = json.get(yog_ids::model::VARIANTS).and_then(Value::as_object) {
         let fits = |key: &str| key.split(',').filter(|kv| !kv.is_empty()).all(|kv| kv.split_once('=').is_some_and(|(k, v)| props.get(k) == Some(&v)));
         let chosen = variants.iter().find(|(k, _)| fits(k)).or_else(|| variants.iter().next());
         return chosen.and_then(|(_, v)| applied(v)).into_iter().collect();
     }
-    json.get("multipart")
+    json.get(yog_ids::model::MULTIPART)
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .filter(|part| part.get("when").is_none_or(|w| meets(w, &props)))
-        .filter_map(|part| applied(part.get("apply")?))
+        .filter(|part| part.get(yog_ids::model::WHEN).is_none_or(|w| meets(w, &props)))
+        .filter_map(|part| applied(part.get(yog_ids::model::APPLY)?))
         .collect()
 }
 

@@ -34,7 +34,7 @@ fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
             let Some(doc) = crate::design::data::read_object(&text) else { continue };
             let value = Value::Object(doc);
             if format == Format::Def {
-                if value.get("kind").and_then(Value::as_str) != Some(yog_ids::kind::TAG) || value.get("of").and_then(Value::as_str) != Some(yog_ids::kind::ITEM) {
+                if value.get(yog_ids::content_field::KIND).and_then(Value::as_str) != Some(yog_ids::kind::TAG) || value.get(yog_ids::content_field::OF).and_then(Value::as_str) != Some(yog_ids::kind::ITEM) {
                     continue;
                 }
                 let Some(raw_id) = value.get("id").and_then(Value::as_str) else { continue };

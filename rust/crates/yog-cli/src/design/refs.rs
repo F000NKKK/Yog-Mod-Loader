@@ -174,7 +174,7 @@ fn defs(root: &Path, kind: &str) -> Vec<OwnDef> {
     let mut out = Vec::new();
     for f in files(root, Format::Def) {
         let Some(doc) = read(&f) else { continue };
-        if doc.get("kind").and_then(Value::as_str) != Some(kind) {
+        if doc.get(yog_ids::content_field::KIND).and_then(Value::as_str) != Some(kind) {
             continue;
         }
         let Some(id) = doc.get("id").and_then(Value::as_str) else { continue };

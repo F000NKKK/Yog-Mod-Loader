@@ -84,7 +84,7 @@ fn content_file(root: &Path, id: &str, formats: &[Format]) -> Option<(PathBuf, V
             let Some(doc) = std::fs::read_to_string(&file).ok().and_then(|t| crate::design::data::read_object(&t)).map(Value::Object) else {
                 continue;
             };
-            let fid = doc.get("id").and_then(Value::as_str).map(str::to_string)
+            let fid = doc.get(yog_ids::content_field::ID).and_then(Value::as_str).map(str::to_string)
                 .or_else(|| file.file_stem().map(|s| s.to_string_lossy().into_owned()))?;
             if fid.split_once(':').map_or(fid.as_str(), |(_, p)| p) == want {
                 return Some((file, doc));
@@ -99,7 +99,7 @@ fn content_file(root: &Path, id: &str, formats: &[Format]) -> Option<(PathBuf, V
 /// of the mod.
 pub fn content_block_faces(root: &Path, id: &str) -> Option<[Option<Vec<u8>>; 6]> {
     let (file, doc) = content_file(root, id, &[Format::Block])?;
-    let textures = doc.pointer("/model/textures").and_then(Value::as_object)?;
+    let textures = super::data::at(&doc, &[yog_ids::content_field::MODEL, yog_ids::model::TEXTURES]).and_then(Value::as_object)?;
     let pick = |keys: &[&str]| {
         keys.iter()
             .find_map(|k| textures.get(*k).and_then(Value::as_str))
@@ -114,16 +114,15 @@ pub fn content_block_faces(root: &Path, id: &str) -> Option<[Option<Vec<u8>>; 6]
 /// block of the mod, or its model has no elements of its own.
 pub fn content_block_model(root: &Path, id: &str) -> Option<(Vec<Value>, std::collections::HashMap<String, Vec<u8>>)> {
     let (file, doc) = content_file(root, id, &[Format::Block])?;
-    let elements = match doc.pointer("/model/elements").and_then(Value::as_array) {
+    let elements = match super::data::at(&doc, &[yog_ids::content_field::MODEL, yog_ids::model::ELEMENTS]).and_then(Value::as_array) {
         Some(elements) => elements.clone(),
-        None if doc.get("kind").and_then(Value::as_str) == Some("stairs") => vec![
+        None if doc.get(yog_ids::content_field::KIND).and_then(Value::as_str) == Some("stairs") => vec![
             stair_element([0, 0, 0], [16, 8, 16]),
             stair_element([0, 8, 8], [16, 16, 16]),
         ],
         None => return None,
     };
-    let textures = doc
-        .pointer("/model/textures")
+    let textures = super::data::at(&doc, &[yog_ids::content_field::MODEL, yog_ids::model::TEXTURES])
         .and_then(Value::as_object)
         .map(|t| t.iter().filter_map(|(k, v)| Some((k.clone(), texture_bytes(&file, v.as_str()?).ok()?))).collect())
         .unwrap_or_default();
@@ -131,7 +130,7 @@ pub fn content_block_model(root: &Path, id: &str) -> Option<(Vec<Value>, std::co
 }
 
 fn stair_element(from: [u8; 3], to: [u8; 3]) -> Value {
-    let face = |texture: &str| serde_json::json!({ "texture": format!("{}{texture}", yog_formats::content::SLOT_MARK) });
+    let face = |texture: &str| serde_json::json!({ yog_ids::model::TEXTURE: format!("{}{texture}", yog_formats::content::SLOT_MARK) });
     serde_json::json!({
         "from": from,
         "to": to,
@@ -165,7 +164,7 @@ pub fn content_item_appearance(root: &Path, id: &str) -> Option<(Value, Option<u
             continue;
         };
         let Some(fid) = doc
-            .get("id")
+            .get(yog_ids::content_field::ID)
             .and_then(Value::as_str)
             .or_else(|| file.file_stem().and_then(|s| s.to_str()))
         else {
@@ -182,11 +181,11 @@ pub fn content_item_appearance(root: &Path, id: &str) -> Option<(Value, Option<u
 }
 
 fn potion_effect_color(root: &Path, item: &Value) -> Option<u32> {
-    let effects = item.pointer("/item/potion/effects")?.as_array()?;
+    let effects = super::data::at(item, &[yog_ids::content_field::ITEM, yog_ids::content_field::POTION, yog_ids::content_field::EFFECTS])?.as_array()?;
     let mut channels = [0u64; 3];
     let mut count = 0u64;
     for effect in effects {
-        let Some(id) = effect.get("effect").and_then(Value::as_str) else {
+        let Some(id) = effect.get(yog_ids::content_field::EFFECT).and_then(Value::as_str) else {
             continue;
         };
         let Some(color) = content_effect_color(root, id) else {
@@ -227,7 +226,7 @@ fn content_effect_color(root: &Path, reference: &str) -> Option<u32> {
             continue;
         };
         let Some(id) = doc
-            .get("id")
+            .get(yog_ids::content_field::ID)
             .and_then(Value::as_str)
             .or_else(|| file.file_stem().and_then(|s| s.to_str()))
         else {
@@ -235,7 +234,7 @@ fn content_effect_color(root: &Path, reference: &str) -> Option<u32> {
         };
         if id.split_once(':').map_or(id, |(_, p)| p) == want {
             return doc
-                .get("color")
+                .get(yog_ids::content_field::COLOR)
                 .and_then(Value::as_u64)
                 .and_then(|v| u32::try_from(v).ok());
         }
@@ -255,15 +254,15 @@ pub fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
     for file in files {
         let Ok(text) = std::fs::read_to_string(&file) else { continue };
         let Some(doc) = crate::design::data::read_object(&text).map(Value::Object) else { continue };
-        let fid = doc.get("id").and_then(Value::as_str).map(str::to_string)
+        let fid = doc.get(yog_ids::content_field::ID).and_then(Value::as_str).map(str::to_string)
             .or_else(|| file.file_stem().map(|s| s.to_string_lossy().into_owned()))?;
         let fid = fid.split_once(':').map_or(fid.as_str(), |(_, p)| p).to_string();
         if fid != want {
             continue;
         }
-        let textures = doc.pointer("/model/textures").and_then(Value::as_object)?;
+        let textures = super::data::at(&doc, &[yog_ids::content_field::MODEL, yog_ids::model::TEXTURES]).and_then(Value::as_object)?;
         let tex = textures
-            .get("layer0")
+            .get(yog_ids::model::LAYER0)
             .or_else(|| ["all", "side", "top", "texture"].iter().find_map(|k| textures.get(*k)))
             .or_else(|| textures.values().next())?
             .as_str()?;
@@ -305,60 +304,44 @@ pub struct AnimationFrame {
 
 impl Animation {
     /// The animation of a `size` image from its `.mcmeta` text; `None` when it has none.
-    pub fn read(meta: &str, (w, h): (u32, u32)) -> Option<Animation> {
+    pub fn read(meta: &str, size: (u32, u32)) -> Option<Animation> {
         let doc: Value = serde_json::from_str(meta).ok()?;
-        let a = doc.get("animation")?;
-        let num = |k: &str| a.get(k).and_then(Value::as_u64).map(|n| n as u32);
-        // The game's default frame: square, the image's smaller side.
+        Self::of(&yog_formats::texture::Animation::from_mcmeta(&doc)?, size)
+    }
+
+    /// `a` of a `size` image, every frame resolved: its size (the game's
+    /// default a square of the image's smaller side) and each frame's time.
+    pub fn of(a: &yog_formats::texture::Animation, (w, h): (u32, u32)) -> Option<Animation> {
         let side = w.min(h);
-        let fw = num("width").unwrap_or(side).max(1);
-        let fh = num("height").unwrap_or(side).max(1);
+        let fw = a.width.unwrap_or(side).max(1);
+        let fh = a.height.unwrap_or(side).max(1);
         let count = (w / fw) * (h / fh);
         if count == 0 {
             return None;
         }
-        let frametime = num("frametime").unwrap_or(1).max(1);
-        let frames = match a.get("frames").and_then(Value::as_array) {
-            Some(list) => list
+        let frame_time = a.frame_time().max(1);
+        let frames = if a.frames.is_empty() {
+            (0..count).map(|index| AnimationFrame { index, time: frame_time }).collect()
+        } else {
+            a.frames
                 .iter()
-                .filter_map(|f| match f {
-                    Value::Number(n) => Some(AnimationFrame { index: n.as_u64()? as u32, time: frametime }),
-                    Value::Object(o) => Some(AnimationFrame {
-                        index: o.get("index")?.as_u64()? as u32,
-                        time: o.get("time").and_then(Value::as_u64).map_or(frametime, |t| (t as u32).max(1)),
-                    }),
-                    _ => None,
-                })
                 .filter(|f| f.index < count)
-                .collect(),
-            None => (0..count).map(|index| AnimationFrame { index, time: frametime }).collect(),
+                .map(|f| AnimationFrame { index: f.index, time: f.time.map_or(frame_time, |t| t.max(1)) })
+                .collect()
         };
-        Some(Animation {
-            frame_width: fw,
-            frame_height: fh,
-            frames,
-            interpolate: a.get("interpolate").and_then(Value::as_bool).unwrap_or(false),
-        })
+        Some(Animation { frame_width: fw, frame_height: fh, frames, interpolate: a.interpolate })
     }
 
-    /// The `.mcmeta` text for it — every frame listed with its time.
-    pub fn write(&self, (w, h): (u32, u32)) -> String {
-        let mut a = serde_json::Map::new();
-        if self.interpolate {
-            a.insert("interpolate".into(), Value::Bool(true));
-        }
+    /// It as a `.ytexture` keeps it, for a `size` image: every frame listed with its time.
+    pub fn to_format(&self, (w, h): (u32, u32)) -> yog_formats::texture::Animation {
         let side = w.min(h);
-        if self.frame_width != side {
-            a.insert("width".into(), self.frame_width.into());
+        yog_formats::texture::Animation {
+            frame_time: None,
+            interpolate: self.interpolate,
+            frames: self.frames.iter().map(|f| yog_formats::texture::Frame { index: f.index, time: Some(f.time) }).collect(),
+            width: (self.frame_width != side).then_some(self.frame_width),
+            height: (self.frame_height != side).then_some(self.frame_height),
         }
-        if self.frame_height != side {
-            a.insert("height".into(), self.frame_height.into());
-        }
-        let frames = self.frames.iter().map(|f| serde_json::json!({ "index": f.index, "time": f.time })).collect();
-        a.insert("frames".into(), Value::Array(frames));
-        let mut text = serde_json::to_string_pretty(&serde_json::json!({ "animation": a })).unwrap_or_default();
-        text.push('\n');
-        text
     }
 }
 
@@ -371,11 +354,11 @@ pub fn write_animation(file: &Path, texture: &str, animation: Option<&Animation>
         Some(a) => {
             let png = texture_bytes(file, texture)?;
             let size = image_size(&png).ok_or_else(|| format!("{id} isn't a picture"))?;
-            Some(serde_json::from_str::<Value>(&a.write(size)).map_err(|e| e.to_string())?)
+            Some(a.to_format(size))
         }
         None => None,
     };
-    crate::media::save_texture_animation(&root, &id, animation.as_ref().and_then(yog_formats::texture::Animation::from_mcmeta))
+    crate::media::save_texture_animation(&root, &id, animation)
 }
 
 /// A body model's texture (`.ymodel`): `@texture:<ns>:<path>`, as a content file's.
@@ -481,10 +464,10 @@ fn definitions(file: &Path, kind: &str, built_ins: impl IntoIterator<Item = Stri
         let Some(doc) = std::fs::read_to_string(&p).ok().and_then(|t| crate::design::data::read_object(&t)) else {
             continue;
         };
-        if doc.get("kind").and_then(Value::as_str) != Some(kind) {
+        if doc.get(yog_ids::content_field::KIND).and_then(Value::as_str) != Some(kind) {
             continue;
         }
-        if let Some(id) = doc.get("id").and_then(Value::as_str) {
+        if let Some(id) = doc.get(yog_ids::content_field::ID).and_then(Value::as_str) {
             own.push(format!("{}{kind}{}{}", yog_ids::sep::TYPED, yog_ids::sep::NAMESPACE, yog_ids::qualify_in(&ns, id)));
         }
     }
@@ -566,20 +549,20 @@ pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
             .ok_or_else(|| format!("model {ns}:{path} not found"))?;
         let m: Map<String, Value> =
             serde_json::from_slice(&bytes).map_err(|e| format!("{ns}:{path}: {e}"))?;
-        if let Some(Value::Object(t)) = m.get("textures") {
+        if let Some(Value::Object(t)) = m.get(yog_ids::model::TEXTURES) {
             for (k, v) in t {
                 textures.entry(k.clone()).or_insert_with(|| v.clone());
             }
         }
-        if let Some(Value::Object(d)) = m.get("display") {
+        if let Some(Value::Object(d)) = m.get(yog_ids::model::DISPLAY) {
             for (k, v) in d {
                 display.entry(k.clone()).or_insert_with(|| v.clone());
             }
         }
         if elements.is_none() {
-            elements = m.get("elements").cloned();
+            elements = m.get(yog_ids::model::ELEMENTS).cloned();
         }
-        match m.get("parent").and_then(Value::as_str) {
+        match m.get(yog_ids::model::PARENT).and_then(Value::as_str) {
             None => break,
             Some(p) if p.contains(yog_ids::res::BUILTIN) => {
                 root_parent = Some(p.to_string());
@@ -596,13 +579,13 @@ pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
         }
     }
     let mut out = Map::new();
-    out.insert("textures".into(), Value::Object(textures));
-    out.insert("display".into(), Value::Object(display));
+    out.insert(yog_ids::model::TEXTURES.into(), Value::Object(textures));
+    out.insert(yog_ids::model::DISPLAY.into(), Value::Object(display));
     if let Some(e) = elements {
-        out.insert("elements".into(), e);
+        out.insert(yog_ids::model::ELEMENTS.into(), e);
     }
     if let Some(p) = root_parent {
-        out.insert("parent".into(), Value::String(p));
+        out.insert(yog_ids::model::PARENT.into(), Value::String(p));
     }
     Ok(Value::Object(out))
 }
@@ -667,7 +650,7 @@ mod tests {
     #[test]
     fn animation_round_trips() {
         let a = Animation { frame_width: 16, frame_height: 16, frames: vec![AnimationFrame { index: 1, time: 4 }, AnimationFrame { index: 0, time: 1 }], interpolate: true };
-        assert_eq!(Animation::read(&a.write((16, 32)), (16, 32)), Some(a));
+        assert_eq!(Animation::of(&a.to_format((16, 32)), (16, 32)), Some(a));
     }
 
     use super::*;
