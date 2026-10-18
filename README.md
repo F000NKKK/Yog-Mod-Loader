@@ -14,9 +14,9 @@
 [![API: MIT OR Apache-2.0](https://img.shields.io/badge/API-MIT%20OR%20Apache--2.0-blue.svg)](LICENSING.md)
 [![Rust 1.99](https://img.shields.io/badge/Rust-1.99-orange.svg)](rust-toolchain.toml)
 
-![Fabric](https://img.shields.io/badge/Fabric-1.20.1%20%7C%201.21.1-dbd0b4)
-![NeoForge](https://img.shields.io/badge/NeoForge-1.20.1%20%7C%201.21.1-e68c37)
-![Forge](https://img.shields.io/badge/Forge-1.20.1%20%7C%201.21.1-1e2d47)
+![Fabric](https://img.shields.io/badge/Fabric-1.20.1%20%7C%201.21.1%20%7C%2026.2-dbd0b4)
+![NeoForge](https://img.shields.io/badge/NeoForge-1.20.1%20%7C%201.21.1%20%7C%2026.2-e68c37)
+![Forge](https://img.shields.io/badge/Forge-1.20.1%20%7C%201.21.1%20%7C%2026.2-1e2d47)
 ![Linux](https://img.shields.io/badge/Linux-x86__64%20%7C%20aarch64-success)
 ![Windows](https://img.shields.io/badge/Windows-x86__64-success)
 ![macOS](https://img.shields.io/badge/macOS-x86__64%20%7C%20aarch64-success)
@@ -35,7 +35,7 @@
 normal Rust crate built against [`yog-api`](https://crates.io/crates/yog-api);
 `yog build` cross-compiles it for five platforms and packs everything into one
 `.yog` file. Drop that file into `yog-mods/` and it runs on **Fabric,
-NeoForge and Forge**, on Minecraft **1.20.1 and 1.21.1**, on Linux, Windows
+NeoForge and Forge**, on Minecraft **1.20.1, 1.21.1 and 26.2**, on Linux, Windows
 and macOS.
 
 The Java side is a thin host per loader. It forwards game events over JNI to
@@ -142,17 +142,24 @@ the Java and Rust worlds.
 
 | Loader | Minecraft | Toolchain | Java |
 |---|---|---|:---:|
-| **Fabric** | 1.20.1 | Yarn 1.20.1+build.10, loader ≥ 0.15.11, fabric-api 0.92.2 | 17 |
-| | 1.21.1 | Yarn 1.21.1+build.3, loader ≥ 0.16.9, fabric-api 0.115.6 | 21 |
+| **Fabric** | 1.20.1 | loader ≥ 0.15.11, fabric-api 0.92.2 | 17 |
+| | 1.21.1 | loader ≥ 0.16.9, fabric-api 0.115.6 | 21 |
+| | 26.2 | Loom 1.19.1, loader ≥ 0.19.5, fabric-api 0.161.0 | 25 |
 | **NeoForge** | 1.20.1 | NeoForge 47.1.106 | 17 |
 | | 1.21.1 | NeoForge 21.1.77 | 21 |
+| | 26.2 | NeoForge 26.2.0.93 (ModDevGradle) | 25 |
 | **Forge** | 1.20.1 | Forge 47.3.0 | 17 |
 | | 1.21.1 | Forge 52.0.40 | 21 |
+| | 26.2 | Forge 65.1.5 (ForgeGradle 7) | 25 |
 
-Each loader/version pair has its own source tree under
-`<loader>/platforms/<mc>/` and its pins in `<loader>/versions/<mc>.properties`.
-Code shared by all loaders lives in `java-common/`. Yog targets the `.1`
-releases that modders settle on; a new Minecraft version is added once the
+The host code is written once and shared: `java-common/src/` holds what every
+version and loader uses, and `java-common/mc/<range>/` what one Minecraft
+version (or a range, named by the directory) shares across all three loaders.
+A loader/version pair adds only a thin adapter under `<loader>/platforms/<mc>/`
+(its entry point, event hooks and loader services) and its pins in
+`<loader>/versions/<mc>.properties`. Every Fabric host compiles on Mojang's
+names. 26.x builds live in each loader's `modern/` Gradle project. Yog targets
+the releases modders settle on; a new Minecraft version is added once the
 current ones are stable.
 
 The runtime and every mod ship natives for **linux-x86_64, linux-aarch64,
@@ -396,7 +403,7 @@ flowchart TB
     mod["Rust mod (cdylib, yog-api)<br/>packaged as .yog"]
     rt["yog-runtime (native library)<br/>mod loader · event dispatch · JNI bridge"]
     host["Java host: Fabric / NeoForge / Forge<br/>(java-common + per-version Mixins)"]
-    mc["Minecraft 1.20.1 / 1.21.1"]
+    mc["Minecraft 1.20.1 / 1.21.1 / 26.2"]
     mod -- "C ABI (yog-abi): YogApi, YogServer tables" --> rt
     rt -- "JNI" --> host
     host --> mc

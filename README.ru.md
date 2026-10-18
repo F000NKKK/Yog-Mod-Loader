@@ -14,9 +14,9 @@
 [![API: MIT OR Apache-2.0](https://img.shields.io/badge/API-MIT%20OR%20Apache--2.0-blue.svg)](LICENSING.md)
 [![Rust 1.99](https://img.shields.io/badge/Rust-1.99-orange.svg)](rust-toolchain.toml)
 
-![Fabric](https://img.shields.io/badge/Fabric-1.20.1%20%7C%201.21.1-dbd0b4)
-![NeoForge](https://img.shields.io/badge/NeoForge-1.20.1%20%7C%201.21.1-e68c37)
-![Forge](https://img.shields.io/badge/Forge-1.20.1%20%7C%201.21.1-1e2d47)
+![Fabric](https://img.shields.io/badge/Fabric-1.20.1%20%7C%201.21.1%20%7C%2026.2-dbd0b4)
+![NeoForge](https://img.shields.io/badge/NeoForge-1.20.1%20%7C%201.21.1%20%7C%2026.2-e68c37)
+![Forge](https://img.shields.io/badge/Forge-1.20.1%20%7C%201.21.1%20%7C%2026.2-1e2d47)
 ![Linux](https://img.shields.io/badge/Linux-x86__64%20%7C%20aarch64-success)
 ![Windows](https://img.shields.io/badge/Windows-x86__64-success)
 ![macOS](https://img.shields.io/badge/macOS-x86__64%20%7C%20aarch64-success)
@@ -35,7 +35,7 @@
 Мод — обычный Rust-крейт поверх [`yog-api`](https://crates.io/crates/yog-api).
 `yog build` собирает его сразу под пять платформ и упаковывает всё в один
 файл `.yog`. Достаточно положить этот файл в `yog-mods/`, и мод заработает на
-**Fabric, NeoForge и Forge**, на Minecraft **1.20.1 и 1.21.1**, под Linux,
+**Fabric, NeoForge и Forge**, на Minecraft **1.20.1, 1.21.1 и 26.2**, под Linux,
 Windows и macOS.
 
 Java-часть — тонкая прослойка под каждый загрузчик. Она передаёт игровые
@@ -145,17 +145,24 @@ Java и миром Rust.
 
 | Загрузчик | Minecraft | Инструменты | Java |
 |---|---|---|:---:|
-| **Fabric** | 1.20.1 | Yarn 1.20.1+build.10, loader ≥ 0.15.11, fabric-api 0.92.2 | 17 |
-| | 1.21.1 | Yarn 1.21.1+build.3, loader ≥ 0.16.9, fabric-api 0.115.6 | 21 |
+| **Fabric** | 1.20.1 | loader ≥ 0.15.11, fabric-api 0.92.2 | 17 |
+| | 1.21.1 | loader ≥ 0.16.9, fabric-api 0.115.6 | 21 |
+| | 26.2 | Loom 1.19.1, loader ≥ 0.19.5, fabric-api 0.161.0 | 25 |
 | **NeoForge** | 1.20.1 | NeoForge 47.1.106 | 17 |
 | | 1.21.1 | NeoForge 21.1.77 | 21 |
+| | 26.2 | NeoForge 26.2.0.93 (ModDevGradle) | 25 |
 | **Forge** | 1.20.1 | Forge 47.3.0 | 17 |
 | | 1.21.1 | Forge 52.0.40 | 21 |
+| | 26.2 | Forge 65.1.5 (ForgeGradle 7) | 25 |
 
-У каждой пары «загрузчик + версия» свои исходники в `<loader>/platforms/<mc>/`
-и свои версии зависимостей в `<loader>/versions/<mc>.properties`. Код, общий
-для всех загрузчиков, лежит в `java-common/`. Yog поддерживает релизы `.1`, на
-которых обычно останавливается сообщество моддеров. Новая версия Minecraft
+Код хостов пишется один раз: в `java-common/src/` лежит общее для всех версий
+и загрузчиков, в `java-common/mc/<диапазон>/` — общее для трёх загрузчиков на
+одной версии Minecraft (или диапазоне, его задаёт имя каталога). Паре
+«загрузчик + версия» остаётся тонкий адаптер в `<loader>/platforms/<mc>/`
+(точка входа, подписка на события, сервисы загрузчика) и версии зависимостей в
+`<loader>/versions/<mc>.properties`. Все хосты Fabric собираются на именах
+Mojang. Сборки 26.x живут в Gradle-проекте `modern/` каждого загрузчика. Yog
+поддерживает релизы, на которых обычно останавливается сообщество моддеров. Новая версия Minecraft
 добавляется, когда текущие работают стабильно.
 
 Runtime и каждый мод содержат нативы для **linux-x86_64, linux-aarch64,
@@ -400,7 +407,7 @@ flowchart TB
     mod["Мод на Rust (cdylib, yog-api)<br/>упакован в .yog"]
     rt["yog-runtime (нативная библиотека)<br/>загрузка модов · события · мост JNI"]
     host["Java-хост: Fabric / NeoForge / Forge<br/>(java-common + миксины под версию)"]
-    mc["Minecraft 1.20.1 / 1.21.1"]
+    mc["Minecraft 1.20.1 / 1.21.1 / 26.2"]
     mod -- "C ABI (yog-abi): таблицы YogApi, YogServer" --> rt
     rt -- "JNI" --> host
     host --> mc
