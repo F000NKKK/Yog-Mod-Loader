@@ -25,6 +25,19 @@ fn done<T: Serialize>(r: Result<T, String>) -> Reply {
     r.map_err(Value::from).and_then(ok)
 }
 
+/// A picture's `width` and `height` parameters.
+fn size(params: &Value) -> Result<(u32, u32), Value> {
+    Ok((param(params, "width")?, param(params, "height")?))
+}
+
+/// The texture the `.ytexture` at `file` is: `@texture:<mod>:<path>`.
+fn texture_file_id(file: &Path) -> Option<String> {
+    let root = project::mod_root(file)?;
+    let rel = file.strip_prefix(root.join(yog_ids::project::RESOURCES)).ok()?.to_string_lossy().replace('\\', yog_ids::sep::PATH);
+    let id = yog_formats::texture::id_of(&project::mod_id(&root)?, &rel)?;
+    Some(format!("{}{id}", yog_ids::reference::TEXTURE))
+}
+
 /// What design method `method` does with `params`; `None`: no such method.
 pub fn dispatch(method: &str, params: &Value) -> Option<Reply> {
     let path = || param::<String>(params, "path");
@@ -59,6 +72,18 @@ pub fn dispatch(method: &str, params: &Value) -> Option<Reply> {
         "content_import" => with("kind", &|p, kind| {
             let model = param::<Option<String>>(params, "model")?;
             done(content::import(p, kind, &param::<String>(params, "source")?, model.as_deref(), param(params, "force")?))
+        }),
+        // The texture a `.ytexture` file is (`@texture:<mod>:<path>`), or null outside a mod's resources.
+        "texture_file_id" => file(|p| ok(texture_file_id(p))),
+        // A `.ytexture`'s `animation` (as the file has it) of a `width × height` picture, every frame resolved.
+        "texture_animation_resolve" => size(params).and_then(|size| {
+            let a = yog_data::read_value::<yog_formats::texture::Animation>(&yog_data::json::from_json(&params["animation"])).map_err(|e| json!(format!("{e:?}")))?;
+            ok(content::Animation::of(&a, size))
+        }),
+        // A resolved animation (as `texture_animation_resolve` gives it) as the file keeps it.
+        "texture_animation_format" => size(params).and_then(|size| {
+            let a: content::Animation = param(params, "animation")?;
+            ok(yog_data::json::to_json(&yog_data::Schema::write(&a.to_format(size))))
         }),
         "item_tag_items" => with("tag", &|p, t| ok(tags::item_tag(p, t))),
         "yui_image_sources" => file(|p| ok(images::candidates(p))),
