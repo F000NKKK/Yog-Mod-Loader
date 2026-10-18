@@ -29,6 +29,8 @@ pub struct Textures {
 const ATLAS_DIR: &str = "atlas";
 /// What an atlas source of a whole texture, and of one cut from a picture, is.
 const SINGLE: &str = "single";
+/// A source's sprite name, when it isn't the texture's id.
+const SPRITE: &str = "sprite";
 const UNSTITCH: &str = "unstitch";
 
 /// Every `.ytexture` under `resources/` of the mod at `root`; problems go to `errors`.
@@ -62,11 +64,17 @@ pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>)
             continue;
         }
         let atlas = texture.atlas.as_deref().map(yog_ids::qualify);
+        // Its sprite's name in the atlas: a bare atlas's without the folder (`mymod:clarity`).
+        let sprite = {
+            let (ns, path) = yog_ids::split(&id);
+            let path = atlas.as_deref().and_then(yog_registry::Atlas::find).map_or(path, |a| a.sprite(path));
+            yog_ids::join(ns, path)
+        };
         match (&atlas, &texture.animation) {
             // Packed with the atlas's other textures.
             (Some(atlas), None) if !texture.blur && !texture.clamp => match yog_media::image::decode(&picture.png) {
                 Ok(img) => {
-                    packed.entry(atlas.clone()).or_default().push((id.clone(), img));
+                    packed.entry(atlas.clone()).or_default().push((sprite.clone(), img));
                     out.packed.insert(picture.output.clone());
                 }
                 Err(e) => errors.push(format!("{shown}: {e}")),
@@ -80,7 +88,11 @@ pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>)
                 }
                 out.outputs.push((target, picture.png.clone()));
                 if let Some(atlas) = atlas {
-                    singles.entry(atlas).or_default().push(json!({ "type": SINGLE, "resource": id }));
+                    let mut single = json!({ "type": SINGLE, "resource": id });
+                    if sprite != id {
+                        single[SPRITE] = json!(sprite);
+                    }
+                    singles.entry(atlas).or_default().push(single);
                 }
             }
         }
@@ -172,6 +184,13 @@ mod tests {
         assert_eq!(atlas["sources"][0]["type"], UNSTITCH);
         assert_eq!(atlas["sources"][0]["regions"].as_array().unwrap().len(), 2);
         assert_eq!(atlas["sources"][1], json!({ "type": SINGLE, "resource": "mymod:block/glow" }));
+        // A status effect's icon is named without its folder, as the game looks it up.
+        std::fs::create_dir_all(dir.join("resources/mob_effect")).unwrap();
+        std::fs::write(dir.join("resources/mob_effect/clarity.ytexture"), r#"{ image: "@Images.mob_effect.clarity", atlas: "minecraft:mob_effects" }"#).unwrap();
+        refs.pictures.insert("Images.mob_effect.clarity".into(), picture(18, 18));
+        let t = compile(&dir, "mymod", &refs, &mut errors);
+        let effects: Value = serde_json::from_slice(&t.outputs.iter().find(|(p, _)| p == "assets/minecraft/atlases/mob_effects.json").unwrap().1).unwrap();
+        assert_eq!(effects["sources"][0]["regions"][0]["sprite"], "mymod:clarity");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

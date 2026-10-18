@@ -1,12 +1,14 @@
 // The game's texture atlases — what a .ytexture's `atlas` names: the build
 // packs the mod's textures of each into one picture the game cuts up again.
 // `since`: the first version that has it; `dirs`: the texture folders the
-// game puts in it whole (a texture there belongs to it by default).
+// game puts in it whole (a texture there belongs to it by default); `bare`:
+// its sprites are named without that folder (`minecraft:speed` for
+// `textures/mob_effect/speed.png`), the blocks' keep it (`block/stone`).
 [
   { id: "minecraft:blocks", description: "Blocks' and items' models", dirs: ["block", "item"] },
-  { id: "minecraft:particles", description: "Particles", dirs: ["particle"] },
-  { id: "minecraft:mob_effects", description: "Status effect icons", dirs: ["mob_effect"] },
-  { id: "minecraft:paintings", description: "Paintings", dirs: ["painting"] },
+  { id: "minecraft:particles", description: "Particles", dirs: ["particle"], bare: true },
+  { id: "minecraft:mob_effects", description: "Status effect icons", dirs: ["mob_effect"], bare: true },
+  { id: "minecraft:paintings", description: "Paintings", dirs: ["painting"], bare: true },
   { id: "minecraft:banner_patterns", description: "Banner patterns" },
   { id: "minecraft:shield_patterns", description: "Shield patterns" },
   { id: "minecraft:beds", description: "Beds" },
@@ -15,6 +17,6 @@
   { id: "minecraft:shulker_boxes", description: "Shulker boxes" },
   { id: "minecraft:decorated_pot", description: "Decorated pots" },
   { id: "minecraft:armor_trims", description: "Armor trims" },
-  { id: "minecraft:gui", description: "GUI sprites", since: "1.20.2" },
-  { id: "minecraft:map_decorations", description: "Map decorations", since: "1.20.5" },
+  { id: "minecraft:gui", description: "GUI sprites", since: "1.20.2", dirs: ["gui/sprites"], bare: true },
+  { id: "minecraft:map_decorations", description: "Map decorations", since: "1.20.5", dirs: ["map/decorations"], bare: true },
 ]

@@ -14,6 +14,9 @@ pub struct Atlas {
     /// The texture folders the game puts in it whole.
     #[data(default)]
     pub dirs: Vec<String>,
+    /// Its sprites are named without their folder: `mob_effect/speed` is sprite `speed`.
+    #[data(default)]
+    pub bare: bool,
 }
 
 static ATLASES: LazyLock<Vec<Atlas>> = LazyLock::new(|| {
@@ -30,8 +33,18 @@ impl Atlas {
 
     /// The atlas a texture at `path` (`block/ruby`) belongs to by its folder.
     pub fn of_path(path: &str) -> Option<&'static Atlas> {
-        let dir = path.split(yog_ids::sep::PATH).next()?;
-        ATLASES.iter().find(|a| a.dirs.iter().any(|d| d == dir))
+        ATLASES.iter().find(|a| a.dir_of(path).is_some())
+    }
+
+    /// Which of its folders `path` is in, and the rest of it.
+    fn dir_of<'p>(&self, path: &'p str) -> Option<&'p str> {
+        self.dirs.iter().find_map(|d| path.strip_prefix(d.as_str())?.strip_prefix(yog_ids::sep::PATH))
+    }
+
+    /// The sprite texture `path` is in this atlas: the path itself, or — a
+    /// bare atlas's folder — the rest of it (`mob_effect/speed` → `speed`).
+    pub fn sprite<'p>(&self, path: &'p str) -> &'p str {
+        if self.bare { self.dir_of(path).unwrap_or(path) } else { path }
     }
 
     /// One of the game's, by id (`blocks` = `minecraft:blocks`).
@@ -49,5 +62,9 @@ mod tests {
         assert_eq!(super::Atlas::find("minecraft:gui").and_then(|a| a.since.as_deref()), Some("1.20.2"));
         assert_eq!(super::Atlas::of_path("item/staff/oak").map(|a| a.id.as_str()), Some("minecraft:blocks"));
         assert!(super::Atlas::of_path("entity/wisp").is_none());
+        let effects = super::Atlas::of_path("mob_effect/clarity").unwrap();
+        assert_eq!(effects.sprite("mob_effect/clarity"), "clarity");
+        assert_eq!(super::Atlas::find("blocks").unwrap().sprite("block/ruby"), "block/ruby");
+        assert_eq!(super::Atlas::of_path("gui/sprites/hud/x").map(|a| a.id.as_str()), Some("minecraft:gui"));
     }
 }
