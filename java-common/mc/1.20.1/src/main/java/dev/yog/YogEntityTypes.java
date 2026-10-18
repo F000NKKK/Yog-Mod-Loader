@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -17,18 +18,12 @@ import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.SpawnEggItem;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 /**
  * Mods' entity types ({@code .yentity}): objects ({@link YogObject}),
  * living things and mobs ({@link YogMob}), hanging things ({@link YogHanging}),
- * their attributes, spawn eggs and renderer ({@link YogEntityRenderer}).
+ * their attributes and spawn eggs (their renderer: {@link YogClientEvents#renderers}).
  */
-@Mod.EventBusSubscriber(modid = "yog", bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class YogEntityTypes {
     private YogEntityTypes() {}
 
@@ -50,9 +45,13 @@ public final class YogEntityTypes {
         }
     }
 
-    /** Builds every mod's type and hands it to {@code register}. */
+    /** Every mod's type, with {@link YogRegistrar}; their attributes go to the loader's hook ({@link #attributes}). */
+    static void schedule(List<YogContent.Entity> defs) {
+        YogRegistrar.add(Registries.ENTITY_TYPE, sink -> build(defs, (id, type) -> sink.register(Registries.ENTITY_TYPE, id, type)));
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static void build(List<YogContent.Entity> defs, BiConsumer<ResourceLocation, EntityType<?>> register) {
+    private static void build(List<YogContent.Entity> defs, BiConsumer<ResourceLocation, EntityType<?>> register) {
         for (YogContent.Entity def : defs) {
             ResourceLocation id = ResourceLocation.tryParse(def.id());
             if (id == null || TYPES.containsKey(def.id())) continue;
@@ -73,9 +72,13 @@ public final class YogEntityTypes {
         }
     }
 
-    /** Spawn eggs of the living types that have one ({@code <id>_spawn_egg}). */
+    /** Spawn eggs of the living types that have one ({@code <id>_spawn_egg}), with {@link YogRegistrar}. */
+    static void scheduleEggs() {
+        YogRegistrar.add(Registries.ITEM, sink -> eggs((id, item) -> sink.register(Registries.ITEM, id, item)));
+    }
+
     @SuppressWarnings("unchecked")
-    public static void eggs(BiConsumer<ResourceLocation, Item> register) {
+    private static void eggs(BiConsumer<ResourceLocation, Item> register) {
         for (Map.Entry<String, EntityType<?>> t : TYPES.entrySet()) {
             YogContent.Entity def = DEFS.get(t.getValue());
             if (def.spawnEgg() == null || !def.living()) continue;
@@ -119,25 +122,21 @@ public final class YogEntityTypes {
         }
     }
 
-    @SubscribeEvent
+    /** How a loader gives a living type its default attributes. */
+    public interface Attributes {
+        void put(EntityType<? extends net.minecraft.world.entity.LivingEntity> type, AttributeSupplier attributes);
+    }
+
+    /** The living types' attributes, to the loader's hook (the attributes are registered by then). */
     @SuppressWarnings("unchecked")
-    public static void onAttributes(EntityAttributeCreationEvent event) {
+    public static void attributes(Attributes out) {
         DEFS.forEach((type, def) -> {
-            if (def.living()) event.put((EntityType<? extends net.minecraft.world.entity.LivingEntity>) type, attributes(def));
+            if (def.living()) out.put((EntityType<? extends net.minecraft.world.entity.LivingEntity>) type, attributes(def));
         });
     }
 
-    /** The renderer of every mod type. */
-    @Mod.EventBusSubscriber(modid = "yog", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static final class Client {
-        private Client() {}
-
-        @SubscribeEvent
-        @SuppressWarnings("unchecked")
-        public static void onRenderers(EntityRenderersEvent.RegisterRenderers event) {
-            for (EntityType<?> type : TYPES.values()) {
-                event.registerEntityRenderer((EntityType<Entity>) type, ctx -> new YogEntityRenderer(ctx, DEFS.get(type)));
-            }
-        }
+    /** Every mod type, for the client's renderers. */
+    public static Iterable<EntityType<?>> types() {
+        return TYPES.values();
     }
 }

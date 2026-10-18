@@ -16,12 +16,14 @@
         "ExplosionMixin",
         "ItemPickupMixin",
         "PlayerMoveMixin",
-        "ProjectileHitMixin"
+        "ProjectileHitMixin",
+        "PotionBrewingAccess"
     ],
     "client": [
     "ClientAdvancementsAccess",
         "BodyRenderMixin",
         "CameraMixin",
+        "ViewMixin",
         "KeyboardMixin",
         "ModelPartAccess",
         "TravelMixin",

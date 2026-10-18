@@ -47,7 +47,7 @@ public class YogInventoryBlock extends Block implements EntityBlock {
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (level.isClientSide) return InteractionResult.SUCCESS;
         if (level.getBlockEntity(pos) instanceof YogInventoryBlockEntity be) {
-            player.openMenu(be);
+            if (player instanceof net.minecraft.server.level.ServerPlayer sp) YogPlatform.openInventory(sp, be);
         }
         return InteractionResult.CONSUME;
     }

@@ -19,31 +19,55 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.alchemy.Potion;
-import net.minecraftforge.common.brewing.BrewingRecipeRegistry;
-import net.minecraftforge.common.brewing.IBrewingRecipe;
-import net.minecraftforge.event.entity.EntityAttributeModificationEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.registries.RegisterEvent;
 
 /**
  * The mods' attributes (every player has them), mob effects (changing
  * attributes while they last) and potions (and their brewing) — from the
- * content blob, registered with the game. Effects are registered before
- * potions and attributes after both, so the attributes an effect changes
- * are added to it once every registry is filled (common setup).
+ * content blob, registered with the game through {@link YogRegistrar}.
+ * The attributes an effect changes, and the brewing, are added once every
+ * registry is filled ({@link #linkModifiers}, the loader's common setup).
  */
-final class YogEffects {
+public final class YogEffects {
     private YogEffects() {}
 
     private static final Map<String, Attribute> ATTRIBUTES = new LinkedHashMap<>();
     private static final Map<String, MobEffect> EFFECTS = new LinkedHashMap<>();
 
-    /** Listens on the mod bus (registries, the player's attributes, setup). */
-    static void listen(IEventBus modBus) {
-        modBus.addListener(YogEffects::onRegister);
-        modBus.addListener(YogEffects::onPlayerAttributes);
-        modBus.addListener(YogEffects::onSetup);
+    /** The mods' attributes, effects and potions, with {@link YogRegistrar}. */
+    static void schedule(YogContent content) {
+        YogRegistrar.add(Registries.MOB_EFFECT, sink -> {
+            for (YogContent.Effect e : content.effects) {
+                MobEffect effect = new Effect(category(e.category()), e.color());
+                EFFECTS.put(e.id(), effect);
+                sink.register(Registries.MOB_EFFECT, id(e.id()), effect);
+            }
+        });
+        YogRegistrar.add(Registries.POTION, sink -> {
+            for (YogContent.Potion p : content.potions) {
+                java.util.List<MobEffectInstance> effects = new java.util.ArrayList<>();
+                for (YogContent.PotionEffect pe : p.effects()) {
+                    MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(id(pe.effect()));
+                    if (effect == null) {
+                        YogLog.warn("potion " + p.id() + ": no effect " + pe.effect());
+                        continue;
+                    }
+                    effects.add(new MobEffectInstance(effect, pe.duration(), pe.amplifier()));
+                }
+                if (!YogIds.isPotionAlias(p.id())) sink.register(Registries.POTION, id(p.id()), new Potion(p.name(), effects.toArray(new MobEffectInstance[0])));
+            }
+        });
+        YogRegistrar.add(Registries.ATTRIBUTE, sink -> {
+            for (YogContent.Attribute a : content.attributes) {
+                Attribute attr = new RangedAttribute(YogIds.attributeNameKey(a.id()), a.defaultValue(), a.min(), a.max()).setSyncable(true);
+                ATTRIBUTES.put(a.id(), attr);
+                sink.register(Registries.ATTRIBUTE, id(a.id()), attr);
+            }
+        });
+    }
+
+    /** The mods' attributes: every player has them (the loader adds them to the player's defaults). */
+    public static java.util.Collection<Attribute> playerAttributes() {
+        return ATTRIBUTES.values();
     }
 
     private static YogContent content() {
@@ -72,46 +96,13 @@ final class YogEffects {
         }
     }
 
-    private static void onRegister(RegisterEvent event) {
-        if (event.getRegistryKey().equals(Registries.MOB_EFFECT)) {
-            for (YogContent.Effect e : content().effects) {
-                MobEffect effect = new Effect(category(e.category()), e.color());
-                EFFECTS.put(e.id(), effect);
-                event.register(Registries.MOB_EFFECT, id(e.id()), () -> effect);
-            }
-        } else if (event.getRegistryKey().equals(Registries.POTION)) {
-            for (YogContent.Potion p : content().potions) {
-                java.util.List<MobEffectInstance> effects = new java.util.ArrayList<>();
-                for (YogContent.PotionEffect pe : p.effects()) {
-                    MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(id(pe.effect()));
-                    if (effect == null) {
-                        YogLog.warn("potion " + p.id() + ": no effect " + pe.effect());
-                        continue;
-                    }
-                    effects.add(new MobEffectInstance(effect, pe.duration(), pe.amplifier()));
-                }
-                Potion potion = new Potion(p.name(), effects.toArray(new MobEffectInstance[0]));
-                if (!YogIds.isPotionAlias(p.id())) event.register(Registries.POTION, id(p.id()), () -> potion);
-            }
-        } else if (event.getRegistryKey().equals(Registries.ATTRIBUTE)) {
-            for (YogContent.Attribute a : content().attributes) {
-                ResourceLocation rl = id(a.id());
-                Attribute attr = new RangedAttribute(YogIds.attributeNameKey(a.id()),
-                        a.defaultValue(), a.min(), a.max()).setSyncable(true);
-                ATTRIBUTES.put(a.id(), attr);
-                event.register(Registries.ATTRIBUTE, rl, () -> attr);
-            }
-        }
-    }
-
-    private static void onPlayerAttributes(EntityAttributeModificationEvent event) {
-        for (Attribute attr : ATTRIBUTES.values()) {
-            event.add(EntityType.PLAYER, attr);
-        }
-    }
-
-    private static void onSetup(FMLCommonSetupEvent event) {
-        event.enqueueWork(() -> {
+    /**
+     * The attributes each effect changes, added to it, and the brewing mixes
+     * — once every registry is filled (the loader's common setup): effects
+     * come before attributes.
+     */
+    public static void linkModifiers() {
+        {
             for (YogContent.Effect e : content().effects) {
                 MobEffect effect = EFFECTS.get(e.id());
                 if (effect == null) continue;
@@ -135,28 +126,9 @@ final class YogEffects {
                         YogLog.warn("potion " + p.id() + ": can't brew from " + b.from() + " with " + b.with());
                         continue;
                     }
-                    BrewingRecipeRegistry.addRecipe(new Brewing(BuiltInRegistries.POTION.get(from), BuiltInRegistries.ITEM.get(with), to));
+                    dev.yog.mixin.PotionBrewingAccess.yog$addMix(BuiltInRegistries.POTION.get(from), BuiltInRegistries.ITEM.get(with), to);
                 }
             }
-        });
-    }
-
-    /** A brewing stand recipe: a potion of `from` (any bottle) with `with` makes one of `to`. */
-    private record Brewing(Potion from, net.minecraft.world.item.Item with, Potion to) implements IBrewingRecipe {
-        @Override
-        public boolean isInput(net.minecraft.world.item.ItemStack stack) {
-            return net.minecraft.world.item.alchemy.PotionUtils.getPotion(stack) == from;
-        }
-
-        @Override
-        public boolean isIngredient(net.minecraft.world.item.ItemStack stack) {
-            return stack.is(with);
-        }
-
-        @Override
-        public net.minecraft.world.item.ItemStack getOutput(net.minecraft.world.item.ItemStack input, net.minecraft.world.item.ItemStack ingredient) {
-            if (!isInput(input) || !isIngredient(ingredient)) return net.minecraft.world.item.ItemStack.EMPTY;
-            return net.minecraft.world.item.alchemy.PotionUtils.setPotion(new net.minecraft.world.item.ItemStack(input.getItem()), to);
         }
     }
 

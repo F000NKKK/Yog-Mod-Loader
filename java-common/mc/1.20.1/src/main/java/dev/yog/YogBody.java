@@ -44,10 +44,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ViewportEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
@@ -56,7 +52,6 @@ import org.joml.Matrix4f;
  * about tracked entities' bodies while they're drawn, about the camera and
  * about the local player's travel step, and does what they say.
  */
-@Mod.EventBusSubscriber(modid = "yog", value = Dist.CLIENT)
 public final class YogBody {
     private YogBody() {
     }
@@ -440,8 +435,8 @@ public final class YogBody {
 
     // ── Camera ────────────────────────────────────────────────────────────────
 
-    private static float roll;
-    private static float fov = 1;
+    /** The field of view the mods scale the game's by (ViewMixin); the roll goes in the camera's rotation (CameraMixin). */
+    public static float fov = 1;
 
     /**
      * Camera.setup TAIL: {right, up, forward, wx, wy, wz, yaw, pitch, roll,
@@ -450,20 +445,11 @@ public final class YogBody {
     public static float[] camera(Entity entity, float partial, Vec3 pos, float yaw, float pitch, boolean detached) {
         float[] o = entity == null ? null : NativeBridge.nativeCamera(entity.getStringUUID(), partial, pos.x, pos.y, pos.z,
                 yaw, pitch, detached, NativeBridge.entityFlags(entity));
-        roll = o == null ? 0 : o[8];
         fov = o == null ? 1 : o[9];
         return o;
     }
 
-    @SubscribeEvent
-    public static void onAngles(ViewportEvent.ComputeCameraAngles event) {
-        if (roll != 0) event.setRoll(event.getRoll() + roll);
-    }
 
-    @SubscribeEvent
-    public static void onFov(ViewportEvent.ComputeFov event) {
-        if (fov != 1) event.setFOV(event.getFOV() * fov);
-    }
 
     // ── Movement ──────────────────────────────────────────────────────────────
 

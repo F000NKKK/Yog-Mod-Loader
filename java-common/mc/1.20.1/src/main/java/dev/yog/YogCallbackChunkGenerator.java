@@ -57,6 +57,13 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
                     Codec.BOOL.optionalFieldOf("mob_spawning", true).forGetter(g -> g.mobSpawning))
             .apply(inst, YogCallbackChunkGenerator::new));
 
+    /** Its codec, with {@link YogRegistrar}: dimensions name the generator {@code yog:callback_generator}. */
+    public static void schedule() {
+        YogRegistrar.add(net.minecraft.core.registries.Registries.CHUNK_GENERATOR, sink -> sink.register(
+                net.minecraft.core.registries.Registries.CHUNK_GENERATOR,
+                new net.minecraft.resources.ResourceLocation(YogNames.Ns.YOG, "callback_generator"), CODEC));
+    }
+
     /** The chunk currently being filled on this worker thread, if any. */
     private static final ThreadLocal<ChunkAccess> CURRENT_CHUNK = new ThreadLocal<>();
 

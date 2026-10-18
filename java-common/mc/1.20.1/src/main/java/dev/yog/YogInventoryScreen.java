@@ -13,7 +13,7 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
     public YogInventoryScreen(YogInventoryMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
         this.uiId = menu.defId;
-        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(menu.defId);
+        YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(menu.defId);
         if (def != null) {
             // A custom `on_ui_render` overlay may draw its decoration at a
             // different footprint than vanilla's 176x166 default — when it

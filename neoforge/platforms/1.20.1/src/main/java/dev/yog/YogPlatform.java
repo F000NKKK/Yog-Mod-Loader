@@ -40,16 +40,49 @@ public final class YogPlatform {
         return e instanceof net.minecraftforge.entity.PartEntity<?>;
     }
 
-    public static void sendToClient(ServerPlayer p, String channel, byte[] data) {
-        YogNetworkBridge.sendToPlayer(p, channel, data);
+    /** The version of Yog's network protocol (its one channel). */
+    private static final String PROTOCOL = "1";
+    /** The id of Yog's one kind of message. */
+    private static final int MESSAGE = 0;
+    /** Yog's one channel: every mod channel's messages, as {@link YogPayload}s. */
+    private static net.minecraftforge.network.simple.SimpleChannel channel;
+
+    /** Opens Yog's channel; what comes on it goes to the mods. */
+    static void openChannel() {
+        channel = net.minecraftforge.network.NetworkRegistry.newSimpleChannel(YogPayload.CHANNEL, () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
+        channel.registerMessage(MESSAGE, YogPayload.class, YogPayload::write, YogPayload::read, (payload, context) -> {
+            var ctx = context.get();
+            ctx.setPacketHandled(true);
+            ServerPlayer sender = ctx.getSender();
+            if (sender != null) ctx.enqueueWork(() -> payload.toServer(sender));
+            else ctx.enqueueWork(payload::toClient);
+        });
+    }
+
+    public static void sendToClient(ServerPlayer p, String channelName, byte[] data) {
+        channel.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> p), new YogPayload(channelName, data));
     }
 
     /** Raw bytes to everyone who sees {@code e}, and to it if a player. */
-    public static void sendToTracking(Entity e, String channel, byte[] data) {
-        YogNetworkBridge.sendToTracking(e, channel, data);
+    public static void sendToTracking(Entity e, String channelName, byte[] data) {
+        channel.send(net.minecraftforge.network.PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> e), new YogPayload(channelName, data));
     }
 
-    public static void sendToServer(String channel, byte[] data) {
-        YogNetworkBridge.sendToServer(channel, data);
+    public static void sendToServer(String channelName, byte[] data) {
+        channel.sendToServer(new YogPayload(channelName, data));
+    }
+
+    public static net.minecraft.world.item.CreativeModeTab.Builder tabBuilder() {
+        return net.minecraft.world.item.CreativeModeTab.builder();
+    }
+
+    /** The menu type of the mods' inventories: the inventory's id comes with the screen. */
+    public static net.minecraft.world.inventory.MenuType<YogInventoryMenu> inventoryMenuType() {
+        return net.minecraftforge.common.extensions.IForgeMenuType.create(YogInventoryMenu::createClient);
+    }
+
+    /** Opens {@code be}'s inventory for {@code p}, its id sent along. */
+    public static void openInventory(ServerPlayer p, YogInventoryBlockEntity be) {
+        net.minecraftforge.network.NetworkHooks.openScreen(p, be, buf -> buf.writeUtf(be.defId()));
     }
 }

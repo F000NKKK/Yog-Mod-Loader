@@ -20,14 +20,14 @@ import net.minecraft.world.level.block.state.BlockState;
  * `.inventory(id)` — see rust/crates/yog-inventory/DESIGN.md. One instance
  * per block position; `defId` names the `InventoryDef` (slot count, layout,
  * player-inventory inclusion) it was built from, looked up from
- * {@link YogHost#INVENTORY_DEFS}.
+ * {@link YogContentRegistry#INVENTORY_DEFS}.
  */
 public class YogInventoryBlockEntity extends BlockEntity implements Container, MenuProvider {
     private final String defId;
     private NonNullList<ItemStack> items;
 
     public YogInventoryBlockEntity(BlockPos pos, BlockState state, String defId, int slotCount) {
-        super(YogHost.INVENTORY_BLOCK_ENTITY_TYPE, pos, state);
+        super(YogContentRegistry.INVENTORY_BLOCK_ENTITY_TYPE, pos, state);
         this.defId = defId;
         this.items = NonNullList.withSize(slotCount, ItemStack.EMPTY);
     }
@@ -72,7 +72,7 @@ public class YogInventoryBlockEntity extends BlockEntity implements Container, M
 
     @Override
     public Component getDisplayName() {
-        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
         String title = def != null ? def.title : "";
         return title == null || title.isEmpty() ? Component.literal("Inventory") : Component.literal(title);
     }
@@ -93,6 +93,6 @@ public class YogInventoryBlockEntity extends BlockEntity implements Container, M
         tag.remove("y");
         tag.remove("z");
         net.minecraft.world.item.BlockItem.setBlockEntityData(stack,
-                YogHost.INVENTORY_BLOCK_ENTITY_TYPE, tag);
+                YogContentRegistry.INVENTORY_BLOCK_ENTITY_TYPE, tag);
     }
 }

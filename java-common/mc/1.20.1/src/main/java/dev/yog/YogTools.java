@@ -119,7 +119,7 @@ public final class YogTools {
             return YogContent.armorDefense(new YogContent.Armor(slotOf(type), m));
         }
         @Override public int getEnchantmentValue() { return m.enchantability(); }
-        @Override public net.minecraft.sounds.SoundEvent getEquipSound() { return YogHost.soundEvent(m.equipSound()); }
+        @Override public net.minecraft.sounds.SoundEvent getEquipSound() { return YogContentRegistry.soundEvent(m.equipSound()); }
         @Override public Ingredient getRepairIngredient() { return repair(m.repair()); }
         /** {@code ns:name}: the textures are {@code ns:textures/models/armor/name_layer_1.png}. */
         @Override public String getName() { return m.texture(); }
