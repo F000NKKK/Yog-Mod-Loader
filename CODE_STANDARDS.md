@@ -2,6 +2,10 @@
 
 The one checklist for every Yog repository (Yog-Mod-Loader, Yog-IDLE, Substrate-Platform and the mods). Every file is reviewed against it, and new code is written to it. It follows Clean Code, the [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/), and the project's own rules (the "Rules" section). Items marked **[auto]** are checked by `tools/standards_check.py` or by the linters it runs; the rest are checked by review.
 
+## 0. The law of single truth
+
+Every fact has exactly one source; everything else derives from it (composed constants, imports, re-exports, generated TS/Java). A fact about a lower level is defined at that level and flows upward — namespaces, content kinds, schemes and Yog's own ids live in `yog-ids`, the lowest crate. Before defining anything, search every repository for it.
+
 ## 1. Must not be in the code
 
 ### Meaning carried by strings and numbers
