@@ -1766,7 +1766,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.46.1"
+version = "0.46.2"
 dependencies = [
  "base64",
  "criterion",
@@ -1882,7 +1882,7 @@ dependencies = [
 
 [[package]]
 name = "yog-formats"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "serde",
  "serde_json",
