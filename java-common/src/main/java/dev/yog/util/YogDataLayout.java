@@ -190,7 +190,7 @@ public final class YogDataLayout {
                 JsonElement id = asId(e);
                 if (id.isJsonPrimitive() && id.getAsString().startsWith(TAG_MARK)) {
                     if (tag == null) tag = id;
-                    else YogLog.warn("ingredient " + any + ": only " + tag + " of its tags is kept (a list holds no tags)");
+                    else if (!tag.equals(id)) YogLog.warn("ingredient " + any + ": only " + tag + " of its tags is kept (a list holds no tags)");
                 } else {
                     out.add(id);
                 }
