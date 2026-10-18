@@ -6,7 +6,7 @@
 
 use yog_data::{Ordered, Schema};
 
-use crate::content::Texture;
+use crate::content::{RenderLayer, Texture};
 
 /// A `.ymaterial`.
 #[derive(Schema, Debug, Clone, PartialEq, Default)]
@@ -14,5 +14,5 @@ pub struct MaterialFile {
     /// The textures, by the slot a model's faces name (`all`, `side`, `top`, `particle`…).
     pub textures: Ordered<Texture>,
     /// How it's blended: `solid` (the default), `cutout`, `cutout_mipped`, `translucent`.
-    pub render_layer: Option<String>,
+    pub render_layer: Option<RenderLayer>,
 }

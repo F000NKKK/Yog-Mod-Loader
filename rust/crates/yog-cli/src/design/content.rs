@@ -94,12 +94,29 @@ fn content_file(root: &Path, id: &str, formats: &[Format]) -> Option<(PathBuf, V
     None
 }
 
+/// The textures of a content file's model (`field`) as the build takes them:
+/// its material's (`.ymaterial`) under its own, as `@texture:` text.
+fn model_textures(root: &Path, doc: &Value, field: &str) -> serde_json::Map<String, Value> {
+    let Some(model) = doc.get(field) else { return serde_json::Map::new() };
+    let read = yog_data::read_value::<yog_formats::content::Model>(&yog_data::json::from_json(model));
+    let (Ok(mut model), Some(ns)) = (read, crate::design::project::mod_id(root)) else {
+        // Not a model the build would take: its textures as written.
+        return model.get(yog_ids::model::TEXTURES).and_then(Value::as_object).cloned().unwrap_or_default();
+    };
+    if let Some(material) = model.material.clone()
+        && let Ok(m) = crate::content::material::load(root, &ns, &material)
+    {
+        crate::content::material::apply(&mut model, &m);
+    }
+    model.textures.0.iter().map(|(slot, t)| (slot.clone(), yog_data::json::to_json(&yog_data::Schema::write(t)))).collect()
+}
+
 /// The textures of the mod's block `id` (its `.yblock` model's), per face:
 /// up, down, north, south, west, east — as png bytes. `None`: not a block
 /// of the mod.
 pub fn content_block_faces(root: &Path, id: &str) -> Option<[Option<Vec<u8>>; 6]> {
     let (file, doc) = content_file(root, id, &[Format::Block])?;
-    let textures = super::data::at(&doc, &[yog_ids::content_field::MODEL, yog_ids::model::TEXTURES]).and_then(Value::as_object)?;
+    let textures = model_textures(root, &doc, yog_ids::content_field::MODEL);
     let pick = |keys: &[&str]| {
         keys.iter()
             .find_map(|k| textures.get(*k).and_then(Value::as_str))
@@ -122,10 +139,10 @@ pub fn content_block_model(root: &Path, id: &str) -> Option<(Vec<Value>, std::co
         ],
         None => return None,
     };
-    let textures = super::data::at(&doc, &[yog_ids::content_field::MODEL, yog_ids::model::TEXTURES])
-        .and_then(Value::as_object)
-        .map(|t| t.iter().filter_map(|(k, v)| Some((k.clone(), texture_bytes(&file, v.as_str()?).ok()?))).collect())
-        .unwrap_or_default();
+    let textures = model_textures(root, &doc, yog_ids::content_field::MODEL)
+        .iter()
+        .filter_map(|(k, v)| Some((k.clone(), texture_bytes(&file, v.as_str()?).ok()?)))
+        .collect();
     Some((elements, textures))
 }
 
@@ -260,7 +277,7 @@ pub fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
         if fid != want {
             continue;
         }
-        let textures = super::data::at(&doc, &[yog_ids::content_field::MODEL, yog_ids::model::TEXTURES]).and_then(Value::as_object)?;
+        let textures = model_textures(root, &doc, yog_ids::content_field::MODEL);
         let tex = textures
             .get(yog_ids::model::LAYER0)
             .or_else(|| ["all", "side", "top", "texture"].iter().find_map(|k| textures.get(*k)))

@@ -857,6 +857,10 @@ impl Display {
 #[derive(Schema, Debug, Clone)]
 pub struct Model {
     pub parent: Option<String>,
+    /// A `.ymaterial` (`@material:mymod:block/ruby`): its textures, under the
+    /// model's own, and — a block's — its render layer when the block gives none.
+    #[data(with = "yog_data::with::Opt<yog_data::with::RefTo<yog_data::kinds::Material>>")]
+    pub material: Option<String>,
     /// Slot → texture.
     #[data(default)]
     pub textures: Ordered<Texture>,

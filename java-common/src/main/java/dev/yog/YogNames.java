@@ -259,6 +259,7 @@ public final class YogNames {
         public static final String KIND = "kind";
         public static final String MODEL = "model";
         public static final String ITEM_MODEL = "item_model";
+        public static final String MATERIAL = "material";
         public static final String ITEM = "item";
         public static final String POTION = "potion";
         public static final String EFFECTS = "effects";

@@ -26,6 +26,7 @@ mod datapack;
 mod defs;
 mod import;
 pub mod json;
+pub(crate) mod material;
 mod model;
 mod outputs;
 mod recipe;

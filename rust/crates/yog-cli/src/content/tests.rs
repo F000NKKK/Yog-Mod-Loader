@@ -146,6 +146,23 @@ fn a_facing_block_turns_to_its_placer() {
 }
 
 #[test]
+fn a_block_takes_its_materials_textures_and_layer() {
+    let root = project(&[
+        ("resources/block/glass.ymaterial", r#"{ textures: { all: "@texture:minecraft:block/glass", particle: "@texture:minecraft:block/sand" }, render_layer: "translucent" }"#),
+        ("content/pane.yblock", r#"{ "model": { "parent": "cube_all", "material": "@material:mymod:block/glass", "textures": { "particle": "@texture:minecraft:block/stone" } } }"#),
+    ]);
+    let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
+    let m = output(&c, "assets/mymod/models/block/pane.json");
+    assert_eq!(m["textures"]["all"], json!("minecraft:block/glass"));
+    assert_eq!(m["textures"]["particle"], json!("minecraft:block/stone"), "the model's own over the material's");
+    assert_eq!(m["render_type"], json!("minecraft:translucent"));
+    let missing = project(&[("content/x.yblock", r#"{ "model": { "parent": "cube_all", "material": "@material:mymod:block/none" } }"#)]);
+    assert!(compile(&missing, "mymod", &yres::Refs::default()).unwrap_err().contains("material `mymod:block/none`"));
+    let _ = std::fs::remove_dir_all(root);
+    let _ = std::fs::remove_dir_all(missing);
+}
+
+#[test]
 fn compiles_elements_shape_and_connect() {
     let root = project(&[(
         "content/pipe.yblock",

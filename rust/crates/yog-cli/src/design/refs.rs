@@ -30,6 +30,10 @@ const FILE_KINDS: [(&str, &[Format]); 4] = [
 /// without the extension (`body/wings`), as an entity's `model` names them.
 const BODY_FORMATS: [Format; 2] = [Format::Model, Format::Anim];
 
+/// Resources defined by files of their own under `resources/`, named by
+/// their path there without the extension (`block/glass`).
+const RESOURCE_KINDS: [(&str, Format); 2] = [(yog_ids::kind::TEXTURE, Format::Texture), (yog_ids::kind::MATERIAL, Format::Material)];
+
 /// What `[external.<namespace>]` lists each kind under.
 const EXTERNAL_KEYS: [(&str, &str); 4] = [
     (yog_ids::kind::ITEM, yog_ids::external::ITEMS),
@@ -136,26 +140,31 @@ fn body_format(kind: &str) -> Option<Format> {
 fn own(root: &Path, kind: &str) -> Vec<OwnRef> {
     let ns = crate::design::project::mod_id(root).unwrap_or_else(|| yog_ids::ns::MINECRAFT.into());
     let mut out = Vec::new();
-    if let Some(of) = kind.strip_prefix("tag:") {
+    let tag_of = format!("{}{}", yog_ids::typed::TAG, yog_ids::sep::NAMESPACE);
+    if let Some(of) = kind.strip_prefix(tag_of.as_str()) {
         for d in defs(root, yog_ids::kind::TAG) {
-            if d.value.get("of").and_then(Value::as_str) == Some(of) {
+            if d.value.get(yog_ids::content_field::OF).and_then(Value::as_str) == Some(of) {
                 out.push(OwnRef { id: d.id, file: d.file });
             }
         }
         return out;
     }
-    if let Some(format) = body_format(kind) {
-        let content = root.join("content");
-        for f in files(root, format) {
-            let rel = f.strip_prefix(&content).unwrap_or(&f).with_extension("");
-            out.push(OwnRef { id: format!("{ns}:{}", rel.to_string_lossy().replace('\\', "/")), file: f.to_string_lossy().into_owned() });
+    // Files named by their path: body files under content/, resources under resources/.
+    let by_path = body_format(kind).map(|f| (yog_ids::project::CONTENT, f)).or_else(|| {
+        RESOURCE_KINDS.iter().find(|(k, _)| *k == kind).map(|(_, f)| (yog_ids::project::RESOURCES, *f))
+    });
+    if let Some((dir, format)) = by_path {
+        let dir = root.join(dir);
+        for f in crate::design::files::of(&dir, format) {
+            let rel = f.strip_prefix(&dir).unwrap_or(&f).with_extension("");
+            out.push(OwnRef { id: yog_ids::join(&ns, &rel.to_string_lossy().replace('\\', yog_ids::sep::PATH)), file: f.to_string_lossy().into_owned() });
         }
         return out;
     }
     if let Some((_, exts)) = FILE_KINDS.iter().find(|(k, _)| *k == kind) {
         for format in *exts {
             for f in files(root, *format) {
-                let given = read(&f).and_then(|d| d.get("id").and_then(Value::as_str).map(str::to_string));
+                let given = read(&f).and_then(|d| d.get(yog_ids::content_field::ID).and_then(Value::as_str).map(str::to_string));
                 let id = given.unwrap_or_else(|| f.file_stem().unwrap_or_default().to_string_lossy().into_owned());
                 out.push(OwnRef { id: yog_ids::qualify_in(&ns, &id), file: f.to_string_lossy().into_owned() });
             }

@@ -330,6 +330,7 @@ names! {
         KIND = "kind",
         MODEL = "model",
         ITEM_MODEL = "item_model",
+        MATERIAL = "material",
         ITEM = "item",
         POTION = "potion",
         EFFECTS = "effects",

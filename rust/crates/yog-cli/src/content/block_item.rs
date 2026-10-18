@@ -89,7 +89,7 @@ pub(super) fn compile_file(
         /// One of the game's kinds of block.
         kind: Option<String>,
     }
-    let (parts, refs, tag_refs) = match kind {
+    let (mut parts, refs, tag_refs) = match kind {
         Format::Item => match yog_data::schema::from_doc::<yog_formats::content::ItemFile>(text, &doc) {
             Ok(r) => {
                 let f = r.value;
@@ -132,6 +132,21 @@ pub(super) fn compile_file(
     }
     let (ns, p) = file_id(cx, loc(&root.key("id")), parts.id.as_deref(), path, mod_ns)?;
     cx.ns = ns.clone();
+    // Materials: their textures under the models' own; a block's render layer, when it gives none, its model's material's.
+    for (field, is_block_model) in [(yog_ids::content_field::MODEL, true), (yog_ids::content_field::ITEM_MODEL, false)] {
+        let model = if is_block_model { parts.model.as_mut() } else { parts.item_model.as_mut() };
+        let Some(model) = model else { continue };
+        let Some(material) = model.material.clone() else { continue };
+        match super::material::load(cx.root, &ns, &material) {
+            Ok(m) => {
+                let layer = super::material::apply(model, &m);
+                if let (true, Some(layer)) = (is_block_model && kind == Format::Block, layer) {
+                    parts.block.get_or_insert_with(Default::default).render_layer.get_or_insert(layer);
+                }
+            }
+            Err(e) => cx.err_at(loc, &root.key(field).key(yog_ids::content_field::MATERIAL), e),
+        }
+    }
     let id = format!("{ns}:{p}");
     let auto = parts.register.unwrap_or_default() == yog_formats::content::Register::Auto;
 
