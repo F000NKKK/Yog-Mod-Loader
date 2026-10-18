@@ -126,62 +126,55 @@ pub(super) fn flush(parts: &mut Vec<(String, String)>, code: &mut String, name: 
     code.clear();
 }
 
-pub(super) fn rust_source(entries: &[Entry], recipes: &[Recipe], books: &[BookFile], bodies: &[BodyFile], entities: &[EntityFile], fonts: &[FontFile], defs: &Defs) -> Source {
+/// `pub struct <name>` with a `pub const <PATH>: &str = "<id>"` per id —
+/// what a mod's code names its content by. Nothing for no ids.
+fn id_consts<'a>(code: &mut String, doc: &str, name: &str, ids: impl Iterator<Item = &'a str>) {
+    let ids: Vec<&str> = ids.collect();
+    if ids.is_empty() {
+        return;
+    }
+    let _ = writeln!(code, "\n/// {doc}\n#[allow(dead_code)]\npub struct {name};\n\n#[allow(dead_code, clippy::all)]\nimpl {name} {{");
+    let mut used: HashMap<String, usize> = HashMap::new();
+    for id in ids {
+        let mut ident = rust_ident(yog_ids::split(id).1).to_ascii_uppercase();
+        let n = used.entry(ident.clone()).or_insert(0);
+        *n += 1;
+        if *n > 1 {
+            let _ = write!(ident, "_{n}");
+        }
+        let _ = writeln!(code, "    pub const {ident}: &'static str = {id:?};");
+    }
+    code.push_str("}\n");
+}
+
+/// What the generated code is made of: every kind of content the build read.
+pub(super) struct Content<'a> {
+    pub entries: &'a [Entry],
+    pub recipes: &'a [Recipe],
+    pub books: &'a [BookFile],
+    pub bodies: &'a [BodyFile],
+    pub entities: &'a [EntityFile],
+    pub fonts: &'a [FontFile],
+    pub defs: &'a Defs,
+    pub textures: &'a std::collections::BTreeSet<String>,
+}
+
+pub(super) fn rust_source(c: &Content) -> Source {
+    let Content { entries, recipes, books, bodies, entities, fonts, defs, textures } = *c;
     let sound_groups = &defs.sound_groups;
     let mut files: Vec<(String, String)> = Vec::new();
     let mut code = String::new();
-    if !entities.is_empty() {
-        code.push_str("\n/// The entity types of `content/` (`.yentity`), by id.\n#[allow(dead_code)]\npub struct Entities;\n\n#[allow(dead_code, clippy::all)]\nimpl Entities {\n");
-        let mut used: HashMap<String, usize> = HashMap::new();
-        for e in entities {
-            let path = e.id.split_once(':').map_or(e.id.as_str(), |(_, p)| p);
-            let mut ident = rust_ident(path).to_ascii_uppercase();
-            let n = used.entry(ident.clone()).or_insert(0);
-            *n += 1;
-            if *n > 1 {
-                let _ = write!(ident, "_{n}");
-            }
-            let _ = writeln!(code, "    pub const {ident}: &'static str = {:?};", e.id);
-        }
-        code.push_str("}\n");
-        flush(&mut files, &mut code, "entities");
-    }
-    if !defs.advancements.is_empty() {
-        code.push_str("\n/// The advancements of `content/` (`.ydef` kind `advancement`), by id\n/// (`yog_api::advancements::grant`/`done`).\n#[allow(dead_code)]\npub struct Advancements;\n\n#[allow(dead_code, clippy::all)]\nimpl Advancements {\n");
-        let mut used: HashMap<String, usize> = HashMap::new();
-        for id in &defs.advancements {
-            let path = id.split_once(':').map_or(id.as_str(), |(_, p)| p);
-            let mut ident = rust_ident(path).to_ascii_uppercase();
-            let n = used.entry(ident.clone()).or_insert(0);
-            *n += 1;
-            if *n > 1 {
-                let _ = write!(ident, "_{n}");
-            }
-            let _ = writeln!(code, "    pub const {ident}: &'static str = {id:?};");
-        }
-        code.push_str("}\n");
-        flush(&mut files, &mut code, "advancements");
-    }
+    id_consts(&mut code, "The entity types of `content/` (`.yentity`), by id.", "Entities", entities.iter().map(|e| e.id.as_str()));
+    flush(&mut files, &mut code, "entities");
+    id_consts(&mut code, "The advancements of `content/` (`.ydef` kind `advancement`), by id\n/// (`yog_api::advancements::grant`/`done`).", "Advancements", defs.advancements.iter().map(String::as_str));
+    flush(&mut files, &mut code, "advancements");
     for (model, set, what) in [(true, "Models", "models (`.ymodel`)"), (false, "Anims", "animations (`.yanim`)")] {
-        let mine: Vec<&BodyFile> = bodies.iter().filter(|b| b.model == model).collect();
-        if mine.is_empty() {
-            continue;
-        }
-        let _ = writeln!(code, "\n/// The {what} of `content/`, by id (`yog_api::body::model`/`clip`).\n#[allow(dead_code)]\npub struct {set};\n\n#[allow(dead_code, clippy::all)]\nimpl {set} {{");
-        let mut used: HashMap<String, usize> = HashMap::new();
-        for b in mine {
-            let path = b.id.split_once(':').map_or(b.id.as_str(), |(_, p)| p);
-            let mut ident = rust_ident(path).to_ascii_uppercase();
-            let n = used.entry(ident.clone()).or_insert(0);
-            *n += 1;
-            if *n > 1 {
-                let _ = write!(ident, "_{n}");
-            }
-            let _ = writeln!(code, "    pub const {ident}: &'static str = {:?};", b.id);
-        }
-        code.push_str("}\n");
+        let doc = format!("The {what} of `content/`, by id (`yog_api::body::model`/`clip`).");
+        id_consts(&mut code, &doc, set, bodies.iter().filter(|b| b.model == model).map(|b| b.id.as_str()));
         flush(&mut files, &mut code, &set.to_ascii_lowercase());
     }
+    id_consts(&mut code, "The textures of `resources/` (`.ytexture`), by id — what the mod's code draws.", "Textures", textures.iter().map(String::as_str));
+    flush(&mut files, &mut code, "textures");
     for (kind, set, def) in [
         (Format::Block, "Blocks", "BlockDef"),
         (Format::Item, "Items", "ItemDef"),

@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 pub mod effects;
 pub mod recipe_kinds;
 pub mod loot;
+pub mod atlases;
 pub mod item_looks;
 pub mod tool_levels;
 
@@ -48,6 +49,7 @@ pub fn registration_changes(registered: &str, new: &str) -> (Vec<String>, Vec<St
 }
 pub use effects::{AttributeDef, Brew, EffectCategory, EffectDef, EffectModifier, ModifierOperation, PotionDef, PotionEffect};
 pub use loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
+pub use atlases::Atlas;
 pub use item_looks::{ItemLooks, ItemTint, LookModels};
 pub use tool_levels::{LevelTag, ToolLadder, ToolLevel};
 

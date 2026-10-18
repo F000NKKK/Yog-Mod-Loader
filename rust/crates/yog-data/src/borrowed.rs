@@ -32,6 +32,8 @@ pub enum ValueRef<'a> {
     Image(&'a str),
     /// `0xAARRGGBB`.
     Color(u32),
+    /// Bytes as they are.
+    Bytes(&'a [u8]),
 }
 
 /// A borrowed map: entries in file order.
@@ -78,6 +80,7 @@ impl<'a> ValueRef<'a> {
             ValueRef::Text(_) => "a text",
             ValueRef::Image(_) => "an image",
             ValueRef::Color(_) => "a color",
+            ValueRef::Bytes(_) => "bytes",
         }
     }
 
@@ -158,6 +161,7 @@ impl<'a> ValueRef<'a> {
             ValueRef::Text(s) => Value::Text(s.to_string()),
             ValueRef::Image(s) => Value::Image(s.to_string()),
             ValueRef::Color(c) => Value::Color(c),
+            ValueRef::Bytes(b) => Value::Bytes(b.to_vec()),
         }
     }
 
@@ -188,6 +192,7 @@ impl Value {
             Value::Text(s) => ValueRef::Text(s),
             Value::Image(s) => ValueRef::Image(s),
             Value::Color(c) => ValueRef::Color(*c),
+            Value::Bytes(b) => ValueRef::Bytes(b),
         }
     }
 }

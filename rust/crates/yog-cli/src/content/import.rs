@@ -137,9 +137,10 @@ impl Target {
         Ok(())
     }
 
-    /// Copies a texture into `resources/<path>.png` with its
-    /// `<path>.ytexture` (the animation an `.mcmeta` gave) → its value in a
-    /// content file (`@texture:<ns>:<path>`).
+    /// Puts a texture's picture into `resources/Images.yres` (as bytes,
+    /// named by its path: `block.ruby`) and writes its `<path>.ytexture`
+    /// (its atlas by its folder, the animation an `.mcmeta` gave) → its
+    /// value in a content file (`@texture:<ns>:<path>`).
     fn put_texture(
         &mut self,
         ns: &str,
@@ -147,28 +148,45 @@ impl Target {
         png: &[u8],
         mcmeta: Option<&[u8]>,
     ) -> Result<String, String> {
-        let rel = format!("{RESOURCES_DIR}/{path}{}", yog_ids::res::PNG);
-        let existing = self.root.join(&rel);
-        if !(existing.is_file() && std::fs::read(&existing).ok().as_deref() == Some(png)) {
-            let force = self.force;
-            // A texture already there and different: keep it, warn.
-            if existing.is_file() && !force {
-                self.warnings.push(format!(
-                    "{rel} exists and differs — kept it (--force overwrites)"
-                ));
-            } else {
-                self.write_file(&rel, png)?;
-            }
+        let name = path.replace(yog_ids::sep::PATH, ".");
+        let set_rel = format!("{RESOURCES_DIR}/{}", Format::Res.file(IMPORT_SET));
+        let set_file = self.root.join(&set_rel);
+        let mut entries = match std::fs::read_to_string(&set_file) {
+            Ok(text) => crate::yres::parse(&text).map_err(|e| format!("{set_rel}: {e}"))?,
+            Err(_) => Vec::new(),
+        };
+        let picture = crate::yres::Value::Bytes(png.to_vec());
+        match entries.iter_mut().find(|e| e.name == name) {
+            Some(e) if e.value == picture => {}
+            // A picture already there and different: keep it, warn.
+            Some(_) if !self.force => self.warnings.push(format!("{set_rel}: {name} exists and differs — kept it (--force overwrites)")),
+            Some(e) => e.value = picture,
+            None => entries.push(crate::yres::Entry::picture(&name, png.to_vec())),
+        }
+        if let Some(dir) = set_file.parent() {
+            std::fs::create_dir_all(dir).map_err(|e| format!("{set_rel}: {e}"))?;
+        }
+        std::fs::write(&set_file, crate::yres::write(&entries)).map_err(|e| format!("{set_rel}: {e}"))?;
+        if !self.written.contains(&set_rel) {
+            self.written.push(set_rel);
         }
         let rel = format!("{RESOURCES_DIR}/{}", Format::Texture.file(path));
         if !self.root.join(&rel).is_file() || self.force {
-            let file_name = std::path::Path::new(path).file_name().map_or_else(String::new, |n| n.to_string_lossy().into_owned());
-            let texture = super::textures::from_mcmeta(&format!("{file_name}{}", yog_ids::res::PNG), mcmeta);
+            let texture = yog_formats::texture::TextureFile {
+                image: yog_data::Res { set: IMPORT_SET.into(), key: name },
+                atlas: yog_registry::Atlas::of_path(path).map(|a| a.id.clone()),
+                animation: mcmeta.and_then(super::textures::animation_of_mcmeta),
+                blur: false,
+                clamp: false,
+            };
             self.write_file(&rel, yog_data::text::to_string_pretty(&texture.write()).as_bytes())?;
         }
         Ok(format!("{}{}", yog_ids::reference::TEXTURE, yog_ids::join(ns, path)))
     }
 }
+
+/// The `.yres` set imported pictures go into.
+const IMPORT_SET: &str = "Images";
 
 // ── Resource packs ───────────────────────────────────────────────────────────
 
@@ -1223,11 +1241,10 @@ mod tests {
         assert!(text.contains("\"0\": \"@texture:mymod:block/lamp\""), "{text}");
         assert!(root.join("resources/block/lamp.ytexture").is_file());
         assert!(!text.contains("item_model"), "{text}");
-        assert_eq!(
-            std::fs::read(root.join("resources/block/lamp.png")).unwrap(),
-            picture()
-        );
-        let c = super::super::compile(&root, "mymod", &crate::yres::Refs::default()).unwrap();
+        let images = crate::yres::parse(&std::fs::read_to_string(root.join("resources/Images.yres")).unwrap()).unwrap();
+        assert!(images.iter().any(|e| e.name == "block.lamp" && e.value == crate::yres::Value::Bytes(picture())));
+        let refs = crate::yres::compile(&root, "mymod").unwrap().refs;
+        let c = super::super::compile(&root, "mymod", &refs).unwrap();
         let bs = c
             .outputs
             .iter()
@@ -1256,11 +1273,10 @@ mod tests {
         let text = std::fs::read_to_string(root.join("content/blocks/thing.yblock")).unwrap();
         assert!(text.contains("\"uv\": [0, 0, 16, 8]"), "{text}");
         assert!(!text.contains("\"up\""), "{text}");
-        assert_eq!(
-            yog_media::image::decode(&std::fs::read(root.join("resources/block/thing.png")).unwrap()).unwrap().width,
-            1
-        );
-        super::super::compile(&root, "mymod", &crate::yres::Refs::default()).unwrap();
+        let images = crate::yres::parse(&std::fs::read_to_string(root.join("resources/Images.yres")).unwrap()).unwrap();
+        assert!(images.iter().any(|e| e.name == "block.thing"));
+        let refs = crate::yres::compile(&root, "mymod").unwrap().refs;
+        super::super::compile(&root, "mymod", &refs).unwrap();
         let _ = std::fs::remove_dir_all(root);
     }
 }

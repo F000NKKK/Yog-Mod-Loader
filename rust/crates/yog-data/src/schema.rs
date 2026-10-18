@@ -61,6 +61,8 @@ pub enum Shape {
     Image,
     /// `#RRGGBB`/`#AARRGGBB` or a `@Set.key` color resource.
     Color,
+    /// Bytes as they are.
+    Bytes,
     /// A mod resource, `@Set.key`.
     Res,
     /// Content of a kind (`""`: any kind, written `@kind:id`).
@@ -169,6 +171,7 @@ impl Shape {
             Shape::Text => kind("text"),
             Shape::Image => kind("image"),
             Shape::Color => kind("color"),
+            Shape::Bytes => kind("bytes"),
             Shape::Res => kind("res"),
             Shape::Ref(k) | Shape::Tag(k) | Shape::RefOrTag(k) | Shape::RefOrImage(k) => {
                 let mut m = kind(match self {
@@ -1235,6 +1238,8 @@ pub mod kinds {
         Fluid = yog_ids::kind::FLUID,
         Biome = yog_ids::kind::BIOME,
         Dimension = yog_ids::kind::DIMENSION,
+        Texture = yog_ids::kind::TEXTURE,
+        Material = yog_ids::kind::MATERIAL,
     }
 }
 

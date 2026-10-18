@@ -53,11 +53,10 @@ pub struct Model {
 }
 
 impl Model {
-    /// Builds `file`; `namespace` completes a texture given as a path.
-    /// Errors name what's wrong (an unknown or later parent, a repeated
-    /// name).
-    pub fn new(file: &ModelFile, namespace: &str) -> Result<Model, String> {
-        let texture = texture_id(&file.texture, namespace);
+    /// Builds `file`. Errors name what's wrong (an unknown or later
+    /// parent, a repeated name).
+    pub fn new(file: &ModelFile) -> Result<Model, String> {
+        let texture = texture_resource(&file.texture);
         let [tw, th] = file.texture_size.map(|n| n.max(1) as f32);
         let mut bones: Vec<Bone> = Vec::with_capacity(file.bones.len());
         for b in &file.bones {
@@ -90,13 +89,10 @@ impl Model {
     }
 }
 
-/// `entity/x.png` in mod `ns` → `ns:textures/entity/x.png`; a full id stays.
-pub fn texture_id(texture: &str, namespace: &str) -> String {
-    if texture.contains(':') {
-        texture.to_owned()
-    } else {
-        format!("{namespace}:textures/{}", texture.trim_start_matches('/'))
-    }
+/// The texture as the host loads it: `<ns>:textures/<path>.png`.
+pub fn texture_resource(id: &str) -> String {
+    let (ns, path) = yog_ids::split(id);
+    yog_ids::join(ns, &yog_ids::texture_file(path))
 }
 
 /// `ModelPart.Cube`'s six faces.
@@ -164,8 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn textures_get_the_namespace() {
-        assert_eq!(texture_id("misc/a.png", "hex"), "hex:textures/misc/a.png");
-        assert_eq!(texture_id("minecraft:textures/x.png", "hex"), "minecraft:textures/x.png");
+    fn a_texture_is_loaded_from_its_resource() {
+        assert_eq!(texture_resource("minecraft:entity/elytra"), "minecraft:textures/entity/elytra.png");
     }
 }

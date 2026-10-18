@@ -15,6 +15,7 @@
 
 use crate::value::{Ref, Res, Value};
 
+use base64::Engine as _;
 use yog_ids::typed;
 
 /// `s` as a typed value if it's written as one (`@…`), the plain string
@@ -35,7 +36,7 @@ pub fn classify(s: &str) -> Result<Value, String> {
                 "`{s}`: a resource is `@Set.key` with an upper-case set name (`@Strings.title`)"
             ));
         }
-        if tail.is_empty() || !tail.split('.').all(is_ident) {
+        if !is_res_key(tail) {
             return Err(format!(
                 "`{s}`: `{tail}` isn't a resource key (letters, digits, `_`, dotted)"
             ));
@@ -75,6 +76,10 @@ pub fn classify(s: &str) -> Result<Value, String> {
             }
             Ok(Value::Lang(tail.to_string()))
         }
+        typed::BYTES => base64::engine::general_purpose::STANDARD
+            .decode(tail)
+            .map(Value::Bytes)
+            .map_err(|e| format!("`@bytes:`: not base64 ({e})")),
         typed::IMAGE => {
             if tail.is_empty() {
                 return Err(format!("`{s}`: no image source after `@image:`"));
@@ -97,6 +102,7 @@ pub fn typed_string(v: &Value) -> Option<String> {
         Value::Image(src) => format!("@image:{src}"),
         Value::Lang(key) => format!("@lang:{key}"),
         Value::Color(c) => format_color(*c),
+        Value::Bytes(b) => format!("@{}:{}", typed::BYTES, base64::engine::general_purpose::STANDARD.encode(b)),
         Value::Text(t) => escape_at(t),
         Value::Str(t) => escape_at(t),
         _ => return None,
@@ -157,6 +163,13 @@ pub fn format_color(c: u32) -> String {
     } else {
         format!("#{c:08X}")
     }
+}
+
+/// A resource key: identifiers joined by `.` (`screen.title`); after the
+/// first, a part may start with a digit (`item.robes.2_boots`).
+pub fn is_res_key(key: &str) -> bool {
+    let mut parts = key.split('.');
+    parts.next().is_some_and(is_ident) && parts.all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'))
 }
 
 fn is_ident(s: &str) -> bool {

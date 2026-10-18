@@ -100,7 +100,15 @@ pub(super) fn compile_font(shown: &str, text: &str, root: &Path, path: &Path, ns
 
 /// Checks a `.ymodel` (its schema, and that it makes a model: parents
 /// before children, names once) or a `.yanim` (schema, times).
-pub(super) fn compile_body(shown: &str, text: &str, kind: Format, root: &Path, path: &Path, ns: &str, errors: &mut Vec<String>) -> Option<BodyFile> {
+/// Where a body file is read: the mod's root, its namespace and its textures.
+pub(super) struct BodyCx<'a> {
+    pub root: &'a Path,
+    pub ns: &'a str,
+    pub own_textures: &'a std::collections::BTreeSet<String>,
+}
+
+pub(super) fn compile_body(cx: &BodyCx, shown: &str, text: &str, kind: Format, path: &Path, errors: &mut Vec<String>) -> Option<BodyFile> {
+    let (root, ns) = (cx.root, cx.ns);
     let rel = path.strip_prefix(root.join(CONTENT_DIR)).unwrap_or(path).with_extension("");
     let id = format!("{ns}:{}", rel.to_string_lossy().replace('\\', "/"));
     let report = |errors: &mut Vec<String>, e: yog_data::Errors| {
@@ -116,8 +124,14 @@ pub(super) fn compile_body(shown: &str, text: &str, kind: Format, root: &Path, p
                 return None;
             }
         };
-        if let Err(e) = yog_body::Model::new(&file, ns) {
+        if let Err(e) = yog_body::Model::new(&file) {
             errors.push(format!("{shown}: {e}"));
+            return None;
+        }
+        // The mod's own texture must be one of its `.ytexture`s.
+        let (tns, tpath) = yog_ids::split(&file.texture);
+        if tns == ns && !cx.own_textures.contains(&file.texture) {
+            errors.push(format!("{shown}: texture `{}`: no {}/{}", file.texture, crate::yres::RESOURCES_DIR, Format::Texture.file(tpath)));
             return None;
         }
         yog_data::Schema::write(&file)

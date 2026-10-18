@@ -31,7 +31,7 @@ public final class YogData {
     public static final int MAX_DEPTH = 256;
 
     private static final int NULL = 0, FALSE = 1, TRUE = 2, INT = 3, FLOAT = 4, STR = 5, LIST = 6, MAP = 7,
-            REF = 8, TAG = 9, RES = 10, TEXT = 11, IMAGE = 12, COLOR = 13, LANG = 14;
+            REF = 8, TAG = 9, RES = 10, TEXT = 11, IMAGE = 12, COLOR = 13, LANG = 14, BYTES = 15;
 
     /** Content of a kind ({@code item}, {@code block}, ...) by id. */
     public record Ref(String kind, String id) {}
@@ -167,6 +167,12 @@ public final class YogData {
                 case IMAGE: return new Image(string());
                 case COLOR: return new Color((int) fixed(4));
                 case LANG: return new Lang(string());
+                case BYTES: {
+                    int n = count(1);
+                    byte[] bytes = java.util.Arrays.copyOfRange(b, i, i + n);
+                    i += n;
+                    return bytes;
+                }
                 default: throw new DecodeException("unknown tag " + tag, i - 1);
             }
         }
@@ -260,6 +266,10 @@ public final class YogData {
             } else if (v instanceof Color c) {
                 body.write(COLOR);
                 fixed(c.argb() & 0xFFFFFFFFL, 4);
+            } else if (v instanceof byte[] bytes) {
+                body.write(BYTES);
+                varint(body, bytes.length);
+                body.write(bytes, 0, bytes.length);
             } else {
                 throw new IllegalArgumentException("not a Yog Data value: " + v.getClass().getName());
             }

@@ -40,8 +40,6 @@ pub struct EntryObject {
     pub comment: Option<String>,
     /// Texts: the translation key instead of the default one.
     pub key: Option<String>,
-    /// Images: the texture path under `assets/<mod id>/textures/`.
-    pub texture: Option<String>,
     /// Sounds: the sound event name.
     pub event: Option<String>,
     /// Sounds: the subtitle's translation key.
@@ -57,12 +55,11 @@ pub fn split_file_name(file_name: &str) -> Option<(&str, Option<&str>)> {
     })
 }
 
-/// Where an image entry's texture goes, under `assets/<mod id>/textures/`:
-/// its `texture`, else its file's path under `resources/` (`rel`) without
-/// `.png`. `None` for a file that isn't a `.png`.
+/// Where an image entry's picture goes, under `assets/<mod id>/textures/`:
+/// its file's path under `resources/` (`rel`) without `.png`. `None` for a
+/// file that isn't a `.png`. (Textures the game's atlases are made of are
+/// `.ytexture` files, not `.yres` images.)
 #[must_use]
-pub fn image_texture(rel: &str, texture: Option<&str>) -> Option<String> {
-    let png = yog_ids::res::PNG;
-    let stem = rel.strip_suffix(png)?;
-    Some(texture.map_or_else(|| stem.to_string(), |t| t.trim_matches('/').trim_end_matches(png).to_string()))
+pub fn image_texture(rel: &str) -> Option<String> {
+    rel.strip_suffix(yog_ids::res::PNG).map(str::to_string)
 }

@@ -32,6 +32,8 @@ pub enum Value {
     Image(String),
     /// `0xAARRGGBB`.
     Color(u32),
+    /// Bytes as they are — a picture, a sound — written `@bytes:<base64>` as text.
+    Bytes(Vec<u8>),
 }
 
 /// A reference to content: its kind (`item`, `block`, `entity`, `recipe`,
@@ -176,6 +178,7 @@ impl Value {
             Value::Text(_) => "a text",
             Value::Image(_) => "an image",
             Value::Color(_) => "a color",
+            Value::Bytes(_) => "bytes",
         }
     }
 

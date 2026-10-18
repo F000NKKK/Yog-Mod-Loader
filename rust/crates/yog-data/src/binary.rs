@@ -26,6 +26,7 @@
 //! | 12 | image | string |
 //! | 13 | color | u32, little-endian (`0xAARRGGBB`) |
 //! | 14 | translation key | string |
+//! | 15 | bytes | varint length, the bytes |
 //!
 //! Varints are LEB128. Decoding checks every length against the input, so
 //! malformed bytes are an error, never a panic or a huge allocation.
@@ -61,6 +62,7 @@ mod tag {
     pub const IMAGE: u8 = 12;
     pub const COLOR: u8 = 13;
     pub const LANG: u8 = 14;
+    pub const BYTES: u8 = 15;
 }
 
 /// `value` in the binary form.
@@ -241,6 +243,11 @@ impl<'v> Encoder<'v> {
                 self.body.push(tag::COLOR);
                 self.body.extend_from_slice(&c.to_le_bytes());
             }
+            Value::Bytes(b) => {
+                self.body.push(tag::BYTES);
+                varint(&mut self.body, b.len() as u64);
+                self.body.extend_from_slice(b);
+            }
         }
     }
 }
@@ -417,6 +424,15 @@ impl<'b> Decoder<'b> {
         Ok(bytes.try_into().unwrap())
     }
 
+    /// A length and that many bytes.
+    fn bytes(&mut self) -> Result<&'b [u8], DecodeError> {
+        let len = usize::try_from(self.varint()?).map_err(|_| self.error("a length beyond memory"))?;
+        let end = self.i.checked_add(len).filter(|&e| e <= self.b.len()).ok_or_else(|| self.error("bytes past the end"))?;
+        let out = &self.b[self.i..end];
+        self.i = end;
+        Ok(out)
+    }
+
     fn string(&mut self) -> Result<&'b str, DecodeError> {
         let i = self.varint()?;
         self.strings
@@ -488,6 +504,7 @@ impl<'b> Decoder<'b> {
             tag::IMAGE => ValueRef::Image(self.string()?),
             tag::COLOR => ValueRef::Color(u32::from_le_bytes(self.fixed()?)),
             tag::LANG => ValueRef::Lang(self.string()?),
+            tag::BYTES => ValueRef::Bytes(self.bytes()?),
             t => {
                 self.i -= 1;
                 return Err(self.error(format!("unknown tag {t}")));
@@ -545,6 +562,7 @@ impl<'b> Decoder<'b> {
             tag::IMAGE => Value::Image(self.string()?.to_string()),
             tag::COLOR => Value::Color(u32::from_le_bytes(self.fixed()?)),
             tag::LANG => Value::Lang(self.string()?.to_string()),
+            tag::BYTES => Value::Bytes(self.bytes()?.to_vec()),
             t => {
                 self.i -= 1;
                 return Err(self.error(format!("unknown tag {t}")));
@@ -588,6 +606,16 @@ mod tests {
         m.insert("lang", Value::Lang("gui.done".into()));
         m.insert("again", Value::Str("Ruby".into()));
         Value::Map(m)
+    }
+
+    #[test]
+    fn bytes_round_trip_in_both_forms() {
+        let v = Value::Bytes(vec![0, 1, 2, 255]);
+        assert_eq!(decode(&encode(&v)).unwrap(), v);
+        let text = crate::text::to_string(&v);
+        assert_eq!(text, "\"@bytes:AAEC/w==\"");
+        assert_eq!(crate::typed::classify("@bytes:AAEC/w==").unwrap(), v);
+        assert!(decode(&[b'Y', b'O', b'G', b'D', VERSION, 0, tag::BYTES, 9]).is_err(), "a length past the end");
     }
 
     #[test]

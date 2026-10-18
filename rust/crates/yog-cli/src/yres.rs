@@ -17,7 +17,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write as _;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use yog_data::{Reader, Schema, Seg, Shape, ValueRef};
 
@@ -45,15 +45,23 @@ fn kind_of(value: &Value) -> Kind {
         Value::Str(_) => Kind::String,
         Value::Num(_) => Kind::Number,
         Value::Bool(_) => Kind::Bool,
+        Value::Bytes(b) if b.starts_with(OGG_MAGIC) => Kind::Sound,
+        Value::Bytes(b) if yog_media::image::decode(b).is_ok() => Kind::Image,
+        Value::Bytes(_) => Kind::File,
     }
 }
 
-/// A scalar as written: a string, a number (its literal) or a bool.
+/// What an Ogg stream starts with — the game's sound format.
+const OGG_MAGIC: &[u8] = b"OggS";
+
+/// A scalar as written: a string, a number (its literal), a bool, or bytes
+/// (a picture, a sound, a file — `@bytes:<base64>`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Str(String),
     Num(String),
     Bool(bool),
+    Bytes(Vec<u8>),
 }
 
 /// One entry of a `.yres` file.
@@ -64,7 +72,6 @@ pub struct Entry {
     pub value: Value,
     pub comment: Option<String>,
     pub key: Option<String>,
-    pub texture: Option<String>,
     pub event: Option<String>,
     pub subtitle: Option<String>,
     /// 1-based line of the name.
@@ -72,6 +79,11 @@ pub struct Entry {
 }
 
 impl Entry {
+    /// An image entry named `name` holding the picture `bytes`.
+    pub fn picture(name: &str, bytes: Vec<u8>) -> Entry {
+        Entry { name: name.to_string(), kind: Kind::Image, value: Value::Bytes(bytes), comment: None, key: None, event: None, subtitle: None, line: 0 }
+    }
+
     fn text(&self) -> &str {
         match &self.value {
             Value::Str(s) => s,
@@ -80,12 +92,24 @@ impl Entry {
     }
 }
 
+/// What bytes are written as in text: `@bytes:<base64>`.
+const BYTES_PREFIX: &str = yog_ids::concatcp!(yog_ids::sep::TYPED, yog_ids::typed::BYTES, yog_ids::sep::NAMESPACE);
+
 /// A whole `.yres` file: named entries in file order.
 struct YresFile(Vec<Entry>);
 
 /// `v` as an entry's scalar value.
 fn scalar(v: &ValueRef, cx: &mut Reader) -> Option<Value> {
     Some(match v {
+        ValueRef::Bytes(b) => Value::Bytes(b.to_vec()),
+        ValueRef::Str(s) if s.starts_with(BYTES_PREFIX) => match yog_data::typed::classify(s) {
+            Ok(yog_data::Value::Bytes(b)) => Value::Bytes(b),
+            Ok(_) => unreachable!("`@bytes:` classifies as bytes"),
+            Err(e) => {
+                cx.problem(e);
+                return None;
+            }
+        },
         ValueRef::Str(_) => Value::Str(String::read(v, cx)?),
         ValueRef::Int(n) => Value::Num(n.to_string()),
         ValueRef::Float(f) => Value::Num(format!("{f:?}")),
@@ -104,7 +128,6 @@ fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
         value: Value::Str(String::new()),
         comment: None,
         key: None,
-        texture: None,
         event: None,
         subtitle: None,
         line: 0,
@@ -121,18 +144,19 @@ fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
     let kind = o.kind.unwrap_or(kind_of(&value));
     let fits = matches!(
         (kind, &value),
-        (Kind::Number, Value::Num(_)) | (Kind::Bool, Value::Bool(_)) | (Kind::String | Kind::Image | Kind::File | Kind::Sound | Kind::Color, Value::Str(_))
+        (Kind::Number, Value::Num(_)) | (Kind::Bool, Value::Bool(_)) | (Kind::String | Kind::Color, Value::Str(_)) | (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_))
     );
     if !fits {
         let needs = match kind {
             Kind::Number => "number",
             Kind::Bool => "true/false",
+            Kind::Image | Kind::File | Kind::Sound => "bytes (`@bytes:…`)",
             _ => "string",
         };
         cx.at(Seg::Key("value".into()), |cx| cx.problem(format!("a {} needs a {needs} value", kind.name())));
         return None;
     }
-    let misplaced = [("key", o.key.is_some(), Kind::String), ("texture", o.texture.is_some(), Kind::Image), ("event", o.event.is_some(), Kind::Sound), ("subtitle", o.subtitle.is_some(), Kind::Sound)];
+    let misplaced = [("key", o.key.is_some(), Kind::String), ("event", o.event.is_some(), Kind::Sound), ("subtitle", o.subtitle.is_some(), Kind::Sound)];
     for (field, present, only) in misplaced {
         if present && kind != only {
             cx.at(Seg::Key(field.into()), |cx| cx.problem(format!("only {} entries have a `{field}`", only.name())));
@@ -141,7 +165,7 @@ fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
     }
     entry.kind = kind;
     entry.value = value;
-    (entry.comment, entry.key, entry.texture, entry.event, entry.subtitle) = (o.comment, o.key, o.texture, o.event, o.subtitle);
+    (entry.comment, entry.key, entry.event, entry.subtitle) = (o.comment, o.key, o.event, o.subtitle);
     Some(entry)
 }
 
@@ -174,8 +198,9 @@ impl Schema for YresFile {
                 Value::Str(s) => yog_data::Value::Str(s.clone()),
                 Value::Num(n) => n.parse::<i64>().map(yog_data::Value::Int).unwrap_or_else(|_| yog_data::Value::Float(n.parse().unwrap_or_default())),
                 Value::Bool(b) => yog_data::Value::Bool(*b),
+                Value::Bytes(b) => yog_data::Value::Bytes(b.clone()),
             };
-            let plain = e.kind == kind_of(&e.value) && e.comment.is_none() && e.key.is_none() && e.texture.is_none() && e.event.is_none() && e.subtitle.is_none();
+            let plain = e.kind == kind_of(&e.value) && e.comment.is_none() && e.key.is_none() && e.event.is_none() && e.subtitle.is_none();
             if plain {
                 map.insert(e.name.clone(), value);
                 continue;
@@ -185,7 +210,6 @@ impl Schema for YresFile {
                 value,
                 comment: e.comment.clone(),
                 key: e.key.clone(),
-                texture: e.texture.clone(),
                 event: e.event.clone(),
                 subtitle: e.subtitle.clone(),
             };
@@ -241,7 +265,7 @@ fn ident_part(s: &str) -> bool {
 
 /// An entry name: identifiers joined by `.` (`title`, `screen.title`).
 pub fn valid_name(name: &str) -> bool {
-    !name.is_empty() && name.split('.').all(ident_part)
+    yog_data::typed::is_res_key(name)
 }
 
 /// A resource set name: one identifier (`Strings`, `Icons`).
@@ -457,6 +481,21 @@ pub struct Refs {
     pub images: HashMap<String, String>,
     /// `Set.name` → color (`0xAARRGGBB`).
     pub colors: HashMap<String, u32>,
+    /// `Set.name` → an image's picture, as the build writes it.
+    pub pictures: HashMap<String, Picture>,
+}
+
+/// An image's picture: its PNG and the file the build writes it to — which
+/// a texture packed into an atlas takes the place of.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Picture {
+    pub png: Vec<u8>,
+    pub output: String,
+}
+
+/// Whether `path` is a valid resource path: lower case a-z, 0-9, `_`, `-`, `.`, `/`.
+fn valid_resource_path(path: &str) -> bool {
+    !path.is_empty() && path.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'-' | b'.' | b'/'))
 }
 
 /// Everything `yog build` makes of a mod's resources.
@@ -609,44 +648,6 @@ fn load(root: &Path, errors: &mut Vec<String>) -> BTreeMap<String, Set> {
     sets
 }
 
-/// A path of an entry, relative to its `.yres` file → the path relative to
-/// `resources/` (`/`-separated, checked to stay inside and to exist).
-fn resource_path(root: &Path, yres: &Path, value: &str) -> Result<(String, PathBuf), String> {
-    let base = yres.parent().unwrap_or(root);
-    let mut parts: Vec<String> = base
-        .strip_prefix(root.join(RESOURCES_DIR))
-        .unwrap_or(Path::new(""))
-        .components()
-        .map(|c| c.as_os_str().to_string_lossy().into_owned())
-        .collect();
-    for c in Path::new(&value.replace('\\', "/")).components() {
-        match c {
-            Component::Normal(s) => parts.push(s.to_string_lossy().into_owned()),
-            Component::CurDir => {}
-            Component::ParentDir if !parts.is_empty() => {
-                parts.pop();
-            }
-            _ => return Err(format!("`{value}` must stay inside {RESOURCES_DIR}/")),
-        }
-    }
-    let rel = parts.join("/");
-    if rel.is_empty() {
-        return Err("the path is empty".into());
-    }
-    let full = root.join(RESOURCES_DIR).join(&rel);
-    if !full.is_file() {
-        return Err(format!("{RESOURCES_DIR}/{rel} doesn't exist"));
-    }
-    if !rel.bytes().all(|b| {
-        b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'-' | b'.' | b'/')
-    }) {
-        return Err(format!(
-            "{RESOURCES_DIR}/{rel}: Minecraft resource paths are lower case — only a-z, 0-9, `_`, `-`, `.` and `/`"
-        ));
-    }
-    Ok((rel, full))
-}
-
 fn parse_color(s: &str) -> Option<u32> {
     let hex = s.trim().strip_prefix('#')?;
     let v = u32::from_str_radix(hex, 16).ok()?;
@@ -704,8 +705,8 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
     // locale → (key, text), in set order then file order.
     let mut lang: BTreeMap<String, Vec<(String, String)>> = BTreeMap::new();
     let mut key_origin: HashMap<String, String> = HashMap::new();
-    // Bundled path → the file it comes from.
-    let mut bundled: BTreeMap<String, PathBuf> = BTreeMap::new();
+    // Bundled path → the entry it comes from, and its bytes.
+    let mut bundled: BTreeMap<String, (String, Vec<u8>)> = BTreeMap::new();
     let mut sounds: BTreeMap<String, serde_json::Value> = BTreeMap::new();
 
     for set in sets.values() {
@@ -742,14 +743,15 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                         "Looks up a localized string similar to \"{}\".",
                         doc_line(e.text())
                     ),
-                    Kind::Image => format!("The image `{}`.", doc_line(e.text())),
-                    Kind::File => format!("The file `{}`.", doc_line(e.text())),
-                    Kind::Sound => format!("The sound `{}`.", doc_line(e.text())),
+                    Kind::Image => format!("The image `{}`.", e.name),
+                    Kind::File => format!("The file `{}`.", e.name),
+                    Kind::Sound => format!("The sound `{}`.", e.name),
                     Kind::Color => format!("The color `{}`.", doc_line(e.text())),
                     Kind::Number | Kind::Bool => match &e.value {
                         Value::Num(n) => format!("The number `{n}`."),
                         Value::Bool(b) => format!("The flag `{b}`."),
                         Value::Str(v) => format!("The value `{}`.", doc_line(v)),
+                        Value::Bytes(b) => format!("{} bytes.", b.len()),
                     },
                 };
                 let mut doc = format!("    /// {what}\n    ///\n    /// `{}`", e.name);
@@ -823,36 +825,39 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                     text_params.insert(&e.name, (key, ps));
                 }
                 Kind::Image | Kind::File | Kind::Sound => {
-                    let (rel, full) = match resource_path(root, &set.neutral.path, e.text()) {
-                        Ok(p) => p,
-                        Err(err) => {
-                            errors.push(format!("{at}: {:?}: {err}", e.name));
-                            continue;
-                        }
-                    };
-                    let (target, id) = match e.kind {
+                    let Value::Bytes(bytes) = &e.value else { continue };
+                    // A medium's path is its name, dotted: `block.ruby` → `block/ruby`.
+                    let path = e.name.replace('.', yog_ids::sep::PATH);
+                    if !valid_resource_path(&path) {
+                        errors.push(format!("{at}: {:?}: Minecraft resource paths are lower case — only a-z, 0-9, `_`, `-`, `.`", e.name));
+                        continue;
+                    }
+                    let (target, id, data) = match e.kind {
                         Kind::Image => {
-                            let Some(texture) = yog_formats::yres::image_texture(&rel, e.texture.as_deref()) else {
-                                errors
-                                    .push(format!("{at}: {:?}: images must be .png files", e.name));
-                                continue;
+                            let png = match yog_media::image::decode(bytes).and_then(|img| yog_media::image::encode_png(&img)) {
+                                Ok(png) => png,
+                                Err(err) => {
+                                    errors.push(format!("{at}: {:?}: {err}", e.name));
+                                    continue;
+                                }
                             };
-                            let source = format!("{mod_id}:{texture}");
-                            c.refs.images.insert(reference, source.clone());
-                            (format!("assets/{mod_id}/textures/{texture}.png"), source)
+                            let source = yog_ids::join(mod_id, &path);
+                            let target = format!("{}/{mod_id}/{}", yog_ids::pack::ASSETS, yog_ids::texture_file(&path));
+                            c.refs.images.insert(reference.clone(), source.clone());
+                            c.refs.pictures.insert(reference, Picture { png: png.clone(), output: target.clone() });
+                            (target, source, png)
                         }
                         Kind::Sound => {
-                            let Some(stem) = rel.strip_suffix(".ogg") else {
-                                errors
-                                    .push(format!("{at}: {:?}: sounds must be .ogg files", e.name));
+                            if !bytes.starts_with(OGG_MAGIC) {
+                                errors.push(format!("{at}: {:?}: sounds are Ogg Vorbis", e.name));
                                 continue;
-                            };
+                            }
                             let event = e
                                 .event
                                 .clone()
                                 .unwrap_or_else(|| e.name.to_ascii_lowercase());
                             let mut def =
-                                serde_json::json!({ "sounds": [format!("{mod_id}:{stem}")] });
+                                serde_json::json!({ "sounds": [yog_ids::join(mod_id, &path)] });
                             if let Some(sub) = &e.subtitle {
                                 def["subtitle"] = serde_json::Value::String(sub.clone());
                             }
@@ -861,20 +866,17 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                                     .push(format!("{at}: sound event {event:?} is defined twice"));
                             }
                             (
-                                format!("assets/{mod_id}/sounds/{stem}.ogg"),
-                                format!("{mod_id}:{event}"),
+                                format!("{}/{mod_id}/sounds/{path}.ogg", yog_ids::pack::ASSETS),
+                                yog_ids::join(mod_id, &event),
+                                bytes.clone(),
                             )
                         }
-                        _ => (format!("assets/{mod_id}/{rel}"), format!("{mod_id}:{rel}")),
+                        _ => (format!("{}/{mod_id}/{path}", yog_ids::pack::ASSETS), yog_ids::join(mod_id, &path), bytes.clone()),
                     };
-                    if let Some(other) = bundled.insert(target.clone(), full.clone())
-                        && other != full
+                    if let Some(other) = bundled.insert(target.clone(), (e.name.clone(), data))
+                        && other.0 != e.name
                     {
-                        errors.push(format!(
-                            "{at}: {:?} goes to {target}, like {}",
-                            e.name,
-                            display(root, &other)
-                        ));
+                        errors.push(format!("{at}: {:?} goes to {target}, like {:?}", e.name, other.0));
                     }
                     let _ = writeln!(
                         code,
@@ -986,11 +988,8 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
         }
         c.outputs.push((path, lang_json(&entries).into_bytes()));
     }
-    for (target, source) in bundled {
-        match std::fs::read(&source) {
-            Ok(bytes) => c.outputs.push((target, bytes)),
-            Err(e) => errors.push(format!("{}: {e}", display(root, &source))),
-        }
+    for (target, (_, bytes)) in bundled {
+        c.outputs.push((target, bytes));
     }
     if !sounds.is_empty() {
         let path = format!("assets/{mod_id}/sounds.json");
@@ -1123,8 +1122,8 @@ mod tests {
         assert_eq!(err, "2:35: a.value: a bool needs a true/false value");
         let err = parse("{\n\"a\": { \"value\": \"x\", \"note\": \"y\" }\n}").unwrap_err();
         assert!(err.contains("2:22: a.note: unknown field `note`"), "{err}");
-        let err = parse("{\n\"a\": { \"type\": \"image\", \"value\": \"x\", \"key\": \"k\" }\n}").unwrap_err();
-        assert_eq!(err, "2:46: a.key: only string entries have a `key`");
+        let err = parse("{\n\"a\": { \"type\": \"image\", \"value\": \"@bytes:AAAA\", \"key\": \"k\" }\n}").unwrap_err();
+        assert!(err.contains("a.key: only string entries have a `key`"), "{err}");
         let err = parse("{\n  \"a\": \"1\"\n  \"b\": \"2\"\n}").unwrap_err();
         assert_eq!(err, "3:3: expected `,` or `}`");
         // Every problem at once.
@@ -1181,10 +1180,6 @@ mod tests {
     fn compiles_a_mod() {
         let root = temp_mod("ok");
         let res = root.join(RESOURCES_DIR);
-        std::fs::create_dir_all(res.join("images")).unwrap();
-        std::fs::create_dir_all(res.join("sounds")).unwrap();
-        std::fs::write(res.join("images/logo.png"), b"png").unwrap();
-        std::fs::write(res.join("sounds/click.ogg"), b"ogg").unwrap();
         std::fs::write(
             res.join("Strings.yres"),
             r#"{"title": {"value": "Mods", "comment": "c"}, "count": "{n} mods", "gone": "G"}"#,
@@ -1197,7 +1192,7 @@ mod tests {
         .unwrap();
         std::fs::write(
             res.join("Icons.yres"),
-            r##"{"logo": {"type": "image", "value": "images/logo.png"}, "accent": {"type": "color", "value": "#FF8800"}, "click": {"type": "sound", "value": "sounds/click.ogg"}, "max": 3, "on": true}"##,
+            r##"{"images.logo": "@bytes:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==", "accent": {"type": "color", "value": "#FF8800"}, "sounds.click": {"value": "@bytes:T2dnUw==", "event": "click"}, "max": 3, "on": true}"##,
         )
         .unwrap();
         std::fs::write(res.join("Items.yres"), r#"{"ruby": "Ruby"}"#).unwrap();
@@ -1222,10 +1217,11 @@ mod tests {
             out["assets/m/lang/ru_ru.json"],
             "{\n  \"m.title\": \"Моды\",\n  \"m.count\": \"Модов: %1$s\"\n}\n"
         );
-        assert_eq!(out["assets/m/textures/images/logo.png"], "png");
-        assert_eq!(out["assets/m/sounds/sounds/click.ogg"], "ogg");
+        assert!(out["assets/m/textures/images/logo.png"].starts_with("\u{89}PNG") || out.contains_key("assets/m/textures/images/logo.png"));
+        assert_eq!(out["assets/m/sounds/sounds/click.ogg"], "OggS");
         assert!(out["assets/m/sounds.json"].contains("\"m:sounds/click\""));
-        assert_eq!(c.refs.images["Icons.logo"], "m:images/logo");
+        assert_eq!(c.refs.images["Icons.images.logo"], "m:images/logo");
+        assert!(c.refs.pictures.contains_key("Icons.images.logo"));
         assert_eq!(
             c.refs.texts["Strings.title"],
             ("m.title".to_string(), "Mods".to_string())
@@ -1245,7 +1241,7 @@ mod tests {
         );
         let icons = &c.sources["Icons"];
         assert!(
-            icons.contains("pub const fn logo() -> &'static str {\n        \"m:images/logo\""),
+            icons.contains("pub const fn images_logo() -> &'static str {\n        \"m:images/logo\""),
             "{icons}"
         );
         assert!(
@@ -1279,7 +1275,7 @@ mod tests {
         assert_eq!((name.as_str(), key.as_deref()), ("Mods", Some("m.title")));
         assert!(resolve_text(&c.refs, "@Strings.nope").is_err());
         assert_eq!(
-            resolve_image(&c.refs, "@Icons.logo").unwrap(),
+            resolve_image(&c.refs, "@Icons.images.logo").unwrap(),
             "m:images/logo"
         );
         let _ = std::fs::remove_dir_all(&root);
@@ -1291,7 +1287,7 @@ mod tests {
         let res = root.join(RESOURCES_DIR);
         std::fs::write(
             res.join("Strings.yres"),
-            "{\n  \"a\": \"A\",\n  \"b\": { \"value\": \"B\", \"key\": \"m.a\" },\n  \"img\": { \"type\": \"image\", \"value\": \"../x.png\" },\n  \"bad name\": \"x\",\n  \"col\": { \"type\": \"color\", \"value\": \"red\" }\n}",
+            "{\n  \"a\": \"A\",\n  \"b\": { \"value\": \"B\", \"key\": \"m.a\" },\n  \"img\": { \"type\": \"image\", \"value\": \"@bytes:AAAA\" },\n  \"bad name\": \"x\",\n  \"col\": { \"type\": \"color\", \"value\": \"red\" }\n}",
         )
         .unwrap();
         std::fs::write(res.join("Strings.en_us.yres"), "{}").unwrap();
@@ -1300,7 +1296,7 @@ mod tests {
         let err = compile(&root, "m").unwrap_err();
         for needle in [
             "resources/Strings.yres:3: translation key \"m.a\" is also used at resources/Strings.yres:2",
-            "resources/Strings.yres:4: \"img\": `../x.png` must stay inside resources/",
+            "resources/Strings.yres:4: \"img\": not a picture this reads",
             "resources/Strings.yres:5: \"bad name\" isn't a valid name",
             "resources/Strings.yres:6: \"col\": `red` isn't a color",
             "Strings.en_us.yres: the neutral file Strings.yres is already en_us",

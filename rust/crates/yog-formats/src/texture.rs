@@ -1,19 +1,31 @@
-//! `.ytexture` — a texture: its picture as given (any image the build
-//! reads, beside the file) and how it animates. Its id is its path under
-//! `resources/` without the extension (`resources/block/ruby.ytexture` is
-//! `<mod id>:block/ruby`), named elsewhere as `@texture:<mod id>:block/ruby`.
-//! The build turns every one into the game's texture (a PNG, its animation
-//! the game's way) — the atlases are made of them.
+//! `.ytexture` — a texture: how one of the mod's pictures works in the game.
+//! The picture itself is a `.yres` image (`image: @Images.block.ruby`) the
+//! IDE shows as it is; this says how the build turns it into what the game
+//! draws — which atlas it's packed into, how it animates and filters. Its
+//! id is its path under `resources/` without the extension
+//! (`resources/block/ruby.ytexture` is `<mod id>:block/ruby`), named
+//! elsewhere as `@texture:<mod id>:block/ruby`. Yog Data text, like every
+//! source format; the build compiles it.
 
-use yog_data::Schema;
+use yog_data::{Res, Schema};
 
 /// A `.ytexture`.
-#[derive(Schema, Debug, Clone, PartialEq, Default)]
+#[derive(Schema, Debug, Clone, PartialEq)]
 pub struct TextureFile {
-    /// The picture, a path from this file's folder (`ruby.png`, `ruby.aseprite`).
-    pub source: String,
+    /// The picture: a `.yres` image.
+    pub image: Res,
+    /// The atlas it's packed into (`minecraft:blocks`, `minecraft:particles`,
+    /// … — see `yog_registry::Atlas`); none: bound on its own (an entity's,
+    /// armor's).
+    pub atlas: Option<String>,
     /// Frames stacked top to bottom, played in turn.
     pub animation: Option<Animation>,
+    /// Smoothed when scaled, not kept pixelated.
+    #[data(default)]
+    pub blur: bool,
+    /// Its edges clamped, not repeated.
+    #[data(default)]
+    pub clamp: bool,
 }
 
 /// How an animated texture plays.
@@ -62,11 +74,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_texture_reads_and_names_itself() {
-        let t = yog_data::from_text::<TextureFile>(r#"{ source: "ruby.png", animation: { frame_time: 2, frames: [{ index: 1, time: 5 }, { index: 0 }] } }"#).unwrap().value;
-        let a = t.animation.unwrap();
-        assert_eq!((a.frame_time(), a.frames.len(), a.frames[0].time), (2, 2, Some(5)));
+    fn a_texture_round_trips_through_its_file_and_names_itself() {
+        let t = TextureFile {
+            image: Res { set: "Images".into(), key: "block.ruby".into() },
+            atlas: Some("minecraft:blocks".into()),
+            animation: Some(Animation { frame_time: Some(2), frames: vec![Frame { index: 1, time: Some(5) }], ..Animation::default() }),
+            blur: false,
+            clamp: true,
+        };
+        assert_eq!(yog_data::from_text::<TextureFile>(&yog_data::text::to_string_pretty(&t.write())).unwrap().value, t);
         assert_eq!(id_of("mymod", "block/ruby.ytexture").as_deref(), Some("mymod:block/ruby"));
-        assert_eq!(yog_data::from_text::<TextureFile>(r#"{ source: "x.png" }"#).unwrap().value.animation, None);
     }
 }

@@ -671,6 +671,8 @@ fn build(debugging_symbols: bool, dev: bool) -> Result<(YogToml, PathBuf), Strin
         );
     }
     let mut compiled_assets = resources.outputs;
+    // A picture an atlas took in is in the atlas, not a file of its own.
+    compiled_assets.retain(|(path, _)| !content.packed.contains(path));
     let registrations = std::mem::take(&mut content.registrations);
     content::merge_outputs(&root, &mut compiled_assets, content)?;
     if dev {

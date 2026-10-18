@@ -127,7 +127,7 @@ mod tests {
 
     fn model() -> Arc<Model> {
         let file = ModelFile {
-            texture: "x.png".into(),
+            texture: "m:x".into(),
             texture_size: [64, 32],
             bones: vec![
                 BoneDef { name: "a".into(), parent: None, pivot: [0.0, 0.0, 0.0], rotation: [0.0; 3], cubes: vec![], locators: Ordered::default() },
@@ -141,7 +141,7 @@ mod tests {
                 },
             ],
         };
-        Arc::new(Model::new(&file, "m").unwrap())
+        Arc::new(Model::new(&file).unwrap())
     }
 
     #[test]

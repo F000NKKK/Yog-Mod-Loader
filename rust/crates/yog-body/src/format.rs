@@ -8,8 +8,10 @@ use yog_data::{Ordered, Schema};
 /// A `.ymodel`.
 #[derive(Schema, Debug, Clone)]
 pub struct ModelFile {
-    /// The texture: a path under the mod's `textures/` (`entity/wings.png`)
-    /// or a full id (`minecraft:textures/entity/elytra.png`).
+    /// The texture's id, written `@texture:<ns>:<path>` — a `.ytexture`
+    /// of the mod (`@texture:mymod:entity/wings`) or the game's
+    /// (`@texture:minecraft:entity/elytra`).
+    #[data(with = "yog_data::with::RefTo<yog_data::kinds::Texture>")]
     pub texture: String,
     /// The texture's size in pixels, as its UVs count them.
     #[data(default = "default_texture_size")]

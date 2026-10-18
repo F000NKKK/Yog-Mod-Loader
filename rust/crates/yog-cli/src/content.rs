@@ -48,7 +48,7 @@ use std::path::{Path, PathBuf};
 use yog_data::Schema;
 use crate::content::block_item::compile_file;
 use crate::content::block_item::inventory_screens;
-use crate::content::body::compile_body;
+use crate::content::body::{BodyCx, compile_body};
 use crate::content::body::compile_entity;
 use crate::content::body::compile_font;
 use crate::content::book::compile_book;
@@ -64,7 +64,7 @@ use crate::content::recipe::compile_recipe;
 use crate::content::source::float;
 use crate::content::source::mentions_content_macro;
 use crate::content::source::registrations;
-use crate::content::source::rust_source;
+use crate::content::source::{Content, rust_source};
 
 /// Where content files live, under the mod root.
 pub const CONTENT_DIR: &str = "content";
@@ -114,6 +114,8 @@ pub struct Compiled {
     /// [`yog_registry::REGISTRATIONS_FILE`]: what the mod registers at the
     /// game's start — packaged by dev builds only, for hot reload.
     pub registrations: String,
+    /// The pictures (`.yres` images' files) an atlas took in: left out of the build.
+    pub packed: BTreeSet<String>,
     pub blocks: usize,
     pub items: usize,
     pub recipes: usize,
@@ -633,7 +635,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mod_ns = valid_namespace(mod_id).then_some(mod_id);
     let mut errors: Vec<String> = Vec::new();
     let mut warnings: Vec<String> = Vec::new();
-    let own_textures = textures::compile(root, mod_id, &mut errors);
+    let own_textures = textures::compile(root, mod_id, refs, &mut errors);
     let mut generated: BTreeMap<String, String> = BTreeMap::new();
     let mut entries: Vec<Entry> = Vec::new();
     let mut ids: HashMap<String, String> = HashMap::new();
@@ -663,7 +665,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             }
         };
         if matches!(kind, Format::Model | Format::Anim) {
-            if let Some(b) = compile_body(&shown, &text, kind, root, path, mod_ns.unwrap_or("minecraft"), &mut errors) {
+            if let Some(b) = compile_body(&BodyCx { root, ns: mod_ns.unwrap_or(yog_ids::ns::MINECRAFT), own_textures: &own_textures.ids }, &shown, &text, kind, path, &mut errors) {
                 if let Some(other) = body_ids.insert((kind == Format::Model, b.id.clone()), shown.clone()) {
                     errors.push(format!("{shown}: {} {} is also defined by {other}", kind.noun(), b.id));
                 }
@@ -906,6 +908,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
         }
     }
     out.outputs.extend(own_textures.outputs);
+    out.packed = own_textures.packed;
     out.warnings = warnings;
     if !errors.is_empty() {
         return Err(format!(
@@ -943,7 +946,16 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     defs.dimensions = dimensions.iter().map(|(id, _)| id.clone()).collect();
     defs.tables = tables;
-    out.source = Some(rust_source(&entries, &recipes, &books, &bodies, &entity_files, &fonts, &defs));
+    out.source = Some(rust_source(&Content {
+        entries: &entries,
+        recipes: &recipes,
+        books: &books,
+        bodies: &bodies,
+        entities: &entity_files,
+        fonts: &fonts,
+        defs: &defs,
+        textures: &own_textures.ids,
+    }));
     version_overlays(&mut out, &known.datapack);
     out.registrations = registrations(&entries, &entity_files, &dimensions, &defs);
     Ok(out)

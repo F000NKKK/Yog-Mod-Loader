@@ -42,14 +42,10 @@ struct Store {
 
 static STORE: LazyLock<RwLock<Store>> = LazyLock::new(Default::default);
 
-fn namespace(id: &str) -> &str {
-    id.split_once(':').map_or("minecraft", |(ns, _)| ns)
-}
-
 /// Registers model `id` (`ns:name`) from its compiled `.ymodel`.
 pub fn register_model(id: &str, data: &[u8]) -> Result<(), String> {
     let file: format::ModelFile = yog_data::read_bytes(data).map_err(|e| format!("model {id}: {e:?}"))?;
-    let model = Model::new(&file, namespace(id)).map_err(|e| format!("model {id}: {e}"))?;
+    let model = Model::new(&file).map_err(|e| format!("model {id}: {e}"))?;
     STORE.write().unwrap_or_else(|e| e.into_inner()).models.insert(id.to_owned(), Arc::new(model));
     Ok(())
 }

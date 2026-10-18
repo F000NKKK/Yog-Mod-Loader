@@ -17,10 +17,13 @@ fn project(files: &[(&str, &str)]) -> PathBuf {
     dir
 }
 
-/// A 1×1 PNG at `rel` under `root`.
-fn picture(root: &Path, rel: &str) {
+/// 1×1 pictures named `names` in `resources/Images.yres` of the mod at `root`, and the refs its resources give.
+fn pictures(root: &Path, names: &[&str]) -> yres::Refs {
     let png = yog_media::image::encode_png(&yog_media::image::Image { width: 1, height: 1, rgba: vec![255, 0, 0, 255] }).unwrap();
-    std::fs::write(root.join(rel), png).unwrap();
+    let entries: Vec<yres::Entry> = names.iter().map(|n| yres::Entry::picture(n, png.clone())).collect();
+    std::fs::create_dir_all(root.join("resources")).unwrap();
+    std::fs::write(root.join("resources/Images.yres"), yres::write(&entries)).unwrap();
+    yres::compile(root, "mymod").unwrap().refs
 }
 
 fn output(c: &Compiled, path: &str) -> Value {
@@ -40,7 +43,7 @@ fn output(c: &Compiled, path: &str) -> Value {
 #[test]
 fn compiles_a_cube_block() {
     let root = project(&[
-        ("resources/block/ruby_ore.ytexture", r#"{ source: "ruby_ore.png" }"#),
+        ("resources/block/ruby_ore.ytexture", r#"{ image: "@Images.block.ruby_ore" }"#),
         ("content/ruby.yitem", r#"{ model: { parent: "generated", textures: { layer0: "@texture:minecraft:item/emerald" } } }"#),
         (
             "content/blocks/ruby_ore.yblock",
@@ -52,8 +55,8 @@ fn compiles_a_cube_block() {
 }"#,
         ),
     ]);
-    picture(&root, "resources/block/ruby_ore.png");
-    let c = compile(&root, "mymod", &yres::Refs::default()).unwrap();
+    let refs = pictures(&root, &["block.ruby_ore"]);
+    let c = compile(&root, "mymod", &refs).unwrap();
     assert_eq!(c.blocks, 1);
     assert_eq!(
         output(&c, "assets/mymod/models/block/ruby_ore.json"),
@@ -720,10 +723,9 @@ fn compiles_an_item_with_resource_refs() {
              "item": { "stack_size": 16, "food": { "nutrition": 4, "saturation": 0.3 } },
              "model": { "parent": "generated", "textures": { "layer0": "@texture:mymod:item/ruby" } } }"#,
         ),
-        ("resources/item/ruby.ytexture", r#"{ source: "ruby.png" }"#),
+        ("resources/item/ruby.ytexture", r#"{ image: "@Images.item.ruby" }"#),
     ]);
-    picture(&root, "resources/item/ruby.png");
-    let mut refs = yres::Refs::default();
+    let mut refs = pictures(&root, &["item.ruby"]);
     refs.texts.insert(
         "Items.ruby".into(),
         ("item.mymod.ruby".into(), "Ruby".into()),
@@ -792,7 +794,7 @@ fn namespace_needed_for_odd_mod_ids() {
 
 #[test]
 fn body_files_compile_and_register() {
-    let model = r#"{ "texture": "misc/wings.png", "bones": [
+    let model = r#"{ "texture": "@texture:minecraft:entity/elytra", "bones": [
         { "name": "wing", "pivot": [5, 0, 0], "cubes": [{ "origin": [-10, 0, 0], "size": [10, 20, 2], "uv": [22, 0] }] } ] }"#;
     let anim = r#"{ "spread": { "length": 0.5, "bones": { "wing": { "rotation": { "0": [0, 0, 0], "0.5": [0, 0, -90] } } } } }"#;
     let out = compile(&project(&[("content/wings.ymodel", model), ("content/wings.yanim", anim)]), "mymod", &yres::Refs::default()).unwrap();
@@ -801,7 +803,7 @@ fn body_files_compile_and_register() {
     assert!(src.contains("registry.register_body_model(\"mymod:wings\""), "{src}");
     assert!(src.contains("registry.register_body_anims(\"mymod:wings\""), "{src}");
     assert!(src.contains("pub const WINGS: &'static str = \"mymod:wings\";"), "{src}");
-    let bad = r#"{ "texture": "x.png", "bones": [{ "name": "a", "parent": "b" }] }"#;
+    let bad = r#"{ "texture": "@texture:minecraft:entity/bat", "bones": [{ "name": "a", "parent": "b" }] }"#;
     let e = compile(&project(&[("content/bad.ymodel", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
     assert!(e.contains("must come before it"), "{e}");
 }
@@ -828,7 +830,7 @@ fn font_files_compile_validate_and_register() {
 
 #[test]
 fn entities_compile_register_and_name_their_models() {
-    let model = r#"{ "texture": "entity/wisp.png", "bones": [{ "name": "body", "cubes": [{ "origin": [-2, 0, -2], "size": [4, 4, 4] }] }] }"#;
+    let model = r#"{ "texture": "@texture:minecraft:entity/allay/allay", "bones": [{ "name": "body", "cubes": [{ "origin": [-2, 0, -2], "size": [4, 4, 4] }] }] }"#;
     let wisp = r#"{ "name": "Wisp", "kind": "mob", "width": 0.5, "height": 0.5, "model": "wisp", "goals": ["float", "wander"],
         "attributes": { "max_health": 6, "movement_speed": 0.3 } }"#;
     let out = compile(&project(&[("content/wisp.ymodel", model), ("content/wisp.yentity", wisp)]), "mymod", &yres::Refs::default()).unwrap();

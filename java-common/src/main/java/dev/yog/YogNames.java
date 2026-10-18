@@ -82,6 +82,7 @@ public final class YogNames {
         public static final String TAG = "tag";
         public static final String LANG = "lang";
         public static final String IMAGE = "image";
+        public static final String BYTES = "bytes";
     }
 
     public static final class ImageScheme {

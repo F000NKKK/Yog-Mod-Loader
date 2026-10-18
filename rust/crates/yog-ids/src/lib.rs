@@ -112,6 +112,8 @@ names! {
         TAG = kind::TAG,
         LANG = "lang",
         IMAGE = "image",
+        /// Bytes as they are, base64 in text: `@bytes:iVBORw0…`.
+        BYTES = "bytes",
     }
 
     /// What an image source starts with (`item:apple`).
