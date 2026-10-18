@@ -168,7 +168,7 @@ fn plural(n: usize, what: &str) -> String {
 /// Checks and lowers every `<Grid>` and `Grid.*` attached property under
 /// `el` (see the module docs).
 pub fn normalize(el: &mut Element) -> Result<(), String> {
-    let is_grid = el.name == "Grid";
+    let is_grid = el.name == yog_ids::yui::GRID;
     let (mut rows, mut cols): (Option<Vec<String>>, Option<Vec<String>>) = (None, None);
     let mut kept = Vec::with_capacity(el.children.len());
     for child in std::mem::take(&mut el.children) {

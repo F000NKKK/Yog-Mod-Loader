@@ -37,31 +37,31 @@ use crate::design::project;
 /// Elements the designer draws itself (yog-ui's and yog-kit's); any other
 /// PascalCase element is a custom component (as for `yog build`).
 const BUILT_IN: &[&str] = &[
-    "Screen",
-    "Canvas",
-    "Column",
-    "Row",
-    "ScrollView",
-    "Label",
-    "Button",
-    "TextBox",
-    "ItemSlot",
-    "InvSlot",
-    "Slot",
-    "PlayerInventory",
-    "Image",
-    "Spacer",
-    "Surface",
-    "RecipeSlot",
-    "RecipeResult",
-    "RecipeCount",
-    "Grid",
+    yog_ids::yui::SCREEN,
+    yog_ids::yui::CANVAS,
+    yog_ids::yui::COLUMN,
+    yog_ids::yui::ROW,
+    yog_ids::yui::SCROLL_VIEW,
+    yog_ids::yui::LABEL,
+    yog_ids::yui::BUTTON,
+    yog_ids::yui::TEXT_BOX,
+    yog_ids::yui::ITEM_SLOT,
+    yog_ids::yui::INV_SLOT,
+    yog_ids::yui::SLOT,
+    yog_ids::yui::PLAYER_INVENTORY,
+    yog_ids::yui::IMAGE,
+    yog_ids::yui::SPACER,
+    yog_ids::yui::SURFACE,
+    yog_ids::yui::RECIPE_SLOT,
+    yog_ids::yui::RECIPE_RESULT,
+    yog_ids::yui::RECIPE_COUNT,
+    yog_ids::yui::GRID,
     "RowDefinition",
     "ColumnDefinition",
-    "ToggleButton",
-    "ListView",
-    "ItemsControl",
-    "ContentPresenter",
+    yog_ids::yui::TOGGLE_BUTTON,
+    yog_ids::yui::LIST_VIEW,
+    yog_ids::yui::ITEMS_CONTROL,
+    yog_ids::yui::CONTENT_PRESENTER,
     "DataTemplate",
     "Dialog",
 ];
@@ -604,7 +604,7 @@ fn px(v: Option<&str>) -> Option<f32> {
 /// size, when the element doesn't size it in px) and swapped for a marked
 /// spacer.
 pub fn prepare(root: &YuiNode, mod_root: Option<&Path>, screen_w: f32, screen_h: f32) -> Prepared {
-    let root = if root.kind == "Component" {
+    let root = if root.kind == yog_ids::yui::COMPONENT {
         components::design_root(root)
     } else {
         root.clone()
@@ -699,7 +699,7 @@ impl Cx<'_> {
             .filter(|(k, _)| !LAYOUT_ATTRS.contains(&k.as_str()))
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
-        let (w, h) = (px(node.attr("w")), px(node.attr("h")));
+        let (w, h) = (px(node.attr(yog_ids::yui_attr::W)), px(node.attr(yog_ids::yui_attr::H)));
         let req = RenderReq {
             name,
             props,
@@ -732,9 +732,9 @@ impl Cx<'_> {
             .filter(|(k, _)| LAYOUT_ATTRS.contains(&k.as_str()))
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
-        attrs.entry("w".into()).or_insert_with(|| nw.to_string());
-        attrs.entry("h".into()).or_insert_with(|| nh.to_string());
-        attrs.insert("bg".into(), format!("#{:08X}", marker(i)));
+        attrs.entry(yog_ids::yui_attr::W.into()).or_insert_with(|| nw.to_string());
+        attrs.entry(yog_ids::yui_attr::H.into()).or_insert_with(|| nh.to_string());
+        attrs.insert(yog_ids::yui_attr::BG.into(), format!("#{:08X}", marker(i)));
         self.slots.push(Slot {
             uid: node.uid.clone(),
             marker: marker(i),
@@ -743,7 +743,7 @@ impl Cx<'_> {
         });
         *node = YuiNode {
             uid: node.uid.clone(),
-            kind: "Spacer".into(),
+            kind: yog_ids::yui::SPACER.into(),
             attrs,
             children: Vec::new(),
         };
@@ -953,7 +953,7 @@ pub fn placeholder(name: &str, message: &str, w: f32, h: f32) -> Vec<DrawOp> {
         };
         ops.push(DrawOp::Text {
             text: line.clone(),
-            font: "minecraft:default".into(),
+            font: yog_ids::game::DEFAULT_FONT.into(),
             x: 3.0,
             y,
             color,

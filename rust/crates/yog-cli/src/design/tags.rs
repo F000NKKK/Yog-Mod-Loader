@@ -16,22 +16,20 @@ use serde_json::Value;
 use super::assets::vanilla_versions;
 
 /// The tags shown: item tags.
-const REGISTRY: &str = "item";
+const REGISTRY: &str = yog_ids::kind::ITEM;
 
-/// The tag files' folders: `item` since 1.21, `items` before.
-const DIRS: [&str; 2] = ["item", "items"];
 
 /// The mod's item tags, as the CLI listed them (`yog content check` / `yog build`).
 fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
     let Some(root) = root else { return BTreeMap::new() };
-    let mut tags = std::fs::read(root.join(".yog-build/generated/tags.json"))
+    let mut tags = std::fs::read(root.join(crate::content::TAGS_FILE))
         .ok()
         .and_then(|b| serde_json::from_slice::<BTreeMap<String, BTreeMap<String, Vec<String>>>>(&b).ok())
-        .and_then(|mut kinds| kinds.remove("item"))
+        .and_then(|mut kinds| kinds.remove(REGISTRY))
         .unwrap_or_default();
     let Some(ns) = crate::design::project::mod_id(root) else { return tags };
     for format in [Format::Block, Format::Item, Format::Def] {
-        for file in crate::design::files::of(&root.join("content"), format) {
+        for file in crate::design::files::of(&root.join(yog_ids::project::CONTENT), format) {
             let Ok(text) = std::fs::read_to_string(&file) else { continue };
             let Some(doc) = crate::design::data::read_object(&text) else { continue };
             let value = Value::Object(doc);
@@ -82,7 +80,7 @@ fn tag_entry(ns: &str, value: &str) -> String {
 fn entries(roots: &[PathBuf], own: &BTreeMap<String, Vec<String>>, tag: &str) -> Vec<String> {
     let mut out = own.get(tag).cloned().unwrap_or_default();
     let (ns, path) = yog_ids::split(tag);
-    if ns == "yog"
+    if ns == yog_ids::ns::YOG
         && let Some(of) = yog_formats::tags::yog_tag(REGISTRY, path)
     {
         out.extend(of.iter().map(|t| format!("#{t}")));
@@ -93,8 +91,8 @@ fn entries(roots: &[PathBuf], own: &BTreeMap<String, Vec<String>>, tag: &str) ->
         return out;
     }
     'versions: for v in vanilla_versions(roots) {
-        for dir in DIRS {
-            let rel = format!("{ns}/tags/{dir}/{path}.json");
+        for dir in yog_ids::registry_dirs(REGISTRY) {
+            let rel = format!("{ns}/{}/{dir}/{path}{}", yog_ids::pack::TAGS, yog_ids::res::JSON);
             let Some(file) = v.read_data(&rel).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else { continue };
             for e in file.get("values").and_then(Value::as_array).into_iter().flatten() {
                 // `"id"` or `{ "id": …, "required": false }`.

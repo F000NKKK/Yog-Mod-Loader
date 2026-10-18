@@ -27,7 +27,7 @@ impl YuiNode {
     }
 }
 
-const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView", "Grid"];
+const CONTAINERS: &[&str] = &[yog_ids::yui::SCREEN, yog_ids::yui::CANVAS, yog_ids::yui::COLUMN, yog_ids::yui::ROW, yog_ids::yui::SCROLL_VIEW, yog_ids::yui::GRID];
 
 pub fn is_container(kind: &str) -> bool {
     CONTAINERS.contains(&kind)
@@ -179,9 +179,9 @@ pub fn apply_resources(root: &mut YuiNode) {
         let mut pending: Vec<&YuiNode> = Vec::new();
         for r in &res.children {
             let Some(key) = r.attr("x:Key") else { continue };
-            if r.kind == "Style" {
+            if r.kind == yog_ids::yui::STYLE {
                 pending.push(r);
-            } else if let Some(v) = r.attr("value") {
+            } else if let Some(v) = r.attr(yog_ids::yui_attr::VALUE) {
                 values.insert(key.to_string(), v.to_string());
             }
         }
@@ -195,7 +195,7 @@ pub fn apply_resources(root: &mut YuiNode) {
             let mut rest = Vec::new();
             for st in pending {
                 let key = st.attr("x:Key").unwrap_or_default().to_string();
-                let mut attrs = match st.attr("based_on").map(|b| b.trim().trim_start_matches('@')) {
+                let mut attrs = match st.attr(yog_ids::yui_attr::BASED_ON).map(|b| b.trim().trim_start_matches('@')) {
                     Some(b) => match styles.get(b) {
                         Some(a) => a.clone(),
                         None => {
@@ -239,7 +239,7 @@ pub fn apply_resources(root: &mut YuiNode) {
                 *v = r.clone();
             }
         }
-        if let Some(name) = n.attrs.remove("style")
+        if let Some(name) = n.attrs.remove(yog_ids::yui_attr::STYLE)
             && let Some(attrs) = styles.get(name.trim().trim_start_matches('@'))
         {
             for (k, v) in attrs {
@@ -247,14 +247,14 @@ pub fn apply_resources(root: &mut YuiNode) {
             }
         }
         if let Some(name) = n.attrs.get("x:Name").cloned() {
-            n.attrs.entry("id".into()).or_insert(name);
+            n.attrs.entry(yog_ids::yui_attr::ID.into()).or_insert(name);
         }
-        let horizontal = n.attr("orientation").is_some_and(|o| o.trim() == "horizontal");
+        let horizontal = n.attr(yog_ids::yui_attr::ORIENTATION).is_some_and(|o| o.trim() == "horizontal");
         n.kind = match n.kind.as_str() {
-            "ToggleButton" => "Button",
-            "ListView" => "ScrollView",
-            "ItemsControl" if horizontal => "Row",
-            "ItemsControl" | "ContentPresenter" => "Column",
+            yog_ids::yui::TOGGLE_BUTTON => yog_ids::yui::BUTTON,
+            yog_ids::yui::LIST_VIEW => yog_ids::yui::SCROLL_VIEW,
+            yog_ids::yui::ITEMS_CONTROL if horizontal => yog_ids::yui::ROW,
+            yog_ids::yui::ITEMS_CONTROL | yog_ids::yui::CONTENT_PRESENTER => yog_ids::yui::COLUMN,
             k => k,
         }
         .to_string();
@@ -268,7 +268,7 @@ pub fn apply_resources(root: &mut YuiNode) {
 /// `<Screen theme>`'s defaults on every node that doesn't set the attribute
 /// itself — as `yog build` applies them.
 pub fn apply_theme(root: &mut YuiNode) {
-    let Some(theme) = root.attr("theme").and_then(yog_ui::theme::Theme::builtin) else {
+    let Some(theme) = root.attr(yog_ids::yui_attr::THEME).and_then(yog_ui::theme::Theme::builtin) else {
         return;
     };
     fn walk(n: &mut YuiNode, theme: &yog_ui::theme::Theme) {
@@ -287,63 +287,63 @@ pub fn apply_theme(root: &mut YuiNode) {
 pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) -> Widget {
     let a = |k: &str| node.attr(k);
     let mut w = match node.kind.as_str() {
-        "Screen" | "Canvas" | "Column" => widget::panel(FlexDir::Column),
-        "Row" => widget::panel(FlexDir::Row),
-        "Grid" => widget::grid(),
-        "ScrollView" => widget::scroll_view(),
-        "Label" => widget::label(text(a("text"))),
-        "Button" => widget::button(text(a("text"))),
-        "ItemSlot" => widget::item_slot(a("item").unwrap_or_default()),
+        yog_ids::yui::SCREEN | yog_ids::yui::CANVAS | yog_ids::yui::COLUMN => widget::panel(FlexDir::Column),
+        yog_ids::yui::ROW => widget::panel(FlexDir::Row),
+        yog_ids::yui::GRID => widget::grid(),
+        yog_ids::yui::SCROLL_VIEW => widget::scroll_view(),
+        yog_ids::yui::LABEL => widget::label(text(a(yog_ids::yui_attr::TEXT))),
+        yog_ids::yui::BUTTON => widget::button(text(a(yog_ids::yui_attr::TEXT))),
+        yog_ids::yui::ITEM_SLOT => widget::item_slot(a(yog_ids::yui_attr::ITEM).unwrap_or_default()),
         // A recipe layout's places (yog_formats::book::layout): a slot showing the
         // design-time sample (`d:item`), the count `d:text` or 2.
-        "RecipeSlot" | "RecipeResult" => widget::item_slot(a("item").unwrap_or_default()),
-        "RecipeCount" => widget::label(a("text").unwrap_or("2")),
-        "InvSlot" => widget::inv_slot(
-            a("item").unwrap_or_default(),
-            a("count").and_then(|c| c.trim().parse().ok()).unwrap_or(1),
+        yog_ids::yui::RECIPE_SLOT | yog_ids::yui::RECIPE_RESULT => widget::item_slot(a(yog_ids::yui_attr::ITEM).unwrap_or_default()),
+        yog_ids::yui::RECIPE_COUNT => widget::label(a(yog_ids::yui_attr::TEXT).unwrap_or("2")),
+        yog_ids::yui::INV_SLOT => widget::inv_slot(
+            a(yog_ids::yui_attr::ITEM).unwrap_or_default(),
+            a(yog_ids::yui_attr::COUNT).and_then(|c| c.trim().parse().ok()).unwrap_or(1),
         ),
-        "Slot" => widget::slot(a("index").and_then(|i| i.trim().parse().ok()).unwrap_or(0)),
-        "PlayerInventory" => widget::player_inventory(),
-        "Image" => super::images::widget(node),
+        yog_ids::yui::SLOT => widget::slot(a(yog_ids::yui_attr::INDEX).and_then(|i| i.trim().parse().ok()).unwrap_or(0)),
+        yog_ids::yui::PLAYER_INVENTORY => widget::player_inventory(),
+        yog_ids::yui::IMAGE => super::images::widget(node),
         // Drawn by the mod's code in game: an empty box here.
-        "Surface" => widget::surface(a("source").unwrap_or_default()),
-        "TextBox" => widget::text_box(text(a("text"))),
+        yog_ids::yui::SURFACE => widget::surface(a(yog_ids::yui_attr::SOURCE).unwrap_or_default()),
+        yog_ids::yui::TEXT_BOX => widget::text_box(text(a(yog_ids::yui_attr::TEXT))),
         _ => widget::spacer(),
     };
-    if node.kind == "Screen" {
-        if let Some(v) = num(a("width")) {
+    if node.kind == yog_ids::yui::SCREEN {
+        if let Some(v) = num(a(yog_ids::yui_attr::WIDTH)) {
             w = w.w(Units::Px(v));
         }
-        if let Some(v) = num(a("height")) {
+        if let Some(v) = num(a(yog_ids::yui_attr::HEIGHT)) {
             w = w.h(Units::Px(v));
         }
     }
-    if node.kind == "Grid" {
+    if node.kind == yog_ids::yui::GRID {
         if let Some(rows) = tracks(node, true) {
             w = w.rows(rows);
         }
         if let Some(cols) = tracks(node, false) {
             w = w.cols(cols);
         }
-        if let Some(n) = num(a("row_spacing")) {
+        if let Some(n) = num(a(yog_ids::yui_attr::ROW_SPACING)) {
             w = w.row_spacing(n);
         }
-        if let Some(n) = num(a("column_spacing")) {
+        if let Some(n) = num(a(yog_ids::yui_attr::COLUMN_SPACING)) {
             w = w.col_spacing(n);
         }
     }
-    let (row, col) = (cell_index(a("Grid.Row")), cell_index(a("Grid.Column")));
+    let (row, col) = (cell_index(a(yog_ids::yui_attr::GRID_ROW)), cell_index(a(yog_ids::yui_attr::GRID_COLUMN)));
     if row.is_some() || col.is_some() {
         w = w.cell(row.unwrap_or(0), col.unwrap_or(0));
     }
     let (rs, cs) = (
-        cell_index(a("Grid.RowSpan")),
-        cell_index(a("Grid.ColumnSpan")),
+        cell_index(a(yog_ids::yui_attr::GRID_ROWSPAN)),
+        cell_index(a(yog_ids::yui_attr::GRID_COLUMNSPAN)),
     );
     if rs.is_some() || cs.is_some() {
         w = w.span(rs.unwrap_or(1), cs.unwrap_or(1));
     }
-    let (x, y) = (num(a("x")), num(a("y")));
+    let (x, y) = (num(a(yog_ids::yui_attr::X)), num(a(yog_ids::yui_attr::Y)));
     if in_canvas || x.is_some() || y.is_some() {
         w = w.at(x.unwrap_or(0.0), y.unwrap_or(0.0));
     }
@@ -353,7 +353,7 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
     for key in keys {
         let v = node.attrs[key].as_str();
         w = match key.as_str() {
-            "id" if node.kind != "Screen" => w.id(v),
+            "id" if node.kind != yog_ids::yui::SCREEN => w.id(v),
             "on_click" => w.on_click(v),
             "w" => size(v).map_or(w.clone(), |s| w.clone().w(s)),
             "h" => size(v).map_or(w.clone(), |s| w.clone().h(s)),
@@ -418,7 +418,7 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
             },
             "shadow" => w.shadow(v.trim() == "true"),
             "enabled" => w.enabled(v.trim() != "false"),
-            "font" if !v.trim().is_empty() => w.font(v.trim()),
+            yog_ids::yui_attr::FONT if !v.trim().is_empty() => w.font(v.trim()),
             "placeholder" => w.placeholder(text(Some(v))),
             "max_length" => match v.trim().parse() {
                 Ok(n) => w.max_length(n),
@@ -431,13 +431,13 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
             _ => w,
         };
     }
-    if node.kind == "ScrollView"
+    if node.kind == yog_ids::yui::SCROLL_VIEW
         && let Some(offset) = scroll.get(&node.uid)
     {
         w = w.scroll_y(*offset);
     }
     if is_container(&node.kind) {
-        let canvas = matches!(node.kind.as_str(), "Screen" | "Canvas");
+        let canvas = matches!(node.kind.as_str(), yog_ids::yui::SCREEN | yog_ids::yui::CANVAS);
         for child in widget_children(node) {
             w = w.child(widget(child, canvas, scroll));
         }
@@ -453,12 +453,12 @@ pub fn screen(
     screen_h: f32,
     scroll: &HashMap<String, f32>,
 ) -> Widget {
-    let width = num(root.attr("width")).unwrap_or(176.0);
-    let height = num(root.attr("height")).unwrap_or(166.0);
+    let width = num(root.attr(yog_ids::yui_attr::WIDTH)).unwrap_or(176.0);
+    let height = num(root.attr(yog_ids::yui_attr::HEIGHT)).unwrap_or(166.0);
     let content = widget(root, false, scroll);
     let cx = ((screen_w - width) / 2.0).floor();
     let cy = ((screen_h - height) / 2.0).floor();
-    let anchor = root.attr("anchor").unwrap_or("center").trim();
+    let anchor = root.attr(yog_ids::yui_attr::ANCHOR).unwrap_or("center").trim();
     let content = if anchor == "fill" {
         content
             .w(Units::Percent(100.0))

@@ -106,14 +106,7 @@ pub fn content_block_faces(root: &Path, id: &str) -> Option<[Option<Vec<u8>>; 6]
             .or_else(|| textures.values().find_map(Value::as_str))
             .and_then(|t| texture_bytes(&file, t).ok())
     };
-    Some([
-        pick(&["up", "top", "end", "all", "texture"]),
-        pick(&["down", "bottom", "end", "all", "texture"]),
-        pick(&["north", "front", "side", "all", "texture"]),
-        pick(&["south", "side", "all", "texture"]),
-        pick(&["west", "side", "all", "texture"]),
-        pick(&["east", "side", "all", "texture"]),
-    ])
+    Some(super::blocks3d::FACE_TEXTURES.map(pick))
 }
 
 /// The model of the mod's block `id` as its `.yblock` gives it: its
@@ -138,7 +131,7 @@ pub fn content_block_model(root: &Path, id: &str) -> Option<(Vec<Value>, std::co
 }
 
 fn stair_element(from: [u8; 3], to: [u8; 3]) -> Value {
-    let face = |texture: &str| serde_json::json!({ "texture": format!("#{texture}") });
+    let face = |texture: &str| serde_json::json!({ "texture": format!("{}{texture}", yog_formats::content::SLOT_MARK) });
     serde_json::json!({
         "from": from,
         "to": to,
@@ -157,8 +150,8 @@ fn stair_element(from: [u8; 3], to: [u8; 3]) -> Value {
 pub fn content_item_appearance(root: &Path, id: &str) -> Option<(Value, Option<u32>)> {
     let ns = crate::design::project::mod_id(root)?;
     let (want_ns, want) = yog_ids::split(id);
-    let want = if want_ns == "yog" {
-        want.strip_prefix("potion/")?
+    let want = if want_ns == yog_ids::ns::YOG {
+        want.strip_prefix(yog_ids::split(yog_ids::yog::POTION_ALIAS).1)?
     } else if want_ns == ns {
         want
     } else {
@@ -478,13 +471,13 @@ pub fn strings(file: &Path) -> Vec<String> {
 /// What a `.ydef` reference offers: the game's built-ins by short name,
 /// then the mod's own definitions of `kind` as `@<kind>:` refs.
 fn definitions(file: &Path, kind: &str, built_ins: impl IntoIterator<Item = String>) -> Vec<String> {
-    let mut out: Vec<String> = built_ins.into_iter().map(|id| id.trim_start_matches("minecraft:").to_string()).collect();
+    let mut out: Vec<String> = built_ins.into_iter().map(|id| id.trim_start_matches(&format!("{}{}", yog_ids::ns::MINECRAFT, yog_ids::sep::NAMESPACE)).to_string()).collect();
     let Some(root) = mod_root(file) else {
         return out;
     };
-    let ns = crate::design::project::mod_id(&root).unwrap_or_else(|| "minecraft".into());
+    let ns = crate::design::project::mod_id(&root).unwrap_or_else(|| yog_ids::ns::MINECRAFT.into());
     let mut own = Vec::new();
-    for p in crate::design::files::of(&root.join("content"), Format::Def) {
+    for p in crate::design::files::of(&root.join(yog_ids::project::CONTENT), Format::Def) {
         let Some(doc) = std::fs::read_to_string(&p).ok().and_then(|t| crate::design::data::read_object(&t)) else {
             continue;
         };
@@ -492,7 +485,7 @@ fn definitions(file: &Path, kind: &str, built_ins: impl IntoIterator<Item = Stri
             continue;
         }
         if let Some(id) = doc.get("id").and_then(Value::as_str) {
-            own.push(format!("@{kind}:{}", if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") }));
+            own.push(format!("{}{kind}{}{}", yog_ids::sep::TYPED, yog_ids::sep::NAMESPACE, yog_ids::qualify_in(&ns, id)));
         }
     }
     own.sort();
@@ -588,17 +581,14 @@ pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
         }
         match m.get("parent").and_then(Value::as_str) {
             None => break,
-            Some(p) if p.contains("builtin/") => {
+            Some(p) if p.contains(yog_ids::res::BUILTIN) => {
                 root_parent = Some(p.to_string());
                 break;
             }
             Some(p) => {
-                let full = if p.contains(':') {
-                    p.to_string()
-                } else {
-                    format!("minecraft:{p}")
-                };
-                if full == "minecraft:item/generated" || full == "minecraft:item/handheld" {
+                let full = yog_ids::qualify(p);
+                // A sprite's parent (`item/generated`): where the model ends.
+                if crate::content::TEMPLATES.iter().any(|t| t.sprite && t.parent == full) {
                     root_parent = Some(full.clone());
                 }
                 current = full;

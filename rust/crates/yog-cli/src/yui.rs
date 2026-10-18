@@ -57,58 +57,58 @@ pub(crate) fn is_common_attr(key: &str) -> bool {
     COMMON_ATTRS.contains(&key) || key == "visible"
 }
 
-const CONTAINERS: &[&str] = &["Screen", "Canvas", "Column", "Row", "ScrollView", "Grid"];
+const CONTAINERS: &[&str] = &[yog_ids::yui::SCREEN, yog_ids::yui::CANVAS, yog_ids::yui::COLUMN, yog_ids::yui::ROW, yog_ids::yui::SCROLL_VIEW, yog_ids::yui::GRID];
 const LEAVES: &[&str] = &[
-    "Label", "Button", "TextBox", "ItemSlot", "InvSlot", "Slot", "PlayerInventory", "Image",
-    "Spacer", "Surface", "Machine",
+    yog_ids::yui::LABEL, yog_ids::yui::BUTTON, yog_ids::yui::TEXT_BOX, yog_ids::yui::ITEM_SLOT, yog_ids::yui::INV_SLOT, yog_ids::yui::SLOT, yog_ids::yui::PLAYER_INVENTORY, yog_ids::yui::IMAGE,
+    yog_ids::yui::SPACER, yog_ids::yui::SURFACE, yog_ids::yui::MACHINE,
 ];
 const COMMON_ATTRS: &[&str] = &[
-    "id",
-    "x",
-    "y",
-    "w",
-    "h",
-    "min_w",
-    "min_h",
-    "flex",
-    "dock",
-    "gap",
-    "padding",
-    "bg",
-    "color",
-    "align",
-    "halign",
-    "valign",
-    "margin",
-    "font_scale",
-    "font",
-    "shadow",
-    "no_wrap",
-    "ellipsis",
-    "focus_style",
-    "focus_color",
-    "enabled",
-    "on_click",
-    "tooltip",
+    yog_ids::yui_attr::ID,
+    yog_ids::yui_attr::X,
+    yog_ids::yui_attr::Y,
+    yog_ids::yui_attr::W,
+    yog_ids::yui_attr::H,
+    yog_ids::yui_attr::MIN_W,
+    yog_ids::yui_attr::MIN_H,
+    yog_ids::yui_attr::FLEX,
+    yog_ids::yui_attr::DOCK,
+    yog_ids::yui_attr::GAP,
+    yog_ids::yui_attr::PADDING,
+    yog_ids::yui_attr::BG,
+    yog_ids::yui_attr::COLOR,
+    yog_ids::yui_attr::ALIGN,
+    yog_ids::yui_attr::HALIGN,
+    yog_ids::yui_attr::VALIGN,
+    yog_ids::yui_attr::MARGIN,
+    yog_ids::yui_attr::FONT_SCALE,
+    yog_ids::yui_attr::FONT,
+    yog_ids::yui_attr::SHADOW,
+    yog_ids::yui_attr::NO_WRAP,
+    yog_ids::yui_attr::ELLIPSIS,
+    yog_ids::yui_attr::FOCUS_STYLE,
+    yog_ids::yui_attr::FOCUS_COLOR,
+    yog_ids::yui_attr::ENABLED,
+    yog_ids::yui_attr::ON_CLICK,
+    yog_ids::yui_attr::TOOLTIP,
 ];
 
 fn kind_attrs(kind: &str) -> &'static [&'static str] {
     match kind {
-        "Screen" => &["width", "height", "anchor", "modal", "pause", "live", "theme"],
-        "Label" | "Button" => &["text"],
-        "TextBox" => &[
-            "text",
-            "placeholder",
-            "max_length",
-            "on_change",
-            "on_submit",
+        yog_ids::yui::SCREEN => &[yog_ids::yui_attr::WIDTH, yog_ids::yui_attr::HEIGHT, yog_ids::yui_attr::ANCHOR, yog_ids::yui_attr::MODAL, yog_ids::yui_attr::PAUSE, yog_ids::yui_attr::LIVE, yog_ids::yui_attr::THEME],
+        yog_ids::yui::LABEL | yog_ids::yui::BUTTON => &[yog_ids::yui_attr::TEXT],
+        yog_ids::yui::TEXT_BOX => &[
+            yog_ids::yui_attr::TEXT,
+            yog_ids::yui_attr::PLACEHOLDER,
+            yog_ids::yui_attr::MAX_LENGTH,
+            yog_ids::yui_attr::ON_CHANGE,
+            yog_ids::yui_attr::ON_SUBMIT,
         ],
-        "ItemSlot" => &["item"],
-        "InvSlot" => &["item", "count"],
-        "Slot" => &["index", "accepts"],
-        "Image" => &["source", "stretch", "uv", "tint"],
-        "Surface" => &["source"],
-        "Machine" => &["kind", "result", "places"],
+        yog_ids::yui::ITEM_SLOT => &[yog_ids::yui_attr::ITEM],
+        yog_ids::yui::INV_SLOT => &[yog_ids::yui_attr::ITEM, yog_ids::yui_attr::COUNT],
+        yog_ids::yui::SLOT => &[yog_ids::yui_attr::INDEX, yog_ids::yui_attr::ACCEPTS],
+        yog_ids::yui::IMAGE => &[yog_ids::yui_attr::SOURCE, yog_ids::yui_attr::STRETCH, yog_ids::yui_attr::UV, yog_ids::yui_attr::TINT],
+        yog_ids::yui::SURFACE => &[yog_ids::yui_attr::SOURCE],
+        yog_ids::yui::MACHINE => &[yog_ids::yui_attr::KIND, yog_ids::yui_attr::RESULT, yog_ids::yui_attr::PLACES],
         _ => &[],
     }
 }
@@ -261,7 +261,7 @@ pub(crate) fn screen_frame(root: &Element) -> Result<(f32, f32, &'static str), S
     let anchor = pick(
         root,
         "anchor",
-        root.attr("anchor").unwrap_or("center"),
+        root.attr(yog_ids::yui_attr::ANCHOR).unwrap_or("center"),
         &[
             "center",
             "top_left",
@@ -479,7 +479,7 @@ impl Gen {
     fn surface(&mut self, el: &Element) -> Result<String, String> {
         let line = el.line;
         let source = el
-            .attr("source")
+            .attr(yog_ids::yui_attr::SOURCE)
             .ok_or_else(|| format!("line {line}: <Surface> needs a source (the id its code registers, e.g. source=\"mod:grid\")"))?
             .trim();
         let id = match source.strip_prefix("mod:") {
@@ -507,14 +507,14 @@ impl Gen {
     fn image(&mut self, el: &Element) -> Result<String, String> {
         let line = el.line;
         let source = el
-            .attr("source")
+            .attr(yog_ids::yui_attr::SOURCE)
             .ok_or_else(|| {
                 format!("line {line}: <Image> needs a source (e.g. source=\"item:apple\")")
             })?
             .trim();
         let source = image_source(el, "source", source, self.mod_id.as_deref())?;
         let mut expr = format!("widget::image({source:?})");
-        if let Some(v) = el.attr("stretch") {
+        if let Some(v) = el.attr(yog_ids::yui_attr::STRETCH) {
             let s = match v.trim().to_ascii_lowercase().replace('_', "").as_str() {
                 "none" => "None",
                 "fill" => "Fill",
@@ -528,7 +528,7 @@ impl Gen {
             };
             let _ = write!(expr, ".stretch(::yog_api::ui::Stretch::{s})");
         }
-        if let Some(v) = el.attr("uv") {
+        if let Some(v) = el.attr(yog_ids::yui_attr::UV) {
             let nums: Vec<f32> = v
                 .split([',', ' '])
                 .filter(|p| !p.trim().is_empty())
@@ -541,7 +541,7 @@ impl Gen {
             };
             let _ = write!(expr, ".region([{}, {}, {}, {}])", f(u), f(vv), f(w), f(h));
         }
-        if let Some(v) = el.attr("tint") {
+        if let Some(v) = el.attr(yog_ids::yui_attr::TINT) {
             let _ = write!(expr, ".tint(::yog_api::ui::Color(0x{:08X}))", color_attr(el, "tint", v)?);
         }
         Ok(expr)
@@ -563,7 +563,7 @@ impl Gen {
                 LEAVES.join(", ")
             ));
         }
-        if kind == "Screen" && depth > 0 {
+        if kind == yog_ids::yui::SCREEN && depth > 0 {
             return Err(format!(
                 "line {}: <Screen> must be the root element",
                 el.line
@@ -587,23 +587,23 @@ impl Gen {
                 ));
             }
         }
-        let text = || text_attr(el, "text", el.attr("text").unwrap_or_default());
+        let text = || text_attr(el, "text", el.attr(yog_ids::yui_attr::TEXT).unwrap_or_default());
         let mut expr = match kind {
-            "Screen" | "Canvas" | "Column" => "widget::panel(FlexDir::Column)".to_string(),
-            "Row" => "widget::panel(FlexDir::Row)".to_string(),
-            "ScrollView" => "widget::scroll_view()".to_string(),
-            "Grid" => "widget::grid()".to_string(),
-            "Label" => format!("widget::label({})", text()?),
-            "Button" => format!("widget::button({})", text()?),
-            "TextBox" => format!("widget::text_box({})", text()?),
-            "ItemSlot" => format!(
+            yog_ids::yui::SCREEN | yog_ids::yui::CANVAS | yog_ids::yui::COLUMN => "widget::panel(FlexDir::Column)".to_string(),
+            yog_ids::yui::ROW => "widget::panel(FlexDir::Row)".to_string(),
+            yog_ids::yui::SCROLL_VIEW => "widget::scroll_view()".to_string(),
+            yog_ids::yui::GRID => "widget::grid()".to_string(),
+            yog_ids::yui::LABEL => format!("widget::label({})", text()?),
+            yog_ids::yui::BUTTON => format!("widget::button({})", text()?),
+            yog_ids::yui::TEXT_BOX => format!("widget::text_box({})", text()?),
+            yog_ids::yui::ITEM_SLOT => format!(
                 "widget::item_slot({:?})",
-                el.attr("item").unwrap_or_default()
+                el.attr(yog_ids::yui_attr::ITEM).unwrap_or_default()
             ),
             // What a <RecipeArea> leaves (`crate::recipe_area`): which slots make what.
-            "Machine" => {
+            yog_ids::yui::MACHINE => {
                 let places: Vec<String> = el
-                    .attr("places")
+                    .attr(yog_ids::yui_attr::PLACES)
                     .unwrap_or_default()
                     .split(',')
                     .filter(|p| !p.is_empty())
@@ -615,13 +615,13 @@ impl Gen {
                     .collect();
                 format!(
                     "widget::machine({:?}, &[{}], {})",
-                    el.attr("kind").unwrap_or_default(),
+                    el.attr(yog_ids::yui_attr::KIND).unwrap_or_default(),
                     places.join(", "),
-                    el.attr("result").unwrap_or("0")
+                    el.attr(yog_ids::yui_attr::RESULT).unwrap_or("0")
                 )
             }
-            "InvSlot" => {
-                let count = match el.attr("count") {
+            yog_ids::yui::INV_SLOT => {
+                let count = match el.attr(yog_ids::yui_attr::COUNT) {
                     Some(c) => c.trim().parse::<u32>().map_err(|_| {
                         format!(
                             "line {}: <InvSlot> count=\"{c}\": expected a whole number",
@@ -632,11 +632,11 @@ impl Gen {
                 };
                 format!(
                     "widget::inv_slot({:?}, {count})",
-                    el.attr("item").unwrap_or_default()
+                    el.attr(yog_ids::yui_attr::ITEM).unwrap_or_default()
                 )
             }
-            "Slot" => {
-                let index = el.attr("index").unwrap_or_default();
+            yog_ids::yui::SLOT => {
+                let index = el.attr(yog_ids::yui_attr::INDEX).unwrap_or_default();
                 let index = index.trim().parse::<usize>().map_err(|_| {
                     format!(
                         "line {}: <Slot> index=\"{index}\": expected the container slot's number (0, 1, ...)",
@@ -644,7 +644,7 @@ impl Gen {
                     )
                 })?;
                 let accepts: Vec<&str> = el
-                    .attr("accepts")
+                    .attr(yog_ids::yui_attr::ACCEPTS)
                     .unwrap_or_default()
                     .split(|c: char| c.is_whitespace() || c == ',')
                     .filter(|a| !a.is_empty())
@@ -667,9 +667,9 @@ impl Gen {
                     format!("widget::slot_accepting({index}, &{accepts:?})")
                 }
             }
-            "PlayerInventory" => "widget::player_inventory()".to_string(),
-            "Image" => self.image(el)?,
-            "Surface" => self.surface(el)?,
+            yog_ids::yui::PLAYER_INVENTORY => "widget::player_inventory()".to_string(),
+            yog_ids::yui::IMAGE => self.image(el)?,
+            yog_ids::yui::SURFACE => self.surface(el)?,
             _ if is_component => component_expr(el)?,
             _ => "widget::spacer()".to_string(),
         };
@@ -677,16 +677,16 @@ impl Gen {
         let mut call = |s: String| {
             let _ = write!(expr, "\n{indent}.{s}");
         };
-        if kind == "Screen" {
-            if let Some(v) = el.attr("width") {
+        if kind == yog_ids::yui::SCREEN {
+            if let Some(v) = el.attr(yog_ids::yui_attr::WIDTH) {
                 call(format!("w(Units::Px({}))", f(number(el, "width", v)?)));
             }
-            if let Some(v) = el.attr("height") {
+            if let Some(v) = el.attr(yog_ids::yui_attr::HEIGHT) {
                 call(format!("h(Units::Px({}))", f(number(el, "height", v)?)));
             }
         }
-        let x = el.attr("x").map(|v| number(el, "x", v)).transpose()?;
-        let y = el.attr("y").map(|v| number(el, "y", v)).transpose()?;
+        let x = el.attr(yog_ids::yui_attr::X).map(|v| number(el, "x", v)).transpose()?;
+        let y = el.attr(yog_ids::yui_attr::Y).map(|v| number(el, "y", v)).transpose()?;
         if in_canvas || x.is_some() || y.is_some() {
             call(format!(
                 "at({}, {})",
@@ -781,7 +781,7 @@ impl Gen {
             }
         }
         if !el.children.is_empty() {
-            let canvas = matches!(kind, "Screen" | "Canvas");
+            let canvas = matches!(kind, yog_ids::yui::SCREEN | yog_ids::yui::CANVAS);
             for child in &el.children {
                 let c = self.widget(child, canvas, depth + 1)?;
                 let _ = write!(expr, "\n{indent}.child({c})");
@@ -798,7 +798,7 @@ fn valid_resource_id(s: &str) -> bool {
 
 /// The theme `<Screen theme="...">` names, if any.
 pub(crate) fn screen_theme(root: &Element) -> Result<Option<yog_ui::theme::Theme>, String> {
-    let Some(id) = root.attr("theme").map(str::trim).filter(|t| !t.is_empty()) else {
+    let Some(id) = root.attr(yog_ids::yui_attr::THEME).map(str::trim).filter(|t| !t.is_empty()) else {
         return Ok(None);
     };
     yog_ui::theme::Theme::builtin(id).map(Some).ok_or_else(|| {
@@ -937,7 +937,7 @@ pub fn generate_with(
     }
     crate::recipe_area::expand(&mut root, layouts, mod_id.unwrap_or("minecraft"))?;
     crate::yui_grid::normalize(&mut root)?;
-    if root.name == "Component" {
+    if root.name == yog_ids::yui::COMPONENT {
         return crate::yui_component::generate(&root, name, mod_id);
     }
     if root.attr("x:ViewModel").is_some() {
@@ -946,14 +946,14 @@ pub fn generate_with(
     if let Some(theme) = screen_theme(&root)? {
         apply_theme(&mut root, &theme);
     }
-    if root.name != "Screen" {
+    if root.name != yog_ids::yui::SCREEN {
         return Err(format!(
             "line {}: the root element must be <Screen>, not <{}>",
             root.line, root.name
         ));
     }
     let id = root
-        .attr("id")
+        .attr(yog_ids::yui_attr::ID)
         .filter(|s| !s.trim().is_empty())
         .ok_or_else(|| {
             format!(
@@ -964,12 +964,12 @@ pub fn generate_with(
         .to_string();
     let (width, height, anchor) = screen_frame(&root)?;
     let modal = root
-        .attr("modal")
+        .attr(yog_ids::yui_attr::MODAL)
         .map(|v| boolean(&root, "modal", v))
         .transpose()?
         .unwrap_or(true);
     let pause = root
-        .attr("pause")
+        .attr(yog_ids::yui_attr::PAUSE)
         .map(|v| boolean(&root, "pause", v))
         .transpose()?
         .unwrap_or(false);

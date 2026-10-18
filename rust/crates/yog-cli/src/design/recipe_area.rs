@@ -21,7 +21,7 @@ fn node(uid: String, kind: &str, attrs: &[(&str, String)]) -> YuiNode {
 }
 
 fn max_slot(n: &YuiNode) -> Option<usize> {
-    let own = (n.kind == "Slot").then(|| n.attr("index").and_then(|i| i.trim().parse().ok())).flatten();
+    let own = (n.kind == yog_ids::yui::SLOT).then(|| n.attr(yog_ids::yui_attr::INDEX).and_then(|i| i.trim().parse().ok())).flatten();
     n.children.iter().filter_map(max_slot).chain(own).max()
 }
 
@@ -33,19 +33,19 @@ pub fn expand(root: &mut YuiNode, mod_root: Option<&Path>) {
     }
     let (layouts, ns) = match mod_root {
         Some(r) => (crate::design::mod_ui::recipe_layouts(r).into_iter().map(|(_, l)| l).collect(), crate::design::mod_ui::ns(r)),
-        None => (Vec::new(), "minecraft".to_string()),
+        None => (Vec::new(), yog_ids::ns::MINECRAFT.to_string()),
     };
     let mut next = max_slot(root).map_or(0, |m| m + 1);
     walk(root, &layouts, &ns, &mut next);
 }
 
 fn has_area(n: &YuiNode) -> bool {
-    n.kind == "RecipeArea" || n.children.iter().any(has_area)
+    n.kind == yog_ids::yui::RECIPE_AREA || n.children.iter().any(has_area)
 }
 
 fn walk(n: &mut YuiNode, layouts: &[RecipeLayout], ns: &str, next: &mut usize) {
     for c in &mut n.children {
-        if c.kind == "RecipeArea" {
+        if c.kind == yog_ids::yui::RECIPE_AREA {
             area(c, layouts, ns, next);
         } else {
             walk(c, layouts, ns, next);
@@ -54,18 +54,18 @@ fn walk(n: &mut YuiNode, layouts: &[RecipeLayout], ns: &str, next: &mut usize) {
 }
 
 fn area(a: &mut YuiNode, layouts: &[RecipeLayout], ns: &str, next: &mut usize) {
-    let kind = a.attr("kind").map(str::trim).unwrap_or_default();
+    let kind = a.attr(yog_ids::yui_attr::KIND).map(str::trim).unwrap_or_default();
     let kind = if kind.contains(':') { kind.to_string() } else { format!("{ns}:{kind}") };
-    a.kind = "Canvas".into();
+    a.kind = yog_ids::yui::CANVAS.into();
     let Some(layout) = layouts.iter().find(|l| l.kinds.contains(&kind)) else {
         // No layout (yet): a slot-sized box where it'll go.
-        a.attrs.entry("w".into()).or_insert_with(|| "18".into());
-        a.attrs.entry("h".into()).or_insert_with(|| "18".into());
-        a.attrs.entry("bg".into()).or_insert_with(|| "#40000000".into());
+        a.attrs.entry(yog_ids::yui_attr::W.into()).or_insert_with(|| "18".into());
+        a.attrs.entry(yog_ids::yui_attr::H.into()).or_insert_with(|| "18".into());
+        a.attrs.entry(yog_ids::yui_attr::BG.into()).or_insert_with(|| "#40000000".into());
         return;
     };
-    a.attrs.insert("w".into(), layout.size[0].to_string());
-    a.attrs.insert("h".into(), layout.size[1].to_string());
+    a.attrs.insert(yog_ids::yui_attr::W.into(), layout.size[0].to_string());
+    a.attrs.insert(yog_ids::yui_attr::H.into(), layout.size[1].to_string());
     let uid = a.uid.clone();
     let area = yog_book::recipe_area::screen_area(layout, *next);
     for (i, e) in area.elements.into_iter().enumerate() {

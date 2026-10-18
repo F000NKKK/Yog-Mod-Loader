@@ -90,11 +90,11 @@ struct Texts {
 fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Texts {
     let mut t = Texts { refs: HashMap::new(), lang: HashMap::new() };
     // The game's (and the mod's assets') language files, the mod's own on top.
-    let lang_file = locale.unwrap_or("en_us");
+    let lang_file = locale.unwrap_or(yog_ids::game::LOCALE);
     let mod_id = mod_root.and_then(|r| crate::design::project::mod_id(r)).unwrap_or_default();
-    for ns in ["minecraft", mod_id.as_str()] {
-        for file in ["en_us".to_string(), lang_file.to_string()] {
-            if let Some(Value::Object(map)) = res.read(ns, &format!("lang/{file}.json")).and_then(|b| serde_json::from_slice(&b).ok()) {
+    for ns in [yog_ids::ns::MINECRAFT, mod_id.as_str()] {
+        for file in [yog_ids::game::LOCALE, lang_file] {
+            if let Some(Value::Object(map)) = res.read(ns, &yog_ids::lang_file(file)).and_then(|b| serde_json::from_slice(&b).ok()) {
                 for (k, v) in map {
                     if let Value::String(v) = v {
                         t.lang.insert(k, v);
@@ -104,7 +104,7 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
         }
     }
     // The book's own words, as the loader's jars ship them.
-    for file in ["en_us", lang_file] {
+    for file in [yog_ids::game::LOCALE, lang_file] {
         if let Some((_, json)) = yog_book::LANG.iter().find(|(l, _)| *l == file)
             && let Ok(map) = serde_json::from_str::<HashMap<String, String>>(json)
         {
@@ -173,9 +173,7 @@ fn locales(mod_root: Option<&Path>) -> Vec<String> {
 
 /// The game's name of an item or block: `item.<ns>.<path>`, else `block.…`.
 fn item_name(lang: &HashMap<String, String>, id: &str) -> Option<String> {
-    let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
-    let path = path.replace('/', ".");
-    ["item", "block"].iter().find_map(|k| lang.get(&format!("{k}.{ns}.{path}")).cloned())
+    [yog_ids::kind::ITEM, yog_ids::kind::BLOCK].iter().find_map(|k| lang.get(&yog_ids::lang_key(k, id)).cloned())
 }
 
 /// What the book's renderer looks names up in (it takes a plain `fn`).
@@ -246,10 +244,7 @@ impl yog_data::Resolve for Reader<'_> {
             yog_data::Text::NameOf(r) => {
                 let id = yog_formats::book::refs::bare(&r.id);
                 let name = match r.kind.as_str() {
-                    "entity" => {
-                        let (ns, p) = id.split_once(':').unwrap_or(("minecraft", id));
-                        self.texts.lang.get(&format!("entity.{ns}.{p}")).cloned()
-                    }
+                    yog_ids::kind::ENTITY => self.texts.lang.get(&yog_ids::lang_key(yog_ids::kind::ENTITY, id)).cloned(),
                     _ => item_name(&self.texts.lang, id),
                 };
                 name.unwrap_or_else(|| humanize(id))
@@ -506,8 +501,8 @@ fn sample(p: &yog_formats::book::page_type::PageProperty) -> serde_json::Value {
         PropKind::BookText => serde_json::Value::String(format!("‹{}› — the page's text, as a book wraps it.", p.name)),
         PropKind::Number => serde_json::json!(1),
         PropKind::Bool => serde_json::json!(true),
-        PropKind::Item => serde_json::json!("minecraft:book"),
-        PropKind::Image => serde_json::json!("item:minecraft:book"),
+        PropKind::Item => serde_json::json!(yog_ids::game::BOOK),
+        PropKind::Image => serde_json::json!(yog_ids::join(yog_ids::image_scheme::ITEM, yog_ids::game::BOOK)),
         PropKind::Data => serde_json::Value::Null,
     }
 }
@@ -519,7 +514,7 @@ pub fn page_preview(args: &BookArgs) -> BookRendered {
     let root = mod_root(Path::new(&args.path));
     let locales = locales(root.as_deref());
     let fail = |error: String| BookRendered { image: None, scale: args.scale, shown: None, action: None, animated: false, locales: locales.clone(), error: Some(error) };
-    let ns = root.as_deref().map(crate::design::mod_ui::ns).unwrap_or_else(|| "minecraft".into());
+    let ns = root.as_deref().map(crate::design::mod_ui::ns).unwrap_or_else(|| yog_ids::ns::MINECRAFT.into());
     let kind = match yog_formats::yui::parse(&args.text).and_then(|el| yog_formats::book::page_type::compile(&el, &ns)) {
         Ok(k) => k,
         Err(e) => return fail(e),

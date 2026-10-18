@@ -38,7 +38,7 @@ impl Def {
     }
 }
 
-const DECLARATIONS: &[&str] = &["Property", "Event"];
+const DECLARATIONS: &[&str] = &[yog_ids::yui::PROPERTY, yog_ids::yui::EVENT];
 
 /// Joins an expanded instance's uid and its inner element's path: never in
 /// a document's own uids, so the designer can tell the inside of an
@@ -122,7 +122,7 @@ fn pascal(stem: &str) -> String {
 /// The component a `<Component>` tree declares (`None`: not a component —
 /// a book's kind of page or a recipe layout isn't one to place on screens).
 pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
-    if root.kind != "Component" || root.attr("book_page").is_some() || root.attr("recipe_layout").is_some() {
+    if root.kind != yog_ids::yui::COMPONENT || root.attr("book_page").is_some() || root.attr(yog_ids::yui_attr::RECIPE_LAYOUT).is_some() {
         return None;
     }
     let name = root
@@ -136,7 +136,7 @@ pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
         .iter()
         .filter(|c| DECLARATIONS.contains(&c.kind.as_str()))
         .map(|c| {
-            let kind = if c.kind == "Event" {
+            let kind = if c.kind == yog_ids::yui::EVENT {
                 "event".to_string()
             } else {
                 c.attr("type").unwrap_or("text").trim().to_string()
@@ -300,7 +300,7 @@ pub fn expand(def: &Def, instance: &YuiNode) -> YuiNode {
     let Some(body) = &def.body else {
         return YuiNode {
             uid: instance.uid.clone(),
-            kind: "Spacer".into(),
+            kind: yog_ids::yui::SPACER.into(),
             attrs: own,
             children: Vec::new(),
         };
@@ -311,13 +311,16 @@ pub fn expand(def: &Def, instance: &YuiNode) -> YuiNode {
     tree
 }
 
+/// The name a component being designed is checked under (it has no file of its own yet).
+const COMPONENT_FILE: &str = "component";
+
 /// A `<Component>` document as the designer draws it: a screen of its
 /// design size holding the body, bound to the properties' defaults.
 pub fn design_root(root: &YuiNode) -> YuiNode {
-    let def = definition(root, Path::new("component.yui"));
+    let def = definition(root, Path::new(&Format::Ui.file(COMPONENT_FILE)));
     let values = def.as_ref().map(defaults).unwrap_or_default();
     // A recipe layout is its own size; a component's design size is a preview's.
-    let layout = root.attr("recipe_layout").is_some();
+    let layout = root.attr(yog_ids::yui_attr::RECIPE_LAYOUT).is_some();
     let size = |own: &str, design: &str, default: &'static str| {
         root.attr(if layout { own } else { design }).unwrap_or(default).to_string()
     };
@@ -327,7 +330,7 @@ pub fn design_root(root: &YuiNode) -> YuiNode {
         ("anchor".to_string(), "center".to_string()),
     ]);
     if let Some(bg) = root.attr("d:bg") {
-        attrs.insert("bg".into(), bg.to_string());
+        attrs.insert(yog_ids::yui_attr::BG.into(), bg.to_string());
     }
     let children = root
         .children
@@ -337,7 +340,7 @@ pub fn design_root(root: &YuiNode) -> YuiNode {
         .collect();
     YuiNode {
         uid: root.uid.clone(),
-        kind: "Screen".into(),
+        kind: yog_ids::yui::SCREEN.into(),
         attrs,
         children,
     }

@@ -120,7 +120,7 @@ use crate::yui::Element;
 
 /// Whether `root` is a recipe layout (`<Component recipe_layout="…">`).
 pub fn is_recipe_layout(root: &Element) -> bool {
-    root.name == "Component" && root.attr("recipe_layout").is_some()
+    root.name == yog_ids::yui::COMPONENT && root.attr(yog_ids::yui_attr::RECIPE_LAYOUT).is_some()
 }
 
 fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
@@ -151,7 +151,7 @@ pub fn game_kinds() -> impl Iterator<Item = &'static str> {
 /// namespace, for its own kinds written without one.
 pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
     let kinds: Vec<String> = root
-        .attr("recipe_layout")
+        .attr(yog_ids::yui_attr::RECIPE_LAYOUT)
         .unwrap_or_default()
         .split([' ', ','])
         .filter(|k| !k.is_empty())
@@ -164,7 +164,7 @@ pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
     // The elements may sit in one <Canvas>, as a screen's do.
     let mut children: Vec<&Element> = Vec::new();
     for c in &root.children {
-        if c.name == "Canvas" { children.extend(c.children.iter()) } else { children.push(c) }
+        if c.name == yog_ids::yui::CANVAS { children.extend(c.children.iter()) } else { children.push(c) }
     }
     let mut parts: Vec<LayoutPart> = Vec::new();
     // A slot's places (index, where), gathered into its one part, and its frame.
@@ -172,9 +172,9 @@ pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
     let mut places: Vec<(String, Places, bool)> = Vec::new();
     for el in children {
         match el.name.as_str() {
-            "Image" => {
-                let source = el.attr("source").map(Ok).unwrap_or_else(|| err(el, "needs source=\"…\""))?.to_string();
-                let uv = match el.attr("uv") {
+            yog_ids::yui::IMAGE => {
+                let source = el.attr(yog_ids::yui_attr::SOURCE).map(Ok).unwrap_or_else(|| err(el, "needs source=\"…\""))?.to_string();
+                let uv = match el.attr(yog_ids::yui_attr::UV) {
                     Some(v) => {
                         let n: Vec<f32> = v.split_whitespace().filter_map(|x| x.parse().ok()).collect();
                         let [u, v, w, h] = n[..] else { return err(el, format_args!("uv=\"{v}\": u v width height")) };
@@ -184,9 +184,9 @@ pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
                 };
                 parts.push(LayoutPart::Image { source, uv, at: at(el)? });
             }
-            "RecipeSlot" => {
-                let slot = el.attr("slot").map(Ok).unwrap_or_else(|| err(el, "needs slot=\"…\" (the kind's slot)"))?.to_string();
-                let index = match el.attr("index") {
+            yog_ids::yui::RECIPE_SLOT => {
+                let slot = el.attr(yog_ids::yui_attr::SLOT).map(Ok).unwrap_or_else(|| err(el, "needs slot=\"…\" (the kind's slot)"))?.to_string();
+                let index = match el.attr(yog_ids::yui_attr::INDEX) {
                     Some(i) => i.trim().parse::<usize>().or_else(|_| err(el, format_args!("index=\"{i}\": 0, 1, …")))?,
                     None => places.iter().find(|(s, ..)| *s == slot).map_or(0, |(_, p, _)| p.iter().map(|(i, _)| i + 1).max().unwrap_or(0)),
                 };
@@ -204,21 +204,21 @@ pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
                     }
                 }
             }
-            "RecipeResult" => parts.push(LayoutPart::Result { at: at(el)?, frame: flag(el, "frame") }),
-            "RecipeCount" => parts.push(LayoutPart::Count { at: at(el)? }),
-            "ItemSlot" => {
-                let item = el.attr("item").map(Ok).unwrap_or_else(|| err(el, "needs item=\"…\" (the station: minecraft:furnace)"))?;
+            yog_ids::yui::RECIPE_RESULT => parts.push(LayoutPart::Result { at: at(el)?, frame: flag(el, "frame") }),
+            yog_ids::yui::RECIPE_COUNT => parts.push(LayoutPart::Count { at: at(el)? }),
+            yog_ids::yui::ITEM_SLOT => {
+                let item = el.attr(yog_ids::yui_attr::ITEM).map(Ok).unwrap_or_else(|| err(el, "needs item=\"…\" (the station: minecraft:furnace)"))?;
                 let item = yog_ids::qualify(item.trim().trim_start_matches(yog_ids::reference::ITEM));
                 parts.push(LayoutPart::Item { item, at: at(el)? });
             }
             "BlockSlot" => {
-                let block = el.attr("block").map(Ok).unwrap_or_else(|| err(el, "needs block=\"…\" (a block state: minecraft:brewing_stand[has_bottle_0=true])"))?;
+                let block = el.attr(yog_ids::yui_attr::BLOCK).map(Ok).unwrap_or_else(|| err(el, "needs block=\"…\" (a block state: minecraft:brewing_stand[has_bottle_0=true])"))?;
                 let block = yog_ids::qualify(block.trim().trim_start_matches(yog_ids::reference::BLOCK));
                 let size = el.attr("size").map(|s| s.trim().parse::<f32>().map_err(|_| format!("size=\"{s}\": a number of pixels"))).transpose().or_else(|e| err(el, e))?.unwrap_or(ICON_PX);
                 parts.push(LayoutPart::Block { block, at: at(el)?, size });
             }
-            "Label" => {
-                let text = el.attr("text").map(Ok).unwrap_or_else(|| err(el, "needs text=\"…\""))?;
+            yog_ids::yui::LABEL => {
+                let text = el.attr(yog_ids::yui_attr::TEXT).map(Ok).unwrap_or_else(|| err(el, "needs text=\"…\""))?;
                 parts.push(LayoutPart::Text { text: text.replace("{x:Bind ", "{"), at: at(el)? });
             }
             other => {

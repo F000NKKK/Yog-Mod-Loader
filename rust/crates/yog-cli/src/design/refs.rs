@@ -32,48 +32,53 @@ const BODY_FORMATS: [Format; 2] = [Format::Model, Format::Anim];
 
 /// What `[external.<namespace>]` lists each kind under.
 const EXTERNAL_KEYS: [(&str, &str); 4] = [
-    (yog_ids::kind::ITEM, "items"),
-    (yog_ids::kind::BLOCK, "blocks"),
-    (yog_ids::kind::ENTITY, "entities"),
-    (yog_ids::kind::RECIPE, "recipes"),
+    (yog_ids::kind::ITEM, yog_ids::external::ITEMS),
+    (yog_ids::kind::BLOCK, yog_ids::external::BLOCKS),
+    (yog_ids::kind::ENTITY, yog_ids::external::ENTITIES),
+    (yog_ids::kind::RECIPE, yog_ids::external::RECIPES),
 ];
 
 /// Where the game's ids of a kind are in its client jar: translation keys
-/// of its `en_us` lang (`entity.minecraft.pig` → `pig`; `dotted`: the rest
-/// may hold dots, `generic.max_health`), files of its data folders, or
-/// the keys of one of its assets (`sounds.json`: sound events).
+/// of its lang (`entity.minecraft.pig` → `pig`; `dotted`: the rest may hold
+/// dots, `generic.max_health`), files of its data folders (by kind), or the
+/// keys of one of its assets (`sounds.json`: sound events).
 enum GameIds {
-    Lang { prefixes: &'static [&'static str], dotted: bool },
-    Data(&'static [&'static str]),
+    /// Keys starting with the game's `<kind>.minecraft.` of each of these kinds.
+    Lang { kinds: &'static [&'static str], dotted: bool },
+    /// A prefix of its own (`attribute.name.`).
+    LangPrefix(&'static str),
+    Data,
     Keys(&'static str),
 }
 
+/// The game's sound events: the keys of its `sounds.json`.
+const SOUNDS_ASSET: &str = "sounds.json";
+/// Attributes' translation keys: `attribute.name.generic.max_health`.
+const ATTRIBUTE_LANG_PREFIX: &str = "attribute.name.";
+/// The game's potions' item names: `item.minecraft.potion.effect.<name>`, a Yog potion alias.
+const POTION_LANG_PREFIX: &str = "potion.effect.";
+
 const GAME_IDS: [(&str, GameIds); 12] = [
-    ("item", GameIds::Lang { prefixes: &["item.minecraft.", "block.minecraft."], dotted: false }),
-    ("block", GameIds::Lang { prefixes: &["block.minecraft."], dotted: false }),
-    ("entity", GameIds::Lang { prefixes: &["entity.minecraft."], dotted: false }),
-    ("effect", GameIds::Lang { prefixes: &["effect.minecraft."], dotted: false }),
-    ("attribute", GameIds::Lang { prefixes: &["attribute.name."], dotted: true }),
-    ("biome", GameIds::Lang { prefixes: &["biome.minecraft."], dotted: false }),
-    ("enchantment", GameIds::Lang { prefixes: &["enchantment.minecraft."], dotted: false }),
-    // 1.20 names data folders in the plural, 1.21 in the singular.
-    ("loot_table", GameIds::Data(&["data/minecraft/loot_tables/", "data/minecraft/loot_table/"])),
-    ("advancement", GameIds::Data(&["data/minecraft/advancements/", "data/minecraft/advancement/"])),
-    ("damage_type", GameIds::Data(&["data/minecraft/damage_type/"])),
-    ("recipe", GameIds::Data(&["data/minecraft/recipes/", "data/minecraft/recipe/"])),
-    ("sound", GameIds::Keys("minecraft/sounds.json")),
+    (yog_ids::kind::ITEM, GameIds::Lang { kinds: &[yog_ids::kind::ITEM, yog_ids::kind::BLOCK], dotted: false }),
+    (yog_ids::kind::BLOCK, GameIds::Lang { kinds: &[yog_ids::kind::BLOCK], dotted: false }),
+    (yog_ids::kind::ENTITY, GameIds::Lang { kinds: &[yog_ids::kind::ENTITY], dotted: false }),
+    (yog_ids::kind::EFFECT, GameIds::Lang { kinds: &[yog_ids::kind::EFFECT], dotted: false }),
+    (yog_ids::kind::ATTRIBUTE, GameIds::LangPrefix(ATTRIBUTE_LANG_PREFIX)),
+    (yog_ids::kind::BIOME, GameIds::Lang { kinds: &[yog_ids::kind::BIOME], dotted: false }),
+    (ENCHANTMENT, GameIds::Lang { kinds: &[ENCHANTMENT], dotted: false }),
+    (yog_ids::kind::LOOT_TABLE, GameIds::Data),
+    (yog_ids::kind::ADVANCEMENT, GameIds::Data),
+    (yog_ids::kind::DAMAGE_TYPE, GameIds::Data),
+    (yog_ids::kind::RECIPE, GameIds::Data),
+    (SOUND, GameIds::Keys(SOUNDS_ASSET)),
 ];
 
-/// Where the game's tags of a kind of content are (`tag:<kind>`): its data
-/// folders under `data/minecraft/tags/` — 1.21's singular, 1.20's plural.
-const GAME_TAG_DIRS: [(&str, &[&str]); 6] = [
-    ("item", &["item", "items"]),
-    ("block", &["block", "blocks"]),
-    ("entity", &["entity_type", "entity_types"]),
-    ("fluid", &["fluid", "fluids"]),
-    ("biome", &["worldgen/biome"]),
-    ("damage_type", &["damage_type"]),
-];
+/// Kinds of the game's content a reference may name that no Yog file defines.
+const ENCHANTMENT: &str = "enchantment";
+const SOUND: &str = "sound";
+
+/// The kinds whose game tags a reference may name (`tag:<kind>`).
+const GAME_TAG_KINDS: [&str; 6] = [yog_ids::kind::ITEM, yog_ids::kind::BLOCK, yog_ids::kind::ENTITY, yog_ids::kind::FLUID, yog_ids::kind::BIOME, yog_ids::kind::DAMAGE_TYPE];
 
 /// One of the mod's own: its id and the file that defines it.
 #[derive(Serialize, Debug, Clone, PartialEq)]
@@ -197,7 +202,8 @@ fn external(root: &Path, kind: &str) -> Vec<String> {
 
 /// The game's ids of `kind`, from the client jar (cached per jar).
 fn game(root: Option<&Path>, kind: &str) -> Vec<String> {
-    let tags = kind.strip_prefix("tag:").and_then(|of| GAME_TAG_DIRS.iter().find(|(k, _)| *k == of)).map(|(_, dirs)| *dirs);
+    let tag_of = format!("{}{}", yog_ids::typed::TAG, yog_ids::sep::NAMESPACE);
+    let tags = kind.strip_prefix(tag_of.as_str()).filter(|of| GAME_TAG_KINDS.contains(of)).map(yog_ids::registry_dirs);
     let how = GAME_IDS.iter().find(|(k, _)| *k == kind).map(|(_, h)| h);
     if tags.is_none() && how.is_none() {
         return Vec::new();
@@ -216,34 +222,33 @@ fn game(root: Option<&Path>, kind: &str) -> Vec<String> {
             .find_map(|b| serde_json::from_slice::<serde_json::Map<String, Value>>(&b).ok())
             .unwrap_or_default()
     };
+    let game = |path: &str| yog_ids::join(yog_ids::ns::MINECRAFT, path);
+    // The `.json` files under `data/minecraft/<dir>/`, as ids.
+    let data_ids = |dirs: Vec<String>| -> Vec<String> {
+        dirs.iter()
+            .flat_map(|d| vanilla.names_under(&format!("{}/{}/{d}/", yog_ids::pack::DATA, yog_ids::ns::MINECRAFT)))
+            .filter_map(|n| n.strip_suffix(yog_ids::res::JSON).map(game))
+            .collect()
+    };
+    let lang_ids = |prefixes: Vec<String>, dotted: bool| -> Vec<String> {
+        keys(&format!("{}/{}", yog_ids::ns::MINECRAFT, yog_ids::lang_file(yog_ids::game::LOCALE)))
+            .keys()
+            .filter_map(|k| prefixes.iter().find_map(|p| k.strip_prefix(p.as_str())))
+            .filter(|rest| rest.starts_with(POTION_LANG_PREFIX) || dotted || !rest.contains('.'))
+            .map(|rest| match rest.strip_prefix(POTION_LANG_PREFIX).filter(|_| kind == yog_ids::kind::ITEM) {
+                // `item.minecraft.potion.effect.swiftness` → `yog:potion/swiftness`.
+                Some(name) => format!("{}{name}", yog_ids::yog::POTION_ALIAS),
+                None => game(rest),
+            })
+            .collect()
+    };
     let mut out: Vec<String> = match (tags, how) {
-        (Some(dirs), _) => dirs
-            .iter()
-            .flat_map(|d| vanilla.names_under(&format!("data/minecraft/tags/{d}/")))
-            .filter_map(|n| n.strip_suffix(".json").map(|p| format!("minecraft:{p}")))
-            .collect(),
+        (Some(dirs), _) => data_ids(dirs.iter().map(|d| format!("{}/{d}", yog_ids::pack::TAGS)).collect()),
         (None, None) => Vec::new(),
-        (None, Some(GameIds::Lang { prefixes, dotted })) => {
-            keys("minecraft/lang/en_us.json")
-                .keys()
-                .filter_map(|k| prefixes.iter().find_map(|p| k.strip_prefix(p)))
-                .filter(|rest| rest.starts_with("potion.effect.") || *dotted || !rest.contains('.'))
-                .map(|rest| {
-                    if kind == "item" {
-                        rest.strip_prefix("potion.effect.")
-                            .map_or_else(|| format!("minecraft:{rest}"), |name| format!("yog:potion/{name}"))
-                    } else {
-                        format!("minecraft:{rest}")
-                    }
-                })
-                .collect()
-        }
-        (None, Some(GameIds::Data(dirs))) => dirs
-            .iter()
-            .flat_map(|d| vanilla.names_under(d))
-            .filter_map(|n| n.strip_suffix(".json").map(|p| format!("minecraft:{p}")))
-            .collect(),
-        (None, Some(GameIds::Keys(asset))) => keys(asset).keys().map(|k| format!("minecraft:{k}")).collect(),
+        (None, Some(GameIds::Lang { kinds, dotted })) => lang_ids(kinds.iter().map(|k| yog_ids::lang_prefix(k, yog_ids::ns::MINECRAFT)).collect(), *dotted),
+        (None, Some(GameIds::LangPrefix(prefix))) => lang_ids(vec![prefix.to_string()], true),
+        (None, Some(GameIds::Data)) => data_ids(yog_ids::registry_dirs(kind)),
+        (None, Some(GameIds::Keys(asset))) => keys(&format!("{}/{asset}", yog_ids::ns::MINECRAFT)).keys().map(|k| game(k)).collect(),
     };
     out.sort();
     out.dedup();

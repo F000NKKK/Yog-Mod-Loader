@@ -55,7 +55,7 @@ unsafe extern "C" fn text(text: YogStr, x: f32, y: f32, color: u32, shadow: bool
     let text = unsafe { string(text) };
     push(DrawOp::Text {
         text,
-        font: "minecraft:default".into(),
+        font: yog_ids::game::DEFAULT_FONT.into(),
         x,
         y,
         color,
@@ -72,7 +72,7 @@ unsafe extern "C" fn text_font(
 ) {
     let (text, font) = unsafe { (string(text), string(font)) };
     let font = if font.trim().is_empty() {
-        "minecraft:default".to_string()
+        yog_ids::game::DEFAULT_FONT.to_string()
     } else {
         font
     };
@@ -117,7 +117,7 @@ unsafe extern "C" fn image(
 #[allow(clippy::too_many_arguments)]
 unsafe extern "C" fn text_scaled(text: YogStr, font: YogStr, x: f32, y: f32, scale: f32, color: u32, shadow: bool) {
     let (text, font) = unsafe { (string(text), string(font)) };
-    let font = if font.is_empty() { "minecraft:default".to_string() } else { font };
+    let font = if font.is_empty() { yog_ids::game::DEFAULT_FONT.to_string() } else { font };
     push(DrawOp::TextScaled { text, font, x, y, scale, color, shadow });
 }
 unsafe extern "C" fn blocks(list: YogStr, x: f32, y: f32, w: f32, h: f32, yaw: f32, pitch: f32) {

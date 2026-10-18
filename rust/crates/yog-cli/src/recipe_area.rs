@@ -15,7 +15,7 @@ fn el(name: &str, attrs: &[(&str, String)], line: usize) -> Element {
 
 /// The highest `<Slot index>` in `root`.
 fn max_slot(root: &Element) -> Option<usize> {
-    let own = (root.name == "Slot").then(|| root.attr("index").and_then(|i| i.trim().parse().ok())).flatten();
+    let own = (root.name == yog_ids::yui::SLOT).then(|| root.attr(yog_ids::yui_attr::INDEX).and_then(|i| i.trim().parse().ok())).flatten();
     root.children.iter().filter_map(max_slot).chain(own).max()
 }
 
@@ -28,7 +28,7 @@ pub fn expand(root: &mut Element, layouts: &[RecipeLayout], ns: &str) -> Result<
 
 fn walk(el_: &mut Element, layouts: &[RecipeLayout], ns: &str, next: &mut usize) -> Result<(), String> {
     for child in &mut el_.children {
-        if child.name == "RecipeArea" {
+        if child.name == yog_ids::yui::RECIPE_AREA {
             *child = area(child, layouts, ns, next)?;
         } else {
             walk(child, layouts, ns, next)?;
@@ -39,7 +39,7 @@ fn walk(el_: &mut Element, layouts: &[RecipeLayout], ns: &str, next: &mut usize)
 
 fn area(a: &Element, layouts: &[RecipeLayout], ns: &str, next: &mut usize) -> Result<Element, String> {
     let line = a.line;
-    let kind = a.attr("kind").map(str::trim).unwrap_or_default();
+    let kind = a.attr(yog_ids::yui_attr::KIND).map(str::trim).unwrap_or_default();
     if kind.is_empty() {
         return Err(format!("line {line}: <RecipeArea> needs kind=\"…\" (a kind of recipe the mod declares)"));
     }
@@ -47,7 +47,7 @@ fn area(a: &Element, layouts: &[RecipeLayout], ns: &str, next: &mut usize) -> Re
     let Some(layout) = layouts.iter().find(|l| l.kinds.contains(&kind)) else {
         return Err(format!("line {line}: <RecipeArea kind=\"{kind}\">: no layout for it — a .yui <Component recipe_layout=\"…\">"));
     };
-    let mut canvas = el("Canvas", &[("w", layout.size[0].to_string()), ("h", layout.size[1].to_string())], line);
+    let mut canvas = el(yog_ids::yui::CANVAS, &[(yog_ids::yui_attr::W, layout.size[0].to_string()), (yog_ids::yui_attr::H, layout.size[1].to_string())], line);
     for k in ["x", "y", "Grid.Row", "Grid.Column", "margin"] {
         if let Some(v) = a.attr(k) {
             canvas.attrs.push((k.to_string(), v.to_string()));
@@ -64,7 +64,7 @@ fn area(a: &Element, layouts: &[RecipeLayout], ns: &str, next: &mut usize) -> Re
     let Some(result) = result else {
         return Err(format!("line {line}: <RecipeArea kind=\"{kind}\">: its layout has no <RecipeResult> — where would the result go?"));
     };
-    canvas.children.push(el("Machine", &[("kind", kind), ("result", result.to_string()), ("places", places.join(","))], line));
+    canvas.children.push(el(yog_ids::yui::MACHINE, &[(yog_ids::yui_attr::KIND, kind), (yog_ids::yui_attr::RESULT, result.to_string()), (yog_ids::yui_attr::PLACES, places.join(","))], line));
     Ok(canvas)
 }
 

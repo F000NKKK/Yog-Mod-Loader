@@ -443,7 +443,7 @@ impl Font {
         type Cache = Mutex<HashMap<(Option<std::path::PathBuf>, String), Arc<Font>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let id = if font_id.trim().is_empty() {
-            "minecraft:default"
+            yog_ids::game::DEFAULT_FONT
         } else {
             font_id.trim()
         };
@@ -454,9 +454,9 @@ impl Font {
         }
         let mut providers = Vec::new();
         load_providers(res, id, 0, &mut providers);
-        if providers.is_empty() && id != "minecraft:default" {
+        if providers.is_empty() && id != yog_ids::game::DEFAULT_FONT {
             // An unknown font falls back to the default one, as in game.
-            load_providers(res, "minecraft:default", 0, &mut providers);
+            load_providers(res, yog_ids::game::DEFAULT_FONT, 0, &mut providers);
         }
         let font = Arc::new(Font {
             providers,
@@ -607,7 +607,7 @@ mod tests {
                 mod_root: None,
                 vanilla: None,
             },
-            "minecraft:default",
+            yog_ids::game::DEFAULT_FONT,
         );
         assert!(!f.is_real());
         assert_eq!(f.width("ab"), 12.0);

@@ -137,6 +137,8 @@ public final class YogNames {
         public static final String ITEM_DIR = "item/";
         public static final String BLOCK_DIR = "block/";
         public static final String GUI_SPRITES = "gui/sprites/";
+        public static final String LANG = "lang/";
+        public static final String BUILTIN = "builtin/";
         public static final String PNG = ".png";
         public static final String SVG = ".svg";
         public static final String JSON = ".json";
@@ -172,6 +174,128 @@ public final class YogNames {
         public static final String THE_END = "minecraft:the_end";
         public static final String MISSING_TEXTURE = "minecraft:missingno";
         public static final String WRITTEN_BOOK = "minecraft:written_book";
+        public static final String BOOK = "minecraft:book";
+        public static final String LOCALE = "en_us";
+    }
+
+    public static final class External {
+        private External() {}
+
+        public static final String ITEMS = "items";
+        public static final String BLOCKS = "blocks";
+        public static final String ENTITIES = "entities";
+        public static final String RECIPES = "recipes";
+    }
+
+    public static final class Yui {
+        private Yui() {}
+
+        public static final String SCREEN = "Screen";
+        public static final String COMPONENT = "Component";
+        public static final String PROPERTY = "Property";
+        public static final String EVENT = "Event";
+        public static final String STYLE = "Style";
+        public static final String CANVAS = "Canvas";
+        public static final String COLUMN = "Column";
+        public static final String ROW = "Row";
+        public static final String GRID = "Grid";
+        public static final String SCROLL_VIEW = "ScrollView";
+        public static final String LABEL = "Label";
+        public static final String BUTTON = "Button";
+        public static final String TOGGLE_BUTTON = "ToggleButton";
+        public static final String TEXT_BOX = "TextBox";
+        public static final String IMAGE = "Image";
+        public static final String SURFACE = "Surface";
+        public static final String SPACER = "Spacer";
+        public static final String PILL = "Pill";
+        public static final String STAT_BAR = "StatBar";
+        public static final String LIST_VIEW = "ListView";
+        public static final String ITEMS_CONTROL = "ItemsControl";
+        public static final String CONTENT_PRESENTER = "ContentPresenter";
+        public static final String ITEM_SLOT = "ItemSlot";
+        public static final String INV_SLOT = "InvSlot";
+        public static final String SLOT = "Slot";
+        public static final String PLAYER_INVENTORY = "PlayerInventory";
+        public static final String MACHINE = "Machine";
+        public static final String RECIPE_AREA = "RecipeArea";
+        public static final String RECIPE_SLOT = "RecipeSlot";
+        public static final String RECIPE_RESULT = "RecipeResult";
+        public static final String RECIPE_COUNT = "RecipeCount";
+    }
+
+    public static final class YuiAttr {
+        private YuiAttr() {}
+
+        public static final String ID = "id";
+        public static final String X = "x";
+        public static final String Y = "y";
+        public static final String W = "w";
+        public static final String H = "h";
+        public static final String MIN_W = "min_w";
+        public static final String MIN_H = "min_h";
+        public static final String FLEX = "flex";
+        public static final String DOCK = "dock";
+        public static final String GAP = "gap";
+        public static final String PADDING = "padding";
+        public static final String BG = "bg";
+        public static final String COLOR = "color";
+        public static final String ALIGN = "align";
+        public static final String HALIGN = "halign";
+        public static final String VALIGN = "valign";
+        public static final String MARGIN = "margin";
+        public static final String FONT_SCALE = "font_scale";
+        public static final String FONT = "font";
+        public static final String SHADOW = "shadow";
+        public static final String NO_WRAP = "no_wrap";
+        public static final String ELLIPSIS = "ellipsis";
+        public static final String FOCUS_STYLE = "focus_style";
+        public static final String FOCUS_COLOR = "focus_color";
+        public static final String ENABLED = "enabled";
+        public static final String ON_CLICK = "on_click";
+        public static final String TOOLTIP = "tooltip";
+        public static final String WIDTH = "width";
+        public static final String HEIGHT = "height";
+        public static final String ANCHOR = "anchor";
+        public static final String MODAL = "modal";
+        public static final String PAUSE = "pause";
+        public static final String LIVE = "live";
+        public static final String THEME = "theme";
+        public static final String TEXT = "text";
+        public static final String PLACEHOLDER = "placeholder";
+        public static final String MAX_LENGTH = "max_length";
+        public static final String ON_CHANGE = "on_change";
+        public static final String ON_SUBMIT = "on_submit";
+        public static final String ITEM = "item";
+        public static final String COUNT = "count";
+        public static final String INDEX = "index";
+        public static final String ACCEPTS = "accepts";
+        public static final String SOURCE = "source";
+        public static final String STRETCH = "stretch";
+        public static final String UV = "uv";
+        public static final String TINT = "tint";
+        public static final String KIND = "kind";
+        public static final String RESULT = "result";
+        public static final String PLACES = "places";
+        public static final String RECIPE_LAYOUT = "recipe_layout";
+        public static final String SLOT = "slot";
+        public static final String BLOCK = "block";
+        public static final String STYLE = "style";
+        public static final String BASED_ON = "based_on";
+        public static final String ORIENTATION = "orientation";
+        public static final String ROWS = "rows";
+        public static final String COLUMNS = "columns";
+        public static final String ROW_SPACING = "row_spacing";
+        public static final String COLUMN_SPACING = "column_spacing";
+        public static final String VALUE = "value";
+        public static final String SELECTED = "selected";
+        public static final String CHECKED = "checked";
+        public static final String ITEM_HEIGHT = "item_height";
+        public static final String SCROLL_KEY = "scroll_key";
+        public static final String VISIBLE = "visible";
+        public static final String GRID_ROW = "Grid.Row";
+        public static final String GRID_COLUMN = "Grid.Column";
+        public static final String GRID_ROWSPAN = "Grid.RowSpan";
+        public static final String GRID_COLUMNSPAN = "Grid.ColumnSpan";
     }
 
     /** Yog's file formats' extensions (`Format`). */

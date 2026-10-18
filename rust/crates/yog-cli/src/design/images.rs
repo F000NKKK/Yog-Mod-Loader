@@ -94,15 +94,15 @@ fn rect([x, y, w, h]: [f32; 4]) -> Rect {
 /// `stretch`, `uv`, `tint`.
 pub fn widget(node: &YuiNode) -> Widget {
     let a = |k: &str| node.attr(k);
-    let source = a("source").unwrap_or_default();
+    let source = a(yog_ids::yui_attr::SOURCE).unwrap_or_default();
     let mut w = widget::image(resolve_mod(source));
-    if let Some(s) = a("stretch") {
+    if let Some(s) = a(yog_ids::yui_attr::STRETCH) {
         w = w.stretch(stretch(s));
     }
-    if let Some(r) = a("uv").and_then(uv) {
+    if let Some(r) = a(yog_ids::yui_attr::UV).and_then(uv) {
         w = w.region(rect(r));
     }
-    if let Some(t) = a("tint").and_then(color) {
+    if let Some(t) = a(yog_ids::yui_attr::TINT).and_then(color) {
         w = w.tint(Color(t));
     }
     w
@@ -471,13 +471,13 @@ pub fn candidates(path: &Path) -> Vec<Candidate> {
     if let Some(v) = &res.vanilla {
         let (items, blocks) = v.texture_names();
         out.extend(items.into_iter().map(|n| Candidate {
-            source: format!("item:{n}"),
-            group: "item".into(),
+            source: yog_ids::join(yog_ids::image_scheme::ITEM, &n),
+            group: yog_ids::image_scheme::ITEM.into(),
             detail: String::new(),
         }));
         out.extend(blocks.into_iter().map(|n| Candidate {
-            source: format!("block:{n}"),
-            group: "block".into(),
+            source: yog_ids::join(yog_ids::image_scheme::BLOCK, &n),
+            group: yog_ids::image_scheme::BLOCK.into(),
             detail: String::new(),
         }));
     }

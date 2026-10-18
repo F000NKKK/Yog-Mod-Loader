@@ -6,7 +6,7 @@
 //! `ui_component!`. See Yog-IDLE's `docs/yui.md`, "Components".
 //!
 //! ```xml
-//! <Component name="StatBar" description="A labelled bar." icon="item:experience_bottle"
+//! <Component name=yog_ids::yui::STAT_BAR description="A labelled bar." icon="item:experience_bottle"
 //!            design_w="120" design_h="10">
 //!     <Property name="label" type="text" default="HP" doc="Shown on the left" category="Text"/>
 //!     <Property name="value" type="number" default="0.5"/>
@@ -42,7 +42,7 @@ const KINDS: &[(&str, &str)] = &[
     ("number", "f32"),
     ("int", "i64"),
     ("bool", "bool"),
-    ("color", "u32"),
+    (yog_ids::yui_attr::COLOR, "u32"),
     ("choice", "String"),
     ("image", "String"),
 ];
@@ -102,9 +102,9 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
     let mut body = None;
     for child in &root.children {
         match child.name.as_str() {
-            "Property" | "Event" => {
+            yog_ids::yui::PROPERTY | yog_ids::yui::EVENT => {
                 for (key, _) in &child.attrs {
-                    let allowed = if child.name == "Event" {
+                    let allowed = if child.name == yog_ids::yui::EVENT {
                         &["name", "doc", "category"][..]
                     } else {
                         PROP_ATTRS
@@ -138,7 +138,7 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
                 if props.iter().any(|p| p.name == name) {
                     return err(child, format_args!("`{name}` is declared twice"));
                 }
-                let kind = if child.name == "Event" {
+                let kind = if child.name == yog_ids::yui::EVENT {
                     "event".to_string()
                 } else {
                     let kind = child.attr("type").unwrap_or("text").trim().to_string();
@@ -229,7 +229,7 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
 fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
     let kind = el.name.as_str();
     let builtin = yui::is_builtin(kind);
-    if kind == "Component" || kind == "Screen" {
+    if kind == yog_ids::yui::COMPONENT || kind == yog_ids::yui::SCREEN {
         return err(el, "can't be inside a component");
     }
     let mut out = Element {
@@ -255,25 +255,25 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
             continue;
         }
         let call = match key.as_str() {
-            "text" if matches!(kind, "Label" | "Button" | "TextBox") => {
+            "text" if matches!(kind, yog_ids::yui::LABEL | yog_ids::yui::BUTTON | yog_ids::yui::TEXT_BOX) => {
                 format!("with_text({conv}::text(&({e})))")
             }
-            "placeholder" if kind == "TextBox" => format!("placeholder({conv}::text(&({e})))"),
-            "source" if kind == "Surface" => {
-                out.attrs.push(("source".into(), "yog:none".into()));
+            "placeholder" if kind == yog_ids::yui::TEXT_BOX => format!("placeholder({conv}::text(&({e})))"),
+            "source" if kind == yog_ids::yui::SURFACE => {
+                out.attrs.push((yog_ids::yui_attr::SOURCE.into(), "yog:none".into()));
                 format!("with_source({conv}::text(&({e})))")
             }
-            "source" if kind == "Image" => {
+            "source" if kind == yog_ids::yui::IMAGE => {
                 // A valid stand-in for the static checks; replaced at build.
-                out.attrs.push(("source".into(), "item:air".into()));
+                out.attrs.push((yog_ids::yui_attr::SOURCE.into(), "item:air".into()));
                 format!("with_source({conv}::text(&({e})))")
             }
-            "item" if matches!(kind, "ItemSlot" | "InvSlot") => {
+            "item" if matches!(kind, yog_ids::yui::ITEM_SLOT | yog_ids::yui::INV_SLOT) => {
                 format!("with_source({conv}::text(&({e})))")
             }
-            "count" if kind == "InvSlot" => format!("with_count({conv}::count(&({e})))"),
+            "count" if kind == yog_ids::yui::INV_SLOT => format!("with_count({conv}::count(&({e})))"),
             "bg" | "color" | "focus_color" => format!("{key}({conv}::color(&({e})))"),
-            "tint" if kind == "Image" => format!("tint({conv}::color(&({e})))"),
+            "tint" if kind == yog_ids::yui::IMAGE => format!("tint({conv}::color(&({e})))"),
             "enabled" | "visible" | "shadow" => format!("{key}({conv}::flag({e}))"),
             "w" | "h" => format!("{key}({conv}::units(&({e})))"),
             "gap" | "flex" | "min_w" | "min_h" | "font_scale" => {
@@ -481,7 +481,7 @@ fn is_component_file(path: &Path) -> bool {
     std::fs::read_to_string(path)
         .ok()
         .and_then(|s| yui::parse_xml(&s).ok())
-        .is_some_and(|r| r.name == "Component" && !crate::book_page::is_book_ui(&r))
+        .is_some_and(|r| r.name == yog_ids::yui::COMPONENT && !crate::book_page::is_book_ui(&r))
 }
 
 /// Writes [`INDEX_FILE`]: a module per component `.yui` under `src/` that

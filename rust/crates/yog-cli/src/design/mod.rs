@@ -255,7 +255,7 @@ pub fn render(args: &RenderArgs) -> Result<Rendered, String> {
 }
 
 fn canvas_font_real(res: &Resources) -> bool {
-    font::Font::load(res, "minecraft:default").is_real()
+    font::Font::load(res, yog_ids::game::DEFAULT_FONT).is_real()
 }
 
 #[derive(Debug, Deserialize)]
@@ -334,7 +334,7 @@ pub fn event(args: &EventArgs) -> EventResult {
     if !args.event.starts_with("move:") {
         let mut views: Vec<(&YuiNode, &LayoutNode)> = Vec::new();
         with_content(root, &laid, |n, _, l| {
-            if n.kind == "ScrollView" {
+            if n.kind == yog_ids::yui::SCROLL_VIEW {
                 views.push((n, l));
             }
         });
@@ -364,7 +364,7 @@ pub fn event(args: &EventArgs) -> EventResult {
                 .to_string()
         });
         if args.event.starts_with("click:") && !out.scrolled {
-            out.clicked = found.and_then(|n| n.attr("on_click")).map(str::to_string);
+            out.clicked = found.and_then(|n| n.attr(yog_ids::yui_attr::ON_CLICK)).map(str::to_string);
         }
     }
     out

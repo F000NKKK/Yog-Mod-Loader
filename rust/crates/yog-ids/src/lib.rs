@@ -182,6 +182,10 @@ names! {
         BLOCK_DIR = concatcp!(kind::BLOCK, sep::PATH),
         /// The GUI atlas's sprites under `textures/` (1.20.2+).
         GUI_SPRITES = concatcp!("gui", sep::PATH, "sprites", sep::PATH),
+        /// The language files' folder: `<ns>:lang/<locale>.json`.
+        LANG = concatcp!("lang", sep::PATH),
+        /// Models the game draws in code (`builtin/entity`), not from elements.
+        BUILTIN = concatcp!("builtin", sep::PATH),
         PNG = ".png",
         SVG = ".svg",
         JSON = ".json",
@@ -233,6 +237,131 @@ names! {
         MISSING_TEXTURE = id!(ns::MINECRAFT, "missingno"),
         /// What a book is given to players as.
         WRITTEN_BOOK = id!(ns::MINECRAFT, "written_book"),
+        BOOK = id!(ns::MINECRAFT, "book"),
+        /// The language every lang file falls back to, and a mod's texts are written in.
+        LOCALE = "en_us",
+    }
+
+    /// What `[external.<namespace>]` in `yog.toml` lists another mod's content under.
+    external {
+        ITEMS = "items",
+        BLOCKS = "blocks",
+        ENTITIES = "entities",
+        RECIPES = "recipes",
+    }
+
+    /// The elements of a `.yui` screen or component.
+    yui {
+        SCREEN = "Screen",
+        COMPONENT = "Component",
+        /// A component's declarations.
+        PROPERTY = "Property",
+        EVENT = "Event",
+        STYLE = "Style",
+        CANVAS = "Canvas",
+        COLUMN = "Column",
+        ROW = "Row",
+        GRID = "Grid",
+        SCROLL_VIEW = "ScrollView",
+        LABEL = "Label",
+        BUTTON = "Button",
+        TOGGLE_BUTTON = "ToggleButton",
+        TEXT_BOX = "TextBox",
+        IMAGE = "Image",
+        SURFACE = "Surface",
+        SPACER = "Spacer",
+        PILL = "Pill",
+        STAT_BAR = "StatBar",
+        LIST_VIEW = "ListView",
+        ITEMS_CONTROL = "ItemsControl",
+        CONTENT_PRESENTER = "ContentPresenter",
+        /// Slots: an item shown, an inventory's, the container's.
+        ITEM_SLOT = "ItemSlot",
+        INV_SLOT = "InvSlot",
+        SLOT = "Slot",
+        PLAYER_INVENTORY = "PlayerInventory",
+        /// Which container slot is which, for a block that makes recipes.
+        MACHINE = "Machine",
+        /// A kind of recipe's layout on an inventory screen.
+        RECIPE_AREA = "RecipeArea",
+        /// A recipe layout's places.
+        RECIPE_SLOT = "RecipeSlot",
+        RECIPE_RESULT = "RecipeResult",
+        RECIPE_COUNT = "RecipeCount",
+    }
+
+    /// The attributes of `.yui` elements.
+    yui_attr {
+        ID = "id",
+        X = "x",
+        Y = "y",
+        W = "w",
+        H = "h",
+        MIN_W = "min_w",
+        MIN_H = "min_h",
+        FLEX = "flex",
+        DOCK = "dock",
+        GAP = "gap",
+        PADDING = "padding",
+        BG = "bg",
+        COLOR = "color",
+        ALIGN = "align",
+        HALIGN = "halign",
+        VALIGN = "valign",
+        MARGIN = "margin",
+        FONT_SCALE = "font_scale",
+        FONT = "font",
+        SHADOW = "shadow",
+        NO_WRAP = "no_wrap",
+        ELLIPSIS = "ellipsis",
+        FOCUS_STYLE = "focus_style",
+        FOCUS_COLOR = "focus_color",
+        ENABLED = "enabled",
+        ON_CLICK = "on_click",
+        TOOLTIP = "tooltip",
+        WIDTH = "width",
+        HEIGHT = "height",
+        ANCHOR = "anchor",
+        MODAL = "modal",
+        PAUSE = "pause",
+        LIVE = "live",
+        THEME = "theme",
+        TEXT = "text",
+        PLACEHOLDER = "placeholder",
+        MAX_LENGTH = "max_length",
+        ON_CHANGE = "on_change",
+        ON_SUBMIT = "on_submit",
+        ITEM = "item",
+        COUNT = "count",
+        INDEX = "index",
+        ACCEPTS = "accepts",
+        SOURCE = "source",
+        STRETCH = "stretch",
+        UV = "uv",
+        TINT = "tint",
+        KIND = "kind",
+        RESULT = "result",
+        PLACES = "places",
+        RECIPE_LAYOUT = "recipe_layout",
+        SLOT = "slot",
+        BLOCK = "block",
+        STYLE = "style",
+        BASED_ON = "based_on",
+        ORIENTATION = "orientation",
+        ROWS = "rows",
+        COLUMNS = "columns",
+        ROW_SPACING = "row_spacing",
+        COLUMN_SPACING = "column_spacing",
+        VALUE = "value",
+        SELECTED = "selected",
+        CHECKED = "checked",
+        ITEM_HEIGHT = "item_height",
+        SCROLL_KEY = "scroll_key",
+        VISIBLE = "visible",
+        GRID_ROW = "Grid.Row",
+        GRID_COLUMN = "Grid.Column",
+        GRID_ROWSPAN = "Grid.RowSpan",
+        GRID_COLUMNSPAN = "Grid.ColumnSpan",
     }
 }
 
@@ -341,6 +470,40 @@ pub fn registry_of(kind: &str) -> &str {
         kind::BIOME => "worldgen/biome",
         other => other,
     }
+}
+
+/// The kinds whose data and tag folders were plural before 1.21 (`items`, `loot_tables`).
+const PLURAL_BEFORE_1_21: &[&str] = &[kind::ITEM, kind::BLOCK, kind::ENTITY, kind::FLUID, kind::LOOT_TABLE, kind::ADVANCEMENT, kind::RECIPE];
+
+/// The folders of content `kind`'s data or tags, the current one first, then
+/// 1.20's plural one when it was named differently: `item` → `item`, `items`.
+#[must_use]
+pub fn registry_dirs(kind: &str) -> Vec<String> {
+    let dir = registry_of(kind);
+    let mut out = vec![dir.to_string()];
+    if PLURAL_BEFORE_1_21.contains(&kind) {
+        out.push(format!("{dir}s"));
+    }
+    out
+}
+
+/// Language `locale`'s file under a namespace: `lang/en_us.json`.
+#[must_use]
+pub fn lang_file(locale: &str) -> String {
+    format!("{}{locale}{}", res::LANG, res::JSON)
+}
+
+/// What the game's translation keys of content `kind` in namespace `ns` start with: `item.minecraft.`.
+#[must_use]
+pub fn lang_prefix(kind: &str, ns: &str) -> String {
+    format!("{kind}.{ns}.")
+}
+
+/// The game's translation key of content `kind` `id`: `item.minecraft.iron_ingot`, a path's `/` as `.`.
+#[must_use]
+pub fn lang_key(kind: &str, id: &str) -> String {
+    let (ns, path) = split(id);
+    format!("{}{}", lang_prefix(kind, ns), path.replace(sep::PATH, "."))
 }
 
 /// `ns:path`.

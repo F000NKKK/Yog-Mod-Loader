@@ -17,8 +17,8 @@ const STATES: &[(&str, &str)] = &[
     ("hover", "HOVER"),
     ("pressed", "PRESSED"),
     ("focused", "FOCUSED"),
-    ("selected", "SELECTED"),
-    ("checked", "CHECKED"),
+    (yog_ids::yui_attr::SELECTED, "SELECTED"),
+    (yog_ids::yui_attr::CHECKED, "CHECKED"),
     ("disabled", "DISABLED"),
 ];
 
@@ -493,18 +493,18 @@ enum Target {
 
 fn target(kind: &str, attr: &str) -> Option<Target> {
     Some(match attr {
-        "text" if matches!(kind, "Label" | "Button" | "TextBox") => Target::Text,
-        "placeholder" if kind == "TextBox" => Target::Placeholder,
+        "text" if matches!(kind, yog_ids::yui::LABEL | yog_ids::yui::BUTTON | yog_ids::yui::TEXT_BOX) => Target::Text,
+        "placeholder" if kind == yog_ids::yui::TEXT_BOX => Target::Placeholder,
         "tooltip" => Target::Tooltip,
-        "item" if matches!(kind, "ItemSlot" | "InvSlot") => Target::Item,
-        "source" if matches!(kind, "Image" | "Surface") => Target::Source,
-        "count" if kind == "InvSlot" => Target::Count,
+        "item" if matches!(kind, yog_ids::yui::ITEM_SLOT | yog_ids::yui::INV_SLOT) => Target::Item,
+        "source" if matches!(kind, yog_ids::yui::IMAGE | yog_ids::yui::SURFACE) => Target::Source,
+        "count" if kind == yog_ids::yui::INV_SLOT => Target::Count,
         "bg" => Target::Color("bg"),
         "color" => Target::Color("color"),
         "focus_color" => Target::Color("focus_color"),
         "enabled" => Target::Enabled,
         "visible" => Target::Visible,
-        "checked" if kind == "Button" => Target::Checked,
+        "checked" if kind == yog_ids::yui::BUTTON => Target::Checked,
         "w" => Target::Size("w"),
         "h" => Target::Size("h"),
         "gap" => Target::Number("gap"),
@@ -512,7 +512,7 @@ fn target(kind: &str, attr: &str) -> Option<Target> {
         "flex" => Target::Number("flex"),
         "min_w" => Target::Number("min_w"),
         "min_h" => Target::Number("min_h"),
-        "scroll_key" if kind == "ScrollView" => Target::ScrollKey,
+        "scroll_key" if kind == yog_ids::yui::SCROLL_VIEW => Target::ScrollKey,
         _ => return None,
     })
 }
@@ -621,7 +621,7 @@ impl VmGen<'_> {
                 _ => v.clone(),
             };
             match k.as_str() {
-                "x:Name" => out.attrs.push(("id".into(), v)),
+                "x:Name" => out.attrs.push((yog_ids::yui_attr::ID.into(), v)),
                 "style" => {
                     let name = v.trim().trim_start_matches('@');
                     let Some(s) = self.styles.get(name) else {
@@ -655,11 +655,11 @@ impl VmGen<'_> {
             let Some(key) = r.attr("x:Key") else {
                 return err(r, "needs an x:Key");
             };
-            if r.name == "Style" {
+            if r.name == yog_ids::yui::STYLE {
                 pending.push(r);
                 continue;
             }
-            let Some(v) = r.attr("value") else {
+            let Some(v) = r.attr(yog_ids::yui_attr::VALUE) else {
                 return err(
                     r,
                     "needs a value (e.g. <Color x:Key=\"Accent\" value=\"#FFD700\"/>)",
@@ -674,7 +674,7 @@ impl VmGen<'_> {
             for s in pending {
                 let key = s.attr("x:Key").unwrap_or_default().to_string();
                 let base = s
-                    .attr("based_on")
+                    .attr(yog_ids::yui_attr::BASED_ON)
                     .map(|b| b.trim().trim_start_matches('@').to_string());
                 let mut attrs: Vec<(String, String)> = match &base {
                     Some(b) => match self.styles.get(b) {
@@ -759,7 +759,7 @@ impl VmGen<'_> {
         let f = format!("{}{slot}", ctx.fields);
         let w = format!("{}.at_path_mut({})", ctx.tree, path_lit(path));
         let apply = match t {
-            Target::Text if kind == "TextBox" => {
+            Target::Text if kind == yog_ids::yui::TEXT_BOX => {
                 let Some(tb) = text_box else {
                     return err(el, "text boxes in item templates aren't supported");
                 };
@@ -877,19 +877,19 @@ impl VmGen<'_> {
         let el = &self.resolve(el)?;
         let name = el.name.as_str();
         let (kind, horizontal) = match name {
-            "ToggleButton" => ("Button", false),
-            "ListView" => ("ScrollView", false),
-            "ItemsControl" => (
-                "Column",
-                el.attr("orientation")
+            yog_ids::yui::TOGGLE_BUTTON => (yog_ids::yui::BUTTON, false),
+            yog_ids::yui::LIST_VIEW => (yog_ids::yui::SCROLL_VIEW, false),
+            yog_ids::yui::ITEMS_CONTROL => (
+                yog_ids::yui::COLUMN,
+                el.attr(yog_ids::yui_attr::ORIENTATION)
                     .is_some_and(|o| o.trim() == "horizontal"),
             ),
-            "ContentPresenter" => ("Column", false),
+            yog_ids::yui::CONTENT_PRESENTER => (yog_ids::yui::COLUMN, false),
             "Screen.Resources" | "DataTemplate" => return err(el, "isn't allowed here"),
             k => (k, false),
         };
-        let kind = if horizontal { "Row" } else { kind };
-        let is_list = matches!(name, "ListView" | "ItemsControl" | "ContentPresenter");
+        let kind = if horizontal { yog_ids::yui::ROW } else { kind };
+        let is_list = matches!(name, yog_ids::yui::LIST_VIEW | yog_ids::yui::ITEMS_CONTROL | yog_ids::yui::CONTENT_PRESENTER);
         let screen = ctx.scope == Scope::Screen;
 
         let mut out = Element {
@@ -987,7 +987,7 @@ impl VmGen<'_> {
                     let b = yui::boolean(el, k, v)?;
                     push_raw(&mut out, format!("visible({b})"));
                 }
-                "checked" if kind == "Button" => {
+                "checked" if kind == yog_ids::yui::BUTTON => {
                     let b = yui::boolean(el, k, v)?;
                     bindings.push((
                         k.into(),
@@ -1029,12 +1029,12 @@ impl VmGen<'_> {
                 ),
             );
         }
-        if let Some(id) = out.attr("id") {
+        if let Some(id) = out.attr(yog_ids::yui_attr::ID) {
             self.ids.push(id);
         }
 
         // Interactive parts (screen scope only).
-        let text_box = if kind == "TextBox" && screen {
+        let text_box = if kind == yog_ids::yui::TEXT_BOX && screen {
             let n = self.n_text_boxes;
             self.n_text_boxes += 1;
             let _ = writeln!(self.parts, "        parts.text_box({});", path_lit(path));
@@ -1042,7 +1042,7 @@ impl VmGen<'_> {
         } else {
             None
         };
-        let scroller = if kind == "ScrollView" {
+        let scroller = if kind == yog_ids::yui::SCROLL_VIEW {
             if !screen {
                 return err(el, "scroll views inside item templates aren't supported");
             }
@@ -1059,7 +1059,7 @@ impl VmGen<'_> {
             .iter()
             .find(|(k, b)| k == "checked" && b.mode == Mode::TwoWay)
             .map(|(_, b)| b.clone());
-        if kind == "TextBox" {
+        if kind == yog_ids::yui::TEXT_BOX {
             let tb = text_box.ok_or_else(|| {
                 format!(
                     "line {}: text boxes in item templates aren't supported",
@@ -1167,8 +1167,8 @@ impl VmGen<'_> {
         if bindings.iter().any(|(k, _)| k == "source") {
             // A valid stand-in for the static checks; the binding sets it.
             match kind {
-                "Image" => out.attrs.push(("source".into(), "item:air".into())),
-                "Surface" => out.attrs.push(("source".into(), "yog:none".into())),
+                yog_ids::yui::IMAGE => out.attrs.push((yog_ids::yui_attr::SOURCE.into(), "item:air".into())),
+                yog_ids::yui::SURFACE => out.attrs.push((yog_ids::yui_attr::SOURCE.into(), "yog:none".into())),
                 _ => {}
             }
         }
@@ -1291,7 +1291,7 @@ impl VmGen<'_> {
                 .find(|(bk, _)| bk == k)
                 .map(|(_, b)| b.clone())
         };
-        let source = if name == "ContentPresenter" {
+        let source = if name == yog_ids::yui::CONTENT_PRESENTER {
             "content"
         } else {
             "items"
@@ -1315,10 +1315,10 @@ impl VmGen<'_> {
             None => "index".to_string(),
         };
         let selected = get("selected");
-        if selected.is_some() && name != "ListView" {
+        if selected.is_some() && name != yog_ids::yui::LIST_VIEW {
             return err(el, "selected is for ListView");
         }
-        let item_height = match attrs.get("item_height") {
+        let item_height = match attrs.get(yog_ids::yui_attr::ITEM_HEIGHT) {
             Some(v) => Some(yui::number(el, "item_height", v)?),
             None => None,
         };
@@ -1513,11 +1513,11 @@ pub fn generate(
     name: &str,
     mod_id: Option<&str>,
 ) -> Result<(String, Vec<String>), String> {
-    if root.name != "Screen" {
+    if root.name != yog_ids::yui::SCREEN {
         return err(root, "a view-model screen's root must be <Screen>");
     }
     let id = root
-        .attr("id")
+        .attr(yog_ids::yui_attr::ID)
         .filter(|s| !s.trim().is_empty())
         .ok_or_else(|| {
             format!(
@@ -1541,17 +1541,17 @@ pub fn generate(
     let (width, height, anchor) = yui::screen_frame(root)?;
     let anchor = yui::pascal(anchor);
     let modal = root
-        .attr("modal")
+        .attr(yog_ids::yui_attr::MODAL)
         .map(|v| yui::boolean(root, "modal", v))
         .transpose()?
         .unwrap_or(true);
     let pause = root
-        .attr("pause")
+        .attr(yog_ids::yui_attr::PAUSE)
         .map(|v| yui::boolean(root, "pause", v))
         .transpose()?
         .unwrap_or(false);
     let live = root
-        .attr("live")
+        .attr(yog_ids::yui_attr::LIVE)
         .map(|v| yui::boolean(root, "live", v))
         .transpose()?
         .unwrap_or(false);

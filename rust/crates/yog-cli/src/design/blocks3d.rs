@@ -85,6 +85,21 @@ pub fn cube(faces: Faces) -> Shape {
 
 const FACE_NAMES: [&str; 6] = ["up", "down", "north", "south", "west", "east"];
 
+/// The texture variables the game's block models draw each face with (in
+/// [`FACE_NAMES`] order), most particular first: a cube's `up`, a
+/// column's `end`, a `cube_all`'s `all`, a one-texture model's `texture`.
+pub const FACE_TEXTURES: [&[&str]; 6] = [
+    &["up", "top", "end", "all", "texture"],
+    &["down", "bottom", "end", "all", "texture"],
+    &["north", "front", "side", "all", "texture"],
+    &["south", "side", "all", "texture"],
+    &["west", "side", "all", "texture"],
+    &["east", "side", "all", "texture"],
+];
+
+/// What a face falls back to when its model has none of [`FACE_TEXTURES`].
+const PARTICLE: &str = "particle";
+
 /// The part of a face's texture its box shows when the model gives no `uv`.
 fn default_uv(slot: usize, f: [f32; 3], t: [f32; 3]) -> [f32; 4] {
     match slot {
@@ -331,15 +346,7 @@ fn model_shape(res: &Resources, model: &str) -> Shape {
             return s;
         }
     }
-    let pick = |keys: &[&str]| keys.iter().find_map(|k| resolve(k));
-    cube([
-        load(pick(&["up", "top", "end", "all", "texture", "particle"])),
-        load(pick(&["down", "bottom", "end", "all", "texture", "particle"])),
-        load(pick(&["north", "front", "side", "all", "texture", "particle"])),
-        load(pick(&["south", "side", "all", "texture", "particle"])),
-        load(pick(&["west", "side", "all", "texture", "particle"])),
-        load(pick(&["east", "side", "all", "texture", "particle"])),
-    ])
+    cube(FACE_TEXTURES.map(|keys| load(keys.iter().chain(&[PARTICLE]).find_map(|k| resolve(k)))))
 }
 
 /// `x y z state` lines → blocks.
