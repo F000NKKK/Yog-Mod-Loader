@@ -124,6 +124,7 @@ public final class YogNames {
         private Program() {}
 
         public static final String CLI = "yog";
+        public static final String SERVE = "serve";
     }
 
     public static final class Res {

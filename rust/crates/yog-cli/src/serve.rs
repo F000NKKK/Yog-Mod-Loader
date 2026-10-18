@@ -55,6 +55,11 @@ fn path_param(params: &Value, name: &str) -> Result<PathBuf, Value> {
     str_param(params, name).map(PathBuf::from)
 }
 
+/// A request's value parameter, given as JSON text (so its maps keep their order).
+fn data_param(params: &Value, name: &str) -> Result<yog_data::Value, Value> {
+    yog_data::text::parse_value(str_param(params, name)?).map_err(|e| json!(format!("`{name}`: {e}")))
+}
+
 /// Bytes as a reply carries them.
 fn base64(bytes: &[u8]) -> String {
     base64::engine::general_purpose::STANDARD.encode(bytes)
@@ -77,6 +82,19 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
         "yres.parse" => yres_parse(str_param(params, "text")?),
         // Entries (as `yres.parse` gives them) → `.yres` text.
         "yres.write" => yres_write(params.get("entries").ok_or_else(|| json!("missing `entries`"))?),
+        // Yog Data text → its value as JSON text (maps in file order, typed values as written).
+        "data.parse" => {
+            let value = yog_data::text::parse_value(str_param(params, "text")?)
+                .map_err(|e| json!({ "message": e.to_string(), "line": e.at.line, "col": e.at.col }))?;
+            Ok(json!(yog_data::patch::to_json(&value)))
+        }
+        // `text` changed to hold `next` (JSON text), comments and layout of the rest kept.
+        "data.patch" => Ok(json!(yog_data::patch::patch(str_param(params, "text")?, &data_param(params, "next")?))),
+        // A value (JSON text) as Yog's editors write it, at indent `level`.
+        "data.format" => {
+            let level = params.get("level").and_then(Value::as_u64).unwrap_or(0) as usize;
+            Ok(json!(yog_data::patch::format(&data_param(params, "value")?, level)))
+        }
         // A format's shape (`yog_data::Shape::describe`): `yblock`, `.ytexture`, `yog.toml`…
         "format.shape" => {
             let name = str_param(params, "format")?;
@@ -208,5 +226,15 @@ mod tests {
         assert_eq!(again["entries"][3]["comment"], "red");
         assert_eq!(dispatch("yres.parse", &json!({ "text": "{ \"a\": [] }" })).unwrap_err()["line"], 1);
         assert!(dispatch("nope", &Value::Null).is_err());
+    }
+
+    #[test]
+    fn data_is_read_and_patched_through_the_service() {
+        let text = "{\n  // c\n  a: 1,\n  b: \"@item:x\"\n}";
+        assert_eq!(dispatch("data.parse", &json!({ "text": text })).unwrap(), json!(r#"{"a":1,"b":"@item:x"}"#));
+        let patched = dispatch("data.patch", &json!({ "text": text, "next": r#"{"a":2,"b":"@item:x"}"# })).unwrap();
+        assert_eq!(patched, json!(text.replace("a: 1", "a: 2")));
+        assert_eq!(dispatch("data.parse", &json!({ "text": "{ a: }" })).unwrap_err()["line"], 1);
+        assert_eq!(dispatch("data.format", &json!({ "value": "[1, 2]" })).unwrap(), json!("[1, 2]"));
     }
 }

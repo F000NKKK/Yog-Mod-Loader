@@ -17,6 +17,7 @@ pub mod binary;
 mod borrowed;
 #[cfg(feature = "json")]
 pub mod json;
+pub mod patch;
 pub mod text;
 #[cfg(feature = "toml")]
 pub mod toml;

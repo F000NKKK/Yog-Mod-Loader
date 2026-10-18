@@ -162,6 +162,8 @@ names! {
     program {
         /// The command-line tool (`yog build`, `yog schema`, …).
         CLI = "yog",
+        /// The CLI's service command: tools read and write every format through it.
+        SERVE = "serve",
     }
 
     /// Where the game keeps resources, and what their files end with.
