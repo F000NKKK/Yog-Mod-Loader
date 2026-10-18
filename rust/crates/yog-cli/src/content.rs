@@ -26,6 +26,7 @@ mod datapack;
 mod defs;
 mod import;
 pub mod json;
+mod looks;
 pub(crate) mod material;
 mod model;
 mod outputs;
@@ -910,6 +911,10 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     out.outputs.extend(own_textures.outputs);
     out.packed = own_textures.packed;
+    // Armor's worn look where 1.21.4+ looks for it.
+    for m in &defs.armor_materials {
+        looks::equipment(root, &mut out, &m.texture, &mut warnings);
+    }
     out.warnings = warnings;
     if !errors.is_empty() {
         return Err(format!(

@@ -193,6 +193,15 @@ pub(super) fn tree(t: &yog_formats::def::TreeDef, ns: &str) -> Result<Output, St
         size = json!({ "type": "minecraft:two_layers_feature_size", "limit": 0, "lower_size": 0, "upper_size": 0, "min_clipped_height": h });
     }
     let dirt = t.dirt.as_ref().map_or("minecraft:dirt", |b| b.id.as_str());
+    let dirt_block = json!({ "type": "minecraft:simple_state_provider", "state": { "Name": dirt } });
+    let below_trunk = if t.force_dirt {
+        dirt_block.clone()
+    } else {
+        json!({ "type": "minecraft:rule_based_state_provider", "rules": [{
+            "if_true": { "type": "minecraft:not", "predicate": { "type": "minecraft:matching_block_tag", "tag": "minecraft:cannot_replace_below_tree_trunk" } },
+            "then": dirt_block,
+        }] })
+    };
     let v = json!({
         "type": "minecraft:tree",
         "config": {
@@ -200,7 +209,9 @@ pub(super) fn tree(t: &yog_formats::def::TreeDef, ns: &str) -> Result<Output, St
             "trunk_placer": { "type": placer(&t.trunk.shape, "trunk"), "base_height": t.trunk.base_height, "height_rand_a": t.trunk.random_a, "height_rand_b": t.trunk.random_b },
             "foliage_provider": provider(&t.leaves.blocks),
             "foliage_placer": foliage,
-            "dirt_provider": { "type": "minecraft:simple_state_provider", "state": { "Name": dirt } },
+            "dirt_provider": dirt_block,
+            // 26.x: what goes under the trunk — the dirt, but not over what can't be replaced (unless forced).
+            "below_trunk_provider": below_trunk,
             "minimum_size": size,
             "decorators": [],
             "ignore_vines": t.ignore_vines,

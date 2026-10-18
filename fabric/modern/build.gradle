@@ -47,6 +47,8 @@ sourceSets {
         }
         resources {
             srcDir "${platformDir}/src/main/resources"
+            // The runtime ../../build.sh embeds for the fabric host: src/main/resources/natives.
+            srcDir "../src/main/resources"
             srcDir "../../java-common/src/main/resources"
             // Yog's own textures (`yog:textures/gui/…`), shipped by yog-gfx for the designer and the runtime alike.
             srcDir "../../rust/crates/yog-gfx/res"
@@ -60,9 +62,11 @@ sourceSets {
 loom {
     runs {
         server {
+            runDir "../run"
             vmArg "-Djava.library.path=${file('../run/natives').absolutePath}"
         }
         client {
+            runDir "../run"
             vmArg "-Djava.library.path=${file('../run/natives').absolutePath}"
             // One player across dev launches: mods' per-player data (keyed by
             // the offline UUID of the name) survives a restart.

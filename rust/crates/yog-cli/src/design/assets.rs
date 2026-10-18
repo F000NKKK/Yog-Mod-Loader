@@ -329,9 +329,9 @@ impl Resources {
         if let Some(bytes) = self.mod_root.as_deref().and_then(|root| crate::media::built_asset(root, ns, path)) {
             return Some(bytes);
         }
-        // Yog's own textures, as every host ships them.
+        // Yog's own assets, as every host ships them.
         if ns == yog_ids::ns::YOG
-            && let Some(bytes) = yog_gfx::image::own_texture(path)
+            && let Some(bytes) = yog_gfx::image::own_asset(path)
         {
             return Some(bytes.to_vec());
         }

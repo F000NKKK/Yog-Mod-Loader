@@ -58,8 +58,11 @@ pub fn look(res: &Resources, id: &str) -> Option<Look> {
         return None;
     }
     // The tints the game's item colors give each layer.
-    let tints: Vec<Option<u32>> = if is(&looks.models.spawn_egg) {
-        let mob = path.strip_suffix(SPAWN_EGG_SUFFIX)?;
+    let tints: Vec<Option<u32>> = if is(yog_ids::yog::SPAWN_EGG_MODEL) {
+        // A mod's egg: Yog's egg, tinted as its item definition says.
+        definition_tints(res, ns, path)
+    } else if is(&looks.models.spawn_egg) {
+        let mob = path.strip_suffix(yog_ids::res::SPAWN_EGG_SUFFIX)?;
         let (base, spots) = looks.spawn_egg(mob)?;
         vec![Some(base.0), Some(spots.0)]
     } else if let Some(color) = appearance.as_ref().and_then(|(_, color)| *color) {
@@ -91,8 +94,20 @@ pub fn look(res: &Resources, id: &str) -> Option<Look> {
     out.map(|i| Look::Flat(Arc::new(i)))
 }
 
-/// What a spawn egg's item path ends with: `<mob>_spawn_egg`.
-const SPAWN_EGG_SUFFIX: &str = "_spawn_egg";
+
+/// The constant tints item `ns:path`'s definition (`items/<path>.json`, 1.21.4+) gives its layers, in order.
+fn definition_tints(res: &Resources, ns: &str, path: &str) -> Vec<Option<u32>> {
+    use yog_ids::item_def;
+    let file = format!("{}{path}{}", yog_ids::res::ITEM_DEFINITIONS, yog_ids::res::JSON);
+    let Some(def) = res.read(ns, &file).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else {
+        return Vec::new();
+    };
+    let tints = def[item_def::MODEL][item_def::TINTS].as_array().cloned().unwrap_or_default();
+    tints
+        .iter()
+        .map(|t| (t[item_def::TYPE] == item_def::CONSTANT).then(|| t[item_def::VALUE].as_i64()).flatten().map(|v| v as u32))
+        .collect()
+}
 
 /// The item an item model is of: `minecraft:item/potion` → `minecraft:potion`.
 fn model_item(model: &str) -> String {

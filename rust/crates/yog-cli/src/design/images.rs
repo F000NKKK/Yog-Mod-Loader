@@ -394,8 +394,6 @@ pub fn draw_svg(c: &mut Canvas, data: &str, dest: [f32; 4], t: u32) {
 
 /// An entity's spawn egg is drawn at most this big (two icons).
 const ENTITY_EGG_MAX: f32 = 2.0 * yog_ui::ICON_SIZE;
-/// What the game names an entity's spawn egg: `<entity>_spawn_egg`.
-const SPAWN_EGG_SUFFIX: &str = "_spawn_egg";
 
 /// `draw2d_entity`: the designer has no entity models — the entity's spawn
 /// egg, in the middle of its box.
@@ -403,7 +401,7 @@ pub fn draw_entity(c: &mut Canvas, entity: &str, [x, y, w, h]: [f32; 4]) {
     let (ns, path) = yog_ids::split(entity);
     let side = w.min(h).min(ENTITY_EGG_MAX);
     let dest = [x + (w - side) / 2.0, y + (h - side) / 2.0, side, side];
-    let egg = yog_ids::join(ns, &format!("{path}{SPAWN_EGG_SUFFIX}"));
+    let egg = yog_ids::join(ns, &format!("{path}{}", yog_ids::res::SPAWN_EGG_SUFFIX));
     draw(c, &yog_ids::join(yog_ids::image_scheme::ITEM, &egg), dest, [0.0; 4], Color::WHITE.0);
 }
 

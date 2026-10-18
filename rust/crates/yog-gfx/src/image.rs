@@ -213,12 +213,17 @@ pub enum SpriteSource<'a> {
     Region(&'a LegacyRegion),
 }
 
-/// Yog's own textures (`yog:textures/gui/…`), shipped in this crate's `res/`
+/// Yog's own assets (`yog:textures/gui/…`, `yog:models/item/…`), shipped in this crate's `res/`
 /// (a resource pack's layout: the hosts take the folder as resources).
-const OWN: &[(&str, &[u8])] = &[("textures/gui/panel.png", include_bytes!("../res/assets/yog/textures/gui/panel.png"))];
+const OWN: &[(&str, &[u8])] = &[
+    ("textures/gui/panel.png", include_bytes!("../res/assets/yog/textures/gui/panel.png")),
+    ("models/item/spawn_egg.json", include_bytes!("../res/assets/yog/models/item/spawn_egg.json")),
+    ("textures/item/spawn_egg.png", include_bytes!("../res/assets/yog/textures/item/spawn_egg.png")),
+    ("textures/item/spawn_egg_overlay.png", include_bytes!("../res/assets/yog/textures/item/spawn_egg_overlay.png")),
+];
 
-/// The bytes of Yog's own texture `path` (`textures/gui/panel.png`), if it has one.
-pub fn own_texture(path: &str) -> Option<&'static [u8]> {
+/// The bytes of Yog's own asset `path` (`textures/gui/panel.png`, `models/item/spawn_egg.json`), if it has one.
+pub fn own_asset(path: &str) -> Option<&'static [u8]> {
     OWN.iter().find(|(p, _)| *p == path).map(|(_, b)| *b)
 }
 

@@ -135,6 +135,12 @@ public final class YogNames {
         public static final String MODELS = "models/";
         public static final String BLOCKSTATES = "blockstates/";
         public static final String ITEM_DIR = "item/";
+        public static final String ITEM_DEFINITIONS = "items/";
+        public static final String EQUIPMENT = "equipment/";
+        public static final String EQUIPMENT_TEXTURES = "entity/equipment/";
+        public static final String ARMOR_TEXTURES = "models/armor/";
+        public static final String ARMOR_LAYER = "_layer_";
+        public static final String SPAWN_EGG_SUFFIX = "_spawn_egg";
         public static final String BLOCK_DIR = "block/";
         public static final String GUI_SPRITES = "gui/sprites/";
         public static final String ATLASES = "atlases/";
@@ -157,6 +163,7 @@ public final class YogNames {
         public static final String PLAYER_INVENTORY = "yog:player_inventory";
         public static final String MACHINE_PREFIX = "yog:machine:";
         public static final String POTION_ALIAS = "yog:potion/";
+        public static final String SPAWN_EGG_MODEL = "yog:item/spawn_egg";
         public static final String BOOK_SHEET = "yog:gui/book/book";
         public static final String CRAFTING_SHEET = "yog:gui/book/crafting";
         public static final String DESIGNER_SCREEN = "yog:designer";
@@ -222,6 +229,26 @@ public final class YogNames {
         public static final String RECIPE_SLOT = "RecipeSlot";
         public static final String RECIPE_RESULT = "RecipeResult";
         public static final String RECIPE_COUNT = "RecipeCount";
+    }
+
+    public static final class ItemDef {
+        private ItemDef() {}
+
+        public static final String MODEL = "model";
+        public static final String TYPE = "type";
+        public static final String TINTS = "tints";
+        public static final String VALUE = "value";
+        public static final String PLAIN = "minecraft:model";
+        public static final String CONSTANT = "minecraft:constant";
+    }
+
+    public static final class Equipment {
+        private Equipment() {}
+
+        public static final String LAYERS = "layers";
+        public static final String TEXTURE = "texture";
+        public static final String HUMANOID = "humanoid";
+        public static final String HUMANOID_LEGGINGS = "humanoid_leggings";
     }
 
     public static final class Model {

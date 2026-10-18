@@ -67,6 +67,9 @@ pub(super) fn compile_entity(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Opti
     };
     let qualify = |s: &Option<String>| s.as_ref().map(|s| if s.contains(':') { s.clone() } else { format!("{ns}:{s}") });
     let mut def = def;
+    if let Some(colors) = def.spawn_egg {
+        super::looks::spawn_egg(cx.root, out, &ns, &p, colors);
+    }
     def.model = qualify(&def.model);
     def.animations = qualify(&def.animations);
     Some(EntityFile {

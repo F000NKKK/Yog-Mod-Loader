@@ -178,6 +178,18 @@ names! {
         BLOCKSTATES = concatcp!("blockstates", sep::PATH),
         /// Items' textures and models: `item/apple`.
         ITEM_DIR = concatcp!(kind::ITEM, sep::PATH),
+        /// Item definitions (1.21.4+): `<ns>:items/<path>.json`.
+        ITEM_DEFINITIONS = concatcp!("items", sep::PATH),
+        /// Equipment's worn looks (1.21.4+): `<ns>:equipment/<path>.json`.
+        EQUIPMENT = concatcp!("equipment", sep::PATH),
+        /// Worn equipment's textures (1.21.4+): `entity/equipment/<layer>/<path>`.
+        EQUIPMENT_TEXTURES = concatcp!("entity", sep::PATH, "equipment", sep::PATH),
+        /// Armor's worn textures before 1.21.4: `models/armor/<path>_layer_<n>`.
+        ARMOR_TEXTURES = concatcp!("models", sep::PATH, "armor", sep::PATH),
+        /// Between an armor texture's name and its layer's number.
+        ARMOR_LAYER = "_layer_",
+        /// What a spawn egg's item path ends with: `<mob>_spawn_egg`.
+        SPAWN_EGG_SUFFIX = "_spawn_egg",
         /// Blocks' textures and models: `block/stone`.
         BLOCK_DIR = concatcp!(kind::BLOCK, sep::PATH),
         /// The GUI atlas's sprites under `textures/` (1.20.2+).
@@ -213,6 +225,8 @@ names! {
         MACHINE_PREFIX = id!(ns::YOG, "machine:"),
         /// Yog's alias of a game potion: `yog:potion/<name>`.
         POTION_ALIAS = id!(ns::YOG, "potion/"),
+        /// The model every mod's spawn egg inherits: Yog's egg in two layers, base and spots.
+        SPAWN_EGG_MODEL = id!(ns::YOG, "item/spawn_egg"),
         /// The book's pictures.
         BOOK_SHEET = id!(ns::YOG, "gui/book/book"),
         CRAFTING_SHEET = id!(ns::YOG, "gui/book/crafting"),
@@ -290,6 +304,28 @@ names! {
         RECIPE_SLOT = "RecipeSlot",
         RECIPE_RESULT = "RecipeResult",
         RECIPE_COUNT = "RecipeCount",
+    }
+
+    /// The fields and types of the game's item definitions (`items/<path>.json`, 1.21.4+).
+    item_def {
+        MODEL = "model",
+        TYPE = "type",
+        TINTS = "tints",
+        VALUE = "value",
+        /// A plain model.
+        PLAIN = "minecraft:model",
+        /// A tint of one colour.
+        CONSTANT = "minecraft:constant",
+    }
+
+    /// The fields and layers of the game's equipment assets (`equipment/<path>.json`, 1.21.4+).
+    equipment {
+        LAYERS = "layers",
+        TEXTURE = "texture",
+        /// Worn on the body: helmet, chestplate, boots.
+        HUMANOID = "humanoid",
+        /// Worn on the legs: leggings.
+        HUMANOID_LEGGINGS = "humanoid_leggings",
     }
 
     /// The fields of the game's model JSON (block and item models, block states' variants).

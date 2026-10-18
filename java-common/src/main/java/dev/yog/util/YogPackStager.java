@@ -229,6 +229,24 @@ public final class YogPackStager {
      * without a {@code generator_type} fall back to a plain vanilla noise
      * generator.
      */
+    /** A dimension's look before 26.1, and the skies 26.x names for them. */
+    private static final String EFFECTS_OVERWORLD = "minecraft:overworld";
+    private static final String EFFECTS_END = "minecraft:the_end";
+    private static final String EFFECTS_NETHER = "minecraft:the_nether";
+    private static final String SKYBOX_OVERWORLD = "overworld", SKYBOX_END = "end", SKYBOX_NONE = "none";
+    /** 26.x dimension attributes: whether beds work and explode, whether respawn anchors work. */
+    private static final String ATTRIBUTE_BED_RULE = "minecraft:gameplay/bed_rule";
+    private static final String ATTRIBUTE_ANCHORS_WORK = "minecraft:gameplay/respawn_anchor_works";
+
+    /** The 26.x sky of a dimension whose effects are {@code effects}. */
+    private static String skybox(String effects) {
+        return switch (effects) {
+            case EFFECTS_END -> SKYBOX_END;
+            case EFFECTS_NETHER -> SKYBOX_NONE;
+            default -> SKYBOX_OVERWORLD;
+        };
+    }
+
     private static void injectDimensions(Path packRoot, java.util.List<YogContent.Dimension> dimensions) {
         Gson gson = new Gson();
         for (YogContent.Dimension d : dimensions) {
@@ -254,12 +272,25 @@ public final class YogPackStager {
                 dimensionType.addProperty("height", (int) jnum(dt, "height", DEFAULT_HEIGHT));
                 dimensionType.addProperty("logical_height", (int) jnum(dt, "logical_height", DEFAULT_HEIGHT));
                 dimensionType.addProperty("infiniburn", "#minecraft:infiniburn_overworld");
-                dimensionType.addProperty("effects", jstr(dt, "effects", "minecraft:overworld"));
+                dimensionType.addProperty("effects", jstr(dt, "effects", EFFECTS_OVERWORLD));
                 dimensionType.addProperty("piglin_safe", jbool(dt, "piglin_safe", false));
                 boolean mobs = jbool(def, "mob_spawning", true);
                 dimensionType.addProperty("has_raids", mobs);
                 dimensionType.addProperty("monster_spawn_block_light_limit", 0);
                 dimensionType.addProperty("monster_spawn_light_level", mobs ? 7 : 0);
+                // 26.x: these, and beds/anchors as attributes; older versions ignore them.
+                dimensionType.addProperty("has_ender_dragon_fight", false);
+                dimensionType.addProperty("skybox", skybox(jstr(dt, "effects", EFFECTS_OVERWORLD)));
+                JsonObject attributes = new JsonObject();
+                if (jbool(dt, "beds_explode", false)) {
+                    JsonObject bed = new JsonObject();
+                    bed.addProperty("can_set_spawn", "never");
+                    bed.addProperty("can_sleep", "never");
+                    bed.addProperty("explodes", true);
+                    attributes.add(ATTRIBUTE_BED_RULE, bed);
+                }
+                if (jbool(dt, "respawn_anchors_explode", false)) attributes.addProperty(ATTRIBUTE_ANCHORS_WORK, false);
+                dimensionType.add("attributes", attributes);
 
                 JsonObject biomeSource = new JsonObject();
                 biomeSource.addProperty("type", "minecraft:fixed");

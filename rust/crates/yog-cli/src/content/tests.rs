@@ -865,3 +865,29 @@ fn entities_compile_register_and_name_their_models() {
     let e = compile(&project(&[("content/thing.yentity", missing)]), "mymod", &yres::Refs::default()).unwrap_err();
     assert!(e.contains("model `mymod:nope`: no such file"), "{e}");
 }
+
+#[test]
+fn spawn_eggs_inherit_yogs_egg_tinted_with_the_entitys_colours() {
+    let wisp = r#"{ "kind": "object", "width": 0.5, "height": 0.5, "spawn_egg": [1193046, 65280] }"#;
+    let out = compile(&project(&[("content/wisp.yentity", wisp)]), "mymod", &yres::Refs::default()).unwrap();
+    let model = output(&out, "assets/mymod/models/item/wisp_spawn_egg.json");
+    assert_eq!(model["parent"], yog_ids::yog::SPAWN_EGG_MODEL);
+    let def = output(&out, "assets/mymod/items/wisp_spawn_egg.json");
+    assert_eq!(def["model"]["model"], "mymod:item/wisp_spawn_egg");
+    assert_eq!(def["model"]["tints"][0]["value"], (0xFF12_3456_u32 as i32));
+    assert_eq!(def["model"]["tints"][1]["value"], (0xFF00_FF00_u32 as i32));
+}
+
+#[test]
+fn armor_materials_get_their_worn_look_as_equipment() {
+    let mythril = r#"{ kind: "armor_material", id: "mythril", durability: 30, defense: { head: 3, chest: 8, legs: 6, feet: 3 },
+        enchantability: 10, equip_sound: "minecraft:item.armor.equip_iron", repair: "@item:minecraft:iron_ingot" }"#;
+    let root = project(&[("content/mythril.ydef", mythril), ("assets/mymod/textures/models/armor/mythril_layer_1.png", "one")]);
+    let out = compile(&root, "mymod", &yres::Refs::default()).unwrap();
+    let asset = output(&out, "assets/mymod/equipment/mythril.json");
+    assert_eq!(asset["layers"]["humanoid"][0]["texture"], "mymod:mythril");
+    assert_eq!(asset["layers"]["humanoid_leggings"][0]["texture"], "mymod:mythril");
+    let worn = out.outputs.iter().find(|(p, _)| p == "assets/mymod/textures/entity/equipment/humanoid/mythril.png");
+    assert_eq!(worn.map(|(_, b)| b.as_slice()), Some(&b"one"[..]));
+    assert!(out.warnings.iter().any(|w| w.contains("mythril_layer_2")), "{:?}", out.warnings);
+}
