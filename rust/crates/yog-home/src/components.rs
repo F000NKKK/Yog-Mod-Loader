@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 
 /// The ids of the components the rest of Yog looks for.
 pub mod id {
+    /// Yog Installer itself — it records where it is, for the others to start it.
+    pub const INSTALLER: &str = "yog.installer";
     /// A Yog Mod Loader source tree: its loaders and versions, built and run with its `build.sh`.
     pub const LOADER_SDK: &str = "yog.sdk.loader";
     /// The prefix of a JDK's id: `yog.jdk.21`.

@@ -36,6 +36,8 @@ const JDK_DIR: &str = "jdk";
 const INSTANCES_DIR: &str = "instances";
 const TOOLS_DIR: &str = "tools";
 const CACHE_DIR: &str = "cache";
+/// Where Yog Installer installs itself.
+const INSTALLER_DIR: &str = "installer";
 
 /// Yog's home folder.
 #[derive(Debug, Clone)]
@@ -92,6 +94,11 @@ impl Home {
     /// A tool's version: `tools/<name>/<version>`.
     pub fn tool_dir(&self, name: &str, version: &str) -> PathBuf {
         self.root.join(TOOLS_DIR).join(name).join(version)
+    }
+
+    /// Where Yog Installer keeps itself.
+    pub fn installer_dir(&self) -> PathBuf {
+        self.root.join(INSTALLER_DIR)
     }
 
     /// Where downloads wait to be installed.
