@@ -142,6 +142,9 @@ public final class YogPackStager {
         // Yog's common tags: what the mods put in them, to this host's tags.
         dev.yog.data.YogTags.stage(out, mc121);
 
+        // Item textures in the items atlas, where this version has one.
+        if (YogDataLayout.atLeast(mcVersion, ITEMS_ATLAS_SINCE)) splitItemsAtlas(out);
+
         YogContent registered = YogContent.cached(content);
         // Mod-registered recipes as JSON files inside the data pack.
         injectRecipes(out, registered.recipes, mc121);
@@ -151,6 +154,9 @@ public final class YogPackStager {
 
         // The mods' key bindings' categories, named in the controls.
         injectKeyCategoryNames(out);
+
+        // A name for each of the mods' item tags nothing names (recipe viewers show them).
+        injectTagNames(out, mc121);
 
         Files.writeString(out.resolve("pack.mcmeta"), packMcmeta);
         return out;
@@ -162,7 +168,82 @@ public final class YogPackStager {
      * mod put there): the controls show each mod's name over its keys.
      */
     private static void injectKeyCategoryNames(Path packRoot) throws IOException {
-        java.util.Map<String, String> names = YogKeyBindings.categoryNames();
+        injectNames(packRoot, YogKeyBindings.categoryNames());
+    }
+
+    /** The registry whose tags recipe viewers name, and the game's folder of them per layout. */
+    private static final String ITEM_TAGS = "item", ITEM_TAGS_1_20 = "items";
+    /** A tag's translation key: {@code tag.item.<ns>.<path with dots>}. */
+    private static final String TAG_KEY = "tag." + ITEM_TAGS + ".";
+    /** The lang file of Yog's common tags' names (the jar's, not the pack's). */
+    private static final String COMMON_TAG_NAMES = "/assets/yog_tags/lang/" + dev.yog.YogNames.Game.LOCALE + dev.yog.YogNames.Res.JSON;
+
+    /**
+     * A name for every item tag in the pack none of the lang files names
+     * (a mod's own tags): its path's words, last first ({@code ingots/iron}
+     * → {@code Iron Ingots}) — recipe viewers show a tag by it.
+     */
+    private static void injectTagNames(Path packRoot, boolean mc121) throws IOException {
+        java.util.Set<String> named = new java.util.HashSet<>(langKeys(packRoot));
+        try (InputStream in = YogPackStager.class.getResourceAsStream(COMMON_TAG_NAMES)) {
+            if (in != null) {
+                JsonObject common = new Gson().fromJson(new String(in.readAllBytes(), StandardCharsets.UTF_8), JsonObject.class);
+                if (common != null) named.addAll(common.keySet());
+            }
+        }
+        java.util.Map<String, String> names = new java.util.TreeMap<>();
+        Path data = packRoot.resolve(dev.yog.YogNames.Pack.DATA);
+        if (!Files.isDirectory(data)) return;
+        try (var namespaces = Files.newDirectoryStream(data)) {
+            for (Path ns : namespaces) {
+                Path tags = ns.resolve(dev.yog.YogNames.Pack.TAGS).resolve(mc121 ? ITEM_TAGS : ITEM_TAGS_1_20);
+                if (!Files.isDirectory(tags)) continue;
+                try (var walk = Files.walk(tags)) {
+                    for (Path f : (Iterable<Path>) walk.filter(f -> f.toString().endsWith(dev.yog.YogNames.Res.JSON))::iterator) {
+                        String rel = tags.relativize(f).toString().replace('\\', '/');
+                        String path = rel.substring(0, rel.length() - dev.yog.YogNames.Res.JSON.length());
+                        String key = TAG_KEY + ns.getFileName() + "." + path.replace('/', '.');
+                        if (!named.contains(key)) names.put(key, tagName(path));
+                    }
+                }
+            }
+        }
+        injectNames(packRoot, names);
+    }
+
+    /** {@code ingots/iron} → {@code Iron Ingots}: the path's words, the last folder first. */
+    static String tagName(String path) {
+        java.util.List<String> parts = new java.util.ArrayList<>(java.util.Arrays.asList(path.split("/")));
+        java.util.Collections.reverse(parts);
+        StringBuilder out = new StringBuilder();
+        for (String part : parts) {
+            for (String word : part.split("_")) {
+                if (word.isEmpty()) continue;
+                if (out.length() > 0) out.append(' ');
+                out.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+            }
+        }
+        return out.toString();
+    }
+
+    /** Every key the pack's lang files of the default locale name. */
+    private static java.util.Set<String> langKeys(Path packRoot) throws IOException {
+        java.util.Set<String> keys = new java.util.HashSet<>();
+        Path assets = packRoot.resolve(dev.yog.YogNames.Pack.ASSETS);
+        if (!Files.isDirectory(assets)) return keys;
+        try (var namespaces = Files.newDirectoryStream(assets)) {
+            for (Path ns : namespaces) {
+                Path lang = ns.resolve(dev.yog.YogNames.Res.LANG + dev.yog.YogNames.Game.LOCALE + dev.yog.YogNames.Res.JSON);
+                if (!Files.exists(lang)) continue;
+                JsonObject entries = new Gson().fromJson(Files.readString(lang), JsonObject.class);
+                if (entries != null) keys.addAll(entries.keySet());
+            }
+        }
+        return keys;
+    }
+
+    /** {@code names} into Yog's lang file of the game's default locale, where nothing names them yet. */
+    private static void injectNames(Path packRoot, java.util.Map<String, String> names) throws IOException {
         if (names.isEmpty()) return;
         Path lang = packRoot.resolve(dev.yog.YogNames.Pack.ASSETS).resolve(dev.yog.YogNames.Ns.YOG)
                 .resolve(dev.yog.YogNames.Res.LANG + dev.yog.YogNames.Game.LOCALE + dev.yog.YogNames.Res.JSON);
@@ -202,6 +283,66 @@ public final class YogPackStager {
 
     /** An atlas definition's list of where its sprites come from. */
     private static final String ATLAS_SOURCES = "sources";
+    /** The first version whose item textures have an atlas of their own ({@code minecraft:items}), not the blocks'. */
+    private static final int[] ITEMS_ATLAS_SINCE = {1, 21, 11};
+    /** The atlases' definitions: {@code assets/minecraft/atlases/<name>.json}. */
+    private static final String BLOCKS_ATLAS = "blocks", ITEMS_ATLAS = "items";
+    /** The item textures' folder, which the items atlas takes whole: a sprite under it is an item's. */
+    private static final String ITEM_SPRITES = "item/";
+    /** An atlas source's kind and fields: a whole texture, or sprites cut from one picture. */
+    private static final String SOURCE_TYPE = "type", SINGLE = "single", UNSTITCH = "unstitch",
+            RESOURCE = "resource", SPRITE = "sprite", REGIONS = "regions";
+
+    /**
+     * The mods' item sprites out of the blocks atlas, into the items atlas
+     * (1.21.11+): a texture of its own under {@code textures/item} is in the
+     * items atlas already (its folder), so it's only dropped from the blocks
+     * one — twice is a duplicate sprite; an item's region of a packed
+     * picture moves to an {@code unstitch} of the same picture there.
+     */
+    private static void splitItemsAtlas(Path packRoot) throws IOException {
+        Path atlases = packRoot.resolve(dev.yog.YogNames.Pack.ASSETS).resolve(dev.yog.YogNames.Ns.MINECRAFT).resolve(dev.yog.YogNames.Res.ATLASES);
+        Path blocks = atlases.resolve(BLOCKS_ATLAS + dev.yog.YogNames.Res.JSON);
+        if (!Files.exists(blocks)) return;
+        Gson gson = new Gson();
+        JsonObject atlas = gson.fromJson(Files.readString(blocks), JsonObject.class);
+        if (atlas == null || !atlas.has(ATLAS_SOURCES)) return;
+        com.google.gson.JsonArray kept = new com.google.gson.JsonArray(), moved = new com.google.gson.JsonArray();
+        for (var element : atlas.getAsJsonArray(ATLAS_SOURCES)) {
+            JsonObject source = element.getAsJsonObject();
+            String type = source.has(SOURCE_TYPE) ? source.get(SOURCE_TYPE).getAsString() : "";
+            if (type.endsWith(SINGLE) && isItemSprite(source.has(SPRITE) ? source.get(SPRITE) : source.get(RESOURCE))) continue;
+            if (type.endsWith(UNSTITCH) && source.has(REGIONS)) {
+                com.google.gson.JsonArray blockRegions = new com.google.gson.JsonArray(), itemRegions = new com.google.gson.JsonArray();
+                for (var region : source.getAsJsonArray(REGIONS)) {
+                    (isItemSprite(region.getAsJsonObject().get(SPRITE)) ? itemRegions : blockRegions).add(region);
+                }
+                if (!itemRegions.isEmpty()) {
+                    JsonObject items = source.deepCopy();
+                    items.add(REGIONS, itemRegions);
+                    moved.add(items);
+                }
+                if (blockRegions.isEmpty()) continue;
+                source.add(REGIONS, blockRegions);
+            }
+            kept.add(source);
+        }
+        atlas.add(ATLAS_SOURCES, kept);
+        Files.writeString(blocks, gson.toJson(atlas));
+        if (moved.isEmpty()) return;
+        JsonObject items = new JsonObject();
+        items.add(ATLAS_SOURCES, moved);
+        Path itemsAtlas = atlases.resolve(ITEMS_ATLAS + dev.yog.YogNames.Res.JSON);
+        String json = gson.toJson(items);
+        Files.writeString(itemsAtlas, Files.exists(itemsAtlas) ? mergeAtlases(Files.readString(itemsAtlas), json) : json);
+    }
+
+    /** Whether a sprite's name ({@code ns:item/…}) is an item texture's. */
+    private static boolean isItemSprite(com.google.gson.JsonElement name) {
+        if (name == null) return false;
+        String id = name.getAsString();
+        return id.substring(id.indexOf(':') + 1).startsWith(ITEM_SPRITES);
+    }
 
     /** Two tag files as one: the values of both (once each); {@code replace} if either says so. */
     public static String mergeTags(String a, String b) {

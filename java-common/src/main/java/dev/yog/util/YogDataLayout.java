@@ -148,7 +148,8 @@ public final class YogDataLayout {
         idIngredients = atLeast(mcVersion, ID_INGREDIENTS_SINCE);
     }
 
-    private static boolean atLeast(String version, int[] since) {
+    /** Whether {@code version} is {@code since} or newer. */
+    static boolean atLeast(String version, int[] since) {
         String[] parts = version.split("\\.");
         for (int i = 0; i < since.length; i++) {
             int v;

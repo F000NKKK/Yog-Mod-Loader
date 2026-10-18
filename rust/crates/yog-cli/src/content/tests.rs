@@ -608,7 +608,7 @@ fn what_a_version_or_loader_hasnt_got_keeps_a_recipe_out_of_it() {
         c.map(|c| c.warnings.iter().filter(|w| w.contains("left out")).cloned().collect::<Vec<_>>().join("\n"))
     };
     let w = check(r#""@tag:item:minecraft:music_discs""#).unwrap();
-    assert!(w.contains("left out on Minecraft 1.21.1: #minecraft:music_discs isn't there — @tag:item:yog:music_discs is on every version and loader"), "{w}");
+    assert!(w.contains("left out on Minecraft 1.21.1, Minecraft 26.2: #minecraft:music_discs isn't there — @tag:item:yog:music_discs is on every version and loader"), "{w}");
     assert_eq!(check(r#""@tag:item:yog:music_discs""#).unwrap(), "");
     assert_eq!(check(r#"["@tag:item:c:iron_ingots", "@item:minecraft:iron_ingot"]"#).unwrap(), "", "an alternative that's everywhere");
     let w = check(r#""@tag:item:c:iron_ingots""#).unwrap();

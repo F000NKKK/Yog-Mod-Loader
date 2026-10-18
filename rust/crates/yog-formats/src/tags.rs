@@ -28,14 +28,14 @@ struct Tags {
 }
 
 static TAGS: LazyLock<Tags> = LazyLock::new(|| {
-    let mut versions = Vec::new();
     let mut loaders = Vec::new();
+    let mut hosts = Vec::new();
     let (mut tags, mut yog, mut has, mut base) = (HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new());
     for line in TABLE.lines() {
-        if let Some(v) = line.strip_prefix("# versions:") {
-            versions = v.split_whitespace().map(str::to_string).collect();
-        } else if let Some(l) = line.strip_prefix("# loaders:") {
+        if let Some(l) = line.strip_prefix("# loaders:") {
             loaders = l.split_whitespace().map(str::to_string).collect();
+        } else if let Some(h) = line.strip_prefix("# hosts:") {
+            hosts = h.split_whitespace().map(str::to_string).collect();
         }
         let p: Vec<&str> = line.split_whitespace().collect();
         match p.as_slice() {
@@ -60,7 +60,6 @@ static TAGS: LazyLock<Tags> = LazyLock::new(|| {
             _ => {}
         }
     }
-    let hosts = versions.iter().flat_map(|v| loaders.iter().map(move |l| format!("{l}/{v}"))).collect();
     Tags { hosts, tags, yog, has, base }
 });
 

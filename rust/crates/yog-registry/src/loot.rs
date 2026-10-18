@@ -113,7 +113,7 @@ impl LootModifier {
     /// gives numbers in `[0, 1)`; `finish` runs a named loot function on a
     /// stack it adds.
     pub fn apply(&self, loot: &mut Loot, random: &mut dyn FnMut() -> f64, finish: &mut dyn FnMut(&str, &mut LootStack, &Loot)) {
-        if !self.tables.iter().any(|t| *t == loot.table) {
+        if !self.tables.contains(&loot.table) {
             return;
         }
         for s in &self.scale {
