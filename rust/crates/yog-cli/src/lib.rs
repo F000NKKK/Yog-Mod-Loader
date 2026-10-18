@@ -12,6 +12,7 @@ pub mod cargo_toml;
 pub mod content;
 pub mod exports;
 pub mod manifest;
+pub mod media;
 pub mod yres;
 pub mod yui;
 pub mod yui_component;
