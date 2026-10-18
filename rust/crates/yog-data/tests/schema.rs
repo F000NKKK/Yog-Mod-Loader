@@ -144,7 +144,7 @@ fn every_problem_is_reported_with_its_place() {
   name: 5,
   icon: "@item:minecraft:book",
   pos: [1],
-  colour: "#fff",
+  color: "#fff",
   pages: [
     { type: "txt", text: "x" },
     { type: "spotlight", item: "@block:minecraft:stone", txt: "y" },
@@ -157,7 +157,7 @@ fn every_problem_is_reported_with_its_place() {
         "2:9: name: expected a text, found 5",
         "3:9: icon: expected an image, found a reference",
         "4:8: pos: expected 2 items, found 1",
-        "5:3: colour: unknown field `colour` — did you mean `color`?",
+        "5:3: color: unknown field `color` — did you mean `color`?",
         "7:13: pages[0].type: unknown `txt` — did you mean `text`?",
         "8:32: pages[1].item: `@block:minecraft:stone` is a reference to block — this takes `@item:`",
         "8:58: pages[1].txt: unknown field `txt` — did you mean `text`?",

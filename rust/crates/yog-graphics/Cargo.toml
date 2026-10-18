@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Yog graphics primitives every crate shares: colours, vectors, matrices, rectangles, paths, RGBA images and a rasterizer."
+description = "Yog graphics primitives every crate shares: colors, vectors, matrices, rectangles, paths, RGBA images and a rasterizer."
 repository = "https://github.com/F000NKKK/Yog-Mod-Loader"
 
 [dependencies]

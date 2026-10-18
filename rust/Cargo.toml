@@ -15,7 +15,7 @@ members = [
     "crates/yog-dimensions",
     # declarative terrain: noise, layers, caves, ores — the runtime's and the IDE's preview
     "crates/yog-worldgen",
-    # graphics primitives every crate shares: colours, vectors, rects, paths, images, a rasterizer
+    # graphics primitives every crate shares: colors, vectors, rects, paths, images, a rasterizer
     "crates/yog-graphics",
     # fonts: one format for every text of the system, shaping and rasterizing
     "crates/yog-font",

@@ -24,7 +24,7 @@ pub struct AttributeDef {
     pub max: f64,
 }
 
-/// Whether an effect is good or bad for whoever has it (its colour in the
+/// Whether an effect is good or bad for whoever has it (its color in the
 /// inventory, what milk and beacons do with it).
 #[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EffectCategory {
@@ -55,7 +55,7 @@ pub struct EffectModifier {
     pub operation: ModifierOperation,
 }
 
-/// A mob effect (`hexcasting:enlarge_grid`): its kind, its colour (its
+/// A mob effect (`hexcasting:enlarge_grid`): its kind, its color (its
 /// particles, its potions) and the attributes it changes. Its icon is the
 /// mod's `textures/mob_effect/<name>.png`, its name `effect.<ns>.<name>`.
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]

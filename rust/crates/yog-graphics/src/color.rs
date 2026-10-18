@@ -1,7 +1,7 @@
-//! Colours: `0xAARRGGBB`, straight alpha — what every Yog format and API
+//! Colors: `0xAARRGGBB`, straight alpha — what every Yog format and API
 //! passes.
 
-/// A colour, `0xAARRGGBB`.
+/// A color, `0xAARRGGBB`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Color(pub u32);
 
@@ -85,7 +85,7 @@ impl From<u32> for Color {
     }
 }
 
-/// In Yog Data, a colour value: `#RRGGBB`/`#AARRGGBB` in text.
+/// In Yog Data, a color value: `#RRGGBB`/`#AARRGGBB` in text.
 impl yog_data::Schema for Color {
     fn shape() -> yog_data::schema::Shape {
         yog_data::schema::Shape::Color

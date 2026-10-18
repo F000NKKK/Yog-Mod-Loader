@@ -50,7 +50,7 @@ pub struct Glyph {
     /// How far the pen moves after it.
     #[data(default)]
     pub advance: i32,
-    /// Its drawing, in order; parts without a colour take the text's.
+    /// Its drawing, in order; parts without a color take the text's.
     #[data(default)]
     pub ops: Vec<Op>,
     /// Where the glyph before it, if that one has an [`Glyph::exit`], joins it

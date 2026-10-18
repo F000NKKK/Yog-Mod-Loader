@@ -26,7 +26,7 @@ pub enum Op {
 #[derive(Schema, Debug, Clone, PartialEq)]
 pub struct Fill {
     pub path: Vec<Seg>,
-    /// None: the current colour (what the drawing is drawn in — a text's).
+    /// None: the current color (what the drawing is drawn in — a text's).
     pub color: Option<Color>,
 }
 
@@ -35,7 +35,7 @@ pub struct Stroke {
     pub path: Vec<Seg>,
     /// How wide, in the drawing's units.
     pub width: f32,
-    /// None: the current colour.
+    /// None: the current color.
     pub color: Option<Color>,
 }
 
@@ -44,8 +44,8 @@ pub struct Stroke {
 pub struct ImageOp {
     pub rect: Rect,
     pub image: Image,
-    /// Whether the current colour tints it (an image in one colour, white
-    /// to take the current one whole); else it keeps its colours.
+    /// Whether the current color tints it (an image in one color, white
+    /// to take the current one whole); else it keeps its colors.
     #[data(default)]
     pub tinted: bool,
 }
@@ -64,7 +64,7 @@ pub fn bounds(ops: &[Op]) -> Option<Rect> {
 
 impl Canvas {
     /// `ops` painted: each point through `to_px` (the drawing's units to
-    /// the canvas's pixels, `scale` pixels a unit), parts without a colour
+    /// the canvas's pixels, `scale` pixels a unit), parts without a color
     /// in `current`.
     pub fn draw(&mut self, ops: &[Op], to_px: impl Fn(Vec2) -> Vec2, scale: f32, current: Color) {
         for op in ops {

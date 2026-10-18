@@ -439,12 +439,12 @@ pub struct Style {
     /// Vertical placement in its slot (grid cell, or a Row's height) — see
     /// [`VAlign`]. `None` = the parent's default.
     pub valign: Option<VAlign>,
-    pub bg: Color, // background colour; transparent = none
+    pub bg: Color, // background color; transparent = none
     /// Background image, drawn over `bg` and stretched to the box — a Yog
     /// image source (`sprite:button`, `sprite:panel`, `mymod:gui/frame`);
     /// sprites are nine-sliced, so frames keep their edges. Empty = none.
     pub bg_image: String,
-    pub color: Color, // text colour
+    pub color: Color, // text color
     pub align: Align,
     pub font_scale: f32,
     pub text_shadow: bool, // MC drop-shadow behind text (HUD default; books disable it)

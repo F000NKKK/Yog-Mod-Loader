@@ -1,7 +1,7 @@
 //! Themes: the look of `.yui` screens, apart from their markup.
 //!
 //! A screen's markup describes what's on it; without a theme it draws in
-//! yog-ui's plain look (flat colours). A theme gives each kind of element
+//! yog-ui's plain look (flat colors). A theme gives each kind of element
 //! (`Button`, `ListView`, `Screen`, …) default attributes — the same
 //! attributes `.yui` writes (`bg`, `color`, `hover:bg`, …) — that apply
 //! wherever the element doesn't set them itself or through a `style`.

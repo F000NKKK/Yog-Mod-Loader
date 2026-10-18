@@ -52,10 +52,10 @@ impl<T: Display + ?Sized> BindText for T {
     }
 }
 
-/// A value used as a colour by a `.yui` binding.
+/// A value used as a color by a `.yui` binding.
 #[diagnostic::on_unimplemented(
-    message = "`{Self}` can't be used as a colour in a .yui binding",
-    note = "colours are `Color` or u32 values 0xAARRGGBB (a .yres colour, or a view-model method returning one)"
+    message = "`{Self}` can't be used as a color in a .yui binding",
+    note = "colors are `Color` or u32 values 0xAARRGGBB (a .yres color, or a view-model method returning one)"
 )]
 pub trait BindColor {
     fn bind_color(&self) -> Color;
@@ -84,7 +84,7 @@ pub fn text<T: BindText + ?Sized>(v: &T) -> String {
     v.bind_text()
 }
 
-/// Colour of a bound value.
+/// Color of a bound value.
 pub fn color<T: BindColor>(v: T) -> Color {
     v.bind_color()
 }

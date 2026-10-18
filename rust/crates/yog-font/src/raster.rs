@@ -5,7 +5,7 @@ use yog_graphics::{Canvas, Color, PlacedImage, Rect, Vec2};
 use crate::format::{Font, Glyph};
 use crate::shape::{Shaped, glyph_bounds};
 
-/// Glyph `glyph` of `font` drawn `scale` pixels to a unit, its text-coloured
+/// Glyph `glyph` of `font` drawn `scale` pixels to a unit, its text-colored
 /// parts in `text_color` (white for a host that tints them), placed from
 /// the glyph's origin on the baseline.
 pub fn glyph(font: &Font, glyph: u32, scale: f32, text_color: Color) -> PlacedImage {

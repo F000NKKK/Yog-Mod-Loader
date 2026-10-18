@@ -329,7 +329,7 @@ pub mod bind {
         v.to_string()
     }
 
-    /// `bg`, `color`, `focus_color`, `tint`: a colour, `0xAARRGGBB`, or a `.yui` color string.
+    /// `bg`, `color`, `focus_color`, `tint`: a color, `0xAARRGGBB`, or a `.yui` color string.
     pub fn color<T: BindColor>(v: T) -> Color {
         v.to_color()
     }

@@ -846,7 +846,7 @@ changes:
   body only routes clicks to "property `inspect`". `command_parameter=` on the instance supplies
   `P` for `Command<P>`.
 - A component may declare `x:ViewModel="SpinnerVm"` for **internal state** (a spinner's text
-  while editing, a colour picker's hue). That VM is created per instance, has the same
+  while editing, a color picker's hue). That VM is created per instance, has the same
   `#[view_model]` features, and its masks are separate from the parent's.
 - The string `Props` path (`component::build(name, &[(k, v)])`, `from_props`, `PROPS`) stays
   for the designer host (`yog designer-lib`), so the Toolbox, Properties and the live canvas keep
@@ -1114,7 +1114,7 @@ let scale = ClientConfig::get().grid_scale;
   loader exposes one.
 - Control choice by type: `bool` → CheckBox, numbers with `range` → Slider, other numbers →
   TextBox with `Parse`, `String` → TextBox, field-less enums → TabBar (≤ 4 variants) or a cycling
-  button, `#[setting(color)]` → a colour picker, `Vec<T>` → a list editor with add and remove,
+  button, `#[setting(color)]` → a color picker, `Vec<T>` → a list editor with add and remove,
   nested structs → a section.
 - To customise the layout, write `client_config.yui` with
   `x:ViewModel="yog_kit::ConfigVm<ClientConfig>"`. It binds the same generated VM, so only the

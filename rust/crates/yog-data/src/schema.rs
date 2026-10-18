@@ -603,7 +603,7 @@ fn found_text(v: &ValueRef) -> String {
 }
 
 /// The `known` name closest to `key`, if it's close enough to be a typo
-/// (`txt` → `text`, `img` → `image`, `colour` → `color`).
+/// (`txt` → `text`, `img` → `image`, `color` → `color`).
 fn closest<'k>(key: &str, known: &[&'k str]) -> Option<&'k str> {
     let lower = key.to_ascii_lowercase();
     known

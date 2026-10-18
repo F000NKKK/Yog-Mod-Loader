@@ -4545,9 +4545,9 @@ mod tests {
         assert_eq!(p.fields.get("name").and_then(|n| n.as_str()), Some("item.minecraft.stick"), "texts resolve as the book's do");
         assert!(b.i18n);
 
-        let unknown = book(r#"{ type: "mymod:pattern", name: "N", colour: 3 }"#);
+        let unknown = book(r#"{ type: "mymod:pattern", name: "N", color: 3 }"#);
         let e = compile(&project(&[("src/ui/pattern_page.yui", ty), ("content/guide.ybook", &unknown)]), "mymod", &yres::Refs::default()).unwrap_err();
-        assert!(e.contains("mymod:pattern has no field `colour` (name, patterns)"), "{e}");
+        assert!(e.contains("mymod:pattern has no field `color` (name, patterns)"), "{e}");
         let missing = book(r#"{ type: "mymod:nope" }"#);
         let e = compile(&project(&[("content/guide.ybook", &missing)]), "mymod", &yres::Refs::default()).unwrap_err();
         assert!(e.contains("no page type mymod:nope"), "{e}");

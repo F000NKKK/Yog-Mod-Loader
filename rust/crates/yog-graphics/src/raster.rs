@@ -54,7 +54,7 @@ impl Canvas {
         self.paint(&cov, color);
     }
 
-    /// `image` sampled (nearest) into `dst`, its colours multiplied by
+    /// `image` sampled (nearest) into `dst`, its colors multiplied by
     /// `tint` if given.
     pub fn image(&mut self, image: &Image, dst: Rect, tint: Option<Color>) {
         if image.is_empty() || dst.w <= 0.0 || dst.h <= 0.0 {

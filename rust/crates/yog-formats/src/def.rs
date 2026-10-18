@@ -79,7 +79,7 @@ pub enum Def {
     /// A number every player has, which effects change
     /// (`hexcasting:grid_zoom`).
     Attribute(yog_registry::AttributeDef),
-    /// A mob effect: good or bad, its colour, the attributes it changes.
+    /// A mob effect: good or bad, its color, the attributes it changes.
     Effect(yog_registry::EffectDef),
     /// An advancement: where it hangs, how it looks, what earns it.
     Advancement(AdvancementDef),

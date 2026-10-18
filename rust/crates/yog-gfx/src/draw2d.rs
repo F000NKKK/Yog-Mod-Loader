@@ -37,7 +37,7 @@ impl<'ctx> Draw2D<'ctx> {
         unsafe { (a.text_width)(YogStr::from_str(text), YogStr::from_str(font)) }
     }
 
-    /// Fills `r` with a flat colour.
+    /// Fills `r` with a flat color.
     pub fn rect(&self, r: Rect, color: Color) {
         let a = self.0.api();
         unsafe { (a.draw2d_rect)(r.x, r.y, r.right(), r.bottom(), color.0) }
