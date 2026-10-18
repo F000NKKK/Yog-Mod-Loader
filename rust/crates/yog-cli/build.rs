@@ -6,17 +6,25 @@
 
 use std::path::Path;
 
-/// `dep = "x"` or `dep = { version = "x", ... }` → `x`.
+/// `dep = "x"`, `dep = { version = "x", ... }`, or a `[...dependencies.dep]`
+/// table's `version = "x"` (how a published manifest writes it) → `x`.
 fn version_of(manifest: &str, dep: &str) -> Option<String> {
+    let mut in_table = false;
     manifest.lines().find_map(|line| {
-        let (name, value) = line.split_once('=')?;
-        if name.trim() != dep {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_table = line.trim_matches(['[', ']']).rsplit('.').next() == Some(dep) && line.contains("dependencies.");
             return None;
         }
+        let (name, value) = line.split_once('=')?;
         let value = value.trim();
-        let quoted = match value.strip_prefix('{') {
-            Some(table) => table.split_once("version")?.1.split_once('=')?.1,
-            None => value,
+        let quoted = match (in_table, name.trim()) {
+            (true, "version") => value,
+            (false, n) if n == dep => match value.strip_prefix('{') {
+                Some(table) => table.split_once("version")?.1.split_once('=')?.1,
+                None => value,
+            },
+            _ => return None,
         };
         Some(quoted.split('"').nth(1)?.to_string())
     })

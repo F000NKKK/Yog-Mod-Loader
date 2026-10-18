@@ -1778,6 +1778,7 @@ dependencies = [
  "proc-macro2",
  "quick-xml",
  "resvg",
+ "rkyv",
  "serde",
  "serde_json",
  "syn 3.0.9",
