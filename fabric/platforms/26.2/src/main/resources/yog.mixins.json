@@ -27,7 +27,8 @@
     "LimbAnimatorAccess",
     "ModelPartAccess",
     "TravelMixin",
-    "ModelPoseMixin"
+    "ModelPoseMixin",
+    "LevelProjectionMixin"
   ],
   "injectors": {
     "defaultRequire": 1

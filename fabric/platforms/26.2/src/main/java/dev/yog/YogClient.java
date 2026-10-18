@@ -18,6 +18,9 @@ import org.joml.Matrix4f;
 
 /** Client-side entry point: wires client packet receivers and client-side event hooks. */
 public class YogClient implements ClientModInitializer {
+    /** The projection the level was last drawn with (bobbing and all), set by {@code LevelProjectionMixin}. */
+    public static final Matrix4f levelProjection = new Matrix4f();
+
     /** The HUD layer Yog's mods draw in, over vanilla's. */
     private static final String HUD_LAYER = "hud";
 
@@ -103,9 +106,10 @@ public class YogClient implements ClientModInitializer {
             NativeBridge.nativeGlInit();  // no-op after first call
             Minecraft mc = Minecraft.getInstance();
             var camera = ctx.levelState().cameraRenderState;
-            // The camera's rotation is the view matrix; geometry is given relative to the camera's position.
+            // The camera's rotation is the view matrix and the level's projection (with its bobbing) is
+            // the one it was drawn with; geometry is given relative to the camera's position.
             float[] vp = new float[16];
-            new Matrix4f(camera.projectionMatrix).mul(camera.viewRotationMatrix).get(vp);
+            new Matrix4f(levelProjection).mul(camera.viewRotationMatrix).get(vp);
             Vec3 camPos = camera.pos;
             var playerPos = mc.player != null ? mc.player.getEyePosition() : camPos;
             if (!YogGl.begin()) return;
