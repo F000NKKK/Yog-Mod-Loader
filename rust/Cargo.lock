@@ -1570,6 +1570,7 @@ dependencies = [
 name = "yog-cli"
 version = "0.44.0"
 dependencies = [
+ "base64",
  "criterion",
  "proc-macro2",
  "serde_json",

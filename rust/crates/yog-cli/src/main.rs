@@ -59,6 +59,7 @@ fn main() {
         Some("check") => check(),
         Some("schema") => schema(args.get(2).map(String::as_str)),
         Some("bench") => run_benches(&args[2..]),
+        Some("serve") => yog_cli::serve::run(),
         Some("designer-lib") => designer_lib(),
         Some("new") => new_mod(args.get(2).map(String::as_str)),
         Some("setup") => setup(),

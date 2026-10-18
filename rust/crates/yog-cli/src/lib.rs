@@ -13,6 +13,7 @@ pub mod content;
 pub mod exports;
 pub mod manifest;
 pub mod media;
+pub mod serve;
 pub mod yres;
 pub mod yui;
 pub mod yui_component;
