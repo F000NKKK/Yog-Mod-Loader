@@ -1,124 +1,70 @@
 package dev.yog;
 
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.block.Block;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.api.distmarker.Dist;
-import org.joml.Matrix4f;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
-@EventBusSubscriber(modid = "yog", bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+/** NeoForge's client: hooks NeoForge's client events up to {@link YogClientEvents}. */
 public final class YogClient {
     private YogClient() {}
 
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
-        dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
-        NativeBridge.nativeOnClientTick();
+    /** The HUD layer Yog's mods draw in, over vanilla's. */
+    private static final String HUD_LAYER = "hud";
+
+    static void init(IEventBus modBus) {
+        modBus.addListener(RegisterColorHandlersEvent.BlockTintSources.class, e -> {
+            var tinted = YogClientEvents.tintedBlocks();
+            if (!tinted.isEmpty()) e.register(java.util.List.of(new YogClientApi.Tint()), tinted.toArray(new Block[0]));
+        });
+        modBus.addListener(RegisterPictureInPictureRenderersEvent.class, e -> e.register(YogBlocksPip.State.class, YogBlocksPip::new));
+        modBus.addListener(RegisterClientTooltipComponentFactoriesEvent.class, e -> e.register(YogTooltipData.class, YogClientTooltip::new));
+        modBus.addListener(RegisterMenuScreensEvent.class, e -> e.register(YogContentRegistry.INVENTORY_MENU_TYPE, YogInventoryScreen::new));
+        modBus.addListener(RegisterKeyMappingsEvent.class, e -> {
+            for (KeyMapping key : YogClientEvents.keyMappings(id -> {
+                KeyMapping.Category category = new KeyMapping.Category(id);
+                e.registerCategory(category);
+                return category;
+            })) {
+                e.register(key);
+            }
+        });
+        modBus.addListener(EntityRenderersEvent.RegisterRenderers.class, e -> YogClientEvents.renderers(e::registerEntityRenderer));
+        modBus.addListener(RegisterGuiLayersEvent.class, e -> e.registerAboveAll(Identifier.fromNamespaceAndPath(YogNames.Ns.YOG, HUD_LAYER),
+                (ctx, delta) -> YogClientEvents.hud(ctx, delta.getGameTimeDeltaPartialTick(false))));
+
+        var bus = NeoForge.EVENT_BUS;
+        bus.addListener(ClientTickEvent.Post.class, e -> YogClientEvents.tick());
+        bus.addListener(ItemTooltipEvent.class, e -> YogClientEvents.tooltip(e.getItemStack(), e.getToolTip()::add));
+        bus.addListener(ClientPlayerNetworkEvent.LoggingOut.class, e -> YogClientEvents.disconnected());
+        bus.addListener(RenderLevelStageEvent.AfterLevel.class, e -> {
+            var camera = e.getLevelRenderState().cameraRenderState;
+            YogClientEvents.world(camera.viewRotationMatrix, camera.pos, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
+        });
+        bus.addListener(ScreenEvent.Opening.class, e -> YogClientEvents.screenOpened(e.getScreen()));
+        bus.addListener(ScreenEvent.Closing.class, e -> YogClientEvents.screenClosed(e.getScreen()));
+        bus.addListener(ScreenEvent.Init.Post.class, e -> YogClientEvents.menuButtons(e.getScreen()).forEach(e::addListener));
     }
 
-    @SubscribeEvent
-    public static void onRenderGui(RenderGuiEvent.Post event) {
-        NativeBridge.nativeGlInit();
-        NativeDraw.hudDrawContext = event.getGuiGraphics();
-        Minecraft mc = Minecraft.getInstance();
-        var playerPos = mc.player != null ? mc.player.getEyePosition() : net.minecraft.world.phys.Vec3.ZERO;
-        NativeBridge.nativeOnHudRender(
-            event.getPartialTick().getGameTimeDeltaTicks(),
-            mc.getWindow().getGuiScaledWidth(),
-            mc.getWindow().getGuiScaledHeight(),
-            (float) mc.getWindow().getGuiScale(),
-            (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
-        NativeDraw.hudDrawContext = null;
-        NativeDraw.syncGlState();
-    }
-
-    @SubscribeEvent
-    public static void onRenderLevel(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
-        NativeBridge.nativeGlInit();
-        Minecraft mc = Minecraft.getInstance();
-        Matrix4f proj = event.getProjectionMatrix();
-        Matrix4f view = event.getModelViewMatrix();
-        float[] vp = new float[16];
-        new Matrix4f(proj).mul(view).get(vp);
-        var cam = event.getCamera();
-        var playerPos = mc.player != null ? mc.player.getEyePosition() : cam.getPosition();
-        NativeBridge.nativeOnWorldRender(
-            event.getPartialTick().getGameTimeDeltaTicks(),
-            mc.getWindow().getGuiScaledWidth(),
-            mc.getWindow().getGuiScaledHeight(),
-            (float) mc.getWindow().getGuiScale(),
-            vp,
-            (float) cam.getPosition().x, (float) cam.getPosition().y, (float) cam.getPosition().z,
-            (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
-        NativeDraw.syncGlState();
-    }
-
-    @SubscribeEvent
-    public static void onScreenOpen(ScreenEvent.Opening event) {
-        if (event.getScreen() instanceof YogUIScreen) return;
-        NativeBridge.nativeOnScreenOpen(event.getScreen().getClass().getSimpleName());
-    }
-
-    @SubscribeEvent
-    public static void onScreenClose(ScreenEvent.Closing event) {
-        if (event.getScreen() instanceof YogUIScreen) return;
-        NativeBridge.nativeOnScreenClose(event.getScreen().getClass().getSimpleName());
-    }
-
-    // ── Menu entry injection ────────────────────────────────────────────────
-
-    @SubscribeEvent
-    public static void onScreenInitPost(ScreenEvent.Init.Post event) {
-        Screen screen = event.getScreen();
-        String cls = screen.getClass().getName();
-
-        // NeoForge 1.21+ ships under the "neoforged" package.
-        boolean isModList = cls.equals("net.neoforged.neoforge.client.gui.ModListScreen")
-                         || cls.equals("net.minecraftforge.client.gui.ModListScreen");
-        boolean isTitle   = cls.equals("net.minecraft.client.gui.screens.TitleScreen");
-        if (!isModList && !isTitle) return;
-
-        String raw = NativeBridge.nativeMenuEntries();
-        if (raw == null || raw.isEmpty()) return;
-
-        String[] lines = raw.split("\\n");
-        int x, y;
-        if (isModList) {
-            x = screen.width - 110;
-            y = 10;
-        } else {
-            // Top-left corner — clear of the vanilla title button column.
-            x = 4;
-            y = 4;
-        }
-
-        for (String line : lines) {
-            String[] parts = line.split("\\t", 2);
-            if (parts.length < 2) continue;
-            String label = parts[0];
-            String uiId  = parts[1];
-
-            event.addListener(
-                Button.builder(Component.translatable(label), btn -> {
-                    YogUIScreen.open(uiId, false, false);
-                }).pos(x, y).size(100, 20).build()
-            );
-            y += 24;
-        }
-    }
-
-    /** Send a raw-byte packet to the server (client -> server). */
+    /** Raw bytes to the server (client → server); the runtime calls it by name. */
     public static boolean sendToServer(String channel, byte[] data) {
         try {
-            return YogNetworkBridge.sendToServer(channel, data);
+            YogPlatform.sendToServer(channel, data);
+            return true;
         } catch (Throwable t) {
             return false;
         }

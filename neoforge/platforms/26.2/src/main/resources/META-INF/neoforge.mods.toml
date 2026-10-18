@@ -18,6 +18,9 @@ logoFile = ""
 [[mixins]]
 config = "yog.mixins.json"
 
+[[accessTransformers]]
+file = "META-INF/accesstransformer.cfg"
+
 [[dependencies.yog]]
     modId = "neoforge"
     type = "required"

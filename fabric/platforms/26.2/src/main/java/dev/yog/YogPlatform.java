@@ -4,7 +4,6 @@ import dev.yog.util.YogModInfo;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -44,9 +43,11 @@ public final class YogPlatform {
         return out;
     }
 
-    /** The players who see {@code e}. */
-    public static Collection<ServerPlayer> tracking(Entity e) {
-        return PlayerLookup.tracking(e);
+    /** Raw bytes to everyone who sees {@code e}, and to it if a player. */
+    public static void sendToTracking(Entity e, String channel, byte[] data) {
+        java.util.Set<ServerPlayer> to = new java.util.LinkedHashSet<>(PlayerLookup.tracking(e));
+        if (e instanceof ServerPlayer self) to.add(self);
+        for (ServerPlayer p : to) sendToClient(p, channel, data);
     }
 
     /** Raw bytes to {@code p} on {@code channel}. */

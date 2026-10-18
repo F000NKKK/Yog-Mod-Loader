@@ -55,6 +55,9 @@ sourceSets {
 
 neoForge {
     version = project.neo_version
+    // The platform's access transformer (what the shared code reaches that the game keeps private).
+    def at = file("${platformDir}/src/main/resources/META-INF/accesstransformer.cfg")
+    if (at.exists()) accessTransformers.from(at)
 
     runs {
         // The dev run's folder is ../'s, shared with the other platforms.

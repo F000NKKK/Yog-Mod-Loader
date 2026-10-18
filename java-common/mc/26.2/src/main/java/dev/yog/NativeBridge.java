@@ -196,13 +196,8 @@ public final class NativeBridge {
     /** Send a raw-byte packet to everyone who sees entity {@code uuid}, and to it if a player. */
     public static boolean sendToTracking(String uuid, String channel, byte[] data) {
         Entity e = entityByUuid(uuid);
-        Identifier id = Identifier.tryParse(channel);
-        if (e == null || id == null) return false;
-        java.util.Set<ServerPlayer> to = new java.util.LinkedHashSet<>(YogPlatform.tracking(e));
-        if (e instanceof ServerPlayer self) to.add(self);
-        for (ServerPlayer p : to) {
-            YogPlatform.sendToClient(p, channel, data);
-        }
+        if (e == null || Identifier.tryParse(channel) == null) return false;
+        YogPlatform.sendToTracking(e, channel, data);
         return true;
     }
 
