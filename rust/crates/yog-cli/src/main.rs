@@ -818,11 +818,15 @@ fn resolve_metadata(meta: &mut YogToml, refs: &yres::Refs) -> Result<(), String>
 
 // ── yog run ───────────────────────────────────────────────────────────────────
 
-/// `yog run --list`: every run target, a line each (`--json`: for editors).
+/// `yog run --list`: every run target, a line each. `--json`, for editors:
+/// `{"targets": [...], "sources": [folders they're read from]}`.
 fn list_run_targets(json: bool) -> Result<(), String> {
-    let targets = yog_home::targets::Resolver::new(&yog_home::Home::locate()?)?.targets()?;
+    let home = yog_home::Home::locate()?;
+    let resolver = yog_home::targets::Resolver::new(&home)?;
+    let targets = resolver.targets()?;
     if json {
-        println!("{}", serde_json::to_string(&targets).map_err(|e| e.to_string())?);
+        let list = serde_json::json!({ "targets": targets, "sources": resolver.sources(&home) });
+        println!("{list}");
     } else {
         for t in &targets {
             println!("{:<20} {}", t.id, t.label);

@@ -103,6 +103,18 @@ impl Resolver {
             .or_else(|| self.components.newest(&components::id::jdk(major)).map(|c| c.path.clone()))
     }
 
+    /// The folders the targets are read from — the home, each loader's
+    /// versions — for a tool that keeps the list fresh while they change.
+    pub fn sources(&self, home: &Home) -> Vec<PathBuf> {
+        let mut out = vec![home.root().to_path_buf()];
+        if let Some(sdk) = self.loader_sdk() {
+            let loaders = std::fs::read_dir(&sdk).into_iter().flatten().flatten().map(|e| e.path().join(sdk::VERSIONS_DIR));
+            out.extend(loaders.filter(|v| v.is_dir()));
+        }
+        out.sort();
+        out
+    }
+
     /// Every target: the SDK's loaders and versions, then the local ones.
     pub fn targets(&self) -> Result<Vec<Target>, String> {
         let mut out = match self.loader_sdk() {
@@ -281,6 +293,8 @@ mod tests {
         assert_eq!(plan.export_dir, Some(sdk.join("fabric/run/yog-mods")));
         assert_eq!(plan.args, ["run", "fabric", "--client", "--mc", "1.21.1", "--no-build"]);
         assert_eq!(plan.env, [("GPU".to_string(), "nvidia".to_string()), ("YOG_JAVA21_HOME".to_string(), "/jdk21".to_string())]);
+
+        assert_eq!(r.sources(&home), [home.root().to_path_buf(), sdk.join("fabric/versions")]);
 
         let prism = r.plan(&targets[2]);
         assert_eq!(prism.export_dir, Some(home.root().join("inst/yog-mods")));
