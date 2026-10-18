@@ -467,10 +467,6 @@ fn one() -> u32 {
     1
 }
 
-/// The game's tool tiers: `@ladder:minecraft:tool`, bottom to top (gold mines like wood).
-pub const TOOL_LADDER: &str = "minecraft:tool";
-pub const TOOL_LEVELS: [&str; 5] = ["wood", "stone", "iron", "diamond", "netherite"];
-
 #[cfg(test)]
 mod tests {
     #[test]

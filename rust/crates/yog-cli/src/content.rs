@@ -19,6 +19,7 @@
 //!   also registers them (unless an entry says `"register": "manual"`) and
 //!   every recipe.
 
+mod datapack;
 mod import;
 pub mod json;
 mod refs;
@@ -836,11 +837,10 @@ fn compile_file(
     // Its tags: a block's block tag, and the item tag of the same name for its item form.
     for tag in &parts.tags {
         let tag = yog_ids::qualify_in(&cx.ns, tag.trim_start_matches('#'));
-        let (tns, tpath) = tag.split_once(':').unwrap_or(("minecraft", &tag));
         if kind == Format::Block {
-            out.tags.entry(format!("data/{tns}/tags/block/{tpath}.json")).or_default().insert(id.clone(), true);
+            out.tags.entry(datapack::tag_file(yog_ids::kind::BLOCK, &tag)).or_default().insert(id.clone(), true);
         }
-        out.tags.entry(format!("data/{tns}/tags/item/{tpath}.json")).or_default().insert(id.clone(), true);
+        out.tags.entry(datapack::tag_file(yog_ids::kind::ITEM, &tag)).or_default().insert(id.clone(), true);
     }
 
     // A block's item form: its stack, fire and fuel.
@@ -1222,8 +1222,7 @@ fn compile_file(
     // Tools and tiers are block tags: the block joins each.
     // (The tool level's tags come once every `.ydef` is read: `tool_level_tags`.)
     for tag in &entry.block.tools {
-        let (tns, tpath) = tag.split_once(':').unwrap_or(("minecraft", tag));
-        out.tags.entry(format!("data/{tns}/tags/block/{tpath}.json")).or_default().insert(id.clone(), true);
+        out.tags.entry(datapack::tag_file(yog_ids::kind::BLOCK, tag)).or_default().insert(id.clone(), true);
     }
     Some(entry)
 }
@@ -2094,7 +2093,7 @@ fn advancement(cx: &mut Ctx, lang: &mut Lang, a: &yog_formats::def::AdvancementD
     let file = format!("data/{ns}/advancement/{path}.json");
     let mut out = vec![(file.clone(), pretty(&make(false)?))];
     for version in refs::versions().iter().filter(|v| old_advancement_format(v)) {
-        out.push((format!("when/any/{version}/{file}"), pretty(&make(true)?)));
+        out.push((datapack::for_version(version, &file), pretty(&make(true)?)));
     }
     Ok(out)
 }
@@ -2141,7 +2140,6 @@ const TAG_REF: &str = "tag:";
 fn tag_entries(t: &yog_formats::def::TagDef, ns: &str) -> Result<(String, BTreeMap<String, bool>), Vec<String>> {
     use yog_data::AnyRefOrTag;
     let id = yog_ids::qualify_in(ns, &t.id);
-    let (tns, tpath) = id.split_once(':').unwrap_or(("minecraft", &id));
     let mut problems = Vec::new();
     let mut entries = BTreeMap::new();
     for (list, required) in [(&t.values, true), (&t.optional, false)] {
@@ -2163,7 +2161,7 @@ fn tag_entries(t: &yog_formats::def::TagDef, ns: &str) -> Result<(String, BTreeM
         }
     }
     if problems.is_empty() {
-        Ok((format!("data/{tns}/tags/{}/{tpath}.json", refs::tag_registry(&t.of)), entries))
+        Ok((datapack::tag_file(&t.of, &id), entries))
     } else {
         Err(problems)
     }
@@ -2238,11 +2236,7 @@ fn damage_type(d: &yog_formats::def::DamageTypeDef, ns: &str) -> Result<(Output,
     let tags = d
         .tags
         .iter()
-        .map(|t| {
-            let t = yog_ids::qualify_in("minecraft", t);
-            let (tns, tpath) = t.split_once(':').unwrap_or(("minecraft", &t));
-            (format!("data/{tns}/tags/damage_type/{tpath}.json"), id.clone())
-        })
+        .map(|t| (datapack::tag_file(yog_ids::kind::DAMAGE_TYPE, t), id.clone()))
         .collect();
     Ok(((format!("data/{dns}/damage_type/{dpath}.json"), pretty(&v)), tags))
 }
@@ -2777,7 +2771,8 @@ impl Defs {
 fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<String>) -> Defs {
     let mut order: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut sound_groups: Vec<yog_formats::def::SoundGroup> = Vec::new();
-    order.insert(yog_formats::def::TOOL_LADDER.into(), yog_formats::def::TOOL_LEVELS.iter().map(|l| format!("minecraft:{l}")).collect());
+    let game = yog_registry::ToolLadder::game();
+    order.insert(game.ladder.clone(), game.ids().map(str::to_string).collect());
     let ns = mod_ns.unwrap_or("minecraft");
     let full = |id: &str| if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") };
     // (file, line, id, ladder, above)
@@ -2885,7 +2880,7 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
     // number and 1.21's tag of what they can't mine, as blocks of their
     // level are tagged (`tool_level_tags`: the weakest of the game's levels
     // at or above it).
-    let ladder = order.get(yog_formats::def::TOOL_LADDER).cloned().unwrap_or_default();
+    let ladder = order.get(&yog_registry::ToolLadder::game().ladder).cloned().unwrap_or_default();
     let mut tool_materials: Vec<yog_formats::def::ToolMaterial> = Vec::new();
     for (file, m) in tools {
         if yog_formats::def::ToolMaterial::built_in(&m.id).is_some() || tool_materials.iter().any(|x| x.id == m.id) {
@@ -2896,14 +2891,13 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
             errors.push(format!("{file}:1: level: {} isn't a level of the tool ladder", m.level));
             continue;
         };
-        let place = |v: &str| ladder.iter().position(|x| x == &format!("minecraft:{v}")).unwrap_or(0);
-        let game = ["wood", "stone", "iron", "diamond", "netherite"];
-        let (level_index, incorrect) = match game.iter().position(|v| place(v) >= at) {
-            Some(i) => (i as u32, format!("minecraft:incorrect_for_{}_tool", if game[i] == "wood" { "wooden" } else { game[i] })),
-            // Above netherite: a tag of its own (the build writes it).
+        let game = yog_registry::ToolLadder::game();
+        let (level_index, incorrect) = match game_level_at(&ladder, at) {
+            Some(i) => (i as u32, game.levels[i].incorrect.clone()),
+            // Above the game's levels: a tag of its own (the build writes it).
             None => {
-                let (n, p) = m.level.split_once(':').unwrap_or(("minecraft", &m.level));
-                (5, format!("{n}:incorrect_for_{p}_tool"))
+                let (n, p) = yog_ids::split(&m.level);
+                (game.levels.len() as u32, yog_ids::join(n, &format!("incorrect_for_{p}_tool")))
             }
         };
         tool_materials.push(yog_formats::def::ToolMaterial {
@@ -2921,40 +2915,33 @@ fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors: &mut Vec<S
     Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new(), dimensions: Vec::new(), tables: Vec::new(), loot_modifiers: Vec::new(), definitions: Vec::new(), advancements: Vec::new() }
 }
 
-/// The tags that make block `id` need tool level `level`, on every version:
-/// the game's `needs_*_tool` where they say it, and — for a level above
-/// diamond — each version's own way (`incorrect_for_*_tool` on 1.21,
-/// Fabric's `needs_tool_level_N` and Forge's `needs_netherite_tool` on 1.20).
+/// The tags that make block `id` need tool level `level` on every loader and
+/// version: those of the weakest of the game's levels at or above it
+/// (`yog_registry::ToolLadder`), or of a level above them all.
 fn tool_level_tags(id: &str, level: &str, ladders: &Defs, out: &mut Compiled, err: &mut dyn FnMut(String), warn: &mut dyn FnMut(String)) {
+    let game = yog_registry::ToolLadder::game();
     let Some((ladder, at)) = ladders.level(level) else { return };
-    if ladder != yog_formats::def::TOOL_LADDER {
-        err(format!("{level} is a level of {ladder}, not of the tool ladder ({})", yog_formats::def::TOOL_LADDER));
+    if ladder != game.ladder {
+        err(format!("{level} is a level of {ladder}, not of the tool ladder ({})", game.ladder));
         return;
     }
-    let tools = &ladders.order[yog_formats::def::TOOL_LADDER];
-    let place = |l: &str| tools.iter().position(|x| x == &format!("minecraft:{l}")).unwrap_or(0);
-    // The weakest of the game's tools that mines it.
-    let able = ["wood", "stone", "iron", "diamond", "netherite"].into_iter().find(|v| place(v) >= at);
-    let mut tag = |path: String| {
-        out.tags.entry(path).or_default().insert(id.to_string(), true);
-    };
-    match able {
-        Some("wood") => {}
-        Some(v @ ("stone" | "iron" | "diamond")) => tag(format!("data/minecraft/tags/block/needs_{v}_tool.json")),
-        _ => {
-            // Above diamond: diamond's tag everywhere, then each version's own.
-            tag("data/minecraft/tags/block/needs_diamond_tool.json".into());
-            tag("when/any/1.21/data/minecraft/tags/block/incorrect_for_diamond_tool.json".into());
-            tag(format!("when/fabric/1.20/data/fabric/tags/block/needs_tool_level_{}.json", if able.is_some() { 4 } else { 5 }));
-            for loader in ["forge", "neoforge"] {
-                tag(format!("when/{loader}/1.20/data/forge/tags/block/needs_netherite_tool.json"));
-            }
-            if able.is_none() {
-                tag("when/any/1.21/data/minecraft/tags/block/incorrect_for_netherite_tool.json".into());
-                warn("above netherite: on Forge and NeoForge 1.20 a netherite tool still mines it (their tiers stop at netherite)".into());
-            }
+    let needs = match game_level_at(&ladders.order[&game.ladder], at) {
+        Some(l) => &game.levels[l].needs,
+        None => {
+            warn(game.above.caveat.clone());
+            &game.above.needs
         }
+    };
+    for t in needs {
+        out.tags.entry(datapack::overlay(&t.when, &datapack::tag_file(yog_ids::kind::BLOCK, &t.tag))).or_default().insert(id.to_string(), true);
     }
+}
+
+/// The index of the weakest of the game's tool levels at or above place `at`
+/// on the tool ladder `tools` (with the mods' levels in it); `None` above them all.
+fn game_level_at(tools: &[String], at: usize) -> Option<usize> {
+    let game = yog_registry::ToolLadder::game();
+    game.levels.iter().position(|l| tools.iter().position(|x| *x == l.id).is_some_and(|p| p >= at))
 }
 
 /// Ids of the `.yui` screens under `dir` that lay out an inventory (have
@@ -3309,10 +3296,8 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     defs.advancements = advancements;
     // A tool level above netherite gets a tag of what its tools can't mine.
     for m in &defs.tool_materials {
-        if let Some((n, p)) = m.incorrect.split_once(':')
-            && n != "minecraft"
-        {
-            out.tags.entry(format!("when/any/1.21/data/{n}/tags/block/{p}.json")).or_default();
+        if yog_ids::split(&m.incorrect).0 != yog_ids::ns::MINECRAFT {
+            out.tags.entry(datapack::overlay(&yog_registry::ToolLadder::game().incorrect_when, &datapack::tag_file(yog_ids::kind::BLOCK, &m.incorrect))).or_default();
         }
     }
     defs.dimensions = dimensions.iter().map(|(id, _)| id.clone()).collect();
@@ -3404,7 +3389,7 @@ fn version_overlays(out: &mut Compiled, datapack: &str) {
             let mut copy = json.clone();
             let mut missing = BTreeSet::new();
             if map(&mut copy, version, &mut missing) {
-                overlays.push((format!("when/any/{version}/{path}"), pretty(&copy)));
+                overlays.push((datapack::for_version(version, path), pretty(&copy)));
             }
             for id in missing {
                 out.warnings.push(format!("{path} names {id}, which Minecraft {version} hasn't got"));

@@ -1,0 +1,39 @@
+// The game's tool ladder (`@ladder:minecraft:tool`), bottom to top, and
+// what a block that needs each level is tagged with: the game's tags, and
+// each loader's and version's own where theirs differ (`when`:
+// `<loader|any>/<version>`, as the build's overlays are named). `incorrect`
+// is 1.21's tag of blocks a tool of the level can't mine for drops.
+{
+  ladder: "minecraft:tool",
+  // Where the game has `incorrect` tags (a mod's level above the top writes its own there).
+  incorrect_when: "any/1.21",
+  levels: [
+    { id: "minecraft:wood", incorrect: "minecraft:incorrect_for_wooden_tool", needs: [] },
+    { id: "minecraft:stone", incorrect: "minecraft:incorrect_for_stone_tool", needs: [{ tag: "minecraft:needs_stone_tool" }] },
+    { id: "minecraft:iron", incorrect: "minecraft:incorrect_for_iron_tool", needs: [{ tag: "minecraft:needs_iron_tool" }] },
+    { id: "minecraft:diamond", incorrect: "minecraft:incorrect_for_diamond_tool", needs: [{ tag: "minecraft:needs_diamond_tool" }] },
+    {
+      id: "minecraft:netherite",
+      incorrect: "minecraft:incorrect_for_netherite_tool",
+      needs: [
+        { tag: "minecraft:needs_diamond_tool" },
+        { tag: "minecraft:incorrect_for_diamond_tool", when: "any/1.21" },
+        { tag: "fabric:needs_tool_level_4", when: "fabric/1.20" },
+        { tag: "forge:needs_netherite_tool", when: "forge/1.20" },
+        { tag: "forge:needs_netherite_tool", when: "neoforge/1.20" },
+      ],
+    },
+  ],
+  // A mod's level above netherite.
+  above: {
+    needs: [
+      { tag: "minecraft:needs_diamond_tool" },
+      { tag: "minecraft:incorrect_for_diamond_tool", when: "any/1.21" },
+      { tag: "minecraft:incorrect_for_netherite_tool", when: "any/1.21" },
+      { tag: "fabric:needs_tool_level_5", when: "fabric/1.20" },
+      { tag: "forge:needs_netherite_tool", when: "forge/1.20" },
+      { tag: "forge:needs_netherite_tool", when: "neoforge/1.20" },
+    ],
+    caveat: "above netherite: on Forge and NeoForge 1.20 a netherite tool still mines it (their tiers stop at netherite)",
+  },
+}

@@ -124,6 +124,20 @@ names! {
         LOCK = "yog.lock",
     }
 
+    /// The pack the build writes for the hosts.
+    pack {
+        /// The game's data: `data/<ns>/…`.
+        DATA = "data",
+        /// The game's assets: `assets/<ns>/…`.
+        ASSETS = "assets",
+        /// Tags, under a namespace's data: `data/<ns>/tags/<registry>/<path>.json`.
+        TAGS = "tags",
+        /// Overlays for one loader and version: `when/<loader>/<version>/<file>`.
+        OVERLAYS = "when",
+        /// An overlay's loader when it's for every loader.
+        ANY_LOADER = "any",
+    }
+
     /// Yog's programs.
     program {
         /// The command-line tool (`yog build`, `yog schema`, …).

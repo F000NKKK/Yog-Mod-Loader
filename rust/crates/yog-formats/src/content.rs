@@ -6,7 +6,8 @@ use yog_data::kinds::Item;
 use yog_data::with::{Opt, RefTo};
 use yog_data::{Ordered, Reader, Res, Schema, Shape, Text, Value, ValueRef};
 
-use crate::def::{ArmorMaterialKind, LevelKind, SoundGroupKind, TOOL_LEVELS, ToolMaterialKind};
+use yog_registry::ToolLadder;
+use crate::def::{ArmorMaterialKind, LevelKind, SoundGroupKind, ToolMaterialKind};
 
 /// Registered by `yog_api::content!()` (`auto`), or by the mod's code.
 #[derive(Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -282,20 +283,20 @@ impl yog_data::with::With<String> for LevelRef {
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
-            ValueRef::Str(s) if TOOL_LEVELS.contains(s) => Some(format!("minecraft:{s}")),
-            ValueRef::Str(s) if !s.starts_with('@') => {
-                cx.problem(format!(
-                    "`{s}`: one of {} — or a level of the tool ladder, `@level:mymod:…` (a .ydef)",
-                    TOOL_LEVELS.join(", ")
-                ));
-                None
-            }
+            ValueRef::Str(s) if !s.starts_with(yog_ids::sep::TYPED) => match ToolLadder::game().level(s) {
+                Some(l) => Some(l.id.clone()),
+                None => {
+                    let names: Vec<&str> = ToolLadder::game().ids().map(|id| yog_ids::split(id).1).collect();
+                    cx.problem(format!("`{s}`: one of {} — or a level of the tool ladder, `@level:mymod:…` (a .ydef)", names.join(", ")));
+                    None
+                }
+            },
             _ => yog_data::with::RefTo::<LevelKind>::read(v, cx),
         }
     }
     fn write(f: &String) -> Value {
-        match f.strip_prefix("minecraft:") {
-            Some(s) if TOOL_LEVELS.contains(&s) => Value::from(s),
+        match ToolLadder::game().level(f) {
+            Some(l) => Value::from(yog_ids::split(&l.id).1),
             _ => Value::Ref(yog_data::Ref::new(yog_ids::kind::LEVEL, f.clone())),
         }
     }
