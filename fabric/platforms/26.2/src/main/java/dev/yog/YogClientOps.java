@@ -219,33 +219,63 @@ public final class YogClientOps {
         return w.getChunkSource().hasChunk(at.getX() >> 4, at.getZ() >> 4);
     }
 
+    /** Blocks along a chunk section's edge. */
+    private static final int SECTION = 16;
+    private static final int SECTION_SHIFT = 4;
+
+    /**
+     * The blocks of {@code ids} (ids and {@code #tags}) in the box: chunk by
+     * chunk, a section whose palette has none of them skipped whole (most
+     * of a box is stone and air, the ores a few sections hold).
+     */
     private static Object scan(ClientLevel w, JsonObject a) {
         BlockPos[] b = box(a);
         if (b == null) return null;
-        Set<Identifier> ids = new HashSet<>();
+        Set<Block> blocks = new HashSet<>();
         Set<TagKey<Block>> tags = new HashSet<>();
         for (JsonElement e : a.getAsJsonArray("ids")) {
             String s = e.getAsString();
             Identifier id = Identifier.tryParse(s.startsWith(TAG_MARK) ? s.substring(TAG_MARK.length()) : s);
             if (id == null) continue;
             if (s.startsWith(TAG_MARK)) tags.add(TagKey.create(Registries.BLOCK, id));
-            else ids.add(id);
+            else BuiltInRegistries.BLOCK.getOptional(id).ifPresent(blocks::add);
         }
+        java.util.function.Predicate<BlockState> wanted = st -> blocks.contains(st.getBlock()) || tags.stream().anyMatch(st::is);
         JsonArray out = new JsonArray();
-        for (BlockPos at : BlockPos.betweenClosed(b[0], b[1])) {
-            if (!loaded(w, at)) continue;
-            BlockState st = w.getBlockState(at);
-            Identifier id = BuiltInRegistries.BLOCK.getKey(st.getBlock());
-            boolean hit = ids.contains(id) || tags.stream().anyMatch(st::is);
-            if (!hit) continue;
-            JsonObject f = new JsonObject();
-            f.addProperty("x", at.getX());
-            f.addProperty("y", at.getY());
-            f.addProperty("z", at.getZ());
-            f.addProperty("id", id.toString());
-            out.add(f);
+        for (int cx = b[0].getX() >> SECTION_SHIFT; cx <= b[1].getX() >> SECTION_SHIFT; cx++) {
+            for (int cz = b[0].getZ() >> SECTION_SHIFT; cz <= b[1].getZ() >> SECTION_SHIFT; cz++) {
+                var chunk = w.getChunkSource().getChunk(cx, cz, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, false);
+                if (chunk == null) continue;
+                var sections = chunk.getSections();
+                for (int i = 0; i < sections.length; i++) {
+                    var section = sections[i];
+                    int y0 = chunk.getSectionYFromSectionIndex(i) << SECTION_SHIFT;
+                    if (y0 + SECTION <= b[0].getY() || y0 > b[1].getY()) continue;
+                    if (section.hasOnlyAir() || !section.maybeHas(wanted)) continue;
+                    scanSection(section, cx << SECTION_SHIFT, y0, cz << SECTION_SHIFT, b, wanted, out);
+                }
+            }
         }
         return out;
+    }
+
+    /** The wanted blocks of one section (corner x0, y0, z0) inside the box. */
+    private static void scanSection(net.minecraft.world.level.chunk.LevelChunkSection section, int x0, int y0, int z0,
+                                    BlockPos[] b, java.util.function.Predicate<BlockState> wanted, JsonArray out) {
+        for (int ly = Math.max(0, b[0].getY() - y0); ly < SECTION && y0 + ly <= b[1].getY(); ly++) {
+            for (int lz = Math.max(0, b[0].getZ() - z0); lz < SECTION && z0 + lz <= b[1].getZ(); lz++) {
+                for (int lx = Math.max(0, b[0].getX() - x0); lx < SECTION && x0 + lx <= b[1].getX(); lx++) {
+                    BlockState st = section.getBlockState(lx, ly, lz);
+                    if (!wanted.test(st)) continue;
+                    JsonObject f = new JsonObject();
+                    f.addProperty("x", x0 + lx);
+                    f.addProperty("y", y0 + ly);
+                    f.addProperty("z", z0 + lz);
+                    f.addProperty("id", BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString());
+                    out.add(f);
+                }
+            }
+        }
     }
 
     private static Object area(ClientLevel w, JsonObject a) {
