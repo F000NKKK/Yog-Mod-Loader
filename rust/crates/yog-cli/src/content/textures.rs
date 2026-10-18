@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use serde_json::{Value, json};
-use yog_formats::texture::{Animation, Frame, TextureFile};
+use yog_formats::texture::TextureFile;
 use yog_ids::Format;
 use yog_media::image::Image;
 
@@ -75,7 +75,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>)
             _ => {
                 let (ns, path) = yog_ids::split(&id);
                 let target = format!("{}/{ns}/{}", yog_ids::pack::ASSETS, yog_ids::texture_file(path));
-                if let Some(meta) = mcmeta(&texture) {
+                if let Some(meta) = texture.game_mcmeta() {
                     out.outputs.push((format!("{target}{}", yog_ids::res::MCMETA), super::pretty(&meta)));
                 }
                 out.outputs.push((target, picture.png.clone()));
@@ -140,65 +140,6 @@ fn pack(textures: &[(String, Image)]) -> (Image, Vec<(String, u32, u32, u32, u32
     (sheet, regions)
 }
 
-/// The game's `.mcmeta` of a texture, when it animates or filters.
-fn mcmeta(t: &TextureFile) -> Option<Value> {
-    let mut meta = serde_json::Map::new();
-    if let Some(a) = &t.animation {
-        meta.insert("animation".into(), animation(a));
-    }
-    if t.blur || t.clamp {
-        meta.insert("texture".into(), json!({ "blur": t.blur, "clamp": t.clamp }));
-    }
-    (!meta.is_empty()).then_some(Value::Object(meta))
-}
-
-/// An animation the game's way.
-fn animation(a: &Animation) -> Value {
-    let mut anim = serde_json::Map::new();
-    anim.insert("frametime".into(), json!(a.frame_time()));
-    if a.interpolate {
-        anim.insert("interpolate".into(), json!(true));
-    }
-    if !a.frames.is_empty() {
-        let frames = a.frames.iter().map(|f| match f.time {
-            Some(time) => json!({ "index": f.index, "time": time }),
-            None => json!(f.index),
-        });
-        anim.insert("frames".into(), Value::Array(frames.collect()));
-    }
-    if let Some(w) = a.width {
-        anim.insert("width".into(), json!(w));
-    }
-    if let Some(h) = a.height {
-        anim.insert("height".into(), json!(h));
-    }
-    Value::Object(anim)
-}
-
-/// The animation a game `.mcmeta` describes.
-pub fn animation_of_mcmeta(mcmeta: &[u8]) -> Option<Animation> {
-    let a = serde_json::from_slice::<Value>(mcmeta).ok()?.get("animation")?.clone();
-    let u32_of = |v: &Value, k: &str| v.get(k).and_then(Value::as_u64).and_then(|n| u32::try_from(n).ok());
-    Some(Animation {
-        frame_time: u32_of(&a, "frametime"),
-        interpolate: a.get("interpolate").and_then(Value::as_bool).unwrap_or(false),
-        frames: a
-            .get("frames")
-            .and_then(Value::as_array)
-            .map(|fs| {
-                fs.iter()
-                    .filter_map(|f| match f.as_u64() {
-                        Some(i) => Some(Frame { index: u32::try_from(i).ok()?, time: None }),
-                        None => Some(Frame { index: u32_of(f, "index")?, time: u32_of(f, "time") }),
-                    })
-                    .collect()
-            })
-            .unwrap_or_default(),
-        width: u32_of(&a, "width"),
-        height: u32_of(&a, "height"),
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,10 +175,4 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    #[test]
-    fn mcmeta_round_trips() {
-        let meta = br#"{"animation":{"frametime":2,"interpolate":true,"frames":[1,{"index":0,"time":5}]}}"#;
-        let a = animation_of_mcmeta(meta).unwrap();
-        assert_eq!(json!({ "animation": animation(&a) }), serde_json::from_slice::<Value>(meta).unwrap());
-    }
 }

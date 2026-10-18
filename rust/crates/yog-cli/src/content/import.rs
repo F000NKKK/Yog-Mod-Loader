@@ -137,8 +137,8 @@ impl Target {
         Ok(())
     }
 
-    /// Puts a texture's picture into `resources/Images.yres` (as bytes,
-    /// named by its path: `block.ruby`) and writes its `<path>.ytexture`
+    /// Puts a texture's picture into its `.yres` set (as bytes, named by
+    /// its path: `block.ruby` in `BlockImages.yres`) and writes its `<path>.ytexture`
     /// (its atlas by its folder, the animation an `.mcmeta` gave) → its
     /// value in a content file (`@texture:<ns>:<path>`).
     fn put_texture(
@@ -149,7 +149,8 @@ impl Target {
         mcmeta: Option<&[u8]>,
     ) -> Result<String, String> {
         let name = path.replace(yog_ids::sep::PATH, ".");
-        let set_rel = format!("{RESOURCES_DIR}/{}", Format::Res.file(IMPORT_SET));
+        let set = yog_formats::texture::picture_set(path);
+        let set_rel = format!("{RESOURCES_DIR}/{}", Format::Res.file(&set));
         let set_file = self.root.join(&set_rel);
         let mut entries = match std::fs::read_to_string(&set_file) {
             Ok(text) => crate::yres::parse(&text).map_err(|e| format!("{set_rel}: {e}"))?,
@@ -173,9 +174,9 @@ impl Target {
         let rel = format!("{RESOURCES_DIR}/{}", Format::Texture.file(path));
         if !self.root.join(&rel).is_file() || self.force {
             let texture = yog_formats::texture::TextureFile {
-                image: yog_data::Res { set: IMPORT_SET.into(), key: name },
+                image: yog_data::Res { set, key: name },
                 atlas: yog_registry::Atlas::of_path(path).map(|a| a.id.clone()),
-                animation: mcmeta.and_then(super::textures::animation_of_mcmeta),
+                animation: mcmeta.and_then(|m| serde_json::from_slice(m).ok()).and_then(|m| yog_formats::texture::Animation::from_mcmeta(&m)),
                 blur: false,
                 clamp: false,
             };
@@ -184,9 +185,6 @@ impl Target {
         Ok(format!("{}{}", yog_ids::reference::TEXTURE, yog_ids::join(ns, path)))
     }
 }
-
-/// The `.yres` set imported pictures go into.
-const IMPORT_SET: &str = "Images";
 
 // ── Resource packs ───────────────────────────────────────────────────────────
 
@@ -1241,7 +1239,7 @@ mod tests {
         assert!(text.contains("\"0\": \"@texture:mymod:block/lamp\""), "{text}");
         assert!(root.join("resources/block/lamp.ytexture").is_file());
         assert!(!text.contains("item_model"), "{text}");
-        let images = crate::yres::parse(&std::fs::read_to_string(root.join("resources/Images.yres")).unwrap()).unwrap();
+        let images = crate::yres::parse(&std::fs::read_to_string(root.join("resources/BlockImages.yres")).unwrap()).unwrap();
         assert!(images.iter().any(|e| e.name == "block.lamp" && e.value == crate::yres::Value::Bytes(picture())));
         let refs = crate::yres::compile(&root, "mymod").unwrap().refs;
         let c = super::super::compile(&root, "mymod", &refs).unwrap();
@@ -1273,7 +1271,7 @@ mod tests {
         let text = std::fs::read_to_string(root.join("content/blocks/thing.yblock")).unwrap();
         assert!(text.contains("\"uv\": [0, 0, 16, 8]"), "{text}");
         assert!(!text.contains("\"up\""), "{text}");
-        let images = crate::yres::parse(&std::fs::read_to_string(root.join("resources/Images.yres")).unwrap()).unwrap();
+        let images = crate::yres::parse(&std::fs::read_to_string(root.join("resources/BlockImages.yres")).unwrap()).unwrap();
         assert!(images.iter().any(|e| e.name == "block.thing"));
         let refs = crate::yres::compile(&root, "mymod").unwrap().refs;
         super::super::compile(&root, "mymod", &refs).unwrap();
