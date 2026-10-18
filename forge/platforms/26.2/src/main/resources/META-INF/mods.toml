@@ -1,0 +1,29 @@
+# Forge mod metadata — Yog Mod Loader host for Forge 26.2
+modLoader = "javafml"
+loaderVersion = "[65,)"
+license = "AGPL-3.0-only"
+
+[[mods]]
+modId = "yog"
+version = "${mod_version}"
+displayName = "Yog"
+authors = "Yog Team"
+description = '''
+Yog Mod Loader — run Rust mods inside Minecraft via Forge.
+The Gate and the Key between Java and Rust worlds.
+'''
+logoFile = ""
+
+[[dependencies.yog]]
+    modId = "forge"
+    mandatory = true
+    versionRange = "[65,)"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.yog]]
+    modId = "minecraft"
+    mandatory = true
+    versionRange = "${minecraft_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
