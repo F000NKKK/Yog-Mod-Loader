@@ -1714,6 +1714,8 @@ version = "0.99.0"
 dependencies = [
  "ctor",
  "rkyv",
+ "serde",
+ "serde_json",
  "yog-abi",
  "yog-body",
  "yog-book",

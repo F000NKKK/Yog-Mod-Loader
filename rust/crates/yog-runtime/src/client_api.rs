@@ -55,6 +55,10 @@ pub(crate) unsafe extern "C" fn api_client_held_item(
     unsafe { owned(host!("dev/yog/YogClientApi", "heldItem", [Z(off_hand)])) }
 }
 
+pub(crate) unsafe extern "C" fn api_client_pilot(_ctx: *mut c_void, op: YogStr, args: YogStr) -> YogOwnedStr {
+    unsafe { owned(host!("dev/yog/YogPilot", "call", [S(op), S(args)])) }
+}
+
 pub(crate) unsafe extern "C" fn api_client_key_down(_ctx: *mut c_void, key: i32) -> bool {
     unsafe { host!("dev/yog/YogClientApi", "keyDown", [I(key)]).unwrap_or(false) }
 }

@@ -33,6 +33,9 @@ yog-book = { workspace = true }
 yog-formats = { workspace = true }
 yog-body = { workspace = true }
 yog-inventory = { workspace = true }
+# `pilot`: the host speaks JSON with it.
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 
 rkyv = { workspace = true }

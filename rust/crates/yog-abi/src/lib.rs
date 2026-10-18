@@ -18,7 +18,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 8;
+pub const ABI_MINOR: u32 = 9;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -1639,6 +1639,11 @@ pub struct YogApi {
     /// as a number: 0 info, 1 warn, 2 error) — where a mod's records go, so
     /// they're in the log with the game's instead of on a stdout nobody reads.
     pub log: unsafe extern "C" fn(level: u32, message: YogStr),
+
+    // ── ABI 3.9 — piloting the local player (client) ────────────────────────
+    /// Does or tells `op` (`yog_ids::pilot`) for this client's player with
+    /// `args` (JSON); its answer as JSON, or none (no player, a server).
+    pub client_pilot: unsafe extern "C" fn(ctx: *mut c_void, op: YogStr, args: YogStr) -> YogOwnedStr,
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].

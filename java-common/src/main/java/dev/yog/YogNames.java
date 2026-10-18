@@ -268,6 +268,26 @@ public final class YogNames {
         public static final String COLOR = "color";
     }
 
+    public static final class Pilot {
+        private Pilot() {}
+
+        public static final String STATE = "state";
+        public static final String DRIVE = "drive";
+        public static final String RELEASE = "release";
+        public static final String LOOK = "look";
+        public static final String ATTACK = "attack";
+        public static final String USE = "use";
+        public static final String MINE = "mine";
+        public static final String PLACE = "place";
+        public static final String SLOT = "slot";
+        public static final String SCAN = "scan";
+        public static final String AREA = "area";
+        public static final String ENTITIES = "entities";
+        public static final String INVENTORY = "inventory";
+        public static final String CLICK = "click";
+        public static final String CHAT = "chat";
+    }
+
     public static final class YuiAttr {
         private YuiAttr() {}
 
