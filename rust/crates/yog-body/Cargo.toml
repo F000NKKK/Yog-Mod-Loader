@@ -8,5 +8,5 @@ license = "MIT OR Apache-2.0"
 description = "Bodies for Yog mods: skeletons and animations (.ymodel/.yanim), vanilla model posing, disguises and morphs, camera and movement."
 
 [dependencies]
-yog-data = "0.4"
+yog-data = "0.4.2"
 yog-graphics = "0.1.1"

@@ -9,4 +9,4 @@ description = "Yog graphics primitives every crate shares: colors, vectors, matr
 repository = "https://github.com/F000NKKK/Yog-Mod-Loader"
 
 [dependencies]
-yog-data = "0.4"
+yog-data = "0.4.2"

@@ -19,17 +19,17 @@ crate-type = ["cdylib", "rlib"]
 jni.workspace = true
 
 yog-abi = "0.30.8"
-yog-api = "0.98"
+yog-api = "0.98.1"
 yog-logging = "0.1.1"
-yog-registry = "0.35"
-yog-ui     = "0.43"
-yog-book   = "0.67"
-yog-gfx    = "0.28"
-yog-inventory = "0.18"
-yog-worldgen = "0.1"
-yog-hot-reload = "0.2.2"
+yog-registry = "0.35.0"
+yog-ui     = "0.43.1"
+yog-book   = "0.67.0"
+yog-gfx    = "0.28.1"
+yog-inventory = "0.18.0"
+yog-worldgen = "0.1.0"
+yog-hot-reload = "0.2.3"
 # The content blob the hosts read (`content_blob`).
-yog-data = { version = "0.4", features = ["json"] }
+yog-data = { version = "0.4.2", features = ["json"] }
 
 serde_json.workspace = true
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.
@@ -54,7 +54,7 @@ dev = []
 bench = ["yog-hot-reload/testing"]
 
 [dev-dependencies]
-yog-hot-reload = { version = "0.2.2", features = ["testing"] }
+yog-hot-reload = { version = "0.2.3", features = ["testing"] }
 criterion = "0.8"
 
 [[bench]]

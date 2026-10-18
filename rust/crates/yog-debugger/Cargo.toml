@@ -8,7 +8,7 @@ description = "ptrace-based native debugger for Yog mods, speaking the Debug Ada
 
 [dependencies]
 yog-symbols = "0.4.1"
-yog-hot-reload = "0.2"
+yog-hot-reload = "0.2.3"
 serde_json.workspace = true
 
 [target.'cfg(target_os = "linux")'.dependencies]

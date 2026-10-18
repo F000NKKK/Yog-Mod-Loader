@@ -10,7 +10,7 @@ description = "Yog Data — the one data model, text syntax, binary form and sch
 exclude = ["benches/hexbook.ybook"]
 
 [dependencies]
-yog-data-derive = { version = "0.4", path = "../yog-data-derive" }
+yog-data-derive = { version = "0.4.1", path = "../yog-data-derive" }
 # The arena borrowed values' lists and maps live in (`ValueRef`).
 bumpalo = { version = "3", features = ["collections"] }
 # `yog.toml` read into the model (`toml` feature).

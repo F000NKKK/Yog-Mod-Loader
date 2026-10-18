@@ -8,4 +8,4 @@ license = "MIT OR Apache-2.0"
 description = "Yog event system — pub/sub for game/server events."
 
 [dependencies]
-yog-core = "0.6"
+yog-core = "0.6.0"

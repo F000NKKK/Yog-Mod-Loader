@@ -8,11 +8,11 @@ license = "MIT OR Apache-2.0"
 description = "Yog UI framework — flexbox and WPF-style grid layout + GPU rendering via yog-gfx"
 
 [dependencies]
-yog-gfx = "0.28"
+yog-gfx = "0.28.1"
 yog-abi = "0.30.8"
 
 [dev-dependencies]
-yog-gfx = { version = "0.28", features = ["testing"] }
+yog-gfx = { version = "0.28.1", features = ["testing"] }
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
 
 [[bench]]

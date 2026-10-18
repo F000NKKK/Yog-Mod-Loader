@@ -8,5 +8,5 @@ license = "MIT OR Apache-2.0"
 description = "Yog fonts — one format for every font of the system: glyphs as drawing, shaping (ligatures, contextual forms, cursive joining), layout and rasterization."
 
 [dependencies]
-yog-data = "0.4"
+yog-data = "0.4.2"
 yog-graphics = "0.1.1"

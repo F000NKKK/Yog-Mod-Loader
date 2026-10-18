@@ -8,5 +8,5 @@ license = "MIT OR Apache-2.0"
 description = "Yog player access (teleport, give items, health)."
 
 [dependencies]
-yog-core = "0.6"
-yog-entity = "0.6"
+yog-core = "0.6.0"
+yog-entity = "0.6.0"

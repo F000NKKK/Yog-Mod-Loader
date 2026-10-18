@@ -10,6 +10,6 @@ description = "Yog inventory framework — real Container/Menu screens (vanilla-
 [dependencies]
 yog-abi = "0.30.8"
 # Definitions cross the ABI as Yog Data (`register_content`).
-yog-data = "0.4"
+yog-data = "0.4.2"
 serde.workspace      = true
 serde_json.workspace = true
