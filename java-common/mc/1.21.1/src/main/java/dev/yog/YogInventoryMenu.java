@@ -38,10 +38,10 @@ public class YogInventoryMenu extends AbstractContainerMenu {
         return new YogInventoryMenu(windowId, playerInv, inv, defId);
     }
 
-    /** Client-side factory registered via {@code IMenuTypeExtension.create(...)} — builds a
+    /** Client-side factory registered via the loader's menu type ({@code YogHost}) — builds a
      * throwaway inventory just to hold synced slot contents (same convention vanilla's
      * generic chest menu uses). */
-    public static YogInventoryMenu createClient(int windowId, Inventory playerInv, net.minecraft.network.RegistryFriendlyByteBuf buf) {
+    public static YogInventoryMenu createClient(int windowId, Inventory playerInv, net.minecraft.network.FriendlyByteBuf buf) {
         String defId = buf.readUtf();
         YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
         int slotCount = def != null ? def.slotCount : 0;

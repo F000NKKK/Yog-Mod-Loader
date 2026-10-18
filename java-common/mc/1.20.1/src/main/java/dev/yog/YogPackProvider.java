@@ -10,7 +10,6 @@ import net.minecraft.server.packs.PathPackResources;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.server.packs.repository.RepositorySource;
-import net.minecraftforge.fml.loading.FMLPaths;
 
 /**
  * Exposes the {@code assets/} and {@code data/} bundled inside {@code .yog} mods
@@ -33,7 +32,7 @@ public class YogPackProvider implements RepositorySource {
     public void loadPacks(Consumer<Pack> adder) {
         Path dir;
         try {
-            dir = YogPackStager.stage(FMLPaths.GAMEDIR.get(), "neoforge", "1.20.1", MC121_LAYOUT, PACK_MCMETA,
+            dir = YogPackStager.stage(YogPlatform.gameDir(), YogPlatform.LOADER, "1.20.1", MC121_LAYOUT, PACK_MCMETA,
                     NativeBridge::nativeContent);
         } catch (IOException e) {
             YogLog.warn("failed to stage mod packs: " + e);
