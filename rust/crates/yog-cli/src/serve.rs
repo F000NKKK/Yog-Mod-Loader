@@ -68,9 +68,7 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
         "media.import" => {
             let file = path_param(params, "file")?;
             let bytes = std::fs::read(&file).map_err(|e| json!(format!("{}: {e}", file.display())))?;
-            let value = yog_formats::yres::Value::Bytes(bytes);
-            let kind = yog_formats::yres::kind_of(&value);
-            let yog_formats::yres::Value::Bytes(bytes) = value else { unreachable!("made as bytes") };
+            let kind = yog_formats::yres::kind_of(&yog_formats::yres::Value::Bytes(bytes.clone()));
             Ok(json!({ "value": yog_data::typed::typed_string(&yog_data::Value::Bytes(bytes)), "type": kind.name() }))
         }
         // The service's version: a tool restarts it when the binary changes.
@@ -100,6 +98,11 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
                 .map(|t| json!({ "id": t.id, "file": t.file, "image": format!("{}{}.{}", yog_ids::sep::TYPED, t.texture.image.set, t.texture.image.key), "atlas": t.texture.atlas }))
                 .collect();
             Ok(Value::Array(list))
+        }
+        // Whether texture `id` is the mod's own (it can be painted in place, or added).
+        "media.is_own_texture" => {
+            let root = mod_root(&path_param(params, "path")?)?;
+            Ok(json!(crate::media::is_own_texture(&root, str_param(params, "id")?)))
         }
         // The mod's pictures: set, name, path, file (no bytes).
         "media.pictures" => {
