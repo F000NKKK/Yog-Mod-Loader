@@ -54,6 +54,14 @@ pub const BOOK_SHEET: &str = "yog:gui/book/book";
 /// The image source the book draws [`CRAFTING_PNG`] as.
 pub const CRAFTING_SHEET: &str = "yog:gui/book/crafting";
 
+/// Blocks shown at a slot's angle (a station), as the game shows a block
+/// item; a multiblock turns slowly about the vertical, swaying this far.
+const SLOT_YAW: f32 = 225.0;
+const MULTIBLOCK_YAW: f32 = -45.0;
+const MULTIBLOCK_SWAY: f32 = 20.0;
+/// How far blocks are tilted toward the viewer.
+const BLOCK_PITCH: f32 = 30.0;
+
 // ── Background sprite (texture blit, drawn before yog-ui) ────────────────────
 
 #[derive(Clone, PartialEq)]
@@ -99,13 +107,15 @@ pub(crate) enum OverlayCmd {
         w: f32,
         h: f32,
     },
-    /// Blocks in 3D, turning.
+    /// Blocks in 3D.
     Blocks {
         blocks: Vec<((i32, i32, i32), String)>,
         x: f32,
         y: f32,
         w: f32,
         h: f32,
+        /// Slowly turning (a multiblock on show), else at a slot's angle (a station).
+        turning: bool,
     },
     /// A living entity standing in the box.
     Entity {
@@ -573,10 +583,12 @@ impl BookRenderer {
                     y,
                     w,
                     h,
+                    turning,
                 } => {
                     let list: Vec<((i32, i32, i32), &str)> =
                         blocks.iter().map(|(p, b)| (*p, b.as_str())).collect();
-                    d2.blocks(&list, Rect::new(x, y, w, h), -45.0 + t * 20.0, 30.0);
+                    let yaw = if turning { MULTIBLOCK_YAW + t * MULTIBLOCK_SWAY } else { SLOT_YAW };
+                    d2.blocks(&list, Rect::new(x, y, w, h), yaw, BLOCK_PITCH);
                 }
                 _ => {}
             }
@@ -1535,6 +1547,10 @@ fn draw_layout(
                     });
                 }
             }
+            LayoutPart::Block { block, at: p } => {
+                let (x, y) = at(*p);
+                overlays.push(OverlayCmd::Blocks { blocks: vec![((0, 0, 0), block.clone())], x, y, w: icon_s, h: icon_s, turning: false });
+            }
             LayoutPart::Item { item, at: p } => {
                 let (x, y) = at(*p);
                 overlays.push(OverlayCmd::McItem {
@@ -1732,6 +1748,7 @@ fn build_page(
                 y: oy + top * sy,
                 w: MB_VIEW * sx,
                 h: MB_VIEW * sy,
+                turning: true,
             });
             col = col.child(widget::spacer().h(MB_VIEW * sy));
             if let Some(t) = text {

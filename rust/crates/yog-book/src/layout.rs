@@ -85,6 +85,10 @@ pub enum LayoutPart {
         item: String,
         at: [f32; 2],
     },
+    /// A block in 3D, at a slot's angle (a station that's a block: the
+    /// brewing stand with its bottles): a full block state
+    /// (`minecraft:brewing_stand[has_bottle_0=true]`).
+    Block { block: String, at: [f32; 2] },
     /// Text; `{name}` is the recipe's value of that name.
     Text { text: String, at: [f32; 2] },
 }
@@ -207,12 +211,18 @@ pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
                 let item = if item.contains(':') { item } else { format!("minecraft:{item}") };
                 parts.push(LayoutPart::Item { item, at: at(el)? });
             }
+            "BlockSlot" => {
+                let block = el.attr("block").map(Ok).unwrap_or_else(|| err(el, "needs block=\"…\" (a block state: minecraft:brewing_stand[has_bottle_0=true])"))?;
+                let block = block.trim().trim_start_matches("@block:").to_string();
+                let block = if block.split('[').next().is_some_and(|id| id.contains(':')) { block } else { format!("minecraft:{block}") };
+                parts.push(LayoutPart::Block { block, at: at(el)? });
+            }
             "Label" => {
                 let text = el.attr("text").map(Ok).unwrap_or_else(|| err(el, "needs text=\"…\""))?;
                 parts.push(LayoutPart::Text { text: text.replace("{x:Bind ", "{"), at: at(el)? });
             }
             other => {
-                return err(el, format_args!("not a recipe layout's element (`{other}`) — Image, RecipeSlot, RecipeResult, RecipeCount, ItemSlot, Label"));
+                return err(el, format_args!("not a recipe layout's element (`{other}`) — Image, RecipeSlot, RecipeResult, RecipeCount, ItemSlot, BlockSlot, Label"));
             }
         }
     }
