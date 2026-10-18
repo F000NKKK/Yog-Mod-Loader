@@ -118,6 +118,7 @@ public final class YogNames {
         public static final String RESOURCES = "resources";
         public static final String CONTENT = "content";
         public static final String SRC = "src";
+        public static final String BUILD = ".yog-build";
     }
 
     public static final class Program {

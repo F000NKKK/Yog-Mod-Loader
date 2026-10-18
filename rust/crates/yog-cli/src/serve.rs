@@ -9,7 +9,7 @@
 //! ← {"id": 2, "error": "…"}
 //! ```
 //!
-//! Methods: see [`dispatch`].
+//! Methods: see [`dispatch`] and the designers' (`design::service`).
 
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
@@ -144,16 +144,14 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
             let animation = params.get("mcmeta").filter(|m| !m.is_null()).and_then(yog_formats::texture::Animation::from_mcmeta);
             crate::media::save_texture_animation(&root, str_param(params, "id")?, animation).map(|f| json!(f)).map_err(Value::from)
         }
-        other => Err(json!(format!("no method `{other}`"))),
+        // The designers: drawing, pickers' choices, edits of a mod's files.
+        other => crate::design::service::dispatch(other, params).unwrap_or_else(|| Err(json!(format!("no method `{other}`")))),
     }
 }
 
 /// The mod a file is in (the folder with its manifest, up from it).
 fn mod_root(file: &Path) -> Result<PathBuf, Value> {
-    file.ancestors()
-        .find(|p| p.join(yog_ids::file::MANIFEST).is_file())
-        .map(Path::to_path_buf)
-        .ok_or_else(|| json!(format!("{} isn't in a mod", file.display())))
+    crate::design::project::mod_root(file).ok_or_else(|| json!(format!("{} isn't in a mod", file.display())))
 }
 
 fn yres_parse(text: &str, set_and_mod: Option<(&str, &str)>) -> Result<Value, Value> {

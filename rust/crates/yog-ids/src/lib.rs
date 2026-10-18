@@ -156,6 +156,8 @@ names! {
         CONTENT = "content",
         /// Its code and screens.
         SRC = "src",
+        /// Where `yog build` writes: the generated crate, generated code, listings.
+        BUILD = ".yog-build",
     }
 
     /// Yog's programs.

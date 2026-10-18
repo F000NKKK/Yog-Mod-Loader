@@ -10,6 +10,7 @@ pub mod book_page;
 pub mod recipe_area;
 pub mod cargo_toml;
 pub mod content;
+pub mod design;
 pub mod exports;
 pub mod manifest;
 pub mod media;

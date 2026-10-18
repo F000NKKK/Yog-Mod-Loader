@@ -17,7 +17,7 @@ path = "src/main.rs"
 yog-ids = { workspace = true }
 yog-media = { workspace = true }
 # `yog publish exports` reads `#[yog_export]` items with syn, by their exact text.
-syn = { workspace = true }
+syn = { workspace = true, features = ["visit"] }
 proc-macro2 = { workspace = true, features = ["span-locations"] }
 zip = { workspace = true }
 serde_json = { workspace = true }
@@ -34,6 +34,22 @@ yog-registry = { workspace = true }
 yog-data = { workspace = true, features = ["toml"] }
 # The schemas of the source formats.
 yog-formats = { workspace = true }
+# The designers (`design`): screens drawn by yog-ui through a recording
+# `YogGfxApi`, with Minecraft's font and textures from the local client jar;
+# a mod's library loaded to draw its custom components; terrain previews.
+yog-abi = { workspace = true }
+yog-graphics = { workspace = true }
+yog-worldgen = { workspace = true }
+serde = { workspace = true }
+toml = { workspace = true, features = ["std", "parse"] }
+resvg = { workspace = true }
+fontdue = { workspace = true }
+png = { workspace = true }
+libloading = { workspace = true }
+quick-xml = { workspace = true }
+# A .gitignore-aware walk of the mod's sources; where the game's client jars are.
+ignore = { workspace = true }
+dirs = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
@@ -53,4 +69,8 @@ harness = false
 
 [[bench]]
 name = "content"
+harness = false
+
+[[bench]]
+name = "design"
 harness = false

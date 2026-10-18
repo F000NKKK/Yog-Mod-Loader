@@ -61,6 +61,10 @@ fn main() {
         Some("bench") => run_benches(&args[2..]),
         Some("serve") => yog_cli::serve::run(),
         Some("designer-lib") => designer_lib(),
+        Some(yog_cli::design::host::COMMAND) => {
+            yog_cli::design::host::serve();
+            Ok(())
+        }
         Some("new") => new_mod(args.get(2).map(String::as_str)),
         Some("setup") => setup(),
         Some("doctor") => {
