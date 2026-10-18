@@ -66,11 +66,10 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.fml.loading.FMLPaths;
 import java.util.Map;
 
 /**
- * Bridge between the NeoForge host and the native Yog runtime ({@code libyog_runtime}).
+ * Bridge between the host (any loader: {@link YogPlatform}) and the native Yog runtime ({@code libyog_runtime}).
  * Calls into Rust go through the {@code native} methods; calls back from Rust into
  * the game are static methods invoked over JNI.
  */
@@ -156,13 +155,16 @@ public final class NativeBridge {
     /** Send a raw-byte packet to everyone who sees entity {@code uuid}, and to it if a player. */
     public static boolean sendToTracking(String uuid, String channel, byte[] data) {
         Entity e = entityByUuid(uuid);
-        return e != null && YogNetworkBridge.sendToTracking(e, channel, data);
+        if (e == null) return false;
+        YogPlatform.sendToTracking(e, channel, data);
+        return true;
     }
 
     public static boolean sendToPlayer(String player, String channel, byte[] data) {
         ServerPlayer p = playerByName(player);
         if (p == null) return false;
-        return YogNetworkBridge.sendToPlayer(p, channel, data);
+        YogPlatform.sendToClient(p, channel, data);
+        return true;
     }
 
     private static ServerPlayer playerByName(String name) {
@@ -424,7 +426,7 @@ public final class NativeBridge {
 
     public static String gameDir() {
         MinecraftServer s = server;
-        if (s == null) return FMLPaths.GAMEDIR.get().toAbsolutePath().toString();
+        if (s == null) return YogPlatform.gameDir().toAbsolutePath().toString();
         return s.getServerDirectory().getAbsolutePath();
     }
 
@@ -552,7 +554,7 @@ public final class NativeBridge {
         if (e.isAlive()) flags |= YogEntityFlags.ALIVE;
         if (e.isSpectator()) flags |= YogEntityFlags.SPECTATOR;
         if (e instanceof net.minecraft.world.entity.boss.EnderDragonPart
-                || e instanceof net.minecraftforge.entity.PartEntity<?>) flags |= YogEntityFlags.PART;
+                || YogPlatform.isPart(e)) flags |= YogEntityFlags.PART;
         if (e instanceof net.minecraft.world.entity.npc.Villager) flags |= YogEntityFlags.VILLAGER;
         if (e.isShiftKeyDown()) flags |= YogEntityFlags.SNEAKING;
         if (e.onGround()) flags |= YogEntityFlags.ON_GROUND;
@@ -1446,7 +1448,7 @@ public final class NativeBridge {
     public static synchronized void ensureLoaded() {
         if (loaded) return;
         YogNativeRuntime.loadEmbedded();
-        nativeInit(YogNativeRuntime.modsDir(FMLPaths.GAMEDIR.get()));
+        nativeInit(YogNativeRuntime.modsDir(YogPlatform.gameDir()));
         loaded = true;
     }
 
@@ -1597,16 +1599,18 @@ public final class NativeBridge {
     /** TSV lines: id \t name \t version \t authors \t description. */
     public static String listPlatformMods() {
         StringBuilder sb = new StringBuilder();
-        for (var info : net.minecraftforge.fml.ModList.get().getMods()) {
+        for (dev.yog.util.YogModInfo info : YogPlatform.mods()) {
             if (sb.length() > 0) sb.append('\n');
-            sb.append(tsvField(info.getModId())).append('\t')
-              .append(tsvField(info.getDisplayName())).append('\t')
-              .append(tsvField(info.getVersion().toString())).append('\t')
-              .append('\t')
-              .append(tsvField(info.getDescription()));
+            sb.append(tsvField(info.id())).append('\t')
+              .append(tsvField(info.name())).append('\t')
+              .append(tsvField(info.version())).append('\t')
+              .append(tsvField(info.authors())).append('\t')
+              .append(tsvField(info.description()));
         }
         return sb.toString();
     }
+
+    // ── Inventory bridge (yog-ui ↔ YogInventoryMenu) ──────────────────────────
 
     public static YogInventoryMenu activeInventoryMenu;
 
@@ -1682,7 +1686,7 @@ public final class NativeBridge {
     /** Whether Java mod {@code id} is loaded (Yog mods are the runtime's to know). */
     public static boolean isModLoaded(String id) {
         try {
-            return net.minecraftforge.fml.ModList.get() != null && net.minecraftforge.fml.ModList.get().isLoaded(id);
+            return YogPlatform.isModLoaded(id);
         } catch (Throwable t) {
             return false;
         }
