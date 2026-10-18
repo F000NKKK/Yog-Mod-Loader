@@ -41,15 +41,29 @@ public final class YogPlatform {
     }
 
     public static void sendToClient(ServerPlayer p, String channel, byte[] data) {
-        YogNetworkBridge.sendToPlayer(p, channel, data);
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new YogPayload(channel, data));
     }
 
     /** Raw bytes to everyone who sees {@code e}, and to it if a player. */
     public static void sendToTracking(Entity e, String channel, byte[] data) {
-        YogNetworkBridge.sendToTracking(e, channel, data);
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(e, new YogPayload(channel, data));
     }
 
     public static void sendToServer(String channel, byte[] data) {
-        YogNetworkBridge.sendToServer(channel, data);
+        net.neoforged.neoforge.network.PacketDistributor.sendToServer(new YogPayload(channel, data));
+    }
+
+    public static net.minecraft.world.item.CreativeModeTab.Builder tabBuilder() {
+        return net.minecraft.world.item.CreativeModeTab.builder();
+    }
+
+    /** The menu type of the mods' inventories: the inventory's id comes with the screen. */
+    public static net.minecraft.world.inventory.MenuType<YogInventoryMenu> inventoryMenuType() {
+        return net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(YogInventoryMenu::createClient);
+    }
+
+    /** Opens {@code be}'s inventory for {@code p}, its id sent along. */
+    public static void openInventory(ServerPlayer p, YogInventoryBlockEntity be) {
+        p.openMenu(be, buf -> buf.writeUtf(be.defId()));
     }
 }

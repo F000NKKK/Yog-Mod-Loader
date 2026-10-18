@@ -23,6 +23,7 @@
         "HudRenderMixin",
         "BodyRenderMixin",
         "CameraMixin",
+        "ViewMixin",
         "KeyboardMixin",
         "ModelPartAccess",
         "TravelMixin",

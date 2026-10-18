@@ -17,7 +17,7 @@ import net.minecraft.world.item.ItemStack;
  * Generic Container/Menu for any Yog inventory-backed block — see
  * rust/crates/yog-inventory/DESIGN.md. Slot layout (custom slots + optional
  * player-inventory grid underneath) comes from the matching `InventoryDef`
- * (cached in {@link YogHost#INVENTORY_DEFS}), shared identically by client
+ * (cached in {@link YogContentRegistry#INVENTORY_DEFS}), shared identically by client
  * and server since mod registration code runs the same on both sides — only
  * slot *contents* need syncing, which vanilla's `AbstractContainerMenu` does for us.
  */
@@ -43,16 +43,16 @@ public class YogInventoryMenu extends AbstractContainerMenu {
      * generic chest menu uses). */
     public static YogInventoryMenu createClient(int windowId, Inventory playerInv, net.minecraft.network.FriendlyByteBuf buf) {
         String defId = buf.readUtf();
-        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
         int slotCount = def != null ? def.slotCount : 0;
         return new YogInventoryMenu(windowId, playerInv, new SimpleContainer(slotCount), defId);
     }
 
     private YogInventoryMenu(int windowId, Inventory playerInv, Container inv, String defId) {
-        super(YogHost.INVENTORY_MENU_TYPE, windowId);
+        super(YogContentRegistry.INVENTORY_MENU_TYPE, windowId);
         this.inventory = inv;
         this.defId = defId;
-        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
         this.customSlotCount = def != null ? def.slotCount : inv.getContainerSize();
         inv.startOpen(playerInv.player);
         if (def != null && def.isMachine() && inv instanceof YogInventoryBlockEntity be && be.getLevel() != null && !be.getLevel().isClientSide) {
@@ -154,7 +154,7 @@ public class YogInventoryMenu extends AbstractContainerMenu {
                     machineItems(), player.getName().getString());
         } catch (UnsatisfiedLinkError ignored) {
         }
-        YogInventoryDef def = YogHost.INVENTORY_DEFS.get(defId);
+        YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
         for (int p : def.machinePlaces) {
             if (p >= inventory.getContainerSize() || inventory.getItem(p).isEmpty()) continue;
             // What an ingredient leaves (a milk bucket's bucket): in its slot if that's empty, else the player's.

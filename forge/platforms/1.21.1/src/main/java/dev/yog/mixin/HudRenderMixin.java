@@ -21,17 +21,6 @@ public abstract class HudRenderMixin {
 
     @Inject(method = "render", at = @At("TAIL"))
     private void yog$onHudRender(GuiGraphics ctx, DeltaTracker delta, CallbackInfo ci) {
-        NativeBridge.nativeGlInit();  // no-op after first call; GL is active here
-        NativeDraw.hudDrawContext = ctx;
-        Minecraft mc = Minecraft.getInstance();
-        var playerPos = mc.player != null ? mc.player.getEyePosition() : net.minecraft.world.phys.Vec3.ZERO;
-        NativeBridge.nativeOnHudRender(
-            delta.getGameTimeDeltaPartialTick(false),
-            mc.getWindow().getGuiScaledWidth(),
-            mc.getWindow().getGuiScaledHeight(),
-            (float) mc.getWindow().getGuiScale(),
-            (float) playerPos.x, (float) playerPos.y, (float) playerPos.z);
-        NativeDraw.hudDrawContext = null;
-        NativeDraw.syncGlState(); // raw GL from Rust desyncs GlStateManager caches
+        dev.yog.YogClientEvents.hud(ctx, delta.getGameTimeDeltaPartialTick(false));
     }
 }

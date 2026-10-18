@@ -59,7 +59,7 @@ public final class YogTools {
             defense.put(ArmorItem.Type.BODY, m.chest());
             ResourceLocation texture = ResourceLocation.tryParse(m.texture());
             net.minecraft.world.item.ArmorMaterial material = new net.minecraft.world.item.ArmorMaterial(defense, m.enchantability(),
-                    BuiltInRegistries.SOUND_EVENT.wrapAsHolder(YogHost.soundEvent(m.equipSound())), () -> repair(m.repair()),
+                    BuiltInRegistries.SOUND_EVENT.wrapAsHolder(YogContentRegistry.soundEvent(m.equipSound())), () -> repair(m.repair()),
                     texture == null ? List.of() : List.of(new net.minecraft.world.item.ArmorMaterial.Layer(texture)),
                     m.toughness(), m.knockbackResistance());
             ArmorItem.Type type = armorType(a.slot());
