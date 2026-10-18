@@ -284,7 +284,7 @@ pub(super) fn kind_models(
         if let (Some(layer), Value::Object(o)) = (render_layer, &mut json) {
             o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
         }
-        emit(cx, format!("models/block/{}.json", path(name)), &json);
+        emit(cx, yog_ids::model_file(&format!("{}{}", yog_ids::res::BLOCK_DIR, path(name))), &json);
     }
     let shown = |km: &yog_formats::content::KindModel| variant(&id(&km.model), km.x.unwrap_or(0) as f64, km.y.unwrap_or(0) as f64, km.uvlock, None);
     let blockstate = if k.multipart.is_empty() {
@@ -305,7 +305,7 @@ pub(super) fn kind_models(
             .collect();
         json!({ "multipart": parts })
     };
-    emit(cx, format!("blockstates/{p}.json"), &blockstate);
+    emit(cx, yog_ids::blockstate_file(p), &blockstate);
     k.item.as_deref().map(id)
 }
 

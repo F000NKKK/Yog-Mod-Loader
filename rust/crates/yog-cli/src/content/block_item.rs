@@ -242,7 +242,7 @@ pub(super) fn compile_file(
         if entry.potion.is_some() {
             if let Some(item_model) = parts.model.as_ref() {
                 let m = model(cx, loc, &root.key("model"), item_model, true)?;
-                emit(cx, format!("models/item/{p}.json"), &m.json);
+                emit(cx, yog_ids::model_file(&format!("{}{p}", yog_ids::res::ITEM_DIR)), &m.json);
             }
             return Some(entry);
         }
@@ -251,7 +251,7 @@ pub(super) fn compile_file(
             return None;
         };
         let m = model(cx, loc, &root.key("model"), item_model, true)?;
-        emit(cx, format!("models/item/{p}.json"), &m.json);
+        emit(cx, yog_ids::model_file(&format!("{}{p}", yog_ids::res::ITEM_DIR)), &m.json);
         emit(cx, format!("items/{p}.json"), &json!({ "model": { "type": "minecraft:model", "model": format!("{ns}:item/{p}") } }));
         return Some(entry);
     }
@@ -350,7 +350,7 @@ pub(super) fn compile_file(
                 .map(|b| [b[0].max(0.0), b[1].max(0.0), b[2].max(0.0), b[3].min(16.0), b[4].min(16.0), b[5].min(16.0)]);
         }
         let main = format!("{ns}:block/{p}");
-        emit(cx, format!("models/block/{p}.json"), &m.json);
+        emit(cx, yog_ids::model_file(&format!("{}{p}", yog_ids::res::BLOCK_DIR)), &m.json);
 
         // Block states.
         let mut rotations: Vec<Value> = Vec::new();
@@ -381,7 +381,7 @@ pub(super) fn compile_file(
                     if let (Some(layer), Value::Object(o)) = (&render_layer, &mut json) {
                         o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
                     }
-                    emit(cx, format!("models/block/{p}_arm.json"), &json);
+                    emit(cx, yog_ids::model_file(&format!("{}{p}_arm", yog_ids::res::BLOCK_DIR)), &json);
                     arm = Some((format!("{ns}:block/{p}_arm"), c.uvlock));
                 }
                 entry.block.connects = true;
@@ -474,7 +474,7 @@ pub(super) fn compile_file(
                     if let (Some(layer), Value::Object(o)) = (&render_layer, &mut m.json) {
                         o.insert("render_type".into(), Value::String(format!("minecraft:{layer}")));
                     }
-                    emit(cx, format!("models/block/{p}/{name}.json"), &m.json);
+                    emit(cx, yog_ids::model_file(&format!("{}{p}/{name}", yog_ids::res::BLOCK_DIR)), &m.json);
                     named.insert(name.clone(), format!("{ns}:block/{p}/{name}"));
                 }
             }
@@ -554,7 +554,7 @@ pub(super) fn compile_file(
                 json!({ "multipart": parts })
             }
         };
-        emit(cx, format!("blockstates/{p}.json"), &blockstate);
+        emit(cx, yog_ids::blockstate_file(&p), &blockstate);
         Some(main)
     };
 
@@ -568,7 +568,7 @@ pub(super) fn compile_file(
         (Some(im), _) => model(cx, loc, &root.key("item_model"), im, true).map(|m| m.json),
     };
     if let Some(im) = item_model {
-        emit(cx, format!("models/item/{p}.json"), &im);
+        emit(cx, yog_ids::model_file(&format!("{}{p}", yog_ids::res::ITEM_DIR)), &im);
     }
     emit(cx, format!("items/{p}.json"), &json!({ "model": { "type": "minecraft:model", "model": format!("{ns}:item/{p}") } }));
 

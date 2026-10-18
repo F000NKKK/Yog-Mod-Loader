@@ -9,6 +9,7 @@ description = "Yog content registry — register items, blocks, recipes, etc."
 
 [dependencies]
 yog-ids = { workspace = true }
+yog-graphics = { workspace = true }
 # Definitions cross the ABI as Yog Data (`register_content`).
 yog-data = { workspace = true }
 serde = { workspace = true, optional = true }

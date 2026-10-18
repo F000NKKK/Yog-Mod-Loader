@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 pub mod effects;
 pub mod recipe_kinds;
 pub mod loot;
+pub mod item_looks;
 pub mod tool_levels;
 
 /// What a `.yog` registers when the game starts — content the game can't
@@ -47,6 +48,7 @@ pub fn registration_changes(registered: &str, new: &str) -> (Vec<String>, Vec<St
 }
 pub use effects::{AttributeDef, Brew, EffectCategory, EffectDef, EffectModifier, ModifierOperation, PotionDef, PotionEffect};
 pub use loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
+pub use item_looks::{ItemLooks, ItemTint, LookModels};
 pub use tool_levels::{LevelTag, ToolLadder, ToolLevel};
 
 // ── Items ────────────────────────────────────────────────────────────────────

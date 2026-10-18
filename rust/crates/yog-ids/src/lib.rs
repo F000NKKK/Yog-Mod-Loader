@@ -150,6 +150,10 @@ names! {
     res {
         /// The textures' folder: `<ns>:textures/<path>.png`.
         TEXTURES = concatcp!("textures", sep::PATH),
+        /// The models' folder: `<ns>:models/<path>.json`.
+        MODELS = concatcp!("models", sep::PATH),
+        /// The block states' folder: `<ns>:blockstates/<path>.json`.
+        BLOCKSTATES = concatcp!("blockstates", sep::PATH),
         /// Items' textures and models: `item/apple`.
         ITEM_DIR = concatcp!(kind::ITEM, sep::PATH),
         /// Blocks' textures and models: `block/stone`.
@@ -280,6 +284,24 @@ impl Format {
     pub fn file(self, name: &str) -> String {
         format!("{name}.{}", self.ext())
     }
+}
+
+/// Texture `path`'s file under its namespace: `block/stone` → `textures/block/stone.png`.
+#[must_use]
+pub fn texture_file(path: &str) -> String {
+    format!("{}{path}{}", res::TEXTURES, res::PNG)
+}
+
+/// Model `path`'s file: `item/apple` → `models/item/apple.json`.
+#[must_use]
+pub fn model_file(path: &str) -> String {
+    format!("{}{path}{}", res::MODELS, res::JSON)
+}
+
+/// Block `path`'s states' file: `stone` → `blockstates/stone.json`.
+#[must_use]
+pub fn blockstate_file(path: &str) -> String {
+    format!("{}{path}{}", res::BLOCKSTATES, res::JSON)
 }
 
 /// The game's registry of content `kind` — what its tags' and data's

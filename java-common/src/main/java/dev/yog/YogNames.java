@@ -116,6 +116,8 @@ public final class YogNames {
         private Res() {}
 
         public static final String TEXTURES = "textures/";
+        public static final String MODELS = "models/";
+        public static final String BLOCKSTATES = "blockstates/";
         public static final String ITEM_DIR = "item/";
         public static final String BLOCK_DIR = "block/";
         public static final String GUI_SPRITES = "gui/sprites/";

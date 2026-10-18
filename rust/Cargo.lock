@@ -1678,6 +1678,7 @@ dependencies = [
  "serde",
  "serde_json",
  "yog-data",
+ "yog-graphics",
  "yog-ids",
 ]
 
