@@ -77,7 +77,7 @@ resvg = { version = "0.48", default-features = false }
 serde_spanned = "1"
 toml = { version = "1", default-features = false }
 yog-abi = { version = "0.30.10", path = "crates/yog-abi" }
-yog-api = { version = "0.100.0", path = "crates/yog-api" }
+yog-api = { version = "0.100.1", path = "crates/yog-api" }
 yog-body = { version = "0.4.0", path = "crates/yog-body" }
 yog-book = { version = "0.69.0", path = "crates/yog-book" }
 yog-command = { version = "0.2.1", path = "crates/yog-command" }
