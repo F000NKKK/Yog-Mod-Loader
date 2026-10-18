@@ -41,7 +41,7 @@ public class YogMob extends PathAwareEntity {
                 case "look_around" -> goalSelector.add(priority, new LookAroundGoal(this));
                 case "avoid_player" -> goalSelector.add(priority, new FleeEntityGoal<>(this, PlayerEntity.class, 8.0F, 1.0, 1.2));
                 case "target_player" -> targetSelector.add(priority, new ActiveTargetGoal<>(this, PlayerEntity.class, true));
-                default -> System.err.println("[yog] " + def.id() + ": no AI goal `" + goal + "`");
+                default -> YogLog.warn("" + def.id() + ": no AI goal `" + goal + "`");
             }
             priority++;
         }

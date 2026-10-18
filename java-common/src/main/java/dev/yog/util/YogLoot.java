@@ -1,5 +1,7 @@
 package dev.yog.util;
 
+import dev.yog.YogLog;
+
 import dev.yog.data.YogData;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -48,7 +50,7 @@ public final class YogLoot {
         try {
             out = nativeLoot.apply(YogData.encode(loot));
         } catch (Throwable t) {
-            System.err.println("[yog] loot " + ctx.table() + ": " + t);
+            YogLog.warn("loot " + ctx.table() + ": " + t);
             return null;
         }
         if (out == null) return null;

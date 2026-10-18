@@ -26,7 +26,7 @@ public final class YogDevReload {
         try {
             done.get(120, java.util.concurrent.TimeUnit.SECONDS);
         } catch (Exception e) {
-            System.err.println("[yog] reloading data after a hot reload: " + e);
+            YogLog.warn("reloading data after a hot reload: " + e);
         }
     }
 }

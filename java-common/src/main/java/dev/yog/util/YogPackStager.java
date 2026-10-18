@@ -1,5 +1,7 @@
 package dev.yog.util;
 
+import dev.yog.YogLog;
+
 import com.google.gson.Gson;
 import dev.yog.data.YogContent;
 import com.google.gson.JsonObject;
@@ -183,7 +185,7 @@ public final class YogPackStager {
                 Files.createDirectories(target.getParent());
                 Files.writeString(target, vanilla);
             } catch (IOException e) {
-                System.err.println("[yog] failed to write recipe " + namespace + ":" + name + ": " + e);
+                YogLog.warn("failed to write recipe " + namespace + ":" + name + ": " + e);
             }
         }
     }
@@ -263,7 +265,7 @@ public final class YogPackStager {
                 Files.writeString(dtPath, gson.toJson(dimensionType));
                 Files.writeString(dPath, gson.toJson(dimension));
             } catch (Exception e) {
-                System.err.println("[yog] failed to inject dimension '" + id + "': " + e);
+                YogLog.warn("failed to inject dimension '" + id + "': " + e);
             }
         }
     }

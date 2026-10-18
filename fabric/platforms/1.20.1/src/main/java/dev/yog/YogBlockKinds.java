@@ -50,7 +50,7 @@ final class YogBlockKinds {
     static Block make(AbstractBlock.Settings settings, YogContent.Block p, Function<String, Block> blocks) {
         Maker maker = KINDS.get(p.kind());
         if (maker == null) {
-            System.err.println("[yog] block " + p.id() + ": no kind of block `" + p.kind() + "` — a plain block");
+            YogLog.warn("block " + p.id() + ": no kind of block `" + p.kind() + "` — a plain block");
             return new Block(settings);
         }
         return maker.make(settings, p, blocks);
@@ -59,7 +59,7 @@ final class YogBlockKinds {
     private static BlockState base(YogContent.Block p, Function<String, Block> blocks) {
         Block base = p.base() == null ? null : blocks.apply(p.base());
         if (base == null) {
-            System.err.println("[yog] block " + p.id() + ": no base block " + p.base());
+            YogLog.warn("block " + p.id() + ": no base block " + p.base());
             base = Blocks.AIR;
         }
         return base.getDefaultState();
@@ -69,7 +69,7 @@ final class YogBlockKinds {
     private static BlockSetType blockSet(YogContent.Block p) {
         String name = p.set() == null ? BlockSetType.OAK.name() : p.set();
         return BlockSetType.stream().filter(t -> t.name().equals(name)).findFirst().orElseGet(() -> {
-            System.err.println("[yog] block " + p.id() + ": no block set " + name + " — oak");
+            YogLog.warn("block " + p.id() + ": no block set " + name + " — oak");
             return BlockSetType.OAK;
         });
     }
@@ -78,7 +78,7 @@ final class YogBlockKinds {
     private static WoodType woodType(YogContent.Block p) {
         String name = p.set() == null ? WoodType.OAK.name() : p.set();
         return WoodType.stream().filter(t -> t.name().equals(name)).findFirst().orElseGet(() -> {
-            System.err.println("[yog] block " + p.id() + ": no wood type " + name + " — oak");
+            YogLog.warn("block " + p.id() + ": no wood type " + name + " — oak");
             return WoodType.OAK;
         });
     }

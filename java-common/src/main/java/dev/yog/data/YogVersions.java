@@ -1,5 +1,7 @@
 package dev.yog.data;
 
+import dev.yog.YogLog;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -37,7 +39,7 @@ public final class YogVersions {
                 out.put("minecraft:" + p[2], "minecraft:" + p[1]);
             }
         } catch (Exception e) {
-            System.err.println("[yog] yog/renames.txt: " + e);
+            YogLog.warn("yog/renames.txt: " + e);
         }
         return out;
     }

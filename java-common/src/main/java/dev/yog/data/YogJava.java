@@ -1,5 +1,7 @@
 package dev.yog.data;
 
+import dev.yog.YogLog;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -37,7 +39,7 @@ public final class YogJava {
             for (int i = 0; i < values.length; i++) values[i] = toJava(list.get(i));
             return YogData.encode(toData(eval(expr.trim(), values)));
         } catch (Throwable t) {
-            System.err.println("[yog] java_call " + expr + ": " + t);
+            YogLog.warn("java_call " + expr + ": " + t);
             return null;
         }
     }

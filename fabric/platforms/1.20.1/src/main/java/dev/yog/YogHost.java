@@ -77,7 +77,7 @@ public class YogHost implements ModInitializer {
     @Override
     public void onInitialize() {
         NativeBridge.ensureLoaded();
-        System.out.println("[yog] Fabric host initialised.");
+        YogLog.info("Fabric host initialised.");
 
         // Register mod-declared content now, before the registries freeze.
         registerContent();
@@ -322,7 +322,7 @@ public class YogHost implements ModInitializer {
                                 found.getWorld().getRegistryKey().getValue().toString());
                         toRemove.add(uuid);
                     } else if (retries <= 0) {
-                        System.out.println("[yog] player join: " + name + " never appeared after retries");
+                        YogLog.warn("player join: " + name + " never appeared after retries");
                         toRemove.add(uuid);
                     } else {
                         entry[1] = String.valueOf(retries - 1);
@@ -407,7 +407,7 @@ public class YogHost implements ModInitializer {
             try {
                 step = net.minecraft.world.gen.GenerationStep.Feature.valueOf(f.step().toUpperCase(java.util.Locale.ROOT));
             } catch (IllegalArgumentException e) {
-                System.err.println("[yog] " + f.feature() + ": no generation step " + f.step());
+                YogLog.warn("" + f.feature() + ": no generation step " + f.step());
                 continue;
             }
             net.fabricmc.fabric.api.biome.v1.BiomeModifications.addFeature(
@@ -599,7 +599,10 @@ public class YogHost implements ModInitializer {
             ItemGroup group = FabricItemGroup.builder()
                     .icon(() -> new ItemStack(icon))
                     .displayName(Text.literal(ns))
-                    .entries((displayContext, tabEntries) -> entries.forEach(tabEntries::add))
+                    .entries((displayContext, tabEntries) -> {
+                        entries.forEach(tabEntries::add);
+                        YogEffects.addTabStacks(ns, tabEntries::add);
+                    })
                     .build();
             Registry.register(Registries.ITEM_GROUP, new Identifier(ns, ns), group);
         }

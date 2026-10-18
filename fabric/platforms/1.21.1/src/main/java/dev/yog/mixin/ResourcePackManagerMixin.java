@@ -1,5 +1,7 @@
 package dev.yog.mixin;
 
+import dev.yog.YogLog;
+
 import java.util.HashSet;
 import java.util.Set;
 import dev.yog.YogPackProvider;
@@ -43,7 +45,7 @@ public class ResourcePackManagerMixin {
             updated.add(new YogPackProvider(type));
             this.providers = updated;
         } catch (Throwable t) {
-            System.err.println("[yog] could not register pack provider: " + t);
+            YogLog.warn("could not register pack provider: " + t);
         }
     }
 }

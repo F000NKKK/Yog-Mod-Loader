@@ -372,7 +372,7 @@ public final class NativeBridge {
             try {
                 stack.set(DataComponents.CUSTOM_DATA, CustomData.of(TagParser.parseTag(snbt)));
             } catch (Exception e) {
-                System.out.println("[yog] setInventorySlot: bad SNBT for " + item + ": " + e.getMessage());
+                YogLog.warn("setInventorySlot: bad SNBT for " + item + ": " + e.getMessage());
                 return false;
             }
         }
@@ -411,8 +411,8 @@ public final class NativeBridge {
     public static boolean teleportToDim(String playerName, String dimension, double x, double y, double z) {
         ServerPlayer p = playerByName(playerName);
         ServerLevel w = worldFor(dimension);
-        if (p == null) { System.out.println("[yog] teleportToDim: player not found: " + playerName); return false; }
-        if (w == null) { System.out.println("[yog] teleportToDim: no dimension " + dimension); return false; }
+        if (p == null) { YogLog.warn("teleportToDim: player not found: " + playerName); return false; }
+        if (w == null) { YogLog.warn("teleportToDim: no dimension " + dimension); return false; }
         p.teleportTo(w, x, y, z, p.getYRot(), p.getXRot());
         return true;
     }
@@ -1393,7 +1393,7 @@ public final class NativeBridge {
             net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
             return w.setBlock(pos, parsed, 3);
         } catch (Exception e) {
-            System.out.println("[yog] setBlockState: " + state + ": " + e.getMessage());
+            YogLog.warn("setBlockState: " + state + ": " + e.getMessage());
             return false;
         }
     }
@@ -1411,7 +1411,7 @@ public final class NativeBridge {
             }
             return changed;
         } catch (Exception e) {
-            System.out.println("[yog] fillRegion: " + state + ": " + e.getMessage());
+            YogLog.warn("fillRegion: " + state + ": " + e.getMessage());
             return -1;
         }
     }

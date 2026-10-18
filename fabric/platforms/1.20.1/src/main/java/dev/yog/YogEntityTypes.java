@@ -101,7 +101,7 @@ public final class YogEntityTypes {
                 return;
             }
         }
-        System.err.println("[yog] entity attribute " + name + ": no such attribute");
+        YogLog.warn("entity attribute " + name + ": no such attribute");
     }
 
     private static DefaultAttributeContainer.Builder attributes(YogContent.Entity def) {

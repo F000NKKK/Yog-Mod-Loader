@@ -1,5 +1,7 @@
 package dev.yog.util;
 
+import dev.yog.YogLog;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -179,7 +181,7 @@ public final class YogDataLayout {
             return toVanilla(in, namespace, mc121);
         } catch (Missing m) {
             // Content of another version: this one hasn't got it, so neither the recipe.
-            System.err.println("[yog] recipe of " + namespace + " left out: " + m.getMessage() + " isn't in this version of Minecraft or on this loader");
+            YogLog.warn("recipe of " + namespace + " left out: " + m.getMessage() + " isn't in this version of Minecraft or on this loader");
             return null;
         }
     }

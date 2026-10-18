@@ -1,5 +1,7 @@
 package dev.yog.data;
 
+import dev.yog.YogLog;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -65,7 +67,7 @@ public final class YogTags {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[yog] yog/tags.txt: " + e);
+            YogLog.warn("yog/tags.txt: " + e);
         }
     }
 

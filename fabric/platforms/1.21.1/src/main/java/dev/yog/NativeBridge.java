@@ -146,14 +146,14 @@ public final class NativeBridge {
     public static boolean giveItem(String player, String itemId, int count) {
         ServerPlayerEntity p = playerByName(player);
         Identifier id = Identifier.tryParse(itemId);
-        if (p == null) { System.out.println("[yog] giveItem: player not found: " + player); return false; }
-        if (id == null) { System.out.println("[yog] giveItem: bad id: " + itemId); return false; }
-        if (count <= 0) { System.out.println("[yog] giveItem: bad count: " + count); return false; }
+        if (p == null) { YogLog.warn("giveItem: player not found: " + player); return false; }
+        if (id == null) { YogLog.warn("giveItem: bad id: " + itemId); return false; }
+        if (count <= 0) { YogLog.warn("giveItem: bad count: " + count); return false; }
         if (!Registries.ITEM.containsId(id)) {
-            System.out.println("[yog] giveItem: item not registered: " + itemId);
+            YogLog.info("giveItem: item not registered: " + itemId);
             // List what IS registered for debugging
             if (itemId.startsWith("yog:")) {
-                System.out.println("[yog] known yog: items: " +
+                YogLog.warn("known yog: items: " +
                     Registries.ITEM.getIds().stream()
                         .filter(i -> i.getNamespace().equals("yog"))
                         .map(Identifier::toString).toList());
@@ -592,7 +592,7 @@ public final class NativeBridge {
             try {
                 stack.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(StringNbtReader.parse(snbt)));
             } catch (Exception e) {
-                System.out.println("[yog] setInventorySlot: bad SNBT for " + item + ": " + e.getMessage());
+                YogLog.warn("setInventorySlot: bad SNBT for " + item + ": " + e.getMessage());
                 return false;
             }
         }
@@ -636,8 +636,8 @@ public final class NativeBridge {
     public static boolean teleportToDim(String playerName, String dimension, double x, double y, double z) {
         ServerPlayerEntity p = playerByName(playerName);
         ServerWorld w = worldFor(dimension);
-        if (p == null) { System.out.println("[yog] teleportToDim: player not found: " + playerName); return false; }
-        if (w == null) { System.out.println("[yog] teleportToDim: no dimension " + dimension); return false; }
+        if (p == null) { YogLog.warn("teleportToDim: player not found: " + playerName); return false; }
+        if (w == null) { YogLog.warn("teleportToDim: no dimension " + dimension); return false; }
         p.teleport(w, x, y, z, p.getYaw(), p.getPitch());
         return true;
     }
@@ -1481,7 +1481,7 @@ public final class NativeBridge {
             net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(x, y, z);
             return w.setBlockState(pos, parsed);
         } catch (Exception e) {
-            System.out.println("[yog] setBlockState: " + state + ": " + e.getMessage());
+            YogLog.warn("setBlockState: " + state + ": " + e.getMessage());
             return false;
         }
     }
@@ -1499,7 +1499,7 @@ public final class NativeBridge {
             }
             return changed;
         } catch (Exception e) {
-            System.out.println("[yog] fillRegion: " + state + ": " + e.getMessage());
+            YogLog.warn("fillRegion: " + state + ": " + e.getMessage());
             return -1;
         }
     }

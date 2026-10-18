@@ -109,7 +109,7 @@ public class YogHost {
 
     public YogHost(IEventBus modBus) {
         NativeBridge.ensureLoaded();
-        System.out.println("[yog] NeoForge host initialised.");
+        YogLog.info("NeoForge host initialised.");
 
         YogNetworkBridge.init(modBus);
         parseInventoryDefs();
@@ -340,7 +340,10 @@ public class YogHost {
             CreativeModeTab tab = CreativeModeTab.builder()
                     .icon(() -> new ItemStack(icon))
                     .title(Component.literal(ns))
-                    .displayItems((params, output) -> entries.forEach(output::accept))
+                    .displayItems((params, output) -> {
+                        entries.forEach(output::accept);
+                        YogEffects.addTabStacks(ns, output::accept);
+                    })
                     .build();
             event.register(Registries.CREATIVE_MODE_TAB, ResourceLocation.fromNamespaceAndPath(ns, ns), () -> tab);
         }
@@ -394,7 +397,7 @@ public class YogHost {
                             found.level().dimension().location().toString());
                     toRemove.add(uuid);
                 } else if (retries <= 0) {
-                    System.out.println("[yog] player join: " + name + " never appeared after retries");
+                    YogLog.warn("player join: " + name + " never appeared after retries");
                     toRemove.add(uuid);
                 } else {
                     entry[1] = String.valueOf(retries - 1);

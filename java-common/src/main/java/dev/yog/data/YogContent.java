@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -120,11 +121,30 @@ public final class YogContent {
     /** A number every player has; effects change it. */
     public record Attribute(String id, double defaultValue, double min, double max) {}
 
-    /** An attribute an effect changes, by {@code amount} a level: {@code add}, {@code multiply_base}, {@code multiply_total}. */
-    public record Modifier(String attribute, double amount, String operation) {}
+    /** How a modifier changes an attribute ({@code yog_registry::ModifierOperation}). */
+    public enum Operation {
+        ADD, MULTIPLY_BASE, MULTIPLY_TOTAL;
+
+        /** The operation the data names ({@code multiply_base}); {@link #ADD} if none. */
+        static Operation of(String word) {
+            return word == null ? ADD : valueOf(word.toUpperCase(Locale.ROOT));
+        }
+    }
+
+    /** Whether an effect is good or bad for whoever has it ({@code yog_registry::EffectCategory}). */
+    public enum EffectCategory {
+        BENEFICIAL, HARMFUL, NEUTRAL;
+
+        static EffectCategory of(String word) {
+            return word == null ? NEUTRAL : valueOf(word.toUpperCase(Locale.ROOT));
+        }
+    }
+
+    /** An attribute an effect changes, by {@code amount} a level. */
+    public record Modifier(String attribute, double amount, Operation operation) {}
 
     /** A mob effect: {@code beneficial}, {@code harmful} or {@code neutral}; {@code 0xRRGGBB}. */
-    public record Effect(String id, String category, int color, List<Modifier> modifiers) {}
+    public record Effect(String id, EffectCategory category, int color, List<Modifier> modifiers) {}
 
     /** An effect a potion gives: ticks, 0 for level I. */
     public record PotionEffect(String effect, int duration, int amplifier) {}
@@ -288,9 +308,9 @@ public final class YogContent {
             List<Modifier> modifiers = new ArrayList<>();
             for (Object mo : YogData.list(m.get("modifiers"))) {
                 Map<String, Object> mm = YogData.map(mo);
-                modifiers.add(new Modifier(id(mm.get("attribute")), YogData.number(mm.get("amount"), 0), YogData.str(mm.get("operation"), "add")));
+                modifiers.add(new Modifier(id(mm.get("attribute")), YogData.number(mm.get("amount"), 0), Operation.of(YogData.str(mm.get("operation"), null))));
             }
-            c.effects.add(new Effect(YogData.str(m.get("id"), ""), YogData.str(m.get("category"), "neutral"),
+            c.effects.add(new Effect(YogData.str(m.get("id"), ""), EffectCategory.of(YogData.str(m.get("category"), null)),
                     (int) YogData.integer(m.get("color"), 0), modifiers));
         }
         for (Object o : YogData.list(root.get("potions"))) {

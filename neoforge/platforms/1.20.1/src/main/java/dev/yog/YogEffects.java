@@ -1,5 +1,10 @@
 package dev.yog;
 
+import java.util.function.Consumer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionUtils;
 import dev.yog.data.YogContent;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -50,7 +55,21 @@ final class YogEffects {
     }
 
     private static ResourceLocation potionId(String id) {
-        return id.startsWith("yog:") ? new ResourceLocation("minecraft", id.substring(4)) : id(id);
+        return new ResourceLocation(YogIds.gamePotionId(id));
+    }
+
+    /** What a potion comes in, in the order the game lists them. */
+    private static final Item[] POTION_CONTAINERS = {Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION, Items.TIPPED_ARROW};
+
+    /** Namespace {@code namespace}'s potions — as a potion, splash and lingering, a tipped arrow — for its creative tab. */
+    static void addTabStacks(String namespace, Consumer<ItemStack> out) {
+        for (YogContent.Potion p : YogContent.cached(NativeBridge::nativeContent).potions) {
+            ResourceLocation id = potionId(p.id());
+            if (YogIds.isPotionAlias(p.id()) || !id.getNamespace().equals(namespace)) continue;
+            BuiltInRegistries.POTION.getOptional(id).ifPresent(potion -> {
+                for (Item container : POTION_CONTAINERS) out.accept(PotionUtils.setPotion(new ItemStack(container), potion));
+            });
+        }
     }
 
     private static void onRegister(RegisterEvent event) {
@@ -66,18 +85,18 @@ final class YogEffects {
                 for (YogContent.PotionEffect pe : p.effects()) {
                     MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(id(pe.effect()));
                     if (effect == null) {
-                        System.err.println("[yog] potion " + p.id() + ": no effect " + pe.effect());
+                        YogLog.warn("potion " + p.id() + ": no effect " + pe.effect());
                         continue;
                     }
                     effects.add(new MobEffectInstance(effect, pe.duration(), pe.amplifier()));
                 }
                 Potion potion = new Potion(p.name(), effects.toArray(new MobEffectInstance[0]));
-                if (!p.id().startsWith("yog:potion/")) event.register(Registries.POTION, id(p.id()), () -> potion);
+                if (!YogIds.isPotionAlias(p.id())) event.register(Registries.POTION, id(p.id()), () -> potion);
             }
         } else if (event.getRegistryKey().equals(Registries.ATTRIBUTE)) {
             for (YogContent.Attribute a : content().attributes) {
                 ResourceLocation rl = id(a.id());
-                Attribute attr = new RangedAttribute("attribute.name." + rl.getNamespace() + "." + rl.getPath(),
+                Attribute attr = new RangedAttribute(YogIds.attributeNameKey(a.id()),
                         a.defaultValue(), a.min(), a.max()).setSyncable(true);
                 ATTRIBUTES.put(a.id(), attr);
                 event.register(Registries.ATTRIBUTE, rl, () -> attr);
@@ -99,7 +118,7 @@ final class YogEffects {
                 for (YogContent.Modifier m : e.modifiers()) {
                     Attribute attr = BuiltInRegistries.ATTRIBUTE.get(id(m.attribute()));
                     if (attr == null) {
-                        System.err.println("[yog] effect " + e.id() + ": no attribute " + m.attribute());
+                        YogLog.warn("effect " + e.id() + ": no attribute " + m.attribute());
                         continue;
                     }
                     // A modifier's UUID: the same for an effect and attribute every run.
@@ -113,7 +132,7 @@ final class YogEffects {
                 for (YogContent.Brew b : p.brewed()) {
                     ResourceLocation from = potionId(b.from()), with = id(b.with());
                     if (!BuiltInRegistries.POTION.containsKey(from) || !BuiltInRegistries.ITEM.containsKey(with)) {
-                        System.err.println("[yog] potion " + p.id() + ": can't brew from " + b.from() + " with " + b.with());
+                        YogLog.warn("potion " + p.id() + ": can't brew from " + b.from() + " with " + b.with());
                         continue;
                     }
                     BrewingRecipeRegistry.addRecipe(new Brewing(BuiltInRegistries.POTION.get(from), BuiltInRegistries.ITEM.get(with), to));
@@ -141,19 +160,19 @@ final class YogEffects {
         }
     }
 
-    private static MobEffectCategory category(String c) {
+    private static MobEffectCategory category(YogContent.EffectCategory c) {
         return switch (c) {
-            case "beneficial" -> MobEffectCategory.BENEFICIAL;
-            case "harmful" -> MobEffectCategory.HARMFUL;
-            default -> MobEffectCategory.NEUTRAL;
+            case BENEFICIAL -> MobEffectCategory.BENEFICIAL;
+            case HARMFUL -> MobEffectCategory.HARMFUL;
+            case NEUTRAL -> MobEffectCategory.NEUTRAL;
         };
     }
 
-    private static AttributeModifier.Operation operation(String o) {
+    private static AttributeModifier.Operation operation(YogContent.Operation o) {
         return switch (o) {
-            case "multiply_base" -> AttributeModifier.Operation.MULTIPLY_BASE;
-            case "multiply_total" -> AttributeModifier.Operation.MULTIPLY_TOTAL;
-            default -> AttributeModifier.Operation.ADDITION;
+            case MULTIPLY_BASE -> AttributeModifier.Operation.MULTIPLY_BASE;
+            case MULTIPLY_TOTAL -> AttributeModifier.Operation.MULTIPLY_TOTAL;
+            case ADD -> AttributeModifier.Operation.ADDITION;
         };
     }
 

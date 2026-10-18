@@ -41,7 +41,7 @@ public class YogMob extends PathfinderMob {
                 case "look_around" -> goalSelector.addGoal(priority, new RandomLookAroundGoal(this));
                 case "avoid_player" -> goalSelector.addGoal(priority, new AvoidEntityGoal<>(this, Player.class, 8.0F, 1.0, 1.2));
                 case "target_player" -> targetSelector.addGoal(priority, new NearestAttackableTargetGoal<>(this, Player.class, true));
-                default -> System.err.println("[yog] " + def.id() + ": no AI goal `" + goal + "`");
+                default -> YogLog.warn("" + def.id() + ": no AI goal `" + goal + "`");
             }
             priority++;
         }
