@@ -441,6 +441,32 @@ fn load(root: &Path, errors: &mut Vec<String>) -> BTreeMap<String, Set> {
     sets
 }
 
+/// What's wrong with `e`'s value for its type, if anything — the build's
+/// rule, which editors show too.
+pub fn value_problem(e: &Entry) -> Option<String> {
+    let media = |what: &str| format!("{:?}: {what} are bytes (`@bytes:…`)", e.name);
+    match (e.kind, &e.value) {
+        (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_)) if !valid_resource_path(&e.name.replace('.', yog_ids::sep::PATH)) => {
+            Some(format!("{:?}: Minecraft resource paths are lower case — only a-z, 0-9, `_`, `-`, `.`", e.name))
+        }
+        (Kind::Sound, Value::Bytes(b)) if !b.starts_with(yog_formats::yres::OGG_MAGIC) => Some(format!("{:?}: sounds are Ogg Vorbis", e.name)),
+        (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_)) => None,
+        (Kind::Image, _) => Some(media("images")),
+        (Kind::File, _) => Some(media("files")),
+        (Kind::Sound, _) => Some(media("sounds")),
+        (Kind::Color, _) => parse_color(e.text()).is_none().then(|| format!("{:?}: `{}` isn't a color — #RRGGBB or #AARRGGBB", e.name, e.text())),
+        (Kind::Number, Value::Num(_)) | (Kind::Bool, Value::Bool(_)) | (Kind::String, Value::Str(_)) => None,
+        (Kind::Number, _) => Some(format!("{:?}: a number", e.name)),
+        (Kind::Bool, _) => Some(format!("{:?}: true or false", e.name)),
+        (Kind::String, _) => Some(format!("{:?}: a text", e.name)),
+    }
+}
+
+/// A color entry's value as ARGB, when it is one.
+pub fn color_of(e: &Entry) -> Option<u32> {
+    (e.kind == Kind::Color).then(|| parse_color(e.text())).flatten()
+}
+
 fn parse_color(s: &str) -> Option<u32> {
     let hex = s.trim().strip_prefix('#')?;
     let v = u32::from_str_radix(hex, 16).ok()?;
@@ -555,6 +581,10 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                 doc
             };
             let reference = format!("{}.{}", set.name, e.name);
+            if let Some(problem) = value_problem(e) {
+                errors.push(format!("{at}: {problem}"));
+                continue;
+            }
             match e.kind {
                 Kind::String => {
                     let key = e
@@ -621,10 +651,6 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                     let Value::Bytes(bytes) = &e.value else { continue };
                     // A medium's path is its name, dotted: `block.ruby` → `block/ruby`.
                     let path = e.name.replace('.', yog_ids::sep::PATH);
-                    if !valid_resource_path(&path) {
-                        errors.push(format!("{at}: {:?}: Minecraft resource paths are lower case — only a-z, 0-9, `_`, `-`, `.`", e.name));
-                        continue;
-                    }
                     let (target, id, data) = match e.kind {
                         Kind::Image => {
                             let png = match yog_media::image::decode(bytes).and_then(|img| yog_media::image::encode_png(&img)) {
@@ -641,10 +667,6 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                             (target, source, png)
                         }
                         Kind::Sound => {
-                            if !bytes.starts_with(yog_formats::yres::OGG_MAGIC) {
-                                errors.push(format!("{at}: {:?}: sounds are Ogg Vorbis", e.name));
-                                continue;
-                            }
                             let event = e
                                 .event
                                 .clone()
@@ -676,17 +698,11 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
                         "{doc}    pub const fn {acc}() -> &'static str {{\n        {id:?}\n    }}"
                     );
                 }
-                Kind::Color => match parse_color(e.text()) {
-                    Some(v) => {
-                        c.refs.colors.insert(reference, v);
-                        let _ = writeln!(code, "{doc}    pub const {upper}: u32 = 0x{v:08X};");
-                    }
-                    None => errors.push(format!(
-                        "{at}: {:?}: `{}` isn't a color — #RRGGBB or #AARRGGBB",
-                        e.name,
-                        e.text()
-                    )),
-                },
+                Kind::Color => {
+                    let Some(v) = color_of(e) else { continue };
+                    c.refs.colors.insert(reference, v);
+                    let _ = writeln!(code, "{doc}    pub const {upper}: u32 = 0x{v:08X};");
+                }
                 Kind::Number => {
                     let Value::Num(lit) = &e.value else { continue };
                     let int = !lit.contains(['.', 'e', 'E']);

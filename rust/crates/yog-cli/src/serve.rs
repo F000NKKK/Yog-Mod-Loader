@@ -96,6 +96,12 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
             let level = params.get("level").and_then(Value::as_u64).unwrap_or(0) as usize;
             Ok(json!(yog_data::patch::format(&data_param(params, "value")?, level)))
         }
+        // Strings as typed values (`@item:x`, `@tag:item:x`, `@Set.key`, `@image:…`, `@lang:…`,
+        // `@@` escaped, else plain text): each `{t, …}` or `{error}`.
+        "typed.classify" => {
+            let values = params.get("values").and_then(Value::as_array).ok_or_else(|| json!("missing list `values`"))?;
+            Ok(Value::Array(values.iter().map(|v| typed_json(v.as_str().unwrap_or_default())).collect()))
+        }
         // A format's shape (`yog_data::Shape::describe`): `yblock`, `.ytexture`, `yog.toml`…
         "format.shape" => {
             let name = str_param(params, "format")?;
@@ -149,6 +155,21 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
     }
 }
 
+/// A string as a typed value, the way a tool takes it.
+fn typed_json(s: &str) -> Value {
+    match yog_data::typed::classify(s) {
+        Ok(yog_data::Value::Ref(r)) => json!({ "t": "ref", "kind": r.kind, "id": r.id }),
+        Ok(yog_data::Value::Tag(r)) => json!({ "t": "tag", "kind": r.kind, "id": r.id }),
+        Ok(yog_data::Value::Res(r)) => json!({ "t": "res", "set": r.set, "key": r.key }),
+        Ok(yog_data::Value::Image(source)) => json!({ "t": "image", "source": source }),
+        Ok(yog_data::Value::Lang(key)) => json!({ "t": "lang", "key": key }),
+        Ok(yog_data::Value::Bytes(_)) => json!({ "t": "bytes" }),
+        Ok(yog_data::Value::Str(v)) => json!({ "t": "str", "v": v }),
+        Ok(other) => json!({ "t": "str", "v": yog_data::typed::typed_string(&other).unwrap_or_default() }),
+        Err(error) => json!({ "error": error }),
+    }
+}
+
 /// The mod a file is in (the folder with its manifest, up from it).
 fn mod_root(file: &Path) -> Result<PathBuf, Value> {
     crate::design::project::mod_root(file).ok_or_else(|| json!(format!("{} isn't in a mod", file.display())))
@@ -179,6 +200,12 @@ fn entry_json(e: &Entry, set_and_mod: Option<(&str, &str)>) -> Value {
     m.insert("accessor".into(), json!(crate::yres::accessor_name(&e.name)));
     if let Some(problem) = crate::yres::name_problem(&e.name) {
         m.insert("nameProblem".into(), json!(problem));
+    }
+    if let Some(problem) = crate::yres::value_problem(e) {
+        m.insert("valueProblem".into(), json!(problem));
+    }
+    if let Some(argb) = crate::yres::color_of(e) {
+        m.insert("argb".into(), json!(argb));
     }
     if let (Some((set, mod_id)), Kind::String) = (set_and_mod, e.kind) {
         let key = e.key.clone().unwrap_or_else(|| crate::yres::default_key(set, mod_id, &e.name));
@@ -234,11 +261,27 @@ mod tests {
         assert!(named["entries"][0].get("nameProblem").is_none());
         assert!(named["entries"][1]["nameProblem"].is_string());
         assert_eq!(named["entries"][0]["translationKey"], "item.m.cad.0_x");
+        let values = dispatch("yres.parse", &json!({ "text": r##"{ "c": { "type": "color", "value": "#F00" }, "d": { "type": "color", "value": "#80FF0000" } }"## })).unwrap();
+        assert!(values["entries"][0]["valueProblem"].is_string());
+        assert_eq!(values["entries"][1]["argb"], 0x80FF_0000_u32);
         let written = dispatch("yres.write", &json!({ "entries": entries })).unwrap();
         let again = dispatch("yres.parse", &json!({ "text": written.as_str().unwrap() })).unwrap();
         assert_eq!(again["entries"][3]["comment"], "red");
         assert_eq!(dispatch("yres.parse", &json!({ "text": "{ \"a\": [] }" })).unwrap_err()["line"], 1);
         assert!(dispatch("nope", &Value::Null).is_err());
+    }
+
+    #[test]
+    fn typed_values_are_classified_by_the_service() {
+        let r = dispatch("typed.classify", &json!({ "values": ["@item:stick", "@tag:item:c:dusts", "@Strings.a.b", "@@x", "plain", "@lang:gui.done", "@image:sprite:x", "@Item:x"] })).unwrap();
+        assert_eq!(r[0], json!({ "t": "ref", "kind": "item", "id": "minecraft:stick" }));
+        assert_eq!(r[1], json!({ "t": "tag", "kind": "item", "id": "c:dusts" }));
+        assert_eq!(r[2], json!({ "t": "res", "set": "Strings", "key": "a.b" }));
+        assert_eq!(r[3], json!({ "t": "str", "v": "@x" }));
+        assert_eq!(r[4], json!({ "t": "str", "v": "plain" }));
+        assert_eq!(r[5]["t"], "lang");
+        assert_eq!(r[6], json!({ "t": "image", "source": "sprite:x" }));
+        assert!(r[7]["error"].is_string());
     }
 
     #[test]
