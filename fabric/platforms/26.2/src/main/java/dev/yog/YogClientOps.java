@@ -47,8 +47,14 @@ public final class YogClientOps {
     private YogClientOps() {}
 
     private static final Gson GSON = new Gson();
-    /** At most this many blocks are scanned or sent in one call. */
+    /** At most this many blocks are sent in one call (an area: every block). */
     private static final long MAX_BLOCKS = 1L << 21;
+    /**
+     * At most this many chunk columns are scanned in one call: a scan goes
+     * chunk by chunk (what isn't loaded costs nothing, a section without the
+     * blocks one look), so its box's volume isn't what it costs.
+     */
+    private static final long MAX_SCAN_COLUMNS = 1L << 14;
     /** Blocks that hurt to touch, besides fire and lava. */
     private static final Set<Block> HARMFUL = Set.of(Blocks.CACTUS, Blocks.SWEET_BERRY_BUSH, Blocks.MAGMA_BLOCK, Blocks.WITHER_ROSE, Blocks.POWDER_SNOW);
     /** A face's hit point: this far from the block's centre toward the face. */
@@ -205,14 +211,27 @@ public final class YogClientOps {
         return true;
     }
 
-    /** `min`, `max` of a request, ordered; null when the box is too big. */
+    /** `min`, `max` of a request, ordered; null when the box holds more than {@link #MAX_BLOCKS}. */
     private static BlockPos[] box(JsonObject a) {
+        BlockPos[] b = ordered(a);
+        long volume = (long) (b[1].getX() - b[0].getX() + 1) * (b[1].getY() - b[0].getY() + 1) * (b[1].getZ() - b[0].getZ() + 1);
+        return volume > MAX_BLOCKS ? null : b;
+    }
+
+    /** `min`, `max` of a scan, ordered; null when it spans more than {@link #MAX_SCAN_COLUMNS} chunk columns. */
+    private static BlockPos[] scanBox(JsonObject a) {
+        BlockPos[] b = ordered(a);
+        long columns = (long) ((b[1].getX() >> SECTION_SHIFT) - (b[0].getX() >> SECTION_SHIFT) + 1) * ((b[1].getZ() >> SECTION_SHIFT) - (b[0].getZ() >> SECTION_SHIFT) + 1);
+        return columns > MAX_SCAN_COLUMNS ? null : b;
+    }
+
+    /** `min`, `max` of a request, each the lesser and the greater corner. */
+    private static BlockPos[] ordered(JsonObject a) {
         JsonArray lo = a.getAsJsonArray("min");
         JsonArray hi = a.getAsJsonArray("max");
         BlockPos min = new BlockPos(Math.min(lo.get(0).getAsInt(), hi.get(0).getAsInt()), Math.min(lo.get(1).getAsInt(), hi.get(1).getAsInt()), Math.min(lo.get(2).getAsInt(), hi.get(2).getAsInt()));
         BlockPos max = new BlockPos(Math.max(lo.get(0).getAsInt(), hi.get(0).getAsInt()), Math.max(lo.get(1).getAsInt(), hi.get(1).getAsInt()), Math.max(lo.get(2).getAsInt(), hi.get(2).getAsInt()));
-        long volume = (long) (max.getX() - min.getX() + 1) * (max.getY() - min.getY() + 1) * (max.getZ() - min.getZ() + 1);
-        return volume > MAX_BLOCKS ? null : new BlockPos[] {min, max};
+        return new BlockPos[] {min, max};
     }
 
     private static boolean loaded(ClientLevel w, BlockPos at) {
@@ -229,7 +248,7 @@ public final class YogClientOps {
      * of a box is stone and air, the ores a few sections hold).
      */
     private static Object scan(ClientLevel w, JsonObject a) {
-        BlockPos[] b = box(a);
+        BlockPos[] b = scanBox(a);
         if (b == null) return null;
         Set<Block> blocks = new HashSet<>();
         Set<TagKey<Block>> tags = new HashSet<>();
