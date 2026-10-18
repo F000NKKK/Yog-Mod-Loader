@@ -19,6 +19,7 @@ public final class YogClient {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
+        dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
         NativeBridge.nativeOnClientTick();
     }
 

@@ -1931,6 +1931,17 @@ where
     }
 }
 
+unsafe extern "C" fn trampoline_key_binding<F>(ud: *mut c_void, id: YogStr)
+where
+    F: Fn(&str) + Send + Sync,
+{
+    unsafe {
+        let f = &*(ud as *const F);
+        let id = id.as_str();
+        guard((), || f(id));
+    }
+}
+
 unsafe extern "C" fn trampoline_screen<F>(ud: *mut c_void, screen_class: YogStr) -> bool
 where
     F: Fn(&ScreenEvent) + Send + Sync,
@@ -2903,6 +2914,44 @@ impl Registry {
     {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_key_press)(self.ctx(), ud, trampoline_key_press::<F>) }
+    }
+
+    /// A key binding the player sees in the game's controls (under this
+    /// mod's name) and can rebind there; the game keeps the key it's bound
+    /// to. `id` names it (`mymod:xray`), `name` is its label's translation
+    /// key (a `.yres` text's `…_KEY`), `default_key` a GLFW key code
+    /// ([`crate::client::keys`]; `None`: unbound). `handler` runs on the
+    /// client thread at each press.
+    ///
+    /// ```ignore
+    /// registry.key_binding("mymod:xray", Strings::KEY_XRAY_KEY, Some(keys::X), || toggle_xray());
+    /// ```
+    pub fn key_binding<F>(&mut self, id: &str, name: &str, default_key: Option<i32>, handler: F)
+    where
+        F: Fn() + Send + Sync + 'static,
+    {
+        unsafe {
+            ((*self.api).register_key_binding)(
+                self.ctx(),
+                YogStr::from_str(id),
+                YogStr::from_str(name),
+                default_key.unwrap_or(crate::client::keys::UNBOUND),
+            )
+        };
+        let id = id.to_owned();
+        self.on_key_binding(move |pressed: &str| {
+            if pressed == id {
+                handler();
+            }
+        });
+    }
+
+    fn on_key_binding<F>(&mut self, handler: F)
+    where
+        F: Fn(&str) + Send + Sync + 'static,
+    {
+        let ud = Self::leak(handler);
+        unsafe { ((*self.api).on_key_binding)(self.ctx(), ud, trampoline_key_binding::<F>) }
     }
 
     /// Register a handler called when a GUI screen is opened.

@@ -18,7 +18,7 @@ use std::os::raw::c_void;
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 9;
+pub const ABI_MINOR: u32 = 10;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
@@ -603,6 +603,8 @@ pub type YogItemTextFn =
 pub type YogWorldRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
 /// Key press — return `false` to cancel (prevent Minecraft from processing the key).
 pub type YogKeyPressFn = unsafe extern "C" fn(ud: *mut c_void, ev: *const YogKeyPressEvent) -> bool;
+/// A mod's key binding pressed (ABI 3.10): `id`, as `register_key_binding` named it.
+pub type YogKeyBindingFn = unsafe extern "C" fn(ud: *mut c_void, id: YogStr);
 /// Screen event — `screen_class` is the simple class name (e.g. `"InventoryScreen"`).
 /// For `on_screen_open` return `false` to prevent the screen from opening.
 pub type YogScreenFn = unsafe extern "C" fn(ud: *mut c_void, screen_class: YogStr) -> bool;
@@ -1645,6 +1647,15 @@ pub struct YogApi {
     /// (JSON): the player's state, the blocks and entities around it, its
     /// actions; the answer as JSON, or none (no player, a server).
     pub client_op: unsafe extern "C" fn(ctx: *mut c_void, op: YogStr, args: YogStr) -> YogOwnedStr,
+
+    // ── ABI 3.10 — key bindings (client) ────────────────────────────────────
+    /// A key binding the player sees and rebinds in the game's controls,
+    /// under the mod's category: `id` (`mymod:xray`) names it, `name` is
+    /// the translation key of its label, `default_key` a GLFW key code (-1:
+    /// unbound). Declared while the mod registers; the game keeps the key.
+    pub register_key_binding: unsafe extern "C" fn(ctx: *mut c_void, id: YogStr, name: YogStr, default_key: i32),
+    /// Every press of a mod's key binding (any mod's: the handler checks the id).
+    pub on_key_binding: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogKeyBindingFn),
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].
@@ -1695,7 +1706,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn the_layout_matches_its_version() {
-        assert_eq!((ABI_VERSION, layout_fingerprint()), (30009, 0xa348_c2dd_78fd_f784), "layout fingerprint: {:#x}", layout_fingerprint());
+        assert_eq!((ABI_VERSION, layout_fingerprint()), (30010, 0xb367_665c_47ac_7374), "layout fingerprint: {:#x}", layout_fingerprint());
     }
 
     #[test]

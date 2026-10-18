@@ -31,7 +31,7 @@ use yog_abi::{
     YogBlockPos, YogChatFn, YogClientFn, YogCommandFn, YogContainerCloseEvent,
     YogContainerCloseFn, YogContainerOpenEvent, YogContainerOpenFn, YogCraftEvent, YogCraftFn,
     YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent, YogEntityInteractFn,
-    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemInsertEvent, YogItemInsertFn, YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogMachineCraftEvent, YogMachineCraftFn, YogKeyPressFn, YogOwnedStr, YogPacketFn,
+    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemInsertEvent, YogItemInsertFn, YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogMachineCraftEvent, YogMachineCraftFn, YogKeyPressFn, YogKeyBindingFn, YogOwnedStr, YogPacketFn,
     YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn,
     YogPlayerMoveEvent, YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn,
     YogProjectileHitEvent, YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn,
@@ -162,6 +162,7 @@ struct RuntimeHandlers {
     loot: Vec<(LoadedModule, *mut c_void, yog_abi::YogLootFn)>,
     world_render: Vec<(LoadedModule, *mut c_void, YogWorldRenderFn)>,
     key_press: Vec<(LoadedModule, *mut c_void, YogKeyPressFn)>,
+    key_binding: Vec<(LoadedModule, *mut c_void, YogKeyBindingFn)>,
     screen_open: Vec<(LoadedModule, *mut c_void, YogScreenFn)>,
     screen_close: Vec<(LoadedModule, *mut c_void, YogScreenFn)>,
     server_tick: Vec<(LoadedModule, *mut c_void, YogServerFn)>,
@@ -222,6 +223,8 @@ struct RuntimeHandlers {
     /// Stacks' own names and tooltip lines, by item.
     item_texts: HashMap<String, Vec<ItemTextEntry>>,
     menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
+    /// The mods' key bindings (ABI 3.10), once each by id: the game's controls show them.
+    key_bindings: Vec<KeyBinding>,
     pub active_uis: Mutex<Vec<UiLayer>>,
     startup_grants: Vec<yog_registry::StartupGrant>,
     /// Players whose startup grants are pending: (name, uuid, ticks_waited).
@@ -479,6 +482,10 @@ macro_rules! for_each_handler_list {
         }
         {
             let $list = &mut $h.key_press;
+            $body;
+        }
+        {
+            let $list = &mut $h.key_binding;
             $body;
         }
         {
@@ -2144,6 +2151,7 @@ api_event!(api_on_client_tick, client_tick, YogClientFn);
 api_event!(api_on_hud_render, hud_render, YogHudRenderFn);
 api_event!(api_on_world_render, world_render, YogWorldRenderFn);
 api_event!(api_on_key_press, key_press, YogKeyPressFn);
+api_event!(api_on_key_binding, key_binding, YogKeyBindingFn);
 api_event!(api_on_screen_open, screen_open, YogScreenFn);
 api_event!(api_on_screen_close, screen_close, YogScreenFn);
 api_event!(api_on_server_tick, server_tick, YogServerFn);
@@ -2766,6 +2774,46 @@ unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
         }
         YogOwnedStr::from_string(lines.join("\n"))
     }
+}
+
+/// A mod's key binding: its id, its label's translation key, its default key (GLFW; -1 unbound).
+struct KeyBinding {
+    id: String,
+    name: String,
+    default_key: i32,
+}
+
+unsafe extern "C" fn api_register_key_binding(ctx: *mut c_void, id: YogStr, name: YogStr, default_key: i32) {
+    unsafe {
+        let mut handlers = handlers_mut(ctx);
+        let id = id.as_str().to_owned();
+        // A hot reload registers again: the game's controls keep the first.
+        if handlers.key_bindings.iter().any(|b| b.id == id) {
+            return;
+        }
+        handlers.key_bindings.push(KeyBinding { id, name: name.as_str().to_owned(), default_key });
+    }
+}
+
+/// The mods' key bindings: (id, label's translation key, default key, category label — its mod's name).
+pub(crate) fn key_bindings() -> Vec<(String, String, i32, String)> {
+    let infos = MOD_INFOS.lock().expect("mod infos lock poisoned").clone();
+    handlers()
+        .key_bindings
+        .iter()
+        .map(|b| {
+            let ns = b.id.split_once(':').map_or(b.id.as_str(), |(ns, _)| ns);
+            let label = infos.iter().find(|m| m[0] == ns).map_or_else(|| ns.to_string(), |m| tsv_clean(&m[1]));
+            (b.id.clone(), b.name.clone(), b.default_key, label)
+        })
+        .collect()
+}
+
+/// Key binding `id` pressed: every mod's handler hears it.
+pub(crate) fn key_binding_pressed(id: &str) {
+    let h = handlers();
+    let id = YogStr::from_str(id);
+    each(&h.key_binding, |ud, f| unsafe { f(ud, id) });
 }
 
 unsafe extern "C" fn api_register_menu_entry(ctx: *mut c_void, label: YogStr, ui_id: YogStr) {
@@ -3417,6 +3465,8 @@ fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer
         client_attribute_value: api_client_attribute_value,
         client_advancement_done: api_client_advancement_done,
         client_op: client_api::api_client_op,
+        register_key_binding: api_register_key_binding,
+        on_key_binding: api_on_key_binding,
         log: api_log,
     }
 }

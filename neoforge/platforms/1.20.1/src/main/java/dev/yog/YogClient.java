@@ -26,6 +26,7 @@ public final class YogClient {
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
         NativeBridge.nativeOnClientTick();
     }
 

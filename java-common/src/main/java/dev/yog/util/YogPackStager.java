@@ -149,8 +149,30 @@ public final class YogPackStager {
         // Mod-declared dimensions as vanilla dimension_type/dimension JSON.
         injectDimensions(out, registered.dimensions);
 
+        // The mods' key bindings' categories, named in the controls.
+        injectKeyCategoryNames(out);
+
         Files.writeString(out.resolve("pack.mcmeta"), packMcmeta);
         return out;
+    }
+
+    /**
+     * The names of the mods' key binding categories ({@link YogKeyBindings}),
+     * in Yog's lang file of the game's default locale (merged with what a
+     * mod put there): the controls show each mod's name over its keys.
+     */
+    private static void injectKeyCategoryNames(Path packRoot) throws IOException {
+        java.util.Map<String, String> names = YogKeyBindings.categoryNames();
+        if (names.isEmpty()) return;
+        Path lang = packRoot.resolve(dev.yog.YogNames.Pack.ASSETS).resolve(dev.yog.YogNames.Ns.YOG)
+                .resolve(dev.yog.YogNames.Res.LANG + dev.yog.YogNames.Game.LOCALE + dev.yog.YogNames.Res.JSON);
+        JsonObject entries = Files.exists(lang) ? new Gson().fromJson(Files.readString(lang), JsonObject.class) : new JsonObject();
+        if (entries == null) entries = new JsonObject();
+        for (java.util.Map.Entry<String, String> e : names.entrySet()) {
+            if (!entries.has(e.getKey())) entries.addProperty(e.getKey(), e.getValue());
+        }
+        Files.createDirectories(lang.getParent());
+        Files.writeString(lang, new Gson().toJson(entries));
     }
 
     /** {@code data/<ns>/tags/…} — a tag file. */

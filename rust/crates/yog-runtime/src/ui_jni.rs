@@ -466,6 +466,25 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeMenuEntries<'l>(
     env.new_string(out).unwrap().into_raw()
 }
 
+/// The mods' key bindings (ABI 3.10), one a line: `id\tname key\tdefault key\tcategory label`
+/// (the label: the mod's name, its namespace's when no mod has it). The host
+/// registers each in the game's controls at the client's start.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeKeyBindings<'l>(env: JNIEnv<'l>, _class: JClass<'l>) -> jstring {
+    let lines: Vec<String> = crate::key_bindings()
+        .into_iter()
+        .map(|(id, name, key, label)| format!("{id}\t{name}\t{key}\t{label}"))
+        .collect();
+    env.new_string(lines.join("\n")).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+}
+
+/// A mod's key binding `id` pressed (the host counts the game's clicks of it).
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnKeyBinding<'l>(mut env: JNIEnv<'l>, _class: JClass<'l>, id: JString<'l>) {
+    let Ok(id) = env.get_string(&id).map(String::from) else { return };
+    crate::key_binding_pressed(&id);
+}
+
 // ── Pictures in item tooltips (ABI 2.2) ─────────────────────────────────────
 
 /// The mod's picture for a stack of `item` (custom data `snbt`): which

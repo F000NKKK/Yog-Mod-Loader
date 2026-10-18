@@ -28,4 +28,16 @@ public final class YogClientSetup {
     public static void onTooltipFactories(net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent event) {
         event.register(YogTooltipData.class, YogClientTooltip::new);
     }
+
+    /** The mods' key bindings (ABI 3.10): each a game key under its mod's category; its presses go to the mods each tick. */
+    @SubscribeEvent
+    public static void onKeyMappings(net.minecraftforge.client.event.RegisterKeyMappingsEvent event) {
+        NativeBridge.ensureLoaded();
+        for (dev.yog.util.YogKeyBindings.Binding b : dev.yog.util.YogKeyBindings.declared(NativeBridge.nativeKeyBindings())) {
+            net.minecraft.client.KeyMapping key = new net.minecraft.client.KeyMapping(
+                    b.name(), com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM, b.defaultKey(), b.categoryKey());
+            event.register(key);
+            dev.yog.util.YogKeyBindings.track(b.id(), key::consumeClick);
+        }
+    }
 }

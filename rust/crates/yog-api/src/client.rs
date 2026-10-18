@@ -105,6 +105,35 @@ pub fn set_block_tint(dimension: &str, pos: yog_core::BlockPos, color: Option<u3
 
 /// GLFW key codes for [`key_down`].
 pub mod keys {
+    /// No key: a key binding left unbound (GLFW's `GLFW_KEY_UNKNOWN`).
+    pub const UNBOUND: i32 = -1;
+    /// Letters: GLFW codes them as their capital's ASCII.
+    pub const A: i32 = 65;
+    pub const B: i32 = 66;
+    pub const C: i32 = 67;
+    pub const D: i32 = 68;
+    pub const E: i32 = 69;
+    pub const F: i32 = 70;
+    pub const G: i32 = 71;
+    pub const H: i32 = 72;
+    pub const I: i32 = 73;
+    pub const J: i32 = 74;
+    pub const K: i32 = 75;
+    pub const L: i32 = 76;
+    pub const M: i32 = 77;
+    pub const N: i32 = 78;
+    pub const O: i32 = 79;
+    pub const P: i32 = 80;
+    pub const Q: i32 = 81;
+    pub const R: i32 = 82;
+    pub const S: i32 = 83;
+    pub const T: i32 = 84;
+    pub const U: i32 = 85;
+    pub const V: i32 = 86;
+    pub const W: i32 = 87;
+    pub const X: i32 = 88;
+    pub const Y: i32 = 89;
+    pub const Z: i32 = 90;
     pub const HOME: i32 = 268;
     pub const LEFT_SHIFT: i32 = 340;
     pub const LEFT_CONTROL: i32 = 341;

@@ -76,13 +76,19 @@ public class YogClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
                 (handler, client) -> NativeBridge.nativeEntityDataClientReset());
 
+        // The mods' key bindings, in the game's controls.
+        registerKeyBindings();
+
         // Mods' entities: drawn by what the mods give (yog-body).
         for (net.minecraft.world.entity.EntityType<?> type : YogEntityTypes.types()) {
             registerRenderer(type);
         }
 
         // client tick
-        ClientTickEvents.END_CLIENT_TICK.register(client -> NativeBridge.nativeOnClientTick());
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
+            NativeBridge.nativeOnClientTick();
+        });
 
         // HUD — the GUI being extracted for this frame: Rust's 2-D draws go into it, its raw GL straight onto the main target.
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(YogNames.Ns.YOG, HUD_LAYER), (ctx, tickCounter) -> {
@@ -135,6 +141,18 @@ public class YogClient implements ClientModInitializer {
                 injectMenuButtons(screen);
             }
         });
+    }
+
+    /** Each mod key binding as a game key under its mod's category; its presses go to the mods each tick. */
+    private static void registerKeyBindings() {
+        java.util.Map<String, net.minecraft.client.KeyMapping.Category> categories = new java.util.HashMap<>();
+        for (dev.yog.util.YogKeyBindings.Binding b : dev.yog.util.YogKeyBindings.declared(NativeBridge.nativeKeyBindings())) {
+            var category = categories.computeIfAbsent(b.namespace(), ns -> net.minecraft.client.KeyMapping.Category.register(
+                    Identifier.fromNamespaceAndPath(ns, dev.yog.util.YogKeyBindings.CATEGORY_PATH)));
+            var key = net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(new net.minecraft.client.KeyMapping(
+                    b.name(), com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM, b.defaultKey(), category));
+            dev.yog.util.YogKeyBindings.track(b.id(), key::consumeClick);
+        }
     }
 
     private static void injectMenuButtons(Screen screen) {

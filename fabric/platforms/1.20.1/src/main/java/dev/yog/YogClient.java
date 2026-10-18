@@ -70,8 +70,14 @@ public class YogClient implements ClientModInitializer {
             registerRenderer(type);
         }
 
+        // The mods' key bindings, in the game's controls.
+        registerKeyBindings();
+
         // client tick
-        ClientTickEvents.END_CLIENT_TICK.register(client -> NativeBridge.nativeOnClientTick());
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
+            NativeBridge.nativeOnClientTick();
+        });
 
         // HUD render — store DrawContext for Rust draw calls, then clear it
         HudRenderCallback.EVENT.register((ctx, tickDelta) -> {
@@ -121,6 +127,15 @@ public class YogClient implements ClientModInitializer {
                 injectMenuButtons(screen);
             }
         });
+    }
+
+    /** Each mod key binding as a game key under its mod's category; its presses go to the mods each tick. */
+    private static void registerKeyBindings() {
+        for (dev.yog.util.YogKeyBindings.Binding b : dev.yog.util.YogKeyBindings.declared(NativeBridge.nativeKeyBindings())) {
+            var key = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(new net.minecraft.client.option.KeyBinding(
+                    b.name(), net.minecraft.client.util.InputUtil.Type.KEYSYM, b.defaultKey(), b.categoryKey()));
+            dev.yog.util.YogKeyBindings.track(b.id(), key::wasPressed);
+        }
     }
 
     private static void injectMenuButtons(Screen screen) {
