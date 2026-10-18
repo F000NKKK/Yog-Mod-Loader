@@ -104,7 +104,7 @@ yog-registry = { version = "0.36.0", path = "crates/yog-registry" }
 yog-storage = { version = "0.1.2", path = "crates/yog-storage" }
 yog-symbols = { version = "0.4.1", path = "crates/yog-symbols" }
 yog-ui = { version = "0.44.0", path = "crates/yog-ui" }
-yog-world = { version = "0.6.0", path = "crates/yog-world" }
+yog-world = { version = "0.6.1", path = "crates/yog-world" }
 yog-worldgen = { version = "0.2.0", path = "crates/yog-worldgen" }
 syn = { version = "3", features = ["full", "extra-traits"] }
 quote = "1"
