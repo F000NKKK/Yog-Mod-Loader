@@ -467,14 +467,9 @@ pub fn color_of(e: &Entry) -> Option<u32> {
     (e.kind == Kind::Color).then(|| parse_color(e.text())).flatten()
 }
 
+/// `#RRGGBB` / `#AARRGGBB`: a `.yres` color is written with its `#`.
 fn parse_color(s: &str) -> Option<u32> {
-    let hex = s.trim().strip_prefix('#')?;
-    let v = u32::from_str_radix(hex, 16).ok()?;
-    match hex.len() {
-        6 => Some(0xFF00_0000 | v),
-        8 => Some(v),
-        _ => None,
-    }
+    crate::yui::color(s).filter(|_| s.trim().starts_with(crate::yui::HEX_MARK))
 }
 
 /// The lang JSON of `entries` (key, text), order kept.

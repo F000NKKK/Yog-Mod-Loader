@@ -209,8 +209,11 @@ pub struct RenderReq {
     pub avail_h: f32,
 }
 
+/// Room for a component that gives no bound: more than any screen has.
+const UNBOUNDED: f32 = 1024.0;
+
 fn big() -> f32 {
-    1024.0
+    UNBOUNDED
 }
 
 #[derive(Deserialize)]

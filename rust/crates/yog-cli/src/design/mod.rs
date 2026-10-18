@@ -347,7 +347,7 @@ pub fn event(args: &EventArgs) -> EventResult {
                 continue;
             }
             let s = state.scroll.entry(n.uid.clone()).or_default();
-            if s.handle(&args.event, l, 24.0) {
+            if s.handle(&args.event, l, yog_ui::scroll::WHEEL_STEP) {
                 out.scrolled = true;
                 break;
             }

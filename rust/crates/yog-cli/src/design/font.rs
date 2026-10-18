@@ -257,11 +257,18 @@ fn load_providers(res: &Resources, id: &str, depth: usize, out: &mut Vec<Provide
     }
 }
 
+/// A TrueType provider's size when it gives none, and a bitmap one's height
+/// (the game's defaults); where the default font's baseline is, from a
+/// line's top.
+const TTF_SIZE: f64 = 11.0;
+const BITMAP_HEIGHT: f64 = 8.0;
+const BASELINE: f32 = 7.0;
+
 fn ttf(res: &Resources, p: &Value) -> Option<TtfProvider> {
     let file = p.get("file")?.as_str()?;
     let (ns, path) = yog_ids::split(file);
     let bytes = res.read(ns, &format!("font/{path}"))?;
-    let size = p.get("size").and_then(Value::as_f64).unwrap_or(11.0) as f32;
+    let size = p.get("size").and_then(Value::as_f64).unwrap_or(TTF_SIZE) as f32;
     let oversample = p.get("oversample").and_then(Value::as_f64).unwrap_or(1.0).max(0.1) as f32;
     let font = fontdue::Font::from_bytes(bytes, fontdue::FontSettings { scale: size * oversample, ..Default::default() }).ok()?;
     let shift = p
@@ -299,8 +306,8 @@ impl TtfProvider {
                 rgba[i..i + 4].copy_from_slice(&[255, 255, 255, a]);
             }
         }
-        // The baseline sits where the default font's does (7 px down).
-        let top = 7.0 - (m.ymin as f32 + m.height as f32) / self.oversample + self.shift.1;
+        // The baseline sits where the default font's does.
+        let top = BASELINE - (m.ymin as f32 + m.height as f32) / self.oversample + self.shift.1;
         Some(Glyph {
             advance,
             shadow_offset: 1.0,
@@ -326,7 +333,7 @@ fn bitmap(res: &Resources, p: &Value) -> Option<BitmapProvider> {
     }
     let cell_w = image.width / cols;
     let cell_h = image.height / rows.len() as u32;
-    let height = p.get("height").and_then(Value::as_f64).unwrap_or(8.0) as f32;
+    let height = p.get("height").and_then(Value::as_f64).unwrap_or(BITMAP_HEIGHT) as f32;
     let mut chars = HashMap::new();
     for (r, row) in rows.iter().enumerate() {
         for (c, &ch) in row.iter().enumerate() {
@@ -424,7 +431,7 @@ fn missing_glyph() -> Glyph {
         }
     }
     Glyph {
-        advance: 6.0,
+        advance: yog_ui::text::CHAR_W,
         shadow_offset: 1.0,
         bold_offset: 1.0,
         bitmap: Some(GlyphBitmap {
@@ -501,7 +508,7 @@ impl Font {
 
     /// Width in GUI pixels, as the game's `Font.width` measures it (`§` codes skipped, bold +offset).
     pub fn width(&self, text: &str) -> f32 {
-        styled(text, 0xFFFF_FFFF)
+        styled(text, yog_gfx::Color::WHITE.0)
             .iter()
             .map(|s| {
                 self.glyph(s.ch).advance
@@ -525,6 +532,14 @@ pub struct Styled {
     pub strike: bool,
 }
 
+/// A legacy chat color's code: `5` dark purple, `a` green.
+pub fn chat_color(code: char) -> Option<u32> {
+    code.to_digit(CODE_RADIX).map(|i| yog_gfx::Color::rgb(CODES[i as usize]).0)
+}
+
+/// Chat color codes are hex digits.
+const CODE_RADIX: u32 = 16;
+
 /// Legacy chat colors `§0`–`§f`.
 const CODES: [u32; 16] = [
     0x000000, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xFFAA00, 0xAAAAAA, 0x555555,
@@ -533,6 +548,11 @@ const CODES: [u32; 16] = [
 
 /// `text` split into characters with the style `§` codes give them —
 /// `StringDecomposer.iterateFormatted`.
+/// Color `rgb` with `color`'s alpha.
+fn with_alpha_of(color: u32, rgb: u32) -> u32 {
+    yog_gfx::Color::rgb(rgb).with_alpha(yog_gfx::Color(color).a()).0
+}
+
 pub fn styled(text: &str, color: u32) -> Vec<Styled> {
     // Yog rich text spans first (`{b|…}`, `{#rrggbb|…}`), then the game's
     // own `§` codes inside each run.
@@ -540,7 +560,7 @@ pub fn styled(text: &str, color: u32) -> Vec<Styled> {
     for (run, st) in yog_ui::rich::runs(text) {
         let base = Styled {
             ch: ' ',
-            color: st.color.map_or(color, |rgb| (color & 0xFF00_0000) | rgb),
+            color: st.color.map_or(color, |rgb| with_alpha_of(color, rgb)),
             bold: st.bold,
             underline: st.underline,
             strike: st.strike,
@@ -553,7 +573,7 @@ pub fn styled(text: &str, color: u32) -> Vec<Styled> {
                 let code = code.to_ascii_lowercase();
                 if let Some(i) = code.to_digit(16) {
                     cur = Styled {
-                        color: (color & 0xFF00_0000) | CODES[i as usize],
+                        color: with_alpha_of(color, CODES[i as usize]),
                         ..base
                     };
                 } else {

@@ -14,13 +14,13 @@ const KNOB_COLOR: Color = Color(0xAA_888888);
 const ITEM_SLOT_BORDER: Color = Color(0xFF_444444);
 const ITEM_SLOT_FACE: Color = Color(0xFF_888888);
 /// Inventory slot (vanilla's): face, top/left shadow, bottom/right light.
-const INV_SLOT_FACE: Color = Color(0xFF_8B8B8B);
-const INV_SLOT_SHADOW: Color = Color(0xFF_373737);
-const INV_SLOT_LIGHT: Color = Color(0xFF_FFFFFF);
+pub const INV_SLOT_FACE: Color = Color(0xFF_8B8B8B);
+pub const INV_SLOT_SHADOW: Color = Color(0xFF_373737);
+pub const INV_SLOT_LIGHT: Color = Color(0xFF_FFFFFF);
 /// Stack count text color.
 const COUNT_COLOR: Color = Color(0xFF_FFFFFF);
 /// Side of an item icon inside a slot (1 px inset).
-const ICON_SIZE: f32 = 16.0;
+pub const ICON_SIZE: f32 = 16.0;
 /// Slack for "drawn whole or not at all" clip checks — absorbs rounding.
 pub(crate) const CLIP_SLACK: f32 = 0.5;
 

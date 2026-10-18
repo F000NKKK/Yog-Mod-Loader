@@ -9,11 +9,14 @@
 //! root.find_mut("list").unwrap().style.scroll_y = LIST.lock().unwrap().offset;
 //!
 //! // events: with the last frame's layout node of "list"
-//! if LIST.lock().unwrap().handle(event, node, 24.0) { return; }
+//! if LIST.lock().unwrap().handle(event, node, WHEEL_STEP) { return; }
 //! ```
 
 use crate::event::UiEvent;
 use crate::layout::LayoutNode;
+
+/// Pixels a scroll view moves per wheel notch, as the game's lists do.
+pub const WHEEL_STEP: f32 = 24.0;
 
 /// Scroll offset plus scrollbar-drag state of one scrolling container.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]

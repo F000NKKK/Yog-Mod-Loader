@@ -584,9 +584,13 @@ impl Prepared {
     }
 }
 
+/// A component's stand-in color: alpha 1 (never a real color in a .yui,
+/// invisible if left behind), a tag, and the component's index.
+const MARKER: u32 = 0x01D0_0000;
+const MARKER_INDEX: u32 = 0xFFFF;
+
 fn marker(i: usize) -> u32 {
-    // Alpha 1: never a real color in a .yui, invisible if left behind.
-    0x01D0_0000 | (i as u32 & 0xFFFF)
+    MARKER | (i as u32 & MARKER_INDEX)
 }
 
 fn px(v: Option<&str>) -> Option<f32> {
@@ -676,7 +680,7 @@ impl Cx<'_> {
         };
         let s = self.snapshot.get_or_insert_with(|| status(mod_root));
         match s.status {
-            Status::Building | Status::None => Some("Building designer library…".to_string()),
+            Status::Building | Status::None => Some(format!("{BUILDING} designer library…")),
             Status::Failed => Some(format!(
                 "The designer could not load the mod's library:\n{}",
                 s.error.clone().unwrap_or_default()
@@ -709,8 +713,8 @@ impl Cx<'_> {
             avail_h: self.screen.1,
         };
         let (mut nw, mut nh) = (
-            w.unwrap_or(80.0),
-            h.unwrap_or(if problem.is_some() { 24.0 } else { 20.0 }),
+            w.unwrap_or(PLACEHOLDER_W),
+            h.unwrap_or(if problem.is_some() { PROBLEM_H } else { PLACEHOLDER_H }),
         );
         let problem = match (problem, self.mod_root) {
             (None, Some(root)) if w.is_none() || h.is_none() => {
@@ -892,17 +896,37 @@ fn translate(op: DrawOp, dx: f32, dy: f32) -> DrawOp {
     }
 }
 
+/// A placeholder's size when its element gives none, and its look: a dark
+/// box, its border and message bluish while the library builds, red when
+/// it failed; text padded, a line apart, wrapped at a few columns at least.
+const PLACEHOLDER_W: f32 = 80.0;
+const PLACEHOLDER_H: f32 = 20.0;
+/// A placeholder with a problem to tell: a little taller.
+const PROBLEM_H: f32 = 24.0;
+const PLACEHOLDER_BG: u32 = 0xD0_202028;
+const BUILDING_BORDER: u32 = 0xFF_8080B0;
+const FAILED_BORDER: u32 = 0xFF_E05050;
+const BUILDING_TEXT: u32 = 0xFF_B0B0D0;
+const FAILED_TEXT: u32 = 0xFF_FF9090;
+const PAD: f32 = 3.0;
+const LINE: f32 = yog_ui::text::LINE_H + yog_ui::text::LINE_GAP;
+const GLYPH_H: f32 = yog_ui::text::LINE_H - 1.0;
+const CHAR_W: f32 = yog_ui::text::CHAR_W;
+const MIN_COLS: usize = 4;
+/// What the message of a library still being built starts with.
+const BUILDING: &str = "Building";
+
 /// The box shown for a component that can't be drawn: its name and why.
 pub fn placeholder(name: &str, message: &str, w: f32, h: f32) -> Vec<DrawOp> {
-    let building = message.starts_with("Building");
-    let border = if building { 0xFF_8080B0 } else { 0xFF_E05050 };
+    let building = message.starts_with(BUILDING);
+    let border = if building { BUILDING_BORDER } else { FAILED_BORDER };
     let mut ops = vec![
         DrawOp::Rect {
             x1: 0.0,
             y1: 0.0,
             x2: w,
             y2: h,
-            color: 0xD0_202028,
+            color: PLACEHOLDER_BG,
         },
         DrawOp::Rect {
             x1: 0.0,
@@ -933,28 +957,28 @@ pub fn placeholder(name: &str, message: &str, w: f32, h: f32) -> Vec<DrawOp> {
             color: border,
         },
     ];
-    let cols = (((w - 6.0) / 6.0).floor() as usize).max(4);
+    let cols = (((w - 2.0 * PAD) / CHAR_W).floor() as usize).max(MIN_COLS);
     let mut lines = vec![format!("<{name}>")];
     for l in message.lines() {
         let chars: Vec<char> = l.chars().collect();
         lines.extend(chars.chunks(cols).map(|c| c.iter().collect::<String>()));
     }
     for (i, line) in lines.iter().enumerate() {
-        let y = 3.0 + i as f32 * 10.0;
-        if y + 8.0 > h {
+        let y = PAD + i as f32 * LINE;
+        if y + GLYPH_H > h {
             break;
         }
         let color = if i == 0 {
-            0xFF_FFFFFF
+            yog_gfx::Color::WHITE.0
         } else if building {
-            0xFF_B0B0D0
+            BUILDING_TEXT
         } else {
-            0xFF_FF9090
+            FAILED_TEXT
         };
         ops.push(DrawOp::Text {
             text: line.clone(),
             font: yog_ids::game::DEFAULT_FONT.into(),
-            x: 3.0,
+            x: PAD,
             y,
             color,
             shadow: false,

@@ -131,21 +131,16 @@ pub(crate) fn boolean(el: &Element, key: &str, value: &str) -> Result<bool, Stri
     }
 }
 
-/// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB` → `0xAARRGGBB`.
+/// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB` → `0xAARRGGBB` (`Color::parse`;
+/// a file's color is written with its `#` or `0x`, not as a decimal).
 pub fn color(value: &str) -> Option<u32> {
     let v = value.trim();
-    let hex = v
-        .strip_prefix('#')
-        .or_else(|| v.strip_prefix("0x"))
-        .or_else(|| v.strip_prefix("0X"))?
-        .replace('_', "");
-    let n = u32::from_str_radix(&hex, 16).ok()?;
-    match hex.len() {
-        6 => Some(0xFF00_0000 | n),
-        8 => Some(n),
-        _ => None,
-    }
+    let written = [HEX_MARK, "0x", "0X"].iter().any(|p| v.starts_with(p));
+    written.then(|| yog_gfx::Color::parse(v)).flatten().map(|c| c.0)
 }
+
+/// What a color written in hex starts with: `#RRGGBB`.
+pub const HEX_MARK: &str = "#";
 
 /// A color attribute: a literal (see [`color`]) or `@<Set>.<name>`, a color
 /// of `resources/<Set>.yres` (see [`set_resource_refs`]).
@@ -275,7 +270,7 @@ pub(crate) fn screen_frame(root: &Element) -> Result<(f32, f32, &'static str), S
             "fill",
         ],
     )?;
-    Ok((size("width", 176.0)?, size("height", 166.0)?, anchor))
+    Ok((size(yog_ids::yui_attr::WIDTH, yog_ui::widget::SCREEN_W)?, size(yog_ids::yui_attr::HEIGHT, yog_ui::widget::SCREEN_H)?, anchor))
 }
 
 fn pick<'v>(el: &Element, key: &str, value: &str, options: &[&'v str]) -> Result<&'v str, String> {

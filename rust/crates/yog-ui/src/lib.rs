@@ -39,6 +39,7 @@ pub use yog_gfx::{Color, Vec2};
 pub use scroll::ScrollState;
 pub use surface::{Pointer, Surface};
 pub use textbox::{TextBoxEvent, TextBoxState};
+pub use render::{ICON_SIZE, INV_SLOT_FACE, INV_SLOT_LIGHT, INV_SLOT_SHADOW};
 pub use widget::{
     Action, Cell, Dock, FocusStyle, GridLength, GridSpec, HAlign, StateFlags, StateStyles, Stretch,
     StylePatch, Track, Units, VAlign, Widget,

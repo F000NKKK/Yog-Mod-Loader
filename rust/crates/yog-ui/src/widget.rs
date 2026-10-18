@@ -338,6 +338,9 @@ pub struct TextBox {
 
 /// Side of an item / inventory slot box in GUI pixels (vanilla's 18).
 pub const SLOT_SIZE: f32 = 18.0;
+/// A `<Screen>`'s size when it doesn't give one: the game's container screens' (176 × 166).
+pub const SCREEN_W: f32 = 176.0;
+pub const SCREEN_H: f32 = 166.0;
 /// Focus indicator color when `focus_color` is 0 (amber).
 pub const DEFAULT_FOCUS_COLOR: Color = Color(0xFF_FFE040);
 

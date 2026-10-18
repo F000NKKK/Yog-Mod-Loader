@@ -43,6 +43,8 @@ const TEXT_LEFT: f32 = 5.0;
 const LINE_H: f32 = 9.0;
 const TITLE_BAR_MIN: f32 = 29.0;
 const DESCRIPTION_TOP: f32 = 17.0;
+/// The description's first line from the top of a box that opens upward.
+const DESCRIPTION_TOP_UP: f32 = 7.0;
 const DESCRIPTION_PAD: f32 = 32.0;
 const FLIP_ROOM: f32 = 6.0;
 /// How far below or above the target width the game tries a description's
@@ -202,9 +204,15 @@ fn bar_sprite(obtained: bool) -> &'static str {
 }
 const DESCRIPTION_SPRITE: &str = "sprite:advancement/description";
 
+/// The frame that's a challenge, and the chat colours `FrameType` writes descriptions in.
+const CHALLENGE: &str = "challenge";
+const DARK_PURPLE: char = '5';
+const GREEN: char = 'a';
+
 /// The colour a frame's description is written in (`FrameType`'s chat colour).
 fn description_color(frame: &str) -> Color {
-    if frame == "challenge" { Color(0xFFAA_00AA) } else { Color(0xFF55_FF55) }
+    let code = if frame == CHALLENGE { DARK_PURPLE } else { GREEN };
+    Color(super::font::chat_color(code).unwrap_or(Color::WHITE.0))
 }
 
 /// `AdvancementWidget.drawConnectivity`: `GuiGraphics.hLine` / `vLine` rectangles.
@@ -258,7 +266,7 @@ fn hover(d: &yog_gfx::draw2d::Draw2D<'_>, n: &Node, o: Vec2, p: Vec2, window: Ve
     d.text(&title, Vec2::new(title_x, y + BAR_TEXT.y), WHITE, true);
     let color = description_color(&n.frame);
     for (i, line) in lines.iter().enumerate() {
-        let ly = if up { y + FRAME - box_h + 7.0 + i as f32 * LINE_H } else { y + BAR_TEXT.y + DESCRIPTION_TOP + i as f32 * LINE_H };
+        let ly = if up { y + FRAME - box_h + DESCRIPTION_TOP_UP + i as f32 * LINE_H } else { y + BAR_TEXT.y + DESCRIPTION_TOP + i as f32 * LINE_H };
         d.text(line, Vec2::new(x + TEXT_LEFT, ly), color, false);
     }
     if let Some(icon) = &n.icon {

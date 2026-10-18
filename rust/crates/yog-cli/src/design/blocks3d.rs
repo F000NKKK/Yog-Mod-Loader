@@ -104,17 +104,17 @@ const PARTICLE: &str = "particle";
 fn default_uv(slot: usize, f: [f32; 3], t: [f32; 3]) -> [f32; 4] {
     match slot {
         0 => [f[0], f[2], t[0], t[2]],
-        1 => [f[0], 16.0 - t[2], t[0], 16.0 - f[2]],
-        2 => [16.0 - t[0], 16.0 - t[1], 16.0 - f[0], 16.0 - f[1]],
-        3 => [f[0], 16.0 - t[1], t[0], 16.0 - f[1]],
-        4 => [f[2], 16.0 - t[1], t[2], 16.0 - f[1]],
-        _ => [16.0 - t[2], 16.0 - t[1], 16.0 - f[2], 16.0 - f[1]],
+        1 => [f[0], BLOCK_UNITS - t[2], t[0], BLOCK_UNITS - f[2]],
+        2 => [BLOCK_UNITS - t[0], BLOCK_UNITS - t[1], BLOCK_UNITS - f[0], BLOCK_UNITS - f[1]],
+        3 => [f[0], BLOCK_UNITS - t[1], t[0], BLOCK_UNITS - f[1]],
+        4 => [f[2], BLOCK_UNITS - t[1], t[2], BLOCK_UNITS - f[1]],
+        _ => [BLOCK_UNITS - t[2], BLOCK_UNITS - t[1], BLOCK_UNITS - f[2], BLOCK_UNITS - f[1]],
     }
 }
 
 /// `img`'s part `uv` (sixteenths of it; reversed: mirrored).
 fn cut(img: &Image, [u0, v0, u1, v1]: [f32; 4]) -> Image {
-    let (sx, sy) = (img.width as f32 / 16.0, img.width.min(img.height) as f32 / 16.0);
+    let (sx, sy) = (img.width as f32 / BLOCK_UNITS, img.width.min(img.height) as f32 / BLOCK_UNITS);
     let (x0, x1) = ((u0 * sx).round() as i32, (u1 * sx).round() as i32);
     let (y0, y1) = ((v0 * sy).round() as i32, (v1 * sy).round() as i32);
     let (w, h) = ((x1 - x0).unsigned_abs().max(1), (y1 - y0).unsigned_abs().max(1));

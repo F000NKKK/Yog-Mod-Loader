@@ -113,21 +113,8 @@ fn num(v: Option<&str>) -> Option<f32> {
     v?.trim().parse().ok()
 }
 
-/// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB` (yog-cli's `color`).
-pub fn color(value: &str) -> Option<u32> {
-    let v = value.trim();
-    let hex = v
-        .strip_prefix('#')
-        .or_else(|| v.strip_prefix("0x"))
-        .or_else(|| v.strip_prefix("0X"))?
-        .replace('_', "");
-    let n = u32::from_str_radix(&hex, 16).ok()?;
-    match hex.len() {
-        6 => Some(0xFF00_0000 | n),
-        8 => Some(n),
-        _ => None,
-    }
-}
+/// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB`: the `.yui` compiler's rule.
+pub use crate::yui::color;
 
 fn size(v: &str) -> Option<Units> {
     let v = v.trim();
@@ -447,22 +434,25 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
 
 /// The anchored screen (`root_with`): a `screen_w × screen_h` panel with the
 /// content placed per `anchor`.
+/// All of the window, as a percentage.
+const WHOLE: f32 = 100.0;
+
 pub fn screen(
     root: &YuiNode,
     screen_w: f32,
     screen_h: f32,
     scroll: &HashMap<String, f32>,
 ) -> Widget {
-    let width = num(root.attr(yog_ids::yui_attr::WIDTH)).unwrap_or(176.0);
-    let height = num(root.attr(yog_ids::yui_attr::HEIGHT)).unwrap_or(166.0);
+    let width = num(root.attr(yog_ids::yui_attr::WIDTH)).unwrap_or(widget::SCREEN_W);
+    let height = num(root.attr(yog_ids::yui_attr::HEIGHT)).unwrap_or(widget::SCREEN_H);
     let content = widget(root, false, scroll);
     let cx = ((screen_w - width) / 2.0).floor();
     let cy = ((screen_h - height) / 2.0).floor();
     let anchor = root.attr(yog_ids::yui_attr::ANCHOR).unwrap_or("center").trim();
     let content = if anchor == "fill" {
         content
-            .w(Units::Percent(100.0))
-            .h(Units::Percent(100.0))
+            .w(Units::Percent(WHOLE))
+            .h(Units::Percent(WHOLE))
             .at(0.0, 0.0)
     } else {
         let (ax, ay) = match anchor {

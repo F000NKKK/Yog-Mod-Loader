@@ -11,6 +11,9 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use yog_gfx::Color;
+use yog_ui::text::LINE_H;
+
 use super::assets::{Image, Resources};
 use super::font::{Font, Glyph, styled};
 
@@ -121,33 +124,39 @@ fn blend(dst: &mut [u8], src: [f32; 4]) {
     if sa <= 0.0 {
         return;
     }
-    let da = dst[3] as f32 / 255.0;
-    let oa = sa + da * (1.0 - sa);
+    let d = Color::from_rgba8([dst[0], dst[1], dst[2], dst[3]]).to_f32();
+    let oa = sa + d[3] * (1.0 - sa);
+    let mut o = [0.0, 0.0, 0.0, oa];
     for i in 0..3 {
-        let d = dst[i] as f32 / 255.0;
-        let o = (src[i] * sa + d * da * (1.0 - sa)) / oa;
-        dst[i] = (o * 255.0).round().clamp(0.0, 255.0) as u8;
+        o[i] = (src[i] * sa + d[i] * d[3] * (1.0 - sa)) / oa;
     }
-    dst[3] = (oa * 255.0).round().clamp(0.0, 255.0) as u8;
+    dst[..4].copy_from_slice(&Color::from_f32(o).to_rgba8());
 }
 
 fn argb(c: u32) -> [f32; 4] {
-    [
-        ((c >> 16) & 0xFF) as f32 / 255.0,
-        ((c >> 8) & 0xFF) as f32 / 255.0,
-        (c & 0xFF) as f32 / 255.0,
-        (c >> 24) as f32 / 255.0,
-    ]
+    Color(c).to_f32()
 }
 
-/// The game draws text whose alpha is (almost) 0 fully opaque (`Font.adjustColor`).
+/// Text whose alpha is below this the game draws fully opaque (`Font.adjustColor`: `(c & 0xFC000000) == 0`).
+const TEXT_MIN_ALPHA: u8 = 4;
+
+/// The game draws text whose alpha is (almost) 0 fully opaque.
 fn text_color(c: u32) -> u32 {
-    if c & 0xFC00_0000 == 0 {
-        c | 0xFF00_0000
-    } else {
-        c
-    }
+    let c = Color(c);
+    if c.a() < TEXT_MIN_ALPHA { c.with_alpha(u8::MAX).0 } else { c.0 }
 }
+
+/// The game's text shadow: each channel a quarter of the text's (`rgb & 0xFCFCFC >> 2`).
+fn shadow_color(c: u32) -> u32 {
+    const QUARTER_MASK: u32 = 0x00FC_FCFC;
+    const QUARTER_SHIFT: u32 = 2;
+    (c & Color::BLACK.0) | ((c & QUARTER_MASK) >> QUARTER_SHIFT)
+}
+
+/// Where the game draws a line's underline and strikethrough: one pixel
+/// above the line's bottom, and one through its middle.
+const UNDERLINE: (f32, f32) = (LINE_H, LINE_H - 1.0);
+const STRIKE: (f32, f32) = (LINE_H / 2.0, LINE_H / 2.0 - 1.0);
 
 impl<'r> Canvas<'r> {
     pub fn new(gui_w: u32, gui_h: u32, scale: u32, res: &'r Resources) -> Self {
@@ -222,7 +231,8 @@ impl<'r> Canvas<'r> {
                 if t[3] == 0 {
                     continue;
                 }
-                let c = [t[0] as f32 / 255.0 * shade, t[1] as f32 / 255.0 * shade, t[2] as f32 / 255.0 * shade, t[3] as f32 / 255.0];
+                let [r, g, b, a] = Color::from_rgba8(t).to_f32();
+                let c = [r * shade, g * shade, b * shade, a];
                 blend(self.px(px, py), c);
             }
         }
@@ -283,7 +293,8 @@ impl<'r> Canvas<'r> {
                     continue;
                 }
                 let t = img.pixel(tx as u32, ty as u32).to_rgba8();
-                let c = [0, 1, 2, 3].map(|i| t[i] as f32 / 255.0 * tint[i]);
+                let t = Color::from_rgba8(t).to_f32();
+                let c = [0, 1, 2, 3].map(|i| t[i] * tint[i]);
                 blend(self.px(px, py), c);
             }
         }
@@ -324,7 +335,7 @@ impl<'r> Canvas<'r> {
             for s in &chars {
                 let g = font.glyph(s.ch);
                 let c = if is_shadow {
-                    (s.color & 0xFF00_0000) | ((s.color & 0x00FC_FCFC) >> 2)
+                    shadow_color(s.color)
                 } else {
                     s.color
                 };
@@ -338,9 +349,9 @@ impl<'r> Canvas<'r> {
                 if s.underline {
                     self.fill(
                         pen + off - 1.0,
-                        y + off + 9.0,
+                        y + off + UNDERLINE.0,
                         pen + off + adv,
-                        y + off + 8.0,
+                        y + off + UNDERLINE.1,
                         c,
                         c,
                     );
@@ -348,9 +359,9 @@ impl<'r> Canvas<'r> {
                 if s.strike {
                     self.fill(
                         pen + off - 1.0,
-                        y + off + 4.5,
+                        y + off + STRIKE.0,
                         pen + off + adv,
-                        y + off + 3.5,
+                        y + off + STRIKE.1,
                         c,
                         c,
                     );
@@ -395,7 +406,7 @@ impl<'r> Canvas<'r> {
                 // As the game shows it in a slot (blocks and heads in 3D;
                 // mod items: from their `content/` file).
                 let source = format!("item:{id}");
-                super::images::draw(self, &source, [*x, *y, *size, *size], [0.0; 4], 0xFFFF_FFFF);
+                super::images::draw(self, &source, [*x, *y, *size, *size], [0.0; 4], Color::WHITE.0);
             }
             DrawOp::Image {
                 source,
@@ -406,7 +417,7 @@ impl<'r> Canvas<'r> {
                 region,
                 tint,
             } => super::images::draw(self, source, [*x, *y, *w, *h], *region, *tint),
-            DrawOp::Svg { data, x, y, w, h } => super::images::draw_svg(self, data, [*x, *y, *w, *h], 0xFFFF_FFFF),
+            DrawOp::Svg { data, x, y, w, h } => super::images::draw_svg(self, data, [*x, *y, *w, *h], Color::WHITE.0),
             DrawOp::Entity { entity, x, y, w, h } => super::images::draw_entity(self, entity, [*x, *y, *w, *h]),
             DrawOp::Scissor { x, y, w, h } => self.clip = Some((*x, *y, *w, *h)),
             DrawOp::ClearScissor => self.clip = None,

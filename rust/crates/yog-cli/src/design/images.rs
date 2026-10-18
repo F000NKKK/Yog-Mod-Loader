@@ -208,7 +208,7 @@ const HEAD_MARGIN: f32 = 0.1;
 /// can't be resolved.
 pub fn source_size(source: &str) -> Option<(f32, f32)> {
     match ImageSource::parse(source)? {
-        ImageSource::Item(_) | ImageSource::Block(_) => Some((16.0, 16.0)),
+        ImageSource::Item(_) | ImageSource::Block(_) => Some((yog_ui::ICON_SIZE, yog_ui::ICON_SIZE)),
         ImageSource::Sprite(name) => find_sprite(&name)
             .map(|s| s.size(has_atlas()))
             .map(|size| (size.x, size.y)),
@@ -220,7 +220,7 @@ pub fn source_size(source: &str) -> Option<(f32, f32)> {
 
 /// `0xAARRGGBB` → RGBA multipliers.
 fn tint(c: u32) -> [f32; 4] {
-    [(c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF, c >> 24].map(|v| v as f32 / 255.0)
+    Color(c).to_f32()
 }
 
 /// `img` pixels `src` (`u v w h`) into GUI `dest` (`x y w h`).
@@ -271,11 +271,12 @@ fn nine_slice(c: &mut Canvas, img: &Image, region: [f32; 4], border: f32, dest: 
 
 /// The inventory slot (drawn by Yog on every version).
 fn slot(c: &mut Canvas, [x, y, w, h]: [f32; 4]) {
-    c.fill(x, y, x + w, y + h, 0xFF_8B8B8B, 0xFF_8B8B8B);
-    c.fill(x, y, x + w, y + 1.0, 0xFF_373737, 0xFF_373737);
-    c.fill(x, y, x + 1.0, y + h, 0xFF_373737, 0xFF_373737);
-    c.fill(x, y + h - 1.0, x + w, y + h, 0xFF_FFFFFF, 0xFF_FFFFFF);
-    c.fill(x + w - 1.0, y, x + w, y + h, 0xFF_FFFFFF, 0xFF_FFFFFF);
+    let (face, shadow, light) = (yog_ui::INV_SLOT_FACE.0, yog_ui::INV_SLOT_SHADOW.0, yog_ui::INV_SLOT_LIGHT.0);
+    c.fill(x, y, x + w, y + h, face, face);
+    c.fill(x, y, x + w, y + 1.0, shadow, shadow);
+    c.fill(x, y, x + 1.0, y + h, shadow, shadow);
+    c.fill(x, y + h - 1.0, x + w, y + h, light, light);
+    c.fill(x + w - 1.0, y, x + w, y + h, light, light);
 }
 
 /// Sprite `sp` into `dest`: nine-sliced by its border, or — `part` a region
@@ -328,8 +329,8 @@ fn missing(c: &mut Canvas, dest: [f32; 4]) {
         c,
         &super::assets::missing_image(),
         dest,
-        [0.0, 0.0, 16.0, 16.0],
-        0xFFFF_FFFF,
+        [0.0, 0.0, yog_ui::ICON_SIZE, yog_ui::ICON_SIZE],
+        Color::WHITE.0,
     );
 }
 
@@ -380,13 +381,19 @@ pub fn draw_svg(c: &mut Canvas, data: &str, dest: [f32; 4], t: u32) {
     }
 }
 
+/// An entity's spawn egg is drawn at most this big (two icons).
+const ENTITY_EGG_MAX: f32 = 2.0 * yog_ui::ICON_SIZE;
+/// What the game names an entity's spawn egg: `<entity>_spawn_egg`.
+const SPAWN_EGG_SUFFIX: &str = "_spawn_egg";
+
 /// `draw2d_entity`: the designer has no entity models — the entity's spawn
 /// egg, in the middle of its box.
 pub fn draw_entity(c: &mut Canvas, entity: &str, [x, y, w, h]: [f32; 4]) {
     let (ns, path) = yog_ids::split(entity);
-    let side = w.min(h).min(32.0);
+    let side = w.min(h).min(ENTITY_EGG_MAX);
     let dest = [x + (w - side) / 2.0, y + (h - side) / 2.0, side, side];
-    draw(c, &format!("item:{ns}:{path}_spawn_egg"), dest, [0.0; 4], 0xFFFF_FFFF);
+    let egg = yog_ids::join(ns, &format!("{path}{SPAWN_EGG_SUFFIX}"));
+    draw(c, &yog_ids::join(yog_ids::image_scheme::ITEM, &egg), dest, [0.0; 4], Color::WHITE.0);
 }
 
 /// `draw2d_image`: `source` into `dest` (`x y w h`, already fitted by
@@ -408,11 +415,11 @@ pub fn draw(c: &mut Canvas, source: &str, dest: [f32; 4], region: [f32; 4], t: u
     match ImageSource::parse(source) {
         Some(ImageSource::Item(id)) if item_3d(c, &id, dest) => {}
         Some(ImageSource::Item(id)) => match item_texture(&id, false) {
-            Some(img) => blit_px(c, &img, dest, first_frame(&img), 0xFFFF_FFFF),
+            Some(img) => blit_px(c, &img, dest, first_frame(&img), Color::WHITE.0),
             None => missing(c, dest),
         },
         Some(ImageSource::Block(id)) => match item_texture(&id, true) {
-            Some(img) => blit_px(c, &img, dest, first_frame(&img), 0xFFFF_FFFF),
+            Some(img) => blit_px(c, &img, dest, first_frame(&img), Color::WHITE.0),
             None => missing(c, dest),
         },
         Some(ImageSource::Sprite(name)) => match find_sprite(&name) {
@@ -517,7 +524,7 @@ fn draw_preview(path: &Path, source: &str, size: u32) -> Option<String> {
     let (dest, _) = fit(Stretch::Uniform, Vec2::new(nw, nh), Rect::new(0.0, 0.0, size as f32, size as f32));
     let mut c = Canvas::new(size, size, 1, &res);
     let [x, y, w, h] = [dest.x, dest.y, dest.w, dest.h];
-    draw(&mut c, &source, [x, y, w, h], [0.0; 4], 0xFFFF_FFFF);
+    draw(&mut c, &source, [x, y, w, h], [0.0; 4], Color::WHITE.0);
     let png = c.png().ok()?;
     Some(format!(
         "data:image/png;base64,{}",
