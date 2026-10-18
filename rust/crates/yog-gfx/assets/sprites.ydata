@@ -1,13 +1,15 @@
 // Yog's GUI sprite names (`sprite:<name>`): each one's size, its 1.20.2+
 // GUI-atlas id (`textures/gui/sprites/<id>.png` in the client jar) and its
 // 1.20.1 region (`texture`, `region` [u, v, w, h] in pixels, `texture_size`
-// when the texture isn't 256 square). `border`: the nine-slice border when
+// when the texture isn't 256 square), and Yog's own picture (`own`, a region
+// of a `yog:` texture) for a version with neither — the host takes the first
+// its game has. `border`: the nine-slice border when
 // stretched. Adding one: pick a stable name.
 [
   { name: "button", description: "Button background", size: [200, 20], atlas: "widget/button", legacy: { texture: "minecraft:textures/gui/widgets.png", region: [0, 66, 200, 20] }, border: 3 },
   { name: "button_hover", description: "Button background, hovered/focused", size: [200, 20], atlas: "widget/button_highlighted", legacy: { texture: "minecraft:textures/gui/widgets.png", region: [0, 86, 200, 20] }, border: 3 },
   { name: "button_disabled", description: "Button background, disabled", size: [200, 20], atlas: "widget/button_disabled", legacy: { texture: "minecraft:textures/gui/widgets.png", region: [0, 46, 200, 20] }, border: 3 },
-  { name: "panel", description: "Window background (vanilla's grey frame)", size: [248, 166], legacy: { texture: "minecraft:textures/gui/demo_background.png", region: [0, 0, 248, 166] }, border: 4 },
+  { name: "panel", description: "Window background (vanilla's grey frame)", size: [248, 166], legacy: { texture: "minecraft:textures/gui/demo_background.png", region: [0, 0, 248, 166] }, own: { texture: "yog:textures/gui/panel.png", region: [0, 0, 248, 166] }, border: 4 },
   { name: "slot", description: "Inventory slot (18×18)", size: [18, 18], border: 1 },
   { name: "arrow", description: "Crafting arrow (the crafting table's, ingredients → result)", size: [24, 17], legacy: { texture: "minecraft:textures/gui/container/crafting_table.png", region: [89, 34, 24, 17] } },
   { name: "scrollbar", description: "Scrollbar knob (creative inventory)", size: [12, 15], atlas: "container/creative_inventory/scroller", legacy: { texture: "minecraft:textures/gui/container/creative_inventory/tabs.png", region: [232, 0, 12, 15] } },

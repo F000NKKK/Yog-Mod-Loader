@@ -9,6 +9,10 @@ final class YogGuiSprites {
 
     static final boolean AVAILABLE = false;
 
+    static boolean has(Identifier id) {
+        return false;
+    }
+
     static void draw(DrawContext ctx, Identifier id, int x, int y, int w, int h) {
         // No GUI sprite atlas before 1.20.2: sprites come from texture regions.
     }

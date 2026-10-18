@@ -133,8 +133,21 @@ fn java_statics(java: &str) -> BTreeSet<(String, usize)> {
     out
 }
 
+/// A platform's `<host>/versions/<mc>.properties` value of `key`.
+fn platform_property(root: &Path, host: &str, platform: &Path, key: &str) -> Option<String> {
+    let mc = platform.file_name()?.to_str()?;
+    let text = fs::read_to_string(root.join(host).join("versions").join(format!("{mc}.properties"))).ok()?;
+    text.lines().find_map(|l| l.trim().strip_prefix(key)?.trim_start().strip_prefix('=').map(|v| v.trim().to_string()))
+}
+
+/// Whether a platform is only build plumbing so far (`status=scaffold`): the build refuses it.
+fn scaffold(root: &Path, host: &str, platform: &Path) -> bool {
+    platform_property(root, host, platform, "status").as_deref() == Some("scaffold")
+}
+
 /// The public statics of class `class` as a host compiles it: its own
-/// platform sources, the host's shared sources, then `java-common`.
+/// platform sources, the host's shared sources (not for a platform built
+/// by a Gradle project of its own, `gradle_project`), then `java-common`.
 fn class_statics(
     root: &Path,
     host: &str,
@@ -142,12 +155,14 @@ fn class_statics(
     class: &str,
 ) -> Option<BTreeSet<(String, usize)>> {
     let file = format!("{class}.java");
+    let shared = platform_property(root, host, platform, "gradle_project").is_none();
     [
-        platform.join("src/main/java/dev/yog"),
-        root.join(host).join("src/main/java/dev/yog"),
-        root.join("java-common/src/main/java/dev/yog"),
+        Some(platform.join("src/main/java/dev/yog")),
+        shared.then(|| root.join(host).join("src/main/java/dev/yog")),
+        Some(root.join("java-common/src/main/java/dev/yog")),
     ]
-    .iter()
+    .into_iter()
+    .flatten()
     .find_map(|d| fs::read_to_string(d.join(&file)).ok())
     .map(|j| java_statics(&j))
 }
@@ -171,6 +186,9 @@ fn every_host_has_every_bridge_method() {
         };
         for p in platforms {
             let platform = p.unwrap().path();
+            if scaffold(&root, host, &platform) {
+                continue;
+            }
             for (class, name, arity) in &calls {
                 let ok = class_statics(&root, host, &platform, class)
                     .is_some_and(|s| s.contains(&(name.clone(), *arity)));

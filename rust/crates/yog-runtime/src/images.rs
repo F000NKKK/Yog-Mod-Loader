@@ -11,16 +11,15 @@
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicU8, Ordering};
 
 use jni::JNIEnv;
 use yog_abi::YogStr;
-use yog_gfx::image::{self, ImageSource, LegacyRegion, Sprite};
+use yog_gfx::image::{self, ImageSource, LegacyRegion, Sprite, SpriteSource};
 
 use crate::jcall::jcall;
 
-/// 0 = not asked yet, 1 = the host has the GUI sprite atlas, 2 = it doesn't.
-static ATLAS: AtomicU8 = AtomicU8::new(0);
+/// Sprite name → the index of the source the host has (`Sprite::sources`), asked once per sprite.
+static RESOLVED: Mutex<Option<HashMap<String, Option<usize>>>> = Mutex::new(None);
 /// Texture id → pixel size (`None` = missing), asked once per id.
 type SizeCache = HashMap<String, Option<(f32, f32)>>;
 static TEXTURE_SIZES: Mutex<Option<SizeCache>> = Mutex::new(None);
@@ -39,15 +38,37 @@ fn warn_once(source: &str, why: &str) {
     }
 }
 
-fn has_atlas(env: &mut JNIEnv) -> bool {
-    match ATLAS.load(Ordering::Relaxed) {
-        1 => return true,
-        2 => return false,
-        _ => {}
+/// Whether the host's GUI sprite atlas has sprite `id` (none before 1.20.2).
+fn has_gui_sprite(env: &mut JNIEnv, id: &str) -> bool {
+    unsafe { jcall!(env, "dev/yog/NativeDraw", "hasGuiSprite", [S(YogStr::from_str(id))]) }.unwrap_or(false)
+}
+
+/// The source of `sp` this game has: the first of its sources the host finds.
+fn resolve<'s>(env: &mut JNIEnv, sp: &'s Sprite) -> Option<SpriteSource<'s>> {
+    let sources = sp.sources();
+    let cached = RESOLVED.lock().ok().and_then(|r| r.as_ref().and_then(|m| m.get(&sp.name).copied()));
+    let index = match cached {
+        Some(i) => i,
+        None => {
+            let found = sources.iter().position(|s| match s {
+                SpriteSource::Atlas(id) => has_gui_sprite(env, id),
+                SpriteSource::Region(r) => texture_size(env, &r.texture).is_some(),
+            });
+            if let Ok(mut r) = RESOLVED.lock() {
+                r.get_or_insert_with(HashMap::new).insert(sp.name.clone(), found);
+            }
+            found
+        }
+    };
+    index.and_then(|i| sources.into_iter().nth(i))
+}
+
+/// A sprite's natural size from `source`: an atlas sprite's is the table's, a region's its own.
+fn natural_size(sp: &Sprite, source: Option<&SpriteSource<'_>>) -> (f32, f32) {
+    match source {
+        Some(SpriteSource::Region(r)) => (r.region.w, r.region.h),
+        _ => (sp.size.x, sp.size.y),
     }
-    let yes = unsafe { jcall!(env, "dev/yog/NativeDraw", "hasGuiSprites", []) }.unwrap_or(false);
-    ATLAS.store(if yes { 1 } else { 2 }, Ordering::Relaxed);
-    yes
 }
 
 fn texture_size(env: &mut JNIEnv, id: &str) -> Option<(f32, f32)> {
@@ -200,15 +221,12 @@ fn draw_legacy(env: &mut JNIEnv, l: &LegacyRegion, border: f32, dest: [f32; 4], 
 fn draw_sprite(env: &mut JNIEnv, source: &str, sp: &Sprite, dest: [f32; 4], tint: u32) {
     if sp.is_procedural() {
         draw_slot(env, dest);
-    } else if let (true, Some(atlas)) = (has_atlas(env), sp.atlas.as_deref()) {
-        draw_atlas_sprite(env, &yog_ids::join(yog_ids::ns::MINECRAFT, atlas), dest, tint);
-    } else if let Some(l) = &sp.legacy {
-        draw_legacy(env, l, sp.border, dest, tint);
-    } else {
-        warn_once(
-            source,
-            "this sprite doesn't exist on this Minecraft version",
-        );
+        return;
+    }
+    match resolve(env, sp) {
+        Some(SpriteSource::Atlas(id)) => draw_atlas_sprite(env, &id, dest, tint),
+        Some(SpriteSource::Region(l)) => draw_legacy(env, l, sp.border, dest, tint),
+        None => warn_once(source, "none of this sprite's sources is in this Minecraft version"),
     }
 }
 
@@ -241,7 +259,7 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
             Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
                 Some(sp) => draw_sprite(&mut env, source, sp, dest, tint),
                 // A raw atlas id (`sprite:minecraft:widget/button`).
-                None if name.contains(':') && has_atlas(&mut env) => {
+                None if name.contains(':') && has_gui_sprite(&mut env, &name) => {
                     draw_atlas_sprite(&mut env, &name, dest, tint);
                 }
                 None => warn_once(source, "unknown sprite name (see yog_gfx::image::SPRITES)"),
@@ -280,7 +298,7 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
         let size = match ImageSource::parse(source) {
             Some(ImageSource::Item(_) | ImageSource::Block(_)) => Some((16.0, 16.0)),
             Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
-                Some(sp) => crate::get_env().map(|mut env| { let s = sp.size(has_atlas(&mut env)); (s.x, s.y) }),
+                Some(sp) => crate::get_env().map(|mut env| natural_size(sp, resolve(&mut env, sp).as_ref())),
                 None => None,
             },
             Some(ImageSource::Texture(id)) if id.ends_with(".svg") => crate::get_env()

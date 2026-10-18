@@ -171,6 +171,8 @@ pub struct Sprite {
     pub atlas: Option<String>,
     /// Where it lives on 1.20.1.
     pub legacy: Option<LegacyRegion>,
+    /// Yog's own picture of it (`yog:textures/gui/…`), for a version that has neither.
+    pub own: Option<LegacyRegion>,
     /// Nine-slice border in pixels when stretched (0 = scale the whole image).
     pub border: f32,
 }
@@ -186,8 +188,38 @@ impl Sprite {
 
     /// Drawn by Yog itself (no texture on any version) — the inventory slot.
     pub fn is_procedural(&self) -> bool {
-        self.atlas.is_none() && self.legacy.is_none()
+        self.atlas.is_none() && self.legacy.is_none() && self.own.is_none()
     }
+
+    /// Where it may come from, in the order a host tries them: the GUI
+    /// atlas's sprite (`minecraft:<id>`), the game's texture region, Yog's
+    /// own picture. The host draws it from the first its game has.
+    pub fn sources(&self) -> Vec<SpriteSource<'_>> {
+        let mut out = Vec::new();
+        if let Some(a) = &self.atlas {
+            out.push(SpriteSource::Atlas(yog_ids::qualify(a)));
+        }
+        out.extend(self.legacy.iter().chain(&self.own).map(SpriteSource::Region));
+        out
+    }
+}
+
+/// One place a sprite may come from (see [`Sprite::sources`]).
+#[derive(Debug, Clone, PartialEq)]
+pub enum SpriteSource<'a> {
+    /// A GUI-atlas sprite, by full id (`minecraft:widget/button`).
+    Atlas(String),
+    /// A region of a texture.
+    Region(&'a LegacyRegion),
+}
+
+/// Yog's own textures (`yog:textures/gui/…`), shipped in this crate's `res/`
+/// (a resource pack's layout: the hosts take the folder as resources).
+const OWN: &[(&str, &[u8])] = &[("textures/gui/panel.png", include_bytes!("../res/assets/yog/textures/gui/panel.png"))];
+
+/// The bytes of Yog's own texture `path` (`textures/gui/panel.png`), if it has one.
+pub fn own_texture(path: &str) -> Option<&'static [u8]> {
+    OWN.iter().find(|(p, _)| *p == path).map(|(_, b)| *b)
 }
 
 /// Looks up a [`SPRITES`] entry by its Yog name.
@@ -214,6 +246,7 @@ struct SpriteDef {
     size: [f32; 2],
     atlas: Option<String>,
     legacy: Option<LegacyDef>,
+    own: Option<LegacyDef>,
     #[data(default)]
     border: f32,
 }
@@ -224,6 +257,12 @@ struct LegacyDef {
     region: [f32; 4],
     /// The texture's side, when it isn't [`LEGACY_TEX_SIZE`].
     texture_size: Option<f32>,
+}
+
+fn region(l: LegacyDef) -> LegacyRegion {
+    let [u, v, w, h] = l.region;
+    let side = l.texture_size.unwrap_or(LEGACY_TEX_SIZE);
+    LegacyRegion { texture: l.texture, region: Rect::new(u, v, w, h), texture_size: Vec2::new(side, side) }
 }
 
 /// Yog's GUI sprite names (`assets/sprites.ydata`).
@@ -237,11 +276,8 @@ pub static SPRITES: LazyLock<Vec<Sprite>> = LazyLock::new(|| {
             description: d.description,
             size: Vec2::new(d.size[0], d.size[1]),
             atlas: d.atlas,
-            legacy: d.legacy.map(|l| {
-                let [u, v, w, h] = l.region;
-                let side = l.texture_size.unwrap_or(LEGACY_TEX_SIZE);
-                LegacyRegion { texture: l.texture, region: Rect::new(u, v, w, h), texture_size: Vec2::new(side, side) }
-            }),
+            legacy: d.legacy.map(region),
+            own: d.own.map(region),
             border: d.border,
         })
         .collect()

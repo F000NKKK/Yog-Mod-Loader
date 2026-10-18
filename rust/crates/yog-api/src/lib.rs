@@ -32,6 +32,8 @@ pub use yog_abi::{ABI_VERSION, YogApi};
 /// Yog Data — what content definitions and book pages' `data`
 /// (`Registry::on_book_page`) are; re-exported for mods.
 pub use yog_data;
+/// The names Yog shares — kinds, namespaces, lang keys — for a mod to use as the loader does.
+pub use yog_ids;
 
 pub use java::mod_loaded;
 

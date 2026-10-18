@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use yog_gfx::{Color, Rect, Vec2};
 use yog_gfx::image::{
-    ImageSource, LegacyRegion, SPRITES, Sprite, Stretch, atlas_texture, fit, sprite as find_sprite,
+    ImageSource, LegacyRegion, SPRITES, Sprite, SpriteSource, Stretch, atlas_texture, fit, sprite as find_sprite,
 };
 use yog_ui::widget::{self, Widget};
 
@@ -136,9 +136,18 @@ fn book_sheet(id: &str) -> Option<Arc<Image>> {
     }
 }
 
-/// The game files have the 1.20.2+ GUI sprite atlas.
-fn has_atlas() -> bool {
-    SPRITES.iter().filter_map(|s| s.atlas.as_deref()).next().and_then(|a| texture(&atlas_texture(yog_ids::ns::MINECRAFT, a))).is_some()
+/// A GUI-atlas sprite's picture (`minecraft:widget/button` → its png).
+fn atlas_image(id: &str) -> Option<Arc<Image>> {
+    let (ns, path) = yog_ids::split(id);
+    texture(&atlas_texture(ns, path))
+}
+
+/// The source of `sp` the game files (or Yog) have — the first, as the host picks it.
+fn resolve(sp: &Sprite) -> Option<SpriteSource<'_>> {
+    sp.sources().into_iter().find(|s| match s {
+        SpriteSource::Atlas(id) => atlas_image(id).is_some(),
+        SpriteSource::Region(r) => texture(&r.texture).is_some(),
+    })
 }
 
 /// The texture an item/block icon is drawn with (the designer doesn't run
@@ -209,9 +218,10 @@ const HEAD_MARGIN: f32 = 0.1;
 pub fn source_size(source: &str) -> Option<(f32, f32)> {
     match ImageSource::parse(source)? {
         ImageSource::Item(_) | ImageSource::Block(_) => Some((yog_ui::ICON_SIZE, yog_ui::ICON_SIZE)),
-        ImageSource::Sprite(name) => find_sprite(&name)
-            .map(|s| s.size(has_atlas()))
-            .map(|size| (size.x, size.y)),
+        ImageSource::Sprite(name) => find_sprite(&name).map(|s| match resolve(s) {
+            Some(SpriteSource::Region(r)) => (r.region.w, r.region.h),
+            _ => (s.size.x, s.size.y),
+        }),
         ImageSource::Texture(id) if id.ends_with(".svg") => svg_document(&id).and_then(|d| svg_size(&d)),
         ImageSource::Texture(id) => texture(&id).map(|i| (i.width as f32, i.height as f32)),
         ImageSource::ModPath(_) => None,
@@ -296,11 +306,12 @@ fn sprite(c: &mut Canvas, sp: &Sprite, dest: [f32; 4], part: [f32; 4], t: u32) {
         slot(c, dest);
         return;
     }
-    if let Some(atlas) = &sp.atlas
-        && let Some(img) = texture(&atlas_texture(yog_ids::ns::MINECRAFT, atlas))
+    let source = resolve(sp);
+    if let Some(SpriteSource::Atlas(id)) = &source
+        && let Some(img) = atlas_image(id)
     {
         // Animated sprites stack their frames vertically: the first one.
-        let size = sp.size(true);
+        let size = sp.size;
         let frame_h = if img.height > img.width && size.y <= size.x {
             img.width as f32 * size.y / size.x
         } else {
@@ -309,11 +320,11 @@ fn sprite(c: &mut Canvas, sp: &Sprite, dest: [f32; 4], part: [f32; 4], t: u32) {
         put(&img, [0.0, 0.0, img.width as f32, frame_h], size.x, sp.border);
         return;
     }
-    if let Some(LegacyRegion {
+    if let Some(SpriteSource::Region(LegacyRegion {
         texture: tex,
         region,
         texture_size,
-    }) = &sp.legacy
+    })) = source
         && let Some(img) = texture(tex)
     {
         // Resource packs may ship the sheet at a higher resolution.

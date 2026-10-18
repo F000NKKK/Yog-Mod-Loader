@@ -151,8 +151,12 @@ public final class NativeDraw {
     // ── Yog image sources (resolved by the runtime, see images.rs) ──────────
 
     /** Whether this Minecraft has the GUI sprite atlas (1.20.2+). */
-    public static boolean hasGuiSprites() {
-        return true;
+    /** Whether this Minecraft's GUI sprite atlas has sprite `id` (it answers the missing sprite otherwise). */
+    public static boolean hasGuiSprite(String id) {
+        ResourceLocation ident = ResourceLocation.tryParse(id);
+        if (ident == null) return false;
+        var sprite = Minecraft.getInstance().getGuiSprites().getSprite(ident);
+        return !sprite.contents().name().equals(net.minecraft.client.renderer.texture.MissingTextureAtlasSprite.getLocation());
     }
 
     private static void beginImage(int tint) {
@@ -170,7 +174,7 @@ public final class NativeDraw {
     /** A GUI-atlas sprite over (x, y, w, h), nine-sliced/tiled per its .mcmeta. */
     public static void drawGuiSprite(String id, float x, float y, float w, float h, int tint) {
         GuiGraphics ctx = hudDrawContext;
-        if (ctx == null || !hasGuiSprites()) return;
+        if (ctx == null) return;
         ResourceLocation ident = ResourceLocation.tryParse(id);
         if (ident == null) return;
         syncGlState();

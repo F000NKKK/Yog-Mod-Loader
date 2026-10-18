@@ -359,8 +359,9 @@ pub fn text_expr(value: &str) -> Result<String, String> {
                 .ok_or_else(|| format!("no text `{name}` in resources/*.yres"))
         }
         Ok(yog_data::Value::Ref(r)) if matches!(r.kind.as_str(), yog_ids::kind::ITEM | yog_ids::kind::BLOCK | yog_ids::kind::ENTITY) => {
-            let (ns, path) = r.id.split('[').next().unwrap_or(&r.id).split_once(':').unwrap_or(("minecraft", &r.id));
-            Ok(tr(&format!("{}.{ns}.{}", r.kind, path.replace('/', "."))))
+            // A block's state (`[facing=north]`) isn't part of its name.
+            let id = r.id.split(STATE_OPEN).next().unwrap_or(&r.id);
+            Ok(tr(&yog_ids::lang_key(&r.kind, id)))
         }
         Ok(other) => Err(format!("{} isn't a text", other.kind_name())),
         Err(_) if !value.contains(':') => Err(format!(
@@ -370,6 +371,9 @@ pub fn text_expr(value: &str) -> Result<String, String> {
         Err(e) => Err(e),
     }
 }
+
+/// Where a block id's state begins: `minecraft:furnace[facing=north]`.
+const STATE_OPEN: char = '[';
 
 /// [`text_expr`] for attribute `key` of `el`, a problem saying where.
 pub(crate) fn text_attr(el: &Element, key: &str, value: &str) -> Result<String, String> {
