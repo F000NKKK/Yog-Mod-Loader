@@ -551,15 +551,17 @@ fn designer_lib() -> Result<(), String> {
         ..
     } = prepare()?;
     let target_dir = root.join("target").join("designer");
-    let status = Command::new("cargo")
+    let out = Command::new("cargo")
         .current_dir(&build_dir)
         .env("CARGO_TARGET_DIR", &target_dir)
         .args(["build", "--lib", "--color", "never"])
         .stdout(std::process::Stdio::null())
-        .status()
+        .output()
         .map_err(|e| format!("failed to run cargo: {e}"))?;
-    if !status.success() {
-        return Err(format!("cargo build failed ({status})"));
+    // The toolchain's own noise left out, as `yog build` does.
+    eprint!("{}", filter_benign_warnings(&String::from_utf8_lossy(&out.stderr)));
+    if !out.status.success() {
+        return Err(format!("cargo build failed ({})", out.status));
     }
     let lib = target_dir
         .join("debug")
