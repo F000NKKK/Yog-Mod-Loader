@@ -29,14 +29,14 @@ if (versionProps.getProperty('status') == 'scaffold' && !project.hasProperty('al
         "Use a ported platform (see versions/*.properties) or pass -PallowScaffold to try anyway.")
 }
 
+apply from: "../../java-common/sources.gradle"
+
 sourceSets {
     main {
         java {
             srcDir "${platformDir}/src/main/java"
-            // Loader- and mapping-agnostic Java shared with other loader hosts.
-            srcDir "../../java-common/src/main/java"
-            // This game version's code every loader shares (26.x: the game's own names everywhere).
-            srcDir "../../java-common/mc/${project.minecraft_version}/src/main/java"
+            // The Java every loader shares for this version (java-common/sources.gradle).
+            yogSharedSources(project.minecraft_version).each { srcDir it }
             // Hot reload is for dev builds: a release jar (`build.sh publish`) leaves it out.
             if (project.hasProperty('yog_release')) {
                 exclude 'dev/yog/YogDevReload*.java'
