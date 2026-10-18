@@ -20,6 +20,8 @@
 //! resolve with it); mods normally only pass strings.
 
 
+use std::sync::LazyLock;
+
 use yog_graphics::{Rect, Vec2};
 
 /// A parsed image source — see the [module docs](self).
@@ -137,7 +139,7 @@ pub fn suggest_alias(id: &str) -> Option<String> {
     }
     if ns == yog_ids::ns::MINECRAFT
         && let Some(atlas_id) = stem.strip_prefix(yog_ids::res::GUI_SPRITES)
-        && let Some(sprite) = SPRITES.iter().find(|s| s.atlas == Some(atlas_id))
+        && let Some(sprite) = sprite_by_atlas(atlas_id)
     {
         return Some(ImageSource::Sprite(sprite.name.to_string()).to_string());
     }
@@ -145,28 +147,28 @@ pub fn suggest_alias(id: &str) -> Option<String> {
 }
 
 /// A region of a texture on Minecraft 1.20.1 (before the GUI sprite atlas).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LegacyRegion {
     /// Texture resource id.
-    pub texture: &'static str,
+    pub texture: String,
     /// The region, in the texture's pixels.
     pub region: Rect,
     /// The whole texture's size.
     pub texture_size: Vec2,
 }
 
-/// One entry of Yog's GUI sprite table.
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// One entry of Yog's GUI sprite table ([`SPRITES`]).
+#[derive(Debug, Clone, PartialEq)]
 pub struct Sprite {
     /// The stable Yog name (`sprite:<name>`).
-    pub name: &'static str,
+    pub name: String,
     /// What it is, for editors' pickers.
-    pub description: &'static str,
+    pub description: String,
     /// Natural size in GUI pixels (1.20.2+; 1.20.1 uses the legacy region's).
     pub size: Vec2,
     /// GUI-atlas sprite id on Minecraft 1.20.2+ (`minecraft:<id>`, i.e.
     /// `textures/gui/sprites/<id>.png`).
-    pub atlas: Option<&'static str>,
+    pub atlas: Option<String>,
     /// Where it lives on 1.20.1.
     pub legacy: Option<LegacyRegion>,
     /// Nine-slice border in pixels when stretched (0 = scale the whole image).
@@ -176,7 +178,7 @@ pub struct Sprite {
 impl Sprite {
     /// Natural size on a host with (`true`) or without the GUI sprite atlas.
     pub fn size(&self, atlas: bool) -> Vec2 {
-        match (atlas, self.legacy) {
+        match (atlas, &self.legacy) {
             (false, Some(l)) => Vec2::new(l.region.w, l.region.h),
             _ => self.size,
         }
@@ -193,288 +195,57 @@ pub fn sprite(name: &str) -> Option<&'static Sprite> {
     SPRITES.iter().find(|s| s.name == name.trim())
 }
 
-const WIDGETS: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/widgets.png");
-const ICONS: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/icons.png");
-const TABS: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/container/creative_inventory/tabs.png");
-const CHECKBOX: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/checkbox.png");
-/// The demo screen's window — vanilla's plain grey window frame, the same
-/// texture on every version.
-const WINDOW: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/demo_background.png");
-/// The crafting table's screen — its arrow, the same on every version.
-const CRAFTING_TABLE: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "textures/gui/container/crafting_table.png");
-
-/// A region of a [`LEGACY_TEX_SIZE`]-square texture.
-const fn region(texture: &'static str, u: f32, v: f32, w: f32, h: f32) -> Option<LegacyRegion> {
-    region_of(texture, LEGACY_TEX_SIZE, u, v, w, h)
+/// Looks up a [`SPRITES`] entry by its 1.20.2+ atlas id (`widget/button`).
+pub fn sprite_by_atlas(atlas: &str) -> Option<&'static Sprite> {
+    SPRITES.iter().find(|s| s.atlas.as_deref() == Some(atlas))
 }
 
-const fn region_of(
-    texture: &'static str,
-    size: f32,
-    u: f32,
-    v: f32,
-    w: f32,
-    h: f32,
-) -> Option<LegacyRegion> {
-    Some(LegacyRegion { texture, region: Rect::new(u, v, w, h), texture_size: Vec2::new(size, size) })
+/// The texture of GUI-atlas sprite `atlas` of namespace `ns`:
+/// `minecraft:textures/gui/sprites/<atlas>.png`.
+pub fn atlas_texture(ns: &str, atlas: &str) -> String {
+    yog_ids::join(ns, &yog_ids::texture_file(&format!("{}{atlas}", yog_ids::res::GUI_SPRITES)))
 }
 
-#[allow(clippy::too_many_arguments)]
-const fn sprite_def(
-    name: &'static str,
-    description: &'static str,
-    w: f32,
-    h: f32,
-    atlas: &'static str,
-    legacy: Option<LegacyRegion>,
+/// A sprite as `assets/sprites.ydata` writes it.
+#[derive(yog_data::Schema)]
+struct SpriteDef {
+    name: String,
+    description: String,
+    size: [f32; 2],
+    atlas: Option<String>,
+    legacy: Option<LegacyDef>,
+    #[data(default)]
     border: f32,
-) -> Sprite {
-    Sprite {
-        name,
-        description,
-        size: Vec2::new(w, h),
-        atlas: Some(atlas),
-        legacy,
-        border,
-    }
 }
 
-/// Yog's GUI sprite names. Adding one: pick a stable name, its 1.20.2+
-/// atlas id (`assets/minecraft/textures/gui/sprites/<id>.png` in the client
-/// jar) and its 1.20.1 region (`textures/gui/*.png`, in pixels).
-pub const SPRITES: &[Sprite] = &[
-    sprite_def(
-        "button",
-        "Button background",
-        200.0,
-        20.0,
-        "widget/button",
-        region(WIDGETS, 0.0, 66.0, 200.0, 20.0),
-        3.0,
-    ),
-    sprite_def(
-        "button_hover",
-        "Button background, hovered/focused",
-        200.0,
-        20.0,
-        "widget/button_highlighted",
-        region(WIDGETS, 0.0, 86.0, 200.0, 20.0),
-        3.0,
-    ),
-    sprite_def(
-        "button_disabled",
-        "Button background, disabled",
-        200.0,
-        20.0,
-        "widget/button_disabled",
-        region(WIDGETS, 0.0, 46.0, 200.0, 20.0),
-        3.0,
-    ),
-    Sprite {
-        name: "panel",
-        description: "Window background (vanilla's grey frame)",
-        size: Vec2::new(248.0, 166.0),
-        atlas: None,
-        legacy: region(WINDOW, 0.0, 0.0, 248.0, 166.0),
-        border: 4.0,
-    },
-    Sprite {
-        name: "slot",
-        description: "Inventory slot (18×18)",
-        size: Vec2::new(18.0, 18.0),
-        atlas: None,
-        legacy: None,
-        border: 1.0,
-    },
-    Sprite {
-        name: "arrow",
-        description: "Crafting arrow (the crafting table's, ingredients → result)",
-        size: Vec2::new(24.0, 17.0),
-        atlas: None,
-        legacy: region(CRAFTING_TABLE, 89.0, 34.0, 24.0, 17.0),
-        border: 0.0,
-    },
-    sprite_def(
-        "scrollbar",
-        "Scrollbar knob (creative inventory)",
-        12.0,
-        15.0,
-        "container/creative_inventory/scroller",
-        region(TABS, 232.0, 0.0, 12.0, 15.0),
-        0.0,
-    ),
-    sprite_def(
-        "scrollbar_disabled",
-        "Scrollbar knob, disabled",
-        12.0,
-        15.0,
-        "container/creative_inventory/scroller_disabled",
-        region(TABS, 244.0, 0.0, 12.0, 15.0),
-        0.0,
-    ),
-    sprite_def(
-        "checkbox",
-        "Checkbox, unchecked",
-        20.0,
-        20.0,
-        "widget/checkbox",
-        region_of(CHECKBOX, 64.0, 0.0, 0.0, 20.0, 20.0),
-        0.0,
-    ),
-    sprite_def(
-        "checkbox_checked",
-        "Checkbox, checked",
-        20.0,
-        20.0,
-        "widget/checkbox_selected",
-        region_of(CHECKBOX, 64.0, 0.0, 20.0, 20.0, 20.0),
-        0.0,
-    ),
-    sprite_def(
-        "hotbar",
-        "Hotbar",
-        182.0,
-        22.0,
-        "hud/hotbar",
-        region(WIDGETS, 0.0, 0.0, 182.0, 22.0),
-        0.0,
-    ),
-    sprite_def(
-        "hotbar_selection",
-        "Hotbar selection frame",
-        24.0,
-        23.0,
-        "hud/hotbar_selection",
-        region(WIDGETS, 0.0, 22.0, 24.0, 24.0),
-        0.0,
-    ),
-    sprite_def(
-        "crosshair",
-        "Crosshair",
-        15.0,
-        15.0,
-        "hud/crosshair",
-        region(ICONS, 0.0, 0.0, 15.0, 15.0),
-        0.0,
-    ),
-    sprite_def(
-        "xp_bar",
-        "Experience bar, empty",
-        182.0,
-        5.0,
-        "hud/experience_bar_background",
-        region(ICONS, 0.0, 64.0, 182.0, 5.0),
-        0.0,
-    ),
-    sprite_def(
-        "xp_bar_progress",
-        "Experience bar, full",
-        182.0,
-        5.0,
-        "hud/experience_bar_progress",
-        region(ICONS, 0.0, 69.0, 182.0, 5.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/heart",
-        "Heart",
-        9.0,
-        9.0,
-        "hud/heart/full",
-        region(ICONS, 52.0, 0.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/heart_half",
-        "Half heart",
-        9.0,
-        9.0,
-        "hud/heart/half",
-        region(ICONS, 61.0, 0.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/heart_empty",
-        "Heart container (empty)",
-        9.0,
-        9.0,
-        "hud/heart/container",
-        region(ICONS, 16.0, 0.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/food",
-        "Hunger shank",
-        9.0,
-        9.0,
-        "hud/food_full",
-        region(ICONS, 52.0, 27.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/food_half",
-        "Half hunger shank",
-        9.0,
-        9.0,
-        "hud/food_half",
-        region(ICONS, 61.0, 27.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/food_empty",
-        "Hunger shank, empty",
-        9.0,
-        9.0,
-        "hud/food_empty",
-        region(ICONS, 16.0, 27.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/armor",
-        "Armor",
-        9.0,
-        9.0,
-        "hud/armor_full",
-        region(ICONS, 34.0, 9.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/armor_half",
-        "Half armor",
-        9.0,
-        9.0,
-        "hud/armor_half",
-        region(ICONS, 25.0, 9.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/armor_empty",
-        "Armor, empty",
-        9.0,
-        9.0,
-        "hud/armor_empty",
-        region(ICONS, 16.0, 9.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/air",
-        "Air bubble",
-        9.0,
-        9.0,
-        "hud/air",
-        region(ICONS, 16.0, 18.0, 9.0, 9.0),
-        0.0,
-    ),
-    sprite_def(
-        "icon/air_bursting",
-        "Air bubble, bursting",
-        9.0,
-        9.0,
-        "hud/air_bursting",
-        region(ICONS, 25.0, 18.0, 9.0, 9.0),
-        0.0,
-    ),
-];
+#[derive(yog_data::Schema)]
+struct LegacyDef {
+    texture: String,
+    region: [f32; 4],
+    /// The texture's side, when it isn't [`LEGACY_TEX_SIZE`].
+    texture_size: Option<f32>,
+}
+
+/// Yog's GUI sprite names (`assets/sprites.ydata`).
+pub static SPRITES: LazyLock<Vec<Sprite>> = LazyLock::new(|| {
+    yog_data::from_text::<Vec<SpriteDef>>(include_str!("../assets/sprites.ydata"))
+        .unwrap_or_else(|e| panic!("yog-gfx's sprites: {e}"))
+        .value
+        .into_iter()
+        .map(|d| Sprite {
+            name: d.name,
+            description: d.description,
+            size: Vec2::new(d.size[0], d.size[1]),
+            atlas: d.atlas,
+            legacy: d.legacy.map(|l| {
+                let [u, v, w, h] = l.region;
+                let side = l.texture_size.unwrap_or(LEGACY_TEX_SIZE);
+                LegacyRegion { texture: l.texture, region: Rect::new(u, v, w, h), texture_size: Vec2::new(side, side) }
+            }),
+            border: d.border,
+        })
+        .collect()
+});
 
 /// How an image fills the box it's given — WPF's `Stretch`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

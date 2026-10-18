@@ -863,7 +863,7 @@ pub(crate) fn image_source(el: &Element, attr: &str, source: &str, mod_id: Optio
         ImageSource::Sprite(name)
             if !name.contains(':') && yog_gfx::image::sprite(&name).is_none() =>
         {
-            let names: Vec<&str> = yog_gfx::image::SPRITES.iter().map(|s| s.name).collect();
+            let names: Vec<&str> = yog_gfx::image::SPRITES.iter().map(|s| s.name.as_str()).collect();
             return Err(format!(
                 "line {line}: <{kind}> {attr}=\"{source}\": unknown sprite (known: {})",
                 names.join(", ")

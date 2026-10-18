@@ -13,6 +13,7 @@ yog-ids = { workspace = true }
 yog-abi = { workspace = true }
 # The graphics primitives every crate shares (colors, rects, images).
 yog-graphics = { workspace = true }
+yog-data = { workspace = true }
 
 [features]
 # A graphics table that draws nothing, for tests and benchmarks.

@@ -160,7 +160,7 @@ fn draw_slot(env: &mut JNIEnv, [x, y, w, h]: [f32; 4]) {
 }
 
 /// A 1.20.1 texture region, nine-sliced by `border` when stretched.
-fn draw_legacy(env: &mut JNIEnv, l: LegacyRegion, border: f32, dest: [f32; 4], tint: u32) {
+fn draw_legacy(env: &mut JNIEnv, l: &LegacyRegion, border: f32, dest: [f32; 4], tint: u32) {
     let [x, y, w, h] = dest;
     let tex = (l.texture_size.x, l.texture_size.y);
     let b = border
@@ -169,7 +169,7 @@ fn draw_legacy(env: &mut JNIEnv, l: LegacyRegion, border: f32, dest: [f32; 4], t
         .min(w / 2.0)
         .min(h / 2.0);
     if b <= 0.0 || (w == l.region.w && h == l.region.h) {
-        draw_texture(env, l.texture, dest, [l.region.x, l.region.y, l.region.w, l.region.h], tex, tint);
+        draw_texture(env, &l.texture, dest, [l.region.x, l.region.y, l.region.w, l.region.h], tex, tint);
         return;
     }
     // Columns/rows: (dest pos, dest size, src pos, src size).
@@ -187,7 +187,7 @@ fn draw_legacy(env: &mut JNIEnv, l: LegacyRegion, border: f32, dest: [f32; 4], t
         for (dx, dw, su, sw) in cols {
             draw_texture(
                 env,
-                l.texture,
+                &l.texture,
                 [dx, dy, dw, dh],
                 [su, sv, sw, sh],
                 tex,
@@ -200,9 +200,9 @@ fn draw_legacy(env: &mut JNIEnv, l: LegacyRegion, border: f32, dest: [f32; 4], t
 fn draw_sprite(env: &mut JNIEnv, source: &str, sp: &Sprite, dest: [f32; 4], tint: u32) {
     if sp.is_procedural() {
         draw_slot(env, dest);
-    } else if let (true, Some(atlas)) = (has_atlas(env), sp.atlas) {
+    } else if let (true, Some(atlas)) = (has_atlas(env), sp.atlas.as_deref()) {
         draw_atlas_sprite(env, &yog_ids::join(yog_ids::ns::MINECRAFT, atlas), dest, tint);
-    } else if let Some(l) = sp.legacy {
+    } else if let Some(l) = &sp.legacy {
         draw_legacy(env, l, sp.border, dest, tint);
     } else {
         warn_once(
