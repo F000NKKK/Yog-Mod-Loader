@@ -1791,6 +1791,7 @@ dependencies = [
  "yog-formats",
  "yog-gfx",
  "yog-graphics",
+ "yog-home",
  "yog-ids",
  "yog-media",
  "yog-registry",
@@ -1909,6 +1910,17 @@ name = "yog-graphics"
 version = "0.3.0"
 dependencies = [
  "yog-data",
+]
+
+[[package]]
+name = "yog-home"
+version = "0.1.0"
+dependencies = [
+ "dirs",
+ "serde",
+ "serde_json",
+ "yog-data",
+ "yog-ids",
 ]
 
 [[package]]

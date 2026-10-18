@@ -381,7 +381,7 @@ crate with `yog publish exports`.
 | `yog new <name>` | Create a mod project |
 | `yog build` / `yog build debug` | Build for every platform and package `artifacts/<id>.yog` (`debug` keeps debug info for the debugger) |
 | `yog check` | Generate `.yog-build/` and `cargo check` for the host only |
-| `yog run <config> [--debug]` | Build, copy the `.yog` into an instance, and launch it (`[run.<config>]` in `yog.toml`) |
+| `yog run <loader> <mc> [--debug]` | Build, copy the `.yog` into that loader's dev game, and launch it. Targets come from the loader SDK and `~/.yog/local.toml`, never from the mod (`yog run --list`) |
 | `yog ui gen` | Generate `.g.rs` from `.yui` screens and components |
 | `yog res check` | Validate `.yres` files, regenerate accessors, list untranslated texts |
 | `yog content check` | Validate `.yblock`/`.yitem` files, regenerate `yog-content.g.rs` |

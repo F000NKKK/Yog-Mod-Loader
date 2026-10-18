@@ -18,7 +18,7 @@ public final class YogNativeRuntime {
     }
 
     /** Directory players drop {@code .yog} mods into, relative to the game directory. */
-    public static final String MODS_DIR = "yog-mods";
+    public static final String MODS_DIR = dev.yog.YogNames.GameDir.MODS;
 
     /** Jar resource root holding one runtime per {@code <os>-<arch>} platform tag. */
     private static final String NATIVES_ROOT = "/natives/";

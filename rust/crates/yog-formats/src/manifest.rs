@@ -33,20 +33,6 @@ pub struct DevSection {
     pub yog_api_path: Option<String>,
 }
 
-/// `[run."<name>"]`: a dev instance `yog run <name>` builds into and starts.
-#[derive(Schema)]
-pub struct RunSection {
-    pub name: Option<String>,
-    pub export_dir: Option<String>,
-    pub command: Option<String>,
-    #[data(default)]
-    pub args: Vec<String>,
-    pub cwd: Option<String>,
-    /// `KEY=VALUE` pairs.
-    #[data(default)]
-    pub env: Vec<String>,
-}
-
 /// `[external.<namespace>]`: the other mods' content this mod names.
 #[derive(Schema)]
 pub struct ExternalSection {
@@ -71,8 +57,6 @@ pub struct ManifestFile {
     pub dependencies: Ordered<Value>,
     #[data(rename = "dev-dependencies", default)]
     pub dev_dependencies: Ordered<Value>,
-    #[data(default)]
-    pub run: Ordered<RunSection>,
     #[data(default)]
     pub external: Ordered<ExternalSection>,
 }

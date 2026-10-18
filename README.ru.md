@@ -385,7 +385,7 @@ broadcast(
 | `yog new <name>` | Создать проект мода |
 | `yog build` / `yog build debug` | Собрать под все платформы и упаковать `artifacts/<id>.yog` (`debug` сохраняет отладочную информацию для отладчика) |
 | `yog check` | Сгенерировать `.yog-build/` и выполнить `cargo check` для текущей машины |
-| `yog run <config> [--debug]` | Собрать, скопировать `.yog` в игровую сборку и запустить её (`[run.<config>]` в `yog.toml`) |
+| `yog run <loader> <mc> [--debug]` | Собрать, скопировать `.yog` в dev-игру загрузчика и запустить её. Цели берутся из SDK загрузчика и `~/.yog/local.toml`, а не из мода (`yog run --list`) |
 | `yog ui gen` | Сгенерировать `.g.rs` из экранов и компонентов `.yui` |
 | `yog res check` | Проверить `.yres`, перегенерировать методы доступа, показать непереведённые тексты |
 | `yog content check` | Проверить `.yblock`/`.yitem`, перегенерировать `yog-content.g.rs` |

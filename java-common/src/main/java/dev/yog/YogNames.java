@@ -121,6 +121,12 @@ public final class YogNames {
         public static final String BUILD = ".yog-build";
     }
 
+    public static final class GameDir {
+        private GameDir() {}
+
+        public static final String MODS = "yog-mods";
+    }
+
     public static final class Program {
         private Program() {}
 

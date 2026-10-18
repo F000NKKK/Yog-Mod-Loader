@@ -69,8 +69,6 @@ pub struct YogToml {
     pub mod_dependencies: Vec<(String, String)>,
     /// `[dev-dependencies]` — crates only `yog bench` benchmarks use.
     pub dev_dependencies: Vec<(String, String)>,
-    /// Named dev-instance launch configs from `[run.<name>]` sections.
-    pub run_configs: Vec<RunConfig>,
     /// Content of other mods (original Java mods, or Yog mods) this mod
     /// names, declared up front: `[external.<namespace>]` with `items`,
     /// `blocks`, `entities`, `recipes` (paths: `["cutting_board"]`).
@@ -83,28 +81,6 @@ pub struct External {
     pub namespace: String,
     /// `kind` (`items`, `blocks`, `entities`, `recipes`) → paths.
     pub ids: Vec<(String, Vec<String>)>,
-}
-
-/// A `[run.<name>]` section: where to drop the built artifact and what to
-/// launch afterwards, for a full `yog run <name>` dev-instance workflow.
-#[derive(Debug, Default, Clone)]
-pub struct RunConfig {
-    pub name: String,
-    /// Optional human-readable label (`name = "..."` inside `[run.X]`), for
-    /// editors to show/edit instead of the raw dotted section-key id. Falls
-    /// back to `name` (the id) when absent.
-    pub display_name: Option<String>,
-    /// Directory the built `.yog` gets copied into (e.g. an instance's `yog-mods/`).
-    /// Relative paths resolve against the mod project root.
-    pub export_dir: Option<String>,
-    /// Executable to launch after export (e.g. `java`, a wrapper script, `./gradlew`).
-    pub command: Option<String>,
-    /// Arguments passed to `command`, in order.
-    pub args: Vec<String>,
-    /// Working directory for `command`. Relative paths resolve against the project root.
-    pub cwd: Option<String>,
-    /// Extra environment variables as `KEY=VALUE` pairs.
-    pub env: Vec<(String, String)>,
 }
 
 impl YogToml {
@@ -181,16 +157,6 @@ fn text_form(t: Text) -> Result<String, String> {
 
 /// Reads `yog.toml` (TOML, through Yog Data's schema: every problem with its line).
 pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
-    // A dotted run header is nested tables to TOML: say how to write it.
-    for (i, line) in text.lines().enumerate() {
-        let l = line.trim();
-        if let Some(name) = l.strip_prefix("[run.").and_then(|r| r.strip_suffix(']'))
-            && name.contains('.')
-            && !name.starts_with('"')
-        {
-            return Err(format!("yog.toml:{}: write the run target's name in quotes: [run.\"{name}\"]", i + 1));
-        }
-    }
     let read = yog_data::schema::from_toml::<ManifestFile>(text).map_err(|e| {
         e.0.iter()
             .map(|l| match l.at {
@@ -212,20 +178,6 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
             _ => dependencies.push((name, toml_inline(&spec))),
         }
     }
-    let run_configs = f
-        .run
-        .0
-        .into_iter()
-        .map(|(name, r)| RunConfig {
-            name,
-            display_name: r.name,
-            export_dir: r.export_dir,
-            command: r.command,
-            args: r.args,
-            cwd: r.cwd,
-            env: r.env.into_iter().filter_map(|kv| kv.split_once('=').map(|(k, v)| (k.to_string(), v.to_string()))).collect(),
-        })
-        .collect();
     let externals = f
         .external
         .0
@@ -262,7 +214,6 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         dependencies,
         mod_dependencies,
         dev_dependencies: f.dev_dependencies.0.into_iter().map(|(k, v)| (k, toml_inline(&v))).collect(),
-        run_configs,
         externals,
         id: m.id,
     })
@@ -349,14 +300,6 @@ yog-kit    = "0.4"
 yog-pipes = "0.5"
 
 ## a comment
-[run."forge-1.21.1"]
-name       = "Forge 1.21.1"
-export_dir = "../Yog-Mod-Loader/forge/run/yog-mods"
-command    = "./gradlew"
-args       = ["runClient", "-Pminecraft_version=1.21.1"]
-cwd        = "../Yog-Mod-Loader/forge"
-env        = ["JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64"]
-
 [external.farmersdelight]
 items  = ["cutting_board", "tomato"]
 blocks = ["stove"]
@@ -372,10 +315,6 @@ blocks = ["stove"]
         let deps: Vec<&str> = t.dependencies.iter().map(|(n, _)| n.as_str()).collect();
         assert_eq!(deps, ["serde", "serde_json", "yog-kit"]);
         assert_eq!(t.mod_dependencies, [("yog-pipes".to_string(), "\"0.5\"".to_string())]);
-        let run = &t.run_configs[0];
-        assert_eq!((run.name.as_str(), run.display_name.as_deref()), ("forge-1.21.1", Some("Forge 1.21.1")));
-        assert_eq!(run.args, ["runClient", "-Pminecraft_version=1.21.1"]);
-        assert_eq!(run.env, [("JAVA_HOME".to_string(), "/usr/lib/jvm/java-21-openjdk-amd64".to_string())]);
         let ext = &t.externals[0];
         assert_eq!(ext.namespace, "farmersdelight");
         assert_eq!(ext.ids[0], ("items".to_string(), vec!["cutting_board".to_string(), "tomato".to_string()]));
@@ -383,8 +322,6 @@ blocks = ["stove"]
 
     #[test]
     fn problems_say_where() {
-        let e = parse_yog_toml("[mod]\nid = \"m\"\n\n[run.forge-1.21.1]\nname = \"F\"\n").unwrap_err();
-        assert_eq!(e, "yog.toml:4: write the run target's name in quotes: [run.\"forge-1.21.1\"]");
         let e = parse_yog_toml("[mod]\nid = \"m\"\nautors = [\"me\"]\n\n[external.create]\nitem = [\"wrench\"]\n").unwrap_err();
         assert_eq!(e.lines().collect::<Vec<_>>(), [
             "yog.toml:3: mod.autors: unknown field `autors` — did you mean `authors`?",

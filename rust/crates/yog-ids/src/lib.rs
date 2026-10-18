@@ -160,6 +160,12 @@ names! {
         BUILD = ".yog-build",
     }
 
+    /// A game's folders Yog uses.
+    game_dir {
+        /// The `.yog` mods the game loads: `<game>/yog-mods`.
+        MODS = "yog-mods",
+    }
+
     /// Yog's programs.
     program {
         /// The command-line tool (`yog build`, `yog schema`, …).

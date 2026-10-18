@@ -50,6 +50,8 @@ quick-xml = { workspace = true }
 # A .gitignore-aware walk of the mod's sources; where the game's client jars are.
 ignore = { workspace = true }
 dirs = { workspace = true }
+# Yog's home: the run targets `yog run` launches.
+yog-home = { workspace = true }
 
 # Not built against: its version is the one the mods' generated manifests
 # ask for (build.rs reads it), and as a build dependency it travels inside

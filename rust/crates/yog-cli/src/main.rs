@@ -94,12 +94,17 @@ fn main() {
             let debug = args[2..].iter().any(|a| a == "--debug");
             // `--dev`: built for a game that hot-reloads it (Yog-IDLE decides).
             let dev = args[2..].iter().any(|a| a == "--dev");
-            match args[2..].iter().find(|a| !a.starts_with("--")) {
-                Some(name) => run_config(name, debug, dev),
-                None => Err(
-                    "usage: yog run <config_name> [--debug] [--dev]  (see [run.<config_name>] in yog.toml)"
-                        .into(),
-                ),
+            let json = args[2..].iter().any(|a| a == "--json");
+            let words: Vec<&str> = args[2..].iter().map(String::as_str).filter(|a| !a.starts_with("--")).collect();
+            if args[2..].iter().any(|a| a == "--list") {
+                list_run_targets(json)
+            } else {
+                match words.as_slice() {
+                    // `yog run fabric 26.2` is `yog run fabric-26.2`.
+                    [loader, mc] => run_target(&format!("{loader}-{mc}"), debug, dev),
+                    [id] => run_target(id, debug, dev),
+                    _ => Err("usage: yog run <target> | <loader> <mc> [--debug] [--dev]; yog run --list [--json]".into()),
+                }
             }
         }
         Some("publish") => {
@@ -165,8 +170,9 @@ fn print_usage() {
          \x20 add <crate>         Add a Rust dependency to yog.toml\n\
          \x20 remove <crate>      Remove a dependency from yog.toml\n\
          \x20 schema <format>     Print a format's schema as JSON (yblock, yitem, yrecipe, ydef, yres, yog.toml, ybook)\n\
-         \x20 run <config>        Build, export, and launch a [run.<config>] dev instance\n\
-         \x20 run <config> --debug  Same, built with debug info kept (see `build debug`)\n\
+         \x20 run <loader> <mc>   Build, put into that loader's dev game, and launch it (`run fabric 26.2`)\n\
+         \x20 run <target> --debug  Same, built with debug info kept (see `build debug`)\n\
+         \x20 run --list [--json]  The run targets: the loader SDK's, and ~/.yog/local.toml's\n\
          \x20 publish exports     Publish this mod's exported API to crates.io\n\
          \x20 ui gen [files]      Generate .yog-build/generated/**/*.g.rs from .yui screens (build does this too)\n\
          \x20 res check           Validate resources/**/*.yres, regenerate accessors, list untranslated texts\n\
@@ -210,15 +216,6 @@ license     = "MIT OR Apache-2.0"
 # [dev]
 # yog_api_path = "../path/to/yog-api"
 
-# Uncomment to enable `yog run <name>` — builds, drops the .yog into
-# export_dir, then launches `command` with `args`/`cwd`/`env`. Add as many
-# [run.<name>] sections as you like (e.g. one per loader/version).
-# [run.dev]
-# export_dir = "../my-test-instance/yog-mods"
-# command    = "java"
-# args       = ["-jar", "server.jar", "--nogui"]
-# cwd        = "../my-test-instance"
-# env        = ["JAVA_OPTS=-Xmx4G"]
 "#,
         name = name,
         display = to_display_name(name),
@@ -575,9 +572,9 @@ fn designer_lib() -> Result<(), String> {
 
 /// Builds and packages the mod in the current directory. Returns the parsed
 /// `yog.toml` metadata and the path to the produced `.yog` artifact, so
-/// callers like `run_config` can reuse them without re-parsing/rebuilding.
+/// callers like `run_target` can reuse them without re-parsing/rebuilding.
 ///
-/// `debugging_symbols` (`yog build debug` / `yog run <name> --debug` at the
+/// `debugging_symbols` (`yog build debug` / `yog run <target> --debug` at the
 /// CLI surface): still a `--release` build (same output layout `package()`
 /// expects), but unoptimized and with debug info retained instead of
 /// stripped — for `yog-symbols`/`yog-debugger` to have something to load
@@ -821,54 +818,52 @@ fn resolve_metadata(meta: &mut YogToml, refs: &yres::Refs) -> Result<(), String>
 
 // ── yog run ───────────────────────────────────────────────────────────────────
 
-/// Build, optionally export the artifact into a dev instance's mod folder,
-/// then optionally launch a configured command (e.g. the instance's server
-/// or client launcher) — driven by a `[run.<config_name>]` section.
-fn run_config(config_name: &str, debugging_symbols: bool, dev: bool) -> Result<(), String> {
-    let root = project_root()?;
-    let yog_toml_path = root.join(MANIFEST);
-    let meta = YogToml::read(&yog_toml_path)?;
+/// `yog run --list`: every run target, a line each (`--json`: for editors).
+fn list_run_targets(json: bool) -> Result<(), String> {
+    let targets = yog_home::targets::Resolver::new(&yog_home::Home::locate()?)?.targets()?;
+    if json {
+        println!("{}", serde_json::to_string(&targets).map_err(|e| e.to_string())?);
+    } else {
+        for t in &targets {
+            println!("{:<20} {}", t.id, t.label);
+        }
+    }
+    Ok(())
+}
 
-    let cfg = meta.run_configs.iter().find(|c| c.name == config_name)
-        .ok_or_else(|| {
-            if meta.run_configs.is_empty() {
-                format!("no [run.{config_name}] section in yog.toml, and no [run.*] sections are defined at all.\n\
-                    Add one, e.g.:\n\n[run.\"{config_name}\"]\nexport_dir = \"../my-instance/yog-mods\"\ncommand    = \"java\"\nargs       = [\"-jar\", \"server.jar\", \"--nogui\"]\ncwd        = \"../my-instance\"")
-            } else {
-                let available: Vec<&str> = meta.run_configs.iter().map(|c| c.name.as_str()).collect();
-                format!("no [run.{config_name}] section in yog.toml. Available: {}", available.join(", "))
-            }
-        })?
-        .clone();
+/// Build, export the artifact into the target's game, then launch it —
+/// the target from Yog's home (`yog_home::targets`): a loader on a
+/// Minecraft version, or one of the machine's own.
+fn run_target(id: &str, debugging_symbols: bool, dev: bool) -> Result<(), String> {
+    let root = project_root()?;
+    let resolver = yog_home::targets::Resolver::new(&yog_home::Home::locate()?)?;
+    let target = resolver.target(id)?;
+    let plan = resolver.plan(&target);
 
     let (meta, artifact) = build(debugging_symbols, dev)?;
 
-    if let Some(export_dir) = &cfg.export_dir {
-        let dir = resolve(&root, export_dir);
-        std::fs::create_dir_all(&dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;
+    if let Some(dir) = &plan.export_dir {
+        std::fs::create_dir_all(dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;
         let dest = dir.join(format!("{}.yog", meta.id));
         std::fs::copy(&artifact, &dest)
             .map_err(|e| format!("copying to {}: {e}", dest.display()))?;
-        write_file(&source_marker(&dir, &meta.id), root.display().to_string().as_bytes())?;
+        write_file(&source_marker(dir, &meta.id), root.display().to_string().as_bytes())?;
         eprintln!("==> exported {} -> {}", meta.id, dest.display());
-        refresh_exported(&dir, &meta.id, debugging_symbols);
+        refresh_exported(dir, &meta.id, debugging_symbols);
     }
 
-    let Some(command) = &cfg.command else {
-        eprintln!("==> [run.{config_name}] has no `command` set — export-only, nothing to launch.");
+    let Some(command) = &plan.command else {
+        eprintln!("==> {id} has no command — export only, nothing to launch.");
         return Ok(());
     };
 
-    eprintln!(
-        "==> launching [run.{config_name}]: {command} {}",
-        cfg.args.join(" ")
-    );
+    eprintln!("==> launching {}: {command} {}", target.label, plan.args.join(" "));
     let mut proc = Command::new(command);
-    proc.args(&cfg.args);
-    if let Some(cwd) = &cfg.cwd {
-        proc.current_dir(resolve(&root, cwd));
+    proc.args(&plan.args);
+    if let Some(cwd) = &plan.cwd {
+        proc.current_dir(cwd);
     }
-    for (k, v) in &cfg.env {
+    for (k, v) in &plan.env {
         proc.env(k, v);
     }
 
@@ -943,33 +938,6 @@ fn refresh_exported(dir: &Path, current: &str, debugging_symbols: bool) {
             eprintln!("warning: {id}: copying {}: {e}", artifact.display());
         }
     }
-}
-
-/// Resolve a possibly-relative path against the project root.
-/// Expands a leading `~` or `~/` to the user's home directory on Unix,
-/// then canonicalises the result (resolving `..` and symlinks) when the
-/// path already exists.
-fn resolve(root: &Path, path: &str) -> PathBuf {
-    let expanded = expand_tilde(path);
-    let p = PathBuf::from(&expanded);
-    let joined = if p.is_absolute() { p } else { root.join(p) };
-    // If the path already exists on disk, canonicalise to remove `..` etc.
-    joined.canonicalize().unwrap_or(joined)
-}
-
-/// Replace a leading `~` with the value of `$HOME`.
-fn expand_tilde(path: &str) -> String {
-    if path == "~"
-        && let Ok(home) = std::env::var("HOME")
-    {
-        return home;
-    }
-    if path.starts_with("~/")
-        && let Ok(home) = std::env::var("HOME")
-    {
-        return home + &path[1..];
-    }
-    path.to_string()
 }
 
 /// Make the editor "just work" for a `yog.toml`-only project: rust-analyzer

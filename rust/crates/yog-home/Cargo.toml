@@ -1,0 +1,20 @@
+[package]
+name = "yog-home"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+license = "MIT OR Apache-2.0"
+description = "Yog's home on a machine (~/.yog): the components Yog Installer put there, this machine's local patch, and the run targets they give."
+
+[dependencies]
+# The game folder names Yog's parts share (`yog-mods`).
+yog-ids = { workspace = true }
+# The local patch (`local.toml`) read through a schema: every problem with its line.
+yog-data = { workspace = true, features = ["toml"] }
+# What Yog Installer installed (`components.json`).
+serde = { workspace = true }
+serde_json = { workspace = true }
+# The user's home folder.
+dirs = { workspace = true }
+
