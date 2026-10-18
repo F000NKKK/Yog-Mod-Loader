@@ -90,7 +90,14 @@ pub enum LayoutPart {
     /// A block in 3D, at a slot's angle (a station that's a block: the
     /// brewing stand with its bottles): a full block state
     /// (`minecraft:brewing_stand[has_bottle_0=true]`).
-    Block { block: String, at: [f32; 2] },
+    Block {
+        block: String,
+        at: [f32; 2],
+        /// Its side in GUI pixels: a slot's item by default.
+        #[serde(default = "icon_px")]
+        #[data(default = "icon_px")]
+        size: f32,
+    },
     /// Text; `{name}` is the recipe's value of that name.
     Text { text: String, at: [f32; 2] },
 }
@@ -217,7 +224,8 @@ pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
                 let block = el.attr("block").map(Ok).unwrap_or_else(|| err(el, "needs block=\"…\" (a block state: minecraft:brewing_stand[has_bottle_0=true])"))?;
                 let block = block.trim().trim_start_matches("@block:").to_string();
                 let block = if block.split('[').next().is_some_and(|id| id.contains(':')) { block } else { format!("minecraft:{block}") };
-                parts.push(LayoutPart::Block { block, at: at(el)? });
+                let size = el.attr("size").map(|s| s.trim().parse::<f32>().map_err(|_| format!("size=\"{s}\": a number of pixels"))).transpose().or_else(|e| err(el, e))?.unwrap_or(ICON_PX);
+                parts.push(LayoutPart::Block { block, at: at(el)?, size });
             }
             "Label" => {
                 let text = el.attr("text").map(Ok).unwrap_or_else(|| err(el, "needs text=\"…\""))?;
@@ -265,7 +273,11 @@ pub struct ScreenArea {
 }
 
 /// An item's side, in GUI pixels.
-const ICON_PX: f32 = 16.0;
+pub const ICON_PX: f32 = 16.0;
+
+fn icon_px() -> f32 {
+    ICON_PX
+}
 /// A slot is drawn this far up and left of its item.
 const SLOT_BORDER: f32 = 1.0;
 /// Text a layout shows as it is (no `{value}`), in the game's dark grey.
@@ -308,7 +320,7 @@ pub fn screen_area(layout: &RecipeLayout, first: usize) -> ScreenArea {
                 out.next += 1;
             }
             LayoutPart::Item { item, at } => out.elements.push(icon(ImageSource::Item(item.clone()).to_string(), *at)),
-            LayoutPart::Block { block, at } => {
+            LayoutPart::Block { block, at, .. } => {
                 let id = block.split('[').next().unwrap_or(block);
                 out.elements.push(icon(ImageSource::Block(id.to_string()).to_string(), *at));
             }

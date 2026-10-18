@@ -105,7 +105,7 @@
       { type: "image", source: "yog:gui/book/crafting", uv: [11, 181, 96, 55] },
       { type: "slots", slot: "input", at: [[40, 4]] },
       { type: "slots", slot: "from", at: [[4, 35]] },
-      { type: "block", block: "minecraft:brewing_stand[has_bottle_0=true,has_bottle_1=true,has_bottle_2=true]", at: [40, 35] },
+      { type: "block", block: "minecraft:brewing_stand[has_bottle_0=true,has_bottle_1=true,has_bottle_2=true]", at: [36, 31], size: 24 },
       { type: "result", at: [76, 35] },
     ],
   },

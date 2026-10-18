@@ -8,6 +8,7 @@ use yog_gfx::{Color, GfxContext, Rect, Vec2};
 use yog_ui::{Align, FlexDir, Stretch, UiRoot, widget};
 
 use crate::state::BookViewState;
+use crate::layout::ICON_PX;
 use crate::theme::BookTheme;
 use crate::{Book, BookPage};
 
@@ -56,11 +57,11 @@ pub const CRAFTING_SHEET: &str = "yog:gui/book/crafting";
 
 /// Blocks shown at a slot's angle (a station), as the game shows a block
 /// item; a multiblock turns slowly about the vertical, swaying this far.
-const SLOT_YAW: f32 = 225.0;
+pub const SLOT_YAW: f32 = 225.0;
 const MULTIBLOCK_YAW: f32 = -45.0;
 const MULTIBLOCK_SWAY: f32 = 20.0;
 /// How far blocks are tilted toward the viewer.
-const BLOCK_PITCH: f32 = 30.0;
+pub const BLOCK_PITCH: f32 = 30.0;
 
 // ── Background sprite (texture blit, drawn before yog-ui) ────────────────────
 
@@ -1166,7 +1167,7 @@ fn build_categories_right(
 
     // 4-column icon grid; icons drawn as GL overlays at exact Patchouli positions.
     let cats = &book.categories;
-    let icon_s = 16.0 * sx.min(sy);
+    let icon_s = ICON_PX * sx.min(sy);
     let mut row_i = 0usize;
     loop {
         let row_start = row_i * 4;
@@ -1470,7 +1471,7 @@ fn draw_layout(
     );
     let (lx, ly) = (PAGE_W / 2.0 - 1.0 - layout.size[0] / 2.0, 10.0);
     let at = |p: [f32; 2]| (ox + (lx + p[0]) * sx, oy + (ly + p[1]) * sy);
-    let icon_s = 16.0 * sx.min(sy);
+    let icon_s = ICON_PX * sx.min(sy);
     let frame = |bg: &mut Vec<BgSprite>, p: [f32; 2]| {
         let (x, y) = at([p[0] - 4.0, p[1] - 4.0]);
         let [u, v, uw, uh] = FRAME_UV;
@@ -1547,9 +1548,10 @@ fn draw_layout(
                     });
                 }
             }
-            LayoutPart::Block { block, at: p } => {
+            LayoutPart::Block { block, at: p, size } => {
                 let (x, y) = at(*p);
-                overlays.push(OverlayCmd::Blocks { blocks: vec![((0, 0, 0), block.clone())], x, y, w: icon_s, h: icon_s, turning: false });
+                let side = icon_s * size / ICON_PX;
+                overlays.push(OverlayCmd::Blocks { blocks: vec![((0, 0, 0), block.clone())], x, y, w: side, h: side, turning: false });
             }
             LayoutPart::Item { item, at: p } => {
                 let (x, y) = at(*p);
@@ -1666,7 +1668,7 @@ fn build_page(
                     .align(Align::Center),
             );
 
-            let icon_s = 16.0 * sx.min(sy);
+            let icon_s = ICON_PX * sx.min(sy);
             overlays.push(OverlayCmd::McItem {
                 item_id: item.clone(),
                 x: ox + (PAGE_W / 2.0 - 8.0) * sx,
@@ -1830,8 +1832,8 @@ fn build_page(
                     }
                     E::Item { item, visible } if t.visible(c, visible) => {
                         let id = crate::page_type::words(&t.value(c, item));
-                        push_icon(overlays, &id, ox + (PAGE_W / 2.0 - 8.0) * sx, oy + top * sy, 16.0 * sx, 16.0 * sy);
-                        col = col.child(widget::spacer().h(16.0 * sy));
+                        push_icon(overlays, &id, ox + (PAGE_W - ICON_PX) / 2.0 * sx, oy + top * sy, ICON_PX * sx, ICON_PX * sy);
+                        col = col.child(widget::spacer().h(ICON_PX * sy));
                         top += 20.0;
                     }
                     E::Image { image, height, visible } if t.visible(c, visible) => {
