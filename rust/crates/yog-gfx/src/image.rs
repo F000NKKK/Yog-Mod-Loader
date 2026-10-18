@@ -72,6 +72,28 @@ pub fn texture_id(ns: &str, path: &str) -> String {
     }
 }
 
+/// The schemes an image source starts with (`item:apple`).
+pub mod scheme {
+    pub const ITEM: &str = "item";
+    pub const BLOCK: &str = "block";
+    pub const SPRITE: &str = "sprite";
+    pub const MOD: &str = "mod";
+}
+
+/// The source as written: `item:minecraft:apple`, `sprite:button`; a
+/// texture as its resource id.
+impl std::fmt::Display for ImageSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ImageSource::Item(id) => write!(f, "{}:{id}", scheme::ITEM),
+            ImageSource::Block(id) => write!(f, "{}:{id}", scheme::BLOCK),
+            ImageSource::Sprite(name) => write!(f, "{}:{name}", scheme::SPRITE),
+            ImageSource::ModPath(path) => write!(f, "{}:{path}", scheme::MOD),
+            ImageSource::Texture(id) => f.write_str(id),
+        }
+    }
+}
+
 impl ImageSource {
     /// Parses a source string; `None` for an empty or malformed one.
     pub fn parse(source: &str) -> Option<ImageSource> {
@@ -81,10 +103,10 @@ impl ImageSource {
             return None;
         }
         Some(match scheme {
-            "item" => ImageSource::Item(qualify(rest)),
-            "block" => ImageSource::Block(qualify(rest)),
-            "sprite" => ImageSource::Sprite(rest.to_string()),
-            "mod" => ImageSource::ModPath(rest.to_string()),
+            scheme::ITEM => ImageSource::Item(qualify(rest)),
+            scheme::BLOCK => ImageSource::Block(qualify(rest)),
+            scheme::SPRITE => ImageSource::Sprite(rest.to_string()),
+            scheme::MOD => ImageSource::ModPath(rest.to_string()),
             ns if !ns.is_empty() => ImageSource::Texture(texture_id(ns, rest)),
             _ => return None,
         })

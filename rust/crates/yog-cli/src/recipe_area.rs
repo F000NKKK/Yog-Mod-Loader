@@ -5,7 +5,7 @@
 //! drawn — and a `<Machine>` that tells the game which slot is which: the
 //! block makes recipes of the kind like a crafting table.
 
-use yog_book::layout::{LayoutPart, RecipeLayout};
+use yog_book::layout::RecipeLayout;
 
 use crate::yui::Element;
 
@@ -53,48 +53,14 @@ fn area(a: &Element, layouts: &[RecipeLayout], ns: &str, next: &mut usize) -> Re
             canvas.attrs.push((k.to_string(), v.to_string()));
         }
     }
-    let pos = |p: [f32; 2], d: f32| [("x", (p[0] - d).to_string()), ("y", (p[1] - d).to_string())];
-    let mut places: Vec<String> = Vec::new();
-    let mut result = None;
-    for part in &layout.parts {
-        match part {
-            LayoutPart::Image { source, uv, at } => {
-                let [u, v, w, h] = *uv;
-                let [x, y] = pos(*at, 0.0);
-                let mut attrs = vec![("source", source.clone()), ("w", w.to_string()), ("h", h.to_string()), ("stretch", "Fill".into()), x, y];
-                // A sprite is whole; an image's region is its uv.
-                if !source.starts_with("sprite:") {
-                    attrs.push(("uv", format!("{u} {v} {w} {h}")));
-                }
-                canvas.children.push(el("Image", &attrs, line));
-            }
-            // A slot frame is 18 px with the item at +1.
-            LayoutPart::Slots { slot, at, .. } => {
-                for (i, p) in at.iter().enumerate() {
-                    let [x, y] = pos(*p, 1.0);
-                    canvas.children.push(el("Slot", &[("index", next.to_string()), x, y], line));
-                    places.push(format!("{slot}/{i}={next}"));
-                    *next += 1;
-                }
-            }
-            LayoutPart::Result { at, .. } => {
-                let [x, y] = pos(*at, 1.0);
-                canvas.children.push(el("Slot", &[("index", next.to_string()), x, y], line));
-                result = Some(*next);
-                *next += 1;
-            }
-            LayoutPart::Item { item, at } => {
-                let [x, y] = pos(*at, 0.0);
-                canvas.children.push(el("Image", &[("source", format!("item:{item}")), ("w", "16".into()), ("h", "16".into()), x, y], line));
-            }
-            // Bound to a recipe's values, a text has nothing to show here.
-            LayoutPart::Text { text, at } if !text.contains('{') => {
-                let [x, y] = pos(*at, 0.0);
-                canvas.children.push(el("Label", &[("text", text.clone()), ("color", "#FF404040".into()), ("shadow", "false".into()), x, y], line));
-            }
-            LayoutPart::Text { .. } | LayoutPart::Count { .. } => {}
-        }
+    let area = yog_book::layout::screen_area(layout, *next);
+    for e in &area.elements {
+        let attrs: Vec<(&str, String)> = e.attrs.iter().map(|(k, v)| (*k, v.clone())).collect();
+        canvas.children.push(el(e.kind, &attrs, line));
     }
+    *next = area.next;
+    let places: Vec<String> = area.places.iter().map(|(slot, i, at)| format!("{slot}/{i}={at}")).collect();
+    let result = area.result;
     let Some(result) = result else {
         return Err(format!("line {line}: <RecipeArea kind=\"{kind}\">: its layout has no <RecipeResult> — where would the result go?"));
     };
