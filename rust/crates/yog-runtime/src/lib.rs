@@ -84,6 +84,7 @@ mod jni_abi9;
 mod jni_client;
 
 
+mod bus;
 mod body;
 mod loot;
 // Hot reload: dev builds only (release ones are optimised past it).

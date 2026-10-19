@@ -279,3 +279,20 @@ fn every_native_method_is_exported() {
     assert!(seen > 100, "found only {seen} native methods — parser broken?");
     assert!(missing.is_empty(), "native methods with no runtime export:\n{}", missing.into_iter().collect::<Vec<_>>().join("\n"));
 }
+
+/// `YogBus.java`'s status values are `yog_abi::status`'s.
+#[test]
+fn java_bus_statuses_match_the_abi() {
+    let java = repo().join("java-common/src/main/java/dev/yog/YogBus.java");
+    let Ok(src) = fs::read_to_string(&java) else {
+        return;
+    };
+    let value = |name: &str| -> Option<u32> {
+        let line = src.lines().find(|l| l.contains(&format!("public static final int {name} =")))?;
+        line.split('=').nth(1)?.trim().trim_end_matches(';').parse().ok()
+    };
+    use yog_abi::status::*;
+    for (name, v) in [("OK", OK), ("NO_HANDLER", NO_HANDLER), ("BAD_PAYLOAD", BAD_PAYLOAD), ("FAILED", FAILED), ("CANCELLED", CANCELLED)] {
+        assert_eq!(value(name), Some(v), "YogBus.{name}");
+    }
+}

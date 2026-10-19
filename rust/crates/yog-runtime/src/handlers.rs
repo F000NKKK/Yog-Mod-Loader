@@ -253,6 +253,7 @@ impl ModuleRegistry for RuntimeModuleRegistry {
     fn retarget(&self, _mod_id: &str, _from: ModuleGeneration, _to: ModuleGeneration) {}
 
     fn purge(&self, generation: ModuleGeneration) {
+        crate::bus::ROUTER.purge(generation);
         let Some(lock) = HANDLERS.get() else { return };
         let mut h = lock.write_locked();
         let h = &mut *h;

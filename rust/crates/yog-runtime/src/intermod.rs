@@ -124,5 +124,6 @@ pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *cons
         register_key_binding: api_register_key_binding,
         on_key_binding: api_on_key_binding,
         log: api_log,
+        bus: crate::bus::table(),
     }
 }
