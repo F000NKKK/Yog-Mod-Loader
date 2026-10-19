@@ -378,7 +378,7 @@ Yog-Mod-Loader/rust/crates/yog-formats/src/material.rs		todo
 Yog-Mod-Loader/rust/crates/yog-formats/src/recipe.rs		todo
 Yog-Mod-Loader/rust/crates/yog-formats/src/tags.rs	literal_facts:5	todo
 Yog-Mod-Loader/rust/crates/yog-formats/src/texture.rs	literal_facts:1	todo
-Yog-Mod-Loader/rust/crates/yog-formats/src/yres.rs	panics:1 literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/yres.rs	panics:1	todo
 Yog-Mod-Loader/rust/crates/yog-formats/src/yui.rs	long-fn:element@99(83)	todo
 Yog-Mod-Loader/rust/crates/yog-gfx/src/core.rs		todo
 Yog-Mod-Loader/rust/crates/yog-gfx/src/draw2d.rs	params:text_scaled@88(6)	todo
@@ -401,7 +401,7 @@ Yog-Mod-Loader/rust/crates/yog-home/src/targets.rs		todo
 Yog-Mod-Loader/rust/crates/yog-home/src/version.rs		todo
 Yog-Mod-Loader/rust/crates/yog-hot-reload/src/lib.rs	panics:11	todo
 Yog-Mod-Loader/rust/crates/yog-hot-reload/tests/hot_reload.rs		todo
-Yog-Mod-Loader/rust/crates/yog-ids/src/lib.rs	literal_facts:38	todo
+Yog-Mod-Loader/rust/crates/yog-ids/src/lib.rs	literal_facts:39	todo
 Yog-Mod-Loader/rust/crates/yog-interop/src/lib.rs	long-fn:yog_export@20(170) silenced:1 panics:6	todo
 Yog-Mod-Loader/rust/crates/yog-inventory/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-kit/src/bind.rs	panics:1	todo
@@ -531,7 +531,7 @@ Yog-IDLE/src/BreakpointsContext.tsx		todo
 Yog-IDLE/src/DebugSessionContext.tsx		todo
 Yog-IDLE/src/EditorActions.tsx		todo
 Yog-IDLE/src/IdeHost.tsx		todo
-Yog-IDLE/src/OpenFilesContext.tsx	long-fn:OpenFilesProvider@129(525),getComponent@424(133)	todo
+Yog-IDLE/src/OpenFilesContext.tsx		todo
 Yog-IDLE/src/OpenFilesPersistence.tsx		todo
 Yog-IDLE/src/OpenWithPicker.tsx		todo
 Yog-IDLE/src/ProjectContext.tsx		todo
@@ -548,7 +548,7 @@ Yog-IDLE/src/body/ymodel.test.ts		todo
 Yog-IDLE/src/body/ymodel.ts	params:face@140(6)	todo
 Yog-IDLE/src/cli.ts		todo
 Yog-IDLE/src/content/UvEditor.tsx	long-fn:UvEditor@26(140)	todo
-Yog-IDLE/src/content/Viewport.tsx	long-fn:Viewport@86(544)	todo
+Yog-IDLE/src/content/Viewport.tsx		todo
 Yog-IDLE/src/content/animation.test.ts		todo
 Yog-IDLE/src/content/animation.ts		todo
 Yog-IDLE/src/content/content.bench.ts		todo
@@ -558,13 +558,23 @@ Yog-IDLE/src/content/model.test.ts		todo
 Yog-IDLE/src/content/model.ts	literal_facts:2 magic_numbers:4	todo
 Yog-IDLE/src/content/paint/FrameStrip.tsx	long-fn:FrameStrip@35(92)	todo
 Yog-IDLE/src/content/paint/PaintCanvas.tsx	long-fn:PaintCanvas@34(230) literal_facts:1	todo
-Yog-IDLE/src/content/paint/PaintTools.tsx	long-fn:PaintTools@87(148)	todo
+Yog-IDLE/src/content/paint/PaintTools.tsx	long-fn:PaintTools@96(148)	todo
 Yog-IDLE/src/content/paint/pixels.test.ts		todo
 Yog-IDLE/src/content/paint/pixels.ts	params:fill@94(6)	todo
 Yog-IDLE/src/content/spriteElements.ts	magic_numbers:2	todo
 Yog-IDLE/src/content/states.test.ts		todo
 Yog-IDLE/src/content/states.ts		todo
+Yog-IDLE/src/content/viewport/buildModel.ts		todo
+Yog-IDLE/src/content/viewport/camera.ts		todo
+Yog-IDLE/src/content/viewport/draw.ts		todo
+Yog-IDLE/src/content/viewport/handleDrag.ts		todo
+Yog-IDLE/src/content/viewport/handles.ts		todo
 Yog-IDLE/src/content/viewport/scene.ts		todo
+Yog-IDLE/src/content/viewport/threeView.ts		todo
+Yog-IDLE/src/content/viewport/useRenderer.ts		todo
+Yog-IDLE/src/content/viewport/useViewportInput.ts		todo
+Yog-IDLE/src/content/viewport/viewKeys.ts		todo
+Yog-IDLE/src/content/viewport/viewportTypes.ts		todo
 Yog-IDLE/src/data/contentRefs.ts		todo
 Yog-IDLE/src/data/ingredients.ts		todo
 Yog-IDLE/src/data/shapeGrid.test.ts		todo
@@ -575,7 +585,7 @@ Yog-IDLE/src/data/values.ts		todo
 Yog-IDLE/src/data/yogData.test.ts		todo
 Yog-IDLE/src/data/yogData.ts		todo
 Yog-IDLE/src/data/yogFormat.ts		todo
-Yog-IDLE/src/data/yogIds.generated.ts	literal_facts:66	todo
+Yog-IDLE/src/data/yogIds.generated.ts	literal_facts:67	todo
 Yog-IDLE/src/debugger/DataTip.tsx		todo
 Yog-IDLE/src/debugger/VariableWindows.tsx		todo
 Yog-IDLE/src/debugger/VariablesTree.tsx	long-fn:VariablesTree@53(116),VariableRow@187(81)	todo
@@ -590,12 +600,35 @@ Yog-IDLE/src/designer/TintedItem.tsx		todo
 Yog-IDLE/src/designer/YuiSplitEditor.tsx	long-fn:YuiSplitEditor@96(229)	todo
 Yog-IDLE/src/designer/activeDesigner.ts		todo
 Yog-IDLE/src/designer/canvas/designerModel.ts		todo
+Yog-IDLE/src/designer/canvas/edits/canvasMoves.ts		todo
+Yog-IDLE/src/designer/canvas/edits/useArrange.ts		todo
+Yog-IDLE/src/designer/canvas/edits/useAttrEdits.ts		todo
+Yog-IDLE/src/designer/canvas/edits/useCanvasCommit.ts		todo
+Yog-IDLE/src/designer/canvas/edits/useClipboardEdits.ts		todo
+Yog-IDLE/src/designer/canvas/edits/useInsertion.ts		todo
+Yog-IDLE/src/designer/canvas/edits/usePasting.ts		todo
+Yog-IDLE/src/designer/canvas/edits/useSelectionRemoval.ts		todo
+Yog-IDLE/src/designer/canvas/edits/useWidgetAdding.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useCommandRegistry.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useDesignItems.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useDesignerKeys.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useDesignerLayout.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useDesignerState.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useDocumentEdits.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useDocumentLoading.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useHandlerOpening.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/usePreviewEvents.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/usePreviewInput.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/usePropertyPublishing.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useRenderedPicture.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useViewZoom.ts		todo
+Yog-IDLE/src/designer/canvas/hooks/useXamlLink.ts		todo
 Yog-IDLE/src/designer/canvas/overlays.tsx		todo
-Yog-IDLE/src/designer/canvas/useDesignerCommands.ts	long-fn:useDesignerCommands@20(198)	todo
-Yog-IDLE/src/designer/canvas/useDesignerDocument.ts	long-fn:useDesignerDocument@14(129)	todo
-Yog-IDLE/src/designer/canvas/useDesignerEdits.ts	long-fn:useDesignerEdits@14(317)	todo
-Yog-IDLE/src/designer/canvas/useDesignerPicture.ts	long-fn:useDesignerPicture@17(108)	todo
-Yog-IDLE/src/designer/canvas/useDesignerPreview.tsx	long-fn:useDesignerPreview@17(178)	todo
+Yog-IDLE/src/designer/canvas/useDesignerCommands.ts		todo
+Yog-IDLE/src/designer/canvas/useDesignerDocument.ts		todo
+Yog-IDLE/src/designer/canvas/useDesignerEdits.ts		todo
+Yog-IDLE/src/designer/canvas/useDesignerPicture.ts		todo
+Yog-IDLE/src/designer/canvas/useDesignerPreview.tsx		todo
 Yog-IDLE/src/designer/colors.ts		todo
 Yog-IDLE/src/designer/components.ts		todo
 Yog-IDLE/src/designer/designer.bench.ts		todo
@@ -616,33 +649,60 @@ Yog-IDLE/src/diagnostics/yogOutput.test.ts		todo
 Yog-IDLE/src/diagnostics/yogOutput.ts		todo
 Yog-IDLE/src/editors/AnimEditor.tsx	long-fn:AnimEditor@78(296),Timeline@393(141)	todo
 Yog-IDLE/src/editors/BookEditor.tsx	long-fn:BookEditor@66(381)	todo
-Yog-IDLE/src/editors/ContentEditor.tsx	long-fn:ContentEditor@65(505)	todo
+Yog-IDLE/src/editors/ContentEditor.tsx		todo
 Yog-IDLE/src/editors/DataEditor.tsx		todo
 Yog-IDLE/src/editors/EntityEditor.tsx	long-fn:EntityEditor@61(328) literal_facts:1	todo
 Yog-IDLE/src/editors/ItemList.tsx		todo
 Yog-IDLE/src/editors/LangFileEditor.tsx		todo
-Yog-IDLE/src/editors/MediaValue.tsx	literal_facts:2	todo
+Yog-IDLE/src/editors/MediaValue.tsx		todo
 Yog-IDLE/src/editors/ModelEditor.tsx	long-fn:ModelEditor@58(338) literal_facts:2 magic_numbers:1	todo
 Yog-IDLE/src/editors/RecipeEditor.tsx	long-fn:RecipeEditor@102(285)	todo
 Yog-IDLE/src/editors/RowsEditor.tsx	long-fn:RowsEditor@25(124)	todo
 Yog-IDLE/src/editors/TerrainPreview.tsx		todo
 Yog-IDLE/src/editors/TextureEditor.tsx	long-fn:TextureEditor@41(166)	todo
 Yog-IDLE/src/editors/YdataViewer.tsx		todo
-Yog-IDLE/src/editors/YresEditor.tsx	long-fn:YresEditor@59(586) literal_facts:4	todo
+Yog-IDLE/src/editors/YresEditor.tsx		todo
 Yog-IDLE/src/editors/bookModel.test.ts		todo
 Yog-IDLE/src/editors/bookModel.ts	literal_facts:18	todo
+Yog-IDLE/src/editors/content/ContentToolbar.tsx		todo
+Yog-IDLE/src/editors/content/PaintPane.tsx		todo
 Yog-IDLE/src/editors/content/contentModel.ts	literal_facts:1	todo
+Yog-IDLE/src/editors/content/contentView.ts		todo
+Yog-IDLE/src/editors/content/elementCommands.ts		todo
 Yog-IDLE/src/editors/content/fieldText.ts		todo
-Yog-IDLE/src/editors/content/properties/blockItem.tsx	long-fn:blockItemRows@14(295) literal_facts:5 magic_numbers:1	todo
+Yog-IDLE/src/editors/content/model/useBlockStates.ts		todo
+Yog-IDLE/src/editors/content/model/useContentDocument.ts		todo
+Yog-IDLE/src/editors/content/model/useContentEdits.ts		todo
+Yog-IDLE/src/editors/content/model/usePaintBuffers.ts		todo
+Yog-IDLE/src/editors/content/model/useResolvedModel.ts		todo
+Yog-IDLE/src/editors/content/paint/usePaintInput.ts		todo
+Yog-IDLE/src/editors/content/paint/usePaintStrokes.ts		todo
+Yog-IDLE/src/editors/content/paint/usePaintTarget.ts		todo
+Yog-IDLE/src/editors/content/paint/usePaintTextures.ts		todo
+Yog-IDLE/src/editors/content/paint/useSpriteConversion.ts		todo
+Yog-IDLE/src/editors/content/paint/useSpriteLayers.ts		todo
+Yog-IDLE/src/editors/content/panels/ElementsPanel.tsx		todo
+Yog-IDLE/src/editors/content/panels/LayersPanel.tsx		todo
+Yog-IDLE/src/editors/content/panels/PaintPanel.tsx		todo
+Yog-IDLE/src/editors/content/panels/StatesPanel.tsx		todo
+Yog-IDLE/src/editors/content/properties/blockItem.tsx	literal_facts:7 magic_numbers:1	todo
 Yog-IDLE/src/editors/content/properties/context.ts		todo
 Yog-IDLE/src/editors/content/properties/general.ts		todo
-Yog-IDLE/src/editors/content/properties/model.ts	long-fn:modelRows@11(130) magic_numbers:2	todo
+Yog-IDLE/src/editors/content/properties/model.ts	magic_numbers:2	todo
 Yog-IDLE/src/editors/content/properties/rows.ts	long-fn:rowHelpers@17(88) params:choice@56(6),vec@77(6)	todo
-Yog-IDLE/src/editors/content/properties/states.ts	long-fn:stateRows@12(248)	todo
-Yog-IDLE/src/editors/content/useContentCommands.ts	long-fn:useContentCommands@22(263)	todo
-Yog-IDLE/src/editors/content/useContentModel.ts	long-fn:useContentModel@19(193)	todo
-Yog-IDLE/src/editors/content/useContentPaint.ts	long-fn:useContentPaint@18(255)	todo
-Yog-IDLE/src/editors/content/useContentTextures.ts	long-fn:useContentTextures@16(188)	todo
+Yog-IDLE/src/editors/content/properties/states.ts		todo
+Yog-IDLE/src/editors/content/stateCommands.ts		todo
+Yog-IDLE/src/editors/content/textures/usePaintedTextures.ts		todo
+Yog-IDLE/src/editors/content/textures/useTextureLoading.ts		todo
+Yog-IDLE/src/editors/content/textures/useTextureSync.ts		todo
+Yog-IDLE/src/editors/content/textures/useViewParts.ts		todo
+Yog-IDLE/src/editors/content/useContentCommands.ts		todo
+Yog-IDLE/src/editors/content/useContentKeys.ts		todo
+Yog-IDLE/src/editors/content/useContentModel.ts		todo
+Yog-IDLE/src/editors/content/useContentPaint.ts		todo
+Yog-IDLE/src/editors/content/useContentProperties.tsx		todo
+Yog-IDLE/src/editors/content/useContentPropertyRows.ts		todo
+Yog-IDLE/src/editors/content/useContentTextures.ts		todo
 Yog-IDLE/src/editors/defs/AdvancementDesigner.tsx	long-fn:AdvancementDesigner@39(180)	todo
 Yog-IDLE/src/editors/defs/DefEditor.test.ts		todo
 Yog-IDLE/src/editors/defs/DefEditor.tsx		todo
@@ -656,7 +716,18 @@ Yog-IDLE/src/editors/index.tsx		todo
 Yog-IDLE/src/editors/inspector.ts	long-fn:inspectorRows@35(111) params:choice@77(6),flag@90(6),ref@102(7)	todo
 Yog-IDLE/src/editors/recipeModel.test.ts		todo
 Yog-IDLE/src/editors/recipeModel.ts		todo
+Yog-IDLE/src/editors/yres/YresToolbar.tsx		todo
 Yog-IDLE/src/editors/yres/cellEditors.tsx		todo
+Yog-IDLE/src/editors/yres/cellStyle.ts		todo
+Yog-IDLE/src/editors/yres/useYresCellEdits.ts		todo
+Yog-IDLE/src/editors/yres/useYresCells.tsx		todo
+Yog-IDLE/src/editors/yres/useYresColumns.tsx		todo
+Yog-IDLE/src/editors/yres/useYresFile.ts		todo
+Yog-IDLE/src/editors/yres/useYresKeyboard.ts		todo
+Yog-IDLE/src/editors/yres/useYresLanguages.ts		todo
+Yog-IDLE/src/editors/yres/useYresRowCommands.ts		todo
+Yog-IDLE/src/editors/yres/useYresRows.ts		todo
+Yog-IDLE/src/editors/yres/useYresSiblings.ts		todo
 Yog-IDLE/src/editors/yres/yresModel.ts		todo
 Yog-IDLE/src/events.ts		todo
 Yog-IDLE/src/fileTypes.tsx		todo
@@ -685,7 +756,17 @@ Yog-IDLE/src/locales/ru.shell.ts	literal_facts:1	todo
 Yog-IDLE/src/locales/ru.ts		todo
 Yog-IDLE/src/main.tsx		todo
 Yog-IDLE/src/markdownLinks.tsx		todo
+Yog-IDLE/src/openFiles/FileEditorPanel.tsx		todo
+Yog-IDLE/src/openFiles/GeneratedFileBar.tsx		todo
+Yog-IDLE/src/openFiles/openFilesContext.ts		todo
+Yog-IDLE/src/openFiles/tabMenu.ts		todo
 Yog-IDLE/src/openFiles/tabViews.tsx		todo
+Yog-IDLE/src/openFiles/useDiskRecheck.ts		todo
+Yog-IDLE/src/openFiles/useOpenTabs.ts		todo
+Yog-IDLE/src/openFiles/useTabClosing.ts		todo
+Yog-IDLE/src/openFiles/useTabPanels.tsx		todo
+Yog-IDLE/src/openFiles/useTabPaths.ts		todo
+Yog-IDLE/src/openFiles/useTabSaving.ts		todo
 Yog-IDLE/src/outputSource.tsx		todo
 Yog-IDLE/src/panels/DebugPanel.tsx	long-fn:DebugPanel@39(157)	todo
 Yog-IDLE/src/panels/DocumentOutline.tsx		todo
@@ -697,15 +778,25 @@ Yog-IDLE/src/panels/Properties.tsx	long-fn:Properties@113(169)	todo
 Yog-IDLE/src/panels/PublishWindow.tsx	long-fn:PublishWindow@32(159)	todo
 Yog-IDLE/src/panels/RunToolbar.tsx		todo
 Yog-IDLE/src/panels/Toolbox.tsx	long-fn:Toolbox@64(125)	todo
+Yog-IDLE/src/panels/explorer/commandHooks/useExplorerInput.tsx		todo
+Yog-IDLE/src/panels/explorer/commandHooks/useExplorerMenu.ts		todo
+Yog-IDLE/src/panels/explorer/commandHooks/useExplorerRun.ts		todo
+Yog-IDLE/src/panels/explorer/commandHooks/useViewSwitch.ts		todo
 Yog-IDLE/src/panels/explorer/commands.ts		todo
 Yog-IDLE/src/panels/explorer/explorerBus.tsx		todo
 Yog-IDLE/src/panels/explorer/explorerModel.ts		todo
 Yog-IDLE/src/panels/explorer/listError.ts		todo
+Yog-IDLE/src/panels/explorer/operations/useAddItems.ts		todo
+Yog-IDLE/src/panels/explorer/operations/useClipboardItems.ts		todo
+Yog-IDLE/src/panels/explorer/operations/useExplorerTargets.ts		todo
+Yog-IDLE/src/panels/explorer/operations/useExplorerTools.ts		todo
+Yog-IDLE/src/panels/explorer/operations/useRenameRemove.ts		todo
+Yog-IDLE/src/panels/explorer/operations/useTreeView.ts		todo
 Yog-IDLE/src/panels/explorer/projectItems.ts		todo
 Yog-IDLE/src/panels/explorer/projectTree.test.ts		todo
 Yog-IDLE/src/panels/explorer/projectTree.tsx		todo
-Yog-IDLE/src/panels/explorer/useExplorerCommands.tsx	long-fn:useExplorerCommands@18(200)	todo
-Yog-IDLE/src/panels/explorer/useExplorerOperations.ts	long-fn:useExplorerOperations@17(306)	todo
+Yog-IDLE/src/panels/explorer/useExplorerCommands.tsx		todo
+Yog-IDLE/src/panels/explorer/useExplorerOperations.ts		todo
 Yog-IDLE/src/panels/explorer/useExplorerTreeView.tsx	long-fn:useExplorerTreeView@16(120)	todo
 Yog-IDLE/src/paths.test.ts		todo
 Yog-IDLE/src/paths.tsx		todo
@@ -813,8 +904,9 @@ Substrate-Platform/src/project/solution.rs		todo
 Substrate-Platform/src/project/standard.rs		todo
 Substrate-Platform/src/run/log.rs		todo
 Substrate-Platform/src/run/mod.rs		todo
-Substrate-Platform/src/run/task.rs	params:run_streamed@322(6) panics:6	todo
-Substrate-Platform/src/run/workflow.rs	params:run_named@123(7)	todo
+Substrate-Platform/src/run/task/mod.rs		todo
+Substrate-Platform/src/run/task/tests.rs		todo
+Substrate-Platform/src/run/workflow.rs		todo
 Substrate-Platform/src/search/files.rs		todo
 Substrate-Platform/src/search/hits.rs		todo
 Substrate-Platform/src/search/messages.rs		todo
@@ -858,9 +950,19 @@ Substrate-Platform/ui/src/dock/PanelSurface/index.ts		todo
 Substrate-Platform/ui/src/dock/ToolWindowDock/ToolWindowDock.tsx	long-fn:ToolWindowDock@112(98)	todo
 Substrate-Platform/ui/src/dock/ToolWindowDock/index.ts		todo
 Substrate-Platform/ui/src/dock/dnd.tsx		todo
+Substrate-Platform/ui/src/dock/hooks/layout/placements.ts		todo
+Substrate-Platform/ui/src/dock/hooks/layout/shellLayoutTypes.ts		todo
+Substrate-Platform/ui/src/dock/hooks/layout/useAnchorQueries.ts		todo
+Substrate-Platform/ui/src/dock/hooks/layout/useDynamicCenterPanels.ts		todo
+Substrate-Platform/ui/src/dock/hooks/layout/useLayoutState.ts		todo
+Substrate-Platform/ui/src/dock/hooks/layout/usePanelIndex.ts		todo
+Substrate-Platform/ui/src/dock/hooks/layout/usePanelMoves.ts		todo
+Substrate-Platform/ui/src/dock/hooks/layout/usePanelVisibility.ts		todo
+Substrate-Platform/ui/src/dock/hooks/layout/usePinning.ts		todo
+Substrate-Platform/ui/src/dock/hooks/shellLayoutDefaults.ts		todo
 Substrate-Platform/ui/src/dock/hooks/shellLayoutPersistence.ts		todo
 Substrate-Platform/ui/src/dock/hooks/useDropTarget.tsx		todo
-Substrate-Platform/ui/src/dock/hooks/useShellLayout.tsx	long-fn:useShellLayout@110(386) params:useShellLayout@110(12)	todo
+Substrate-Platform/ui/src/dock/hooks/useShellLayout.tsx		todo
 Substrate-Platform/ui/src/dock/index.tsx		todo
 Substrate-Platform/ui/src/dock/types.tsx		todo
 Substrate-Platform/ui/src/documents/fileOpenBus.ts		todo
@@ -894,6 +996,7 @@ Substrate-Platform/ui/src/infra/history/history.test.ts		todo
 Substrate-Platform/ui/src/infra/history/history.tsx		todo
 Substrate-Platform/ui/src/infra/history/index.tsx		todo
 Substrate-Platform/ui/src/infra/hooks/index.ts		todo
+Substrate-Platform/ui/src/infra/hooks/trackPointer.ts		todo
 Substrate-Platform/ui/src/infra/hooks/useDraggable.tsx		todo
 Substrate-Platform/ui/src/infra/hooks/useWorkflowRunner.tsx		todo
 Substrate-Platform/ui/src/infra/host/host.generated.ts		todo
@@ -1064,11 +1167,21 @@ Substrate-Platform/ui/src/widgets/ContextMenu/useContextMenu.test.ts		todo
 Substrate-Platform/ui/src/widgets/ContextMenu/useContextMenu.tsx		todo
 Substrate-Platform/ui/src/widgets/DataGrid/DataGrid.tsx	long-fn:DataGrid@135(327)	todo
 Substrate-Platform/ui/src/widgets/DataGrid/contextMenuItems.tsx		todo
+Substrate-Platform/ui/src/widgets/DataGrid/dataGridCellKeys.ts		todo
+Substrate-Platform/ui/src/widgets/DataGrid/dataGridCommits.ts		todo
+Substrate-Platform/ui/src/widgets/DataGrid/dataGridEditing.ts		todo
+Substrate-Platform/ui/src/widgets/DataGrid/dataGridHeader.ts		todo
+Substrate-Platform/ui/src/widgets/DataGrid/dataGridKeys.ts		todo
+Substrate-Platform/ui/src/widgets/DataGrid/dataGridNavigation.ts		todo
 Substrate-Platform/ui/src/widgets/DataGrid/dataGridPersistence.ts		todo
+Substrate-Platform/ui/src/widgets/DataGrid/dataGridRows.ts		todo
+Substrate-Platform/ui/src/widgets/DataGrid/gridParts.ts		todo
 Substrate-Platform/ui/src/widgets/DataGrid/index.ts		todo
 Substrate-Platform/ui/src/widgets/DataGrid/selectAll.test.tsx		todo
 Substrate-Platform/ui/src/widgets/DataGrid/useDataGrid.test.ts		todo
-Substrate-Platform/ui/src/widgets/DataGrid/useDataGrid.ts	long-fn:useDataGrid@169(581) params:buildDisplayItems@119(6)	todo
+Substrate-Platform/ui/src/widgets/DataGrid/useDataGrid.ts		todo
+Substrate-Platform/ui/src/widgets/DataGrid/useDataGridState.ts		todo
+Substrate-Platform/ui/src/widgets/DataGrid/useDataGridView.ts		todo
 Substrate-Platform/ui/src/widgets/DesignSurface/DesignSurface.tsx	long-fn:DesignSurface@171(351) params:snapMove@236(6),resized@258(6)	todo
 Substrate-Platform/ui/src/widgets/DesignSurface/index.ts		todo
 Substrate-Platform/ui/src/widgets/Dialog/Dialog.tsx		todo
@@ -1145,10 +1258,20 @@ Substrate-Platform/ui/src/widgets/OutputPanel/outputBuffer.test.ts		todo
 Substrate-Platform/ui/src/widgets/OutputPanel/outputBuffer.tsx		todo
 Substrate-Platform/ui/src/widgets/ProgressBar/ProgressBar.tsx		todo
 Substrate-Platform/ui/src/widgets/ProgressBar/index.ts		todo
-Substrate-Platform/ui/src/widgets/PropertyGrid/PropertyGrid.tsx	long-fn:PropertyGrid@12(669),renderValue@338(133)	todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/PropertyGrid.tsx		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/PropertyGridChrome.tsx		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/PropertyRows.tsx		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/TextBox.tsx		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/ValueCell.tsx		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/VectorValue.tsx		todo
 Substrate-Platform/ui/src/widgets/PropertyGrid/index.ts		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/propertyEditing.ts		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/propertyGridInput.ts		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/propertyScrub.ts		todo
 Substrate-Platform/ui/src/widgets/PropertyGrid/propertyTypes.ts		todo
 Substrate-Platform/ui/src/widgets/PropertyGrid/propertyValues.ts		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/usePropertyGrid.ts		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/usePropertyGridState.ts		todo
 Substrate-Platform/ui/src/widgets/QuickPick/QuickPick.tsx	long-fn:QuickPick@67(163)	todo
 Substrate-Platform/ui/src/widgets/QuickPick/index.ts		todo
 Substrate-Platform/ui/src/widgets/RunBar/RunBar.tsx		todo
