@@ -91,12 +91,12 @@ yog-dimensions = { version = "0.13.0", path = "crates/yog-dimensions" }
 yog-entity = { version = "0.6.0", path = "crates/yog-entity" }
 yog-event = { version = "0.7.0", path = "crates/yog-event" }
 yog-font = { version = "0.3.0", path = "crates/yog-font" }
-yog-formats = { version = "0.11.2", path = "crates/yog-formats" }
+yog-formats = { version = "0.11.3", path = "crates/yog-formats" }
 yog-gfx = { version = "0.30.0", path = "crates/yog-gfx" }
 yog-graphics = { version = "0.3.0", path = "crates/yog-graphics" }
 yog-home = { version = "0.2.2", path = "crates/yog-home" }
 yog-hot-reload = { version = "0.2.3", path = "crates/yog-hot-reload" }
-yog-ids = { version = "0.2.1", path = "crates/yog-ids" }
+yog-ids = { version = "0.2.2", path = "crates/yog-ids" }
 yog-media = { version = "0.3.0", path = "crates/yog-media" }
 yog-interop = { version = "0.21.4", path = "crates/yog-interop" }
 yog-inventory = { version = "0.20.0", path = "crates/yog-inventory" }

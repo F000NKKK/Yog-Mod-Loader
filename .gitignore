@@ -44,3 +44,4 @@ artifacts/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 neoforge/.settings/org.eclipse.buildship.core.prefs
+__pycache__/

@@ -116,6 +116,17 @@ names! {
         BYTES = "bytes",
     }
 
+    /// A `.yres` entry's type (`{ "type": "sound", ... }`).
+    res_kind {
+        STRING = "string",
+        IMAGE = typed::IMAGE,
+        FILE = "file",
+        SOUND = "sound",
+        COLOR = "color",
+        NUMBER = "number",
+        BOOL = "bool",
+    }
+
     /// What an image source starts with (`item:apple`).
     image_scheme {
         ITEM = kind::ITEM,

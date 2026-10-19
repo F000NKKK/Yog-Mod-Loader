@@ -1,393 +1,249 @@
 path	findings	status
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/NativeBridge.java	file:2006 long-fn:setBlock@125(1881) params:playSound@360(7),sendTitle@380(6),setInventorySlot@580(7),spawnParticles@782(10),entitiesInBox@1026(7)… prints:10 literal_facts:2	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogBlockItem.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogBlockKinds.java	prints:4	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogBody.java	params:Saved@74(11),begin@102(7),draw@195(6),camera@442(6) silenced:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@65(7),carve@128(7) literal_facts:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogClient.java	long-fn:onInitializeClient@23(102) silenced:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogClientApi.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogClientTooltip.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7),getStateForNeighborUpdate@67(6)	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogDevReload.java	prints:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogDevReloadClient.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogEffects.java	prints:3 literal_facts:6	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogEntityPreview.java	params:draw@11(7) magic_numbers:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogEntityRenderer.java	params:render@20(6)	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:2 prints:1 literal_facts:2	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogGuiSprites.java	params:draw@12(6)	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@42(7),updateTrackedPositionAndAngles@144(7) literal_facts:2	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogHost.java	long-fn:onInitialize@78(304),registerContent@419(190) prints:3 literal_facts:4	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogInventoryBlock.java	params:onUse@40(6)	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogInventoryScreen.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogItem.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogLootHook.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogLootTableId.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogMob.java	prints:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogObject.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogPackProvider.java	prints:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogRedstoneBlock.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogTools.java	params:Pickaxe@148(6),Axe@175(6),Shovel@202(6),Hoe@229(6),Sword@256(6)… literal_facts:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogTooltipData.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogUIScreen.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogWearableItem.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/AdvancementMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/BlockItemPlaceMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/BodyRenderMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/CameraMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ClientAdvancementsAccess.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ContainerCloseMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ContainerOpenMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/CraftingMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/DimensionsMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/EntityDataMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ExplosionMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ItemPickupMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/KeyboardMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/LimbAnimatorAccess.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/LootLookupMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/LootTableMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ModelPartAccess.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/PlayerMoveMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ProjectileHitMixin.java	literal_facts:2	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ResourcePackManagerMixin.java	prints:1	todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/TravelMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ViewMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/NativeBridge.java	file:2015 long-fn:setBlock@124(1893),spawnParticles@782(1233) params:playSound@357(7),sendTitle@377(6),setInventorySlot@577(7),spawnParticles@782(10),entitiesInBox@1037(7)… prints:10 literal_facts:2	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogBlockItem.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogBlockKinds.java	prints:4	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogBody.java	params:Saved@73(11),begin@101(7),draw@196(6),camera@429(6) silenced:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@65(7),carve@126(7) literal_facts:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogClient.java	long-fn:onInitializeClient@21(104) silenced:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogClientApi.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogClientTooltip.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7),getStateForNeighborUpdate@66(6)	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogDevReload.java	prints:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogDevReloadClient.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogEffects.java	prints:3 literal_facts:6	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogEntityPreview.java	params:draw@11(7) magic_numbers:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogEntityRenderer.java	params:render@20(6)	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:2 prints:1 literal_facts:2	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogGuiSprites.java	params:draw@12(6)	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@44(7),updateTrackedPositionAndAngles@147(6) literal_facts:2	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogHost.java	long-fn:onInitialize@109(322),registerContent@438(191) prints:3 literal_facts:4	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogInventoryBlock.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogInventoryScreen.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogItem.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogLootHook.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogLootTableId.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogMob.java	prints:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogObject.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogPackProvider.java	prints:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogPayload.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogRedstoneBlock.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogTools.java	literal_facts:2	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogTooltipData.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogUIScreen.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogWearableItem.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/AdvancementMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/BlockItemPlaceMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/BodyRenderMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/CameraMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ClientAdvancementsAccess.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ContainerCloseMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ContainerOpenMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/CraftingMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/DimensionsMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/EntityDataMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ExplosionMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ItemPickupMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/KeyboardMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/LimbAnimatorAccess.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/LootLookupMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/LootTableMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ModelPartAccess.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/PlayerMoveMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ProjectileHitMixin.java	literal_facts:2	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ResourcePackManagerMixin.java	prints:1	todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/TravelMixin.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ViewMixin.java		todo
-Yog-Mod-Loader/fabric/src/main/java/dev/yog/NativeDraw.java	params:drawTextFont@65(6),drawGradientRect@91(6),drawGuiSprite@191(6),drawImage@213(12),drawItemRect@237(6)… literal_facts:1 magic_numbers:1	todo
-Yog-Mod-Loader/fabric/src/main/java/dev/yog/YogBookItem.java		todo
-Yog-Mod-Loader/fabric/src/main/java/dev/yog/YogShapedBlock.java	params:YogShapedBlock@14(7)	todo
-Yog-Mod-Loader/fabric/src/main/java/dev/yog/YogStateBlock.java	params:getStateForNeighborUpdate@190(6),neighborUpdate@202(6) silenced:8	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/NativeBridge.java	file:1709 long-fn:setBlock@108(1601) params:playSound@259(7),sendTitle@267(6),setInventorySlot@354(7),entitiesInBox@581(7),raycastBlock@597(7)… prints:5	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/NativeDraw.java	params:drawTextFont@63(6),drawGradientRect@88(6),drawGuiSprite@176(6),drawImage@198(12),drawItemRect@222(6)… literal_facts:2 magic_numbers:2	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogBlockItem.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogBlockKinds.java	prints:4	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogBody.java	params:Saved@78(11),begin@106(7),draw@199(6),camera@450(6) silenced:1 literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogBookItem.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@71(7),applyCarvers@130(7)	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogClient.java	literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogClientApi.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogClientSetup.java	literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogClientTooltip.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogColors.java	literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7),updateShape@67(6)	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogDevReload.java	prints:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogDevReloadClient.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogEffects.java	prints:3 literal_facts:3	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogEntityRenderer.java	params:render@19(6)	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogEntitySync.java	literal_facts:2	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:4 prints:1 literal_facts:4	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@42(7),lerpTo@144(7) literal_facts:2	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogHost.java	long-fn:registerItems@243(83) silenced:1 prints:2 literal_facts:5	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogInventoryBlock.java	params:use@47(6)	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogInventoryScreen.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogItem.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogLootHook.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogMob.java	prints:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogNetworkBridge.java	literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogObject.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogPackProvider.java	prints:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogRedstoneBlock.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogShapedBlock.java	params:YogShapedBlock@14(7)	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogStateBlock.java	params:updateShape@182(6),neighborChanged@193(6)	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogTools.java	params:Pickaxe@143(6),Axe@170(6),Shovel@197(6),Hoe@224(6),Sword@251(6)… literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogTooltipData.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogUIScreen.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogWearableItem.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/AdvancementMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/BlockItemPlaceMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/BodyRenderMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/CameraMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/ClientAdvancementsAccess.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/ContainerCloseMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/ContainerOpenMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/CraftingMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/DimensionsMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/EntityDataMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/ExplosionMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/ItemPickupMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/KeyboardMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/LootTableMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/ModelPartAccess.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/PlayerMoveMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/ProjectileHitMixin.java	literal_facts:2	todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/TravelMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/mixin/WalkAnimationAccess.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/NativeBridge.java	file:1719 long-fn:setBlock@111(1610),spawnParticles@1038(681) params:playSound@262(7),sendTitle@270(6),setInventorySlot@357(7),entitiesInBox@584(7),raycastBlock@600(7)… prints:5	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/NativeDraw.java	params:drawTextFont@62(6),drawGradientRect@87(6),drawGuiSprite@175(6),drawImage@197(12),drawItemRect@221(6)… literal_facts:2 magic_numbers:2	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogBlockItem.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogBlockKinds.java	prints:4	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogBody.java	params:Saved@77(11),begin@105(7),draw@200(6),camera@437(6) silenced:1 literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogBookItem.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@65(7),applyCarvers@121(7)	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogClient.java	literal_facts:1 commented_code:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogClientApi.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogClientSetup.java	literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogClientTooltip.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogColors.java	literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7),updateShape@66(6)	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogDevReload.java	prints:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogDevReloadClient.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogEffects.java	prints:3 literal_facts:6	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogEntityRenderer.java	params:render@19(6)	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogEntitySync.java	literal_facts:2	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:4 prints:1 literal_facts:4	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@44(7),lerpTo@147(6) literal_facts:2	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogHost.java	long-fn:registerItems@254(83) silenced:1 prints:2 literal_facts:5	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogInventoryBlock.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogInventoryScreen.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogItem.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogLootHook.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogMob.java	prints:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogNetworkBridge.java	literal_facts:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogObject.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogPackProvider.java	prints:1	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogRedstoneBlock.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogShapedBlock.java	params:YogShapedBlock@14(7)	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogStateBlock.java	params:updateShape@182(6),neighborChanged@193(6)	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogTools.java	literal_facts:2	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogTooltipData.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogUIScreen.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogWearableItem.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/AdvancementMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/BlockItemPlaceMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/BodyRenderMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/CameraMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/ClientAdvancementsAccess.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/ContainerCloseMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/ContainerOpenMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/CraftingMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/DimensionsMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/EntityDataMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/ExplosionMixin.java		todo
+Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogClient.java		todo
+Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogHost.java	silenced:1	todo
+Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogPlatform.java		todo
+Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ResourcePackManagerMixin.java		todo
+Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogClient.java		todo
+Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogHost.java	silenced:1	todo
+Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogPlatform.java		todo
+Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ResourcePackManagerMixin.java		todo
+Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/YogClient.java		todo
+Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/YogHost.java	silenced:1	todo
+Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/YogPlatform.java	silenced:1	todo
+Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/mixin/ResourcePackManagerMixin.java		todo
+Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogClient.java		todo
+Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogHost.java		todo
+Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogPlatform.java		todo
+Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogClient.java		todo
+Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogHost.java		todo
+Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogPlatform.java		todo
 Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/HudRenderMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/ItemPickupMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/KeyboardMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/LootTableMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/ModelPartAccess.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/PlayerMoveMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/ProjectileHitMixin.java	literal_facts:2	todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/TravelMixin.java		todo
-Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/WalkAnimationAccess.java		todo
+Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/YogClient.java		todo
+Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/YogHost.java		todo
+Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/YogPlatform.java	silenced:1	todo
+Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/mixin/LevelMainPassMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogBookItem.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientEvents.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientOps.java	literal_facts:5	todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientTooltip.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogCommands.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogEntityRenderer.java	params:render@19(6)	todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogLootTableId.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogRedstoneBlock.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogRegistrar.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogServerEvents.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogStateBlock.java	params:updateShape@182(6),neighborChanged@193(6)	todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogWearableItem.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/mixin/ContainerCloseMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/mixin/EntityDataMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/mixin/ExplosionMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/mixin/KeyboardMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/mixin/LootTableMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/mixin/PlayerMoveMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/mixin/ViewMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/mixin/WalkAnimationAccess.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/NativeBridge.java	file:1715 long-fn:setBlock@107(1608) params:playSound@261(7),sendTitle@269(6),setInventorySlot@356(7),entitiesInBox@583(7),raycastBlock@599(7)…	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/NativeDraw.java	params:drawTextFont@59(6),drawGradientRect@84(6),drawGuiSprite@173(6),drawImage@195(12),drawItemRect@219(6)… magic_numbers:2	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogBlockItem.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogBlockKinds.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogBody.java	params:Saved@73(11),begin@101(7),draw@194(6),camera@445(6) silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@78(7),applyCarvers@137(7)	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogClientApi.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7),updateShape@67(6)	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogContentRegistry.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogEffects.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:3 literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@42(7),lerpTo@144(7) literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogInventoryBlock.java	params:use@47(6)	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogInventoryScreen.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogItem.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogLootHook.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogMob.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogObject.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogPackProvider.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogPayload.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogShapedBlock.java	params:YogShapedBlock@14(7)	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogTools.java	params:Pickaxe@143(6),Axe@170(6),Shovel@197(6),Hoe@224(6),Sword@251(6)… literal_facts:1	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogUIScreen.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/AdvancementMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/BlockItemPlaceMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/BodyRenderMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/CameraMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/ClientAdvancementsAccess.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/ContainerOpenMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/CraftingMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/DimensionsMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/ItemPickupMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/LootLookupMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/PotionBrewingAccess.java		todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/mixin/ProjectileHitMixin.java	literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/NativeBridge.java	file:1725 long-fn:setBlock@110(1617),spawnParticles@1040(685) params:playSound@264(7),sendTitle@272(6),setInventorySlot@359(7),entitiesInBox@586(7),raycastBlock@602(7)…	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/NativeDraw.java	params:drawTextFont@58(6),drawGradientRect@83(6),drawGuiSprite@175(6),drawImage@197(12),drawItemRect@221(6)… magic_numbers:2	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogBlockItem.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogBlockKinds.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogBody.java	params:Saved@72(11),begin@100(7),draw@195(6),camera@432(6) silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@72(7),applyCarvers@128(7)	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogClientApi.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7),updateShape@66(6)	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogContentRegistry.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogEffects.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:3 literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@44(7),lerpTo@147(6) literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogInventoryBlock.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogInventoryScreen.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogItem.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogLootHook.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogMob.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogObject.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogPackProvider.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogPayload.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogShapedBlock.java	params:YogShapedBlock@14(7)	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogTools.java	literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogUIScreen.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/AdvancementMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/BlockItemPlaceMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/BodyRenderMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/CameraMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/ClientAdvancementsAccess.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/ContainerOpenMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/CraftingMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/DimensionsMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/ItemPickupMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/LootLookupMixin.java		todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/mixin/ProjectileHitMixin.java	literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/NativeBridge.java	file:2024 long-fn:setBlock@129(1897),spawnParticles@785(1239) params:playSound@360(7),sendTitle@380(6),setInventorySlot@580(7),spawnParticles@785(10),entitiesInBox@1040(7)… literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/NativeDraw.java	params:drawTextFont@68(6),drawGradientRect@91(6),drawGuiSprite@140(6),drawImage@159(12),drawItemRect@180(6)…	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBlockItem.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBlockKinds.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBlocksPip.java	params:State@35(13),State@38(12)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBody.java	params:draw@220(6),camera@392(6) silenced:4	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBodyCapture.java	params:submitModel@52(10)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBodyState.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBookItem.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@64(7),applyCarvers@127(6),createStructures@166(6)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientApi.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientEvents.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientOps.java	params:scanSection@282(7) literal_facts:5	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientTooltip.java	params:extractImage@24(6)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogCommands.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@35(7),updateShape@67(8)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogContentRegistry.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogEffects.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogEntityPreview.java	params:draw@21(9)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogEntityRenderer.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogEntityTypes.java	silenced:2 literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogGl.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogGuiSprites.java	params:draw@23(7)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogHanging.java	params:YogHanging@45(7) literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogInventoryBlock.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogInventoryMenu.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogInventoryScreen.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogItem.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogLootHook.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogLootTableId.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogMob.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogObject.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogPackProvider.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogPayload.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogRedstoneBlock.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogRegistrar.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogServerEvents.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogShapedBlock.java	params:YogShapedBlock@14(7)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogStateBlock.java	params:updateShape@193(8),neighborChanged@205(6) silenced:8	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogTools.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogTooltipLines.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogUIScreen.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogWearableItem.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/AdvancementMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/BlockItemPlaceMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/BodyRenderMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/CameraMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/ClientAdvancementsAccess.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/ContainerCloseMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/ContainerOpenMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/CraftingMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/DimensionsMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/EntityDataMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/EntityRenderStateMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/ExplosionMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/ItemPickupMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/KeyboardMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/LevelProjectionMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/LimbAnimatorAccess.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/LootLookupMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/LootTableMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/ModelPoseMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/PlayerMoveMixin.java		todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/mixin/ProjectileHitMixin.java	literal_facts:2	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/YogDevReload.java		todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/YogDevReloadClient.java		todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/YogIds.java		todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/YogLog.java		todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/YogNames.java		todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/YogTooltipData.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/block/YogConnectingLogic.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/block/YogStateLogic.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/block/package-info.java		todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogContent.java	long-fn:read@182(133) params:ToolMaterial@23(8),ArmorMaterial@30(12),Item@45(13),Sound@56(7),Block@67(28)… literal_facts:11 magic_numbers:1	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogContent.java	long-fn:read@202(133) params:ToolMaterial@24(8),ArmorMaterial@31(12),Item@46(13),Sound@57(7),Block@68(28)… literal_facts:11 magic_numbers:1	todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogData.java	silenced:2	todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogJava.java	prints:1 literal_facts:2	todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogTags.java	prints:1 literal_facts:5	todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogVersions.java	prints:1 literal_facts:4	todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogBodyWire.java	params:frame@281(18)	todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogDataLayout.java	prints:1 literal_facts:21	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogJava.java	literal_facts:2	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogTags.java	literal_facts:2	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogVersions.java	literal_facts:4	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/mixin/ModelPartAccess.java		todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/mixin/TravelMixin.java		todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogBodyWire.java	params:frame@285(18)	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogDataLayout.java	literal_facts:21	todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogDimensions.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogEntityFlags.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogHangingWire.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogInventoryDef.java	params:YogInventoryDef@34(13)	todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogLoot.java	params:Context@23(7) prints:1 literal_facts:2	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogKeyBindings.java		todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogLoot.java	params:Context@25(7) literal_facts:2	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogModInfo.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogNativeRuntime.java		todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogPackStager.java	long-fn:stage@62(86) params:stage@62(6) prints:2 literal_facts:11	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogPackStager.java	long-fn:stage@64(100) params:stage@64(6) literal_facts:10	todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogProps.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogText.java	params:Run@18(6)	todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/package-info.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/NativeBridge.java	file:1707 long-fn:setBlock@108(1599) params:playSound@259(7),sendTitle@267(6),setInventorySlot@354(7),entitiesInBox@581(7),raycastBlock@597(7)… prints:5	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/NativeDraw.java	params:drawTextFont@63(6),drawGradientRect@88(6),drawGuiSprite@176(6),drawImage@198(12),drawItemRect@222(6)… literal_facts:2 magic_numbers:2	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogBlockItem.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogBlockKinds.java	prints:4	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogBody.java	params:Saved@78(11),begin@106(7),draw@199(6),camera@450(6) silenced:1 literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogBookItem.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@71(7),applyCarvers@130(7)	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogClient.java	literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogClientApi.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogClientSetup.java	literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogClientTooltip.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogColors.java	literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7),updateShape@67(6)	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogDevReload.java	prints:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogDevReloadClient.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogEffects.java	prints:3 literal_facts:3	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogEntityRenderer.java	params:render@19(6)	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogEntitySync.java	literal_facts:2	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:4 prints:1 literal_facts:4	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@42(7),lerpTo@144(7) literal_facts:2	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogHost.java	long-fn:registerItems@250(83) silenced:1 prints:2 literal_facts:5	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogInventoryBlock.java	params:use@47(6)	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogInventoryScreen.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogItem.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogLootHook.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogMob.java	prints:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogNetworkBridge.java	literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogObject.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogPackProvider.java	prints:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogRedstoneBlock.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogShapedBlock.java	params:YogShapedBlock@14(7)	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogStateBlock.java	params:updateShape@182(6),neighborChanged@193(6)	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogTools.java	params:Pickaxe@143(6),Axe@170(6),Shovel@197(6),Hoe@224(6),Sword@251(6)… literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogTooltipData.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogUIScreen.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogWearableItem.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/AdvancementMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/BlockItemPlaceMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/BodyRenderMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/CameraMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/ClientAdvancementsAccess.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/ContainerCloseMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/ContainerOpenMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/CraftingMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/DimensionsMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/EntityDataMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/ExplosionMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/ItemPickupMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/KeyboardMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/LootTableMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/ModelPartAccess.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/PlayerMoveMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/ProjectileHitMixin.java	literal_facts:2	todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/TravelMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/mixin/WalkAnimationAccess.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/NativeBridge.java	file:1712 long-fn:setBlock@111(1603),spawnParticles@1040(672) params:playSound@262(7),sendTitle@270(6),setInventorySlot@357(7),entitiesInBox@584(7),raycastBlock@600(7)… prints:5	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/NativeDraw.java	params:drawTextFont@62(6),drawGradientRect@87(6),drawGuiSprite@175(6),drawImage@197(12),drawItemRect@221(6)… literal_facts:2 magic_numbers:2	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogBlockItem.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogBlockKinds.java	prints:4	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogBody.java	params:Saved@77(11),begin@105(7),draw@200(6),camera@437(6) silenced:1 literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogBookItem.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@65(7),applyCarvers@121(7)	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogClient.java	literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogClientApi.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogClientSetup.java	literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogClientTooltip.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogColors.java	literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7),updateShape@66(6)	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogDevReload.java	prints:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogDevReloadClient.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogEffects.java	prints:3 literal_facts:6	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogEntityRenderer.java	params:render@19(6)	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogEntitySync.java	literal_facts:2	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:4 prints:1 literal_facts:4	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@44(7),lerpTo@147(6) literal_facts:2	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogHost.java	long-fn:registerItems@249(83) silenced:1 prints:2 literal_facts:5	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogInventoryBlock.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogInventoryScreen.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogItem.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogLootHook.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogMob.java	prints:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogNetworkBridge.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogObject.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogPackProvider.java	prints:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogPayload.java	literal_facts:1	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogRedstoneBlock.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogShapedBlock.java	params:YogShapedBlock@14(7)	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogStateBlock.java	params:updateShape@182(6),neighborChanged@193(6)	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogTools.java	literal_facts:2	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogTooltipData.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogUIScreen.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogWearableItem.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/AdvancementMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/BlockItemPlaceMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/BodyRenderMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/CameraMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/ClientAdvancementsAccess.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/ContainerCloseMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/ContainerOpenMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/CraftingMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/DimensionsMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/EntityDataMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/ExplosionMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/ItemPickupMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/KeyboardMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/LootTableMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/ModelPartAccess.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/PlayerMoveMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/ProjectileHitMixin.java	literal_facts:2	todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/TravelMixin.java		todo
-Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/mixin/WalkAnimationAccess.java		todo
-Yog-Mod-Loader/rust/crates/yog-abi/src/lib.rs	file:1711	todo
+Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogClient.java		todo
+Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogHost.java		todo
+Yog-Mod-Loader/neoforge/platforms/1.20.1/src/main/java/dev/yog/YogPlatform.java		todo
+Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogClient.java		todo
+Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogHost.java		todo
+Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogPlatform.java		todo
+Yog-Mod-Loader/neoforge/platforms/26.2/src/main/java/dev/yog/YogClient.java		todo
+Yog-Mod-Loader/neoforge/platforms/26.2/src/main/java/dev/yog/YogHost.java		todo
+Yog-Mod-Loader/neoforge/platforms/26.2/src/main/java/dev/yog/YogPlatform.java		todo
+Yog-Mod-Loader/rust/crates/yog-abi/src/lib.rs	file:1734	todo
 Yog-Mod-Loader/rust/crates/yog-api/src/advancements.rs		todo
 Yog-Mod-Loader/rust/crates/yog-api/src/body.rs		todo
 Yog-Mod-Loader/rust/crates/yog-api/src/client.rs		todo
-Yog-Mod-Loader/rust/crates/yog-api/src/entities.rs	literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-api/src/client/op.rs		todo
+Yog-Mod-Loader/rust/crates/yog-api/src/client/player.rs		todo
+Yog-Mod-Loader/rust/crates/yog-api/src/client/world.rs		todo
+Yog-Mod-Loader/rust/crates/yog-api/src/control.rs	literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-api/src/entities.rs		todo
 Yog-Mod-Loader/rust/crates/yog-api/src/interop.rs		todo
 Yog-Mod-Loader/rust/crates/yog-api/src/java.rs		todo
-Yog-Mod-Loader/rust/crates/yog-api/src/lang.rs	literal_facts:2	todo
+Yog-Mod-Loader/rust/crates/yog-api/src/lang.rs		todo
 Yog-Mod-Loader/rust/crates/yog-api/src/lib.rs	panics:3	todo
 Yog-Mod-Loader/rust/crates/yog-api/src/loot.rs		todo
-Yog-Mod-Loader/rust/crates/yog-api/src/registry.rs	file:3042 params:play_sound@382(7),send_title@418(6),get_inventory_slot@565(6),set_inventory_slot@592(6),spawn_particles@697(10)… silenced:2 literal_facts:11	todo
+Yog-Mod-Loader/rust/crates/yog-api/src/registry.rs	file:3102 params:play_sound@382(7),send_title@418(6),get_inventory_slot@565(6),set_inventory_slot@592(6),spawn_particles@697(10)… silenced:2 literal_facts:1	todo
 Yog-Mod-Loader/rust/crates/yog-api/src/vanilla.rs	file:5183	todo
 Yog-Mod-Loader/rust/crates/yog-api/tests/interop.rs		todo
 Yog-Mod-Loader/rust/crates/yog-api/tests/ui_component.rs		todo
 Yog-Mod-Loader/rust/crates/yog-body/src/anim.rs	magic_numbers:4	todo
 Yog-Mod-Loader/rust/crates/yog-body/src/camera.rs		todo
 Yog-Mod-Loader/rust/crates/yog-body/src/format.rs		todo
-Yog-Mod-Loader/rust/crates/yog-body/src/lib.rs	literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-body/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-body/src/math.rs		todo
 Yog-Mod-Loader/rust/crates/yog-body/src/model.rs		todo
 Yog-Mod-Loader/rust/crates/yog-body/src/morph.rs	magic_numbers:3	todo
@@ -395,36 +251,77 @@ Yog-Mod-Loader/rust/crates/yog-body/src/movement.rs	magic_numbers:1	todo
 Yog-Mod-Loader/rust/crates/yog-body/src/rig.rs	magic_numbers:1	todo
 Yog-Mod-Loader/rust/crates/yog-body/src/wire.rs	params:mesh@148(6) panics:3 magic_numbers:2	todo
 Yog-Mod-Loader/rust/crates/yog-book/benches/book.rs	panics:3 literal_facts:3 magic_numbers:4	todo
-Yog-Mod-Loader/rust/crates/yog-book/src/layout.rs	long-fn:compile@147(89) panics:1 literal_facts:1	todo
-Yog-Mod-Loader/rust/crates/yog-book/src/lib.rs	literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-book/src/layout_picture.rs		todo
+Yog-Mod-Loader/rust/crates/yog-book/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-book/src/markup.rs		todo
-Yog-Mod-Loader/rust/crates/yog-book/src/page_type.rs	literal_facts:2 magic_numbers:1	todo
-Yog-Mod-Loader/rust/crates/yog-book/src/refs.rs	literal_facts:4	todo
-Yog-Mod-Loader/rust/crates/yog-book/src/renderer.rs	file:2254 params:push_icon@149(6) literal_facts:9 magic_numbers:16	todo
+Yog-Mod-Loader/rust/crates/yog-book/src/recipe_area.rs		todo
+Yog-Mod-Loader/rust/crates/yog-book/src/renderer.rs	file:2228 params:push_icon@161(6) literal_facts:2 magic_numbers:13	todo
 Yog-Mod-Loader/rust/crates/yog-book/src/state.rs		todo
 Yog-Mod-Loader/rust/crates/yog-book/src/theme.rs	magic_numbers:11	todo
-Yog-Mod-Loader/rust/crates/yog-book/src/ui.rs	long-fn:element@99(83)	todo
 Yog-Mod-Loader/rust/crates/yog-cli/benches/common/mod.rs	silenced:1 panics:2	todo
 Yog-Mod-Loader/rust/crates/yog-cli/benches/content.rs	panics:9	todo
+Yog-Mod-Loader/rust/crates/yog-cli/benches/design.rs	panics:2	todo
 Yog-Mod-Loader/rust/crates/yog-cli/benches/exports.rs	panics:1	todo
 Yog-Mod-Loader/rust/crates/yog-cli/benches/yres.rs	panics:2	todo
 Yog-Mod-Loader/rust/crates/yog-cli/benches/yui.rs	panics:4	todo
-Yog-Mod-Loader/rust/crates/yog-cli/build.rs	panics:1 prints:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/build.rs	panics:2 prints:1	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/bench.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/book_page.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/cargo_toml.rs	long-fn:generate_cargo_toml@12(181)	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content.rs	file:4974 long-fn:model@482(121),compile_file@730(537),compile_book@1612(207),compile_layout@1823(177),compile_recipe@2498(236)… params:element@605(6),file_id@664(6),compile_file@730(7),kind_models@1292(9),compile_font@1525(6)… panics:6 literal_facts:132 magic_numbers:30	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/import.rs	file:1263 long-fn:convert_model@359(150),import_bbmodel@849(303) params:convert_model@359(7),import_block@679(6),import_item@720(6) prints:3 literal_facts:27 magic_numbers:19	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/cargo_toml.rs	long-fn:generate_cargo_toml@12(182)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content.rs	file:1050 long-fn:compile@631(338) literal_facts:17	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item.rs	long-fn:compile_file@55(550) params:file_id@34(6),compile_file@55(7) panics:4 literal_facts:28 magic_numbers:11	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/body.rs	params:compile_font@85(6),compile_body@113(6) literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/book.rs	long-fn:compile_book@32(207),compile_layout@243(177) params:compile_book@32(7),compile_layout@243(11) panics:1 literal_facts:6	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/datapack.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/defs.rs	long-fn:read_defs@323(146) params:content_def@103(9),tool_level_tags@473(6) literal_facts:39	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/import.rs	file:1281 long-fn:convert_model@372(150),import_bbmodel@862(304) params:convert_model@372(7),import_block@692(6),import_item@733(6) prints:3 literal_facts:26 magic_numbers:19	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/json.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/refs.rs	literal_facts:13	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/table.rs	silenced:1 literal_facts:6	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/looks.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/material.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/model.rs	long-fn:model@21(121) params:element@144(6),kind_models@245(9) literal_facts:10 magic_numbers:18	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/outputs.rs	long-fn:merge_outputs@101(106) literal_facts:4	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe.rs	long-fn:compile_recipe@17(227) params:compile_recipe@17(7) panics:3 literal_facts:4	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/refs.rs	literal_facts:7	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/source.rs	long-fn:id_consts@131(369),rust_source@162(338) panics:2 literal_facts:1 magic_numbers:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/table.rs	silenced:1 literal_facts:2	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/tests.rs	file:894	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/textures.rs	long-fn:compile@37(86)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/advancements.rs	long-fn:render@114(82) params:build@402(6) panics:3	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/assets.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/blocks3d.rs	long-fn:draw_with@373(88) literal_facts:6	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/book.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/codebehind.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/components.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/content.rs	literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/custom.rs	file:1150 long-fn:translate@814(84)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/data.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/files.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/font.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/gfx.rs	silenced:3	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/host.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/images.rs	params:nine_slice@257(6)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/item_models.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/markup.rs	long-fn:apply_resources@162(316),walk@212(266),widget@274(160)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/mod.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/mod_ui.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/project.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/raster.rs	params:fill@245(6),blit@270(7),text@322(6),text_scaled@329(7)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/recipe_area.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/recipe_kinds.rs	literal_facts:2	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/refs.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/service.rs	literal_facts:5	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/tags.rs	params:collect@109(6)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/worldgen.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/yui_codegen.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/exports.rs	long-fn:collect_uses@169(475),generate_fn_wrapper@414(103) silenced:1 panics:4	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/lib.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/main.rs	file:1897 long-fn:main@47(101),prepare@327(88),build@584(113),publish_exports@1729(97) params:dep_edit@1620(6) panics:1 prints:91	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/manifest.rs	long-fn:parse_yog_toml@183(87)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/main.rs	file:1874 long-fn:main@43(111),prepare@325(88),build@584(115),publish_exports@1706(97) params:dep_edit@1597(6) panics:1 prints:93 magic_numbers:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/manifest.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/media.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/recipe_area.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/yres.rs	file:1329 long-fn:segments@316(787),load@514(106),compile@706(397) literal_facts:4 magic_numbers:1	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/yui.rs	file:1625 long-fn:widget@552(240),generate_with@927(222) params:static_widget@897(6),generate_with@927(6) silenced:2 prints:1 literal_facts:12 magic_numbers:5	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/serve.rs	long-fn:dispatch@70(87) literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/yres.rs	file:1115 long-fn:segments@127(765),load@340(103),compile@512(380)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/yui.rs	file:1624 long-fn:widget@551(240),generate_with@926(222) params:static_widget@896(6),generate_with@926(6) silenced:2 prints:1 literal_facts:3 magic_numbers:2	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/yui_component.rs	long-fn:declarations@100(126),generate@305(173) silenced:3 prints:1 literal_facts:2	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/yui_grid.rs	long-fn:compact@57(283),normalize@170(170)	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/yui_vm.rs	file:2034 long-fn:lex@43(85),bind_attr@716(86),element@870(335),list@1274(449),generate@1511(212) params:bind_attr@716(9),list@1274(7) silenced:7 panics:7 literal_facts:4	todo
@@ -442,12 +339,13 @@ Yog-Mod-Loader/rust/crates/yog-data/src/binary.rs	panics:1	todo
 Yog-Mod-Loader/rust/crates/yog-data/src/borrowed.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/json.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/lib.rs		todo
-Yog-Mod-Loader/rust/crates/yog-data/src/schema.rs	file:1730 long-fn:describe_into@130(115) literal_facts:10	todo
+Yog-Mod-Loader/rust/crates/yog-data/src/patch.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/schema.rs	file:1735 long-fn:describe_into@132(116) literal_facts:2	todo
 Yog-Mod-Loader/rust/crates/yog-data/src/text.rs	long-fn:value@204(144) panics:1	todo
 Yog-Mod-Loader/rust/crates/yog-data/src/toml.rs		todo
-Yog-Mod-Loader/rust/crates/yog-data/src/typed.rs	literal_facts:1 magic_numbers:1	todo
-Yog-Mod-Loader/rust/crates/yog-data/src/value.rs	literal_facts:1	todo
-Yog-Mod-Loader/rust/crates/yog-data/src/with.rs	literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-data/src/typed.rs	magic_numbers:1	todo
+Yog-Mod-Loader/rust/crates/yog-data/src/value.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/with.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/tests/java.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/tests/java/RoundTrip.java		todo
 Yog-Mod-Loader/rust/crates/yog-data/tests/schema.rs		todo
@@ -468,17 +366,24 @@ Yog-Mod-Loader/rust/crates/yog-font/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-font/src/raster.rs		todo
 Yog-Mod-Loader/rust/crates/yog-font/src/shape.rs		todo
 Yog-Mod-Loader/rust/crates/yog-font/src/tests.rs		todo
-Yog-Mod-Loader/rust/crates/yog-formats/src/content.rs	file:1036 panics:1 literal_facts:10 magic_numbers:7	todo
-Yog-Mod-Loader/rust/crates/yog-formats/src/def.rs	literal_facts:6	todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/book/layout.rs	long-fn:compile@152(101) panics:1	todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/book/mod.rs		todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/book/page_type.rs	literal_facts:2 magic_numbers:1	todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/book/refs.rs		todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/content.rs	file:1052 panics:1 literal_facts:5 magic_numbers:7	todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/def.rs	literal_facts:2	todo
 Yog-Mod-Loader/rust/crates/yog-formats/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-formats/src/manifest.rs		todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/material.rs		todo
 Yog-Mod-Loader/rust/crates/yog-formats/src/recipe.rs		todo
-Yog-Mod-Loader/rust/crates/yog-formats/src/tags.rs	literal_facts:7	todo
-Yog-Mod-Loader/rust/crates/yog-formats/src/yres.rs	literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/tags.rs	literal_facts:5	todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/texture.rs	literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/yres.rs	panics:1 literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-formats/src/yui.rs	long-fn:element@99(83)	todo
 Yog-Mod-Loader/rust/crates/yog-gfx/src/core.rs		todo
 Yog-Mod-Loader/rust/crates/yog-gfx/src/draw2d.rs	params:text_scaled@88(6)	todo
 Yog-Mod-Loader/rust/crates/yog-gfx/src/gl/mod.rs	params:attrib@69(8),uniform_4f@124(6)	todo
-Yog-Mod-Loader/rust/crates/yog-gfx/src/image.rs	params:region_of@197(6),sprite_def@209(7) silenced:1 literal_facts:6 magic_numbers:138	todo
+Yog-Mod-Loader/rust/crates/yog-gfx/src/image.rs	panics:1	todo
 Yog-Mod-Loader/rust/crates/yog-gfx/src/lib.rs	params:draw_elements@224(6)	todo
 Yog-Mod-Loader/rust/crates/yog-gfx/src/testing.rs	silenced:2 magic_numbers:1	todo
 Yog-Mod-Loader/rust/crates/yog-graphics/src/color.rs	magic_numbers:4	todo
@@ -489,8 +394,14 @@ Yog-Mod-Loader/rust/crates/yog-graphics/src/math.rs	magic_numbers:1	todo
 Yog-Mod-Loader/rust/crates/yog-graphics/src/path.rs	magic_numbers:1	todo
 Yog-Mod-Loader/rust/crates/yog-graphics/src/raster.rs		todo
 Yog-Mod-Loader/rust/crates/yog-graphics/src/rect.rs		todo
+Yog-Mod-Loader/rust/crates/yog-home/src/components.rs		todo
+Yog-Mod-Loader/rust/crates/yog-home/src/lib.rs		todo
+Yog-Mod-Loader/rust/crates/yog-home/src/local.rs		todo
+Yog-Mod-Loader/rust/crates/yog-home/src/targets.rs		todo
+Yog-Mod-Loader/rust/crates/yog-home/src/version.rs		todo
 Yog-Mod-Loader/rust/crates/yog-hot-reload/src/lib.rs	panics:11	todo
 Yog-Mod-Loader/rust/crates/yog-hot-reload/tests/hot_reload.rs		todo
+Yog-Mod-Loader/rust/crates/yog-ids/src/lib.rs	literal_facts:38	todo
 Yog-Mod-Loader/rust/crates/yog-interop/src/lib.rs	long-fn:yog_export@20(170) silenced:1 panics:6	todo
 Yog-Mod-Loader/rust/crates/yog-inventory/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-kit/src/bind.rs	panics:1	todo
@@ -504,12 +415,18 @@ Yog-Mod-Loader/rust/crates/yog-kit/tests/inventory.rs		todo
 Yog-Mod-Loader/rust/crates/yog-kit/tests/manual_view.rs		todo
 Yog-Mod-Loader/rust/crates/yog-kit/tests/surface.rs		todo
 Yog-Mod-Loader/rust/crates/yog-logging/src/lib.rs		todo
+Yog-Mod-Loader/rust/crates/yog-media/src/image.rs		todo
+Yog-Mod-Loader/rust/crates/yog-media/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-network/benches/codec.rs	panics:2 magic_numbers:4	todo
 Yog-Mod-Loader/rust/crates/yog-network/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-player/src/lib.rs		todo
-Yog-Mod-Loader/rust/crates/yog-registry/src/effects.rs	literal_facts:3	todo
-Yog-Mod-Loader/rust/crates/yog-registry/src/lib.rs	file:1312 params:shape@911(6) panics:3 literal_facts:4 magic_numbers:1	todo
-Yog-Mod-Loader/rust/crates/yog-registry/src/loot.rs	literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-registry/src/atlases.rs	panics:1	todo
+Yog-Mod-Loader/rust/crates/yog-registry/src/effects.rs		todo
+Yog-Mod-Loader/rust/crates/yog-registry/src/item_looks.rs	panics:1	todo
+Yog-Mod-Loader/rust/crates/yog-registry/src/lib.rs	file:1272 params:shape@877(6) panics:3 magic_numbers:1	todo
+Yog-Mod-Loader/rust/crates/yog-registry/src/loot.rs		todo
+Yog-Mod-Loader/rust/crates/yog-registry/src/recipe_kinds.rs	panics:1	todo
+Yog-Mod-Loader/rust/crates/yog-registry/src/tool_levels.rs	panics:1	todo
 Yog-Mod-Loader/rust/crates/yog-runtime/benches/dispatch.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/benches/java/dev/yog/NativeBridge.java	literal_facts:1	todo
 Yog-Mod-Loader/rust/crates/yog-runtime/benches/java/dev/yog/NativeDraw.java		todo
@@ -520,9 +437,9 @@ Yog-Mod-Loader/rust/crates/yog-runtime/src/client_api.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/content_blob.rs	long-fn:blob@91(228) literal_facts:4	todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/control_socket.rs	panics:1	todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/entity_data.rs		todo
-Yog-Mod-Loader/rust/crates/yog-runtime/src/images.rs	params:draw_texture@78(6),rect@141(6) silenced:1 magic_numbers:7	todo
+Yog-Mod-Loader/rust/crates/yog-runtime/src/images.rs	params:draw_texture@99(6),rect@162(6) silenced:1 magic_numbers:7	todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/jcall.rs	silenced:1	todo
-Yog-Mod-Loader/rust/crates/yog-runtime/src/lib.rs	file:5559 long-fn:register_content@2216(129),build_server_table@3062(120),build_api_table@3307(82),Java_dev_yog_NativeBridge_nativeOnCommand@4403(84) params:machine_event@2545(6) silenced:1 panics:26 literal_facts:14	todo
+Yog-Mod-Loader/rust/crates/yog-runtime/src/lib.rs	file:5647 long-fn:register_content@2256(129),build_server_table@3142(120),build_api_table@3387(86),Java_dev_yog_NativeBridge_nativeOnCommand@4491(84) params:machine_event@2585(6) silenced:1 panics:27 prints:1 literal_facts:4	todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/loot.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/machine.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/registrations.rs		todo
@@ -546,7 +463,7 @@ Yog-Mod-Loader/rust/crates/yog-ui/benches/layout.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ui/benches/render.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ui/benches/support/mod.rs	literal_facts:2 magic_numbers:15	todo
 Yog-Mod-Loader/rust/crates/yog-ui/benches/text.rs	magic_numbers:5	todo
-Yog-Mod-Loader/rust/crates/yog-ui/src/component.rs	file:835 long-fn:describe@682(88) literal_facts:3 magic_numbers:4	todo
+Yog-Mod-Loader/rust/crates/yog-ui/src/component.rs	file:835 long-fn:describe@682(88) literal_facts:2 magic_numbers:4	todo
 Yog-Mod-Loader/rust/crates/yog-ui/src/event.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ui/src/image.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ui/src/layout.rs	file:1335 long-fn:layout_widget@232(98),layout_children@370(328) params:measure@217(6),layout_widget@232(9),measure_aligned@702(6) silenced:1	todo
@@ -559,78 +476,86 @@ Yog-Mod-Loader/rust/crates/yog-ui/src/state_tests.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ui/src/surface.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ui/src/text.rs	magic_numbers:10	todo
 Yog-Mod-Loader/rust/crates/yog-ui/src/textbox.rs	long-fn:handle_inner@311(92)	todo
-Yog-Mod-Loader/rust/crates/yog-ui/src/theme.rs	literal_facts:1	todo
-Yog-Mod-Loader/rust/crates/yog-ui/src/widget.rs	file:1085 panics:2 magic_numbers:5	todo
+Yog-Mod-Loader/rust/crates/yog-ui/src/theme.rs		todo
+Yog-Mod-Loader/rust/crates/yog-ui/src/widget.rs	file:1086 panics:2 magic_numbers:5	todo
 Yog-Mod-Loader/rust/crates/yog-world/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-worldgen/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-worldgen/src/noise.rs	magic_numbers:3	todo
 Yog-Mod-Loader/rust/crates/yog-worldgen/src/preview.rs	params:top_down@61(6),slice@83(7) magic_numbers:6	todo
-Yog-IDLE/src-tauri/benches/backend.rs	panics:2 literal_facts:4	todo
-Yog-IDLE/src-tauri/build.rs		todo
-Yog-IDLE/src-tauri/src/content.rs	file:949 literal_facts:25	todo
-Yog-IDLE/src-tauri/src/data.rs		todo
-Yog-IDLE/src-tauri/src/debugger.rs	file:928 long-fn:connect_and_watch@238(118) params:build_and_check@611(7) panics:13 literal_facts:2 magic_numbers:2	todo
-Yog-IDLE/src-tauri/src/debugger/trace.rs	file:1169 long-fn:tracer_main@417(115) params:start_tracer@358(6),tracer_main@417(8) panics:9	todo
-Yog-IDLE/src-tauri/src/designer/assets.rs	literal_facts:2	todo
-Yog-IDLE/src-tauri/src/designer/blocks3d.rs	long-fn:draw_with@246(83) literal_facts:14 magic_numbers:19	todo
-Yog-IDLE/src-tauri/src/designer/book.rs	literal_facts:10	todo
-Yog-IDLE/src-tauri/src/designer/codebehind.rs		todo
-Yog-IDLE/src-tauri/src/designer/components.rs	literal_facts:1	todo
-Yog-IDLE/src-tauri/src/designer/custom.rs	file:1129 long-fn:translate@813(84) literal_facts:2 magic_numbers:16	todo
-Yog-IDLE/src-tauri/src/designer/font.rs	literal_facts:3 magic_numbers:7	todo
-Yog-IDLE/src-tauri/src/designer/gfx.rs	silenced:3 literal_facts:3	todo
-Yog-IDLE/src-tauri/src/designer/host.rs	magic_numbers:1	todo
-Yog-IDLE/src-tauri/src/designer/images.rs	params:nine_slice@237(6) literal_facts:6 magic_numbers:27	todo
-Yog-IDLE/src-tauri/src/designer/item_models.rs	literal_facts:11	todo
-Yog-IDLE/src-tauri/src/designer/markup.rs	long-fn:apply_resources@175(313),walk@225(263),widget@287(160) literal_facts:4 magic_numbers:5	todo
-Yog-IDLE/src-tauri/src/designer/mod.rs	literal_facts:1 magic_numbers:1	todo
-Yog-IDLE/src-tauri/src/designer/raster.rs	params:fill@235(6),blit@260(7),text@311(6),text_scaled@318(7) magic_numbers:25	todo
-Yog-IDLE/src-tauri/src/designer/recipe_area.rs	literal_facts:1	todo
-Yog-IDLE/src-tauri/src/designer/tags.rs	params:collect@131(6) literal_facts:4	todo
-Yog-IDLE/src-tauri/src/environment.rs	file:2125 long-fn:detect@702(257),plan@1058(150),environment_install@1629(88) params:environment_install@1629(6) panics:5 literal_facts:4	todo
+Yog-IDLE/src-tauri/benches/backend.rs	literal_facts:4	todo
+Yog-IDLE/src-tauri/build.rs	panics:2 literal_facts:1	todo
+Yog-IDLE/src-tauri/src/app_commands.rs		todo
+Yog-IDLE/src-tauri/src/bench.rs		todo
+Yog-IDLE/src-tauri/src/cli.rs		todo
+Yog-IDLE/src-tauri/src/debugger/control.rs	long-fn:connect_and_watch@152(118)	todo
+Yog-IDLE/src-tauri/src/debugger/hot_reload.rs	params:build_and_check@198(7)	todo
+Yog-IDLE/src-tauri/src/debugger/mod.rs		todo
+Yog-IDLE/src-tauri/src/debugger/trace/commands.rs		todo
+Yog-IDLE/src-tauri/src/debugger/trace/mod.rs		todo
+Yog-IDLE/src-tauri/src/debugger/trace/process.rs		todo
+Yog-IDLE/src-tauri/src/debugger/trace/session.rs	long-fn:tracer_main@105(115) params:start_tracer@46(6),tracer_main@105(8)	todo
+Yog-IDLE/src-tauri/src/debugger/trace/tracer.rs		todo
 Yog-IDLE/src-tauri/src/events.rs		todo
-Yog-IDLE/src-tauri/src/git.rs	file:1606 params:git_branch_create@945(6),git_integrate@1107(6) panics:2	todo
-Yog-IDLE/src-tauri/src/lib.rs	file:2020 long-fn:run@1823(177) params:content_import@829(6),workflow_run@1244(6),mod_run@1340(6),pty_spawn@1588(9) panics:20	todo
+Yog-IDLE/src-tauri/src/format.rs		todo
+Yog-IDLE/src-tauri/src/lib.rs		todo
 Yog-IDLE/src-tauri/src/main.rs		todo
 Yog-IDLE/src-tauri/src/manifest.rs		todo
-Yog-IDLE/src-tauri/src/mod_ui.rs	literal_facts:1	todo
-Yog-IDLE/src-tauri/src/project_properties.rs	file:845	todo
+Yog-IDLE/src-tauri/src/mod_commands.rs	params:mod_run@59(6)	todo
+Yog-IDLE/src-tauri/src/path_commands.rs		todo
+Yog-IDLE/src-tauri/src/plugins/app.rs		todo
+Yog-IDLE/src-tauri/src/plugins/code.rs		todo
+Yog-IDLE/src-tauri/src/plugins/commands/app.rs		todo
+Yog-IDLE/src-tauri/src/plugins/commands/code.rs		todo
+Yog-IDLE/src-tauri/src/plugins/commands/debug.rs		todo
+Yog-IDLE/src-tauri/src/plugins/commands/mod.rs		todo
+Yog-IDLE/src-tauri/src/plugins/commands/project.rs		todo
+Yog-IDLE/src-tauri/src/plugins/commands/run.rs		todo
+Yog-IDLE/src-tauri/src/plugins/debug.rs		todo
+Yog-IDLE/src-tauri/src/plugins/mod.rs		todo
+Yog-IDLE/src-tauri/src/plugins/project.rs		todo
+Yog-IDLE/src-tauri/src/plugins/run.rs		todo
+Yog-IDLE/src-tauri/src/project_commands.rs		todo
+Yog-IDLE/src-tauri/src/project_properties.rs		todo
 Yog-IDLE/src-tauri/src/properties.rs		todo
-Yog-IDLE/src-tauri/src/recipe_kinds.rs	literal_facts:2 magic_numbers:3	todo
-Yog-IDLE/src-tauri/src/refs.rs	literal_facts:33	todo
-Yog-IDLE/src-tauri/src/search.rs	file:1175 panics:1	todo
-Yog-IDLE/src-tauri/src/symbols.rs	file:1025 long-fn:fuzzy_match@386(106) panics:5	todo
-Yog-IDLE/src-tauri/src/worldgen.rs		todo
-Yog-IDLE/src-tauri/src/yui.rs	literal_facts:1	todo
+Yog-IDLE/src-tauri/src/publish.rs		todo
+Yog-IDLE/src-tauri/src/symbols/code_search.rs		todo
+Yog-IDLE/src-tauri/src/symbols/extract.rs		todo
+Yog-IDLE/src-tauri/src/symbols/fuzzy.rs	long-fn:fuzzy_match@7(106)	todo
+Yog-IDLE/src-tauri/src/symbols/index.rs		todo
+Yog-IDLE/src-tauri/src/symbols/mod.rs		todo
+Yog-IDLE/src-tauri/src/symbols/tests.rs		todo
+Yog-IDLE/src-tauri/src/tools.rs		todo
+Yog-IDLE/src-tauri/src/workflow.rs	params:workflow_run@246(6)	todo
 Yog-IDLE/src/App.tsx		todo
 Yog-IDLE/src/BreakpointsContext.tsx		todo
 Yog-IDLE/src/DebugSessionContext.tsx		todo
 Yog-IDLE/src/EditorActions.tsx		todo
-Yog-IDLE/src/OpenFilesContext.tsx	file:815 long-fn:OpenFilesProvider@256(525),getComponent@551(133)	todo
+Yog-IDLE/src/IdeHost.tsx		todo
+Yog-IDLE/src/OpenFilesContext.tsx	long-fn:OpenFilesProvider@129(525),getComponent@424(133)	todo
 Yog-IDLE/src/OpenFilesPersistence.tsx		todo
 Yog-IDLE/src/OpenWithPicker.tsx		todo
 Yog-IDLE/src/ProjectContext.tsx		todo
 Yog-IDLE/src/ViewMenu.tsx		todo
-Yog-IDLE/src/WorkspaceContext.tsx		todo
 Yog-IDLE/src/bench/fixtures.ts	literal_facts:6 magic_numbers:1	todo
 Yog-IDLE/src/body/ModelViewport.tsx	long-fn:ModelViewport@136(329) literal_facts:1	todo
 Yog-IDLE/src/body/useBody.ts		todo
 Yog-IDLE/src/body/useFileText.ts		todo
 Yog-IDLE/src/body/yanim.test.ts		todo
-Yog-IDLE/src/body/yanim.ts	params:setKey@177(7),moveKey@198(6)	todo
+Yog-IDLE/src/body/yanim.ts	params:setKey@182(7),moveKey@203(6)	todo
 Yog-IDLE/src/body/yentity.test.ts		todo
-Yog-IDLE/src/body/yentity.ts	literal_facts:2	todo
+Yog-IDLE/src/body/yentity.ts		todo
 Yog-IDLE/src/body/ymodel.test.ts		todo
-Yog-IDLE/src/body/ymodel.ts	params:face@134(6) literal_facts:1	todo
+Yog-IDLE/src/body/ymodel.ts	params:face@140(6)	todo
+Yog-IDLE/src/cli.ts		todo
 Yog-IDLE/src/content/UvEditor.tsx	long-fn:UvEditor@26(140)	todo
-Yog-IDLE/src/content/Viewport.tsx	file:930 long-fn:Viewport@386(544)	todo
+Yog-IDLE/src/content/Viewport.tsx	long-fn:Viewport@86(544)	todo
 Yog-IDLE/src/content/animation.test.ts		todo
 Yog-IDLE/src/content/animation.ts		todo
 Yog-IDLE/src/content/content.bench.ts		todo
-Yog-IDLE/src/content/icons.tsx	magic_numbers:11	todo
-Yog-IDLE/src/content/importContent.ts	long-fn:importContent@12(81) literal_facts:3	todo
+Yog-IDLE/src/content/icons.tsx	magic_numbers:13	todo
+Yog-IDLE/src/content/importContent.ts	long-fn:importContent@12(81)	todo
 Yog-IDLE/src/content/model.test.ts		todo
-Yog-IDLE/src/content/model.ts	literal_facts:15 magic_numbers:4	todo
+Yog-IDLE/src/content/model.ts	literal_facts:2 magic_numbers:4	todo
 Yog-IDLE/src/content/paint/FrameStrip.tsx	long-fn:FrameStrip@35(92)	todo
 Yog-IDLE/src/content/paint/PaintCanvas.tsx	long-fn:PaintCanvas@34(230) literal_facts:1	todo
 Yog-IDLE/src/content/paint/PaintTools.tsx	long-fn:PaintTools@87(148)	todo
@@ -639,12 +564,18 @@ Yog-IDLE/src/content/paint/pixels.ts	params:fill@94(6)	todo
 Yog-IDLE/src/content/spriteElements.ts	magic_numbers:2	todo
 Yog-IDLE/src/content/states.test.ts		todo
 Yog-IDLE/src/content/states.ts		todo
-Yog-IDLE/src/data/contentRefs.ts	literal_facts:1	todo
+Yog-IDLE/src/content/viewport/scene.ts		todo
+Yog-IDLE/src/data/contentRefs.ts		todo
+Yog-IDLE/src/data/ingredients.ts		todo
 Yog-IDLE/src/data/shapeGrid.test.ts		todo
 Yog-IDLE/src/data/shapeGrid.ts	long-fn:shapeProperties@91(104)	todo
+Yog-IDLE/src/data/typed.ts	literal_facts:1	todo
+Yog-IDLE/src/data/useDataFile.ts		todo
+Yog-IDLE/src/data/values.ts		todo
 Yog-IDLE/src/data/yogData.test.ts		todo
-Yog-IDLE/src/data/yogData.ts	long-fn:parseData@49(150),value@114(83) literal_facts:3	todo
-Yog-IDLE/src/data/yogDataPatch.test.ts		todo
+Yog-IDLE/src/data/yogData.ts		todo
+Yog-IDLE/src/data/yogFormat.ts		todo
+Yog-IDLE/src/data/yogIds.generated.ts	literal_facts:66	todo
 Yog-IDLE/src/debugger/DataTip.tsx		todo
 Yog-IDLE/src/debugger/VariableWindows.tsx		todo
 Yog-IDLE/src/debugger/VariablesTree.tsx	long-fn:VariablesTree@53(116),VariableRow@187(81)	todo
@@ -654,120 +585,151 @@ Yog-IDLE/src/debugger/variables.ts		todo
 Yog-IDLE/src/designer/BookPagePreview.tsx		todo
 Yog-IDLE/src/designer/GridAdorner.tsx	long-fn:GridRails@138(124),rail@143(95)	todo
 Yog-IDLE/src/designer/ItemIcons.tsx		todo
-Yog-IDLE/src/designer/ScreenDesigner.tsx	file:1491 long-fn:CanvasDesigner@270(1109) magic_numbers:1	todo
+Yog-IDLE/src/designer/ScreenDesigner.tsx	long-fn:CanvasDesigner@70(220)	todo
 Yog-IDLE/src/designer/TintedItem.tsx		todo
 Yog-IDLE/src/designer/YuiSplitEditor.tsx	long-fn:YuiSplitEditor@96(229)	todo
 Yog-IDLE/src/designer/activeDesigner.ts		todo
+Yog-IDLE/src/designer/canvas/designerModel.ts		todo
+Yog-IDLE/src/designer/canvas/overlays.tsx		todo
+Yog-IDLE/src/designer/canvas/useDesignerCommands.ts	long-fn:useDesignerCommands@20(198)	todo
+Yog-IDLE/src/designer/canvas/useDesignerDocument.ts	long-fn:useDesignerDocument@14(129)	todo
+Yog-IDLE/src/designer/canvas/useDesignerEdits.ts	long-fn:useDesignerEdits@14(317)	todo
+Yog-IDLE/src/designer/canvas/useDesignerPicture.ts	long-fn:useDesignerPicture@17(108)	todo
+Yog-IDLE/src/designer/canvas/useDesignerPreview.tsx	long-fn:useDesignerPreview@17(178)	todo
+Yog-IDLE/src/designer/colors.ts		todo
 Yog-IDLE/src/designer/components.ts		todo
 Yog-IDLE/src/designer/designer.bench.ts		todo
 Yog-IDLE/src/designer/grid.test.ts		todo
 Yog-IDLE/src/designer/grid.ts		todo
 Yog-IDLE/src/designer/imageSources.ts	literal_facts:1	todo
 Yog-IDLE/src/designer/layout.test.ts		todo
-Yog-IDLE/src/designer/layout.ts	file:966 long-fn:layoutChildren@578(154),layoutGrid@849(117) params:layoutWidget@482(8),measureWidget@497(8),measureAligned@568(6) magic_numbers:3	todo
-Yog-IDLE/src/designer/properties.ts	literal_facts:4	todo
+Yog-IDLE/src/designer/layout.ts	long-fn:layoutChildren@170(154),layoutGrid@441(117) params:layoutWidget@74(8),measureWidget@89(8),measureAligned@160(6)	todo
+Yog-IDLE/src/designer/layoutText.ts		todo
+Yog-IDLE/src/designer/layoutWidget.ts		todo
+Yog-IDLE/src/designer/properties.ts	literal_facts:2	todo
 Yog-IDLE/src/designer/yui.test.ts		todo
-Yog-IDLE/src/designer/yui.ts	literal_facts:6 magic_numbers:1	todo
+Yog-IDLE/src/designer/yui.ts	literal_facts:2	todo
 Yog-IDLE/src/designer/yuiText.ts	long-fn:patchYui@167(84)	todo
 Yog-IDLE/src/diagnostics/buildDiagnostics.test.tsx		todo
 Yog-IDLE/src/diagnostics/buildDiagnostics.tsx		todo
 Yog-IDLE/src/diagnostics/yogOutput.test.ts		todo
-Yog-IDLE/src/diagnostics/yogOutput.ts	literal_facts:2	todo
-Yog-IDLE/src/editors/AnimEditor.tsx	long-fn:AnimEditor@77(305),Timeline@401(141)	todo
-Yog-IDLE/src/editors/BookEditor.tsx	long-fn:BookEditor@64(384) literal_facts:2	todo
-Yog-IDLE/src/editors/ContentEditor.tsx	file:2469 long-fn:ContentEditor@322(2147) params:choice@1223(6),vec@1244(6) literal_facts:57 magic_numbers:3	todo
+Yog-IDLE/src/diagnostics/yogOutput.ts		todo
+Yog-IDLE/src/editors/AnimEditor.tsx	long-fn:AnimEditor@78(296),Timeline@393(141)	todo
+Yog-IDLE/src/editors/BookEditor.tsx	long-fn:BookEditor@66(381)	todo
+Yog-IDLE/src/editors/ContentEditor.tsx	long-fn:ContentEditor@65(505)	todo
 Yog-IDLE/src/editors/DataEditor.tsx		todo
-Yog-IDLE/src/editors/EntityEditor.tsx	long-fn:EntityEditor@60(337) literal_facts:1	todo
+Yog-IDLE/src/editors/EntityEditor.tsx	long-fn:EntityEditor@61(328) literal_facts:1	todo
 Yog-IDLE/src/editors/ItemList.tsx		todo
 Yog-IDLE/src/editors/LangFileEditor.tsx		todo
-Yog-IDLE/src/editors/ModelEditor.tsx	long-fn:ModelEditor@60(379) literal_facts:2 magic_numbers:1	todo
-Yog-IDLE/src/editors/RecipeEditor.tsx	long-fn:RecipeEditor@111(458) literal_facts:12	todo
+Yog-IDLE/src/editors/MediaValue.tsx	literal_facts:2	todo
+Yog-IDLE/src/editors/ModelEditor.tsx	long-fn:ModelEditor@58(338) literal_facts:2 magic_numbers:1	todo
+Yog-IDLE/src/editors/RecipeEditor.tsx	long-fn:RecipeEditor@102(285)	todo
 Yog-IDLE/src/editors/RowsEditor.tsx	long-fn:RowsEditor@25(124)	todo
 Yog-IDLE/src/editors/TerrainPreview.tsx		todo
+Yog-IDLE/src/editors/TextureEditor.tsx	long-fn:TextureEditor@41(166)	todo
 Yog-IDLE/src/editors/YdataViewer.tsx		todo
-Yog-IDLE/src/editors/YresEditor.tsx	file:877 long-fn:YresEditor@119(602) literal_facts:4	todo
+Yog-IDLE/src/editors/YresEditor.tsx	long-fn:YresEditor@59(586) literal_facts:4	todo
 Yog-IDLE/src/editors/bookModel.test.ts		todo
 Yog-IDLE/src/editors/bookModel.ts	literal_facts:18	todo
-Yog-IDLE/src/editors/defs/AdvancementDesigner.tsx	long-fn:AdvancementDesigner@37(180) literal_facts:2	todo
+Yog-IDLE/src/editors/content/contentModel.ts	literal_facts:1	todo
+Yog-IDLE/src/editors/content/fieldText.ts		todo
+Yog-IDLE/src/editors/content/properties/blockItem.tsx	long-fn:blockItemRows@14(295) literal_facts:5 magic_numbers:1	todo
+Yog-IDLE/src/editors/content/properties/context.ts		todo
+Yog-IDLE/src/editors/content/properties/general.ts		todo
+Yog-IDLE/src/editors/content/properties/model.ts	long-fn:modelRows@11(130) magic_numbers:2	todo
+Yog-IDLE/src/editors/content/properties/rows.ts	long-fn:rowHelpers@17(88) params:choice@56(6),vec@77(6)	todo
+Yog-IDLE/src/editors/content/properties/states.ts	long-fn:stateRows@12(248)	todo
+Yog-IDLE/src/editors/content/useContentCommands.ts	long-fn:useContentCommands@22(263)	todo
+Yog-IDLE/src/editors/content/useContentModel.ts	long-fn:useContentModel@19(193)	todo
+Yog-IDLE/src/editors/content/useContentPaint.ts	long-fn:useContentPaint@18(255)	todo
+Yog-IDLE/src/editors/content/useContentTextures.ts	long-fn:useContentTextures@16(188)	todo
+Yog-IDLE/src/editors/defs/AdvancementDesigner.tsx	long-fn:AdvancementDesigner@39(180)	todo
 Yog-IDLE/src/editors/defs/DefEditor.test.ts		todo
 Yog-IDLE/src/editors/defs/DefEditor.tsx		todo
 Yog-IDLE/src/editors/defs/DefLayout.tsx		todo
-Yog-IDLE/src/editors/defs/EffectDesigner.tsx	literal_facts:4	todo
+Yog-IDLE/src/editors/defs/EffectDesigner.tsx	long-fn:EffectDesigner@47(81) literal_facts:1	todo
 Yog-IDLE/src/editors/defs/GamePanel.tsx		todo
-Yog-IDLE/src/editors/defs/LootDesigner.tsx	long-fn:LootDesigner@29(109) literal_facts:12	todo
-Yog-IDLE/src/editors/defs/TagDesigner.tsx		todo
+Yog-IDLE/src/editors/defs/LootDesigner.tsx	long-fn:LootDesigner@31(111) literal_facts:2	todo
+Yog-IDLE/src/editors/defs/TagDesigner.tsx	long-fn:TagDesigner@13(82)	todo
 Yog-IDLE/src/editors/defs/defModel.ts		todo
-Yog-IDLE/src/editors/index.tsx	literal_facts:29	todo
-Yog-IDLE/src/editors/inspector.ts	long-fn:inspectorRows@34(111) params:choice@76(6),flag@89(6),ref@101(7)	todo
+Yog-IDLE/src/editors/index.tsx		todo
+Yog-IDLE/src/editors/inspector.ts	long-fn:inspectorRows@35(111) params:choice@77(6),flag@90(6),ref@102(7)	todo
 Yog-IDLE/src/editors/recipeModel.test.ts		todo
-Yog-IDLE/src/editors/recipeModel.ts	literal_facts:1	todo
-Yog-IDLE/src/environment/EnvironmentSettings.tsx	long-fn:EnvironmentSettingsPage@103(89)	todo
-Yog-IDLE/src/environment/EnvironmentWindow.tsx	long-fn:EnvironmentWindow@51(144) literal_facts:2	todo
-Yog-IDLE/src/environment/environmentStore.ts		todo
+Yog-IDLE/src/editors/recipeModel.ts		todo
+Yog-IDLE/src/editors/yres/cellEditors.tsx		todo
+Yog-IDLE/src/editors/yres/yresModel.ts		todo
 Yog-IDLE/src/events.ts		todo
-Yog-IDLE/src/fileOpenBus.tsx		todo
-Yog-IDLE/src/fileTypes.tsx	literal_facts:11	todo
+Yog-IDLE/src/fileTypes.tsx		todo
 Yog-IDLE/src/files.ts		todo
-Yog-IDLE/src/fsWatch.tsx		todo
-Yog-IDLE/src/git/BranchPicker.tsx		todo
-Yog-IDLE/src/git/DiffDocument.tsx		todo
-Yog-IDLE/src/git/GitChangesWindow.tsx	long-fn:GitChangesWindow@39(85),CommitBox@203(93)	todo
-Yog-IDLE/src/git/GitHost.tsx		todo
-Yog-IDLE/src/git/GitMenu.tsx		todo
-Yog-IDLE/src/git/GitRepositoryWindow.tsx	long-fn:GitRepositoryWindow@23(93)	todo
-Yog-IDLE/src/git/GitSettings.tsx		todo
-Yog-IDLE/src/git/GitStatusBar.tsx		todo
-Yog-IDLE/src/git/dropdown.ts		todo
-Yog-IDLE/src/git/gitApi.ts		todo
-Yog-IDLE/src/git/gitDocuments.tsx		todo
-Yog-IDLE/src/git/gitStore.ts	long-fn:branchNameError@197(150)	todo
+Yog-IDLE/src/host.generated.ts		todo
 Yog-IDLE/src/ideSelection.tsx		todo
 Yog-IDLE/src/lang/designResources.ts		todo
-Yog-IDLE/src/lang/yres.bench.ts		todo
 Yog-IDLE/src/lang/yres.test.ts		todo
-Yog-IDLE/src/lang/yres.ts	long-fn:parseYres@69(163) literal_facts:2	todo
+Yog-IDLE/src/lang/yres.ts		todo
 Yog-IDLE/src/locales/catalog.test.ts		todo
-Yog-IDLE/src/locales/ru.ts	file:1876 literal_facts:1 magic_numbers:6	todo
+Yog-IDLE/src/locales/ru.book.ts		todo
+Yog-IDLE/src/locales/ru.content.ts	magic_numbers:4	todo
+Yog-IDLE/src/locales/ru.debug.ts		todo
+Yog-IDLE/src/locales/ru.definitions.ts		todo
+Yog-IDLE/src/locales/ru.documents.ts		todo
+Yog-IDLE/src/locales/ru.entity.ts		todo
+Yog-IDLE/src/locales/ru.environment.ts		todo
+Yog-IDLE/src/locales/ru.explorer.ts		todo
+Yog-IDLE/src/locales/ru.project.ts		todo
+Yog-IDLE/src/locales/ru.properties.ts		todo
+Yog-IDLE/src/locales/ru.recipe.ts		todo
+Yog-IDLE/src/locales/ru.resources.ts		todo
+Yog-IDLE/src/locales/ru.screen.ts	magic_numbers:2	todo
+Yog-IDLE/src/locales/ru.search.ts		todo
+Yog-IDLE/src/locales/ru.shell.ts	literal_facts:1	todo
+Yog-IDLE/src/locales/ru.ts		todo
 Yog-IDLE/src/main.tsx		todo
 Yog-IDLE/src/markdownLinks.tsx		todo
+Yog-IDLE/src/openFiles/tabViews.tsx		todo
 Yog-IDLE/src/outputSource.tsx		todo
 Yog-IDLE/src/panels/DebugPanel.tsx	long-fn:DebugPanel@39(157)	todo
 Yog-IDLE/src/panels/DocumentOutline.tsx		todo
 Yog-IDLE/src/panels/EmptyEditorState.tsx		todo
 Yog-IDLE/src/panels/ErrorListPanel.tsx		todo
-Yog-IDLE/src/panels/NewItemDialog.tsx	long-fn:AllTemplates@282(114) literal_facts:14	todo
-Yog-IDLE/src/panels/ProjectExplorer.tsx	file:916 long-fn:ProjectExplorerTree@202(705)	todo
+Yog-IDLE/src/panels/NewItemDialog.tsx	long-fn:AllTemplates@283(114) literal_facts:5	todo
+Yog-IDLE/src/panels/ProjectExplorer.tsx	long-fn:ProjectExplorerTree@64(99)	todo
 Yog-IDLE/src/panels/Properties.tsx	long-fn:Properties@113(169)	todo
-Yog-IDLE/src/panels/PublishWindow.tsx	long-fn:PublishWindow@33(159)	todo
+Yog-IDLE/src/panels/PublishWindow.tsx	long-fn:PublishWindow@32(159)	todo
 Yog-IDLE/src/panels/RunToolbar.tsx		todo
-Yog-IDLE/src/panels/Toolbox.tsx	long-fn:Toolbox@62(123)	todo
+Yog-IDLE/src/panels/Toolbox.tsx	long-fn:Toolbox@64(125)	todo
 Yog-IDLE/src/panels/explorer/commands.ts		todo
 Yog-IDLE/src/panels/explorer/explorerBus.tsx		todo
+Yog-IDLE/src/panels/explorer/explorerModel.ts		todo
+Yog-IDLE/src/panels/explorer/listError.ts		todo
 Yog-IDLE/src/panels/explorer/projectItems.ts		todo
 Yog-IDLE/src/panels/explorer/projectTree.test.ts		todo
 Yog-IDLE/src/panels/explorer/projectTree.tsx		todo
+Yog-IDLE/src/panels/explorer/useExplorerCommands.tsx	long-fn:useExplorerCommands@18(200)	todo
+Yog-IDLE/src/panels/explorer/useExplorerOperations.ts	long-fn:useExplorerOperations@17(306)	todo
+Yog-IDLE/src/panels/explorer/useExplorerTreeView.tsx	long-fn:useExplorerTreeView@16(120)	todo
 Yog-IDLE/src/paths.test.ts		todo
 Yog-IDLE/src/paths.tsx		todo
 Yog-IDLE/src/projectProperties/ApplicationPages.tsx		todo
-Yog-IDLE/src/projectProperties/DebugPage.tsx	long-fn:DebugPage@31(81)	todo
-Yog-IDLE/src/projectProperties/DependenciesPage.tsx	long-fn:DependencySection@57(84)	todo
-Yog-IDLE/src/projectProperties/ProjectPropertiesWindow.tsx	long-fn:ProjectPropertiesWindow@32(87)	todo
+Yog-IDLE/src/projectProperties/DebugPage.tsx		todo
+Yog-IDLE/src/projectProperties/DependenciesPage.tsx	long-fn:DependencySection@42(84)	todo
+Yog-IDLE/src/projectProperties/ProjectPropertiesWindow.tsx	long-fn:ProjectPropertiesWindow@31(87)	todo
 Yog-IDLE/src/projectProperties/PublishPage.tsx		todo
 Yog-IDLE/src/projectProperties/api.ts		todo
 Yog-IDLE/src/projectProperties/bus.ts		todo
 Yog-IDLE/src/projectProperties/manifestHistory.ts		todo
-Yog-IDLE/src/reportError.tsx		todo
-Yog-IDLE/src/search/CodeSearch.tsx	long-fn:CodeSearch@59(149)	todo
-Yog-IDLE/src/search/FindInFilesWindow.tsx	long-fn:FindInFilesWindow@76(236)	todo
-Yog-IDLE/src/search/FindResultsPanel.tsx		todo
+Yog-IDLE/src/runModCommand.ts		todo
+Yog-IDLE/src/search/CodeSearch.tsx	long-fn:CodeSearch@57(149)	todo
 Yog-IDLE/src/search/SearchHost.tsx		todo
-Yog-IDLE/src/search/findStore.ts		todo
 Yog-IDLE/src/search/searchUi.ts		todo
-Yog-IDLE/src/useDebugSession.tsx	long-fn:useDebugSession@26(192)	todo
+Yog-IDLE/src/test/cliService.ts		todo
+Yog-IDLE/src/test/data.ts		todo
+Yog-IDLE/src/tools/BuildSettings.tsx		todo
+Yog-IDLE/src/tools/toolsStore.ts		todo
+Yog-IDLE/src/useDebugSession.tsx	long-fn:useDebugSession@25(192)	todo
 Yog-IDLE/src/useGameStatus.tsx	long-fn:useGameStatus@40(91)	todo
 Yog-IDLE/src/useHotReload.tsx		todo
 Yog-IDLE/src/useModRunTargets.tsx		todo
-Yog-IDLE/src/windowClose.tsx		todo
+Yog-IDLE/src/yogFileTypes.ts		todo
 Yog-IDLE/vite.config.ts		todo
 Yog-IDLE/vitest.config.ts		todo
 Substrate-Platform/.design-sync/previews/AccentColorField.tsx		todo
@@ -816,15 +778,71 @@ Substrate-Platform/.design-sync/previews/ToolWindowDock.tsx		todo
 Substrate-Platform/.design-sync/previews/Tree.tsx		todo
 Substrate-Platform/.design-sync/previews/WindowControls.tsx		todo
 Substrate-Platform/benches/core.rs	panics:5	todo
-Substrate-Platform/src/dir.rs		todo
+Substrate-Platform/src/bin/substrate-messages.rs		todo
+Substrate-Platform/src/commands/fs.rs		todo
+Substrate-Platform/src/commands/git.rs		todo
+Substrate-Platform/src/commands/mod.rs		todo
+Substrate-Platform/src/commands/open.rs		todo
+Substrate-Platform/src/commands/search.rs		todo
+Substrate-Platform/src/commands/state.rs		todo
+Substrate-Platform/src/commands/terminal.rs		todo
+Substrate-Platform/src/events.rs		todo
+Substrate-Platform/src/fs/dir.rs		todo
+Substrate-Platform/src/fs/messages.rs		todo
+Substrate-Platform/src/fs/mod.rs		todo
+Substrate-Platform/src/fs/watch.rs		todo
+Substrate-Platform/src/git/branch.rs		todo
+Substrate-Platform/src/git/config.rs		todo
+Substrate-Platform/src/git/diff.rs		todo
+Substrate-Platform/src/git/history.rs		todo
+Substrate-Platform/src/git/messages.rs		todo
+Substrate-Platform/src/git/mod.rs		todo
+Substrate-Platform/src/git/remote.rs		todo
+Substrate-Platform/src/git/run.rs		todo
+Substrate-Platform/src/git/stash.rs		todo
+Substrate-Platform/src/git/status.rs		todo
 Substrate-Platform/src/lib.rs		todo
-Substrate-Platform/src/log.rs		todo
-Substrate-Platform/src/project.rs		todo
-Substrate-Platform/src/pty.rs	params:spawn@126(6)	todo
-Substrate-Platform/src/shell.rs		todo
-Substrate-Platform/src/task.rs	params:run_streamed@321(6) panics:6	todo
-Substrate-Platform/src/watch.rs		todo
-Substrate-Platform/src/workflow.rs	params:run_named@123(7)	todo
+Substrate-Platform/src/message.rs		todo
+Substrate-Platform/src/process/mod.rs		todo
+Substrate-Platform/src/process/open.rs		todo
+Substrate-Platform/src/project/format.rs		todo
+Substrate-Platform/src/project/messages.rs		todo
+Substrate-Platform/src/project/mod.rs		todo
+Substrate-Platform/src/project/model.rs		todo
+Substrate-Platform/src/project/solution.rs		todo
+Substrate-Platform/src/project/standard.rs		todo
+Substrate-Platform/src/run/log.rs		todo
+Substrate-Platform/src/run/mod.rs		todo
+Substrate-Platform/src/run/task.rs	params:run_streamed@322(6) panics:6	todo
+Substrate-Platform/src/run/workflow.rs	params:run_named@123(7)	todo
+Substrate-Platform/src/search/files.rs		todo
+Substrate-Platform/src/search/hits.rs		todo
+Substrate-Platform/src/search/messages.rs		todo
+Substrate-Platform/src/search/mod.rs		todo
+Substrate-Platform/src/search/replace.rs		todo
+Substrate-Platform/src/search/run.rs	params:plan@40(6)	todo
+Substrate-Platform/src/search/tests.rs		todo
+Substrate-Platform/src/state/messages.rs		todo
+Substrate-Platform/src/state/mod.rs		todo
+Substrate-Platform/src/sync.rs		todo
+Substrate-Platform/src/terminal/chunker.rs		todo
+Substrate-Platform/src/terminal/messages.rs		todo
+Substrate-Platform/src/terminal/mod.rs		todo
+Substrate-Platform/src/terminal/session.rs	params:spawn@58(6)	todo
+Substrate-Platform/src/terminal/shell.rs		todo
+Substrate-Platform/src/workspace.rs		todo
+Substrate-Platform/tauri-plugin/build.rs		todo
+Substrate-Platform/tauri-plugin/src/fs.rs		todo
+Substrate-Platform/tauri-plugin/src/git/changes.rs		todo
+Substrate-Platform/tauri-plugin/src/git/history.rs		todo
+Substrate-Platform/tauri-plugin/src/git/mod.rs		todo
+Substrate-Platform/tauri-plugin/src/git/remote.rs		todo
+Substrate-Platform/tauri-plugin/src/git/stash.rs		todo
+Substrate-Platform/tauri-plugin/src/lib.rs	long-fn:init_with@58(124)	todo
+Substrate-Platform/tauri-plugin/src/open.rs		todo
+Substrate-Platform/tauri-plugin/src/search/mod.rs		todo
+Substrate-Platform/tauri-plugin/src/state.rs		todo
+Substrate-Platform/tauri-plugin/src/terminal/mod.rs		todo
 Substrate-Platform/ui/src/dock/CenterDock/CenterDock.tsx		todo
 Substrate-Platform/ui/src/dock/CenterDock/index.ts		todo
 Substrate-Platform/ui/src/dock/DockGuides/DockGuides.tsx		todo
@@ -845,6 +863,20 @@ Substrate-Platform/ui/src/dock/hooks/useDropTarget.tsx		todo
 Substrate-Platform/ui/src/dock/hooks/useShellLayout.tsx	long-fn:useShellLayout@110(386) params:useShellLayout@110(12)	todo
 Substrate-Platform/ui/src/dock/index.tsx		todo
 Substrate-Platform/ui/src/dock/types.tsx		todo
+Substrate-Platform/ui/src/documents/fileOpenBus.ts		todo
+Substrate-Platform/ui/src/documents/index.ts		todo
+Substrate-Platform/ui/src/git/BranchPicker.tsx		todo
+Substrate-Platform/ui/src/git/DiffDocument.tsx		todo
+Substrate-Platform/ui/src/git/GitChangesWindow.tsx	long-fn:GitChangesWindow@47(85),CommitBox@211(93)	todo
+Substrate-Platform/ui/src/git/GitHost.tsx		todo
+Substrate-Platform/ui/src/git/GitMenu.tsx		todo
+Substrate-Platform/ui/src/git/GitRepositoryWindow.tsx	long-fn:GitRepositoryWindow@30(92)	todo
+Substrate-Platform/ui/src/git/GitSettings.tsx		todo
+Substrate-Platform/ui/src/git/GitStatusBar.tsx		todo
+Substrate-Platform/ui/src/git/gitApi.ts		todo
+Substrate-Platform/ui/src/git/gitDocuments.tsx		todo
+Substrate-Platform/ui/src/git/gitStore.ts	long-fn:branchNameError@200(150)	todo
+Substrate-Platform/ui/src/git/index.ts		todo
 Substrate-Platform/ui/src/index.tsx		todo
 Substrate-Platform/ui/src/infra/color/Color.tsx		todo
 Substrate-Platform/ui/src/infra/color/index.ts		todo
@@ -864,10 +896,31 @@ Substrate-Platform/ui/src/infra/history/index.tsx		todo
 Substrate-Platform/ui/src/infra/hooks/index.ts		todo
 Substrate-Platform/ui/src/infra/hooks/useDraggable.tsx		todo
 Substrate-Platform/ui/src/infra/hooks/useWorkflowRunner.tsx		todo
+Substrate-Platform/ui/src/infra/host/host.generated.ts		todo
+Substrate-Platform/ui/src/infra/host/hostFiles.ts		todo
+Substrate-Platform/ui/src/infra/host/ideHost.tsx		todo
+Substrate-Platform/ui/src/infra/host/index.ts		todo
+Substrate-Platform/ui/src/infra/host/invokeCommand.ts		todo
+Substrate-Platform/ui/src/infra/host/openLink.ts		todo
+Substrate-Platform/ui/src/infra/host/watchedFolders.ts		todo
+Substrate-Platform/ui/src/infra/i18n/errorText.test.ts		todo
+Substrate-Platform/ui/src/infra/i18n/errorText.ts		todo
 Substrate-Platform/ui/src/infra/i18n/i18n.test.ts		todo
 Substrate-Platform/ui/src/infra/i18n/i18n.tsx		todo
 Substrate-Platform/ui/src/infra/i18n/index.tsx		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.editor.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.errorList.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.files.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.git.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.output.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.project.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.search.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.settings.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.shell.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.state.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.terminal.ts		todo
 Substrate-Platform/ui/src/infra/i18n/locales/ru.ts		todo
+Substrate-Platform/ui/src/infra/i18n/locales/ru.widgets.ts		todo
 Substrate-Platform/ui/src/infra/icons/Icon.tsx		todo
 Substrate-Platform/ui/src/infra/icons/IconProvider.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconAlphabetical.tsx	magic_numbers:5	todo
@@ -875,6 +928,7 @@ Substrate-Platform/ui/src/infra/icons/glyphs/IconArrowDown.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconArrowLeft.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconArrowRight.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconArrowUp.tsx		todo
+Substrate-Platform/ui/src/infra/icons/glyphs/IconBell.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconBranch.tsx	magic_numbers:2	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconCategorized.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconCheck.tsx		todo
@@ -883,6 +937,7 @@ Substrate-Platform/ui/src/infra/icons/glyphs/IconClose.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconCode.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconCollapse.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconComment.tsx		todo
+Substrate-Platform/ui/src/infra/icons/glyphs/IconDownload.tsx	magic_numbers:4	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconError.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconExpand.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconFetch.tsx	magic_numbers:1	todo
@@ -899,6 +954,7 @@ Substrate-Platform/ui/src/infra/icons/glyphs/IconHistory.tsx	magic_numbers:1	tod
 Substrate-Platform/ui/src/infra/icons/glyphs/IconHome.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconHotReload.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconInfo.tsx	magic_numbers:3	todo
+Substrate-Platform/ui/src/infra/icons/glyphs/IconLayers.tsx	magic_numbers:5	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconLink.tsx	magic_numbers:4	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconList.tsx	magic_numbers:9	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconLocate.tsx		todo
@@ -906,6 +962,7 @@ Substrate-Platform/ui/src/infra/icons/glyphs/IconMaximize.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconMinimize.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconMinus.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconMore.tsx		todo
+Substrate-Platform/ui/src/infra/icons/glyphs/IconPackage.tsx	magic_numbers:2	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconPalette.tsx	magic_numbers:6	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconPin.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconPinOff.tsx		todo
@@ -914,8 +971,11 @@ Substrate-Platform/ui/src/infra/icons/glyphs/IconPlus.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconPreview.tsx	magic_numbers:4	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconPreviewSide.tsx	magic_numbers:2	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconProperties.tsx	magic_numbers:3	todo
+Substrate-Platform/ui/src/infra/icons/glyphs/IconPuzzle.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconRedo.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconRefresh.tsx	magic_numbers:1	todo
+Substrate-Platform/ui/src/infra/icons/glyphs/IconReplace.tsx	magic_numbers:4	todo
+Substrate-Platform/ui/src/infra/icons/glyphs/IconReplaceAll.tsx	magic_numbers:10	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconRestart.tsx	magic_numbers:1	todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconRestore.tsx		todo
 Substrate-Platform/ui/src/infra/icons/glyphs/IconSave.tsx		todo
@@ -955,6 +1015,10 @@ Substrate-Platform/ui/src/infra/theme/storage.tsx		todo
 Substrate-Platform/ui/src/infra/theme/types.tsx		todo
 Substrate-Platform/ui/src/infra/theme/useTheme.tsx		todo
 Substrate-Platform/ui/src/infra/tokens/index.tsx		todo
+Substrate-Platform/ui/src/output/OutputWindow.tsx		todo
+Substrate-Platform/ui/src/output/index.ts		todo
+Substrate-Platform/ui/src/output/outputSources.ts		todo
+Substrate-Platform/ui/src/output/reportError.ts		todo
 Substrate-Platform/ui/src/pages/AppearanceSettings/AppearanceSettings.tsx	long-fn:AppearanceSettings@15(112)	todo
 Substrate-Platform/ui/src/pages/AppearanceSettings/index.ts		todo
 Substrate-Platform/ui/src/pages/EditorSettings/EditorSettings.tsx		todo
@@ -962,10 +1026,29 @@ Substrate-Platform/ui/src/pages/EditorSettings/index.ts		todo
 Substrate-Platform/ui/src/pages/InternationalSettings/InternationalSettings.tsx		todo
 Substrate-Platform/ui/src/pages/InternationalSettings/index.ts		todo
 Substrate-Platform/ui/src/pages/index.ts		todo
+Substrate-Platform/ui/src/search/FindHost.tsx		todo
+Substrate-Platform/ui/src/search/FindInFilesWindow.tsx		todo
+Substrate-Platform/ui/src/search/FindResultsPanel.tsx		todo
+Substrate-Platform/ui/src/search/findActions.ts		todo
+Substrate-Platform/ui/src/search/findOptions.ts		todo
+Substrate-Platform/ui/src/search/findStore.ts		todo
+Substrate-Platform/ui/src/search/findUi.ts		todo
+Substrate-Platform/ui/src/search/index.ts		todo
+Substrate-Platform/ui/src/search/useFindForm.ts		todo
 Substrate-Platform/ui/src/shell/PlatformShell.tsx	long-fn:PlatformShell@37(136)	todo
 Substrate-Platform/ui/src/shell/ShellContext.tsx		todo
 Substrate-Platform/ui/src/shell/index.tsx		todo
 Substrate-Platform/ui/src/shell/types.tsx		todo
+Substrate-Platform/ui/src/terminal/TerminalInstance.tsx		todo
+Substrate-Platform/ui/src/terminal/TerminalPanel.tsx		todo
+Substrate-Platform/ui/src/terminal/TerminalSidebar.tsx		todo
+Substrate-Platform/ui/src/terminal/TerminalToolbar.tsx		todo
+Substrate-Platform/ui/src/terminal/clipboard.ts		todo
+Substrate-Platform/ui/src/terminal/index.ts		todo
+Substrate-Platform/ui/src/terminal/terminalApi.ts		todo
+Substrate-Platform/ui/src/terminal/terminalTabs.ts		todo
+Substrate-Platform/ui/src/terminal/useTerminalSession.ts		todo
+Substrate-Platform/ui/src/terminal/useTerminalTabs.ts		todo
 Substrate-Platform/ui/src/widgets/AccentColorField/AccentColorField.tsx		todo
 Substrate-Platform/ui/src/widgets/AccentColorField/index.ts		todo
 Substrate-Platform/ui/src/widgets/Button/Button.tsx		todo
@@ -975,6 +1058,7 @@ Substrate-Platform/ui/src/widgets/ColorWheel/index.ts		todo
 Substrate-Platform/ui/src/widgets/ComponentList/ComponentList.tsx		todo
 Substrate-Platform/ui/src/widgets/ComponentList/index.ts		todo
 Substrate-Platform/ui/src/widgets/ContextMenu/ContextMenu.tsx		todo
+Substrate-Platform/ui/src/widgets/ContextMenu/belowButton.ts		todo
 Substrate-Platform/ui/src/widgets/ContextMenu/index.tsx		todo
 Substrate-Platform/ui/src/widgets/ContextMenu/useContextMenu.test.ts		todo
 Substrate-Platform/ui/src/widgets/ContextMenu/useContextMenu.tsx		todo
@@ -1011,7 +1095,7 @@ Substrate-Platform/ui/src/widgets/Editor/editorRegistry.tsx		todo
 Substrate-Platform/ui/src/widgets/Editor/editorSync.tsx		todo
 Substrate-Platform/ui/src/widgets/Editor/editorThemes.tsx		todo
 Substrate-Platform/ui/src/widgets/Editor/fileTypes.tsx		todo
-Substrate-Platform/ui/src/widgets/Editor/findWidget.tsx	long-fn:FindWidget@137(153) magic_numbers:14	todo
+Substrate-Platform/ui/src/widgets/Editor/findWidget.tsx	long-fn:FindWidget@113(153)	todo
 Substrate-Platform/ui/src/widgets/Editor/index.tsx		todo
 Substrate-Platform/ui/src/widgets/Editor/languageEditors.tsx	commented_code:1	todo
 Substrate-Platform/ui/src/widgets/Editor/lineComments.tsx		todo
@@ -1059,8 +1143,12 @@ Substrate-Platform/ui/src/widgets/OutputPanel/OutputPanel.tsx		todo
 Substrate-Platform/ui/src/widgets/OutputPanel/index.ts		todo
 Substrate-Platform/ui/src/widgets/OutputPanel/outputBuffer.test.ts		todo
 Substrate-Platform/ui/src/widgets/OutputPanel/outputBuffer.tsx		todo
-Substrate-Platform/ui/src/widgets/PropertyGrid/PropertyGrid.tsx	file:845 long-fn:PropertyGrid@176(669),renderValue@502(133)	todo
+Substrate-Platform/ui/src/widgets/ProgressBar/ProgressBar.tsx		todo
+Substrate-Platform/ui/src/widgets/ProgressBar/index.ts		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/PropertyGrid.tsx	long-fn:PropertyGrid@12(669),renderValue@338(133)	todo
 Substrate-Platform/ui/src/widgets/PropertyGrid/index.ts		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/propertyTypes.ts		todo
+Substrate-Platform/ui/src/widgets/PropertyGrid/propertyValues.ts		todo
 Substrate-Platform/ui/src/widgets/QuickPick/QuickPick.tsx	long-fn:QuickPick@67(163)	todo
 Substrate-Platform/ui/src/widgets/QuickPick/index.ts		todo
 Substrate-Platform/ui/src/widgets/RunBar/RunBar.tsx		todo
@@ -1075,12 +1163,10 @@ Substrate-Platform/ui/src/widgets/StatusBar/StatusBar.tsx		todo
 Substrate-Platform/ui/src/widgets/StatusBar/index.tsx		todo
 Substrate-Platform/ui/src/widgets/Swatch/Swatch.tsx		todo
 Substrate-Platform/ui/src/widgets/Swatch/index.ts		todo
-Substrate-Platform/ui/src/widgets/SymbolIcon/SymbolIcon.tsx	magic_numbers:8	todo
+Substrate-Platform/ui/src/widgets/SymbolIcon/SymbolIcon.tsx	magic_numbers:6	todo
 Substrate-Platform/ui/src/widgets/SymbolIcon/index.ts		todo
 Substrate-Platform/ui/src/widgets/Tab/Tab.tsx		todo
 Substrate-Platform/ui/src/widgets/Tab/index.ts		todo
-Substrate-Platform/ui/src/widgets/TerminalPanel/TerminalPanel.tsx	long-fn:TerminalPanel@141(247),TerminalInstance@406(187) commented_code:2	todo
-Substrate-Platform/ui/src/widgets/TerminalPanel/index.ts		todo
 Substrate-Platform/ui/src/widgets/TextField/TextField.tsx		todo
 Substrate-Platform/ui/src/widgets/TextField/index.ts		todo
 Substrate-Platform/ui/src/widgets/Toolbar/Toolbar.tsx		todo
@@ -1099,8 +1185,11 @@ Substrate-Platform/ui/src/windows/ColorPickerWindow/index.ts		todo
 Substrate-Platform/ui/src/windows/SettingsWindow/SettingsWindow.tsx		todo
 Substrate-Platform/ui/src/windows/SettingsWindow/index.ts		todo
 Substrate-Platform/ui/src/windows/index.ts		todo
+Substrate-Platform/ui/src/workspace/WorkspaceProvider.tsx		todo
+Substrate-Platform/ui/src/workspace/index.ts		todo
+Substrate-Platform/ui/src/workspace/windowClose.ts		todo
 Substrate-Platform/ui/vitest.config.ts		todo
-HexMod-Yog/benches/casting.rs	panics:4 literal_facts:1 magic_numbers:1	todo
+HexMod-Yog/benches/casting.rs	panics:3 magic_numbers:1	todo
 HexMod-Yog/src/akashic.rs		todo
 HexMod-Yog/src/altiora.rs	magic_numbers:9	todo
 HexMod-Yog/src/casting/actions.rs	params:operate_in_parens@101(6) silenced:2 panics:1 magic_numbers:2	todo

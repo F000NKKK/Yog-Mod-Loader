@@ -117,7 +117,7 @@ impl Animation {
         let a = mcmeta.get("animation")?;
     let u32_of = |v: &Value, k: &str| v.get(k).and_then(Value::as_u64).and_then(|n| u32::try_from(n).ok());
     Some(Animation {
-        frame_time: u32_of(&a, "frametime"),
+        frame_time: u32_of(a, "frametime"),
         interpolate: a.get("interpolate").and_then(Value::as_bool).unwrap_or(false),
         frames: a
             .get("frames")
@@ -131,8 +131,8 @@ impl Animation {
                     .collect()
             })
             .unwrap_or_default(),
-        width: u32_of(&a, "width"),
-        height: u32_of(&a, "height"),
+        width: u32_of(a, "width"),
+        height: u32_of(a, "height"),
     })
 }
 }

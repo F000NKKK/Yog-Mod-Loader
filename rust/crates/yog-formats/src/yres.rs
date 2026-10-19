@@ -1,6 +1,7 @@
 //! `.yres` — a mod's texts, images, sounds, files, colors, numbers, flags.
 
 use yog_data::Schema;
+use yog_ids::res_kind;
 
 /// An entry's type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Schema)]
@@ -17,13 +18,13 @@ pub enum Kind {
 impl Kind {
     pub fn name(self) -> &'static str {
         match self {
-            Kind::String => "string",
-            Kind::Image => "image",
-            Kind::File => "file",
-            Kind::Sound => "sound",
-            Kind::Color => "color",
-            Kind::Number => "number",
-            Kind::Bool => "bool",
+            Kind::String => res_kind::STRING,
+            Kind::Image => res_kind::IMAGE,
+            Kind::File => res_kind::FILE,
+            Kind::Sound => res_kind::SOUND,
+            Kind::Color => res_kind::COLOR,
+            Kind::Number => res_kind::NUMBER,
+            Kind::Bool => res_kind::BOOL,
         }
     }
 }

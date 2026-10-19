@@ -85,6 +85,18 @@ public final class YogNames {
         public static final String BYTES = "bytes";
     }
 
+    public static final class ResKind {
+        private ResKind() {}
+
+        public static final String STRING = "string";
+        public static final String IMAGE = "image";
+        public static final String FILE = "file";
+        public static final String SOUND = "sound";
+        public static final String COLOR = "color";
+        public static final String NUMBER = "number";
+        public static final String BOOL = "bool";
+    }
+
     public static final class ImageScheme {
         private ImageScheme() {}
 
