@@ -48,11 +48,9 @@ pub static LANG: &[(&str, &str)] = &[
     ("en_us", include_str!("../assets/lang/en_us.json")),
     ("ru_ru", include_str!("../assets/lang/ru_ru.json")),
 ];
-/// The image source the book draws [`BOOK_PNG`] as: the loader ships it
-/// as `assets/yog/textures/gui/book/book.png` (Yog-IDLE resolves it to
-/// the bytes).
-
-/// The image source the book draws [`CRAFTING_PNG`] as.
+/// The image sources the book draws [`BOOK_PNG`] and [`CRAFTING_PNG`] as:
+/// the loader ships them under `assets/yog/textures/gui/book/` (Yog-IDLE
+/// resolves them to the bytes).
 pub use yog_ids::yog::{BOOK_SHEET, CRAFTING_SHEET};
 
 

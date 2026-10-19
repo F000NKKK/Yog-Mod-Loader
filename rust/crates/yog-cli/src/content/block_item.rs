@@ -31,6 +31,9 @@ use crate::content::model::state_properties;
 
 
 /// A file's id: as written, else the file's name; the mod's namespace by default.
+/// A block state rule: the property values it holds for, and the models it shows.
+type StateRule = (Vec<(String, String)>, Vec<String>);
+
 pub(super) fn file_id(cx: &mut Ctx, line: usize, id: Option<&str>, path: &Path, mod_ns: Option<&str>) -> Option<(String, String)> {
     let raw = id.map(str::to_string).unwrap_or_else(|| path.file_stem().unwrap_or_default().to_string_lossy().into_owned());
     let (ns, p) = match raw.split_once(':') {
@@ -480,7 +483,7 @@ pub(super) fn compile_file(
             }
         }
         // Its other models, and which state shows which.
-        let mut rules: Vec<(Vec<(String, String)>, Vec<String>)> = Vec::new();
+        let mut rules: Vec<StateRule> = Vec::new();
         if let Some(s) = &parts.states {
             let sat = root.key("states");
             let mut named = std::collections::HashMap::new();

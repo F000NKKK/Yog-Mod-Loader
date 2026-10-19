@@ -121,9 +121,12 @@ pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>)
     out
 }
 
+/// A texture's region in a packed picture: id, x, y, width, height.
+type Region = (String, u32, u32, u32, u32);
+
 /// `textures` packed into one picture, row by row, tallest first: the
 /// picture and each texture's region (id, x, y, width, height).
-fn pack(textures: &[(String, Image)]) -> (Image, Vec<(String, u32, u32, u32, u32)>) {
+fn pack(textures: &[(String, Image)]) -> (Image, Vec<Region>) {
     let mut order: Vec<&(String, Image)> = textures.iter().collect();
     order.sort_by(|a, b| b.1.height.cmp(&a.1.height).then_with(|| a.0.cmp(&b.0)));
     let area: u64 = textures.iter().map(|(_, i)| u64::from(i.width) * u64::from(i.height)).sum();

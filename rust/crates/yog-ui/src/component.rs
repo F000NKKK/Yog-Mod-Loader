@@ -33,12 +33,13 @@
 //! `h`, `bg`, `on_click`, ...).
 
 use std::collections::HashMap;
-use std::sync::{Mutex, PoisonError};
+use std::sync::Mutex;
 
 use yog_gfx::Color;
 
 use crate::FlexDir;
 use crate::widget::{self, Widget};
+use yog_sync::Locked;
 
 /// A property's type: how `.yui` writes it and how the designer edits it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -204,7 +205,7 @@ pub fn register<C: Component>() {
 }
 
 pub fn register_spec(spec: ComponentSpec) {
-    let mut all = REGISTRY.lock().unwrap_or_else(PoisonError::into_inner);
+    let mut all = REGISTRY.locked();
     all.retain(|s| s.name != spec.name);
     all.push(spec);
 }
@@ -212,16 +213,14 @@ pub fn register_spec(spec: ComponentSpec) {
 /// Every registered component, in registration order.
 pub fn components() -> Vec<ComponentSpec> {
     REGISTRY
-        .lock()
-        .unwrap_or_else(PoisonError::into_inner)
+        .locked()
         .clone()
 }
 
 /// The registered component `name`.
 pub fn find(name: &str) -> Option<ComponentSpec> {
     REGISTRY
-        .lock()
-        .unwrap_or_else(PoisonError::into_inner)
+        .locked()
         .iter()
         .find(|s| s.name == name)
         .copied()

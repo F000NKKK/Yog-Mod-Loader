@@ -1,0 +1,128 @@
+//! Inter-mod communication.
+
+use super::*;
+
+// ── Inter-mod communication ──────────────────────────────────────────────────
+
+pub(super) unsafe extern "C" fn interop_export_impl(
+    _ctx: *mut c_void,
+    mod_id: YogStr,
+    symbol: YogStr,
+    ptr: *const c_void,
+) {
+    unsafe {
+        let mod_id = mod_id.as_str();
+        let sym = symbol.as_str();
+        let registry = INTEROP_SYMBOLS.get_or_init(|| Mutex::new(HashMap::new()));
+        registry
+            .locked()
+            .entry(mod_id.to_string())
+            .or_default()
+            .insert(sym.to_string(), ptr as usize);
+    }
+}
+
+pub(super) unsafe extern "C" fn interop_import_impl(
+    _ctx: *mut c_void,
+    mod_id: YogStr,
+    symbol: YogStr,
+) -> *const c_void {
+    unsafe {
+        let mod_id = mod_id.as_str();
+        let sym = symbol.as_str();
+        let registry = INTEROP_SYMBOLS.get_or_init(|| Mutex::new(HashMap::new()));
+        registry
+            .locked()
+            .get(mod_id)
+            .and_then(|m: &HashMap<String, usize>| m.get(sym))
+            .map(|&ptr| ptr as *const c_void)
+            .unwrap_or(std::ptr::null())
+    }
+}
+
+pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer) -> YogApi {
+    YogApi {
+        abi_version: ABI_VERSION,
+        size: std::mem::size_of::<YogApi>() as u32,
+        ctx: ctx as *mut c_void,
+        server,
+        on_block_break: api_on_block_break,
+        on_chat: api_on_chat,
+        on_player_join: api_on_player_join,
+        on_player_leave: api_on_player_leave,
+        on_use_item: api_on_use_item,
+        on_use_block: api_on_use_block,
+        on_attack_entity: api_on_attack_entity,
+        on_entity_damage: api_on_entity_damage,
+        on_entity_death: api_on_entity_death,
+        on_entity_spawn: api_on_entity_spawn,
+        on_player_place_block: api_on_player_place_block,
+        on_player_death: api_on_player_death,
+        on_player_respawn: api_on_player_respawn,
+        on_advancement: api_on_advancement,
+        on_entity_interact: api_on_entity_interact,
+        on_item_craft: api_on_item_craft,
+        on_explosion: api_on_explosion,
+        on_item_pickup: api_on_item_pickup,
+        on_item_insert: api_on_item_insert,
+        on_player_move: api_on_player_move,
+        on_container_open: api_on_container_open,
+        on_container_close: api_on_container_close,
+        on_projectile_hit: api_on_projectile_hit,
+        on_server_tick: api_on_server_tick,
+        on_server_started: api_on_server_started,
+        on_server_stopping: api_on_server_stopping,
+        on_packet: api_on_packet,
+        on_client_packet: api_on_client_packet,
+        register_command: api_register_command,
+        register_typed_command: api_register_typed_command,
+        register_content: api_register_content,
+        schedule_once: api_schedule_once,
+        schedule_repeating: api_schedule_repeating,
+        on_client_tick: api_on_client_tick,
+        on_hud_render: api_on_hud_render,
+        on_key_press: api_on_key_press,
+        on_screen_open: api_on_screen_open,
+        on_screen_close: api_on_screen_close,
+        on_world_render: api_on_world_render,
+        register_ui: api_register_ui,
+        on_ui_render: api_on_ui_render,
+        register_menu_entry: api_register_menu_entry,
+        mods_list: api_mods_list,
+        free_str: yog_free_str,
+        ui_open: api_ui_open,
+        interop_export: interop_export_impl,
+        interop_import: interop_import_impl,
+        register_chunk_generator: api_register_chunk_generator,
+        ui_close: api_ui_close,
+        ui_consume_event: api_ui_consume_event,
+        translate: api_translate,
+        ui_open_flags: client_api::api_ui_open_flags,
+        client_play_sound: client_api::api_client_play_sound,
+        client_stop_sound: client_api::api_client_stop_sound,
+        client_held_item: client_api::api_client_held_item,
+        client_set_block_tint: client_api::api_client_set_block_tint,
+        client_key_down: client_api::api_client_key_down,
+        on_book_page: api_on_book_page,
+        on_item_tooltip: api_on_item_tooltip,
+        is_mod_loaded: api_is_mod_loaded,
+        java_call: api_java_call,
+        on_item_text: api_on_item_text,
+        client_body_track: body::api_client_body_track,
+        client_body_track_type: body::api_client_body_track_type,
+        client_set_dimensions: body::api_client_set_dimensions,
+        client_entity_data: entity_data::api_client_entity_data,
+        on_body: body::api_on_body,
+        on_camera: body::api_on_camera,
+        on_travel: body::api_on_travel,
+        on_machine_craft: api_on_machine_craft,
+        on_entity_tick: api_on_entity_tick,
+        on_loot: loot::api_on_loot,
+        client_attribute_value: api_client_attribute_value,
+        client_advancement_done: api_client_advancement_done,
+        client_op: client_api::api_client_op,
+        register_key_binding: api_register_key_binding,
+        on_key_binding: api_on_key_binding,
+        log: api_log,
+    }
+}

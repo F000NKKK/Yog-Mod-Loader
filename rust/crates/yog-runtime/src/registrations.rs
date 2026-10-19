@@ -9,6 +9,7 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use yog_registry::REGISTRATIONS_FILE;
+use yog_sync::Locked;
 
 /// Mod id → its registrations when the game started.
 static STARTUP: Mutex<Option<HashMap<String, String>>> = Mutex::new(None);
@@ -24,13 +25,13 @@ fn read_entry(path: &Path, name: &str) -> Option<String> {
 /// Keeps what mod `mod_id` registered at the game's start (its `.yog`).
 pub(crate) fn record(mod_id: &str, yog: &Path) {
     let text = read_entry(yog, REGISTRATIONS_FILE).unwrap_or_default();
-    STARTUP.lock().unwrap_or_else(|e| e.into_inner()).get_or_insert_with(HashMap::new).insert(mod_id.to_string(), text);
+    STARTUP.locked().get_or_insert_with(HashMap::new).insert(mod_id.to_string(), text);
 }
 
 /// What the `.yog` at `new_yog` registers that the game, as started,
 /// doesn't have as it says: added, removed, changed — `<kind> <id>` each.
 pub(crate) fn changes(mod_id: &str, new_yog: &Path) -> (Vec<String>, Vec<String>, Vec<String>) {
-    let started = STARTUP.lock().unwrap_or_else(|e| e.into_inner()).as_ref().and_then(|m| m.get(mod_id).cloned()).unwrap_or_default();
+    let started = STARTUP.locked().as_ref().and_then(|m| m.get(mod_id).cloned()).unwrap_or_default();
     let new = read_entry(new_yog, REGISTRATIONS_FILE).unwrap_or_default();
     yog_registry::registration_changes(&started, &new)
 }

@@ -22,11 +22,11 @@ fn module() -> LoadedModule {
 /// Runs `f` as a mod's `yog_mod_register` would: with a registration
 /// context, against fresh handlers it returns.
 fn registering(f: impl FnOnce(*mut c_void)) -> Box<RwLock<RuntimeHandlers>> {
-    let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+    let _serial = SERIAL.locked();
     let handlers = Box::new(RwLock::new(RuntimeHandlers::default()));
-    *CURRENT_REGISTRATION.lock().unwrap() = Some(module());
+    *CURRENT_REGISTRATION.locked() = Some(module());
     f(&*handlers as *const RwLock<RuntimeHandlers> as *mut c_void);
-    *CURRENT_REGISTRATION.lock().unwrap() = None;
+    *CURRENT_REGISTRATION.locked() = None;
     handlers
 }
 
@@ -60,7 +60,7 @@ fn commands_keep_every_registration_under_one_name() {
         api_register_command(ctx, YogStr::from_str("hex"), std::ptr::null_mut(), no_command);
         api_register_typed_command(ctx, YogStr::from_str("hex"), YogStr::from_str("int"), std::ptr::null_mut(), no_command);
     });
-    let h = h.read().unwrap();
+    let h = h.read_locked();
     let entries = &h.commands["hex"];
     assert_eq!(entries.len(), 2, "a second registration doesn't replace the first");
     assert_eq!(entries[0].1, None);
@@ -74,7 +74,7 @@ fn items_arrive_as_their_definition() {
         def.fire_resistant = true;
         content(ctx, "item", "mymod:ruby", &def.write());
     });
-    let h = h.read().unwrap();
+    let h = h.read_locked();
     let item = &h.items[0];
     assert_eq!(item.id, "mymod:ruby");
     assert_eq!(item.max_stack, 16);
@@ -90,7 +90,7 @@ fn startup_grants_keep_their_items() {
         let g = yog_registry::StartupGrant { id: "mymod:starter".into(), items: vec!["mymod:staff".into(), "minecraft:book".into()], book: Some(String::new()), command: Some("say hi".into()) };
         content(ctx, "startup_grant", "mymod:starter", &g.write());
     });
-    let h = h.read().unwrap();
+    let h = h.read_locked();
     let g = &h.startup_grants[0];
     assert_eq!(g.items, ["mymod:staff", "minecraft:book"]);
     assert_eq!(g.book, None);
@@ -110,12 +110,12 @@ fn books_get_the_recipes_registered_before_and_after_them() {
         api_register_content(ctx, YogStr::from_str("book"), YogStr::from_str("mymod:junk"), b"junk".as_ptr(), 4);
         content(ctx, "spell", "mymod:fireball", &book);
     });
-    let h = h.read().unwrap();
+    let h = h.read_locked();
     assert_eq!(h.recipes.len(), 2);
     assert_eq!(h.recipes[1].1, "b");
-    assert!(h.book_renderers.lock().unwrap().contains_key("mymod:guide"));
+    assert!(h.book_renderers.locked().contains_key("mymod:guide"));
     assert!(!h.books.contains("mymod:broken"), "not a book: none for the host either");
-    assert!(!h.book_renderers.lock().unwrap().contains_key("mymod:broken"));
+    assert!(!h.book_renderers.locked().contains_key("mymod:broken"));
     assert!(!h.books.contains("mymod:junk"), "not Yog Data: not a book");
 }
 
@@ -130,7 +130,7 @@ fn blocks_and_inventories_arrive_as_their_definitions() {
         inv.background_size = Some((176.0, 120.0));
         content(ctx, "inventory", "mymod:box", &inv.write());
     });
-    let h = h.read().unwrap();
+    let h = h.read_locked();
     assert_eq!(h.blocks[0].shape, Some([0.0, 0.0, 0.0, 16.0, 8.0, 16.0]));
     assert_eq!(h.blocks[0].inventory_id.as_deref(), Some("mymod:box"));
     assert_eq!((h.inventories[0].slot_count, h.inventories[0].background_size), (3, Some((176.0, 120.0))));
@@ -146,15 +146,15 @@ fn scheduled_tasks_run_when_due() {
         api_schedule_repeating(ctx, 2, ud, count_task);
         api_schedule_repeating(ctx, 0, ud, count_task);
     });
-    let h = h.read().unwrap();
+    let h = h.read_locked();
     let mut per_tick = Vec::new();
     for _ in 0..6 {
-        let due = h.scheduler.lock().unwrap().due();
+        let due = h.scheduler.locked().due();
         per_tick.push(due.len());
     }
     // tick 1: once(0), every tick; 2: every 2, every tick; 3: once(3), every tick; …
     assert_eq!(per_tick, [2, 2, 2, 2, 1, 2]);
-    assert!(h.scheduler.lock().unwrap().once_tasks.is_empty(), "once tasks are gone once run");
+    assert!(h.scheduler.locked().once_tasks.is_empty(), "once tasks are gone once run");
 }
 
 type Ping = unsafe extern "C" fn(*mut c_void) -> bool;
@@ -200,7 +200,7 @@ fn the_hosts_get_content_as_one_yog_data_blob() {
         content(ctx, "item", "mymod:guide", &yog_registry::ItemDef::new("mymod:guide").write());
         content(ctx, "book", "mymod:guide", &json(r#"{"id":"mymod:guide","name":"Guide","categories":[],"entries":[]}"#));
     });
-    let bytes = crate::content_blob::blob(&h.read().unwrap());
+    let bytes = crate::content_blob::blob(&h.read_locked());
     let v = yog_data::binary::decode(&bytes).unwrap();
     let item = &v.get("items").unwrap().as_list().unwrap()[0];
     assert_eq!(item.get("id").and_then(|x| x.as_str()), Some("mymod:apple"));
@@ -223,7 +223,7 @@ fn tools_and_armor_arrive_with_their_materials_whole() {
         content(ctx, "item", "mymod:helm", &ItemDef::new("mymod:helm").armor("head", "diamond").write());
         content(ctx, "item", "mymod:odd", &ItemDef::new("mymod:odd").tool("sword", "mymod:nope", 3.0, -2.4).write());
     });
-    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read().unwrap())).unwrap();
+    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read_locked())).unwrap();
     let items = v.get("items").unwrap().as_list().unwrap();
     let tool = items[0].get("tool").unwrap();
     assert_eq!(tool.get("kind").and_then(|k| k.as_str()), Some("pickaxe"));
@@ -235,14 +235,14 @@ fn tools_and_armor_arrive_with_their_materials_whole() {
 
 #[test]
 fn a_books_entries_about_absent_mods_are_left_out() {
-    crate::YOG_MOD_IDS.write().unwrap().insert("othermod".into());
+    crate::YOG_MOD_IDS.write_locked().insert("othermod".into());
     let book = json(r#"{"id":"mymod:guide","name":"G","categories":[{"id":"mymod:c","name":"C"}],"entries":[
         {"id":"mymod:a","name":"A","category":"@category:mymod:c","pages":[]},
         {"id":"mymod:b","name":"B","category":"@category:mymod:c","pages":[],"requires":["othermod"]},
         {"id":"mymod:c","name":"C","category":"@category:mymod:c","pages":[],"requires":["pehkui"]}]}"#);
     let h = registering(|ctx| unsafe { content(ctx, "book", "mymod:guide", &book) });
-    let h = h.read().unwrap();
-    let renderers = h.book_renderers.lock().unwrap();
+    let h = h.read_locked();
+    let renderers = h.book_renderers.locked();
     let ids: Vec<&str> = renderers["mymod:guide"].book().entries.iter().map(|e| e.id.as_str()).collect();
     assert_eq!(ids, ["mymod:a", "mymod:b"], "a Yog mod that's loaded counts; a missing one hides its entry");
 }
@@ -255,7 +255,7 @@ fn a_blocks_sound_group_arrives_whole() {
             content(ctx, "block", id, &yog_registry::BlockDef::new(id).sound(sound).write());
         }
     });
-    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read().unwrap())).unwrap();
+    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read_locked())).unwrap();
     let blocks = v.get("blocks").unwrap().as_list().unwrap();
     let sound = |i: usize, k: &str| blocks[i].get("sound").and_then(|s| s.get(k)).cloned();
     assert_eq!(sound(0, "break").as_ref().and_then(|x| x.as_str()), Some("mymod:crystal.break"));
@@ -273,7 +273,7 @@ fn a_block_of_a_game_kind_arrives_with_its_base_and_set() {
         content(ctx, "block", "mymod:button", &button.write());
         content(ctx, "block", "mymod:plain", &yog_registry::BlockDef::new("mymod:plain").write());
     });
-    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read().unwrap())).unwrap();
+    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read_locked())).unwrap();
     let blocks = v.get("blocks").unwrap().as_list().unwrap();
     let str = |i: usize, k: &str| blocks[i].get(k).and_then(|x| x.as_str()).map(String::from);
     let int = |i: usize, k: &str| blocks[i].get(k).and_then(|x| x.as_i64());
@@ -370,7 +370,7 @@ fn content_exchange() {
     time("  (owned decode, for comparison)", 50, &mut || { std::hint::black_box(yog_data::binary::decode(&book.2).unwrap()); });
     time("  book: BookRenderer::new (both)", 50, &mut || { std::hint::black_box(yog_book::BookRenderer::new(parsed.clone())); });
     let h = handlers.unwrap();
-    let h = h.read().unwrap();
+    let h = h.read_locked();
     // Runtime → host. Old: the TSV dialects and `ns\tname\tjson` lines
     // (the runtime kept each recipe's JSON as the mod sent it).
     let recipe_json: Vec<(String, String, String)> = h.recipes.iter().map(|(ns, n, v)| (ns.clone(), n.clone(), yog_data::json::to_json(v).to_string())).collect();
@@ -423,7 +423,7 @@ fn a_dimensions_terrain_is_generated_here_and_the_host_gets_the_rest() {
     )
     .unwrap();
     let h = registering(|ctx| unsafe { content(ctx, "dimension", "mymod:flat", &def) });
-    let h = h.read().unwrap();
+    let h = h.read_locked();
     let kept = &h.dimensions["mymod:flat"];
     assert!(kept.get("terrain").is_none(), "the host doesn't get the terrain");
     assert_eq!(kept.get("generator_type"), Some(&yog_data::Value::from("mymod:flat")));

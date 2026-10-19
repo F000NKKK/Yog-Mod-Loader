@@ -242,13 +242,16 @@ pub(super) fn compile_recipe(
     })
 }
 
+/// A reference in a recipe list, and where it is (`None`: everywhere).
+type PlacedRef = (String, Option<BTreeSet<String>>);
+
 /// The hosts (`<loader>/<version>`) a recipe naming `refs` and `tags` can't
 /// be on, with why: an item or tag one hasn't got. Alternatives (`["a",
 /// "#b"]`, one list in the file) count as there when any of them is.
 pub(super) fn recipe_gaps(items: &[yog_data::schema::Found<yog_data::Ref>], tags: &[yog_data::schema::Found<yog_data::Ref>]) -> Vec<(BTreeSet<String>, String)> {
     use refs::RefKind;
     // Where each reference is (`None`: everywhere), grouped by the list it's in.
-    let mut lists: BTreeMap<String, Vec<(String, Option<BTreeSet<String>>)>> = BTreeMap::new();
+    let mut lists: BTreeMap<String, Vec<PlacedRef>> = BTreeMap::new();
     let parent = |p: &yog_data::Path| {
         let mut p = p.clone();
         if matches!(p.segments().last(), Some(yog_data::Seg::Index(_))) {

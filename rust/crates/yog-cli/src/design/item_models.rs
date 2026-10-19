@@ -174,7 +174,7 @@ fn crop(img: &Image, x: u32, y: u32, w: u32, h: u32) -> Image {
 fn tinted(mut img: Image, tint: Option<u32>) -> Image {
     if let Some(t) = tint {
         let m = [(t >> 16) & 0xFF, (t >> 8) & 0xFF, t & 0xFF];
-        for px in img.rgba.chunks_exact_mut(4) {
+        for px in img.pixels_mut() {
             for c in 0..3 {
                 px[c] = (px[c] as u32 * m[c] / 255) as u8;
             }
@@ -185,7 +185,7 @@ fn tinted(mut img: Image, tint: Option<u32>) -> Image {
 
 /// `top` drawn over `base` (alpha blended).
 fn over(base: &mut Image, top: &Image) {
-    for (b, t) in base.rgba.chunks_exact_mut(4).zip(top.rgba.chunks_exact(4)) {
+    for (b, t) in base.pixels_mut().iter_mut().zip(top.pixels()) {
         let a = t[3] as u32;
         for c in 0..3 {
             b[c] = ((t[c] as u32 * a + b[c] as u32 * (255 - a)) / 255) as u8;

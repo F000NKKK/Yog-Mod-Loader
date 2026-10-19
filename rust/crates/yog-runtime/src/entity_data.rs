@@ -12,6 +12,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::os::raw::c_void;
+use yog_sync::Locked;
 use std::sync::{LazyLock, Mutex};
 
 use jni::JNIEnv;
@@ -35,17 +36,17 @@ struct Value {
 }
 
 type Values = BTreeMap<String, Value>;
+/// An entity's changes this tick, by key (`None`: removed).
+type PendingChanges = BTreeMap<String, Option<Vec<u8>>>;
+/// An entity's values as the client got them, encoded.
+type EncodedValues = BTreeMap<String, Vec<u8>>;
 
 static SERVER: LazyLock<Mutex<HashMap<String, Values>>> = LazyLock::new(Default::default);
 /// Changes this tick, by entity, then key (`None`: removed) — sent once, at
 /// the end of the tick: a key set twice goes once, an entity's changes in
 /// one packet.
-static PENDING: LazyLock<Mutex<HashMap<String, BTreeMap<String, Option<Vec<u8>>>>>> = LazyLock::new(Default::default);
-static CLIENT: LazyLock<Mutex<HashMap<String, BTreeMap<String, Vec<u8>>>>> = LazyLock::new(Default::default);
-
-fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
-}
+static PENDING: LazyLock<Mutex<HashMap<String, PendingChanges>>> = LazyLock::new(Default::default);
+static CLIENT: LazyLock<Mutex<HashMap<String, EncodedValues>>> = LazyLock::new(Default::default);
 
 // ── Records ──────────────────────────────────────────────────────────────────
 
@@ -112,7 +113,7 @@ fn send_to_watchers(uuid: &str, bytes: &[u8]) {
 /// Sets (`Some`) or removes a value, and tells the watchers if it changed.
 pub(crate) fn set(uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) {
     let changed = {
-        let mut store = lock(&SERVER);
+        let mut store = SERVER.locked();
         match value {
             Some(v) => {
                 let values = store.entry(uuid.to_owned()).or_default();
@@ -130,13 +131,13 @@ pub(crate) fn set(uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) {
         }
     };
     if changed {
-        lock(&PENDING).entry(uuid.to_owned()).or_default().insert(key.to_owned(), value.map(<[u8]>::to_vec));
+        PENDING.locked().entry(uuid.to_owned()).or_default().insert(key.to_owned(), value.map(<[u8]>::to_vec));
     }
 }
 
 /// Sends this tick's changes: one packet per entity, to who sees it.
 pub(crate) fn flush() {
-    let pending = std::mem::take(&mut *lock(&PENDING));
+    let pending = std::mem::take(&mut *PENDING.locked());
     for (uuid, keys) in pending {
         let mut b = Vec::new();
         for (key, value) in keys {
@@ -150,7 +151,7 @@ pub(crate) fn flush() {
 }
 
 pub(crate) fn get(uuid: &str, key: &str) -> Option<Vec<u8>> {
-    lock(&SERVER).get(uuid)?.get(key).map(|v| v.bytes.clone())
+    SERVER.locked().get(uuid)?.get(key).map(|v| v.bytes.clone())
 }
 
 pub(crate) unsafe extern "C" fn srv_entity_data_set(
@@ -192,7 +193,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataFor<'l>(
 ) -> jbyteArray {
     let uuid = jstr!(env, uuid, std::ptr::null_mut());
     let mut b = Vec::new();
-    if let Some(values) = lock(&SERVER).get(&uuid) {
+    if let Some(values) = SERVER.locked().get(&uuid) {
         record(&mut b, CLEAR, &uuid, "", &[]);
         for (k, v) in values {
             record(&mut b, SET, &uuid, k, &v.bytes);
@@ -214,7 +215,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataSave<'l>(
 ) -> jbyteArray {
     let uuid = jstr!(env, uuid, std::ptr::null_mut());
     let mut b = Vec::new();
-    if let Some(values) = lock(&SERVER).get(&uuid) {
+    if let Some(values) = SERVER.locked().get(&uuid) {
         for (k, v) in values.iter().filter(|(_, v)| v.persist) {
             record(&mut b, SET, "", k, &v.bytes);
         }
@@ -236,7 +237,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataLoad<'l>(
 ) {
     let uuid = jstr!(env, uuid);
     let Ok(saved) = env.convert_byte_array(&saved) else { return };
-    let mut store = lock(&SERVER);
+    let mut store = SERVER.locked();
     let values = store.entry(uuid).or_default();
     for r in records(&saved) {
         if r.op == SET {
@@ -273,13 +274,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataForget<'l>(
     uuid: JString<'l>,
 ) {
     let uuid = jstr!(env, uuid);
-    lock(&SERVER).remove(&uuid);
+    SERVER.locked().remove(&uuid);
 }
 
 /// The server stops: nothing carries over.
 pub(crate) fn server_stopped() {
-    lock(&SERVER).clear();
-    lock(&PENDING).clear();
+    SERVER.locked().clear();
+    PENDING.locked().clear();
 }
 
 // ── Client ───────────────────────────────────────────────────────────────────
@@ -288,7 +289,7 @@ pub(crate) fn server_stopped() {
 pub(crate) fn receive(payload: &[u8]) {
     let mut dims: Vec<(String, Option<[f32; 3]>)> = Vec::new();
     {
-        let mut store = lock(&CLIENT);
+        let mut store = CLIENT.locked();
         for r in records(payload) {
             match r.op {
                 SET => {
@@ -306,7 +307,8 @@ pub(crate) fn receive(payload: &[u8]) {
                     }
                 }
                 CLEAR => {
-                    if store.remove(&r.uuid).is_some_and(|v| v.contains_key(DIMENSIONS)) {
+                    let removed = store.remove(&r.uuid);
+                    if removed.is_some_and(|v| v.contains_key(DIMENSIONS)) {
                         dims.push((r.uuid.clone(), None));
                     }
                 }
@@ -333,13 +335,13 @@ fn decode_dims(b: &[u8]) -> Option<[f32; 3]> {
 
 /// What this client knows of `uuid` (for body frames).
 pub(crate) fn client_values(uuid: &str) -> Vec<(String, Vec<u8>)> {
-    lock(&CLIENT).get(uuid).map(|v| v.iter().map(|(k, v)| (k.clone(), v.clone())).collect()).unwrap_or_default()
+    CLIENT.locked().get(uuid).map(|v| v.iter().map(|(k, v)| (k.clone(), v.clone())).collect()).unwrap_or_default()
 }
 
 /// `nativeEntityDataClientReset()`: the client left a world — forget it all.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataClientReset<'l>(_env: JNIEnv<'l>, _class: JClass<'l>) {
-    lock(&CLIENT).clear();
+    CLIENT.locked().clear();
 }
 
 pub(crate) unsafe extern "C" fn api_client_entity_data(
@@ -350,7 +352,7 @@ pub(crate) unsafe extern "C" fn api_client_entity_data(
     write: YogBytesSink,
 ) -> bool {
     let (uuid, key) = unsafe { (uuid.as_str(), key.as_str()) };
-    let store = lock(&CLIENT);
+    let store = CLIENT.locked();
     let Some(v) = store.get(uuid).and_then(|v| v.get(key)) else { return false };
     unsafe { write(sink, v.as_ptr(), v.len()) };
     true
@@ -394,7 +396,7 @@ mod tests {
 
     #[test]
     fn frames_get_their_data() {
-        lock(&CLIENT).entry("ab".into()).or_default().insert("m:k".into(), vec![9]);
+        CLIENT.locked().entry("ab".into()).or_default().insert("m:k".into(), vec![9]);
         let frame = [1u8, 2, 0, b'a', b'b'];
         let out = with_data(&frame);
         assert_eq!(&out[..5], &frame);

@@ -32,6 +32,9 @@ enum Column {
     Map(Scalar, Scalar),
 }
 
+/// A table row: its id, its variant name, its values.
+type TableRow = (String, String, Vec<String>);
+
 fn scalar(s: &str) -> Option<Scalar> {
     Some(match s.trim() {
         "bool" => Scalar::Bool,
@@ -253,7 +256,7 @@ pub fn rust(t: &Table) -> String {
     }
     code.push_str("}\n\n#[allow(dead_code, clippy::all)]\nimpl ");
     let _ = writeln!(code, "{n} {{\n    /// Every row, in order.\n    pub const ALL: [{n}; {}] = [{}];\n", t.rows.len(), t.rows.iter().map(|(_, v, _)| format!("{n}::{v}")).collect::<Vec<_>>().join(", "));
-    let arms = |f: &dyn Fn(usize, &(String, String, Vec<String>)) -> String| -> String {
+    let arms = |f: &dyn Fn(usize, &TableRow) -> String| -> String {
         t.rows.iter().enumerate().map(|(i, r)| format!("            {n}::{} => {},\n", r.1, f(i, r))).collect()
     };
     let _ = writeln!(code, "    /// Its row's id.\n    pub fn id(self) -> &'static str {{\n        match self {{\n{}        }}\n    }}\n", arms(&|_, r| format!("{:?}", r.0)));

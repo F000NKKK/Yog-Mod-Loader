@@ -91,7 +91,7 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
     let mut t = Texts { refs: HashMap::new(), lang: HashMap::new() };
     // The game's (and the mod's assets') language files, the mod's own on top.
     let lang_file = locale.unwrap_or(yog_ids::game::LOCALE);
-    let mod_id = mod_root.and_then(|r| crate::design::project::mod_id(r)).unwrap_or_default();
+    let mod_id = mod_root.and_then(crate::design::project::mod_id).unwrap_or_default();
     for ns in [yog_ids::ns::MINECRAFT, mod_id.as_str()] {
         for file in [yog_ids::game::LOCALE, lang_file] {
             if let Some(Value::Object(map)) = res.read(ns, &yog_ids::lang_file(file)).and_then(|b| serde_json::from_slice(&b).ok()) {

@@ -33,11 +33,11 @@ impl Color {
     }
 
     /// `[r, g, b, a]` bytes, as an RGBA image keeps them.
-    pub const fn to_rgba8(self) -> [u8; 4] {
+    pub const fn to_rgba8(self) -> crate::Rgba8 {
         [self.r(), self.g(), self.b(), self.a()]
     }
 
-    pub const fn from_rgba8(p: [u8; 4]) -> Color {
+    pub const fn from_rgba8(p: crate::Rgba8) -> Color {
         Color::argb(p[3], p[0], p[1], p[2])
     }
 

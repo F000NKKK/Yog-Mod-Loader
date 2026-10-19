@@ -1,0 +1,10 @@
+[package]
+name = "yog-sync"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+license = "MIT OR Apache-2.0"
+description = "Yog's locks that outlive a panic: Mutex/RwLock guards whether or not the lock is poisoned."
+
+[dependencies]

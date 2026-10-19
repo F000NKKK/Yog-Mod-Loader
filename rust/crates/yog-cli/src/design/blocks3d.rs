@@ -78,6 +78,9 @@ impl Turn {
 pub type Shape = Vec<Cuboid>;
 
 /// A whole-block cube with `faces` (a missing one: the missing texture).
+/// A unit cube's face: normal, corner offset, edges a and b, texture slot, shade.
+type CubeFace = ([i32; 3], [f32; 3], [f32; 3], [f32; 3], usize, f32);
+
 pub fn cube(faces: Faces) -> Shape {
     let faces = faces.map(|f| Some(f.unwrap_or_else(|| Arc::new(missing_image()))));
     vec![Cuboid { from: [0.0; 3], to: [BLOCK_UNITS; 3], faces, turns: Vec::new() }]
@@ -410,7 +413,7 @@ fn draw_with(
     // Every face that can be seen: (depth, texture, corner, edge a, edge b, shade).
     let mut quads = Vec::new();
     // (normal, corner offset, a, b, slot, shade) per face of a unit cube.
-    const FACES: [([i32; 3], [f32; 3], [f32; 3], [f32; 3], usize, f32); 6] = [
+    const FACES: [CubeFace; 6] = [
         ([0, 1, 0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], 0, 1.0),
         ([0, -1, 0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, -1.0], 1, 0.5),
         ([0, 0, -1], [1.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], 2, 0.8),
@@ -471,7 +474,7 @@ mod tests {
         let res = Resources { mod_root: None, vanilla: None };
         let mut c = Canvas::new(32, 32, 1, &res);
         draw_with(&mut c, &[([0, 0, 0], "x".into())], [0.0, 0.0, 32.0, 32.0], 225.0, 30.0, |_, _| shape.clone());
-        c.rgba.chunks_exact(4).filter(|p| p[3] > 0).count()
+        c.rgba.as_chunks::<{ yog_graphics::BYTES_PER_PIXEL }>().0.iter().filter(|p| p[3] > 0).count()
     }
 
     #[test]

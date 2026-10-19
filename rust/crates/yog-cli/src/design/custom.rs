@@ -22,7 +22,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Stdio};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
-use std::sync::{Arc, Mutex, OnceLock, PoisonError};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime};
 
 use serde::Serialize;
@@ -33,6 +33,7 @@ use super::host::{ComponentInfo, MARK, RenderReq};
 use super::markup::YuiNode;
 use super::raster::DrawOp;
 use crate::design::project;
+use yog_sync::Locked;
 
 /// Elements the designer draws itself (yog-ui's and yog-kit's); any other
 /// PascalCase element is a custom component (as for `yog build`).
@@ -170,7 +171,7 @@ impl HostProc {
                 if n == 0 {
                     break;
                 }
-                let mut t = tail.lock().unwrap_or_else(PoisonError::into_inner);
+                let mut t = tail.locked();
                 t.push_str(&String::from_utf8_lossy(&buf[..n]));
                 if t.len() > 16_000 {
                     let cut = t.len() - 8_000;
@@ -230,8 +231,7 @@ impl HostProc {
         std::thread::sleep(Duration::from_millis(50));
         let tail = self
             .stderr
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
+            .locked()
             .clone();
         let tail: Vec<&str> = tail
             .lines()
@@ -354,15 +354,14 @@ fn mods() -> &'static Mutex<HashMap<PathBuf, Shared>> {
 
 fn state(root: &Path) -> Shared {
     mods()
-        .lock()
-        .unwrap_or_else(PoisonError::into_inner)
+        .locked()
         .entry(root.to_path_buf())
         .or_insert_with(|| Arc::new(Mutex::new(ModState::new())))
         .clone()
 }
 
 fn lock(s: &Shared) -> std::sync::MutexGuard<'_, ModState> {
-    s.lock().unwrap_or_else(PoisonError::into_inner)
+    s.locked()
 }
 
 /// The mod's Rust sources, `yog.toml` and resources — what the library is built from.

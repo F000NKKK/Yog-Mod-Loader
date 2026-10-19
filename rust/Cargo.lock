@@ -1801,6 +1801,7 @@ dependencies = [
  "yog-ids",
  "yog-media",
  "yog-registry",
+ "yog-sync",
  "yog-ui",
  "yog-worldgen",
  "zip",
@@ -2031,6 +2032,7 @@ dependencies = [
  "yog-inventory",
  "yog-logging",
  "yog-registry",
+ "yog-sync",
  "yog-ui",
  "yog-worldgen",
  "zip",
@@ -2052,6 +2054,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-sync"
+version = "0.1.0"
+
+[[package]]
 name = "yog-ui"
 version = "0.45.0"
 dependencies = [
@@ -2059,6 +2065,7 @@ dependencies = [
  "yog-abi",
  "yog-gfx",
  "yog-ids",
+ "yog-sync",
 ]
 
 [[package]]

@@ -505,7 +505,7 @@ pub unsafe extern "C" fn {bind_name_fmt}(ptr: *const ::std::os::raw::c_void) {{
 #[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
 #[doc(hidden)]
 fn __yog_import_ctor_{name}() {{
-    ::yog_api::__yog_import_registry().lock().unwrap().push(::yog_api::YogImportEntry {{
+    ::yog_api::__yog_import_registry().locked().push(::yog_api::YogImportEntry {{
         mod_id: "{mod_id}",
         symbol: "{name}",
         bind_fn: {bind_name_fmt} as *const () as usize,
@@ -646,6 +646,7 @@ mod tests {
 
     const SRC: &str = r#"
 use yog_api::prelude::*;
+use yog_sync::Locked;
 
 #[yog_export]
 pub struct Pipe { pub id: u32 }

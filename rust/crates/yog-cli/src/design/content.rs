@@ -126,10 +126,13 @@ pub fn content_block_faces(root: &Path, id: &str) -> Option<[Option<Vec<u8>>; 6]
     Some(super::blocks3d::FACE_TEXTURES.map(pick))
 }
 
+/// A block's model: its elements, and its textures by variable (png bytes).
+pub type BlockModel = (Vec<Value>, std::collections::HashMap<String, Vec<u8>>);
+
 /// The model of the mod's block `id` as its `.yblock` gives it: its
 /// `elements` and its textures by variable (png bytes). `None`: not a
 /// block of the mod, or its model has no elements of its own.
-pub fn content_block_model(root: &Path, id: &str) -> Option<(Vec<Value>, std::collections::HashMap<String, Vec<u8>>)> {
+pub fn content_block_model(root: &Path, id: &str) -> Option<BlockModel> {
     let (file, doc) = content_file(root, id, &[Format::Block])?;
     let elements = match super::data::at(&doc, &[yog_ids::content_field::MODEL, yog_ids::model::ELEMENTS]).and_then(Value::as_array) {
         Some(elements) => elements.clone(),

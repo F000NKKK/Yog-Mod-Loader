@@ -145,26 +145,51 @@ fn scaffold(root: &Path, host: &str, platform: &Path) -> bool {
     platform_property(root, host, platform, "status").as_deref() == Some("scaffold")
 }
 
-/// The public statics of class `class` as a host compiles it: its own
-/// platform sources, the host's shared sources (not for a platform built
-/// by a Gradle project of its own, `gradle_project`), then `java-common`.
-fn class_statics(
-    root: &Path,
-    host: &str,
-    platform: &Path,
-    class: &str,
-) -> Option<BTreeSet<(String, usize)>> {
-    let file = format!("{class}.java");
+/// A version's numeric parts (`1.21.1` → `[1, 21, 1]`); `None` if it isn't one.
+fn version_parts(v: &str) -> Option<Vec<u32>> {
+    v.split('.').map(|p| p.parse().ok()).collect()
+}
+
+/// Whether `v` is at least `lo` and within `hi` on as many parts as `hi` names — `sources.gradle`'s rule.
+fn in_range(v: &[u32], lo: &[u32], hi: &[u32]) -> bool {
+    let compare = |a: &[u32], b: &[u32], n: usize| (0..n).map(|i| a.get(i).unwrap_or(&0).cmp(b.get(i).unwrap_or(&0))).find(|o| o.is_ne()).unwrap_or(std::cmp::Ordering::Equal);
+    compare(v, lo, v.len().max(lo.len())).is_ge() && compare(v, hi, hi.len()).is_le()
+}
+
+/// The Java source folders a host compiles for a platform: the platform's
+/// own, the host's shared ones (not for a platform built by a Gradle
+/// project of its own, `gradle_project`), `java-common`'s, and each
+/// `java-common/mc/<range>` holding its version — as `java-common/sources.gradle` picks them.
+fn source_dirs(root: &Path, host: &str, platform: &Path) -> Vec<PathBuf> {
+    const JAVA: &str = "src/main/java";
     let shared = platform_property(root, host, platform, "gradle_project").is_none();
-    [
-        Some(platform.join("src/main/java/dev/yog")),
-        shared.then(|| root.join(host).join("src/main/java/dev/yog")),
-        Some(root.join("java-common/src/main/java/dev/yog")),
-    ]
-    .into_iter()
-    .flatten()
-    .find_map(|d| fs::read_to_string(d.join(&file)).ok())
-    .map(|j| java_statics(&j))
+    let mut dirs = vec![platform.join(JAVA)];
+    if shared {
+        dirs.push(root.join(host).join(JAVA));
+    }
+    dirs.push(root.join("java-common").join(JAVA));
+    let Some(v) = platform.file_name().and_then(|n| n.to_str()).and_then(version_parts) else {
+        return dirs;
+    };
+    let mut ranges: Vec<PathBuf> = fs::read_dir(root.join("java-common/mc")).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect();
+    ranges.sort();
+    for d in ranges {
+        let Some(name) = d.file_name().and_then(|n| n.to_str()) else { continue };
+        let (lo, hi) = name.split_once('-').unwrap_or((name, name));
+        if let (Some(lo), Some(hi)) = (version_parts(lo), version_parts(hi))
+            && in_range(&v, &lo, &hi)
+        {
+            dirs.push(d.join(JAVA));
+        }
+    }
+    dirs
+}
+
+/// The public statics of class `class` as a host compiles it for `platform`.
+fn class_statics(root: &Path, host: &str, platform: &Path, class: &str) -> Option<BTreeSet<(String, usize)>> {
+    let file = format!("dev/yog/{class}.java");
+    let found: Vec<_> = source_dirs(root, host, platform).into_iter().filter_map(|d| fs::read_to_string(d.join(&file)).ok()).collect();
+    (!found.is_empty()).then(|| found.iter().flat_map(|j| java_statics(j)).collect())
 }
 
 #[test]
@@ -229,8 +254,12 @@ fn every_native_method_is_exported() {
             continue;
         };
         for p in platforms {
-            let file = p.unwrap().path().join("src/main/java/dev/yog/NativeBridge.java");
-            let Ok(java) = fs::read_to_string(&file) else {
+            let platform = p.unwrap().path();
+            let Some((file, java)) = source_dirs(&root, host, &platform)
+                .into_iter()
+                .map(|d| d.join("dev/yog/NativeBridge.java"))
+                .find_map(|f| fs::read_to_string(&f).ok().map(|j| (f, j)))
+            else {
                 continue;
             };
             for line in java.lines() {

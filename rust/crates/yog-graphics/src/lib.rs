@@ -14,7 +14,7 @@ pub mod rect;
 
 pub use color::Color;
 pub use draw::{Fill, ImageOp, Op, Stroke};
-pub use image::{Image, PlacedImage};
+pub use image::{BYTES_PER_PIXEL, Image, PlacedImage, Rgba8};
 pub use math::{Mat4, Vec2, Vec3, rad};
 pub use path::Seg;
 pub use raster::Canvas;
