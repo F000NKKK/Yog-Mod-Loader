@@ -22,12 +22,14 @@ pub mod text;
 #[cfg(feature = "toml")]
 pub mod toml;
 pub mod typed;
+mod stream;
 mod value;
 pub mod with;
 
 pub use text::{Doc, LineCol, Span, Spans, SyntaxError};
 pub use borrowed::{MapRef, ValueRef};
 pub use bumpalo::Bump;
+pub use stream::{Stream, StreamWriter};
 pub use value::{Map, Path, Ref, Res, Seg, Value};
 pub mod schema;
 

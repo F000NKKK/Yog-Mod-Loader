@@ -30,6 +30,13 @@
 //! | 14 | translation key | string |
 //! | 15 | bytes | varint length, the bytes |
 //! | 16 | list of ints, packed | varint count, zigzag varints |
+//! | 17 | stream | u32 byte length, then varint count and values with their own strings |
+//! | 18 | float, 32-bit | f32, little-endian |
+//! | 19 | list of floats, packed | varint count, f64 each, little-endian |
+//! | 20 | list of 32-bit floats, packed | varint count, f32 each, little-endian |
+//!
+//! Nothing is aligned: numbers are read out of the bytes wherever they are,
+//! so no padding is ever written.
 //!
 //! Varints are LEB128. Decoding checks every length against the input, so
 //! malformed bytes are an error, never a panic or a huge allocation.
@@ -78,7 +85,16 @@ pub(crate) mod tag {
     pub const BYTES: u8 = 15;
     /// A list of ints without a tag each: what a schema of numbers writes its lists as.
     pub const INTS: u8 = 16;
+    /// A list in a body of its own (its own strings): read lazily, cut out whole ([`crate::Stream`]).
+    pub const STREAM: u8 = 17;
+    pub const FLOAT32: u8 = 18;
+    /// Lists of floats without a tag each.
+    pub const FLOATS: u8 = 19;
+    pub const FLOATS32: u8 = 20;
 }
+
+/// A stream's length: fixed width, so the writer fills it in after its items.
+pub(crate) const STREAM_LEN_BYTES: usize = 4;
 
 /// A string's varint: a new one's (odd, its length) or a reference to the
 /// table (even, its index).

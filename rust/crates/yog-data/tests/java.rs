@@ -114,20 +114,29 @@ fn java_reads_and_writes_the_same_bytes() {
             "{name}: Java wrote different bytes"
         );
     }
-    // A packed list of ints (what a schema of numbers writes) reads as a list:
-    // Java writes it back unpacked, the same value.
-    let packed = yog_data::to_bytes(&vec![1u16, 300, 7, u16::MAX]);
-    let (input, output) = (dir.join("packed.in"), dir.join("packed.out"));
-    std::fs::write(&input, &packed).unwrap();
-    let run = Command::new(jdk_tool("java"))
-        .arg("-cp")
-        .arg(std::env::join_paths([dir.clone(), gson()]).unwrap())
-        .arg("RoundTrip")
-        .arg(&input)
-        .arg(&output)
-        .status()
-        .expect("java");
-    assert!(run.success(), "packed: Java failed");
-    assert_eq!(binary::decode(&std::fs::read(&output).unwrap()).unwrap(), binary::decode(&packed).unwrap());
+    // A packed list of ints (what a schema of numbers writes) and a stream
+    // read as lists: Java writes them back as plain lists, the same values.
+    let stream: yog_data::Stream<String> = ["minecraft:stone", "x", "minecraft:stone"].map(String::from).into_iter().collect();
+    let lists = [
+        ("packed", yog_data::to_bytes(&vec![1u16, 300, 7, u16::MAX])),
+        ("stream", yog_data::to_bytes(&stream)),
+        ("floats", yog_data::to_bytes(&vec![0.5f64, -1e300, f64::MIN_POSITIVE])),
+        ("floats32", yog_data::to_bytes(&vec![0.25f32, -3.5])),
+        ("float32", yog_data::to_bytes(&1.5f32)),
+    ];
+    for (name, bytes) in lists {
+        let (input, output) = (dir.join(format!("{name}.in")), dir.join(format!("{name}.out")));
+        std::fs::write(&input, &bytes).unwrap();
+        let run = Command::new(jdk_tool("java"))
+            .arg("-cp")
+            .arg(std::env::join_paths([dir.clone(), gson()]).unwrap())
+            .arg("RoundTrip")
+            .arg(&input)
+            .arg(&output)
+            .status()
+            .expect("java");
+        assert!(run.success(), "{name}: Java failed");
+        assert_eq!(binary::decode(&std::fs::read(&output).unwrap()).unwrap(), binary::decode(&bytes).unwrap(), "{name}");
+    }
     let _ = std::fs::remove_dir_all(&dir);
 }

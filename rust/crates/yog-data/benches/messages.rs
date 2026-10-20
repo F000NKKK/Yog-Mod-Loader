@@ -83,6 +83,29 @@ struct Blob {
     bytes: Vec<u8>,
 }
 
+/// A big list of structs: whole (`Vec`), or kept written (`Stream`, read when asked).
+#[derive(Schema, Clone, PartialEq, Debug)]
+struct Placed {
+    id: String,
+    count: u32,
+}
+
+#[derive(Schema, Clone, PartialEq, Debug)]
+struct Placements {
+    items: Vec<Placed>,
+}
+
+#[derive(Schema, Clone, PartialEq, Debug)]
+struct PlacementStream {
+    items: yog_data::Stream<Placed>,
+}
+
+const PLACED: usize = 10_000;
+
+fn placed() -> Vec<Placed> {
+    (0..PLACED).map(|i| Placed { id: format!("minecraft:block_{}", i % 16), count: i as u32 }).collect()
+}
+
 const MANY: usize = 2000;
 const FEW_KINDS: usize = 8;
 const DEPTH: i32 = 50;
@@ -190,6 +213,12 @@ fn bench(c: &mut Criterion) {
     case(c, "entity_info", &entity(), Some(raw::entity));
     case(c, "inventory", &inventory(), None);
     case(c, "area_32", &area(), Some(raw::area));
+    case(c, "placed_vec_10k", &Placements { items: placed() }, None);
+    let stream = PlacementStream { items: placed().into_iter().collect() };
+    case(c, "placed_stream_10k", &stream, None);
+    c.bench_function("placed_stream_10k/build from items", |b| b.iter(|| placed().into_iter().collect::<yog_data::Stream<Placed>>()));
+    c.bench_function("placed_vec_10k/build from items", |b| b.iter(placed));
+    c.bench_function("placed_stream_10k/read all items", |b| b.iter(|| black_box(&stream).items.iter().count()));
     case(c, "strings_unique", &strings(MANY), None);
     case(c, "strings_repeated", &strings(FEW_KINDS), None);
     case(c, "nested_50", &chain(), None);

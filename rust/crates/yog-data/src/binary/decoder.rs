@@ -5,9 +5,13 @@ use std::sync::Arc;
 
 use bumpalo::Bump;
 
-use super::{DecodeError, MAGIC, MAX_DEPTH, NEW_STRING, VARINT_BITS, VARINT_MORE, VARINT_SHIFT, VERSION, tag, unzigzag};
+use super::{DecodeError, MAGIC, MAX_DEPTH, NEW_STRING, STREAM_LEN_BYTES, VARINT_BITS, VARINT_MORE, VARINT_SHIFT, VERSION, tag, unzigzag};
 use crate::borrowed::{MapRef, ValueRef};
 use crate::value::{Map, Ref, Res, Value};
+
+/// Bytes of a float, and of a 32-bit one.
+const F64_BYTES: usize = 8;
+const F32_BYTES: usize = 4;
 
 /// The bits a varint can hold.
 const VARINT_MAX_SHIFT: u32 = 64;
@@ -40,6 +44,30 @@ impl<'b> Decoder<'b> {
             return Err(d.error(format!("Yog Data version {version}, this reads version {VERSION}")));
         }
         Ok(d)
+    }
+
+    /// A stream's body ([`crate::Stream`]): its count and values, its strings its own.
+    pub(crate) fn body(bytes: &'b [u8]) -> Self {
+        Decoder { b: bytes, i: 0, strings: Vec::new(), keys: Vec::new(), depth: 0 }
+    }
+
+    /// A stream's body: its bytes, read past.
+    fn stream_body(&mut self) -> Result<&'b [u8], DecodeError> {
+        let len = u32::from_le_bytes(self.fixed::<STREAM_LEN_BYTES>()?) as usize;
+        self.take(len)
+    }
+
+    /// A stream's values, decoded as a list.
+    fn stream_values(&mut self) -> Result<Vec<Value>, DecodeError> {
+        let mut d = Decoder::body(self.stream_body()?);
+        d.depth = self.depth;
+        let n = d.count(1)?;
+        let mut items = Vec::with_capacity(n);
+        for _ in 0..n {
+            items.push(d.value()?);
+        }
+        d.end()?;
+        Ok(items)
     }
 
     /// Whether every byte was read.
@@ -99,6 +127,13 @@ impl<'b> Decoder<'b> {
         Ok(out)
     }
 
+    /// A packed list of floats `N` bytes wide: each one's bytes, read in place (no alignment asked).
+    fn packed_floats<const N: usize>(&mut self) -> Result<std::slice::Iter<'b, [u8; N]>, DecodeError> {
+        let n = self.count(N)?;
+        let bytes = self.take(n * N)?;
+        Ok(bytes.as_chunks::<N>().0.iter())
+    }
+
     /// A length and that many bytes.
     fn length_bytes(&mut self) -> Result<&'b [u8], DecodeError> {
         let len = usize::try_from(self.varint()?).map_err(|_| self.error("a length beyond memory"))?;
@@ -149,6 +184,9 @@ impl<'b> Decoder<'b> {
             tag::TRUE => Value::Bool(true),
             tag::INT => Value::Int(unzigzag(self.varint()?)),
             tag::FLOAT => Value::Float(f64::from_le_bytes(self.fixed()?)),
+            tag::FLOAT32 => Value::Float(f64::from(f32::from_le_bytes(self.fixed()?))),
+            tag::FLOATS => Value::List(self.packed_floats::<F64_BYTES>()?.map(|f| Value::Float(f64::from_le_bytes(*f))).collect()),
+            tag::FLOATS32 => Value::List(self.packed_floats::<F32_BYTES>()?.map(|f| Value::Float(f64::from(f32::from_le_bytes(*f)))).collect()),
             tag::STR => Value::Str(self.string()?.to_owned()),
             tag::LIST => {
                 let n = self.count(1)?;
@@ -189,6 +227,7 @@ impl<'b> Decoder<'b> {
                 }
                 Value::List(items)
             }
+            tag::STREAM => Value::List(self.stream_values()?),
             t => {
                 self.i -= 1;
                 return Err(self.error(format!("unknown tag {t}")));
@@ -216,6 +255,15 @@ impl<'b> Decoder<'b> {
             tag::TRUE => ValueRef::Bool(true),
             tag::INT => ValueRef::Int(unzigzag(self.varint()?)),
             tag::FLOAT => ValueRef::Float(f64::from_le_bytes(self.fixed()?)),
+            tag::FLOAT32 => ValueRef::Float(f64::from(f32::from_le_bytes(self.fixed()?))),
+            t @ (tag::FLOATS | tag::FLOATS32) => {
+                let items: Vec<ValueRef<'a>> = if t == tag::FLOATS {
+                    self.packed_floats::<F64_BYTES>()?.map(|f| ValueRef::Float(f64::from_le_bytes(*f))).collect()
+                } else {
+                    self.packed_floats::<F32_BYTES>()?.map(|f| ValueRef::Float(f64::from(f32::from_le_bytes(*f)))).collect()
+                };
+                ValueRef::List(arena.alloc_slice_copy(&items))
+            }
             tag::STR => ValueRef::Str(self.string()?),
             tag::LIST => {
                 let n = self.count(1)?;
@@ -259,6 +307,20 @@ impl<'b> Decoder<'b> {
                 }
                 ValueRef::List(items.into_bump_slice())
             }
+            tag::STREAM => {
+                let mut d = Decoder::body(self.stream_body()?);
+                d.depth = self.depth;
+                let n = d.count(1)?;
+                let start = stack.len();
+                for _ in 0..n {
+                    let v = d.value_ref_in(arena, stack)?;
+                    stack.push(v);
+                }
+                d.end()?;
+                let items = arena.alloc_slice_copy(&stack[start..]);
+                stack.truncate(start);
+                ValueRef::List(items)
+            }
             t => {
                 self.i -= 1;
                 return Err(self.error(format!("unknown tag {t}")));
@@ -300,6 +362,10 @@ impl<'b> Decoder<'b> {
                 self.i += 1;
                 self.fixed().ok().map(f64::from_le_bytes)
             }
+            tag::FLOAT32 => {
+                self.i += 1;
+                self.fixed().ok().map(|b| f64::from(f32::from_le_bytes(b)))
+            }
             tag::INT => self.int().map(|n| n as f64),
             _ => None,
         }
@@ -327,6 +393,34 @@ impl<'b> Decoder<'b> {
     pub fn ints(&mut self) -> Option<usize> {
         self.next_is(tag::INTS)?;
         self.count(1).ok()
+    }
+
+    /// A stream next: its body (count and values, strings its own).
+    pub fn stream(&mut self) -> Option<&'b [u8]> {
+        self.next_is(tag::STREAM)?;
+        self.stream_body().ok()
+    }
+
+    /// What's left to read.
+    pub(crate) fn rest(&self) -> &'b [u8] {
+        &self.b[self.i..]
+    }
+
+    /// A stream body's count, first thing in it.
+    pub(crate) fn stream_count(&mut self) -> Option<usize> {
+        self.count(1).ok()
+    }
+
+    /// A packed list of floats next: each one.
+    pub fn floats(&mut self) -> Option<Vec<f64>> {
+        self.next_is(tag::FLOATS)?;
+        Some(self.packed_floats::<F64_BYTES>().ok()?.map(|f| f64::from_le_bytes(*f)).collect())
+    }
+
+    /// A packed list of 32-bit floats next: each one.
+    pub fn floats32(&mut self) -> Option<Vec<f32>> {
+        self.next_is(tag::FLOATS32)?;
+        Some(self.packed_floats::<F32_BYTES>().ok()?.map(|f| f32::from_le_bytes(*f)).collect())
     }
 
     /// One int of a packed list.

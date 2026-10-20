@@ -36,7 +36,11 @@ public final class YogData {
     private static final int NULL = 0, FALSE = 1, TRUE = 2, INT = 3, FLOAT = 4, STR = 5, LIST = 6, MAP = 7,
             REF = 8, TAG = 9, RES = 10, TEXT = 11, IMAGE = 12, COLOR = 13, LANG = 14, BYTES = 15,
             /** A list of ints, packed: no tag each. */
-            INTS = 16;
+            INTS = 16,
+            /** A list in a body of its own: a u32 length, then its count and values with their own strings. */
+            STREAM = 17,
+            /** A 32-bit float; lists of floats and of 32-bit floats, packed (no tag each). */
+            FLOAT32 = 18, FLOATS = 19, FLOATS32 = 20;
 
     /** Content of a kind ({@code item}, {@code block}, ...) by id. */
     public record Ref(String kind, String id) {}
@@ -152,6 +156,18 @@ public final class YogData {
                     return (z >>> 1) ^ -(z & 1);
                 }
                 case FLOAT: return Double.longBitsToDouble(fixed(8));
+                case FLOAT32: return (double) Float.intBitsToFloat((int) fixed(4));
+                case FLOATS:
+                case FLOATS32: {
+                    int width = tag == FLOATS ? 8 : 4;
+                    int n = count(width);
+                    List<Object> list = new ArrayList<>(n);
+                    for (int k = 0; k < n; k++) {
+                        long bits = fixed(width);
+                        list.add(tag == FLOATS ? Double.longBitsToDouble(bits) : (double) Float.intBitsToFloat((int) bits));
+                    }
+                    return list;
+                }
                 case STR: return string();
                 case LIST: {
                     int n = count(1);
@@ -175,6 +191,17 @@ public final class YogData {
                         long z = varint();
                         list.add((z >>> 1) ^ -(z & 1));
                     }
+                    return list;
+                }
+                case STREAM: {
+                    int len = (int) fixed(4);
+                    if (len < 0 || len > b.length - i) throw new DecodeException("stream of " + len + " bytes past the end", i);
+                    Reader body = new Reader(java.util.Arrays.copyOfRange(b, i, i + len));
+                    i += len;
+                    int n = body.count(1);
+                    List<Object> list = new ArrayList<>(n);
+                    for (int k = 0; k < n; k++) list.add(body.value(depth + 1));
+                    if (body.i != body.b.length) throw new DecodeException("bytes after a stream's values", i);
                     return list;
                 }
                 case REF: return new Ref(string(), string());

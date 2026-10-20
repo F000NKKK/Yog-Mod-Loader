@@ -85,7 +85,7 @@ macro_rules! int_schema {
 int_schema!(i8, i16, i32, i64, u8, u16, u32, u64, usize);
 
 macro_rules! float_schema {
-    ($($t:ty),*) => {$(
+    ($($t:ty => $one:ident, $many:ident, $read_many:ident);*) => {$(
         impl Schema for $t {
             fn shape() -> Shape {
                 Shape::Float
@@ -100,15 +100,21 @@ macro_rules! float_schema {
                 Value::Float(*self as f64)
             }
             fn encode(&self, w: &mut Writer) {
-                w.float(*self as f64);
+                w.$one(*self);
             }
             fn decode(d: &mut Decoder<'_>) -> Option<Self> {
                 d.float().map(|f| f as $t)
             }
+            fn encode_list(items: &[Self], w: &mut Writer) {
+                w.$many(items);
+            }
+            fn decode_list(d: &mut Decoder<'_>) -> Option<Vec<Self>> {
+                d.$read_many()
+            }
         }
     )*};
 }
-float_schema!(f32, f64);
+float_schema!(f32 => float32, floats32, floats32; f64 => float, floats, floats);
 
 impl Schema for String {
     fn shape() -> Shape {
@@ -234,6 +240,64 @@ impl<T: Schema> Schema for Vec<T> {
     }
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         T::decode_list(d)
+    }
+}
+
+/// A string that won't change: a pointer and a length, no spare capacity
+/// (`String`'s third word) — what big tables of names keep.
+impl Schema for Box<str> {
+    fn shape() -> Shape {
+        Shape::Str
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        String::read(v, cx).map(String::into_boxed_str)
+    }
+    fn write(&self) -> Value {
+        Value::Str(self.to_string())
+    }
+    fn encode(&self, w: &mut Writer) {
+        w.str(self);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        String::decode(d).map(String::into_boxed_str)
+    }
+}
+
+/// A string shared without copying.
+impl Schema for std::sync::Arc<str> {
+    fn shape() -> Shape {
+        Shape::Str
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        String::read(v, cx).map(Into::into)
+    }
+    fn write(&self) -> Value {
+        Value::Str(self.to_string())
+    }
+    fn encode(&self, w: &mut Writer) {
+        w.str(self);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        String::decode(d).map(Into::into)
+    }
+}
+
+/// A list that won't change: no spare capacity.
+impl<T: Schema> Schema for Box<[T]> {
+    fn shape() -> Shape {
+        Shape::List(T::shape)
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        Vec::<T>::read(v, cx).map(Vec::into_boxed_slice)
+    }
+    fn write(&self) -> Value {
+        Value::List(self.iter().map(T::write).collect())
+    }
+    fn encode(&self, w: &mut Writer) {
+        T::encode_list(self, w);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        T::decode_list(d).map(Vec::into_boxed_slice)
     }
 }
 

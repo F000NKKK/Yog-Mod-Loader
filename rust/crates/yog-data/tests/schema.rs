@@ -412,7 +412,10 @@ fn messages_go_straight_and_as_the_value_would() {
         bytes: vec![1, 2, 3],
     };
     let straight = yog_data::to_bytes(&m);
-    assert_eq!(straight, binary::encode(&m.write()), "the same bytes either way");
+    // The same value either way; straight is never longer (a `f32` takes four bytes, not eight).
+    let via_value = binary::encode(&m.write());
+    assert_eq!(binary::decode(&straight).unwrap(), binary::decode(&via_value).unwrap());
+    assert!(straight.len() < via_value.len());
     let mut d = binary::Decoder::open(&straight).unwrap();
     assert_eq!(Message::decode(&mut d).as_ref(), Some(&m), "read straight, not the slow way");
     assert!(d.at_end());
@@ -433,4 +436,57 @@ fn messages_go_straight_and_as_the_value_would() {
     let bytes = binary::encode(&more);
     assert!(Message::decode(&mut binary::Decoder::open(&bytes).unwrap()).is_none());
     assert!(yog_data::read_bytes::<Message>(&bytes).unwrap_err().iter().any(|p| p.message.contains("nope")));
+}
+
+/// A big list kept written: items as they come, read when asked.
+#[derive(Schema, Debug, Clone, PartialEq)]
+struct Area {
+    name: String,
+    palette: Vec<String>,
+    blocks: yog_data::Stream<Placed>,
+    after: String,
+}
+
+#[derive(Schema, Debug, Clone, PartialEq)]
+struct Placed {
+    id: String,
+    count: u32,
+}
+
+#[test]
+fn streams_go_whole_and_read_lazily() {
+    let blocks: yog_data::Stream<Placed> = (0..500).map(|i| Placed { id: format!("minecraft:{}", ["stone", "dirt"][i % 2]), count: i as u32 }).collect();
+    // Strings the rest of the document has too: the stream's are its own.
+    let area = Area { name: "minecraft:stone".into(), palette: vec!["minecraft:dirt".into()], blocks, after: "minecraft:stone".into() };
+    let bytes = yog_data::to_bytes(&area);
+    let back: Area = yog_data::read_bytes(&bytes).unwrap();
+    assert_eq!(back, area);
+    assert_eq!(back.blocks.iter().nth(3), Some(Placed { id: "minecraft:dirt".into(), count: 3 }));
+    // The value way reads it as a list; the text way writes and reads it too.
+    let value = binary::decode(&bytes).unwrap();
+    assert_eq!(value.get("blocks").and_then(|b| b.as_list()).map(<[Value]>::len), Some(500));
+    let text = yog_data::to_text(&area);
+    assert_eq!(yog_data::from_text::<Area>(&text).unwrap().value, area);
+    // Cut short anywhere, it's an error, never a panic.
+    for len in 0..bytes.len() {
+        assert!(yog_data::read_bytes::<Area>(&bytes[..len]).is_err(), "truncated at {len}");
+    }
+}
+
+/// Compact owned types (no spare capacity) and 32-bit floats, written straight.
+#[derive(Schema, Debug, Clone, PartialEq)]
+struct Compact {
+    name: Box<str>,
+    shared: std::sync::Arc<str>,
+    ids: Box<[u32]>,
+    weights: Vec<f32>,
+    scale: f32,
+}
+
+#[test]
+fn compact_types_round_trip() {
+    let c = Compact { name: "a".into(), shared: "b".into(), ids: vec![1, 2].into_boxed_slice(), weights: vec![0.5, 1.25], scale: 2.5 };
+    let bytes = yog_data::to_bytes(&c);
+    assert_eq!(yog_data::read_bytes::<Compact>(&bytes).unwrap(), c);
+    assert_eq!(yog_data::from_text::<Compact>(&yog_data::to_text(&c)).unwrap().value, c);
 }
