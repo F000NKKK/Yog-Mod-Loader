@@ -26,7 +26,11 @@ impl Rng {
 
     /// In `0..n`.
     pub fn below(&mut self, n: u32) -> u32 {
-        if n == 0 { 0 } else { (self.next_u64() % n as u64) as u32 }
+        if n == 0 {
+            0
+        } else {
+            (self.next_u64() % n as u64) as u32
+        }
     }
 
     /// In `0.0..1.0`.
@@ -40,8 +44,11 @@ pub fn mix(a: u64, b: u64) -> u64 {
     Rng::new(a ^ b.rotate_left(32)).next_u64()
 }
 
+/// Perlin's fade, 6t⁵ − 15t⁴ + 10t³: its coefficients, highest first.
+const FADE: [f64; 3] = [6.0, -15.0, 10.0];
+
 fn fade(t: f64) -> f64 {
-    t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
+    t * t * t * FADE.iter().fold(0.0, |acc, c| acc * t + c)
 }
 
 fn lerp(t: f64, a: f64, b: f64) -> f64 {
@@ -51,7 +58,13 @@ fn lerp(t: f64, a: f64, b: f64) -> f64 {
 fn grad3(hash: u8, x: f64, y: f64, z: f64) -> f64 {
     let h = hash & 15;
     let u = if h < 8 { x } else { y };
-    let v = if h < 4 { y } else if h == 12 || h == 14 { x } else { z };
+    let v = if h < 4 {
+        y
+    } else if h == 12 || h == 14 {
+        x
+    } else {
+        z
+    };
     (if h & 1 == 0 { u } else { -u }) + (if h & 2 == 0 { v } else { -v })
 }
 
@@ -71,7 +84,11 @@ impl Perlin {
     }
 
     pub fn get3(&self, x: f64, y: f64, z: f64) -> f64 {
-        let (xi, yi, zi) = (x.floor() as i64 as usize & 255, y.floor() as i64 as usize & 255, z.floor() as i64 as usize & 255);
+        let (xi, yi, zi) = (
+            x.floor() as i64 as usize & 255,
+            y.floor() as i64 as usize & 255,
+            z.floor() as i64 as usize & 255,
+        );
         let (xf, yf, zf) = (x - x.floor(), y - y.floor(), z - z.floor());
         let (u, v, w) = (fade(xf), fade(yf), fade(zf));
         let p = &self.perm;
@@ -84,12 +101,24 @@ impl Perlin {
             lerp(
                 v,
                 lerp(u, grad3(p[aa], xf, yf, zf), grad3(p[ba], xf - 1.0, yf, zf)),
-                lerp(u, grad3(p[ab], xf, yf - 1.0, zf), grad3(p[bb], xf - 1.0, yf - 1.0, zf)),
+                lerp(
+                    u,
+                    grad3(p[ab], xf, yf - 1.0, zf),
+                    grad3(p[bb], xf - 1.0, yf - 1.0, zf),
+                ),
             ),
             lerp(
                 v,
-                lerp(u, grad3(p[aa + 1], xf, yf, zf - 1.0), grad3(p[ba + 1], xf - 1.0, yf, zf - 1.0)),
-                lerp(u, grad3(p[ab + 1], xf, yf - 1.0, zf - 1.0), grad3(p[bb + 1], xf - 1.0, yf - 1.0, zf - 1.0)),
+                lerp(
+                    u,
+                    grad3(p[aa + 1], xf, yf, zf - 1.0),
+                    grad3(p[ba + 1], xf - 1.0, yf, zf - 1.0),
+                ),
+                lerp(
+                    u,
+                    grad3(p[ab + 1], xf, yf - 1.0, zf - 1.0),
+                    grad3(p[bb + 1], xf - 1.0, yf - 1.0, zf - 1.0),
+                ),
             ),
         )
     }

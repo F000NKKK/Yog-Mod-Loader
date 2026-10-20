@@ -134,9 +134,15 @@ pub struct Generator {
 
 impl Generator {
     pub fn new(terrain: Terrain) -> Generator {
-        let height = (0..terrain.noise.len()).map(|i| Perlin::new(mix(terrain.seed, i as u64 + 1))).collect();
+        let height = (0..terrain.noise.len())
+            .map(|i| Perlin::new(mix(terrain.seed, i as u64 + 1)))
+            .collect();
         let caves = Perlin::new(mix(terrain.seed, 0xCA7E));
-        Generator { terrain, height, caves }
+        Generator {
+            terrain,
+            height,
+            caves,
+        }
     }
 
     /// The height of the ground's top block at `x`, `z`.
@@ -144,7 +150,13 @@ impl Generator {
         let t = &self.terrain;
         let mut h = t.base_height as f64;
         for (layer, noise) in t.noise.iter().zip(&self.height) {
-            h += layer.amplitude * noise.fbm2(x as f64 / layer.scale, z as f64 / layer.scale, layer.octaves, layer.persistence);
+            h += layer.amplitude
+                * noise.fbm2(
+                    x as f64 / layer.scale,
+                    z as f64 / layer.scale,
+                    layer.octaves,
+                    layer.persistence,
+                );
         }
         h.round() as i32
     }
@@ -159,13 +171,19 @@ impl Generator {
             return Some(b);
         }
         if y > surface {
-            return t.fluid.as_ref().filter(|f| y <= f.level).map(|f| f.block.as_str());
+            return t
+                .fluid
+                .as_ref()
+                .filter(|f| y <= f.level)
+                .map(|f| f.block.as_str());
         }
         if let Some(c) = &t.caves
             && y > min_y
             && y < surface
         {
-            let n = self.caves.get3(x as f64 / c.scale, y as f64 / c.scale, z as f64 / c.scale);
+            let n = self
+                .caves
+                .get3(x as f64 / c.scale, y as f64 / c.scale, z as f64 / c.scale);
             // Perlin is about -1..1; the threshold is over 0..1.
             if (n + 1.0) / 2.0 > c.threshold {
                 return None;
@@ -184,7 +202,14 @@ impl Generator {
 
     /// Generates chunk `cx`, `cz` of a world `height` blocks from `min_y`:
     /// `set(x, y, z, block)` for every block that isn't air (`x`, `z` 0..16).
-    pub fn generate(&self, cx: i32, cz: i32, min_y: i32, height: i32, mut set: impl FnMut(i32, i32, i32, &str)) {
+    pub fn generate(
+        &self,
+        cx: i32,
+        cz: i32,
+        min_y: i32,
+        height: i32,
+        mut set: impl FnMut(i32, i32, i32, &str),
+    ) {
         let top = min_y + height - 1;
         let mut surfaces = [[0i32; 16]; 16];
         for lx in 0..16 {
@@ -192,7 +217,12 @@ impl Generator {
                 let (x, z) = (cx * 16 + lx, cz * 16 + lz);
                 let s = self.surface(x, z).clamp(min_y, top);
                 surfaces[lx as usize][lz as usize] = s;
-                let up = self.terrain.fluid.as_ref().map_or(s, |f| f.level.max(s)).min(top);
+                let up = self
+                    .terrain
+                    .fluid
+                    .as_ref()
+                    .map_or(s, |f| f.level.max(s))
+                    .min(top);
                 for y in min_y..=up {
                     if let Some(b) = self.block_at(x, y, z, s, min_y) {
                         set(lx, y, lz, b);
@@ -202,14 +232,21 @@ impl Generator {
         }
         // Ores: veins started at random in the chunk, kept inside it.
         for (i, ore) in self.terrain.ores.iter().enumerate() {
-            let mut rng = Rng::new(mix(mix(self.terrain.seed, i as u64 + 100), ((cx as u64) << 32) ^ (cz as u32 as u64)));
+            let mut rng = Rng::new(mix(
+                mix(self.terrain.seed, i as u64 + 100),
+                ((cx as u64) << 32) ^ (cz as u32 as u64),
+            ));
             let replaces = ore.replaces.as_deref().unwrap_or(&self.terrain.fill);
             for _ in 0..ore.per_chunk {
                 let (lo, hi) = (ore.min.max(min_y), ore.max.min(top));
                 if hi < lo {
                     break;
                 }
-                let (mut lx, mut y, mut lz) = (rng.below(16) as i32, lo + rng.below((hi - lo + 1) as u32) as i32, rng.below(16) as i32);
+                let (mut lx, mut y, mut lz) = (
+                    rng.below(16) as i32,
+                    lo + rng.below((hi - lo + 1) as u32) as i32,
+                    rng.below(16) as i32,
+                );
                 for _ in 0..ore.size {
                     if (0..16).contains(&lx) && (0..16).contains(&lz) && y >= min_y && y <= top {
                         let (x, z) = (cx * 16 + lx, cz * 16 + lz);
@@ -255,15 +292,33 @@ mod tests {
             blocks.insert((x, y, z), b.to_string());
         });
         let s = g.surface(0, 0);
-        assert_eq!(blocks.get(&(0, 0, 0)).map(String::as_str), Some("minecraft:bedrock"));
+        assert_eq!(
+            blocks.get(&(0, 0, 0)).map(String::as_str),
+            Some("minecraft:bedrock")
+        );
         let top = blocks.get(&(0, s, 0)).map(String::as_str);
-        assert!(matches!(top, Some("minecraft:grass_block" | "minecraft:iron_ore")), "{top:?} at {s}");
-        assert!(blocks.get(&(0, s - 2, 0)).is_some_and(|b| b == "minecraft:dirt" || b == "minecraft:iron_ore"));
-        assert!(blocks.values().any(|b| b == "minecraft:iron_ore"), "ores in the stone");
+        assert!(
+            matches!(top, Some("minecraft:grass_block" | "minecraft:iron_ore")),
+            "{top:?} at {s}"
+        );
+        assert!(
+            blocks
+                .get(&(0, s - 2, 0))
+                .is_some_and(|b| b == "minecraft:dirt" || b == "minecraft:iron_ore")
+        );
+        assert!(
+            blocks.values().any(|b| b == "minecraft:iron_ore"),
+            "ores in the stone"
+        );
         // Somewhere in a 16×16 chunk of hills ±20 around 64 the ground is under 62: water there.
-        let low = (0..16).flat_map(|x| (0..16).map(move |z| (x, z))).find(|&(x, z)| g.surface(x, z) < 61);
+        let low = (0..16)
+            .flat_map(|x| (0..16).map(move |z| (x, z)))
+            .find(|&(x, z)| g.surface(x, z) < 61);
         if let Some((x, z)) = low {
-            assert_eq!(blocks.get(&(x, 62, z)).map(String::as_str), Some("minecraft:water"));
+            assert_eq!(
+                blocks.get(&(x, 62, z)).map(String::as_str),
+                Some("minecraft:water")
+            );
         }
         // The same terrain, the same chunk.
         let mut again = std::collections::HashMap::new();

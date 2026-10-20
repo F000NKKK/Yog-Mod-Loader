@@ -20,7 +20,7 @@ fn no_java(_: i32, _: &[u8], _: &YogReply) -> YogStatus {
 /// An event over `n` live mods' handlers that all let it happen: each
 /// call emits it once through the bus's router.
 pub fn dispatch(n: usize) -> impl FnMut() -> YogStatus {
-    let module = LoadedModule::this_process(GenerationAllocator::new().next());
+    let module = LoadedModule::this_process(GenerationAllocator::new().next()).expect("the bench program as a module");
     let router = Router::default();
     let event = router.resolve("bench:event");
     for _ in 0..n {

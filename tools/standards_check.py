@@ -120,7 +120,7 @@ def test_start(lines, path):
     if path.endswith(".rs") and test_only_module(path):
         return 0
     for i, l in enumerate(lines):
-        if l.strip().startswith("#[cfg(test)]"):
+        if re.match(r"^\s*#\[cfg\((test|all\(test\b|any\(test\b)", l):
             # The test module, not a test-only item before it.
             k = i + 1
             while k < len(lines) and lines[k].strip().startswith("#["):

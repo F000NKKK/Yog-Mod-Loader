@@ -27,6 +27,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
+use yog_sync::Locked;
 
 use libloading::Library;
 
@@ -91,7 +92,7 @@ fn try_unload(inner: &Inner) {
         inner.unloaded.store(false, Ordering::SeqCst);
         return;
     }
-    if let Some(on_retire) = inner.on_retire.lock().unwrap().take() {
+    if let Some(on_retire) = inner.on_retire.locked().take() {
         on_retire();
     }
     *library = None;
@@ -129,21 +130,19 @@ impl LoadedModule {
     /// The running program itself as a module: for testing code that
     /// registers and dispatches through modules without a mod library.
     #[cfg(feature = "testing")]
-    pub fn this_process(generation: ModuleGeneration) -> Self {
+    pub fn this_process(generation: ModuleGeneration) -> Result<Self, libloading::Error> {
         #[cfg(unix)]
         let library: Library = libloading::os::unix::Library::this().into();
         #[cfg(windows)]
-        let library: Library = libloading::os::windows::Library::this()
-            .expect("the running program as a library")
-            .into();
-        LoadedModule(Arc::new(Inner {
+        let library: Library = libloading::os::windows::Library::this()?.into();
+        Ok(LoadedModule(Arc::new(Inner {
             generation,
             library: Mutex::new(Some(library)),
             active: AtomicUsize::new(0),
             retiring: AtomicBool::new(false),
             unloaded: AtomicBool::new(false),
             on_retire: Mutex::new(None),
-        }))
+        })))
     }
 
     pub fn generation(&self) -> ModuleGeneration {
@@ -153,7 +152,7 @@ impl LoadedModule {
     /// Whether the underlying native is still `dlopen`'d — `false` once it's
     /// been hard-unloaded (immediately or after a deferred retirement).
     pub fn is_loaded(&self) -> bool {
-        self.0.library.lock().unwrap().is_some()
+        self.0.library.locked().is_some()
     }
 
     /// Whether this generation has been superseded by a newer one — `true`
@@ -172,7 +171,7 @@ impl LoadedModule {
     /// once it has been unloaded, instead of the dangling-pointer crash
     /// calling into a `dlclose`'d library would otherwise cause.
     pub fn with_library<T>(&self, f: impl FnOnce(&Library) -> T) -> Option<T> {
-        self.0.library.lock().unwrap().as_ref().map(f)
+        self.0.library.locked().as_ref().map(f)
     }
 
     /// Marks the start of a call into this module's code. Returns `None` if
@@ -200,7 +199,7 @@ impl LoadedModule {
     /// `on_hard_unload` immediately beforehand — the moment nothing is
     /// executing inside it (immediately, if that's already true).
     pub fn retire(&self, on_hard_unload: impl FnOnce() + Send + 'static) {
-        *self.0.on_retire.lock().unwrap() = Some(Box::new(on_hard_unload));
+        *self.0.on_retire.locked() = Some(Box::new(on_hard_unload));
         self.0.retiring.store(true, Ordering::SeqCst);
         try_unload(&self.0);
     }
@@ -264,10 +263,7 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
     ) -> Result<LoadedModule, libloading::Error> {
         let generation = self.generations.next();
         let module = unsafe { LoadedModule::load(path, generation)? };
-        self.loaded
-            .lock()
-            .unwrap()
-            .insert(mod_id.into(), module.clone());
+        self.loaded.locked().insert(mod_id.into(), module.clone());
         Ok(module)
     }
 
@@ -287,8 +283,7 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
 
         let old_module = self
             .loaded
-            .lock()
-            .unwrap()
+            .locked()
             .insert(mod_id.to_string(), new_module.clone());
 
         if let Some(old_module) = old_module {
@@ -304,14 +299,13 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
 
     /// The currently-active module for `mod_id`, if any.
     pub fn active(&self, mod_id: &str) -> Option<LoadedModule> {
-        self.loaded.lock().unwrap().get(mod_id).cloned()
+        self.loaded.locked().get(mod_id).cloned()
     }
 
     /// Every currently-active module, keyed by mod id.
     pub fn all_active(&self) -> Vec<(String, LoadedModule)> {
         self.loaded
-            .lock()
-            .unwrap()
+            .locked()
             .iter()
             .map(|(id, module)| (id.clone(), module.clone()))
             .collect()
@@ -330,7 +324,8 @@ mod lifecycle_tests {
 
     #[test]
     fn a_retired_module_unloads_once_the_last_call_returns() {
-        let m = LoadedModule::this_process(GenerationAllocator::new().next());
+        let m = LoadedModule::this_process(GenerationAllocator::new().next())
+            .expect("the test program as a module");
         let unloads = Arc::new(AtomicUsize::new(0));
         let guard = m.enter().expect("loaded");
         let u = unloads.clone();
@@ -342,7 +337,11 @@ mod lifecycle_tests {
         assert!(second.is_some(), "still loaded while a call runs");
         drop(second);
         drop(guard);
-        assert_eq!(unloads.load(Ordering::SeqCst), 1, "unloaded when the last call returned");
+        assert_eq!(
+            unloads.load(Ordering::SeqCst),
+            1,
+            "unloaded when the last call returned"
+        );
         assert!(m.enter().is_none(), "gone");
         m.retire(|| {});
         assert_eq!(unloads.load(Ordering::SeqCst), 1, "once");
@@ -351,7 +350,8 @@ mod lifecycle_tests {
     #[test]
     fn calls_racing_a_retirement_never_run_in_an_unloaded_module() {
         for _ in 0..200 {
-            let m = LoadedModule::this_process(GenerationAllocator::new().next());
+            let m = LoadedModule::this_process(GenerationAllocator::new().next())
+                .expect("the test program as a module");
             let inside_after_unload = Arc::new(AtomicBool::new(false));
             let unloaded = Arc::new(AtomicBool::new(false));
             let callers: Vec<_> = (0..4)
@@ -374,7 +374,10 @@ mod lifecycle_tests {
             for c in callers {
                 c.join().unwrap();
             }
-            assert!(!inside_after_unload.load(Ordering::SeqCst), "a call ran after the unload");
+            assert!(
+                !inside_after_unload.load(Ordering::SeqCst),
+                "a call ran after the unload"
+            );
             assert!(unloaded.load(Ordering::SeqCst), "it did unload");
         }
     }

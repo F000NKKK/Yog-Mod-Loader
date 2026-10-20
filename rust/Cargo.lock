@@ -1969,6 +1969,7 @@ dependencies = [
  "serde",
  "serde_json",
  "yog-data",
+ "yog-ids",
 ]
 
 [[package]]
@@ -2040,6 +2041,7 @@ name = "yog-hot-reload"
 version = "0.2.3"
 dependencies = [
  "libloading",
+ "yog-sync",
 ]
 
 [[package]]
@@ -2144,6 +2146,9 @@ dependencies = [
 [[package]]
 name = "yog-storage"
 version = "0.1.2"
+dependencies = [
+ "yog-ids",
+]
 
 [[package]]
 name = "yog-symbols"
@@ -2176,6 +2181,7 @@ name = "yog-worldgen"
 version = "0.3.0"
 dependencies = [
  "yog-data",
+ "yog-ids",
 ]
 
 [[package]]

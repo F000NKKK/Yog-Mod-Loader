@@ -42,13 +42,14 @@ pub fn render(text: &str, size: u32) -> Result<Preview, String> {
     let height = int("height").unwrap_or(384);
     let g = Generator::new(terrain);
     let half = size as i32 / 2;
-    let top = preview::top_down(&g, -half, -half, size, size, min_y);
+    let top = preview::top_down(&g, preview::Area { x: -half, z: -half, w: size, h: size }, min_y);
     // The slice: from a little over the highest ground (or the fluid) down, 160 blocks at most.
     let highest = (-half..half).map(|x| g.surface(x, 0)).max().unwrap_or(0);
     let fluid = g.terrain.fluid.as_ref().map_or(i32::MIN, |f| f.level);
     let slice_top = (highest.max(fluid) + 4).min(min_y + height - 1);
     let slice_bottom = (slice_top - 160).max(min_y);
-    let slice = preview::slice(&g, -half, 0, size, slice_top, slice_bottom, min_y);
+    let rows = (slice_top - slice_bottom + 1) as u32;
+    let slice = preview::slice(&g, preview::Area { x: -half, z: 0, w: size, h: rows }, slice_top, min_y);
     Ok(Preview {
         top: png(&top, size, size)?,
         slice: png(&slice, size, (slice_top - slice_bottom + 1) as u32)?,

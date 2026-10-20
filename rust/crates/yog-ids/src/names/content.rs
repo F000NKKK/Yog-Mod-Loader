@@ -171,6 +171,8 @@ names! {
         /// The UI theme drawn like the game's own screens.
         VANILLA_THEME = id!(ns::MINECRAFT, "vanilla"),
         OVERWORLD = id!(ns::MINECRAFT, "overworld"),
+        /// The biome a dimension is all of when it doesn't say.
+        PLAINS = id!(ns::MINECRAFT, "plains"),
         THE_NETHER = id!(ns::MINECRAFT, "the_nether"),
         THE_END = id!(ns::MINECRAFT, "the_end"),
         /// The texture the game draws where one is missing.

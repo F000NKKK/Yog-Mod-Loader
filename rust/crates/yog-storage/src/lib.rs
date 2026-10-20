@@ -204,11 +204,7 @@ impl Storage {
 
     /// Open a **per-player** store (keyed by player UUID).
     pub fn open_player(root: &str, mod_id: &str, player_uuid: &str) -> Self {
-        Self::from_path(scope_path(
-            root,
-            mod_id,
-            StorageScope::Player(player_uuid),
-        ))
+        Self::from_path(scope_path(root, mod_id, StorageScope::Player(player_uuid)))
     }
 
     /// Open a **per-dimension** store.
@@ -218,11 +214,7 @@ impl Storage {
 
     /// Open a **per-entity** store (keyed by entity UUID).
     pub fn open_entity(root: &str, mod_id: &str, entity_uuid: &str) -> Self {
-        Self::from_path(scope_path(
-            root,
-            mod_id,
-            StorageScope::Entity(entity_uuid),
-        ))
+        Self::from_path(scope_path(root, mod_id, StorageScope::Entity(entity_uuid)))
     }
 
     /// Open a **per-chunk** store.
@@ -356,22 +348,43 @@ impl Drop for Storage {
 
 // ── internal helpers ──────────────────────────────────────────────────────────
 
+/// Where a mod's stores go under the save, and how each scope's is named.
+const DATA_DIR: &str = "yog-data";
+const STORE_EXT: &str = "kv";
+const GLOBAL: &str = "global";
+const PLAYER_DIR: &str = "player";
+const WORLD_DIR: &str = "world";
+const ENTITY_DIR: &str = "entity";
+const CHUNK_DIR: &str = "chunk";
+
 fn scope_path(root: &str, mod_id: &str, scope: StorageScope<'_>) -> PathBuf {
-    let safe_mod = mod_id.replace([':', '/'], "_");
-    let base = Path::new(root).join("yog-data").join(safe_mod);
-    match scope {
-        StorageScope::Global => base.join("global.kv"),
-        StorageScope::Player(uuid) => base.join("player").join(format!("{uuid}.kv")),
-        StorageScope::World(dim) => base.join("world").join(format!("{}.kv", dim_safe(dim))),
-        StorageScope::Entity(uuid) => base.join("entity").join(format!("{uuid}.kv")),
-        StorageScope::Chunk(dim, x, z) => base
-            .join("chunk")
-            .join(format!("{}_{x}_{z}.kv", dim_safe(dim))),
+    let safe_mod = file_safe(mod_id);
+    let base = Path::new(root).join(DATA_DIR).join(safe_mod);
+    let (dir, name) = match scope {
+        StorageScope::Global => (None, GLOBAL.to_string()),
+        StorageScope::Player(uuid) => (Some(PLAYER_DIR), uuid.to_string()),
+        StorageScope::World(dim) => (Some(WORLD_DIR), dim_safe(dim)),
+        StorageScope::Entity(uuid) => (Some(ENTITY_DIR), uuid.to_string()),
+        StorageScope::Chunk(dim, x, z) => (Some(CHUNK_DIR), format!("{}_{x}_{z}", dim_safe(dim))),
+    };
+    let file = format!("{name}.{STORE_EXT}");
+    match dir {
+        Some(dir) => base.join(dir).join(file),
+        None => base.join(file),
     }
 }
 
+/// What a name's separators become in a file name.
+const SAFE_SEP: &str = "_";
+
+/// `name` (`ns:path/x`) as one file name: its separators replaced.
+fn file_safe(name: &str) -> String {
+    name.replace(yog_ids::sep::NAMESPACE, SAFE_SEP)
+        .replace(yog_ids::sep::PATH, SAFE_SEP)
+}
+
 fn dim_safe(dim: &str) -> String {
-    dim.replace([':', '/'], "_")
+    file_safe(dim)
 }
 
 fn load_file(path: &Path) -> BTreeMap<String, Value> {
@@ -476,7 +489,8 @@ mod tests {
     use super::*;
 
     fn game_dir(name: &str) -> String {
-        let d = std::env::temp_dir().join(format!("yog-storage-test-{}-{name}", std::process::id()));
+        let d =
+            std::env::temp_dir().join(format!("yog-storage-test-{}-{name}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         d.to_string_lossy().into_owned()
     }
@@ -515,10 +529,23 @@ mod tests {
             let mut c = Storage::open_chunk(&dir, "mymod", "minecraft:overworld", -1, 2);
             c.set("ore", "copper");
         }
-        assert_eq!(Storage::open_player(&dir, "mymod", "uuid-1").get_int("coins"), Some(7), "saved on drop");
-        assert_eq!(Storage::open_player(&dir, "mymod", "uuid-2").get_int("coins"), None);
-        assert_eq!(Storage::open_chunk(&dir, "mymod", "minecraft:overworld", -1, 2).get_str("ore"), Some("copper"));
-        assert!(Storage::open(&dir, "mymod").is_empty(), "the global store is its own");
+        assert_eq!(
+            Storage::open_player(&dir, "mymod", "uuid-1").get_int("coins"),
+            Some(7),
+            "saved on drop"
+        );
+        assert_eq!(
+            Storage::open_player(&dir, "mymod", "uuid-2").get_int("coins"),
+            None
+        );
+        assert_eq!(
+            Storage::open_chunk(&dir, "mymod", "minecraft:overworld", -1, 2).get_str("ore"),
+            Some("copper")
+        );
+        assert!(
+            Storage::open(&dir, "mymod").is_empty(),
+            "the global store is its own"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

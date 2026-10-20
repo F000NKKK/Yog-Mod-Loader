@@ -7,3 +7,4 @@ license = "MIT OR Apache-2.0"
 description = "Yog persistent key-value storage for mod data."
 
 [dependencies]
+yog-ids = { workspace = true }

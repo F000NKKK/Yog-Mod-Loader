@@ -14,7 +14,7 @@ use super::*;
 static SERIAL: Mutex<()> = Mutex::new(());
 
 fn module() -> LoadedModule {
-    LoadedModule::this_process(GenerationAllocator::new().next())
+    LoadedModule::this_process(GenerationAllocator::new().next()).expect("the test program as a module")
 }
 
 /// Runs `f` as a mod's `yog_mod_register` would: with a registration

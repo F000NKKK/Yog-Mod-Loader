@@ -8,6 +8,7 @@ license = "MIT OR Apache-2.0"
 description = "Yog custom dimensions — dimension-type definitions and runtime chunk generation."
 
 [dependencies]
+yog-ids = { workspace = true }
 yog-data = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

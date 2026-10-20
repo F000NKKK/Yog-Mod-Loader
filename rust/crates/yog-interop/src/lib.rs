@@ -26,16 +26,23 @@ fn is_registry_ty(ty: &syn::Type) -> bool {
         syn::Type::Reference(r) => &*r.elem,
         other => other,
     };
-    quote! { #ty }.to_string().replace(' ', "").ends_with("Registry")
+    quote! { #ty }
+        .to_string()
+        .replace(' ', "")
+        .ends_with("Registry")
 }
 
 /// A function's call parameters (a leading `Registry` left out), each a
 /// plain name — `__yog_argN` for a pattern that isn't one.
 fn call_params(sig: &syn::Signature) -> (bool, Vec<(syn::Ident, syn::Type)>) {
-    let mut typed: Vec<&syn::PatType> = sig.inputs.iter().filter_map(|a| match a {
-        syn::FnArg::Typed(pt) => Some(pt),
-        syn::FnArg::Receiver(_) => None,
-    }).collect();
+    let mut typed: Vec<&syn::PatType> = sig
+        .inputs
+        .iter()
+        .filter_map(|a| match a {
+            syn::FnArg::Typed(pt) => Some(pt),
+            syn::FnArg::Receiver(_) => None,
+        })
+        .collect();
     let registry = typed.first().is_some_and(|pt| is_registry_ty(&pt.ty));
     if registry {
         typed.remove(0);
@@ -55,16 +62,23 @@ fn call_params(sig: &syn::Signature) -> (bool, Vec<(syn::Ident, syn::Type)>) {
 }
 
 /// The struct a call's arguments cross as: one field per parameter, named like it.
-fn args_struct(name: &syn::Ident, params: &[(syn::Ident, syn::Type)]) -> (syn::Ident, proc_macro2::TokenStream) {
+fn args_struct(
+    name: &syn::Ident,
+    params: &[(syn::Ident, syn::Type)],
+) -> (syn::Ident, proc_macro2::TokenStream) {
     let args = format_ident!("__YogArgs_{}", name);
     let fields = params.iter().map(|(n, t)| quote! { #n: #t });
     let derive = schema_derive();
-    (args.clone(), quote! {
-        #[doc(hidden)]
-        #[allow(non_camel_case_types)]
-        #derive
-        struct #args { #(#fields),* }
-    })
+    (
+        args.clone(),
+        quote! {
+            #[doc(hidden)]
+            // Named after the function (`__YogArgs_give_item`), which is snake case.
+            #[allow(non_camel_case_types)]
+            #derive
+            struct #args { #(#fields),* }
+        },
+    )
 }
 
 fn output_type(sig: &syn::Signature) -> proc_macro2::TokenStream {
@@ -83,7 +97,10 @@ fn doc_of(attrs: &[syn::Attribute]) -> String {
         .filter(|a| a.path().is_ident("doc"))
         .filter_map(|a| match &a.meta {
             syn::Meta::NameValue(nv) => match &nv.value {
-                syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) => Some(s.value().trim().to_owned()),
+                syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(s),
+                    ..
+                }) => Some(s.value().trim().to_owned()),
                 _ => None,
             },
             _ => None,
@@ -114,7 +131,9 @@ pub fn yog_export(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
     let tokens = proc_macro2::TokenStream::from(item.clone());
-    if syn::parse2::<syn::ItemStruct>(tokens.clone()).is_ok() || syn::parse2::<syn::ItemEnum>(tokens.clone()).is_ok() {
+    if syn::parse2::<syn::ItemStruct>(tokens.clone()).is_ok()
+        || syn::parse2::<syn::ItemEnum>(tokens.clone()).is_ok()
+    {
         let derive = schema_derive();
         return TokenStream::from(quote! { #derive #tokens });
     }

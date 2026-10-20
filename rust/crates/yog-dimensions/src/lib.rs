@@ -69,6 +69,10 @@ pub struct YogDimensionTypeDef {
     pub water_fog_color: Option<i32>,
 }
 
+/// The overworld's sky (`effects`) and cloud height — a dimension's unless it says.
+const OVERWORLD_EFFECTS: &str = "overworld";
+const OVERWORLD_CLOUD_HEIGHT: f64 = 192.0;
+
 impl Default for YogDimensionTypeDef {
     fn default() -> Self {
         Self {
@@ -85,10 +89,10 @@ impl Default for YogDimensionTypeDef {
             piglin_safe: false,
             natural: true,
             has_ceiling: false,
-            effects: "overworld".to_owned(),
+            effects: OVERWORLD_EFFECTS.to_owned(),
             has_sky: true,
             has_clouds: true,
-            cloud_height: 192.0,
+            cloud_height: OVERWORLD_CLOUD_HEIGHT,
             has_fog: false,
             fog_color: None,
             sky_color: None,
@@ -238,7 +242,7 @@ impl Default for YogDimensionDef {
             id: String::new(),
             dimension_type: YogDimensionTypeDef::default(),
             generator_type: None,
-            biome: "minecraft:plains".into(),
+            biome: yog_ids::game::PLAINS.into(),
             structures: true,
             features: true,
             mob_spawning: true,
@@ -300,8 +304,8 @@ impl YogDimensionDef {
     }
 
     /// Serialize to the JSON wire format sent to the Java host.
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(self).expect("YogDimensionDef serializes infallibly")
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
     }
 }
 
@@ -340,7 +344,9 @@ pub const CELL: usize = std::mem::size_of::<u16>();
 impl GeneratedChunk {
     /// The cell of local `x`/`z` (0..16), world `y`; `None` outside the column.
     fn cell(&self, x: i32, y: i32, z: i32) -> Option<usize> {
-        let inside = (0..CHUNK_WIDTH).contains(&x) && (0..CHUNK_WIDTH).contains(&z) && (self.min_y..self.min_y + self.height).contains(&y);
+        let inside = (0..CHUNK_WIDTH).contains(&x)
+            && (0..CHUNK_WIDTH).contains(&z)
+            && (self.min_y..self.min_y + self.height).contains(&y);
         inside.then(|| (((y - self.min_y) * CHUNK_WIDTH + z) * CHUNK_WIDTH + x) as usize)
     }
 
@@ -348,7 +354,9 @@ impl GeneratedChunk {
     /// `min_y` and `min_y + height`) over whatever was there; `false`
     /// outside the column (or past `u16::MAX` distinct blocks).
     pub fn set_block(&mut self, x: i32, y: i32, z: i32, block_id: &str) -> bool {
-        let Some(cell) = self.cell(x, y, z) else { return false };
+        let Some(cell) = self.cell(x, y, z) else {
+            return false;
+        };
         let index = match self.palette.iter().position(|b| b == block_id) {
             Some(i) => i,
             None => {
@@ -356,7 +364,9 @@ impl GeneratedChunk {
                 self.palette.len() - 1
             }
         };
-        let Ok(value) = u16::try_from(index + 1) else { return false };
+        let Ok(value) = u16::try_from(index + 1) else {
+            return false;
+        };
         if self.cells.is_empty() {
             self.cells = vec![0; (CHUNK_WIDTH * CHUNK_WIDTH * self.height.max(0)) as usize * CELL];
         }
@@ -375,12 +385,17 @@ impl GeneratedChunk {
     /// Every block placed, as (local x, world y, local z, id), Y then Z then X.
     pub fn placed(&self) -> impl Iterator<Item = (i32, i32, i32, &str)> {
         let width = CHUNK_WIDTH as usize;
-        self.cells.as_chunks::<CELL>().0.iter().enumerate().filter_map(move |(cell, b)| {
-            let value = u16::from_le_bytes(*b) as usize;
-            let id = self.palette.get(value.checked_sub(1)?)?;
-            let (x, z, y) = (cell % width, cell / width % width, cell / (width * width));
-            Some((x as i32, y as i32 + self.min_y, z as i32, id.as_str()))
-        })
+        self.cells
+            .as_chunks::<CELL>()
+            .0
+            .iter()
+            .enumerate()
+            .filter_map(move |(cell, b)| {
+                let value = u16::from_le_bytes(*b) as usize;
+                let id = self.palette.get(value.checked_sub(1)?)?;
+                let (x, z, y) = (cell % width, cell / width % width, cell / (width * width));
+                Some((x as i32, y as i32 + self.min_y, z as i32, id.as_str()))
+            })
     }
 }
 
@@ -390,19 +405,49 @@ mod chunk_tests {
 
     #[test]
     fn placed_blocks_share_a_palette_and_stay_in_the_column() {
-        let mut chunk = GeneratedChunk { min_y: -64, height: 384, ..Default::default() };
-        assert!(chunk.cells.is_empty(), "nothing allocated before the first block");
+        let mut chunk = GeneratedChunk {
+            min_y: -64,
+            height: 384,
+            ..Default::default()
+        };
+        assert!(
+            chunk.cells.is_empty(),
+            "nothing allocated before the first block"
+        );
         assert!(chunk.set_block(0, -64, 15, "minecraft:bedrock"));
         assert!(chunk.set_block(1, 0, 1, "minecraft:stone"));
-        assert!(chunk.set_block(1, 0, 1, "minecraft:diamond_ore"), "a later block replaces an earlier one");
+        assert!(
+            chunk.set_block(1, 0, 1, "minecraft:diamond_ore"),
+            "a later block replaces an earlier one"
+        );
         assert!(chunk.set_block(2, 0, 2, "minecraft:stone"));
-        assert!(!chunk.set_block(16, 0, 0, "minecraft:stone"), "x past the column");
-        assert!(!chunk.set_block(0, 320, 0, "minecraft:stone"), "y past the top");
-        assert_eq!(chunk.palette, ["minecraft:bedrock", "minecraft:stone", "minecraft:diamond_ore"]);
+        assert!(
+            !chunk.set_block(16, 0, 0, "minecraft:stone"),
+            "x past the column"
+        );
+        assert!(
+            !chunk.set_block(0, 320, 0, "minecraft:stone"),
+            "y past the top"
+        );
+        assert_eq!(
+            chunk.palette,
+            [
+                "minecraft:bedrock",
+                "minecraft:stone",
+                "minecraft:diamond_ore"
+            ]
+        );
         assert_eq!(chunk.block(1, 0, 1), Some("minecraft:diamond_ore"));
         assert_eq!(chunk.block(3, 0, 3), None);
         let placed: Vec<_> = chunk.placed().collect();
-        assert_eq!(placed, [(0, -64, 15, "minecraft:bedrock"), (1, 0, 1, "minecraft:diamond_ore"), (2, 0, 2, "minecraft:stone")]);
+        assert_eq!(
+            placed,
+            [
+                (0, -64, 15, "minecraft:bedrock"),
+                (1, 0, 1, "minecraft:diamond_ore"),
+                (2, 0, 2, "minecraft:stone")
+            ]
+        );
     }
 }
 
@@ -421,7 +466,7 @@ mod tests {
             .generator_type("mymod:custom_terrain")
             .with_extra("note", "test");
 
-        let json = def.to_json();
+        let json = def.to_json().expect("a def serializes");
         let back: YogDimensionDef = serde_json::from_str(&json).expect("valid json");
         assert_eq!(back.id, "mymod:my_dim");
         assert!(back.dimension_type.ultrawarm);
