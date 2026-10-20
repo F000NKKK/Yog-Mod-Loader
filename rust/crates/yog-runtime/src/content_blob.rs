@@ -87,12 +87,13 @@ fn sound<'v>(w: &mut Writer<'v>, g: &'v yog_registry::SoundGroup) {
     w.key("pitch").float(g.pitch as f64);
 }
 
-/// The registered content: `{ items, blocks, inventories, recipes, biome_features, entities, dimensions, attributes, effects, potions }`.
+/// The registered content: `{ items, blocks, inventories, recipes, biome_features, entities, dimensions, fonts, attributes, effects, potions }`.
 pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
     // Inventories' layouts are worked out first: the writer borrows them.
     let layouts: Vec<_> = h.inventories.iter().map(|d| d.resolved_layout()).collect();
+    let fonts = crate::fonts::atlases();
     let mut w = Writer::new();
-    w.map(10);
+    w.map(11);
 
     w.key("items").list(h.items.len());
     for d in &h.items {
@@ -306,6 +307,17 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
         w.map(2);
         w.key("id").str(id);
         w.key("def").value(def);
+    }
+
+    w.key("fonts").list(fonts.len());
+    for f in &fonts {
+        w.map(5);
+        w.key("id").str(&f.id);
+        w.key("png").bytes(&f.png);
+        w.key("rows");
+        strings(&mut w, &f.rows);
+        w.key("ascent").int(f.ascent as i64);
+        w.key("height").int(f.height as i64);
     }
 
     for (key, defs) in [("attributes", &h.attributes), ("effects", &h.effects), ("potions", &h.potions)] {

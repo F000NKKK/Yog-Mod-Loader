@@ -1,7 +1,10 @@
-//! Yog's own fonts (`.yfont`, content of kind `font`): text in them is
-//! drawn here — shaped and rasterized by `yog_font` at the screen's
-//! resolution, white (the color is the draw's tint), kept as a host
-//! texture per run, drawn as an image. Text in any other font is the game's.
+//! Yog's own fonts (`.yfont`, content of kind `font`), under one id for
+//! Yog and the game: text a mod draws in one is shaped and rasterized here
+//! by `yog_font` at the screen's resolution, white (the color is the
+//! draw's tint), kept as a host texture per run and drawn as an image; the
+//! game's own text (chat, signs, tooltips) gets the font as a bitmap atlas
+//! ([`atlases`]) the host makes its version's font JSON of. Text in any
+//! other font is the game's.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
@@ -40,6 +43,78 @@ struct Runs {
 }
 
 static RUNS: Mutex<Option<Runs>> = Mutex::new(None);
+
+/// Pixels an em is in a font's atlas for the game (it scales them to [`EM`]).
+const ATLAS_EM_PX: f32 = 32.0;
+/// Glyph cells in a row of an atlas.
+const ATLAS_COLUMNS: usize = 16;
+/// What fills an atlas's unused cells (the game skips it).
+const NO_CHAR: char = '\0';
+
+/// A font as the game's text takes it: one cell per character.
+pub(crate) struct Atlas {
+    pub(crate) id: String,
+    /// The cells, as a PNG.
+    pub(crate) png: Vec<u8>,
+    /// Each row's characters, cell by cell.
+    pub(crate) rows: Vec<String>,
+    /// GUI pixels from the top of a cell to the baseline, and a cell's height.
+    pub(crate) ascent: i32,
+    pub(crate) height: i32,
+}
+
+/// Every font's atlas.
+pub(crate) fn atlases() -> Vec<Atlas> {
+    let fonts: Vec<(String, Arc<Font>)> = FONTS.read_locked().as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()).unwrap_or_default();
+    fonts.into_iter().filter_map(|(id, f)| atlas(id, &f)).collect()
+}
+
+/// Font `font`'s atlas: each of its characters' glyph in a cell of the
+/// em's height, its baseline at the ascent.
+fn atlas(id: String, font: &Font) -> Option<Atlas> {
+    let upem = font.units_per_em.max(1) as f32;
+    let px = ATLAS_EM_PX / upem;
+    let cell_h = ((font.ascent - font.descent) as f32 * px).ceil().max(1.0) as u32;
+    let advance = font.glyphs.iter().map(|g| g.advance).max().unwrap_or(0);
+    let cell_w = (advance as f32 * px).ceil().max(1.0) as u32;
+    let baseline = (font.ascent as f32 * px).round() as i32;
+    let chars: Vec<(char, u32)> = font.chars.iter().filter_map(|c| Some((char::from_u32(c.char)?, c.glyph))).collect();
+    if chars.is_empty() {
+        return None;
+    }
+    let rows = chars.len().div_ceil(ATLAS_COLUMNS);
+    let mut image = yog_graphics::Image::new(cell_w * ATLAS_COLUMNS as u32, cell_h * rows as u32);
+    let mut names = vec![String::new(); rows];
+    for (i, (c, glyph)) in chars.iter().enumerate() {
+        let (col, row) = ((i % ATLAS_COLUMNS) as u32, (i / ATLAS_COLUMNS) as u32);
+        names[row as usize].push(*c);
+        let g = yog_font::raster::glyph(font, *glyph, px, Color::WHITE);
+        blit(&mut image, &g.image, (col * cell_w) as i32 + g.x, (row * cell_h) as i32 + baseline + g.y, [col * cell_w, row * cell_h, cell_w, cell_h]);
+    }
+    for row in &mut names {
+        while row.chars().count() < ATLAS_COLUMNS {
+            row.push(NO_CHAR);
+        }
+    }
+    let png = yog_media::image::encode_png(&image).ok()?;
+    let gui = |units: i32| (units as f32 / upem * EM).round() as i32;
+    Some(Atlas { id, png, rows: names, ascent: gui(font.ascent), height: gui(font.ascent - font.descent) })
+}
+
+/// Copies `src` into `dst` at `x, y`, inside the cell `[cx, cy, cw, ch]` only.
+fn blit(dst: &mut yog_graphics::Image, src: &yog_graphics::Image, x: i32, y: i32, [cx, cy, cw, ch]: [u32; 4]) {
+    let width = dst.width;
+    let pixels = dst.pixels_mut();
+    for (sy, row) in src.pixels().chunks(src.width.max(1) as usize).enumerate() {
+        for (sx, p) in row.iter().enumerate() {
+            let (px, py) = (x + sx as i32, y + sy as i32);
+            let inside = px >= cx as i32 && py >= cy as i32 && px < (cx + cw) as i32 && py < (cy + ch) as i32;
+            if inside {
+                pixels[py as usize * width as usize + px as usize] = *p;
+            }
+        }
+    }
+}
 
 /// Keeps font `id` (a `.yfont`).
 pub(crate) fn register(id: String, font: Font) {
@@ -149,6 +224,15 @@ mod tests {
         assert!(get("minecraft:default").is_none(), "the game's fonts stay the game's");
         assert_eq!(width(&f, "ab", 1.0), EM);
         assert_eq!(width(&f, "ab", 2.0), 2.0 * EM);
+    }
+
+    #[test]
+    fn a_font_s_atlas_has_a_cell_per_character() {
+        let a = atlas("test:mono".into(), &font()).expect("an atlas");
+        assert_eq!(a.rows.len(), 1);
+        assert!(a.rows[0].starts_with("ab") && a.rows[0].chars().count() == ATLAS_COLUMNS);
+        assert_eq!((a.ascent, a.height), ((0.8 * EM).round() as i32, EM as i32));
+        assert!(a.png.starts_with(b"\x89PNG"));
     }
 
     #[test]

@@ -152,6 +152,9 @@ public final class YogPackStager {
         // Mod-declared dimensions as vanilla dimension_type/dimension JSON.
         injectDimensions(out, registered.dimensions);
 
+        // The mods' Yog fonts, the game's too.
+        injectFonts(out, registered.fonts);
+
         // The mods' key bindings' categories, named in the controls.
         injectKeyCategoryNames(out);
 
@@ -409,6 +412,49 @@ public final class YogPackStager {
             case EFFECTS_NETHER -> SKYBOX_NONE;
             default -> SKYBOX_OVERWORLD;
         };
+    }
+
+    /** A bitmap font provider's fields, as every version reads them. */
+    private static final String FONT_PROVIDERS = "providers", FONT_TYPE = "type", FONT_BITMAP = "bitmap", FONT_FILE = "file",
+            FONT_ASCENT = "ascent", FONT_HEIGHT = "height", FONT_CHARS = "chars";
+    /** Where a font and its atlas go: {@code assets/<ns>/font/<path>.json}, {@code textures/font/<path>.png}. */
+    private static final String FONT_DIR = "font", FONT_TEXTURE_DIR = "textures/font";
+
+    /**
+     * The mods' Yog fonts as the game's (a bitmap font each, its atlas from
+     * the runtime): the game's own text — chat, signs, tooltips — in one by
+     * the same id Yog draws it by.
+     */
+    private static void injectFonts(Path packRoot, java.util.List<YogContent.Font> fonts) {
+        Gson gson = new Gson();
+        for (YogContent.Font f : fonts) {
+            int colon = f.id().indexOf(':');
+            String ns = colon > 0 ? f.id().substring(0, colon) : DEFAULT_NAMESPACE;
+            String path = f.id().substring(colon + 1);
+            try {
+                Path assets = packRoot.resolve(dev.yog.YogNames.Pack.ASSETS).resolve(ns);
+                Path png = assets.resolve(FONT_TEXTURE_DIR).resolve(path + dev.yog.YogNames.Res.PNG);
+                Files.createDirectories(png.getParent());
+                Files.write(png, f.png());
+                com.google.gson.JsonObject provider = new com.google.gson.JsonObject();
+                provider.addProperty(FONT_TYPE, FONT_BITMAP);
+                provider.addProperty(FONT_FILE, ns + ":" + FONT_DIR + "/" + path + dev.yog.YogNames.Res.PNG);
+                provider.addProperty(FONT_ASCENT, f.ascent());
+                provider.addProperty(FONT_HEIGHT, f.height());
+                com.google.gson.JsonArray chars = new com.google.gson.JsonArray();
+                f.rows().forEach(chars::add);
+                provider.add(FONT_CHARS, chars);
+                com.google.gson.JsonArray providers = new com.google.gson.JsonArray();
+                providers.add(provider);
+                com.google.gson.JsonObject json = new com.google.gson.JsonObject();
+                json.add(FONT_PROVIDERS, providers);
+                Path file = assets.resolve(FONT_DIR).resolve(path + dev.yog.YogNames.Res.JSON);
+                Files.createDirectories(file.getParent());
+                Files.writeString(file, gson.toJson(json));
+            } catch (IOException e) {
+                dev.yog.YogLog.warn("font " + f.id() + ": " + e);
+            }
+        }
     }
 
     private static void injectDimensions(Path packRoot, java.util.List<YogContent.Dimension> dimensions) {

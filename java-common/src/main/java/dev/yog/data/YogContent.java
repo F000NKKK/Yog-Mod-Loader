@@ -159,6 +159,15 @@ public final class YogContent {
     public final List<Effect> effects = new ArrayList<>();
     public final List<Potion> potions = new ArrayList<>();
 
+    /**
+     * A Yog font as the game's text takes it (the runtime's atlas): one
+     * cell per character, {@code rows} of them in the PNG, its baseline
+     * {@code ascent} GUI pixels down a cell {@code height} high.
+     */
+    public record Font(String id, byte[] png, List<String> rows, int ascent, int height) {}
+
+    public final List<Font> fonts = new ArrayList<>();
+
     public final List<Item> items;
     public final List<Block> blocks;
     /** By id. */
@@ -329,6 +338,14 @@ public final class YogContent {
             }
             String name = YogData.str(m.get("name"), null);
             c.potions.add(new Potion(id, name != null ? name : id.substring(id.indexOf(':') + 1), potionEffects, brewed));
+        }
+        for (Object o : YogData.list(root.get("fonts"))) {
+            Map<String, Object> m = YogData.map(o);
+            List<String> rows = new ArrayList<>();
+            for (Object r : YogData.list(m.get("rows"))) rows.add(YogData.str(r, ""));
+            byte[] png = m.get("png") instanceof byte[] b ? b : new byte[0];
+            c.fonts.add(new Font(YogData.str(m.get("id"), ""), png, rows, (int) YogData.integer(m.get("ascent"), 0),
+                    (int) YogData.integer(m.get("height"), 0)));
         }
         return c;
     }

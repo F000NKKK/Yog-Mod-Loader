@@ -124,6 +124,14 @@ impl<'v> Writer<'v> {
         self
     }
 
+    /// Bytes as they are.
+    pub fn bytes(&mut self, b: &[u8]) -> &mut Self {
+        self.0.body.push(tag::BYTES);
+        varint(&mut self.0.body, b.len() as u64);
+        self.0.body.extend_from_slice(b);
+        self
+    }
+
     /// A list of `len` values.
     pub fn list(&mut self, len: usize) -> &mut Self {
         self.0.body.push(tag::LIST);

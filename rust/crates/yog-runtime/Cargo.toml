@@ -33,6 +33,7 @@ yog-formats = { workspace = true }
 yog-gfx = { workspace = true }
 yog-font = { workspace = true }
 yog-graphics = { workspace = true }
+yog-media = { workspace = true }
 yog-inventory = { workspace = true }
 yog-worldgen = { workspace = true }
 yog-hot-reload = { workspace = true }
