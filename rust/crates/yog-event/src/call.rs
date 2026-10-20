@@ -21,5 +21,6 @@ pub fn set_caller(caller: Caller) {
 /// bus isn't reached yet).
 pub fn call<S: Service>(request: &S) -> Option<S::Reply> {
     let caller = CALLER.get()?;
-    S::Reply::from_bytes(&caller(&request.target(), &request.to_bytes())?)
+    let reply = request.with_bytes(|payload| caller(&request.target(), payload))?;
+    S::Reply::from_bytes(&reply)
 }

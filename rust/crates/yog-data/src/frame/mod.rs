@@ -71,6 +71,29 @@ pub fn to_frame<T: Schema>(v: &T) -> Vec<u8> {
     p.finish()
 }
 
+thread_local! {
+    /// This thread's packer, reused: a frame built without allocating once
+    /// its buffers have grown to the thread's messages.
+    static PACKER: std::cell::RefCell<Packer> = std::cell::RefCell::new(Packer::new());
+}
+
+/// `f` on `v` as a frame, packed in this thread's reused buffers (a fresh
+/// packer when they're busy — `f` packing another).
+pub fn with_frame<T: Schema, R>(v: &T, f: impl FnOnce(&[u8]) -> R) -> R {
+    PACKER.with(|cell| match cell.try_borrow_mut() {
+        Ok(mut p) => {
+            p.clear();
+            v.pack(&mut p);
+            let p = &mut *p;
+            p.seal();
+            let out = f(&p.out);
+            p.out.clear();
+            out
+        }
+        Err(_) => f(&to_frame(v)),
+    })
+}
+
 /// A `T` out of a frame; `None` if the frame isn't one.
 pub fn read_frame<T: Schema>(bytes: &[u8]) -> Option<T> {
     let mut u = Unpacker::open(bytes)?;
@@ -210,12 +233,25 @@ impl Packer {
 
     /// The frame: its body, its strings, their length backwards.
     pub fn finish(mut self) -> Vec<u8> {
+        self.seal();
+        self.out
+    }
+
+    /// The table and its length put after the body: `out` is the frame.
+    fn seal(&mut self) {
         let table_len = self.table.len();
         self.out.extend_from_slice(&self.table);
-        let mut length = Vec::new();
-        varint(&mut length, table_len as u64);
-        self.out.extend(length.iter().rev());
-        self.out
+        // The length written backwards: read from the frame's end.
+        let at = self.out.len();
+        varint(&mut self.out, table_len as u64);
+        self.out[at..].reverse();
+    }
+
+    /// Starts over, keeping its buffers.
+    fn clear(&mut self) {
+        self.out.clear();
+        self.table.clear();
+        self.strings.clear();
     }
 }
 

@@ -16,6 +16,12 @@ pub trait Message: Schema + Sized {
     fn from_bytes(bytes: &[u8]) -> Option<Self> {
         yog_data::frame::read_frame(bytes)
     }
+
+    /// `f` on the payload, packed in this thread's reused buffers: nothing
+    /// allocated once they've grown to the thread's messages.
+    fn with_bytes<R>(&self, f: impl FnOnce(&[u8]) -> R) -> R {
+        yog_data::frame::with_frame(self, f)
+    }
 }
 
 impl<T: Schema> Message for T {}

@@ -104,7 +104,8 @@ impl Registry {
 }
 
 fn call_on<S: Service>(api: &YogApi, request: &S) -> Option<S::Reply> {
-    S::Reply::from_bytes(&call_bytes(api, &request.target(), &request.to_bytes())?)
+    let reply = request.with_bytes(|payload| call_bytes(api, &request.target(), payload))?;
+    S::Reply::from_bytes(&reply)
 }
 
 /// Calls `address`'s provider with `payload`: its reply's bytes, `None`

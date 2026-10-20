@@ -170,9 +170,10 @@ Rust and Java live in one process, so a message needn't be copied into a
 * **Generated dispatch.** Java answers through a generated `switch` on the
   address id calling the host method directly — no `MethodHandle`, no
   record spread by reflection, and javac checks every host method.
-* **Per Java version.** 26.2 (Java 25) fires events into Rust with FFM
-  critical downcalls (no thread-state change); 1.20 / 1.21 (Java 17 / 21)
-  use JNI natives with primitives.
+* **JNI natives with primitives** on every version. (FFM critical
+  downcalls were considered and dropped: a critical call may not call back
+  into Java, and a Rust handler calls the host's actions all the time; a
+  plain FFM call costs what the JNI one does.)
 * **Atoms.** Ids and keys that repeat (`minecraft:stone`, field names,
   live entities' uuids) go as `u32` through a table in shared memory; Java
   keeps one `String` per atom — no UTF-8, no allocation per call.
@@ -271,9 +272,11 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
   `f32` float lists, `f32` bitmask; short-string hash and per-field cache;
   zero-copy views; Java typed codecs (with F2.1); a decoder by `Shape` for
   tools.
-* **F2 — transport**: generated Java dispatch; per-thread arenas with
-  stacked frames; FFM critical downcalls on 26.2; atoms; no allocation on
-  the hot path, SPSC rings; batches.
+* **F2 — transport**: generated Java dispatch (done); per-thread arenas
+  with stacked frames (done); no allocation on a call (frames packed and
+  read in the arena on both sides); batches; atoms (`#[data(atom)]`
+  fields: ids sent as numbers, one Java `String` each). SPSC rings between
+  threads go with F3.
 * **F3 — mirrors**: facts in `yog-ids`; the column store (inodes, key
   spaces, directories, merged demand, writer hand-over); `#[yog_mirror]`;
   its Java side; the host's mirrors (entities, players, block areas); Pipes'

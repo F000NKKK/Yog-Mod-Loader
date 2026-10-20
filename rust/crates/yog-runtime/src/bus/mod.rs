@@ -70,6 +70,19 @@ pub(crate) fn changed<E: Event>(event: E) -> E {
     E::from_bytes(&reply).unwrap_or(event)
 }
 
+/// Calls `address`'s provider with `payload`: its reply, `None` when no one
+/// answers — how the runtime's own `yog_event` functions reach the bus.
+fn call_at(address: &str, payload: &[u8]) -> Option<Vec<u8>> {
+    let (st, reply) = ROUTER.call(ROUTER.resolve(address), payload, java::run);
+    (st == status::OK).then_some(reply)
+}
+
+/// Makes the actions' functions (`yog_event::chat::broadcast`) the runtime
+/// calls reach its bus; once, at start.
+pub(crate) fn install_caller() {
+    yog_event::set_caller(call_at);
+}
+
 /// Calls `request`'s provider: its answer, `None` when no one answers.
 pub(crate) fn call<S: Service>(request: &S) -> Option<S::Reply> {
     let (st, reply) = ROUTER.call(ROUTER.resolve(&request.target()), &request.to_bytes(), java::run);

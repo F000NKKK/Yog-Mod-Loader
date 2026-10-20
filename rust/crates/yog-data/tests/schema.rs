@@ -522,6 +522,20 @@ mod frames {
         assert_eq!(read_frame::<Area>(&to_frame(&area)), Some(area));
     }
 
+    /// A frame packed in the thread's reused buffers is the same frame — nested too.
+    #[test]
+    fn reused_buffers_make_the_same_frames() {
+        use yog_data::frame::with_frame;
+        let a = vec!["x".to_owned(), "y".to_owned(), "x".to_owned()];
+        let b = vec![1u32, 2, 3];
+        for _ in 0..3 {
+            with_frame(&a, |fa| {
+                assert_eq!(fa, to_frame(&a).as_slice());
+                with_frame(&b, |fb| assert_eq!(fb, to_frame(&b).as_slice()));
+            });
+        }
+    }
+
     #[test]
     fn repeated_strings_are_stored_once() {
         let tags: Vec<String> = (0..100).map(|_| "minecraft:stone".to_owned()).collect();

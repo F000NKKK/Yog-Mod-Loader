@@ -118,3 +118,17 @@ fn declared_commands_are_kept_once_each() {
     let schemas: Vec<Option<&str>> = all.iter().filter(|d| d.name == "hex").map(|d| d.schema.as_deref()).collect();
     assert_eq!(schemas, [None, Some("int")]);
 }
+
+/// An action's function reaches the bus once the caller is installed.
+#[test]
+fn action_functions_reach_the_bus() {
+    unsafe extern "C" fn answer(_ud: *mut std::os::raw::c_void, _payload: YogBytes, reply: *const YogReply) -> YogStatus {
+        unsafe { YogReply::send(reply, &Message::to_bytes(&true)) };
+        status::OK
+    }
+    use yog_event::{Message, Service};
+    super::install_caller();
+    let router = &super::ROUTER;
+    router.provide(router.resolve(<yog_event::chat::Broadcast as Service>::ADDRESS), Handler::Native { owner: None, ud: 0, f: answer });
+    assert!(yog_event::chat::broadcast("hello"));
+}

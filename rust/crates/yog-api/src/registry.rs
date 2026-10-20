@@ -129,6 +129,8 @@ impl Registry {
         GLOBAL_API.store(api as *mut YogApi, std::sync::atomic::Ordering::Release);
         // The mod's records go to the game's log, through the runtime.
         yog_logging::set_sink(log_to_host);
+        // The actions' functions and handles (`player::give_item`, `Player`) reach the bus through it.
+        yog_event::set_caller(crate::service::call_at);
         Self { api }
     }
 

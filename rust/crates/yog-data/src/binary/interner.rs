@@ -35,6 +35,15 @@ impl Interner {
         Interner { spans: Vec::with_capacity(LINEAR_STRINGS), index: None }
     }
 
+    /// Forgets every string, keeping what it allocated (a reused writer).
+    pub(crate) fn clear(&mut self) {
+        self.spans.clear();
+        if let Some(index) = &mut self.index {
+            index.by_hash.clear();
+            index.recent = [0; RECENT];
+        }
+    }
+
     /// Which string written before (into `buf`) `s` is, if one is: compared
     /// with each while they're few; else the one last found at its slot if
     /// it's the same, else looked up by hash.
