@@ -39,5 +39,4 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 
-rkyv = { workspace = true }
 ctor = { workspace = true }

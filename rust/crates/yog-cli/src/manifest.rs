@@ -243,11 +243,6 @@ pub fn to_snake_name(id: &str) -> String {
     out
 }
 
-/// rkyv version embedded at compile time via `build.rs`.
-pub fn workspace_rkyv_version() -> String {
-    env!("RKYV_VERSION").to_string()
-}
-
 /// Fetch the latest non-yanked version of `yog-api` from crates.io.
 pub fn latest_yog_api_version() -> String {
     match std::process::Command::new("cargo")

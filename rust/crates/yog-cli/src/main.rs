@@ -18,7 +18,7 @@ use yog_cli::cargo_toml::generate_cargo_toml;
 use yog_cli::exports::{self, ExportItem, collect_rs_files};
 use yog_cli::manifest::{
     BUILD_DIR, DEFAULT_EDITION, DEFAULT_LICENSE, DEPS_SECTION, EXPORT_DEPS_SECTION, MANIFEST,
-    YogToml, latest_yog_api_version, project_root, to_snake_name, workspace_rkyv_version,
+    YogToml, latest_yog_api_version, project_root, to_snake_name,
 };
 use yog_cli::{bench, content, yres, yui, yui_component};
 
@@ -1757,7 +1757,6 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
 
     // Resolve versions dynamically (same logic as `yog build`)
     let yog_api_ver = latest_yog_api_version();
-    let rkyv_ver = workspace_rkyv_version();
     let yog_api_override = manifest.yog_api_version.as_deref().unwrap_or(&yog_api_ver);
 
     let cargo_toml = exports::cargo_toml(&exports::CrateMeta {
@@ -1768,7 +1767,6 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
         license: &license,
         mod_id: &mod_id,
         yog_api: yog_api_override,
-        rkyv: &rkyv_ver,
     });
     write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
 

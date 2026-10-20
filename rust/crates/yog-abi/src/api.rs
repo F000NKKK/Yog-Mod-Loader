@@ -31,16 +31,6 @@ pub struct YogApi {
     /// `YogApi::free_str`).
     pub free_str: unsafe extern "C" fn(ptr: *mut u8, len: u32),
 
-    // ── ABI minor 26 — inter-mod communication ─────────────────────────────
-    /// Export a function pointer under `symbol` for the calling mod (`mod_id`).
-    /// Other mods can import it via `interop_import`.
-    pub interop_export:
-        unsafe extern "C" fn(ctx: *mut c_void, mod_id: YogStr, symbol: YogStr, ptr: *const c_void),
-    /// Import a function pointer exported by `mod_id` under `symbol`.
-    /// Returns null if the symbol is not (yet) registered.
-    pub interop_import:
-        unsafe extern "C" fn(ctx: *mut c_void, mod_id: YogStr, symbol: YogStr) -> *const c_void,
-
     /// Calls into a Java mod's API by reflection: `expr` is a chain from a
     /// class — `virtuoel.pehkui.api.ScaleTypes.BASE.getScaleData($0).getScale()`
     /// — `$n` the `n`-th of `args`, a list in Yog Data text (an entity is

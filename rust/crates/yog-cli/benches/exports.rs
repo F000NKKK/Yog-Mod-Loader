@@ -41,8 +41,8 @@ fn bench(c: &mut Criterion) {
         .find(|i| i.kind == exports::ExportKind::Fn)
         .unwrap()
         .source;
-    c.bench_function("exports/fn_wrapper", |b| {
-        b.iter(|| exports::generate_fn_wrapper("bench-mod", "register_0", black_box(fn_src)))
+    c.bench_function("exports/import_signature", |b| {
+        b.iter(|| exports::import_signature(black_box(fn_src)))
     });
 }
 

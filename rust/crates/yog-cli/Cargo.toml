@@ -58,7 +58,6 @@ yog-home = { workspace = true }
 # ask for (build.rs reads it), and as a build dependency it travels inside
 # the published manifest, where the workspace root isn't.
 [build-dependencies]
-rkyv = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }

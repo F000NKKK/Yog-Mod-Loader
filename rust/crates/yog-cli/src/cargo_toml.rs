@@ -1,7 +1,7 @@
 //! The generated `.yog-build/Cargo.toml`.
 
 use crate::manifest::{
-    DEFAULT_EDITION, DEPS_SECTION, YogToml, to_snake_name, workspace_rkyv_version,
+    DEFAULT_EDITION, DEPS_SECTION, YogToml, to_snake_name,
 };
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -96,11 +96,9 @@ path       = "../src/lib.rs"
 
 [dependencies]
 {api_dep}
-rkyv = "{rkyv_ver}"
 {deps}
 {bench}{patch}"#,
         id = meta.id,
-        rkyv_ver = workspace_rkyv_version(),
         lib_name = to_snake_name(&meta.id),
         version = meta.version,
         edition = edition,

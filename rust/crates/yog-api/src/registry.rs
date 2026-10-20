@@ -434,16 +434,8 @@ impl Registry {
         installed_mods()
     }
 
-    /// Access the inter-mod communication layer.
-    ///
-    /// Allows exporting function pointers from this mod and importing
-    /// function pointers from other mods.
-    pub fn interop(&self) -> crate::Interop {
-        crate::Interop::new(self.api)
-    }
 
-    /// Raw `YogApi` pointer — for passing to interop-imported functions
-    /// that register content through the C ABI table directly.
+    /// The raw `YogApi` table.
     pub fn raw_api(&self) -> *const yog_abi::YogApi {
         self.api
     }

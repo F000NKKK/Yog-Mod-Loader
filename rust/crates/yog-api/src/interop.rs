@@ -1,83 +1,68 @@
-//! Inter-mod communication — export/import function pointers between mods.
-//!
-//! Uses the runtime's global symbol table (C ABI). Mods export typed function
-//! pointers under `"symbol"` names; other mods import them by qualified name
-//! `"mod_id:symbol"`.
-//!
-//! ## Example
-//!
-//! ```ignore
-//! // Mod A exports:
-//! fn register_pipe_impl(api: *const YogApi, registry: &mut Registry, def: ...) { ... }
-//! registry.interop().export("register_pipe", register_pipe_impl as *const c_void);
-//!
-//! // Mod B imports:
-//! type RegisterThingFn = unsafe extern "C" fn(api: *const YogApi, ...);
-//! let func: RegisterThingFn = registry.interop().import("other_mod:register_thing").unwrap();
-//! unsafe { func(api_ptr, ...) };
-//! ```
+//! Mods' exported functions on the bus (`docs/design/bus.md`, stage 4):
+//! `#[yog_export] fn name(..)` of mod `id` is a service at `id:name`; an
+//! `import!` (or a mod's generated `*_exports` crate) calls it. The
+//! arguments cross as a map of the parameters' names, the answer as its
+//! own Yog Data — so a Java mod can call it too, and the bus can describe it.
 
-use std::os::raw::c_void;
+use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogStatus, status};
+use yog_data::Schema;
+use yog_event::Message;
 
-/// Safe wrapper around the runtime's inter-mod symbol table.
-///
-/// Returned by [`Registry::interop`](crate::Registry::interop).
-pub struct Interop {
-    api: *const crate::YogApi,
+use crate::registry::guard;
+use crate::service::call_at;
+
+/// A `#[yog_export]` function, as its `ctor` registers it.
+#[doc(hidden)]
+pub struct YogExportEntry {
+    pub name: &'static str,
+    pub handler: YogHandlerFn,
 }
 
-impl Interop {
-    pub(crate) fn new(api: *const crate::YogApi) -> Self {
-        Interop { api }
-    }
+#[doc(hidden)]
+pub fn __yog_export_registry() -> &'static std::sync::Mutex<Vec<YogExportEntry>> {
+    static REG: std::sync::Mutex<Vec<YogExportEntry>> = std::sync::Mutex::new(Vec::new());
+    &REG
+}
 
-    /// Export a function pointer under `symbol` for the current mod.
-    ///
-    /// The mod's ID is automatically determined from the manifest (passed
-    /// to `yog_mod_register` by the runtime).
-    ///
-    /// # Safety
-    /// `ptr` must point to a valid function of the ABI expected by whoever
-    /// later imports and calls it under this `symbol`.
-    pub unsafe fn export(&self, symbol: &str, ptr: *const c_void) {
-        let mod_id = crate::__current_mod_id().unwrap_or_else(|| "unknown".into());
-        unsafe {
-            let api = &*self.api;
-            let mid = yog_abi::YogStr::from_str(&mod_id);
-            let sym = yog_abi::YogStr::from_str(symbol);
-            (api.interop_export)(api.ctx, mid, sym, ptr);
-        }
-    }
+/// Where mod `mod_id`'s export `name` is provided: `mod_id:name`.
+pub fn export_address(mod_id: &str, name: &str) -> String {
+    yog_ids::join(mod_id, name)
+}
 
-    /// Import a function pointer exported by `mod_id` under `symbol`.
-    ///
-    /// Use the qualified form `"mod_id:symbol"`:
-    ///
-    /// ```ignore
-    /// let ptr: *const c_void = interop.import("other_mod:register_thing").unwrap();
-    /// ```
-    ///
-    /// Returns `None` if the symbol has not been exported (yet).
-    ///
-    /// # Safety
-    /// The returned pointer, if any, must be cast back to the exact function
-    /// signature the exporting mod registered it under before being called.
-    pub unsafe fn import_raw(&self, mod_id: &str, symbol: &str) -> Option<*const c_void> {
-        unsafe {
-            let api = &*self.api;
-            let mid = yog_abi::YogStr::from_str(mod_id);
-            let sym = yog_abi::YogStr::from_str(symbol);
-            let ptr = (api.interop_import)(api.ctx, mid, sym);
-            if ptr.is_null() { None } else { Some(ptr) }
-        }
-    }
+/// What an exported function's provider does: its arguments `A` read from
+/// `payload`, `run` called, its answer `R` written to `reply`. A panic in
+/// the mod is a failed call, not a crash.
+///
+/// # Safety
+/// `payload` and `reply` are what the bus hands a handler (valid for the call).
+#[doc(hidden)]
+pub unsafe fn __yog_serve<A: Schema, R: Schema>(payload: YogBytes, reply: *const YogReply, run: impl FnOnce(A) -> R) -> YogStatus {
+    let Some(args) = A::from_bytes(unsafe { payload.as_slice() }) else {
+        return status::BAD_PAYLOAD;
+    };
+    let Some(answer) = guard(None, || Some(run(args))) else {
+        return status::FAILED;
+    };
+    unsafe { YogReply::send(reply, &answer.to_bytes()) };
+    status::OK
+}
 
-    /// Convenience: parse `"mod_id:symbol"` and import.
-    ///
-    /// # Safety
-    /// Same requirement as [`Interop::import_raw`].
-    pub unsafe fn import(&self, qualified: &str) -> Option<*const c_void> {
-        let (mod_id, symbol) = qualified.split_once(':')?;
-        unsafe { self.import_raw(mod_id, symbol) }
+/// Calls mod `mod_id`'s export `name` with `args`: its answer, `None` when
+/// it isn't there (the mod isn't loaded) or failed.
+pub fn call_export<A: Schema, R: Schema>(mod_id: &str, name: &str, args: &A) -> Option<R> {
+    R::from_bytes(&call_at(&export_address(mod_id, name), &args.to_bytes())?)
+}
+
+/// What an import does: [`call_export`], a failure reported where unwinding is safe.
+#[doc(hidden)]
+pub fn __yog_call<A: Schema, R: Schema>(mod_id: &str, name: &str, args: &A) -> R {
+    call_export(mod_id, name, args).unwrap_or_else(|| panic!("yog: '{}' didn't answer (not loaded, or it failed — see its log)", export_address(mod_id, name)))
+}
+
+impl crate::Registry {
+    /// Provides `mod_id`'s export `entry` (what `export_mod!` does for each).
+    #[doc(hidden)]
+    pub fn provide_export(&mut self, mod_id: &str, entry: &YogExportEntry) {
+        self.provide_raw(&export_address(mod_id, entry.name), entry.handler);
     }
 }

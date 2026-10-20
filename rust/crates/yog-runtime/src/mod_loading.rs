@@ -80,23 +80,6 @@ pub(super) fn load_mods(dir: &Path, api: &YogApi) {
         }
     }
     yog_logging::info!("loaded {} mod(s) from {}", loaded.len(), dir.display());
-
-    // Final import resolution pass — after all mods loaded, each mod's pending
-    // imports can be resolved against the now-complete interop table.
-    resolve_all_imports(api, &loaded);
-}
-
-/// After all mods loaded, call `__yog_resolve_imports_final` on each library
-/// to resolve any imports that weren't satisfied during initial registration.
-pub(super) fn resolve_all_imports(api: &YogApi, loaded: &[LoadedModule]) {
-    for module in loaded {
-        module.with_library(|lib| unsafe {
-            type ResolveFn = unsafe extern "C" fn(*const YogApi);
-            if let Ok(resolve) = lib.get::<ResolveFn>(b"__yog_resolve_imports_final") {
-                resolve(api as *const YogApi);
-            }
-        });
-    }
 }
 
 /// Kahn's algorithm — returns indices in dependency order, or None on cycle.

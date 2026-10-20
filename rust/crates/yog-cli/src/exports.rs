@@ -367,152 +367,15 @@ pub fn strip_derive_attrs(source: &str) -> String {
         .join("\n")
 }
 
-/// Generate a full interop wrapper for a `#[yog_export]` function.
-///
-/// Given the source of a function like:
-/// ```text
-/// pub fn register_widget(registry: &mut yog_api::Registry, def: WidgetDef) -> Result<(), String> { ... }
-/// ```
-///
-/// Produces (a leading `&mut Registry`-shaped parameter is dropped — the
-/// exporting mod reconstructs its own `Registry` from the API pointer it
-/// captured at load time, so callers pass only the remaining, natural
-/// arguments; multiple remaining arguments are tupled for serialization):
-/// ```text
-/// #![allow(non_snake_case)]
-/// pub fn register_widget(__yog_arg0: WidgetDef) -> Result<(), String> {
-///     // rkyv-serialize __yog_arg0, call via C-ABI slot, deserialize result
-/// }
-/// static __YOG_SLOT_REGISTER_WIDGET: OnceLock<...>;
-/// #[unsafe(no_mangle)] pub unsafe extern "C" fn __yog_bind_register_widget(ptr) { ... }
-/// ```
-/// An exported fn's parameters (`pattern`, `Type`) and return type, each
-/// exactly as written (doc comments, attributes and wrapped lines are no
-/// trouble: it's parsed). Nothing if it doesn't parse.
-fn fn_signature(source: &str) -> (Vec<(String, String)>, String) {
+/// A `#[yog_export]` function's signature as an `import!` item: `pub fn
+/// name(params) -> Out;` — the parameters as the export names them, the
+/// export's own `Registry` left to `import!`. Nothing if it doesn't parse.
+pub fn import_signature(source: &str) -> Option<String> {
     use syn::spanned::Spanned;
-    let Ok(f) = syn::parse_str::<syn::ItemFn>(source) else {
-        return (Vec::new(), "()".into());
-    };
-    let text = |s: proc_macro2::Span| source[s.byte_range()].to_string();
-    let params = f
-        .sig
-        .inputs
-        .iter()
-        .filter_map(|a| match a {
-            syn::FnArg::Typed(t) => Some((text(t.pat.span()), text(t.ty.span()))),
-            syn::FnArg::Receiver(_) => None,
-        })
-        .collect();
-    let output = match &f.sig.output {
-        syn::ReturnType::Default => "()".into(),
-        syn::ReturnType::Type(_, ty) => text(ty.span()),
-    };
-    (params, output)
-}
-
-pub fn generate_fn_wrapper(mod_id: &str, name: &str, source: &str) -> String {
-    let (mut typed_params, output_type) = fn_signature(source);
-
-    // A leading `&mut Registry`-shaped parameter is never part of the public
-    // signature or the serialized payload — the exporting mod reconstructs
-    // its own `Registry` from the API pointer it captured at load time (see
-    // `yog-interop`'s `#[yog_export]`), so callers never need to supply one.
-    if typed_params
-        .first()
-        .map(|(_, ty)| ty.replace(' ', "").ends_with("Registry"))
-        .unwrap_or(false)
-    {
-        typed_params.remove(0);
-    }
-
-    // The export's own parameter names (callers see them); a pattern that
-    // isn't a plain name (`(a, b): (u32, u32)`) gets a made-up one.
-    let arg_names: Vec<String> = typed_params
-        .iter()
-        .enumerate()
-        .map(|(i, (pat, _))| {
-            let name = pat.trim().trim_start_matches("mut ").trim();
-            let plain = !name.is_empty()
-                && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
-                && !name.starts_with(|c: char| c.is_ascii_digit());
-            if plain { name.to_string() } else { format!("__yog_arg{i}") }
-        })
-        .collect();
-    let data_types: Vec<&str> = typed_params.iter().map(|(_, ty)| ty.as_str()).collect();
-
-    let params_sig = arg_names
-        .iter()
-        .zip(data_types.iter())
-        .map(|(n, t)| format!("{n}: {t}"))
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    let tuple_expr = match arg_names.len() {
-        0 => String::new(),
-        1 => arg_names[0].clone(),
-        _ => format!("({})", arg_names.join(", ")),
-    };
-
-    // Statics use SCREAMING_SNAKE_CASE per Rust convention; the bind fn stays
-    // snake_case since it's a function, not a static.
-    let slot_name = format!("__YOG_SLOT_{}", name.to_uppercase());
-    let bind_name = format!("__yog_bind_{}", name);
-
-    // Escape { and } for use in format! — types like `Result<(), String>` contain
-    // curly braces that would be interpreted as format specifiers.
-    let output_type_fmt = output_type.replace('{', "{{").replace('}', "}}");
-    let params_sig_fmt = params_sig.replace('{', "{{").replace('}', "}}");
-    let slot_name_fmt = slot_name.replace('{', "{{").replace('}', "}}");
-    let bind_name_fmt = bind_name.replace('{', "{{").replace('}', "}}");
-
-    // Build the C-ABI function pointer type
-    let wrapper_ty = "::yog_api::YogExportFn".to_string();
-
-    let serialize_block = if tuple_expr.is_empty() {
-        "let input_bytes: Vec<u8> = Vec::new();".to_string()
-    } else {
-        format!(
-            "let aligned = ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(\
-                &{tuple_expr}\
-            ).unwrap_or_default();\n            \
-             let input_bytes: Vec<u8> = aligned.to_vec();"
-        )
-    };
-
-    format!(
-        r#"#[allow(non_snake_case)]
-pub fn {name}({params_sig_fmt}) -> {output_type_fmt} {{
-    {serialize_block}
-    let f = {slot_name_fmt}.get()
-        .expect(concat!("yog: export '", "{name}", "' not bound"));
-    let output = ::yog_api::__interop_call(*f, &input_bytes, "{name}");
-    ::yog_api::rkyv::from_bytes::<{output_type_fmt}, ::yog_api::rkyv::rancor::Error>(&output)
-        .expect(concat!("yog: the result of export '", "{name}", "' didn't decode"))
-}}
-
-static {slot_name_fmt}: ::std::sync::OnceLock<{wrapper_ty}> = ::std::sync::OnceLock::new();
-
-#[doc(hidden)]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn {bind_name_fmt}(ptr: *const ::std::os::raw::c_void) {{
-    let f: {wrapper_ty} = unsafe {{ ::std::mem::transmute(ptr) }};
-    {slot_name_fmt}.set(f).ok();
-}}
-
-// Queues the binding when the consuming mod's library loads; `export_mod!`
-// binds it once `{mod_id}` has exported `{name}`.
-#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
-#[doc(hidden)]
-fn __yog_import_ctor_{name}() {{
-    ::yog_api::__yog_import_registry().locked().push(::yog_api::YogImportEntry {{
-        mod_id: "{mod_id}",
-        symbol: "{name}",
-        bind_fn: {bind_name_fmt} as *const () as usize,
-    }});
-}}
-"#
-    )
+    let f = syn::parse_str::<syn::ItemFn>(source).ok()?;
+    let sig = source.get(f.sig.span().byte_range())?;
+    // One line: a wrapped signature's line breaks become spaces.
+    Some(format!("pub {};", sig.split_whitespace().collect::<Vec<_>>().join(" ")))
 }
 
 /// Recursively collect every `.rs` file under `dir`, so `#[yog_export]` items
@@ -541,7 +404,6 @@ pub struct CrateMeta<'a> {
     pub license: &'a str,
     pub mod_id: &'a str,
     pub yog_api: &'a str,
-    pub rkyv: &'a str,
 }
 
 /// The exports crate's `Cargo.toml`.
@@ -561,7 +423,6 @@ description = "Exports from the {mod_id} Yog mod — generated by `yog publish e
 
 [dependencies]
 yog-api = "{yog_api}"
-rkyv = "{rkyv}"
 
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -572,13 +433,12 @@ crate-type = ["cdylib", "lib"]
         license = m.license,
         mod_id = m.mod_id,
         yog_api = m.yog_api,
-        rkyv = m.rkyv,
     )
 }
 
 /// The exports crate's `src/lib.rs`: the imports from [`collect_uses`],
-/// structs and enums with rkyv derives so consumers get the serialisable
-/// types, and an interop wrapper per fn (the same pattern as `import!`).
+/// the structs and enums (`#[yog_export]`: their schemas), and the
+/// functions as `import!` items — calls of the mod's services.
 pub fn lib_rs(
     mod_id: &str,
     version: &str,
@@ -623,20 +483,16 @@ pub fn lib_rs(
         lib_rs.push('\n');
     }
 
-    for item in exports {
-        match item.kind {
-            ExportKind::Struct | ExportKind::Enum => {
-                // Strip existing #[derive(...)] to avoid duplicates.
-                let _ = writeln!(
-                    lib_rs,
-                    "#[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize, Debug, Clone, PartialEq)]\n{}",
-                    strip_derive_attrs(&item.source)
-                );
-            }
-            ExportKind::Fn => lib_rs.push_str(&generate_fn_wrapper(mod_id, &item.name, &item.source)),
-        }
+    // Types: with the schema their values cross with (`#[yog_export]`).
+    for item in exports.iter().filter(|i| i.kind != ExportKind::Fn) {
+        let _ = writeln!(lib_rs, "#[::yog_api::yog_export]\n#[derive(Debug, Clone, PartialEq)]\n{}\n", strip_derive_attrs(&item.source));
     }
-    // Types are already in crate root, no extra re-export needed.
+    // Functions: calls of `{mod_id}:name` on the bus (`import!`).
+    let fns: Vec<String> = exports.iter().filter(|i| i.kind == ExportKind::Fn).filter_map(|i| import_signature(&i.source)).collect();
+    if !fns.is_empty() {
+        let module = mod_id.replace('-', "_");
+        let _ = writeln!(lib_rs, "::yog_api::import! {{\n    from {mod_id:?} {{\n        {}\n    }}\n}}\npub use {module}::*;", fns.join("\n        "));
+    }
     lib_rs
 }
 
@@ -680,14 +536,13 @@ pub fn count() -> u64 { 0 }
     }
 
     #[test]
-    fn wrappers_call_through_one_helper_and_drop_the_registry() {
+    fn functions_become_import_items_and_types_exports() {
         let items = scan(SRC);
-        let w = generate_fn_wrapper("yog-pipes", "send", &items[2].source);
-        assert!(w.contains("pub fn send(pipe: Pipe, amount: u32) -> Option<String>"), "callers see the export's names: {w}");
-        assert!(w.contains("::yog_api::__interop_call("), "{w}");
-        assert!(w.contains("static __YOG_SLOT_SEND"), "{w}");
-        let none = generate_fn_wrapper("yog-pipes", "count", &items[3].source);
-        assert!(none.contains("pub fn count() -> u64"), "{none}");
+        let lib = lib_rs("yog-pipes", "1.0.0", &items, &[], &[]);
+        assert!(lib.contains("::yog_api::import! {\n    from \"yog-pipes\""), "{lib}");
+        assert!(lib.contains("pub fn send( registry: &mut Registry, pipe: Pipe, amount: u32, ) -> Option<String>;"), "{lib}");
+        assert!(lib.contains("pub use yog_pipes::*;"), "{lib}");
+        assert!(lib.contains("#[::yog_api::yog_export]\n#[derive(Debug, Clone, PartialEq)]\npub struct Pipe"), "{lib}");
     }
 
     #[test]
@@ -695,9 +550,8 @@ pub fn count() -> u64 { 0 }
         let src = "/// Drives `channel` (a pipe or an endpoint); 0 stops.\n#[yog_export]\npub fn emit(\n    capability: String,\n    mut pos: (i32, i32),\n    levels: HashMap<String, u8>,\n) -> Result<(), String> {\n    todo!()\n}\n";
         let item = &scan(src)[0];
         assert!(item.source.starts_with("/// Drives"), "{}", item.source);
-        let w = generate_fn_wrapper("yog-pipes", "emit", &item.source);
-        assert!(w.contains("pub fn emit(capability: String, pos: (i32, i32), levels: HashMap<String, u8>) -> Result<(), String>"), "{w}");
-        assert!(w.contains("&(capability, pos, levels)"), "{w}");
+        let sig = import_signature(&item.source).expect("parses");
+        assert!(sig.contains("capability: String, mut pos: (i32, i32), levels: HashMap<String, u8>,"), "{sig}");
     }
 
     #[test]

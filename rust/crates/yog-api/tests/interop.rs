@@ -1,16 +1,13 @@
-//! A mod's export called through another mod's import, in one process:
-//! what `export_mod!` binds at load time, bound here by hand.
+//! A mod's exports as bus services, and another mod's imports calling them —
+//! here without a runtime: an export's provider answers encoded arguments
+//! directly, and an import with no bus to call reports it.
 
-use yog_api::{import, yog_export};
+use yog_api::yog_data::Schema;
+use yog_api::{YogBytes, YogReply, import, yog_export};
 
 #[yog_export]
 pub fn scale(v: i32, by: i32) -> i32 {
     v * by
-}
-
-#[yog_export]
-pub fn greet(name: String) -> String {
-    format!("hello, {name}")
 }
 
 #[yog_export]
@@ -21,49 +18,68 @@ pub fn explode(code: u32) -> u32 {
     code
 }
 
+#[yog_export]
+#[derive(Debug, Clone, PartialEq)]
+pub struct Pipe {
+    pub id: u32,
+    pub name: String,
+}
+
+#[yog_export]
+pub fn rename(pipe: Pipe, name: String) -> Pipe {
+    Pipe { name, ..pipe }
+}
+
 import! {
     from "other" {
         pub fn scale(v: i32, by: i32) -> i32;
-        pub fn greet(name: String) -> String;
-        pub fn explode(code: u32) -> u32;
     }
 }
 
-/// Binds each import to the export of the same name, as `export_mod!` does.
-fn bind() {
-    static ONCE: std::sync::Once = std::sync::Once::new();
-    ONCE.call_once(|| {
-        let exports = yog_api::__yog_export_registry().lock().unwrap();
-        for import in yog_api::__yog_import_registry().lock().unwrap().iter() {
-            let export = exports.iter().find(|e| e.name == import.symbol).expect("each import has its export");
-            let bind: unsafe extern "C" fn(*const std::os::raw::c_void) = unsafe { std::mem::transmute(import.bind_fn) };
-            unsafe { bind(export.ptr as *const std::os::raw::c_void) };
-        }
-    });
+/// Runs export `name`'s provider on `args` (a map of its parameters): its status and reply.
+fn serve(name: &str, args: &yog_api::yog_data::Value) -> (u32, Vec<u8>) {
+    let exports = yog_api::__yog_export_registry().lock().unwrap();
+    let entry = exports.iter().find(|e| e.name == name).expect("the export registered itself");
+    let payload = yog_api::yog_data::binary::encode(args);
+    let mut out = Vec::new();
+    let st = unsafe { (entry.handler)(std::ptr::null_mut(), YogBytes::new(&payload), &YogReply::to_vec(&mut out)) };
+    (st, out)
+}
+
+fn args(fields: &[(&str, yog_api::yog_data::Value)]) -> yog_api::yog_data::Value {
+    yog_api::yog_data::Value::Map(fields.iter().map(|(k, v)| ((*k).to_owned(), v.clone())).collect())
 }
 
 #[test]
 fn exports_register_themselves_when_the_library_loads() {
     let names: Vec<&str> = yog_api::__yog_export_registry().lock().unwrap().iter().map(|e| e.name).collect();
-    for n in ["scale", "greet", "explode"] {
+    for n in ["scale", "explode", "rename"] {
         assert!(names.contains(&n), "{n} in {names:?}");
     }
-    let imports: Vec<(&str, &str)> = yog_api::__yog_import_registry().lock().unwrap().iter().map(|i| (i.mod_id, i.symbol)).collect();
-    assert!(imports.contains(&("other", "greet")));
+    assert_eq!(yog_api::export_address("yog-pipes", "attach"), "yog-pipes:attach");
 }
 
 #[test]
-fn calls_cross_with_their_arguments_and_results() {
-    bind();
-    assert_eq!(other::scale(21, 2), 42);
-    assert_eq!(other::greet("Steve".into()), "hello, Steve");
-    assert_eq!(other::explode(0), 0);
+fn an_export_answers_its_arguments_by_name() {
+    let (st, out) = serve("scale", &args(&[("v", 21i32.write()), ("by", 2i32.write())]));
+    assert_eq!(st, yog_abi::status::OK);
+    assert_eq!(yog_api::yog_data::read_bytes::<i32>(&out).ok(), Some(42));
+    let pipe = Pipe { id: 7, name: "old".into() };
+    let (_, out) = serve("rename", &args(&[("pipe", pipe.write()), ("name", "new".to_owned().write())]));
+    assert_eq!(yog_api::yog_data::read_bytes::<Pipe>(&out).ok(), Some(Pipe { id: 7, name: "new".into() }));
 }
 
 #[test]
-fn a_panic_in_the_exporting_mod_stays_on_the_importing_side() {
-    bind();
-    let r = std::panic::catch_unwind(|| other::explode(1));
-    let msg = *r.expect_err("the import reports the failure").downcast::<String>().expect("a message");
-    assert!(msg.contains("other:explode") && msg.contains("failed in its mod"), "{msg}");
+fn a_panic_in_the_export_is_a_failed_call() {
+    let (st, _) = serve("explode", &args(&[("code", 1u32.write())]));
+    assert_eq!(st, yog_abi::status::FAILED);
+    let (st, _) = serve("scale", &args(&[("v", 1i32.write())]));
+    assert_eq!(st, yog_abi::status::BAD_PAYLOAD, "a missing argument");
+}
+
+#[test]
+fn an_import_without_a_bus_says_so() {
+    let r = std::panic::catch_unwind(|| other::scale(21, 2));
+    let msg = *r.expect_err("no runtime to call").downcast::<String>().expect("a message");
+    assert!(msg.contains("other:scale") && msg.contains("didn't answer"), "{msg}");
 }

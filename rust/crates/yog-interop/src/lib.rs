@@ -1,191 +1,134 @@
-//! Proc-macros for Yog inter-mod communication.
+//! Proc-macros for mods' exports (`docs/design/bus.md`, stage 4).
 //!
-//! `#[yog_export]` on fn: generates a C-ABI wrapper and a `ctor` constructor
-//! that registers it into `yog_api`'s auto-export registry when the mod's
-//! `cdylib` is loaded — `export_mod!` flushes that registry into
-//! `registry.interop().export(...)` automatically, no manual call needed.
-//!
-//! `import!` macro: generates Rust wrapper + binding slot.
+//! `#[yog_export]` on a fn makes it a bus service at `mod_id:name` (its
+//! `ctor` registers it when the mod's library loads; `export_mod!`
+//! provides it); on a struct or enum it derives the Yog Data schema the
+//! calls carry it with. `import!` writes the calling side.
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 
 // ── #[yog_export] ─────────────────────────────────────────────────────────
 
-/// Marks a function for inter-mod export. Generates a C-ABI wrapper plus a
-/// `ctor` constructor that self-registers into `yog_api`'s auto-export
-/// registry — `export_mod!` picks it up automatically, no manual
-/// `registry.interop().export(...)` call needed.
-#[proc_macro_attribute]
-pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    // Try parsing as a struct or enum first (auto rkyv derives)
-    if let Ok(s) = syn::parse2::<syn::ItemStruct>(proc_macro2::TokenStream::from(item.clone())) {
-        let vis = &s.vis;
-        let ident = &s.ident;
-        let generics = &s.generics;
-        let fields = &s.fields;
-        let attrs = &s.attrs;
-        return TokenStream::from(quote! {
-            #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
-            #(#attrs)*
-            #vis struct #ident #generics #fields
-        });
+/// The derives an exported type carries: its Yog Data schema, through
+/// `yog_api`'s re-export (a mod depends on `yog_api` only).
+fn schema_derive() -> proc_macro2::TokenStream {
+    quote! {
+        #[derive(::yog_api::yog_data::Schema)]
+        #[data(crate = "::yog_api::yog_data")]
     }
-    if let Ok(e) = syn::parse2::<syn::ItemEnum>(proc_macro2::TokenStream::from(item.clone())) {
-        let vis = &e.vis;
-        let ident = &e.ident;
-        let generics = &e.generics;
-        let variants = &e.variants;
-        let attrs = &e.attrs;
-        return TokenStream::from(quote! {
-            #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
-            #(#attrs)*
-            #vis enum #ident #generics { #variants }
-        });
-    }
+}
 
-    let func = syn::parse_macro_input!(item as syn::ItemFn);
-    let name = &func.sig.ident;
-    let vis = &func.vis;
-    let sig = &func.sig;
-    let block = &func.block;
-    let name_str = name.to_string();
-    let wrap_name = format_ident!("__yog_wrap_{}", name);
-    let ctor_name = format_ident!("__yog_ctor_register_{}", name);
-
-    let output = match &func.sig.output {
-        syn::ReturnType::Default => quote! { () },
-        syn::ReturnType::Type(_, ty) => quote! { #ty },
+/// Whether `ty` is a `Registry` (a leading `&mut Registry` is the
+/// exporting mod's own, never part of a call).
+fn is_registry_ty(ty: &syn::Type) -> bool {
+    let ty = match ty {
+        syn::Type::Reference(r) => &*r.elem,
+        other => other,
     };
+    quote! { #ty }.to_string().replace(' ', "").ends_with("Registry")
+}
 
-    // A leading `&mut Registry`-shaped parameter is never serialized across
-    // the interop boundary — every mod is handed the same global `YogApi`
-    // table, so the exporting mod reconstructs its own `Registry` from the
-    // API pointer it captured during its own `yog_mod_register`, instead of
-    // requiring callers to thread an `api_ptr` field through by hand.
-    fn is_registry_ty(ty: &syn::Type) -> bool {
-        let ty = match ty {
-            syn::Type::Reference(r) => &*r.elem,
-            other => other,
-        };
-        quote! { #ty }
-            .to_string()
-            .replace(' ', "")
-            .ends_with("Registry")
+/// A function's call parameters (a leading `Registry` left out), each a
+/// plain name — `__yog_argN` for a pattern that isn't one.
+fn call_params(sig: &syn::Signature) -> (bool, Vec<(syn::Ident, syn::Type)>) {
+    let mut typed: Vec<&syn::PatType> = sig.inputs.iter().filter_map(|a| match a {
+        syn::FnArg::Typed(pt) => Some(pt),
+        syn::FnArg::Receiver(_) => None,
+    }).collect();
+    let registry = typed.first().is_some_and(|pt| is_registry_ty(&pt.ty));
+    if registry {
+        typed.remove(0);
     }
-
-    let mut data_params: Vec<&syn::PatType> = func
-        .sig
-        .inputs
+    let params = typed
         .iter()
-        .filter_map(|arg| match arg {
-            syn::FnArg::Typed(pt) => Some(pt),
-            syn::FnArg::Receiver(_) => None,
+        .enumerate()
+        .map(|(i, pt)| {
+            let name = match &*pt.pat {
+                syn::Pat::Ident(p) => p.ident.clone(),
+                _ => format_ident!("__yog_arg{}", i),
+            };
+            (name, (*pt.ty).clone())
         })
         .collect();
+    (registry, params)
+}
 
-    let has_registry_param = data_params
-        .first()
-        .map(|pt| is_registry_ty(&pt.ty))
-        .unwrap_or(false);
-    if has_registry_param {
-        data_params.remove(0);
+/// The struct a call's arguments cross as: one field per parameter, named like it.
+fn args_struct(name: &syn::Ident, params: &[(syn::Ident, syn::Type)]) -> (syn::Ident, proc_macro2::TokenStream) {
+    let args = format_ident!("__YogArgs_{}", name);
+    let fields = params.iter().map(|(n, t)| quote! { #n: #t });
+    let derive = schema_derive();
+    (args.clone(), quote! {
+        #[doc(hidden)]
+        #[allow(non_camel_case_types)]
+        #derive
+        struct #args { #(#fields),* }
+    })
+}
+
+fn output_type(sig: &syn::Signature) -> proc_macro2::TokenStream {
+    match &sig.output {
+        syn::ReturnType::Default => quote! { () },
+        syn::ReturnType::Type(_, ty) => quote! { #ty },
     }
+}
 
-    let data_types: Vec<&syn::Type> = data_params.iter().map(|pt| &*pt.ty).collect();
-    let arg_idents: Vec<syn::Ident> = (0..data_types.len())
-        .map(|i| format_ident!("__yog_arg{}", i))
-        .collect();
-
-    let data_type = match data_types.len() {
-        0 => quote! { () },
-        1 => {
-            let t = data_types[0];
-            quote! { #t }
-        }
-        _ => quote! { (#(#data_types),*) },
-    };
-
-    let destructure = match arg_idents.len() {
-        0 => quote! {},
-        1 => {
-            let a = &arg_idents[0];
-            quote! { let #a = __yog_data; }
-        }
-        _ => quote! { let (#(#arg_idents),*) = __yog_data; },
-    };
-
-    let registry_setup = if has_registry_param {
-        quote! {
-            let mut __yog_registry = unsafe {
-                ::yog_api::Registry::from_raw(::yog_api::__current_api_ptr() as *const ::yog_api::YogApi)
-            };
-        }
+/// Marks a function, struct or enum for other mods: a function becomes the
+/// service `mod_id:name`, a type gets the schema its values cross with.
+#[proc_macro_attribute]
+pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let tokens = proc_macro2::TokenStream::from(item.clone());
+    if syn::parse2::<syn::ItemStruct>(tokens.clone()).is_ok() || syn::parse2::<syn::ItemEnum>(tokens.clone()).is_ok() {
+        let derive = schema_derive();
+        return TokenStream::from(quote! { #derive #tokens });
+    }
+    let func = syn::parse_macro_input!(item as syn::ItemFn);
+    let name = &func.sig.ident;
+    let name_str = name.to_string();
+    let serve_name = format_ident!("__yog_serve_{}", name);
+    let ctor_name = format_ident!("__yog_ctor_register_{}", name);
+    let (registry, params) = call_params(&func.sig);
+    let (args, args_def) = args_struct(name, &params);
+    let output = output_type(&func.sig);
+    let names: Vec<&syn::Ident> = params.iter().map(|(n, _)| n).collect();
+    // The exporting mod's own `Registry`, from the API it captured at load.
+    let (setup, registry_arg) = if registry {
+        (
+            quote! { let mut __yog_registry = unsafe { ::yog_api::Registry::from_raw(::yog_api::__current_api_ptr() as *const ::yog_api::YogApi) }; },
+            quote! { &mut __yog_registry, },
+        )
     } else {
-        quote! {}
+        (quote! {}, quote! {})
     };
+    TokenStream::from(quote! {
+        #func
 
-    let mut call_args: Vec<proc_macro2::TokenStream> = Vec::new();
-    if has_registry_param {
-        call_args.push(quote! { &mut __yog_registry });
-    }
-    call_args.extend(arg_idents.iter().map(|a| quote! { #a }));
-    let call_fn = quote! { #name(#(#call_args),*) };
-
-    let expanded = quote! {
-        #vis #sig #block
+        #args_def
 
         #[doc(hidden)]
-        #[unsafe(no_mangle)]
-        pub unsafe extern "C" fn #wrap_name(
-            input_ptr: *const u8, input_len: u32,
-            out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32,
-        ) {
-            // A panic must not unwind out of `extern "C"` (it would abort the
-            // game): a failure — bad input, a panic — answers no data, and
-            // the importing side reports it where unwinding is safe.
-            let call = ::std::panic::catch_unwind(::std::panic::AssertUnwindSafe(|| {
-                let input_slice: &[u8] = if input_len == 0 {
-                    &[]
-                } else {
-                    unsafe { std::slice::from_raw_parts(input_ptr, input_len as usize) }
-                };
-                let __yog_data: #data_type = ::yog_api::rkyv::from_bytes::<_, ::yog_api::rkyv::rancor::Error>(input_slice)
-                    .expect("yog: an export's arguments didn't decode");
-                #destructure
-                #registry_setup
-                let result: #output = #call_fn;
-                ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(&result).map(|a| a.to_vec()).ok()
-            }));
-            let Ok(Some(bytes)) = call else {
-                unsafe {
-                    *out_data = std::ptr::null_mut();
-                    *out_len = 0;
-                    *out_cap = 0;
-                }
-                return;
-            };
+        unsafe extern "C" fn #serve_name(
+            _ud: *mut ::std::os::raw::c_void,
+            payload: ::yog_api::YogBytes,
+            reply: *const ::yog_api::YogReply,
+        ) -> ::yog_api::YogStatus {
             unsafe {
-                *out_data = bytes.as_ptr() as *mut u8;
-                *out_len = bytes.len() as u32;
-                *out_cap = bytes.capacity() as u32;
+                ::yog_api::__yog_serve::<#args, #output>(payload, reply, |a| {
+                    #setup
+                    #name(#registry_arg #(a.#names),*)
+                })
             }
-            std::mem::forget(bytes);
         }
 
-        // Runs when this mod's `cdylib` is loaded, before the runtime calls
-        // `yog_mod_register` — populates the auto-export registry so mod
-        // authors don't need to call `registry.interop().export(...)` by hand.
+        // Runs when this mod's library loads, before `yog_mod_register`.
         #[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
         #[doc(hidden)]
         fn #ctor_name() {
-            ::yog_api::__yog_export_registry().lock().unwrap().push(
-                ::yog_api::YogExportEntry { name: #name_str, ptr: #wrap_name as usize }
+            ::yog_api::__yog_export_registry().lock().unwrap_or_else(|e| e.into_inner()).push(
+                ::yog_api::YogExportEntry { name: #name_str, handler: #serve_name }
             );
         }
-    };
-
-    TokenStream::from(expanded)
+    })
 }
 
 // ── #[bench] ─────────────────────────────────────────────────────────────
@@ -205,34 +148,25 @@ pub fn bench(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
 // ── import! macro ────────────────────────────────────────────────────────
 
+/// Another mod's exports, callable here: `import! { from "mod_id" { pub fn
+/// name(a: A) -> R; pub struct T { .. } } }` — each fn calls `mod_id:name`
+/// on the bus; each type gets the schema its values cross with.
 #[proc_macro]
 pub fn import(input: TokenStream) -> TokenStream {
     let import_block = syn::parse_macro_input!(input as ImportBlock);
     let mod_name = &import_block.mod_name;
     let mod_ident = format_ident!("{}", mod_name.replace('-', "_"));
     let mut items = proc_macro2::TokenStream::new();
-
     for item in &import_block.items {
         match item {
-            ImportItem::Func(func) => {
-                items.extend(generate_import_fn(func, mod_name));
-            }
-            ImportItem::Struct(s) => {
-                let vis = &s.vis;
-                let ident = &s.ident;
-                let generics = &s.generics;
-                let fields = &s.fields;
-                let attrs = &s.attrs;
-                items.extend(quote! {
-                    #[derive(::yog_api::rkyv::Archive, ::yog_api::rkyv::Serialize, ::yog_api::rkyv::Deserialize)]
-                    #(#attrs)* #vis struct #ident #generics #fields
-                });
+            ImportItem::Func(func) => items.extend(generate_import_fn(func, mod_name)),
+            ImportItem::Type(t) => {
+                let derive = schema_derive();
+                items.extend(quote! { #derive #t });
             }
         }
     }
-
-    let out = quote! { pub mod #mod_ident { #items } };
-    TokenStream::from(out)
+    TokenStream::from(quote! { pub mod #mod_ident { use super::*; #items } })
 }
 
 /// An imported function: `pub fn name(args) -> Out;` (a body, if written, is ignored).
@@ -244,69 +178,17 @@ struct ImportFn {
 fn generate_import_fn(func: &ImportFn, mod_name: &str) -> proc_macro2::TokenStream {
     let name = &func.sig.ident;
     let name_str = name.to_string();
-    // Statics use SCREAMING_SNAKE_CASE per Rust convention; the bind fn stays
-    // snake_case since it's a function, not a static.
-    let slot_name = format_ident!("__YOG_SLOT_{}", name_str.to_uppercase());
-    let bind_name = format_ident!("__yog_bind_{}", name);
-    let ctor_name = format_ident!("__yog_import_ctor_{}", name);
-    let fn_sig = &func.sig;
     let vis = &func.vis;
-    let inputs = &fn_sig.inputs;
-    let output = &fn_sig.output;
-
-    let output_type = match output {
-        syn::ReturnType::Default => quote! { () },
-        syn::ReturnType::Type(_, ty) => quote! { #ty },
-    };
-
-    let arg_names: Vec<_> = inputs
-        .iter()
-        .map(|arg| match arg {
-            syn::FnArg::Typed(pat_type) => &pat_type.pat,
-            _ => unreachable!(),
-        })
-        .collect();
-
-    let serialize_block = if inputs.is_empty() {
-        quote! { let input_bytes = Vec::new(); }
-    } else {
-        quote! {
-            let aligned = ::yog_api::rkyv::to_bytes::<::yog_api::rkyv::rancor::Error>(&(#(#arg_names),*)).unwrap_or_default();
-            let input_bytes: Vec<u8> = aligned.to_vec();
-        }
-    };
-
-    let wrapper_ty = quote! { ::yog_api::YogExportFn };
-
+    let (_, params) = call_params(&func.sig);
+    let (args, args_def) = args_struct(name, &params);
+    let output = output_type(&func.sig);
+    let names: Vec<&syn::Ident> = params.iter().map(|(n, _)| n).collect();
+    let types: Vec<&syn::Type> = params.iter().map(|(_, t)| t).collect();
     quote! {
-        #[allow(non_snake_case)]
-        #vis fn #name(#inputs) #output {
-            #serialize_block
-            let f = #slot_name.get()
-                .expect(concat!("yog: import '", #mod_name, ":", #name_str, "' not bound"));
-            let output = ::yog_api::__interop_call(*f, &input_bytes, concat!(#mod_name, ":", #name_str));
-            ::yog_api::rkyv::from_bytes::<#output_type, ::yog_api::rkyv::rancor::Error>(&output)
-                .expect(concat!("yog: the result of '", #mod_name, ":", #name_str, "' didn't decode"))
-        }
+        #args_def
 
-        static #slot_name: ::std::sync::OnceLock<#wrapper_ty> = ::std::sync::OnceLock::new();
-
-        #[doc(hidden)] #[unsafe(no_mangle)]
-        pub unsafe extern "C" fn #bind_name(ptr: *const ::std::os::raw::c_void) {
-            let f: #wrapper_ty = unsafe { ::std::mem::transmute(ptr) };
-            #slot_name.set(f).ok();
-        }
-
-        // Queues the binding when this mod's library loads; `export_mod!`
-        // binds it once the exporting mod has exported the function.
-        #[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
-        #[doc(hidden)]
-        fn #ctor_name() {
-            ::yog_api::__yog_import_registry().lock().unwrap().push(::yog_api::YogImportEntry {
-                mod_id: #mod_name,
-                symbol: #name_str,
-                bind_fn: #bind_name as *const () as usize,
-            });
+        #vis fn #name(#(#names: #types),*) -> #output {
+            ::yog_api::__yog_call::<#args, #output>(#mod_name, #name_str, &#args { #(#names),* })
         }
     }
 }
@@ -318,8 +200,9 @@ struct ImportBlock {
     items: Vec<ImportItem>,
 }
 enum ImportItem {
-    Func(ImportFn),
-    Struct(syn::ItemStruct),
+    Func(Box<ImportFn>),
+    /// A struct or enum, as written.
+    Type(proc_macro2::TokenStream),
 }
 
 impl syn::parse::Parse for ImportBlock {
@@ -343,12 +226,17 @@ impl syn::parse::Parse for ImportBlock {
                 } else {
                     content.parse::<syn::Token![;]>()?;
                 }
-                items.push(ImportItem::Func(ImportFn { vis, sig }));
+                items.push(ImportItem::Func(Box::new(ImportFn { vis, sig })));
+            } else if content.peek(syn::Token![enum]) {
+                let mut e: syn::ItemEnum = content.parse()?;
+                e.attrs = attrs;
+                e.vis = vis;
+                items.push(ImportItem::Type(quote! { #e }));
             } else {
                 let mut s: syn::ItemStruct = content.parse()?;
                 s.attrs = attrs;
                 s.vis = vis;
-                items.push(ImportItem::Struct(s));
+                items.push(ImportItem::Type(quote! { #s }));
                 let _ = content.parse::<syn::Token![;]>();
             }
         }

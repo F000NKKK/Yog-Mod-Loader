@@ -25,7 +25,9 @@ mod scheduler;
 mod server;
 mod service;
 
-pub use interop::Interop;
+#[doc(hidden)]
+pub use interop::{YogExportEntry, __yog_call, __yog_export_registry, __yog_serve};
+pub use interop::{call_export, export_address};
 pub use lang::{format_translation, tag_name, tr, tr_args, translation};
 pub use registry::{
     Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui, server,
@@ -36,6 +38,8 @@ pub use yog_gfx::{
 
 /// Stable C ABI — re-exported so mods don't need a direct `yog-abi` dependency.
 pub use yog_abi::{ABI_VERSION, YogApi};
+#[doc(hidden)]
+pub use yog_abi::{YogBytes, YogReply, YogStatus};
 
 /// Yog Data — what content definitions and book pages' `data`
 /// (`Registry::on_book_page`) are; re-exported for mods.
@@ -47,11 +51,6 @@ pub use java::mod_loaded;
 
 /// Inter-mod communication proc-macros.
 pub use yog_interop::{bench, import, yog_export};
-
-/// rkyv — zero-copy serialization for interop. Re-exported so generated
-/// code and mods can use `rkyv::Archive`, `rkyv::Serialize`, `rkyv::Deserialize`
-/// without a direct dependency.
-pub use rkyv;
 
 /// Re-exported so `#[yog_export]`-generated code can emit `#[::yog_api::ctor::ctor(unsafe)]`
 /// without mods needing a direct `ctor` dependency. Constructors run when the
@@ -126,17 +125,11 @@ macro_rules! export_mod {
                     register(&mut registry);
                 }
 
-                // Auto-register all #[yog_export] functions (populated by
-                // per-function `ctor` constructors at cdylib load time).
-                for entry in $crate::__yog_export_registry().lock().unwrap().iter() {
-                    registry
-                        .interop()
-                        .export(entry.name, entry.ptr as *const ::std::os::raw::c_void);
+                // Every #[yog_export] function (registered by its `ctor`
+                // when the library loaded) provides `mod_id:name`.
+                for entry in $crate::__yog_export_registry().lock().unwrap_or_else(|e| e.into_inner()).iter() {
+                    registry.provide_export(mod_id, entry);
                 }
-
-                // Resolve pending imports (may partially succeed — runtime
-                // does a final pass after all mods loaded).
-                $crate::__yog_resolve_pending_imports(&registry);
             }));
             if outcome.is_err() {
                 $crate::error!(
@@ -144,14 +137,6 @@ macro_rules! export_mod {
                     ::core::stringify!($mod_ty)
                 );
             }
-        }
-
-        /// Called by the runtime after ALL mods are loaded — resolves any
-        /// imports that weren't satisfied during initial registration.
-        #[unsafe(no_mangle)]
-        pub unsafe extern "C" fn __yog_resolve_imports_final(api: *const $crate::YogApi) {
-            let registry = unsafe { $crate::Registry::from_raw(api) };
-            $crate::__yog_resolve_pending_imports(&registry);
         }
 
         /// Yog-IDLE's screen designer: the version of the protocol below.
@@ -247,82 +232,6 @@ static API_PTR: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize:
 
 std::thread_local! {
     static CURRENT_MOD_ID: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
-}
-
-// ── Auto-export registry ─────────────────────────────────────────────────
-
-#[doc(hidden)]
-pub struct YogExportEntry {
-    pub name: &'static str,
-    pub ptr: usize,
-}
-
-#[doc(hidden)]
-pub struct YogImportEntry {
-    pub mod_id: &'static str,
-    pub symbol: &'static str,
-    pub bind_fn: usize,
-}
-
-#[doc(hidden)]
-pub fn __yog_export_registry() -> &'static std::sync::Mutex<Vec<YogExportEntry>> {
-    static REG: std::sync::LazyLock<std::sync::Mutex<Vec<YogExportEntry>>> =
-        std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
-    &REG
-}
-
-/// The `register` functions of `yog_api::content!()` — run by
-/// `export_mod!` after `Mod::register`.
-#[doc(hidden)]
-pub fn __yog_content_registrars() -> &'static std::sync::Mutex<Vec<fn(&mut Registry)>> {
-    static REG: std::sync::Mutex<Vec<fn(&mut Registry)>> = std::sync::Mutex::new(Vec::new());
-    &REG
-}
-
-/// An exported function's C wrapper, as `#[yog_export]` generates it.
-#[doc(hidden)]
-pub type YogExportFn =
-    unsafe extern "C" fn(input_ptr: *const u8, input_len: u32, out_data: *mut *mut u8, out_len: *mut u32, out_cap: *mut u32);
-
-/// Calls another mod's export `what` (`mod:name`) through its wrapper `f`
-/// with the encoded arguments: its encoded result. A failure in that mod
-/// (it answers no data) panics here, on the calling side, where it's safe.
-#[doc(hidden)]
-pub fn __interop_call(f: YogExportFn, input: &[u8], what: &str) -> Vec<u8> {
-    let mut out_data: *mut u8 = std::ptr::null_mut();
-    let (mut out_len, mut out_cap) = (0u32, 0u32);
-    unsafe {
-        f(input.as_ptr(), input.len() as u32, &mut out_data, &mut out_len, &mut out_cap);
-        if out_data.is_null() {
-            panic!("yog: '{what}' failed in its mod (see its log)");
-        }
-        // The answer was allocated by the other mod's `Vec` (same system allocator).
-        Vec::from_raw_parts(out_data, out_len as usize, out_cap as usize)
-    }
-}
-
-#[doc(hidden)]
-pub fn __yog_import_registry() -> &'static std::sync::Mutex<Vec<YogImportEntry>> {
-    static REG: std::sync::LazyLock<std::sync::Mutex<Vec<YogImportEntry>>> =
-        std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
-    &REG
-}
-
-/// Called by `export_mod!` after registration. Iterates pending imports and
-/// resolves them via the interop table. Also exported as `#[unsafe(no_mangle)]` so the
-/// runtime can call it after all mods are loaded (final resolution pass).
-#[doc(hidden)]
-pub unsafe fn __yog_resolve_pending_imports(registry: &crate::Registry) {
-    unsafe {
-        let interop = registry.interop();
-        for entry in __yog_import_registry().lock().unwrap().iter() {
-            if let Some(ptr) = interop.import_raw(entry.mod_id, entry.symbol) {
-                let bind: unsafe extern "C" fn(*const std::ffi::c_void) =
-                    std::mem::transmute(entry.bind_fn);
-                bind(ptr);
-            }
-        }
-    }
 }
 
 pub use yog_book::BookRenderer;

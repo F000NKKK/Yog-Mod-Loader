@@ -19,9 +19,25 @@ use proc_macro2::TokenStream as Tokens;
 use quote::quote;
 use syn::{Data, DeriveInput, Fields, Ident, LitStr, Type, parse_macro_input};
 
+thread_local! {
+    /// The path of `yog_data` for the derive running now: `::yog_data`, or
+    /// the container's `#[data(crate = "...")]` (a crate that re-exports it).
+    static KRATE: std::cell::RefCell<Tokens> = std::cell::RefCell::new(quote!(::yog_data));
+}
+
+/// The path of `yog_data` the generated code uses.
+fn krate() -> Tokens {
+    KRATE.with(|k| k.borrow().clone())
+}
+
 #[proc_macro_derive(Schema, attributes(data))]
 pub fn derive_schema(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
+    let path = match attrs(&input.attrs) {
+        Ok(a) => a.krate.unwrap_or_else(|| syn::parse_quote!(::yog_data)),
+        Err(e) => return e.to_compile_error().into(),
+    };
+    KRATE.with(|k| *k.borrow_mut() = quote!(#path));
     match expand(&input) {
         Ok(t) => t.into(),
         Err(e) => e.to_compile_error().into(),
@@ -38,6 +54,8 @@ struct Attrs {
     range: Option<(f64, f64)>,
     /// A tagged enum's variant for every tag the others don't take.
     other: bool,
+    /// The container's path of `yog_data` (a crate re-exporting it).
+    krate: Option<syn::Path>,
 }
 
 fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
@@ -72,9 +90,11 @@ fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
                 a.skip = true;
             } else if meta.path.is_ident("other") {
                 a.other = true;
+            } else if meta.path.is_ident("crate") {
+                a.krate = Some(meta.value()?.parse::<LitStr>()?.parse()?);
             } else {
                 return Err(meta
-                    .error("unknown `data` attribute (rename, default, skip, tag, with, range, other)"));
+                    .error("unknown `data` attribute (rename, default, skip, tag, with, range, other, crate)"));
             }
             Ok(())
         })?;
@@ -139,6 +159,7 @@ struct NamedField {
 }
 
 fn named_fields(fields: &syn::FieldsNamed) -> syn::Result<Vec<NamedField>> {
+    let krate = krate();
     fields
         .named
         .iter()
@@ -157,7 +178,7 @@ fn named_fields(fields: &syn::FieldsNamed) -> syn::Result<Vec<NamedField>> {
                 skip: a.skip,
                 with: a
                     .with
-                    .unwrap_or_else(|| syn::parse_quote!(::yog_data::with::Plain)),
+                    .unwrap_or_else(|| syn::parse_quote!(#krate::with::Plain)),
                 range: a.range,
             })
         })
@@ -166,6 +187,7 @@ fn named_fields(fields: &syn::FieldsNamed) -> syn::Result<Vec<NamedField>> {
 
 /// `Vec<Field>` describing `fields`.
 fn field_shapes(fields: &[NamedField]) -> Tokens {
+    let krate = krate();
     let items = fields.iter().filter(|f| !f.skip).map(|f| {
         let (key, doc, ty, w) = (&f.key, &f.doc, &f.ty, &f.with);
         let has_default = f.default.is_some();
@@ -174,11 +196,11 @@ fn field_shapes(fields: &[NamedField]) -> Tokens {
             None => quote! { ::std::option::Option::None },
         };
         quote! {
-            ::yog_data::schema::Field {
+            #krate::schema::Field {
                 name: #key,
                 doc: #doc,
-                shape: <#w as ::yog_data::with::With<#ty>>::shape,
-                required: !#has_default && <#w as ::yog_data::with::With<#ty>>::absent().is_none(),
+                shape: <#w as #krate::with::With<#ty>>::shape,
+                required: !#has_default && <#w as #krate::with::With<#ty>>::absent().is_none(),
                 range: #range,
             }
         }
@@ -221,11 +243,12 @@ fn read_fields(fields: &[NamedField], ctor: Tokens) -> Tokens {
 
 /// Inserts `fields` (bound by name) into `m` (in scope).
 fn write_fields(fields: &[NamedField]) -> Tokens {
+    let krate = krate();
     let puts = fields.iter().filter(|f| !f.skip).map(|f| {
         let (ident, key, ty, w) = (&f.ident, &f.key, &f.ty, &f.with);
         quote! {
-            if !<#w as ::yog_data::with::With<#ty>>::skip(#ident) {
-                m.insert(#key, <#w as ::yog_data::with::With<#ty>>::write(#ident));
+            if !<#w as #krate::with::With<#ty>>::skip(#ident) {
+                m.insert(#key, <#w as #krate::with::With<#ty>>::write(#ident));
             }
         }
     });
@@ -233,6 +256,7 @@ fn write_fields(fields: &[NamedField]) -> Tokens {
 }
 
 fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
+    let krate = krate();
     let name = &input.ident;
     let (impl_g, ty_g, where_g) = input.generics.split_for_impl();
     let top = attrs(&input.attrs)?;
@@ -247,32 +271,32 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
                 let idents: Vec<_> = fields.iter().map(|f| &f.ident).collect();
                 let write = write_fields(&fields);
                 quote! {
-                    fn shape() -> ::yog_data::Shape {
-                        ::yog_data::Shape::Struct(::yog_data::schema::StructShape { name: #shape_name, doc: #doc, fields: #shapes })
+                    fn shape() -> #krate::Shape {
+                        #krate::Shape::Struct(#krate::schema::StructShape { name: #shape_name, doc: #doc, fields: #shapes })
                     }
-                    fn read(v: &::yog_data::ValueRef<'_>, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
+                    fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
                         let map = cx.map(v)?;
                         #read
                     }
                     #[allow(unused_variables)]
-                    fn write(&self) -> ::yog_data::Value {
+                    fn write(&self) -> #krate::Value {
                         let Self { #(#idents),* } = self;
-                        let mut m = ::yog_data::Map::new();
+                        let mut m = #krate::Map::new();
                         #write
-                        ::yog_data::Value::Map(m)
+                        #krate::Value::Map(m)
                     }
                 }
             }
             Fields::Unnamed(u) if u.unnamed.len() == 1 => {
                 let ty = &u.unnamed[0].ty;
                 quote! {
-                    fn shape() -> ::yog_data::Shape { <#ty as ::yog_data::Schema>::shape() }
-                    fn read(v: &::yog_data::ValueRef<'_>, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
-                        <#ty as ::yog_data::Schema>::read(v, cx).map(Self)
+                    fn shape() -> #krate::Shape { <#ty as #krate::Schema>::shape() }
+                    fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
+                        <#ty as #krate::Schema>::read(v, cx).map(Self)
                     }
-                    fn write(&self) -> ::yog_data::Value { ::yog_data::Schema::write(&self.0) }
-                    fn absent() -> ::std::option::Option<Self> { <#ty as ::yog_data::Schema>::absent().map(Self) }
-                    fn skip(&self) -> bool { ::yog_data::Schema::skip(&self.0) }
+                    fn write(&self) -> #krate::Value { #krate::Schema::write(&self.0) }
+                    fn absent() -> ::std::option::Option<Self> { <#ty as #krate::Schema>::absent().map(Self) }
+                    fn skip(&self) -> bool { #krate::Schema::skip(&self.0) }
                 }
             }
             _ => {
@@ -291,13 +315,14 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
         }
     };
     Ok(quote! {
-        impl #impl_g ::yog_data::Schema for #name #ty_g #where_g {
+        impl #impl_g #krate::Schema for #name #ty_g #where_g {
             #body
         }
     })
 }
 
 fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> syn::Result<Tokens> {
+    let krate = krate();
     struct V {
         ident: Ident,
         key: String,
@@ -355,21 +380,21 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
             VKind::Unit => quote! { ::std::vec::Vec::new() },
             VKind::Named(f) => field_shapes(f),
             VKind::Wrap(ty) => quote! {
-                match <#ty as ::yog_data::Schema>::shape() {
-                    ::yog_data::Shape::Struct(s) => s.fields,
+                match <#ty as #krate::Schema>::shape() {
+                    #krate::Shape::Struct(s) => s.fields,
                     _ => ::std::vec::Vec::new(),
                 }
             },
         };
-        quote! { ::yog_data::schema::Variant { name: #key, doc: #doc, fields: #fields } }
+        quote! { #krate::schema::Variant { name: #key, doc: #doc, fields: #fields } }
     });
     let tag_tokens = match &top.tag {
         Some(t) => quote! { ::std::option::Option::Some(#t) },
         None => quote! { ::std::option::Option::None },
     };
     let shape = quote! {
-        fn shape() -> ::yog_data::Shape {
-            ::yog_data::Shape::Enum(::yog_data::schema::EnumShape {
+        fn shape() -> #krate::Shape {
+            #krate::Shape::Enum(#krate::schema::EnumShape {
                 name: #shape_name,
                 doc: #doc,
                 tag: #tag_tokens,
@@ -389,8 +414,8 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
         });
         return Ok(quote! {
             #shape
-            fn read(v: &::yog_data::ValueRef<'_>, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
-                let ::yog_data::ValueRef::Str(s) = v else {
+            fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
+                let #krate::ValueRef::Str(s) = v else {
                     cx.expected("a name", v);
                     return ::std::option::Option::None;
                 };
@@ -402,8 +427,8 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
                     }
                 }
             }
-            fn write(&self) -> ::yog_data::Value {
-                ::yog_data::Value::Str(::std::string::String::from(match self { #(#writes)* }))
+            fn write(&self) -> #krate::Value {
+                #krate::Value::Str(::std::string::String::from(match self { #(#writes)* }))
             }
         });
     };
@@ -420,7 +445,7 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
                 quote! { cx.with_allowed(#tag, |cx| { #read }) }
             }
             VKind::Wrap(ty) => quote! {
-                cx.with_allowed(#tag, |cx| <#ty as ::yog_data::Schema>::read(v, cx)).map(Self::#ident)
+                cx.with_allowed(#tag, |cx| <#ty as #krate::Schema>::read(v, cx)).map(Self::#ident)
             },
         };
         quote! { #key => { #body } }
@@ -430,7 +455,7 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
         match &v.kind {
             VKind::Unit => quote! {
                 Self::#ident => {
-                    m.insert(#tag, ::yog_data::Value::from(#key));
+                    m.insert(#tag, #krate::Value::from(#key));
                 }
             },
             VKind::Named(fields) => {
@@ -439,15 +464,15 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
                 quote! {
                     #[allow(unused_variables)]
                     Self::#ident { #(#idents),* } => {
-                        m.insert(#tag, ::yog_data::Value::from(#key));
+                        m.insert(#tag, #krate::Value::from(#key));
                         #puts
                     }
                 }
             }
             VKind::Wrap(_) => quote! {
                 Self::#ident(inner) => {
-                    m.insert(#tag, ::yog_data::Value::from(#key));
-                    if let ::yog_data::Value::Map(fields) = ::yog_data::Schema::write(inner) {
+                    m.insert(#tag, #krate::Value::from(#key));
+                    if let #krate::Value::Map(fields) = #krate::Schema::write(inner) {
                         for (k, v) in fields {
                             m.insert(k, v);
                         }
@@ -458,13 +483,13 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
     });
     let (fallback, other_write) = match &other {
         Some(V { ident, kind: VKind::Wrap(ty), .. }) => (
-            quote! { _ => <#ty as ::yog_data::Schema>::read(v, cx).map(Self::#ident), },
-            quote! { Self::#ident(inner) => { m = match ::yog_data::Schema::write(inner) { ::yog_data::Value::Map(fields) => fields, _ => m }; } },
+            quote! { _ => <#ty as #krate::Schema>::read(v, cx).map(Self::#ident), },
+            quote! { Self::#ident(inner) => { m = match #krate::Schema::write(inner) { #krate::Value::Map(fields) => fields, _ => m }; } },
         ),
         _ => (
             quote! {
                 other => {
-                    cx.at(::yog_data::Seg::Key(::std::string::String::from(#tag)), |cx| cx.unknown_name(other, &[#(#keys),*]));
+                    cx.at(#krate::Seg::Key(::std::string::String::from(#tag)), |cx| cx.unknown_name(other, &[#(#keys),*]));
                     ::std::option::Option::None
                 }
             },
@@ -473,14 +498,14 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
     };
     Ok(quote! {
         #shape
-        fn read(v: &::yog_data::ValueRef<'_>, cx: &mut ::yog_data::Reader) -> ::std::option::Option<Self> {
+        fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
             let map = cx.map(v)?;
             let ::std::option::Option::Some(kind) = map.get(#tag) else {
                 cx.problem(::std::format!("missing `{}` ({})", #tag, [#(#keys),*].map(|k| ::std::format!("`{k}`")).join(", ")));
                 return ::std::option::Option::None;
             };
-            let ::yog_data::ValueRef::Str(kind) = kind else {
-                cx.at(::yog_data::Seg::Key(::std::string::String::from(#tag)), |cx| cx.expected("a name", kind));
+            let #krate::ValueRef::Str(kind) = kind else {
+                cx.at(#krate::Seg::Key(::std::string::String::from(#tag)), |cx| cx.expected("a name", kind));
                 return ::std::option::Option::None;
             };
             match *kind {
@@ -488,10 +513,10 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
                 #fallback
             }
         }
-        fn write(&self) -> ::yog_data::Value {
-            let mut m = ::yog_data::Map::new();
+        fn write(&self) -> #krate::Value {
+            let mut m = #krate::Map::new();
             match self { #(#writes)* #other_write }
-            ::yog_data::Value::Map(m)
+            #krate::Value::Map(m)
         }
     })
 }

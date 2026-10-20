@@ -40,6 +40,19 @@ impl Registry {
         self.providing::<S, _>(&keyed(S::ADDRESS, key), Arc::new(handler))
     }
 
+    /// Provides `address` with a raw bus handler (a `#[yog_export]`'s).
+    pub(crate) fn provide_raw(&mut self, address: &str, handler: yog_abi::YogHandlerFn) -> bool {
+        let bus = unsafe { &*self.api().bus };
+        let st = unsafe {
+            let at = (bus.resolve)(bus.ctx, YogStr::from_str(address));
+            (bus.provide)(bus.ctx, at, std::ptr::null_mut(), handler)
+        };
+        if st != status::OK {
+            crate::error!("{address}: someone provides it already");
+        }
+        st == status::OK
+    }
+
     fn providing<S: Service + 'static, F>(&mut self, address: &str, handler: Arc<F>) -> bool
     where
         F: Fn(&S, &EventCx) -> S::Reply + Send + Sync + 'static,
@@ -76,16 +89,27 @@ impl Registry {
 }
 
 fn call_on<S: Service>(api: &YogApi, request: &S) -> Option<S::Reply> {
+    S::Reply::from_bytes(&call_bytes(api, &request.target(), &request.to_bytes())?)
+}
+
+/// Calls `address`'s provider with `payload`: its reply's bytes, `None`
+/// when no one answers (or this mod isn't registered yet).
+pub(crate) fn call_at(address: &str, payload: &[u8]) -> Option<Vec<u8>> {
+    let api = global_api();
+    if api.is_null() {
+        return None;
+    }
+    call_bytes(unsafe { &*api }, address, payload)
+}
+
+fn call_bytes(api: &YogApi, address: &str, payload: &[u8]) -> Option<Vec<u8>> {
     let bus = unsafe { &*api.bus };
     let mut out = Vec::new();
     let st = unsafe {
-        let at = (bus.resolve)(bus.ctx, YogStr::from_str(&request.target()));
-        (bus.call)(bus.ctx, at, YogBytes::new(&request.to_bytes()), &YogReply::to_vec(&mut out))
+        let at = (bus.resolve)(bus.ctx, YogStr::from_str(address));
+        (bus.call)(bus.ctx, at, YogBytes::new(payload), &YogReply::to_vec(&mut out))
     };
-    if st != status::OK {
-        return None;
-    }
-    S::Reply::from_bytes(&out)
+    (st == status::OK).then_some(out)
 }
 
 #[cfg(test)]

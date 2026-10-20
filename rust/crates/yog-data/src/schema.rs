@@ -1089,6 +1089,51 @@ impl<T: Schema, const N: usize> Schema for [T; N] {
     }
 }
 
+/// Nothing: what a call answers when it only says it's done.
+impl Schema for () {
+    fn shape() -> Shape {
+        Shape::Any
+    }
+    fn read(_v: &ValueRef<'_>, _cx: &mut Reader) -> Option<Self> {
+        Some(())
+    }
+    fn write(&self) -> Value {
+        Value::Null
+    }
+}
+
+/// What may fail: `{ "ok": T }` or `{ "err": E }`.
+impl<T: Schema, E: Schema> Schema for Result<T, E> {
+    fn shape() -> Shape {
+        Shape::Any
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        let ValueRef::Map(m) = v else {
+            cx.expected("{ ok } or { err }", v);
+            return None;
+        };
+        if let Some(ok) = m.get(RESULT_OK) {
+            return cx.at(Seg::Key(RESULT_OK.into()), |cx| T::read(ok, cx)).map(Ok);
+        }
+        let Some(err) = m.get(RESULT_ERR) else {
+            cx.expected("{ ok } or { err }", v);
+            return None;
+        };
+        cx.at(Seg::Key(RESULT_ERR.into()), |cx| E::read(err, cx)).map(Err)
+    }
+    fn write(&self) -> Value {
+        let (key, value) = match self {
+            Ok(t) => (RESULT_OK, t.write()),
+            Err(e) => (RESULT_ERR, e.write()),
+        };
+        Value::Map([(key.to_owned(), value)].into_iter().collect())
+    }
+}
+
+/// The keys of a [`Result`]'s two sides.
+const RESULT_OK: &str = "ok";
+const RESULT_ERR: &str = "err";
+
 /// A pair, written `[a, b]` (a point, a size).
 impl<A: Schema, B: Schema> Schema for (A, B) {
     fn shape() -> Shape {
