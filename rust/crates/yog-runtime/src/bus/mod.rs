@@ -56,6 +56,13 @@ pub(crate) fn emitted<E: Event>(event: &E) {
     ROUTER.emit(ROUTER.resolve(&event.target()), &event.to_bytes(), java::run);
 }
 
+/// Emits `event` and reads back what the handlers made of it (itself when
+/// the reply isn't one).
+pub(crate) fn changed<E: Event>(event: E) -> E {
+    let (_, reply) = ROUTER.emit(ROUTER.resolve(&event.target()), &event.to_bytes(), java::run);
+    E::from_bytes(&reply).unwrap_or(event)
+}
+
 /// Whether anyone listens to `E` (unkeyed) — skip building a frame no one draws.
 pub(crate) fn heard<E: Event>() -> bool {
     ROUTER.heard(ROUTER.resolve(E::ADDRESS))

@@ -328,7 +328,7 @@ pub use yog_formats::book::{Book, BookCategory, BookEntry, BookPage};
 pub use yog_command::CommandContext;
 pub use yog_config::Config;
 pub use yog_core::{BlockPos, Server, split_state};
-pub use yog_dimensions::{ChunkWriter, YogDimensionDef, YogDimensionTypeDef};
+pub use yog_dimensions::{GeneratedChunk, YogDimensionDef, YogDimensionTypeDef};
 pub use yog_entity::Entity;
 pub use yog_event::{Event, EventPhase, Message, Service};
 pub use yog_inventory::{InventoryDef, SlotLayout};

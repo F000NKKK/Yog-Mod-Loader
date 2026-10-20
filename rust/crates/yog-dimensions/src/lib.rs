@@ -16,8 +16,8 @@
 //! and real generators often layer several algorithms together. Instead,
 //! mods write their own generator as a plain closure and register it under a
 //! **named, reusable generator type** via `Registry::register_chunk_generator`
-//! (e.g. `"mymod:custom_terrain"`) — called once per chunk column with a
-//! [`ChunkWriter`] handle the closure uses to place blocks however it likes
+//! (e.g. `"mymod:custom_terrain"`) — called once per chunk column with the
+//! [`GeneratedChunk`] the closure places blocks in however it likes
 //! (composing whatever noise functions or logic it wants — that's the mod's
 //! own code, not this crate's concern).
 //!
@@ -305,50 +305,104 @@ impl YogDimensionDef {
     }
 }
 
-// ── Chunk writer handle ──────────────────────────────────────────────────────
+// ── Generated chunks ─────────────────────────────────────────────────────────
 
-/// Handle passed to a chunk-generator closure (see the crate-level docs),
-/// wrapping the runtime's per-callback vtable — mirrors `GfxContext` in
-/// `yog-gfx`. Valid only for the duration of the generator callback.
-pub struct ChunkWriter(*const yog_abi::YogChunkWriterApi);
+/// Blocks across a chunk column, in x and z.
+pub const CHUNK_WIDTH: i32 = 16;
 
-impl ChunkWriter {
-    #[doc(hidden)]
-    pub unsafe fn from_raw(raw: *const yog_abi::YogChunkWriterApi) -> Self {
-        Self(raw)
+/// A chunk column a generator fills (the `world/generation/chunk` event,
+/// keyed by `generator`): where it is, and every block placed so far — a
+/// palette and a cell per block, like the game's chunk sections, so the host
+/// sets them a section at a time. Several handlers fill one column in turn
+/// (terrain, then a mod's ores).
+#[derive(yog_data::Schema, Debug, Clone, Default, PartialEq)]
+pub struct GeneratedChunk {
+    /// The generator type (`mymod:custom_terrain`).
+    pub generator: String,
+    /// In chunks, not blocks.
+    pub chunk_x: i32,
+    pub chunk_z: i32,
+    /// The dimension type's `min_y` and `height`.
+    pub min_y: i32,
+    pub height: i32,
+    /// The block ids the cells name: cell value `n` is `palette[n - 1]`.
+    #[data(default)]
+    pub palette: Vec<String>,
+    /// One little-endian `u16` per block, Y then Z then X ([`CELL`] each;
+    /// `0`: nothing placed); empty until the first block.
+    #[data(with = "yog_data::with::Raw")]
+    pub cells: Vec<u8>,
+}
+
+/// Bytes per cell of [`GeneratedChunk::cells`].
+pub const CELL: usize = std::mem::size_of::<u16>();
+
+impl GeneratedChunk {
+    /// The cell of local `x`/`z` (0..16), world `y`; `None` outside the column.
+    fn cell(&self, x: i32, y: i32, z: i32) -> Option<usize> {
+        let inside = (0..CHUNK_WIDTH).contains(&x) && (0..CHUNK_WIDTH).contains(&z) && (self.min_y..self.min_y + self.height).contains(&y);
+        inside.then(|| (((y - self.min_y) * CHUNK_WIDTH + z) * CHUNK_WIDTH + x) as usize)
     }
 
-    #[inline]
-    fn api(&self) -> &yog_abi::YogChunkWriterApi {
-        unsafe { &*self.0 }
+    /// Places `block_id` at local `x`/`z` (0..16), world `y` (between
+    /// `min_y` and `min_y + height`) over whatever was there; `false`
+    /// outside the column (or past `u16::MAX` distinct blocks).
+    pub fn set_block(&mut self, x: i32, y: i32, z: i32, block_id: &str) -> bool {
+        let Some(cell) = self.cell(x, y, z) else { return false };
+        let index = match self.palette.iter().position(|b| b == block_id) {
+            Some(i) => i,
+            None => {
+                self.palette.push(block_id.to_owned());
+                self.palette.len() - 1
+            }
+        };
+        let Ok(value) = u16::try_from(index + 1) else { return false };
+        if self.cells.is_empty() {
+            self.cells = vec![0; (CHUNK_WIDTH * CHUNK_WIDTH * self.height.max(0)) as usize * CELL];
+        }
+        self.cells[cell * CELL..(cell + 1) * CELL].copy_from_slice(&value.to_le_bytes());
+        true
     }
 
-    /// Chunk X coordinate (in chunks, not blocks).
-    pub fn chunk_x(&self) -> i32 {
-        self.api().chunk_x
+    /// The block placed at local `x`/`z`, world `y`, if any.
+    pub fn block(&self, x: i32, y: i32, z: i32) -> Option<&str> {
+        let cell = self.cell(x, y, z)?;
+        let bytes = self.cells.get(cell * CELL..(cell + 1) * CELL)?;
+        let value = u16::from_le_bytes([bytes[0], bytes[1]]) as usize;
+        self.palette.get(value.checked_sub(1)?).map(String::as_str)
     }
 
-    /// Chunk Z coordinate (in chunks, not blocks).
-    pub fn chunk_z(&self) -> i32 {
-        self.api().chunk_z
+    /// Every block placed, as (local x, world y, local z, id), Y then Z then X.
+    pub fn placed(&self) -> impl Iterator<Item = (i32, i32, i32, &str)> {
+        let width = CHUNK_WIDTH as usize;
+        self.cells.as_chunks::<CELL>().0.iter().enumerate().filter_map(move |(cell, b)| {
+            let value = u16::from_le_bytes(*b) as usize;
+            let id = self.palette.get(value.checked_sub(1)?)?;
+            let (x, z, y) = (cell % width, cell / width % width, cell / (width * width));
+            Some((x as i32, y as i32 + self.min_y, z as i32, id.as_str()))
+        })
     }
+}
 
-    /// Minimum build height (world Y) — matches the dimension type's `min_y`.
-    pub fn min_y(&self) -> i32 {
-        self.api().min_y
-    }
+#[cfg(test)]
+mod chunk_tests {
+    use super::*;
 
-    /// Total world height — matches the dimension type's `height`.
-    pub fn height(&self) -> i32 {
-        self.api().height
-    }
-
-    /// Set a block within this chunk column. `x`/`z` are **local** (0..16)
-    /// chunk-relative coordinates; `y` is world-absolute (between `min_y()`
-    /// and `min_y() + height()`).
-    pub fn set_block(&self, x: i32, y: i32, z: i32, block_id: &str) -> bool {
-        let api = self.api();
-        unsafe { (api.set_block)(api.ctx, x, y, z, yog_abi::YogStr::from_str(block_id)) }
+    #[test]
+    fn placed_blocks_share_a_palette_and_stay_in_the_column() {
+        let mut chunk = GeneratedChunk { min_y: -64, height: 384, ..Default::default() };
+        assert!(chunk.cells.is_empty(), "nothing allocated before the first block");
+        assert!(chunk.set_block(0, -64, 15, "minecraft:bedrock"));
+        assert!(chunk.set_block(1, 0, 1, "minecraft:stone"));
+        assert!(chunk.set_block(1, 0, 1, "minecraft:diamond_ore"), "a later block replaces an earlier one");
+        assert!(chunk.set_block(2, 0, 2, "minecraft:stone"));
+        assert!(!chunk.set_block(16, 0, 0, "minecraft:stone"), "x past the column");
+        assert!(!chunk.set_block(0, 320, 0, "minecraft:stone"), "y past the top");
+        assert_eq!(chunk.palette, ["minecraft:bedrock", "minecraft:stone", "minecraft:diamond_ore"]);
+        assert_eq!(chunk.block(1, 0, 1), Some("minecraft:diamond_ore"));
+        assert_eq!(chunk.block(3, 0, 3), None);
+        let placed: Vec<_> = chunk.placed().collect();
+        assert_eq!(placed, [(0, -64, 15, "minecraft:bedrock"), (1, 0, 1, "minecraft:diamond_ore"), (2, 0, 2, "minecraft:stone")]);
     }
 }
 

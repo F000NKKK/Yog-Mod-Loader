@@ -23,8 +23,6 @@ mod gfx;
 pub use gfx::*;
 mod server;
 pub use server::*;
-mod chunk_gen;
-pub use chunk_gen::*;
 mod api;
 pub use api::*;
 mod bus;

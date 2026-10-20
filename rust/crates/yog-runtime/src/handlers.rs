@@ -56,7 +56,6 @@ pub(super) struct RuntimeHandlers {
     /// `LevelStem`/`ServerLevel` creation is a host (Java) responsibility —
     /// see `yog-dimensions` crate docs.
     pub(super) dimensions: HashMap<String, yog_data::Value>,
-    pub(super) chunk_generators: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogChunkGeneratorFn)>,
     /// Dimensions' `terrain`s (`.ydef`), generated here: by the dimension's id,
     /// which is its `generator_type`.
     pub(super) terrains: HashMap<String, Arc<yog_worldgen::Generator>>,
@@ -82,24 +81,16 @@ pub(super) fn handlers() -> std::sync::RwLockReadGuard<'static, RuntimeHandlers>
         .read_locked()
 }
 
-pub(super) fn current_registration() -> LoadedModule {
-    CURRENT_REGISTRATION
-        .locked()
-        .clone()
-        .expect("a yog-runtime api_* function was called outside of yog_mod_register")
-}
-
 pub(super) fn hot_reloader() -> &'static HotReloader<RuntimeModuleRegistry> {
     HOT_RELOADER.get().expect("yog: nativeInit not called yet")
 }
 
 /// The `yog-hot-reload` host contract: `retarget` needs no work here because
 /// `LoadedModule::is_retiring()` already makes a superseded generation's
-/// entries inert (the router and every `handlers().<field>` lookup check it)
-/// the instant `HotReloader::reload` calls `retire` on the old module —
-/// well before this is even invoked. `purge` is the actual safety-net
-/// sweep, dropping every entry tagged with a retired generation right
-/// before its library is hard-unloaded.
+/// handlers inert (the router checks it) the instant `HotReloader::reload`
+/// calls `retire` on the old module — well before this is even invoked.
+/// `purge` is the actual safety-net sweep, dropping every bus handler of a
+/// retired generation right before its library is hard-unloaded.
 pub(super) struct RuntimeModuleRegistry;
 
 impl ModuleRegistry for RuntimeModuleRegistry {
@@ -107,10 +98,5 @@ impl ModuleRegistry for RuntimeModuleRegistry {
 
     fn purge(&self, generation: ModuleGeneration) {
         crate::bus::ROUTER.purge(generation);
-        let Some(lock) = HANDLERS.get() else { return };
-        let mut h = lock.write_locked();
-        let h = &mut *h;
-        h.chunk_generators
-            .retain(|_, (m, ..)| m.generation() != generation);
     }
 }

@@ -1864,7 +1864,7 @@ version = "0.13.0"
 dependencies = [
  "serde",
  "serde_json",
- "yog-abi",
+ "yog-data",
 ]
 
 [[package]]
@@ -1881,6 +1881,7 @@ dependencies = [
  "yog-body",
  "yog-core",
  "yog-data",
+ "yog-dimensions",
  "yog-ids",
  "yog-registry",
 ]
@@ -2032,6 +2033,7 @@ dependencies = [
  "yog-book",
  "yog-core",
  "yog-data",
+ "yog-dimensions",
  "yog-event",
  "yog-formats",
  "yog-gfx",

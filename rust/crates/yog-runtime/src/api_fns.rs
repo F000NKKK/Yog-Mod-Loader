@@ -174,19 +174,3 @@ pub(super) fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, 
 
 
 
-pub(super) unsafe extern "C" fn api_register_chunk_generator(
-    ctx: *mut c_void,
-    id: YogStr,
-    ud: *mut c_void,
-    h: yog_abi::YogChunkGeneratorFn,
-) {
-    unsafe {
-        let mut handlers = handlers_mut(ctx);
-        let id = id.as_str().to_owned();
-        yog_logging::info!("registered chunk generator for dimension: {}", id);
-        handlers
-            .chunk_generators
-            .insert(id, (current_registration(), ud, h));
-    }
-}
-

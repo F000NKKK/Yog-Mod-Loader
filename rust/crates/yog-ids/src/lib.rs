@@ -235,6 +235,12 @@ names! {
         EXPLOSION_PRE = concatcp!(EXPLOSION, event::PRE),
     }
 
+    /// `yog:event/world/generation/…`; keyed by the generator type.
+    event_world_generation {
+        PLANE = concatcp!(event::PREFIX, "world", sep::PATH, "generation", sep::PATH),
+        CHUNK = concatcp!(PLANE, "chunk"),
+    }
+
     /// `yog:event/world/loot/…`.
     event_world_loot {
         PLANE = concatcp!(event::PREFIX, "world", sep::PATH, "loot", sep::PATH),

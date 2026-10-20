@@ -63,12 +63,6 @@ pub struct YogApi {
     pub interop_import:
         unsafe extern "C" fn(ctx: *mut c_void, mod_id: YogStr, symbol: YogStr) -> *const c_void,
 
-    // ── ABI minor 29 — custom dimensions ────────────────────────────────────
-    /// Register a chunk generator for a previously-declared dimension `id`.
-    /// `handler` is called once per chunk column that needs generating —
-    /// see `YogChunkWriterApi`/`YogChunkGeneratorFn`.
-    pub register_chunk_generator:
-        unsafe extern "C" fn(ctx: *mut c_void, id: YogStr, ud: *mut c_void, h: YogChunkGeneratorFn),
 
     // ── ABI minor 33 — closing Yog UI screens, consuming UI key events ──────
     /// Close the Yog UI screen showing `ui_id` (empty = whichever Yog UI

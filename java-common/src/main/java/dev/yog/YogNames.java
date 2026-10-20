@@ -214,6 +214,13 @@ public final class YogNames {
         public static final String EXPLOSION_PRE = "yog:event/world/explosion/pre";
     }
 
+    public static final class EventWorldGeneration {
+        private EventWorldGeneration() {}
+
+        public static final String PLANE = "yog:event/world/generation/";
+        public static final String CHUNK = "yog:event/world/generation/chunk";
+    }
+
     public static final class EventWorldLoot {
         private EventWorldLoot() {}
 

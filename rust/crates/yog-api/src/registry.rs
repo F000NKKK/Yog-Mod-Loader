@@ -16,7 +16,7 @@ use yog_abi::{
 use yog_formats::book::Book;
 use yog_command::CommandContext;
 use yog_core::Server;
-use yog_dimensions::{ChunkWriter, YogDimensionDef};
+use yog_dimensions::{GeneratedChunk, YogDimensionDef};
 use yog_gfx::GfxContext;
 use yog_event::client::net::Packet as ClientPacketEvent;
 use yog_event::server::net::Packet as PacketEvent;
@@ -1422,12 +1422,6 @@ impl Registry {
         unsafe { (*self.api).ctx }
     }
 
-    // ── helpers ──────────────────────────────────────────────────────────────
-
-    fn leak<F: 'static>(f: F) -> *mut c_void {
-        Box::into_raw(Box::new(f)) as *mut c_void
-    }
-
     // ── commands ─────────────────────────────────────────────────────────────
 
     pub fn on_command<F>(&mut self, name: impl AsRef<str>, handler: F)
@@ -1666,22 +1660,15 @@ impl Registry {
     ///
     /// `generator` is called once per chunk column that needs generating in
     /// any dimension using this type — write whatever terrain logic you want
-    /// using the [`ChunkWriter`] handle (combine as many noise layers as you
-    /// like; this crate doesn't prescribe a generation style).
+    /// in the [`GeneratedChunk`] (combine as many noise layers as you like;
+    /// this crate doesn't prescribe a generation style). Its terrain, if
+    /// declared, is in the column already; another mod's handler for the
+    /// same type (ores, say) sees what this one placed.
     pub fn register_chunk_generator<F>(&mut self, generator_type_id: &str, generator: F)
     where
-        F: Fn(&ChunkWriter) + Send + Sync + 'static,
+        F: Fn(&mut GeneratedChunk) + Send + Sync + 'static,
     {
-        let ud = Self::leak(generator);
-        let id = YogStr::from_str(generator_type_id);
-        unsafe {
-            ((*self.api).register_chunk_generator)(
-                self.ctx(),
-                id,
-                ud,
-                trampoline_chunk_generator::<F>,
-            );
-        }
+        self.change_key_at::<GeneratedChunk>(generator_type_id, yog_abi::priority::DEFAULT, move |chunk, _| generator(chunk));
     }
 
     /// Register a menu entry — the host renders a button on vanilla screens
@@ -1956,17 +1943,6 @@ impl Registry {
     }
 
 
-}
-
-unsafe extern "C" fn trampoline_chunk_generator<F>(
-    ud: *mut c_void,
-    writer: *const yog_abi::YogChunkWriterApi,
-) where
-    F: Fn(&ChunkWriter) + Send + Sync + 'static,
-{
-    let f = unsafe { &*(ud as *const F) };
-    let writer = unsafe { ChunkWriter::from_raw(writer) };
-    guard((), || f(&writer));
 }
 
 // ── Mod trait ─────────────────────────────────────────────────────────────────

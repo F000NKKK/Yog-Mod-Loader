@@ -53,7 +53,6 @@ pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *cons
         ui_open: api_ui_open,
         interop_export: interop_export_impl,
         interop_import: interop_import_impl,
-        register_chunk_generator: api_register_chunk_generator,
         ui_close: api_ui_close,
         translate: api_translate,
         ui_open_flags: client_api::api_ui_open_flags,

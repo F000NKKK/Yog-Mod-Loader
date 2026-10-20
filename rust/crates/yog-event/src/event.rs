@@ -90,6 +90,7 @@ events! {
     entity::combat::ProjectileHit => ids::event_entity_combat::PROJECTILE_HIT, Some(ids::event_entity_combat::PROJECTILE_HIT_PRE);
     entity::game::Tick => ids::event_entity_game::TICK, None, key = entity_type;
     world::Explosion => ids::event_world::EXPLOSION, Some(ids::event_world::EXPLOSION_PRE);
+    world::generation::Chunk => ids::event_world_generation::CHUNK, None, key = generator;
     world::loot::Roll => ids::event_world_loot::ROLL, None;
     container::Open => ids::event_container::OPEN, Some(ids::event_container::OPEN_PRE);
     container::Close => ids::event_container::CLOSE, None;

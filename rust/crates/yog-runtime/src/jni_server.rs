@@ -2,27 +2,24 @@
 
 use super::*;
 
-/// Called by a registered chunk-generator closure (via `ChunkWriter::set_block`)
-/// to place one block in the chunk currently being generated. Calls back
-/// into `YogCallbackChunkGenerator.setBlockInGeneratingChunk` on the Java
-/// side — same thread, since the whole round trip is synchronous.
-pub(super) unsafe extern "C" fn chunk_writer_set_block(
-    _ctx: *mut c_void,
-    x: i32,
-    y: i32,
-    z: i32,
-    block_id: YogStr,
-) -> bool {
+/// Places one block in the chunk being generated, through
+/// `YogCallbackChunkGenerator.setBlockInGeneratingChunk` (same thread: the
+/// round trip is synchronous).
+fn place_block(x: i32, y: i32, z: i32, block_id: &str) -> bool {
     unsafe {
         host!(
             "dev/yog/YogCallbackChunkGenerator",
             "setBlockInGeneratingChunk",
-            [I(x), I(y), I(z), S(block_id)]
+            [I(x), I(y), I(z), S(YogStr::from_str(block_id))]
         )
         .unwrap_or(false)
     }
 }
 
+/// Generates chunk column `chunk_x, chunk_z` with generator type `generator_type_id`:
+/// its declarative terrain (if a mod declared one), then the handlers of
+/// `world/generation/chunk` for that type, in turn; the column's blocks then go
+/// to the host.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeGenerateChunk<'l>(
     mut env: JNIEnv<'l>,
@@ -33,37 +30,19 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeGenerateChunk<'l>(
     min_y: jint,
     height: jint,
 ) {
-    let id: String = match env.get_string(&generator_type_id) {
-        Ok(s) => String::from(s),
-        Err(_) => return,
-    };
-    let terrain = handlers().terrains.get(&id).cloned();
-    if let Some(g) = terrain {
-        guard("chunk_generator", || {
-            g.generate(chunk_x, chunk_z, min_y, height, |x, y, z, block| unsafe {
-                chunk_writer_set_block(std::ptr::null_mut(), x, y, z, YogStr::from_str(block));
+    let generator = jstr!(env, generator_type_id);
+    let mut chunk = yog_dimensions::GeneratedChunk { generator, chunk_x, chunk_z, min_y, height, ..Default::default() };
+    if let Some(terrain) = handlers().terrains.get(&chunk.generator).cloned() {
+        guard("terrain", || {
+            terrain.generate(chunk_x, chunk_z, min_y, height, |x, y, z, block| {
+                chunk.set_block(x, y, z, block);
             });
         });
-        return;
     }
-    let Some((module, ud, cb)) = handlers().chunk_generators.get(&id).cloned() else {
-        return;
-    };
-    if module.is_retiring() {
-        return;
+    let chunk = crate::bus::changed(chunk);
+    for (x, y, z, block) in chunk.placed() {
+        place_block(x, y, z, block);
     }
-    let Some(_call) = module.enter() else { return };
-    let writer = yog_abi::YogChunkWriterApi {
-        chunk_x,
-        chunk_z,
-        min_y,
-        height,
-        ctx: std::ptr::null_mut(),
-        set_block: chunk_writer_set_block,
-    };
-    guard("chunk_generator", || unsafe {
-        cb(ud, &writer as *const _);
-    });
 }
 
 /// Everything the host registers as one Yog Data blob (see `content_blob`),

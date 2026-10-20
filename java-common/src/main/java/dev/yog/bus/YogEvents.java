@@ -1096,6 +1096,50 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
         }
 
+        /** `generation`. */
+        public static final class Generation {
+            private Generation() {}
+
+            /** A chunk column a generator fills (the `world/generation/chunk` event, keyed by `generator`): where it is, and every block placed so far — a palette and a cell per block, like the game's chunk sections, so the host sets them a section at a time. Several handlers fill one column in turn (terrain, then a mod's ores). */
+            public record Chunk(String generator, int chunkX, int chunkZ, int minY, int height, List<String> palette, byte[] cells) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("generator", generator);
+                    m.put("chunk_x", chunkX);
+                    m.put("chunk_z", chunkZ);
+                    m.put("min_y", minY);
+                    m.put("height", height);
+                    m.put("palette", palette);
+                    m.put("cells", cells);
+                    return m;
+                }
+
+                public static Chunk fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Chunk(YogData.str(m.get("generator"), ""), (int) YogData.integer(m.get("chunk_x"), 0), (int) YogData.integer(m.get("chunk_z"), 0), (int) YogData.integer(m.get("min_y"), 0), (int) YogData.integer(m.get("height"), 0), YogData.list(m.get("palette")).stream().map(e0 -> YogData.str(e0, "")).toList(), (m.get("cells") instanceof byte[] e0 ? e0 : new byte[0]));
+                }
+
+                public static Chunk fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventWorldGeneration.CHUNK, generator), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Chunk emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+        }
+
         /** `loot`. */
         public static final class Loot {
             private Loot() {}

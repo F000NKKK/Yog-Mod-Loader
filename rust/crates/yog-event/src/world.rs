@@ -2,6 +2,7 @@
 
 use yog_data::Schema;
 
+pub mod generation;
 pub mod loot;
 
 /// Fired when an explosion occurs in a world.
