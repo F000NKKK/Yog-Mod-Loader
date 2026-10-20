@@ -27,6 +27,25 @@ pub struct TravelFrame {
     pub flags: u32,
 }
 
+/// Vanilla's elytra numbers (`LivingEntity.travel` while fall-flying).
+mod glide {
+    /// A look this long (vertical included) lifts fully.
+    pub const FULL_LIFT_LOOK: f64 = 0.4;
+    /// How much of gravity a level glide cancels.
+    pub const LIFT: f64 = 0.75;
+    /// Falling turned into forward speed.
+    pub const FALL_TO_SPEED: f64 = 0.1;
+    /// Speed turned into climb when looking up.
+    pub const CLIMB: f64 = 0.04;
+    /// Climb's vertical gain.
+    pub const CLIMB_UP: f64 = 3.2;
+    /// How fast the velocity turns toward the look.
+    pub const STEER: f64 = 0.1;
+    /// Drag a tick: across and down.
+    pub const DRAG: f64 = 0.99;
+    pub const DRAG_Y: f64 = 0.98;
+}
+
 /// Vanilla's elytra step (`LivingEntity.travel` while fall-flying): the
 /// velocity to move by this tick, drag applied.
 pub fn elytra(f: &TravelFrame) -> Vec3 {
@@ -40,25 +59,25 @@ pub fn elytra(f: &TravelFrame) -> Vec3 {
     let d3 = (vx * vx + vz * vz).sqrt();
     let d4 = (lx * lx + ly * ly + lz * lz).sqrt();
     let mut d5 = (pitch as f64).cos();
-    d5 = d5 * d5 * (d4 / 0.4).min(1.0);
-    vy += g * (-1.0 + d5 * 0.75);
+    d5 = d5 * d5 * (d4 / glide::FULL_LIFT_LOOK).min(1.0);
+    vy += g * (-1.0 + d5 * glide::LIFT);
     if vy < 0.0 && d1 > 0.0 {
-        let d6 = vy * -0.1 * d5;
+        let d6 = vy * -glide::FALL_TO_SPEED * d5;
         vx += lx * d6 / d1;
         vy += d6;
         vz += lz * d6 / d1;
     }
     if pitch < 0.0 && d1 > 0.0 {
-        let d10 = d3 * (-(pitch.sin()) as f64) * 0.04;
+        let d10 = d3 * (-(pitch.sin()) as f64) * glide::CLIMB;
         vx += -lx * d10 / d1;
-        vy += d10 * 3.2;
+        vy += d10 * glide::CLIMB_UP;
         vz += -lz * d10 / d1;
     }
     if d1 > 0.0 {
-        vx += (lx / d1 * d3 - vx) * 0.1;
-        vz += (lz / d1 * d3 - vz) * 0.1;
+        vx += (lx / d1 * d3 - vx) * glide::STEER;
+        vz += (lz / d1 * d3 - vz) * glide::STEER;
     }
-    Vec3::new((vx * 0.99) as f32, (vy * 0.98) as f32, (vz * 0.99) as f32)
+    Vec3::new((vx * glide::DRAG) as f32, (vy * glide::DRAG_Y) as f32, (vz * glide::DRAG) as f32)
 }
 
 #[cfg(test)]

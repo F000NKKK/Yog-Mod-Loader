@@ -91,7 +91,11 @@ pub fn flatten(path: &[Seg], to: impl Fn(Vec2) -> Vec2) -> Vec<Vec<Vec2>> {
     out
 }
 
+/// A curve's line every this many pixels, and the most lines one gets.
+const STEP_LENGTH: f32 = 2.0;
+const MAX_STEPS: f32 = 64.0;
+
 /// Lines enough for a curve `len` long to look smooth.
 fn steps(len: f32) -> usize {
-    (len / 2.0).ceil().clamp(1.0, 64.0) as usize
+    (len / STEP_LENGTH).ceil().clamp(1.0, MAX_STEPS) as usize
 }

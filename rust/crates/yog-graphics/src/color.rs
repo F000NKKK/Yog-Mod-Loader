@@ -5,6 +5,13 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Color(pub u32);
 
+/// Where alpha sits in `0xAARRGGBB`, and the bits it and the rest take.
+const ALPHA_SHIFT: u32 = 24;
+const ALPHA_BITS: u32 = 0xff00_0000;
+const RGB_BITS: u32 = 0x00ff_ffff;
+/// A channel's top, as a fraction's 1.
+const CHANNEL_MAX: f32 = u8::MAX as f32;
+
 impl Color {
     pub const TRANSPARENT: Color = Color(0);
     pub const WHITE: Color = Color(0xffff_ffff);
@@ -16,11 +23,11 @@ impl Color {
 
     /// Opaque `0xRRGGBB`.
     pub const fn rgb(rgb: u32) -> Color {
-        Color(0xff00_0000 | rgb)
+        Color(ALPHA_BITS | rgb)
     }
 
     pub const fn a(self) -> u8 {
-        (self.0 >> 24) as u8
+        (self.0 >> ALPHA_SHIFT) as u8
     }
     pub const fn r(self) -> u8 {
         (self.0 >> 16) as u8
@@ -43,11 +50,11 @@ impl Color {
 
     /// `[r, g, b, a]` in `0..=1`.
     pub fn to_f32(self) -> [f32; 4] {
-        [self.r(), self.g(), self.b(), self.a()].map(|v| v as f32 / 255.0)
+        [self.r(), self.g(), self.b(), self.a()].map(|v| v as f32 / CHANNEL_MAX)
     }
 
     pub fn from_f32(c: [f32; 4]) -> Color {
-        let [r, g, b, a] = c.map(|v| (v.clamp(0.0, 1.0) * 255.0 + 0.5) as u8);
+        let [r, g, b, a] = c.map(|v| (v.clamp(0.0, 1.0) * CHANNEL_MAX).round() as u8);
         Color::argb(a, r, g, b)
     }
 
@@ -75,7 +82,7 @@ impl Color {
 
     /// With alpha `a`.
     pub const fn with_alpha(self, a: u8) -> Color {
-        Color(self.0 & 0x00ff_ffff | (a as u32) << 24)
+        Color(self.0 & RGB_BITS | (a as u32) << ALPHA_SHIFT)
     }
 }
 

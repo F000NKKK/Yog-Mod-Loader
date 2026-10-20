@@ -10,7 +10,9 @@ use std::collections::BTreeMap;
 
 use crate::math::Vec3;
 use crate::model::Quad;
-use crate::wire::{Anchor, Mesh, Mode, Ops};
+use yog_graphics::Color;
+
+use crate::wire::{Anchor, Look, Mesh, Mode, Ops};
 
 /// One face of a body, with its texture.
 #[derive(Clone, Copy)]
@@ -67,23 +69,22 @@ pub fn blend(ops: &mut Ops, from: &[Mesh], to: &[Mesh], t: f32) {
             new.entry(tex).or_default().push(Quad { pos, uv: q.uv, normal });
         }
     }
-    let alpha = |k: f32| ((k.clamp(0.0, 1.0) * 255.0).round() as u32) << 24 | 0x00FF_FFFF;
+    let faded = |k: f32| Look { mode: Mode::Translucent, glint: false, tint: Color::WHITE.with_alpha((k.clamp(0.0, 1.0) * f32::from(u8::MAX)).round() as u8) };
     for (tex, quads) in &old {
         if t < 1.0 {
-            ops.mesh(&Anchor::Entity, tex, Mode::Translucent, false, alpha(1.0 - t), quads);
+            ops.mesh(&Anchor::Entity, tex, faded(1.0 - t), quads);
         }
     }
     for (tex, quads) in &new {
         if t > 0.0 {
-            ops.mesh(&Anchor::Entity, tex, Mode::Translucent, false, alpha(t), quads);
+            ops.mesh(&Anchor::Entity, tex, faded(t), quads);
         }
     }
 }
 
 /// `t` eased in and out (smoothstep) — how a morph looks natural.
 pub fn ease(t: f32) -> f32 {
-    let t = t.clamp(0.0, 1.0);
-    t * t * (3.0 - 2.0 * t)
+    yog_graphics::math::smoothstep(t)
 }
 
 #[cfg(test)]

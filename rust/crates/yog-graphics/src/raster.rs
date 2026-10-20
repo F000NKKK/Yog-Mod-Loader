@@ -7,6 +7,13 @@ use crate::image::Image;
 use crate::math::Vec2;
 use crate::rect::Rect;
 
+/// The thinnest stroke's half-width: thinner ones vanish between pixels.
+const MIN_STROKE_RADIUS: f32 = 0.35;
+/// How far inside the right edge a line is kept, so it lands in the last column.
+const EDGE_INSET: f32 = 0.001;
+/// The middle of a line's second cell, in cells from its first cell's left edge.
+const SECOND_CELL_MIDDLE: f32 = 1.5;
+
 /// Pixels being drawn, premultiplied, in floats.
 #[derive(Debug, Clone)]
 pub struct Canvas {
@@ -39,7 +46,7 @@ impl Canvas {
 
     /// `polylines` drawn `width` wide in `color`, round-joined and capped.
     pub fn stroke(&mut self, polylines: &[Vec<Vec2>], width: f32, color: Color) {
-        let r = (width / 2.0).max(0.35);
+        let r = (width / 2.0).max(MIN_STROKE_RADIUS);
         let mut pieces: Vec<Vec<Vec2>> = Vec::new();
         for line in polylines {
             for w in line.windows(2) {
@@ -162,7 +169,7 @@ fn accumulate(acc: &mut [f32], w: usize, h: usize, p0: Vec2, p1: Vec2) {
         return;
     }
     let (dir, p0, p1) = if p0.y < p1.y { (1.0, p0, p1) } else { (-1.0, p1, p0) };
-    let clamp_x = |x: f32| x.clamp(0.0, w as f32 - 0.001);
+    let clamp_x = |x: f32| x.clamp(0.0, w as f32 - EDGE_INSET);
     let dxdy = (p1.x - p0.x) / (p1.y - p0.y);
     let mut x = p0.x;
     if p0.y < 0.0 {
@@ -193,7 +200,7 @@ fn accumulate(acc: &mut [f32], w: usize, h: usize, p0: Vec2, p1: Vec2) {
             if x1i == x0i + 2 {
                 acc[row + x0i + 1] += d * (1.0 - a0 - am);
             } else {
-                let a1 = s * (1.5 - x0r);
+                let a1 = s * (SECOND_CELL_MIDDLE - x0r);
                 acc[row + x0i + 1] += d * (a1 - a0);
                 for xi in x0i + 2..x1i - 1 {
                     acc[row + xi] += d * s;

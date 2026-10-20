@@ -25,7 +25,7 @@ impl Quad {
 
     /// The middle of its corners.
     pub fn center(&self) -> Vec3 {
-        (self.pos[0] + self.pos[1] + self.pos[2] + self.pos[3]) * 0.25
+        self.pos.iter().fold(Vec3::ZERO, |sum, &p| sum + p) * (1.0 / self.pos.len() as f32)
     }
 }
 

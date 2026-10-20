@@ -103,9 +103,16 @@ impl Track {
     }
 }
 
+/// The Catmull-Rom spline's basis, doubled: row `i` weighs the four
+/// points for `tⁱ`.
+const CATMULL_ROM: [[f32; 4]; 4] = [[0.0, 2.0, 0.0, 0.0], [-1.0, 0.0, 1.0, 0.0], [2.0, -5.0, 4.0, -1.0], [-1.0, 3.0, -3.0, 1.0]];
+
 fn catmull_rom(p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, t: f32) -> Vec3 {
-    let (t2, t3) = (t * t, t * t * t);
-    (p1 * 2.0 + (p2 - p0) * t + (p0 * 2.0 - p1 * 5.0 + p2 * 4.0 - p3) * t2 + (p1 * 3.0 - p0 - p2 * 3.0 + p3) * t3) * 0.5
+    let (points, powers) = ([p0, p1, p2, p3], [1.0, t, t * t, t * t * t]);
+    let doubled = CATMULL_ROM.iter().zip(powers).fold(Vec3::ZERO, |sum, (row, tp)| {
+        sum + row.iter().zip(points).fold(Vec3::ZERO, |s, (&w, p)| s + p * w) * tp
+    });
+    doubled * 0.5
 }
 
 #[derive(Debug, Clone, Default)]

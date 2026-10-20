@@ -2,6 +2,9 @@
 //! `docs/design/yog-body.md`): the [`Frame`] the host sends, the [`Ops`]
 //! the mod answers with. Little-endian; strings are a u16 length and UTF-8.
 
+use yog_graphics::Color;
+use yog_ids::game::TICKS_PER_SECOND as TICKS;
+
 use crate::math::{Mat4, Vec3};
 use crate::model::Quad;
 
@@ -65,6 +68,22 @@ pub enum Anchor {
     Bone(String),
     /// A block's space: pixels 0–16, y up, as block models (block bodies).
     Block,
+}
+
+/// How a mesh looks: how it's drawn, whether it shines, its tint (alpha
+/// counts in [`Mode::Translucent`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Look {
+    pub mode: Mode,
+    /// The enchantment shine.
+    pub glint: bool,
+    pub tint: Color,
+}
+
+impl Default for Look {
+    fn default() -> Self {
+        Look { mode: Mode::Cutout, glint: false, tint: Color::WHITE }
+    }
 }
 
 /// How a mesh is drawn.
@@ -143,9 +162,8 @@ impl Ops {
         }
     }
 
-    /// Draws `quads` with `texture` at `anchor`. `argb` tints it (alpha
-    /// counts in [`Mode::Translucent`]); `glint` adds the enchantment shine.
-    pub fn mesh(&mut self, anchor: &Anchor, texture: &str, mode: Mode, glint: bool, argb: u32, quads: &[Quad]) {
+    /// Draws `quads` with `texture` at `anchor`, looking `look`.
+    pub fn mesh(&mut self, anchor: &Anchor, texture: &str, look: Look, quads: &[Quad]) {
         if quads.is_empty() {
             return;
         }
@@ -160,13 +178,13 @@ impl Ops {
         b.push(a);
         put_str(b, bone);
         put_str(b, texture);
-        b.push(match mode {
+        b.push(match look.mode {
             Mode::Cutout => 0,
             Mode::Translucent => 1,
             Mode::Emissive => 2,
         });
-        b.push(glint as u8);
-        b.extend_from_slice(&argb.to_le_bytes());
+        b.push(look.glint as u8);
+        b.extend_from_slice(&look.tint.0.to_le_bytes());
         put_quads(b, quads);
     }
 
@@ -239,14 +257,18 @@ impl Reader<'_> {
     fn u16(&mut self) -> Option<u16> {
         self.take(2).map(|b| u16::from_le_bytes([b[0], b[1]]))
     }
+    /// `N` bytes, as an array.
+    fn array<const N: usize>(&mut self) -> Option<[u8; N]> {
+        self.take(N)?.try_into().ok()
+    }
     fn u32(&mut self) -> Option<u32> {
-        self.take(4).map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+        self.array().map(u32::from_le_bytes)
     }
     fn f32(&mut self) -> Option<f32> {
-        self.take(4).map(|b| f32::from_le_bytes(b.try_into().unwrap()))
+        self.array().map(f32::from_le_bytes)
     }
     fn f64(&mut self) -> Option<f64> {
-        self.take(8).map(|b| f64::from_le_bytes(b.try_into().unwrap()))
+        self.array().map(f64::from_le_bytes)
     }
     fn vec(&mut self) -> Option<Vec3> {
         Some(Vec3::new(self.f32()?, self.f32()?, self.f32()?))
@@ -356,12 +378,12 @@ impl Frame {
     /// The entity's age in seconds (differs between clients: each counts
     /// from when it saw the entity).
     pub fn seconds(&self) -> f32 {
-        self.age / 20.0
+        self.age / TICKS as f32
     }
 
     /// The world's time in seconds — for clips everyone sees alike.
     pub fn world_seconds(&self) -> f32 {
-        (self.game_time / 20.0) as f32
+        (self.game_time / f64::from(TICKS)) as f32
     }
 
     /// The value the entity keeps under `key`.

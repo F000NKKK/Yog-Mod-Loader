@@ -246,7 +246,16 @@ impl Mul for Mat4 {
 
 /// Degrees to radians, for the formats (which are in degrees).
 pub fn rad(deg: Vec3) -> Vec3 {
-    deg * (std::f32::consts::PI / 180.0)
+    Vec3::new(deg.x.to_radians(), deg.y.to_radians(), deg.z.to_radians())
+}
+
+/// Smoothstep's polynomial, 3t² − 2t³: its t² coefficient.
+const SMOOTHSTEP_SQUARE: f32 = 3.0;
+
+/// `t` (clamped to 0–1) eased in and out: 3t² − 2t³.
+pub fn smoothstep(t: f32) -> f32 {
+    let t = t.clamp(0.0, 1.0);
+    t * t * (SMOOTHSTEP_SQUARE - 2.0 * t)
 }
 
 #[cfg(test)]

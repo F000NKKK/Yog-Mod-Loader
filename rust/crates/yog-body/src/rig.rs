@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::anim::{BonePose, Clip, Pose};
 use crate::math::{Mat4, Vec3};
 use crate::model::{Model, Quad};
-use crate::wire::{Anchor, BoneOp, Mode, Ops};
+use crate::wire::{Anchor, BoneOp, Look, Ops};
 
 /// A clip playing.
 #[derive(Debug, Clone)]
@@ -30,14 +30,12 @@ pub struct Rig {
     pub layers: Vec<Layer>,
     /// Set by hand each frame, laid over the clips.
     pub manual: Pose,
-    pub mode: Mode,
-    pub glint: bool,
-    pub argb: u32,
+    pub look: Look,
 }
 
 impl Rig {
     pub fn new(model: Arc<Model>, anchor: Anchor) -> Rig {
-        Rig { model, anchor, layers: Vec::new(), manual: Pose::default(), mode: Mode::Cutout, glint: false, argb: 0xFFFF_FFFF }
+        Rig { model, anchor, layers: Vec::new(), manual: Pose::default(), look: Look::default() }
     }
 
     /// Plays `clip` from `now` (replacing the same clip if it plays).
@@ -105,7 +103,7 @@ impl Rig {
             }
         }
         let quads = self.quads(&pose);
-        ops.mesh(&self.anchor, &self.model.texture, self.mode, self.glint, self.argb, &quads);
+        ops.mesh(&self.anchor, &self.model.texture, self.look, &quads);
     }
 }
 

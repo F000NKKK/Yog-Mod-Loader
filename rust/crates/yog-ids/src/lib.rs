@@ -37,6 +37,7 @@ mod names {
 }
 mod formats;
 pub mod export;
+pub mod game;
 #[cfg(test)]
 mod tests;
 
