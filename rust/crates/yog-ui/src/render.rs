@@ -19,6 +19,16 @@ pub const INV_SLOT_SHADOW: Color = Color(0xFF_373737);
 pub const INV_SLOT_LIGHT: Color = Color(0xFF_FFFFFF);
 /// Stack count text color.
 const COUNT_COLOR: Color = Color(0xFF_FFFFFF);
+/// Where vanilla draws a stack's count, from the item's top-left: its
+/// right edge, and its top.
+const COUNT_RIGHT: f32 = ICON_SIZE + 1.0;
+const COUNT_TOP: f32 = 9.0;
+/// A surface nothing draws (a designer previewing the markup): its face,
+/// edge and name, and the room the name needs around it.
+const SURFACE_FACE: Color = Color(0xFF_1E2622);
+const SURFACE_EDGE: Color = Color(0xFF_4A5A52);
+const SURFACE_NAME: Color = Color(0xFF_8FA399);
+const SURFACE_NAME_ROOM: f32 = 4.0;
 /// Side of an item icon inside a slot (1 px inset).
 pub const ICON_SIZE: f32 = 16.0;
 /// Slack for "drawn whole or not at all" clip checks — absorbs rounding.
@@ -115,137 +125,8 @@ fn render_clipped(
         return;
     }
 
-    // Background
-    if s.bg != Color::TRANSPARENT {
-        fill(
-            d2d,
-            clip,
-            Rect::from_edges(r.x, r.y, r.x + r.w, r.y + r.h),
-            s.bg,
-        );
-    }
-    // An image can't be cut: drawn while it's inside the clip.
-    if !s.bg_image.is_empty() && fits(clip, r.y, r.h) {
-        d2d.image(&s.bg_image, Rect::new(r.x, r.y, r.w, r.h));
-    }
-    // Focus indicator — style controlled per-widget. Text boxes draw their
-    // own (a white border).
-    if node.focused && !matches!(widget.kind, WidgetKind::TextBox(_)) {
-        let fc = if s.focus_color != Color::TRANSPARENT {
-            s.focus_color
-        } else {
-            widget::DEFAULT_FOCUS_COLOR
-        };
-        match s.focus_style {
-            FocusStyle::Outline => outline(d2d, clip, *r, fc),
-            FocusStyle::Fill => fill(d2d, clip, *r, fc),
-            FocusStyle::None => {}
-        }
-    }
-
-    match &widget.kind {
-        WidgetKind::Panel(_) | WidgetKind::Grid(_) => {
-            // Containers just draw their children
-        }
-        // `no_wrap`: always a single line, even wider than the box — it
-        // overflows horizontally (still centered) rather than wrapping.
-        // No `.max(0.0)` when centered: wrapped lines never exceed the box
-        // so this never goes negative for them; a no_wrap line wider than
-        // the box legitimately needs a negative offset to stay centered.
-        WidgetKind::Label(t) => draw_lines(d2d, t, s, *r, clip, |free| match s.align {
-            crate::Align::Center => free / 2.0,
-            crate::Align::End => free.max(0.0),
-            crate::Align::Start => 0.0,
-        }),
-        // Each line centered horizontally inside the button.
-        WidgetKind::Button(t) => draw_button_text(d2d, t, s, *r, clip),
-        WidgetKind::ItemSlot(item_id) => {
-            let (ix, iy) = (r.x + s.pad[3], r.y + s.pad[0]);
-            if !fits(clip, iy, SLOT_SIZE) {
-                return;
-            }
-            let sz = SLOT_SIZE;
-            d2d.rect(Rect::from_edges(ix, iy, ix + sz, iy + sz), ITEM_SLOT_BORDER);
-            d2d.rect(
-                Rect::from_edges(ix + 1.0, iy + 1.0, ix + sz - 1.0, iy + sz - 1.0),
-                ITEM_SLOT_FACE,
-            );
-            // The item renderer: modded items, 3D block items, any version.
-            if !item_id.is_empty() {
-                d2d.item(item_id, Vec2::new(ix + 1.0, iy + 1.0), ICON_SIZE);
-            }
-        }
-        WidgetKind::InvSlot { item_id, count } => {
-            let (ix, iy) = (r.x + s.pad[3], r.y + s.pad[0]);
-            if !fits(clip, iy, SLOT_SIZE) {
-                return;
-            }
-            let sz = SLOT_SIZE;
-            d2d.rect(Rect::from_edges(ix, iy, ix + sz, iy + sz), INV_SLOT_FACE);
-            d2d.rect(Rect::from_edges(ix, iy, ix + sz, iy + 1.0), INV_SLOT_SHADOW);
-            d2d.rect(
-                Rect::from_edges(ix, iy + sz - 1.0, ix + sz, iy + sz),
-                INV_SLOT_LIGHT,
-            );
-            d2d.rect(Rect::from_edges(ix, iy, ix + 1.0, iy + sz), INV_SLOT_SHADOW);
-            d2d.rect(
-                Rect::from_edges(ix + sz - 1.0, iy, ix + sz, iy + sz),
-                INV_SLOT_LIGHT,
-            );
-            // Item icon + count
-            if !item_id.is_empty() {
-                d2d.item(item_id, Vec2::new(ix + 1.0, iy + 1.0), ICON_SIZE);
-                if *count > 1 {
-                    let count_str = count.to_string();
-                    let cw = text::str_width(&count_str, 0.7);
-                    d2d.text(
-                        &count_str,
-                        Vec2::new(ix + sz - cw - 1.0, iy + sz - 10.0),
-                        COUNT_COLOR,
-                        true,
-                    );
-                }
-            }
-        }
-        WidgetKind::Image(image) => crate::image::render(d2d, image, r.inset(s.pad), clip),
-        WidgetKind::Spacer => {} // invisible
-        WidgetKind::Surface(id) => {
-            let at = r.inset(s.pad);
-            match crate::surface::get(id) {
-                Some(surface) => surface.paint(gfx, at),
-                // Nothing registered to draw it (a designer previewing the
-                // markup, a mod that didn't): its place and its name.
-                None => {
-                    d2d.rect(
-                        Rect::from_edges(at.x, at.y, at.x + at.w, at.y + at.h),
-                        Color(0xFF1E2622),
-                    );
-                    let edge = Color(0xFF4A5A52);
-                    d2d.rect(Rect::from_edges(at.x, at.y, at.x + at.w, at.y + 1.0), edge);
-                    d2d.rect(
-                        Rect::from_edges(at.x, at.y + at.h - 1.0, at.x + at.w, at.y + at.h),
-                        edge,
-                    );
-                    d2d.rect(Rect::from_edges(at.x, at.y, at.x + 1.0, at.y + at.h), edge);
-                    d2d.rect(
-                        Rect::from_edges(at.x + at.w - 1.0, at.y, at.x + at.w, at.y + at.h),
-                        edge,
-                    );
-                    let label = format!("Surface {id}");
-                    let w = d2d.text_width(&label, "");
-                    if w < at.w - 4.0 && at.h >= 10.0 {
-                        d2d.text(
-                            &label,
-                            Vec2::new(at.x + (at.w - w) / 2.0, at.y + (at.h - 8.0) / 2.0),
-                            Color(0xFF8FA399),
-                            false,
-                        );
-                    }
-                }
-            }
-        }
-        WidgetKind::TextBox(tb) => render_text_box(d2d, tb, s, *r, clip, node.focused),
-    }
+    draw_back(d2d, widget, node, s, clip);
+    draw_kind((gfx, d2d), widget, node, s, clip);
 
     // Render children — cut to this widget's rect when it clips.
     let child_clip = if s.clip {
@@ -271,10 +152,146 @@ fn render_clipped(
     }
 }
 
+/// The background, its image, and the focus indicator — style controlled
+/// per widget. Text boxes draw their own (a white border).
+fn draw_back(d2d: &Draw2D, widget: &Widget, node: &LayoutNode, s: &Style, clip: Option<Rect>) {
+    let r = &node.rect;
+    if s.bg != Color::TRANSPARENT {
+        fill(d2d, clip, *r, s.bg);
+    }
+    // An image can't be cut: drawn while it's inside the clip.
+    if !s.bg_image.is_empty() && fits(clip, r.y, r.h) {
+        d2d.image(&s.bg_image, *r);
+    }
+    if node.focused && !matches!(widget.kind, WidgetKind::TextBox(_)) {
+        let fc = if s.focus_color != Color::TRANSPARENT {
+            s.focus_color
+        } else {
+            widget::DEFAULT_FOCUS_COLOR
+        };
+        match s.focus_style {
+            FocusStyle::Outline => outline(d2d, clip, *r, fc),
+            FocusStyle::Fill => fill(d2d, clip, *r, fc),
+            FocusStyle::None => {}
+        }
+    }
+}
+
+/// What the widget's kind draws (containers just draw their children).
+/// `to`: where it's drawn — the context (a surface paints with it) and 2D.
+fn draw_kind(
+    to: (&GfxContext, &Draw2D),
+    widget: &Widget,
+    node: &LayoutNode,
+    s: &Style,
+    clip: Option<Rect>,
+) {
+    let (gfx, d2d) = to;
+    let r = node.rect;
+    match &widget.kind {
+        WidgetKind::Panel(_) | WidgetKind::Grid(_) | WidgetKind::Spacer => {}
+        // `no_wrap`: always a single line, even wider than the box — it
+        // overflows horizontally (still centered) rather than wrapping.
+        // No `.max(0.0)` when centered: wrapped lines never exceed the box
+        // so this never goes negative for them; a no_wrap line wider than
+        // the box legitimately needs a negative offset to stay centered.
+        WidgetKind::Label(t) => draw_lines(d2d, t, s, r, clip, |free| match s.align {
+            crate::Align::Center => free / 2.0,
+            crate::Align::End => free.max(0.0),
+            crate::Align::Start => 0.0,
+        }),
+        // Each line centered horizontally inside the button.
+        WidgetKind::Button(t) => draw_button_text(d2d, t, s, r, clip),
+        WidgetKind::ItemSlot(item_id) => {
+            let at = Vec2::new(r.x + s.pad[3], r.y + s.pad[0]);
+            if fits(clip, at.y, SLOT_SIZE) {
+                item_slot(d2d, item_id, at);
+            }
+        }
+        WidgetKind::InvSlot { item_id, count } => {
+            let at = Vec2::new(r.x + s.pad[3], r.y + s.pad[0]);
+            if fits(clip, at.y, SLOT_SIZE) {
+                inv_slot(d2d, item_id, *count, at);
+            }
+        }
+        WidgetKind::Image(image) => crate::image::render(d2d, image, r.inset(s.pad), clip),
+        WidgetKind::Surface(id) => {
+            let at = r.inset(s.pad);
+            match crate::surface::get(id) {
+                Some(surface) => surface.paint(gfx, at),
+                None => unpainted_surface(d2d, id, at),
+            }
+        }
+        WidgetKind::TextBox(tb) => render_text_box(d2d, tb, s, node, clip),
+    }
+}
+
+/// The square a slot's item sits in, and the item's corner (1 px in).
+fn slot_square(at: Vec2) -> (Rect, Vec2) {
+    (
+        Rect::new(at.x, at.y, SLOT_SIZE, SLOT_SIZE),
+        Vec2::new(at.x + 1.0, at.y + 1.0),
+    )
+}
+
+/// An item slot: a framed square and the item (the item renderer:
+/// modded items, 3D block items, any version).
+fn item_slot(d2d: &Draw2D, item_id: &str, at: Vec2) {
+    let (square, icon) = slot_square(at);
+    d2d.rect(square, ITEM_SLOT_BORDER);
+    d2d.rect(square.inset([1.0; 4]), ITEM_SLOT_FACE);
+    if !item_id.is_empty() {
+        d2d.item(item_id, icon, ICON_SIZE);
+    }
+}
+
+/// Vanilla's inventory slot: sunk (shadow top-left, light bottom-right),
+/// the item and its count.
+fn inv_slot(d2d: &Draw2D, item_id: &str, count: u32, at: Vec2) {
+    let (square, icon) = slot_square(at);
+    let Rect { x, y, w, h } = square;
+    d2d.rect(square, INV_SLOT_FACE);
+    d2d.rect(Rect::new(x, y, w, 1.0), INV_SLOT_SHADOW);
+    d2d.rect(Rect::new(x, y + h - 1.0, w, 1.0), INV_SLOT_LIGHT);
+    d2d.rect(Rect::new(x, y, 1.0, h), INV_SLOT_SHADOW);
+    d2d.rect(Rect::new(x + w - 1.0, y, 1.0, h), INV_SLOT_LIGHT);
+    if item_id.is_empty() {
+        return;
+    }
+    d2d.item(item_id, icon, ICON_SIZE);
+    if count > 1 {
+        let shown = count.to_string();
+        let cw = text::str_width(&shown, 1.0);
+        d2d.text(
+            &shown,
+            Vec2::new(icon.x + COUNT_RIGHT - cw, icon.y + COUNT_TOP),
+            COUNT_COLOR,
+            true,
+        );
+    }
+}
+
+/// A surface nothing's registered to draw (a designer previewing the
+/// markup, a mod that didn't): its place and its name.
+fn unpainted_surface(d2d: &Draw2D, id: &str, at: Rect) {
+    d2d.rect(at, SURFACE_FACE);
+    outline(d2d, None, at, SURFACE_EDGE);
+    let label = format!("Surface {id}");
+    let w = d2d.text_width(&label, "");
+    if w < at.w - SURFACE_NAME_ROOM && at.h >= text::LINE_H + 1.0 {
+        d2d.text(
+            &label,
+            Vec2::new(at.x + (at.w - w) / 2.0, at.y + (at.h - text::GLYPH_H) / 2.0),
+            SURFACE_NAME,
+            false,
+        );
+    }
+}
+
 /// Draws a label's / button's text lines inside `r` (less padding), the
 /// block centered vertically and each line `place(free width)` from the left.
 /// A button's text: centred like vanilla's buttons — one line at
-/// `y + (h - 8) / 2` in whole pixels (the glyphs' 8, not the line's 9), so it
+/// `y + (h - GLYPH_H) / 2` in whole pixels (the glyphs', not the line's), so it
 /// keeps clear of the frame; several lines centred as a block.
 fn draw_button_text(d2d: &Draw2D, t: &str, s: &Style, r: Rect, clip: Option<Rect>) {
     let avail_w = (r.w - s.pad[1] - s.pad[3]).max(0.0);
@@ -284,7 +301,7 @@ fn draw_button_text(d2d: &Draw2D, t: &str, s: &Style, r: Rect, clip: Option<Rect
         return;
     }
     let content_h = r.h - s.pad[0] - s.pad[2];
-    let y = r.y + s.pad[0] + ((content_h - 8.0) / 2.0).max(0.0).floor();
+    let y = r.y + s.pad[0] + ((content_h - text::GLYPH_H) / 2.0).max(0.0).floor();
     let line = &lines[0];
     if !fits(clip, y, text::LINE_H) {
         return;
@@ -344,7 +361,12 @@ fn draw_text(d2d: &Draw2D, line: &str, at: Vec2, style: &TextStyle<'_>) {
 
 /// A widget's text style at `scale`.
 fn style_of(s: &Style, scale: f32) -> TextStyle<'_> {
-    TextStyle { font: &s.font, scale, color: s.color, shadow: s.text_shadow }
+    TextStyle {
+        font: &s.font,
+        scale,
+        color: s.color,
+        shadow: s.text_shadow,
+    }
 }
 
 /// A text box: border, then the visible part of the text (or the
@@ -353,85 +375,109 @@ fn render_text_box(
     d2d: &Draw2D,
     tb: &widget::TextBox,
     s: &Style,
-    r: Rect,
+    node: &LayoutNode,
     clip: Option<Rect>,
-    focused: bool,
 ) {
-    let border = if focused {
-        if s.focus_color != Color::TRANSPARENT {
-            s.focus_color
-        } else {
-            widget::TEXT_BOX_FOCUS_BORDER
-        }
-    } else {
-        widget::TEXT_BOX_BORDER
+    let r = node.rect;
+    let border = match (node.focused, s.focus_color != Color::TRANSPARENT) {
+        (true, true) => s.focus_color,
+        (true, false) => widget::TEXT_BOX_FOCUS_BORDER,
+        (false, _) => widget::TEXT_BOX_BORDER,
     };
     outline(d2d, clip, r, border);
-
     let fs = s.font_scale;
     let line_h = text::LINE_H * fs;
-    let x0 = r.x + 1.0 + s.pad[3];
-    let inner_w = (r.w - 2.0 - s.pad[1] - s.pad[3]).max(0.0);
     let content_h = r.h - s.pad[0] - s.pad[2];
-    let ty = (r.y + s.pad[0] + ((content_h - line_h) / 2.0).max(0.0)).round();
-    if !fits(clip, ty, line_h) {
+    // Inside the 1 px border and the padding.
+    let line = TextLine {
+        x0: r.x + 1.0 + s.pad[3],
+        y: (r.y + s.pad[0] + ((content_h - line_h) / 2.0).max(0.0)).round(),
+        w: (r.w - 2.0 - s.pad[1] - s.pad[3]).max(0.0),
+        h: line_h,
+    };
+    if !fits(clip, line.y, line_h) {
         return;
     }
-    let cw = |c: char| text::char_width_in(c, &s.font) * fs;
-
     if tb.text.is_empty() {
         if !tb.placeholder.is_empty() {
-            let shown = ellipsize(&tb.placeholder, inner_w, fs, &s.font);
-            let placeholder = TextStyle { color: widget::PLACEHOLDER_COLOR, shadow: false, ..style_of(s, fs) };
-            draw_text(d2d, &shown, Vec2::new(x0, ty), &placeholder);
+            let shown = ellipsize(&tb.placeholder, line.w, fs, &s.font);
+            let placeholder = TextStyle {
+                color: widget::PLACEHOLDER_COLOR,
+                shadow: false,
+                ..style_of(s, fs)
+            };
+            draw_text(d2d, &shown, Vec2::new(line.x0, line.y), &placeholder);
         }
     } else {
-        let caret = tb.caret.unwrap_or(0);
-        let first = crate::textbox::text_box_first(&tb.text, tb.first, caret, inner_w, cw);
-        // The characters that fit, from `first`.
-        let mut xs = vec![x0];
-        let mut visible = String::new();
-        for c in tb.text.chars().skip(first) {
-            let next = xs[xs.len() - 1] + cw(c);
-            if next > x0 + inner_w + 0.5 {
-                break;
-            }
-            visible.push(c);
-            xs.push(next);
-        }
-        let last = first + xs.len() - 1;
-        let (a, b) = tb.selection;
-        if a < b && b > first && a < last {
-            let sx0 = xs[a.max(first) - first];
-            let sx1 = xs[b.min(last) - first];
-            fill(
-                d2d,
-                clip,
-                Rect::from_edges(sx0, ty - 1.0, sx1, ty + line_h),
-                widget::SELECTION_COLOR,
-            );
-        }
-        draw_text(d2d, &visible, Vec2::new(x0, ty), &style_of(s, fs));
+        text_box_text(d2d, tb, s, &line, clip);
     }
     if let Some(caret) = tb.caret
         && tb.caret_visible
     {
-        let first = crate::textbox::text_box_first(&tb.text, tb.first, caret, inner_w, cw);
-        let cx = x0
+        let cw = |c: char| text::char_width_in(c, &s.font) * fs;
+        let first = crate::textbox::text_box_first(&tb.text, tb.first, caret, line.w, cw);
+        let cx = line.x0
             + tb.text
                 .chars()
                 .skip(first)
                 .take(caret.saturating_sub(first))
                 .map(cw)
                 .sum::<f32>();
-        let cx = cx.min(x0 + inner_w);
+        let cx = cx.min(line.x0 + line.w);
         fill(
             d2d,
             clip,
-            Rect::from_edges(cx, ty - 1.0, cx + 1.0, ty + line_h),
+            Rect::from_edges(cx, line.y - 1.0, cx + 1.0, line.y + line.h),
             s.color,
         );
     }
+}
+
+/// Where a text box's line is: its left, top, width and height.
+struct TextLine {
+    x0: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+}
+
+/// A text box's text: what fits from its first shown character, the
+/// selection behind it.
+fn text_box_text(
+    d2d: &Draw2D,
+    tb: &widget::TextBox,
+    s: &Style,
+    line: &TextLine,
+    clip: Option<Rect>,
+) {
+    let fs = s.font_scale;
+    let cw = |c: char| text::char_width_in(c, &s.font) * fs;
+    let caret = tb.caret.unwrap_or(0);
+    let first = crate::textbox::text_box_first(&tb.text, tb.first, caret, line.w, cw);
+    // The characters that fit, from `first`.
+    let mut xs = vec![line.x0];
+    let mut visible = String::new();
+    for c in tb.text.chars().skip(first) {
+        let next = xs[xs.len() - 1] + cw(c);
+        if next > line.x0 + line.w + CLIP_SLACK {
+            break;
+        }
+        visible.push(c);
+        xs.push(next);
+    }
+    let last = first + xs.len() - 1;
+    let (a, b) = tb.selection;
+    if a < b && b > first && a < last {
+        let sx0 = xs[a.max(first) - first];
+        let sx1 = xs[b.min(last) - first];
+        fill(
+            d2d,
+            clip,
+            Rect::from_edges(sx0, line.y - 1.0, sx1, line.y + line.h),
+            widget::SELECTION_COLOR,
+        );
+    }
+    draw_text(d2d, &visible, Vec2::new(line.x0, line.y), &style_of(s, fs));
 }
 
 /// The lines a label/button draws: wrapped to `avail_w`, or one line
@@ -452,6 +498,15 @@ pub(crate) fn tooltip(d2d: &Draw2D, text: &str, mx: f32, my: f32, sw: f32, sh: f
     const BG: Color = Color(0xF0_100010);
     const BORDER_TOP: Color = Color(0x50_5000FF);
     const BORDER_BOTTOM: Color = Color(0x50_28007F);
+    const TEXT: Color = Color(0xFF_FFFFFF);
+    /// The text's corner from the cursor (right and up), and from it when
+    /// flipped to the cursor's left.
+    const OFFSET: f32 = 12.0;
+    const FLIPPED: f32 = 16.0;
+    /// The least room kept to the screen's edges.
+    const MARGIN: f32 = 4.0;
+    /// The box around the text.
+    const PAD: f32 = 3.0;
     let lines: Vec<&str> = text.lines().collect();
     if lines.is_empty() {
         return;
@@ -460,14 +515,14 @@ pub(crate) fn tooltip(d2d: &Draw2D, text: &str, mx: f32, my: f32, sw: f32, sh: f
         .iter()
         .map(|l| crate::text::str_width(l, 1.0))
         .fold(0.0, f32::max);
-    let h = lines.len() as f32 * (crate::text::LINE_H + 1.0) - 1.0;
-    let mut x = mx + 12.0;
-    let mut y = my - 12.0;
-    if x + w + 4.0 > sw {
-        x = (mx - 16.0 - w).max(4.0);
+    let line_h = crate::text::LINE_H + crate::text::LINE_GAP;
+    let h = lines.len() as f32 * line_h - crate::text::LINE_GAP;
+    let mut x = mx + OFFSET;
+    if x + w + MARGIN > sw {
+        x = (mx - FLIPPED - w).max(MARGIN);
     }
-    y = y.clamp(4.0, (sh - h - 4.0).max(4.0));
-    let (x0, y0, x1, y1) = (x - 3.0, y - 3.0, x + w + 3.0, y + h + 3.0);
+    let y = (my - OFFSET).clamp(MARGIN, (sh - h - MARGIN).max(MARGIN));
+    let (x0, y0, x1, y1) = (x - PAD, y - PAD, x + w + PAD, y + h + PAD);
     d2d.rect(Rect::from_edges(x0, y0 - 1.0, x1, y0), BG);
     d2d.rect(Rect::from_edges(x0, y1, x1, y1 + 1.0), BG);
     d2d.rect(Rect::from_edges(x0, y0, x1, y1), BG);
@@ -486,12 +541,7 @@ pub(crate) fn tooltip(d2d: &Draw2D, text: &str, mx: f32, my: f32, sw: f32, sh: f
     d2d.rect(Rect::from_edges(x0, y0, x1, y0 + 1.0), BORDER_TOP);
     d2d.rect(Rect::from_edges(x0, y1 - 1.0, x1, y1), BORDER_BOTTOM);
     for (i, line) in lines.iter().enumerate() {
-        d2d.text(
-            line,
-            Vec2::new(x, y + i as f32 * (crate::text::LINE_H + 1.0)),
-            Color(0xFF_FFFFFF),
-            true,
-        );
+        d2d.text(line, Vec2::new(x, y + i as f32 * line_h), TEXT, true);
     }
 }
 

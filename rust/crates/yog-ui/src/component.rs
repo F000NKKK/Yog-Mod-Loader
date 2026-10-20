@@ -36,6 +36,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use yog_gfx::Color;
+use yog_ids::{yui_attr as attr, yui_value as value};
 
 use crate::FlexDir;
 use crate::widget::{self, Widget};
@@ -112,7 +113,11 @@ impl Prop {
         Self::new(name, PropKind::Int, default)
     }
     pub const fn bool(name: &'static str, default: bool) -> Self {
-        Self::new(name, PropKind::Bool, if default { "true" } else { "false" })
+        Self::new(
+            name,
+            PropKind::Bool,
+            if default { value::TRUE } else { value::FALSE },
+        )
     }
     pub const fn color(name: &'static str, default: &'static str) -> Self {
         Self::new(name, PropKind::Color, default)
@@ -230,14 +235,21 @@ pub fn build(name: &str, attrs: &[(&str, &str)]) -> Widget {
     }
 }
 
+/// [`error_box`]'s look: a dark red box, light red words, the room around
+/// them, and its least size.
+const ERROR_BG: Color = Color(0xC0_400000);
+const ERROR_TEXT: Color = Color(0xFF_FF8080);
+const ERROR_PAD: f32 = 2.0;
+const ERROR_MIN: [f32; 2] = [16.0, 12.0];
+
 /// What [`build`] shows for a component it can't build.
 pub fn error_box(message: &str) -> Widget {
     widget::panel(FlexDir::Column)
-        .bg(Color(0xC0_400000))
-        .padding(2.0, 2.0, 2.0, 2.0)
-        .child(widget::label(message).color(Color(0xFF_FF8080)))
-        .min_w(16.0)
-        .min_h(12.0)
+        .bg(ERROR_BG)
+        .padding(ERROR_PAD, ERROR_PAD, ERROR_PAD, ERROR_PAD)
+        .child(widget::label(message).color(ERROR_TEXT))
+        .min_w(ERROR_MIN[0])
+        .min_h(ERROR_MIN[1])
 }
 
 /// A color value that is missing or malformed: opaque white.
@@ -292,7 +304,7 @@ impl Props {
 
     /// `true` only for `true`.
     pub fn bool(&self, name: &str) -> bool {
-        self.get(name).is_some_and(|v| v.trim() == "true")
+        self.get(name).is_some_and(|v| v.trim() == value::TRUE)
     }
 
     /// A color (opaque white if missing or malformed).
@@ -426,7 +438,7 @@ pub mod bind {
     impl BindUnits for &str {
         fn to_units(self) -> Units {
             let v = self.trim();
-            if v.is_empty() || v == "auto" {
+            if v.is_empty() || v == yog_ids::yui_value::AUTO {
                 Units::Auto
             } else if let Some(p) = v.strip_suffix('%') {
                 Units::Percent(p.trim().parse().unwrap_or(0.0))
@@ -456,30 +468,30 @@ pub mod bind {
 /// a component's widget with builder calls — they never reach its
 /// [`Props`]).
 pub const COMMON_ATTRS: &[&str] = &[
-    "id",
-    "x",
-    "y",
-    "w",
-    "h",
-    "min_w",
-    "min_h",
-    "flex",
-    "dock",
-    "gap",
-    "padding",
-    "bg",
-    "color",
-    "align",
-    "font_scale",
-    "font",
-    "shadow",
-    "no_wrap",
-    "ellipsis",
-    "focus_style",
-    "focus_color",
-    "enabled",
-    "on_click",
-    "visible",
+    attr::ID,
+    attr::X,
+    attr::Y,
+    attr::W,
+    attr::H,
+    attr::MIN_W,
+    attr::MIN_H,
+    attr::FLEX,
+    attr::DOCK,
+    attr::GAP,
+    attr::PADDING,
+    attr::BG,
+    attr::COLOR,
+    attr::ALIGN,
+    attr::FONT_SCALE,
+    attr::FONT,
+    attr::SHADOW,
+    attr::NO_WRAP,
+    attr::ELLIPSIS,
+    attr::FOCUS_STYLE,
+    attr::FOCUS_COLOR,
+    attr::ENABLED,
+    attr::ON_CLICK,
+    attr::VISIBLE,
 ];
 
 /// One common style attribute applied to `w` as generated code would
@@ -496,24 +508,24 @@ pub fn apply_style(w: Widget, key: &str, value: &str) -> Widget {
         }
     }
     match key {
-        "bg" => with(w, parse_color(v), Widget::bg),
-        "color" => with(w, parse_color(v), Widget::color),
-        "focus_color" => with(w, parse_color(v), Widget::focus_color),
-        "min_w" => with(w, num(), Widget::min_w),
-        "min_h" => with(w, num(), Widget::min_h),
-        "gap" => with(w, num(), Widget::gap),
-        "font_scale" => with(w, num(), Widget::font_scale),
-        "font" => w.font(v),
-        "shadow" => w.shadow(v == "true"),
-        "enabled" => w.enabled(v != "false"),
-        "no_wrap" if v == "true" => w.no_wrap(),
-        "ellipsis" if v == "true" => w.ellipsis(),
-        "align" => w.align(match v {
-            "center" => crate::Align::Center,
-            "end" => crate::Align::End,
+        attr::BG => with(w, parse_color(v), Widget::bg),
+        attr::COLOR => with(w, parse_color(v), Widget::color),
+        attr::FOCUS_COLOR => with(w, parse_color(v), Widget::focus_color),
+        attr::MIN_W => with(w, num(), Widget::min_w),
+        attr::MIN_H => with(w, num(), Widget::min_h),
+        attr::GAP => with(w, num(), Widget::gap),
+        attr::FONT_SCALE => with(w, num(), Widget::font_scale),
+        attr::FONT => w.font(v),
+        attr::SHADOW => w.shadow(v == value::TRUE),
+        attr::ENABLED => w.enabled(v != value::FALSE),
+        attr::NO_WRAP if v == value::TRUE => w.no_wrap(),
+        attr::ELLIPSIS if v == value::TRUE => w.ellipsis(),
+        attr::ALIGN => w.align(match v {
+            value::CENTER => crate::Align::Center,
+            value::END => crate::Align::End,
             _ => crate::Align::Start,
         }),
-        "padding" => {
+        attr::PADDING => {
             let parts: Option<Vec<f32>> = v
                 .split([' ', ','])
                 .filter(|s| !s.is_empty())
@@ -536,228 +548,7 @@ pub fn parse_color(value: &str) -> Option<Color> {
     Color::parse(value)
 }
 
-/// The screen designer's protocol (see the [module docs](self)): one C-ABI
-/// entry point, `yog_ui_designer`, taking a text request and answering
-/// through a write callback.
-///
-/// Requests (lines; values escaped with `\\` and `\n`):
-///
-/// - `describe` → JSON `{"abi":1,"components":[{"name","doc","props":[{"name","kind","default","doc","options"}]}]}`
-/// - `render` / `<name>` / `<w> <h> <avail_w> <avail_h>` / `key=value`… —
-///   builds the component, sizes it `w × h` (≤ 0: its natural size, within
-///   `avail_w × avail_h`), draws it at the origin through the `YogGfxApi`
-///   and answers `{"w":…,"h":…}`.
-///
-/// A failure (unknown component, panic in `build`) answers `false` and an
-/// error message.
-pub mod designer {
-    use std::ffi::c_void;
-    use std::fmt::Write as _;
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-
-    use yog_abi::{YogGfxApi, YogStr};
-    use yog_gfx::GfxContext;
-
-    use super::{COMMON_ATTRS, PropKind, Props, apply_style, components, find};
-    use crate::widget::{self, Widget};
-    use crate::{FlexDir, UiRoot, Units};
-
-    /// Version of this protocol; the designer host refuses others.
-    pub const ABI: u32 = 1;
-
-    /// `write(user_data, text)`: the host's sink for the answer.
-    pub type WriteFn = unsafe extern "C" fn(user_data: *mut c_void, text: YogStr);
-
-    /// `export_mod!`'s `yog_ui_designer`.
-    ///
-    /// # Safety
-    /// `request` must be valid UTF-8 for the call; `gfx` a valid table (or
-    /// null for `describe`); `write` sound to call with `user_data`.
-    pub unsafe fn call(
-        request: YogStr,
-        gfx: *const YogGfxApi,
-        user_data: *mut c_void,
-        write: WriteFn,
-    ) -> bool {
-        // SAFETY: the caller's contract.
-        let request = unsafe { request.as_str() };
-        let (ok, answer) = match catch_unwind(AssertUnwindSafe(|| answer(request, gfx))) {
-            Ok(Ok(a)) => (true, a),
-            Ok(Err(e)) => (false, e),
-            Err(panic) => (false, panic_message(&*panic)),
-        };
-        // SAFETY: the caller's contract.
-        unsafe { write(user_data, YogStr::from_str(&answer)) };
-        ok
-    }
-
-    fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
-        let msg = panic
-            .downcast_ref::<&str>()
-            .map(|s| s.to_string())
-            .or_else(|| panic.downcast_ref::<String>().cloned())
-            .unwrap_or_else(|| "unknown panic".into());
-        format!("the component panicked: {msg}")
-    }
-
-    fn answer(request: &str, gfx: *const YogGfxApi) -> Result<String, String> {
-        let mut lines = request.lines();
-        match lines.next().map(str::trim) {
-            Some("describe") => Ok(describe()),
-            Some("render") => {
-                if gfx.is_null() {
-                    return Err("render: no gfx table".into());
-                }
-                let name = lines.next().unwrap_or_default().trim().to_string();
-                let size: Vec<f32> = lines
-                    .next()
-                    .unwrap_or_default()
-                    .split_whitespace()
-                    .filter_map(|n| n.parse().ok())
-                    .collect();
-                let [w, h, aw, ah] = size[..] else {
-                    return Err("render: expected `w h avail_w avail_h`".into());
-                };
-                let attrs: Vec<(String, String)> = lines
-                    .filter_map(|l| l.split_once('='))
-                    .map(|(k, v)| (k.trim().to_string(), unescape(v)))
-                    .collect();
-                // SAFETY: non-null, valid for the call (the caller's contract).
-                let ctx = unsafe { GfxContext::from_raw(gfx) };
-                render(&ctx, &name, &attrs, [w, h, aw, ah])
-            }
-            other => Err(format!("unknown designer request {other:?}")),
-        }
-    }
-
-    fn render(
-        ctx: &GfxContext,
-        name: &str,
-        attrs: &[(String, String)],
-        [w, h, aw, ah]: [f32; 4],
-    ) -> Result<String, String> {
-        let spec = find(name).ok_or_else(|| format!("no component named {name}"))?;
-        type Attrs<'a> = Vec<(&'a str, &'a str)>;
-        let (common, own): (Attrs, Attrs) = attrs
-            .iter()
-            .map(|(k, v)| (k.as_str(), v.as_str()))
-            .partition(|(k, _)| COMMON_ATTRS.contains(k));
-        let mut root: Widget = (spec.build)(&Props::new(spec.props, &own));
-        for (k, v) in common {
-            root = apply_style(root, k, v);
-        }
-        if w > 0.0 {
-            root = root.w(Units::Px(w));
-        }
-        if h > 0.0 {
-            root = root.h(Units::Px(h));
-        }
-        let (aw, ah) = (aw.max(1.0), ah.max(1.0));
-        let screen = widget::panel(FlexDir::Column)
-            .w(Units::Px(aw))
-            .h(Units::Px(ah))
-            .child(root.at(0.0, 0.0));
-        // Measured like the game measures: through the host's text/image metrics.
-        crate::text::use_host_metrics(ctx);
-        crate::image::use_host_images(ctx);
-        let mut ui = UiRoot::new(yog_ids::yog::DESIGNER_SCREEN, screen);
-        ui.layout(aw, ah);
-        let rect = ui
-            .layout_root
-            .children
-            .first()
-            .map(|n| n.rect)
-            .unwrap_or_default();
-        ui.render(ctx);
-        Ok(format!("{{\"w\":{},\"h\":{}}}", rect.w, rect.h))
-    }
-
-    fn describe() -> String {
-        let mut out = format!("{{\"abi\":{ABI},\"components\":[");
-        for (i, c) in components().iter().enumerate() {
-            if i > 0 {
-                out.push(',');
-            }
-            let _ = write!(
-                out,
-                "{{\"name\":{},\"description\":{},\"display_name\":{},\"icon\":{},\"category\":{},\"design_w\":{},\"design_h\":{},\"toolbox\":{},\"props\":[",
-                json(c.name),
-                json(c.doc),
-                json(c.display_name),
-                json(c.icon),
-                json(c.category),
-                c.design_size.0,
-                c.design_size.1,
-                c.toolbox
-            );
-            for (j, p) in c.props.iter().enumerate() {
-                if j > 0 {
-                    out.push(',');
-                }
-                let options = match p.kind {
-                    PropKind::Choice(o) => o.iter().map(|s| json(s)).collect::<Vec<_>>().join(","),
-                    _ => String::new(),
-                };
-                let _ = write!(
-                    out,
-                    "{{\"name\":{},\"kind\":{},\"default\":{},\"doc\":{},\"category\":{},\"options\":[{options}]}}",
-                    json(p.name),
-                    json(p.kind.as_str()),
-                    json(p.default),
-                    json(p.doc),
-                    json(p.category)
-                );
-            }
-            out.push_str("]}");
-        }
-        out.push_str("]}");
-        out
-    }
-
-    /// A JSON string literal.
-    fn json(s: &str) -> String {
-        let mut out = String::with_capacity(s.len() + 2);
-        out.push('"');
-        for c in s.chars() {
-            match c {
-                '"' => out.push_str("\\\""),
-                '\\' => out.push_str("\\\\"),
-                '\n' => out.push_str("\\n"),
-                '\r' => out.push_str("\\r"),
-                '\t' => out.push_str("\\t"),
-                c if (c as u32) < 0x20 => {
-                    let _ = write!(out, "\\u{:04x}", c as u32);
-                }
-                c => out.push(c),
-            }
-        }
-        out.push('"');
-        out
-    }
-
-    /// A request value as written by [`escape`].
-    pub fn unescape(v: &str) -> String {
-        let mut out = String::with_capacity(v.len());
-        let mut chars = v.chars();
-        while let Some(c) = chars.next() {
-            if c != '\\' {
-                out.push(c);
-                continue;
-            }
-            match chars.next() {
-                Some('n') => out.push('\n'),
-                Some(other) => out.push(other),
-                None => out.push('\\'),
-            }
-        }
-        out
-    }
-
-    /// A request value: one line, `\\` and `\n` escaped.
-    pub fn escape(v: &str) -> String {
-        v.replace('\\', "\\\\").replace('\n', "\\n")
-    }
-}
+pub mod designer;
 
 #[cfg(test)]
 mod tests {

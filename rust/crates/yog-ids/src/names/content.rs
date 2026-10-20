@@ -291,6 +291,17 @@ names! {
         HUMANOID_LEGGINGS = "humanoid_leggings",
     }
 
+    /// Words a `.yui` attribute's value is.
+    yui_value {
+        TRUE = "true",
+        FALSE = "false",
+        /// A size the content decides.
+        AUTO = "auto",
+        START = "start",
+        CENTER = "center",
+        END = "end",
+    }
+
     /// The markup of a `.yui` attribute's value: a binding (`{x:Bind name}`)
     /// opens and closes so.
     yui_markup {

@@ -17,6 +17,9 @@ use yog_gfx::{GfxContext, TextWidthFn};
 pub const CHAR_W: f32 = 6.0;
 /// Line height at font_scale=1.0 (MC font is 9px; Patchouli uses 9-10px lines).
 pub const LINE_H: f32 = 9.0;
+/// The glyphs' height, without the line's room below them: what the game
+/// centres a line by.
+pub const GLYPH_H: f32 = 8.0;
 /// Gap between wrapped lines.
 pub const LINE_GAP: f32 = 1.0;
 /// Yog's alias of the game's default font — what an empty `Style::font` means.
@@ -24,7 +27,10 @@ pub use yog_ids::yog::DEFAULT_FONT;
 
 /// The game's default font's advances, from [`FIRST_GLYPH`] to `'~'`.
 static GLYPH_WIDTHS: LazyLock<Vec<f32>> = LazyLock::new(|| {
-    yog_data::built_in("yog-ui's glyph widths", include_str!("../data/glyph_widths.ydata"))
+    yog_data::built_in(
+        "yog-ui's glyph widths",
+        include_str!("../data/glyph_widths.ydata"),
+    )
 });
 /// The first character of [`GLYPH_WIDTHS`].
 const FIRST_GLYPH: char = ' ';

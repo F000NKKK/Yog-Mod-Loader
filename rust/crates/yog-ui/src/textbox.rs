@@ -309,74 +309,62 @@ impl TextBoxState {
     }
 
     fn handle_inner(&mut self, event: &UiEvent<'_>, node: &LayoutNode) -> TextBoxEvent {
-        let (k, mods) = match *event {
-            UiEvent::Click { x: mx, y: my } => {
-                if node.visible && node.enabled && node.rect.contains(yog_gfx::Vec2::new(mx, my)) {
-                    self.focused = true;
-                    self.dragging = true;
-                    let i = self.index_at(node, mx);
-                    self.move_to(i, false);
-                    return TextBoxEvent::Handled;
-                }
-                if self.focused {
-                    self.blur();
-                }
-                return TextBoxEvent::Ignored;
-            }
-            UiEvent::Drag { x: mx, .. } => {
+        match *event {
+            UiEvent::Click { x, y } => self.click(node, x, y),
+            UiEvent::Drag { x, .. } => {
                 if !self.dragging {
                     return TextBoxEvent::Ignored;
                 }
-                let i = self.index_at(node, mx);
+                let i = self.index_at(node, x);
                 self.move_to(i, true);
-                return TextBoxEvent::Handled;
+                TextBoxEvent::Handled
             }
             UiEvent::Release { .. } => {
-                return if std::mem::take(&mut self.dragging) {
+                if std::mem::take(&mut self.dragging) {
                     TextBoxEvent::Handled
                 } else {
                     TextBoxEvent::Ignored
-                };
-            }
-            _ if !self.focused => return TextBoxEvent::Ignored,
-            UiEvent::Char(c) => {
-                if !allowed(c) {
-                    return TextBoxEvent::Handled;
                 }
-                return if self.insert(c) {
+            }
+            _ if !self.focused => TextBoxEvent::Ignored,
+            UiEvent::Char(c) => {
+                if allowed(c) && self.insert(c) {
                     TextBoxEvent::Changed
                 } else {
                     TextBoxEvent::Handled
-                };
+                }
             }
-            UiEvent::Key { key, mods } => (key, mods),
-            _ => return TextBoxEvent::Ignored,
-        };
+            UiEvent::Key { key, mods } => self.key(key, mods),
+            _ => TextBoxEvent::Ignored,
+        }
+    }
+
+    /// A click: on the box it focuses it and puts the caret there (a drag
+    /// may follow); elsewhere it takes the focus away.
+    fn click(&mut self, node: &LayoutNode, x: f32, y: f32) -> TextBoxEvent {
+        if node.visible && node.enabled && node.rect.contains(yog_gfx::Vec2::new(x, y)) {
+            self.focused = true;
+            self.dragging = true;
+            let i = self.index_at(node, x);
+            self.move_to(i, false);
+            return TextBoxEvent::Handled;
+        }
+        if self.focused {
+            self.blur();
+        }
+        TextBoxEvent::Ignored
+    }
+
+    /// A key while focused. Any key is the box's (so it doesn't trigger
+    /// the screen's own shortcuts).
+    fn key(&mut self, k: i32, mods: i32) -> TextBoxEvent {
         let shift = mods & key::MOD_SHIFT != 0;
         let ctrl = mods & (key::MOD_CONTROL | key::MOD_SUPER) != 0;
         match k {
             key::ESCAPE => self.blur(),
             key::ENTER | key::KP_ENTER => return TextBoxEvent::Submitted,
-            key::BACKSPACE => {
-                if !self.delete_selection() {
-                    if self.caret == 0 {
-                        return TextBoxEvent::Handled;
-                    }
-                    self.anchor = self.caret - 1;
-                    self.delete_selection();
-                }
-                return TextBoxEvent::Changed;
-            }
-            key::DELETE => {
-                if !self.delete_selection() {
-                    if self.caret >= self.len() {
-                        return TextBoxEvent::Handled;
-                    }
-                    self.anchor = self.caret + 1;
-                    self.delete_selection();
-                }
-                return TextBoxEvent::Changed;
-            }
+            key::BACKSPACE => return self.erase(self.caret.checked_sub(1)),
+            key::DELETE => return self.erase((self.caret < self.len()).then_some(self.caret + 1)),
             key::LEFT => {
                 let (a, b) = self.selection();
                 let to = if !shift && a != b {
@@ -394,11 +382,23 @@ impl TextBoxState {
             key::HOME => self.move_to(0, shift),
             key::END => self.move_to(self.len(), shift),
             key::A if ctrl => self.select_all(),
-            // Any other key while focused is the box's too (so it doesn't
-            // trigger the screen's own shortcuts).
             _ => {}
         }
         TextBoxEvent::Handled
+    }
+
+    /// Backspace / Delete: the selection, else the character between the
+    /// caret and `to` (none at the text's end: nothing changes).
+    fn erase(&mut self, to: Option<usize>) -> TextBoxEvent {
+        if self.delete_selection() {
+            return TextBoxEvent::Changed;
+        }
+        let Some(to) = to else {
+            return TextBoxEvent::Handled;
+        };
+        self.anchor = to;
+        self.delete_selection();
+        TextBoxEvent::Changed
     }
 }
 
