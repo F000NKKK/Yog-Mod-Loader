@@ -17,7 +17,9 @@ use std::cell::{Cell, RefCell};
 use jni::JNIEnv;
 use jni::objects::{JClass, JObject};
 use jni::sys::{jbyteArray, jint, jlong, jobject};
-use yog_abi::{YogStatus, status};
+use std::os::raw::c_void;
+
+use yog_abi::{YogReply, YogStatus, status};
 
 use super::ROUTER;
 use crate::jcall::jcall;
@@ -84,9 +86,10 @@ pub(crate) fn frames_top() -> usize {
     top(base())
 }
 
-/// Runs Java handler `handler` through the arena: `None` when the payload
-/// doesn't fit (the caller sends it the old way).
-pub(super) fn run_java(env: &mut JNIEnv, handler: i32, payload: &[u8]) -> Option<(YogStatus, Vec<u8>)> {
+/// Runs Java handler `handler` through the arena, its reply written to
+/// `reply`: `None` when the payload doesn't fit (the caller sends it the
+/// old way).
+pub(super) fn run_java(env: &mut JNIEnv, handler: i32, payload: &[u8], reply: &YogReply) -> Option<YogStatus> {
     let base = base();
     let at = top(base);
     if !fits(at, payload.len()) {
@@ -97,16 +100,17 @@ pub(super) fn run_java(env: &mut JNIEnv, handler: i32, payload: &[u8]) -> Option
     let answer: Option<i64> = unsafe { jcall!(env, "dev/yog/YogBus", "handleAt", [I(handler), I(at as i32), I(payload.len() as i32)]) };
     set_top(base, at);
     let Some(answer) = answer else {
-        return Some((status::FAILED, Vec::new()));
+        return Some(status::FAILED);
     };
     let (st, len) = unpack(answer);
-    let reply = if len == SPILLED {
+    if len == SPILLED {
         let spilled: Option<Vec<u8>> = unsafe { jcall!(env, "dev/yog/YogBus", "takeReply", []) };
-        spilled.unwrap_or_default()
-    } else {
-        slice(base, at + payload.len(), len as usize).map(<[u8]>::to_vec).unwrap_or_default()
-    };
-    Some((st, reply))
+        unsafe { YogReply::send(reply, &spilled.unwrap_or_default()) };
+    } else if let Some(bytes) = slice(base, at + payload.len(), len as usize) {
+        // Read in place: straight from the arena to the caller's sink.
+        unsafe { YogReply::send(reply, bytes) };
+    }
+    Some(st)
 }
 
 /// `status` and the reply's length, packed.
@@ -118,19 +122,38 @@ fn unpack(answer: i64) -> (YogStatus, u32) {
     ((answer >> STATUS_SHIFT) as YogStatus, answer as u32)
 }
 
-/// A Java call's reply: written after its payload (frame offset `at`) if it
-/// fits, else kept aside.
-fn answer(st: YogStatus, reply: Vec<u8>, at: usize) -> jlong {
-    if fits(at, reply.len()) {
-        write(base(), at, &reply);
-        return pack(st, reply.len() as u32);
-    }
-    SPILL.with(|s| *s.borrow_mut() = reply);
-    pack(st, SPILLED)
+/// Where a call from Java writes its reply: into the arena right after
+/// the payload while it fits, else kept aside ([`SPILL`]).
+struct ArenaSink {
+    at: usize,
+    len: usize,
+    spilled: bool,
 }
 
-/// What Java sent from frame offset `at`, `len` long, through `send`.
-fn from_java(at: jint, len: jint, send: impl FnOnce(&[u8]) -> (YogStatus, Vec<u8>)) -> jlong {
+/// [`YogReply::write`] into an [`ArenaSink`].
+unsafe extern "C" fn write_sink(sink: *mut c_void, data: *const u8, len: usize) {
+    let (Some(s), false) = (unsafe { sink.cast::<ArenaSink>().as_mut() }, data.is_null()) else { return };
+    let bytes = unsafe { std::slice::from_raw_parts(data, len) };
+    if !s.spilled && fits(s.at + s.len, bytes.len()) {
+        write(base(), s.at + s.len, bytes);
+        s.len += bytes.len();
+        return;
+    }
+    SPILL.with(|spill| {
+        let mut spill = spill.borrow_mut();
+        if !s.spilled {
+            // What was written in the arena moves aside too.
+            spill.clear();
+            spill.extend_from_slice(slice(base(), s.at, s.len).unwrap_or_default());
+            s.spilled = true;
+        }
+        spill.extend_from_slice(bytes);
+    });
+}
+
+/// What Java sent from frame offset `at`, `len` long, through `send`: its
+/// reply written after the payload (or aside), the answer packed.
+fn from_java(at: jint, len: jint, send: impl FnOnce(&[u8], &YogReply) -> YogStatus) -> jlong {
     let (Ok(at), Ok(len)) = (usize::try_from(at), usize::try_from(len)) else {
         return pack(status::BAD_PAYLOAD, 0);
     };
@@ -138,8 +161,10 @@ fn from_java(at: jint, len: jint, send: impl FnOnce(&[u8]) -> (YogStatus, Vec<u8
     let Some(payload) = slice(base, at, len) else {
         return pack(status::BAD_PAYLOAD, 0);
     };
-    let (st, reply) = send(payload);
-    answer(st, reply, at + len)
+    let mut sink = ArenaSink { at: at + len, len: 0, spilled: false };
+    let reply = YogReply { sink: (&mut sink as *mut ArenaSink).cast(), write: write_sink };
+    let st = send(payload, &reply);
+    pack(st, if sink.spilled { SPILLED } else { sink.len as u32 })
 }
 
 #[unsafe(no_mangle)]
@@ -150,12 +175,12 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeArena<'l>(mut env: JNIEnv<'l>, 
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_YogBus_nativeCallAt<'l>(_env: JNIEnv<'l>, _class: JClass<'l>, to: jint, at: jint, len: jint) -> jlong {
-    from_java(at, len, |payload| ROUTER.call(to as u32, payload, super::java::run))
+    from_java(at, len, |payload, reply| ROUTER.call(to as u32, payload, reply, super::java::run))
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_YogBus_nativeEmitAt<'l>(_env: JNIEnv<'l>, _class: JClass<'l>, event: jint, at: jint, len: jint) -> jlong {
-    from_java(at, len, |payload| ROUTER.emit(event as u32, payload, super::java::run))
+    from_java(at, len, |payload, reply| ROUTER.emit(event as u32, payload, reply, super::java::run))
 }
 
 #[unsafe(no_mangle)]
@@ -191,9 +216,15 @@ mod tests {
     #[test]
     fn a_big_reply_is_kept_aside() {
         let at = 8;
-        assert_eq!(unpack(answer(status::OK, vec![7; 3], at)), (status::OK, 3));
-        assert_eq!(slice(base(), at, 3), Some(&[7u8, 7, 7][..]));
-        assert_eq!(unpack(answer(status::OK, vec![1; BYTES], at)).1, SPILLED);
-        assert_eq!(SPILL.with(|s| s.borrow().len()), BYTES);
+        let mut sink = ArenaSink { at, len: 0, spilled: false };
+        let reply = YogReply { sink: (&mut sink as *mut ArenaSink).cast(), write: write_sink };
+        unsafe { YogReply::send(&reply, &[7, 7]) };
+        unsafe { YogReply::send(&reply, &[8]) };
+        assert_eq!((sink.len, sink.spilled), (3, false));
+        assert_eq!(slice(base(), at, 3), Some(&[7u8, 7, 8][..]));
+        unsafe { YogReply::send(&reply, &vec![1; BYTES]) };
+        assert!(sink.spilled);
+        // What was in the arena moved aside with the rest.
+        assert_eq!(SPILL.with(|s| (s.borrow().len(), s.borrow()[..3].to_vec())), (BYTES + 3, vec![7, 7, 8]));
     }
 }

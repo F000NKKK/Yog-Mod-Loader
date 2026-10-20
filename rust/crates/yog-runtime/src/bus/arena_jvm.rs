@@ -39,7 +39,7 @@ unsafe extern "C" fn twice(_ud: *mut c_void, payload: YogBytes, reply: *const Yo
 
 /// A Rust service calling Java's echo on its payload — a nested frame.
 unsafe extern "C" fn through_java(_ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus {
-    let (st, out) = ROUTER.call(ROUTER.resolve("test:echo"), unsafe { payload.as_slice() }, java::run);
+    let (st, out) = ROUTER.call_vec(ROUTER.resolve("test:echo"), unsafe { payload.as_slice() }, java::run);
     unsafe { YogReply::send(reply, &out) };
     st
 }
@@ -90,13 +90,13 @@ fn calls_cross_the_arena_both_ways() {
     let name = env.new_string("test:echo").unwrap();
     java_void(&mut env, "provideEcho", "(Ljava/lang/String;)V", &[JValue::Object(&name)]);
     let echo = ROUTER.resolve("test:echo");
-    assert_eq!(ROUTER.call(echo, b"hello", java::run), (status::OK, b"olleh".to_vec()));
+    assert_eq!(ROUTER.call_vec(echo, b"hello", java::run), (status::OK, b"olleh".to_vec()));
     let huge: Vec<u8> = (0..BYTES + 1000).map(|i| i as u8).collect();
-    assert_eq!(ROUTER.call(echo, &huge, java::run), (status::OK, reversed(&huge)));
+    assert_eq!(ROUTER.call_vec(echo, &huge, java::run), (status::OK, reversed(&huge)));
     // A reply too big for the arena is kept aside and taken.
     let name = env.new_string("test:big").unwrap();
     java_void(&mut env, "provideBig", "(Ljava/lang/String;I)V", &[JValue::Object(&name), JValue::Int(BYTES as i32 * 2)]);
-    let (st, big) = ROUTER.call(ROUTER.resolve("test:big"), b"x", java::run);
+    let (st, big) = ROUTER.call_vec(ROUTER.resolve("test:big"), b"x", java::run);
     assert_eq!((st, big.len()), (status::OK, BYTES * 2));
 
     // Java → Rust, and Java → Rust → Java (a nested frame above the caller's).

@@ -76,7 +76,8 @@ public final class YogEvents {
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Record emitChanged() {
                 YogBus.Reply r = emit();
-                if (r.status() != YogBus.OK) return this;
+                // Nothing back: no handler changed it.
+                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                 try {
                     return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
@@ -159,7 +160,8 @@ public final class YogEvents {
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Join emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -233,7 +235,8 @@ public final class YogEvents {
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Leave emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -318,7 +321,8 @@ public final class YogEvents {
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Death emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -399,7 +403,8 @@ public final class YogEvents {
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Respawn emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -479,7 +484,8 @@ public final class YogEvents {
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Message emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -579,7 +585,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Move emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -657,7 +664,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public UseItem emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -738,7 +746,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Attack emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -824,7 +833,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Interact emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -908,7 +918,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Craft emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -994,7 +1005,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Pickup emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -1080,7 +1092,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Advancement emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -1164,7 +1177,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Break emitChanged() {
                 YogBus.Reply r = emit();
-                if (r.status() != YogBus.OK) return this;
+                // Nothing back: no handler changed it.
+                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                 try {
                     return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
@@ -1251,7 +1265,8 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Place emitChanged() {
                 YogBus.Reply r = emit();
-                if (r.status() != YogBus.OK) return this;
+                // Nothing back: no handler changed it.
+                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                 try {
                     return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
@@ -1336,7 +1351,8 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Use emitChanged() {
                 YogBus.Reply r = emit();
-                if (r.status() != YogBus.OK) return this;
+                // Nothing back: no handler changed it.
+                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                 try {
                     return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
@@ -1426,7 +1442,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Spawn emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -1507,7 +1524,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Death emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -1593,7 +1611,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Damage emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -1692,7 +1711,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public ProjectileHit emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -1763,7 +1783,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Tick emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -1855,7 +1876,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Explosion emitChanged() {
                 YogBus.Reply r = emit();
-                if (r.status() != YogBus.OK) return this;
+                // Nothing back: no handler changed it.
+                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                 try {
                     return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
@@ -1940,7 +1962,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Chunk emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2034,7 +2057,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Roll emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2120,7 +2144,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Open emitChanged() {
                 YogBus.Reply r = emit();
-                if (r.status() != YogBus.OK) return this;
+                // Nothing back: no handler changed it.
+                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                 try {
                     return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
@@ -2198,7 +2223,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Close emitChanged() {
                 YogBus.Reply r = emit();
-                if (r.status() != YogBus.OK) return this;
+                // Nothing back: no handler changed it.
+                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                 try {
                     return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
@@ -2295,7 +2321,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Craft emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2374,7 +2401,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Tick emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2447,7 +2475,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Started emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2512,7 +2541,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Stopping emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2591,7 +2621,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Run emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2661,7 +2692,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Packet emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2736,7 +2768,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Tick emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2807,7 +2840,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Travel emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2892,7 +2926,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Key emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -2955,7 +2990,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Binding emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3028,7 +3064,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Open emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3096,7 +3133,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Close emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3158,7 +3196,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Input emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3235,7 +3274,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Hud emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3303,7 +3343,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public World emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3362,7 +3403,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Ui emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3427,7 +3469,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Tooltip emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3492,7 +3535,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Page emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3563,7 +3607,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Camera emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3634,7 +3679,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Body emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
@@ -3701,7 +3747,8 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Packet emitChanged() {
                     YogBus.Reply r = emit();
-                    if (r.status() != YogBus.OK) return this;
+                    // Nothing back: no handler changed it.
+                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
                     try {
                         return fromFrame(r.bytes());
                     } catch (RuntimeException e) {

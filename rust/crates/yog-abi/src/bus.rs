@@ -55,6 +55,11 @@ impl YogReply {
         Self { sink: (out as *mut Vec<u8>).cast::<c_void>(), write: append_to_vec }
     }
 
+    /// A reply no one reads: what's written is dropped.
+    pub fn discard() -> Self {
+        Self { sink: std::ptr::null_mut(), write: append_to_vec }
+    }
+
     /// Writes `bytes` to `reply` — if there's a reply and anything to write.
     ///
     /// # Safety

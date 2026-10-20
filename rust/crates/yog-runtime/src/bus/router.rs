@@ -1,9 +1,10 @@
 //! The bus's router: addresses by name, who provides each, who listens to
 //! each event — and running a call or an event through them.
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::os::raw::c_void;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 use yog_abi::{YogAddress, YogBytes, YogHandlerFn, YogReply, YogStatus, status};
 use yog_hot_reload::{LoadedModule, ModuleGeneration};
@@ -31,15 +32,17 @@ struct Names {
     names: Vec<String>,
 }
 
-/// Runs a Java handler: its status and reply.
-pub(crate) type JavaRunner = fn(handler: i32, payload: &[u8]) -> (YogStatus, Vec<u8>);
+/// Runs a Java handler: its status, its reply written to `reply`.
+pub(crate) type JavaRunner = fn(handler: i32, payload: &[u8], reply: &YogReply) -> YogStatus;
 
-/// Addresses, providers and subscribers.
+/// Addresses, providers and subscribers. The tables are copied when they
+/// change (registration) and shared when they're read (every call): a call
+/// takes a snapshot without copying a handler or a list.
 #[derive(Default)]
 pub(crate) struct Router {
     names: RwLock<Names>,
-    providers: RwLock<HashMap<YogAddress, Handler>>,
-    subscribers: RwLock<HashMap<YogAddress, Vec<Subscriber>>>,
+    providers: RwLock<Arc<HashMap<YogAddress, Handler>>>,
+    subscribers: RwLock<HashMap<YogAddress, Arc<Vec<Subscriber>>>>,
 }
 
 impl Router {
@@ -67,7 +70,7 @@ impl Router {
         if providers.contains_key(&address) {
             return false;
         }
-        providers.insert(address, handler);
+        Arc::make_mut(&mut providers).insert(address, handler);
         true
     }
 
@@ -78,7 +81,7 @@ impl Router {
     /// Subscribes `handler` to `event`, after those of its priority or higher.
     pub(crate) fn on(&self, event: YogAddress, priority: i32, handler: Handler) {
         let mut subs = self.subscribers.write_locked();
-        let list = subs.entry(event).or_default();
+        let list = Arc::make_mut(subs.entry(event).or_default());
         let at = list.iter().position(|s| s.priority < priority).unwrap_or(list.len());
         list.insert(at, Subscriber { priority, handler });
     }
@@ -104,58 +107,84 @@ impl Router {
         keys
     }
 
-    /// Calls `to`'s provider.
-    pub(crate) fn call(&self, to: YogAddress, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u8>) {
-        let Some(handler) = self.providers.read_locked().get(&to).cloned() else {
-            return (status::NO_HANDLER, Vec::new());
-        };
-        run(&handler, payload, java)
+    /// Calls `to`'s provider: its status, its reply written to `reply`.
+    pub(crate) fn call(&self, to: YogAddress, payload: &[u8], reply: &YogReply, java: JavaRunner) -> YogStatus {
+        let providers = Arc::clone(&self.providers.read_locked());
+        match providers.get(&to) {
+            Some(handler) => run(handler, payload, reply, java),
+            None => status::NO_HANDLER,
+        }
     }
 
     /// Runs `event`'s subscribers in order, each seeing the last one's reply
-    /// (when it wrote one) as its payload; stops at a cancel.
-    pub(crate) fn emit(&self, event: YogAddress, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u8>) {
-        let subs = self.subscribers.read_locked().get(&event).cloned().unwrap_or_default();
-        let mut current = payload.to_vec();
-        for s in &subs {
-            let (st, reply) = run(&s.handler, &current, java);
-            if !reply.is_empty() {
-                current = reply;
+    /// (when it wrote one) as its payload; stops at a cancel. The event as
+    /// the handlers left it goes to `reply` — nothing when none changed it.
+    pub(crate) fn emit(&self, event: YogAddress, payload: &[u8], reply: &YogReply, java: JavaRunner) -> YogStatus {
+        let Some(subs) = self.subscribers.read_locked().get(&event).cloned() else {
+            return status::OK;
+        };
+        let mut current = Cow::Borrowed(payload);
+        let mut next = Vec::new();
+        let mut st = status::OK;
+        for s in subs.iter() {
+            next.clear();
+            st = run(&s.handler, &current, &YogReply::to_vec(&mut next), java);
+            if !next.is_empty() {
+                current = Cow::Owned(std::mem::take(&mut next));
             }
             if st == status::CANCELLED {
-                return (st, current);
+                break;
             }
         }
-        (status::OK, current)
+        if let Cow::Owned(changed) = &current {
+            unsafe { YogReply::send(reply, changed) };
+        }
+        if st == status::CANCELLED { st } else { status::OK }
+    }
+
+    /// [`Router::call`] with the reply as a `Vec` (the runtime's own calls, tests).
+    pub(crate) fn call_vec(&self, to: YogAddress, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u8>) {
+        let mut out = Vec::new();
+        let st = self.call(to, payload, &YogReply::to_vec(&mut out), java);
+        (st, out)
+    }
+
+    /// [`Router::emit`] with the reply as a `Vec`: the event as the
+    /// handlers left it, the payload itself when none changed it.
+    #[cfg(test)]
+    pub(crate) fn emit_vec(&self, event: YogAddress, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u8>) {
+        let mut out = Vec::new();
+        let st = self.emit(event, payload, &YogReply::to_vec(&mut out), java);
+        if out.is_empty() {
+            out = payload.to_vec();
+        }
+        (st, out)
     }
 
     /// Drops what the module of `generation` registered.
     pub(crate) fn purge(&self, generation: ModuleGeneration) {
         let owned_by = |h: &Handler| matches!(h, Handler::Native { owner: Some(m), .. } if m.generation() == generation);
-        self.providers.write_locked().retain(|_, h| !owned_by(h));
+        Arc::make_mut(&mut self.providers.write_locked()).retain(|_, h| !owned_by(h));
         for list in self.subscribers.write_locked().values_mut() {
-            list.retain(|s| !owned_by(&s.handler));
+            Arc::make_mut(list).retain(|s| !owned_by(&s.handler));
         }
     }
 }
 
-/// A handler's status and reply for `payload`.
-fn run(handler: &Handler, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u8>) {
+/// A handler's status for `payload`, its reply written to `reply`.
+fn run(handler: &Handler, payload: &[u8], reply: &YogReply, java: JavaRunner) -> YogStatus {
     match handler {
-        Handler::Java(id) => java(*id, payload),
+        Handler::Java(id) => java(*id, payload, reply),
         Handler::Native { owner, ud, f } => {
             // A mod's code runs only while its library is loaded.
             let _guard = match owner {
                 Some(m) => match m.enter() {
                     Some(g) => Some(g),
-                    None => return (status::NO_HANDLER, Vec::new()),
+                    None => return status::NO_HANDLER,
                 },
                 None => None,
             };
-            let mut out = Vec::new();
-            let reply = YogReply::to_vec(&mut out);
-            let st = unsafe { f(*ud as *mut c_void, YogBytes::new(payload), &reply) };
-            (st, out)
+            unsafe { f(*ud as *mut c_void, YogBytes::new(payload), reply) }
         }
     }
 }

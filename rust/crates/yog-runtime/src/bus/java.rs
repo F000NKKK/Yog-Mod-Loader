@@ -5,7 +5,7 @@
 use jni::JNIEnv;
 use jni::objects::{JByteArray, JClass, JString};
 use jni::sys::{jboolean, jbyteArray, jint};
-use yog_abi::{YogStatus, status};
+use yog_abi::{YogReply, YogStatus, status};
 
 use super::{Handler, ROUTER};
 use crate::jcall::jcall;
@@ -16,17 +16,20 @@ const STATUS_LEN: usize = 1;
 
 /// Runs Java handler `handler`: through this thread's arena, or — a payload
 /// too big for it — as a `byte[]`.
-pub(super) fn run(handler: i32, payload: &[u8]) -> (YogStatus, Vec<u8>) {
+pub(super) fn run(handler: i32, payload: &[u8], reply: &YogReply) -> YogStatus {
     let Some(mut env) = crate::get_env() else {
-        return (status::NO_HANDLER, Vec::new());
+        return status::NO_HANDLER;
     };
-    if let Some(answer) = super::arena::run_java(&mut env, handler, payload) {
-        return answer;
+    if let Some(st) = super::arena::run_java(&mut env, handler, payload, reply) {
+        return st;
     }
-    let reply: Option<Vec<u8>> = unsafe { jcall!(&mut env, "dev/yog/YogBus", "handle", [I(handler), Bytes(payload)]) };
-    match reply {
-        Some(r) if r.len() >= STATUS_LEN => (YogStatus::from(r[0]), r[STATUS_LEN..].to_vec()),
-        _ => (status::FAILED, Vec::new()),
+    let answer: Option<Vec<u8>> = unsafe { jcall!(&mut env, "dev/yog/YogBus", "handle", [I(handler), Bytes(payload)]) };
+    match answer {
+        Some(r) if r.len() >= STATUS_LEN => {
+            unsafe { YogReply::send(reply, &r[STATUS_LEN..]) };
+            YogStatus::from(r[0])
+        }
+        _ => status::FAILED,
     }
 }
 
@@ -61,14 +64,15 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeOn<'l>(_env: JNIEnv<'l>, _class
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_YogBus_nativeCall<'l>(mut env: JNIEnv<'l>, _class: JClass<'l>, to: jint, payload: JByteArray<'l>) -> jbyteArray {
     let payload = bytes(&mut env, &payload);
-    let (st, reply) = ROUTER.call(to as u32, &payload, run);
+    let (st, reply) = ROUTER.call_vec(to as u32, &payload, run);
     java_reply(&mut env, st, &reply)
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_YogBus_nativeEmit<'l>(mut env: JNIEnv<'l>, _class: JClass<'l>, event: jint, payload: JByteArray<'l>) -> jbyteArray {
     let payload = bytes(&mut env, &payload);
-    let (st, reply) = ROUTER.emit(event as u32, &payload, run);
+    let mut reply = Vec::new();
+    let st = ROUTER.emit(event as u32, &payload, &YogReply::to_vec(&mut reply), run);
     java_reply(&mut env, st, &reply)
 }
 

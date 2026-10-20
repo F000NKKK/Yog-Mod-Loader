@@ -55,25 +55,27 @@ pub(crate) fn table() -> *const YogBus {
 /// Emits `event` before the game does it: whether every handler lets it.
 pub(crate) fn allowed<E: Event>(event: &E) -> bool {
     let Some(pre) = event.pre_target() else { return true };
-    ROUTER.emit(ROUTER.resolve(&pre), &event.to_bytes(), java::run).0 != status::CANCELLED
+    event.with_bytes(|payload| ROUTER.emit(ROUTER.resolve(&pre), payload, &YogReply::discard(), java::run)) != status::CANCELLED
 }
 
 /// Emits `event` after the game did it.
 pub(crate) fn emitted<E: Event>(event: &E) {
-    ROUTER.emit(ROUTER.resolve(&event.target()), &event.to_bytes(), java::run);
+    event.with_bytes(|payload| ROUTER.emit(ROUTER.resolve(&event.target()), payload, &YogReply::discard(), java::run));
 }
 
 /// Emits `event` and reads back what the handlers made of it (itself when
 /// the reply isn't one).
 pub(crate) fn changed<E: Event>(event: E) -> E {
-    let (_, reply) = ROUTER.emit(ROUTER.resolve(&event.target()), &event.to_bytes(), java::run);
+    let mut reply = Vec::new();
+    event.with_bytes(|payload| ROUTER.emit(ROUTER.resolve(&event.target()), payload, &YogReply::to_vec(&mut reply), java::run));
+    // Nothing written: no handler changed it.
     E::from_bytes(&reply).unwrap_or(event)
 }
 
 /// Calls `address`'s provider with `payload`: its reply, `None` when no one
 /// answers — how the runtime's own `yog_event` functions reach the bus.
 fn call_at(address: &str, payload: &[u8]) -> Option<Vec<u8>> {
-    let (st, reply) = ROUTER.call(ROUTER.resolve(address), payload, java::run);
+    let (st, reply) = ROUTER.call_vec(ROUTER.resolve(address), payload, java::run);
     (st == status::OK).then_some(reply)
 }
 
@@ -85,7 +87,7 @@ pub(crate) fn install_caller() {
 
 /// Calls `request`'s provider: its answer, `None` when no one answers.
 pub(crate) fn call<S: Service>(request: &S) -> Option<S::Reply> {
-    let (st, reply) = ROUTER.call(ROUTER.resolve(&request.target()), &request.to_bytes(), java::run);
+    let (st, reply) = request.with_bytes(|payload| ROUTER.call_vec(ROUTER.resolve(&request.target()), payload, java::run));
     if st != status::OK {
         return None;
     }
@@ -108,15 +110,14 @@ unsafe extern "C" fn abi_resolve(_ctx: *mut c_void, address: YogStr) -> YogAddre
 }
 
 unsafe extern "C" fn abi_call(_ctx: *mut c_void, to: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
-    let (st, out) = ROUTER.call(to, unsafe { payload.as_slice() }, java::run);
-    unsafe { YogReply::send(reply, &out) };
-    st
+    // The reply goes straight to the caller's sink (none: dropped).
+    let discard = YogReply::discard();
+    ROUTER.call(to, unsafe { payload.as_slice() }, unsafe { reply.as_ref() }.unwrap_or(&discard), java::run)
 }
 
 unsafe extern "C" fn abi_emit(_ctx: *mut c_void, event: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
-    let (st, out) = ROUTER.emit(event, unsafe { payload.as_slice() }, java::run);
-    unsafe { YogReply::send(reply, &out) };
-    st
+    let discard = YogReply::discard();
+    ROUTER.emit(event, unsafe { payload.as_slice() }, unsafe { reply.as_ref() }.unwrap_or(&discard), java::run)
 }
 
 unsafe extern "C" fn abi_on(_ctx: *mut c_void, event: YogAddress, priority: i32, ud: *mut c_void, handler: YogHandlerFn) {

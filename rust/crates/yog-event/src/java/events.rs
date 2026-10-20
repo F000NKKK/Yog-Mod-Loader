@@ -29,7 +29,7 @@ fn event_body(e: &EventInfo) -> String {
     );
     body.push_str("\n\n    /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */\n    public ");
     body.push_str(e.name);
-    body.push_str(" emitChanged() {\n        YogBus.Reply r = emit();\n        if (r.status() != YogBus.OK) return this;\n        try {\n            return fromFrame(r.bytes());\n        } catch (RuntimeException e) {\n            return this;\n        }\n    }");
+    body.push_str(" emitChanged() {\n        YogBus.Reply r = emit();\n        // Nothing back: no handler changed it.\n        if (r.status() != YogBus.OK || r.bytes().length == 0) return this;\n        try {\n            return fromFrame(r.bytes());\n        } catch (RuntimeException e) {\n            return this;\n        }\n    }");
     if let Some(p) = e.pre {
         let _ = write!(
             body,
