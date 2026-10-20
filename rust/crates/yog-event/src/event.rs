@@ -3,27 +3,19 @@
 use yog_data::Schema;
 use yog_ids as ids;
 
+use crate::message::{Message, branch, last_segment};
+
 use crate::{block, client, container, entity, player, server, world};
 
 /// An event the bus carries; its payload is `Self` in `yog-data`'s binary form.
-pub trait Event: Schema + Sized {
+pub trait Event: Message {
     /// Where it's emitted after the game did it.
     const ADDRESS: &'static str;
     /// Where it's emitted before — a handler's cancel stops it — if it can be stopped.
     const PRE: Option<&'static str>;
     /// The field whose value picks the event's branch (`entity_type`: each
-    /// type's ticks go to `…/tick/<type>`), if it's keyed — see [`keyed`].
+    /// type's ticks go to `…/tick/<type>`), if it's keyed — see [`crate::keyed`].
     const KEY: Option<&'static str>;
-
-    /// The payload's bytes.
-    fn to_bytes(&self) -> Vec<u8> {
-        yog_data::binary::encode(&self.write())
-    }
-
-    /// The event read from a payload; `None` if it isn't one.
-    fn from_bytes(bytes: &[u8]) -> Option<Self> {
-        yog_data::read_bytes(bytes).ok()
-    }
 }
 
 /// An event type's descriptor: its plane and name, addresses and payload shape.
@@ -37,27 +29,6 @@ pub struct EventInfo {
     pub shape: yog_data::Shape,
 }
 
-/// `address`'s branch for `key`: where a keyed event with that key goes.
-pub fn keyed(address: &str, key: &str) -> String {
-    format!("{address}{}{key}", ids::sep::PATH)
-}
-
-/// An address's plane: `yog:event/player/session/join` → `player/session`.
-fn plane_of(address: &'static str) -> &'static str {
-    let path = address.strip_prefix(ids::event::PREFIX).unwrap_or(address);
-    path.rsplit_once(ids::sep::PATH).map_or("", |(plane, _)| plane)
-}
-
-/// The key field's name, if an entry gives one.
-macro_rules! key {
-    () => {
-        None
-    };
-    ($key:ident) => {
-        Some(stringify!($key))
-    };
-}
-
 macro_rules! events {
     ($($ty:path => $post:expr, $pre:expr $(, key = $key:ident)?;)*) => {
         $(impl Event for $ty {
@@ -69,8 +40,8 @@ macro_rules! events {
         /// Every event type, plane by plane.
         pub fn all() -> Vec<EventInfo> {
             vec![$(EventInfo {
-                plane: plane_of($post),
-                name: { let p = stringify!($ty); match p.rfind(':') { Some(i) => p.split_at(i + 1).1.trim(), None => p } },
+                plane: branch($post, ids::event::PREFIX),
+                name: last_segment(stringify!($ty)),
                 address: $post,
                 pre: $pre,
                 key: key!($($key)?),
@@ -96,7 +67,6 @@ events! {
     block::Break => ids::event_block::BREAK, Some(ids::event_block::BREAK_PRE);
     block::Place => ids::event_block::PLACE, Some(ids::event_block::PLACE_PRE);
     block::Use => ids::event_block::USE, Some(ids::event_block::USE_PRE);
-    block::Insert => ids::event_block::INSERT, None;
     entity::life::Spawn => ids::event_entity_life::SPAWN, Some(ids::event_entity_life::SPAWN_PRE);
     entity::life::Death => ids::event_entity_life::DEATH, None;
     entity::combat::Damage => ids::event_entity_combat::DAMAGE, Some(ids::event_entity_combat::DAMAGE_PRE);

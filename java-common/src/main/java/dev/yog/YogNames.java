@@ -92,6 +92,19 @@ public final class YogNames {
         public static final String PRE = "/pre";
     }
 
+    public static final class Service {
+        private Service() {}
+
+        public static final String PREFIX = "yog:";
+    }
+
+    public static final class ServiceBlock {
+        private ServiceBlock() {}
+
+        public static final String DOMAIN = "yog:block/";
+        public static final String INSERT = "yog:block/insert";
+    }
+
     public static final class EventPlayerSession {
         private EventPlayerSession() {}
 
@@ -149,7 +162,6 @@ public final class YogNames {
         public static final String PLACE_PRE = "yog:event/block/place/pre";
         public static final String USE = "yog:event/block/use";
         public static final String USE_PRE = "yog:event/block/use/pre";
-        public static final String INSERT = "yog:event/block/insert";
     }
 
     public static final class EventEntityLife {

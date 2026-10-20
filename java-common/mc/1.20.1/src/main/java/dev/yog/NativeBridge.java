@@ -1646,10 +1646,7 @@ public final class NativeBridge {
                                      ItemStack stack, boolean simulate) {
         String block = BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString();
         String item = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
-        return nativeOnItemInsert(block, pos.getX(), pos.getY(), pos.getZ(),
-                level.dimension().location().toString(), item, stack.getCount(), stackSnbt(stack), simulate);
+        return new dev.yog.bus.YogServices.Block.Insert(block, new dev.yog.bus.YogTypes.BlockPos(pos.getX(), pos.getY(), pos.getZ()),
+                level.dimension().location().toString(), item, stack.getCount(), stackSnbt(stack), simulate).call();
     }
-
-    public static native boolean nativeOnItemInsert(String block, int x, int y, int z, String dimension,
-                                                    String item, int count, String nbt, boolean simulate);
 }

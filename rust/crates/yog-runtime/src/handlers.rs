@@ -32,7 +32,6 @@ pub(super) type CommandEntry = (LoadedModule, Option<String>, *mut c_void, YogCo
 // regardless of what this crate does.
 #[derive(Default)]
 pub(super) struct RuntimeHandlers {
-    pub(super) item_insert: Vec<(LoadedModule, *mut c_void, YogItemInsertFn)>,
     pub(super) hud_render: Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>,
     pub(super) body: Vec<(LoadedModule, *mut c_void, yog_abi::YogBodyFn)>,
     pub(super) camera: Vec<(LoadedModule, *mut c_void, yog_abi::YogCameraFn)>,
@@ -185,13 +184,6 @@ pub(super) fn each<F: Copy, R>(entries: &[Entry<F>], mut call: impl FnMut(*mut c
         call(ud, f);
         true
     });
-}
-
-/// Pre-phase dispatch: whether every live handler allows the action. The
-/// first `false` cancels it and skips the rest; a panicking mod allows it.
-pub(super) fn allowed<F: Copy>(entries: &[Entry<F>], call: impl FnMut(*mut c_void, F) -> bool) -> bool {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| each_while(entries, call)))
-        .unwrap_or(true)
 }
 
 pub(super) fn handlers() -> std::sync::RwLockReadGuard<'static, RuntimeHandlers> {

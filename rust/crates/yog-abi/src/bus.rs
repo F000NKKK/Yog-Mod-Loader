@@ -49,6 +49,34 @@ pub struct YogReply {
     pub write: YogBytesSink,
 }
 
+impl YogReply {
+    /// A reply that appends to `out`; valid while `out` is.
+    pub fn to_vec(out: &mut Vec<u8>) -> Self {
+        Self { sink: (out as *mut Vec<u8>).cast::<c_void>(), write: append_to_vec }
+    }
+
+    /// Writes `bytes` to `reply` — if there's a reply and anything to write.
+    ///
+    /// # Safety
+    /// `reply` is null or a reply valid for the call.
+    pub unsafe fn send(reply: *const Self, bytes: &[u8]) {
+        if bytes.is_empty() {
+            return;
+        }
+        if let Some(r) = unsafe { reply.as_ref() } {
+            unsafe { (r.write)(r.sink, bytes.as_ptr(), bytes.len()) };
+        }
+    }
+}
+
+/// [`YogReply::write`] into the `Vec<u8>` of [`YogReply::to_vec`].
+unsafe extern "C" fn append_to_vec(sink: *mut c_void, data: *const u8, len: usize) {
+    if sink.is_null() || data.is_null() {
+        return;
+    }
+    unsafe { (*sink.cast::<Vec<u8>>()).extend_from_slice(std::slice::from_raw_parts(data, len)) }
+}
+
 /// How a call, an emit or a handler ended.
 pub type YogStatus = u32;
 

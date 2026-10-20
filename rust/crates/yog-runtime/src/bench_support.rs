@@ -3,25 +3,33 @@
 
 use std::ffi::c_void;
 
-use yog_abi::{YogScheduledFn, YogServer};
+use yog_abi::{YogBytes, YogReply, YogScheduledFn, YogServer, YogStatus, status};
 use yog_hot_reload::{GenerationAllocator, LoadedModule};
 
-use super::{Entry, OnceTask, RepeatingTask, SchedulerState, allowed};
+use super::bus::{Handler, Router};
+use super::{OnceTask, RepeatingTask, SchedulerState};
 
-type Ping = unsafe extern "C" fn(*mut c_void) -> bool;
+unsafe extern "C" fn yes(_: *mut c_void, _: YogBytes, _: *const YogReply) -> YogStatus {
+    status::OK
+}
 
-unsafe extern "C" fn yes(_: *mut c_void) -> bool {
-    true
+fn no_java(_: i32, _: &[u8]) -> (YogStatus, Vec<u8>) {
+    (status::NO_HANDLER, Vec::new())
 }
 
 unsafe extern "C" fn task(_: *mut c_void, _: *const YogServer) {}
 
-/// A pre-phase event over `n` live mods' handlers that all allow it:
-/// each call dispatches it once.
-pub fn dispatch(n: usize) -> impl FnMut() -> bool {
+/// An event over `n` live mods' handlers that all let it happen: each
+/// call emits it once through the bus's router.
+pub fn dispatch(n: usize) -> impl FnMut() -> YogStatus {
     let module = LoadedModule::this_process(GenerationAllocator::new().next());
-    let entries: Vec<Entry<Ping>> = (0..n).map(|_| (module.clone(), std::ptr::null_mut(), yes as Ping)).collect();
-    move || allowed(&entries, |ud, f| unsafe { f(ud) })
+    let router = Router::default();
+    let event = router.resolve("bench:event");
+    for _ in 0..n {
+        router.on(event, 0, Handler::Native { owner: Some(module.clone()), ud: 0, f: yes });
+    }
+    let payload = [0u8; 16];
+    move || router.emit(event, &payload, no_java).0
 }
 
 /// A scheduler with `n` repeating tasks (every 1–20 ticks) and `n` once

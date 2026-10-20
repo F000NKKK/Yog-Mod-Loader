@@ -20,12 +20,6 @@ pub struct YogApi {
     /// Stable server action table — pass to handlers.
     pub server: *const YogServer,
 
-    // ── events — all handlers receive (ud, srv, event, phase: u8) → bool ────────
-    // phase 0 = Pre (return false to cancel), phase 1 = Post (return ignored).
-    // ── ABI minor 8 ──────────────────────────────────────────────────────────
-    // ── ABI minor 9 ──────────────────────────────────────────────────────────
-    pub on_item_insert: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogItemInsertFn),
-
     // ── networking ───────────────────────────────────────────────────────────
     pub on_packet:
         unsafe extern "C" fn(ctx: *mut c_void, channel: YogStr, ud: *mut c_void, h: YogPacketFn),

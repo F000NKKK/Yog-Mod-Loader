@@ -1,6 +1,7 @@
 package dev.yog;
 
 import dev.yog.bus.YogEvents;
+import dev.yog.bus.YogTypes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -99,12 +100,12 @@ public final class YogServerEvents {
     }
 
     public static boolean blockBreakPre(Level level, Player player, BlockPos pos, BlockState state) {
-        return new YogEvents.Block.Break(name(player), blockId(state), new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emitPre();
+        return new YogEvents.Block.Break(name(player), blockId(state), new YogTypes.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emitPre();
     }
 
     /** A block broken: to the mods; an inventory's contents dropped. */
     public static void blockBroken(Level level, Player player, BlockPos pos, BlockState state, BlockEntity blockEntity) {
-        new YogEvents.Block.Break(name(player), blockId(state), new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emit();
+        new YogEvents.Block.Break(name(player), blockId(state), new YogTypes.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emit();
         if (blockEntity instanceof YogInventoryBlockEntity inv && !inv.isEmpty()) {
             net.minecraft.world.Containers.dropContents(level, pos, inv);
             inv.clearContent();
@@ -141,13 +142,13 @@ public final class YogServerEvents {
         if (!itemFirst) {
             BlockPos pos = hit.getBlockPos();
             String blockId = blockId(level.getBlockState(pos));
-            if (!new YogEvents.Block.Use(name(sp), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emitPre()) return false;
-            new YogEvents.Block.Use(name(sp), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emit();
+            if (!new YogEvents.Block.Use(name(sp), blockId, new YogTypes.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emitPre()) return false;
+            new YogEvents.Block.Use(name(sp), blockId, new YogTypes.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emit();
         }
         if (sp.getItemInHand(hand).getItem() instanceof BlockItem bi) {
             BlockPos placed = hit.getBlockPos().relative(hit.getDirection());
             String blockId = BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
-            return new YogEvents.Block.Place(name(sp), blockId, new YogEvents.BlockPos(placed.getX(), placed.getY(), placed.getZ()), dim, sp.isShiftKeyDown()).emitPre();
+            return new YogEvents.Block.Place(name(sp), blockId, new YogTypes.BlockPos(placed.getX(), placed.getY(), placed.getZ()), dim, sp.isShiftKeyDown()).emitPre();
         }
         return true;
     }

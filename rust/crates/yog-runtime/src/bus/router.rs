@@ -137,20 +137,9 @@ fn run(handler: &Handler, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u
                 None => None,
             };
             let mut out = Vec::new();
-            let reply = YogReply { sink: (&mut out as *mut Vec<u8>).cast::<c_void>(), write: append };
+            let reply = YogReply::to_vec(&mut out);
             let st = unsafe { f(*ud as *mut c_void, YogBytes::new(payload), &reply) };
             (st, out)
         }
-    }
-}
-
-/// [`YogReply::write`] into a `Vec<u8>`.
-pub(crate) unsafe extern "C" fn append(sink: *mut c_void, data: *const u8, len: usize) {
-    if sink.is_null() || data.is_null() {
-        return;
-    }
-    unsafe {
-        let out = &mut *sink.cast::<Vec<u8>>();
-        out.extend_from_slice(std::slice::from_raw_parts(data, len));
     }
 }

@@ -27,7 +27,7 @@ use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
 use yog_abi::{
-    ABI_VERSION, YogApi, YogBlockPos, YogCommandFn, YogGfxApi, YogHudRenderFn, YogItemInsertEvent, YogItemInsertFn, YogOwnedStr, YogPacketFn,
+    ABI_VERSION, YogApi, YogBlockPos, YogCommandFn, YogGfxApi, YogHudRenderFn, YogOwnedStr, YogPacketFn,
     YogScheduledFn, YogServer, YogStr, YogVec3, YogWorldRenderFn,
 };
 use yog_registry::{BlockDef, ItemDef};
@@ -71,7 +71,6 @@ mod jni_init;
 use jni_init::*;
 mod ticks;
 mod jni_server;
-mod jni_items;
 mod jni_client;
 
 

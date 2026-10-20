@@ -68,7 +68,7 @@ impl EventCx {
 
 /// What an event subscription keeps: the handler (shared by its pre and post
 /// subscriptions), the server it hands it, and which phase this one is.
-struct Subscription<E, F> {
+pub(crate) struct Subscription<E, F> {
     handler: Arc<F>,
     server: *const YogServer,
     phase: EventPhase,
@@ -105,15 +105,20 @@ where
         return status::BAD_PAYLOAD;
     };
     guard((), || (s.handler)(&mut event, &s.cx()));
-    if let Some(r) = unsafe { reply.as_ref() } {
-        let bytes = event.to_bytes();
-        unsafe { (r.write)(r.sink, bytes.as_ptr(), bytes.len()) };
-    }
+    unsafe { YogReply::send(reply, &event.to_bytes()) };
     status::OK
 }
 
 impl<E, F> Subscription<E, F> {
-    fn cx(&self) -> EventCx {
+    pub(crate) fn new(handler: Arc<F>, server: *const YogServer, phase: EventPhase) -> Self {
+        Self { handler, server, phase, event: PhantomData }
+    }
+
+    pub(crate) fn handler(&self) -> &F {
+        &self.handler
+    }
+
+    pub(crate) fn cx(&self) -> EventCx {
         EventCx { phase: self.phase, server: CServer(self.server) }
     }
 }
@@ -234,18 +239,15 @@ mod tests {
     fn change<E: Event, F: Fn(&mut E, &EventCx) + Send + Sync>(handler: F, event: &E) -> (YogStatus, Vec<u8>) {
         let sub = Subscription { handler: Arc::new(handler), server: std::ptr::null(), phase: EventPhase::Post, event: PhantomData::<fn(&E)> };
         let mut out = Vec::<u8>::new();
-        let reply = YogReply { sink: (&mut out as *mut Vec<u8>).cast::<c_void>(), write: append };
+        let reply = YogReply::to_vec(&mut out);
         let ud = (&sub as *const Subscription<E, F>).cast_mut().cast::<c_void>();
         let st = unsafe { on_change::<E, F>(ud, YogBytes::new(&event.to_bytes()), &reply) };
         (st, out)
     }
 
-    unsafe extern "C" fn append(sink: *mut c_void, data: *const u8, len: usize) {
-        unsafe { (*sink.cast::<Vec<u8>>()).extend_from_slice(std::slice::from_raw_parts(data, len)) }
-    }
-
     #[test]
     fn a_changing_handler_replies_with_the_changed_event() {
+        use yog_event::Message;
         use yog_event::world::loot::{Roll, Stack};
         let more = |loot: &mut Roll, _: &EventCx| loot.items.push(Stack::new("minecraft:diamond", 1));
         let (st, out) = change(more, &Roll { table: "minecraft:chests/igloo_chest".into(), ..Default::default() });

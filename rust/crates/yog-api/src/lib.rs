@@ -15,9 +15,11 @@ pub mod control;
 pub mod vanilla;
 mod bus;
 pub use bus::{EventCx, Flow, IntoFlow};
+pub use service::call;
 mod interop;
 mod lang;
 mod registry;
+mod service;
 
 pub use interop::Interop;
 pub use lang::{format_translation, tag_name, tr, tr_args, translation};
@@ -326,7 +328,7 @@ pub use yog_config::Config;
 pub use yog_core::{BlockPos, Server, split_state};
 pub use yog_dimensions::{ChunkWriter, YogDimensionDef, YogDimensionTypeDef};
 pub use yog_entity::Entity;
-pub use yog_event::{Event, EventPhase};
+pub use yog_event::{Event, EventPhase, Message, Service};
 pub use yog_inventory::{InventoryDef, SlotLayout};
 #[doc(inline)]
 pub use yog_network::packet;

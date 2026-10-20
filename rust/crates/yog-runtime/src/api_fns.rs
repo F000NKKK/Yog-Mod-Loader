@@ -19,7 +19,6 @@ macro_rules! api_event {
     };
 }
 
-api_event!(api_on_item_insert, item_insert, YogItemInsertFn);
 api_event!(api_on_hud_render, hud_render, YogHudRenderFn);
 api_event!(api_on_world_render, world_render, YogWorldRenderFn);
 

@@ -13,8 +13,6 @@ use super::*;
 // Client-side handlers (minor 10) do NOT receive a `YogServer*` — they run on
 // the render thread and have no server context.
 
-pub type YogItemInsertFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogItemInsertEvent, u8) -> bool;
 
 /// Packet events — always Post, no phase.
 pub type YogPacketFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);

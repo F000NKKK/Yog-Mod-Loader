@@ -5,7 +5,7 @@ use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use yog_runtime::bench_support;
 
 fn dispatch(c: &mut Criterion) {
-    let mut g = c.benchmark_group("dispatch/pre_event");
+    let mut g = c.benchmark_group("dispatch/bus_event");
     for n in [1, 10, 100] {
         let mut run = bench_support::dispatch(n);
         g.bench_function(BenchmarkId::from_parameter(n), |b| b.iter(&mut run));

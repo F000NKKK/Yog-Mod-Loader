@@ -1,6 +1,7 @@
 package dev.yog;
 
 import dev.yog.bus.YogEvents;
+import dev.yog.bus.YogTypes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -35,7 +36,7 @@ public final class YogLootHook {
         } finally {
             ROLLING.set(false);
         }
-        List<YogEvents.LootStack> items = new ArrayList<>();
+        List<YogTypes.LootStack> items = new ArrayList<>();
         for (ItemStack s : rolled) items.add(stack(s));
         Vec3 origin = ctx.getOptionalParameter(LootContextParams.ORIGIN);
         Entity entity = ctx.getOptionalParameter(LootContextParams.THIS_ENTITY);
@@ -50,12 +51,12 @@ public final class YogLootHook {
                 tool == null || tool.isEmpty() ? null : stack(tool),
                 tool == null ? List.of() : enchantments(tool),
                 items);
-        List<YogEvents.LootStack> given = roll.emitChanged().items();
+        List<YogTypes.LootStack> given = roll.emitChanged().items();
         if (given.equals(items)) {
             rolled.forEach(out);
             return true;
         }
-        for (YogEvents.LootStack s : given) {
+        for (YogTypes.LootStack s : given) {
             ItemStack stack = NativeBridge.buildStack(s.id(), (int) s.count(), s.nbt());
             if (stack == null) continue;
             // As the game gives them: no stack above its size.
@@ -65,8 +66,8 @@ public final class YogLootHook {
         return true;
     }
 
-    private static YogEvents.LootStack stack(ItemStack s) {
-        return new YogEvents.LootStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).toString(), s.getCount(), NativeBridge.stackSnbt(s));
+    private static YogTypes.LootStack stack(ItemStack s) {
+        return new YogTypes.LootStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).toString(), s.getCount(), NativeBridge.stackSnbt(s));
     }
 
     private static List<List<Object>> enchantments(ItemStack tool) {

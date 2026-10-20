@@ -11,10 +11,6 @@
 macro_rules! for_each_handler_list {
     ($h:expr_2021, |$list:ident| $body:expr_2021) => {{
         {
-            let $list = &mut $h.item_insert;
-            $body;
-        }
-        {
             let $list = &mut $h.hud_render;
             $body;
         }

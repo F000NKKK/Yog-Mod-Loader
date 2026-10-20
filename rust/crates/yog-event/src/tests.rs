@@ -14,12 +14,14 @@ fn an_event_round_trips_through_its_bytes() {
 }
 
 #[test]
-fn the_java_events_are_current() {
+fn the_java_messages_are_current() {
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../java-common/src/main/java/dev/yog/bus");
-    let Ok(on_disk) = std::fs::read_to_string(dir.join("YogEvents.java")) else {
-        return;
-    };
-    assert!(on_disk == java::java("dev.yog.bus"), "{}/YogEvents.java is stale: cargo run -p yog-event --bin yog-event-export -- {} dev.yog.bus", dir.display(), dir.display());
+    for (class, text) in java::files("dev.yog.bus") {
+        let Ok(on_disk) = std::fs::read_to_string(dir.join(format!("{class}.java"))) else {
+            return;
+        };
+        assert!(on_disk == text, "{}/{class}.java is stale: cargo run -p yog-event --bin yog-event-export -- {} dev.yog.bus", dir.display(), dir.display());
+    }
 }
 
 #[test]
@@ -27,4 +29,20 @@ fn a_keyed_event_names_its_key_field_and_branches_by_it() {
     assert_eq!(entity::game::Tick::KEY, Some("entity_type"));
     assert_eq!(block::Break::KEY, None);
     assert_eq!(keyed(entity::game::Tick::ADDRESS, "mymod:golem"), "yog:event/entity/game/tick/mymod:golem");
+}
+
+#[test]
+fn a_keyed_service_goes_to_its_keys_branch() {
+    let insert = block::Insert {
+        block_id: "mymod:crate".into(),
+        pos: BlockPos { x: 0, y: 64, z: 0 },
+        dimension: "minecraft:overworld".into(),
+        item_id: "minecraft:stone".into(),
+        count: 1,
+        nbt: String::new(),
+        simulate: true,
+    };
+    assert_eq!(insert.key(), Some("mymod:crate"));
+    assert_eq!(insert.target(), "yog:block/insert/mymod:crate");
+    assert!(services().iter().any(|s| s.domain == "block" && s.name == "Insert"));
 }

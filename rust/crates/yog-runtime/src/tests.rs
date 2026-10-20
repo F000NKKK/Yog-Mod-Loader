@@ -170,7 +170,7 @@ unsafe extern "C" fn ping_no(ud: *mut c_void) -> bool {
 }
 
 #[test]
-fn pre_phase_handlers_stop_at_the_first_no_and_skip_retired_mods() {
+fn handlers_stop_at_the_first_no_and_skip_retired_mods() {
     let calls = Box::new(AtomicUsize::new(0));
     let ud = &*calls as *const AtomicUsize as *mut c_void;
     let live = module();
@@ -182,9 +182,8 @@ fn pre_phase_handlers_stop_at_the_first_no_and_skip_retired_mods() {
         (live.clone(), ud, ping_no as Ping),
         (live.clone(), ud, ping_yes as Ping),
     ];
-    assert!(!allowed(&entries, |ud, f| unsafe { f(ud) }), "a handler said no");
+    assert!(!each_while(&entries, |ud, f| unsafe { f(ud) }), "a handler said no");
     assert_eq!(calls.load(Ordering::SeqCst), 2, "the retired one is skipped, the last never runs");
-    assert!(allowed(&entries, |_, _| -> bool { panic!("a mod panicked") }), "a panic doesn't cancel the action");
 }
 
 #[test]

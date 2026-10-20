@@ -10,15 +10,13 @@
 use std::os::raw::c_void;
 
 use yog_abi::{
-    YogApi, YogCommandEvent, YogGfxApi, YogItemInsertEvent,
+    YogApi, YogCommandEvent, YogGfxApi,
     YogPacketEvent, YogServer,
     YogStr, };
 use yog_formats::book::Book;
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_dimensions::{ChunkWriter, YogDimensionDef};
-use yog_event::EventPhase;
-use yog_event::block::Insert as ItemInsertEvent;
 use yog_gfx::GfxContext;
 use yog_network::{Packet, PacketEvent};
 use yog_registry::{ArmorMaterial, BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant, ToolMaterial};
@@ -1251,55 +1249,6 @@ pub(crate) fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
 // Closures are Box::into_raw'd in Registry methods — they are INTENTIONALLY
 // leaked and live for the process lifetime.
 
-// ── Trampoline helpers ────────────────────────────────────────────────────────
-//
-// All phased event trampolines share the same pattern:
-//   `phase: u8`  0 = EventPhase::Pre, 1 = EventPhase::Post
-//   Return value is meaningful only in Pre phase.
-
-macro_rules! trampoline_phased {
-    ($name:ident, $abi_ev:ty, $rust_ev:ty, |$ev:ident| $build:expr_2021) => {
-        unsafe extern "C" fn $name<F>(
-            ud: *mut c_void,
-            srv: *const YogServer,
-            ev: *const $abi_ev,
-            phase: u8,
-        ) -> bool
-        where
-            F: Fn(&$rust_ev, EventPhase, &dyn Server) -> bool + Send + Sync,
-        {
-            unsafe {
-                let f = &*(ud as *const F);
-                let $ev = &*ev;
-                let rust_ev = $build;
-                let p = if phase == 0 {
-                    EventPhase::Pre
-                } else {
-                    EventPhase::Post
-                };
-                guard(true, || f(&rust_ev, p, &CServer(srv)))
-            }
-        }
-    };
-}
-
-trampoline_phased!(
-    trampoline_item_insert,
-    YogItemInsertEvent,
-    ItemInsertEvent,
-    |ev| ItemInsertEvent {
-        block_id: ev.block.as_str().to_owned(),
-        pos: yog_core::BlockPos {
-            x: ev.pos.x,
-            y: ev.pos.y,
-            z: ev.pos.z
-        },
-        dimension: ev.dimension.as_str().to_owned(),
-        item_id: ev.item_id.as_str().to_owned(),
-        count: ev.count,
-        nbt: ev.nbt.as_str().to_owned(),
-    }
-);
 
 unsafe extern "C" fn trampoline_packet<F>(
     ud: *mut c_void,
@@ -1709,24 +1658,6 @@ impl Registry {
 
     fn leak<F: 'static>(f: F) -> *mut c_void {
         Box::into_raw(Box::new(f)) as *mut c_void
-    }
-
-    // ── events ───────────────────────────────────────────────────────────────
-    //
-    // All handlers receive `(event, EventPhase, &dyn Server) -> bool`.
-    // In `Pre` phase, returning `false` cancels the action.
-    // In `Post` phase, the return value is ignored.
-    // A single registration fires for BOTH phases.
-
-    /// A hopper or dropper offers an item to a block that accepts items
-    /// (`block.accepts_items`): `Pre` returns whether it takes it, `Post`
-    /// takes it.
-    pub fn on_item_insert<F>(&mut self, handler: F)
-    where
-        F: Fn(&ItemInsertEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_item_insert)(self.ctx(), ud, trampoline_item_insert::<F>) }
     }
 
     // ── commands ─────────────────────────────────────────────────────────────

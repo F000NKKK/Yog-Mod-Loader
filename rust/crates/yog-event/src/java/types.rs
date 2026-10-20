@@ -4,6 +4,9 @@
 use yog_data::Shape;
 use yog_data::schema::StructShape;
 
+/// The class holding the payloads' records every message shares (`BlockPos`…).
+pub(super) const TYPES: &str = "YogTypes";
+
 /// The Java type of `shape`; the records it needs go to `records`.
 pub(super) fn java_type(shape: &Shape, records: &mut Vec<StructShape>) -> String {
     match shape {
@@ -20,7 +23,7 @@ pub(super) fn java_type(shape: &Shape, records: &mut Vec<StructShape>) -> String
             if !records.iter().any(|r| r.name == s.name) {
                 records.push(s.clone());
             }
-            s.name.into()
+            format!("{TYPES}.{}", s.name)
         }
         _ => "String".into(),
     }
@@ -85,7 +88,7 @@ pub(super) fn from_data(shape: &Shape, value: &str, depth: usize) -> String {
             from_data(&f(), &format!("{e}.getValue()"), depth + 1)
         ),
         Shape::Optional(f) => format!("({value} == null ? null : {})", from_data(&f(), value, depth)),
-        Shape::Struct(s) => format!("{}.fromData({value})", s.name),
+        Shape::Struct(s) => format!("{TYPES}.{}.fromData({value})", s.name),
         _ => format!("YogData.str({value}, \"\")"),
     }
 }

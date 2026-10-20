@@ -1,6 +1,7 @@
 package dev.yog.mixin;
 
 import dev.yog.bus.YogEvents;
+import dev.yog.bus.YogTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,6 +29,6 @@ public class BlockItemPlaceMixin {
 
         BlockPos pos = context.getClickedPos();
         String blockId = BuiltInRegistries.BLOCK.getKey(((BlockItem) (Object) this).getBlock()).toString();
-        new YogEvents.Block.Place(sp.getName().getString(), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), context.getLevel().dimension().identifier().toString(), sp.isShiftKeyDown()).emit();
+        new YogEvents.Block.Place(sp.getName().getString(), blockId, new YogTypes.BlockPos(pos.getX(), pos.getY(), pos.getZ()), context.getLevel().dimension().identifier().toString(), sp.isShiftKeyDown()).emit();
     }
 }

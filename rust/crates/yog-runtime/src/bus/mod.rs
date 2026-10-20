@@ -56,17 +56,6 @@ pub(crate) fn emitted<E: Event>(event: &E) {
     ROUTER.emit(ROUTER.resolve(E::ADDRESS), &event.to_bytes(), java::run);
 }
 
-/// Writes `bytes` to `reply` (if there's one and anything to write).
-fn answer(reply: *const YogReply, bytes: &[u8]) {
-    if reply.is_null() || bytes.is_empty() {
-        return;
-    }
-    unsafe {
-        let r = &*reply;
-        (r.write)(r.sink, bytes.as_ptr(), bytes.len());
-    }
-}
-
 /// The mod registering right now, if any — what its handlers are dropped with.
 fn owner() -> Option<yog_hot_reload::LoadedModule> {
     use yog_sync::Locked;
@@ -79,13 +68,13 @@ unsafe extern "C" fn resolve(_ctx: *mut c_void, address: YogStr) -> YogAddress {
 
 unsafe extern "C" fn call(_ctx: *mut c_void, to: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
     let (st, out) = ROUTER.call(to, unsafe { payload.as_slice() }, java::run);
-    answer(reply, &out);
+    unsafe { YogReply::send(reply, &out) };
     st
 }
 
 unsafe extern "C" fn emit(_ctx: *mut c_void, event: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
     let (st, out) = ROUTER.emit(event, unsafe { payload.as_slice() }, java::run);
-    answer(reply, &out);
+    unsafe { YogReply::send(reply, &out) };
     st
 }
 

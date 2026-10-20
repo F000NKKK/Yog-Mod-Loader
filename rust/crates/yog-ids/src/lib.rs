@@ -125,6 +125,19 @@ names! {
         PRE = concatcp!(sep::PATH, "pre"),
     }
 
+    /// The bus's services (`docs/design/bus.md`): `yog:<domain>/<name>`,
+    /// answered by whoever provides them.
+    service {
+        /// What every service address starts with.
+        PREFIX = concatcp!(ns::YOG, sep::NAMESPACE),
+    }
+
+    /// `yog:block/…`.
+    service_block {
+        DOMAIN = concatcp!(service::PREFIX, "block", sep::PATH),
+        INSERT = concatcp!(DOMAIN, "insert"),
+    }
+
     /// `yog:event/player/session/…`.
     event_player_session {
         PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "session", sep::PATH),
@@ -176,7 +189,6 @@ names! {
         PLACE_PRE = concatcp!(PLACE, event::PRE),
         USE = concatcp!(PLANE, "use"),
         USE_PRE = concatcp!(USE, event::PRE),
-        INSERT = concatcp!(PLANE, "insert"),
     }
 
     /// `yog:event/entity/life/…`.

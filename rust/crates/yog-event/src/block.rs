@@ -48,11 +48,9 @@ pub struct Use {
     pub sneaking: bool,
 }
 
-/// A hopper or dropper puts an item into a block that accepts items
-/// (`block.accepts_items`).
-///
-/// - `Pre`  — return whether the block takes it (nothing changes yet).
-/// - `Post` — it takes it: do what taking it means.
+/// A hopper or dropper offers an item to a block that accepts items
+/// (`block.accepts_items`): a service each such block provides (keyed by
+/// its id), answering whether it takes the item.
 #[derive(Debug, Clone, Schema)]
 pub struct Insert {
     /// Registry id of the block.
@@ -64,4 +62,6 @@ pub struct Insert {
     pub count: u32,
     /// The item's data as SNBT (`{}` for none).
     pub nbt: String,
+    /// Only whether it would take it — nothing changes yet; else it takes it.
+    pub simulate: bool,
 }

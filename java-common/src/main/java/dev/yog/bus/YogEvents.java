@@ -12,11 +12,11 @@ import java.util.Map;
 public final class YogEvents {
     private YogEvents() {}
 
-    /** The `player` events. */
+    /** `player`. */
     public static final class Player {
         private Player() {}
 
-        /** The `session` events. */
+        /** `session`. */
         public static final class Session {
             private Session() {}
 
@@ -109,7 +109,7 @@ public final class YogEvents {
             }
         }
 
-        /** The `life` events. */
+        /** `life`. */
         public static final class Life {
             private Life() {}
 
@@ -211,7 +211,7 @@ public final class YogEvents {
             }
         }
 
-        /** The `chat` events. */
+        /** `chat`. */
         public static final class Chat {
             private Chat() {}
 
@@ -265,7 +265,7 @@ public final class YogEvents {
             }
         }
 
-        /** The `action` events. */
+        /** `action`. */
         public static final class Action {
             private Action() {}
 
@@ -570,7 +570,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
             }
         }
 
-        /** The `progress` events. */
+        /** `progress`. */
         public static final class Progress {
             private Progress() {}
 
@@ -621,12 +621,12 @@ Post-phase only. The fields reflect the *new* position the client claims. */
         }
     }
 
-    /** The `block` events. */
+    /** `block`. */
     public static final class Block {
         private Block() {}
 
         /** Fired when a player breaks a block (server side). */
-        public record Break(String playerName, String blockId, BlockPos pos, String dimension) {
+        public record Break(String playerName, String blockId, YogTypes.BlockPos pos, String dimension) {
             public Map<String, Object> toData() {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("player_name", playerName);
@@ -638,7 +638,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
             public static Break fromData(Object data) {
                 Map<String, Object> m = YogData.map(data);
-                return new Break(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""));
+                return new Break(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""));
             }
 
             public static Break fromBytes(byte[] bytes) {
@@ -678,7 +678,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
         /** Fired when a player places a block (server side).
 
 Passed to handlers registered via `Registry::on_player_place_block` with an [`EventPhase`] argument: - `Pre`  — fires before placement; return `false` to cancel. - `Post` — fires after the block has been placed. */
-        public record Place(String playerName, String blockId, BlockPos pos, String dimension, boolean sneaking) {
+        public record Place(String playerName, String blockId, YogTypes.BlockPos pos, String dimension, boolean sneaking) {
             public Map<String, Object> toData() {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("player_name", playerName);
@@ -691,7 +691,7 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
 
             public static Place fromData(Object data) {
                 Map<String, Object> m = YogData.map(data);
-                return new Place(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.bool(m.get("sneaking"), false));
+                return new Place(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.bool(m.get("sneaking"), false));
             }
 
             public static Place fromBytes(byte[] bytes) {
@@ -729,7 +729,7 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
         }
 
         /** Fired when a player right-clicks a block (server side). */
-        public record Use(String playerName, String blockId, BlockPos pos, String dimension, boolean sneaking) {
+        public record Use(String playerName, String blockId, YogTypes.BlockPos pos, String dimension, boolean sneaking) {
             public Map<String, Object> toData() {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("player_name", playerName);
@@ -742,7 +742,7 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
 
             public static Use fromData(Object data) {
                 Map<String, Object> m = YogData.map(data);
-                return new Use(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.bool(m.get("sneaking"), false));
+                return new Use(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.bool(m.get("sneaking"), false));
             }
 
             public static Use fromBytes(byte[] bytes) {
@@ -778,62 +778,13 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
             }
         }
-
-        /** A hopper or dropper puts an item into a block that accepts items (`block.accepts_items`).
-
-- `Pre`  — return whether the block takes it (nothing changes yet). - `Post` — it takes it: do what taking it means. */
-        public record Insert(String blockId, BlockPos pos, String dimension, String itemId, long count, String nbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("block_id", blockId);
-                m.put("pos", pos.toData());
-                m.put("dimension", dimension);
-                m.put("item_id", itemId);
-                m.put("count", count);
-                m.put("nbt", nbt);
-                return m;
-            }
-
-            public static Insert fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
-                return new Insert(YogData.str(m.get("block_id"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.str(m.get("item_id"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("nbt"), ""));
-            }
-
-            public static Insert fromBytes(byte[] bytes) {
-                return fromData(YogData.decode(bytes));
-            }
-
-            private static final class Address {
-                static final int POST = YogBus.resolve(YogNames.EventBlock.INSERT);
-            }
-
-            /** Whether anyone listens — skip building an event no one hears. */
-            public static boolean heard() {
-                return YogBus.heard(Address.POST);
-            }
-
-            public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, YogData.encode(toData()));
-            }
-
-            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
-            public Insert emitChanged() {
-                YogBus.Reply r = emit();
-                if (r.status() != YogBus.OK) return this;
-                try {
-                    return fromBytes(r.bytes());
-                } catch (RuntimeException e) {
-                    return this;
-                }
-            }
-        }
     }
 
-    /** The `entity` events. */
+    /** `entity`. */
     public static final class Entity {
         private Entity() {}
 
-        /** The `life` events. */
+        /** `life`. */
         public static final class Life {
             private Life() {}
 
@@ -934,7 +885,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
         }
 
-        /** The `combat` events. */
+        /** `combat`. */
         public static final class Combat {
             private Combat() {}
 
@@ -1047,7 +998,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
         }
 
-        /** The `game` events. */
+        /** `game`. */
         public static final class Game {
             private Game() {}
 
@@ -1087,7 +1038,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
         }
     }
 
-    /** The `world` events. */
+    /** `world`. */
     public static final class World {
         private World() {}
 
@@ -1145,12 +1096,12 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
         }
 
-        /** The `loot` events. */
+        /** `loot`. */
         public static final class Loot {
             private Loot() {}
 
             /** A loot table rolled: where and for whom, and what it gave. Handlers change `items`; each sees the one before's result. */
-            public record Roll(String table, String dimension, List<Double> pos, String entity, String killer, LootStack tool, List<List<Object>> enchantments, List<LootStack> items) {
+            public record Roll(String table, String dimension, List<Double> pos, String entity, String killer, YogTypes.LootStack tool, List<List<Object>> enchantments, List<YogTypes.LootStack> items) {
                 public Map<String, Object> toData() {
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("table", table);
@@ -1166,7 +1117,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
                 public static Roll fromData(Object data) {
                     Map<String, Object> m = YogData.map(data);
-                    return new Roll(YogData.str(m.get("table"), ""), YogData.str(m.get("dimension"), ""), (m.get("pos") == null ? null : YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList()), (m.get("entity") == null ? null : YogData.str(m.get("entity"), "")), (m.get("killer") == null ? null : YogData.str(m.get("killer"), "")), (m.get("tool") == null ? null : LootStack.fromData(m.get("tool"))), YogData.list(m.get("enchantments")).stream().map(e0 -> YogData.list(e0).stream().map(e1 -> e1).toList()).toList(), YogData.list(m.get("items")).stream().map(e0 -> LootStack.fromData(e0)).toList());
+                    return new Roll(YogData.str(m.get("table"), ""), YogData.str(m.get("dimension"), ""), (m.get("pos") == null ? null : YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList()), (m.get("entity") == null ? null : YogData.str(m.get("entity"), "")), (m.get("killer") == null ? null : YogData.str(m.get("killer"), "")), (m.get("tool") == null ? null : YogTypes.LootStack.fromData(m.get("tool"))), YogData.list(m.get("enchantments")).stream().map(e0 -> YogData.list(e0).stream().map(e1 -> e1).toList()).toList(), YogData.list(m.get("items")).stream().map(e0 -> YogTypes.LootStack.fromData(e0)).toList());
                 }
 
                 public static Roll fromBytes(byte[] bytes) {
@@ -1200,7 +1151,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
         }
     }
 
-    /** The `container` events. */
+    /** `container`. */
     public static final class Container {
         private Container() {}
 
@@ -1300,12 +1251,12 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
         }
 
-        /** The `machine` events. */
+        /** `machine`. */
         public static final class Machine {
             private Machine() {}
 
             /** A machine and the recipe its slots make. Pre: whether it may — the result shows only if every handler allows it (a workbench short of a resource says no); `player` empty. Post: a player took the result — the mod takes its share (the host takes the ingredients). */
-            public record Craft(String machine, String kind, String recipe, String resultItem, long resultCount, String values, BlockPos pos, String dimension, String player) {
+            public record Craft(String machine, String kind, String recipe, String resultItem, long resultCount, String values, YogTypes.BlockPos pos, String dimension, String player) {
                 public Map<String, Object> toData() {
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("machine", machine);
@@ -1322,7 +1273,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
                 public static Craft fromData(Object data) {
                     Map<String, Object> m = YogData.map(data);
-                    return new Craft(YogData.str(m.get("machine"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("recipe"), ""), YogData.str(m.get("result_item"), ""), YogData.integer(m.get("result_count"), 0), YogData.str(m.get("values"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.str(m.get("player"), ""));
+                    return new Craft(YogData.str(m.get("machine"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("recipe"), ""), YogData.str(m.get("result_item"), ""), YogData.integer(m.get("result_count"), 0), YogData.str(m.get("values"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.str(m.get("player"), ""));
                 }
 
                 public static Craft fromBytes(byte[] bytes) {
@@ -1361,11 +1312,11 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
         }
     }
 
-    /** The `server` events. */
+    /** `server`. */
     public static final class Server {
         private Server() {}
 
-        /** The `game` events. */
+        /** `game`. */
         public static final class Game {
             private Game() {}
 
@@ -1411,7 +1362,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
         }
 
-        /** The `life` events. */
+        /** `life`. */
         public static final class Life {
             private Life() {}
 
@@ -1500,11 +1451,11 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
         }
     }
 
-    /** The `client` events. */
+    /** `client`. */
     public static final class Client {
         private Client() {}
 
-        /** The `game` events. */
+        /** `game`. */
         public static final class Game {
             private Game() {}
 
@@ -1550,7 +1501,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
         }
 
-        /** The `input` events. */
+        /** `input`. */
         public static final class Input {
             private Input() {}
 
@@ -1640,7 +1591,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
         }
 
-        /** The `ui` events. */
+        /** `ui`. */
         public static final class Ui {
             private Ui() {}
 
@@ -1729,7 +1680,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
         }
 
-        /** The `render` events. */
+        /** `render`. */
         public static final class Render {
             private Render() {}
 
@@ -1774,46 +1725,6 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     }
                 }
             }
-        }
-    }
-
-    /** A block position in a payload. */
-    public record BlockPos(int x, int y, int z) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("x", x);
-            m.put("y", y);
-            m.put("z", z);
-            return m;
-        }
-
-        public static BlockPos fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
-            return new BlockPos((int) YogData.integer(m.get("x"), 0), (int) YogData.integer(m.get("y"), 0), (int) YogData.integer(m.get("z"), 0));
-        }
-
-        public static BlockPos fromBytes(byte[] bytes) {
-            return fromData(YogData.decode(bytes));
-        }
-    }
-
-    /** A stack of items: its id, how many, and its custom data (SNBT, `{}` for none). */
-    public record LootStack(String id, long count, String nbt) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", id);
-            m.put("count", count);
-            m.put("nbt", nbt);
-            return m;
-        }
-
-        public static LootStack fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
-            return new LootStack(YogData.str(m.get("id"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("nbt"), ""));
-        }
-
-        public static LootStack fromBytes(byte[] bytes) {
-            return fromData(YogData.decode(bytes));
         }
     }
 }
