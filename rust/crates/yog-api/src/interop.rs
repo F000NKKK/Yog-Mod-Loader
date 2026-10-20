@@ -59,12 +59,6 @@ pub fn call_export<A: Schema, R: Schema>(mod_id: &str, name: &str, args: &A) -> 
     R::from_bytes(&call_at(yog_event::resolve(&export_address(mod_id, name)), &args.to_bytes())?)
 }
 
-/// What an import does: [`call_export`], a failure reported where unwinding is safe.
-#[doc(hidden)]
-pub fn __yog_call<A: Schema, R: Schema>(mod_id: &str, name: &str, args: &A) -> R {
-    call_export(mod_id, name, args).unwrap_or_else(|| panic!("yog: '{}' didn't answer (not loaded, or it failed — see its log)", export_address(mod_id, name)))
-}
-
 impl crate::Registry {
     /// Provides `mod_id`'s export `entry` (what `export_mod!` does for each).
     #[doc(hidden)]

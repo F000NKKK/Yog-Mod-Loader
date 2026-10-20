@@ -192,7 +192,8 @@ pub fn bench(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
 /// Another mod's exports, callable here: `import! { from "mod_id" { pub fn
 /// name(a: A) -> R; pub struct T { .. } } }` — each fn calls `mod_id:name`
-/// on the bus; each type gets the schema its values cross with.
+/// on the bus and answers `Option<R>` (`None`: the mod isn't loaded, or it
+/// failed); each type gets the schema its values cross with.
 #[proc_macro]
 pub fn import(input: TokenStream) -> TokenStream {
     let import_block = syn::parse_macro_input!(input as ImportBlock);
@@ -229,8 +230,9 @@ fn generate_import_fn(func: &ImportFn, mod_name: &str) -> proc_macro2::TokenStre
     quote! {
         #args_def
 
-        #vis fn #name(#(#names: #types),*) -> #output {
-            ::yog_api::__yog_call::<#args, #output>(#mod_name, #name_str, &#args { #(#names),* })
+        /// The other mod's answer; `None` when it isn't loaded or failed (see its log).
+        #vis fn #name(#(#names: #types),*) -> ::std::option::Option<#output> {
+            ::yog_api::call_export::<#args, #output>(#mod_name, #name_str, &#args { #(#names),* })
         }
     }
 }

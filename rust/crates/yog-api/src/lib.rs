@@ -23,7 +23,7 @@ mod scheduler;
 mod service;
 
 #[doc(hidden)]
-pub use interop::{YogExportEntry, __yog_call, __yog_export_registry, __yog_serve};
+pub use interop::{YogExportEntry, __yog_export_registry, __yog_serve};
 pub use interop::{call_export, export_address};
 pub use lang::{format_translation, tag_name, tr, tr_args, translation};
 pub use registry::{

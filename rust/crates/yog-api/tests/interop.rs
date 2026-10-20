@@ -1,6 +1,6 @@
 //! A mod's exports as bus services, and another mod's imports calling them —
 //! here without a runtime: an export's provider answers encoded arguments
-//! directly, and an import with no bus to call reports it.
+//! directly, and an import with no bus to call answers `None`.
 
 use yog_api::yog_data::Schema;
 use yog_api::yog_data::frame::{Packer, read_frame};
@@ -89,10 +89,8 @@ fn a_panic_in_the_export_is_a_failed_call() {
 }
 
 #[test]
-fn an_import_without_a_bus_says_so() {
-    let r = std::panic::catch_unwind(|| other::scale(21, 2));
-    let msg = *r.expect_err("no runtime to call").downcast::<String>().expect("a message");
-    assert!(msg.contains("other:scale") && msg.contains("didn't answer"), "{msg}");
+fn an_import_without_a_bus_answers_none() {
+    assert_eq!(other::scale(21, 2), None);
 }
 
 /// Energy stored, in FE.
