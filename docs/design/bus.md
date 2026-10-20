@@ -280,7 +280,12 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
   `Flow` as the first mod mirror; key-space inheritance.
 * **F4** — the mods move: VLSI, Pipes (`bridge.rs`), Hex, Modlist, Argus;
   their hot data into mirrors.
-* **F5** — stage 5 below (nanites); **F6** — stage 6; **F7** — stage 7.
+* **F5** — stage 5 below (nanites); **F6** — stage 6; **F7** — stage 7, with
+  the mods' weight and loading first: `yimage` (a palette and bit-packed
+  pixels for pixel art, handed to the game in memory, no PNG on disk), each
+  player getting only their platform's native, a release's debug symbols
+  as an installer component. (A release `.yog` is 0.4–2.4 MB a platform
+  today; assets are over half of the biggest.)
 
 ## Migration (one major release, staged on master)
 

@@ -1,0 +1,199 @@
+//! The arena a thread's bus calls cross Rust ↔ Java in: memory this side
+//! owns, seen by Java as a direct `ByteBuffer` (`YogBus.nativeArena`). A
+//! call writes its payload at the arena's top and crosses with primitives
+//! only (address or handler, offset, length); the reply is written right
+//! after the payload and read in place — no `byte[]` made or copied on
+//! either side. Calls nest like a stack: the caller moves the top past its
+//! payload, a nested call writes above it, and the caller puts the top back
+//! when it has read the reply. What doesn't fit goes the old way (a payload
+//! as a `byte[]`, a reply kept aside: [`SPILLED`]).
+//!
+//! ```text
+//! [ top: u32 ] [ … header … ] [ frames, from HEADER … ]
+//! ```
+
+use std::cell::{Cell, RefCell};
+
+use jni::JNIEnv;
+use jni::objects::{JClass, JObject};
+use jni::sys::{jbyteArray, jint, jlong, jobject};
+use yog_abi::{YogStatus, status};
+
+use super::ROUTER;
+use crate::jcall::jcall;
+
+/// The arena's size: most calls' payload and reply, nested a few deep.
+pub(crate) const BYTES: usize = 1 << 16;
+/// Bytes before the first frame (`YogBus.ARENA_HEADER`).
+pub(crate) const HEADER: usize = 16;
+/// Where the top (a little-endian `u32`, from `HEADER`) is (`YogBus.ARENA_TOP`).
+pub(crate) const TOP: usize = 0;
+/// A reply length saying the reply didn't fit and is kept aside
+/// (`YogBus.takeReply` / `nativeTakeReply`).
+pub(crate) const SPILLED: u32 = u32::MAX;
+/// A packed answer: the status in the high half, the reply's length in the low.
+const STATUS_SHIFT: u32 = 32;
+const TOP_BYTES: usize = 4;
+
+thread_local! {
+    /// This thread's arena: made on first use, never moved or freed while
+    /// the thread lives (Java holds a buffer over it).
+    static ARENA: Cell<*mut u8> = const { Cell::new(std::ptr::null_mut()) };
+    /// A reply too big for the arena, until Java takes it.
+    static SPILL: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+}
+
+/// This thread's arena.
+fn base() -> *mut u8 {
+    ARENA.with(|a| {
+        if a.get().is_null() {
+            a.set(Box::leak(vec![0u8; BYTES].into_boxed_slice()).as_mut_ptr());
+        }
+        a.get()
+    })
+}
+
+fn top(base: *mut u8) -> usize {
+    let mut b = [0u8; TOP_BYTES];
+    unsafe { std::ptr::copy_nonoverlapping(base.add(TOP), b.as_mut_ptr(), TOP_BYTES) };
+    u32::from_le_bytes(b) as usize
+}
+
+fn set_top(base: *mut u8, top: usize) {
+    let b = (top as u32).to_le_bytes();
+    unsafe { std::ptr::copy_nonoverlapping(b.as_ptr(), base.add(TOP), TOP_BYTES) };
+}
+
+/// Whether `len` bytes fit at frame offset `at`.
+fn fits(at: usize, len: usize) -> bool {
+    at.checked_add(len).is_some_and(|end| HEADER + end <= BYTES)
+}
+
+/// `len` bytes of the arena at frame offset `at`, if they're in it.
+fn slice<'a>(base: *mut u8, at: usize, len: usize) -> Option<&'a [u8]> {
+    fits(at, len).then(|| unsafe { std::slice::from_raw_parts(base.add(HEADER + at), len) })
+}
+
+fn write(base: *mut u8, at: usize, bytes: &[u8]) {
+    unsafe { std::ptr::copy_nonoverlapping(bytes.as_ptr(), base.add(HEADER + at), bytes.len()) };
+}
+
+/// Where this thread's frames end (none taken: 0).
+#[cfg(test)]
+pub(crate) fn frames_top() -> usize {
+    top(base())
+}
+
+/// Runs Java handler `handler` through the arena: `None` when the payload
+/// doesn't fit (the caller sends it the old way).
+pub(super) fn run_java(env: &mut JNIEnv, handler: i32, payload: &[u8]) -> Option<(YogStatus, Vec<u8>)> {
+    let base = base();
+    let at = top(base);
+    if !fits(at, payload.len()) {
+        return None;
+    }
+    write(base, at, payload);
+    set_top(base, at + payload.len());
+    let answer: Option<i64> = unsafe { jcall!(env, "dev/yog/YogBus", "handleAt", [I(handler), I(at as i32), I(payload.len() as i32)]) };
+    set_top(base, at);
+    let Some(answer) = answer else {
+        return Some((status::FAILED, Vec::new()));
+    };
+    let (st, len) = unpack(answer);
+    let reply = if len == SPILLED {
+        let spilled: Option<Vec<u8>> = unsafe { jcall!(env, "dev/yog/YogBus", "takeReply", []) };
+        spilled.unwrap_or_default()
+    } else {
+        slice(base, at + payload.len(), len as usize).map(<[u8]>::to_vec).unwrap_or_default()
+    };
+    Some((st, reply))
+}
+
+/// `status` and the reply's length, packed.
+fn pack(st: YogStatus, len: u32) -> jlong {
+    ((i64::from(st)) << STATUS_SHIFT) | i64::from(len)
+}
+
+fn unpack(answer: i64) -> (YogStatus, u32) {
+    ((answer >> STATUS_SHIFT) as YogStatus, answer as u32)
+}
+
+/// A Java call's reply: written after its payload (frame offset `at`) if it
+/// fits, else kept aside.
+fn answer(st: YogStatus, reply: Vec<u8>, at: usize) -> jlong {
+    if fits(at, reply.len()) {
+        write(base(), at, &reply);
+        return pack(st, reply.len() as u32);
+    }
+    SPILL.with(|s| *s.borrow_mut() = reply);
+    pack(st, SPILLED)
+}
+
+/// What Java sent from frame offset `at`, `len` long, through `send`.
+fn from_java(at: jint, len: jint, send: impl FnOnce(&[u8]) -> (YogStatus, Vec<u8>)) -> jlong {
+    let (Ok(at), Ok(len)) = (usize::try_from(at), usize::try_from(len)) else {
+        return pack(status::BAD_PAYLOAD, 0);
+    };
+    let base = base();
+    let Some(payload) = slice(base, at, len) else {
+        return pack(status::BAD_PAYLOAD, 0);
+    };
+    let (st, reply) = send(payload);
+    answer(st, reply, at + len)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_YogBus_nativeArena<'l>(mut env: JNIEnv<'l>, _class: JClass<'l>) -> jobject {
+    let buffer = unsafe { env.new_direct_byte_buffer(base(), BYTES) };
+    buffer.map_or(std::ptr::null_mut(), |b| JObject::from(b).into_raw())
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_YogBus_nativeCallAt<'l>(_env: JNIEnv<'l>, _class: JClass<'l>, to: jint, at: jint, len: jint) -> jlong {
+    from_java(at, len, |payload| ROUTER.call(to as u32, payload, super::java::run))
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_YogBus_nativeEmitAt<'l>(_env: JNIEnv<'l>, _class: JClass<'l>, event: jint, at: jint, len: jint) -> jlong {
+    from_java(at, len, |payload| ROUTER.emit(event as u32, payload, super::java::run))
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_YogBus_nativeTakeReply<'l>(env: JNIEnv<'l>, _class: JClass<'l>) -> jbyteArray {
+    let reply = SPILL.with(|s| std::mem::take(&mut *s.borrow_mut()));
+    env.byte_array_from_slice(&reply).map_or(std::ptr::null_mut(), |a| a.into_raw())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn answers_pack_their_status_and_length() {
+        assert_eq!(unpack(pack(status::CANCELLED, 1234)), (status::CANCELLED, 1234));
+        assert_eq!(unpack(pack(status::OK, SPILLED)), (status::OK, SPILLED));
+        assert!(fits(0, BYTES - HEADER) && !fits(1, BYTES - HEADER) && !fits(usize::MAX, 2));
+    }
+
+    /// `YogBus.java` reads the arena where this writes it.
+    #[test]
+    fn java_knows_the_layout() {
+        let java = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../java-common/src/main/java/dev/yog/YogBus.java");
+        let Ok(src) = std::fs::read_to_string(&java) else { return };
+        let value = |name: &str| -> Option<usize> {
+            let line = src.lines().find(|l| l.contains(&format!("public static final int {name} =")))?;
+            line.split('=').nth(1)?.trim().trim_end_matches(';').parse().ok()
+        };
+        assert_eq!(value("ARENA_HEADER"), Some(HEADER));
+        assert_eq!(value("ARENA_TOP"), Some(TOP));
+    }
+
+    #[test]
+    fn a_big_reply_is_kept_aside() {
+        let at = 8;
+        assert_eq!(unpack(answer(status::OK, vec![7; 3], at)), (status::OK, 3));
+        assert_eq!(slice(base(), at, 3), Some(&[7u8, 7, 7][..]));
+        assert_eq!(unpack(answer(status::OK, vec![1; BYTES], at)).1, SPILLED);
+        assert_eq!(SPILL.with(|s| s.borrow().len()), BYTES);
+    }
+}

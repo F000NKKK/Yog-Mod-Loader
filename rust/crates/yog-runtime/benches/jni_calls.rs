@@ -6,16 +6,11 @@
 //! the stand-in host classes in `benches/java/` are compiled with its
 //! `javac` and the JVM is loaded from its `libjvm`. Skips if there's none.
 
-use std::ffi::{CString, c_void};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use jni::objects::JValue;
-use jni::sys::{
-    JNI_OK, JNI_VERSION_1_8, JNIEnv as RawEnv, JavaVM as RawVm, JavaVMInitArgs, JavaVMOption, jint,
-};
-use jni::{JNIEnv, JavaVM};
+use jni::JNIEnv;
 use yog_abi::YogStr;
 
 #[path = "../src/jcall.rs"]
@@ -23,65 +18,17 @@ use yog_abi::YogStr;
 mod jcall;
 use jcall::jcall;
 
-const DEFAULT_JDK: &str = "/usr/lib/jvm/java-21-openjdk-amd64";
-
-fn jdk() -> Option<PathBuf> {
-    let home = std::env::var_os("JAVA_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(DEFAULT_JDK));
-    home.join("bin/javac").is_file().then_some(home)
-}
+#[path = "../src/test_jvm.rs"]
+mod test_jvm;
+use test_jvm::jdk;
 
 /// Compiles the stand-in host classes; returns the class path.
 fn compile_stubs(jdk: &Path) -> PathBuf {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("benches/java");
     let out = Path::new(env!("CARGO_TARGET_TMPDIR")).join("jni-bench-classes");
-    let sources: Vec<PathBuf> = ["NativeBridge.java", "NativeDraw.java"]
-        .iter()
-        .map(|f| src.join("dev/yog").join(f))
-        .collect();
-    let status = Command::new(jdk.join("bin/javac"))
-        .arg("-d")
-        .arg(&out)
-        .args(&sources)
-        .status()
-        .expect("run javac");
-    assert!(status.success(), "javac failed");
+    let sources: Vec<PathBuf> = ["NativeBridge.java", "NativeDraw.java"].iter().map(|f| src.join("dev/yog").join(f)).collect();
+    assert!(test_jvm::javac(jdk, &out, &sources), "javac failed");
     out
-}
-
-/// Starts an in-process JVM from the JDK's `libjvm` (leaked: one per process).
-fn start_jvm(jdk: &Path, classpath: &Path) -> JavaVM {
-    let lib = jdk.join("lib/server/libjvm.so");
-    let lib = Box::leak(Box::new(
-        unsafe { libloading::Library::new(&lib) }.expect("load libjvm"),
-    ));
-    type CreateVm =
-        unsafe extern "system" fn(*mut *mut RawVm, *mut *mut c_void, *mut c_void) -> jint;
-    let create: libloading::Symbol<CreateVm> =
-        unsafe { lib.get(b"JNI_CreateJavaVM\0") }.expect("JNI_CreateJavaVM");
-    let cp = CString::new(format!("-Djava.class.path={}", classpath.display())).unwrap();
-    let mut options = [JavaVMOption {
-        optionString: cp.as_ptr() as *mut _,
-        extraInfo: std::ptr::null_mut(),
-    }];
-    let mut args = JavaVMInitArgs {
-        version: JNI_VERSION_1_8,
-        nOptions: options.len() as jint,
-        options: options.as_mut_ptr(),
-        ignoreUnrecognized: 0,
-    };
-    let mut vm: *mut RawVm = std::ptr::null_mut();
-    let mut env: *mut RawEnv = std::ptr::null_mut();
-    let rc = unsafe {
-        create(
-            &mut vm,
-            (&mut env as *mut *mut RawEnv).cast(),
-            (&mut args as *mut JavaVMInitArgs).cast(),
-        )
-    };
-    assert_eq!(rc, JNI_OK, "JNI_CreateJavaVM failed");
-    unsafe { JavaVM::from_raw(vm) }.unwrap()
 }
 
 /// What every host call used to do: look up by name, then call.
@@ -165,7 +112,7 @@ fn bench(c: &mut Criterion) {
         eprintln!("jni_calls: no JDK (set JAVA_HOME) — skipped");
         return;
     };
-    let vm = start_jvm(&jdk, &compile_stubs(&jdk));
+    let vm = test_jvm::start(&jdk, &compile_stubs(&jdk));
     let mut env = vm.attach_current_thread().unwrap();
     let text = YogStr::from_str("Hello, Yog!");
     let dim = YogStr::from_str("minecraft:overworld");

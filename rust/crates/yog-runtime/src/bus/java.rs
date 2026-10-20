@@ -3,37 +3,27 @@
 //! status byte, then the reply's bytes.
 
 use jni::JNIEnv;
-use jni::objects::{JByteArray, JClass, JString, JValue};
+use jni::objects::{JByteArray, JClass, JString};
 use jni::sys::{jboolean, jbyteArray, jint};
 use yog_abi::{YogStatus, status};
 
 use super::{Handler, ROUTER};
+use crate::jcall::jcall;
 
-/// `dev.yog.YogBus`, and its handler entry point.
-const BUS_CLASS: &str = "dev/yog/YogBus";
-const HANDLE: &str = "handle";
-const HANDLE_SIGNATURE: &str = "(I[B)[B";
-/// A Java reply's status byte before its bytes.
+/// A Java reply's status byte before its bytes (the way a call too big for
+/// the arena goes).
 const STATUS_LEN: usize = 1;
 
-/// Runs Java handler `handler`.
+/// Runs Java handler `handler`: through this thread's arena, or — a payload
+/// too big for it — as a `byte[]`.
 pub(super) fn run(handler: i32, payload: &[u8]) -> (YogStatus, Vec<u8>) {
     let Some(mut env) = crate::get_env() else {
         return (status::NO_HANDLER, Vec::new());
     };
-    let reply = (|| {
-        let bytes = env.byte_array_from_slice(payload).ok()?;
-        let out = env
-            .call_static_method(BUS_CLASS, HANDLE, HANDLE_SIGNATURE, &[JValue::Int(handler), JValue::Object(&bytes)])
-            .ok()?
-            .l()
-            .ok()?;
-        env.convert_byte_array(JByteArray::from(out)).ok()
-    })();
-    if env.exception_check().unwrap_or(false) {
-        let _ = env.exception_clear();
-        return (status::FAILED, Vec::new());
+    if let Some(answer) = super::arena::run_java(&mut env, handler, payload) {
+        return answer;
     }
+    let reply: Option<Vec<u8>> = unsafe { jcall!(&mut env, "dev/yog/YogBus", "handle", [I(handler), Bytes(payload)]) };
     match reply {
         Some(r) if r.len() >= STATUS_LEN => (YogStatus::from(r[0]), r[STATUS_LEN..].to_vec()),
         _ => (status::FAILED, Vec::new()),

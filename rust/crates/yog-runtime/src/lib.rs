@@ -88,3 +88,5 @@ mod ui_jni;
 pub mod bench_support;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod test_jvm;
