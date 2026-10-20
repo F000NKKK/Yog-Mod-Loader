@@ -338,32 +338,10 @@ fn join_tags(cx: &Ctx, tags: &[String], kind: Format, id: &str, out: &mut Compil
 
 /// The translation key a text names (`@Lang.…`, `@lang:…`, an item's name),
 /// or for words, `key` with the words put in the mod's lang.
-pub(super) fn text_key(
-    cx: &mut Ctx,
-    lang: &mut Lang,
-    t: &yog_data::Text,
-    ns: &str,
-    key: String,
-) -> Result<String, String> {
-    Ok(match t {
-        yog_data::Text::Literal(words) => {
-            lang.entry((ns.to_string(), yres::NEUTRAL_LOCALE.to_string()))
-                .or_default()
-                .insert(key.clone(), words.clone());
-            key
-        }
-        yog_data::Text::Lang(k) => k.clone(),
-        yog_data::Text::NameOf(r) => yog_ids::lang_key(&r.kind, &r.id),
-        yog_data::Text::Res(r) => cx
-            .refs
-            .texts
-            .get(&format!("{}.{}", r.set, r.key))
-            .map(|(k, _)| k.clone())
-            .ok_or_else(|| {
-                format!(
-                    "`@{}.{}`: no text `{}.{}` in resources/*.yres",
-                    r.set, r.key, r.set, r.key
-                )
-            })?,
-    })
+pub(super) fn text_key(cx: &mut Ctx, lang: &mut Lang, t: &yog_data::Text, ns: &str, key: String) -> Result<String, String> {
+    if let yog_data::Text::Literal(words) = t {
+        lang.entry((ns.to_string(), yres::NEUTRAL_LOCALE.to_string())).or_default().insert(key.clone(), words.clone());
+        return Ok(key);
+    }
+    Ok(cx.refs.key_of(t)?.unwrap_or(key))
 }

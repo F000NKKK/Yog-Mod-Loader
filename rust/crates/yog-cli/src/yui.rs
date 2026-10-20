@@ -361,13 +361,7 @@ pub fn text_expr(value: &str) -> Result<String, String> {
     match yog_data::typed::classify(value.trim()) {
         Ok(yog_data::Value::Str(s)) => Ok(format!("{s:?}")),
         Ok(yog_data::Value::Lang(key)) => Ok(tr(&key)),
-        Ok(yog_data::Value::Res(r)) => {
-            let name = format!("{}.{}", r.set, r.key);
-            RESOURCE_REFS
-                .with(|refs| refs.borrow().texts.get(&name).map(|(k, _)| k.clone()))
-                .map(|k| tr(&k))
-                .ok_or_else(|| format!("no text `{name}` in resources/*.yres"))
-        }
+        Ok(yog_data::Value::Res(r)) => RESOURCE_REFS.with(|refs| refs.borrow().text(&r).map(|(k, _)| tr(k))),
         Ok(yog_data::Value::Ref(r)) if matches!(r.kind.as_str(), yog_ids::kind::ITEM | yog_ids::kind::BLOCK | yog_ids::kind::ENTITY) => {
             // A block's state (`[facing=north]`) isn't part of its name.
             let id = r.id.split(STATE_OPEN).next().unwrap_or(&r.id);

@@ -98,7 +98,7 @@ pub fn typed_string(v: &Value) -> Option<String> {
     Some(match v {
         Value::Ref(r) => format!("@{}:{}", r.kind, r.id),
         Value::Tag(r) => format!("@tag:{}:{}", r.kind, r.id),
-        Value::Res(r) => format!("@{}.{}", r.set, r.key),
+        Value::Res(r) => r.to_string(),
         Value::Image(src) => format!("@image:{src}"),
         Value::Lang(key) => format!("@lang:{key}"),
         Value::Color(c) => format_color(*c),

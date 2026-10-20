@@ -67,6 +67,20 @@ pub struct Res {
     pub key: String,
 }
 
+impl Res {
+    /// `Set.key`: what the resources list it by.
+    pub fn name(&self) -> String {
+        format!("{}.{}", self.set, self.key)
+    }
+}
+
+impl std::fmt::Display for Res {
+    /// `@Set.key`, as files write it.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}.{}", yog_ids::sep::TYPED, self.set, self.key)
+    }
+}
+
 /// A map: entries in file order, keys unique. Keys are shared: a decoded
 /// document allocates each distinct key once, however many maps have it.
 #[derive(Debug, Clone, PartialEq, Default)]

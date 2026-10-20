@@ -44,7 +44,7 @@ pub(super) fn compile_book(
 
     struct Check<'a> {
         known: &'a refs::Known,
-        texts: &'a HashMap<String, (String, String)>,
+        texts: &'a crate::yres::Refs,
         entries: HashSet<String>,
         categories: HashSet<String>,
         text_refs: bool,
@@ -66,35 +66,23 @@ pub(super) fn compile_book(
         }
 
         fn text(&mut self, t: &Text, _: &Path) -> Result<String, String> {
-            match t {
-                Text::Literal(s) => Ok(s.clone()),
-                // A name: the game's translation of the item, block or entity.
-                Text::NameOf(r) => {
-                    if !matches!(r.kind.as_str(), yog_ids::kind::ITEM | yog_ids::kind::BLOCK | yog_ids::kind::ENTITY) {
-                        return Err(format!("`@{}:{}` has no name to show", r.kind, r.id));
-                    }
-                    self.known.check(RefKind::from_word(&r.kind).unwrap(), &r.id)?;
-                    let (ns, p) = yog_formats::book::refs::bare(&r.id).split_once(':').unwrap_or(("minecraft", &r.id));
-                    self.text_refs = true;
-                    Ok(format!("{}.{ns}.{}", r.kind, p.replace('/', ".")))
-                }
-                // Any translation key, the game's or a mod's.
-                Text::Lang(key) => {
-                    self.text_refs = true;
-                    Ok(key.clone())
-                }
-                Text::Res(r) => match self.texts.get(&format!("{}.{}", r.set, r.key)) {
-                    Some((key, _)) => {
-                        self.text_refs = true;
-                        Ok(key.clone())
-                    }
-                    None => Err(format!("`@{}.{}`: no text `{}.{}` in resources/*.yres", r.set, r.key, r.set, r.key)),
-                },
+            // A name: the game's translation of the item, block or entity — one that's there.
+            if let Text::NameOf(r) = t {
+                let kind = RefKind::from_word(&r.kind)
+                    .filter(|_| matches!(r.kind.as_str(), yog_ids::kind::ITEM | yog_ids::kind::BLOCK | yog_ids::kind::ENTITY))
+                    .ok_or_else(|| format!("`@{}:{}` has no name to show", r.kind, r.id))?;
+                self.known.check(kind, &r.id)?;
             }
+            if let Text::Literal(s) = t {
+                return Ok(s.clone());
+            }
+            let key = self.texts.key_of(t)?.unwrap_or_default();
+            self.text_refs = true;
+            Ok(key)
         }
 
         fn words(&mut self, r: &Res) -> Option<String> {
-            self.texts.get(&format!("{}.{}", r.set, r.key)).map(|(_, t)| t.clone())
+            self.texts.text(r).ok().map(|(_, t)| t.clone())
         }
     }
 
@@ -109,7 +97,7 @@ pub(super) fn compile_book(
     let ids = |key: &str| -> HashSet<String> {
         doc.value.get(key).and_then(|v| v.as_list()).unwrap_or_default().iter().filter_map(|e| e.get("id")?.as_str().map(str::to_string)).collect()
     };
-    let mut check = Check { known, texts: &cx.refs.texts, entries: ids("entries"), categories: ids("categories"), text_refs: false };
+    let mut check = Check { known, texts: cx.refs, entries: ids("entries"), categories: ids("categories"), text_refs: false };
     let mut book = match yog_data::from_doc_with::<yog_formats::book::Book>(text, &doc, &mut check) {
         Ok(read) => read.value,
         Err(errors) => {

@@ -12,6 +12,7 @@ use std::fmt::Write as _;
 const NEW_VALUE: &str = "__v";
 
 use crate::yui::{self, Element, RAW_CALL, RAW_VALUE, UI_USE, err};
+use crate::yui_resources::{Entry, Resources, local_name};
 
 /// The codegen version checked by `yog_kit::__codegen::require`.
 use yog_ids::versions::UI_CODEGEN as CODEGEN;
@@ -611,11 +612,11 @@ impl VmGen<'_> {
         out.attrs.clear();
         let mut style: Vec<(String, String)> = Vec::new();
         for (k, v) in &el.attrs {
-            let v = match v.strip_prefix('@') {
-                Some(name) if !name.starts_with('@') && !name.contains('.') && !name.is_empty() => {
+            let v = match local_name(v) {
+                Some(name) => {
                     match self.resources.get(name) {
                         Some(r) => r.clone(),
-                        None if k == "style" => v.clone(),
+                        None if k == yog_ids::yui_attr::STYLE => v.clone(),
                         None => {
                             return err(
                                 el,
@@ -627,9 +628,9 @@ impl VmGen<'_> {
                 _ => v.clone(),
             };
             match k.as_str() {
-                "x:Name" => out.attrs.push((yog_ids::yui_attr::ID.into(), v)),
-                "style" => {
-                    let name = v.trim().trim_start_matches('@');
+                yog_ids::yui_attr::X_NAME => out.attrs.push((yog_ids::yui_attr::ID.into(), v)),
+                yog_ids::yui_attr::STYLE => {
+                    let name = v.trim().trim_start_matches(yog_ids::sep::TYPED);
                     let Some(s) = self.styles.get(name) else {
                         return err(
                             el,
@@ -656,64 +657,17 @@ impl VmGen<'_> {
     }
 
     fn collect_resources(&mut self, res: &Element) -> Result<(), String> {
-        let mut pending: Vec<&Element> = Vec::new();
-        for r in &res.children {
-            let Some(key) = r.attr("x:Key") else {
-                return err(r, "needs an x:Key");
-            };
-            if r.name == yog_ids::yui::STYLE {
-                pending.push(r);
-                continue;
-            }
-            let Some(v) = r.attr(yog_ids::yui_attr::VALUE) else {
-                return err(
-                    r,
-                    "needs a value (e.g. <Color x:Key=\"Accent\" value=\"#FFD700\"/>)",
-                );
-            };
-            self.resources.insert(key.to_string(), v.to_string());
+        let entries: Vec<Entry> = res
+            .children
+            .iter()
+            .map(|r| Entry { kind: &r.name, line: r.line, attrs: r.attrs.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect() })
+            .collect();
+        let read = Resources::read(&entries);
+        if let Some((line, msg)) = read.problems.into_iter().next() {
+            return Err(format!("line {line}: {msg}"));
         }
-        // Styles, resolving based_on chains in any order.
-        while !pending.is_empty() {
-            let before = pending.len();
-            let mut rest = Vec::new();
-            for s in pending {
-                let key = s.attr("x:Key").unwrap_or_default().to_string();
-                let base = s
-                    .attr(yog_ids::yui_attr::BASED_ON)
-                    .map(|b| b.trim().trim_start_matches('@').to_string());
-                let mut attrs: Vec<(String, String)> = match &base {
-                    Some(b) => match self.styles.get(b) {
-                        Some(a) => a.clone(),
-                        None => {
-                            rest.push(s);
-                            continue;
-                        }
-                    },
-                    None => Vec::new(),
-                };
-                for (k, v) in &s.attrs {
-                    if matches!(k.as_str(), "x:Key" | "target" | "based_on") {
-                        continue;
-                    }
-                    let v = match v.strip_prefix('@') {
-                        Some(n) if !n.contains('.') && !n.starts_with('@') => {
-                            self.resources.get(n).cloned().ok_or_else(|| {
-                                format!("line {}: <Style> {k}=\"{v}\": no resource `{n}`", s.line)
-                            })?
-                        }
-                        _ => v.clone(),
-                    };
-                    attrs.retain(|(ek, _)| ek != k);
-                    attrs.push((k.clone(), v));
-                }
-                self.styles.insert(key, attrs);
-            }
-            if rest.len() == before {
-                return err(rest[0], "based_on names an unknown (or circular) style");
-            }
-            pending = rest;
-        }
+        self.resources = read.values;
+        self.styles = read.styles;
         Ok(())
     }
 

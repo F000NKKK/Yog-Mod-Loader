@@ -153,7 +153,7 @@ fn toml_inline(v: &Value) -> String {
 fn text_form(t: Text) -> Result<String, String> {
     match t {
         Text::Literal(s) => Ok(yog_data::typed::escape_at(&s)),
-        Text::Res(r) => Ok(format!("@{}.{}", r.set, r.key)),
+        Text::Res(r) => Ok(r.to_string()),
         Text::NameOf(_) | Text::Lang(_) => Err("a mod's name and description are text or a `.yres` text (`@Strings.mod_name`)".into()),
     }
 }
@@ -198,7 +198,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let description = m.description.map(text_form).transpose()?;
     let icon = m.icon.map(|i| match i {
         yog_data::Image::Source(s) => s,
-        yog_data::Image::Res(r) => format!("@{}.{}", r.set, r.key),
+        yog_data::Image::Res(r) => r.to_string(),
     });
     Ok(YogToml {
         name: name.unwrap_or_else(|| m.id.clone()),

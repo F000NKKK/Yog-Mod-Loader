@@ -430,6 +430,13 @@ names! {
     yui_markup {
         BIND_OPEN = "{x:Bind ",
         BIND_CLOSE = "}",
+        /// A binding's start, either way it's written (`{x:Bind …}`, `{Binding …}`).
+        BIND = "{x:Bind",
+        BINDING = "{Binding",
+        /// A design-time attribute: `d:text="Sample"` shows in the designer only.
+        DESIGN = "d:",
+        /// What a screen's resources element ends with: `<Screen.Resources>`.
+        RESOURCES = ".Resources",
     }
 
     /// The sections of the game's `.mcmeta` beside a texture.
@@ -594,6 +601,10 @@ names! {
         ITEM_HEIGHT = "item_height",
         SCROLL_KEY = "scroll_key",
         VISIBLE = "visible",
+        /// A resource's or style's key, an element's name (its id), what a style is for.
+        X_KEY = "x:Key",
+        X_NAME = "x:Name",
+        TARGET = "target",
         GRID_ROW = "Grid.Row",
         GRID_COLUMN = "Grid.Column",
         GRID_ROWSPAN = "Grid.RowSpan",

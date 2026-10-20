@@ -19,6 +19,7 @@ pub mod yres;
 pub mod yui;
 pub mod yui_component;
 pub mod yui_grid;
+pub mod yui_resources;
 pub mod yui_vm;
 
 /// Writes generated `code` to `path` (creating its directory) unless it's

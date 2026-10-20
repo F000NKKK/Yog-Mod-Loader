@@ -292,7 +292,7 @@ Yog-Mod-Loader/rust/crates/yog-cli/benches/yui.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/bench.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/book_page.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/cargo_toml.rs	long-fn:generate_cargo_toml@12(107)	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content.rs	file:1053 long-fn:compile@633(339) literal_facts:17	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content.rs	file:1062 long-fn:compile@633(339) literal_facts:17	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/block.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/item.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/loot.rs		todo
@@ -300,7 +300,7 @@ Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/mod.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/screens.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/source.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/states.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/body.rs	literal_facts:1 magic_numbers:2	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/body.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/book.rs	long-fn:compile_book@32(207),compile_layout@243(177) panics:1 literal_facts:6	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/datapack.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/defs.rs	long-fn:read_defs@324(147) literal_facts:37 magic_numbers:2	todo
@@ -314,52 +314,52 @@ Yog-Mod-Loader/rust/crates/yog-cli/src/content/model/element.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/model/kind.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/model/mod.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/model/state.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/outputs.rs	long-fn:merge_outputs@101(106) literal_facts:4	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/outputs.rs	long-fn:merge_outputs@104(106) literal_facts:3	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe/body.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe/custom.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe/gaps.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe/mod.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/refs.rs	literal_facts:7	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/refs.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/source.rs	long-fn:rust_source@162(289) panics:2 literal_facts:1 magic_numbers:2	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/table.rs	silenced:1 literal_facts:2	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/table.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/tests.rs	file:895	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/textures.rs	long-fn:compile@37(86)	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/advancements.rs	long-fn:render@114(82) params:build@402(6) panics:3	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/assets.rs	literal_facts:1	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/blocks3d.rs	long-fn:draw_with@376(88) literal_facts:6 magic_numbers:5	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/advancements.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/assets.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/blocks3d.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/book.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/codebehind.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/components.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/content.rs	literal_facts:1 magic_numbers:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/content.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/custom.rs	file:1149 long-fn:translate@813(84)	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/data.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/files.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/font.rs	magic_numbers:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/font.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/font_copy.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/font_yog.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/gfx.rs	silenced:3	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/gfx.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/host.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/images.rs	params:nine_slice@260(6)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/images.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/item_models.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/markup.rs	long-fn:apply_resources@162(92),widget@274(160)	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/mod.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/mod_ui.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/project.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/raster.rs	params:fill@245(6),text@322(6),text_scaled@329(7)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/raster.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/recipe_area.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/recipe_kinds.rs	literal_facts:2	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/recipe_kinds.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/refs.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/service.rs	literal_facts:5	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/tags.rs	params:collect@109(6)	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/service.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/tags.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/worldgen.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/yui_codegen.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/exports.rs	long-fn:collect_uses@169(331) panics:1	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/main.rs	file:1872 long-fn:main@43(111),prepare@325(88),build@584(115),publish_exports@1706(95) panics:1 magic_numbers:2	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/manifest.rs	magic_numbers:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/manifest.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/media.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/recipe_area.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/serve.rs	long-fn:dispatch@70(87) literal_facts:1	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/serve.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/yres.rs	file:1115 long-fn:load@340(103),compile@512(315)	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/yui.rs	file:1627 long-fn:widget@552(240),generate_with@927(222) silenced:2 prints:1 literal_facts:2 magic_numbers:2	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/yui_component.rs	long-fn:declarations@100(126),generate@305(173) silenced:3 prints:1 literal_facts:2	todo

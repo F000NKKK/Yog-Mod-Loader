@@ -62,7 +62,7 @@ pub trait Resolve {
     fn text(&mut self, t: &Text, _path: &Path) -> Result<String, String> {
         Ok(match t {
             Text::Literal(s) => s.clone(),
-            Text::Res(r) => format!("@{}.{}", r.set, r.key),
+            Text::Res(r) => r.to_string(),
             Text::NameOf(r) => format!("@{}:{}", r.kind, r.id),
             Text::Lang(k) => format!("@lang:{k}"),
         })

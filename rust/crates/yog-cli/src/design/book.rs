@@ -250,18 +250,15 @@ impl yog_data::Resolve for Reader<'_> {
                 name.unwrap_or_else(|| humanize(id))
             }
             yog_data::Text::Lang(k) => self.texts.lang.get(k).cloned().unwrap_or_else(|| k.clone()),
-            yog_data::Text::Res(r) => {
-                let key = format!("{}.{}", r.set, r.key);
-                self.texts.refs.get(&key).cloned().unwrap_or_else(|| {
-                    self.missing.push(format!("@{key}"));
-                    format!("@{key}")
-                })
-            }
+            yog_data::Text::Res(r) => self.texts.refs.get(&r.name()).cloned().unwrap_or_else(|| {
+                self.missing.push(r.to_string());
+                r.to_string()
+            }),
         })
     }
 
     fn words(&mut self, r: &yog_data::Res) -> Option<String> {
-        self.texts.refs.get(&format!("{}.{}", r.set, r.key)).cloned()
+        self.texts.refs.get(&r.name()).cloned()
     }
 }
 

@@ -985,6 +985,10 @@ public final class YogNames {
 
         public static final String BIND_OPEN = "{x:Bind ";
         public static final String BIND_CLOSE = "}";
+        public static final String BIND = "{x:Bind";
+        public static final String BINDING = "{Binding";
+        public static final String DESIGN = "d:";
+        public static final String RESOURCES = ".Resources";
     }
 
     public static final class Mcmeta {
@@ -1140,6 +1144,9 @@ public final class YogNames {
         public static final String ITEM_HEIGHT = "item_height";
         public static final String SCROLL_KEY = "scroll_key";
         public static final String VISIBLE = "visible";
+        public static final String X_KEY = "x:Key";
+        public static final String X_NAME = "x:Name";
+        public static final String TARGET = "target";
         public static final String GRID_ROW = "Grid.Row";
         public static final String GRID_COLUMN = "Grid.Column";
         public static final String GRID_ROWSPAN = "Grid.RowSpan";

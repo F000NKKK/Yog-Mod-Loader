@@ -281,6 +281,35 @@ pub struct Refs {
     pub pictures: HashMap<String, Picture>,
 }
 
+impl Refs {
+    /// Text `r`: its translation key and neutral words.
+    pub fn text(&self, r: &yog_data::Res) -> Result<&(String, String), String> {
+        self.texts.get(&r.name()).ok_or_else(|| format!("`{r}`: no text `{}` in resources/*.yres", r.name()))
+    }
+
+    /// Color `r` (`0xAARRGGBB`).
+    pub fn color(&self, r: &yog_data::Res) -> Result<u32, String> {
+        self.colors.get(&r.name()).copied().ok_or_else(|| format!("`{r}`: no color `{}` in resources/*.yres", r.name()))
+    }
+
+    /// Image `r`'s source.
+    pub fn image(&self, r: &yog_data::Res) -> Result<&str, String> {
+        self.images.get(&r.name()).map(String::as_str).ok_or_else(|| format!("`{r}`: no image `{}` in resources/*.yres", r.name()))
+    }
+
+    /// The translation key text `t` names — `@lang:key`, a thing's name, a
+    /// `.yres` text; none for words, which aren't one.
+    pub fn key_of(&self, t: &yog_data::Text) -> Result<Option<String>, String> {
+        use yog_data::Text;
+        Ok(match t {
+            Text::Literal(_) => None,
+            Text::Lang(k) => Some(k.clone()),
+            Text::NameOf(r) => Some(yog_ids::lang_key(&r.kind, yog_formats::book::refs::bare(&r.id))),
+            Text::Res(r) => Some(self.text(r)?.0.clone()),
+        })
+    }
+}
+
 /// An image's picture: its PNG and the file the build writes it to — which
 /// a texture packed into an atlas takes the place of.
 #[derive(Debug, Clone, Default, PartialEq)]

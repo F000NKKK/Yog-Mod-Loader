@@ -113,17 +113,11 @@ impl Scalar {
             Scalar::Float(_) => v.as_f64().map(|f| format!("{f:?}")).map_or_else(|| want("a number"), Ok),
             Scalar::Str => v.as_str().map(|s| format!("{s:?}")).map_or_else(|| want("a string"), Ok),
             Scalar::Text => match v {
-                Value::Res(r) => match refs.texts.get(&format!("{}.{}", r.set, r.key)) {
-                    Some((key, _)) => Ok(format!("::yog_api::tr({key:?})")),
-                    None => Err(format!("@{}.{}: no such text", r.set, r.key)),
-                },
+                Value::Res(r) => refs.text(r).map(|(key, _)| format!("::yog_api::tr({key:?})")),
                 _ => want("a text, `@Strings.<key>`"),
             },
             Scalar::Color => match v {
-                Value::Res(r) => match refs.colors.get(&format!("{}.{}", r.set, r.key)) {
-                    Some(c) => Ok(format!("0x{c:08X}")),
-                    None => Err(format!("@{}.{}: no such color", r.set, r.key)),
-                },
+                Value::Res(r) => refs.color(r).map(|c| format!("0x{c:08X}")),
                 _ => want("a color, `@Colors.<key>`"),
             },
             Scalar::Item | Scalar::Block => {

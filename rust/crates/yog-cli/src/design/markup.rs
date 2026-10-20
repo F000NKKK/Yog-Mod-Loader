@@ -3,6 +3,7 @@
 //! build` emits (yog-cli `yui.rs`), made directly instead of as source —
 //! wrapped like the generated `root_with` (the screen panel, anchored).
 
+use crate::yui_resources::{Entry, Resources, local_name};
 use std::collections::HashMap;
 
 use serde::Deserialize;
@@ -141,13 +142,16 @@ fn padding(v: &str) -> Option<[f32; 4]> {
     }
 }
 
+/// A translation key's mark in a text: `@lang:key`.
+const LANG: &str = yog_ids::concatcp!(yog_ids::typed::LANG, yog_ids::sep::NAMESPACE);
+
 /// What a text attribute shows: `@lang:key` is a translation key (shown as
 /// the key — the designer has no game language), `@@x` the literal `@x`.
 pub fn text(value: Option<&str>) -> String {
     let v = value.unwrap_or_default();
     match v.strip_prefix('@') {
         Some(rest) if rest.starts_with('@') => rest.to_string(),
-        Some(rest) if rest.starts_with("lang:") => rest["lang:".len()..].to_string(),
+        Some(rest) if let Some(key) = rest.strip_prefix(LANG) => key.to_string(),
         _ => v.to_string(),
     }
 }
@@ -160,97 +164,70 @@ pub fn text(value: Option<&str>) -> String {
 /// `ListView` → `ScrollView`, `ItemsControl`/`ContentPresenter` → a column
 /// or row). Unknown names are left as they are (`yog check` reports them).
 pub fn apply_resources(root: &mut YuiNode) {
-    let mut values: HashMap<String, String> = HashMap::new();
-    let mut styles: HashMap<String, Vec<(String, String)>> = HashMap::new();
-    if let Some(res) = root.children.iter().find(|c| c.kind.ends_with(".Resources")) {
-        let mut pending: Vec<&YuiNode> = Vec::new();
-        for r in &res.children {
-            let Some(key) = r.attr("x:Key") else { continue };
-            if r.kind == yog_ids::yui::STYLE {
-                pending.push(r);
-            } else if let Some(v) = r.attr(yog_ids::yui_attr::VALUE) {
-                values.insert(key.to_string(), v.to_string());
-            }
-        }
-        let local = |v: &str, values: &HashMap<String, String>| match v.strip_prefix('@') {
-            Some(n) if !n.contains('.') && !n.starts_with('@') => values.get(n).cloned().unwrap_or_else(|| v.to_string()),
-            _ => v.to_string(),
-        };
-        // Styles, `based_on` chains in any order.
-        while !pending.is_empty() {
-            let before = pending.len();
-            let mut rest = Vec::new();
-            for st in pending {
-                let key = st.attr("x:Key").unwrap_or_default().to_string();
-                let mut attrs = match st.attr(yog_ids::yui_attr::BASED_ON).map(|b| b.trim().trim_start_matches('@')) {
-                    Some(b) => match styles.get(b) {
-                        Some(a) => a.clone(),
-                        None => {
-                            rest.push(st);
-                            continue;
-                        }
-                    },
-                    None => Vec::new(),
-                };
-                let mut own: Vec<(&String, &String)> = st.attrs.iter().collect();
-                own.sort();
-                for (k, v) in own {
-                    if matches!(k.as_str(), "x:Key" | "target" | "based_on") {
-                        continue;
-                    }
-                    attrs.retain(|(ek, _)| ek != k);
-                    attrs.push((k.clone(), local(v, &values)));
-                }
-                styles.insert(key, attrs);
-            }
-            if rest.len() == before {
-                break;
-            }
-            pending = rest;
-        }
-    }
-    fn walk(n: &mut YuiNode, values: &HashMap<String, String>, styles: &HashMap<String, Vec<(String, String)>>) {
-        // Bound values are the game's to compute: in the designer an
-        // attribute shows its design-time value (`d:text="Sample"`), else
-        // none — as if unset (a text box shows its placeholder).
-        let design: Vec<(String, String)> =
-            n.attrs.iter().filter_map(|(k, v)| Some((k.strip_prefix("d:")?.to_string(), v.clone()))).collect();
-        n.attrs.retain(|k, v| !k.starts_with("d:") && !(v.trim_start().starts_with("{x:Bind") || v.trim_start().starts_with("{Binding")));
-        n.attrs.extend(design);
-        for v in n.attrs.values_mut() {
-            if let Some(name) = v.strip_prefix('@')
-                && !name.contains('.')
-                && !name.starts_with('@')
-                && let Some(r) = values.get(name)
-            {
-                *v = r.clone();
-            }
-        }
-        if let Some(name) = n.attrs.remove(yog_ids::yui_attr::STYLE)
-            && let Some(attrs) = styles.get(name.trim().trim_start_matches('@'))
-        {
-            for (k, v) in attrs {
-                n.attrs.entry(k.clone()).or_insert_with(|| v.clone());
-            }
-        }
-        if let Some(name) = n.attrs.get("x:Name").cloned() {
-            n.attrs.entry(yog_ids::yui_attr::ID.into()).or_insert(name);
-        }
-        let horizontal = n.attr(yog_ids::yui_attr::ORIENTATION).is_some_and(|o| o.trim() == "horizontal");
-        n.kind = match n.kind.as_str() {
-            yog_ids::yui::TOGGLE_BUTTON => yog_ids::yui::BUTTON,
-            yog_ids::yui::LIST_VIEW => yog_ids::yui::SCROLL_VIEW,
-            yog_ids::yui::ITEMS_CONTROL if horizontal => yog_ids::yui::ROW,
-            yog_ids::yui::ITEMS_CONTROL | yog_ids::yui::CONTENT_PRESENTER => yog_ids::yui::COLUMN,
-            k => k,
-        }
-        .to_string();
-        for c in &mut n.children {
-            walk(c, values, styles);
-        }
-    }
-    walk(root, &values, &styles);
+    let read = match root.children.iter().find(|c| c.kind.ends_with(yog_ids::yui_markup::RESOURCES)) {
+        // The designer shows what it can: problems are `yog check`'s to report.
+        Some(res) => Resources::read(&res.children.iter().map(entry).collect::<Vec<_>>()),
+        None => Resources::default(),
+    };
+    resolve(root, &read);
 }
+
+/// A resources' element as [`Resources::read`] takes it: its attributes in
+/// name order (a map has none of its own).
+fn entry(n: &YuiNode) -> Entry<'_> {
+    let mut attrs: Vec<(&str, &str)> = n.attrs.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    attrs.sort();
+    Entry { kind: &n.kind, line: 0, attrs }
+}
+
+/// `n` and its children with the resources applied, bound values as their
+/// design-time ones, and yog-kit's elements as the widgets they become.
+fn resolve(n: &mut YuiNode, res: &Resources) {
+    use yog_ids::yui_markup::{BIND, BINDING, DESIGN};
+    // Bound values are the game's to compute: in the designer an attribute
+    // shows its design-time value (`d:text="Sample"`), else none — as if
+    // unset (a text box shows its placeholder).
+    let design: Vec<(String, String)> =
+        n.attrs.iter().filter_map(|(k, v)| Some((k.strip_prefix(DESIGN)?.to_string(), v.clone()))).collect();
+    n.attrs.retain(|k, v| !k.starts_with(DESIGN) && !(v.trim_start().starts_with(BIND) || v.trim_start().starts_with(BINDING)));
+    n.attrs.extend(design);
+    for v in n.attrs.values_mut() {
+        if let Some(r) = local_name(v).and_then(|name| res.values.get(name)) {
+            *v = r.clone();
+        }
+    }
+    if let Some(name) = n.attrs.remove(yog_ids::yui_attr::STYLE)
+        && let Some(attrs) = res.styles.get(name.trim().trim_start_matches(yog_ids::sep::TYPED))
+    {
+        for (k, v) in attrs {
+            n.attrs.entry(k.clone()).or_insert_with(|| v.clone());
+        }
+    }
+    if let Some(name) = n.attrs.get(yog_ids::yui_attr::X_NAME).cloned() {
+        n.attrs.entry(yog_ids::yui_attr::ID.into()).or_insert(name);
+    }
+    n.kind = as_widget(n).to_string();
+    for c in &mut n.children {
+        resolve(c, res);
+    }
+}
+
+/// What yog-kit's element `n` becomes: `ToggleButton` → `Button`, `ListView`
+/// → `ScrollView`, `ItemsControl`/`ContentPresenter` → a column or row.
+fn as_widget(n: &YuiNode) -> &str {
+    use yog_ids::yui;
+    let horizontal = n.attr(yog_ids::yui_attr::ORIENTATION).is_some_and(|o| o.trim() == HORIZONTAL);
+    match n.kind.as_str() {
+        yui::TOGGLE_BUTTON => yui::BUTTON,
+        yui::LIST_VIEW => yui::SCROLL_VIEW,
+        yui::ITEMS_CONTROL if horizontal => yui::ROW,
+        yui::ITEMS_CONTROL | yui::CONTENT_PRESENTER => yui::COLUMN,
+        k => k,
+    }
+}
+
+/// An `ItemsControl`'s `orientation` laying its items in a row.
+const HORIZONTAL: &str = "horizontal";
 
 /// `<Screen theme>`'s defaults on every node that doesn't set the attribute
 /// itself — as `yog build` applies them.
