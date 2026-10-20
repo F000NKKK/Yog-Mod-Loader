@@ -351,6 +351,29 @@ impl Stretch {
     }
 }
 
+/// A picture's `region` (`[u, v, width, height]` in its pixels) stretched into
+/// `dest` (`[x, y, w, h]`) with its `border` kept as it is: the pieces to
+/// draw, each (destination, region) — nine, or the whole when it isn't
+/// stretched or has no border.
+pub fn nine_slice(dest: [f32; 4], region: [f32; 4], border: f32) -> Vec<([f32; 4], [f32; 4])> {
+    let [x, y, w, h] = dest;
+    let [u, v, rw, rh] = region;
+    let b = border.min(rw / 2.0).min(rh / 2.0).min(w / 2.0).min(h / 2.0);
+    if b <= 0.0 || (w == rw && h == rh) {
+        return vec![(dest, region)];
+    }
+    // Columns / rows: (where, how long, from, how long there).
+    let cols = [(x, b, u, b), (x + b, w - 2.0 * b, u + b, rw - 2.0 * b), (x + w - b, b, u + rw - b, b)];
+    let rows = [(y, b, v, b), (y + b, h - 2.0 * b, v + b, rh - 2.0 * b), (y + h - b, b, v + rh - b, b)];
+    let mut out = Vec::with_capacity(cols.len() * rows.len());
+    for (dy, dh, sv, sh) in rows {
+        for (dx, dw, su, sw) in cols {
+            out.push(([dx, dy, dw, dh], [su, sv, sw, sh]));
+        }
+    }
+    out
+}
+
 /// Where an image of size `natural` goes in the box `bx` under `stretch`:
 /// `(dest, src)` — the destination rect and the part of the image shown, as
 /// a rect in fractions of the image (less than the whole for

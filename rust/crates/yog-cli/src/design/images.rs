@@ -244,52 +244,14 @@ fn blit_px(c: &mut Canvas, img: &Image, dest: [f32; 4], src: [f32; 4], t: u32) {
         return;
     }
     let (iw, ih) = (img.width as f32, img.height as f32);
-    c.blit(
-        img,
-        x,
-        y,
-        w,
-        h,
-        [u / iw, v / ih, (u + uw) / iw, (v + vh) / ih],
-        tint(t),
-    );
-}
-
-/// A texture region, nine-sliced by `border` when stretched (the runtime's
-/// legacy-sprite drawing).
-fn nine_slice(c: &mut Canvas, img: &Image, region: [f32; 4], border: f32, dest: [f32; 4], t: u32) {
-    let [x, y, w, h] = dest;
-    let [u, v, rw, rh] = region;
-    let b = border.min(rw / 2.0).min(rh / 2.0).min(w / 2.0).min(h / 2.0);
-    if b <= 0.0 || (w == rw && h == rh) {
-        blit_px(c, img, dest, region, t);
-        return;
-    }
-    let cols = [
-        (x, b, u, b),
-        (x + b, w - 2.0 * b, u + b, rw - 2.0 * b),
-        (x + w - b, b, u + rw - b, b),
-    ];
-    let rows = [
-        (y, b, v, b),
-        (y + b, h - 2.0 * b, v + b, rh - 2.0 * b),
-        (y + h - b, b, v + rh - b, b),
-    ];
-    for (dy, dh, sv, sh) in rows {
-        for (dx, dw, su, sw) in cols {
-            blit_px(c, img, [dx, dy, dw, dh], [su, sv, sw, sh], t);
-        }
-    }
+    c.blit(img, [x, y, w, h], [u / iw, v / ih, (u + uw) / iw, (v + vh) / ih], tint(t));
 }
 
 /// The inventory slot (drawn by Yog on every version).
 fn slot(c: &mut Canvas, [x, y, w, h]: [f32; 4]) {
-    let (face, shadow, light) = (yog_ui::INV_SLOT_FACE.0, yog_ui::INV_SLOT_SHADOW.0, yog_ui::INV_SLOT_LIGHT.0);
-    c.fill(x, y, x + w, y + h, face, face);
-    c.fill(x, y, x + w, y + 1.0, shadow, shadow);
-    c.fill(x, y, x + 1.0, y + h, shadow, shadow);
-    c.fill(x, y + h - 1.0, x + w, y + h, light, light);
-    c.fill(x + w - 1.0, y, x + w, y + h, light, light);
+    for (r, color) in yog_ui::inv_slot_bevel(yog_gfx::Rect::new(x, y, w, h)) {
+        c.fill([r.x, r.y, r.x + r.w, r.y + r.h], color.0, color.0);
+    }
 }
 
 /// Sprite `sp` into `dest`: nine-sliced by its border, or — `part` a region
@@ -299,7 +261,9 @@ fn sprite(c: &mut Canvas, sp: &Sprite, dest: [f32; 4], part: [f32; 4], t: u32) {
     // `src` (a region of the image whose sprite is `natural` pixels wide) drawn whole or in part.
     let mut put = |img: &Image, src: [f32; 4], natural: f32, border: f32| {
         if whole {
-            nine_slice(c, img, src, border, dest, t);
+            for (to, from) in yog_gfx::image::nine_slice(dest, src, border) {
+                blit_px(c, img, to, from, t);
+            }
         } else {
             let k = src[2] / natural;
             blit_px(c, img, dest, [src[0] + part[0] * k, src[1] + part[1] * k, part[2] * k, part[3] * k], t);

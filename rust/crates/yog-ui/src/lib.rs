@@ -36,7 +36,7 @@ pub mod widget;
 
 pub use event::UiEvent;
 pub use layout::{Align, FlexDir, GridLines, LayoutNode, Rect, hit_path, node_at, set_focus};
-pub use render::{ICON_SIZE, INV_SLOT_FACE, INV_SLOT_LIGHT, INV_SLOT_SHADOW};
+pub use render::{ICON_SIZE, INV_SLOT_FACE, INV_SLOT_LIGHT, INV_SLOT_SHADOW, inv_slot_bevel};
 pub use scroll::ScrollState;
 pub use surface::{Pointer, Surface};
 pub use textbox::{TextBoxEvent, TextBoxState};

@@ -249,12 +249,9 @@ fn item_slot(d2d: &Draw2D, item_id: &str, at: Vec2) {
 /// the item and its count.
 fn inv_slot(d2d: &Draw2D, item_id: &str, count: u32, at: Vec2) {
     let (square, icon) = slot_square(at);
-    let Rect { x, y, w, h } = square;
-    d2d.rect(square, INV_SLOT_FACE);
-    d2d.rect(Rect::new(x, y, w, 1.0), INV_SLOT_SHADOW);
-    d2d.rect(Rect::new(x, y + h - 1.0, w, 1.0), INV_SLOT_LIGHT);
-    d2d.rect(Rect::new(x, y, 1.0, h), INV_SLOT_SHADOW);
-    d2d.rect(Rect::new(x + w - 1.0, y, 1.0, h), INV_SLOT_LIGHT);
+    for (r, color) in inv_slot_bevel(square) {
+        d2d.rect(r, color);
+    }
     if item_id.is_empty() {
         return;
     }
@@ -269,6 +266,19 @@ fn inv_slot(d2d: &Draw2D, item_id: &str, count: u32, at: Vec2) {
             true,
         );
     }
+}
+
+/// Vanilla's inventory slot in `square`: its face, then sunk — shadow
+/// top-left, light bottom-right. Every renderer of a slot draws these.
+pub fn inv_slot_bevel(square: Rect) -> [(Rect, Color); 5] {
+    let Rect { x, y, w, h } = square;
+    [
+        (square, INV_SLOT_FACE),
+        (Rect::new(x, y, w, 1.0), INV_SLOT_SHADOW),
+        (Rect::new(x, y + h - 1.0, w, 1.0), INV_SLOT_LIGHT),
+        (Rect::new(x, y, 1.0, h), INV_SLOT_SHADOW),
+        (Rect::new(x + w - 1.0, y, 1.0, h), INV_SLOT_LIGHT),
+    ]
 }
 
 /// A surface nothing's registered to draw (a designer previewing the

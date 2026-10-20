@@ -9,6 +9,7 @@ use std::path::Path;
 
 use base64::Engine as _;
 use serde::{Deserialize, Serialize};
+use yog_gfx::draw2d::Draw2D;
 use yog_gfx::{Color, Rect, Vec2};
 
 use super::assets::Resources;
@@ -110,19 +111,60 @@ pub struct Rendered {
     pub drag: [f32; 2],
 }
 
+/// The tab laid out: each shown advancement (its node's index, spot, its
+/// parent's spot), and where the window, its view and the scrolled tree are.
+struct Tab {
+    spots: Vec<(usize, Vec2, Option<Vec2>)>,
+    scroll: Vec2,
+    window: Vec2,
+    view: Vec2,
+    origin: Vec2,
+}
+
+impl Tab {
+    fn view_rect(&self) -> Rect {
+        Rect::new(self.view.x, self.view.y, VIEW.w, VIEW.h)
+    }
+}
+
 /// Draws the tab.
 pub fn render(args: &Args) -> Rendered {
     let root = super::mod_root(Path::new(&args.path));
     images::set_document(root.as_deref());
     let res = Resources::for_mod(root.as_deref());
+    let (tab, drag) = lay_out(args);
+    let ops = gfx::record(SCREEN.0 as i32, SCREEN.1 as i32, |ctx| draw(&ctx.draw2d(), args, &tab));
+    let canvas = raster::rasterize(&ops, SCREEN.0 as u32, SCREEN.1 as u32, SCALE, &res);
+    let image = canvas.png().ok().map(|png| format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png)));
+    let o = tab.origin;
+    Rendered {
+        image,
+        size: [SCREEN.0, SCREEN.1],
+        view: [tab.view.x, tab.view.y, VIEW.w, VIEW.h],
+        spots: tab
+            .spots
+            .iter()
+            .map(|(i, p, _)| Spot { id: args.nodes[*i].id.clone(), rect: [o.x + p.x, o.y + p.y, FRAME + 1.0, FRAME + 1.0] })
+            .collect(),
+        drag,
+    }
+}
+
+/// Where everything goes: the spots, and the tab's extent and its scroll
+/// (`AdvancementTab.addWidget`, `drawContents`, `scroll`); the drag accepted.
+fn lay_out(args: &Args) -> (Tab, [f32; 2]) {
     let at = layout(&args.nodes);
     let place = |id: &str| at.iter().find(|(i, _)| i == id).map(|(_, p)| Vec2::new((p.0 * STEP.0).floor(), (p.1 * STEP.1).floor()));
-    let spots: Vec<(usize, Vec2)> = args.nodes.iter().enumerate().filter_map(|(i, n)| Some((i, place(&n.id)?))).collect();
-    // The tab's extent and its scroll (`AdvancementTab.addWidget`, `drawContents`, `scroll`).
-    let min_x = spots.iter().map(|(_, p)| p.x).fold(f32::MAX, f32::min);
-    let max_x = spots.iter().map(|(_, p)| p.x + STEP.0).fold(f32::MIN, f32::max);
-    let min_y = spots.iter().map(|(_, p)| p.y).fold(f32::MAX, f32::min);
-    let max_y = spots.iter().map(|(_, p)| p.y + STEP.1).fold(f32::MIN, f32::max);
+    let spots: Vec<(usize, Vec2, Option<Vec2>)> = args
+        .nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(i, n)| Some((i, place(&n.id)?, n.parent.as_deref().and_then(place))))
+        .collect();
+    let min_x = spots.iter().map(|(_, p, _)| p.x).fold(f32::MAX, f32::min);
+    let max_x = spots.iter().map(|(_, p, _)| p.x + STEP.0).fold(f32::MIN, f32::max);
+    let min_y = spots.iter().map(|(_, p, _)| p.y).fold(f32::MAX, f32::min);
+    let max_y = spots.iter().map(|(_, p, _)| p.y + STEP.1).fold(f32::MIN, f32::max);
     let centre = Vec2::new((VIEW.w / 2.0 - ((max_x + min_x) / 2.0).trunc()).trunc(), ((VIEW.h / 2.0).floor() - ((max_y + min_y) / 2.0).trunc()).trunc());
     let axis = |centre: f32, drag: f32, extent: f32, min: f32, view: f32| {
         if extent - min > view { (centre + drag).clamp(-(extent - view), 0.0) - centre } else { 0.0 }
@@ -132,65 +174,68 @@ pub fn render(args: &Args) -> Rendered {
     let window = Vec2::new(((SCREEN.0 - WINDOW.0) / 2.0).floor(), ((SCREEN.1 - WINDOW.1) / 2.0).floor());
     let view = Vec2::new(window.x + VIEW.x, window.y + VIEW.y);
     let origin = Vec2::new(view.x + scroll.x, view.y + scroll.y);
+    (Tab { spots, scroll, window, view, origin }, drag)
+}
 
-    let ops = gfx::record(SCREEN.0 as i32, SCREEN.1 as i32, |ctx| {
-        let d = ctx.draw2d();
-        // The world behind, dimmed (here: nothing behind).
-        d.rect(Rect::new(0.0, 0.0, SCREEN.0, SCREEN.1), BLACK);
-        d.gradient(Rect::new(0.0, 0.0, SCREEN.0, SCREEN.1), BACKDROP.0, BACKDROP.1);
-        // The view: the background tiled from the scroll, connectors, frames and icons (clipped by the window).
-        let background = args.background.as_deref().map_or_else(|| yog_ids::game::MISSING_TEXTURE.to_string(), yog_gfx::image::short_source);
-        let (ox, oy) = (scroll.x % TILE, scroll.y % TILE);
-        for i in -1..=(VIEW.w / TILE) as i32 {
-            for j in -1..=(VIEW.h / TILE) as i32 {
-                let tile = Rect::new(view.x + ox + TILE * i as f32, view.y + oy + TILE * j as f32, TILE, TILE);
-                if let Some(t) = clip(tile, Rect::new(view.x, view.y, VIEW.w, VIEW.h)) {
-                    let uv = Rect::new(t.x - tile.x, t.y - tile.y, t.w, t.h);
-                    d.image_region(&background, t, Some(uv), WHITE);
-                }
+/// The screen: the world behind dimmed, the view, the window, the title,
+/// the hover.
+fn draw(d: &Draw2D, args: &Args, tab: &Tab) {
+    // The world behind, dimmed (here: nothing behind).
+    d.rect(Rect::new(0.0, 0.0, SCREEN.0, SCREEN.1), BLACK);
+    d.gradient(Rect::new(0.0, 0.0, SCREEN.0, SCREEN.1), BACKDROP.0, BACKDROP.1);
+    draw_background(d, args, tab);
+    draw_tree(d, args, tab);
+    let w = tab.window;
+    d.image(WINDOW_SPRITE, Rect::new(w.x, w.y, WINDOW.0, WINDOW.1));
+    d.text(&args.title, Vec2::new(w.x + TITLE_AT.x, w.y + TITLE_AT.y), TITLE_COLOR, false);
+    // The hover (`AdvancementTab.drawTooltips`, `AdvancementWidget.drawHover`).
+    if let Some((i, p, _)) = args.hover.as_deref().and_then(|h| tab.spots.iter().find(|(i, _, _)| args.nodes[*i].id == h)) {
+        d.rect(tab.view_rect(), HOVER_FADE);
+        hover(d, &args.nodes[*i], tab.origin, *p, w);
+    }
+}
+
+/// The view's background, tiled from the scroll (clipped by the view).
+fn draw_background(d: &Draw2D, args: &Args, tab: &Tab) {
+    let background = args.background.as_deref().map_or_else(|| yog_ids::game::MISSING_TEXTURE.to_string(), yog_gfx::image::short_source);
+    let (ox, oy) = (tab.scroll.x % TILE, tab.scroll.y % TILE);
+    let view = tab.view;
+    for i in -1..=(VIEW.w / TILE) as i32 {
+        for j in -1..=(VIEW.h / TILE) as i32 {
+            let tile = Rect::new(view.x + ox + TILE * i as f32, view.y + oy + TILE * j as f32, TILE, TILE);
+            if let Some(t) = clip(tile, tab.view_rect()) {
+                let uv = Rect::new(t.x - tile.x, t.y - tile.y, t.w, t.h);
+                d.image_region(&background, t, Some(uv), WHITE);
             }
         }
-        let view_rect = Rect::new(view.x, view.y, VIEW.w, VIEW.h);
-        let fill = |r: Rect, c: Color| {
-            if let Some(r) = clip(r, view_rect) {
-                d.rect(r, c);
-            }
-        };
-        for shadow in [true, false] {
-            for (i, p) in &spots {
-                let Some(pp) = args.nodes[*i].parent.as_deref().and_then(place) else { continue };
-                connector(&fill, origin, pp, *p, shadow);
-            }
+    }
+}
+
+/// The connectors (their shadow first), then each advancement's frame and icon.
+fn draw_tree(d: &Draw2D, args: &Args, tab: &Tab) {
+    let view_rect = tab.view_rect();
+    let fill = |r: Rect, c: Color| {
+        if let Some(r) = clip(r, view_rect) {
+            d.rect(r, c);
         }
-        for (i, p) in &spots {
-            let n = &args.nodes[*i];
-            let frame = Rect::new(origin.x + p.x + FRAME_DX, origin.y + p.y, FRAME, FRAME);
-            if clip(frame, view_rect).is_some() {
-                d.image(&frame_sprite(&n.frame, n.obtained), frame);
-                if let Some(icon) = &n.icon {
-                    d.item(icon, Vec2::new(origin.x + p.x + ICON_AT.x, origin.y + p.y + ICON_AT.y), ICON);
-                }
+    };
+    for shadow in [true, false] {
+        for (_, p, parent) in &tab.spots {
+            if let Some(pp) = parent {
+                connector(&fill, tab.origin, *pp, *p, shadow);
             }
         }
-        d.image(WINDOW_SPRITE, Rect::new(window.x, window.y, WINDOW.0, WINDOW.1));
-        d.text(&args.title, Vec2::new(window.x + TITLE_AT.x, window.y + TITLE_AT.y), TITLE_COLOR, false);
-        // The hover (`AdvancementTab.drawTooltips`, `AdvancementWidget.drawHover`).
-        if let Some((i, p)) = args.hover.as_deref().and_then(|h| spots.iter().find(|(i, _)| args.nodes[*i].id == h)) {
-            d.rect(view_rect, HOVER_FADE);
-            hover(&d, &args.nodes[*i], origin, *p, window);
+    }
+    let o = tab.origin;
+    for (i, p, _) in &tab.spots {
+        let n = &args.nodes[*i];
+        let frame = Rect::new(o.x + p.x + FRAME_DX, o.y + p.y, FRAME, FRAME);
+        if clip(frame, view_rect).is_some() {
+            d.image(&frame_sprite(&n.frame, n.obtained), frame);
+            if let Some(icon) = &n.icon {
+                d.item(icon, Vec2::new(o.x + p.x + ICON_AT.x, o.y + p.y + ICON_AT.y), ICON);
+            }
         }
-    });
-    let canvas = raster::rasterize(&ops, SCREEN.0 as u32, SCREEN.1 as u32, SCALE, &res);
-    let image = canvas.png().ok().map(|png| format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png)));
-    Rendered {
-        image,
-        size: [SCREEN.0, SCREEN.1],
-        view: [view.x, view.y, VIEW.w, VIEW.h],
-        spots: spots
-            .iter()
-            .map(|(i, p)| Spot { id: args.nodes[*i].id.clone(), rect: [origin.x + p.x, origin.y + p.y, FRAME + 1.0, FRAME + 1.0] })
-            .collect(),
-        drag,
     }
 }
 
@@ -350,7 +395,7 @@ pub fn layout(nodes: &[Node]) -> Vec<(String, (f32, f32))> {
     let mut out = Vec::new();
     let mut offset = 0.0;
     for root in nodes.iter().filter(|n| parent_in(n, &ids).is_none()) {
-        let r = tree.build(&root.id, None, None, 1, nodes, &ids);
+        let r = tree.build(&root.id, None, None, 1, &Source { nodes, ids: &ids });
         tree.first_walk(r);
         let top = tree.second_walk(r, 0.0, 0, tree.n[r].y);
         if top < 0.0 {
@@ -378,6 +423,12 @@ fn parent_in<'a>(n: &'a Node, ids: &[&str]) -> Option<&'a str> {
     n.parent.as_deref().filter(|p| ids.contains(p) && *p != n.id)
 }
 
+/// The advancements a tree is built from, and their ids.
+struct Source<'a> {
+    nodes: &'a [Node],
+    ids: &'a [&'a str],
+}
+
 #[derive(Default)]
 struct Tree {
     n: Vec<TreeNode>,
@@ -399,17 +450,17 @@ struct TreeNode {
 }
 
 impl Tree {
-    fn build(&mut self, id: &str, parent: Option<usize>, previous: Option<usize>, child_index: usize, nodes: &[Node], ids: &[&str]) -> usize {
+    fn build(&mut self, id: &str, parent: Option<usize>, previous: Option<usize>, child_index: usize, src: &Source) -> usize {
         let me = self.n.len();
         let x = parent.map_or(0, |p| self.n[p].x + 1);
         self.n.push(TreeNode { id: id.to_string(), parent, previous, child_index, children: Vec::new(), ancestor: me, thread: None, x, y: -1.0, modifier: 0.0, change: 0.0, shift: 0.0 });
         let mut prev = None;
-        for child in nodes.iter().filter(|c| parent_in(c, ids) == Some(id)) {
+        for child in src.nodes.iter().filter(|c| parent_in(c, src.ids) == Some(id)) {
             if self.n.iter().any(|t| t.id == child.id) {
                 continue;
             }
             let index = self.n[me].children.len() + 1;
-            let c = self.build(&child.id, Some(me), prev, index, nodes, ids);
+            let c = self.build(&child.id, Some(me), prev, index, src);
             self.n[me].children.push(c);
             prev = Some(c);
         }
@@ -435,7 +486,8 @@ impl Tree {
             default = Some(self.apportion(c, default.unwrap_or(c)));
         }
         self.execute_shifts(v);
-        let mid = (self.n[children[0]].y + self.n[*children.last().expect("not empty")].y) / 2.0;
+        let (Some(&first), Some(&last)) = (children.first(), children.last()) else { return };
+        let mid = (self.n[first].y + self.n[last].y) / 2.0;
         match self.n[v].previous {
             Some(p) => {
                 self.n[v].y = self.n[p].y + 1.0;
@@ -489,8 +541,9 @@ impl Tree {
         while let (Some(nl), Some(pr)) = (self.next_or_thread(in_left), self.previous_or_thread(in_right)) {
             in_left = nl;
             in_right = pr;
-            out_left = self.previous_or_thread(out_left).expect("the left contour is as deep");
-            out_right = self.next_or_thread(out_right).expect("the right contour is as deep");
+            // The outer contours are as deep as the inner ones.
+            let (Some(ol), Some(or)) = (self.previous_or_thread(out_left), self.next_or_thread(out_right)) else { break };
+            (out_left, out_right) = (ol, or);
             self.n[out_right].ancestor = v;
             let gap = self.n[in_left].y + s_in_left - (self.n[in_right].y + s_in_right) + 1.0;
             if gap > 0.0 {

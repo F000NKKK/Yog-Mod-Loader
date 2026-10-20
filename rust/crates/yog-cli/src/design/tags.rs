@@ -102,17 +102,31 @@ fn entries(roots: &[PathBuf], own: &BTreeMap<String, Vec<String>>, tag: &str) ->
     out
 }
 
-fn collect(roots: &[PathBuf], own: &BTreeMap<String, Vec<String>>, tag: &str, seen: &mut BTreeSet<String>, out: &mut Vec<String>, depth: usize) {
-    if depth > 16 || !seen.insert(tag.to_owned()) {
-        return;
-    }
-    for id in entries(roots, own, tag) {
-        match id.strip_prefix('#') {
-            Some(inner) => collect(roots, own, inner, seen, out, depth + 1),
-            None => {
-                let full = if id.contains(':') { id } else { format!("minecraft:{id}") };
-                if !out.contains(&full) {
-                    out.push(full);
+/// How deep tags nest before the rest is left out (a loop of tags ends sooner: each is opened once).
+const MAX_DEPTH: usize = 16;
+
+/// A tag's items gathered: where tags are looked up, those opened, the items in order.
+struct Gather<'a> {
+    roots: &'a [PathBuf],
+    own: &'a BTreeMap<String, Vec<String>>,
+    seen: BTreeSet<String>,
+    out: Vec<String>,
+}
+
+impl Gather<'_> {
+    /// `tag`'s items, its nested tags opened.
+    fn open(&mut self, tag: &str, depth: usize) {
+        if depth > MAX_DEPTH || !self.seen.insert(tag.to_owned()) {
+            return;
+        }
+        for id in entries(self.roots, self.own, tag) {
+            match id.strip_prefix(yog_ids::sep::TAG_SHOWN) {
+                Some(inner) => self.open(inner, depth + 1),
+                None => {
+                    let full = yog_ids::qualify(&id);
+                    if !self.out.contains(&full) {
+                        self.out.push(full);
+                    }
                 }
             }
         }
@@ -125,10 +139,10 @@ pub fn item_tag(path: &Path, tag: &str) -> Vec<String> {
     let root = super::mod_root(path);
     let roots: Vec<PathBuf> = root.iter().flat_map(|r| [r.clone(), r.parent().map(Path::to_path_buf).unwrap_or_default()]).collect();
     let own = mod_tags(root.as_deref());
-    let mut out = Vec::new();
     let full = yog_ids::qualify(tag.trim_start_matches(yog_ids::sep::TAG_SHOWN));
-    collect(&roots, &own, &full, &mut BTreeSet::new(), &mut out, 0);
-    out
+    let mut gather = Gather { roots: &roots, own: &own, seen: BTreeSet::new(), out: Vec::new() };
+    gather.open(&full, 0);
+    gather.out
 }
 
 #[cfg(test)]

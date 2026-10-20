@@ -16,7 +16,7 @@ use jni::JNIEnv;
 use yog_abi::YogStr;
 use yog_gfx::Color;
 use yog_gfx::image::{self, ImageSource, LegacyRegion, Sprite, SpriteSource};
-use yog_ui::{ICON_SIZE, INV_SLOT_FACE, INV_SLOT_LIGHT, INV_SLOT_SHADOW};
+use yog_ui::ICON_SIZE;
 
 use crate::jcall::jcall;
 
@@ -188,46 +188,17 @@ fn rect(env: &mut JNIEnv, [x1, y1, x2, y2]: [f32; 4], color: Color) {
 /// The inventory slot: grey with a dark top-left and a light bottom-right
 /// edge, like vanilla's container backgrounds (yog-ui's colours).
 fn draw_slot(env: &mut JNIEnv, [x, y, w, h]: [f32; 4]) {
-    rect(env, [x, y, x + w, y + h], INV_SLOT_FACE);
-    rect(env, [x, y, x + w, y + 1.0], INV_SLOT_SHADOW);
-    rect(env, [x, y, x + 1.0, y + h], INV_SLOT_SHADOW);
-    rect(env, [x, y + h - 1.0, x + w, y + h], INV_SLOT_LIGHT);
-    rect(env, [x + w - 1.0, y, x + w, y + h], INV_SLOT_LIGHT);
+    for (r, color) in yog_ui::inv_slot_bevel(yog_gfx::Rect::new(x, y, w, h)) {
+        rect(env, [r.x, r.y, r.x + r.w, r.y + r.h], color);
+    }
 }
 
 /// A 1.20.1 texture region, nine-sliced by `border` when stretched.
 fn draw_legacy(env: &mut JNIEnv, l: &LegacyRegion, border: f32, dest: [f32; 4], tint: u32) {
-    let [x, y, w, h] = dest;
-    let tex = (l.texture_size.x, l.texture_size.y);
-    let b = border
-        .min(l.region.w / 2.0)
-        .min(l.region.h / 2.0)
-        .min(w / 2.0)
-        .min(h / 2.0);
-    if b <= 0.0 || (w == l.region.w && h == l.region.h) {
-        let uv = [l.region.x, l.region.y, l.region.w, l.region.h];
-        draw_texture(env, &l.texture, dest, Region { uv, texture: tex }, tint);
-        return;
-    }
-    // Columns/rows: (dest pos, dest size, src pos, src size).
-    let cols = [
-        (x, b, l.region.x, b),
-        (x + b, w - 2.0 * b, l.region.x + b, l.region.w - 2.0 * b),
-        (x + w - b, b, l.region.x + l.region.w - b, b),
-    ];
-    let rows = [
-        (y, b, l.region.y, b),
-        (y + b, h - 2.0 * b, l.region.y + b, l.region.h - 2.0 * b),
-        (y + h - b, b, l.region.y + l.region.h - b, b),
-    ];
-    for (dy, dh, sv, sh) in rows {
-        for (dx, dw, su, sw) in cols {
-            let region = Region {
-                uv: [su, sv, sw, sh],
-                texture: tex,
-            };
-            draw_texture(env, &l.texture, [dx, dy, dw, dh], region, tint);
-        }
+    let texture = (l.texture_size.x, l.texture_size.y);
+    let region = [l.region.x, l.region.y, l.region.w, l.region.h];
+    for (to, uv) in image::nine_slice(dest, region, border) {
+        draw_texture(env, &l.texture, to, Region { uv, texture }, tint);
     }
 }
 

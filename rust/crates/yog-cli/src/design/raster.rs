@@ -12,6 +12,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use yog_gfx::Color;
+use yog_gfx::draw2d::TextStyle;
 use yog_ui::text::LINE_H;
 
 use super::assets::{Image, Resources};
@@ -242,7 +243,8 @@ impl<'r> Canvas<'r> {
         self.res
     }
 
-    pub fn fill(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, top: u32, bottom: u32) {
+    /// Fills `[x1, y1, x2, y2]` (GUI pixels), `top`'s colour fading to `bottom`'s.
+    pub fn fill(&mut self, [x1, y1, x2, y2]: [f32; 4], top: u32, bottom: u32) {
         let (x1, x2) = (
             (x1 as i32).min(x2 as i32) as f32,
             (x1 as i32).max(x2 as i32) as f32,
@@ -266,17 +268,7 @@ impl<'r> Canvas<'r> {
 
     /// Draws `img` texels `(u, v)`–`(u + w·tw/…)` into GUI box `x, y, w, h`
     /// — UVs normalized against the declared texture size `tw × th`.
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn blit(
-        &mut self,
-        img: &Image,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
-        uv: [f32; 4],
-        tint: [f32; 4],
-    ) {
+    pub(super) fn blit(&mut self, img: &Image, [x, y, w, h]: [f32; 4], uv: [f32; 4], tint: [f32; 4]) {
         let (xa, xb) = self.span(x, x + w, false);
         let (ya, yb) = self.span(y, y + h, true);
         let [u0, v0, u1, v1] = uv;
@@ -307,29 +299,19 @@ impl<'r> Canvas<'r> {
             height: b.h,
             rgba: b.rgba.clone(),
         };
-        self.blit(
-            &img,
-            x,
-            y + b.top * k,
-            b.w as f32 / b.oversample * k,
-            b.h as f32 / b.oversample * k,
-            [0.0, 0.0, 1.0, 1.0],
-            argb(color),
-        );
+        let at = [x, y + b.top * k, b.w as f32 / b.oversample * k, b.h as f32 / b.oversample * k];
+        self.blit(&img, at, [0.0, 0.0, 1.0, 1.0], argb(color));
     }
 
-    /// `Font.drawInBatch`: the shadow pass (offset, color / 4), then the text.
-    pub fn text(&mut self, text: &str, font: &str, x: f32, y: f32, color: u32, shadow: bool) {
-        self.text_scaled(text, font, (x as i32) as f32, (y as i32) as f32, 1.0, color, shadow);
-    }
-
-    /// [`Self::text`] `k` times its size (the host scales the pose: no
-    /// rounding to whole pixels).
-    #[allow(clippy::too_many_arguments)]
-    pub fn text_scaled(&mut self, text: &str, font: &str, x: f32, y: f32, k: f32, color: u32, shadow: bool) {
-        let font = self.font(font);
-        let chars = styled(text, text_color(color));
-        let passes: &[bool] = if shadow { &[true, false] } else { &[false] };
+    /// `Font.drawInBatch`: the shadow pass (offset, color / 4), then the
+    /// text, at whole pixels (`at`'s rounded down) — scaled, the host scales
+    /// the pose: no rounding.
+    pub fn text(&mut self, text: &str, at: [f32; 2], style: &TextStyle) {
+        let k = style.scale;
+        let [x, y] = if k == 1.0 { at.map(|v| (v as i32) as f32) } else { at };
+        let font = self.font(style.font);
+        let chars = styled(text, text_color(style.color.0));
+        let passes: &[bool] = if style.shadow { &[true, false] } else { &[false] };
         for &is_shadow in passes {
             let mut pen = x;
             for s in &chars {
@@ -346,25 +328,10 @@ impl<'r> Canvas<'r> {
                     self.glyph(&g, pen + off + g.bold_offset * k, y + off, k, c);
                     adv += g.bold_offset * k;
                 }
-                if s.underline {
-                    self.fill(
-                        pen + off - 1.0,
-                        y + off + UNDERLINE.0,
-                        pen + off + adv,
-                        y + off + UNDERLINE.1,
-                        c,
-                        c,
-                    );
-                }
-                if s.strike {
-                    self.fill(
-                        pen + off - 1.0,
-                        y + off + STRIKE.0,
-                        pen + off + adv,
-                        y + off + STRIKE.1,
-                        c,
-                        c,
-                    );
+                for (on, (top, bottom)) in [(s.underline, UNDERLINE), (s.strike, STRIKE)] {
+                    if on {
+                        self.fill([pen + off - 1.0, y + off + top, pen + off + adv, y + off + bottom], c, c);
+                    }
                 }
                 pen += adv;
             }
@@ -379,7 +346,7 @@ impl<'r> Canvas<'r> {
                 x2,
                 y2,
                 color,
-            } => self.fill(*x1, *y1, *x2, *y2, *color, *color),
+            } => self.fill([*x1, *y1, *x2, *y2], *color, *color),
             DrawOp::Gradient {
                 x1,
                 y1,
@@ -387,7 +354,7 @@ impl<'r> Canvas<'r> {
                 y2,
                 top,
                 bottom,
-            } => self.fill(*x1, *y1, *x2, *y2, *top, *bottom),
+            } => self.fill([*x1, *y1, *x2, *y2], *top, *bottom),
             DrawOp::Text {
                 text,
                 font,
@@ -395,9 +362,9 @@ impl<'r> Canvas<'r> {
                 y,
                 color,
                 shadow,
-            } => self.text(text, font, *x, *y, *color, *shadow),
+            } => self.text(text, [*x, *y], &TextStyle { font, scale: 1.0, color: Color(*color), shadow: *shadow }),
             DrawOp::TextScaled { text, font, x, y, scale, color, shadow } => {
-                self.text_scaled(text, font, *x, *y, *scale, *color, *shadow)
+                self.text(text, [*x, *y], &TextStyle { font, scale: *scale, color: Color(*color), shadow: *shadow })
             }
             DrawOp::Blocks { list, x, y, w, h, yaw, pitch } => {
                 super::blocks3d::draw(self, list, [*x, *y, *w, *h], *yaw, *pitch)
@@ -537,7 +504,7 @@ mod tests {
     fn missing_font_draws_boxes_with_the_shadow_first() {
         let r = res();
         let mut c = Canvas::new(16, 10, 1, &r);
-        c.text("A", "", 0.0, 0.0, 0xFF_FFFFFF, true);
+        c.text("A", [0.0, 0.0], &TextStyle { font: "", scale: 1.0, color: Color::WHITE, shadow: true });
         // Missing glyph box: top-left texel white, shadow at (1,1) under the text's own (1,1)? (1,1) is the box's inside → shadow shows.
         assert_eq!(&c.rgba[0..4], &[255, 255, 255, 255]);
         let i = (16 + 1) * 4;
