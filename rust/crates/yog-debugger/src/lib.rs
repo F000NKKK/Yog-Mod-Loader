@@ -20,7 +20,7 @@ pub mod ptrace_debugger;
 
 #[cfg(target_os = "linux")]
 pub use ptrace_debugger::{DebugError, Debugger, StepKind, StopReason, interrupt, thread_name};
-pub use source_breakpoints::{SourceBreakpoint, SourceBreakpoints};
+pub use source_breakpoints::{LoadedMod, SourceBreakpoint, SourceBreakpoints};
 
 use std::path::Path;
 
@@ -65,7 +65,7 @@ mod session {
     use crate::dap::{DebugSession, StackFrameInfo};
     use crate::maps::find_module_base;
     use crate::ptrace_debugger::Debugger;
-    use crate::source_breakpoints::SourceBreakpoints;
+    use crate::source_breakpoints::{LoadedMod, SourceBreakpoints};
 
     const NOT_ATTACHED: &str = "not attached";
     /// How many frames a DAP `stackTrace` unwinds at most.
@@ -115,14 +115,14 @@ mod session {
             let new_symbols = SymbolTable::load(&new_native_path).map_err(|e| e.to_string())?;
             let new_base = find_module_base(debugger.pid(), &new_native_path)
                 .ok_or("could not locate new native's load address")?;
+            let m = LoadedMod {
+                id: &self.mod_id,
+                generation: new_generation,
+                base: new_base,
+                symbols: &new_symbols,
+            };
             self.breakpoints
-                .rebind_after_reload(
-                    debugger,
-                    &self.mod_id,
-                    new_generation,
-                    new_base,
-                    &new_symbols,
-                )
+                .rebind_after_reload(debugger, &m)
                 .map_err(|e| e.to_string())?;
             self.native_path = new_native_path;
             self.symbols = new_symbols;
@@ -179,17 +179,15 @@ mod session {
                     .map_err(|e| e.to_string())?;
             }
             let mut verified = Vec::new();
+            let m = LoadedMod {
+                id: &self.mod_id,
+                generation: self.generation,
+                base: self.module_base,
+                symbols: &self.symbols,
+            };
             for &line in lines {
                 self.breakpoints
-                    .set(
-                        debugger,
-                        &self.mod_id,
-                        self.generation,
-                        self.module_base,
-                        &self.symbols,
-                        source_path,
-                        line,
-                    )
+                    .set(debugger, &m, source_path, line)
                     .map_err(|e| e.to_string())?;
                 verified.push(line);
             }

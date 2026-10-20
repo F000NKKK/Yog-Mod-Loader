@@ -28,6 +28,26 @@ pub struct SourceBreakpoints {
     breakpoints: Vec<SourceBreakpoint>,
 }
 
+/// A mod's native as it's loaded: its id, its generation, where it sits
+/// in memory and its symbols.
+pub struct LoadedMod<'a> {
+    pub id: &'a str,
+    pub generation: ModuleGeneration,
+    pub base: u64,
+    pub symbols: &'a SymbolTable,
+}
+
+impl LoadedMod<'_> {
+    /// `file:line`'s address in this native, if it has code there.
+    fn address(&self, file: &str, line: u32) -> Option<u64> {
+        self.symbols
+            .resolve_breakpoint(file, line)
+            .into_iter()
+            .next()
+            .map(|offset| self.base + offset)
+    }
+}
+
 impl SourceBreakpoints {
     pub fn new() -> Self {
         Self::default()
@@ -37,32 +57,24 @@ impl SourceBreakpoints {
         &self.breakpoints
     }
 
-    /// Resolves `file:line` against `symbols` and arms it in `debugger` at
-    /// `module_base + offset`, recording it under `mod_id`/`generation` so
-    /// a later reload can find and rebind it.
+    /// Resolves `file:line` in `m` and arms it in `debugger`, recording it
+    /// under the mod and its generation so a later reload can rebind it.
     pub fn set(
         &mut self,
         debugger: &mut Debugger,
-        mod_id: &str,
-        generation: ModuleGeneration,
-        module_base: u64,
-        symbols: &SymbolTable,
+        m: &LoadedMod<'_>,
         file: &str,
         line: u32,
     ) -> Result<(), DebugError> {
-        let addr = symbols
-            .resolve_breakpoint(file, line)
-            .into_iter()
-            .next()
-            .map(|offset| module_base + offset);
+        let addr = m.address(file, line);
         if let Some(addr) = addr {
             debugger.set_breakpoint(addr)?;
         }
         self.breakpoints.push(SourceBreakpoint {
-            mod_id: mod_id.to_string(),
+            mod_id: m.id.to_string(),
             file: file.to_string(),
             line,
-            generation,
+            generation: m.generation,
             addr,
         });
         Ok(())
@@ -98,25 +110,18 @@ impl SourceBreakpoints {
     pub fn rebind_after_reload(
         &mut self,
         debugger: &mut Debugger,
-        mod_id: &str,
-        new_generation: ModuleGeneration,
-        new_base: u64,
-        new_symbols: &SymbolTable,
+        m: &LoadedMod<'_>,
     ) -> Result<(), DebugError> {
-        for bp in self.breakpoints.iter_mut().filter(|bp| bp.mod_id == mod_id) {
+        for bp in self.breakpoints.iter_mut().filter(|bp| bp.mod_id == m.id) {
             if let Some(old_addr) = bp.addr.take() {
                 debugger.clear_breakpoint(old_addr)?;
             }
-            let new_addr = new_symbols
-                .resolve_breakpoint(&bp.file, bp.line)
-                .into_iter()
-                .next()
-                .map(|offset| new_base + offset);
+            let new_addr = m.address(&bp.file, bp.line);
             if let Some(addr) = new_addr {
                 debugger.set_breakpoint(addr)?;
             }
             bp.addr = new_addr;
-            bp.generation = new_generation;
+            bp.generation = m.generation;
         }
         Ok(())
     }

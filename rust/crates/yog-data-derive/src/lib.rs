@@ -520,26 +520,7 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
     let body = match &input.data {
         Data::Struct(s) => match &s.fields {
             Fields::Named(named) => expand_named(named, &shape_name, &doc)?,
-            Fields::Unnamed(u) if u.unnamed.len() == 1 => {
-                let ty = &u.unnamed[0].ty;
-                quote! {
-                    fn shape() -> #krate::Shape { <#ty as #krate::Schema>::shape() }
-                    fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
-                        <#ty as #krate::Schema>::read(v, cx).map(Self)
-                    }
-                    fn write(&self) -> #krate::Value { #krate::Schema::write(&self.0) }
-                    fn encode(&self, w: &mut #krate::binary::Writer) { #krate::Schema::encode(&self.0, w) }
-                    fn decode(d: &mut #krate::binary::Decoder<'_>) -> ::std::option::Option<Self> {
-                        <#ty as #krate::Schema>::decode(d).map(Self)
-                    }
-                    fn pack(&self, p: &mut #krate::frame::Packer) { #krate::Schema::pack(&self.0, p) }
-                    fn unpack(u: &mut #krate::frame::Unpacker<'_>) -> ::std::option::Option<Self> {
-                        <#ty as #krate::Schema>::unpack(u).map(Self)
-                    }
-                    fn absent() -> ::std::option::Option<Self> { <#ty as #krate::Schema>::absent().map(Self) }
-                    fn skip(&self) -> bool { #krate::Schema::skip(&self.0) }
-                }
-            }
+            Fields::Unnamed(u) if u.unnamed.len() == 1 => expand_newtype(&u.unnamed[0].ty),
             _ => {
                 return Err(syn::Error::new_spanned(
                     name,
@@ -555,7 +536,42 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
             ));
         }
     };
-    let view = match (&input.data, top.view) {
+    let view = view_of(input, &top)?;
+    Ok(quote! {
+        impl #impl_g #krate::Schema for #name #ty_g #where_g {
+            #body
+        }
+        #view
+    })
+}
+
+/// A struct of one unnamed field: its field's schema throughout.
+fn expand_newtype(ty: &Type) -> Tokens {
+    let krate = krate();
+    quote! {
+        fn shape() -> #krate::Shape { <#ty as #krate::Schema>::shape() }
+        fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
+            <#ty as #krate::Schema>::read(v, cx).map(Self)
+        }
+        fn write(&self) -> #krate::Value { #krate::Schema::write(&self.0) }
+        fn encode(&self, w: &mut #krate::binary::Writer) { #krate::Schema::encode(&self.0, w) }
+        fn decode(d: &mut #krate::binary::Decoder<'_>) -> ::std::option::Option<Self> {
+            <#ty as #krate::Schema>::decode(d).map(Self)
+        }
+        fn pack(&self, p: &mut #krate::frame::Packer) { #krate::Schema::pack(&self.0, p) }
+        fn unpack(u: &mut #krate::frame::Unpacker<'_>) -> ::std::option::Option<Self> {
+            <#ty as #krate::Schema>::unpack(u).map(Self)
+        }
+        fn absent() -> ::std::option::Option<Self> { <#ty as #krate::Schema>::absent().map(Self) }
+        fn skip(&self) -> bool { #krate::Schema::skip(&self.0) }
+    }
+}
+
+/// The type's view of frames: a struct's (`#[data(view)]`), an enum of names' (itself).
+fn view_of(input: &DeriveInput, top: &Attrs) -> syn::Result<Tokens> {
+    let krate = krate();
+    let name = &input.ident;
+    Ok(match (&input.data, top.view) {
         (
             Data::Struct(syn::DataStruct {
                 fields: Fields::Named(named),
@@ -569,7 +585,6 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
                 "Schema: `view` is for a struct with named fields",
             ));
         }
-        // An enum of names views as itself.
         (Data::Enum(e), false)
             if top.tag.is_none()
                 && input.generics.params.is_empty()
@@ -589,11 +604,5 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
             }
         }
         _ => quote! {},
-    };
-    Ok(quote! {
-        impl #impl_g #krate::Schema for #name #ty_g #where_g {
-            #body
-        }
-        #view
     })
 }
