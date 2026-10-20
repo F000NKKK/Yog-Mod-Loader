@@ -207,11 +207,21 @@ fn unique(records: &[StructShape]) {
     }
 }
 
+/// Payloads that travel inside other bytes (entity data), not as messages:
+/// Java builds them too.
+const PAYLOADS: &[fn() -> Shape] = &[<crate::entity::Hanging as yog_data::Schema>::shape];
+
 /// Every generated class: its name and text.
 pub fn files(package: &str) -> [(&'static str, String); 3] {
     let (events, mut records) = events::events(package);
     let (services, more) = services::services(package);
     for r in more {
+        if !records.iter().any(|have| same(have, &r)) {
+            records.push(r);
+        }
+    }
+    for payload in PAYLOADS {
+        let Shape::Struct(r) = payload() else { continue };
         if !records.iter().any(|have| same(have, &r)) {
             records.push(r);
         }

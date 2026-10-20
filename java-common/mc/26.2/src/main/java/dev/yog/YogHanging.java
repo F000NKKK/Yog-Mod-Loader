@@ -1,7 +1,8 @@
 package dev.yog;
 
 import dev.yog.data.YogContent;
-import dev.yog.util.YogHangingWire;
+import dev.yog.bus.YogTypes;
+import dev.yog.data.YogData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -30,7 +31,7 @@ import net.minecraft.world.phys.Vec3;
  * A mod's hanging entity ({@code kind: hanging}): on a block's side as a
  * painting, {@code width}×{@code height} blocks, keeping the item it was
  * placed from — dropped when it breaks or loses its wall. The mods read how
- * it hangs from its entity data {@link YogHangingWire#KEY} and draw it.
+ * it hangs from its entity data {@code yog:hanging} ({@link YogNames.Yog#HANGING}) and draw it.
  */
 public class YogHanging extends HangingEntity {
     private static final EntityDataAccessor<Integer> WIDTH = SynchedEntityData.defineId(YogHanging.class, EntityDataSerializers.INT);
@@ -77,9 +78,9 @@ public class YogHanging extends HangingEntity {
     public void share() {
         if (level().isClientSide() || getDirection() == null) return;
         ItemStack item = item();
-        NativeBridge.nativeEntityDataSet(getStringUUID(), YogHangingWire.KEY, YogHangingWire.encode(getDirection().getSerializedName(),
+        NativeBridge.nativeEntityDataSet(getStringUUID(), YogNames.Yog.HANGING, YogData.encode(new YogTypes.Hanging(getDirection().getSerializedName(),
                 entityData.get(WIDTH), entityData.get(HEIGHT), BuiltInRegistries.ITEM.getKey(item.getItem()).toString(),
-                NativeBridge.stackSnbt(item)));
+                NativeBridge.stackSnbt(item)).toData()));
     }
 
     /** As a painting's: on the wall, a pixel thick, centred on its blocks. */

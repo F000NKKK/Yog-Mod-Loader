@@ -570,6 +570,28 @@ public final class YogTypes {
         }
     }
 
+    /** How a hanging entity hangs: on which side, how big, and the item it was placed from (what it drops) — its entity data `yog:hanging` (`yog_ids::yog::HANGING`), which the host keeps up to date. */
+    public record Hanging(String facing, long width, long height, String item, String nbt) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("facing", facing);
+            m.put("width", width);
+            m.put("height", height);
+            m.put("item", item);
+            m.put("nbt", nbt);
+            return m;
+        }
+
+        public static Hanging fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Hanging(YogData.str(m.get("facing"), ""), YogData.integer(m.get("width"), 0), YogData.integer(m.get("height"), 0), YogData.str(m.get("item"), ""), YogData.str(m.get("nbt"), ""));
+        }
+
+        public static Hanging fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
     /** One kind of block in a [`BlockArea`]: how it is to walk through. */
     public record BlockKind(String id, boolean solid, boolean liquid, boolean climbable, boolean harmful) {
         public java.util.Map<String, Object> toData() {

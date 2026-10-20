@@ -38,3 +38,18 @@ pub struct SetDimensions {
     pub uuid: String,
     pub size: Option<[f32; 3]>,
 }
+
+/// How a hanging entity hangs: on which side, how big, and the item it was
+/// placed from (what it drops) — its entity data `yog:hanging`
+/// (`yog_ids::yog::HANGING`), which the host keeps up to date.
+#[derive(Debug, Clone, PartialEq, Eq, Schema)]
+pub struct Hanging {
+    /// The way it faces, out of its wall: `north`, `south`, `west`, `east`.
+    pub facing: String,
+    /// Whole blocks of wall, wide and high.
+    pub width: u32,
+    pub height: u32,
+    /// The item it keeps: its id and custom data (SNBT, `{}` for none).
+    pub item: String,
+    pub nbt: String,
+}
