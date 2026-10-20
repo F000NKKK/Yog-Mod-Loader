@@ -92,6 +92,14 @@ pub(crate) struct Formatter<'a> {
     budget: Cell<usize>,
 }
 
+/// A run of elements: their type, where the first is, the step to the next, how many.
+struct Items {
+    elem: Off,
+    base: Place,
+    stride: u64,
+    count: u64,
+}
+
 struct Member {
     name: String,
     ty: Option<Off>,
@@ -290,41 +298,48 @@ impl<'a> Formatter<'a> {
         let (elem, count) = self.array_shape(entry)?;
         let elem = elem?;
         let stride = self.array_stride(entry, elem)?;
-        Some(self.format_elements(elem, place, stride, count, depth, false))
+        Some(self.format_elements(
+            &Items {
+                elem,
+                base: place.clone(),
+                stride,
+                count,
+            },
+            depth,
+        ))
     }
 
-    /// Children `[0]..[n]` plus a `[a, b, c]` summary (prefixed with the
-    /// length for dynamically sized sequences).
-    fn format_elements(
-        &self,
-        elem: Off,
-        base: &Place,
-        stride: u64,
-        count: u64,
-        depth: usize,
-        show_len: bool,
-    ) -> (String, Vec<Value>) {
-        let prefix = if show_len {
-            format!("len={count} ")
-        } else {
-            String::new()
-        };
+    /// An array's elements: children `[0]..[n]` and a `[a, b, c]` summary.
+    fn format_elements(&self, items: &Items, depth: usize) -> (String, Vec<Value>) {
+        self.format_items(items, depth, String::new())
+    }
+
+    /// A dynamically sized sequence's: the same, its length first.
+    fn format_sequence(&self, items: &Items, depth: usize) -> (String, Vec<Value>) {
+        self.format_items(items, depth, format!("len={} ", items.count))
+    }
+
+    fn format_items(&self, items: &Items, depth: usize, prefix: String) -> (String, Vec<Value>) {
         if depth >= MAX_DEPTH {
             return (format!("{prefix}[{ELLIPSIS}]"), Vec::new());
         }
-        let shown = count.min(MAX_ELEMS);
+        let shown = items.count.min(MAX_ELEMS);
         let children: Vec<Value> = (0..shown)
             .map(|i| {
                 self.format(
                     format!("[{i}]"),
-                    Some(elem),
-                    &base.offset(i.wrapping_mul(stride)),
+                    Some(items.elem),
+                    &items.base.offset(i.wrapping_mul(items.stride)),
                     depth + 1,
                 )
             })
             .collect();
-        let more = count > shown;
-        let summary = summarize("[", "]", children.iter().map(|c| c.value.clone()), more);
+        let summary = summarize(
+            "[",
+            "]",
+            children.iter().map(|c| c.value.clone()),
+            items.count > shown,
+        );
         (format!("{prefix}{summary}"), children)
     }
 
@@ -361,13 +376,14 @@ impl<'a> Formatter<'a> {
                     .and_then(|(_, e)| self.ty_of(&e));
                 if let Some(elem) = elem {
                     let stride = self.byte_size(elem)?;
-                    return Some(self.format_elements(
-                        elem,
-                        &Place::Mem(ptr),
-                        stride,
-                        n,
+                    return Some(self.format_sequence(
+                        &Items {
+                            elem,
+                            base: Place::Mem(ptr),
+                            stride,
+                            count: n,
+                        },
                         depth,
-                        true,
                     ));
                 }
             }
@@ -385,7 +401,15 @@ impl<'a> Formatter<'a> {
                 (self.template_param(off, "T"), self.vec_parts(off, place))
         {
             let stride = self.byte_size(elem)?;
-            return Some(self.format_elements(elem, &Place::Mem(ptr), stride, len, depth, true));
+            return Some(self.format_sequence(
+                &Items {
+                    elem,
+                    base: Place::Mem(ptr),
+                    stride,
+                    count: len,
+                },
+                depth,
+            ));
         }
         if generic_base(&qualified) == BOX
             && let Some((ptr, pointee)) = self.find_pointer(off, place, 0)

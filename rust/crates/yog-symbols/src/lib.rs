@@ -130,6 +130,69 @@ pub struct SymbolTable {
     code: Vec<(u64, u64)>,
 }
 
+/// The native's named code symbols.
+fn function_symbols(object: &object::File<'_>) -> Vec<FunctionSymbol> {
+    object
+        .symbols()
+        .filter(|s| s.kind() == SymbolKind::Text && !s.is_undefined())
+        .filter_map(|s| {
+            let name = s.name().ok()?.to_string();
+            (!name.is_empty()).then_some(FunctionSymbol {
+                name,
+                address: s.address(),
+            })
+        })
+        .collect()
+}
+
+/// Bytes of an address, on a 64-bit native and on a 32-bit one.
+const ADDRESS_64: u8 = 8;
+const ADDRESS_32: u8 = 4;
+
+/// The unwind tables: `.eh_frame` (with the bases its pointers are
+/// relative to) and `.debug_frame`, those the native has.
+type FrameTables = (
+    Option<(gimli::EhFrame<R>, gimli::BaseAddresses)>,
+    Option<gimli::DebugFrame<R>>,
+);
+
+fn frame_tables(object: &object::File<'_>, endian: RunTimeEndian) -> FrameTables {
+    let address_size = if object.is_64() {
+        ADDRESS_64
+    } else {
+        ADDRESS_32
+    };
+    let section_reader = |name: &str| -> Option<(R, u64)> {
+        let section = object.section_by_name(name)?;
+        let data = section.uncompressed_data().ok()?.into_owned();
+        if data.is_empty() {
+            return None;
+        }
+        Some((
+            EndianArcSlice::new(Arc::from(data.into_boxed_slice()), endian),
+            section.address(),
+        ))
+    };
+    let eh_frame = section_reader(".eh_frame").map(|(data, addr)| {
+        let mut eh_frame = gimli::EhFrame::from(data);
+        eh_frame.set_address_size(address_size);
+        let mut bases = gimli::BaseAddresses::default().set_eh_frame(addr);
+        if let Some(text) = object.section_by_name(".text") {
+            bases = bases.set_text(text.address());
+        }
+        if let Some(got) = object.section_by_name(".got") {
+            bases = bases.set_got(got.address());
+        }
+        (eh_frame, bases)
+    });
+    let debug_frame = section_reader(".debug_frame").map(|(data, _)| {
+        let mut debug_frame = gimli::DebugFrame::from(data);
+        debug_frame.set_address_size(address_size);
+        debug_frame
+    });
+    (eh_frame, debug_frame)
+}
+
 impl SymbolTable {
     /// Loads debug info from an unstripped native (`.so`/`.dylib`/`.dll`
     /// built with `debug = true`, `strip = false`).
@@ -162,51 +225,8 @@ impl SymbolTable {
         let dwarf = gimli::Dwarf::load(load_section)?;
         let ctx = addr2line::Context::from_dwarf(gimli::Dwarf::load(load_section)?)?;
 
-        let functions = object
-            .symbols()
-            .filter(|s| s.kind() == SymbolKind::Text && !s.is_undefined())
-            .filter_map(|s| {
-                let name = s.name().ok()?.to_string();
-                if name.is_empty() {
-                    return None;
-                }
-                Some(FunctionSymbol {
-                    name,
-                    address: s.address(),
-                })
-            })
-            .collect();
-
-        let address_size = if object.is_64() { 8 } else { 4 };
-        let section_reader = |name: &str| -> Option<(R, u64)> {
-            let section = object.section_by_name(name)?;
-            let data = section.uncompressed_data().ok()?.into_owned();
-            if data.is_empty() {
-                return None;
-            }
-            Some((
-                EndianArcSlice::new(Arc::from(data.into_boxed_slice()), endian),
-                section.address(),
-            ))
-        };
-        let eh_frame = section_reader(".eh_frame").map(|(data, addr)| {
-            let mut eh_frame = gimli::EhFrame::from(data);
-            eh_frame.set_address_size(address_size);
-            let mut bases = gimli::BaseAddresses::default().set_eh_frame(addr);
-            if let Some(text) = object.section_by_name(".text") {
-                bases = bases.set_text(text.address());
-            }
-            if let Some(got) = object.section_by_name(".got") {
-                bases = bases.set_got(got.address());
-            }
-            (eh_frame, bases)
-        });
-        let debug_frame = section_reader(".debug_frame").map(|(data, _)| {
-            let mut debug_frame = gimli::DebugFrame::from(data);
-            debug_frame.set_address_size(address_size);
-            debug_frame
-        });
-
+        let functions = function_symbols(&object);
+        let (eh_frame, debug_frame) = frame_tables(&object, endian);
         let code = object
             .sections()
             .filter(|s| s.kind() == object::SectionKind::Text && s.size() > 0)
