@@ -750,6 +750,7 @@ public final class YogNames {
         public static final String PLAINS = "minecraft:plains";
         public static final String THE_NETHER = "minecraft:the_nether";
         public static final String THE_END = "minecraft:the_end";
+        public static final String MINEABLE = "minecraft:mineable/";
         public static final String MISSING_TEXTURE = "minecraft:missingno";
         public static final String WRITTEN_BOOK = "minecraft:written_book";
         public static final String BOOK = "minecraft:book";
@@ -825,6 +826,11 @@ public final class YogNames {
         public static final String RECIPE_SLOT = "RecipeSlot";
         public static final String RECIPE_RESULT = "RecipeResult";
         public static final String RECIPE_COUNT = "RecipeCount";
+        public static final String BLOCK_SLOT = "BlockSlot";
+        public static final String BOOK_HEADER = "BookHeader";
+        public static final String BOOK_TEXT = "BookText";
+        public static final String BOOK_ITEM = "BookItem";
+        public static final String DRAWN = "Drawn";
     }
 
     public static final class ItemDef {
@@ -845,6 +851,30 @@ public final class YogNames {
         public static final String TEXTURE = "texture";
         public static final String HUMANOID = "humanoid";
         public static final String HUMANOID_LEGGINGS = "humanoid_leggings";
+    }
+
+    public static final class YuiMarkup {
+        private YuiMarkup() {}
+
+        public static final String BIND_OPEN = "{x:Bind ";
+        public static final String BIND_CLOSE = "}";
+    }
+
+    public static final class Mcmeta {
+        private Mcmeta() {}
+
+        public static final String ANIMATION = "animation";
+        public static final String TEXTURE = "texture";
+    }
+
+    public static final class ToolKind {
+        private ToolKind() {}
+
+        public static final String PICKAXE = "pickaxe";
+        public static final String AXE = "axe";
+        public static final String SHOVEL = "shovel";
+        public static final String HOE = "hoe";
+        public static final String SWORD = "sword";
     }
 
     public static final class Model {
@@ -947,6 +977,15 @@ public final class YogNames {
         public static final String RECIPE_LAYOUT = "recipe_layout";
         public static final String SLOT = "slot";
         public static final String BLOCK = "block";
+        public static final String FRAME = "frame";
+        public static final String SIZE = "size";
+        public static final String BOOK_PAGE = "book_page";
+        public static final String NAME = "name";
+        public static final String TYPE = "type";
+        public static final String DEFAULT = "default";
+        public static final String SRC = "src";
+        public static final String DRAWER = "drawer";
+        public static final String DATA = "data";
         public static final String STYLE = "style";
         public static final String BASED_ON = "based_on";
         public static final String ORIENTATION = "orientation";

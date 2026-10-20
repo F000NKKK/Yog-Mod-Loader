@@ -40,6 +40,7 @@ mod formats;
 #[cfg(test)]
 mod tests;
 pub mod time;
+pub mod units;
 pub mod versions;
 
 pub use formats::*;

@@ -161,6 +161,13 @@ pub fn split(id: &str) -> (&str, &str) {
     id.split_once(sep::NAMESPACE).unwrap_or((ns::MINECRAFT, id))
 }
 
+/// The path of the game's `id` (`minecraft:stone` → `stone`); none for
+/// another namespace's, or a bare path.
+pub fn game_path(id: &str) -> Option<&str> {
+    id.split_once(sep::NAMESPACE)
+        .and_then(|(n, path)| (n == ns::MINECRAFT).then_some(path))
+}
+
 /// `id` with a namespace: the game's if it has none.
 pub fn qualify(id: &str) -> String {
     qualify_in(ns::MINECRAFT, id)

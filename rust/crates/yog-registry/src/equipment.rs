@@ -2,6 +2,7 @@
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use yog_ids::tool_kind::{AXE, HOE, PICKAXE, SHOVEL, SWORD};
 
 /// An item as a tool or weapon.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -12,10 +13,30 @@ pub struct ToolItem {
     pub kind: String,
     /// Its [`ToolMaterial`]'s id (`minecraft:iron`, `mymod:mythril`).
     pub material: String,
-    /// Attack damage on top of the material's (an iron pickaxe: 1).
-    pub attack_damage: f32,
-    /// Attack speed change (a pickaxe: -2.8, a sword: -2.4).
-    pub attack_speed: f32,
+    /// Attack damage on top of the material's; none: the game's tool's
+    /// ([`ToolMaterial::game_tool`]), as the running version has it.
+    pub attack_damage: Option<f32>,
+    /// Attack speed change; none: the game's tool's.
+    pub attack_speed: Option<f32>,
+}
+
+/// The game's kinds of tool that mine.
+pub const DIGGERS: [&str; 4] = [PICKAXE, AXE, SHOVEL, HOE];
+/// The game's kinds of tool: its diggers and the sword.
+pub const TOOL_KINDS: [&str; 5] = [PICKAXE, AXE, SHOVEL, HOE, SWORD];
+
+/// A mod's material takes its tools' attack from the game's tools of this
+/// one; a mod's kind of tool, from the game's of this kind.
+pub const REFERENCE_MATERIAL: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "iron");
+pub const REFERENCE_KIND: &str = PICKAXE;
+
+/// The game's tool a tool takes its attack from when it gives none: its
+/// item id, and the attack damage its material adds (what the kind adds is
+/// the rest).
+#[derive(Debug, Clone, PartialEq)]
+pub struct GameTool {
+    pub item: String,
+    pub material_damage: f32,
 }
 
 /// An item as a piece of armor.
@@ -54,6 +75,10 @@ pub struct ToolMaterial {
     /// drops (`minecraft:incorrect_for_iron_tool`).
     #[data(default)]
     pub incorrect: String,
+    /// What the game's tools of it are named by (`wooden_`: `minecraft:wooden_axe`);
+    /// empty for a mod's own.
+    #[data(default)]
+    pub game_tools: String,
 }
 
 /// Defense points per armor piece.
@@ -130,6 +155,21 @@ impl ToolMaterial {
         let mut m = Self::built_in(like)?.clone();
         m.id = id.into();
         Some(m)
+    }
+
+    /// The game's tool of `kind` (a mod's kind: [`REFERENCE_KIND`]) made of
+    /// this material, or — a mod's — of [`REFERENCE_MATERIAL`].
+    pub fn game_tool(&self, kind: &str) -> Option<GameTool> {
+        let made = if self.game_tools.is_empty() {
+            Self::built_in(REFERENCE_MATERIAL)?
+        } else {
+            Self::built_ins().iter().find(|m| m.game_tools == self.game_tools)?
+        };
+        let kind = if TOOL_KINDS.contains(&kind) { kind } else { REFERENCE_KIND };
+        Some(GameTool {
+            item: yog_ids::qualify(&format!("{}{kind}", made.game_tools)),
+            material_damage: made.attack_damage,
+        })
     }
 }
 

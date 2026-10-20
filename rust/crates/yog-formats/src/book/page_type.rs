@@ -23,6 +23,12 @@
 
 use yog_data::{Map, Reader, Schema, Shape, Value, ValueRef};
 
+use crate::binding::{self, Piece};
+use crate::content::word;
+
+/// A page's field naming its type.
+const TYPE_FIELD: &str = "type";
+
 /// The kinds a page type's property can be.
 #[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PropKind {
@@ -109,9 +115,9 @@ impl Schema for CustomPage {
 
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let map = cx.map(v)?;
-        let kind = map.get("type").and_then(|t| t.as_str()).unwrap_or_default();
-        if !kind.contains(':') {
-            cx.at(yog_data::Seg::Key("type".into()), |cx| {
+        let kind = map.get(TYPE_FIELD).and_then(|t| t.as_str()).unwrap_or_default();
+        if !kind.contains(yog_ids::sep::NAMESPACE) {
+            cx.at(yog_data::Seg::Key(TYPE_FIELD.into()), |cx| {
                 cx.problem(format!(
                     "unknown page type `{kind}` — text, spotlight, recipe, image, entity, multiblock, relations, drawn, empty, or a mod's own (`mymod:kind`, a `.yui` component with `book_page`)"
                 ))
@@ -119,7 +125,7 @@ impl Schema for CustomPage {
             return None;
         }
         let mut fields = Map::with_capacity(map.len());
-        for (k, x) in map.iter().filter(|(k, _)| *k != "type") {
+        for (k, x) in map.iter().filter(|(k, _)| *k != TYPE_FIELD) {
             fields.insert(k, x.to_value());
         }
         Some(CustomPage {
@@ -130,7 +136,7 @@ impl Schema for CustomPage {
 
     fn write(&self) -> Value {
         let mut m = Map::with_capacity(self.fields.len() + 1);
-        m.insert("type", Value::from(self.kind.as_str()));
+        m.insert(TYPE_FIELD, Value::from(self.kind.as_str()));
         for (k, v) in self.fields.iter() {
             m.insert(k, v.clone());
         }
@@ -175,33 +181,23 @@ impl PageType {
     /// `attr` with its bindings (`{x:Bind name}`) replaced by `page`'s words.
     pub fn text(&self, page: &CustomPage, attr: &str) -> String {
         let mut out = String::new();
-        let mut rest = attr;
-        while let Some(i) = rest.find("{x:Bind ") {
-            out.push_str(&rest[..i]);
-            let after = &rest[i + 8..];
-            let Some(end) = after.find('}') else {
-                out.push_str(&rest[i..]);
-                return out;
-            };
-            if let Some(v) = self.field(page, after[..end].trim()) {
-                out.push_str(&words(v));
+        for piece in binding::pieces(attr) {
+            match piece {
+                Piece::Text(t) => out.push_str(t),
+                Piece::Bind(name) => {
+                    if let Some(v) = self.field(page, name) {
+                        out.push_str(&words(v));
+                    }
+                }
             }
-            rest = &after[end + 1..];
         }
-        out.push_str(rest);
         out
     }
 
     /// `attr`'s value: a field's whole value when it's one binding, else its text.
     pub fn value(&self, page: &CustomPage, attr: &str) -> Value {
-        let t = attr.trim();
-        if let Some(name) = t.strip_prefix("{x:Bind ").and_then(|r| r.strip_suffix('}'))
-            && !name.contains('{')
-        {
-            return self
-                .field(page, name.trim())
-                .cloned()
-                .unwrap_or(Value::Null);
+        if let Some(name) = binding::whole(attr) {
+            return self.field(page, name).cloned().unwrap_or(Value::Null);
         }
         Value::Str(self.text(page, attr))
     }
@@ -217,37 +213,47 @@ impl PageType {
 // ── From `.yui` ────────────────────────────────────────────────────────────────
 
 use crate::yui::Element;
+use yog_ids::{yui, yui_attr};
+
+/// The fields every page has: a property can't take their names.
+const OWN_FIELDS: [&str; 2] = [TYPE_FIELD, ANCHOR_FIELD];
+const ANCHOR_FIELD: &str = "anchor";
+/// A `<Spacer>`'s height, in book pixels, when it gives none.
+const SPACER_HEIGHT: f32 = 4.0;
+/// The elements a page type shows.
+const ELEMENTS: [&str; 6] = [
+    yui::BOOK_HEADER,
+    yui::BOOK_TEXT,
+    yui::BOOK_ITEM,
+    yui::IMAGE,
+    yui::DRAWN,
+    yui::SPACER,
+];
 
 /// Whether `root` declares a kind of book page.
 pub fn is_book_page(root: &Element) -> bool {
-    root.name == "Component" && root.attr("book_page").is_some()
+    root.name == yui::COMPONENT && root.attr(yui_attr::BOOK_PAGE).is_some()
 }
 
 fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
     Err(format!("line {}: <{}>: {msg}", el.line, el.name))
 }
 
-const KINDS: &[(&str, PropKind)] = &[
-    ("text", PropKind::Text),
-    ("book_text", PropKind::BookText),
-    ("number", PropKind::Number),
-    ("bool", PropKind::Bool),
-    ("item", PropKind::Item),
-    ("image", PropKind::Image),
-    ("data", PropKind::Data),
-];
+impl PropKind {
+    const ALL: [PropKind; 7] = [
+        PropKind::Text,
+        PropKind::BookText,
+        PropKind::Number,
+        PropKind::Bool,
+        PropKind::Item,
+        PropKind::Image,
+        PropKind::Data,
+    ];
 
-/// The names `{x:Bind …}` in `attr` refer to.
-fn bindings(attr: &str) -> Vec<&str> {
-    let mut out = Vec::new();
-    let mut rest = attr;
-    while let Some(i) = rest.find("{x:Bind ") {
-        let after = &rest[i + 8..];
-        let Some(end) = after.find('}') else { break };
-        out.push(after[..end].trim());
-        rest = &after[end + 1..];
+    /// The kind written `name`.
+    fn named(name: &str) -> Option<PropKind> {
+        Self::ALL.into_iter().find(|k| word(k) == name)
     }
-    out
 }
 
 fn number(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> {
@@ -262,122 +268,36 @@ fn number(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> 
     }
 }
 
+/// Attribute `key`, which `el` needs (`what` says what it is).
+fn needs(el: &Element, key: &str, what: &str) -> Result<String, String> {
+    el.attr(key)
+        .map(|v| Ok(v.to_string()))
+        .unwrap_or_else(|| err(el, format_args!("needs {key}=\"…\"{what}")))
+}
+
 /// `root` (a `<Component book_page="…">`) as a page type; `ns`: the mod's
 /// namespace, for a `book_page` written without one.
 pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
-    let id = root.attr("book_page").unwrap_or_default().trim();
-    let id = if id.contains(':') {
-        id.to_string()
-    } else {
-        format!("{ns}:{id}")
-    };
+    let id = yog_ids::qualify_in(ns, root.attr(yui_attr::BOOK_PAGE).unwrap_or_default().trim());
     let mut properties: Vec<PageProperty> = Vec::new();
     let mut body = Vec::new();
-    // The elements may sit in one <Column>, as a component's body does.
-    let mut children: Vec<&Element> = Vec::new();
-    for c in &root.children {
-        if c.name == "Column" {
-            children.extend(c.children.iter());
+    for el in elements(root) {
+        if el.name == yui::PROPERTY {
+            let p = property(el)?;
+            if properties.iter().any(|q| q.name == p.name) {
+                return err(el, format_args!("name=\"{}\": declared twice", p.name));
+            }
+            properties.push(p);
         } else {
-            children.push(c);
+            body.push((el, element(el)?));
         }
-    }
-    for el in children {
-        let attr = |k: &str| el.attr(k).map(str::to_string);
-        let visible = attr("visible");
-        let text = || {
-            attr("text")
-                .map(Ok)
-                .unwrap_or_else(|| err(el, "needs text=\"…\""))
-        };
-        let element = match el.name.as_str() {
-            "Property" => {
-                let name = attr("name").unwrap_or_default();
-                if properties.iter().any(|p| p.name == name) || name.is_empty() {
-                    return err(el, format_args!("name=\"{name}\": empty or declared twice"));
-                }
-                if name == "type" || name == "anchor" {
-                    return err(
-                        el,
-                        format_args!("`{name}` is every page's own field — pick another name"),
-                    );
-                }
-                let ty = attr("type").unwrap_or_else(|| "text".into());
-                let Some((_, kind)) = KINDS.iter().find(|(k, _)| *k == ty) else {
-                    let all: Vec<&str> = KINDS.iter().map(|(k, _)| *k).collect();
-                    return err(el, format_args!("type=\"{ty}\": one of {}", all.join(", ")));
-                };
-                let default = match (attr("default"), kind) {
-                    (None, _) => None,
-                    (Some(d), PropKind::Data | PropKind::Number | PropKind::Bool) => {
-                        Some(yog_data::text::parse_value(&d).map_err(|e| {
-                            format!(
-                                "line {}: <Property> default=\"{d}\": {}",
-                                el.line, e.message
-                            )
-                        })?)
-                    }
-                    (Some(d), _) => Some(yog_data::Value::Str(d)),
-                };
-                properties.push(PageProperty {
-                    name,
-                    kind: *kind,
-                    default,
-                });
-                continue;
-            }
-            "BookHeader" => PageElement::Header {
-                text: text()?,
-                visible,
-            },
-            "BookText" => PageElement::Text {
-                text: text()?,
-                visible,
-            },
-            "BookItem" => PageElement::Item {
-                item: attr("item")
-                    .map(Ok)
-                    .unwrap_or_else(|| err(el, "needs item=\"…\""))?,
-                visible,
-            },
-            "Image" => PageElement::Image {
-                image: attr("src")
-                    .map(Ok)
-                    .unwrap_or_else(|| err(el, "needs src=\"…\""))?,
-                height: number(el, "h", None)?,
-                visible,
-            },
-            "Drawn" => PageElement::Drawn {
-                drawer: attr("drawer").map(Ok).unwrap_or_else(|| {
-                    err(el, "needs drawer=\"mymod:…\" (Registry::on_book_page)")
-                })?,
-                height: number(el, "h", None)?,
-                data: attr("data").unwrap_or_default(),
-                visible,
-            },
-            "Spacer" => PageElement::Spacer {
-                height: number(el, "h", Some(4.0))?,
-            },
-            other => {
-                return err(
-                    el,
-                    format_args!(
-                        "not a book page's element (`{other}`) — BookHeader, BookText, BookItem, Image, Drawn, Spacer"
-                    ),
-                );
-            }
-        };
-        body.push((el, element));
     }
     // Every binding names a property.
     for (el, _) in &body {
         for (key, value) in &el.attrs {
-            for name in bindings(value) {
+            for name in binding::names(value) {
                 if !properties.iter().any(|p| p.name == name) {
-                    return err(
-                        el,
-                        format_args!("{key}: `{name}` isn't a property of this page"),
-                    );
+                    return err(el, format_args!("{key}: `{name}` isn't a property of this page"));
                 }
             }
         }
@@ -386,6 +306,95 @@ pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
         id,
         properties,
         body: body.into_iter().map(|(_, e)| e).collect(),
+    })
+}
+
+/// The page's elements: `root`'s, or those of the one `<Column>` they sit
+/// in, as a component's body does.
+fn elements(root: &Element) -> Vec<&Element> {
+    let mut out = Vec::new();
+    for c in &root.children {
+        if c.name == yui::COLUMN {
+            out.extend(c.children.iter());
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// `<Property name type default>`: a field of the pages.
+fn property(el: &Element) -> Result<PageProperty, String> {
+    let name = el.attr(yui_attr::NAME).unwrap_or_default().to_string();
+    if name.is_empty() {
+        return err(el, "needs name=\"…\"");
+    }
+    if OWN_FIELDS.contains(&name.as_str()) {
+        return err(
+            el,
+            format_args!("`{name}` is every page's own field — pick another name"),
+        );
+    }
+    let ty = el.attr(yui_attr::TYPE).map_or_else(|| word(&PropKind::Text), str::to_string);
+    let Some(kind) = PropKind::named(&ty) else {
+        let all: Vec<String> = PropKind::ALL.iter().map(word).collect();
+        return err(el, format_args!("type=\"{ty}\": one of {}", all.join(", ")));
+    };
+    let default = match (el.attr(yui_attr::DEFAULT), kind) {
+        (None, _) => None,
+        (Some(d), PropKind::Data | PropKind::Number | PropKind::Bool) => {
+            Some(yog_data::text::parse_value(d).map_err(|e| {
+                format!("line {}: <{}> default=\"{d}\": {}", el.line, el.name, e.message)
+            })?)
+        }
+        (Some(d), _) => Some(Value::from(d)),
+    };
+    Ok(PageProperty {
+        name,
+        kind,
+        default,
+    })
+}
+
+/// One of the elements a page shows.
+fn element(el: &Element) -> Result<PageElement, String> {
+    let visible = el.attr(yui_attr::VISIBLE).map(str::to_string);
+    Ok(match el.name.as_str() {
+        yui::BOOK_HEADER => PageElement::Header {
+            text: needs(el, yui_attr::TEXT, "")?,
+            visible,
+        },
+        yui::BOOK_TEXT => PageElement::Text {
+            text: needs(el, yui_attr::TEXT, "")?,
+            visible,
+        },
+        yui::BOOK_ITEM => PageElement::Item {
+            item: needs(el, yui_attr::ITEM, "")?,
+            visible,
+        },
+        yui::IMAGE => PageElement::Image {
+            image: needs(el, yui_attr::SRC, "")?,
+            height: number(el, yui_attr::H, None)?,
+            visible,
+        },
+        yui::DRAWN => PageElement::Drawn {
+            drawer: needs(el, yui_attr::DRAWER, " (Registry::on_book_page)")?,
+            height: number(el, yui_attr::H, None)?,
+            data: el.attr(yui_attr::DATA).unwrap_or_default().to_string(),
+            visible,
+        },
+        yui::SPACER => PageElement::Spacer {
+            height: number(el, yui_attr::H, Some(SPACER_HEIGHT))?,
+        },
+        other => {
+            return err(
+                el,
+                format_args!(
+                    "not a book page's element (`{other}`) — {}",
+                    ELEMENTS.join(", ")
+                ),
+            );
+        }
     })
 }
 

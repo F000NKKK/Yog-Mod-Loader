@@ -88,20 +88,25 @@ impl ItemDef {
 
     /// A tool (`pickaxe`, `axe`, `shovel`, `hoe`, a mod's mineable tag
     /// `mymod:mineable/hammer`) or a `sword`, of `material` (a
-    /// [`ToolMaterial`]: the game's `iron`… or a mod's).
-    pub fn tool(
-        mut self,
-        kind: impl Into<String>,
-        material: impl Into<String>,
-        attack_damage: f32,
-        attack_speed: f32,
-    ) -> Self {
+    /// [`ToolMaterial`]: the game's `iron`… or a mod's), attacking as the
+    /// game's tool of the kind does ([`Self::tool_attack`] changes it).
+    pub fn tool(mut self, kind: impl Into<String>, material: impl Into<String>) -> Self {
         self.tool = Some(ToolItem {
             kind: kind.into(),
             material: material.into(),
-            attack_damage,
-            attack_speed,
+            attack_damage: None,
+            attack_speed: None,
         });
+        self
+    }
+
+    /// The tool's own attack damage (on top of the material's) and speed
+    /// change; none: the game's tool's. Nothing without [`Self::tool`].
+    pub fn tool_attack(mut self, damage: Option<f32>, speed: Option<f32>) -> Self {
+        if let Some(t) = &mut self.tool {
+            t.attack_damage = damage;
+            t.attack_speed = speed;
+        }
         self
     }
 

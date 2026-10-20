@@ -1,6 +1,12 @@
 package dev.yog;
 
 import dev.yog.data.YogContent;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.EquipmentSlot;
+import java.util.Collection;
+import com.google.common.collect.Multimap;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.world.level.Level;
@@ -37,7 +43,7 @@ public final class YogTools {
     /** The tool or armor item {@code p} says, or null for neither. */
     public static Item make(Item.Properties props, YogContent.Item p) {
         if (p.tool() != null) {
-            YogContent.Tool t = p.tool();
+            YogContent.Tool t = p.tool().resolved(YogTools::gameAttack);
             Tier tier = new YogTier(t.material());
             String n = p.name(), tip = p.tooltip();
             float d = t.attackDamage(), s = t.attackSpeed();
@@ -57,6 +63,21 @@ public final class YogTools {
         return null;
     }
 
+    /** Game item {@code id}'s main-hand attack damage and speed modifiers; null for no such item. */
+    static float[] gameAttack(String id) {
+        ResourceLocation rl = ResourceLocation.tryParse(id);
+        Item item = rl == null ? Items.AIR : BuiltInRegistries.ITEM.get(rl);
+        if (item == Items.AIR) return null;
+        Multimap<Attribute, AttributeModifier> mods = item.getDefaultAttributeModifiers(EquipmentSlot.MAINHAND);
+        return new float[] {sum(mods.get(Attributes.ATTACK_DAMAGE)), sum(mods.get(Attributes.ATTACK_SPEED))};
+    }
+
+    private static float sum(Collection<AttributeModifier> mods) {
+        double total = 0;
+        for (AttributeModifier m : mods) total += m.getAmount();
+        return (float) total;
+    }
+
     /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's armor type. */
     static ArmorItem.Type armorType(String slot) {
         return switch (slot) {
@@ -70,7 +91,7 @@ public final class YogTools {
     /** A mod's kind of tool: the blocks it mines, by their tag. */
     static TagKey<Block> mineable(String tag) {
         ResourceLocation rl = ResourceLocation.tryParse(tag);
-        return TagKey.create(Registries.BLOCK, rl != null ? rl : ResourceLocation.tryParse("minecraft:mineable/pickaxe"));
+        return TagKey.create(Registries.BLOCK, rl != null ? rl : ResourceLocation.tryParse(YogNames.Game.MINEABLE + YogNames.ToolKind.PICKAXE));
     }
 
     /** What repairs it: an item id or {@code #tag}; nothing if neither is known. */

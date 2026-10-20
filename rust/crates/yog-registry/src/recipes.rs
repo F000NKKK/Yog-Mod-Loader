@@ -96,7 +96,7 @@ pub struct Recipe {
 const SMELT_TICKS: u32 = 200;
 const FAST_COOK_TICKS: u32 = 100;
 const CAMPFIRE_TICKS: u32 = 600;
-const COOK_EXPERIENCE: f32 = 0.1;
+pub const COOK_EXPERIENCE: f64 = 0.1;
 
 impl Recipe {
     fn of(id: impl Into<String>, kind: RecipeKind, result: impl Into<String>, count: u32) -> Self {
@@ -147,7 +147,7 @@ impl Recipe {
             Cooking::Blasting | Cooking::Smoking => FAST_COOK_TICKS,
             Cooking::Campfire => CAMPFIRE_TICKS,
         };
-        let kind = RecipeKind::Cooking { method, ingredient: vec![ingredient.into()], experience: COOK_EXPERIENCE, cook_time };
+        let kind = RecipeKind::Cooking { method, ingredient: vec![ingredient.into()], experience: COOK_EXPERIENCE as f32, cook_time };
         Self::of(id, kind, result, count)
     }
 

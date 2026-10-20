@@ -2,6 +2,7 @@
 //! `yog build` reads and checks, and what Yog-IDLE's editors are generated
 //! from (`shape`). Books too (`book`); `yog-book` draws them.
 
+pub mod binding;
 pub mod book;
 pub mod content;
 pub mod def;

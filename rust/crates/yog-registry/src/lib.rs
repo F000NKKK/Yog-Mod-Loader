@@ -78,9 +78,12 @@ mod sounds;
 mod worldgen;
 pub use blocks::{BlockDef, BlockProperty};
 pub use entities::{EntityDef, EntityKind};
-pub use equipment::{ArmorDefense, ArmorMaterial, ArmorPiece, ToolItem, ToolMaterial};
+pub use equipment::{
+    ArmorDefense, ArmorMaterial, ArmorPiece, DIGGERS, GameTool, REFERENCE_KIND, REFERENCE_MATERIAL, TOOL_KINDS, ToolItem,
+    ToolMaterial,
+};
 pub use items::{FoodDef, Hangs, ItemDef};
-pub use recipes::{Cooking, Recipe, RecipeKind, StartupGrant};
+pub use recipes::{COOK_EXPERIENCE, Cooking, Recipe, RecipeKind, StartupGrant};
 pub use sounds::SoundGroup;
 pub use worldgen::BiomeFeature;
 

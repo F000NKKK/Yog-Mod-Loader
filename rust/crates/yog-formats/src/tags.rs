@@ -25,7 +25,18 @@ struct Tags {
     has: HashMap<(String, String), Vec<String>>,
     /// The game's content a `yog:` tag holds on every host, by (registry, path).
     base: HashMap<(String, String), Vec<String>>,
+    /// The namespaces of the tags it knows, and Yog's.
+    namespaces: BTreeSet<String>,
 }
+
+/// The table's records: a tag and where it is, a `yog:` tag and the tags
+/// it is, what the game's content a `yog:` tag holds, what a loader's holds.
+const TAG: &str = "tag";
+const YOG: &str = "yog";
+const BASE: &str = "base";
+const HAS: &str = "has";
+/// Where a tag is everywhere.
+const EVERYWHERE: &str = "*";
 
 static TAGS: LazyLock<Tags> = LazyLock::new(|| {
     let mut loaders = Vec::new();
@@ -44,8 +55,8 @@ static TAGS: LazyLock<Tags> = LazyLock::new(|| {
         }
         let p: Vec<&str> = line.split_whitespace().collect();
         match p.as_slice() {
-            ["tag", reg, id, place] => {
-                let hosts = (*place != "*").then(|| {
+            [TAG, reg, id, place] => {
+                let hosts = (*place != EVERYWHERE).then(|| {
                     place
                         .split(',')
                         .flat_map(|w| {
@@ -59,19 +70,19 @@ static TAGS: LazyLock<Tags> = LazyLock::new(|| {
                 });
                 tags.insert((reg.to_string(), id.to_string()), hosts);
             }
-            ["yog", reg, path, of @ ..] => {
+            [YOG, reg, path, of @ ..] => {
                 yog.insert(
                     (reg.to_string(), path.to_string()),
                     of.iter().map(|t| t.to_string()).collect(),
                 );
             }
-            ["base", reg, path, entries @ ..] => {
+            [BASE, reg, path, entries @ ..] => {
                 base.insert(
                     (reg.to_string(), path.to_string()),
                     entries.iter().map(|t| t.to_string()).collect(),
                 );
             }
-            ["has", reg, id, entries @ ..] => {
+            [HAS, reg, id, entries @ ..] => {
                 has.insert(
                     (reg.to_string(), id.to_string()),
                     entries.iter().map(|t| t.to_string()).collect(),
@@ -80,12 +91,18 @@ static TAGS: LazyLock<Tags> = LazyLock::new(|| {
             _ => {}
         }
     }
+    let namespaces = tags
+        .keys()
+        .map(|(_, id): &(String, String)| yog_ids::split(id).0.to_string())
+        .chain([yog_ids::ns::YOG.to_string()])
+        .collect();
     Tags {
         hosts,
         tags,
         yog,
         has,
         base,
+        namespaces,
     }
 });
 
@@ -96,14 +113,14 @@ pub fn hosts() -> &'static [String] {
 
 /// Whether the tables know tags of namespace `ns` (the game's, the loaders', Yog's).
 pub fn tags_known(ns: &str) -> bool {
-    matches!(ns, "minecraft" | "c" | "forge" | "yog")
+    TAGS.namespaces.contains(ns)
 }
 
 /// Where tag `id` (of `registry`) is, if the tables know it: a `yog:` tag
 /// is wherever one of its tags is. `None` for a tag they don't know.
 pub fn tag_hosts(registry: &str, id: &str) -> Option<Hosts> {
-    let (ns, path) = id.split_once(':')?;
-    if ns == "yog" {
+    let (ns, path) = id.split_once(yog_ids::sep::NAMESPACE)?;
+    if ns == yog_ids::ns::YOG {
         let key = (registry.to_string(), path.to_string());
         let of = TAGS.yog.get(&key)?;
         // It holds the game's content everywhere.
@@ -129,7 +146,7 @@ pub fn yog_tag_for(registry: &str, id: &str) -> Option<String> {
     TAGS.yog
         .iter()
         .find(|((r, _), of)| r == registry && of.iter().any(|t| t == id))
-        .map(|((_, p), _)| format!("yog:{p}"))
+        .map(|((_, p), _)| yog_ids::join(yog_ids::ns::YOG, p))
 }
 
 /// `hosts` for people: `Fabric 1.20.1, Minecraft 1.21.1` (every loader of a version).

@@ -237,10 +237,7 @@ pub(super) fn compile_file(
             props.fire_resistant = it.fire_resistant;
             props.fuel_ticks = it.fuel_ticks.unwrap_or(0);
             props.food = it.food.as_ref().map(|f| (f.nutrition, f.saturation, f.always_edible));
-            props.tool = it.tool.as_ref().map(|t| {
-                let (d, s) = t.attack();
-                (t.kind.clone(), t.material.clone(), d, s)
-            });
+            props.tool = it.tool.as_ref().map(|t| (t.kind.clone(), t.material.clone(), t.attack_damage, t.attack_speed));
             props.armor = it.armor.as_ref().map(|a| (yog_formats::content::word(&a.slot), a.material.clone()));
             props.wearable = it.wearable.as_ref().map(yog_formats::content::word);
             props.hangs = it.hangs.as_ref().map(|h| (h.entity.clone(), h.size));
@@ -667,7 +664,10 @@ pub(super) fn item_props(p: &ItemProps) -> String {
         let _ = write!(b, "\n            .fuel({})", p.fuel_ticks);
     }
     if let Some((kind, material, d, s)) = &p.tool {
-        let _ = write!(b, "\n            .tool({kind:?}, {material:?}, {d:?}, {s:?})");
+        let _ = write!(b, "\n            .tool({kind:?}, {material:?})");
+        if d.is_some() || s.is_some() {
+            let _ = write!(b, "\n            .tool_attack({d:?}, {s:?})");
+        }
     }
     if let Some(slot) = &p.wearable {
         let _ = write!(b, "\n            .wearable({slot:?})");

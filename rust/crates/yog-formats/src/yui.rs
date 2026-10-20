@@ -96,19 +96,25 @@ impl<'a> Parser<'a> {
         Ok(rest[..len].to_string())
     }
 
+    /// Steps over `token` if the rest starts with it.
+    fn eat(&mut self, token: &str) -> bool {
+        let found = self.rest().starts_with(token);
+        if found {
+            self.pos += token.len();
+        }
+        found
+    }
+
     fn element(&mut self) -> Result<Element, String> {
         let line = self.line();
-        if !self.rest().starts_with('<') {
+        if !self.eat("<") {
             return self.err("expected an element");
         }
-        self.pos += 1;
         let name = self.name()?;
         let mut attrs: Vec<(String, String)> = Vec::new();
         loop {
             self.skip_ws();
-            let rest = self.rest();
-            if rest.starts_with("/>") {
-                self.pos += 2;
+            if self.eat("/>") {
                 return Ok(Element {
                     name,
                     attrs,
@@ -116,58 +122,65 @@ impl<'a> Parser<'a> {
                     line,
                 });
             }
-            if rest.starts_with('>') {
-                self.pos += 1;
+            if self.eat(">") {
                 break;
             }
-            if rest.is_empty() {
+            if self.rest().is_empty() {
                 return self.err(format!("unterminated <{name}>"));
             }
-            let key = self.name()?;
-            self.skip_ws();
-            if !self.rest().starts_with('=') {
-                return self.err(format!("expected `=` after attribute `{key}`"));
-            }
-            self.pos += 1;
-            self.skip_ws();
-            let quote = match self.rest().chars().next() {
-                Some(q @ ('"' | '\'')) => q,
-                _ => return self.err(format!("attribute `{key}`: expected a quoted value")),
-            };
-            self.pos += 1;
-            let Some(end) = self.rest().find(quote) else {
-                return self.err(format!("attribute `{key}`: unterminated value"));
-            };
-            let raw = &self.rest()[..end];
-            let value = unescape(raw).map_err(|e| format!("line {}: {e}", self.line()))?;
-            self.pos += end + 1;
+            let (key, value) = self.attribute()?;
             if attrs.iter().any(|(k, _)| *k == key) {
                 return self.err(format!("<{name}>: duplicate attribute `{key}`"));
             }
             attrs.push((key, value));
         }
+        let children = self.children(&name)?;
+        Ok(Element {
+            name,
+            attrs,
+            children,
+            line,
+        })
+    }
+
+    /// `key="value"` (or single-quoted), unescaped.
+    fn attribute(&mut self) -> Result<(String, String), String> {
+        let key = self.name()?;
+        self.skip_ws();
+        if !self.eat("=") {
+            return self.err(format!("expected `=` after attribute `{key}`"));
+        }
+        self.skip_ws();
+        let quote = match self.rest().chars().next() {
+            Some(q @ ('"' | '\'')) => q,
+            _ => return self.err(format!("attribute `{key}`: expected a quoted value")),
+        };
+        self.pos += quote.len_utf8();
+        let Some(end) = self.rest().find(quote) else {
+            return self.err(format!("attribute `{key}`: unterminated value"));
+        };
+        let value = unescape(&self.rest()[..end]).map_err(|e| format!("line {}: {e}", self.line()))?;
+        self.pos += end + quote.len_utf8();
+        Ok((key, value))
+    }
+
+    /// The elements inside `<name>`, through its closing tag.
+    fn children(&mut self, name: &str) -> Result<Vec<Element>, String> {
         let mut children = Vec::new();
         loop {
             self.skip_misc()?;
-            let rest = self.rest();
-            if rest.starts_with("</") {
-                self.pos += 2;
+            if self.eat("</") {
                 let close = self.name()?;
                 if close != name {
                     return self.err(format!("</{close}> closes <{name}>"));
                 }
                 self.skip_ws();
-                if !self.rest().starts_with('>') {
+                if !self.eat(">") {
                     return self.err("expected `>`");
                 }
-                self.pos += 1;
-                return Ok(Element {
-                    name,
-                    attrs,
-                    children,
-                    line,
-                });
+                return Ok(children);
             }
+            let rest = self.rest();
             if rest.is_empty() {
                 return self.err(format!("<{name}> is never closed"));
             }

@@ -154,7 +154,10 @@ fn scalar(v: &ValueRef, cx: &mut Reader) -> Option<Value> {
         ValueRef::Bytes(b) => Value::Bytes(b.to_vec()),
         ValueRef::Str(s) if s.starts_with(BYTES_PREFIX) => match yog_data::typed::classify(s) {
             Ok(yog_data::Value::Bytes(b)) => Value::Bytes(b),
-            Ok(_) => unreachable!("`@bytes:` classifies as bytes"),
+            Ok(other) => {
+                cx.problem(format!("`{s}`: bytes, not {other:?}"));
+                return None;
+            }
             Err(e) => {
                 cx.problem(e);
                 return None;

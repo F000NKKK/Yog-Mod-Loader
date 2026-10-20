@@ -329,7 +329,7 @@ struct ItemProps {
     /// (nutrition, saturation, always_edible)
     food: Option<(u32, f64, bool)>,
     /// (kind, material, attack damage, attack speed)
-    tool: Option<(String, String, f32, f32)>,
+    tool: Option<(String, String, Option<f32>, Option<f32>)>,
     /// (slot, material)
     armor: Option<(String, String)>,
     /// Worn in this slot without being armor.

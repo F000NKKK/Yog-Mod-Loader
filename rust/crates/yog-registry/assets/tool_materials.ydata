@@ -1,12 +1,13 @@
 // The game's tool materials as `ToolMaterial`s, the same as a `.ydef` of
 // kind `tool_material` writes (with what the build works out of `level`:
 // 1.20's level number, 1.21's blocks a tool of it can't mine for drops).
-// `material: "iron"` on an item is `minecraft:iron` here.
+// `material: "iron"` on an item is `minecraft:iron` here; `game_tools` names
+// the game's tools of it, whose attack a tool takes when it gives none.
 [
-  { id: "minecraft:wood", durability: 59, speed: 2, attack_damage: 0, enchantability: 15, level: "minecraft:wood", repair: "#minecraft:planks", level_index: 0, incorrect: "minecraft:incorrect_for_wooden_tool" },
-  { id: "minecraft:stone", durability: 131, speed: 4, attack_damage: 1, enchantability: 5, level: "minecraft:stone", repair: "#minecraft:stone_tool_materials", level_index: 1, incorrect: "minecraft:incorrect_for_stone_tool" },
-  { id: "minecraft:iron", durability: 250, speed: 6, attack_damage: 2, enchantability: 14, level: "minecraft:iron", repair: "minecraft:iron_ingot", level_index: 2, incorrect: "minecraft:incorrect_for_iron_tool" },
-  { id: "minecraft:diamond", durability: 1561, speed: 8, attack_damage: 3, enchantability: 10, level: "minecraft:diamond", repair: "minecraft:diamond", level_index: 3, incorrect: "minecraft:incorrect_for_diamond_tool" },
-  { id: "minecraft:gold", durability: 32, speed: 12, attack_damage: 0, enchantability: 22, level: "minecraft:wood", repair: "minecraft:gold_ingot", level_index: 0, incorrect: "minecraft:incorrect_for_gold_tool" },
-  { id: "minecraft:netherite", durability: 2031, speed: 9, attack_damage: 4, enchantability: 15, level: "minecraft:netherite", repair: "minecraft:netherite_ingot", level_index: 4, incorrect: "minecraft:incorrect_for_netherite_tool" },
+  { id: "minecraft:wood", durability: 59, speed: 2, attack_damage: 0, enchantability: 15, level: "minecraft:wood", repair: "#minecraft:planks", level_index: 0, incorrect: "minecraft:incorrect_for_wooden_tool", game_tools: "wooden_" },
+  { id: "minecraft:stone", durability: 131, speed: 4, attack_damage: 1, enchantability: 5, level: "minecraft:stone", repair: "#minecraft:stone_tool_materials", level_index: 1, incorrect: "minecraft:incorrect_for_stone_tool", game_tools: "stone_" },
+  { id: "minecraft:iron", durability: 250, speed: 6, attack_damage: 2, enchantability: 14, level: "minecraft:iron", repair: "minecraft:iron_ingot", level_index: 2, incorrect: "minecraft:incorrect_for_iron_tool", game_tools: "iron_" },
+  { id: "minecraft:diamond", durability: 1561, speed: 8, attack_damage: 3, enchantability: 10, level: "minecraft:diamond", repair: "minecraft:diamond", level_index: 3, incorrect: "minecraft:incorrect_for_diamond_tool", game_tools: "diamond_" },
+  { id: "minecraft:gold", durability: 32, speed: 12, attack_damage: 0, enchantability: 22, level: "minecraft:wood", repair: "minecraft:gold_ingot", level_index: 0, incorrect: "minecraft:incorrect_for_gold_tool", game_tools: "golden_" },
+  { id: "minecraft:netherite", durability: 2031, speed: 9, attack_damage: 4, enchantability: 15, level: "minecraft:netherite", repair: "minecraft:netherite_ingot", level_index: 4, incorrect: "minecraft:incorrect_for_netherite_tool", game_tools: "netherite_" },
 ]

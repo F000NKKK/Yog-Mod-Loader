@@ -175,6 +175,8 @@ names! {
         PLAINS = id!(ns::MINECRAFT, "plains"),
         THE_NETHER = id!(ns::MINECRAFT, "the_nether"),
         THE_END = id!(ns::MINECRAFT, "the_end"),
+        /// The block tags of what each kind of tool mines: `<MINEABLE><kind>`.
+        MINEABLE = id!(ns::MINECRAFT, "mineable/"),
         /// The texture the game draws where one is missing.
         MISSING_TEXTURE = id!(ns::MINECRAFT, "missingno"),
         /// What a book is given to players as.
@@ -257,6 +259,14 @@ names! {
         RECIPE_SLOT = "RecipeSlot",
         RECIPE_RESULT = "RecipeResult",
         RECIPE_COUNT = "RecipeCount",
+        /// A block in 3D, at a slot's angle (a recipe layout's station).
+        BLOCK_SLOT = "BlockSlot",
+        /// A book page type's elements.
+        BOOK_HEADER = "BookHeader",
+        BOOK_TEXT = "BookText",
+        BOOK_ITEM = "BookItem",
+        /// A picture the mod's code draws.
+        DRAWN = "Drawn",
     }
 
     /// The fields and types of the game's item definitions (`items/<path>.json`, 1.21.4+).
@@ -279,6 +289,30 @@ names! {
         HUMANOID = "humanoid",
         /// Worn on the legs: leggings.
         HUMANOID_LEGGINGS = "humanoid_leggings",
+    }
+
+    /// The markup of a `.yui` attribute's value: a binding (`{x:Bind name}`)
+    /// opens and closes so.
+    yui_markup {
+        BIND_OPEN = "{x:Bind ",
+        BIND_CLOSE = "}",
+    }
+
+    /// The sections of the game's `.mcmeta` beside a texture.
+    mcmeta {
+        ANIMATION = "animation",
+        TEXTURE = "texture",
+    }
+
+    /// The game's kinds of tool (`item.tool.kind`); a mod's kind is the
+    /// block tag of what it mines.
+    tool_kind {
+        PICKAXE = "pickaxe",
+        AXE = "axe",
+        SHOVEL = "shovel",
+        HOE = "hoe",
+        /// A weapon: it mines nothing of its own.
+        SWORD = "sword",
     }
 
     /// The fields of the game's model JSON (block and item models, block states' variants).
@@ -383,6 +417,19 @@ names! {
         RECIPE_LAYOUT = "recipe_layout",
         SLOT = "slot",
         BLOCK = "block",
+        /// A slot frame behind it, for layouts without their own picture.
+        FRAME = "frame",
+        SIZE = "size",
+        /// A `<Component>` that is a kind of book page, its id.
+        BOOK_PAGE = "book_page",
+        /// A `<Property>`'s.
+        NAME = "name",
+        TYPE = "type",
+        DEFAULT = "default",
+        /// A book page's image and drawn picture.
+        SRC = "src",
+        DRAWER = "drawer",
+        DATA = "data",
         STYLE = "style",
         BASED_ON = "based_on",
         ORIENTATION = "orientation",

@@ -462,6 +462,7 @@ pub(super) fn read_defs(defs: &[(String, String)], mod_ns: Option<&str>, errors:
             repair: repair(&m.repair),
             level_index,
             incorrect,
+            game_tools: String::new(),
         });
     }
     Defs { order, sound_groups, tool_materials, armor_materials, biome_features: Vec::new(), dimensions: Vec::new(), tables: Vec::new(), loot_modifiers: Vec::new(), definitions: Vec::new(), advancements: Vec::new() }

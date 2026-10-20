@@ -1,6 +1,10 @@
 package dev.yog;
 
 import dev.yog.data.YogContent;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.core.component.DataComponents;
 import java.util.EnumMap;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -39,7 +43,7 @@ public final class YogTools {
     /** The tool or armor item {@code p} says, or null for neither. */
     public static Item make(Item.Properties s, YogContent.Item p) {
         if (p.tool() != null) {
-            YogContent.Tool t = p.tool();
+            YogContent.Tool t = p.tool().resolved(YogTools::gameAttack);
             ToolMaterial m = material(t.material());
             float damage = t.attackDamage(), speed = t.attackSpeed();
             Item.Properties tool = switch (t.kind()) {
@@ -68,6 +72,20 @@ public final class YogTools {
             return new Named(repairable(armor, m.repair()), p.name(), p.tooltip());
         }
         return null;
+    }
+
+    /** Game item {@code id}'s main-hand attack damage and speed modifiers; null for no such item. */
+    static float[] gameAttack(String id) {
+        Identifier key = Identifier.tryParse(id);
+        Item item = key == null ? Items.AIR : BuiltInRegistries.ITEM.getValue(key);
+        if (item == Items.AIR) return null;
+        float[] attack = new float[2];
+        item.components().getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY)
+                .forEach(EquipmentSlot.MAINHAND, (attribute, modifier) -> {
+                    if (attribute.equals(Attributes.ATTACK_DAMAGE)) attack[0] += (float) modifier.amount();
+                    else if (attribute.equals(Attributes.ATTACK_SPEED)) attack[1] += (float) modifier.amount();
+                });
+        return attack;
     }
 
     /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's armor type. */

@@ -369,7 +369,7 @@ pub(super) fn rust_source(c: &Content) -> Source {
     for m in &defs.tool_materials {
         let _ = writeln!(
             code,
-            "    registry.register_tool_material(::yog_api::ToolMaterial {{ id: {:?}.into(), durability: {}, speed: {:?}, attack_damage: {:?}, enchantability: {}, level: {:?}.into(), repair: {:?}.into(), level_index: {}, incorrect: {:?}.into() }});",
+            "    registry.register_tool_material(::yog_api::ToolMaterial {{ id: {:?}.into(), durability: {}, speed: {:?}, attack_damage: {:?}, enchantability: {}, level: {:?}.into(), repair: {:?}.into(), level_index: {}, incorrect: {:?}.into(), game_tools: ::std::string::String::new() }});",
             m.id, m.durability, m.speed, m.attack_damage, m.enchantability, m.level, m.repair, m.level_index, m.incorrect
         );
     }

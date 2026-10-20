@@ -6,7 +6,9 @@
 use std::os::raw::c_void;
 
 use jni::{JNIEnv, NativeMethod};
-use yog_abi::{YogHandlerFn, YogReply, YogStatus};
+use yog_abi::YogHandlerFn;
+#[cfg(feature = "bench")]
+use yog_abi::{YogReply, YogStatus};
 
 use super::{Handler, ROUTER, arena, java};
 
@@ -36,11 +38,13 @@ pub fn register_natives(env: &mut JNIEnv) -> jni::errors::Result<()> {
     env.register_native_methods("dev/yog/YogAtoms", &atoms)
 }
 
+#[cfg(feature = "bench")]
 pub fn resolve(name: &str) -> u32 {
     ROUTER.resolve(name)
 }
 
 /// Calls `to` as a mod does — Java handlers through the arena — its reply into `reply`.
+#[cfg(feature = "bench")]
 pub fn call(to: u32, payload: &[u8], reply: &mut Vec<u8>) -> YogStatus {
     reply.clear();
     ROUTER.call(to, payload, &YogReply::to_vec(reply), java::run)

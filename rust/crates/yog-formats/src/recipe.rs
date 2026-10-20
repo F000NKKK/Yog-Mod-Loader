@@ -105,7 +105,7 @@ pub struct Cooking {
 }
 
 fn experience() -> f64 {
-    0.1
+    yog_registry::COOK_EXPERIENCE
 }
 
 #[derive(Schema)]

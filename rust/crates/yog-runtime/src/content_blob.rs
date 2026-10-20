@@ -46,6 +46,33 @@ fn write_tool_material(w: &mut Writer, m: &yog_registry::ToolMaterial) {
     w.key("incorrect").str(&m.incorrect);
 }
 
+/// A tool: its kind, material, and its own attack where it gives one —
+/// else the game's tool it attacks as (`game_tool`), which the host reads
+/// the game's numbers off.
+fn write_tool(w: &mut Writer, t: &yog_registry::ToolItem, m: &yog_registry::ToolMaterial) {
+    let game = m.game_tool(&t.kind);
+    // Always: kind, material.
+    let n = 2
+        + t.attack_damage.is_some() as usize
+        + t.attack_speed.is_some() as usize
+        + game.is_some() as usize;
+    w.key("tool").map(n);
+    w.key("kind").str(&t.kind);
+    if let Some(d) = t.attack_damage {
+        w.key("attack_damage").float(f64::from(d));
+    }
+    if let Some(s) = t.attack_speed {
+        w.key("attack_speed").float(f64::from(s));
+    }
+    if let Some(g) = game {
+        w.key("game_tool").map(2);
+        w.key("item").str(&g.item);
+        w.key("material_damage").float(f64::from(g.material_damage));
+    }
+    w.key("material");
+    write_tool_material(w, m);
+}
+
 /// An armor material, whole.
 fn write_armor_material(w: &mut Writer, m: &yog_registry::ArmorMaterial) {
     w.map(9);
@@ -139,12 +166,7 @@ pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
             w.key("always_edible").bool(f.can_always_eat);
         }
         if let Some((t, m)) = tool {
-            w.key("tool").map(4);
-            w.key("kind").str(&t.kind);
-            w.key("attack_damage").float(t.attack_damage as f64);
-            w.key("attack_speed").float(t.attack_speed as f64);
-            w.key("material");
-            write_tool_material(&mut w, m);
+            write_tool(&mut w, t, m);
         }
         if let Some((a, m)) = armor {
             w.key("armor").map(2);

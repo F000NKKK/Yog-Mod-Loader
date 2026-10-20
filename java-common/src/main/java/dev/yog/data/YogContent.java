@@ -1,5 +1,6 @@
 package dev.yog.data;
 
+import dev.yog.YogLog;
 import dev.yog.util.YogInventoryDef;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,8 +25,32 @@ public final class YogContent {
     public record ToolMaterial(String id, int durability, float speed, float attackDamage, int enchantability,
                                String repair, int levelIndex, String incorrect) {}
 
-    /** A tool: {@code pickaxe}, {@code axe}, {@code shovel}, {@code hoe}, {@code sword}, or a mineable tag id. */
-    public record Tool(String kind, float attackDamage, float attackSpeed, ToolMaterial material) {}
+    /**
+     * A tool: {@code pickaxe}, {@code axe}, {@code shovel}, {@code hoe}, {@code sword}, or a mineable tag id.
+     * Its attack damage (on top of the material's) and speed change are NaN where it gives none: then
+     * the game's tool {@code gameTool} names (null: none) has them, as the running version does.
+     */
+    public record Tool(String kind, float attackDamage, float attackSpeed, ToolMaterial material, GameTool gameTool) {
+        /**
+         * Its attack, what it doesn't give taken from the game's tool: {@code game} reads a game item's
+         * attack damage and speed modifiers ({@code [damage, speed]}, null for no such item).
+         */
+        public Tool resolved(java.util.function.Function<String, float[]> game) {
+            if (!Float.isNaN(attackDamage) && !Float.isNaN(attackSpeed)) return this;
+            float materialDamage = gameTool == null ? 0 : gameTool.materialDamage();
+            float[] a = gameTool == null ? null : game.apply(gameTool.item());
+            if (a == null) {
+                YogLog.warn("tool " + kind + " of " + material.id() + ": no game tool to take its attack from");
+                a = new float[] {materialDamage, 0};
+            }
+            float damage = Float.isNaN(attackDamage) ? a[0] - materialDamage : attackDamage;
+            float speed = Float.isNaN(attackSpeed) ? a[1] : attackSpeed;
+            return new Tool(kind, damage, speed, material, gameTool);
+        }
+    }
+
+    /** The game's tool a tool takes its attack from, and the damage its material adds. */
+    public record GameTool(String item, float materialDamage) {}
 
     /** What armor is made of, whole; {@code durability} multiplies each piece's base. */
     public record ArmorMaterial(String id, int durability, int head, int chest, int legs, int feet, int enchantability,
@@ -364,8 +389,10 @@ public final class YogContent {
                 (float) YogData.number(m.get("speed"), 1), (float) YogData.number(m.get("attack_damage"), 0),
                 (int) YogData.integer(m.get("enchantability"), 0), YogData.str(m.get("repair"), ""),
                 (int) YogData.integer(m.get("level_index"), 0), YogData.str(m.get("incorrect"), "minecraft:incorrect_for_wooden_tool"));
-        return new Tool(YogData.str(t.get("kind"), "pickaxe"), (float) YogData.number(t.get("attack_damage"), 1),
-                (float) YogData.number(t.get("attack_speed"), -2.8), material);
+        Map<String, Object> g = t.get("game_tool") == null ? null : YogData.map(t.get("game_tool"));
+        GameTool game = g == null ? null : new GameTool(YogData.str(g.get("item"), ""), (float) YogData.number(g.get("material_damage"), 0));
+        return new Tool(YogData.str(t.get("kind"), ""), (float) YogData.number(t.get("attack_damage"), Double.NaN),
+                (float) YogData.number(t.get("attack_speed"), Double.NaN), material, game);
     }
 
     private static Hangs hangs(Object v) {

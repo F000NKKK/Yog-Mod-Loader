@@ -72,6 +72,7 @@ pub fn id_of(mod_id: &str, rel: &str) -> Option<String> {
 }
 
 use serde_json::{Value, json};
+use yog_ids::mcmeta;
 
 impl TextureFile {
     /// The game's `.mcmeta` of the texture, when it animates or filters.
@@ -80,11 +81,11 @@ impl TextureFile {
         let t = self;
         let mut meta = serde_json::Map::new();
         if let Some(a) = &t.animation {
-            meta.insert("animation".into(), animation(a));
+            meta.insert(mcmeta::ANIMATION.into(), animation(a));
         }
         if t.blur || t.clamp {
             meta.insert(
-                "texture".into(),
+                mcmeta::TEXTURE.into(),
                 json!({ "blur": t.blur, "clamp": t.clamp }),
             );
         }
@@ -119,7 +120,7 @@ impl Animation {
     /// The animation a game `.mcmeta` (its JSON) describes.
     #[must_use]
     pub fn from_mcmeta(mcmeta: &Value) -> Option<Animation> {
-        let a = mcmeta.get("animation")?;
+        let a = mcmeta.get(yog_ids::mcmeta::ANIMATION)?;
         let u32_of = |v: &Value, k: &str| {
             v.get(k)
                 .and_then(Value::as_u64)

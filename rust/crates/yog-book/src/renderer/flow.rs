@@ -76,10 +76,6 @@ pub(crate) fn flow_traced(mut book: Book) -> (Book, HashMap<String, Vec<usize>>)
     (book, origins)
 }
 
-/// The binding a mod's page type's text shows (`{x:Bind name}`).
-const BIND_OPEN: &str = "{x:Bind ";
-const BIND_CLOSE: char = '}';
-
 /// A mod's page's room for its text: the property its last text shows
 /// (`<BookText text="{x:Bind text}"/>`, nothing else in it), and the
 /// height the rest of the page takes, in book pixels.
@@ -104,11 +100,7 @@ fn custom_text(page: &CustomPage, types: &[PageType]) -> Option<(String, f32)> {
     let PageElement::Text { text, .. } = shown[at] else {
         return None;
     };
-    let name = text
-        .trim()
-        .strip_prefix(BIND_OPEN)?
-        .strip_suffix(BIND_CLOSE)?
-        .trim();
+    let name = yog_formats::binding::whole(text)?;
     if !matches!(page.fields.get(name), Some(yog_data::Value::Str(_))) {
         return None;
     }
