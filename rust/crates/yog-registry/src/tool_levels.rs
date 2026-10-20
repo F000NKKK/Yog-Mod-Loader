@@ -25,7 +25,7 @@ pub struct ToolLevel {
 }
 
 /// What a block needing a level above the game's top one gets.
-#[derive(yog_data::Schema, Debug, Clone, PartialEq)]
+#[derive(yog_data::Schema, Debug, Clone, PartialEq, Default)]
 pub struct AboveTop {
     pub needs: Vec<LevelTag>,
     /// What doesn't hold everywhere, for the build to warn about.
@@ -33,7 +33,7 @@ pub struct AboveTop {
 }
 
 /// The game's tool ladder.
-#[derive(yog_data::Schema, Debug, Clone, PartialEq)]
+#[derive(yog_data::Schema, Debug, Clone, PartialEq, Default)]
 pub struct ToolLadder {
     /// Its id: `@ladder:minecraft:tool`.
     pub ladder: String,
@@ -45,9 +45,10 @@ pub struct ToolLadder {
 }
 
 static TOOL_LADDER: LazyLock<ToolLadder> = LazyLock::new(|| {
-    yog_data::from_text::<ToolLadder>(include_str!("../assets/tool_levels.ydata"))
-        .unwrap_or_else(|e| panic!("yog-registry's tool levels: {e}"))
-        .value
+    yog_data::built_in::<ToolLadder>(
+        "yog-registry's tool levels",
+        include_str!("../assets/tool_levels.ydata"),
+    )
 });
 
 impl ToolLadder {
@@ -75,8 +76,20 @@ mod tests {
     #[test]
     fn the_game_ladder_reads() {
         let l = ToolLadder::game();
-        assert_eq!(l.ids().collect::<Vec<_>>(), ["minecraft:wood", "minecraft:stone", "minecraft:iron", "minecraft:diamond", "minecraft:netherite"]);
-        assert_eq!(l.level("iron").unwrap().needs[0].tag, "minecraft:needs_iron_tool");
+        assert_eq!(
+            l.ids().collect::<Vec<_>>(),
+            [
+                "minecraft:wood",
+                "minecraft:stone",
+                "minecraft:iron",
+                "minecraft:diamond",
+                "minecraft:netherite"
+            ]
+        );
+        assert_eq!(
+            l.level("iron").unwrap().needs[0].tag,
+            "minecraft:needs_iron_tool"
+        );
         assert!(l.above.needs.iter().any(|t| t.when == "fabric/1.20"));
     }
 }

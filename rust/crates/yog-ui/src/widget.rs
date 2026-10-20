@@ -1006,19 +1006,17 @@ pub fn inv_slot(item_id: impl Into<String>, count: u32) -> Widget {
     .w(SLOT_SIZE)
     .h(SLOT_SIZE)
 }
-/// The ids of inventory widgets: a [`slot`]'s `<SLOT_PREFIX><index>` (and
-/// `=<accepts>`, `|`-joined, for a [`slot_accepting`]), the
-/// [`player_inventory`]'s, and a [`machine`] marker's
-/// `<MACHINE_PREFIX><kind>;<result slot>;` then its places, `,`-joined
-/// `<kind's slot>/<index>=<inventory slot>`.
-pub use yog_ids::yog::{MACHINE_PREFIX, PLAYER_INVENTORY, SLOT_PREFIX};
+/// The ids of inventory widgets ([`crate::inventory_ids`]).
+pub use crate::inventory_ids::{MACHINE_PREFIX, PLAYER_INVENTORY, SLOT_PREFIX};
 
 /// Marks an inventory screen as a machine making recipes of `kind`: its
 /// `places` (`(kind's slot, index, inventory slot)`) and its `result` slot
 /// — what a `.yui` `<RecipeArea>` becomes. Draws nothing.
 pub fn machine(kind: &str, places: &[(&str, usize, usize)], result: usize) -> Widget {
-    let places: Vec<String> = places.iter().map(|(s, i, inv)| format!("{s}/{i}={inv}")).collect();
-    spacer().w(0.0).h(0.0).id(format!("{MACHINE_PREFIX}{kind};{result};{}", places.join(",")))
+    spacer()
+        .w(0.0)
+        .h(0.0)
+        .id(crate::inventory_ids::MachineId::write(kind, places, result))
 }
 /// Gap between the player's main inventory and their hotbar (vanilla).
 pub const HOTBAR_GAP: f32 = 4.0;
@@ -1027,20 +1025,21 @@ pub const HOTBAR_GAP: f32 = 4.0;
 /// slot sits in — the game draws the item, the hover and the drag over it.
 /// Where it lands in the layout is where the slot is.
 pub fn slot(index: usize) -> Widget {
-    inv_slot("", 0).id(format!("{SLOT_PREFIX}{index}"))
+    inv_slot("", 0).id(crate::inventory_ids::slot_id(index, &[]))
 }
 /// A [`slot`] that only takes `accepts`: item ids (`minecraft:redstone`)
 /// and item tags (`#c:dusts`).
 pub fn slot_accepting(index: usize, accepts: &[&str]) -> Widget {
-    if accepts.is_empty() {
-        return slot(index);
-    }
-    inv_slot("", 0).id(format!("{SLOT_PREFIX}{index}={}", accepts.join("|")))
+    inv_slot("", 0).id(crate::inventory_ids::slot_id(index, accepts))
 }
 /// The player's inventory on an inventory screen: 3 rows of 9, then the
 /// hotbar [`HOTBAR_GAP`] below — frames for the real slots, like [`slot`].
 pub fn player_inventory() -> Widget {
-    let row = || (0..9).fold(panel(FlexDir::Row).gap(0.0), |r, _| r.child(inv_slot("", 0)));
+    let row = || {
+        (0..9).fold(panel(FlexDir::Row).gap(0.0), |r, _| {
+            r.child(inv_slot("", 0))
+        })
+    };
     panel(FlexDir::Column)
         .id(PLAYER_INVENTORY)
         .gap(0.0)

@@ -12,6 +12,8 @@ exclude = ["benches/hexbook.ybook"]
 [dependencies]
 # The names every part shares (namespaces, kinds, typed-value words).
 yog-ids = { workspace = true }
+# A built-in table that won't read is reported, not a crash.
+yog-logging = { workspace = true }
 base64 = { workspace = true }
 yog-data-derive = { workspace = true }
 # The arena borrowed values' lists and maps live in (`ValueRef`).

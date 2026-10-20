@@ -212,6 +212,19 @@ fn read_with<T: Schema>(v: &ValueRef, mut cx: Reader<'_>) -> Result<Read<T>, Vec
     }
 }
 
+/// A table a crate ships (`include_str!` of its `.ydata`), read: what it
+/// says, or — when it won't read, which its crate's tests catch — the
+/// error logged (`what`: which table) and nothing.
+pub fn built_in<T: Schema + Default>(what: &str, text: &str) -> T {
+    match from_text::<T>(text) {
+        Ok(read) => read.value,
+        Err(e) => {
+            yog_logging::error!("{what} won't read: {e}");
+            T::default()
+        }
+    }
+}
+
 /// Parses `text` and reads it as `T`; problems come with their line and column.
 pub fn from_text<T: Schema>(text: &str) -> Result<Read<T>, Errors> {
     let doc = text::parse(text).map_err(|e| {

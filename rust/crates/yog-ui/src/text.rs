@@ -301,17 +301,37 @@ mod tests {
         assert_eq!(wrap_text("", 40.0, 1.0), [""]);
         assert_eq!(wrap_text("aaa\nbbb", 400.0, 1.0), ["aaa", "bbb"]);
         assert_eq!(wrap_text("aaa\n\nbbb", 400.0, 1.0), ["aaa", "", "bbb"]);
-        assert_eq!(str_width("§5ab§r", 1.0), str_width("ab", 1.0), "codes take no room");
-        assert_eq!(str_width("§lab", 1.0), str_width("ab", 1.0) + 2.0, "bold is wider");
+        assert_eq!(
+            str_width("§5ab§r", 1.0),
+            str_width("ab", 1.0),
+            "codes take no room"
+        );
+        assert_eq!(
+            str_width("§lab", 1.0),
+            str_width("ab", 1.0) + 2.0,
+            "bold is wider"
+        );
 
         assert_eq!(wrap_text("mmmmmmmmmm", 30.0, 1.0), ["mmmmm", "mmmmm"]);
         assert_eq!(
             wrap_text("a mmmmmmmmmm b", 30.0, 1.0),
             ["a", "mmmmm", "mmmmm", "b"]
         );
-        assert_eq!(wrap_text("{b|mmmmmmmmmm}", 30.0, 1.0), ["{b|mmmmm", "mmmmm}"], "spans take no room");
-        assert_eq!(wrap_text("aaa {b #ff0000|bb cc}", 40.0, 1.0), ["aaa {b #ff0000|bb", "cc}"], "a span's opening stays whole");
-        assert_eq!(wrap_text("{{m}}{{m}}", 15.0, 1.0), ["{{m", "}}{{", "m}}"], "escaped braces are characters");
+        assert_eq!(
+            wrap_text("{b|mmmmmmmmmm}", 30.0, 1.0),
+            ["{b|mmmmm", "mmmmm}"],
+            "spans take no room"
+        );
+        assert_eq!(
+            wrap_text("aaa {b #ff0000|bb cc}", 40.0, 1.0),
+            ["aaa {b #ff0000|bb", "cc}"],
+            "a span's opening stays whole"
+        );
+        assert_eq!(
+            wrap_text("{{m}}{{m}}", 15.0, 1.0),
+            ["{{m", "}}{{", "m}}"],
+            "escaped braces are characters"
+        );
     }
 
     #[test]

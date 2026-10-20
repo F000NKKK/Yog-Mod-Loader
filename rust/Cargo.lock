@@ -1940,6 +1940,7 @@ dependencies = [
  "toml",
  "yog-data-derive",
  "yog-ids",
+ "yog-logging",
 ]
 
 [[package]]
@@ -2075,6 +2076,7 @@ name = "yog-kit"
 version = "0.11.0"
 dependencies = [
  "yog-api",
+ "yog-kit",
 ]
 
 [[package]]

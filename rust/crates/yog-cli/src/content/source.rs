@@ -237,8 +237,8 @@ pub(super) fn rust_source(c: &Content) -> Source {
                         let _ = write!(b, "\n            .slipperiness({})", float(s));
                     }
                     if let Some(s) = p.shape {
-                        let args: Vec<String> = s.iter().map(|n| float(*n)).collect();
-                        let _ = write!(b, "\n            .shape({})", args.join(", "));
+                        let corner = |c: &[f64]| c.iter().map(|n| float(*n)).collect::<Vec<_>>().join(", ");
+                        let _ = write!(b, "\n            .shape([{}], [{}])", corner(&s[..3]), corner(&s[3..]));
                     }
                     if p.connects {
                         b.push_str("\n            .connects_to_neighbors()");

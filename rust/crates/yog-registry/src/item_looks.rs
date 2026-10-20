@@ -8,7 +8,7 @@ use yog_data::Ordered;
 use yog_graphics::Color;
 
 /// The models items are drawn through in a GUI.
-#[derive(yog_data::Schema, Debug, Clone, PartialEq)]
+#[derive(yog_data::Schema, Debug, Clone, PartialEq, Default)]
 pub struct LookModels {
     /// A potion's (Yog's potion aliases are drawn through it).
     pub potion: String,
@@ -30,7 +30,7 @@ pub struct ItemTint {
 }
 
 /// The game's item looks.
-#[derive(yog_data::Schema, Debug, Clone, PartialEq)]
+#[derive(yog_data::Schema, Debug, Clone, PartialEq, Default)]
 pub struct ItemLooks {
     pub models: LookModels,
     /// Items drawn as a mob's head, by item path: the mob's texture.
@@ -41,9 +41,10 @@ pub struct ItemLooks {
 }
 
 static ITEM_LOOKS: LazyLock<ItemLooks> = LazyLock::new(|| {
-    yog_data::from_text::<ItemLooks>(include_str!("../assets/item_looks.ydata"))
-        .unwrap_or_else(|e| panic!("yog-registry's item looks: {e}"))
-        .value
+    yog_data::built_in::<ItemLooks>(
+        "yog-registry's item looks",
+        include_str!("../assets/item_looks.ydata"),
+    )
 });
 
 impl ItemLooks {
@@ -54,12 +55,23 @@ impl ItemLooks {
 
     /// The texture of the mob whose head item `path` (`zombie_head`) is.
     pub fn head(&self, path: &str) -> Option<&str> {
-        self.heads.0.iter().find(|(p, _)| p == path).map(|(_, t)| t.as_str())
+        self.heads
+            .0
+            .iter()
+            .find(|(p, _)| p == path)
+            .map(|(_, t)| t.as_str())
     }
 
     /// Mob `mob`'s spawn egg colours: base, spots.
     pub fn spawn_egg(&self, mob: &str) -> Option<(Color, Color)> {
-        match self.spawn_eggs.0.iter().find(|(m, _)| m == mob)?.1.as_slice() {
+        match self
+            .spawn_eggs
+            .0
+            .iter()
+            .find(|(m, _)| m == mob)?
+            .1
+            .as_slice()
+        {
             [base, spots] => Some((*base, *spots)),
             _ => None,
         }
@@ -69,7 +81,10 @@ impl ItemLooks {
     pub fn tint(&self, id: &str) -> Option<Color> {
         self.tints
             .iter()
-            .find(|t| t.items.iter().any(|i| i == id) || (!t.prefix.is_empty() && id.starts_with(&t.prefix)))
+            .find(|t| {
+                t.items.iter().any(|i| i == id)
+                    || (!t.prefix.is_empty() && id.starts_with(&t.prefix))
+            })
             .map(|t| t.color)
     }
 }
@@ -81,8 +96,14 @@ mod tests {
     #[test]
     fn the_game_looks_read() {
         let l = ItemLooks::game();
-        assert_eq!(l.head("zombie_head"), Some("minecraft:entity/zombie/zombie"));
-        assert_eq!(l.spawn_egg("creeper"), Some((Color(0xFF0D_A70B), Color(0xFF00_0000))));
+        assert_eq!(
+            l.head("zombie_head"),
+            Some("minecraft:entity/zombie/zombie")
+        );
+        assert_eq!(
+            l.spawn_egg("creeper"),
+            Some((Color(0xFF0D_A70B), Color(0xFF00_0000)))
+        );
         assert_eq!(l.tint("minecraft:potion"), Some(Color(0xFF38_5DC6)));
         assert_eq!(l.tint("minecraft:leather_boots"), Some(Color(0xFFA0_6540)));
     }

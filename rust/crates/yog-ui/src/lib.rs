@@ -21,6 +21,7 @@
 pub mod component;
 pub mod event;
 pub mod image;
+pub mod inventory_ids;
 pub mod layout;
 mod render;
 pub mod rich;
@@ -28,22 +29,22 @@ pub mod scroll;
 #[cfg(test)]
 mod state_tests;
 pub mod surface;
-pub mod theme;
 pub mod text;
 pub mod textbox;
+pub mod theme;
 pub mod widget;
 
 pub use event::UiEvent;
 pub use layout::{Align, FlexDir, GridLines, LayoutNode, Rect, hit_path, node_at, set_focus};
-pub use yog_gfx::{Color, Vec2};
+pub use render::{ICON_SIZE, INV_SLOT_FACE, INV_SLOT_LIGHT, INV_SLOT_SHADOW};
 pub use scroll::ScrollState;
 pub use surface::{Pointer, Surface};
 pub use textbox::{TextBoxEvent, TextBoxState};
-pub use render::{ICON_SIZE, INV_SLOT_FACE, INV_SLOT_LIGHT, INV_SLOT_SHADOW};
 pub use widget::{
     Action, Cell, Dock, FocusStyle, GridLength, GridSpec, HAlign, StateFlags, StateStyles, Stretch,
     StylePatch, Track, Units, VAlign, Widget,
 };
+pub use yog_gfx::{Color, Vec2};
 
 use yog_gfx::GfxContext;
 
@@ -87,7 +88,9 @@ impl UiRoot {
         let mut w = &self.root;
         let mut found = w.tooltip.as_deref();
         for &i in &path {
-            let Some(c) = w.children.get(i as usize) else { break };
+            let Some(c) = w.children.get(i as usize) else {
+                break;
+            };
             w = c;
             found = w.tooltip.as_deref().or(found);
         }

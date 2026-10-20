@@ -57,38 +57,26 @@ pub struct VertexArray {
     pub handle: u32,
 }
 
+/// One vertex attribute: where the shader reads it and how it lies in the buffer.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct Attrib {
+    /// The attribute's location in the shader (`layout(location = N)`).
+    pub index: u32,
+    /// How many components (1–4).
+    pub components: u8,
+    pub dtype: DataType,
+    /// A `U8` component mapped to 0–1.
+    pub normalized: bool,
+    /// Bytes from one vertex to the next.
+    pub stride: u32,
+    /// Bytes from a vertex's start to this attribute.
+    pub offset: u32,
+}
+
 impl VertexArray {
-    /// Declare one vertex attribute in this VAO, sourced from `vbo`.
-    ///
-    /// - `index`: attribute location in the shader (`layout(location = N)`).
-    /// - `components`: number of components (1–4).
-    /// - `dtype`: component data type.
-    /// - `normalized`: if `true` and `dtype` is `U8`, values are mapped 0→1.
-    /// - `stride`: byte distance between consecutive vertices in `vbo`.
-    /// - `offset`: byte offset of this attribute within each vertex.
-    pub fn attrib(
-        &self,
-        ctx: &GfxContext,
-        vbo: &Buffer,
-        index: u32,
-        components: u8,
-        dtype: DataType,
-        normalized: bool,
-        stride: u32,
-        offset: u32,
-    ) {
-        unsafe {
-            (ctx.api().vao_attrib)(
-                self.handle,
-                vbo.handle,
-                index,
-                components,
-                dtype as u8,
-                normalized,
-                stride,
-                offset,
-            )
-        }
+    /// Declares vertex attribute `a` of this VAO, sourced from `vbo`.
+    pub fn attrib(&self, ctx: &GfxContext, vbo: &Buffer, a: Attrib) {
+        unsafe { (ctx.api().vao_attrib)(self.handle, vbo.handle, a.index, a.components, a.dtype as u8, a.normalized, a.stride, a.offset) }
     }
 
     /// Bind an index buffer (EBO) to this VAO.
@@ -115,13 +103,13 @@ impl ShaderProgram {
     pub fn uniform_1f(&self, ctx: &GfxContext, name: &str, v: f32) {
         unsafe { (ctx.api().prog_uniform_1f)(self.handle, YogStr::from_str(name), v) }
     }
-    pub fn uniform_2f(&self, ctx: &GfxContext, name: &str, x: f32, y: f32) {
+    pub fn uniform_2f(&self, ctx: &GfxContext, name: &str, [x, y]: [f32; 2]) {
         unsafe { (ctx.api().prog_uniform_2f)(self.handle, YogStr::from_str(name), x, y) }
     }
-    pub fn uniform_3f(&self, ctx: &GfxContext, name: &str, x: f32, y: f32, z: f32) {
+    pub fn uniform_3f(&self, ctx: &GfxContext, name: &str, [x, y, z]: [f32; 3]) {
         unsafe { (ctx.api().prog_uniform_3f)(self.handle, YogStr::from_str(name), x, y, z) }
     }
-    pub fn uniform_4f(&self, ctx: &GfxContext, name: &str, x: f32, y: f32, z: f32, w: f32) {
+    pub fn uniform_4f(&self, ctx: &GfxContext, name: &str, [x, y, z, w]: [f32; 4]) {
         unsafe { (ctx.api().prog_uniform_4f)(self.handle, YogStr::from_str(name), x, y, z, w) }
     }
     /// Upload a column-major 4×4 matrix (16 contiguous `f32` values).

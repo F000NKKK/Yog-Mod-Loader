@@ -25,11 +25,10 @@ impl<T: PartialEq> Slot<T> {
         self.0 = Some(v);
         true
     }
-    /// The current value. Panics before the first [`Self::set`].
-    pub fn get(&self) -> &T {
-        self.0
-            .as_ref()
-            .expect("yog-kit: binding read before it was set")
+    /// Stores `v`: the new value when it differs from the previous one (or
+    /// is the first), else `None`.
+    pub fn changed(&mut self, v: T) -> Option<&T> {
+        if self.set(v) { self.0.as_ref() } else { None }
     }
     /// Forgets the value, so the next `set` reports a change.
     pub fn reset(&mut self) {
@@ -187,7 +186,8 @@ mod tests {
         assert!(s.set(1));
         assert!(!s.set(1));
         assert!(s.set(2));
-        assert_eq!(*s.get(), 2);
+        assert_eq!(s.changed(3), Some(&3));
+        assert_eq!(s.changed(3), None);
         s.reset();
         assert!(s.set(2));
     }

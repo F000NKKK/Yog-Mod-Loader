@@ -295,9 +295,7 @@ fn region(l: LegacyDef) -> LegacyRegion {
 
 /// Yog's GUI sprite names (`assets/sprites.ydata`).
 pub static SPRITES: LazyLock<Vec<Sprite>> = LazyLock::new(|| {
-    yog_data::from_text::<Vec<SpriteDef>>(include_str!("../assets/sprites.ydata"))
-        .unwrap_or_else(|e| panic!("yog-gfx's sprites: {e}"))
-        .value
+    yog_data::built_in::<Vec<SpriteDef>>("yog-gfx's sprites", include_str!("../assets/sprites.ydata"))
         .into_iter()
         .map(|d| Sprite {
             name: d.name,
@@ -386,6 +384,11 @@ pub fn fit(stretch: Stretch, natural: Vec2, bx: Rect) -> (Rect, Rect) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_sprite_table_reads() {
+        assert!(yog_data::from_text::<Vec<SpriteDef>>(include_str!("../assets/sprites.ydata")).is_ok());
+    }
 
     #[test]
     fn parses_sources() {

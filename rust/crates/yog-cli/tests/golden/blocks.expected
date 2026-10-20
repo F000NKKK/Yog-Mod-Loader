@@ -43,7 +43,7 @@ impl Blocks {
     /// The definition from `content/pipe.yblock` (name and tooltip come from the lang files).
     pub fn pipe() -> ::yog_api::BlockDef {
         ::yog_api::BlockDef::new(Self::PIPE)
-            .shape(6.0, 6.0, 6.0, 10.0, 10.0, 10.0)
+            .shape([6.0, 6.0, 6.0], [10.0, 10.0, 10.0])
             .connects_to_neighbors()
             .connect_groups(&["gm:pipe"])
     }

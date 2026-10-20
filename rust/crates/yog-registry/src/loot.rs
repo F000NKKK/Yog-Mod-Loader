@@ -21,7 +21,11 @@ pub struct LootStack {
 
 impl LootStack {
     pub fn new(id: impl Into<String>, count: u32) -> Self {
-        Self { id: id.into(), count, nbt: String::new() }
+        Self {
+            id: id.into(),
+            count,
+            nbt: String::new(),
+        }
     }
 }
 
@@ -53,7 +57,10 @@ pub struct Loot {
 impl Loot {
     /// The tool's level of `enchantment` (`minecraft:fortune`), 0 without it.
     pub fn enchantment(&self, enchantment: &str) -> u32 {
-        self.enchantments.iter().find(|(e, _)| e == enchantment).map_or(0, |(_, l)| *l)
+        self.enchantments
+            .iter()
+            .find(|(e, _)| e == enchantment)
+            .map_or(0, |(_, l)| *l)
     }
 }
 
@@ -112,7 +119,12 @@ impl LootModifier {
     /// Applies it to `loot` (if its table is one of `tables`): `random`
     /// gives numbers in `[0, 1)`; `finish` runs a named loot function on a
     /// stack it adds.
-    pub fn apply(&self, loot: &mut Loot, random: &mut dyn FnMut() -> f64, finish: &mut dyn FnMut(&str, &mut LootStack, &Loot)) {
+    pub fn apply(
+        &self,
+        loot: &mut Loot,
+        random: &mut dyn FnMut() -> f64,
+        finish: &mut dyn FnMut(&str, &mut LootStack, &Loot),
+    ) {
         if !self.tables.contains(&loot.table) {
             return;
         }
@@ -149,20 +161,48 @@ mod tests {
         let m = LootModifier {
             id: "m".into(),
             tables: vec!["minecraft:chests/simple_dungeon".into()],
-            add: vec![LootAdd { item: "mymod:scroll".into(), count: [-1, 1], chance: 1.0, function: Some("mymod:pattern".into()) }],
-            scale: vec![LootScale { item: "minecraft:amethyst_shard".into(), by: 0.5 }],
+            add: vec![LootAdd {
+                item: "mymod:scroll".into(),
+                count: [-1, 1],
+                chance: 1.0,
+                function: Some("mymod:pattern".into()),
+            }],
+            scale: vec![LootScale {
+                item: "minecraft:amethyst_shard".into(),
+                by: 0.5,
+            }],
         };
-        let mut loot = Loot { table: "minecraft:chests/simple_dungeon".into(), items: vec![LootStack::new("minecraft:amethyst_shard", 3)], ..Default::default() };
+        let mut loot = Loot {
+            table: "minecraft:chests/simple_dungeon".into(),
+            items: vec![LootStack::new("minecraft:amethyst_shard", 3)],
+            ..Default::default()
+        };
         let mut r = [0.99].into_iter();
-        m.apply(&mut loot, &mut || r.next().unwrap(), &mut |f, s, _| s.nbt = format!("{{f:\"{f}\"}}"));
+        m.apply(&mut loot, &mut || r.next().unwrap(), &mut |f, s, _| {
+            s.nbt = format!("{{f:\"{f}\"}}")
+        });
         assert_eq!(loot.items[0].count, 1, "3 × 0.5, rounded down");
-        assert_eq!((loot.items[1].id.as_str(), loot.items[1].count, loot.items[1].nbt.as_str()), ("mymod:scroll", 1, "{f:\"mymod:pattern\"}"));
+        assert_eq!(
+            (
+                loot.items[1].id.as_str(),
+                loot.items[1].count,
+                loot.items[1].nbt.as_str()
+            ),
+            ("mymod:scroll", 1, "{f:\"mymod:pattern\"}")
+        );
 
-        let mut none = Loot { table: "minecraft:chests/simple_dungeon".into(), ..Default::default() };
+        let mut none = Loot {
+            table: "minecraft:chests/simple_dungeon".into(),
+            ..Default::default()
+        };
         m.apply(&mut none, &mut || 0.0, &mut |_, _, _| {});
         assert!(none.items.is_empty(), "-1 adds nothing");
 
-        let mut other = Loot { table: "minecraft:chests/igloo_chest".into(), items: vec![LootStack::new("minecraft:amethyst_shard", 3)], ..Default::default() };
+        let mut other = Loot {
+            table: "minecraft:chests/igloo_chest".into(),
+            items: vec![LootStack::new("minecraft:amethyst_shard", 3)],
+            ..Default::default()
+        };
         m.apply(&mut other, &mut || 0.0, &mut |_, _, _| {});
         assert_eq!(other.items[0].count, 3, "another table");
     }

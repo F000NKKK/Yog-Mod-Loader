@@ -189,7 +189,7 @@ fn compiles_elements_shape_and_connect() {
     assert_eq!(bs["multipart"][5]["apply"]["x"], json!(270));
     let src = c.source.unwrap().all();
     assert!(
-        src.contains(".shape(6.0, 6.0, 6.0, 10.0, 10.0, 10.0)"),
+        src.contains(".shape([6.0, 6.0, 6.0], [10.0, 10.0, 10.0])"),
         "{src}"
     );
     assert!(src.contains(".connects_to_neighbors()"), "{src}");

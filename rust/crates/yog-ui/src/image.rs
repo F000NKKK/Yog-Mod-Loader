@@ -104,7 +104,10 @@ pub(crate) fn render(d2d: &Draw2D, image: &Image, bx: Rect, clip: Option<Rect>) 
         // Drawn whole or not at all — like text lines and item icons.
         let inside = clip.is_none_or(|c| {
             let c = c.outset(crate::render::CLIP_SLACK);
-            dest.x >= c.x && dest.y >= c.y && dest.right() <= c.right() && dest.bottom() <= c.bottom()
+            dest.x >= c.x
+                && dest.y >= c.y
+                && dest.right() <= c.right()
+                && dest.bottom() <= c.bottom()
         });
         if inside {
             d2d.image_region(&image.source, dest, None, image.tint);
@@ -116,7 +119,12 @@ pub(crate) fn render(d2d: &Draw2D, image: &Image, bx: Rect, clip: Option<Rect>) 
         Some(r) if r.w > 0.0 && r.h > 0.0 => r,
         _ => Rect::new(0.0, 0.0, natural.x, natural.y),
     };
-    let mut src = Rect::new(region.x + shown.x * region.w, region.y + shown.y * region.h, shown.w * region.w, shown.h * region.h);
+    let mut src = Rect::new(
+        region.x + shown.x * region.w,
+        region.y + shown.y * region.h,
+        shown.w * region.w,
+        shown.h * region.h,
+    );
     let mut dest = dest;
     if let Some(c) = clip {
         let Some(cut) = dest.intersect(&c) else {
@@ -124,7 +132,12 @@ pub(crate) fn render(d2d: &Draw2D, image: &Image, bx: Rect, clip: Option<Rect>) 
         };
         // Texture pixels per GUI pixel.
         let (sx, sy) = (src.w / dest.w, src.h / dest.h);
-        src = Rect::new(src.x + (cut.x - dest.x) * sx, src.y + (cut.y - dest.y) * sy, cut.w * sx, cut.h * sy);
+        src = Rect::new(
+            src.x + (cut.x - dest.x) * sx,
+            src.y + (cut.y - dest.y) * sy,
+            cut.w * sx,
+            cut.h * sy,
+        );
         dest = cut;
     }
     d2d.image_region(&image.source, dest, Some(src), image.tint);

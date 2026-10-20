@@ -34,7 +34,7 @@
 //!         vbo.upload(ctx, &MY_VERTICES, false);
 //!         let prog = ctx.create_shader(VERT_SRC, FRAG_SRC).unwrap();
 //!         let vao = ctx.create_vao();
-//!         vao.attrib(ctx, &vbo, 0, 3, yog_gfx::core::DataType::F32, false, 24, 0);
+//!         vao.attrib(ctx, &vbo, yog_gfx::gl::Attrib { index: 0, components: 3, dtype: yog_gfx::core::DataType::F32, normalized: false, stride: 24, offset: 0 });
 //!         self.vbo = Some(vbo);
 //!         self.vao = Some(vao);
 //!         self.prog = Some(prog);
@@ -49,6 +49,14 @@
 //!     }
 //! }
 //! ```
+
+/// What an indexed draw draws: `count` indices of `ebo`, `width` wide.
+#[derive(Copy, Clone, Debug)]
+pub struct Elements<'a> {
+    pub ebo: &'a gl::Buffer,
+    pub count: u32,
+    pub width: core::IndexWidth,
+}
 
 pub mod core;
 pub mod draw2d;
@@ -219,27 +227,10 @@ impl GfxContext {
         unsafe { (self.api().draw_arrays)(vao.handle, prog.handle, mode as u8, first, count) }
     }
 
-    /// Draw primitives via an index buffer.
-    /// `u32_indices`: `true` = `u32` indices, `false` = `u16` indices.
-    pub fn draw_elements(
-        &self,
-        vao: &gl::VertexArray,
-        ebo: &gl::Buffer,
-        prog: &gl::ShaderProgram,
-        mode: core::DrawMode,
-        count: u32,
-        u32_indices: bool,
-    ) {
-        unsafe {
-            (self.api().draw_elements)(
-                vao.handle,
-                ebo.handle,
-                prog.handle,
-                mode as u8,
-                count,
-                u32_indices,
-            )
-        }
+    /// Draws `elements` (an index buffer's) from `vao` with `prog`.
+    pub fn draw_elements(&self, vao: &gl::VertexArray, prog: &gl::ShaderProgram, mode: core::DrawMode, elements: Elements<'_>) {
+        let wide = elements.width == core::IndexWidth::U32;
+        unsafe { (self.api().draw_elements)(vao.handle, elements.ebo.handle, prog.handle, mode as u8, elements.count, wide) }
     }
 
     // ── Render state ──────────────────────────────────────────────────────────

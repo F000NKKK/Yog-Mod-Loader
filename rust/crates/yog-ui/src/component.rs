@@ -212,18 +212,12 @@ pub fn register_spec(spec: ComponentSpec) {
 
 /// Every registered component, in registration order.
 pub fn components() -> Vec<ComponentSpec> {
-    REGISTRY
-        .locked()
-        .clone()
+    REGISTRY.locked().clone()
 }
 
 /// The registered component `name`.
 pub fn find(name: &str) -> Option<ComponentSpec> {
-    REGISTRY
-        .locked()
-        .iter()
-        .find(|s| s.name == name)
-        .copied()
+    REGISTRY.locked().iter().find(|s| s.name == name).copied()
 }
 
 /// The component `name` built from `.yui` attribute values (what generated

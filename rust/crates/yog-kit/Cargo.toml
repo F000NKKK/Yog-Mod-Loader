@@ -12,3 +12,11 @@ categories = ["gui", "game-development"]
 
 [dependencies]
 yog-api = { workspace = true }
+
+# Its own tests drive screens with TestHost.
+[dev-dependencies]
+yog-kit = { workspace = true, features = ["testing"] }
+
+[features]
+# TestHost: driving a screen in unit tests; never in a mod's build.
+testing = []

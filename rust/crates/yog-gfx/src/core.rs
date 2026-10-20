@@ -38,3 +38,10 @@ pub mod blend {
     pub const DST_COLOR: u32 = 0x0306;
     pub const ONE_MINUS_DST_COLOR: u32 = 0x0307;
 }
+
+/// How wide an index buffer's indices are.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum IndexWidth {
+    U16,
+    U32,
+}

@@ -1,8 +1,8 @@
 //! An inventory screen: its `<Slot>`s and `<PlayerInventory>` lay out the
 //! container the game opens.
 
-use yog_api::ui::{FlexDir, Units, Widget, widget};
 use yog_api::SlotLayout;
+use yog_api::ui::{FlexDir, Units, Widget, widget};
 use yog_kit::{Anchor, Cx, Parts, ScreenMeta, Update, ViewEvent, ViewModel, inventory_of};
 
 #[derive(Default)]
@@ -32,7 +32,10 @@ impl yog_kit::View for Inv {
                     .h(Units::Px(60.0))
                     .child(widget::slot(1))
                     .child(widget::spacer().w(Units::Px(10.0)))
-                    .child(widget::slot_accepting(0, &["minecraft:redstone", "#c:dusts"])),
+                    .child(widget::slot_accepting(
+                        0,
+                        &["minecraft:redstone", "#c:dusts"],
+                    )),
             )
             .child(widget::player_inventory());
         (Inv, root, Parts::new())
@@ -50,7 +53,11 @@ impl yog_kit::View for Plain {
         ..Inv::META
     };
     fn build() -> (Self, Widget, Parts) {
-        (Plain, widget::panel(FlexDir::Column).child(widget::inv_slot("", 0)), Parts::new())
+        (
+            Plain,
+            widget::panel(FlexDir::Column).child(widget::inv_slot("", 0)),
+            Parts::new(),
+        )
     }
     fn update(&mut self, _: &mut Widget, _: &Vm, _: &mut Update) {}
     fn dispatch(&mut self, _: &mut Vm, _: &mut Cx<'_, Vm>, _: ViewEvent) {}
@@ -65,7 +72,10 @@ fn slots_come_from_the_layout() {
     assert_eq!(
         def.layout,
         [
-            SlotLayout { accepts: vec!["minecraft:redstone".into(), "#c:dusts".into()], ..SlotLayout::at(41.0, 9.0) },
+            SlotLayout {
+                accepts: vec!["minecraft:redstone".into(), "#c:dusts".into()],
+                ..SlotLayout::at(41.0, 9.0)
+            },
             SlotLayout::at(9.0, 9.0),
         ]
     );

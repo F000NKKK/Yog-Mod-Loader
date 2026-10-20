@@ -35,7 +35,9 @@ fn apply(attrs: &str, mut style: Style) -> Option<Style> {
             "i" => style.italic = true,
             "u" => style.underline = true,
             "s" => style.strike = true,
-            hex if hex.len() == 7 && hex.starts_with('#') => style.color = Some(u32::from_str_radix(&hex[1..], 16).ok()?),
+            hex if hex.len() == 7 && hex.starts_with('#') => {
+                style.color = Some(u32::from_str_radix(&hex[1..], 16).ok()?)
+            }
             _ => return None,
         }
     }
@@ -123,7 +125,9 @@ pub fn words(s: &str) -> Vec<&str> {
         match b[i] {
             b'{' if b.get(i + 1) == Some(&b'{') => i += 2,
             b'{' => match s[i + 1..].find(['|', '{', '}']).map(|p| p + i + 1) {
-                Some(bar) if b[bar] == b'|' && apply(&s[i + 1..bar], Style::default()).is_some() => {
+                Some(bar)
+                    if b[bar] == b'|' && apply(&s[i + 1..bar], Style::default()).is_some() =>
+                {
                     depth += 1;
                     i = bar + 1;
                 }
@@ -174,7 +178,10 @@ pub fn map_attrs(s: &str, f: impl Fn(&str) -> Option<String>) -> String {
             && let Some(bar) = s[i + 1..].find(['|', '{', '}']).map(|p| p + i + 1)
             && b[bar] == b'|'
         {
-            let words: Vec<String> = s[i + 1..bar].split_whitespace().map(|w| f(w).unwrap_or_else(|| w.to_string())).collect();
+            let words: Vec<String> = s[i + 1..bar]
+                .split_whitespace()
+                .map(|w| f(w).unwrap_or_else(|| w.to_string()))
+                .collect();
             out.push('{');
             out.push_str(&words.join(" "));
             out.push('|');
@@ -333,7 +340,15 @@ mod tests {
 
     #[test]
     fn words_split_as_pieces_do() {
-        for s in ["a b  c", "{b #ff0000|bold words} x", "{{a b}} c", "{nope b|x} y", "ünï ç {i|é ö}", "{b|unclosed a b", " lead trail "] {
+        for s in [
+            "a b  c",
+            "{b #ff0000|bold words} x",
+            "{{a b}} c",
+            "{nope b|x} y",
+            "ünï ç {i|é ö}",
+            "{b|unclosed a b",
+            " lead trail ",
+        ] {
             assert_eq!(super::words(s), words_via_pieces(s), "{s:?}");
         }
     }
@@ -341,7 +356,18 @@ mod tests {
     #[test]
     fn width_measures_as_runs_do() {
         let adv = |c: char| if c == 'i' { 2.0 } else { 6.0 };
-        for s in ["plain", "{b|bold} x", "{b|a {#ff0000|b} c}d", "§lbold§r then", "{{x}} }}", "{nope|x}", "{b|unclosed", "a§", "{b|§lx} y", "ünï {i|ç}"] {
+        for s in [
+            "plain",
+            "{b|bold} x",
+            "{b|a {#ff0000|b} c}d",
+            "§lbold§r then",
+            "{{x}} }}",
+            "{nope|x}",
+            "{b|unclosed",
+            "a§",
+            "{b|§lx} y",
+            "ünï {i|ç}",
+        ] {
             assert_eq!(super::width(s, adv), width_via_runs(s, adv), "{s:?}");
         }
     }
@@ -354,7 +380,17 @@ mod tests {
         assert_eq!(r[0], ("a ".to_string(), Style::default()));
         assert_eq!(r[1].0, "bold ");
         assert!(r[1].1.bold);
-        assert_eq!(r[2], ("purple".to_string(), Style { bold: true, color: Some(0x8d6acc), ..Default::default() }));
+        assert_eq!(
+            r[2],
+            (
+                "purple".to_string(),
+                Style {
+                    bold: true,
+                    color: Some(0x8d6acc),
+                    ..Default::default()
+                }
+            )
+        );
         assert_eq!(r[3].0, " {x} {not a span}");
         assert_eq!(plain("{i|x}y"), "xy");
     }

@@ -113,8 +113,33 @@ path       = "../src/lib.rs"
         } else {
             r#"["cdylib", "rlib"]"#
         },
-        bench = crate::bench::cargo_sections(meta, benches),
+        bench = crate::bench::cargo_sections(meta, benches, &test_support(meta)),
     )
+}
+
+/// Yog's crates with test support behind a feature: a mod's tests get it.
+const TEST_SUPPORT: &[&str] = &["yog-kit"];
+const TESTING_FEATURE: &str = "testing";
+
+/// The mod's dependencies that have test support, again for its tests,
+/// with the feature on (`yog-kit = { version = "0.11", features = ["testing"] }`).
+fn test_support(meta: &YogToml) -> Vec<String> {
+    meta.dependencies
+        .iter()
+        .filter(|(name, _)| TEST_SUPPORT.contains(&name.as_str()))
+        .map(|(name, spec)| format!("{name} = {}", with_feature(spec, TESTING_FEATURE)))
+        .collect()
+}
+
+/// A dependency's spec (`"0.11"` or `{ version = .. }`) with `feature` on.
+fn with_feature(spec: &str, feature: &str) -> String {
+    let spec = spec.trim();
+    let features = format!("features = [{feature:?}]");
+    match spec.strip_prefix('{').and_then(|s| s.strip_suffix('}')) {
+        Some(inner) if inner.trim().is_empty() => format!("{{ {features} }}"),
+        Some(inner) => format!("{{ {}, {features} }}", inner.trim()),
+        None => format!("{{ version = {spec}, {features} }}"),
+    }
 }
 
 /// The `yog-*` crates a yog-api `Cargo.toml` depends on, in order.

@@ -8,10 +8,13 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
+/// What a binding's apply code calls the new value.
+const NEW_VALUE: &str = "__v";
+
 use crate::yui::{self, Element, RAW_CALL, RAW_VALUE, UI_USE, err};
 
 /// The codegen version checked by `yog_kit::__codegen::require`.
-const CODEGEN: u32 = 2;
+use yog_ids::versions::UI_CODEGEN as CODEGEN;
 
 const STATES: &[(&str, &str)] = &[
     ("hover", "HOVER"),
@@ -763,26 +766,26 @@ impl VmGen<'_> {
                 let Some(tb) = text_box else {
                     return err(el, "text boxes in item templates aren't supported");
                 };
-                format!("u.set_text_box({tb}, {f}.get());")
+                format!("u.set_text_box({tb}, __v);")
             }
             Target::Text => {
-                format!("{w}.set_text(::std::clone::Clone::clone({f}.get())); u.relayout();")
+                format!("{w}.set_text(::std::clone::Clone::clone(__v)); u.relayout();")
             }
             Target::Placeholder => {
-                format!("::yog_kit::bind::set_placeholder({w}, {f}.get()); u.repaint();")
+                format!("::yog_kit::bind::set_placeholder({w}, __v); u.repaint();")
             }
-            Target::Tooltip => format!("{w}.set_tooltip(::std::clone::Clone::clone({f}.get()));"),
-            Target::Item => format!("::yog_kit::bind::set_item({w}, {f}.get()); u.repaint();"),
-            Target::Source => format!("::yog_kit::bind::set_source({w}, {f}.get()); u.relayout();"),
-            Target::Count => format!("::yog_kit::bind::set_count({w}, *{f}.get()); u.repaint();"),
-            Target::Color(c) => format!("{w}.style.{c} = *{f}.get(); u.repaint();"),
-            Target::Enabled => format!("{w}.enabled = *{f}.get(); u.repaint();"),
-            Target::Visible => format!("{w}.visible = *{f}.get(); u.relayout();"),
+            Target::Tooltip => format!("{w}.set_tooltip(::std::clone::Clone::clone(__v));"),
+            Target::Item => format!("::yog_kit::bind::set_item({w}, __v); u.repaint();"),
+            Target::Source => format!("::yog_kit::bind::set_source({w}, __v); u.relayout();"),
+            Target::Count => format!("::yog_kit::bind::set_count({w}, *__v); u.repaint();"),
+            Target::Color(c) => format!("{w}.style.{c} = *__v; u.repaint();"),
+            Target::Enabled => format!("{w}.enabled = *__v; u.repaint();"),
+            Target::Visible => format!("{w}.visible = *__v; u.relayout();"),
             Target::Checked => {
-                format!("::yog_kit::bind::set_checked({w}, *{f}.get()); u.repaint();")
+                format!("::yog_kit::bind::set_checked({w}, *__v); u.repaint();")
             }
-            Target::Size(a) => format!("{w}.style.{a} = *{f}.get(); u.relayout();"),
-            Target::Number(a) => format!("{w}.style.{a} = *{f}.get(); u.relayout();"),
+            Target::Size(a) => format!("{w}.style.{a} = *__v; u.relayout();"),
+            Target::Number(a) => format!("{w}.style.{a} = *__v; u.relayout();"),
             Target::ScrollKey => {
                 let Some(s) = scroller else {
                     return err(el, "scroll_key needs a ScrollView outside item templates");
@@ -792,10 +795,12 @@ impl VmGen<'_> {
         };
         let _ = write!(
             ctx.update,
-            "        // @yui {}:{} {key}=\"{}\"\n        if {f}.set({value}) {{ {apply} }}\n",
+            "        // @yui {}:{} {key}=\"{}\"\n        {} {{ {apply} }}\n",
             self.file,
             el.line,
-            b.raw.replace('\n', " ")
+            b.raw.replace('\n', " "),
+            // The new value where the binding uses it, else just whether it changed.
+            if apply.contains(NEW_VALUE) { format!("if let ::std::option::Option::Some({NEW_VALUE}) = {f}.changed({value})") } else { format!("if {f}.set({value})") }
         );
         Ok(())
     }
@@ -1858,29 +1863,29 @@ mod tests {
             </Column>"##)
         .unwrap();
         for want in [
-            "const _: () = ::yog_kit::__codegen::require(2);",
+            "const _: () = ::yog_kit::__codegen::require(3);",
             "type Vm = Vm;",
             ".color(::yog_api::ui::Color(0xFFFFD700))",
             r#".id("count")"#,
             "pub const COUNT: &str = \"count\";",
-            "if self.b0.set(::yog_kit::bind::text(&(vm.count_text()))) { root.at_path_mut(&[0, 0]).set_text(",
+            "if let ::std::option::Option::Some(__v) = self.b0.changed(::yog_kit::bind::text(&(vm.count_text()))) { root.at_path_mut(&[0, 0]).set_text(",
             r#"::yog_kit::bind::text(&(::yog_api::tr("mymod.title")))"#,
             ".state_style(::yog_api::ui::StateFlags::HOVER, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(::yog_api::ui::Color(0xFF444444)), ..::std::default::Default::default() })",
             ".state_style(::yog_api::ui::StateFlags::CHECKED",
             ".action(::yog_api::ui::Action { owner: 0, slot: 0, index: 0 })",
             ".action(::yog_api::ui::Action { owner: 0, slot: 1, index: 0 })",
-            "::yog_kit::bind::set_checked(root.at_path_mut(&[0, 3]), *self.",
+            "::yog_kit::bind::set_checked(root.at_path_mut(&[0, 3]), *__v)",
             "::yog_kit::bind::flag(vm.filter == Filter::Yog)",
             "slot: 0, .. }) => {\n                cx.close();",
             "slot: 1, .. }) => {\n                vm.set_filter(Filter::Yog);",
             "parts.focusable(&[0, 2]);",
             "parts.text_box(&[0, 4]);",
             "parts.scroller(&[0, 5]);",
-            "u.set_text_box(0, self.",
+            "u.set_text_box(0, __v)",
             "::yog_kit::ViewEvent::TextChanged { slot: 0, text } => {\n                vm.search = text;",
             "::yog_kit::ViewEvent::TextSubmitted { slot: 0, text } => {\n                let _ = text; vm.submit();",
             "u.reset_scroll(0);",
-            ".visible = *self.",
+            ".visible = *__v",
             "::yog_kit::Screen::<View>::register(registry, vm)",
             "<Vm as ::std::default::Default>::default()",
         ] {
@@ -1970,9 +1975,9 @@ mod tests {
             "let __sel = vm.selected_id();",
             "for (index, item) in ::std::iter::IntoIterator::into_iter(vm.visible()).enumerate() {",
             "__it.next(::yog_kit::bind::key(&(item.id)), ::yog_kit::bind::is_selected(&__sel, &(item.id)), __T0::build)",
-            "if inst.b0.set(::yog_kit::bind::text(&(item.name))) { w.at_path_mut(&[0]).set_text(",
+            "if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) { w.at_path_mut(&[0]).set_text(",
             "if let ::std::option::Option::Some((w, u)) = __it.finish(::std::option::Option::Some(__E0)) {",
-            "self.b0.set(::yog_kit::bind::text(&(vm.empty_text())))",
+            "self.b0.changed(::yog_kit::bind::text(&(vm.empty_text())))",
             ".action(::yog_api::ui::Action { owner: 1, slot: 0, index: 0 })",
             "::yog_kit::ViewEvent::Action(::yog_api::ui::Action { owner: 1, slot: 0, index }) => {",
             "::std::clone::Clone::clone(&(item.id))",

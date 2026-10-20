@@ -198,11 +198,15 @@ impl<'a, T> ItemsCursor<'a, T> {
         }
         self.first_built.get_or_insert(index);
         self.last_built = index + 1;
+        let at = self.widgets.len();
         self.host_insts.push((key, inst));
         self.widgets.push(w);
-        let (_, inst) = self.host_insts.last_mut().expect("just pushed");
-        let w = self.widgets.last_mut().expect("just pushed");
-        Some(Item { inst, w, u: self.u })
+        let (_, inst) = &mut self.host_insts[at];
+        Some(Item {
+            inst,
+            w: &mut self.widgets[at],
+            u: self.u,
+        })
     }
 
     /// Ends the update. With `empty` (the `.Empty` template's builder) and
@@ -236,9 +240,9 @@ impl<'a, T> ItemsCursor<'a, T> {
             let w = self.host_empty.take().unwrap_or_else(build);
             children.push(w);
             *self.showing_empty = true;
+            let at = children.len() - 1;
             self.container.children = children;
-            let w = self.container.children.last_mut().expect("just pushed");
-            return Some((w, self.u));
+            return Some((&mut self.container.children[at], self.u));
         }
         self.container.children = children;
         None

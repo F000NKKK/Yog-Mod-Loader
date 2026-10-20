@@ -158,8 +158,9 @@ static NAV: Mutex<Vec<&'static str>> = Mutex::new(Vec::new());
 /// A navigation is closing the current screen — keep the stack.
 static NAVIGATING: AtomicBool = AtomicBool::new(false);
 static SCREENS: Mutex<Vec<ScreenMeta>> = Mutex::new(Vec::new());
-#[allow(clippy::type_complexity)]
-static HANDLES: Mutex<Vec<(TypeId, Box<dyn Any + Send>)>> = Mutex::new(Vec::new());
+/// Each screen type's handle, by its type.
+type Handles = Vec<(TypeId, Box<dyn Any + Send>)>;
+static HANDLES: Mutex<Handles> = Mutex::new(Vec::new());
 
 fn open_id(id: &str) {
     let meta = lock(&SCREENS).iter().find(|m| m.id == id).copied();
@@ -251,52 +252,45 @@ impl<W: View> Screen<W> {
     }
 }
 
+/// Each slot in `w`: (index, its id, what it accepts).
+fn slots(w: &yog_api::ui::Widget, out: &mut Vec<(usize, String, Vec<String>)>) {
+    if let Some(id) = w.id.as_deref()
+        && let Some((i, accepts)) = yog_api::ui::inventory_ids::read_slot(id)
+    {
+        out.push((i, id.to_owned(), accepts));
+    }
+    for c in &w.children {
+        slots(c, out);
+    }
+}
+
+/// The machine a `<RecipeArea>` made of it, if any (`widget::machine`).
+fn machine(w: &yog_api::ui::Widget) -> Option<yog_api::inventory::Machine> {
+    if let Some(m) =
+        w.id.as_deref()
+            .and_then(yog_api::ui::inventory_ids::MachineId::read)
+    {
+        let places = m
+            .places
+            .into_iter()
+            .map(|(slot, index, inv)| yog_api::inventory::MachinePlace { slot, index, inv })
+            .collect();
+        return Some(yog_api::inventory::Machine {
+            kind: m.kind,
+            places,
+            result: m.result,
+        });
+    }
+    w.children.iter().find_map(machine)
+}
+
 /// The inventory screen `W`'s markup lays out — where its `<Slot>`s and
 /// `<PlayerInventory>` land at the design size — or `None` for a plain
 /// screen. Its id is the screen's: a block opens it with
 /// `BlockDef::inventory(ID)`.
 pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
-    use yog_api::ui::widget::{PLAYER_INVENTORY, SLOT_PREFIX};
-    use yog_api::ui::{UiRoot, Widget};
-
-    /// Each slot: (index, its id, what it accepts).
-    fn slots(w: &Widget, out: &mut Vec<(usize, String, Vec<String>)>) {
-        if let Some(id) = w.id.as_deref()
-            && let Some(rest) = id.strip_prefix(SLOT_PREFIX)
-        {
-            let (index, accepts) = rest.split_once('=').unwrap_or((rest, ""));
-            if let Ok(i) = index.parse::<usize>() {
-                let accepts = accepts.split('|').filter(|a| !a.is_empty()).map(str::to_owned).collect();
-                out.push((i, id.to_owned(), accepts));
-            }
-        }
-        for c in &w.children {
-            slots(c, out);
-        }
-    }
-
-    /// The machine a `<RecipeArea>` made of it, if any (`widget::machine`).
-    fn machine(w: &Widget) -> Option<yog_api::inventory::Machine> {
-        use yog_api::ui::widget::MACHINE_PREFIX;
-        if let Some(rest) = w.id.as_deref().and_then(|id| id.strip_prefix(MACHINE_PREFIX)) {
-            let mut parts = rest.splitn(3, ';');
-            let kind = parts.next()?.to_string();
-            let result = parts.next()?.parse().ok()?;
-            let places = parts
-                .next()
-                .unwrap_or_default()
-                .split(',')
-                .filter(|p| !p.is_empty())
-                .filter_map(|p| {
-                    let (slot, rest) = p.split_once('/')?;
-                    let (index, inv) = rest.split_once('=')?;
-                    Some(yog_api::inventory::MachinePlace { slot: slot.to_string(), index: index.parse().ok()?, inv: inv.parse().ok()? })
-                })
-                .collect();
-            return Some(yog_api::inventory::Machine { kind, places, result });
-        }
-        w.children.iter().find_map(machine)
-    }
+    use yog_api::ui::UiRoot;
+    use yog_api::ui::widget::PLAYER_INVENTORY;
 
     let (_, content, _) = W::build();
     let mut found = Vec::new();
@@ -316,9 +310,16 @@ pub fn inventory_of<W: View>() -> Option<yog_api::InventoryDef> {
         .map(|i| {
             let slot = found.iter().find(|(j, ..)| *j == i);
             match slot.and_then(|(_, id, accepts)| Some((corner(id)?, accepts))) {
-                Some(((x, y), accepts)) => yog_api::SlotLayout { x, y, accepts: accepts.clone() },
+                Some(((x, y), accepts)) => yog_api::SlotLayout {
+                    x,
+                    y,
+                    accepts: accepts.clone(),
+                },
                 None => {
-                    yog_api::warn!("{}: no <Slot index=\"{i}\"> — it goes to the default grid", W::META.id);
+                    yog_api::warn!(
+                        "{}: no <Slot index=\"{i}\"> — it goes to the default grid",
+                        W::META.id
+                    );
                     defaults[i].clone()
                 }
             }

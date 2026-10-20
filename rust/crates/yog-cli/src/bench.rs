@@ -170,13 +170,20 @@ pub fn write_sources(root: &Path, files: &[BenchFile]) -> Result<(), String> {
     Ok(())
 }
 
-/// The generated Cargo.toml's `[dev-dependencies]` and `[[bench]]` targets;
-/// empty without benchmarks.
-pub fn cargo_sections(meta: &YogToml, files: &[BenchFile]) -> String {
-    if files.is_empty() {
+/// The generated Cargo.toml's `[dev-dependencies]` — `test_deps` (the
+/// mod's tests' own), and with benchmarks theirs — and `[[bench]]` targets.
+pub fn cargo_sections(meta: &YogToml, files: &[BenchFile], test_deps: &[String]) -> String {
+    if files.is_empty() && test_deps.is_empty() {
         return String::new();
     }
     let mut out = String::from("\n[dev-dependencies]\n");
+    for dep in test_deps {
+        out.push_str(dep);
+        out.push('\n');
+    }
+    if files.is_empty() {
+        return out;
+    }
     for (name, spec) in &meta.dev_dependencies {
         out.push_str(&format!("{name} = {spec}\n"));
     }

@@ -100,6 +100,7 @@ yog-ids = { version = "0.2.2", path = "crates/yog-ids" }
 yog-sync = { version = "0.1.0", path = "crates/yog-sync" }
 yog-media = { version = "0.3.0", path = "crates/yog-media" }
 yog-interop = { version = "0.21.4", path = "crates/yog-interop" }
+yog-kit = { version = "0.11.0", path = "crates/yog-kit" }
 yog-inventory = { version = "0.20.0", path = "crates/yog-inventory" }
 yog-logging = { version = "0.1.1", path = "crates/yog-logging" }
 yog-network = { version = "0.1.1", path = "crates/yog-network" }

@@ -73,7 +73,10 @@ impl Theme {
             rules: rules
                 .iter()
                 .map(|(k, attrs)| {
-                    let attrs = attrs.iter().map(|(a, v)| (a.to_string(), v.to_string())).collect();
+                    let attrs = attrs
+                        .iter()
+                        .map(|(a, v)| (a.to_string(), v.to_string()))
+                        .collect();
                     (k.to_string(), attrs)
                 })
                 .collect(),

@@ -15,8 +15,8 @@ pub enum Align {
     End,
 }
 
-pub use yog_gfx::graphics::Rect;
 use yog_gfx::Vec2;
+pub use yog_gfx::graphics::Rect;
 
 /// Width of the strip a [`scrollbar`](crate::widget::Style::scrollbar)
 /// container reserves on its right edge.
@@ -503,8 +503,16 @@ fn layout_children(w: &Widget, node: &mut LayoutNode, shrink: Option<Shrink>, de
         // is cut at the window's edges, as the game's are, not squeezed.
         if let Some((px, py)) = child.style.pos {
             let fixed = |u: Units| matches!(u, Units::Px(_));
-            let mw = if fixed(child.style.w) { UNBOUNDED } else { less(content_w, px + m[1] + m[3]) };
-            let mh = if fixed(child.style.h) { UNBOUNDED } else { less(content_h, py + m[0] + m[2]) };
+            let mw = if fixed(child.style.w) {
+                UNBOUNDED
+            } else {
+                less(content_w, px + m[1] + m[3])
+            };
+            let mh = if fixed(child.style.h) {
+                UNBOUNDED
+            } else {
+                less(content_h, py + m[0] + m[2])
+            };
             measure(child, &mut cn, mw, mh, content_w, content_h);
             child_nodes.push(cn);
             continue;
@@ -1325,10 +1333,19 @@ mod bigger_than_the_window {
             .h(Units::Px(200.0))
             .child(widget::spacer().w(Units::Percent(100.0)).h(Units::Px(40.0)))
             .at(-50.0, -25.0);
-        let screen = widget::panel(FlexDir::Column).w(Units::Px(200.0)).h(Units::Px(150.0)).child(content);
+        let screen = widget::panel(FlexDir::Column)
+            .w(Units::Px(200.0))
+            .h(Units::Px(150.0))
+            .child(content);
         let l = super::compute(&screen, 200.0, 150.0);
         let c = &l.children[0];
-        assert_eq!((c.rect.x, c.rect.y, c.rect.w, c.rect.h), (-50.0, -25.0, 300.0, 200.0));
-        assert_eq!(c.children[0].rect.w, 300.0, "percent of its own size, not the window's");
+        assert_eq!(
+            (c.rect.x, c.rect.y, c.rect.w, c.rect.h),
+            (-50.0, -25.0, 300.0, 200.0)
+        );
+        assert_eq!(
+            c.children[0].rect.w, 300.0,
+            "percent of its own size, not the window's"
+        );
     }
 }

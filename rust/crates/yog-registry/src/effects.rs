@@ -117,18 +117,36 @@ mod tests {
             id: "mymod:clarity".into(),
             category: EffectCategory::Beneficial,
             color: 0xc875ff,
-            modifiers: vec![EffectModifier { attribute: "mymod:grid_zoom".into(), amount: 0.25, operation: ModifierOperation::MultiplyTotal }],
+            modifiers: vec![EffectModifier {
+                attribute: "mymod:grid_zoom".into(),
+                amount: 0.25,
+                operation: ModifierOperation::MultiplyTotal,
+            }],
         };
-        let back = yog_data::read_bytes::<EffectDef>(&yog_data::binary::encode(&e.write())).unwrap();
+        let back =
+            yog_data::read_bytes::<EffectDef>(&yog_data::binary::encode(&e.write())).unwrap();
         assert_eq!(back, e);
         let text = yog_data::text::to_string(&e.write());
-        assert!(text.contains("\"multiply_total\"") && text.contains("\"beneficial\""), "{text}");
+        assert!(
+            text.contains("\"multiply_total\"") && text.contains("\"beneficial\""),
+            "{text}"
+        );
         let p = PotionDef {
             id: "mymod:clarity".into(),
             name: None,
-            effects: vec![PotionEffect { effect: "mymod:clarity".into(), duration: 3600, amplifier: 0 }],
-            brewed: vec![Brew { from: "minecraft:awkward".into(), with: "mymod:dust".into() }],
+            effects: vec![PotionEffect {
+                effect: "mymod:clarity".into(),
+                duration: 3600,
+                amplifier: 0,
+            }],
+            brewed: vec![Brew {
+                from: "minecraft:awkward".into(),
+                with: "mymod:dust".into(),
+            }],
         };
-        assert_eq!(yog_data::read_bytes::<PotionDef>(&yog_data::binary::encode(&p.write())).unwrap(), p);
+        assert_eq!(
+            yog_data::read_bytes::<PotionDef>(&yog_data::binary::encode(&p.write())).unwrap(),
+            p
+        );
     }
 }

@@ -11,6 +11,16 @@ use crate::GfxContext;
 /// 2D drawing helpers, valid only within `on_hud_render`.
 ///
 /// Obtain via [`GfxContext::draw2d`].
+/// How text is drawn: its font (empty: the default), times its size (1 =
+/// the font's own), its colour, whether it has a shadow.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct TextStyle<'a> {
+    pub font: &'a str,
+    pub scale: f32,
+    pub color: Color,
+    pub shadow: bool,
+}
+
 pub struct Draw2D<'ctx>(&'ctx GfxContext);
 
 impl<'ctx> Draw2D<'ctx> {
@@ -106,28 +116,10 @@ impl<'ctx> Draw2D<'ctx> {
         unsafe { (a.draw2d_svg)(YogStr::from_str(data), r.x, r.y, r.w, r.h) }
     }
 
-    /// [`Self::text_font`] `scale` times its size (1 = the font's own).
-    pub fn text_scaled(
-        &self,
-        text: &str,
-        font: &str,
-        at: Vec2,
-        scale: f32,
-        color: Color,
-        shadow: bool,
-    ) {
+    /// `text` at `at` in `style`.
+    pub fn text_scaled(&self, text: &str, at: Vec2, style: &TextStyle<'_>) {
         let a = self.0.api();
-        unsafe {
-            (a.draw2d_text_scaled)(
-                YogStr::from_str(text),
-                YogStr::from_str(font),
-                at.x,
-                at.y,
-                scale,
-                color.0,
-                shadow,
-            )
-        }
+        unsafe { (a.draw2d_text_scaled)(YogStr::from_str(text), YogStr::from_str(style.font), at.x, at.y, style.scale, style.color.0, style.shadow) }
     }
 
     /// Draws blocks in 3D, as big as fits in `r` — a multiblock structure,

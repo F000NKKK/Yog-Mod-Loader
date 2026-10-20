@@ -70,7 +70,11 @@ impl RecipeKindDef {
 
     /// Value `name`'s default, if it has one.
     pub fn default_of(&self, name: &str) -> Option<f64> {
-        self.defaults.0.iter().find(|(n, _)| n == name).map(|(_, v)| *v)
+        self.defaults
+            .0
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, v)| *v)
     }
 }
 
@@ -89,7 +93,17 @@ pub mod ids {
     pub const BREWING: &str = "brewing";
 
     /// Every one, in [`super::GAME`]'s order.
-    pub const ALL: [&str; 9] = [SHAPED, SHAPELESS, SMELTING, BLASTING, SMOKING, CAMPFIRE_COOKING, STONECUTTING, SMITHING, BREWING];
+    pub const ALL: [&str; 9] = [
+        SHAPED,
+        SHAPELESS,
+        SMELTING,
+        BLASTING,
+        SMOKING,
+        CAMPFIRE_COOKING,
+        STONECUTTING,
+        SMITHING,
+        BREWING,
+    ];
     /// The cooking kinds: one input, a cook time, experience.
     pub const COOKING: [&str; 4] = [SMELTING, BLASTING, SMOKING, CAMPFIRE_COOKING];
 }
@@ -114,9 +128,10 @@ pub const GRID_SIDE: usize = 3;
 
 /// The game's kinds of recipe.
 pub static GAME: LazyLock<Vec<RecipeKindDef>> = LazyLock::new(|| {
-    yog_data::from_text::<Vec<RecipeKindDef>>(include_str!("../data/recipe_kinds.ydata"))
-        .expect("the built-in recipe kinds are valid Yog Data")
-        .value
+    yog_data::built_in::<Vec<RecipeKindDef>>(
+        "yog-registry's recipe kinds",
+        include_str!("../data/recipe_kinds.ydata"),
+    )
 });
 
 /// The game's kind `id` (`smelting`).
@@ -133,10 +148,16 @@ mod tests {
         let data: Vec<&str> = GAME.iter().map(|k| k.id.as_str()).collect();
         assert_eq!(data, ids::ALL, "the data and the code name the same kinds");
         let smelting = game_kind(ids::SMELTING).unwrap();
-        assert_eq!(smelting.slot("input").and_then(|s| s.field.as_deref()), Some("ingredient"));
+        assert_eq!(
+            smelting.slot("input").and_then(|s| s.field.as_deref()),
+            Some("ingredient")
+        );
         assert_eq!(smelting.default_of("cook_time"), Some(200.0));
         assert!(game_kind(ids::SHAPED).unwrap().slot("grid").unwrap().grid);
         let brewing = game_kind(ids::BREWING).unwrap();
-        assert_eq!(brewing.slot("from").and_then(|s| s.field.as_deref()), Some("from"));
+        assert_eq!(
+            brewing.slot("from").and_then(|s| s.field.as_deref()),
+            Some("from")
+        );
     }
 }

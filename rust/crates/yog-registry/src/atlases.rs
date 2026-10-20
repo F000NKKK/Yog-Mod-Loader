@@ -20,9 +20,10 @@ pub struct Atlas {
 }
 
 static ATLASES: LazyLock<Vec<Atlas>> = LazyLock::new(|| {
-    yog_data::from_text::<Vec<Atlas>>(include_str!("../assets/atlases.ydata"))
-        .unwrap_or_else(|e| panic!("yog-registry's atlases: {e}"))
-        .value
+    yog_data::built_in::<Vec<Atlas>>(
+        "yog-registry's atlases",
+        include_str!("../assets/atlases.ydata"),
+    )
 });
 
 impl Atlas {
@@ -38,13 +39,20 @@ impl Atlas {
 
     /// Which of its folders `path` is in, and the rest of it.
     fn dir_of<'p>(&self, path: &'p str) -> Option<&'p str> {
-        self.dirs.iter().find_map(|d| path.strip_prefix(d.as_str())?.strip_prefix(yog_ids::sep::PATH))
+        self.dirs.iter().find_map(|d| {
+            path.strip_prefix(d.as_str())?
+                .strip_prefix(yog_ids::sep::PATH)
+        })
     }
 
     /// The sprite texture `path` is in this atlas: the path itself, or — a
     /// bare atlas's folder — the rest of it (`mob_effect/speed` → `speed`).
     pub fn sprite<'p>(&self, path: &'p str) -> &'p str {
-        if self.bare { self.dir_of(path).unwrap_or(path) } else { path }
+        if self.bare {
+            self.dir_of(path).unwrap_or(path)
+        } else {
+            path
+        }
     }
 
     /// One of the game's, by id (`blocks` = `minecraft:blocks`).
@@ -59,12 +67,24 @@ mod tests {
     #[test]
     fn the_games_atlases_read() {
         assert!(super::Atlas::find("blocks").is_some());
-        assert_eq!(super::Atlas::find("minecraft:gui").and_then(|a| a.since.as_deref()), Some("1.20.2"));
-        assert_eq!(super::Atlas::of_path("item/staff/oak").map(|a| a.id.as_str()), Some("minecraft:blocks"));
+        assert_eq!(
+            super::Atlas::find("minecraft:gui").and_then(|a| a.since.as_deref()),
+            Some("1.20.2")
+        );
+        assert_eq!(
+            super::Atlas::of_path("item/staff/oak").map(|a| a.id.as_str()),
+            Some("minecraft:blocks")
+        );
         assert!(super::Atlas::of_path("entity/wisp").is_none());
         let effects = super::Atlas::of_path("mob_effect/clarity").unwrap();
         assert_eq!(effects.sprite("mob_effect/clarity"), "clarity");
-        assert_eq!(super::Atlas::find("blocks").unwrap().sprite("block/ruby"), "block/ruby");
-        assert_eq!(super::Atlas::of_path("gui/sprites/hud/x").map(|a| a.id.as_str()), Some("minecraft:gui"));
+        assert_eq!(
+            super::Atlas::find("blocks").unwrap().sprite("block/ruby"),
+            "block/ruby"
+        );
+        assert_eq!(
+            super::Atlas::of_path("gui/sprites/hud/x").map(|a| a.id.as_str()),
+            Some("minecraft:gui")
+        );
     }
 }
