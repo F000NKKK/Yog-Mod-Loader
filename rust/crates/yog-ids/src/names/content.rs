@@ -423,6 +423,15 @@ names! {
         START = "start",
         CENTER = "center",
         END = "end",
+        LEFT = "left",
+        RIGHT = "right",
+        TOP = "top",
+        BOTTOM = "bottom",
+        /// Takes the room there is.
+        FILL = "fill",
+        STRETCH = "stretch",
+        OUTLINE = "outline",
+        NONE = "none",
     }
 
     /// The markup of a `.yui` attribute's value: a binding (`{x:Bind name}`)

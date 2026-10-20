@@ -3,13 +3,13 @@
 //! build` emits (yog-cli `yui.rs`), made directly instead of as source —
 //! wrapped like the generated `root_with` (the screen panel, anchored).
 
+use yog_ui::attr::Attr;
 use crate::yui_resources::{Entry, Resources, local_name};
 use std::collections::HashMap;
 
 use serde::Deserialize;
-use yog_gfx::Color;
 use yog_ui::widget::{self, Widget};
-use yog_ui::{Align, Dock, FlexDir, FocusStyle, HAlign, Track, Units, VAlign};
+use yog_ui::{FlexDir, Track, Units};
 
 /// One element of the designer's document (`YuiNode` in `yui.ts`).
 #[derive(Debug, Clone, Deserialize)]
@@ -116,31 +116,6 @@ fn num(v: Option<&str>) -> Option<f32> {
 
 /// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB`: the `.yui` compiler's rule.
 pub use crate::yui::color;
-
-fn size(v: &str) -> Option<Units> {
-    let v = v.trim();
-    if v.is_empty() || v == "auto" {
-        return None;
-    }
-    if let Some(p) = v.strip_suffix('%') {
-        return p.trim().parse().ok().map(Units::Percent);
-    }
-    v.parse().ok().map(Units::Px)
-}
-
-fn padding(v: &str) -> Option<[f32; 4]> {
-    let parts: Vec<f32> = v
-        .split([' ', ','])
-        .filter(|s| !s.is_empty())
-        .map(|s| s.parse().ok())
-        .collect::<Option<_>>()?;
-    match parts.as_slice() {
-        [a] => Some([*a; 4]),
-        [v, h] => Some([*v, *h, *v, *h]),
-        [t, r, b, l] => Some([*t, *r, *b, *l]),
-        _ => None,
-    }
-}
 
 /// A translation key's mark in a text: `@lang:key`.
 const LANG: &str = yog_ids::concatcp!(yog_ids::typed::LANG, yog_ids::sep::NAMESPACE);
@@ -315,85 +290,7 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
     let mut keys: Vec<&String> = node.attrs.keys().collect();
     keys.sort();
     for key in keys {
-        let v = node.attrs[key].as_str();
-        w = match key.as_str() {
-            "id" if node.kind != yog_ids::yui::SCREEN => w.id(v),
-            "on_click" => w.on_click(v),
-            "w" => size(v).map_or(w.clone(), |s| w.clone().w(s)),
-            "h" => size(v).map_or(w.clone(), |s| w.clone().h(s)),
-            "min_w" => num(Some(v)).map_or(w.clone(), |n| w.clone().min_w(n)),
-            "min_h" => num(Some(v)).map_or(w.clone(), |n| w.clone().min_h(n)),
-            "flex" => num(Some(v)).map_or(w.clone(), |n| w.clone().flex(n)),
-            "gap" => num(Some(v)).map_or(w.clone(), |n| w.clone().gap(n)),
-            "font_scale" => num(Some(v)).map_or(w.clone(), |n| w.clone().font_scale(n)),
-            "dock" => w.dock(match v.trim() {
-                "fill" => Dock::Fill,
-                "left" => Dock::Left,
-                "right" => Dock::Right,
-                "top" => Dock::Top,
-                "bottom" => Dock::Bottom,
-                _ => Dock::None,
-            }),
-            "align" => w.align(match v.trim() {
-                "center" => Align::Center,
-                "end" => Align::End,
-                _ => Align::Start,
-            }),
-            "focus_style" => w.focus_style(match v.trim() {
-                "fill" => FocusStyle::Fill,
-                "none" => FocusStyle::None,
-                _ => FocusStyle::Outline,
-            }),
-            "padding" => match padding(v) {
-                Some([t, r, b, l]) => w.padding(t, r, b, l),
-                None => w,
-            },
-            "margin" => match padding(v) {
-                Some([t, r, b, l]) => w.margin(t, r, b, l),
-                None => w,
-            },
-            "halign" => match v.trim() {
-                "left" => w.halign(HAlign::Left),
-                "center" => w.halign(HAlign::Center),
-                "right" => w.halign(HAlign::Right),
-                "stretch" => w.halign(HAlign::Stretch),
-                _ => w,
-            },
-            "valign" => match v.trim() {
-                "top" => w.valign(VAlign::Top),
-                "center" => w.valign(VAlign::Center),
-                "bottom" => w.valign(VAlign::Bottom),
-                "stretch" => w.valign(VAlign::Stretch),
-                _ => w,
-            },
-            "bg" => match color(v) {
-                Some(c) => w.bg(Color(c)),
-                // `sprite:panel`, `mymod:gui/frame`: an image background.
-                None if v.contains(':') => w.bg_image(v.trim()),
-                None => w,
-            },
-            "color" => match color(v) {
-                Some(c) => w.color(Color(c)),
-                None => w,
-            },
-            "focus_color" => match color(v) {
-                Some(c) => w.focus_color(Color(c)),
-                None => w,
-            },
-            "shadow" => w.shadow(v.trim() == "true"),
-            "enabled" => w.enabled(v.trim() != "false"),
-            yog_ids::yui_attr::FONT if !v.trim().is_empty() => w.font(v.trim()),
-            "placeholder" => w.placeholder(text(Some(v))),
-            "max_length" => match v.trim().parse() {
-                Ok(n) => w.max_length(n),
-                Err(_) => w,
-            },
-            "on_change" => w.on_change(v),
-            "on_submit" => w.on_submit(v),
-            "no_wrap" if v.trim() == "true" => w.no_wrap(),
-            "ellipsis" if v.trim() == "true" => w.ellipsis(),
-            _ => w,
-        };
+        w = attribute(w, node, key);
     }
     if node.kind == yog_ids::yui::SCROLL_VIEW
         && let Some(offset) = scroll.get(&node.uid)
@@ -407,6 +304,26 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
         }
     }
     w
+}
+
+/// Attribute `key` of `node` on its widget: the common ones as yog-ui reads
+/// them, then an id, events and texts (malformed values are left out:
+/// `yog check` reports them).
+fn attribute(w: Widget, node: &YuiNode, key: &str) -> Widget {
+    use yog_ids::yui_attr as at;
+    let v = node.attrs[key].as_str();
+    if let Ok(Some(attr)) = Attr::parse(key, v) {
+        return attr.apply(w);
+    }
+    match key {
+        at::ID if node.kind != yog_ids::yui::SCREEN => w.id(v),
+        at::ON_CLICK => w.on_click(v),
+        at::ON_CHANGE => w.on_change(v),
+        at::ON_SUBMIT => w.on_submit(v),
+        at::FONT if !v.trim().is_empty() => w.font(v.trim()),
+        at::PLACEHOLDER => w.placeholder(text(Some(v))),
+        _ => w,
+    }
 }
 
 /// The anchored screen (`root_with`): a `screen_w × screen_h` panel with the

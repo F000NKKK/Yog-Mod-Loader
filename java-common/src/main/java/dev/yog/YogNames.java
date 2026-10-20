@@ -978,6 +978,14 @@ public final class YogNames {
         public static final String START = "start";
         public static final String CENTER = "center";
         public static final String END = "end";
+        public static final String LEFT = "left";
+        public static final String RIGHT = "right";
+        public static final String TOP = "top";
+        public static final String BOTTOM = "bottom";
+        public static final String FILL = "fill";
+        public static final String STRETCH = "stretch";
+        public static final String OUTLINE = "outline";
+        public static final String NONE = "none";
     }
 
     public static final class YuiMarkup {

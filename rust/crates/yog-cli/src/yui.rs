@@ -25,6 +25,9 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use yog_gfx::image::{ImageSource, Stretch};
+use yog_ui::attr::Attr;
+
+mod attr_code;
 
 // ── XML subset (yog-book's) ───────────────────────────────────────────────────
 
@@ -144,9 +147,7 @@ pub(crate) fn boolean(el: &Element, key: &str, value: &str) -> Result<bool, Stri
 /// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB` → `0xAARRGGBB` (`Color::parse`;
 /// a file's color is written with its `#` or `0x`, not as a decimal).
 pub fn color(value: &str) -> Option<u32> {
-    let v = value.trim();
-    let written = [HEX_MARK, "0x", "0X"].iter().any(|p| v.starts_with(p));
-    written.then(|| yog_gfx::Color::parse(v)).flatten().map(|c| c.0)
+    yog_ui::attr::written_color(value).map(|c| c.0)
 }
 
 /// What a color written in hex starts with: `#RRGGBB`.
@@ -183,35 +184,6 @@ fn resource_color(reference: &str) -> Option<u32> {
 
 fn f(v: f32) -> String {
     format!("{v:?}")
-}
-
-fn size(el: &Element, key: &str, value: &str) -> Result<Option<String>, String> {
-    let v = value.trim();
-    if v.is_empty() || v == "auto" {
-        return Ok(None);
-    }
-    if let Some(p) = v.strip_suffix('%') {
-        return Ok(Some(format!("Units::Percent({})", f(number(el, key, p)?))));
-    }
-    Ok(Some(format!("Units::Px({})", f(number(el, key, v)?))))
-}
-
-/// CSS-style shorthand: 1 value = all sides, 2 = vertical horizontal, 4 = top right bottom left.
-fn padding(el: &Element, key: &str, value: &str) -> Result<[f32; 4], String> {
-    let parts: Vec<f32> = value
-        .split([' ', ','])
-        .filter(|s| !s.is_empty())
-        .map(|s| number(el, key, s))
-        .collect::<Result<_, _>>()?;
-    match parts.as_slice() {
-        [a] => Ok([*a; 4]),
-        [v, h] => Ok([*v, *h, *v, *h]),
-        [t, r, b, l] => Ok([*t, *r, *b, *l]),
-        _ => Err(format!(
-            "line {}: <{}> {key}=\"{value}\": expected 1, 2 or 4 numbers",
-            el.line, el.name
-        )),
-    }
 }
 
 /// `MinHeight` → `min_height`.
@@ -715,52 +687,6 @@ impl Gen {
                 "placeholder" => call(format!("placeholder({})", text_attr(el, key, v)?)),
                 "tooltip" => call(format!("tooltip({})", text_attr(el, key, v)?)),
                 yog_ids::yui_attr::FONT => call(format!("font({:?})", font_attr(el, v)?)),
-                "max_length" => {
-                    let n = v.trim().parse::<usize>().map_err(|_| {
-                        format!(
-                            "line {}: <{kind}> max_length=\"{v}\": expected a whole number",
-                            el.line
-                        )
-                    })?;
-                    call(format!("max_length({n})"));
-                }
-                "w" | "h" => {
-                    if let Some(s) = size(el, key, v)? {
-                        call(format!("{key}({s})"));
-                    }
-                }
-                "min_w" | "min_h" | "flex" | "gap" | "font_scale" => {
-                    call(format!("{key}({})", f(number(el, key, v)?)));
-                }
-                "dock" => {
-                    let d = pick(
-                        el,
-                        key,
-                        v,
-                        &["none", "fill", "left", "right", "top", "bottom"],
-                    )?;
-                    call(format!("dock(Dock::{})", pascal(d)));
-                }
-                "align" => {
-                    let a = pick(el, key, v, &["start", "center", "end"])?;
-                    call(format!("align(Align::{})", pascal(a)));
-                }
-                "focus_style" => {
-                    let s = pick(el, key, v, &["outline", "fill", "none"])?;
-                    call(format!("focus_style(FocusStyle::{})", pascal(s)));
-                }
-                "padding" | "margin" => {
-                    let [t, r, b, l] = padding(el, key, v)?;
-                    call(format!("{key}({}, {}, {}, {})", f(t), f(r), f(b), f(l)));
-                }
-                "halign" => {
-                    let a = pick(el, key, v, &["left", "center", "right", "stretch"])?;
-                    call(format!("halign(::yog_api::ui::HAlign::{})", pascal(a)));
-                }
-                "valign" => {
-                    let a = pick(el, key, v, &["top", "center", "bottom", "stretch"])?;
-                    call(format!("valign(::yog_api::ui::VAlign::{})", pascal(a)));
-                }
                 "bg" if is_image_value(v) => {
                     let src = image_source(el, key, v.trim(), self.mod_id.as_deref())?;
                     call(format!("bg_image({src:?})"));
@@ -768,10 +694,15 @@ impl Gen {
                 "bg" | "color" | "focus_color" => {
                     call(format!("{key}(::yog_api::ui::Color(0x{:08X}))", color_attr(el, key, v)?));
                 }
-                "shadow" | "enabled" => call(format!("{key}({})", boolean(el, key, v)?)),
-                "no_wrap" if boolean(el, key, v)? => call("no_wrap()".to_string()),
-                "ellipsis" if boolean(el, key, v)? => call("ellipsis()".to_string()),
-                _ => {} // kind-specific, handled above (or Screen metadata)
+                _ => match Attr::parse(key, v) {
+                    Ok(Some(attr)) => {
+                        if let Some(c) = attr_code::call(&attr) {
+                            call(c);
+                        }
+                    }
+                    Ok(None) => {} // kind-specific, handled above (or Screen metadata)
+                    Err(want) => return err(el, format_args!("{key}=\"{v}\": expected {want}")),
+                },
             }
         }
         if !el.children.is_empty() {

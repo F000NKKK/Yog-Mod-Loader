@@ -498,47 +498,12 @@ pub const COMMON_ATTRS: &[&str] = &[
 /// (layout attributes — position, size, dock, flex — are left to the
 /// caller; malformed values are ignored).
 pub fn apply_style(w: Widget, key: &str, value: &str) -> Widget {
-    let v = value.trim();
-    let num = || v.parse::<f32>().ok();
-    // `set` applied when the value parsed, else `w` as it is.
-    fn with<T>(w: Widget, value: Option<T>, set: fn(Widget, T) -> Widget) -> Widget {
-        match value {
-            Some(v) => set(w, v),
-            None => w,
-        }
-    }
-    match key {
-        attr::BG => with(w, parse_color(v), Widget::bg),
-        attr::COLOR => with(w, parse_color(v), Widget::color),
-        attr::FOCUS_COLOR => with(w, parse_color(v), Widget::focus_color),
-        attr::MIN_W => with(w, num(), Widget::min_w),
-        attr::MIN_H => with(w, num(), Widget::min_h),
-        attr::GAP => with(w, num(), Widget::gap),
-        attr::FONT_SCALE => with(w, num(), Widget::font_scale),
-        attr::FONT => w.font(v),
-        attr::SHADOW => w.shadow(v == value::TRUE),
-        attr::ENABLED => w.enabled(v != value::FALSE),
-        attr::NO_WRAP if v == value::TRUE => w.no_wrap(),
-        attr::ELLIPSIS if v == value::TRUE => w.ellipsis(),
-        attr::ALIGN => w.align(match v {
-            value::CENTER => crate::Align::Center,
-            value::END => crate::Align::End,
-            _ => crate::Align::Start,
-        }),
-        attr::PADDING => {
-            let parts: Option<Vec<f32>> = v
-                .split([' ', ','])
-                .filter(|s| !s.is_empty())
-                .map(|s| s.parse().ok())
-                .collect();
-            match parts.as_deref() {
-                Some([a]) => w.padding(*a, *a, *a, *a),
-                Some([vv, hh]) => w.padding(*vv, *hh, *vv, *hh),
-                Some([t, r, b, l]) => w.padding(*t, *r, *b, *l),
-                _ => w,
-            }
-        }
-        _ => w,
+    match crate::attr::Attr::parse(key, value) {
+        Ok(Some(attr)) if attr.is_style() => attr.apply(w),
+        _ => match key {
+            attr::FONT => w.font(value.trim()),
+            _ => w,
+        },
     }
 }
 
