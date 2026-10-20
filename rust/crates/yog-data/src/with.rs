@@ -19,6 +19,7 @@
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
+use crate::binary::{Decoder, Writer};
 use crate::borrowed::ValueRef;
 use crate::schema::{Kinds, Reader, Schema, Shape, Text, is_metadata_key, read_ref};
 use crate::value::{Map, Ref, Seg, Value};
@@ -35,6 +36,20 @@ pub trait With<F> {
     /// Whether a struct leaves the field out.
     fn skip(_f: &F) -> bool {
         false
+    }
+    /// The field in the binary form, straight: its value encoded unless
+    /// the codec knows better.
+    fn encode(f: &F, w: &mut Writer) {
+        w.value(&Self::write(f));
+    }
+    /// The field from the binary form, straight; `None` sends the read the
+    /// slow way (see [`Schema::decode`]).
+    fn decode(d: &mut Decoder<'_>) -> Option<F> {
+        let arena = bumpalo::Bump::new();
+        let v = d.value_ref(&arena).ok()?;
+        let mut cx = Reader::new();
+        let f = Self::read(&v, &mut cx)?;
+        cx.problems.is_empty().then_some(f)
     }
 }
 
@@ -187,6 +202,12 @@ impl<F: Schema> With<F> for Plain {
     fn skip(f: &F) -> bool {
         f.skip()
     }
+    fn encode(f: &F, w: &mut Writer) {
+        f.encode(w);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<F> {
+        F::decode(d)
+    }
 }
 
 /// Bytes as they are (`Vec<u8>`): a payload a format doesn't look into.
@@ -215,6 +236,12 @@ impl With<Vec<u8>> for Raw {
     }
     fn write(f: &Vec<u8>) -> Value {
         Value::Bytes(f.clone())
+    }
+    fn encode(f: &Vec<u8>, w: &mut Writer) {
+        w.bytes(f);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Vec<u8>> {
+        d.bytes().map(<[u8]>::to_vec)
     }
     fn absent() -> Option<Vec<u8>> {
         Some(Vec::new())

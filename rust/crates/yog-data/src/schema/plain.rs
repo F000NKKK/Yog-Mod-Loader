@@ -3,6 +3,11 @@
 #[allow(unused_imports)] // each part uses some of the module's names
 use super::*;
 
+/// What a typed value's string starts with (`@item:…`).
+fn typed_mark() -> char {
+    yog_ids::sep::TYPED.chars().next().unwrap_or_default()
+}
+
 // ── Plain types ─────────────────────────────────────────────────────────────
 
 impl Schema for Value {
@@ -30,6 +35,12 @@ impl Schema for bool {
     fn write(&self) -> Value {
         Value::Bool(*self)
     }
+    fn encode(&self, w: &mut Writer) {
+        w.bool(*self);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        d.bool()
+    }
 }
 
 macro_rules! int_schema {
@@ -51,6 +62,23 @@ macro_rules! int_schema {
             fn write(&self) -> Value {
                 Value::Int(*self as i64)
             }
+            fn encode(&self, w: &mut Writer) {
+                w.int(*self as i64);
+            }
+            fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+                d.int().and_then(|n| <$t>::try_from(n).ok())
+            }
+            fn encode_list(items: &[Self], w: &mut Writer) {
+                w.ints(items.iter().map(|&n| n as i64));
+            }
+            fn decode_list(d: &mut Decoder<'_>) -> Option<Vec<Self>> {
+                let n = d.ints()?;
+                let mut out = Vec::with_capacity(n);
+                for _ in 0..n {
+                    out.push(<$t>::try_from(d.packed_int()?).ok()?);
+                }
+                Some(out)
+            }
         }
     )*};
 }
@@ -70,6 +98,12 @@ macro_rules! float_schema {
             }
             fn write(&self) -> Value {
                 Value::Float(*self as f64)
+            }
+            fn encode(&self, w: &mut Writer) {
+                w.float(*self as f64);
+            }
+            fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+                d.float().map(|f| f as $t)
             }
         }
     )*};
@@ -107,6 +141,13 @@ impl Schema for String {
     fn write(&self) -> Value {
         Value::Str(self.clone())
     }
+    fn encode(&self, w: &mut Writer) {
+        w.str(self);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        // A typed value (`@…`) is the slow way's to tell apart.
+        d.str().filter(|s| !s.starts_with(typed_mark())).map(str::to_owned)
+    }
 }
 
 impl<T: Schema> Schema for Option<T> {
@@ -122,6 +163,17 @@ impl<T: Schema> Schema for Option<T> {
     }
     fn write(&self) -> Value {
         self.as_ref().map_or(Value::Null, T::write)
+    }
+    fn encode(&self, w: &mut Writer) {
+        match self {
+            Some(v) => v.encode(w),
+            None => {
+                w.null();
+            }
+        }
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        if d.null() { Some(None) } else { T::decode(d).map(Some) }
     }
     fn absent() -> Option<Self> {
         Some(None)
@@ -140,6 +192,12 @@ impl<T: Schema> Schema for Box<T> {
     }
     fn write(&self) -> Value {
         (**self).write()
+    }
+    fn encode(&self, w: &mut Writer) {
+        (**self).encode(w);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        T::decode(d).map(Box::new)
     }
     fn absent() -> Option<Self> {
         T::absent().map(Box::new)
@@ -171,6 +229,12 @@ impl<T: Schema> Schema for Vec<T> {
     fn write(&self) -> Value {
         Value::List(self.iter().map(T::write).collect())
     }
+    fn encode(&self, w: &mut Writer) {
+        T::encode_list(self, w);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        T::decode_list(d)
+    }
 }
 
 impl<T: Schema, const N: usize> Schema for [T; N] {
@@ -187,6 +251,12 @@ impl<T: Schema, const N: usize> Schema for [T; N] {
     }
     fn write(&self) -> Value {
         Value::List(self.iter().map(T::write).collect())
+    }
+    fn encode(&self, w: &mut Writer) {
+        T::encode_list(self, w);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        T::decode_list(d)?.try_into().ok()
     }
 }
 

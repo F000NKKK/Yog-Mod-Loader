@@ -8,7 +8,7 @@ use yog_ids as ids;
 pub trait Message: Schema + Sized {
     /// The payload's bytes.
     fn to_bytes(&self) -> Vec<u8> {
-        yog_data::binary::encode(&self.write())
+        yog_data::to_bytes(self)
     }
 
     /// The message read from a payload; `None` if it isn't one.

@@ -22,6 +22,7 @@ use crate::text::{self, Doc, LineCol};
 use crate::typed;
 use crate::borrowed::{MapRef, ValueRef};
 use crate::value::{Map, Path, Ref, Res, Seg, Value};
+use crate::binary::{Decoder, Writer};
 
 /// A Yog Data format.
 pub trait Schema: Sized {
@@ -44,6 +45,48 @@ pub trait Schema: Sized {
     fn skip(&self) -> bool {
         false
     }
+
+    /// Writes itself in the binary form, straight — [`Schema::write`]'s
+    /// value encoded, unless the type knows better (derived ones do).
+    fn encode(&self, w: &mut Writer) {
+        w.value(&self.write());
+    }
+
+    /// Reads itself from the binary form, straight; `None` when it isn't
+    /// what [`Schema::encode`] writes — then [`read_bytes`] reads the slow
+    /// way, which says what's wrong. Through a value unless the type knows
+    /// better (derived ones do).
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        let arena = bumpalo::Bump::new();
+        let v = d.value_ref(&arena).ok()?;
+        read_ref_value(&v).ok()
+    }
+
+    /// A list of these written straight (numbers pack theirs).
+    fn encode_list(items: &[Self], w: &mut Writer) {
+        w.list(items.len());
+        for item in items {
+            item.encode(w);
+        }
+    }
+
+    /// A list of these read straight.
+    fn decode_list(d: &mut Decoder<'_>) -> Option<Vec<Self>> {
+        let n = d.list()?;
+        let mut out = Vec::with_capacity(n);
+        for _ in 0..n {
+            out.push(Self::decode(d)?);
+        }
+        d.leave();
+        Some(out)
+    }
+}
+
+/// `v` in the binary form, written straight ([`Schema::encode`]).
+pub fn to_bytes<T: Schema>(v: &T) -> Vec<u8> {
+    let mut w = Writer::new();
+    v.encode(&mut w);
+    w.finish()
 }
 
 /// The field names of a struct's shape (none for anything else).
@@ -93,6 +136,13 @@ pub fn read_ref_value<T: Schema>(v: &ValueRef) -> Result<T, Vec<Problem>> {
 /// Reads the binary form as `T`, borrowed all the way: no string is
 /// copied but into `T` itself — content as the runtime takes it.
 pub fn read_bytes<T: Schema>(bytes: &[u8]) -> Result<T, Vec<Problem>> {
+    // Straight, the usual case; the slow way says what's wrong.
+    if let Ok(mut d) = Decoder::open(bytes)
+        && let Some(v) = T::decode(&mut d)
+        && d.at_end()
+    {
+        return Ok(v);
+    }
     let arena = bumpalo::Bump::new();
     let v = crate::binary::decode_ref(bytes, &arena).map_err(|e| {
         vec![Problem { path: Path::root(), message: e.to_string(), at_key: false }]

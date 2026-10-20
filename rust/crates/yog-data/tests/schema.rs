@@ -383,3 +383,54 @@ fn raw_bytes_round_trip_through_text() {
     assert!(text.contains("@bytes:"), "{text}");
     assert_eq!(yog_data::from_text::<Blob>(&text).unwrap().value, blob);
 }
+
+/// What the bus carries: written and read straight, without a value tree.
+#[derive(Schema, Debug, Clone, PartialEq)]
+struct Message {
+    name: String,
+    count: u32,
+    ratio: f32,
+    tags: Vec<String>,
+    mode: Mode,
+    note: Option<String>,
+    #[data(default)]
+    extra: i64,
+    #[data(with = "yog_data::with::Raw")]
+    bytes: Vec<u8>,
+}
+
+#[test]
+fn messages_go_straight_and_as_the_value_would() {
+    let m = Message {
+        name: "ruby".into(),
+        count: 3,
+        ratio: 0.5,
+        tags: vec!["a".into(), "b".into(), "a".into()],
+        mode: Mode::Smelting,
+        note: None,
+        extra: -7,
+        bytes: vec![1, 2, 3],
+    };
+    let straight = yog_data::to_bytes(&m);
+    assert_eq!(straight, binary::encode(&m.write()), "the same bytes either way");
+    let mut d = binary::Decoder::open(&straight).unwrap();
+    assert_eq!(Message::decode(&mut d).as_ref(), Some(&m), "read straight, not the slow way");
+    assert!(d.at_end());
+    assert_eq!(yog_data::read_bytes::<Message>(&straight).unwrap(), m);
+    // A field left out takes its default; an unknown one sends it the slow way, which says so.
+    let mut fewer = m.write();
+    if let Value::Map(map) = &mut fewer {
+        map.remove("extra");
+        map.remove("note");
+    }
+    let fewer = binary::encode(&fewer);
+    let mut d = binary::Decoder::open(&fewer).unwrap();
+    assert_eq!(Message::decode(&mut d).map(|r| r.extra), Some(0));
+    let mut more = m.write();
+    if let Value::Map(map) = &mut more {
+        map.insert("nope", Value::Int(1));
+    }
+    let bytes = binary::encode(&more);
+    assert!(Message::decode(&mut binary::Decoder::open(&bytes).unwrap()).is_none());
+    assert!(yog_data::read_bytes::<Message>(&bytes).unwrap_err().iter().any(|p| p.message.contains("nope")));
+}

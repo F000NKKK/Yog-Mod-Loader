@@ -53,6 +53,50 @@ struct Area {
     blocks: Vec<u16>,
 }
 
+/// Strings: each different (the writer's hash index), or a few over and over.
+#[derive(Schema, Clone, PartialEq, Debug)]
+struct Strings {
+    items: Vec<String>,
+}
+
+/// Nested: a chain of optional boxes.
+#[derive(Schema, Clone, PartialEq, Debug)]
+struct Node {
+    value: i32,
+    next: Option<Box<Node>>,
+}
+
+/// Nothing at all.
+#[derive(Schema, Clone, PartialEq, Debug)]
+struct Empty {}
+
+/// Floats: not packed, eight bytes each.
+#[derive(Schema, Clone, PartialEq, Debug)]
+struct Floats {
+    items: Vec<f64>,
+}
+
+/// Bytes as they are: a picture, a sound.
+#[derive(Schema, Clone, PartialEq, Debug)]
+struct Blob {
+    #[data(with = "yog_data::with::Raw")]
+    bytes: Vec<u8>,
+}
+
+const MANY: usize = 2000;
+const FEW_KINDS: usize = 8;
+const DEPTH: i32 = 50;
+const BLOB_BYTES: usize = 1 << 16;
+const FLOATS: usize = 10_000;
+
+fn strings(distinct: usize) -> Strings {
+    Strings { items: (0..MANY).map(|i| format!("minecraft:thing_{}", i % distinct)).collect() }
+}
+
+fn chain() -> Node {
+    (0..DEPTH).fold(Node { value: DEPTH, next: None }, |next, value| Node { value, next: Some(Box::new(next)) })
+}
+
 const AREA_SIDE: usize = 32;
 const INVENTORY_SLOTS: u32 = 41;
 
@@ -83,6 +127,11 @@ fn area() -> Area {
 }
 
 fn encode<T: Schema>(v: &T) -> Vec<u8> {
+    yog_data::to_bytes(v)
+}
+
+/// The way through a value tree: what `encode` was before it went straight.
+fn encode_via_value<T: Schema>(v: &T) -> Vec<u8> {
     yog_data::binary::encode(&v.write())
 }
 
@@ -123,7 +172,14 @@ fn case<T: Schema + PartialEq + std::fmt::Debug>(c: &mut Criterion, name: &str, 
     let mut g = c.benchmark_group(name);
     g.throughput(Throughput::Bytes(bytes.len() as u64));
     g.bench_function(BenchmarkId::new("encode", bytes.len()), |b| b.iter(|| encode(black_box(v))));
+    g.bench_function(BenchmarkId::new("encode via value", bytes.len()), |b| b.iter(|| encode_via_value(black_box(v))));
     g.bench_function(BenchmarkId::new("decode", bytes.len()), |b| b.iter(|| yog_data::read_bytes::<T>(black_box(&bytes)).unwrap()));
+    g.bench_function(BenchmarkId::new("decode via value", bytes.len()), |b| {
+        b.iter(|| {
+            let arena = yog_data::Bump::new();
+            yog_data::read_ref_value::<T>(&yog_data::binary::decode_ref(black_box(&bytes), &arena).unwrap()).unwrap()
+        })
+    });
     if let Some(raw) = raw {
         g.bench_function(BenchmarkId::new("raw encode", raw(v).len()), |b| b.iter(|| raw(black_box(v))));
     }
@@ -134,6 +190,19 @@ fn bench(c: &mut Criterion) {
     case(c, "entity_info", &entity(), Some(raw::entity));
     case(c, "inventory", &inventory(), None);
     case(c, "area_32", &area(), Some(raw::area));
+    case(c, "strings_unique", &strings(MANY), None);
+    case(c, "strings_repeated", &strings(FEW_KINDS), None);
+    case(c, "nested_50", &chain(), None);
+    case(c, "empty", &Empty {}, None);
+    case(c, "floats_10k", &Floats { items: (0..FLOATS).map(|i| i as f64 * 0.5).collect() }, None);
+    case(c, "bytes_64k", &Blob { bytes: (0..BLOB_BYTES).map(|i| i as u8).collect() }, None);
+    // A message with a field the type doesn't know: read the slow way, to say so.
+    let mut unknown = entity().write();
+    if let yog_data::Value::Map(m) = &mut unknown {
+        m.insert("unknown", yog_data::Value::Int(1));
+    }
+    let bytes = yog_data::binary::encode(&unknown);
+    c.bench_function("unknown_field/decode (fails, says why)", |b| b.iter(|| yog_data::read_bytes::<EntityInfo>(black_box(&bytes)).unwrap_err()));
 }
 
 criterion_group!(benches, bench);

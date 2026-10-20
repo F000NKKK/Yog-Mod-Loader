@@ -255,6 +255,76 @@ fn write_fields(fields: &[NamedField]) -> Tokens {
     quote! { #(#puts)* }
 }
 
+/// `fields` (bound by name) written straight as a map.
+fn encode_fields(fields: &[NamedField]) -> Tokens {
+    let krate = krate();
+    let written: Vec<_> = fields.iter().filter(|f| !f.skip).collect();
+    let counts = written.iter().map(|f| {
+        let (ident, ty, w) = (&f.ident, &f.ty, &f.with);
+        quote! { + usize::from(!<#w as #krate::with::With<#ty>>::skip(#ident)) }
+    });
+    let puts = written.iter().map(|f| {
+        let (ident, key, ty, w) = (&f.ident, &f.key, &f.ty, &f.with);
+        quote! {
+            if !<#w as #krate::with::With<#ty>>::skip(#ident) {
+                __yog_w.key(#key);
+                <#w as #krate::with::With<#ty>>::encode(#ident, __yog_w);
+            }
+        }
+    });
+    quote! {
+        __yog_w.map(0 #(#counts)*);
+        #(#puts)*
+    }
+}
+
+/// `ctor { ... }` read straight from a map — `None` (the slow way) for a
+/// key it doesn't know, or a field with a range to check.
+fn decode_fields(fields: &[NamedField], ctor: Tokens) -> Option<Tokens> {
+    let krate = krate();
+    if fields.iter().any(|f| f.range.is_some()) {
+        return None;
+    }
+    let read: Vec<_> = fields.iter().filter(|f| !f.skip).collect();
+    // Each field's slot, named apart from anything a default may call.
+    let slot = |f: &NamedField| quote::format_ident!("__yog_{}", f.ident);
+    let slots = read.iter().map(|f| {
+        let (s, ty) = (slot(f), &f.ty);
+        quote! { let mut #s: ::std::option::Option<#ty> = ::std::option::Option::None; }
+    });
+    let arms = read.iter().map(|f| {
+        let (s, key, ty, w) = (slot(f), &f.key, &f.ty, &f.with);
+        quote! { #key => #s = ::std::option::Option::Some(<#w as #krate::with::With<#ty>>::decode(__yog_d)?), }
+    });
+    let inits = fields.iter().map(|f| {
+        let (ident, ty, w) = (&f.ident, &f.ty, &f.with);
+        let value = if f.skip {
+            quote! { ::std::default::Default::default() }
+        } else {
+            let missing = match &f.default {
+                None => quote! { <#w as #krate::with::With<#ty>>::absent()? },
+                Some(None) => quote! { ::std::default::Default::default() },
+                Some(Some(path)) => quote! { #path() },
+            };
+            let s = slot(f);
+            quote! { match #s { ::std::option::Option::Some(__yog_v) => __yog_v, ::std::option::Option::None => #missing } }
+        };
+        quote! { #ident: #value }
+    });
+    Some(quote! {
+        let __yog_n = __yog_d.map()?;
+        #(#slots)*
+        for _ in 0..__yog_n {
+            match __yog_d.key()? {
+                #(#arms)*
+                _ => return ::std::option::Option::None,
+            }
+        }
+        __yog_d.leave();
+        ::std::option::Option::Some(#ctor { #(#inits),* })
+    })
+}
+
 fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
     let krate = krate();
     let name = &input.ident;
@@ -270,7 +340,19 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
                 let read = read_fields(&fields, quote! { Self });
                 let idents: Vec<_> = fields.iter().map(|f| &f.ident).collect();
                 let write = write_fields(&fields);
+                let encode = encode_fields(&fields);
+                let decode = decode_fields(&fields, quote! { Self }).map(|body| quote! {
+                    fn decode(__yog_d: &mut #krate::binary::Decoder<'_>) -> ::std::option::Option<Self> {
+                        #body
+                    }
+                });
                 quote! {
+                    #[allow(unused_variables)]
+                    fn encode(&self, __yog_w: &mut #krate::binary::Writer) {
+                        let Self { #(#idents),* } = self;
+                        #encode
+                    }
+                    #decode
                     fn shape() -> #krate::Shape {
                         #krate::Shape::Struct(#krate::schema::StructShape { name: #shape_name, doc: #doc, fields: #shapes })
                     }
@@ -295,6 +377,10 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
                         <#ty as #krate::Schema>::read(v, cx).map(Self)
                     }
                     fn write(&self) -> #krate::Value { #krate::Schema::write(&self.0) }
+                    fn encode(&self, w: &mut #krate::binary::Writer) { #krate::Schema::encode(&self.0, w) }
+                    fn decode(d: &mut #krate::binary::Decoder<'_>) -> ::std::option::Option<Self> {
+                        <#ty as #krate::Schema>::decode(d).map(Self)
+                    }
                     fn absent() -> ::std::option::Option<Self> { <#ty as #krate::Schema>::absent().map(Self) }
                     fn skip(&self) -> bool { #krate::Schema::skip(&self.0) }
                 }
@@ -408,9 +494,13 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
             let (ident, key) = (&v.ident, &v.key);
             quote! { #key => ::std::option::Option::Some(Self::#ident), }
         });
-        let writes = vs.iter().map(|v| {
+        let writes: Vec<_> = vs.iter().map(|v| {
             let (ident, key) = (&v.ident, &v.key);
             quote! { Self::#ident => #key, }
+        }).collect();
+        let decodes = vs.iter().map(|v| {
+            let (ident, key) = (&v.ident, &v.key);
+            quote! { #key => ::std::option::Option::Some(Self::#ident), }
         });
         return Ok(quote! {
             #shape
@@ -429,6 +519,15 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
             }
             fn write(&self) -> #krate::Value {
                 #krate::Value::Str(::std::string::String::from(match self { #(#writes)* }))
+            }
+            fn encode(&self, w: &mut #krate::binary::Writer) {
+                w.str(match self { #(#writes)* });
+            }
+            fn decode(d: &mut #krate::binary::Decoder<'_>) -> ::std::option::Option<Self> {
+                match d.str()? {
+                    #(#decodes)*
+                    _ => ::std::option::Option::None,
+                }
             }
         });
     };

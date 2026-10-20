@@ -34,7 +34,7 @@ fn armor_material<'a>(h: &'a RuntimeHandlers, id: &str) -> Option<&'a yog_regist
 }
 
 /// A tool material, whole: the host makes its tier from it.
-fn write_tool_material<'v>(w: &mut Writer<'v>, m: &'v yog_registry::ToolMaterial) {
+fn write_tool_material(w: &mut Writer, m: &yog_registry::ToolMaterial) {
     w.map(8);
     w.key("id").str(&m.id);
     w.key("durability").int(m.durability as i64);
@@ -47,7 +47,7 @@ fn write_tool_material<'v>(w: &mut Writer<'v>, m: &'v yog_registry::ToolMaterial
 }
 
 /// An armor material, whole.
-fn write_armor_material<'v>(w: &mut Writer<'v>, m: &'v yog_registry::ArmorMaterial) {
+fn write_armor_material(w: &mut Writer, m: &yog_registry::ArmorMaterial) {
     w.map(9);
     w.key("id").str(&m.id);
     w.key("durability").int(m.durability as i64);
@@ -70,7 +70,7 @@ fn floats(w: &mut Writer, fs: &[f32]) {
     }
 }
 
-fn strings<'v>(w: &mut Writer<'v>, ss: &'v [String]) {
+fn strings(w: &mut Writer, ss: &[String]) {
     w.list(ss.len());
     for s in ss {
         w.str(s);
@@ -78,7 +78,7 @@ fn strings<'v>(w: &mut Writer<'v>, ss: &'v [String]) {
 }
 
 /// The whole group, so the host builds it without a list of its own.
-fn sound<'v>(w: &mut Writer<'v>, g: &'v yog_registry::SoundGroup) {
+fn sound(w: &mut Writer, g: &yog_registry::SoundGroup) {
     w.map(7);
     for (k, v) in [("break", &g.break_sound), ("step", &g.step), ("place", &g.place), ("hit", &g.hit), ("fall", &g.fall)] {
         w.key(k).str(v);

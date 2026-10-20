@@ -8,6 +8,20 @@ use std::process::Command;
 
 use yog_data::{Map, Ref, Res, Value, binary, text};
 
+/// Gson, which YogData's JSON half uses: the newest Gradle cached.
+fn gson() -> PathBuf {
+    let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default();
+    let dir = home.join(".gradle/caches/modules-2/files-2.1/com.google.code.gson/gson");
+    let mut jars: Vec<PathBuf> = walk(&dir).into_iter().filter(|p| p.extension().is_some_and(|e| e == "jar") && !p.to_string_lossy().contains("sources")).collect();
+    jars.sort();
+    jars.pop().expect("gson in the Gradle cache (build a host once)")
+}
+
+fn walk(dir: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
+    entries.flatten().flat_map(|e| if e.path().is_dir() { walk(&e.path()) } else { vec![e.path()] }).collect()
+}
+
 fn jdk_tool(name: &str) -> PathBuf {
     let jdk17 = Path::new("/usr/lib/jvm/java-17-openjdk-amd64/bin").join(name);
     if jdk17.exists() {
@@ -68,7 +82,9 @@ fn java_reads_and_writes_the_same_bytes() {
     let dir = std::env::temp_dir().join(format!("yog-data-java-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let javac = Command::new(jdk_tool("javac"))
-        .args(["--release", "17", "-d"])
+        .args(["--release", "17", "-cp"])
+        .arg(gson())
+        .arg("-d")
         .arg(&dir)
         .arg(root.join("../../../java-common/src/main/java/dev/yog/data/YogData.java"))
         .arg(root.join("tests/java/RoundTrip.java"))
@@ -86,7 +102,7 @@ fn java_reads_and_writes_the_same_bytes() {
         std::fs::write(&input, &bytes).unwrap();
         let run = Command::new(jdk_tool("java"))
             .arg("-cp")
-            .arg(&dir)
+            .arg(std::env::join_paths([dir.clone(), gson()]).unwrap())
             .arg("RoundTrip")
             .arg(&input)
             .arg(&output)
@@ -98,5 +114,20 @@ fn java_reads_and_writes_the_same_bytes() {
             "{name}: Java wrote different bytes"
         );
     }
+    // A packed list of ints (what a schema of numbers writes) reads as a list:
+    // Java writes it back unpacked, the same value.
+    let packed = yog_data::to_bytes(&vec![1u16, 300, 7, u16::MAX]);
+    let (input, output) = (dir.join("packed.in"), dir.join("packed.out"));
+    std::fs::write(&input, &packed).unwrap();
+    let run = Command::new(jdk_tool("java"))
+        .arg("-cp")
+        .arg(std::env::join_paths([dir.clone(), gson()]).unwrap())
+        .arg("RoundTrip")
+        .arg(&input)
+        .arg(&output)
+        .status()
+        .expect("java");
+    assert!(run.success(), "packed: Java failed");
+    assert_eq!(binary::decode(&std::fs::read(&output).unwrap()).unwrap(), binary::decode(&packed).unwrap());
     let _ = std::fs::remove_dir_all(&dir);
 }

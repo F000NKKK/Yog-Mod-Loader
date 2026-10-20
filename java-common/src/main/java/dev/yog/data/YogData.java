@@ -26,12 +26,17 @@ public final class YogData {
     private YogData() {}
 
     public static final byte[] MAGIC = {'Y', 'O', 'G', 'D'};
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
     /** Nested deeper than this is malformed. */
     public static final int MAX_DEPTH = 256;
 
+    /** A string's varint: a new one's is odd (its length), a reference even (its index). */
+    private static final long NEW_STRING = 1;
+
     private static final int NULL = 0, FALSE = 1, TRUE = 2, INT = 3, FLOAT = 4, STR = 5, LIST = 6, MAP = 7,
-            REF = 8, TAG = 9, RES = 10, TEXT = 11, IMAGE = 12, COLOR = 13, LANG = 14, BYTES = 15;
+            REF = 8, TAG = 9, RES = 10, TEXT = 11, IMAGE = 12, COLOR = 13, LANG = 14, BYTES = 15,
+            /** A list of ints, packed: no tag each. */
+            INTS = 16;
 
     /** Content of a kind ({@code item}, {@code block}, ...) by id. */
     public record Ref(String kind, String id) {}
@@ -75,13 +80,6 @@ public final class YogData {
         r.i = 4;
         int version = r.u8();
         if (version != VERSION) throw new DecodeException("Yog Data version " + version + ", this reads version " + VERSION, 4);
-        int count = r.count(1);
-        r.strings = new String[count];
-        for (int s = 0; s < count; s++) {
-            int len = r.count(1);
-            r.strings[s] = new String(bytes, r.i, len, StandardCharsets.UTF_8);
-            r.i += len;
-        }
         Object v = r.value(0);
         if (r.i != bytes.length) throw new DecodeException("bytes after the value", r.i);
         return v;
@@ -90,7 +88,8 @@ public final class YogData {
     private static final class Reader {
         final byte[] b;
         int i;
-        String[] strings;
+        /** The strings met so far: a string is written where first used, referred to after. */
+        final List<String> strings = new ArrayList<>();
 
         Reader(byte[] b) {
             this.b = b;
@@ -119,9 +118,18 @@ public final class YogData {
         }
 
         String string() {
-            long s = varint();
-            if (s < 0 || s >= strings.length) throw new DecodeException("string " + s + " isn't in the table", i);
-            return strings[(int) s];
+            long v = varint();
+            if ((v & NEW_STRING) != 0) {
+                long len = v >>> 1;
+                if (len > b.length - i) throw new DecodeException("length " + len + " past the end (" + (b.length - i) + " bytes left)", i);
+                String s = new String(b, i, (int) len, StandardCharsets.UTF_8);
+                i += (int) len;
+                strings.add(s);
+                return s;
+            }
+            long s = v >>> 1;
+            if (s >= strings.size()) throw new DecodeException("string " + s + " isn't in the table", i);
+            return strings.get((int) s);
         }
 
         long fixed(int n) {
@@ -160,6 +168,15 @@ public final class YogData {
                     }
                     return map;
                 }
+                case INTS: {
+                    int n = count(1);
+                    List<Object> list = new ArrayList<>(n);
+                    for (int k = 0; k < n; k++) {
+                        long z = varint();
+                        list.add((z >>> 1) ^ -(z & 1));
+                    }
+                    return list;
+                }
                 case REF: return new Ref(string(), string());
                 case TAG: return new Tag(string(), string());
                 case RES: return new Res(string(), string());
@@ -183,33 +200,27 @@ public final class YogData {
     /** {@code value} in the binary form. */
     public static byte[] encode(Object value) {
         Writer w = new Writer();
+        w.body.writeBytes(MAGIC);
+        w.body.write(VERSION);
         w.value(value);
-        ByteArrayOutputStream out = new ByteArrayOutputStream(w.body.size() + 64);
-        out.writeBytes(MAGIC);
-        out.write(VERSION);
-        varint(out, w.table.size());
-        for (String s : w.table) {
-            byte[] utf8 = s.getBytes(StandardCharsets.UTF_8);
-            varint(out, utf8.length);
-            out.writeBytes(utf8);
-        }
-        out.writeBytes(w.body.toByteArray());
-        return out.toByteArray();
+        return w.body.toByteArray();
     }
 
     private static final class Writer {
         final ByteArrayOutputStream body = new ByteArrayOutputStream();
+        /** The strings written so far, by their index: written once, referred to after. */
         final Map<String, Integer> index = new HashMap<>();
-        final List<String> table = new ArrayList<>();
 
         void string(String s) {
             Integer i = index.get(s);
-            if (i == null) {
-                i = table.size();
-                index.put(s, i);
-                table.add(s);
+            if (i != null) {
+                varint(body, (long) i << 1);
+                return;
             }
-            varint(body, i);
+            index.put(s, index.size());
+            byte[] utf8 = s.getBytes(StandardCharsets.UTF_8);
+            varint(body, ((long) utf8.length << 1) | NEW_STRING);
+            body.writeBytes(utf8);
         }
 
         void fixed(long v, int n) {
