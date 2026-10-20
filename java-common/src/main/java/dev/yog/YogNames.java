@@ -853,6 +853,17 @@ public final class YogNames {
         public static final String HUMANOID_LEGGINGS = "humanoid_leggings";
     }
 
+    public static final class YuiValue {
+        private YuiValue() {}
+
+        public static final String TRUE = "true";
+        public static final String FALSE = "false";
+        public static final String AUTO = "auto";
+        public static final String START = "start";
+        public static final String CENTER = "center";
+        public static final String END = "end";
+    }
+
     public static final class YuiMarkup {
         private YuiMarkup() {}
 
