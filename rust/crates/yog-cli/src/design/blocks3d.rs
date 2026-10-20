@@ -513,7 +513,7 @@ mod tests {
     fn opaque(shape: Shape) -> usize {
         let res = Resources { mod_root: None, vanilla: None };
         let mut c = Canvas::new(32, 32, 1, &res);
-        draw_with(&mut c, &[([0, 0, 0], "x".into())], [0.0, 0.0, 32.0, 32.0], 225.0, 30.0, |_, _| shape.clone());
+        draw_with(&mut c, &[([0, 0, 0], "x".into())], [0.0, 0.0, 32.0, 32.0], (225.0, 30.0), |_, _| shape.clone());
         c.rgba.as_chunks::<{ yog_graphics::BYTES_PER_PIXEL }>().0.iter().filter(|p| p[3] > 0).count()
     }
 
