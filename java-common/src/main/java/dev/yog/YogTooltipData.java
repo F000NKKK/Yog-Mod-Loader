@@ -12,7 +12,7 @@ public record YogTooltipData(String item, String snbt, int width, int height) im
     public static Optional<net.minecraft.world.inventory.tooltip.TooltipComponent> of(net.minecraft.world.item.ItemStack stack) {
         String item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
         String snbt = NativeBridge.tooltipSnbt(stack);
-        java.util.List<Double> size;
+        java.util.List<Float> size;
         try {
             size = new YogServices.Item.Picture(item, snbt).call();
         } catch (UnsatisfiedLinkError e) {

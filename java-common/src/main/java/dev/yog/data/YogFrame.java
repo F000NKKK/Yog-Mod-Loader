@@ -328,10 +328,10 @@ public final class YogFrame {
             return out;
         }
 
-        public List<Double> getF32s() {
+        public List<Float> getF32s() {
             int n = count();
-            List<Double> out = new ArrayList<>(n);
-            for (int k = 0; k < n; k++) out.add((double) getF32());
+            List<Float> out = new ArrayList<>(n);
+            for (int k = 0; k < n; k++) out.add(getF32());
             return out;
         }
 

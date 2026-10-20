@@ -4,6 +4,9 @@
 use yog_data::Shape;
 use yog_data::schema::StructShape;
 
+/// Bits of a 32-bit float: a Java `float`.
+pub(super) const F32_BITS: u32 = 32;
+
 /// The class holding the payloads' records every message shares (`BlockPos`…).
 pub(super) const TYPES: &str = "YogTypes";
 
@@ -13,6 +16,7 @@ pub(super) fn java_type(shape: &Shape, records: &mut Vec<StructShape>) -> String
         Shape::Bool => "boolean".into(),
         Shape::Int { min, max } if fits_int(*min, *max) => "int".into(),
         Shape::Int { .. } => "long".into(),
+        Shape::Float { bits } if *bits == F32_BITS => "float".into(),
         Shape::Float { .. } => "double".into(),
         Shape::Bytes => "byte[]".into(),
         Shape::Any => "Object".into(),
@@ -45,6 +49,7 @@ fn boxed(java: &str) -> String {
         "int" => "Integer",
         "long" => "Long",
         "double" => "Double",
+        "float" => "Float",
         other => other,
     }
     .into()
@@ -84,6 +89,7 @@ pub(super) fn from_data(shape: &Shape, value: &str, depth: usize) -> String {
         Shape::Bool => format!("YogData.bool({value}, false)"),
         Shape::Int { min, max } if fits_int(*min, *max) => format!("(int) YogData.integer({value}, 0)"),
         Shape::Int { .. } => format!("YogData.integer({value}, 0)"),
+        Shape::Float { bits } if *bits == F32_BITS => format!("(float) YogData.number({value}, 0)"),
         Shape::Float { .. } => format!("YogData.number({value}, 0)"),
         Shape::Bytes => format!("({value} instanceof byte[] {e} ? {e} : new byte[0])"),
         Shape::Any => value.into(),

@@ -9,10 +9,8 @@ use yog_data::Shape;
 use yog_data::schema::{EnumShape, StructShape};
 
 use super::field;
-use super::types::{TYPES, fits_int, from_data, java_type, to_data};
+use super::types::{F32_BITS, TYPES, fits_int, from_data, java_type, to_data};
 
-/// Bits of a 32-bit float.
-const F32_BITS: u32 = 32;
 
 /// `pack`, `unpack`, `toFrame` and `fromFrame` for record `name` of `s`, indented by `pad`.
 pub(super) fn codec(name: &str, s: &StructShape, pad: &str) -> String {
@@ -50,8 +48,7 @@ pub(super) fn pack(shape: &Shape, value: &str, depth: usize) -> String {
     match shape {
         Shape::Bool => format!("p.putBool({value});"),
         Shape::Int { .. } => format!("p.putI({value});"),
-        // Through `double`: a boxed `Double` too.
-        Shape::Float { bits } if *bits == F32_BITS => format!("p.putF32((float) (double) {value});"),
+        Shape::Float { bits } if *bits == F32_BITS => format!("p.putF32({value});"),
         Shape::Float { .. } => format!("p.putF64({value});"),
         Shape::Str => format!("p.putStr({value});"),
         Shape::Bytes => format!("p.putBytes({value});"),
@@ -74,7 +71,7 @@ pub(super) fn unpack(shape: &Shape, depth: usize) -> String {
         Shape::Bool => "u.getBool()".into(),
         Shape::Int { min, max } if fits_int(*min, *max) => "(int) u.getI()".into(),
         Shape::Int { .. } => "u.getI()".into(),
-        Shape::Float { bits } if *bits == F32_BITS => "(double) u.getF32()".into(),
+        Shape::Float { bits } if *bits == F32_BITS => "u.getF32()".into(),
         Shape::Float { .. } => "u.getF64()".into(),
         Shape::Str => "u.getStr()".into(),
         Shape::Bytes => "u.getBytes()".into(),
@@ -98,6 +95,7 @@ fn boxed(shape: &Shape, depth: usize) -> String {
         Shape::Bool => format!("Boolean.valueOf({})", unpack(shape, depth)),
         Shape::Int { min, max } if fits_int(*min, *max) => format!("Integer.valueOf({})", unpack(shape, depth)),
         Shape::Int { .. } => format!("Long.valueOf({})", unpack(shape, depth)),
+        Shape::Float { bits } if *bits == F32_BITS => format!("Float.valueOf({})", unpack(shape, depth)),
         Shape::Float { .. } => format!("Double.valueOf({})", unpack(shape, depth)),
         _ => unpack(shape, depth),
     }
@@ -110,6 +108,7 @@ pub(super) fn from_host(shape: &Shape, out: &str) -> String {
         Shape::Bool => format!("(Boolean) {out}"),
         Shape::Int { min, max } if fits_int(*min, *max) => format!("((Number) {out}).intValue()"),
         Shape::Int { .. } => format!("((Number) {out}).longValue()"),
+        Shape::Float { bits } if *bits == F32_BITS => format!("((Number) {out}).floatValue()"),
         Shape::Float { .. } => format!("((Number) {out}).doubleValue()"),
         Shape::Optional(inner) => format!("({out} == null ? null : {})", boxed_host(&inner(), out)),
         other => format!("({}) {out}", java_type(other, &mut Vec::new())),
@@ -121,6 +120,7 @@ fn boxed_host(shape: &Shape, out: &str) -> String {
     match shape {
         Shape::Int { min, max } if fits_int(*min, *max) => format!("Integer.valueOf({})", from_host(shape, out)),
         Shape::Int { .. } => format!("Long.valueOf({})", from_host(shape, out)),
+        Shape::Float { bits } if *bits == F32_BITS => format!("Float.valueOf({})", from_host(shape, out)),
         Shape::Float { .. } => format!("Double.valueOf({})", from_host(shape, out)),
         _ => from_host(shape, out),
     }
@@ -132,6 +132,7 @@ pub(super) fn missing(shape: &Shape) -> String {
         Shape::Bool => "false".into(),
         Shape::Int { min, max } if fits_int(*min, *max) => "0".into(),
         Shape::Int { .. } => "0L".into(),
+        Shape::Float { bits } if *bits == F32_BITS => "0.0f".into(),
         Shape::Float { .. } => "0.0".into(),
         Shape::Bytes => "new byte[0]".into(),
         Shape::List(_) => "java.util.List.of()".into(),

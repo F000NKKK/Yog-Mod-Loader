@@ -2,13 +2,14 @@
 
 use std::fmt::Write;
 
+use yog_data::Shape;
 use yog_data::schema::StructShape;
 
 use crate::ServiceInfo;
 
 use super::frames;
 use super::types::java_type;
-use super::{Entry, Out, class_name, file, name, target};
+use super::{Entry, Out, class_name, field, file, name, target};
 
 /// The class it writes.
 pub(super) const CLASS: &str = "YogServices";
@@ -36,6 +37,7 @@ fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
         frames::missing(&s.reply)
     );
     if s.host.is_some() {
+        body.push_str(&serve(s, &mut o.records));
         let _ = write!(
             body,
             "\n\n    /** The host method's result {{@code out}} (its \"none\" already null) as the reply's frame. */\n    public static byte[] replyFrame(Object out) {{\n        YogFrame.Packer p = new YogFrame.Packer();\n        {reply} v = {};\n        {}\n        return p.finish();\n    }}",
@@ -44,6 +46,41 @@ fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
         );
     }
     body
+}
+
+/// A hosted action's `serve`: the request out of its frame, the host method
+/// called through a handle adapted once (`YogHostServices.handle`) with the
+/// request's components spread, the reply packed.
+fn serve(s: &ServiceInfo, records: &mut Vec<StructShape>) -> String {
+    let mut args = Vec::new();
+    if let Shape::Struct(request) = &s.shape {
+        spread(request, "r", &mut args, records);
+    }
+    let classes: String = args.iter().map(|(_, java)| format!(", {}", class_of(java))).collect();
+    let exprs: Vec<&str> = args.iter().map(|(expr, _)| expr.as_str()).collect();
+    format!(
+        "\n\n    private static final class HostMethod {{\n        static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class{classes}));\n    }}\n\n    /** Answers the action: the request out of its frame, the host method called, the reply packed. */\n    public static YogBus.Reply serve(byte[] payload) {{\n        if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);\n        try {{\n            {name} r = fromFrame(payload);\n            Object out = (Object) HostMethod.H.invokeExact({});\n            return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));\n        }} catch (YogData.DecodeException e) {{\n            return YogBus.Reply.of(YogBus.BAD_PAYLOAD);\n        }} catch (Throwable t) {{\n            return dev.yog.YogHostServices.failed(ADDRESS, t);\n        }}\n    }}",
+        exprs.join(", "),
+        name = s.name
+    )
+}
+
+/// The arguments record `s` (reached by `at`) spreads into, each with its
+/// Java type: a nested record's components in its place.
+fn spread(s: &StructShape, at: &str, out: &mut Vec<(String, String)>, records: &mut Vec<StructShape>) {
+    for f in &s.fields {
+        let shape = (f.shape)();
+        let expr = format!("{at}.{}()", field(f.name));
+        match &shape {
+            Shape::Struct(inner) => spread(inner, &expr, out, records),
+            _ => out.push((expr, java_type(&shape, records))),
+        }
+    }
+}
+
+/// A Java type's class literal: `int.class`, `java.util.List.class`.
+fn class_of(java: &str) -> String {
+    format!("{}.class", java.split('<').next().unwrap_or(java))
 }
 
 /// `World.SetBlock`: a service's record, from `YogServices`.
@@ -60,8 +97,8 @@ pub(super) fn services(package: &str) -> (String, Vec<StructShape>) {
     let hosted: Vec<String> = services.iter().filter(|s| s.host.is_some()).map(|s| record_path(s.domain, s.name)).collect();
     let _ = write!(
         o.members,
-        "\n    /** The actions the host answers ({{@code YogHostServices}}). */\n    public static final java.util.List<Class<? extends Record>> HOSTED = java.util.List.of({});\n",
-        hosted.iter().map(|r| format!("{r}.class")).collect::<Vec<_>>().join(", ")
+        "\n    /** The actions the host answers, by address ({{@code YogHostServices}}). */\n    public static final java.util.List<java.util.Map.Entry<String, YogBus.Handler>> HOSTED = java.util.List.of({});\n",
+        hosted.iter().map(|r| format!("java.util.Map.entry({r}.ADDRESS, {r}::serve)")).collect::<Vec<_>>().join(", ")
     );
     let entries: Vec<Entry> = services
         .into_iter()

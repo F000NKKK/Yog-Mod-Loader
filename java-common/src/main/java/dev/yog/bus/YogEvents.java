@@ -500,7 +500,7 @@ public final class YogEvents {
             /** Fired every time a player sends a movement packet (very high frequency).
 
 Post-phase only. The fields reflect the *new* position the client claims. */
-            public record Move(String playerName, String playerUuid, double x, double y, double z, double yaw, double pitch, String dimension) {
+            public record Move(String playerName, String playerUuid, double x, double y, double z, float yaw, float pitch, String dimension) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
@@ -516,7 +516,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
                 public static Move fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Move(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.str(m.get("dimension"), ""));
+                    return new Move(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), (float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0), YogData.str(m.get("dimension"), ""));
                 }
 
                 public static Move fromBytes(byte[] bytes) {
@@ -530,8 +530,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     p.putF64(this.x);
                     p.putF64(this.y);
                     p.putF64(this.z);
-                    p.putF32((float) (double) this.yaw);
-                    p.putF32((float) (double) this.pitch);
+                    p.putF32(this.yaw);
+                    p.putF32(this.pitch);
                     p.putStr(this.dimension);
                     p.end(at);
                 }
@@ -543,8 +543,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     double f_x = u.more(end) ? u.getF64() : 0.0;
                     double f_y = u.more(end) ? u.getF64() : 0.0;
                     double f_z = u.more(end) ? u.getF64() : 0.0;
-                    double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
-                    double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                    float f_yaw = u.more(end) ? u.getF32() : 0.0f;
+                    float f_pitch = u.more(end) ? u.getF32() : 0.0f;
                     String f_dimension = u.more(end) ? u.getStr() : "";
                     u.leave(end);
                     return new Move(f_playerName, f_playerUuid, f_x, f_y, f_z, f_yaw, f_pitch, f_dimension);
@@ -1522,7 +1522,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             private Combat() {}
 
             /** Fired after a living entity takes damage (server side). */
-            public record Damage(String entityType, String uuid, double amount, String source, String dimension) {
+            public record Damage(String entityType, String uuid, float amount, String source, String dimension) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("entity_type", entityType);
@@ -1535,7 +1535,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
                 public static Damage fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Damage(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""), YogData.number(m.get("amount"), 0), YogData.str(m.get("source"), ""), YogData.str(m.get("dimension"), ""));
+                    return new Damage(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""), (float) YogData.number(m.get("amount"), 0), YogData.str(m.get("source"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
                 public static Damage fromBytes(byte[] bytes) {
@@ -1546,7 +1546,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     int at = p.begin();
                     p.putStr(this.entityType);
                     p.putStr(this.uuid);
-                    p.putF32((float) (double) this.amount);
+                    p.putF32(this.amount);
                     p.putStr(this.source);
                     p.putStr(this.dimension);
                     p.end(at);
@@ -1556,7 +1556,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     int end = u.begin();
                     String f_entityType = u.more(end) ? u.getStr() : "";
                     String f_uuid = u.more(end) ? u.getStr() : "";
-                    double f_amount = u.more(end) ? (double) u.getF32() : 0.0;
+                    float f_amount = u.more(end) ? u.getF32() : 0.0f;
                     String f_source = u.more(end) ? u.getStr() : "";
                     String f_dimension = u.more(end) ? u.getStr() : "";
                     u.leave(end);
@@ -1781,7 +1781,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
         /** Fired when an explosion occurs in a world.
 
 - `Pre`  — fires before block destruction; return `false` to cancel (blocks and entities are unaffected). - `Post` — fires after the explosion has taken effect. */
-        public record Explosion(String dimension, double x, double y, double z, double power, String causeUuid) {
+        public record Explosion(String dimension, double x, double y, double z, float power, String causeUuid) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dimension", dimension);
@@ -1795,7 +1795,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             public static Explosion fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new Explosion(YogData.str(m.get("dimension"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), YogData.number(m.get("power"), 0), YogData.str(m.get("cause_uuid"), ""));
+                return new Explosion(YogData.str(m.get("dimension"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), (float) YogData.number(m.get("power"), 0), YogData.str(m.get("cause_uuid"), ""));
             }
 
             public static Explosion fromBytes(byte[] bytes) {
@@ -1808,7 +1808,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 p.putF64(this.x);
                 p.putF64(this.y);
                 p.putF64(this.z);
-                p.putF32((float) (double) this.power);
+                p.putF32(this.power);
                 p.putStr(this.causeUuid);
                 p.end(at);
             }
@@ -1819,7 +1819,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 double f_x = u.more(end) ? u.getF64() : 0.0;
                 double f_y = u.more(end) ? u.getF64() : 0.0;
                 double f_z = u.more(end) ? u.getF64() : 0.0;
-                double f_power = u.more(end) ? (double) u.getF32() : 0.0;
+                float f_power = u.more(end) ? u.getF32() : 0.0f;
                 String f_causeUuid = u.more(end) ? u.getStr() : "";
                 u.leave(end);
                 return new Explosion(f_dimension, f_x, f_y, f_z, f_power, f_causeUuid);
@@ -3177,7 +3177,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             private Render() {}
 
             /** Fired every frame when the HUD is rendered. `delta_tick` is the partial-tick interpolation factor (0.0–1.0). */
-            public record Hud(double deltaTick) {
+            public record Hud(float deltaTick) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("delta_tick", deltaTick);
@@ -3186,7 +3186,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
                 public static Hud fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Hud(YogData.number(m.get("delta_tick"), 0));
+                    return new Hud((float) YogData.number(m.get("delta_tick"), 0));
                 }
 
                 public static Hud fromBytes(byte[] bytes) {
@@ -3195,13 +3195,13 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
                 public void pack(YogFrame.Packer p) {
                     int at = p.begin();
-                    p.putF32((float) (double) this.deltaTick);
+                    p.putF32(this.deltaTick);
                     p.end(at);
                 }
 
                 public static Hud unpack(YogFrame.Unpacker u) {
                     int end = u.begin();
-                    double f_deltaTick = u.more(end) ? (double) u.getF32() : 0.0;
+                    float f_deltaTick = u.more(end) ? u.getF32() : 0.0f;
                     u.leave(end);
                     return new Hud(f_deltaTick);
                 }
@@ -3245,7 +3245,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
 
             /** Fired every frame at the end of world rendering (the frame's graphics carry the camera: `view_proj`, `camera_pos`). */
-            public record World(double deltaTick) {
+            public record World(float deltaTick) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("delta_tick", deltaTick);
@@ -3254,7 +3254,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
                 public static World fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new World(YogData.number(m.get("delta_tick"), 0));
+                    return new World((float) YogData.number(m.get("delta_tick"), 0));
                 }
 
                 public static World fromBytes(byte[] bytes) {
@@ -3263,13 +3263,13 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
                 public void pack(YogFrame.Packer p) {
                     int at = p.begin();
-                    p.putF32((float) (double) this.deltaTick);
+                    p.putF32(this.deltaTick);
                     p.end(at);
                 }
 
                 public static World unpack(YogFrame.Unpacker u) {
                     int end = u.begin();
-                    double f_deltaTick = u.more(end) ? (double) u.getF32() : 0.0;
+                    float f_deltaTick = u.more(end) ? u.getF32() : 0.0f;
                     u.leave(end);
                     return new World(f_deltaTick);
                 }
@@ -3372,7 +3372,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
 
             /** A stack's tooltip picture drawn in `rect` (`[x, y, w, h]`, screen pixels); keyed by the item (`item::Picture` sized it). */
-            public record Tooltip(String item, String snbt, java.util.List<Double> rect) {
+            public record Tooltip(String item, String snbt, java.util.List<Float> rect) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("item", item);
@@ -3383,7 +3383,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
                 public static Tooltip fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Tooltip(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""), YogData.list(m.get("rect")).stream().map(e0 -> YogData.number(e0, 0)).toList());
+                    return new Tooltip(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""), YogData.list(m.get("rect")).stream().map(e0 -> (float) YogData.number(e0, 0)).toList());
                 }
 
                 public static Tooltip fromBytes(byte[] bytes) {
@@ -3402,7 +3402,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     int end = u.begin();
                     String f_item = u.more(end) ? u.getStr() : "";
                     String f_snbt = u.more(end) ? u.getStr() : "";
-                    java.util.List<Double> f_rect = u.more(end) ? u.getF32s() : java.util.List.of();
+                    java.util.List<Float> f_rect = u.more(end) ? u.getF32s() : java.util.List.of();
                     u.leave(end);
                     return new Tooltip(f_item, f_snbt, f_rect);
                 }
@@ -3437,7 +3437,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
 
             /** The picture of a book page of type `drawn` drawn in `rect` (`[x, y, w, h]`, screen pixels), every frame the page is open; keyed by its `drawer`. */
-            public record Page(String drawer, Object data, java.util.List<Double> rect) {
+            public record Page(String drawer, Object data, java.util.List<Float> rect) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("drawer", drawer);
@@ -3448,7 +3448,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
                 public static Page fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Page(YogData.str(m.get("drawer"), ""), m.get("data"), YogData.list(m.get("rect")).stream().map(e0 -> YogData.number(e0, 0)).toList());
+                    return new Page(YogData.str(m.get("drawer"), ""), m.get("data"), YogData.list(m.get("rect")).stream().map(e0 -> (float) YogData.number(e0, 0)).toList());
                 }
 
                 public static Page fromBytes(byte[] bytes) {
@@ -3467,7 +3467,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     int end = u.begin();
                     String f_drawer = u.more(end) ? u.getStr() : "";
                     Object f_data = u.more(end) ? u.getTagged() : null;
-                    java.util.List<Double> f_rect = u.more(end) ? u.getF32s() : java.util.List.of();
+                    java.util.List<Float> f_rect = u.more(end) ? u.getF32s() : java.util.List.of();
                     u.leave(end);
                     return new Page(f_drawer, f_data, f_rect);
                 }

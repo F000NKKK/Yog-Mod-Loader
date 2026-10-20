@@ -10,8 +10,8 @@ import dev.yog.data.YogFrame;
 public final class YogServices {
     private YogServices() {}
 
-    /** The actions the host answers ({@code YogHostServices}). */
-    public static final java.util.List<Class<? extends Record>> HOSTED = java.util.List.of(Advancement.Grant.class, Advancement.Done.class, Block.Nbt.class, Block.SetNbt.class, Block.State.class, Block.SetState.class, Block.Info.class, Block.Destroy.class, Block.Bonemeal.class, Block.UseItem.class, Block.PourFluid.class, Block.RedstonePower.class, Block.RedstoneSignal.class, Block.SetRedstoneOutput.class, Block.InventorySlot.class, Block.SetInventorySlot.class, Bossbar.Create.class, Bossbar.Remove.class, Bossbar.SetTitle.class, Bossbar.SetProgress.class, Bossbar.SetColor.class, Bossbar.AddPlayer.class, Bossbar.RemovePlayer.class, Bossbar.SetVisible.class, Chat.Broadcast.class, Chat.Tellraw.class, Chat.Title.class, Chat.Actionbar.class, Chat.ActionbarJson.class, Client.PlaySound.class, Client.StopSound.class, Client.HeldItem.class, Client.SetBlockTint.class, Client.ScreenSlots.class, Client.KeyDown.class, Client.AttributeValue.class, Client.AdvancementDone.class, Client.BodyTrack.class, Client.BodyTrackType.class, Client.SetDimensions.class, Client.Control.Drive.class, Client.Control.Release.class, Client.Control.Look.class, Client.Control.Attack.class, Client.Control.UseItem.class, Client.Control.Mine.class, Client.Control.StopMining.class, Client.Control.Place.class, Client.Control.SelectSlot.class, Client.Control.Click.class, Client.Control.Chat.class, Client.Local.State.class, Client.Local.Inventory.class, Client.Local.Scan.class, Client.Local.Area.class, Client.Local.Entities.class, Entity.Teleport.class, Entity.TeleportToDim.class, Entity.Position.class, Entity.Rotation.class, Entity.Velocity.class, Entity.SetVelocity.class, Entity.AddVelocity.class, Entity.Health.class, Entity.SetHealth.class, Entity.Kill.class, Entity.Spawn.class, Entity.AddEffect.class, Entity.RemoveEffect.class, Entity.ClearEffects.class, Entity.Nbt.class, Entity.SetNbt.class, Entity.AttributeBase.class, Entity.SetAttributeBase.class, Entity.AttributeValue.class, Entity.Info.class, Entity.Damage.class, Entity.SetFireTicks.class, Entity.Vehicle.class, Entity.Passengers.class, Entity.Mount.class, Entity.Dismount.class, Entity.SetFallDistance.class, Game.Dir.class, Game.WorldDir.class, Game.Translate.class, Game.PlatformMods.class, Item.SpawnItem.class, Item.EntityStack.class, Item.SetEntityStack.class, Item.Block.class, Jvm.Call.class, Net.SendToPlayer.class, Net.SendToServer.class, Particle.SpawnParticles.class, Player.GiveItem.class, Player.Teleport.class, Player.TeleportToDim.class, Player.Kick.class, Player.SetGamemode.class, Player.Inventory.class, Player.SetSlot.class, Player.HeldItemNbt.class, Player.SetHeldItemNbt.class, Player.OffhandItemNbt.class, Player.SetOffhandItemNbt.class, Player.SlotItem.class, Player.SetSlotItem.class, Player.AddXp.class, Player.SetMayFly.class, Player.Info.class, Player.SetItemCooldown.class, Player.PlaceBlockFromSlot.class, Player.Online.class, Scoreboard.Get.class, Scoreboard.Set.class, Scoreboard.Add.class, Sound.Play.class, Sound.PlayToPlayer.class, Tag.HasItem.class, Tag.HasBlock.class, Tag.HasEntity.class, Tag.Items.class, Ui.Open.class, Ui.OpenWithFlags.class, Ui.Close.class, World.GetBlock.class, World.SetBlock.class, World.Time.class, World.SetTime.class, World.IsRaining.class, World.SetWeather.class, World.IsThundering.class, World.SetThunder.class, World.FillRegion.class, World.ScanRegion.class, World.PlaceFeature.class, World.Explode.class, World.DropLoot.class, World.EntityCount.class, World.EntitiesInBox.class, World.RaycastBlock.class, World.RaycastEntity.class);
+    /** The actions the host answers, by address ({@code YogHostServices}). */
+    public static final java.util.List<java.util.Map.Entry<String, YogBus.Handler>> HOSTED = java.util.List.of(java.util.Map.entry(Advancement.Grant.ADDRESS, Advancement.Grant::serve), java.util.Map.entry(Advancement.Done.ADDRESS, Advancement.Done::serve), java.util.Map.entry(Block.Nbt.ADDRESS, Block.Nbt::serve), java.util.Map.entry(Block.SetNbt.ADDRESS, Block.SetNbt::serve), java.util.Map.entry(Block.State.ADDRESS, Block.State::serve), java.util.Map.entry(Block.SetState.ADDRESS, Block.SetState::serve), java.util.Map.entry(Block.Info.ADDRESS, Block.Info::serve), java.util.Map.entry(Block.Destroy.ADDRESS, Block.Destroy::serve), java.util.Map.entry(Block.Bonemeal.ADDRESS, Block.Bonemeal::serve), java.util.Map.entry(Block.UseItem.ADDRESS, Block.UseItem::serve), java.util.Map.entry(Block.PourFluid.ADDRESS, Block.PourFluid::serve), java.util.Map.entry(Block.RedstonePower.ADDRESS, Block.RedstonePower::serve), java.util.Map.entry(Block.RedstoneSignal.ADDRESS, Block.RedstoneSignal::serve), java.util.Map.entry(Block.SetRedstoneOutput.ADDRESS, Block.SetRedstoneOutput::serve), java.util.Map.entry(Block.InventorySlot.ADDRESS, Block.InventorySlot::serve), java.util.Map.entry(Block.SetInventorySlot.ADDRESS, Block.SetInventorySlot::serve), java.util.Map.entry(Bossbar.Create.ADDRESS, Bossbar.Create::serve), java.util.Map.entry(Bossbar.Remove.ADDRESS, Bossbar.Remove::serve), java.util.Map.entry(Bossbar.SetTitle.ADDRESS, Bossbar.SetTitle::serve), java.util.Map.entry(Bossbar.SetProgress.ADDRESS, Bossbar.SetProgress::serve), java.util.Map.entry(Bossbar.SetColor.ADDRESS, Bossbar.SetColor::serve), java.util.Map.entry(Bossbar.AddPlayer.ADDRESS, Bossbar.AddPlayer::serve), java.util.Map.entry(Bossbar.RemovePlayer.ADDRESS, Bossbar.RemovePlayer::serve), java.util.Map.entry(Bossbar.SetVisible.ADDRESS, Bossbar.SetVisible::serve), java.util.Map.entry(Chat.Broadcast.ADDRESS, Chat.Broadcast::serve), java.util.Map.entry(Chat.Tellraw.ADDRESS, Chat.Tellraw::serve), java.util.Map.entry(Chat.Title.ADDRESS, Chat.Title::serve), java.util.Map.entry(Chat.Actionbar.ADDRESS, Chat.Actionbar::serve), java.util.Map.entry(Chat.ActionbarJson.ADDRESS, Chat.ActionbarJson::serve), java.util.Map.entry(Client.PlaySound.ADDRESS, Client.PlaySound::serve), java.util.Map.entry(Client.StopSound.ADDRESS, Client.StopSound::serve), java.util.Map.entry(Client.HeldItem.ADDRESS, Client.HeldItem::serve), java.util.Map.entry(Client.SetBlockTint.ADDRESS, Client.SetBlockTint::serve), java.util.Map.entry(Client.ScreenSlots.ADDRESS, Client.ScreenSlots::serve), java.util.Map.entry(Client.KeyDown.ADDRESS, Client.KeyDown::serve), java.util.Map.entry(Client.AttributeValue.ADDRESS, Client.AttributeValue::serve), java.util.Map.entry(Client.AdvancementDone.ADDRESS, Client.AdvancementDone::serve), java.util.Map.entry(Client.BodyTrack.ADDRESS, Client.BodyTrack::serve), java.util.Map.entry(Client.BodyTrackType.ADDRESS, Client.BodyTrackType::serve), java.util.Map.entry(Client.SetDimensions.ADDRESS, Client.SetDimensions::serve), java.util.Map.entry(Client.Control.Drive.ADDRESS, Client.Control.Drive::serve), java.util.Map.entry(Client.Control.Release.ADDRESS, Client.Control.Release::serve), java.util.Map.entry(Client.Control.Look.ADDRESS, Client.Control.Look::serve), java.util.Map.entry(Client.Control.Attack.ADDRESS, Client.Control.Attack::serve), java.util.Map.entry(Client.Control.UseItem.ADDRESS, Client.Control.UseItem::serve), java.util.Map.entry(Client.Control.Mine.ADDRESS, Client.Control.Mine::serve), java.util.Map.entry(Client.Control.StopMining.ADDRESS, Client.Control.StopMining::serve), java.util.Map.entry(Client.Control.Place.ADDRESS, Client.Control.Place::serve), java.util.Map.entry(Client.Control.SelectSlot.ADDRESS, Client.Control.SelectSlot::serve), java.util.Map.entry(Client.Control.Click.ADDRESS, Client.Control.Click::serve), java.util.Map.entry(Client.Control.Chat.ADDRESS, Client.Control.Chat::serve), java.util.Map.entry(Client.Local.State.ADDRESS, Client.Local.State::serve), java.util.Map.entry(Client.Local.Inventory.ADDRESS, Client.Local.Inventory::serve), java.util.Map.entry(Client.Local.Scan.ADDRESS, Client.Local.Scan::serve), java.util.Map.entry(Client.Local.Area.ADDRESS, Client.Local.Area::serve), java.util.Map.entry(Client.Local.Entities.ADDRESS, Client.Local.Entities::serve), java.util.Map.entry(Entity.Teleport.ADDRESS, Entity.Teleport::serve), java.util.Map.entry(Entity.TeleportToDim.ADDRESS, Entity.TeleportToDim::serve), java.util.Map.entry(Entity.Position.ADDRESS, Entity.Position::serve), java.util.Map.entry(Entity.Rotation.ADDRESS, Entity.Rotation::serve), java.util.Map.entry(Entity.Velocity.ADDRESS, Entity.Velocity::serve), java.util.Map.entry(Entity.SetVelocity.ADDRESS, Entity.SetVelocity::serve), java.util.Map.entry(Entity.AddVelocity.ADDRESS, Entity.AddVelocity::serve), java.util.Map.entry(Entity.Health.ADDRESS, Entity.Health::serve), java.util.Map.entry(Entity.SetHealth.ADDRESS, Entity.SetHealth::serve), java.util.Map.entry(Entity.Kill.ADDRESS, Entity.Kill::serve), java.util.Map.entry(Entity.Spawn.ADDRESS, Entity.Spawn::serve), java.util.Map.entry(Entity.AddEffect.ADDRESS, Entity.AddEffect::serve), java.util.Map.entry(Entity.RemoveEffect.ADDRESS, Entity.RemoveEffect::serve), java.util.Map.entry(Entity.ClearEffects.ADDRESS, Entity.ClearEffects::serve), java.util.Map.entry(Entity.Nbt.ADDRESS, Entity.Nbt::serve), java.util.Map.entry(Entity.SetNbt.ADDRESS, Entity.SetNbt::serve), java.util.Map.entry(Entity.AttributeBase.ADDRESS, Entity.AttributeBase::serve), java.util.Map.entry(Entity.SetAttributeBase.ADDRESS, Entity.SetAttributeBase::serve), java.util.Map.entry(Entity.AttributeValue.ADDRESS, Entity.AttributeValue::serve), java.util.Map.entry(Entity.Info.ADDRESS, Entity.Info::serve), java.util.Map.entry(Entity.Damage.ADDRESS, Entity.Damage::serve), java.util.Map.entry(Entity.SetFireTicks.ADDRESS, Entity.SetFireTicks::serve), java.util.Map.entry(Entity.Vehicle.ADDRESS, Entity.Vehicle::serve), java.util.Map.entry(Entity.Passengers.ADDRESS, Entity.Passengers::serve), java.util.Map.entry(Entity.Mount.ADDRESS, Entity.Mount::serve), java.util.Map.entry(Entity.Dismount.ADDRESS, Entity.Dismount::serve), java.util.Map.entry(Entity.SetFallDistance.ADDRESS, Entity.SetFallDistance::serve), java.util.Map.entry(Game.Dir.ADDRESS, Game.Dir::serve), java.util.Map.entry(Game.WorldDir.ADDRESS, Game.WorldDir::serve), java.util.Map.entry(Game.Translate.ADDRESS, Game.Translate::serve), java.util.Map.entry(Game.PlatformMods.ADDRESS, Game.PlatformMods::serve), java.util.Map.entry(Item.SpawnItem.ADDRESS, Item.SpawnItem::serve), java.util.Map.entry(Item.EntityStack.ADDRESS, Item.EntityStack::serve), java.util.Map.entry(Item.SetEntityStack.ADDRESS, Item.SetEntityStack::serve), java.util.Map.entry(Item.Block.ADDRESS, Item.Block::serve), java.util.Map.entry(Jvm.Call.ADDRESS, Jvm.Call::serve), java.util.Map.entry(Net.SendToPlayer.ADDRESS, Net.SendToPlayer::serve), java.util.Map.entry(Net.SendToServer.ADDRESS, Net.SendToServer::serve), java.util.Map.entry(Particle.SpawnParticles.ADDRESS, Particle.SpawnParticles::serve), java.util.Map.entry(Player.GiveItem.ADDRESS, Player.GiveItem::serve), java.util.Map.entry(Player.Teleport.ADDRESS, Player.Teleport::serve), java.util.Map.entry(Player.TeleportToDim.ADDRESS, Player.TeleportToDim::serve), java.util.Map.entry(Player.Kick.ADDRESS, Player.Kick::serve), java.util.Map.entry(Player.SetGamemode.ADDRESS, Player.SetGamemode::serve), java.util.Map.entry(Player.Inventory.ADDRESS, Player.Inventory::serve), java.util.Map.entry(Player.SetSlot.ADDRESS, Player.SetSlot::serve), java.util.Map.entry(Player.HeldItemNbt.ADDRESS, Player.HeldItemNbt::serve), java.util.Map.entry(Player.SetHeldItemNbt.ADDRESS, Player.SetHeldItemNbt::serve), java.util.Map.entry(Player.OffhandItemNbt.ADDRESS, Player.OffhandItemNbt::serve), java.util.Map.entry(Player.SetOffhandItemNbt.ADDRESS, Player.SetOffhandItemNbt::serve), java.util.Map.entry(Player.SlotItem.ADDRESS, Player.SlotItem::serve), java.util.Map.entry(Player.SetSlotItem.ADDRESS, Player.SetSlotItem::serve), java.util.Map.entry(Player.AddXp.ADDRESS, Player.AddXp::serve), java.util.Map.entry(Player.SetMayFly.ADDRESS, Player.SetMayFly::serve), java.util.Map.entry(Player.Info.ADDRESS, Player.Info::serve), java.util.Map.entry(Player.SetItemCooldown.ADDRESS, Player.SetItemCooldown::serve), java.util.Map.entry(Player.PlaceBlockFromSlot.ADDRESS, Player.PlaceBlockFromSlot::serve), java.util.Map.entry(Player.Online.ADDRESS, Player.Online::serve), java.util.Map.entry(Scoreboard.Get.ADDRESS, Scoreboard.Get::serve), java.util.Map.entry(Scoreboard.Set.ADDRESS, Scoreboard.Set::serve), java.util.Map.entry(Scoreboard.Add.ADDRESS, Scoreboard.Add::serve), java.util.Map.entry(Sound.Play.ADDRESS, Sound.Play::serve), java.util.Map.entry(Sound.PlayToPlayer.ADDRESS, Sound.PlayToPlayer::serve), java.util.Map.entry(Tag.HasItem.ADDRESS, Tag.HasItem::serve), java.util.Map.entry(Tag.HasBlock.ADDRESS, Tag.HasBlock::serve), java.util.Map.entry(Tag.HasEntity.ADDRESS, Tag.HasEntity::serve), java.util.Map.entry(Tag.Items.ADDRESS, Tag.Items::serve), java.util.Map.entry(Ui.Open.ADDRESS, Ui.Open::serve), java.util.Map.entry(Ui.OpenWithFlags.ADDRESS, Ui.OpenWithFlags::serve), java.util.Map.entry(Ui.Close.ADDRESS, Ui.Close::serve), java.util.Map.entry(World.GetBlock.ADDRESS, World.GetBlock::serve), java.util.Map.entry(World.SetBlock.ADDRESS, World.SetBlock::serve), java.util.Map.entry(World.Time.ADDRESS, World.Time::serve), java.util.Map.entry(World.SetTime.ADDRESS, World.SetTime::serve), java.util.Map.entry(World.IsRaining.ADDRESS, World.IsRaining::serve), java.util.Map.entry(World.SetWeather.ADDRESS, World.SetWeather::serve), java.util.Map.entry(World.IsThundering.ADDRESS, World.IsThundering::serve), java.util.Map.entry(World.SetThunder.ADDRESS, World.SetThunder::serve), java.util.Map.entry(World.FillRegion.ADDRESS, World.FillRegion::serve), java.util.Map.entry(World.ScanRegion.ADDRESS, World.ScanRegion::serve), java.util.Map.entry(World.PlaceFeature.ADDRESS, World.PlaceFeature::serve), java.util.Map.entry(World.Explode.ADDRESS, World.Explode::serve), java.util.Map.entry(World.DropLoot.ADDRESS, World.DropLoot::serve), java.util.Map.entry(World.EntityCount.ADDRESS, World.EntityCount::serve), java.util.Map.entry(World.EntitiesInBox.ADDRESS, World.EntitiesInBox::serve), java.util.Map.entry(World.RaycastBlock.ADDRESS, World.RaycastBlock::serve), java.util.Map.entry(World.RaycastEntity.ADDRESS, World.RaycastEntity::serve));
 
     /** `advancement`. */
     public static final class Advancement {
@@ -84,6 +84,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Grant r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.id());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -162,6 +180,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Done r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.id());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -324,6 +360,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Nbt r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -405,6 +459,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetNbt r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.snbt());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -481,6 +553,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    State r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -564,6 +654,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetState r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.state());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -640,6 +748,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Info r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -726,6 +852,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, boolean.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Destroy r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.drop(), r.breaker());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -802,6 +946,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Bonemeal r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -891,6 +1053,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    UseItem r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.face(), r.item(), r.player());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -972,6 +1152,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    PourFluid r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.bucket());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -1050,6 +1248,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    RedstonePower r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -1126,6 +1342,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    RedstoneSignal r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -1209,6 +1443,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetRedstoneOutput r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.level());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -1288,6 +1540,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, long.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    InventorySlot r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.slot());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -1380,6 +1650,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, long.class, String.class, long.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetInventorySlot r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.slot(), r.item(), r.count(), r.snbt());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -1469,6 +1757,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Create r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.title(), r.color(), r.style());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -1542,6 +1848,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Remove r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.id());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -1622,6 +1946,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetTitle r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.title());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -1632,7 +1974,7 @@ public final class YogServices {
         }
 
         /** Sets a boss bar's progress (0–1). */
-        public record SetProgress(String id, double progress) {
+        public record SetProgress(String id, float progress) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
@@ -1642,7 +1984,7 @@ public final class YogServices {
 
             public static SetProgress fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new SetProgress(YogData.str(m.get("id"), ""), YogData.number(m.get("progress"), 0));
+                return new SetProgress(YogData.str(m.get("id"), ""), (float) YogData.number(m.get("progress"), 0));
             }
 
             public static SetProgress fromBytes(byte[] bytes) {
@@ -1652,14 +1994,14 @@ public final class YogServices {
             public void pack(YogFrame.Packer p) {
                 int at = p.begin();
                 p.putStr(this.id);
-                p.putF32((float) (double) this.progress);
+                p.putF32(this.progress);
                 p.end(at);
             }
 
             public static SetProgress unpack(YogFrame.Unpacker u) {
                 int end = u.begin();
                 String f_id = u.more(end) ? u.getStr() : "";
-                double f_progress = u.more(end) ? (double) u.getF32() : 0.0;
+                float f_progress = u.more(end) ? u.getF32() : 0.0f;
                 u.leave(end);
                 return new SetProgress(f_id, f_progress);
             }
@@ -1698,6 +2040,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetProgress r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.progress());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -1778,6 +2138,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetColor r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.color());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -1854,6 +2232,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    AddPlayer r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.player());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -1934,6 +2330,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    RemovePlayer r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.player());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -2010,6 +2424,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetVisible r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.visible());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -2364,6 +2796,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Broadcast r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.message());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -2440,6 +2890,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Tellraw r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.json());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -2532,6 +3000,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, String.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Title r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.title(), r.subtitle(), r.fadeIn(), r.stay(), r.fadeOut());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -2610,6 +3096,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Actionbar r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.message());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -2686,6 +3190,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    ActionbarJson r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.json());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -2769,7 +3291,7 @@ public final class YogServices {
         }
 
         /** Plays `sound` to this client's player; its handle (to stop it). */
-        public record PlaySound(String sound, double volume, double pitch, boolean looping) {
+        public record PlaySound(String sound, float volume, float pitch, boolean looping) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("sound", sound);
@@ -2781,7 +3303,7 @@ public final class YogServices {
 
             public static PlaySound fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new PlaySound(YogData.str(m.get("sound"), ""), YogData.number(m.get("volume"), 0), YogData.number(m.get("pitch"), 0), YogData.bool(m.get("looping"), false));
+                return new PlaySound(YogData.str(m.get("sound"), ""), (float) YogData.number(m.get("volume"), 0), (float) YogData.number(m.get("pitch"), 0), YogData.bool(m.get("looping"), false));
             }
 
             public static PlaySound fromBytes(byte[] bytes) {
@@ -2791,8 +3313,8 @@ public final class YogServices {
             public void pack(YogFrame.Packer p) {
                 int at = p.begin();
                 p.putStr(this.sound);
-                p.putF32((float) (double) this.volume);
-                p.putF32((float) (double) this.pitch);
+                p.putF32(this.volume);
+                p.putF32(this.pitch);
                 p.putBool(this.looping);
                 p.end(at);
             }
@@ -2800,8 +3322,8 @@ public final class YogServices {
             public static PlaySound unpack(YogFrame.Unpacker u) {
                 int end = u.begin();
                 String f_sound = u.more(end) ? u.getStr() : "";
-                double f_volume = u.more(end) ? (double) u.getF32() : 0.0;
-                double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                float f_volume = u.more(end) ? u.getF32() : 0.0f;
+                float f_pitch = u.more(end) ? u.getF32() : 0.0f;
                 boolean f_looping = u.more(end) ? u.getBool() : false;
                 u.leave(end);
                 return new PlaySound(f_sound, f_volume, f_pitch, f_looping);
@@ -2841,6 +3363,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, float.class, boolean.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    PlaySound r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.sound(), r.volume(), r.pitch(), r.looping());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -2918,6 +3458,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    StopSound r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.handle());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -2991,6 +3549,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, boolean.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    HeldItem r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.offHand());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -3074,6 +3650,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetBlockTint r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.color());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -3144,6 +3738,24 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    ScreenSlots r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact();
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -3221,6 +3833,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    KeyDown r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.key());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -3296,6 +3926,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    AttributeValue r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.attribute());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -3369,6 +4017,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    AdvancementDone r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.id());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -3449,6 +4115,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    BodyTrack r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.on());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -3527,6 +4211,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    BodyTrackType r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.on());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -3537,7 +4239,7 @@ public final class YogServices {
         }
 
         /** This client's side of an entity's size (`width` < 0: vanilla's). */
-        public record SetDimensions(String uuid, double width, double height, double eye) {
+        public record SetDimensions(String uuid, float width, float height, float eye) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
@@ -3549,7 +4251,7 @@ public final class YogServices {
 
             public static SetDimensions fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new SetDimensions(YogData.str(m.get("uuid"), ""), YogData.number(m.get("width"), 0), YogData.number(m.get("height"), 0), YogData.number(m.get("eye"), 0));
+                return new SetDimensions(YogData.str(m.get("uuid"), ""), (float) YogData.number(m.get("width"), 0), (float) YogData.number(m.get("height"), 0), (float) YogData.number(m.get("eye"), 0));
             }
 
             public static SetDimensions fromBytes(byte[] bytes) {
@@ -3559,18 +4261,18 @@ public final class YogServices {
             public void pack(YogFrame.Packer p) {
                 int at = p.begin();
                 p.putStr(this.uuid);
-                p.putF32((float) (double) this.width);
-                p.putF32((float) (double) this.height);
-                p.putF32((float) (double) this.eye);
+                p.putF32(this.width);
+                p.putF32(this.height);
+                p.putF32(this.eye);
                 p.end(at);
             }
 
             public static SetDimensions unpack(YogFrame.Unpacker u) {
                 int end = u.begin();
                 String f_uuid = u.more(end) ? u.getStr() : "";
-                double f_width = u.more(end) ? (double) u.getF32() : 0.0;
-                double f_height = u.more(end) ? (double) u.getF32() : 0.0;
-                double f_eye = u.more(end) ? (double) u.getF32() : 0.0;
+                float f_width = u.more(end) ? u.getF32() : 0.0f;
+                float f_height = u.more(end) ? u.getF32() : 0.0f;
+                float f_eye = u.more(end) ? u.getF32() : 0.0f;
                 u.leave(end);
                 return new SetDimensions(f_uuid, f_width, f_height, f_eye);
             }
@@ -3611,6 +4313,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, float.class, float.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetDimensions r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.width(), r.height(), r.eye());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -3625,7 +4345,7 @@ public final class YogServices {
             private Control() {}
 
             /** Holds the movement keys each tick till [`release`]: `forward` -1 (back) to 1, `strafe` -1 (right) to 1 (left); `use_item` raises a shield, draws a bow, eats. */
-            public record Drive(double forward, double strafe, boolean jump, boolean sneak, boolean sprint, boolean useItem) {
+            public record Drive(float forward, float strafe, boolean jump, boolean sneak, boolean sprint, boolean useItem) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("forward", forward);
@@ -3639,7 +4359,7 @@ public final class YogServices {
 
                 public static Drive fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Drive(YogData.number(m.get("forward"), 0), YogData.number(m.get("strafe"), 0), YogData.bool(m.get("jump"), false), YogData.bool(m.get("sneak"), false), YogData.bool(m.get("sprint"), false), YogData.bool(m.get("use_item"), false));
+                    return new Drive((float) YogData.number(m.get("forward"), 0), (float) YogData.number(m.get("strafe"), 0), YogData.bool(m.get("jump"), false), YogData.bool(m.get("sneak"), false), YogData.bool(m.get("sprint"), false), YogData.bool(m.get("use_item"), false));
                 }
 
                 public static Drive fromBytes(byte[] bytes) {
@@ -3648,8 +4368,8 @@ public final class YogServices {
 
                 public void pack(YogFrame.Packer p) {
                     int at = p.begin();
-                    p.putF32((float) (double) this.forward);
-                    p.putF32((float) (double) this.strafe);
+                    p.putF32(this.forward);
+                    p.putF32(this.strafe);
                     p.putBool(this.jump);
                     p.putBool(this.sneak);
                     p.putBool(this.sprint);
@@ -3659,8 +4379,8 @@ public final class YogServices {
 
                 public static Drive unpack(YogFrame.Unpacker u) {
                     int end = u.begin();
-                    double f_forward = u.more(end) ? (double) u.getF32() : 0.0;
-                    double f_strafe = u.more(end) ? (double) u.getF32() : 0.0;
+                    float f_forward = u.more(end) ? u.getF32() : 0.0f;
+                    float f_strafe = u.more(end) ? u.getF32() : 0.0f;
                     boolean f_jump = u.more(end) ? u.getBool() : false;
                     boolean f_sneak = u.more(end) ? u.getBool() : false;
                     boolean f_sprint = u.more(end) ? u.getBool() : false;
@@ -3703,6 +4423,24 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, float.class, float.class, boolean.class, boolean.class, boolean.class, boolean.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Drive r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.forward(), r.strafe(), r.jump(), r.sneak(), r.sprint(), r.useItem());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -3777,6 +4515,24 @@ public final class YogServices {
                     return false;
                 }
 
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Release r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact();
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
+                }
+
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
                 public static byte[] replyFrame(Object out) {
                     YogFrame.Packer p = new YogFrame.Packer();
@@ -3787,7 +4543,7 @@ public final class YogServices {
             }
 
             /** Turns the player to `yaw`, `pitch` (degrees). */
-            public record Look(double yaw, double pitch) {
+            public record Look(float yaw, float pitch) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("yaw", yaw);
@@ -3797,7 +4553,7 @@ public final class YogServices {
 
                 public static Look fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Look(YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0));
+                    return new Look((float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0));
                 }
 
                 public static Look fromBytes(byte[] bytes) {
@@ -3806,15 +4562,15 @@ public final class YogServices {
 
                 public void pack(YogFrame.Packer p) {
                     int at = p.begin();
-                    p.putF32((float) (double) this.yaw);
-                    p.putF32((float) (double) this.pitch);
+                    p.putF32(this.yaw);
+                    p.putF32(this.pitch);
                     p.end(at);
                 }
 
                 public static Look unpack(YogFrame.Unpacker u) {
                     int end = u.begin();
-                    double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
-                    double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                    float f_yaw = u.more(end) ? u.getF32() : 0.0f;
+                    float f_pitch = u.more(end) ? u.getF32() : 0.0f;
                     u.leave(end);
                     return new Look(f_yaw, f_pitch);
                 }
@@ -3853,6 +4609,24 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, float.class, float.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Look r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.yaw(), r.pitch());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -3930,6 +4704,24 @@ public final class YogServices {
                     return false;
                 }
 
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Attack r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.entity());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
+                }
+
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
                 public static byte[] replyFrame(Object out) {
                     YogFrame.Packer p = new YogFrame.Packer();
@@ -4003,6 +4795,24 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, boolean.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        UseItem r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.offHand());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -4083,6 +4893,24 @@ public final class YogServices {
                     return false;
                 }
 
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, String.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Mine r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.pos().x(), r.pos().y(), r.pos().z(), r.face());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
+                }
+
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
                 public static byte[] replyFrame(Object out) {
                     YogFrame.Packer p = new YogFrame.Packer();
@@ -4153,6 +4981,24 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        StopMining r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact();
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -4233,6 +5079,24 @@ public final class YogServices {
                     return false;
                 }
 
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, String.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Place r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.pos().x(), r.pos().y(), r.pos().z(), r.face());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
+                }
+
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
                 public static byte[] replyFrame(Object out) {
                     YogFrame.Packer p = new YogFrame.Packer();
@@ -4306,6 +5170,24 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        SelectSlot r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.slot());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -4389,6 +5271,24 @@ public final class YogServices {
                     return false;
                 }
 
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, String.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Click r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.slot(), r.button(), r.mode());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
+                }
+
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
                 public static byte[] replyFrame(Object out) {
                     YogFrame.Packer p = new YogFrame.Packer();
@@ -4462,6 +5362,24 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Chat r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.text());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -4541,6 +5459,24 @@ public final class YogServices {
                     return null;
                 }
 
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        State r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact();
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
+                }
+
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
                 public static byte[] replyFrame(Object out) {
                     YogFrame.Packer p = new YogFrame.Packer();
@@ -4611,6 +5547,24 @@ public final class YogServices {
                         }
                     }
                     return java.util.List.of();
+                }
+
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Inventory r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact();
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -4694,6 +5648,24 @@ public final class YogServices {
                     return java.util.List.of();
                 }
 
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, int.class, int.class, int.class, java.util.List.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Scan r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z(), r.ids());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
+                }
+
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
                 public static byte[] replyFrame(Object out) {
                     YogFrame.Packer p = new YogFrame.Packer();
@@ -4772,6 +5744,24 @@ public final class YogServices {
                     return null;
                 }
 
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, int.class, int.class, int.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Area r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
+                }
+
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
                 public static byte[] replyFrame(Object out) {
                     YogFrame.Packer p = new YogFrame.Packer();
@@ -4845,6 +5835,24 @@ public final class YogServices {
                         }
                     }
                     return java.util.List.of();
+                }
+
+                private static final class HostMethod {
+                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, double.class));
+                }
+
+                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+                public static YogBus.Reply serve(byte[] payload) {
+                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                    try {
+                        Entities r = fromFrame(payload);
+                        Object out = (Object) HostMethod.H.invokeExact(r.radius());
+                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    } catch (YogData.DecodeException e) {
+                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    } catch (Throwable t) {
+                        return dev.yog.YogHostServices.failed(ADDRESS, t);
+                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -5206,7 +6214,7 @@ public final class YogServices {
         }
 
         /** The entity's size, `[width, height, eye height]` — `None`: vanilla's — on the server and on every client that sees it. */
-        public record SetDimensions(String uuid, java.util.List<Double> size) {
+        public record SetDimensions(String uuid, java.util.List<Float> size) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
@@ -5216,7 +6224,7 @@ public final class YogServices {
 
             public static SetDimensions fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new SetDimensions(YogData.str(m.get("uuid"), ""), (m.get("size") == null ? null : YogData.list(m.get("size")).stream().map(e0 -> YogData.number(e0, 0)).toList()));
+                return new SetDimensions(YogData.str(m.get("uuid"), ""), (m.get("size") == null ? null : YogData.list(m.get("size")).stream().map(e0 -> (float) YogData.number(e0, 0)).toList()));
             }
 
             public static SetDimensions fromBytes(byte[] bytes) {
@@ -5233,7 +6241,7 @@ public final class YogServices {
             public static SetDimensions unpack(YogFrame.Unpacker u) {
                 int end = u.begin();
                 String f_uuid = u.more(end) ? u.getStr() : "";
-                java.util.List<Double> f_size = u.more(end) ? (u.getBool() ? u.getF32s() : null) : null;
+                java.util.List<Float> f_size = u.more(end) ? (u.getBool() ? u.getF32s() : null) : null;
                 u.leave(end);
                 return new SetDimensions(f_uuid, f_size);
             }
@@ -5340,6 +6348,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Teleport r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -5421,6 +6447,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    TeleportToDim r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -5494,6 +6538,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Position r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -5571,6 +6633,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Rotation r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -5644,6 +6724,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Velocity r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -5724,6 +6822,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetVelocity r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.velocity().x(), r.velocity().y(), r.velocity().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -5802,6 +6918,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    AddVelocity r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.velocity().x(), r.velocity().y(), r.velocity().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -5875,6 +7009,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Health r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -5955,6 +7107,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetHealth r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.health());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -6028,6 +7198,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Kill r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -6109,6 +7297,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Spawn r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -6198,6 +7404,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class, int.class, boolean.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    AddEffect r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.effect(), r.duration(), r.amplifier(), r.particles());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -6276,6 +7500,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    RemoveEffect r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.effect());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -6351,6 +7593,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    ClearEffects r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -6424,6 +7684,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Nbt r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -6504,6 +7782,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetNbt r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.snbt());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -6580,6 +7876,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    AttributeBase r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -6663,6 +7977,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetAttributeBase r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute(), r.value());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -6741,6 +8073,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    AttributeValue r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -6816,6 +8166,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Info r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -6826,7 +8194,7 @@ public final class YogServices {
         }
 
         /** Hurts the entity. */
-        public record Damage(String uuid, double amount, String damageType, String attacker) {
+        public record Damage(String uuid, float amount, String damageType, String attacker) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
@@ -6838,7 +8206,7 @@ public final class YogServices {
 
             public static Damage fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new Damage(YogData.str(m.get("uuid"), ""), YogData.number(m.get("amount"), 0), YogData.str(m.get("damage_type"), ""), YogData.str(m.get("attacker"), ""));
+                return new Damage(YogData.str(m.get("uuid"), ""), (float) YogData.number(m.get("amount"), 0), YogData.str(m.get("damage_type"), ""), YogData.str(m.get("attacker"), ""));
             }
 
             public static Damage fromBytes(byte[] bytes) {
@@ -6848,7 +8216,7 @@ public final class YogServices {
             public void pack(YogFrame.Packer p) {
                 int at = p.begin();
                 p.putStr(this.uuid);
-                p.putF32((float) (double) this.amount);
+                p.putF32(this.amount);
                 p.putStr(this.damageType);
                 p.putStr(this.attacker);
                 p.end(at);
@@ -6857,7 +8225,7 @@ public final class YogServices {
             public static Damage unpack(YogFrame.Unpacker u) {
                 int end = u.begin();
                 String f_uuid = u.more(end) ? u.getStr() : "";
-                double f_amount = u.more(end) ? (double) u.getF32() : 0.0;
+                float f_amount = u.more(end) ? u.getF32() : 0.0f;
                 String f_damageType = u.more(end) ? u.getStr() : "";
                 String f_attacker = u.more(end) ? u.getStr() : "";
                 u.leave(end);
@@ -6898,6 +8266,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Damage r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.amount(), r.damageType(), r.attacker());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -6978,6 +8364,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetFireTicks r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.ticks());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -7053,6 +8457,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Vehicle r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -7126,6 +8548,24 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Passengers r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -7209,6 +8649,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, boolean.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Mount r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.rider(), r.vehicle(), r.force());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -7284,6 +8742,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Dismount r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -7294,7 +8770,7 @@ public final class YogServices {
         }
 
         /** Sets how far the entity has fallen. */
-        public record SetFallDistance(String uuid, double distance) {
+        public record SetFallDistance(String uuid, float distance) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
@@ -7304,7 +8780,7 @@ public final class YogServices {
 
             public static SetFallDistance fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new SetFallDistance(YogData.str(m.get("uuid"), ""), YogData.number(m.get("distance"), 0));
+                return new SetFallDistance(YogData.str(m.get("uuid"), ""), (float) YogData.number(m.get("distance"), 0));
             }
 
             public static SetFallDistance fromBytes(byte[] bytes) {
@@ -7314,14 +8790,14 @@ public final class YogServices {
             public void pack(YogFrame.Packer p) {
                 int at = p.begin();
                 p.putStr(this.uuid);
-                p.putF32((float) (double) this.distance);
+                p.putF32(this.distance);
                 p.end(at);
             }
 
             public static SetFallDistance unpack(YogFrame.Unpacker u) {
                 int end = u.begin();
                 String f_uuid = u.more(end) ? u.getStr() : "";
-                double f_distance = u.more(end) ? (double) u.getF32() : 0.0;
+                float f_distance = u.more(end) ? u.getF32() : 0.0f;
                 u.leave(end);
                 return new SetFallDistance(f_uuid, f_distance);
             }
@@ -7360,6 +8836,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetFallDistance r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.distance());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -7562,6 +9056,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Dir r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact();
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -7632,6 +9144,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    WorldDir r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact();
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -7709,6 +9239,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Translate r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.key());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -7779,6 +9327,24 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    PlatformMods r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact();
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -7903,12 +9469,12 @@ public final class YogServices {
                 return v;
             }
 
-            public java.util.List<Double> call() {
+            public java.util.List<Float> call() {
                 YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.PICTURE, item), toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
                         YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
-                        java.util.List<Double> v = (u.getBool() ? u.getF32s() : null);
+                        java.util.List<Float> v = (u.getBool() ? u.getF32s() : null);
                         u.finish();
                         return v;
                     } catch (YogData.DecodeException e) {
@@ -8000,6 +9566,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class, String.class, long.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SpawnItem r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.velocity().x(), r.velocity().y(), r.velocity().z(), r.item(), r.count(), r.snbt());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -8073,6 +9657,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    EntityStack r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -8159,6 +9761,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, long.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetEntityStack r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.item(), r.count(), r.snbt());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -8232,6 +9852,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Block r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.item());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -8315,6 +9953,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, java.util.List.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Call r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.expr(), r.args());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -8668,6 +10324,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, byte[].class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SendToPlayer r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.channel(), r.payload());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -8744,6 +10418,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, byte[].class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SendToServer r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.channel(), r.payload());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -8841,6 +10533,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, String.class, int.class, double.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SpawnParticles r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.particle(), r.count(), r.spread().x(), r.spread().y(), r.spread().z(), r.speed());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -8927,6 +10637,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, long.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    GiveItem r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.item(), r.count());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -9003,6 +10731,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Teleport r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -9086,6 +10832,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    TeleportToDim r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -9162,6 +10926,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Kick r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.reason());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -9242,6 +11024,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetGamemode r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.mode());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -9315,6 +11115,24 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Inventory r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -9401,6 +11219,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class, String.class, long.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetSlot r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.item(), r.count());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -9474,6 +11310,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    HeldItemNbt r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -9554,6 +11408,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetHeldItemNbt r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.snbt());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -9627,6 +11499,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    OffhandItemNbt r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -9707,6 +11597,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetOffhandItemNbt r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.snbt());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -9783,6 +11691,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SlotItem r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -9872,6 +11798,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class, String.class, long.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetSlotItem r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.item(), r.count(), r.snbt());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -9948,6 +11892,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    AddXp r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.amount());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -10028,6 +11990,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetMayFly r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.mayFly());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -10101,6 +12081,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Info r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -10182,6 +12180,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetItemCooldown r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.item(), r.ticks());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -10268,6 +12284,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class, String.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    PlaceBlockFromSlot r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -10338,6 +12372,24 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Online r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact();
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -10423,6 +12475,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Get r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -10502,6 +12572,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Set r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player(), r.score());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -10585,6 +12673,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Add r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player(), r.delta());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -10600,7 +12706,7 @@ public final class YogServices {
         private Sound() {}
 
         /** Plays `sound` at `pos`. */
-        public record Play(String dim, YogTypes.Point pos, String sound, double volume, double pitch) {
+        public record Play(String dim, YogTypes.Point pos, String sound, float volume, float pitch) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
@@ -10613,7 +12719,7 @@ public final class YogServices {
 
             public static Play fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new Play(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.str(m.get("sound"), ""), YogData.number(m.get("volume"), 0), YogData.number(m.get("pitch"), 0));
+                return new Play(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.str(m.get("sound"), ""), (float) YogData.number(m.get("volume"), 0), (float) YogData.number(m.get("pitch"), 0));
             }
 
             public static Play fromBytes(byte[] bytes) {
@@ -10625,8 +12731,8 @@ public final class YogServices {
                 p.putStr(this.dim);
                 this.pos.pack(p);
                 p.putStr(this.sound);
-                p.putF32((float) (double) this.volume);
-                p.putF32((float) (double) this.pitch);
+                p.putF32(this.volume);
+                p.putF32(this.pitch);
                 p.end(at);
             }
 
@@ -10635,8 +12741,8 @@ public final class YogServices {
                 String f_dim = u.more(end) ? u.getStr() : "";
                 YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
                 String f_sound = u.more(end) ? u.getStr() : "";
-                double f_volume = u.more(end) ? (double) u.getF32() : 0.0;
-                double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                float f_volume = u.more(end) ? u.getF32() : 0.0f;
+                float f_pitch = u.more(end) ? u.getF32() : 0.0f;
                 u.leave(end);
                 return new Play(f_dim, f_pos, f_sound, f_volume, f_pitch);
             }
@@ -10677,6 +12783,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, String.class, float.class, float.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Play r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.sound(), r.volume(), r.pitch());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -10687,7 +12811,7 @@ public final class YogServices {
         }
 
         /** Plays `sound` to `player` only. */
-        public record PlayToPlayer(String player, String sound, double volume, double pitch) {
+        public record PlayToPlayer(String player, String sound, float volume, float pitch) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
@@ -10699,7 +12823,7 @@ public final class YogServices {
 
             public static PlayToPlayer fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new PlayToPlayer(YogData.str(m.get("player"), ""), YogData.str(m.get("sound"), ""), YogData.number(m.get("volume"), 0), YogData.number(m.get("pitch"), 0));
+                return new PlayToPlayer(YogData.str(m.get("player"), ""), YogData.str(m.get("sound"), ""), (float) YogData.number(m.get("volume"), 0), (float) YogData.number(m.get("pitch"), 0));
             }
 
             public static PlayToPlayer fromBytes(byte[] bytes) {
@@ -10710,8 +12834,8 @@ public final class YogServices {
                 int at = p.begin();
                 p.putStr(this.player);
                 p.putStr(this.sound);
-                p.putF32((float) (double) this.volume);
-                p.putF32((float) (double) this.pitch);
+                p.putF32(this.volume);
+                p.putF32(this.pitch);
                 p.end(at);
             }
 
@@ -10719,8 +12843,8 @@ public final class YogServices {
                 int end = u.begin();
                 String f_player = u.more(end) ? u.getStr() : "";
                 String f_sound = u.more(end) ? u.getStr() : "";
-                double f_volume = u.more(end) ? (double) u.getF32() : 0.0;
-                double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                float f_volume = u.more(end) ? u.getF32() : 0.0f;
+                float f_pitch = u.more(end) ? u.getF32() : 0.0f;
                 u.leave(end);
                 return new PlayToPlayer(f_player, f_sound, f_volume, f_pitch);
             }
@@ -10759,6 +12883,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, float.class, float.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    PlayToPlayer r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.sound(), r.volume(), r.pitch());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -10844,6 +12986,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    HasItem r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.item(), r.tag());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -10920,6 +13080,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    HasBlock r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.block(), r.tag());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -11000,6 +13178,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    HasEntity r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.tag());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -11073,6 +13269,24 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Items r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.tag());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -11161,6 +13375,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class, boolean.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Open r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uiId(), r.modal(), r.pause());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -11239,6 +13471,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    OpenWithFlags r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uiId(), r.flags());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -11312,6 +13562,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Close r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.uiId());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -11397,6 +13665,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    GetBlock r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -11478,6 +13764,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetBlock r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.block());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -11551,6 +13855,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Time r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -11631,6 +13953,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetTime r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.time());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -11704,6 +14044,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    IsRaining r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -11787,6 +14145,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetWeather r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.raining(), r.duration());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -11860,6 +14236,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    IsThundering r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -11941,6 +14335,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    SetThunder r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.thundering(), r.duration());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -12027,6 +14439,24 @@ public final class YogServices {
                 return null;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class, int.class, int.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    FillRegion r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z(), r.state());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -12106,6 +14536,24 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class, int.class, int.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    ScanRegion r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -12189,6 +14637,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    PlaceFeature r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.feature());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -12199,7 +14665,7 @@ public final class YogServices {
         }
 
         /** Makes an explosion. */
-        public record Explode(String dim, YogTypes.Point pos, double power, boolean fire, String source) {
+        public record Explode(String dim, YogTypes.Point pos, float power, boolean fire, String source) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
@@ -12212,7 +14678,7 @@ public final class YogServices {
 
             public static Explode fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new Explode(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.number(m.get("power"), 0), YogData.bool(m.get("fire"), false), YogData.str(m.get("source"), ""));
+                return new Explode(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), (float) YogData.number(m.get("power"), 0), YogData.bool(m.get("fire"), false), YogData.str(m.get("source"), ""));
             }
 
             public static Explode fromBytes(byte[] bytes) {
@@ -12223,7 +14689,7 @@ public final class YogServices {
                 int at = p.begin();
                 p.putStr(this.dim);
                 this.pos.pack(p);
-                p.putF32((float) (double) this.power);
+                p.putF32(this.power);
                 p.putBool(this.fire);
                 p.putStr(this.source);
                 p.end(at);
@@ -12233,7 +14699,7 @@ public final class YogServices {
                 int end = u.begin();
                 String f_dim = u.more(end) ? u.getStr() : "";
                 YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
-                double f_power = u.more(end) ? (double) u.getF32() : 0.0;
+                float f_power = u.more(end) ? u.getF32() : 0.0f;
                 boolean f_fire = u.more(end) ? u.getBool() : false;
                 String f_source = u.more(end) ? u.getStr() : "";
                 u.leave(end);
@@ -12274,6 +14740,24 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, float.class, boolean.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    Explode r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.power(), r.fire(), r.source());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -12357,6 +14841,24 @@ public final class YogServices {
                 return false;
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    DropLoot r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.table(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -12433,6 +14935,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    EntityCount r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.entityType());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -12516,6 +15036,24 @@ public final class YogServices {
                 return java.util.List.of();
             }
 
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    EntitiesInBox r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
             public static byte[] replyFrame(Object out) {
                 YogFrame.Packer p = new YogFrame.Packer();
@@ -12595,6 +15133,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    RaycastBlock r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
@@ -12679,6 +15235,24 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static YogBus.Reply serve(byte[] payload) {
+                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                try {
+                    RaycastEntity r = fromFrame(payload);
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z(), r.exclude());
+                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                } catch (YogData.DecodeException e) {
+                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
             }
 
             /** The host method's result {@code out} (its "none" already null) as the reply's frame. */

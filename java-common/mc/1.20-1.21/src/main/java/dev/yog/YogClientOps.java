@@ -197,7 +197,7 @@ public final class YogClientOps {
         List<YogTypes.NearbyEntity> out = new ArrayList<>();
         for (Entity e : w.entitiesForRendering()) {
             if (e == p || e.distanceToSqr(p) > radius * radius) continue;
-            Double health = e instanceof LivingEntity l ? (double) l.getHealth() : null;
+            Float health = e instanceof LivingEntity l ? l.getHealth() : null;
             String name = e instanceof Player pl ? pl.getGameProfile().getName() : null;
             out.add(new YogTypes.NearbyEntity(e.getStringUUID(), BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString(),
                     YogQueries.point(e.position()), e.getEyeHeight(), YogQueries.point(e.getDeltaMovement()), health, name, e instanceof Enemy));

@@ -110,7 +110,7 @@ public final class YogTypes {
     }
 
     /** The local player before a travel step. */
-    public record TravelFrame(String uuid, YogTypes.Vec3 velocity, YogTypes.Vec3 look, double yaw, double pitch, double forward, double strafe, boolean jumping, boolean sneaking, double gravity, long flags) {
+    public record TravelFrame(String uuid, YogTypes.Vec3 velocity, YogTypes.Vec3 look, float yaw, float pitch, float forward, float strafe, boolean jumping, boolean sneaking, float gravity, long flags) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("uuid", uuid);
@@ -129,7 +129,7 @@ public final class YogTypes {
 
         public static TravelFrame fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new TravelFrame(YogData.str(m.get("uuid"), ""), YogTypes.Vec3.fromData(m.get("velocity")), YogTypes.Vec3.fromData(m.get("look")), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.number(m.get("forward"), 0), YogData.number(m.get("strafe"), 0), YogData.bool(m.get("jumping"), false), YogData.bool(m.get("sneaking"), false), YogData.number(m.get("gravity"), 0), YogData.integer(m.get("flags"), 0));
+            return new TravelFrame(YogData.str(m.get("uuid"), ""), YogTypes.Vec3.fromData(m.get("velocity")), YogTypes.Vec3.fromData(m.get("look")), (float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0), (float) YogData.number(m.get("forward"), 0), (float) YogData.number(m.get("strafe"), 0), YogData.bool(m.get("jumping"), false), YogData.bool(m.get("sneaking"), false), (float) YogData.number(m.get("gravity"), 0), YogData.integer(m.get("flags"), 0));
         }
 
         public static TravelFrame fromBytes(byte[] bytes) {
@@ -141,13 +141,13 @@ public final class YogTypes {
             p.putStr(this.uuid);
             this.velocity.pack(p);
             this.look.pack(p);
-            p.putF32((float) (double) this.yaw);
-            p.putF32((float) (double) this.pitch);
-            p.putF32((float) (double) this.forward);
-            p.putF32((float) (double) this.strafe);
+            p.putF32(this.yaw);
+            p.putF32(this.pitch);
+            p.putF32(this.forward);
+            p.putF32(this.strafe);
             p.putBool(this.jumping);
             p.putBool(this.sneaking);
-            p.putF32((float) (double) this.gravity);
+            p.putF32(this.gravity);
             p.putI(this.flags);
             p.end(at);
         }
@@ -157,13 +157,13 @@ public final class YogTypes {
             String f_uuid = u.more(end) ? u.getStr() : "";
             YogTypes.Vec3 f_velocity = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
             YogTypes.Vec3 f_look = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
-            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_forward = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_strafe = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_yaw = u.more(end) ? u.getF32() : 0.0f;
+            float f_pitch = u.more(end) ? u.getF32() : 0.0f;
+            float f_forward = u.more(end) ? u.getF32() : 0.0f;
+            float f_strafe = u.more(end) ? u.getF32() : 0.0f;
             boolean f_jumping = u.more(end) ? u.getBool() : false;
             boolean f_sneaking = u.more(end) ? u.getBool() : false;
-            double f_gravity = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_gravity = u.more(end) ? u.getF32() : 0.0f;
             long f_flags = u.more(end) ? u.getI() : 0L;
             u.leave(end);
             return new TravelFrame(f_uuid, f_velocity, f_look, f_yaw, f_pitch, f_forward, f_strafe, f_jumping, f_sneaking, f_gravity, f_flags);
@@ -182,7 +182,7 @@ public final class YogTypes {
             return v;
         }
     }
-    public record Vec3(double x, double y, double z) {
+    public record Vec3(float x, float y, float z) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("x", x);
@@ -193,7 +193,7 @@ public final class YogTypes {
 
         public static Vec3 fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Vec3(YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0));
+            return new Vec3((float) YogData.number(m.get("x"), 0), (float) YogData.number(m.get("y"), 0), (float) YogData.number(m.get("z"), 0));
         }
 
         public static Vec3 fromBytes(byte[] bytes) {
@@ -202,17 +202,17 @@ public final class YogTypes {
 
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
-            p.putF32((float) (double) this.x);
-            p.putF32((float) (double) this.y);
-            p.putF32((float) (double) this.z);
+            p.putF32(this.x);
+            p.putF32(this.y);
+            p.putF32(this.z);
             p.end(at);
         }
 
         public static Vec3 unpack(YogFrame.Unpacker u) {
             int end = u.begin();
-            double f_x = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_y = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_z = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_x = u.more(end) ? u.getF32() : 0.0f;
+            float f_y = u.more(end) ? u.getF32() : 0.0f;
+            float f_z = u.more(end) ? u.getF32() : 0.0f;
             u.leave(end);
             return new Vec3(f_x, f_y, f_z);
         }
@@ -232,7 +232,7 @@ public final class YogTypes {
     }
 
     /** The camera as vanilla placed it this frame. */
-    public record CameraFrame(String uuid, double partial, java.util.List<Double> pos, double yaw, double pitch, boolean detached, long flags) {
+    public record CameraFrame(String uuid, float partial, java.util.List<Double> pos, float yaw, float pitch, boolean detached, long flags) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("uuid", uuid);
@@ -247,7 +247,7 @@ public final class YogTypes {
 
         public static CameraFrame fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new CameraFrame(YogData.str(m.get("uuid"), ""), YogData.number(m.get("partial"), 0), YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList(), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.bool(m.get("detached"), false), YogData.integer(m.get("flags"), 0));
+            return new CameraFrame(YogData.str(m.get("uuid"), ""), (float) YogData.number(m.get("partial"), 0), YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList(), (float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0), YogData.bool(m.get("detached"), false), YogData.integer(m.get("flags"), 0));
         }
 
         public static CameraFrame fromBytes(byte[] bytes) {
@@ -257,10 +257,10 @@ public final class YogTypes {
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
             p.putStr(this.uuid);
-            p.putF32((float) (double) this.partial);
+            p.putF32(this.partial);
             p.putF64s(this.pos);
-            p.putF32((float) (double) this.yaw);
-            p.putF32((float) (double) this.pitch);
+            p.putF32(this.yaw);
+            p.putF32(this.pitch);
             p.putBool(this.detached);
             p.putI(this.flags);
             p.end(at);
@@ -269,10 +269,10 @@ public final class YogTypes {
         public static CameraFrame unpack(YogFrame.Unpacker u) {
             int end = u.begin();
             String f_uuid = u.more(end) ? u.getStr() : "";
-            double f_partial = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_partial = u.more(end) ? u.getF32() : 0.0f;
             java.util.List<Double> f_pos = u.more(end) ? u.getF64s() : java.util.List.of();
-            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_yaw = u.more(end) ? u.getF32() : 0.0f;
+            float f_pitch = u.more(end) ? u.getF32() : 0.0f;
             boolean f_detached = u.more(end) ? u.getBool() : false;
             long f_flags = u.more(end) ? u.getI() : 0L;
             u.leave(end);
@@ -294,7 +294,7 @@ public final class YogTypes {
     }
 
     /** What mods change; each handler gets the last one's result and adds to it. */
-    public record CameraOut(YogTypes.Vec3 localOffset, YogTypes.Vec3 worldOffset, double yaw, double pitch, double roll, double fov) {
+    public record CameraOut(YogTypes.Vec3 localOffset, YogTypes.Vec3 worldOffset, float yaw, float pitch, float roll, float fov) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("local_offset", localOffset.toData());
@@ -308,7 +308,7 @@ public final class YogTypes {
 
         public static CameraOut fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new CameraOut(YogTypes.Vec3.fromData(m.get("local_offset")), YogTypes.Vec3.fromData(m.get("world_offset")), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.number(m.get("roll"), 0), YogData.number(m.get("fov"), 0));
+            return new CameraOut(YogTypes.Vec3.fromData(m.get("local_offset")), YogTypes.Vec3.fromData(m.get("world_offset")), (float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0), (float) YogData.number(m.get("roll"), 0), (float) YogData.number(m.get("fov"), 0));
         }
 
         public static CameraOut fromBytes(byte[] bytes) {
@@ -319,10 +319,10 @@ public final class YogTypes {
             int at = p.begin();
             this.localOffset.pack(p);
             this.worldOffset.pack(p);
-            p.putF32((float) (double) this.yaw);
-            p.putF32((float) (double) this.pitch);
-            p.putF32((float) (double) this.roll);
-            p.putF32((float) (double) this.fov);
+            p.putF32(this.yaw);
+            p.putF32(this.pitch);
+            p.putF32(this.roll);
+            p.putF32(this.fov);
             p.end(at);
         }
 
@@ -330,10 +330,10 @@ public final class YogTypes {
             int end = u.begin();
             YogTypes.Vec3 f_localOffset = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
             YogTypes.Vec3 f_worldOffset = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
-            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_roll = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_fov = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_yaw = u.more(end) ? u.getF32() : 0.0f;
+            float f_pitch = u.more(end) ? u.getF32() : 0.0f;
+            float f_roll = u.more(end) ? u.getF32() : 0.0f;
+            float f_fov = u.more(end) ? u.getF32() : 0.0f;
             u.leave(end);
             return new CameraOut(f_localOffset, f_worldOffset, f_yaw, f_pitch, f_roll, f_fov);
         }
@@ -353,7 +353,7 @@ public final class YogTypes {
     }
 
     /** A block's properties (`block::Info`). */
-    public record BlockInfo(String state, double hardness, boolean replaceable, boolean air, String fluid, boolean fluidSource, int redstone, boolean inWorld) {
+    public record BlockInfo(String state, float hardness, boolean replaceable, boolean air, String fluid, boolean fluidSource, int redstone, boolean inWorld) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("state", state);
@@ -369,7 +369,7 @@ public final class YogTypes {
 
         public static BlockInfo fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new BlockInfo(YogData.str(m.get("state"), ""), YogData.number(m.get("hardness"), 0), YogData.bool(m.get("replaceable"), false), YogData.bool(m.get("air"), false), (m.get("fluid") == null ? null : YogData.str(m.get("fluid"), "")), YogData.bool(m.get("fluid_source"), false), (int) YogData.integer(m.get("redstone"), 0), YogData.bool(m.get("in_world"), false));
+            return new BlockInfo(YogData.str(m.get("state"), ""), (float) YogData.number(m.get("hardness"), 0), YogData.bool(m.get("replaceable"), false), YogData.bool(m.get("air"), false), (m.get("fluid") == null ? null : YogData.str(m.get("fluid"), "")), YogData.bool(m.get("fluid_source"), false), (int) YogData.integer(m.get("redstone"), 0), YogData.bool(m.get("in_world"), false));
         }
 
         public static BlockInfo fromBytes(byte[] bytes) {
@@ -379,7 +379,7 @@ public final class YogTypes {
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
             p.putStr(this.state);
-            p.putF32((float) (double) this.hardness);
+            p.putF32(this.hardness);
             p.putBool(this.replaceable);
             p.putBool(this.air);
             p.putBool(this.fluid != null); if (this.fluid != null) { p.putStr(this.fluid); }
@@ -392,7 +392,7 @@ public final class YogTypes {
         public static BlockInfo unpack(YogFrame.Unpacker u) {
             int end = u.begin();
             String f_state = u.more(end) ? u.getStr() : "";
-            double f_hardness = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_hardness = u.more(end) ? u.getF32() : 0.0f;
             boolean f_replaceable = u.more(end) ? u.getBool() : false;
             boolean f_air = u.more(end) ? u.getBool() : false;
             String f_fluid = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
@@ -621,7 +621,7 @@ public final class YogTypes {
     }
 
     /** This client's player: where it is and looks, how it moves and fares. */
-    public record LocalState(YogTypes.Point pos, double yaw, double pitch, YogTypes.Point velocity, boolean onGround, boolean inWater, double eyeHeight, double health, int food, String dimension, long slot, double attackStrength) {
+    public record LocalState(YogTypes.Point pos, float yaw, float pitch, YogTypes.Point velocity, boolean onGround, boolean inWater, double eyeHeight, float health, int food, String dimension, long slot, float attackStrength) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("pos", pos.toData());
@@ -641,7 +641,7 @@ public final class YogTypes {
 
         public static LocalState fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new LocalState(YogTypes.Point.fromData(m.get("pos")), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogTypes.Point.fromData(m.get("velocity")), YogData.bool(m.get("on_ground"), false), YogData.bool(m.get("in_water"), false), YogData.number(m.get("eye_height"), 0), YogData.number(m.get("health"), 0), (int) YogData.integer(m.get("food"), 0), YogData.str(m.get("dimension"), ""), YogData.integer(m.get("slot"), 0), YogData.number(m.get("attack_strength"), 0));
+            return new LocalState(YogTypes.Point.fromData(m.get("pos")), (float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0), YogTypes.Point.fromData(m.get("velocity")), YogData.bool(m.get("on_ground"), false), YogData.bool(m.get("in_water"), false), YogData.number(m.get("eye_height"), 0), (float) YogData.number(m.get("health"), 0), (int) YogData.integer(m.get("food"), 0), YogData.str(m.get("dimension"), ""), YogData.integer(m.get("slot"), 0), (float) YogData.number(m.get("attack_strength"), 0));
         }
 
         public static LocalState fromBytes(byte[] bytes) {
@@ -651,34 +651,34 @@ public final class YogTypes {
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
             this.pos.pack(p);
-            p.putF32((float) (double) this.yaw);
-            p.putF32((float) (double) this.pitch);
+            p.putF32(this.yaw);
+            p.putF32(this.pitch);
             this.velocity.pack(p);
             p.putBool(this.onGround);
             p.putBool(this.inWater);
             p.putF64(this.eyeHeight);
-            p.putF32((float) (double) this.health);
+            p.putF32(this.health);
             p.putI(this.food);
             p.putStr(this.dimension);
             p.putI(this.slot);
-            p.putF32((float) (double) this.attackStrength);
+            p.putF32(this.attackStrength);
             p.end(at);
         }
 
         public static LocalState unpack(YogFrame.Unpacker u) {
             int end = u.begin();
             YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
-            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_yaw = u.more(end) ? u.getF32() : 0.0f;
+            float f_pitch = u.more(end) ? u.getF32() : 0.0f;
             YogTypes.Point f_velocity = u.more(end) ? YogTypes.Point.unpack(u) : null;
             boolean f_onGround = u.more(end) ? u.getBool() : false;
             boolean f_inWater = u.more(end) ? u.getBool() : false;
             double f_eyeHeight = u.more(end) ? u.getF64() : 0.0;
-            double f_health = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_health = u.more(end) ? u.getF32() : 0.0f;
             int f_food = u.more(end) ? (int) u.getI() : 0;
             String f_dimension = u.more(end) ? u.getStr() : "";
             long f_slot = u.more(end) ? u.getI() : 0L;
-            double f_attackStrength = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_attackStrength = u.more(end) ? u.getF32() : 0.0f;
             u.leave(end);
             return new LocalState(f_pos, f_yaw, f_pitch, f_velocity, f_onGround, f_inWater, f_eyeHeight, f_health, f_food, f_dimension, f_slot, f_attackStrength);
         }
@@ -845,7 +845,7 @@ public final class YogTypes {
     }
 
     /** An entity near this client's player. */
-    public record NearbyEntity(String uuid, String entityType, YogTypes.Point pos, double eyeHeight, YogTypes.Point velocity, Double health, String name, boolean hostile) {
+    public record NearbyEntity(String uuid, String entityType, YogTypes.Point pos, double eyeHeight, YogTypes.Point velocity, Float health, String name, boolean hostile) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("uuid", uuid);
@@ -861,7 +861,7 @@ public final class YogTypes {
 
         public static NearbyEntity fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new NearbyEntity(YogData.str(m.get("uuid"), ""), YogData.str(m.get("entity_type"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.number(m.get("eye_height"), 0), YogTypes.Point.fromData(m.get("velocity")), (m.get("health") == null ? null : YogData.number(m.get("health"), 0)), (m.get("name") == null ? null : YogData.str(m.get("name"), "")), YogData.bool(m.get("hostile"), false));
+            return new NearbyEntity(YogData.str(m.get("uuid"), ""), YogData.str(m.get("entity_type"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.number(m.get("eye_height"), 0), YogTypes.Point.fromData(m.get("velocity")), (m.get("health") == null ? null : (float) YogData.number(m.get("health"), 0)), (m.get("name") == null ? null : YogData.str(m.get("name"), "")), YogData.bool(m.get("hostile"), false));
         }
 
         public static NearbyEntity fromBytes(byte[] bytes) {
@@ -875,7 +875,7 @@ public final class YogTypes {
             this.pos.pack(p);
             p.putF64(this.eyeHeight);
             this.velocity.pack(p);
-            p.putBool(this.health != null); if (this.health != null) { p.putF32((float) (double) this.health); }
+            p.putBool(this.health != null); if (this.health != null) { p.putF32(this.health); }
             p.putBool(this.name != null); if (this.name != null) { p.putStr(this.name); }
             p.putBool(this.hostile);
             p.end(at);
@@ -888,7 +888,7 @@ public final class YogTypes {
             YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
             double f_eyeHeight = u.more(end) ? u.getF64() : 0.0;
             YogTypes.Point f_velocity = u.more(end) ? YogTypes.Point.unpack(u) : null;
-            Double f_health = u.more(end) ? (u.getBool() ? Double.valueOf((double) u.getF32()) : null) : null;
+            Float f_health = u.more(end) ? (u.getBool() ? Float.valueOf(u.getF32()) : null) : null;
             String f_name = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
             boolean f_hostile = u.more(end) ? u.getBool() : false;
             u.leave(end);
@@ -1007,7 +1007,7 @@ public final class YogTypes {
     }
 
     /** Which way an entity faces, in degrees. */
-    public record Rotation(double yaw, double pitch) {
+    public record Rotation(float yaw, float pitch) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("yaw", yaw);
@@ -1017,7 +1017,7 @@ public final class YogTypes {
 
         public static Rotation fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Rotation(YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0));
+            return new Rotation((float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0));
         }
 
         public static Rotation fromBytes(byte[] bytes) {
@@ -1026,15 +1026,15 @@ public final class YogTypes {
 
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
-            p.putF32((float) (double) this.yaw);
-            p.putF32((float) (double) this.pitch);
+            p.putF32(this.yaw);
+            p.putF32(this.pitch);
             p.end(at);
         }
 
         public static Rotation unpack(YogFrame.Unpacker u) {
             int end = u.begin();
-            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
-            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+            float f_yaw = u.more(end) ? u.getF32() : 0.0f;
+            float f_pitch = u.more(end) ? u.getF32() : 0.0f;
             u.leave(end);
             return new Rotation(f_yaw, f_pitch);
         }
