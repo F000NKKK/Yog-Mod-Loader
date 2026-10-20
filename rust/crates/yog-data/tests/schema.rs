@@ -369,3 +369,17 @@ fn ranges_are_checked_and_described() {
         Some(&Value::List(vec![Value::Float(1.0), Value::Float(99.0)]))
     );
 }
+
+#[derive(Schema, Debug, PartialEq)]
+struct Blob {
+    #[data(with = "yog_data::with::Raw")]
+    bytes: Vec<u8>,
+}
+
+#[test]
+fn raw_bytes_round_trip_through_text() {
+    let blob = Blob { bytes: vec![0, 1, 2, 255] };
+    let text = yog_data::to_text(&blob);
+    assert!(text.contains("@bytes:"), "{text}");
+    assert_eq!(yog_data::from_text::<Blob>(&text).unwrap().value, blob);
+}

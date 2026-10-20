@@ -199,6 +199,14 @@ impl With<Vec<u8>> for Raw {
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Vec<u8>> {
         match v {
             ValueRef::Bytes(b) => Some(b.to_vec()),
+            // As text: `@bytes:<base64>`.
+            ValueRef::Str(s) => match crate::typed::classify(s).map_err(|e| cx.problem(e)).ok()? {
+                crate::Value::Bytes(b) => Some(b),
+                _ => {
+                    cx.expected("bytes", v);
+                    None
+                }
+            },
             other => {
                 cx.expected("bytes", other);
                 None
