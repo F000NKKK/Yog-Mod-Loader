@@ -10,7 +10,7 @@
 use std::os::raw::c_void;
 
 use yog_abi::{
-    YogApi, YogGfxApi,
+    YogApi,
     YogServer,
     YogStr, };
 use yog_formats::book::Book;
@@ -1253,52 +1253,6 @@ pub(crate) fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
 
 // ── ABI minor 10 — client-side trampolines ────────────────────────────────────
 
-/// What `Registry::on_item_tooltip` keeps: the size and the draw closures.
-struct TooltipPicture<S, D> {
-    size: S,
-    draw: D,
-}
-
-unsafe extern "C" fn trampoline_tooltip_size<S, D>(ud: *mut c_void, item: YogStr, snbt: YogStr, w: *mut f32, h: *mut f32) -> bool
-where
-    S: Fn(&str, &str) -> Option<(f32, f32)> + Send + Sync,
-{
-    unsafe {
-        let t = &*(ud as *const TooltipPicture<S, D>);
-        match guard(None, || (t.size)(item.as_str(), snbt.as_str())) {
-            Some((pw, ph)) => {
-                (*w, *h) = (pw, ph);
-                true
-            }
-            None => false,
-        }
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-unsafe extern "C" fn trampoline_tooltip_draw<S, D>(ud: *mut c_void, gfx: *const YogGfxApi, item: YogStr, snbt: YogStr, x: f32, y: f32, w: f32, h: f32)
-where
-    D: Fn(&GfxContext, &str, &str, [f32; 4]) + Send + Sync,
-{
-    unsafe {
-        let t = &*(ud as *const TooltipPicture<S, D>);
-        guard((), || (t.draw)(&GfxContext::from_raw(gfx), item.as_str(), snbt.as_str(), [x, y, w, h]));
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-unsafe extern "C" fn trampoline_book_page<F>(ud: *mut c_void, gfx: *const YogGfxApi, data: *const u8, len: usize, x: f32, y: f32, w: f32, h: f32)
-where
-    F: Fn(&GfxContext, &yog_data::Value, [f32; 4]) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        let bytes = if data.is_null() { &[][..] } else { std::slice::from_raw_parts(data, len) };
-        let value = yog_data::binary::decode(bytes).unwrap_or(yog_data::Value::Null);
-        guard((), || f(&GfxContext::from_raw(gfx), &value, [x, y, w, h]));
-    }
-}
-
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 /// Wraps the [`YogApi`] table and provides an ergonomic registration API.
@@ -1809,9 +1763,11 @@ impl Registry {
     where
         F: Fn(&GfxContext, &yog_data::Value, [f32; 4]) + Send + Sync + 'static,
     {
-        let ud = Self::leak(handler);
-        let id = YogStr::from_str(drawer);
-        unsafe { ((*self.api).on_book_page)(self.ctx(), id, ud, trampoline_book_page::<F>) }
+        self.on_key::<yog_event::client::render::Page, _>(drawer, move |page, _| {
+            if let Some(gfx) = crate::draw::frame_gfx() {
+                handler(&gfx, &page.data, page.rect);
+            }
+        });
     }
 
     /// A picture under the tooltips of `item` (as Hex Casting's scrolls show
@@ -1823,11 +1779,12 @@ impl Registry {
         S: Fn(&str, &str) -> Option<(f32, f32)> + Send + Sync + 'static,
         D: Fn(&GfxContext, &str, &str, [f32; 4]) + Send + Sync + 'static,
     {
-        let ud = Self::leak(TooltipPicture { size, draw });
-        let id = YogStr::from_str(item);
-        unsafe {
-            ((*self.api).on_item_tooltip)(self.ctx(), id, ud, trampoline_tooltip_size::<S, D>, trampoline_tooltip_draw::<S, D>)
-        }
+        self.provide_key::<yog_event::item::Picture>(item, move |p, _| size(&p.item, &p.snbt).map(|(w, h)| [w, h]));
+        self.on_key::<yog_event::client::render::Tooltip, _>(item, move |t, _| {
+            if let Some(gfx) = crate::draw::frame_gfx() {
+                draw(&gfx, &t.item, &t.snbt, t.rect);
+            }
+        });
     }
 
     /// A stack's own name and tooltip, from its custom data (SNBT): `text(item,

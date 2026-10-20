@@ -89,6 +89,38 @@ public final class YogServices {
                 return (v == null ? null : YogTypes.Shown.fromData(v));
             }
         }
+
+        /** Whether a stack gets a picture under its tooltip (Hex Casting's scrolls show their pattern), and its size in GUI pixels — keyed by the item, answered by its mod; drawn on `client::render::Tooltip`. */
+        public record Picture(String item, String snbt) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("item", item);
+                m.put("snbt", snbt);
+                return m;
+            }
+
+            public static Picture fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Picture(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""));
+            }
+
+            public static Picture fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public List<Double> call() {
+                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.PICTURE, item), YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return (v == null ? null : YogData.list(v).stream().map(e0 -> YogData.number(e0, 0)).toList());
+            }
+        }
     }
 
     /** `command`. */

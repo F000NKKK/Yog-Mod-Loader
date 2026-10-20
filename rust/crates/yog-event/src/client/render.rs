@@ -40,3 +40,22 @@ pub struct Body {
     #[data(with = "Raw")]
     pub ops: Vec<u8>,
 }
+
+/// A stack's tooltip picture drawn in `rect` (`[x, y, w, h]`, screen
+/// pixels); keyed by the item (`item::Picture` sized it).
+#[derive(Debug, Clone, Schema)]
+pub struct Tooltip {
+    pub item: String,
+    pub snbt: String,
+    pub rect: [f32; 4],
+}
+
+/// The picture of a book page of type `drawn` drawn in `rect` (`[x, y, w,
+/// h]`, screen pixels), every frame the page is open; keyed by its `drawer`.
+#[derive(Debug, Clone, Schema)]
+pub struct Page {
+    pub drawer: String,
+    /// The page's `data`.
+    pub data: yog_data::Value,
+    pub rect: [f32; 4],
+}

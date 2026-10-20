@@ -110,6 +110,7 @@ public final class YogNames {
 
         public static final String DOMAIN = "yog:item/";
         public static final String TEXT = "yog:item/text";
+        public static final String PICTURE = "yog:item/picture";
     }
 
     public static final class ServiceCommand {
@@ -298,6 +299,8 @@ public final class YogNames {
         public static final String HUD = "yog:event/client/render/hud";
         public static final String WORLD = "yog:event/client/render/world";
         public static final String UI = "yog:event/client/render/ui";
+        public static final String TOOLTIP = "yog:event/client/render/tooltip";
+        public static final String PAGE = "yog:event/client/render/page";
         public static final String CAMERA = "yog:event/client/render/camera";
         public static final String BODY = "yog:event/client/render/body";
     }

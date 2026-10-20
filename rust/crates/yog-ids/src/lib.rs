@@ -142,6 +142,7 @@ names! {
     service_item {
         DOMAIN = concatcp!(service::PREFIX, "item", sep::PATH),
         TEXT = concatcp!(DOMAIN, "text"),
+        PICTURE = concatcp!(DOMAIN, "picture"),
     }
 
     /// `yog:command/…`: the commands mods declare (provided by the runtime).
@@ -308,6 +309,8 @@ names! {
         HUD = concatcp!(PLANE, "hud"),
         WORLD = concatcp!(PLANE, "world"),
         UI = concatcp!(PLANE, "ui"),
+        TOOLTIP = concatcp!(PLANE, "tooltip"),
+        PAGE = concatcp!(PLANE, "page"),
         CAMERA = concatcp!(PLANE, "camera"),
         BODY = concatcp!(PLANE, "body"),
     }

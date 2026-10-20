@@ -15,8 +15,6 @@ pub struct UiLayer {
 
 /// One command registration: owning module, typed-args schema (if any),
 /// user data and callback.
-/// A tooltip picture's mod, user data, size and draw callbacks.
-pub(super) type TooltipEntry = (LoadedModule, *mut c_void, yog_abi::YogTooltipSizeFn, yog_abi::YogTooltipDrawFn);
 
 // Every callback table below is tagged with the `LoadedModule` that
 // registered it (see `current_registration()`), so a hot-reload's dispatch
@@ -63,10 +61,6 @@ pub(super) struct RuntimeHandlers {
     /// which is its `generator_type`.
     pub(super) terrains: HashMap<String, Arc<yog_worldgen::Generator>>,
     pub(super) ui_handlers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogUIEventFn)>,
-    /// Book pages' pictures (`BookPage::Drawn`), by drawer id.
-    pub(super) page_drawers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogPageDrawFn)>,
-    /// Pictures in item tooltips, by item id: the first that answers draws.
-    pub(super) item_tooltips: HashMap<String, Vec<TooltipEntry>>,
     pub(super) menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
     /// The mods' key bindings (ABI 3.10), once each by id: the game's controls show them.
     pub(super) key_bindings: Vec<KeyBinding>,
@@ -121,10 +115,5 @@ impl ModuleRegistry for RuntimeModuleRegistry {
             .retain(|_, (m, ..)| m.generation() != generation);
         h.ui_handlers
             .retain(|_, (m, ..)| m.generation() != generation);
-        h.page_drawers
-            .retain(|_, (m, ..)| m.generation() != generation);
-        for entries in h.item_tooltips.values_mut() {
-            entries.retain(|(m, ..)| m.generation() != generation);
-        }
     }
 }

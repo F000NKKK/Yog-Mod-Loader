@@ -372,19 +372,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
             && book_renderer.ui.is_some()
         {
             // Pictures of `drawn` pages: the mod that registered the drawer draws them.
-            let gfx_ptr = &gfx as *const _;
-            book_renderer.render_with(&ctx, sw, sh, &mut |_, drawer, data, [x, y, w, bh]| {
-                let Some((module, ud, f)) = h.page_drawers.get(drawer).cloned() else {
-                    return;
-                };
-                if module.is_retiring() {
-                    return;
-                }
-                let Some(_call) = module.enter() else {
-                    return;
-                };
-                let bytes = yog_data::binary::encode(data);
-                unsafe { f(ud, gfx_ptr, bytes.as_ptr(), bytes.len(), x, y, w, bh) };
+            book_renderer.render_with(&ctx, sw, sh, &mut |_, drawer, data, rect| {
+                let page = yog_event::client::render::Page { drawer: drawer.to_owned(), data: data.clone(), rect };
+                crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&page));
             });
             return;
         }
@@ -468,47 +458,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeKeyBindings<'l>(env: JNIE
     env.new_string(lines.join("\n")).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
-// ── Pictures in item tooltips (ABI 2.2) ─────────────────────────────────────
-
-/// The mod's picture for a stack of `item` (custom data `snbt`): which
-/// entry, and its size.
-fn tooltip_of(h: &crate::RuntimeHandlers, item: &str, snbt: &str) -> Option<(crate::TooltipEntry, f32, f32)> {
-    for entry in h.item_tooltips.get(item)? {
-        let (module, ud, size, _) = entry.clone();
-        if module.is_retiring() {
-            continue;
-        }
-        let Some(_call) = module.enter() else {
-            continue;
-        };
-        let (mut w, mut hh) = (0.0f32, 0.0f32);
-        if unsafe { size(ud, YogStr::from_str(item), YogStr::from_str(snbt), &mut w, &mut hh) } && w > 0.0 && hh > 0.0 {
-            return Some((entry.clone(), w, hh));
-        }
-    }
-    None
-}
-
-/// `float[]{w, h}` of a stack's tooltip picture, or null for none.
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeTooltipSize<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    item: JString<'l>,
-    snbt: JString<'l>,
-) -> jfloatArray {
-    let item = jstr!(env, item, std::ptr::null_mut());
-    let snbt = jstr!(env, snbt, std::ptr::null_mut());
-    let h = handlers();
-    let Some((_, w, hh)) = tooltip_of(&h, &item, &snbt) else {
-        return std::ptr::null_mut();
-    };
-    let Ok(arr) = env.new_float_array(2) else {
-        return std::ptr::null_mut();
-    };
-    let _ = env.set_float_array_region(&arr, 0, &[w, hh]);
-    arr.into_raw()
-}
+// ── Pictures in item tooltips ─────────────────────────────────────
 
 /// Draws a stack's tooltip picture in `x, y, w, h` (GUI pixels).
 #[unsafe(no_mangle)]
@@ -527,17 +477,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeTooltipDraw<'l>(
 ) {
     let item = jstr!(env, item);
     let snbt = jstr!(env, snbt);
-    let h = handlers();
-    let Some(((module, ud, _, draw), ..)) = tooltip_of(&h, &item, &snbt) else {
-        return;
-    };
-    let Some(_call) = module.enter() else {
-        return;
-    };
     let mut gfx = crate::GFX_FN_TABLE;
     gfx.screen_w = screen_w;
     gfx.screen_h = screen_h;
     gfx.delta_tick = 1.0;
     gfx.scale_factor = 1.0;
-    unsafe { draw(ud, &gfx as *const _, YogStr::from_str(&item), YogStr::from_str(&snbt), x as f32, y as f32, w as f32, hh as f32) };
+    let tooltip = yog_event::client::render::Tooltip { item, snbt, rect: [x as f32, y as f32, w as f32, hh as f32] };
+    crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&tooltip));
 }

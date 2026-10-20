@@ -1596,7 +1596,6 @@ public final class NativeBridge {
 
     /** A player took machine {@code defId}'s result of {@code recipe}: the mods take their share. */
     public static native boolean nativeMachineCraft(String defId, String recipe, String dimension, int x, int y, int z, String items, String player);
-    public static native float[] nativeTooltipSize(String item, String snbt);
 
     /** Draws that picture in {@code x, y, w, h} (GUI pixels). */
     public static native void nativeTooltipDraw(String item, String snbt, int x, int y, int w, int h, int screenW, int screenH);

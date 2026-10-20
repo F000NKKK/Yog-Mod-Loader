@@ -66,6 +66,7 @@ macro_rules! services {
 services! {
     block::Insert => ids::service_block::INSERT, bool, key = block_id;
     item::Text => ids::service_item::TEXT, Option<item::Shown>, key = item;
+    item::Picture => ids::service_item::PICTURE, Option<[f32; 2]>, key = item;
     command::Declare => ids::service_command::DECLARE, bool;
     command::Declared => ids::service_command::DECLARED, Vec<command::Declare>;
 }

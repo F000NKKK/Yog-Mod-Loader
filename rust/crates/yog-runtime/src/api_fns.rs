@@ -207,34 +207,3 @@ pub(super) unsafe extern "C" fn api_register_ui(
     }
 }
 
-pub(super) unsafe extern "C" fn api_on_book_page(
-    ctx: *mut c_void,
-    drawer: YogStr,
-    ud: *mut c_void,
-    f: yog_abi::YogPageDrawFn,
-) {
-    unsafe {
-        let mut handlers = handlers_mut(ctx);
-        handlers
-            .page_drawers
-            .insert(drawer.as_str().to_owned(), (current_registration(), ud, f));
-    }
-}
-
-pub(super) unsafe extern "C" fn api_on_item_tooltip(
-    ctx: *mut c_void,
-    item: YogStr,
-    ud: *mut c_void,
-    size: yog_abi::YogTooltipSizeFn,
-    draw: yog_abi::YogTooltipDrawFn,
-) {
-    unsafe {
-        let mut handlers = handlers_mut(ctx);
-        handlers
-            .item_tooltips
-            .entry(item.as_str().to_owned())
-            .or_default()
-            .push((current_registration(), ud, size, draw));
-    }
-}
-

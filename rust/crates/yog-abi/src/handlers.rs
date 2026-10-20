@@ -1,21 +1,6 @@
-//! The handlers' function-pointer types, and the client frames they see.
+//! The callbacks still outside the bus: UI input and byte sinks.
 
 use super::*;
-
-// ── Handler function-pointer types ────────────────────────────────────────────
-//
-// All event handlers receive a `phase: u8` argument:
-//   0 = Pre  — fires before the action; return value matters (false = cancel).
-//   1 = Post — fires after the action; return value is ignored.
-//
-// This unified signature lets one registered closure handle both phases.
-//
-// Client-side handlers (minor 10) do NOT receive a `YogServer*` — they run on
-// the render thread and have no server context.
-
-
-
-// ── ABI minor 10 — client-side function pointer types ────────────────────────
 
 /// UI event for a `register_ui` screen. `event_id` is one of
 /// `click:X:Y`, `drag:X:Y`, `release:X:Y`, `scroll:DY` and (ABI minor 33)
@@ -24,38 +9,5 @@ use super::*;
 /// Call `YogApi::ui_consume_event` while handling `key:`/`char:` to stop the
 /// host's default handling of that key (Esc closing the screen, ...).
 pub type YogUIEventFn = unsafe extern "C" fn(ud: *mut c_void, ui_id: YogStr, event_id: YogStr);
-/// A book page's picture: `data`/`len` is the page's `data` (Yog Data,
-/// binary), `x, y, w, h` its box in screen pixels; `gfx` is valid for the
-/// call.
-pub type YogPageDrawFn = unsafe extern "C" fn(
-    ud: *mut c_void,
-    gfx: *const YogGfxApi,
-    data: *const u8,
-    len: usize,
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-);
-/// Whether a stack of `item` with custom data `snbt` gets a tooltip
-/// picture; if so its size in GUI pixels goes to `w`, `h`.
-pub type YogTooltipSizeFn =
-    unsafe extern "C" fn(ud: *mut c_void, item: YogStr, snbt: YogStr, w: *mut f32, h: *mut f32) -> bool;
-/// Draw the tooltip picture of a stack of `item` (custom data `snbt`) in
-/// the box `x, y, w, h` (screen pixels); `gfx` is valid for the call.
-pub type YogTooltipDrawFn = unsafe extern "C" fn(
-    ud: *mut c_void,
-    gfx: *const YogGfxApi,
-    item: YogStr,
-    snbt: YogStr,
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-);
 /// Takes bytes a handler writes (copies them; valid for the call).
 pub type YogBytesSink = unsafe extern "C" fn(sink: *mut c_void, data: *const u8, len: usize);
-
-
-
-

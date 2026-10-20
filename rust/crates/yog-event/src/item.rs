@@ -20,3 +20,13 @@ pub struct Shown {
     /// The tooltip lines that stand instead of its description.
     pub lines: Vec<String>,
 }
+
+/// Whether a stack gets a picture under its tooltip (Hex Casting's scrolls
+/// show their pattern), and its size in GUI pixels — keyed by the item,
+/// answered by its mod; drawn on `client::render::Tooltip`.
+#[derive(Debug, Clone, Schema)]
+pub struct Picture {
+    pub item: String,
+    /// The stack's custom data, as SNBT.
+    pub snbt: String,
+}

@@ -108,6 +108,8 @@ events! {
     client::render::Hud => ids::event_client_render::HUD, None;
     client::render::World => ids::event_client_render::WORLD, None;
     client::render::Ui => ids::event_client_render::UI, None, key = ui_id;
+    client::render::Tooltip => ids::event_client_render::TOOLTIP, None, key = item;
+    client::render::Page => ids::event_client_render::PAGE, None, key = drawer;
     client::render::Camera => ids::event_client_render::CAMERA, None;
     client::render::Body => ids::event_client_render::BODY, None;
     client::net::Packet => ids::event_client_net::PACKET, None, key = channel;

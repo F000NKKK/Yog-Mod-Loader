@@ -1927,6 +1927,76 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
             }
 
+            /** A stack's tooltip picture drawn in `rect` (`[x, y, w, h]`, screen pixels); keyed by the item (`item::Picture` sized it). */
+            public record Tooltip(String item, String snbt, List<Double> rect) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("item", item);
+                    m.put("snbt", snbt);
+                    m.put("rect", rect);
+                    return m;
+                }
+
+                public static Tooltip fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Tooltip(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""), YogData.list(m.get("rect")).stream().map(e0 -> YogData.number(e0, 0)).toList());
+                }
+
+                public static Tooltip fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.TOOLTIP, item), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Tooltip emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+
+            /** The picture of a book page of type `drawn` drawn in `rect` (`[x, y, w, h]`, screen pixels), every frame the page is open; keyed by its `drawer`. */
+            public record Page(String drawer, Object data, List<Double> rect) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("drawer", drawer);
+                    m.put("data", data);
+                    m.put("rect", rect);
+                    return m;
+                }
+
+                public static Page fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Page(YogData.str(m.get("drawer"), ""), m.get("data"), YogData.list(m.get("rect")).stream().map(e0 -> YogData.number(e0, 0)).toList());
+                }
+
+                public static Page fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.PAGE, drawer), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Page emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+
             /** The camera this frame, as vanilla placed it, and what the mods make of it: each handler adds to `out`, seeing the one before's. */
             public record Camera(YogTypes.CameraFrame frame, YogTypes.CameraOut out) {
                 public Map<String, Object> toData() {

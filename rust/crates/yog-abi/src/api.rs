@@ -127,24 +127,6 @@ pub struct YogApi {
     /// Whether GLFW key `key` is held down right now (client window).
     pub client_key_down: unsafe extern "C" fn(ctx: *mut c_void, key: i32) -> bool,
 
-    // ── ABI 2.1 — book pages drawn by mods ──────────────────────────────────
-    /// Draw the pictures of book pages of type `drawn` whose `drawer` is
-    /// `drawer` (`hexcasting:pattern`) — see [`YogPageDrawFn`].
-    pub on_book_page:
-        unsafe extern "C" fn(ctx: *mut c_void, drawer: YogStr, ud: *mut c_void, f: YogPageDrawFn),
-
-    // ── ABI 2.2 — pictures in item tooltips ─────────────────────────────────
-    /// A picture under the tooltip of item `item` (Hex Casting's scrolls
-    /// show their pattern): `size` says whether a stack gets one and how
-    /// big, `draw` draws it — see [`YogTooltipSizeFn`], [`YogTooltipDrawFn`].
-    pub on_item_tooltip: unsafe extern "C" fn(
-        ctx: *mut c_void,
-        item: YogStr,
-        ud: *mut c_void,
-        size: YogTooltipSizeFn,
-        draw: YogTooltipDrawFn,
-    ),
-
     // ── ABI 2.3 — other mods ────────────────────────────────────────────────
     /// Whether mod `id` is loaded — a Yog mod or a Java one (Fabric's,
     /// Forge's or NeoForge's mod list).
