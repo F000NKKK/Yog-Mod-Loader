@@ -245,6 +245,13 @@ ABI major bumps once, for this; after it, features are data.
 5. **Nanites.** Mapping-driven generation, reflection (`call`/`get`/`set`),
    then injections (manifest → generated Mixin config → bus events).
 6. **Java mods.** A public `dev.yog.api.YogBus` with typed messages.
+   Alongside it, fonts brought to full quality:
+   - the designers shape whole runs with `yog_font` (ligatures, kerning,
+     contextual forms) instead of drawing a `.yfont` char by char;
+   - a compact glyph form for pixel fonts (a 1-bit mask, not RGBA images),
+     so copies of `yog:font/default` stay small and the whole of Unifont
+     (`yog:font/uniform`) can be copied without `--chars`;
+   - import, load and shaping profiled and benchmarked.
 7. **Mods.** VLSI, Pipes, Modlist, Hex move to the new `yog-api`; release.
 
 Each stage builds and passes its tests; the release is cut after 7.
