@@ -5,12 +5,14 @@ use std::collections::BTreeMap;
 use std::sync::RwLock;
 
 use yog_data::Shape;
+use yog_hot_reload::ModuleGeneration;
 use yog_event::bus::{AddressKind, Describe, Descriptor, Find, List};
 use yog_sync::ReadWrite;
 
 use super::duties::provide;
 
-static DESCRIPTORS: RwLock<BTreeMap<String, Descriptor>> = RwLock::new(BTreeMap::new());
+/// Every descriptor, and the generation of the mod that declared it (none: the vocabulary's).
+static DESCRIPTORS: RwLock<BTreeMap<String, (Descriptor, Option<ModuleGeneration>)>> = RwLock::new(BTreeMap::new());
 
 /// A shape's doc: a struct's own.
 fn doc(shape: &Shape) -> String {
@@ -20,8 +22,13 @@ fn doc(shape: &Shape) -> String {
     }
 }
 
-fn declare(d: Descriptor) {
-    DESCRIPTORS.write_locked().insert(d.address.clone(), d);
+fn declare(d: Descriptor, owner: Option<ModuleGeneration>) {
+    DESCRIPTORS.write_locked().insert(d.address.clone(), (d, owner));
+}
+
+/// Forgets what the mod of `generation` declared (a hot reload declares it again).
+pub(crate) fn purge(generation: ModuleGeneration) {
+    DESCRIPTORS.write_locked().retain(|_, (_, owner)| *owner != Some(generation));
 }
 
 /// `address`'s descriptor, or its nearest declared parent's (a keyed
@@ -30,7 +37,7 @@ fn describe(address: &str) -> Option<Descriptor> {
     let all = DESCRIPTORS.read_locked();
     let mut at = address;
     loop {
-        if let Some(d) = all.get(at) {
+        if let Some((d, _)) = all.get(at) {
             return Some(d.clone());
         }
         at = &at[..at.rfind(yog_ids::sep::PATH)?];
@@ -42,11 +49,11 @@ fn declare_vocabulary() {
     for e in yog_event::all() {
         let shape = e.shape.describe();
         for address in std::iter::once(e.address).chain(e.pre) {
-            declare(Descriptor { address: address.to_owned(), kind: AddressKind::Event, doc: doc(&e.shape), shape: shape.clone(), reply: None, interfaces: Vec::new() });
+            declare(Descriptor { address: address.to_owned(), kind: AddressKind::Event, doc: doc(&e.shape), shape: shape.clone(), reply: None, interfaces: Vec::new() }, None);
         }
     }
     for s in yog_event::services() {
-        declare(Descriptor { address: s.address.to_owned(), kind: AddressKind::Service, doc: doc(&s.shape), shape: s.shape.describe(), reply: Some(s.reply.describe()), interfaces: Vec::new() });
+        declare(Descriptor { address: s.address.to_owned(), kind: AddressKind::Service, doc: doc(&s.shape), shape: s.shape.describe(), reply: Some(s.reply.describe()), interfaces: Vec::new() }, None);
     }
 }
 
@@ -54,12 +61,12 @@ fn declare_vocabulary() {
 pub(crate) fn register() {
     declare_vocabulary();
     provide::<Descriptor>(|d| {
-        declare(d.clone());
+        declare(d.clone(), super::owner().map(|m| m.generation()));
         true
     });
     provide::<Describe>(|d| describe(&d.address));
     provide::<List>(|l| DESCRIPTORS.read_locked().keys().filter(|a| a.starts_with(&l.prefix)).cloned().collect());
-    provide::<Find>(|f| DESCRIPTORS.read_locked().values().filter(|d| d.interfaces.contains(&f.interface)).map(|d| d.address.clone()).collect());
+    provide::<Find>(|f| DESCRIPTORS.read_locked().values().filter(|(d, _)| d.interfaces.contains(&f.interface)).map(|(d, _)| d.address.clone()).collect());
 }
 
 #[cfg(test)]
@@ -73,5 +80,15 @@ mod tests {
         let d = describe(&yog_event::keyed(tick, "mymod:golem")).expect("its event's descriptor");
         assert_eq!((d.address.as_str(), d.kind), (tick, AddressKind::Event));
         assert!(describe("nobody:nothing").is_none());
+    }
+
+    #[test]
+    fn a_reloaded_mod_s_descriptors_go() {
+        let generation = yog_hot_reload::GenerationAllocator::new().next();
+        let d = Descriptor { address: "test:gone".into(), kind: AddressKind::Service, doc: String::new(), shape: yog_data::Value::Null, reply: None, interfaces: Vec::new() };
+        declare(d, Some(generation));
+        assert!(describe("test:gone").is_some());
+        purge(generation);
+        assert!(describe("test:gone").is_none());
     }
 }

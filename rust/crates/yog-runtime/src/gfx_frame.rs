@@ -21,3 +21,10 @@ pub(crate) fn drawing<R>(gfx: &YogGfxApi, f: impl FnOnce() -> R) -> R {
 pub(crate) unsafe extern "C" fn api_gfx() -> *const YogGfxApi {
     FRAME.with(Cell::get)
 }
+
+/// Physical pixels per GUI pixel in the frame being drawn (1 outside one).
+pub(crate) fn scale_factor() -> f32 {
+    let frame = FRAME.with(Cell::get);
+    // SAFETY: a non-null frame is alive while its event's handlers run.
+    unsafe { frame.as_ref() }.map_or(1.0, |g| g.scale_factor).max(1.0)
+}

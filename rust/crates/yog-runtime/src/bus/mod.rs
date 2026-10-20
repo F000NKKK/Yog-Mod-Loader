@@ -16,6 +16,7 @@ use std::sync::{LazyLock, OnceLock};
 use yog_event::{Event, Message, Service};
 use yog_abi::{ABI_VERSION, YogAddress, YogBus, YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, status};
 
+pub(crate) use describe::purge as purge_descriptors;
 pub(crate) use duties::{provide as serve, register as register_duties};
 pub(crate) use router::{Handler, Router};
 

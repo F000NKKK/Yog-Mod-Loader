@@ -78,6 +78,8 @@ mod machine;
 mod control_socket;
 mod images;
 mod svg;
+mod textures;
+mod fonts;
 mod jcall;
 mod ui_jni;
 // Entry points for the benchmarks only: never in a build of the loader.

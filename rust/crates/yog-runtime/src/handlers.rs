@@ -103,5 +103,6 @@ impl ModuleRegistry for RuntimeModuleRegistry {
 
     fn purge(&self, generation: ModuleGeneration) {
         crate::bus::ROUTER.purge(generation);
+        crate::bus::purge_descriptors(generation);
     }
 }

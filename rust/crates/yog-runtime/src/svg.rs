@@ -96,48 +96,18 @@ pub fn draw(env: &mut JNIEnv, data: &str, [x, y, w, h]: [f32; 4], tint: u32) {
             if with(|c| c.rasters.len()) >= MAX_RASTERS {
                 let old: Vec<String> = with(|c| c.rasters.drain().map(|(_, id)| id).collect());
                 for id in old {
-                    let _: Option<()> =
-                        unsafe { jcall!(env, "dev/yog/NativeDraw", "releaseTexture", [S(YogStr::from_str(&id))]) };
+                    crate::textures::release(env, &id);
                 }
             }
             let id = format!("{}{:x}_{pw}x{ph}", yog_ids::yog::DYNAMIC_SVG_PREFIX, key.0);
-            let ok: Option<bool> = unsafe {
-                jcall!(
-                    env,
-                    "dev/yog/NativeDraw",
-                    "registerTexture",
-                    [S(YogStr::from_str(&id)), I(pw as i32), I(ph as i32), Bytes(&px)]
-                )
-            };
-            if ok != Some(true) {
+            if !crate::textures::register(env, &id, pw, ph, &px) {
                 return;
             }
             with(|c| c.rasters.insert(key, id.clone()));
             id
         }
     };
-    let (fw, fh) = (pw as f32, ph as f32);
-    let _: Option<()> = unsafe {
-        jcall!(
-            env,
-            "dev/yog/NativeDraw",
-            "drawImage",
-            [
-                S(YogStr::from_str(&id)),
-                F(x),
-                F(y),
-                F(w),
-                F(h),
-                F(0.0),
-                F(0.0),
-                F(fw),
-                F(fh),
-                F(fw),
-                F(fh),
-                I(tint as i32)
-            ]
-        )
-    };
+    crate::textures::draw(env, &id, (pw, ph), [x, y, w, h], tint);
 }
 
 /// `draw2d_svg` — see `YogGfxApi::draw2d_svg`.

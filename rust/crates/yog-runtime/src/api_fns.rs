@@ -124,6 +124,11 @@ pub(super) fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, 
             }
             h.recipes.push((ns.to_string(), name.to_string(), recipe));
         }
+        yog_ids::kind::FONT => {
+            if let Some(font) = read::<yog_font::Font>(kind, &id, value) {
+                crate::fonts::register(id, font);
+            }
+        }
         yog_ids::kind::BOOK => {
             // Read by its schema; the renderer draws it without a round trip to Java.
             if let Some(mut book) = read::<yog_formats::book::Book>(kind, &id, value) {

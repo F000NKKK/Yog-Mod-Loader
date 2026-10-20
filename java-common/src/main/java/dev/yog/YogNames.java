@@ -686,6 +686,7 @@ public final class YogNames {
         public static final String BOOK_TEXTURE = "yog:gui/book";
         public static final String NO_IMAGE = "yog:none";
         public static final String DYNAMIC_SVG_PREFIX = "yog:dynamic/svg_";
+        public static final String DYNAMIC_TEXT_PREFIX = "yog:dynamic/text_";
     }
 
     public static final class Game {

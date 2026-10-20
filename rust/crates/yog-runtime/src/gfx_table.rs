@@ -49,6 +49,9 @@ pub(super) unsafe extern "C" fn gfx_draw2d_text_font(
     color: u32,
     shadow: bool,
 ) {
+    if let Some(f) = crate::fonts::get(unsafe { font.as_str() }) {
+        return crate::fonts::draw(unsafe { font.as_str() }, &f, unsafe { text.as_str() }, [x, y, 1.0], color, shadow);
+    }
     unsafe {
         let _: Option<()> = host!(
             "dev/yog/NativeDraw",
@@ -67,6 +70,9 @@ pub(super) unsafe extern "C" fn gfx_draw2d_text_scaled(
     color: u32,
     shadow: bool,
 ) {
+    if let Some(f) = crate::fonts::get(unsafe { font.as_str() }) {
+        return crate::fonts::draw(unsafe { font.as_str() }, &f, unsafe { text.as_str() }, [x, y, scale], color, shadow);
+    }
     unsafe {
         let _: Option<()> = host!(
             "dev/yog/NativeDraw",
@@ -90,6 +96,9 @@ pub(super) unsafe extern "C" fn gfx_draw2d_blocks(blocks: YogStr, x: f32, y: f32
 }
 
 pub(super) unsafe extern "C" fn gfx_text_width(text: YogStr, font: YogStr) -> f32 {
+    if let Some(f) = crate::fonts::get(unsafe { font.as_str() }) {
+        return crate::fonts::width(&f, unsafe { text.as_str() }, 1.0);
+    }
     unsafe { host!("dev/yog/NativeDraw", "textWidth", [S(text), S(font)]).unwrap_or(0.0) }
 }
 

@@ -141,6 +141,8 @@ names! {
         NO_IMAGE = id!(ns::YOG, "none"),
         /// The textures the runtime renders SVG images into: `<prefix><key>_<w>x<h>`.
         DYNAMIC_SVG_PREFIX = id!(ns::YOG, "dynamic/svg_"),
+        /// The textures the runtime draws text in Yog's fonts into: `<prefix><n>`.
+        DYNAMIC_TEXT_PREFIX = id!(ns::YOG, "dynamic/text_"),
     }
 
     /// The game's ids Yog's code names.
