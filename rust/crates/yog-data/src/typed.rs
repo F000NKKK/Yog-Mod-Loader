@@ -102,7 +102,11 @@ pub fn typed_string(v: &Value) -> Option<String> {
         Value::Image(src) => format!("@image:{src}"),
         Value::Lang(key) => format!("@lang:{key}"),
         Value::Color(c) => format_color(*c),
-        Value::Bytes(b) => format!("@{}:{}", typed::BYTES, base64::engine::general_purpose::STANDARD.encode(b)),
+        Value::Bytes(b) => format!(
+            "@{}:{}",
+            typed::BYTES,
+            base64::engine::general_purpose::STANDARD.encode(b)
+        ),
         Value::Text(t) => escape_at(t),
         Value::Str(t) => escape_at(t),
         _ => return None,
@@ -143,6 +147,12 @@ pub fn resource_id(whole: &str, id: &str) -> Result<String, String> {
     Ok(format!("{ns}:{path}{suffix}"))
 }
 
+/// A colour's digits: `RRGGBB` and `AARRGGBB`, hexadecimal; full alpha.
+const RGB_DIGITS: usize = 6;
+const ARGB_DIGITS: usize = 8;
+const HEX_RADIX: u32 = 16;
+const OPAQUE: u32 = 0xFF00_0000;
+
 /// `#RRGGBB` (opaque) or `#AARRGGBB` → `0xAARRGGBB`.
 pub fn parse_color(s: &str) -> Option<u32> {
     let hex = s.strip_prefix('#')?;
@@ -150,8 +160,8 @@ pub fn parse_color(s: &str) -> Option<u32> {
         return None;
     }
     match hex.len() {
-        6 => u32::from_str_radix(hex, 16).ok().map(|c| 0xFF00_0000 | c),
-        8 => u32::from_str_radix(hex, 16).ok(),
+        RGB_DIGITS => u32::from_str_radix(hex, HEX_RADIX).ok().map(|c| OPAQUE | c),
+        ARGB_DIGITS => u32::from_str_radix(hex, HEX_RADIX).ok(),
         _ => None,
     }
 }
@@ -169,7 +179,8 @@ pub fn format_color(c: u32) -> String {
 /// first, a part may start with a digit (`item.robes.2_boots`).
 pub fn is_res_key(key: &str) -> bool {
     let mut parts = key.split('.');
-    parts.next().is_some_and(is_ident) && parts.all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'))
+    parts.next().is_some_and(is_ident)
+        && parts.all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'))
 }
 
 fn is_ident(s: &str) -> bool {

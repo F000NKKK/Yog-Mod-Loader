@@ -32,7 +32,10 @@ struct Index {
 
 impl Interner {
     pub(crate) fn new() -> Self {
-        Interner { spans: Vec::with_capacity(LINEAR_STRINGS), index: None }
+        Interner {
+            spans: Vec::with_capacity(LINEAR_STRINGS),
+            index: None,
+        }
     }
 
     /// Forgets every string, keeping what it allocated (a reused writer).
@@ -57,7 +60,11 @@ impl Interner {
         if recent > 0 && is(&self.spans[recent - 1]) {
             return Some(recent - 1);
         }
-        let found = index.by_hash.get(&hash(s.as_bytes())).map(|&i| i as usize).filter(|&i| is(&self.spans[i]))?;
+        let found = index
+            .by_hash
+            .get(&hash(s.as_bytes()))
+            .map(|&i| i as usize)
+            .filter(|&i| is(&self.spans[i]))?;
         index.recent[slot] = found as u32 + 1;
         Some(found)
     }
@@ -76,7 +83,10 @@ impl Interner {
                 for (n, &(at, len)) in self.spans.iter().enumerate() {
                     by_hash.entry(hash(&buf[at..at + len])).or_insert(n as u32);
                 }
-                self.index = Some(Box::new(Index { by_hash, recent: [0; RECENT] }));
+                self.index = Some(Box::new(Index {
+                    by_hash,
+                    recent: [0; RECENT],
+                }));
             }
             None => {}
         }

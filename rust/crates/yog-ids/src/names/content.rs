@@ -190,6 +190,33 @@ names! {
         RECIPES = "recipes",
     }
 
+    /// The kinds of shape a schema describes itself with
+    /// (`yog_data::Shape::describe`, read by the IDE's property grids).
+    shape_kind {
+        ANY = "any",
+        BOOL = "bool",
+        INT = "int",
+        FLOAT = "float",
+        STRING = "string",
+        ATOM = "atom",
+        TEXT = "text",
+        IMAGE = "image",
+        COLOR = "color",
+        BYTES = "bytes",
+        RES = "res",
+        REF = "ref",
+        TAG = "tag",
+        REF_OR_TAG = "ref_or_tag",
+        REF_OR_IMAGE = "ref_or_image",
+        LIST = "list",
+        MAP = "map",
+        OPTIONAL = "optional",
+        STRUCT = "struct",
+        ENUM = "enum",
+        /// A struct or enum written once in `defs`, referred to by name.
+        DEF = "def",
+    }
+
     /// The elements of a `.yui` screen or component.
     yui {
         SCREEN = "Screen",

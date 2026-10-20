@@ -378,7 +378,9 @@ struct Blob {
 
 #[test]
 fn raw_bytes_round_trip_through_text() {
-    let blob = Blob { bytes: vec![0, 1, 2, 255] };
+    let blob = Blob {
+        bytes: vec![0, 1, 2, 255],
+    };
     let text = yog_data::to_text(&blob);
     assert!(text.contains("@bytes:"), "{text}");
     assert_eq!(yog_data::from_text::<Blob>(&text).unwrap().value, blob);
@@ -414,10 +416,17 @@ fn messages_go_straight_and_as_the_value_would() {
     let straight = yog_data::to_bytes(&m);
     // The same value either way; straight is never longer (a `f32` takes four bytes, not eight).
     let via_value = binary::encode(&m.write());
-    assert_eq!(binary::decode(&straight).unwrap(), binary::decode(&via_value).unwrap());
+    assert_eq!(
+        binary::decode(&straight).unwrap(),
+        binary::decode(&via_value).unwrap()
+    );
     assert!(straight.len() < via_value.len());
     let mut d = binary::Decoder::open(&straight).unwrap();
-    assert_eq!(Message::decode(&mut d).as_ref(), Some(&m), "read straight, not the slow way");
+    assert_eq!(
+        Message::decode(&mut d).as_ref(),
+        Some(&m),
+        "read straight, not the slow way"
+    );
     assert!(d.at_end());
     assert_eq!(yog_data::read_bytes::<Message>(&straight).unwrap(), m);
     // A field left out takes its default; an unknown one sends it the slow way, which says so.
@@ -435,7 +444,12 @@ fn messages_go_straight_and_as_the_value_would() {
     }
     let bytes = binary::encode(&more);
     assert!(Message::decode(&mut binary::Decoder::open(&bytes).unwrap()).is_none());
-    assert!(yog_data::read_bytes::<Message>(&bytes).unwrap_err().iter().any(|p| p.message.contains("nope")));
+    assert!(
+        yog_data::read_bytes::<Message>(&bytes)
+            .unwrap_err()
+            .iter()
+            .any(|p| p.message.contains("nope"))
+    );
 }
 
 /// A big list kept written: items as they come, read when asked.
@@ -455,21 +469,46 @@ struct Placed {
 
 #[test]
 fn streams_go_whole_and_read_lazily() {
-    let blocks: yog_data::Stream<Placed> = (0..500).map(|i| Placed { id: format!("minecraft:{}", ["stone", "dirt"][i % 2]), count: i as u32 }).collect();
+    let blocks: yog_data::Stream<Placed> = (0..500)
+        .map(|i| Placed {
+            id: format!("minecraft:{}", ["stone", "dirt"][i % 2]),
+            count: i as u32,
+        })
+        .collect();
     // Strings the rest of the document has too: the stream's are its own.
-    let area = Area { name: "minecraft:stone".into(), palette: vec!["minecraft:dirt".into()], blocks, after: "minecraft:stone".into() };
+    let area = Area {
+        name: "minecraft:stone".into(),
+        palette: vec!["minecraft:dirt".into()],
+        blocks,
+        after: "minecraft:stone".into(),
+    };
     let bytes = yog_data::to_bytes(&area);
     let back: Area = yog_data::read_bytes(&bytes).unwrap();
     assert_eq!(back, area);
-    assert_eq!(back.blocks.iter().nth(3), Some(Placed { id: "minecraft:dirt".into(), count: 3 }));
+    assert_eq!(
+        back.blocks.iter().nth(3),
+        Some(Placed {
+            id: "minecraft:dirt".into(),
+            count: 3
+        })
+    );
     // The value way reads it as a list; the text way writes and reads it too.
     let value = binary::decode(&bytes).unwrap();
-    assert_eq!(value.get("blocks").and_then(|b| b.as_list()).map(<[Value]>::len), Some(500));
+    assert_eq!(
+        value
+            .get("blocks")
+            .and_then(|b| b.as_list())
+            .map(<[Value]>::len),
+        Some(500)
+    );
     let text = yog_data::to_text(&area);
     assert_eq!(yog_data::from_text::<Area>(&text).unwrap().value, area);
     // Cut short anywhere, it's an error, never a panic.
     for len in 0..bytes.len() {
-        assert!(yog_data::read_bytes::<Area>(&bytes[..len]).is_err(), "truncated at {len}");
+        assert!(
+            yog_data::read_bytes::<Area>(&bytes[..len]).is_err(),
+            "truncated at {len}"
+        );
     }
 }
 
@@ -485,10 +524,21 @@ struct Compact {
 
 #[test]
 fn compact_types_round_trip() {
-    let c = Compact { name: "a".into(), shared: "b".into(), ids: vec![1, 2].into_boxed_slice(), weights: vec![0.5, 1.25], scale: 2.5 };
+    let c = Compact {
+        name: "a".into(),
+        shared: "b".into(),
+        ids: vec![1, 2].into_boxed_slice(),
+        weights: vec![0.5, 1.25],
+        scale: 2.5,
+    };
     let bytes = yog_data::to_bytes(&c);
     assert_eq!(yog_data::read_bytes::<Compact>(&bytes).unwrap(), c);
-    assert_eq!(yog_data::from_text::<Compact>(&yog_data::to_text(&c)).unwrap().value, c);
+    assert_eq!(
+        yog_data::from_text::<Compact>(&yog_data::to_text(&c))
+            .unwrap()
+            .value,
+        c
+    );
 }
 
 /// Frames: packed by position for the bus.
@@ -513,12 +563,33 @@ mod frames {
         let frame = to_frame(&m);
         assert_eq!(read_frame::<Message>(&frame), Some(m.clone()));
         // Smaller than the self-describing form: no keys, no tags.
-        assert!(frame.len() < yog_data::to_bytes(&m).len(), "{} vs {}", frame.len(), yog_data::to_bytes(&m).len());
-        let c = Compact { name: "a".into(), shared: "a".into(), ids: vec![1, 2].into_boxed_slice(), weights: vec![0.5, 1.25], scale: 2.5 };
+        assert!(
+            frame.len() < yog_data::to_bytes(&m).len(),
+            "{} vs {}",
+            frame.len(),
+            yog_data::to_bytes(&m).len()
+        );
+        let c = Compact {
+            name: "a".into(),
+            shared: "a".into(),
+            ids: vec![1, 2].into_boxed_slice(),
+            weights: vec![0.5, 1.25],
+            scale: 2.5,
+        };
         assert_eq!(read_frame::<Compact>(&to_frame(&c)), Some(c));
         // A stream goes as its binary form inside the frame.
-        let blocks: yog_data::Stream<Placed> = (0..10).map(|i| Placed { id: "minecraft:stone".into(), count: i }).collect();
-        let area = Area { name: "pit".into(), palette: vec!["minecraft:stone".into()], blocks, after: "x".into() };
+        let blocks: yog_data::Stream<Placed> = (0..10)
+            .map(|i| Placed {
+                id: "minecraft:stone".into(),
+                count: i,
+            })
+            .collect();
+        let area = Area {
+            name: "pit".into(),
+            palette: vec!["minecraft:stone".into()],
+            blocks,
+            after: "x".into(),
+        };
         assert_eq!(read_frame::<Area>(&to_frame(&area)), Some(area));
     }
 
@@ -540,7 +611,13 @@ mod frames {
     fn repeated_strings_are_stored_once() {
         let tags: Vec<String> = (0..100).map(|_| "minecraft:stone".to_owned()).collect();
         let frame = to_frame(&tags);
-        assert_eq!(frame.windows(15).filter(|w| w == b"minecraft:stone").count(), 1);
+        assert_eq!(
+            frame
+                .windows(15)
+                .filter(|w| w == b"minecraft:stone")
+                .count(),
+            1
+        );
         assert_eq!(read_frame::<Vec<String>>(&frame), Some(tags));
     }
 
@@ -568,12 +645,37 @@ mod frames {
     #[test]
     fn fields_are_appended_and_read_both_ways() {
         // A newer writer's fields (with strings of their own) are skipped by an older reader…
-        let new = Holds { inner: New { a: 1, b: "x".into(), c: vec!["only new".into()], d: Some(2.0) }, after: "y".into() };
+        let new = Holds {
+            inner: New {
+                a: 1,
+                b: "x".into(),
+                c: vec!["only new".into()],
+                d: Some(2.0),
+            },
+            after: "y".into(),
+        };
         let old: Holds<Old> = read_frame(&to_frame(&new)).unwrap();
-        assert_eq!(old, Holds { inner: Old { a: 1, b: "x".into() }, after: "y".into() });
+        assert_eq!(
+            old,
+            Holds {
+                inner: Old {
+                    a: 1,
+                    b: "x".into()
+                },
+                after: "y".into()
+            }
+        );
         // …and an older writer's record takes a newer reader's defaults.
         let back: Holds<New> = read_frame(&to_frame(&old)).unwrap();
-        assert_eq!(back.inner, New { a: 1, b: "x".into(), c: Vec::new(), d: None });
+        assert_eq!(
+            back.inner,
+            New {
+                a: 1,
+                b: "x".into(),
+                c: Vec::new(),
+                d: None
+            }
+        );
     }
 
     #[test]
@@ -613,20 +715,47 @@ mod frames {
         };
         let value = read_shaped(&to_frame(&m), &Message::shape()).unwrap();
         assert_eq!(yog_data::read_value::<Message>(&value).unwrap(), m);
-        let blocks: yog_data::Stream<Placed> = (0..3).map(|i| Placed { id: "minecraft:stone".into(), count: i }).collect();
-        let area = Area { name: "pit".into(), palette: vec!["minecraft:stone".into()], blocks, after: "x".into() };
+        let blocks: yog_data::Stream<Placed> = (0..3)
+            .map(|i| Placed {
+                id: "minecraft:stone".into(),
+                count: i,
+            })
+            .collect();
+        let area = Area {
+            name: "pit".into(),
+            palette: vec!["minecraft:stone".into()],
+            blocks,
+            after: "x".into(),
+        };
         let value = read_shaped(&to_frame(&area), &Area::shape()).unwrap();
         assert_eq!(yog_data::read_value::<Area>(&value).unwrap(), area);
-        let c = Compact { name: "a".into(), shared: "a".into(), ids: vec![1, 2].into_boxed_slice(), weights: vec![0.5, 1.25], scale: 2.5 };
+        let c = Compact {
+            name: "a".into(),
+            shared: "a".into(),
+            ids: vec![1, 2].into_boxed_slice(),
+            weights: vec![0.5, 1.25],
+            scale: 2.5,
+        };
         let value = read_shaped(&to_frame(&c), &Compact::shape()).unwrap();
         assert_eq!(yog_data::read_value::<Compact>(&value).unwrap(), c);
     }
 
     #[test]
     fn malformed_frames_are_none() {
-        let frame = to_frame(&Holds { inner: New { a: 1, b: "x".into(), c: vec!["c".into()], d: None }, after: "y".into() });
+        let frame = to_frame(&Holds {
+            inner: New {
+                a: 1,
+                b: "x".into(),
+                c: vec!["c".into()],
+                d: None,
+            },
+            after: "y".into(),
+        });
         for len in 0..frame.len() {
-            assert!(read_frame::<Holds<New>>(&frame[..len]).is_none(), "cut at {len}");
+            assert!(
+                read_frame::<Holds<New>>(&frame[..len]).is_none(),
+                "cut at {len}"
+            );
         }
         // A count bigger than the bytes left is refused before anything is allocated.
         let mut p = yog_data::frame::Packer::new();
@@ -679,7 +808,10 @@ mod views {
         assert_eq!(v.blocks.get(3), None);
         // A list read lazily, item by item.
         assert_eq!(v.tags.iter().collect::<Vec<&str>>(), ["a", "b"]);
-        assert_eq!((v.tags.len(), v.tags.get(1), v.tags.get(2)), (2, Some("b"), None));
+        assert_eq!(
+            (v.tags.len(), v.tags.get(1), v.tags.get(2)),
+            (2, Some("b"), None)
+        );
         assert_eq!(v.inner.map(|i| i.name), Some("in"));
     }
 
@@ -693,7 +825,11 @@ mod views {
     #[test]
     fn lists_are_stepped_over_and_read_lazily() {
         let shelf = Shelf {
-            rows: vec![vec![Inner { name: "a".into() }, Inner { name: "b".into() }], vec![], vec![Inner { name: "c".into() }]],
+            rows: vec![
+                vec![Inner { name: "a".into() }, Inner { name: "b".into() }],
+                vec![],
+                vec![Inner { name: "c".into() }],
+            ],
             after: 42,
         };
         let frame = to_frame(&shelf);
@@ -701,9 +837,16 @@ mod views {
         // The field after the lists is reached without reading them.
         assert_eq!(v.after, 42);
         assert_eq!(v.rows.len(), 3);
-        let names: Vec<Vec<&str>> = v.rows.iter().map(|row| row.iter().map(|i| i.name).collect()).collect();
+        let names: Vec<Vec<&str>> = v
+            .rows
+            .iter()
+            .map(|row| row.iter().map(|i| i.name).collect())
+            .collect();
         assert_eq!(names, [vec!["a", "b"], vec![], vec!["c"]]);
-        assert_eq!(v.rows.get(2).and_then(|r| r.get(0)).map(|i| i.name), Some("c"));
+        assert_eq!(
+            v.rows.get(2).and_then(|r| r.get(0)).map(|i| i.name),
+            Some("c")
+        );
         assert!(v.rows.get(3).is_none());
         assert_eq!(read_frame::<Shelf>(&frame), Some(shelf));
     }

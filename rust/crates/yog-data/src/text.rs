@@ -7,6 +7,9 @@
 
 use std::fmt;
 
+/// `\\u` escapes are hexadecimal.
+const HEX_RADIX: u32 = 16;
+
 use crate::value::{Map, Path, Seg, Value};
 
 /// Deeper than this is an error, not a stack overflow.
@@ -424,8 +427,10 @@ impl<const SPANS: bool> Parser<'_, SPANS> {
             .get(self.i..self.i + 4)
             .filter(|d| d.bytes().all(|b| b.is_ascii_hexdigit()));
         let d = digits.ok_or_else(|| self.error_at(at, "`\\u` needs four hex digits"))?;
+        let code = u32::from_str_radix(d, HEX_RADIX)
+            .map_err(|_| self.error_at(at, "`\\u` needs four hex digits"))?;
         self.i += 4;
-        Ok(u32::from_str_radix(d, 16).unwrap())
+        Ok(code)
     }
 
     fn number(&mut self) -> Result<Value, SyntaxError> {

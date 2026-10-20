@@ -1,7 +1,8 @@
 //! Shapes: what a format looks like.
 
-#[allow(unused_imports)] // each part uses some of the module's names
 use super::*;
+#[allow(unused_imports)] // each part uses some of the module's names
+use yog_ids::shape_kind as kind;
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,95 @@ pub struct Variant {
     pub fields: Vec<Field>,
 }
 
+mod key;
+
+/// A description's map of `kind`.
+fn of_kind(k: &str) -> Map {
+    let mut m = Map::new();
+    m.insert(key::KIND, Value::from(k));
+    m
+}
+
+/// `doc` under its key, unless it's empty.
+fn put_doc(m: &mut Map, doc: &str) {
+    if !doc.is_empty() {
+        m.insert(key::DOC, Value::from(doc));
+    }
+}
+
+/// A reference to a struct or enum in `defs`.
+fn def_ref(name: &str) -> Map {
+    let mut m = of_kind(kind::DEF);
+    m.insert(key::NAME, Value::from(name));
+    m
+}
+
+fn describe_fields(fs: &[Field], defs: &mut Map) -> Value {
+    Value::List(
+        fs.iter()
+            .map(|f| {
+                let mut m = Map::new();
+                m.insert(key::NAME, Value::from(f.name));
+                put_doc(&mut m, f.doc);
+                m.insert(key::SHAPE, (f.shape)().describe_into(defs));
+                m.insert(key::REQUIRED, Value::Bool(f.required));
+                if let Some((lo, hi)) = f.range {
+                    m.insert(
+                        key::RANGE,
+                        Value::List(vec![Value::Float(lo), Value::Float(hi)]),
+                    );
+                }
+                Value::Map(m)
+            })
+            .collect(),
+    )
+}
+
+impl StructShape {
+    /// Written into `defs` (once: a recursive type finds itself there).
+    fn define(&self, defs: &mut Map) {
+        if defs.get(self.name).is_some() {
+            return;
+        }
+        // Placeholder first: a recursive type finds itself defined.
+        defs.insert(self.name, Value::Null);
+        let mut d = of_kind(kind::STRUCT);
+        put_doc(&mut d, self.doc);
+        d.insert(key::FIELDS, describe_fields(&self.fields, defs));
+        defs.insert(self.name, Value::Map(d));
+    }
+}
+
+impl EnumShape {
+    /// Written into `defs` (once).
+    fn define(&self, defs: &mut Map) {
+        if defs.get(self.name).is_some() {
+            return;
+        }
+        defs.insert(self.name, Value::Null);
+        let mut d = of_kind(kind::ENUM);
+        put_doc(&mut d, self.doc);
+        if let Some(tag) = self.tag {
+            d.insert(key::TAG, Value::from(tag));
+        }
+        let variants = self
+            .variants
+            .iter()
+            .map(|v| {
+                let mut m = Map::new();
+                m.insert(key::NAME, Value::from(v.name));
+                put_doc(&mut m, v.doc);
+                if self.tag.is_some() {
+                    m.insert(key::FIELDS, describe_fields(&v.fields, defs));
+                }
+                Value::Map(m)
+            })
+            .collect();
+        d.insert(key::VARIANTS, Value::List(variants));
+        defs.insert(self.name, Value::Map(d));
+    }
+}
+
 impl Shape {
     /// The shape as Yog Data, for tools in other languages (Yog-IDLE).
     /// Structs and enums are written once in `defs` and referred to by name.
@@ -96,129 +186,74 @@ impl Shape {
         let mut defs = Map::new();
         let root = self.describe_into(&mut defs);
         let mut m = Map::new();
-        m.insert("root", root);
-        m.insert("defs", Value::Map(defs));
+        m.insert(key::ROOT, root);
+        m.insert(key::DEFS, Value::Map(defs));
         Value::Map(m)
     }
 
+    /// The word a plain shape (one with nothing more to say) is described by.
+    fn plain_kind(&self) -> Option<&'static str> {
+        Some(match self {
+            Shape::Any => kind::ANY,
+            Shape::Bool => kind::BOOL,
+            Shape::Str => kind::STRING,
+            Shape::Atom => kind::ATOM,
+            Shape::Text => kind::TEXT,
+            Shape::Image => kind::IMAGE,
+            Shape::Color => kind::COLOR,
+            Shape::Bytes => kind::BYTES,
+            Shape::Res => kind::RES,
+            _ => return None,
+        })
+    }
+
     fn describe_into(&self, defs: &mut Map) -> Value {
-        let kind = |k: &str| {
-            let mut m = Map::new();
-            m.insert("kind", Value::from(k));
-            m
-        };
-        let fields = |fs: &[Field], defs: &mut Map| -> Value {
-            Value::List(
-                fs.iter()
-                    .map(|f| {
-                        let mut m = Map::new();
-                        m.insert("name", Value::from(f.name));
-                        if !f.doc.is_empty() {
-                            m.insert("doc", Value::from(f.doc));
-                        }
-                        m.insert("shape", (f.shape)().describe_into(defs));
-                        m.insert("required", Value::Bool(f.required));
-                        if let Some((lo, hi)) = f.range {
-                            m.insert(
-                                "range",
-                                Value::List(vec![Value::Float(lo), Value::Float(hi)]),
-                            );
-                        }
-                        Value::Map(m)
-                    })
-                    .collect(),
-            )
-        };
+        if let Some(k) = self.plain_kind() {
+            return Value::Map(of_kind(k));
+        }
         let m = match self {
-            Shape::Any => kind("any"),
-            Shape::Bool => kind("bool"),
             Shape::Int { min, max } => {
-                let mut m = kind("int");
-                m.insert("min", Value::Int(*min));
-                m.insert("max", Value::Int(*max));
+                let mut m = of_kind(kind::INT);
+                m.insert(key::MIN, Value::Int(*min));
+                m.insert(key::MAX, Value::Int(*max));
                 m
             }
             Shape::Float { bits } => {
-                let mut m = kind("float");
-                m.insert("bits", Value::Int(i64::from(*bits)));
+                let mut m = of_kind(kind::FLOAT);
+                m.insert(key::BITS, Value::Int(i64::from(*bits)));
                 m
             }
-            Shape::Str => kind("string"),
-            Shape::Atom => kind("atom"),
-            Shape::Text => kind("text"),
-            Shape::Image => kind("image"),
-            Shape::Color => kind("color"),
-            Shape::Bytes => kind("bytes"),
-            Shape::Res => kind("res"),
             Shape::Ref(k) | Shape::Tag(k) | Shape::RefOrTag(k) | Shape::RefOrImage(k) => {
-                let mut m = kind(match self {
-                    Shape::Ref(_) => "ref",
-                    Shape::Tag(_) => "tag",
-                    Shape::RefOrTag(_) => "ref_or_tag",
-                    _ => "ref_or_image",
+                let mut m = of_kind(match self {
+                    Shape::Ref(_) => kind::REF,
+                    Shape::Tag(_) => kind::TAG,
+                    Shape::RefOrTag(_) => kind::REF_OR_TAG,
+                    _ => kind::REF_OR_IMAGE,
                 });
                 m.insert(
-                    "of",
+                    key::OF,
                     Value::List(k.iter().map(|k| Value::from(*k)).collect()),
                 );
                 m
             }
             Shape::List(s) | Shape::Map(s) | Shape::Optional(s) => {
-                let mut m = kind(match self {
-                    Shape::List(_) => "list",
-                    Shape::Map(_) => "map",
-                    _ => "optional",
+                let mut m = of_kind(match self {
+                    Shape::List(_) => kind::LIST,
+                    Shape::Map(_) => kind::MAP,
+                    _ => kind::OPTIONAL,
                 });
-                m.insert("of", s().describe_into(defs));
+                m.insert(key::OF, s().describe_into(defs));
                 m
             }
             Shape::Struct(s) => {
-                if defs.get(s.name).is_none() {
-                    // Placeholder first: a recursive type finds itself defined.
-                    defs.insert(s.name, Value::Null);
-                    let mut d = kind("struct");
-                    if !s.doc.is_empty() {
-                        d.insert("doc", Value::from(s.doc));
-                    }
-                    d.insert("fields", fields(&s.fields, defs));
-                    defs.insert(s.name, Value::Map(d));
-                }
-                let mut m = kind("def");
-                m.insert("name", Value::from(s.name));
-                m
+                s.define(defs);
+                def_ref(s.name)
             }
             Shape::Enum(e) => {
-                if defs.get(e.name).is_none() {
-                    defs.insert(e.name, Value::Null);
-                    let mut d = kind("enum");
-                    if !e.doc.is_empty() {
-                        d.insert("doc", Value::from(e.doc));
-                    }
-                    if let Some(tag) = e.tag {
-                        d.insert("tag", Value::from(tag));
-                    }
-                    let variants = e
-                        .variants
-                        .iter()
-                        .map(|v| {
-                            let mut m = Map::new();
-                            m.insert("name", Value::from(v.name));
-                            if !v.doc.is_empty() {
-                                m.insert("doc", Value::from(v.doc));
-                            }
-                            if e.tag.is_some() {
-                                m.insert("fields", fields(&v.fields, defs));
-                            }
-                            Value::Map(m)
-                        })
-                        .collect();
-                    d.insert("variants", Value::List(variants));
-                    defs.insert(e.name, Value::Map(d));
-                }
-                let mut m = kind("def");
-                m.insert("name", Value::from(e.name));
-                m
+                e.define(defs);
+                def_ref(e.name)
             }
+            _ => Map::new(),
         };
         Value::Map(m)
     }

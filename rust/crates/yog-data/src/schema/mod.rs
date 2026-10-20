@@ -18,12 +18,12 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::marker::PhantomData;
 
+use crate::binary::{Decoder, Writer};
+use crate::borrowed::{MapRef, ValueRef};
+use crate::frame::{Packer, Unpacker};
 use crate::text::{self, Doc, LineCol};
 use crate::typed;
-use crate::borrowed::{MapRef, ValueRef};
 use crate::value::{Map, Path, Ref, Res, Seg, Value};
-use crate::binary::{Decoder, Writer};
-use crate::frame::{Packer, Unpacker};
 
 /// A Yog Data format.
 pub trait Schema: Sized {
@@ -162,7 +162,10 @@ pub fn read_value<T: Schema>(v: &Value) -> Result<T, Vec<Problem>> {
 
 /// [`read_value`] of a borrowed value.
 pub fn read_ref_value<T: Schema>(v: &ValueRef) -> Result<T, Vec<Problem>> {
-    let reader = Reader { value_only: true, ..Reader::new() };
+    let reader = Reader {
+        value_only: true,
+        ..Reader::new()
+    };
     read_with(v, reader).map(|r| r.value)
 }
 
@@ -178,7 +181,11 @@ pub fn read_bytes<T: Schema>(bytes: &[u8]) -> Result<T, Vec<Problem>> {
     }
     let arena = bumpalo::Bump::new();
     let v = crate::binary::decode_ref(bytes, &arena).map_err(|e| {
-        vec![Problem { path: Path::root(), message: e.to_string(), at_key: false }]
+        vec![Problem {
+            path: Path::root(),
+            message: e.to_string(),
+            at_key: false,
+        }]
     })?;
     read_ref_value(&v)
 }

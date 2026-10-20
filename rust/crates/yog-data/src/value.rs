@@ -144,7 +144,10 @@ impl Map {
 
 impl IntoIterator for Map {
     type Item = (String, Value);
-    type IntoIter = std::iter::Map<std::vec::IntoIter<(std::sync::Arc<str>, Value)>, fn((std::sync::Arc<str>, Value)) -> (String, Value)>;
+    type IntoIter = std::iter::Map<
+        std::vec::IntoIter<(std::sync::Arc<str>, Value)>,
+        fn((std::sync::Arc<str>, Value)) -> (String, Value),
+    >;
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter().map(|(k, v)| (k.to_string(), v))
     }

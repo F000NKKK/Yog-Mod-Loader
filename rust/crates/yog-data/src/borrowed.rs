@@ -19,11 +19,20 @@ pub enum ValueRef<'a> {
     List(&'a [ValueRef<'a>]),
     Map(MapRef<'a>),
     /// `@item:minecraft:stick`.
-    Ref { kind: &'a str, id: &'a str },
+    Ref {
+        kind: &'a str,
+        id: &'a str,
+    },
     /// `@tag:item:minecraft:planks`.
-    Tag { kind: &'a str, id: &'a str },
+    Tag {
+        kind: &'a str,
+        id: &'a str,
+    },
     /// `@Strings.title`.
-    Res { set: &'a str, key: &'a str },
+    Res {
+        set: &'a str,
+        key: &'a str,
+    },
     /// `@lang:gui.done`.
     Lang(&'a str),
     /// Yog text.
@@ -156,7 +165,10 @@ impl<'a> ValueRef<'a> {
             }
             ValueRef::Ref { kind, id } => Value::Ref(Ref::new(kind, id)),
             ValueRef::Tag { kind, id } => Value::Tag(Ref::new(kind, id)),
-            ValueRef::Res { set, key } => Value::Res(Res { set: set.to_string(), key: key.to_string() }),
+            ValueRef::Res { set, key } => Value::Res(Res {
+                set: set.to_string(),
+                key: key.to_string(),
+            }),
             ValueRef::Lang(k) => Value::Lang(k.to_string()),
             ValueRef::Text(s) => Value::Text(s.to_string()),
             ValueRef::Image(s) => Value::Image(s.to_string()),
@@ -183,11 +195,24 @@ impl Value {
             Value::Int(n) => ValueRef::Int(*n),
             Value::Float(f) => ValueRef::Float(*f),
             Value::Str(s) => ValueRef::Str(s),
-            Value::List(l) => ValueRef::List(arena.alloc_slice_fill_iter(l.iter().map(|v| v.borrow(arena)))),
-            Value::Map(m) => ValueRef::Map(MapRef(arena.alloc_slice_fill_iter(m.iter().map(|(k, v)| (k, v.borrow(arena)))))),
-            Value::Ref(r) => ValueRef::Ref { kind: &r.kind, id: &r.id },
-            Value::Tag(r) => ValueRef::Tag { kind: &r.kind, id: &r.id },
-            Value::Res(r) => ValueRef::Res { set: &r.set, key: &r.key },
+            Value::List(l) => {
+                ValueRef::List(arena.alloc_slice_fill_iter(l.iter().map(|v| v.borrow(arena))))
+            }
+            Value::Map(m) => ValueRef::Map(MapRef(
+                arena.alloc_slice_fill_iter(m.iter().map(|(k, v)| (k, v.borrow(arena)))),
+            )),
+            Value::Ref(r) => ValueRef::Ref {
+                kind: &r.kind,
+                id: &r.id,
+            },
+            Value::Tag(r) => ValueRef::Tag {
+                kind: &r.kind,
+                id: &r.id,
+            },
+            Value::Res(r) => ValueRef::Res {
+                set: &r.set,
+                key: &r.key,
+            },
             Value::Lang(k) => ValueRef::Lang(k),
             Value::Text(s) => ValueRef::Text(s),
             Value::Image(s) => ValueRef::Image(s),

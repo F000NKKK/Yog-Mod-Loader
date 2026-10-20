@@ -52,7 +52,10 @@ use bumpalo::Bump;
 
 use crate::binary::interner::Interner;
 use crate::binary::writer::START_BYTES;
-use crate::binary::{Decoder, MAX_DEPTH, VARINT_BITS, VARINT_MAX_SHIFT, VARINT_MORE, VARINT_SHIFT, Writer, read_varint, unzigzag, varint, zigzag};
+use crate::binary::{
+    Decoder, MAX_DEPTH, VARINT_BITS, VARINT_MAX_SHIFT, VARINT_MORE, VARINT_SHIFT, Writer,
+    read_varint, unzigzag, varint, zigzag,
+};
 use crate::schema::{Schema, read_ref_value};
 
 /// The bytes of a `f64` and of a `f32`.
@@ -118,7 +121,11 @@ impl Default for Packer {
 
 impl Packer {
     pub fn new() -> Self {
-        Packer { out: Vec::with_capacity(START_BYTES), table: Vec::new(), strings: Interner::new() }
+        Packer {
+            out: Vec::with_capacity(START_BYTES),
+            table: Vec::new(),
+            strings: Interner::new(),
+        }
     }
 
     /// An unsigned number (a count, an index).
@@ -272,7 +279,11 @@ struct Strings<'b> {
 
 impl<'b> Strings<'b> {
     fn new() -> Self {
-        Strings { inline: [""; INLINE_STRINGS], len: 0, spill: Vec::new() }
+        Strings {
+            inline: [""; INLINE_STRINGS],
+            len: 0,
+            spill: Vec::new(),
+        }
     }
 
     fn len(&self) -> usize {
@@ -291,7 +302,11 @@ impl<'b> Strings<'b> {
         if i >= self.len {
             return None;
         }
-        Some(if i < INLINE_STRINGS { self.inline[i] } else { self.spill[i - INLINE_STRINGS] })
+        Some(if i < INLINE_STRINGS {
+            self.inline[i]
+        } else {
+            self.spill[i - INLINE_STRINGS]
+        })
     }
 }
 
@@ -363,7 +378,11 @@ impl<'b> Unpacker<'b> {
         Some(if narrow {
             floats::widen(raw)
         } else {
-            raw.as_chunks::<F64_BYTES>().0.iter().map(|b| f64::from_le_bytes(*b)).collect()
+            raw.as_chunks::<F64_BYTES>()
+                .0
+                .iter()
+                .map(|b| f64::from_le_bytes(*b))
+                .collect()
         })
     }
 
@@ -381,14 +400,22 @@ impl<'b> Unpacker<'b> {
 
     pub fn get_f32s(&mut self) -> Option<Vec<f32>> {
         let (_, _, raw) = self.packed_floats(false)?;
-        Some(raw.as_chunks::<F32_BYTES>().0.iter().map(|b| f32::from_le_bytes(*b)).collect())
+        Some(
+            raw.as_chunks::<F32_BYTES>()
+                .0
+                .iter()
+                .map(|b| f32::from_le_bytes(*b))
+                .collect(),
+        )
     }
 
     /// A packed list of ints, unread: how many, bits each, their bytes.
     pub fn packed_ints(&mut self) -> Option<(usize, u32, &'b [u8])> {
         let n = usize::try_from(self.get_u()?).ok()?;
         let bits = u32::from(*self.take(1)?.first()?);
-        if !(1..=u64::BITS).contains(&bits) || n > (self.body.len() - self.i) * u8::BITS as usize / bits as usize {
+        if !(1..=u64::BITS).contains(&bits)
+            || n > (self.body.len() - self.i) * u8::BITS as usize / bits as usize
+        {
             return None;
         }
         let bytes = self.take(lanes::packed_bytes(n, bits)?)?;
@@ -426,7 +453,10 @@ impl<'b> Unpacker<'b> {
         let i = usize::try_from(self.get_u()?).ok()?;
         while self.strings.len() <= i {
             let len = usize::try_from(read_varint(self.table, &mut self.table_at)?).ok()?;
-            let end = self.table_at.checked_add(len).filter(|&e| e <= self.table.len())?;
+            let end = self
+                .table_at
+                .checked_add(len)
+                .filter(|&e| e <= self.table.len())?;
             let s = std::str::from_utf8(&self.table[self.table_at..end]).ok()?;
             self.table_at = end;
             self.strings.push(s);
@@ -481,7 +511,15 @@ impl<'b> Unpacker<'b> {
 
     /// A reader of the same frame from `at`, with a string cache of its own.
     pub fn fork(&self, at: usize) -> Unpacker<'b> {
-        Unpacker { body: self.body, i: at, table: self.table, table_at: 0, strings: Strings::new(), shared: Vec::new(), depth: self.depth }
+        Unpacker {
+            body: self.body,
+            i: at,
+            table: self.table,
+            table_at: 0,
+            strings: Strings::new(),
+            shared: Vec::new(),
+            depth: self.depth,
+        }
     }
 
     /// Whether the record ending at `end` has more fields.

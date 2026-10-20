@@ -45,7 +45,11 @@ pub struct List<'a, T> {
 
 impl<'a, T> Clone for List<'a, T> {
     fn clone(&self) -> Self {
-        List { u: self.u.fork(self.u.position()), len: self.len, item: PhantomData }
+        List {
+            u: self.u.fork(self.u.position()),
+            len: self.len,
+            item: PhantomData,
+        }
     }
 }
 
@@ -66,7 +70,11 @@ impl<'a, T: View<'a>> List<'a, T> {
 
     /// Each item's view, read as it's reached.
     pub fn iter(&self) -> ListIter<'a, T> {
-        ListIter { u: self.u.fork(self.u.position()), left: self.len, item: PhantomData }
+        ListIter {
+            u: self.u.fork(self.u.position()),
+            left: self.len,
+            item: PhantomData,
+        }
     }
 
     /// Item `i` (the ones before it stepped over).
@@ -95,7 +103,11 @@ pub fn list<'a, T: View<'a>>(u: &mut Unpacker<'a>) -> Option<List<'a, T>> {
     let (len, end) = u.list()?;
     let at = u.position();
     u.skip_to(end)?;
-    Some(List { u: u.fork(at), len, item: PhantomData })
+    Some(List {
+        u: u.fork(at),
+        len,
+        item: PhantomData,
+    })
 }
 
 impl<'a> View<'a> for bool {
@@ -146,7 +158,11 @@ impl<'a, T: View<'a>> View<'a> for Option<T> {
     type View = Option<T::View>;
     type ListView = List<'a, Option<T>>;
     fn unpack_view(u: &mut Unpacker<'a>) -> Option<Option<T::View>> {
-        if u.get_bool()? { T::unpack_view(u).map(Some) } else { Some(None) }
+        if u.get_bool()? {
+            T::unpack_view(u).map(Some)
+        } else {
+            Some(None)
+        }
     }
     fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Self::ListView> {
         list(u)
@@ -185,7 +201,6 @@ pub struct Ints<'a, T> {
     item: PhantomData<fn() -> T>,
 }
 
-
 impl<T: TryFrom<i128>> Ints<'_, T> {
     pub fn len(&self) -> usize {
         self.len
@@ -201,7 +216,11 @@ impl<T: TryFrom<i128>> Ints<'_, T> {
             return None;
         }
         let raw = super::lanes::get(self.bytes, self.len, self.bits, i);
-        let n = if self.signed { i128::from(crate::binary::unzigzag(raw)) } else { i128::from(raw) };
+        let n = if self.signed {
+            i128::from(crate::binary::unzigzag(raw))
+        } else {
+            i128::from(raw)
+        };
         T::try_from(n).ok()
     }
 

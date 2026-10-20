@@ -130,6 +130,10 @@ def test_start(lines, path):
     return len(lines)
 
 
+# String and character literals: their braces aren't the code's.
+LITERALS = re.compile(r'"(?:\\.|[^"\\])*"|b?\'(?:\\.|[^\'\\])\'')
+
+
 def parenthesized(sig):
     """What's inside the signature's first parentheses (balanced): its parameters."""
     start = sig.find("(")
@@ -163,10 +167,10 @@ def functions(lines, lang):
         name = name[-1] if name else "?"
         # The signature runs to the body's `{` (or `;` for a declaration).
         sig, j = "", i
-        while j < len(lines) and "{" not in lines[j] and not lines[j].rstrip().endswith(";"):
+        while j < len(lines) and "{" not in LITERALS.sub("", lines[j]) and not lines[j].rstrip().endswith(";"):
             sig += lines[j]
             j += 1
-        if j >= len(lines) or "{" not in lines[j]:
+        if j >= len(lines) or "{" not in LITERALS.sub("", lines[j]):
             i = j + 1
             continue
         sig += lines[j].split("{")[0]
@@ -187,7 +191,8 @@ def functions(lines, lang):
                 params_n -= 1
         k = j
         while k < len(lines):
-            depth += lines[k].count("{") - lines[k].count("}")
+            code = LITERALS.sub("", lines[k])
+            depth += code.count("{") - code.count("}")
             if depth <= 0 and k >= j:
                 break
             k += 1

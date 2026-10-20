@@ -22,9 +22,17 @@ fn kernels() -> &'static Kernels {
     KERNELS.get_or_init(|| {
         #[cfg(target_arch = "x86_64")]
         if std::arch::is_x86_feature_detected!("avx2") {
-            return Kernels { fits: avx2::fits, narrow: avx2::narrow, widen: avx2::widen };
+            return Kernels {
+                fits: avx2::fits,
+                narrow: avx2::narrow,
+                widen: avx2::widen,
+            };
         }
-        Kernels { fits: portable::fits, narrow: portable::narrow, widen: portable::widen }
+        Kernels {
+            fits: portable::fits,
+            narrow: portable::narrow,
+            widen: portable::widen,
+        }
     })
 }
 
@@ -44,7 +52,12 @@ pub fn put_narrow(out: &mut Vec<u8>, items: &[f64]) {
 pub fn put_wide(out: &mut Vec<u8>, items: &[f64]) {
     let at = out.len();
     out.resize(at + items.len() * F64_BYTES, 0);
-    for (dst, f) in out[at..].as_chunks_mut::<F64_BYTES>().0.iter_mut().zip(items) {
+    for (dst, f) in out[at..]
+        .as_chunks_mut::<F64_BYTES>()
+        .0
+        .iter_mut()
+        .zip(items)
+    {
         *dst = f.to_le_bytes();
     }
 }
@@ -53,7 +66,12 @@ pub fn put_wide(out: &mut Vec<u8>, items: &[f64]) {
 pub fn put_f32s(out: &mut Vec<u8>, items: &[f32]) {
     let at = out.len();
     out.resize(at + items.len() * F32_BYTES, 0);
-    for (dst, f) in out[at..].as_chunks_mut::<F32_BYTES>().0.iter_mut().zip(items) {
+    for (dst, f) in out[at..]
+        .as_chunks_mut::<F32_BYTES>()
+        .0
+        .iter_mut()
+        .zip(items)
+    {
         *dst = f.to_le_bytes();
     }
 }
@@ -69,7 +87,9 @@ mod portable {
     use super::*;
 
     pub(super) fn fits(items: &[f64]) -> bool {
-        items.iter().all(|f| f64::from(*f as f32).to_bits() == f.to_bits())
+        items
+            .iter()
+            .all(|f| f64::from(*f as f32).to_bits() == f.to_bits())
     }
 
     pub(super) fn narrow(items: &[f64], out: &mut [u8]) {

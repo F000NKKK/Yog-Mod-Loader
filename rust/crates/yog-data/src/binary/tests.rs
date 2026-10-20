@@ -45,7 +45,10 @@ fn bytes_round_trip_in_both_forms() {
     let text = crate::text::to_string(&v);
     assert_eq!(text, "\"@bytes:AAEC/w==\"");
     assert_eq!(crate::typed::classify("@bytes:AAEC/w==").unwrap(), v);
-    assert!(decode(&[b'Y', b'O', b'G', b'D', VERSION, tag::BYTES, 9]).is_err(), "a length past the end");
+    assert!(
+        decode(&[b'Y', b'O', b'G', b'D', VERSION, tag::BYTES, 9]).is_err(),
+        "a length past the end"
+    );
 }
 
 #[test]
@@ -70,7 +73,9 @@ fn the_borrowed_decode_reads_the_same_without_copying() {
     let mut strings = Vec::new();
     fn walk<'a>(v: &ValueRef<'a>, out: &mut Vec<&'a str>) {
         match v {
-            ValueRef::Str(s) | ValueRef::Text(s) | ValueRef::Image(s) | ValueRef::Lang(s) => out.push(s),
+            ValueRef::Str(s) | ValueRef::Text(s) | ValueRef::Image(s) | ValueRef::Lang(s) => {
+                out.push(s)
+            }
             ValueRef::List(l) => l.iter().for_each(|x| walk(x, out)),
             ValueRef::Map(m) => m.iter().for_each(|(k, x)| {
                 out.push(k);
@@ -83,7 +88,10 @@ fn the_borrowed_decode_reads_the_same_without_copying() {
     assert!(!strings.is_empty() && strings.iter().all(|s| span.contains(&s.as_ptr())));
     // Malformed bytes are errors here too.
     for len in 0..bytes.len() {
-        assert!(decode_ref(&bytes[..len], &arena).is_err(), "truncated at {len}");
+        assert!(
+            decode_ref(&bytes[..len], &arena).is_err(),
+            "truncated at {len}"
+        );
     }
 }
 

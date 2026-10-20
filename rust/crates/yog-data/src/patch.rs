@@ -24,11 +24,17 @@ pub fn format(value: &Value, level: usize) -> String {
     let end = INDENT.repeat(level);
     match value {
         Value::List(items) => {
-            let body: Vec<String> = items.iter().map(|v| format!("{pad}{}", format(v, level + 1))).collect();
+            let body: Vec<String> = items
+                .iter()
+                .map(|v| format!("{pad}{}", format(v, level + 1)))
+                .collect();
             format!("[\n{}\n{end}]", body.join(",\n"))
         }
         Value::Map(map) => {
-            let body: Vec<String> = map.iter().map(|(k, v)| format!("{pad}{}: {}", quoted(k), format(v, level + 1))).collect();
+            let body: Vec<String> = map
+                .iter()
+                .map(|(k, v)| format!("{pad}{}: {}", quoted(k), format(v, level + 1)))
+                .collect();
             format!("{{\n{}\n{end}}}", body.join(",\n"))
         }
         other => scalar(other).unwrap_or_default(),
@@ -43,7 +49,11 @@ fn quoted(s: &str) -> String {
 
 fn number(n: f64) -> String {
     let rounded = (n * DECIMALS).round() / DECIMALS;
-    if rounded.fract() == 0.0 && rounded.abs() < 1e15 { format!("{}", rounded as i64) } else { rounded.to_string() }
+    if rounded.fract() == 0.0 && rounded.abs() < 1e15 {
+        format!("{}", rounded as i64)
+    } else {
+        rounded.to_string()
+    }
 }
 
 fn scalar(v: &Value) -> Option<String> {
@@ -67,10 +77,20 @@ fn inline(v: &Value) -> Option<String> {
     let out = match v {
         Value::List(items) if items.is_empty() => return Some("[]".into()),
         Value::List(items) => {
-            if !items.iter().all(|x| matches!(x, Value::Int(_) | Value::Float(_) | Value::Bool(_))) {
+            if !items
+                .iter()
+                .all(|x| matches!(x, Value::Int(_) | Value::Float(_) | Value::Bool(_)))
+            {
                 return None;
             }
-            format!("[{}]", items.iter().filter_map(scalar).collect::<Vec<_>>().join(", "))
+            format!(
+                "[{}]",
+                items
+                    .iter()
+                    .filter_map(scalar)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
         }
         Value::Map(map) if map.is_empty() => return Some("{}".into()),
         Value::Map(map) => {
@@ -130,9 +150,18 @@ fn json_into(value: &Value, out: &mut String) {
 /// Whether two values are the same, a number however it's spelled (`1` = `1.0`).
 pub fn same(a: &Value, b: &Value) -> bool {
     match (a, b) {
-        (Value::Int(_) | Value::Float(_), Value::Int(_) | Value::Float(_)) => a.as_f64() == b.as_f64(),
-        (Value::List(x), Value::List(y)) => x.len() == y.len() && x.iter().zip(y).all(|(a, b)| same(a, b)),
-        (Value::Map(x), Value::Map(y)) => x.len() == y.len() && x.iter().zip(y.iter()).all(|((ka, a), (kb, b))| ka == kb && same(a, b)),
+        (Value::Int(_) | Value::Float(_), Value::Int(_) | Value::Float(_)) => {
+            a.as_f64() == b.as_f64()
+        }
+        (Value::List(x), Value::List(y)) => {
+            x.len() == y.len() && x.iter().zip(y).all(|(a, b)| same(a, b))
+        }
+        (Value::Map(x), Value::Map(y)) => {
+            x.len() == y.len()
+                && x.iter()
+                    .zip(y.iter())
+                    .all(|((ka, a), (kb, b))| ka == kb && same(a, b))
+        }
         _ => a == b,
     }
 }
@@ -145,7 +174,12 @@ pub fn patch(text: &str, next: &Value) -> String {
         return format!("{}\n", format(next, 0));
     };
     let (start, end) = range(&doc.spans);
-    format!("{}{}{}", &text[..start], rewrite(text, &doc.value, &doc.spans, next), &text[end..])
+    format!(
+        "{}{}{}",
+        &text[..start],
+        rewrite(text, &doc.value, &doc.spans, next),
+        &text[end..]
+    )
 }
 
 fn range(s: &Spans) -> (usize, usize) {
@@ -160,7 +194,11 @@ fn line_indent(text: &str, at: usize) -> &str {
 }
 
 fn level_of(indent: &str) -> usize {
-    indent.chars().map(|c| if c == '\t' { INDENT.len() } else { 1 }).sum::<usize>().div_ceil(INDENT.len())
+    indent
+        .chars()
+        .map(|c| if c == '\t' { INDENT.len() } else { 1 })
+        .sum::<usize>()
+        .div_ceil(INDENT.len())
 }
 
 /// Past whitespace and comments from `i`.
@@ -170,7 +208,11 @@ fn skip_blank(text: &str, mut i: usize) -> usize {
         match (b.get(i), b.get(i + 1)) {
             (Some(b' ' | b'\t' | b'\n' | b'\r'), _) => i += 1,
             (Some(b'/'), Some(b'/')) => i = text[i..].find('\n').map_or(text.len(), |n| i + n),
-            (Some(b'/'), Some(b'*')) => i = text[i + 2..].find("*/").map_or(text.len(), |n| i + 2 + n + 2),
+            (Some(b'/'), Some(b'*')) => {
+                i = text[i + 2..]
+                    .find("*/")
+                    .map_or(text.len(), |n| i + 2 + n + 2)
+            }
             _ => return i,
         }
     }
@@ -213,14 +255,19 @@ fn members(text: &str, node: (usize, usize), spans: &[(usize, usize)]) -> Member
         comma = text.as_bytes().get(after) == Some(&b',');
         // A comment on the member's own line stays with it; the rest goes to the next one.
         let eol = text[end..].find('\n').map(|n| end + n);
-        let stop = if comma { after } else { eol.map_or(after, |e| after.min(e)) };
+        let stop = if comma {
+            after
+        } else {
+            eol.map_or(after, |e| after.min(e))
+        };
         let mut trail = text[end..stop].to_string();
         at = if comma { after + 1 } else { stop };
         if comma {
             let eol = text[at..].find('\n').map_or(text.len(), |n| at + n);
             let rest = &text[at..eol];
             let t = rest.trim();
-            let comment = t.starts_with("//") || (t.starts_with("/*") && t.ends_with("*/") && t.matches("*/").count() == 1);
+            let comment = t.starts_with("//")
+                || (t.starts_with("/*") && t.ends_with("*/") && t.matches("*/").count() == 1);
             if comment && eol < node.1 {
                 trail.push_str(rest);
                 at = eol;
@@ -228,7 +275,11 @@ fn members(text: &str, node: (usize, usize), spans: &[(usize, usize)]) -> Member
         }
         segments.push((lead, trail));
     }
-    Members { segments, comma, tail: text[at..node.1 - 1].to_string() }
+    Members {
+        segments,
+        comma,
+        tail: text[at..node.1 - 1].to_string(),
+    }
 }
 
 /// The new text of the value `old` (at `spans`) holding `next`.
@@ -243,8 +294,16 @@ fn rewrite(text: &str, old: &Value, spans: &Spans, next: &Value) -> String {
         return fresh();
     }
     match (old, next) {
-        (Value::Map(old), Value::Map(next)) if !old.is_empty() && spans.children.len() == old.len() => rewrite_map(text, node, old, spans, next),
-        (Value::List(old), Value::List(next)) if !old.is_empty() && spans.children.len() == old.len() => rewrite_list(text, node, old, spans, next),
+        (Value::Map(old), Value::Map(next))
+            if !old.is_empty() && spans.children.len() == old.len() =>
+        {
+            rewrite_map(text, node, old, spans, next)
+        }
+        (Value::List(old), Value::List(next))
+            if !old.is_empty() && spans.children.len() == old.len() =>
+        {
+            rewrite_list(text, node, old, spans, next)
+        }
         _ => fresh(),
     }
 }
@@ -252,7 +311,11 @@ fn rewrite(text: &str, old: &Value, spans: &Spans, next: &Value) -> String {
 fn rewrite_map(text: &str, node: (usize, usize), old: &Map, spans: &Spans, next: &Map) -> String {
     let keys: Vec<&str> = old.keys().collect();
     let key_start = |c: &Spans| c.key.map_or(c.span.start, |k| k.start) as usize;
-    let ranges: Vec<(usize, usize)> = spans.children.iter().map(|c| (key_start(c), c.span.end as usize)).collect();
+    let ranges: Vec<(usize, usize)> = spans
+        .children
+        .iter()
+        .map(|c| (key_start(c), c.span.end as usize))
+        .collect();
     let parts = members(text, node, &ranges);
     let pad = line_indent(text, ranges[0].0);
     let gone = |i: usize| i < keys.len() && next.get(keys[i]).is_none();
@@ -264,7 +327,10 @@ fn rewrite_map(text: &str, node: (usize, usize), old: &Map, spans: &Spans, next:
         let found = keys.iter().position(|o| *o == k);
         let renamed = found.is_none() && gone(after);
         let Some(i) = found.or(renamed.then_some(after)) else {
-            out.push(Member { body: format!("\n{pad}{}: {}", quoted(k), format(v, level_of(pad))), trail: String::new() });
+            out.push(Member {
+                body: format!("\n{pad}{}: {}", quoted(k), format(v, level_of(pad))),
+                trail: String::new(),
+            });
             continue;
         };
         last = Some(i);
@@ -278,18 +344,30 @@ fn rewrite_map(text: &str, node: (usize, usize), old: &Map, spans: &Spans, next:
         };
         let old_value = old.value_at(i).unwrap_or(&Value::Null);
         let (lead, trail) = &parts.segments[i];
-        out.push(Member { body: format!("{lead}{key}{}", rewrite(text, old_value, child, v)), trail: trail.clone() });
+        out.push(Member {
+            body: format!("{lead}{key}{}", rewrite(text, old_value, child, v)),
+            trail: trail.clone(),
+        });
     }
     format!("{{{}{}}}", join(&out, parts.comma), parts.tail)
 }
 
-fn rewrite_list(text: &str, node: (usize, usize), old: &[Value], spans: &Spans, next: &[Value]) -> String {
+fn rewrite_list(
+    text: &str,
+    node: (usize, usize),
+    old: &[Value],
+    spans: &Spans,
+    next: &[Value],
+) -> String {
     let ranges: Vec<(usize, usize)> = spans.children.iter().map(range).collect();
     let parts = members(text, node, &ranges);
     let pad = line_indent(text, ranges[0].0);
     let item = |i: usize, v: &Value| {
         let (lead, trail) = &parts.segments[i];
-        Member { body: format!("{lead}{}", rewrite(text, &old[i], &spans.children[i], v)), trail: trail.clone() }
+        Member {
+            body: format!("{lead}{}", rewrite(text, &old[i], &spans.children[i], v)),
+            trail: trail.clone(),
+        }
     };
     let out: Vec<Member> = if next.len() == old.len() {
         next.iter().enumerate().map(|(i, v)| item(i, v)).collect()
@@ -302,7 +380,10 @@ fn rewrite_list(text: &str, node: (usize, usize), old: &[Value], spans: &Spans, 
                     from = i + 1;
                     item(i, v)
                 }
-                None => Member { body: format!("\n{pad}{}", format(v, level_of(pad))), trail: String::new() },
+                None => Member {
+                    body: format!("\n{pad}{}", format(v, level_of(pad))),
+                    trail: String::new(),
+                },
             })
             .collect()
     };
@@ -315,7 +396,9 @@ mod tests {
     use crate::text::parse_value;
 
     fn edit(text: &str, change: impl FnOnce(&mut Map)) -> String {
-        let Value::Map(mut v) = parse_value(text).unwrap() else { panic!("a map") };
+        let Value::Map(mut v) = parse_value(text).unwrap() else {
+            panic!("a map")
+        };
         change(&mut v);
         let next = Value::Map(v);
         let out = patch(text, &next);
@@ -361,7 +444,10 @@ mod tests {
         let out = edit(FILE, |m| {
             map_at(m, "block").insert("sound", Value::Str("stone".into()));
         });
-        assert!(out.contains("\"light\": 15,\n    \"sound\": \"stone\"\n  },"), "{out}");
+        assert!(
+            out.contains("\"light\": 15,\n    \"sound\": \"stone\"\n  },"),
+            "{out}"
+        );
         assert!(out.contains("// its id"));
     }
 
@@ -371,13 +457,22 @@ mod tests {
             m.remove("block");
         });
         assert!(!out.contains("What it is."), "{out}");
-        assert!(out.contains("\"id\": \"lamp\", // its id") && out.contains("// On or off."), "{out}");
-        assert_eq!(edit("{\n  \"a\": 1, // one\n  \"b\": 2\n}", |m| {
-            m.remove("b");
-        }), "{\n  \"a\": 1 // one\n}");
-        assert_eq!(edit("{\n  \"a\": 1 // one\n}", |m| {
-            m.insert("b", Value::Int(2));
-        }), "{\n  \"a\": 1, // one\n  \"b\": 2\n}");
+        assert!(
+            out.contains("\"id\": \"lamp\", // its id") && out.contains("// On or off."),
+            "{out}"
+        );
+        assert_eq!(
+            edit("{\n  \"a\": 1, // one\n  \"b\": 2\n}", |m| {
+                m.remove("b");
+            }),
+            "{\n  \"a\": 1 // one\n}"
+        );
+        assert_eq!(
+            edit("{\n  \"a\": 1 // one\n}", |m| {
+                m.insert("b", Value::Int(2));
+            }),
+            "{\n  \"a\": 1, // one\n  \"b\": 2\n}"
+        );
     }
 
     #[test]
@@ -387,13 +482,19 @@ mod tests {
             let lit = props.remove("lit").unwrap_or(Value::Null);
             props.insert("on", lit);
         });
-        assert!(out.contains("// On or off.\n      \"on\": [\"false\", \"true\"],"), "{out}");
+        assert!(
+            out.contains("// On or off.\n      \"on\": [\"false\", \"true\"],"),
+            "{out}"
+        );
         let text = "{\n  a: 1,\n  b: 2,\n  c: 3\n}";
         let mut next = Map::new();
         for (k, v) in [("a", 1), ("x", 2), ("c", 3)] {
             next.insert(k, Value::Int(v));
         }
-        assert_eq!(patch(text, &Value::Map(next)), "{\n  a: 1,\n  \"x\": 2,\n  c: 3\n}");
+        assert_eq!(
+            patch(text, &Value::Map(next)),
+            "{\n  a: 1,\n  \"x\": 2,\n  c: 3\n}"
+        );
     }
 
     #[test]
@@ -414,7 +515,10 @@ mod tests {
             l.remove(0);
             m.insert("list", Value::List(l));
         });
-        assert!(!out.contains("first") && out.contains("{ \"b\": 2 }"), "{out}");
+        assert!(
+            !out.contains("first") && out.contains("{ \"b\": 2 }"),
+            "{out}"
+        );
     }
 
     #[test]
@@ -428,14 +532,23 @@ mod tests {
 
     #[test]
     fn json_keeps_order_and_source_strings() {
-        let v = parse_value(r#"{ "1": "@item:minecraft:stick", "0.5": [1.5, null, true] }"#).unwrap();
-        assert_eq!(to_json(&v), r#"{"1":"@item:minecraft:stick","0.5":[1.5,null,true]}"#);
+        let v =
+            parse_value(r#"{ "1": "@item:minecraft:stick", "0.5": [1.5, null, true] }"#).unwrap();
+        assert_eq!(
+            to_json(&v),
+            r#"{"1":"@item:minecraft:stick","0.5":[1.5,null,true]}"#
+        );
     }
 
     #[test]
     fn short_values_go_on_one_line() {
-        let v = parse_value(r#"{ "uv": [0, 0, 16, 16.5], "faces": { "north": { "texture": "x" } } }"#).unwrap();
-        assert_eq!(format(&v, 0), "{\n  \"uv\": [0, 0, 16, 16.5],\n  \"faces\": {\n    \"north\": { \"texture\": \"x\" }\n  }\n}");
+        let v =
+            parse_value(r#"{ "uv": [0, 0, 16, 16.5], "faces": { "north": { "texture": "x" } } }"#)
+                .unwrap();
+        assert_eq!(
+            format(&v, 0),
+            "{\n  \"uv\": [0, 0, 16, 16.5],\n  \"faces\": {\n    \"north\": { \"texture\": \"x\" }\n  }\n}"
+        );
         assert_eq!(patch("{ oops", &Value::Int(1)), "1\n");
     }
 }

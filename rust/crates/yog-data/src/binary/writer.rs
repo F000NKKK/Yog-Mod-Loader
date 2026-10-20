@@ -34,7 +34,10 @@ impl Writer {
         let mut out = Vec::with_capacity(START_BYTES);
         out.extend_from_slice(MAGIC);
         out.push(VERSION);
-        Writer { out, strings: Interner::new() }
+        Writer {
+            out,
+            strings: Interner::new(),
+        }
     }
 
     pub fn null(&mut self) -> &mut Self {
@@ -70,7 +73,8 @@ impl Writer {
     /// one is an `f32` exactly ([`tag::FLOATS32`]), else eight.
     pub fn floats(&mut self, items: &[f64]) -> &mut Self {
         let narrow = crate::frame::floats::fits_f32(items);
-        self.out.push(if narrow { tag::FLOATS32 } else { tag::FLOATS });
+        self.out
+            .push(if narrow { tag::FLOATS32 } else { tag::FLOATS });
         varint(&mut self.out, items.len() as u64);
         if narrow {
             crate::frame::floats::put_narrow(&mut self.out, items);
@@ -133,7 +137,10 @@ impl Writer {
 
     /// A writer of a stream's body alone (no header).
     pub(crate) fn body() -> Self {
-        Writer { out: Vec::with_capacity(START_BYTES), strings: Interner::new() }
+        Writer {
+            out: Vec::with_capacity(START_BYTES),
+            strings: Interner::new(),
+        }
     }
 
     /// A map of `len` entries, each a [`Writer::key`] and a value.
@@ -171,7 +178,11 @@ impl Writer {
                 self
             }
             Value::Ref(r) | Value::Tag(r) => {
-                self.out.push(if matches!(v, Value::Ref(_)) { tag::REF } else { tag::TAG });
+                self.out.push(if matches!(v, Value::Ref(_)) {
+                    tag::REF
+                } else {
+                    tag::TAG
+                });
                 self.string(&r.kind);
                 self.string(&r.id);
                 self

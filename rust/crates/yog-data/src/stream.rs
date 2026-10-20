@@ -21,8 +21,8 @@ use std::fmt;
 use std::marker::PhantomData;
 
 use crate::binary::{Decoder, Writer};
-use crate::frame::{Packer, Unpacker};
 use crate::borrowed::ValueRef;
+use crate::frame::{Packer, Unpacker};
 use crate::schema::{Reader, Schema, Shape};
 use crate::value::{Seg, Value};
 
@@ -37,7 +37,11 @@ pub struct Stream<T> {
 impl<T: Schema> Stream<T> {
     /// Writes items one by one ([`StreamWriter::push`]).
     pub fn writer() -> StreamWriter<T> {
-        StreamWriter { w: Writer::body(), len: 0, item: PhantomData }
+        StreamWriter {
+            w: Writer::body(),
+            len: 0,
+            item: PhantomData,
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -79,7 +83,11 @@ impl<T: Schema> StreamWriter<T> {
     }
 
     pub fn finish(self) -> Stream<T> {
-        Stream { items: self.w.finish(), len: self.len, item: PhantomData }
+        Stream {
+            items: self.w.finish(),
+            len: self.len,
+            item: PhantomData,
+        }
     }
 }
 
@@ -101,7 +109,11 @@ impl<T: Schema> From<Vec<T>> for Stream<T> {
 
 impl<T> Clone for Stream<T> {
     fn clone(&self) -> Self {
-        Stream { items: self.items.clone(), len: self.len, item: PhantomData }
+        Stream {
+            items: self.items.clone(),
+            len: self.len,
+            item: PhantomData,
+        }
     }
 }
 
@@ -113,7 +125,11 @@ impl<T> PartialEq for Stream<T> {
 
 impl<T> Default for Stream<T> {
     fn default() -> Self {
-        Stream { items: Vec::new(), len: 0, item: PhantomData }
+        Stream {
+            items: Vec::new(),
+            len: 0,
+            item: PhantomData,
+        }
     }
 }
 
@@ -152,7 +168,11 @@ impl<T: Schema> Schema for Stream<T> {
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         let mut body = Decoder::body(d.stream()?);
         let len = body.stream_count()?;
-        Some(Stream { items: body.rest().to_vec(), len, item: PhantomData })
+        Some(Stream {
+            items: body.rest().to_vec(),
+            len,
+            item: PhantomData,
+        })
     }
     /// In a frame it's a list, as its shape says.
     fn pack(&self, p: &mut Packer) {

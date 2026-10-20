@@ -47,9 +47,9 @@
 
 mod decoder;
 pub(crate) mod interner;
-pub(crate) mod writer;
 #[cfg(test)]
 mod tests;
+pub(crate) mod writer;
 
 use std::fmt;
 

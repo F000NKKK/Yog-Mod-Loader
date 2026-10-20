@@ -277,7 +277,9 @@ impl Schema for AnyRefOrTag {
         if let ValueRef::Str(s) = v
             && !s.starts_with('@')
         {
-            cx.problem(format!("`{s}`: write `@<kind>:{s}` or a tag `@tag:<kind>:{s}`"));
+            cx.problem(format!(
+                "`{s}`: write `@<kind>:{s}` or a tag `@tag:<kind>:{s}`"
+            ));
             return None;
         }
         read_ref(v, cx, &[]).map(AnyRefOrTag::One)
@@ -378,7 +380,10 @@ impl Schema for Res {
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let r = match v {
-            ValueRef::Res { set, key } => Res { set: set.to_string(), key: key.to_string() },
+            ValueRef::Res { set, key } => Res {
+                set: set.to_string(),
+                key: key.to_string(),
+            },
             ValueRef::Str(s) => match typed::classify(s) {
                 Ok(Value::Res(r)) => r,
                 Ok(_) => {

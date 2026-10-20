@@ -764,6 +764,32 @@ public final class YogNames {
         public static final String RECIPES = "recipes";
     }
 
+    public static final class ShapeKind {
+        private ShapeKind() {}
+
+        public static final String ANY = "any";
+        public static final String BOOL = "bool";
+        public static final String INT = "int";
+        public static final String FLOAT = "float";
+        public static final String STRING = "string";
+        public static final String ATOM = "atom";
+        public static final String TEXT = "text";
+        public static final String IMAGE = "image";
+        public static final String COLOR = "color";
+        public static final String BYTES = "bytes";
+        public static final String RES = "res";
+        public static final String REF = "ref";
+        public static final String TAG = "tag";
+        public static final String REF_OR_TAG = "ref_or_tag";
+        public static final String REF_OR_IMAGE = "ref_or_image";
+        public static final String LIST = "list";
+        public static final String MAP = "map";
+        public static final String OPTIONAL = "optional";
+        public static final String STRUCT = "struct";
+        public static final String ENUM = "enum";
+        public static final String DEF = "def";
+    }
+
     public static final class Yui {
         private Yui() {}
 

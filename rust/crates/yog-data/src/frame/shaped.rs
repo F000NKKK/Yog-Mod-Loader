@@ -26,7 +26,11 @@ pub fn unpack_shaped(u: &mut Unpacker<'_>, shape: &Shape) -> Option<Value> {
         Shape::Float { bits } if *bits == F32_BITS => Value::Float(f64::from(u.get_f32()?)),
         Shape::Float { .. } => Value::Float(u.get_f64()?),
         Shape::Str => Value::Str(u.get_str()?.to_owned()),
-        Shape::Atom => Value::Str(crate::Atom::from_number(u32::try_from(u.get_u()?).ok()?)?.as_str().to_owned()),
+        Shape::Atom => Value::Str(
+            crate::Atom::from_number(u32::try_from(u.get_u()?).ok()?)?
+                .as_str()
+                .to_owned(),
+        ),
         Shape::Bytes => Value::Bytes(u.get_bytes()?.to_vec()),
         Shape::Optional(inner) => {
             if u.get_bool()? {
@@ -45,13 +49,21 @@ pub fn unpack_shaped(u: &mut Unpacker<'_>, shape: &Shape) -> Option<Value> {
 /// A list: numbers packed, anything else value by value.
 fn list(u: &mut Unpacker<'_>, item: &Shape) -> Option<Value> {
     Some(Value::List(match item {
-        Shape::Int { min, .. } if *min < 0 => u.get_uints(|v| Some(Value::Int(crate::binary::unzigzag(v))))?,
+        Shape::Int { min, .. } if *min < 0 => {
+            u.get_uints(|v| Some(Value::Int(crate::binary::unzigzag(v))))?
+        }
         Shape::Int { .. } => u.get_uints(|v| i64::try_from(v).ok().map(Value::Int))?,
-        Shape::Float { bits } if *bits == F32_BITS => u.get_f32s()?.into_iter().map(|f| Value::Float(f64::from(f))).collect(),
+        Shape::Float { bits } if *bits == F32_BITS => u
+            .get_f32s()?
+            .into_iter()
+            .map(|f| Value::Float(f64::from(f)))
+            .collect(),
         Shape::Float { .. } => u.get_f64s()?.into_iter().map(Value::Float).collect(),
         _ => {
             let (n, end) = u.list()?;
-            let items = (0..n).map(|_| unpack_shaped(u, item)).collect::<Option<_>>()?;
+            let items = (0..n)
+                .map(|_| unpack_shaped(u, item))
+                .collect::<Option<_>>()?;
             u.skip_to(end)?;
             items
         }

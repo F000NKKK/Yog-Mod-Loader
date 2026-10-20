@@ -33,12 +33,18 @@ pub const fn block_bytes(width: u32) -> usize {
 /// The bytes `n` numbers `width` bits each take.
 pub fn packed_bytes(n: usize, width: u32) -> Option<usize> {
     let (blocks, rest) = split(n, width);
-    blocks.checked_mul(block_bytes(width))?.checked_add(rest.checked_mul(width as usize)?.div_ceil(BYTE_BITS))
+    blocks
+        .checked_mul(block_bytes(width))?
+        .checked_add(rest.checked_mul(width as usize)?.div_ceil(BYTE_BITS))
 }
 
 /// How many whole blocks `n` numbers make, and how many go after them.
 fn split(n: usize, width: u32) -> (usize, usize) {
-    if width > BLOCK_MAX_BITS { (0, n) } else { (n / BLOCK, n % BLOCK) }
+    if width > BLOCK_MAX_BITS {
+        (0, n)
+    } else {
+        (n / BLOCK, n % BLOCK)
+    }
 }
 
 /// One block packed: `src`'s numbers (each fitting `width` bits) onto
@@ -70,7 +76,12 @@ mod portable {
 
     fn store(out: &mut [u8], word: usize, acc: &[u32; LANES]) {
         let at = word * LANES * WORD_BYTES;
-        for (dst, w) in out[at..at + LANES * WORD_BYTES].as_chunks_mut::<WORD_BYTES>().0.iter_mut().zip(acc) {
+        for (dst, w) in out[at..at + LANES * WORD_BYTES]
+            .as_chunks_mut::<WORD_BYTES>()
+            .0
+            .iter_mut()
+            .zip(acc)
+        {
             *dst = w.to_le_bytes();
         }
     }
@@ -95,7 +106,11 @@ mod portable {
                 filled -= u32::BITS;
                 // What didn't fit starts the next word.
                 for l in 0..LANES {
-                    acc[l] = if filled == 0 { 0 } else { row[l] >> (width - filled) };
+                    acc[l] = if filled == 0 {
+                        0
+                    } else {
+                        row[l] >> (width - filled)
+                    };
                 }
             }
         }
@@ -168,7 +183,11 @@ mod avx2 {
                 unsafe { _mm256_storeu_si256(dst.add(word), acc) };
                 word += 1;
                 filled -= u32::BITS;
-                acc = if filled == 0 { _mm256_setzero_si256() } else { _mm256_srl_epi32(row, count(width - filled)) };
+                acc = if filled == 0 {
+                    _mm256_setzero_si256()
+                } else {
+                    _mm256_srl_epi32(row, count(width - filled))
+                };
             }
         }
     }
@@ -186,7 +205,10 @@ mod avx2 {
             let v = if end > u32::BITS {
                 let next = unsafe { _mm256_loadu_si256(words.add(word)) };
                 word += 1;
-                let v = _mm256_or_si256(_mm256_srl_epi32(cur, count(used)), _mm256_sll_epi32(next, count(u32::BITS - used)));
+                let v = _mm256_or_si256(
+                    _mm256_srl_epi32(cur, count(used)),
+                    _mm256_sll_epi32(next, count(u32::BITS - used)),
+                );
                 cur = next;
                 used = end - u32::BITS;
                 v
@@ -275,9 +297,16 @@ pub fn get(bytes: &[u8], n: usize, width: u32, i: usize) -> u64 {
     let at = block * block_bytes(width);
     let word_at = |k: usize| {
         let o = at + (k * LANES + lane) * WORD_BYTES;
-        bytes.get(o..o + WORD_BYTES).map_or(0, |b| u64::from(u32::from_le_bytes(b.try_into().unwrap_or_default())))
+        bytes.get(o..o + WORD_BYTES).map_or(0, |b| {
+            u64::from(u32::from_le_bytes(b.try_into().unwrap_or_default()))
+        })
     };
-    let two = word_at(word) | if shift + width as usize > u32::BITS as usize { word_at(word + 1) << u32::BITS } else { 0 };
+    let two = word_at(word)
+        | if shift + width as usize > u32::BITS as usize {
+            word_at(word + 1) << u32::BITS
+        } else {
+            0
+        };
     (two >> shift) & (u64::MAX >> (u64::BITS - width))
 }
 
@@ -302,7 +331,9 @@ mod tests {
 
     fn roundtrip(n: usize, width: u32) {
         let max = u64::MAX >> (u64::BITS - width);
-        let items: Vec<u64> = (0..n as u64).map(|i| i.wrapping_mul(0x9E37_79B9_7F4A_7C15) & max).collect();
+        let items: Vec<u64> = (0..n as u64)
+            .map(|i| i.wrapping_mul(0x9E37_79B9_7F4A_7C15) & max)
+            .collect();
         let mut out = Vec::new();
         pack(&mut out, n, width, items.iter().copied());
         assert_eq!(Some(out.len()), packed_bytes(n, width));
@@ -310,7 +341,11 @@ mod tests {
         unpack(&out, n, width, |v| back.push(v));
         assert_eq!(back, items, "n {n}, width {width}");
         for (i, v) in items.iter().enumerate() {
-            assert_eq!(get(&out, n, width, i), *v, "get {i} of n {n}, width {width}");
+            assert_eq!(
+                get(&out, n, width, i),
+                *v,
+                "get {i} of n {n}, width {width}"
+            );
         }
     }
 

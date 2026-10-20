@@ -20,8 +20,8 @@ use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
 use crate::binary::{Decoder, Writer};
-use crate::frame::{Packer, Unpacker};
 use crate::borrowed::ValueRef;
+use crate::frame::{Packer, Unpacker};
 use crate::schema::{Kinds, Reader, Schema, Shape, Text, is_metadata_key, read_ref};
 use crate::value::{Map, Ref, Seg, Value};
 

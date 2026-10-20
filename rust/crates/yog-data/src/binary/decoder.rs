@@ -5,7 +5,10 @@ use std::sync::Arc;
 
 use bumpalo::Bump;
 
-use super::{DecodeError, MAGIC, MAX_DEPTH, NEW_STRING, STREAM_LEN_BYTES, VERSION, read_varint, tag, unzigzag};
+use super::{
+    DecodeError, MAGIC, MAX_DEPTH, NEW_STRING, STREAM_LEN_BYTES, VERSION, read_varint, tag,
+    unzigzag,
+};
 use crate::borrowed::{MapRef, ValueRef};
 use crate::value::{Map, Ref, Res, Value};
 
@@ -35,21 +38,35 @@ pub struct Decoder<'b> {
 impl<'b> Decoder<'b> {
     /// After the header: the root value next.
     pub fn open(bytes: &'b [u8]) -> Result<Self, DecodeError> {
-        let mut d = Decoder { b: bytes, i: 0, strings: Vec::with_capacity(STRINGS_START), keys: Vec::new(), depth: 0 };
+        let mut d = Decoder {
+            b: bytes,
+            i: 0,
+            strings: Vec::with_capacity(STRINGS_START),
+            keys: Vec::new(),
+            depth: 0,
+        };
         if !bytes.starts_with(MAGIC) {
             return Err(d.error("not Yog Data (no `YOGD` header)"));
         }
         d.i = MAGIC.len();
         let version = d.byte()?;
         if version != VERSION {
-            return Err(d.error(format!("Yog Data version {version}, this reads version {VERSION}")));
+            return Err(d.error(format!(
+                "Yog Data version {version}, this reads version {VERSION}"
+            )));
         }
         Ok(d)
     }
 
     /// A stream's body ([`crate::Stream`]): its count and values, its strings its own.
     pub(crate) fn body(bytes: &'b [u8]) -> Self {
-        Decoder { b: bytes, i: 0, strings: Vec::with_capacity(STRINGS_START), keys: Vec::new(), depth: 0 }
+        Decoder {
+            b: bytes,
+            i: 0,
+            strings: Vec::with_capacity(STRINGS_START),
+            keys: Vec::new(),
+            depth: 0,
+        }
     }
 
     /// A stream's body: its bytes, read past.
@@ -77,21 +94,32 @@ impl<'b> Decoder<'b> {
     }
 
     pub(super) fn end(&self) -> Result<(), DecodeError> {
-        if self.at_end() { Ok(()) } else { Err(self.error("bytes after the value")) }
+        if self.at_end() {
+            Ok(())
+        } else {
+            Err(self.error("bytes after the value"))
+        }
     }
 
     fn error(&self, message: impl Into<String>) -> DecodeError {
-        DecodeError { message: message.into(), offset: self.i }
+        DecodeError {
+            message: message.into(),
+            offset: self.i,
+        }
     }
 
     fn byte(&mut self) -> Result<u8, DecodeError> {
-        let b = *self.b.get(self.i).ok_or_else(|| self.error("unexpected end"))?;
+        let b = *self
+            .b
+            .get(self.i)
+            .ok_or_else(|| self.error("unexpected end"))?;
         self.i += 1;
         Ok(b)
     }
 
     fn varint(&mut self) -> Result<u64, DecodeError> {
-        read_varint(self.b, &mut self.i).ok_or_else(|| self.error("a varint cut short or longer than 64 bits"))
+        read_varint(self.b, &mut self.i)
+            .ok_or_else(|| self.error("a varint cut short or longer than 64 bits"))
     }
 
     /// A length, checked against what's left: each of the `count` things takes at least `min` bytes.
@@ -105,21 +133,30 @@ impl<'b> Decoder<'b> {
     }
 
     fn fixed<const N: usize>(&mut self) -> Result<[u8; N], DecodeError> {
-        let bytes = self.b.get(self.i..self.i + N).ok_or_else(|| self.error("unexpected end"))?;
+        let bytes = self
+            .b
+            .get(self.i..self.i + N)
+            .ok_or_else(|| self.error("unexpected end"))?;
         self.i += N;
         bytes.try_into().map_err(|_| self.error("unexpected end"))
     }
 
     /// `len` bytes.
     fn take(&mut self, len: usize) -> Result<&'b [u8], DecodeError> {
-        let end = self.i.checked_add(len).filter(|&e| e <= self.b.len()).ok_or_else(|| self.error("bytes past the end"))?;
+        let end = self
+            .i
+            .checked_add(len)
+            .filter(|&e| e <= self.b.len())
+            .ok_or_else(|| self.error("bytes past the end"))?;
         let out = &self.b[self.i..end];
         self.i = end;
         Ok(out)
     }
 
     /// A packed list of floats `N` bytes wide: each one's bytes, read in place (no alignment asked).
-    fn packed_floats<const N: usize>(&mut self) -> Result<std::slice::Iter<'b, [u8; N]>, DecodeError> {
+    fn packed_floats<const N: usize>(
+        &mut self,
+    ) -> Result<std::slice::Iter<'b, [u8; N]>, DecodeError> {
         let n = self.count(N)?;
         let bytes = self.take(n * N)?;
         Ok(bytes.as_chunks::<N>().0.iter())
@@ -127,7 +164,8 @@ impl<'b> Decoder<'b> {
 
     /// A length and that many bytes.
     fn length_bytes(&mut self) -> Result<&'b [u8], DecodeError> {
-        let len = usize::try_from(self.varint()?).map_err(|_| self.error("a length beyond memory"))?;
+        let len =
+            usize::try_from(self.varint()?).map_err(|_| self.error("a length beyond memory"))?;
         self.take(len)
     }
 
@@ -141,11 +179,18 @@ impl<'b> Decoder<'b> {
         let v = self.varint()?;
         if v & NEW_STRING == 0 {
             let i = (v >> 1) as usize;
-            return if i < self.strings.len() { Ok(i) } else { Err(self.error(format!("string {i} isn't in the table"))) };
+            return if i < self.strings.len() {
+                Ok(i)
+            } else {
+                Err(self.error(format!("string {i} isn't in the table")))
+            };
         }
         let len = usize::try_from(v >> 1).map_err(|_| self.error("a length beyond memory"))?;
         let at = self.i;
-        let s = std::str::from_utf8(self.take(len)?).map_err(|_| DecodeError { message: "a string isn't UTF-8".into(), offset: at })?;
+        let s = std::str::from_utf8(self.take(len)?).map_err(|_| DecodeError {
+            message: "a string isn't UTF-8".into(),
+            offset: at,
+        })?;
         self.strings.push(s);
         Ok(self.strings.len() - 1)
     }
@@ -156,7 +201,9 @@ impl<'b> Decoder<'b> {
         if self.keys.len() <= i {
             self.keys.resize(i + 1, None);
         }
-        Ok(self.keys[i].get_or_insert_with(|| self.strings[i].into()).clone())
+        Ok(self.keys[i]
+            .get_or_insert_with(|| self.strings[i].into())
+            .clone())
     }
 
     fn deeper(&mut self) -> Result<(), DecodeError> {
@@ -176,8 +223,16 @@ impl<'b> Decoder<'b> {
             tag::INT => Value::Int(unzigzag(self.varint()?)),
             tag::FLOAT => Value::Float(f64::from_le_bytes(self.fixed()?)),
             tag::FLOAT32 => Value::Float(f64::from(f32::from_le_bytes(self.fixed()?))),
-            tag::FLOATS => Value::List(self.packed_floats::<F64_BYTES>()?.map(|f| Value::Float(f64::from_le_bytes(*f))).collect()),
-            tag::FLOATS32 => Value::List(self.packed_floats::<F32_BYTES>()?.map(|f| Value::Float(f64::from(f32::from_le_bytes(*f)))).collect()),
+            tag::FLOATS => Value::List(
+                self.packed_floats::<F64_BYTES>()?
+                    .map(|f| Value::Float(f64::from_le_bytes(*f)))
+                    .collect(),
+            ),
+            tag::FLOATS32 => Value::List(
+                self.packed_floats::<F32_BYTES>()?
+                    .map(|f| Value::Float(f64::from(f32::from_le_bytes(*f))))
+                    .collect(),
+            ),
             tag::STR => Value::Str(self.string()?.to_owned()),
             tag::LIST => {
                 let n = self.count(1)?;
@@ -201,10 +256,20 @@ impl<'b> Decoder<'b> {
                 Value::Map(map)
             }
             t @ (tag::REF | tag::TAG) => {
-                let r = Ref { kind: self.string()?.to_owned(), id: self.string()?.to_owned() };
-                if t == tag::REF { Value::Ref(r) } else { Value::Tag(r) }
+                let r = Ref {
+                    kind: self.string()?.to_owned(),
+                    id: self.string()?.to_owned(),
+                };
+                if t == tag::REF {
+                    Value::Ref(r)
+                } else {
+                    Value::Tag(r)
+                }
             }
-            tag::RES => Value::Res(Res { set: self.string()?.to_owned(), key: self.string()?.to_owned() }),
+            tag::RES => Value::Res(Res {
+                set: self.string()?.to_owned(),
+                key: self.string()?.to_owned(),
+            }),
             tag::TEXT => Value::Text(self.string()?.to_owned()),
             tag::IMAGE => Value::Image(self.string()?.to_owned()),
             tag::COLOR => Value::Color(u32::from_le_bytes(self.fixed()?)),
@@ -236,7 +301,11 @@ impl<'b> Decoder<'b> {
     }
 
     /// [`Decoder::value_ref`]: children gather on `stack`, then move into `arena` as one slice.
-    fn value_ref_in<'a>(&mut self, arena: &'a Bump, stack: &mut Vec<ValueRef<'a>>) -> Result<ValueRef<'a>, DecodeError>
+    fn value_ref_in<'a>(
+        &mut self,
+        arena: &'a Bump,
+        stack: &mut Vec<ValueRef<'a>>,
+    ) -> Result<ValueRef<'a>, DecodeError>
     where
         'b: 'a,
     {
@@ -247,69 +316,40 @@ impl<'b> Decoder<'b> {
             tag::INT => ValueRef::Int(unzigzag(self.varint()?)),
             tag::FLOAT => ValueRef::Float(f64::from_le_bytes(self.fixed()?)),
             tag::FLOAT32 => ValueRef::Float(f64::from(f32::from_le_bytes(self.fixed()?))),
-            t @ (tag::FLOATS | tag::FLOATS32) => {
-                let items: Vec<ValueRef<'a>> = if t == tag::FLOATS {
-                    self.packed_floats::<F64_BYTES>()?.map(|f| ValueRef::Float(f64::from_le_bytes(*f))).collect()
-                } else {
-                    self.packed_floats::<F32_BYTES>()?.map(|f| ValueRef::Float(f64::from(f32::from_le_bytes(*f)))).collect()
-                };
-                ValueRef::List(arena.alloc_slice_copy(&items))
-            }
+            t @ (tag::FLOATS | tag::FLOATS32) => self.floats_ref(arena, t == tag::FLOATS)?,
             tag::STR => ValueRef::Str(self.string()?),
             tag::LIST => {
                 let n = self.count(1)?;
                 self.deeper()?;
-                let start = stack.len();
-                for _ in 0..n {
-                    let v = self.value_ref_in(arena, stack)?;
-                    stack.push(v);
-                }
-                let items = arena.alloc_slice_copy(&stack[start..]);
-                stack.truncate(start);
+                let items = self.items_ref(arena, stack, n)?;
                 self.depth -= 1;
                 ValueRef::List(items)
             }
-            tag::MAP => {
-                let n = self.count(MAP_ENTRY_MIN)?;
-                self.deeper()?;
-                let mut entries = bumpalo::collections::Vec::with_capacity_in(n, arena);
-                for _ in 0..n {
-                    let k = self.string()?;
-                    entries.push((k, self.value_ref_in(arena, stack)?));
-                }
-                self.depth -= 1;
-                ValueRef::Map(MapRef(entries.into_bump_slice()))
-            }
+            tag::MAP => self.map_ref(arena, stack)?,
             t @ (tag::REF | tag::TAG) => {
                 let (kind, id) = (self.string()?, self.string()?);
-                if t == tag::REF { ValueRef::Ref { kind, id } } else { ValueRef::Tag { kind, id } }
+                if t == tag::REF {
+                    ValueRef::Ref { kind, id }
+                } else {
+                    ValueRef::Tag { kind, id }
+                }
             }
-            tag::RES => ValueRef::Res { set: self.string()?, key: self.string()? },
+            tag::RES => ValueRef::Res {
+                set: self.string()?,
+                key: self.string()?,
+            },
             tag::TEXT => ValueRef::Text(self.string()?),
             tag::IMAGE => ValueRef::Image(self.string()?),
             tag::COLOR => ValueRef::Color(u32::from_le_bytes(self.fixed()?)),
             tag::LANG => ValueRef::Lang(self.string()?),
             tag::BYTES => ValueRef::Bytes(self.length_bytes()?),
-            tag::INTS => {
-                let n = self.count(1)?;
-                let mut items = bumpalo::collections::Vec::with_capacity_in(n, arena);
-                for _ in 0..n {
-                    items.push(ValueRef::Int(unzigzag(self.varint()?)));
-                }
-                ValueRef::List(items.into_bump_slice())
-            }
+            tag::INTS => self.ints_ref(arena)?,
             tag::STREAM => {
                 let mut d = Decoder::body(self.stream_body()?);
                 d.depth = self.depth;
                 let n = d.count(1)?;
-                let start = stack.len();
-                for _ in 0..n {
-                    let v = d.value_ref_in(arena, stack)?;
-                    stack.push(v);
-                }
+                let items = d.items_ref(arena, stack, n)?;
                 d.end()?;
-                let items = arena.alloc_slice_copy(&stack[start..]);
-                stack.truncate(start);
                 ValueRef::List(items)
             }
             t => {
@@ -317,6 +357,68 @@ impl<'b> Decoder<'b> {
                 return Err(self.error(format!("unknown tag {t}")));
             }
         })
+    }
+
+    /// `n` values gathered on `stack`, then moved into `arena` as one slice.
+    fn items_ref<'a>(
+        &mut self,
+        arena: &'a Bump,
+        stack: &mut Vec<ValueRef<'a>>,
+        n: usize,
+    ) -> Result<&'a [ValueRef<'a>], DecodeError>
+    where
+        'b: 'a,
+    {
+        let start = stack.len();
+        for _ in 0..n {
+            let v = self.value_ref_in(arena, stack)?;
+            stack.push(v);
+        }
+        let items = arena.alloc_slice_copy(&stack[start..]);
+        stack.truncate(start);
+        Ok(items)
+    }
+
+    fn map_ref<'a>(
+        &mut self,
+        arena: &'a Bump,
+        stack: &mut Vec<ValueRef<'a>>,
+    ) -> Result<ValueRef<'a>, DecodeError>
+    where
+        'b: 'a,
+    {
+        let n = self.count(MAP_ENTRY_MIN)?;
+        self.deeper()?;
+        let mut entries = bumpalo::collections::Vec::with_capacity_in(n, arena);
+        for _ in 0..n {
+            let k = self.string()?;
+            entries.push((k, self.value_ref_in(arena, stack)?));
+        }
+        self.depth -= 1;
+        Ok(ValueRef::Map(MapRef(entries.into_bump_slice())))
+    }
+
+    fn ints_ref<'a>(&mut self, arena: &'a Bump) -> Result<ValueRef<'a>, DecodeError> {
+        let n = self.count(1)?;
+        let mut items = bumpalo::collections::Vec::with_capacity_in(n, arena);
+        for _ in 0..n {
+            items.push(ValueRef::Int(unzigzag(self.varint()?)));
+        }
+        Ok(ValueRef::List(items.into_bump_slice()))
+    }
+
+    /// A list of floats: eight bytes each (`wide`) or four.
+    fn floats_ref<'a>(&mut self, arena: &'a Bump, wide: bool) -> Result<ValueRef<'a>, DecodeError> {
+        let items: Vec<ValueRef<'a>> = if wide {
+            self.packed_floats::<F64_BYTES>()?
+                .map(|f| ValueRef::Float(f64::from_le_bytes(*f)))
+                .collect()
+        } else {
+            self.packed_floats::<F32_BYTES>()?
+                .map(|f| ValueRef::Float(f64::from(f32::from_le_bytes(*f))))
+                .collect()
+        };
+        Ok(ValueRef::List(arena.alloc_slice_copy(&items)))
     }
 
     // ── Step by step, for a schema reading itself ───────────────────────────
@@ -406,16 +508,31 @@ impl<'b> Decoder<'b> {
     /// (Written narrow when they fit: widened back.)
     pub fn floats(&mut self) -> Option<Vec<f64>> {
         if self.next_is(tag::FLOATS32).is_some() {
-            return Some(crate::frame::floats::widen(self.packed_floats::<F32_BYTES>().ok()?.as_slice().as_flattened()));
+            return Some(crate::frame::floats::widen(
+                self.packed_floats::<F32_BYTES>()
+                    .ok()?
+                    .as_slice()
+                    .as_flattened(),
+            ));
         }
         self.next_is(tag::FLOATS)?;
-        Some(self.packed_floats::<F64_BYTES>().ok()?.map(|f| f64::from_le_bytes(*f)).collect())
+        Some(
+            self.packed_floats::<F64_BYTES>()
+                .ok()?
+                .map(|f| f64::from_le_bytes(*f))
+                .collect(),
+        )
     }
 
     /// A packed list of 32-bit floats next: each one.
     pub fn floats32(&mut self) -> Option<Vec<f32>> {
         self.next_is(tag::FLOATS32)?;
-        Some(self.packed_floats::<F32_BYTES>().ok()?.map(|f| f32::from_le_bytes(*f)).collect())
+        Some(
+            self.packed_floats::<F32_BYTES>()
+                .ok()?
+                .map(|f| f32::from_le_bytes(*f))
+                .collect(),
+        )
     }
 
     /// One int of a packed list.

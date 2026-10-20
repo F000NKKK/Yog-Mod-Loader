@@ -207,7 +207,9 @@ impl Schema for String {
     }
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         // A typed value (`@…`) is the slow way's to tell apart.
-        d.str().filter(|s| !s.starts_with(typed_mark())).map(str::to_owned)
+        d.str()
+            .filter(|s| !s.starts_with(typed_mark()))
+            .map(str::to_owned)
     }
     fn pack(&self, p: &mut Packer) {
         p.put_str(self);
@@ -232,7 +234,9 @@ impl Schema for crate::Atom {
         w.str(self.as_str());
     }
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
-        d.str().filter(|s| !s.starts_with(typed_mark())).map(crate::Atom::new)
+        d.str()
+            .filter(|s| !s.starts_with(typed_mark()))
+            .map(crate::Atom::new)
     }
     fn pack(&self, p: &mut Packer) {
         p.put_u(u64::from(self.number()));
@@ -265,7 +269,11 @@ impl<T: Schema> Schema for Option<T> {
         }
     }
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
-        if d.null() { Some(None) } else { T::decode(d).map(Some) }
+        if d.null() {
+            Some(None)
+        } else {
+            T::decode(d).map(Some)
+        }
     }
     fn pack(&self, p: &mut Packer) {
         p.put_bool(self.is_some());
@@ -274,7 +282,11 @@ impl<T: Schema> Schema for Option<T> {
         }
     }
     fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
-        if u.get_bool()? { T::unpack(u).map(Some) } else { Some(None) }
+        if u.get_bool()? {
+            T::unpack(u).map(Some)
+        } else {
+            Some(None)
+        }
     }
     fn absent() -> Option<Self> {
         Some(None)
@@ -479,13 +491,16 @@ impl<T: Schema, E: Schema> Schema for Result<T, E> {
             return None;
         };
         if let Some(ok) = m.get(RESULT_OK) {
-            return cx.at(Seg::Key(RESULT_OK.into()), |cx| T::read(ok, cx)).map(Ok);
+            return cx
+                .at(Seg::Key(RESULT_OK.into()), |cx| T::read(ok, cx))
+                .map(Ok);
         }
         let Some(err) = m.get(RESULT_ERR) else {
             cx.expected("{ ok } or { err }", v);
             return None;
         };
-        cx.at(Seg::Key(RESULT_ERR.into()), |cx| E::read(err, cx)).map(Err)
+        cx.at(Seg::Key(RESULT_ERR.into()), |cx| E::read(err, cx))
+            .map(Err)
     }
     fn write(&self) -> Value {
         let (key, value) = match self {
@@ -523,7 +538,11 @@ impl<A: Schema, B: Schema> Schema for (A, B) {
     }
 }
 
-fn read_map<T: Schema>(v: &ValueRef, cx: &mut Reader, mut put: impl FnMut(String, T)) -> Option<()> {
+fn read_map<T: Schema>(
+    v: &ValueRef,
+    cx: &mut Reader,
+    mut put: impl FnMut(String, T),
+) -> Option<()> {
     let map = cx.map(v)?;
     let mut ok = true;
     for (k, item) in map.iter() {

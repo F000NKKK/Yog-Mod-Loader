@@ -42,7 +42,10 @@ pub fn install(table: Table) -> bool {
 }
 
 fn table() -> &'static Table {
-    TABLE.get_or_init(|| Table { intern: local::intern, name: local::name })
+    TABLE.get_or_init(|| Table {
+        intern: local::intern,
+        name: local::name,
+    })
 }
 
 impl Atom {
@@ -139,7 +142,12 @@ pub mod local {
 
     /// `name`'s number, made the first time (its text kept for good).
     pub fn intern(name: &str) -> u32 {
-        if let Some(&n) = names().read().unwrap_or_else(|e| e.into_inner()).numbers.get(name) {
+        if let Some(&n) = names()
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .numbers
+            .get(name)
+        {
             return n;
         }
         let mut t = names().write().unwrap_or_else(|e| e.into_inner());
@@ -154,7 +162,12 @@ pub mod local {
     }
 
     pub fn name(n: u32) -> Option<&'static str> {
-        names().read().unwrap_or_else(|e| e.into_inner()).names.get(n as usize).copied()
+        names()
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .names
+            .get(n as usize)
+            .copied()
     }
 }
 
