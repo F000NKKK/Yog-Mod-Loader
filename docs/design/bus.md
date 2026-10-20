@@ -143,8 +143,46 @@ fn armor_of_light(e: &mut Hurt) -> Flow {
   the mappings, everything else is generated. A member that differs
   between versions is generated per version behind the mod's targets.
 
+**Mixin parity.** A nanite does everything a Mixin does — no subset:
+
+| Mixin | Nanite |
+|---|---|
+| `@Inject` (`HEAD`, `RETURN`, `TAIL`, `INVOKE`, `FIELD`, `NEW`, any `@At`; cancellable, set the return value, capture locals) | `#[nanite::inject(…, at = …)]`, the hook's event carries args, `this`, locals and the return value; cancel / change through the reply |
+| `@Redirect`, `@WrapOperation`, `@WrapWithCondition` | `#[nanite::redirect]` / `wrap`: the call inside the method goes to the mod, which may run the original |
+| `@ModifyArg(s)`, `@ModifyVariable`, `@ModifyConstant`, `@ModifyReturnValue` | changing hooks: the value is the payload, the handler's reply replaces it |
+| `@Overwrite` | `#[nanite::overwrite]` (one per method; a second is an error at load) |
+| `@Accessor`, `@Invoker`, `@Shadow` | typed reflection: `get` / `set` / `call` on any member |
+| added fields and methods, `@Unique`, `@Implements` / interface injection | `#[nanite::extend(Class)]`: members and interfaces added to the class, reached typed |
+| priorities among mods | bus priorities on the hook's event |
+
 Nanites are the low level: everything Yog's own API offers is built from
 the same pieces, and what it doesn't offer, a mod reaches itself.
+
+## Actions: services the host provides (stage 3)
+
+Every action on the game (`YogServer`'s ~116 functions) is a service the
+**Java host** provides — described **once**, in Rust, one line each:
+
+```rust
+actions! {
+    world::SetBlock { dim: String, #[data(with = "Pos")] pos: BlockPos, block: String } -> bool = "setBlock";
+    entity::Health { uuid: String } -> Option<f64> = "entityHealth";
+}
+```
+
+From that line come the request struct and its `Service` impl (address in
+`yog-ids`), the reply type, Java's record (`YogServices`) and the host
+method that answers it. The host answers **every** action with one generic
+provider (`YogHostServices`): the request read as its record, its
+components laid out in order (a nested record or a list spreads into its
+parts: a `BlockPos` is `x, y, z`), each converted to the type of the host
+method's parameter (found by `MethodHandle` — `float` or `double` is the
+method's own business), the method called, its result encoded as the
+reply (`NaN`, `Long.MIN_VALUE` and `null` read as "none" for an `Option`).
+No per-action code in the runtime or in Java; the runtime's `YogServer`
+table and its ~116 functions go. A Java mod calls the same actions through
+`YogServices`. The same machinery — typed message → reflective call — is
+what nanite reflection is built on.
 
 ## Describing the bus
 

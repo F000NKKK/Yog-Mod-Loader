@@ -40,41 +40,15 @@ macro_rules! srv {
 
 impl Server for CServer {
     fn broadcast(&self, message: &str) {
-        let s = srv!(self);
-        unsafe { (s.broadcast)(s.ctx, YogStr::from_str(message)) }
+        crate::call(&yog_event::chat::Broadcast { message: message.to_owned() });
     }
 
     fn get_block(&self, dimension: &str, pos: yog_core::BlockPos) -> Option<String> {
-        let s = srv!(self);
-        let owned = unsafe {
-            (s.get_block)(
-                s.ctx,
-                YogStr::from_str(dimension),
-                yog_abi::YogBlockPos {
-                    x: pos.x,
-                    y: pos.y,
-                    z: pos.z,
-                },
-            )
-        };
-
-        take_owned(s.free_str, owned)
+        crate::call(&yog_event::world::GetBlock { dim: dimension.to_owned(), pos }).flatten()
     }
 
     fn set_block(&self, dimension: &str, pos: yog_core::BlockPos, block_id: &str) -> bool {
-        let s = srv!(self);
-        unsafe {
-            (s.set_block)(
-                s.ctx,
-                YogStr::from_str(dimension),
-                yog_abi::YogBlockPos {
-                    x: pos.x,
-                    y: pos.y,
-                    z: pos.z,
-                },
-                YogStr::from_str(block_id),
-            )
-        }
+        crate::call(&yog_event::world::SetBlock { dim: dimension.to_owned(), pos, block: block_id.to_owned() }).unwrap_or(false)
     }
 
     fn give_item(&self, player: &str, item_id: &str, count: u32) -> bool {
@@ -241,28 +215,19 @@ impl Server for CServer {
     }
 
     fn world_time(&self, dimension: &str) -> Option<i64> {
-        let s = srv!(self);
-        let mut t = 0i64;
-        if unsafe { (s.world_time)(s.ctx, YogStr::from_str(dimension), &mut t) } {
-            Some(t)
-        } else {
-            None
-        }
+        crate::call(&yog_event::world::Time { dim: dimension.to_owned() }).flatten()
     }
 
     fn world_set_time(&self, dimension: &str, time: i64) -> bool {
-        let s = srv!(self);
-        unsafe { (s.set_time)(s.ctx, YogStr::from_str(dimension), time) }
+        crate::call(&yog_event::world::SetTime { dim: dimension.to_owned(), time }).unwrap_or(false)
     }
 
     fn world_is_raining(&self, dimension: &str) -> bool {
-        let s = srv!(self);
-        unsafe { (s.is_raining)(s.ctx, YogStr::from_str(dimension)) }
+        crate::call(&yog_event::world::IsRaining { dim: dimension.to_owned() }).unwrap_or(false)
     }
 
     fn world_set_weather(&self, dimension: &str, raining: bool, duration_ticks: i32) -> bool {
-        let s = srv!(self);
-        unsafe { (s.set_weather)(s.ctx, YogStr::from_str(dimension), raining, duration_ticks) }
+        crate::call(&yog_event::world::SetWeather { dim: dimension.to_owned(), raining, duration: duration_ticks }).unwrap_or(false)
     }
 
     fn entity_velocity(&self, uuid: &str) -> Option<(f64, f64, f64)> {

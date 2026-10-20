@@ -35,7 +35,12 @@ pub struct ServiceInfo {
     pub key: Option<&'static str>,
     pub shape: Shape,
     pub reply: Shape,
+    /// The Java host's method answering it (`NativeBridge.<host>`), for an action.
+    pub host: Option<&'static str>,
 }
+
+/// Each domain's actions.
+const ACTIONS: &[fn() -> Vec<ServiceInfo>] = &[crate::chat::actions, crate::world::actions];
 
 macro_rules! services {
     ($($ty:path => $address:expr, $reply:ty $(, key = $key:ident)?;)*) => {
@@ -49,8 +54,8 @@ macro_rules! services {
             }
         })*
 
-        /// Every service, domain by domain.
-        pub fn services() -> Vec<ServiceInfo> {
+        /// The services the runtime, the mods or the host's own code provide.
+        fn listed() -> Vec<ServiceInfo> {
             vec![$(ServiceInfo {
                 domain: branch($address, ids::service::PREFIX),
                 name: last_segment(stringify!($ty)),
@@ -58,9 +63,19 @@ macro_rules! services {
                 key: key!($($key)?),
                 shape: <$ty as Schema>::shape(),
                 reply: <$reply as Schema>::shape(),
+                host: None,
             }),*]
         }
     };
+}
+
+/// Every service, domain by domain: the listed ones, then the actions.
+pub fn services() -> Vec<ServiceInfo> {
+    let mut all = listed();
+    for actions in ACTIONS {
+        all.extend(actions());
+    }
+    all
 }
 
 services! {

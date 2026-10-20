@@ -1,4 +1,5 @@
-//! Every Java method the runtime calls exists, with the arguments it's called
+//! Every Java method the runtime calls — and every host method an action
+//! names (`yog_event::services`) — exists, with the arguments it's called
 //! with, in every host's `dev.yog.*` classes (a missing one only shows up as
 //! a silent `false` / `None` at run time).
 //!
@@ -94,6 +95,20 @@ fn calls(src: &str) -> BTreeSet<(String, String, usize)> {
         }
     }
     out
+}
+
+/// How many arguments a value of `shape` spreads into when the host calls
+/// an action's method: a struct its fields', each spread; anything else one.
+fn spread(shape: &yog_data::Shape) -> usize {
+    match shape {
+        yog_data::Shape::Struct(s) => s.fields.iter().map(|f| spread(&(f.shape)())).sum(),
+        _ => 1,
+    }
+}
+
+/// `(class, method, arity)` of every host method the actions name.
+fn action_calls() -> BTreeSet<(String, String, usize)> {
+    yog_event::services().iter().filter_map(|s| Some(("NativeBridge".to_owned(), s.host?.to_owned(), spread(&s.shape)))).collect()
 }
 
 /// `(name, arity)` of the public static methods in a Java file.
@@ -198,7 +213,8 @@ fn every_host_has_every_bridge_method() {
     if !root.join("fabric").is_dir() {
         return;
     }
-    let calls = calls(&runtime_sources());
+    let mut calls = calls(&runtime_sources());
+    calls.extend(action_calls());
     assert!(
         calls.len() > 50,
         "found only {} bridge calls — parser broken?",
@@ -221,6 +237,13 @@ fn every_host_has_every_bridge_method() {
                     missing.push(format!("{}: {class}.{name}/{arity}", platform.display()));
                 }
             }
+            // The host finds an action's method by its name alone.
+            let statics = class_statics(&root, host, &platform, "NativeBridge").unwrap_or_default();
+            for (_, name, _) in action_calls() {
+                if statics.iter().filter(|(n, _)| *n == name).count() > 1 {
+                    missing.push(format!("{}: NativeBridge.{name} is overloaded", platform.display()));
+                }
+            }
         }
     }
     assert!(
@@ -228,6 +251,12 @@ fn every_host_has_every_bridge_method() {
         "missing Java bridge methods:\n{}",
         missing.join("\n")
     );
+}
+
+#[test]
+fn an_action_spreads_its_positions() {
+    let set_block = action_calls().into_iter().find(|(_, name, _)| name == "setBlock");
+    assert_eq!(set_block.map(|(_, _, n)| n), Some(5), "dim, x, y, z, block");
 }
 
 #[test]

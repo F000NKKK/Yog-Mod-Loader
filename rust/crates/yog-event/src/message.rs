@@ -64,3 +64,39 @@ macro_rules! key_value {
     };
 }
 
+
+/// Actions the Java host provides (`docs/design/bus.md`, stage 3): each a
+/// request struct, its reply, its address and the host method answering
+/// it; and the domain's `actions()` descriptors.
+macro_rules! actions {
+    ($( $(#[$doc:meta])* $name:ident { $( $(#[$fattr:meta])* $field:ident : $fty:ty ),* $(,)? } -> $reply:ty = $address:expr, $host:literal; )*) => {
+        $(
+            $(#[$doc])*
+            #[derive(Debug, Clone, yog_data::Schema)]
+            pub struct $name { $( $(#[$fattr])* pub $field: $fty ),* }
+
+            impl $crate::Service for $name {
+                const ADDRESS: &'static str = $address;
+                const KEY: Option<&'static str> = None;
+                type Reply = $reply;
+
+                fn key(&self) -> Option<&str> {
+                    None
+                }
+            }
+        )*
+
+        /// This domain's actions.
+        pub(crate) fn actions() -> Vec<$crate::ServiceInfo> {
+            vec![$($crate::ServiceInfo {
+                domain: $crate::message::branch($address, yog_ids::service::PREFIX),
+                name: stringify!($name),
+                address: $address,
+                key: None,
+                shape: <$name as yog_data::Schema>::shape(),
+                reply: <$reply as yog_data::Schema>::shape(),
+                host: Some($host),
+            }),*]
+        }
+    };
+}

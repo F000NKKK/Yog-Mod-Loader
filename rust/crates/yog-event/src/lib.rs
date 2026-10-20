@@ -18,6 +18,7 @@ mod pos;
 mod tests;
 
 pub mod block;
+pub mod chat;
 pub mod client;
 pub mod command;
 pub mod container;
@@ -33,3 +34,4 @@ pub use event::{Event, EventInfo, all};
 pub use message::{Message, keyed};
 pub use service::{Service, ServiceInfo, services};
 pub use phase::EventPhase;
+pub use pos::Point;

@@ -24,6 +24,23 @@ names! {
         INSERT = concatcp!(DOMAIN, "insert"),
     }
 
+    /// `yog:world/…`: the host's actions on a world.
+    service_world {
+        DOMAIN = concatcp!(service::PREFIX, "world", sep::PATH),
+        GET_BLOCK = concatcp!(DOMAIN, "get_block"),
+        SET_BLOCK = concatcp!(DOMAIN, "set_block"),
+        TIME = concatcp!(DOMAIN, "time"),
+        SET_TIME = concatcp!(DOMAIN, "set_time"),
+        IS_RAINING = concatcp!(DOMAIN, "is_raining"),
+        SET_WEATHER = concatcp!(DOMAIN, "set_weather"),
+    }
+
+    /// `yog:chat/…`: the host's messages to players.
+    service_chat {
+        DOMAIN = concatcp!(service::PREFIX, "chat", sep::PATH),
+        BROADCAST = concatcp!(DOMAIN, "broadcast"),
+    }
+
     /// `yog:item/…`.
     service_item {
         DOMAIN = concatcp!(service::PREFIX, "item", sep::PATH),

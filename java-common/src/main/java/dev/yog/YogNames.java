@@ -105,6 +105,25 @@ public final class YogNames {
         public static final String INSERT = "yog:block/insert";
     }
 
+    public static final class ServiceWorld {
+        private ServiceWorld() {}
+
+        public static final String DOMAIN = "yog:world/";
+        public static final String GET_BLOCK = "yog:world/get_block";
+        public static final String SET_BLOCK = "yog:world/set_block";
+        public static final String TIME = "yog:world/time";
+        public static final String SET_TIME = "yog:world/set_time";
+        public static final String IS_RAINING = "yog:world/is_raining";
+        public static final String SET_WEATHER = "yog:world/set_weather";
+    }
+
+    public static final class ServiceChat {
+        private ServiceChat() {}
+
+        public static final String DOMAIN = "yog:chat/";
+        public static final String BROADCAST = "yog:chat/broadcast";
+    }
+
     public static final class ServiceItem {
         private ServiceItem() {}
 

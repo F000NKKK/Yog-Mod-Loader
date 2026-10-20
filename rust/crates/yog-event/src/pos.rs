@@ -1,4 +1,4 @@
-//! A block position as an event carries it: `{ x, y, z }`.
+//! Positions as messages carry them: a block's `{ x, y, z }`, a point's.
 
 use yog_core::BlockPos;
 use yog_data::schema::{Reader, Shape};
@@ -27,4 +27,12 @@ impl With<BlockPos> for Pos {
     fn write(p: &BlockPos) -> Value {
         PosData { x: p.x, y: p.y, z: p.z }.write()
     }
+}
+
+/// A point in a world (blocks, fractional).
+#[derive(Debug, Clone, Copy, PartialEq, Default, Schema)]
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }

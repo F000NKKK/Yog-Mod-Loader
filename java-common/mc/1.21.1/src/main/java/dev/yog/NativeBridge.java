@@ -1451,6 +1451,8 @@ public final class NativeBridge {
     public static synchronized void ensureLoaded() {
         if (loaded) return;
         YogNativeRuntime.loadEmbedded();
+        // The host's actions, before the mods register (they may call them).
+        YogHostServices.provideAll();
         nativeInit(YogNativeRuntime.modsDir(YogPlatform.gameDir()));
         loaded = true;
     }

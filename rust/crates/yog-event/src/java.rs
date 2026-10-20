@@ -48,7 +48,7 @@ fn camel(snake: &str) -> String {
 }
 
 /// `key_binding` → `KeyBinding`.
-fn class_name(segment: &str) -> String {
+pub(super) fn class_name(segment: &str) -> String {
     let mut out = camel(segment);
     if let Some(first) = out.get(..1) {
         out.replace_range(..1, &first.to_uppercase());
@@ -61,12 +61,14 @@ fn class_name(segment: &str) -> String {
 struct Out {
     text: String,
     records: Vec<StructShape>,
+    /// The class's own members, written before its nested ones.
+    members: String,
 }
 
 /// A record with `s`'s fields: `toData()` builds the payload, `fromData` /
 /// `fromBytes` read one back; `body` adds the message's methods.
 fn record(o: &mut Out, pad: &str, name: &str, s: &StructShape, body: &str) {
-    let Out { text: out, records } = o;
+    let Out { text: out, records, .. } = o;
     let params: Vec<String> = s.fields.iter().map(|f| format!("{} {}", java_type(&(f.shape)(), records), camel(f.name))).collect();
     if !s.doc.is_empty() {
         let _ = writeln!(out, "\n{pad}/** {} */", s.doc);
@@ -128,6 +130,8 @@ fn close(out: &mut String, open: &mut Vec<String>, keep: usize) {
 /// Class `class` (documented `doc`) in `package`: `entries` nested by their paths.
 fn file(package: &str, class: &str, doc: &str, mut o: Out, entries: &[Entry]) -> (String, Vec<StructShape>) {
     let _ = writeln!(o.text, "\n/** {doc} */\npublic final class {class} {{\n    private {class}() {{}}");
+    let members = std::mem::take(&mut o.members);
+    o.text.push_str(&members);
     // The class path open now (`Player`, `Session`), closed and opened as the paths go.
     let mut open: Vec<String> = Vec::new();
     for e in entries {
@@ -151,7 +155,7 @@ fn file(package: &str, class: &str, doc: &str, mut o: Out, entries: &[Entry]) ->
 
 /// `class` holding `records` — and the records they hold in turn.
 fn types_file(package: &str, records: Vec<StructShape>) -> String {
-    let mut o = Out { text: String::new(), records };
+    let mut o = Out { records, ..Out::default() };
     let _ = writeln!(o.text, "\n/** The records the bus's messages share. */\npublic final class {TYPES} {{\n    private {TYPES}() {{}}");
     let mut done = 0;
     while done < o.records.len() {

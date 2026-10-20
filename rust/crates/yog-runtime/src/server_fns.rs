@@ -6,60 +6,6 @@ use super::*;
 //
 // ctx is unused here — all state is in the JAVA_VM static.
 
-pub(super) unsafe extern "C" fn srv_broadcast(_ctx: *mut c_void, msg: YogStr) {
-    unsafe {
-        let _: Option<()> = bridge!("broadcast", [S(msg)]);
-    }
-}
-
-pub(super) unsafe extern "C" fn srv_get_block(
-    _ctx: *mut c_void,
-    dim: YogStr,
-    pos: YogBlockPos,
-) -> YogOwnedStr {
-    unsafe { owned(bridge!("getBlock", [S(dim), I(pos.x), I(pos.y), I(pos.z)])) }
-}
-
-pub(super) unsafe extern "C" fn srv_set_block(
-    _ctx: *mut c_void,
-    dim: YogStr,
-    pos: YogBlockPos,
-    block: YogStr,
-) -> bool {
-    unsafe {
-        bridge!("setBlock", [S(dim), I(pos.x), I(pos.y), I(pos.z), S(block)]).unwrap_or(false)
-    }
-}
-
-pub(super) unsafe extern "C" fn srv_world_time(_ctx: *mut c_void, dim: YogStr, out: *mut i64) -> bool {
-    unsafe {
-        match bridge!("worldTime", [S(dim)]) {
-            Some(v) if v != i64::MIN => {
-                *out = v;
-                true
-            }
-            _ => false,
-        }
-    }
-}
-
-pub(super) unsafe extern "C" fn srv_set_time(_ctx: *mut c_void, dim: YogStr, time: i64) -> bool {
-    unsafe { bridge!("worldSetTime", [S(dim), J(time)]).unwrap_or(false) }
-}
-
-pub(super) unsafe extern "C" fn srv_is_raining(_ctx: *mut c_void, dim: YogStr) -> bool {
-    unsafe { bridge!("worldIsRaining", [S(dim)]).unwrap_or(false) }
-}
-
-pub(super) unsafe extern "C" fn srv_set_weather(
-    _ctx: *mut c_void,
-    dim: YogStr,
-    raining: bool,
-    dur: i32,
-) -> bool {
-    unsafe { bridge!("worldSetWeather", [S(dim), Z(raining), I(dur)]).unwrap_or(false) }
-}
-
 pub(super) unsafe extern "C" fn srv_give_item(
     _ctx: *mut c_void,
     player: YogStr,

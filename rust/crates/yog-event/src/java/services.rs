@@ -7,7 +7,7 @@ use yog_data::schema::StructShape;
 use crate::ServiceInfo;
 
 use super::types::{from_data, java_type};
-use super::{Entry, Out, file, name, target};
+use super::{Entry, Out, class_name, file, name, target};
 
 /// The class it writes.
 pub(super) const CLASS: &str = "YogServices";
@@ -19,6 +19,13 @@ fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
     if s.key.is_none() {
         let _ = write!(body, "\n\n    private static final class Address {{\n        static final int AT = YogBus.resolve({});\n    }}", name(s.address));
     }
+    if let Some(host) = s.host {
+        let _ = write!(
+            body,
+            "\n\n    /** The host's method answering it ({{@code NativeBridge}}), and where it's provided. */\n    public static final String HOST = \"{host}\";\n    public static final String ADDRESS = {};",
+            name(s.address)
+        );
+    }
     let reply = java_type(&s.reply, &mut o.records);
     let _ = write!(
         body,
@@ -29,10 +36,22 @@ fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
     body
 }
 
+/// `World.SetBlock`: a service's record, from `YogServices`.
+fn record_path(domain: &str, name: &str) -> String {
+    domain.split('/').map(class_name).chain([name.to_owned()]).collect::<Vec<_>>().join(".")
+}
+
 /// `dev.yog.bus.YogServices`.
 pub(super) fn services(package: &str) -> (String, Vec<StructShape>) {
     let mut o = Out::default();
-    let entries: Vec<Entry> = crate::services()
+    let services = crate::services();
+    let hosted: Vec<String> = services.iter().filter(|s| s.host.is_some()).map(|s| record_path(s.domain, s.name)).collect();
+    let _ = write!(
+        o.members,
+        "\n    /** The actions the host answers ({{@code YogHostServices}}). */\n    public static final List<Class<? extends Record>> HOSTED = List.of({});\n",
+        hosted.iter().map(|r| format!("{r}.class")).collect::<Vec<_>>().join(", ")
+    );
+    let entries: Vec<Entry> = services
         .into_iter()
         .map(|s| Entry { path: s.domain, name: s.name, body: service_body(&s, &mut o), shape: s.shape })
         .collect();

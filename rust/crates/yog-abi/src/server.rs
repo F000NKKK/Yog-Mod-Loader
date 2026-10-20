@@ -23,22 +23,8 @@ pub struct YogServer {
     pub free_str: unsafe extern "C" fn(ptr: *mut u8, len: u32),
 
     // ── chat ─────────────────────────────────────────────────────────────────
-    pub broadcast: unsafe extern "C" fn(ctx: *mut c_void, msg: YogStr),
 
     // ── world ────────────────────────────────────────────────────────────────
-    pub get_block:
-        unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, pos: YogBlockPos) -> YogOwnedStr,
-    pub set_block: unsafe extern "C" fn(
-        ctx: *mut c_void,
-        dim: YogStr,
-        pos: YogBlockPos,
-        block: YogStr,
-    ) -> bool,
-    pub world_time: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, out: *mut i64) -> bool,
-    pub set_time: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, time: i64) -> bool,
-    pub is_raining: unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr) -> bool,
-    pub set_weather:
-        unsafe extern "C" fn(ctx: *mut c_void, dim: YogStr, raining: bool, dur: i32) -> bool,
 
     // ── player ───────────────────────────────────────────────────────────────
     pub give_item:

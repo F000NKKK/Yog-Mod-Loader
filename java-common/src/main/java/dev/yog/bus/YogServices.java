@@ -12,6 +12,9 @@ import java.util.Map;
 public final class YogServices {
     private YogServices() {}
 
+    /** The actions the host answers ({@code YogHostServices}). */
+    public static final List<Class<? extends Record>> HOSTED = List.of(Chat.Broadcast.class, World.GetBlock.class, World.SetBlock.class, World.Time.class, World.SetTime.class, World.IsRaining.class, World.SetWeather.class);
+
     /** `block`. */
     public static final class Block {
         private Block() {}
@@ -345,6 +348,295 @@ public final class YogServices {
                     }
                 }
                 return YogData.list(v).stream().map(e0 -> YogTypes.CategorizedBinding.fromData(e0)).toList();
+            }
+        }
+    }
+
+    /** `chat`. */
+    public static final class Chat {
+        private Chat() {}
+
+        /** Sends `message` to every player. */
+        public record Broadcast(String message) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("message", message);
+                return m;
+            }
+
+            public static Broadcast fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Broadcast(YogData.str(m.get("message"), ""));
+            }
+
+            public static Broadcast fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceChat.BROADCAST);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "broadcast";
+            public static final String ADDRESS = YogNames.ServiceChat.BROADCAST;
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
+            }
+        }
+    }
+
+    /** `world`. */
+    public static final class World {
+        private World() {}
+
+        /** The block at `pos` (`minecraft:stone`); `None` without the dimension. */
+        public record GetBlock(String dim, YogTypes.BlockPos pos) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("dim", dim);
+                m.put("pos", pos.toData());
+                return m;
+            }
+
+            public static GetBlock fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new GetBlock(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")));
+            }
+
+            public static GetBlock fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceWorld.GET_BLOCK);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "getBlock";
+            public static final String ADDRESS = YogNames.ServiceWorld.GET_BLOCK;
+
+            public String call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return (v == null ? null : YogData.str(v, ""));
+            }
+        }
+
+        /** Sets the block at `pos`; whether it did. */
+        public record SetBlock(String dim, YogTypes.BlockPos pos, String block) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("dim", dim);
+                m.put("pos", pos.toData());
+                m.put("block", block);
+                return m;
+            }
+
+            public static SetBlock fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new SetBlock(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("block"), ""));
+            }
+
+            public static SetBlock fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_BLOCK);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "setBlock";
+            public static final String ADDRESS = YogNames.ServiceWorld.SET_BLOCK;
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
+            }
+        }
+
+        /** The time of day of `dim`; `None` without the dimension. */
+        public record Time(String dim) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("dim", dim);
+                return m;
+            }
+
+            public static Time fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Time(YogData.str(m.get("dim"), ""));
+            }
+
+            public static Time fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceWorld.TIME);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "worldTime";
+            public static final String ADDRESS = YogNames.ServiceWorld.TIME;
+
+            public Long call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return (v == null ? null : YogData.integer(v, 0));
+            }
+        }
+
+        /** Sets the time of day (0 dawn, 6000 noon, 12000 dusk, 18000 midnight). */
+        public record SetTime(String dim, long time) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("dim", dim);
+                m.put("time", time);
+                return m;
+            }
+
+            public static SetTime fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new SetTime(YogData.str(m.get("dim"), ""), YogData.integer(m.get("time"), 0));
+            }
+
+            public static SetTime fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_TIME);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "worldSetTime";
+            public static final String ADDRESS = YogNames.ServiceWorld.SET_TIME;
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
+            }
+        }
+
+        /** Whether it rains in `dim`. */
+        public record IsRaining(String dim) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("dim", dim);
+                return m;
+            }
+
+            public static IsRaining fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new IsRaining(YogData.str(m.get("dim"), ""));
+            }
+
+            public static IsRaining fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceWorld.IS_RAINING);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "worldIsRaining";
+            public static final String ADDRESS = YogNames.ServiceWorld.IS_RAINING;
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
+            }
+        }
+
+        /** Starts or stops rain for `duration` ticks. */
+        public record SetWeather(String dim, boolean raining, int duration) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("dim", dim);
+                m.put("raining", raining);
+                m.put("duration", duration);
+                return m;
+            }
+
+            public static SetWeather fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new SetWeather(YogData.str(m.get("dim"), ""), YogData.bool(m.get("raining"), false), (int) YogData.integer(m.get("duration"), 0));
+            }
+
+            public static SetWeather fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_WEATHER);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "worldSetWeather";
+            public static final String ADDRESS = YogNames.ServiceWorld.SET_WEATHER;
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
             }
         }
     }

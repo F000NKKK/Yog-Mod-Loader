@@ -30,7 +30,6 @@ pub(crate) enum JArg<'a> {
     D(f64),
     F(f32),
     I(i32),
-    J(i64),
     Z(bool),
     /// `byte[]` (copied into a fresh Java array for the call).
     Bytes(&'a [u8]),
@@ -43,7 +42,6 @@ impl JArg<'_> {
             JArg::D(_) => "D",
             JArg::F(_) => "F",
             JArg::I(_) => "I",
-            JArg::J(_) => "J",
             JArg::Z(_) => "Z",
             JArg::Bytes(_) => "[B",
         }
@@ -210,7 +208,6 @@ impl StaticMethod {
                     JArg::D(d) => jvalue { d },
                     JArg::F(f) => jvalue { f },
                     JArg::I(i) => jvalue { i },
-                    JArg::J(j) => jvalue { j },
                     JArg::Z(z) => jvalue { z: z as u8 },
                 };
             }

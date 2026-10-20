@@ -2,6 +2,7 @@
 
 use yog_data::Schema;
 
+mod actions;
 pub mod generation;
 pub mod loot;
 
@@ -20,3 +21,5 @@ pub struct Explosion {
     /// UUID of the entity that caused the explosion, or empty string if none.
     pub cause_uuid: String,
 }
+
+pub use actions::*;
