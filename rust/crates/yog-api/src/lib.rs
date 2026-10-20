@@ -22,7 +22,7 @@ mod registry;
 pub use interop::Interop;
 pub use lang::{format_translation, tag_name, tr, tr_args, translation};
 pub use registry::{
-    CServer, MachineCraftEvent, Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui, server,
+    CServer, Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui, server,
 };
 pub use yog_gfx::{
     GfxContext, core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image,

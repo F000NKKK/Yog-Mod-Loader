@@ -83,6 +83,11 @@ impl Router {
         list.insert(at, Subscriber { priority, handler });
     }
 
+    /// Whether anyone listens to `event` (an emitter can skip building its payload).
+    pub(crate) fn heard(&self, event: YogAddress) -> bool {
+        self.subscribers.read_locked().get(&event).is_some_and(|list| !list.is_empty())
+    }
+
     /// Calls `to`'s provider.
     pub(crate) fn call(&self, to: YogAddress, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u8>) {
         let Some(handler) = self.providers.read_locked().get(&to).cloned() else {

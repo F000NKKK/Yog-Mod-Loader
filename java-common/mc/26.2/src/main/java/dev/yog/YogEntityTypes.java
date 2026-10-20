@@ -138,7 +138,7 @@ public final class YogEntityTypes {
     public static void tick(Entity e) {
         YogContent.Entity def = DEFS.get(e.getType());
         if (def != null && def.ticks() && !e.level().isClientSide()) {
-            NativeBridge.nativeOnEntityTick(def.id(), e.getStringUUID());
+            new dev.yog.bus.YogEvents.Entity.Game.Tick(def.id(), e.getStringUUID()).emit();
         }
     }
 }

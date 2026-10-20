@@ -1575,7 +1575,6 @@ public final class NativeBridge {
     public static native void nativeGenerateChunk(
             String generatorTypeId, int chunkX, int chunkZ, int minY, int height);
 
-
     /** Open a Rust-mod-defined UI. parentId="" for top-level, modal blocks clicks outside, pauseGame pauses MC. */
     public static native void nativeUIShow(String uiId, String parentId, boolean modal, boolean pauseGame, int screenW, int screenH);
     /** Hide / close the UI. */
@@ -1626,15 +1625,11 @@ public final class NativeBridge {
     public static native String nativeMenuEntries();
     /** The mods' key bindings (ABI 3.10): {@code id\tname key\tdefault key\tmod name} a line. */
     public static native String nativeKeyBindings();
-    /** A mod's key binding {@code id} pressed. */
-    public static native void nativeOnKeyBinding(String id);
     /** Run a registered command; returns the reply (empty string if none). */
     public static native String nativeOnCommand(String name, String args, String source, String uuid, String dimension);
 
     /** Everything registered — items, blocks, inventories — as one Yog Data blob ({@code YogContent}). */
     public static native byte[] nativeContent();
-
-
 
     // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
 
@@ -1812,12 +1807,6 @@ public final class NativeBridge {
     /** yog-body: the ops for a tracked entity's body this frame, or null. */
     public static native byte[] nativeBodyPose(byte[] frame);
 
-    /** Whether any mod handles loot (ABI 3.4). */
-    public static native boolean nativeHasLoot();
-
-    /** A rolled loot table ({@code yog_registry::Loot}, Yog Data) → the stacks to give instead, or null. */
-    public static native byte[] nativeLoot(byte[] loot);
-
     /** Entity data: everything about an entity, for a player who starts seeing it; null for nothing. */
     public static native byte[] nativeEntityDataFor(String uuid);
     /** Entity data: what the entity keeps when saved; null for nothing. */
@@ -1830,8 +1819,6 @@ public final class NativeBridge {
     public static native void nativeEntityDataSet(String uuid, String key, byte[] value);
     /** Entity data: the client left its world. */
     public static native void nativeEntityDataClientReset();
-    /** A tick of a mod's entity whose type asked for it. */
-    public static native void nativeOnEntityTick(String type, String uuid);
     /** yog-body: {right, up, forward, wx, wy, wz, yaw, pitch, roll, fov} for the camera, or null. */
     public static native float[] nativeCamera(String uuid, float partial, double x, double y, double z, float yaw, float pitch, boolean detached, int flags);
     /** yog-body: the velocity to move the local player by instead of its travel step, or null. */

@@ -171,12 +171,26 @@ public final class YogNames {
         public static final String PROJECTILE_HIT_PRE = "yog:event/entity/combat/projectile_hit/pre";
     }
 
+    public static final class EventEntityGame {
+        private EventEntityGame() {}
+
+        public static final String PLANE = "yog:event/entity/game/";
+        public static final String TICK = "yog:event/entity/game/tick";
+    }
+
     public static final class EventWorld {
         private EventWorld() {}
 
         public static final String PLANE = "yog:event/world/";
         public static final String EXPLOSION = "yog:event/world/explosion";
         public static final String EXPLOSION_PRE = "yog:event/world/explosion/pre";
+    }
+
+    public static final class EventWorldLoot {
+        private EventWorldLoot() {}
+
+        public static final String PLANE = "yog:event/world/loot/";
+        public static final String ROLL = "yog:event/world/loot/roll";
     }
 
     public static final class EventContainer {
@@ -186,6 +200,14 @@ public final class YogNames {
         public static final String OPEN = "yog:event/container/open";
         public static final String OPEN_PRE = "yog:event/container/open/pre";
         public static final String CLOSE = "yog:event/container/close";
+    }
+
+    public static final class EventContainerMachine {
+        private EventContainerMachine() {}
+
+        public static final String PLANE = "yog:event/container/machine/";
+        public static final String CRAFT = "yog:event/container/machine/craft";
+        public static final String CRAFT_PRE = "yog:event/container/machine/craft/pre";
     }
 
     public static final class EventServerGame {
@@ -216,6 +238,7 @@ public final class YogNames {
         public static final String PLANE = "yog:event/client/input/";
         public static final String KEY = "yog:event/client/input/key";
         public static final String KEY_PRE = "yog:event/client/input/key/pre";
+        public static final String BINDING = "yog:event/client/input/binding";
     }
 
     public static final class EventClientUi {

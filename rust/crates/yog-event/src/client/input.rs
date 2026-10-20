@@ -15,3 +15,9 @@ pub struct Key {
     /// Modifier bitmask: 1=Shift, 2=Ctrl, 4=Alt, 8=Super.
     pub modifiers: i32,
 }
+
+/// A mod's key binding pressed; keyed by its id (`mymod:xray`).
+#[derive(Debug, Clone, Schema)]
+pub struct Binding {
+    pub id: String,
+}

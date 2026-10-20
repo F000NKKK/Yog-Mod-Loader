@@ -477,13 +477,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeKeyBindings<'l>(env: JNIE
     env.new_string(lines.join("\n")).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
-/// A mod's key binding `id` pressed (the host counts the game's clicks of it).
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnKeyBinding<'l>(mut env: JNIEnv<'l>, _class: JClass<'l>, id: JString<'l>) {
-    let Ok(id) = env.get_string(&id).map(String::from) else { return };
-    crate::key_binding_pressed(&id);
-}
-
 // ── Pictures in item tooltips (ABI 2.2) ─────────────────────────────────────
 
 /// The mod's picture for a stack of `item` (custom data `snbt`): which

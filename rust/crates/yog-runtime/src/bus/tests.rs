@@ -80,3 +80,12 @@ fn java_handlers_run_through_the_java_runner() {
     assert!(r.provide(a, Handler::Java(42)));
     assert_eq!(r.call(a, b"yog", upper), (status::OK, b"YOG".to_vec()));
 }
+
+#[test]
+fn an_event_is_heard_once_someone_listens() {
+    let r = Router::default();
+    let e = r.resolve("test:quiet");
+    assert!(!r.heard(e));
+    r.on(e, 0, native(1, append_ud));
+    assert!(r.heard(e));
+}

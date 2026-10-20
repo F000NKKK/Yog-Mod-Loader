@@ -2,8 +2,10 @@
 package dev.yog.bus;
 
 import dev.yog.YogBus;
+import dev.yog.YogNames;
 import dev.yog.data.YogData;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /** The bus's events: a record per event; {@code emit} after the game did it, {@code emitPre} before (false: a handler cancelled it). */
@@ -28,12 +30,37 @@ public final class YogEvents {
                     return m;
                 }
 
+                public static Join fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Join(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Join fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/session/join");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerSession.JOIN);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Join emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
 
@@ -47,12 +74,37 @@ public final class YogEvents {
                     return m;
                 }
 
+                public static Leave fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Leave(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Leave fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/session/leave");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerSession.LEAVE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Leave emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -74,13 +126,38 @@ public final class YogEvents {
                     return m;
                 }
 
+                public static Death fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Death(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("source"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Death fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/life/death");
-                    static final int PRE = YogBus.resolve("yog:event/player/life/death/pre");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerLife.DEATH);
+                    static final int PRE = YogBus.resolve(YogNames.EventPlayerLife.DEATH_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Death emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
 
                 public boolean emitPre() {
@@ -99,12 +176,37 @@ public final class YogEvents {
                     return m;
                 }
 
+                public static Respawn fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Respawn(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.bool(m.get("at_anchor"), false), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Respawn fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/life/respawn");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerLife.RESPAWN);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Respawn emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -123,13 +225,38 @@ public final class YogEvents {
                     return m;
                 }
 
+                public static Message fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Message(YogData.str(m.get("player_name"), ""), YogData.str(m.get("message"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Message fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/chat/message");
-                    static final int PRE = YogBus.resolve("yog:event/player/chat/message/pre");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerChat.MESSAGE);
+                    static final int PRE = YogBus.resolve(YogNames.EventPlayerChat.MESSAGE_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Message emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
 
                 public boolean emitPre() {
@@ -159,12 +286,37 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return m;
                 }
 
+                public static Move fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Move(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Move fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/action/move");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerAction.MOVE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Move emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
 
@@ -179,13 +331,38 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return m;
                 }
 
+                public static UseItem fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new UseItem(YogData.str(m.get("player_name"), ""), YogData.str(m.get("item_id"), ""), YogData.bool(m.get("sneaking"), false), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static UseItem fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/action/use_item");
-                    static final int PRE = YogBus.resolve("yog:event/player/action/use_item/pre");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerAction.USE_ITEM);
+                    static final int PRE = YogBus.resolve(YogNames.EventPlayerAction.USE_ITEM_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public UseItem emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
 
                 public boolean emitPre() {
@@ -204,12 +381,37 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return m;
                 }
 
+                public static Attack fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Attack(YogData.str(m.get("player_name"), ""), YogData.str(m.get("target_type"), ""), YogData.str(m.get("target_uuid"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Attack fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/action/attack");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerAction.ATTACK);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Attack emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
 
@@ -228,13 +430,38 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return m;
                 }
 
+                public static Interact fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Interact(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("entity_type"), ""), YogData.str(m.get("entity_uuid"), ""), YogData.str(m.get("hand"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Interact fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/action/interact");
-                    static final int PRE = YogBus.resolve("yog:event/player/action/interact/pre");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerAction.INTERACT);
+                    static final int PRE = YogBus.resolve(YogNames.EventPlayerAction.INTERACT_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Interact emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
 
                 public boolean emitPre() {
@@ -254,12 +481,37 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return m;
                 }
 
+                public static Craft fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Craft(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("result_item"), ""), YogData.integer(m.get("result_count"), 0), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Craft fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/action/craft");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerAction.CRAFT);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Craft emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
 
@@ -278,13 +530,38 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return m;
                 }
 
+                public static Pickup fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Pickup(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("item_id"), ""), YogData.integer(m.get("item_count"), 0), YogData.str(m.get("entity_uuid"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Pickup fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/action/pickup");
-                    static final int PRE = YogBus.resolve("yog:event/player/action/pickup/pre");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerAction.PICKUP);
+                    static final int PRE = YogBus.resolve(YogNames.EventPlayerAction.PICKUP_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Pickup emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
 
                 public boolean emitPre() {
@@ -308,12 +585,37 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return m;
                 }
 
+                public static Advancement fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Advancement(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("advancement_id"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Advancement fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/player/progress/advancement");
+                    static final int POST = YogBus.resolve(YogNames.EventPlayerProgress.ADVANCEMENT);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Advancement emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -334,13 +636,38 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 return m;
             }
 
+            public static Break fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Break(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""));
+            }
+
+            public static Break fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
             private static final class Address {
-                static final int POST = YogBus.resolve("yog:event/block/break");
-                static final int PRE = YogBus.resolve("yog:event/block/break/pre");
+                static final int POST = YogBus.resolve(YogNames.EventBlock.BREAK);
+                static final int PRE = YogBus.resolve(YogNames.EventBlock.BREAK_PRE);
+            }
+
+            /** Whether anyone listens — skip building an event no one hears. */
+            public static boolean heard() {
+                return YogBus.heard(Address.POST);
             }
 
             public YogBus.Reply emit() {
                 return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+            public Break emitChanged() {
+                YogBus.Reply r = emit();
+                if (r.status() != YogBus.OK) return this;
+                try {
+                    return fromBytes(r.bytes());
+                } catch (RuntimeException e) {
+                    return this;
+                }
             }
 
             public boolean emitPre() {
@@ -362,13 +689,38 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return m;
             }
 
+            public static Place fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Place(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.bool(m.get("sneaking"), false));
+            }
+
+            public static Place fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
             private static final class Address {
-                static final int POST = YogBus.resolve("yog:event/block/place");
-                static final int PRE = YogBus.resolve("yog:event/block/place/pre");
+                static final int POST = YogBus.resolve(YogNames.EventBlock.PLACE);
+                static final int PRE = YogBus.resolve(YogNames.EventBlock.PLACE_PRE);
+            }
+
+            /** Whether anyone listens — skip building an event no one hears. */
+            public static boolean heard() {
+                return YogBus.heard(Address.POST);
             }
 
             public YogBus.Reply emit() {
                 return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+            public Place emitChanged() {
+                YogBus.Reply r = emit();
+                if (r.status() != YogBus.OK) return this;
+                try {
+                    return fromBytes(r.bytes());
+                } catch (RuntimeException e) {
+                    return this;
+                }
             }
 
             public boolean emitPre() {
@@ -388,13 +740,38 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return m;
             }
 
+            public static Use fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Use(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.bool(m.get("sneaking"), false));
+            }
+
+            public static Use fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
             private static final class Address {
-                static final int POST = YogBus.resolve("yog:event/block/use");
-                static final int PRE = YogBus.resolve("yog:event/block/use/pre");
+                static final int POST = YogBus.resolve(YogNames.EventBlock.USE);
+                static final int PRE = YogBus.resolve(YogNames.EventBlock.USE_PRE);
+            }
+
+            /** Whether anyone listens — skip building an event no one hears. */
+            public static boolean heard() {
+                return YogBus.heard(Address.POST);
             }
 
             public YogBus.Reply emit() {
                 return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+            public Use emitChanged() {
+                YogBus.Reply r = emit();
+                if (r.status() != YogBus.OK) return this;
+                try {
+                    return fromBytes(r.bytes());
+                } catch (RuntimeException e) {
+                    return this;
+                }
             }
 
             public boolean emitPre() {
@@ -417,12 +794,37 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return m;
             }
 
+            public static Insert fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Insert(YogData.str(m.get("block_id"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.str(m.get("item_id"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("nbt"), ""));
+            }
+
+            public static Insert fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
             private static final class Address {
-                static final int POST = YogBus.resolve("yog:event/block/insert");
+                static final int POST = YogBus.resolve(YogNames.EventBlock.INSERT);
+            }
+
+            /** Whether anyone listens — skip building an event no one hears. */
+            public static boolean heard() {
+                return YogBus.heard(Address.POST);
             }
 
             public YogBus.Reply emit() {
                 return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+            public Insert emitChanged() {
+                YogBus.Reply r = emit();
+                if (r.status() != YogBus.OK) return this;
+                try {
+                    return fromBytes(r.bytes());
+                } catch (RuntimeException e) {
+                    return this;
+                }
             }
         }
     }
@@ -447,13 +849,38 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return m;
                 }
 
+                public static Spawn fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Spawn(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Spawn fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/entity/life/spawn");
-                    static final int PRE = YogBus.resolve("yog:event/entity/life/spawn/pre");
+                    static final int POST = YogBus.resolve(YogNames.EventEntityLife.SPAWN);
+                    static final int PRE = YogBus.resolve(YogNames.EventEntityLife.SPAWN_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Spawn emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
 
                 public boolean emitPre() {
@@ -472,12 +899,37 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return m;
                 }
 
+                public static Death fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Death(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("source"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Death fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/entity/life/death");
+                    static final int POST = YogBus.resolve(YogNames.EventEntityLife.DEATH);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Death emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -498,13 +950,38 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return m;
                 }
 
+                public static Damage fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Damage(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""), YogData.number(m.get("amount"), 0), YogData.str(m.get("source"), ""), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static Damage fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/entity/combat/damage");
-                    static final int PRE = YogBus.resolve("yog:event/entity/combat/damage/pre");
+                    static final int POST = YogBus.resolve(YogNames.EventEntityCombat.DAMAGE);
+                    static final int PRE = YogBus.resolve(YogNames.EventEntityCombat.DAMAGE_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Damage emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
 
                 public boolean emitPre() {
@@ -530,17 +1007,81 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return m;
                 }
 
+                public static ProjectileHit fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new ProjectileHit(YogData.str(m.get("projectile_type"), ""), YogData.str(m.get("projectile_uuid"), ""), YogData.str(m.get("shooter_uuid"), ""), YogData.str(m.get("hit_type"), ""), YogData.str(m.get("hit_entity_uuid"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), YogData.str(m.get("dimension"), ""));
+                }
+
+                public static ProjectileHit fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/entity/combat/projectile_hit");
-                    static final int PRE = YogBus.resolve("yog:event/entity/combat/projectile_hit/pre");
+                    static final int POST = YogBus.resolve(YogNames.EventEntityCombat.PROJECTILE_HIT);
+                    static final int PRE = YogBus.resolve(YogNames.EventEntityCombat.PROJECTILE_HIT_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
                 }
 
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public ProjectileHit emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
+        }
+
+        /** The `game` events. */
+        public static final class Game {
+            private Game() {}
+
+            /** A tick of an entity of a mod's type (one with `ticks`); keyed by its type — handlers hear only their own type's. */
+            public record Tick(String entityType, String uuid) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("entity_type", entityType);
+                    m.put("uuid", uuid);
+                    return m;
+                }
+
+                public static Tick fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Tick(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""));
+                }
+
+                public static Tick fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventEntityGame.TICK, entityType), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Tick emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -565,17 +1106,96 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return m;
             }
 
+            public static Explosion fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Explosion(YogData.str(m.get("dimension"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), YogData.number(m.get("power"), 0), YogData.str(m.get("cause_uuid"), ""));
+            }
+
+            public static Explosion fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
             private static final class Address {
-                static final int POST = YogBus.resolve("yog:event/world/explosion");
-                static final int PRE = YogBus.resolve("yog:event/world/explosion/pre");
+                static final int POST = YogBus.resolve(YogNames.EventWorld.EXPLOSION);
+                static final int PRE = YogBus.resolve(YogNames.EventWorld.EXPLOSION_PRE);
+            }
+
+            /** Whether anyone listens — skip building an event no one hears. */
+            public static boolean heard() {
+                return YogBus.heard(Address.POST);
             }
 
             public YogBus.Reply emit() {
                 return YogBus.emit(Address.POST, YogData.encode(toData()));
             }
 
+            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+            public Explosion emitChanged() {
+                YogBus.Reply r = emit();
+                if (r.status() != YogBus.OK) return this;
+                try {
+                    return fromBytes(r.bytes());
+                } catch (RuntimeException e) {
+                    return this;
+                }
+            }
+
             public boolean emitPre() {
                 return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+            }
+        }
+
+        /** The `loot` events. */
+        public static final class Loot {
+            private Loot() {}
+
+            /** A loot table rolled: where and for whom, and what it gave. Handlers change `items`; each sees the one before's result. */
+            public record Roll(String table, String dimension, List<Double> pos, String entity, String killer, LootStack tool, List<List<Object>> enchantments, List<LootStack> items) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("table", table);
+                    m.put("dimension", dimension);
+                    if (pos != null) m.put("pos", pos);
+                    if (entity != null) m.put("entity", entity);
+                    if (killer != null) m.put("killer", killer);
+                    if (tool != null) m.put("tool", tool.toData());
+                    m.put("enchantments", enchantments);
+                    m.put("items", items.stream().map(e0 -> e0.toData()).toList());
+                    return m;
+                }
+
+                public static Roll fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Roll(YogData.str(m.get("table"), ""), YogData.str(m.get("dimension"), ""), (m.get("pos") == null ? null : YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList()), (m.get("entity") == null ? null : YogData.str(m.get("entity"), "")), (m.get("killer") == null ? null : YogData.str(m.get("killer"), "")), (m.get("tool") == null ? null : LootStack.fromData(m.get("tool"))), YogData.list(m.get("enchantments")).stream().map(e0 -> YogData.list(e0).stream().map(e1 -> e1).toList()).toList(), YogData.list(m.get("items")).stream().map(e0 -> LootStack.fromData(e0)).toList());
+                }
+
+                public static Roll fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve(YogNames.EventWorldLoot.ROLL);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Roll emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
             }
         }
     }
@@ -597,13 +1217,38 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return m;
             }
 
+            public static Open fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Open(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("container_type"), ""), YogData.str(m.get("dimension"), ""));
+            }
+
+            public static Open fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
             private static final class Address {
-                static final int POST = YogBus.resolve("yog:event/container/open");
-                static final int PRE = YogBus.resolve("yog:event/container/open/pre");
+                static final int POST = YogBus.resolve(YogNames.EventContainer.OPEN);
+                static final int PRE = YogBus.resolve(YogNames.EventContainer.OPEN_PRE);
+            }
+
+            /** Whether anyone listens — skip building an event no one hears. */
+            public static boolean heard() {
+                return YogBus.heard(Address.POST);
             }
 
             public YogBus.Reply emit() {
                 return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+            public Open emitChanged() {
+                YogBus.Reply r = emit();
+                if (r.status() != YogBus.OK) return this;
+                try {
+                    return fromBytes(r.bytes());
+                } catch (RuntimeException e) {
+                    return this;
+                }
             }
 
             public boolean emitPre() {
@@ -621,12 +1266,97 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return m;
             }
 
+            public static Close fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Close(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("dimension"), ""));
+            }
+
+            public static Close fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
             private static final class Address {
-                static final int POST = YogBus.resolve("yog:event/container/close");
+                static final int POST = YogBus.resolve(YogNames.EventContainer.CLOSE);
+            }
+
+            /** Whether anyone listens — skip building an event no one hears. */
+            public static boolean heard() {
+                return YogBus.heard(Address.POST);
             }
 
             public YogBus.Reply emit() {
                 return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+            public Close emitChanged() {
+                YogBus.Reply r = emit();
+                if (r.status() != YogBus.OK) return this;
+                try {
+                    return fromBytes(r.bytes());
+                } catch (RuntimeException e) {
+                    return this;
+                }
+            }
+        }
+
+        /** The `machine` events. */
+        public static final class Machine {
+            private Machine() {}
+
+            /** A machine and the recipe its slots make. Pre: whether it may — the result shows only if every handler allows it (a workbench short of a resource says no); `player` empty. Post: a player took the result — the mod takes its share (the host takes the ingredients). */
+            public record Craft(String machine, String kind, String recipe, String resultItem, long resultCount, String values, BlockPos pos, String dimension, String player) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("machine", machine);
+                    m.put("kind", kind);
+                    m.put("recipe", recipe);
+                    m.put("result_item", resultItem);
+                    m.put("result_count", resultCount);
+                    m.put("values", values);
+                    m.put("pos", pos.toData());
+                    m.put("dimension", dimension);
+                    m.put("player", player);
+                    return m;
+                }
+
+                public static Craft fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Craft(YogData.str(m.get("machine"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("recipe"), ""), YogData.str(m.get("result_item"), ""), YogData.integer(m.get("result_count"), 0), YogData.str(m.get("values"), ""), BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.str(m.get("player"), ""));
+                }
+
+                public static Craft fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve(YogNames.EventContainerMachine.CRAFT);
+                    static final int PRE = YogBus.resolve(YogNames.EventContainerMachine.CRAFT_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Craft emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
             }
         }
     }
@@ -646,12 +1376,37 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return m;
                 }
 
+                public static Tick fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Tick();
+                }
+
+                public static Tick fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/server/game/tick");
+                    static final int POST = YogBus.resolve(YogNames.EventServerGame.TICK);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Tick emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -668,12 +1423,37 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return m;
                 }
 
+                public static Started fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Started(YogData.str(m.get("world_dir"), ""));
+                }
+
+                public static Started fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/server/life/started");
+                    static final int POST = YogBus.resolve(YogNames.EventServerLife.STARTED);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Started emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
 
@@ -684,12 +1464,37 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return m;
                 }
 
+                public static Stopping fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Stopping();
+                }
+
+                public static Stopping fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/server/life/stopping");
+                    static final int POST = YogBus.resolve(YogNames.EventServerLife.STOPPING);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Stopping emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -710,12 +1515,37 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return m;
                 }
 
+                public static Tick fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Tick();
+                }
+
+                public static Tick fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/client/game/tick");
+                    static final int POST = YogBus.resolve(YogNames.EventClientGame.TICK);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Tick emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -737,17 +1567,75 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return m;
                 }
 
+                public static Key fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Key((int) YogData.integer(m.get("key_code"), 0), (int) YogData.integer(m.get("scan_code"), 0), (int) YogData.integer(m.get("action"), 0), (int) YogData.integer(m.get("modifiers"), 0));
+                }
+
+                public static Key fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/client/input/key");
-                    static final int PRE = YogBus.resolve("yog:event/client/input/key/pre");
+                    static final int POST = YogBus.resolve(YogNames.EventClientInput.KEY);
+                    static final int PRE = YogBus.resolve(YogNames.EventClientInput.KEY_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
                 }
 
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Key emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
+
+            /** A mod's key binding pressed; keyed by its id (`mymod:xray`). */
+            public record Binding(String id) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", id);
+                    return m;
+                }
+
+                public static Binding fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Binding(YogData.str(m.get("id"), ""));
+                }
+
+                public static Binding fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientInput.BINDING, id), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Binding emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -764,12 +1652,37 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return m;
                 }
 
+                public static Open fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Open(YogData.str(m.get("screen_class"), ""));
+                }
+
+                public static Open fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/client/ui/open");
+                    static final int POST = YogBus.resolve(YogNames.EventClientUi.OPEN);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Open emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
 
@@ -781,12 +1694,37 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return m;
                 }
 
+                public static Close fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Close(YogData.str(m.get("screen_class"), ""));
+                }
+
+                public static Close fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/client/ui/close");
+                    static final int POST = YogBus.resolve(YogNames.EventClientUi.CLOSE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Close emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -803,12 +1741,37 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return m;
                 }
 
+                public static Hud fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Hud(YogData.number(m.get("delta_tick"), 0));
+                }
+
+                public static Hud fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
                 private static final class Address {
-                    static final int POST = YogBus.resolve("yog:event/client/render/hud");
+                    static final int POST = YogBus.resolve(YogNames.EventClientRender.HUD);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
                 }
 
                 public YogBus.Reply emit() {
                     return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Hud emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
                 }
             }
         }
@@ -822,6 +1785,35 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             m.put("y", y);
             m.put("z", z);
             return m;
+        }
+
+        public static BlockPos fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new BlockPos((int) YogData.integer(m.get("x"), 0), (int) YogData.integer(m.get("y"), 0), (int) YogData.integer(m.get("z"), 0));
+        }
+
+        public static BlockPos fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** A stack of items: its id, how many, and its custom data (SNBT, `{}` for none). */
+    public record LootStack(String id, long count, String nbt) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", id);
+            m.put("count", count);
+            m.put("nbt", nbt);
+            return m;
+        }
+
+        public static LootStack fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new LootStack(YogData.str(m.get("id"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("nbt"), ""));
+        }
+
+        public static LootStack fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
         }
     }
 }

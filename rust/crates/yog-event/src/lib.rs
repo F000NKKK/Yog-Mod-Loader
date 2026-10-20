@@ -20,5 +20,5 @@ pub mod player;
 pub mod server;
 pub mod world;
 
-pub use event::{Event, EventInfo, all};
+pub use event::{Event, EventInfo, all, keyed};
 pub use phase::EventPhase;

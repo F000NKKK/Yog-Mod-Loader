@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 yog-event = { workspace = true }
+yog-core = { workspace = true }
 yog-sync = { workspace = true }
 yog-ids = { workspace = true }
 # Pinned to 0.21 — 0.22 split `JNIEnv` into `Env`/`EnvUnowned` (a breaking

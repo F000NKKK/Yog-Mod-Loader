@@ -1,5 +1,5 @@
 //! Loot: change what loot tables give — a chest's, a block's drops, a
-//! mob's. [`crate::Registry::on_loot`] sees every table rolled; a
+//! mob's. [`crate::Registry::change`] with [`yog_event::world::loot::Roll`] sees every table rolled; a
 //! [`LootModifier`] (a `.ydef`, or built in code) adds and scales items on
 //! some tables, finishing the stacks it adds with the mod's named loot
 //! functions ([`crate::Registry::loot_function`]).

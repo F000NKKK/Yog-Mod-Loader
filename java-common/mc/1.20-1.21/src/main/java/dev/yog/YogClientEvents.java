@@ -36,7 +36,7 @@ public final class YogClientEvents {
 
     /** The end of a client tick: key presses, then the mods. */
     public static void tick() {
-        dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
+        dev.yog.util.YogKeyBindings.tick();
         new YogEvents.Client.Game.Tick().emit();
     }
 

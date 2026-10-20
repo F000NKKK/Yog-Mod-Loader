@@ -2,6 +2,8 @@
 
 use yog_data::Schema;
 
+pub mod machine;
+
 /// Fired when a player opens a container screen.
 ///
 /// - `Pre`  — return `false` to prevent the screen from opening.

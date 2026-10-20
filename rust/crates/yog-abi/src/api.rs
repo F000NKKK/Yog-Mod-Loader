@@ -218,10 +218,6 @@ pub struct YogApi {
     /// (a written blueprint shows its design) — see [`YogItemTextFn`].
     pub on_item_text: unsafe extern "C" fn(ctx: *mut c_void, item: YogStr, ud: *mut c_void, f: YogItemTextFn),
 
-    // ── ABI 2.5 — machines ──────────────────────────────────────────────────
-    /// A machine making a recipe — see [`YogMachineCraftEvent`].
-    pub on_machine_craft: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogMachineCraftFn),
-
     // ── ABI 3.0 — bodies, camera, movement (yog-body) ───────────────────────
     /// Asks the mods about entity `uuid`'s body each frame (`on`) or not.
     pub client_body_track: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, on: bool),
@@ -244,16 +240,6 @@ pub struct YogApi {
     /// `sink`; `false` if nothing.
     pub client_entity_data:
         unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, key: YogStr, sink: *mut c_void, write: YogBytesSink) -> bool,
-
-    // ── ABI 3.3 — mod entities ──────────────────────────────────────────────
-    /// Each tick of every entity of `entity_type` (a mod's, with `ticks`).
-    pub on_entity_tick: unsafe extern "C" fn(ctx: *mut c_void, entity_type: YogStr, ud: *mut c_void, f: YogEntityTickFn),
-
-    // ── ABI 3.4 — loot ──────────────────────────────────────────────────────
-    /// Every loot table rolled — a chest's, a block's drops, a mob's — before
-    /// its items are given: see [`YogLootFn`]. Each handler sees the last
-    /// one's items.
-    pub on_loot: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogLootFn),
 
     // ── ABI 3.6 — attribute values (client) ─────────────────────────────────
     /// An attribute's value on this client's player (a casting grid's size
@@ -283,8 +269,6 @@ pub struct YogApi {
     /// the translation key of its label, `default_key` a GLFW key code (-1:
     /// unbound). Declared while the mod registers; the game keeps the key.
     pub register_key_binding: unsafe extern "C" fn(ctx: *mut c_void, id: YogStr, name: YogStr, default_key: i32),
-    /// Every press of a mod's key binding (any mod's: the handler checks the id).
-    pub on_key_binding: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogKeyBindingFn),
 
     // ── ABI 3.11 — the bus ──────────────────────────────────────────────────
     /// The bus: calls, events and services by address (`docs/design/bus.md`).

@@ -32,15 +32,12 @@ pub(super) type CommandEntry = (LoadedModule, Option<String>, *mut c_void, YogCo
 // regardless of what this crate does.
 #[derive(Default)]
 pub(super) struct RuntimeHandlers {
-    pub(super) machine_craft: Vec<(LoadedModule, *mut c_void, YogMachineCraftFn)>,
     pub(super) item_insert: Vec<(LoadedModule, *mut c_void, YogItemInsertFn)>,
     pub(super) hud_render: Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>,
     pub(super) body: Vec<(LoadedModule, *mut c_void, yog_abi::YogBodyFn)>,
     pub(super) camera: Vec<(LoadedModule, *mut c_void, yog_abi::YogCameraFn)>,
     pub(super) travel: Vec<(LoadedModule, *mut c_void, yog_abi::YogTravelFn)>,
-    pub(super) loot: Vec<(LoadedModule, *mut c_void, yog_abi::YogLootFn)>,
     pub(super) world_render: Vec<(LoadedModule, *mut c_void, YogWorldRenderFn)>,
-    pub(super) key_binding: Vec<(LoadedModule, *mut c_void, YogKeyBindingFn)>,
     /// All handlers registered under one command name, in registration order.
     /// `schema` is `None` for a plain `on_command` (bare, zero-argument)
     /// registration and `Some(schema)` for `on_typed_command`. Kept as a
@@ -62,8 +59,6 @@ pub(super) struct RuntimeHandlers {
     pub(super) attributes: Vec<yog_data::Value>,
     pub(super) effects: Vec<yog_data::Value>,
     pub(super) potions: Vec<yog_data::Value>,
-    /// Ticks of mods' entities, by type.
-    pub(super) entity_ticks: HashMap<String, Vec<(LoadedModule, *mut c_void, yog_abi::YogEntityTickFn)>>,
     pub(super) blocks: Vec<BlockDef>,
     /// The content blob the hosts read (`nativeContent`), built once —
     /// dropped when more content registers.
@@ -246,9 +241,6 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         h.page_drawers
             .retain(|_, (m, ..)| m.generation() != generation);
         for entries in h.item_texts.values_mut() {
-            entries.retain(|(m, ..)| m.generation() != generation);
-        }
-        for entries in h.entity_ticks.values_mut() {
             entries.retain(|(m, ..)| m.generation() != generation);
         }
         for entries in h.item_tooltips.values_mut() {

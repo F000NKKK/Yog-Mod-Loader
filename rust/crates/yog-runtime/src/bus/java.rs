@@ -81,3 +81,8 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeEmit<'l>(mut env: JNIEnv<'l>, _
     let (st, reply) = ROUTER.emit(event as u32, &payload, run);
     java_reply(&mut env, st, &reply)
 }
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_YogBus_nativeHeard<'l>(_env: JNIEnv<'l>, _class: JClass<'l>, event: jint) -> jboolean {
+    ROUTER.heard(event as u32) as jboolean
+}

@@ -19,11 +19,9 @@ macro_rules! api_event {
     };
 }
 
-api_event!(api_on_machine_craft, machine_craft, YogMachineCraftFn);
 api_event!(api_on_item_insert, item_insert, YogItemInsertFn);
 api_event!(api_on_hud_render, hud_render, YogHudRenderFn);
 api_event!(api_on_world_render, world_render, YogWorldRenderFn);
-api_event!(api_on_key_binding, key_binding, YogKeyBindingFn);
 
 pub(super) unsafe extern "C" fn api_on_packet(
     ctx: *mut c_void,
@@ -378,26 +376,6 @@ pub(super) unsafe extern "C" fn api_on_item_tooltip(
             .or_default()
             .push((current_registration(), ud, size, draw));
     }
-}
-
-pub(super) unsafe extern "C" fn api_on_entity_tick(ctx: *mut c_void, entity_type: YogStr, ud: *mut c_void, f: yog_abi::YogEntityTickFn) {
-    unsafe {
-        handlers_mut(ctx).entity_ticks.entry(entity_type.as_str().to_owned()).or_default().push((current_registration(), ud, f));
-    }
-}
-
-/// `nativeOnEntityTick(String type, String uuid)`: a tick of a mod's entity.
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnEntityTick<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    entity_type: JString<'l>,
-    uuid: JString<'l>,
-) {
-    let (t, u) = (jstr!(env, entity_type), jstr!(env, uuid));
-    let entries = handlers().entity_ticks.get(&t).cloned().unwrap_or_default();
-    let srv = srv_ptr();
-    guard("on_entity_tick", || each(&entries, |ud, f| unsafe { f(ud, srv, YogStr::from_str(&u)) }));
 }
 
 pub(super) unsafe extern "C" fn api_on_item_text(ctx: *mut c_void, item: YogStr, ud: *mut c_void, f: yog_abi::YogItemTextFn) {

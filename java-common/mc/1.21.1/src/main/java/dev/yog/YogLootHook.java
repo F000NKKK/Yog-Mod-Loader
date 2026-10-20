@@ -1,10 +1,8 @@
 package dev.yog;
 
-import dev.yog.util.YogLoot;
+import dev.yog.bus.YogEvents;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
@@ -16,7 +14,7 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Loot (ABI 3.4): a loot table rolled at the top (a chest's, a block's
  * drops, a mob's) — what it gives goes past the mods first
- * ({@link YogLoot}). Called by {@code LootTableMixin}.
+ * ({@link YogEvents.World.Loot.Roll}). Called by {@code LootTableMixin}.
  */
 public final class YogLootHook {
     private YogLootHook() {}
@@ -29,7 +27,7 @@ public final class YogLootHook {
      * what they leave; false when there's nothing to ask (the game rolls as usual).
      */
     public static boolean roll(LootTable table, String id, LootContext ctx, Consumer<ItemStack> out) {
-        if (id == null || ROLLING.get() || !NativeBridge.nativeHasLoot()) return false;
+        if (id == null || ROLLING.get() || !YogEvents.World.Loot.Roll.heard()) return false;
         List<ItemStack> rolled = new ArrayList<>();
         ROLLING.set(true);
         try {
@@ -37,27 +35,28 @@ public final class YogLootHook {
         } finally {
             ROLLING.set(false);
         }
-        List<YogLoot.Stack> items = new ArrayList<>();
+        List<YogEvents.LootStack> items = new ArrayList<>();
         for (ItemStack s : rolled) items.add(stack(s));
         Vec3 origin = ctx.getParamOrNull(LootContextParams.ORIGIN);
         Entity entity = ctx.getParamOrNull(LootContextParams.THIS_ENTITY);
         Entity killer = ctx.getParamOrNull(LootContextParams.ATTACKING_ENTITY);
         ItemStack tool = ctx.getParamOrNull(LootContextParams.TOOL);
-        YogLoot.Context c = new YogLoot.Context(
+        YogEvents.World.Loot.Roll roll = new YogEvents.World.Loot.Roll(
                 id,
                 ctx.getLevel().dimension().location().toString(),
-                origin == null ? null : new double[] {origin.x, origin.y, origin.z},
+                origin == null ? null : List.of(origin.x, origin.y, origin.z),
                 entity == null ? null : entity.getUUID().toString(),
                 killer == null ? null : killer.getUUID().toString(),
                 tool == null || tool.isEmpty() ? null : stack(tool),
-                tool == null ? null : enchantments(tool));
-        List<YogLoot.Stack> given = YogLoot.run(NativeBridge::nativeLoot, c, items);
-        if (given == null) {
+                tool == null ? List.of() : enchantments(tool),
+                items);
+        List<YogEvents.LootStack> given = roll.emitChanged().items();
+        if (given.equals(items)) {
             rolled.forEach(out);
             return true;
         }
-        for (YogLoot.Stack s : given) {
-            ItemStack stack = NativeBridge.buildStack(s.id(), s.count(), s.nbt());
+        for (YogEvents.LootStack s : given) {
+            ItemStack stack = NativeBridge.buildStack(s.id(), (int) s.count(), s.nbt());
             if (stack == null) continue;
             // As the game gives them: no stack above its size.
             int max = Math.max(1, stack.getMaxStackSize());
@@ -66,13 +65,13 @@ public final class YogLootHook {
         return true;
     }
 
-    private static YogLoot.Stack stack(ItemStack s) {
-        return new YogLoot.Stack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).toString(), s.getCount(), NativeBridge.stackSnbt(s));
+    private static YogEvents.LootStack stack(ItemStack s) {
+        return new YogEvents.LootStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).toString(), s.getCount(), NativeBridge.stackSnbt(s));
     }
 
-    private static Map<String, Integer> enchantments(ItemStack tool) {
-        Map<String, Integer> out = new LinkedHashMap<>();
-        for (var e : tool.getEnchantments().entrySet()) out.put(e.getKey().getRegisteredName(), e.getIntValue());
+    private static List<List<Object>> enchantments(ItemStack tool) {
+        List<List<Object>> out = new ArrayList<>();
+        for (var e : tool.getEnchantments().entrySet()) out.add(List.of(e.getKey().getRegisteredName(), (long) e.getIntValue()));
         return out;
     }
 }

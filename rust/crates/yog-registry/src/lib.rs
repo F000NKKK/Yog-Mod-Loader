@@ -1107,7 +1107,7 @@ pub struct EntityDef {
     #[data(default)]
     pub goals: Vec<String>,
     /// The mod handles each tick of every entity of this type
-    /// (`on_entity_tick`).
+    /// (`yog_event::entity::game::Tick`, keyed by the type).
     #[data(default)]
     pub ticks: bool,
     /// A hanging thing's sound events when it's placed and when it breaks;

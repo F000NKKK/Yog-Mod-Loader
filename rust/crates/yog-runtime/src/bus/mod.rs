@@ -10,6 +10,7 @@ mod tests;
 use std::os::raw::c_void;
 use std::sync::{LazyLock, OnceLock};
 
+use yog_event::Event;
 use yog_abi::{ABI_VERSION, YogAddress, YogBus, YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, status};
 
 pub(crate) use duties::register as register_duties;
@@ -42,6 +43,17 @@ pub(crate) fn table() -> *const YogBus {
             })
         })
         .0
+}
+
+/// Emits `event` before the game does it: whether every handler lets it.
+pub(crate) fn allowed<E: Event>(event: &E) -> bool {
+    let Some(pre) = E::PRE else { return true };
+    ROUTER.emit(ROUTER.resolve(pre), &event.to_bytes(), java::run).0 != status::CANCELLED
+}
+
+/// Emits `event` after the game did it.
+pub(crate) fn emitted<E: Event>(event: &E) {
+    ROUTER.emit(ROUTER.resolve(E::ADDRESS), &event.to_bytes(), java::run);
 }
 
 /// Writes `bytes` to `reply` (if there's one and anything to write).

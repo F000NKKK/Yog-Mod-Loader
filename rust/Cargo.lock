@@ -1880,6 +1880,7 @@ dependencies = [
  "yog-core",
  "yog-data",
  "yog-ids",
+ "yog-registry",
 ]
 
 [[package]]
@@ -2026,6 +2027,7 @@ dependencies = [
  "serde_json",
  "yog-abi",
  "yog-book",
+ "yog-core",
  "yog-data",
  "yog-event",
  "yog-formats",

@@ -11,3 +11,4 @@ description = "Yog event system — pub/sub for game/server events."
 yog-core = { workspace = true }
 yog-data = { workspace = true }
 yog-ids = { workspace = true }
+yog-registry = { workspace = true }

@@ -4,27 +4,6 @@ use super::*;
 
 // ── Event structs (Java → Rust) ───────────────────────────────────────────────
 
-/// A machine (an inventory's `.yui` `<RecipeArea>`) and the recipe its
-/// slots make. Pre: whether it may — the result shows only if every
-/// handler allows it (a workbench short of a resource says no); `player`
-/// empty. Post: a player took the result — the mod takes its share (the
-/// host takes the ingredients).
-#[repr(C)]
-pub struct YogMachineCraftEvent {
-    /// The machine's inventory, e.g. `mymod:press`.
-    pub machine: YogStr,
-    /// The recipe's kind and id.
-    pub kind: YogStr,
-    pub recipe: YogStr,
-    pub result_item: YogStr,
-    pub result_count: u32,
-    /// The recipe's values (`{ "energy": 4 }`), as JSON.
-    pub values: YogStr,
-    pub pos: YogBlockPos,
-    pub dimension: YogStr,
-    pub player: YogStr,
-}
-
 // ── ABI minor 9–10 event structs ──────────────────────────────────────────────
 
 /// A hopper or dropper puts an item into a block that accepts items

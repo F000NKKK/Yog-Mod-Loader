@@ -1,11 +1,11 @@
 package dev.yog.util;
 
+import dev.yog.bus.YogEvents;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
 
 /**
  * The mods' key bindings (ABI 3.10), the part every host shares: what the
@@ -71,10 +71,10 @@ public final class YogKeyBindings {
         KEYS.add(Map.entry(id, clicked));
     }
 
-    /** Every press since the last tick, to the mods ({@code NativeBridge::nativeOnKeyBinding}). */
-    public static void tick(Consumer<String> pressed) {
+    /** Every press since the last tick, to the mods (each binding's own event). */
+    public static void tick() {
         for (Map.Entry<String, BooleanSupplier> k : KEYS) {
-            while (k.getValue().getAsBoolean()) pressed.accept(k.getKey());
+            while (k.getValue().getAsBoolean()) new YogEvents.Client.Input.Binding(k.getKey()).emit();
         }
     }
 

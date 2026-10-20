@@ -2,6 +2,8 @@
 
 use yog_data::Schema;
 
+pub mod loot;
+
 /// Fired when an explosion occurs in a world.
 ///
 /// - `Pre`  — fires before block destruction; return `false` to cancel

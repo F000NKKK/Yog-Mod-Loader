@@ -52,6 +52,21 @@ public final class YogBus {
         return nativeResolve(address);
     }
 
+    private static final Map<String, Integer> KEYED = new ConcurrentHashMap<>();
+
+    /**
+     * {@code address}'s branch for {@code key} — where a keyed event with that
+     * key goes ({@code yog:event/entity/game/tick/mymod:golem}); resolved once.
+     */
+    public static int keyed(String address, String key) {
+        return KEYED.computeIfAbsent(address + YogNames.Sep.PATH + key, YogBus::resolve);
+    }
+
+    /** Whether anyone listens to {@code event} — skip building a payload no one hears. */
+    public static boolean heard(int event) {
+        return nativeHeard(event);
+    }
+
     /** Calls {@code to}'s provider. */
     public static Reply call(int to, byte[] payload) {
         return unpack(nativeCall(to, payload));
@@ -116,4 +131,6 @@ public final class YogBus {
     private static native boolean nativeProvide(int address, int handler);
 
     private static native void nativeOn(int event, int priority, int handler);
+
+    private static native boolean nativeHeard(int event);
 }

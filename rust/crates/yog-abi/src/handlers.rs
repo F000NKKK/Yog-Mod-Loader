@@ -13,21 +13,11 @@ use super::*;
 // Client-side handlers (minor 10) do NOT receive a `YogServer*` — they run on
 // the render thread and have no server context.
 
-pub type YogMachineCraftFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogMachineCraftEvent, u8) -> bool;
 pub type YogItemInsertFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogItemInsertEvent, u8) -> bool;
 
 /// Packet events — always Post, no phase.
 pub type YogPacketFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
-/// A loot table rolled (`yog_registry::Loot`, Yog Data's binary form):
-/// the handler writes the items it should give instead
-/// (`Vec<yog_registry::LootStack>`, the same form) to `sink`, or nothing
-/// to leave them.
-pub type YogLootFn =
-    unsafe extern "C" fn(ud: *mut c_void, server: *const YogServer, loot: *const u8, len: usize, sink: *mut c_void, write: YogBytesSink);
-/// A tick of one entity of a mod's type: `(ud, server, uuid)`.
-pub type YogEntityTickFn = unsafe extern "C" fn(*mut c_void, *const YogServer, YogStr);
 /// Command handler.
 pub type YogCommandFn = unsafe extern "C" fn(
     ud: *mut c_void,
@@ -146,5 +136,3 @@ pub type YogItemTextFn =
 /// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
 /// Valid only for the call duration.
 pub type YogWorldRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
-/// A mod's key binding pressed (ABI 3.10): `id`, as `register_key_binding` named it.
-pub type YogKeyBindingFn = unsafe extern "C" fn(ud: *mut c_void, id: YogStr);

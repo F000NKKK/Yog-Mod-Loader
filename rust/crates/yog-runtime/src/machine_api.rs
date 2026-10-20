@@ -1,28 +1,30 @@
 //! Machines (ABI 2.5).
 
 use super::*;
+use yog_core::BlockPos;
+use yog_event::container::machine::Craft;
 
 // ── Machines (ABI 2.5) ───────────────────────────────────────────────────────
 
 /// A machine's event about recipe `found`.
-pub(super) fn machine_event<'a>(
-    m: &'a yog_inventory::Machine,
-    def: &'a str,
-    found: &'a machine::Found,
-    dim: &'a str,
+pub(super) fn machine_event(
+    m: &yog_inventory::Machine,
+    def: &str,
+    found: &machine::Found,
+    dim: &str,
     pos: YogBlockPos,
-    player: &'a str,
-) -> YogMachineCraftEvent {
-    YogMachineCraftEvent {
-        machine: YogStr::from_str(def),
-        kind: YogStr::from_str(&m.kind),
-        recipe: YogStr::from_str(&found.recipe),
-        result_item: YogStr::from_str(&found.result),
+    player: &str,
+) -> Craft {
+    Craft {
+        machine: def.to_owned(),
+        kind: m.kind.clone(),
+        recipe: found.recipe.clone(),
+        result_item: found.result.clone(),
         result_count: found.count,
-        values: YogStr::from_str(&found.values),
-        pos,
-        dimension: YogStr::from_str(dim),
-        player: YogStr::from_str(player),
+        values: found.values.clone(),
+        pos: BlockPos { x: pos.x, y: pos.y, z: pos.z },
+        dimension: dim.to_owned(),
+        player: player.to_owned(),
     }
 }
 
@@ -33,11 +35,7 @@ pub(super) fn machine_recipe(def: &str, dim: &str, pos: YogBlockPos, items: &[St
     let m = h.inventories.iter().find(|d| d.id == def)?.machine.as_ref()?;
     let has_tag = |item: &str, tag: &str| unsafe { srv_has_item_tag(std::ptr::null_mut(), YogStr::from_str(item), YogStr::from_str(tag)) };
     let recipes = h.recipes.iter().map(|(ns, name, r)| (format!("{ns}:{name}"), r)).filter(|(id, _)| recipe.is_none_or(|r| r == id));
-    let srv = srv_ptr();
-    machine::find(m, recipes, items, &has_tag).find(|found| {
-        let ev = machine_event(m, def, found, dim, pos, "");
-        allowed(&h.machine_craft, |ud, f| unsafe { f(ud, srv, &ev, 0) })
-    })
+    machine::find(m, recipes, items, &has_tag).find(|found| crate::bus::allowed(&machine_event(m, def, found, dim, pos, "")))
 }
 
 /// What machine `def` at `x y z` makes of `items` (`\n`-joined, by slot):
@@ -88,9 +86,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeMachineCraft<'l>(
         let Some(found) = machine_recipe(&def, &d, pos, &items, Some(&recipe)) else { return };
         let h = handlers();
         let Some(m) = h.inventories.iter().find(|i| i.id == def).and_then(|i| i.machine.as_ref()) else { return };
-        let ev = machine_event(m, &def, &found, &d, pos, &player);
-        let srv = srv_ptr();
-        each(&h.machine_craft, |ud, f| unsafe { f(ud, srv, &ev, 1) });
+        crate::bus::emitted(&machine_event(m, &def, &found, &d, pos, &player));
         made = true;
     });
     made as jni::sys::jboolean
@@ -230,13 +226,6 @@ pub(crate) fn key_bindings() -> Vec<(String, String, i32, String)> {
             (b.id.clone(), b.name.clone(), b.default_key, label)
         })
         .collect()
-}
-
-/// Key binding `id` pressed: every mod's handler hears it.
-pub(crate) fn key_binding_pressed(id: &str) {
-    let h = handlers();
-    let id = YogStr::from_str(id);
-    each(&h.key_binding, |ud, f| unsafe { f(ud, id) });
 }
 
 pub(super) unsafe extern "C" fn api_register_menu_entry(ctx: *mut c_void, label: YogStr, ui_id: YogStr) {

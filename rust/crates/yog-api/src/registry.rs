@@ -10,7 +10,7 @@
 use std::os::raw::c_void;
 
 use yog_abi::{
-    YogApi, YogCommandEvent, YogGfxApi, YogItemInsertEvent, YogMachineCraftEvent,
+    YogApi, YogCommandEvent, YogGfxApi, YogItemInsertEvent,
     YogPacketEvent, YogServer,
     YogStr, };
 use yog_formats::book::Book;
@@ -1283,44 +1283,6 @@ macro_rules! trampoline_phased {
     };
 }
 
-/// A machine — an inventory whose `.yui` has a `<RecipeArea kind="…">` —
-/// making a recipe of its kind, like a crafting table: the result shows as
-/// soon as its slots hold a recipe's ingredients, and taking it takes them.
-///
-/// - `Pre` — whether it may: `false` and the result doesn't show (a
-///   workbench short of what the recipe's `values` cost). `player` is empty.
-/// - `Post` — a player took the result; the host takes the ingredients, the mod
-///   its share (the workbench's resources).
-#[derive(Debug, Clone)]
-pub struct MachineCraftEvent {
-    /// The machine's inventory, e.g. `"mymod:press"`.
-    pub machine: String,
-    /// The recipe's kind (`"mymod:pressing"`) and id.
-    pub kind: String,
-    pub recipe: String,
-    pub result_item: String,
-    pub result_count: u32,
-    /// The recipe's values: `{ "energy": 4 }`.
-    pub values: yog_data::Value,
-    pub pos: yog_core::BlockPos,
-    pub dimension: String,
-    pub player: String,
-}
-
-trampoline_phased!(trampoline_machine_craft, YogMachineCraftEvent, MachineCraftEvent, |ev| {
-    MachineCraftEvent {
-        machine: ev.machine.as_str().to_owned(),
-        kind: ev.kind.as_str().to_owned(),
-        recipe: ev.recipe.as_str().to_owned(),
-        result_item: ev.result_item.as_str().to_owned(),
-        result_count: ev.result_count,
-        values: yog_data::json::from_json_text(ev.values.as_str()).unwrap_or(yog_data::Value::Null),
-        pos: yog_core::BlockPos { x: ev.pos.x, y: ev.pos.y, z: ev.pos.z },
-        dimension: ev.dimension.as_str().to_owned(),
-        player: ev.player.as_str().to_owned(),
-    }
-});
-
 trampoline_phased!(
     trampoline_item_insert,
     YogItemInsertEvent,
@@ -1458,41 +1420,6 @@ where
     }
 }
 
-unsafe extern "C" fn trampoline_entity_tick<F>(ud: *mut c_void, srv: *const yog_abi::YogServer, uuid: YogStr)
-where
-    F: Fn(&dyn Server, &str) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        let s = CServer(srv);
-        guard((), || f(&s, uuid.as_str()));
-    }
-}
-
-unsafe extern "C" fn trampoline_loot<F>(
-    ud: *mut c_void,
-    srv: *const yog_abi::YogServer,
-    loot: *const u8,
-    len: usize,
-    sink: *mut c_void,
-    write: yog_abi::YogBytesSink,
-) where
-    F: Fn(&dyn Server, &mut crate::loot::Loot) + Send + Sync,
-{
-    use yog_data::Schema;
-    unsafe {
-        let f = &*(ud as *const F);
-        let Ok(mut loot) = yog_data::read_bytes::<crate::loot::Loot>(std::slice::from_raw_parts(loot, len)) else { return };
-        let before = loot.items.clone();
-        let s = CServer(srv);
-        guard((), || f(&s, &mut loot));
-        if loot.items != before {
-            let bytes = yog_data::binary::encode(&loot.items.write());
-            write(sink, bytes.as_ptr(), bytes.len());
-        }
-    }
-}
-
 unsafe extern "C" fn trampoline_body<F>(ud: *mut c_void, frame: *const u8, len: usize, sink: *mut c_void, write: yog_abi::YogBytesSink)
 where
     F: Fn(&yog_body::Frame, &mut yog_body::Ops) + Send + Sync,
@@ -1606,17 +1533,6 @@ where
     unsafe {
         let f = &*(ud as *const F);
         guard((), || f(&GfxContext::from_raw(gfx)));
-    }
-}
-
-unsafe extern "C" fn trampoline_key_binding<F>(ud: *mut c_void, id: YogStr)
-where
-    F: Fn(&str) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        let id = id.as_str();
-        guard((), || f(id));
     }
 }
 
@@ -1802,15 +1718,6 @@ impl Registry {
     // In `Post` phase, the return value is ignored.
     // A single registration fires for BOTH phases.
 
-    /// A machine making a recipe — see [`MachineCraftEvent`].
-    pub fn on_machine_craft<F>(&mut self, handler: F)
-    where
-        F: Fn(&MachineCraftEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_machine_craft)(self.ctx(), ud, trampoline_machine_craft::<F>) }
-    }
-
     /// A hopper or dropper offers an item to a block that accepts items
     /// (`block.accepts_items`): `Pre` returns whether it takes it, `Post`
     /// takes it.
@@ -1954,16 +1861,6 @@ impl Registry {
             Ok(def) => self.register_entity(def),
             Err(e) => crate::error!("entity {id}: {e:?}"),
         }
-    }
-
-    /// Calls `handler` each tick of every entity of `entity_type` (a mod's
-    /// type with `ticks`), with its uuid — server side.
-    pub fn on_entity_tick<F>(&mut self, entity_type: &str, handler: F)
-    where
-        F: Fn(&dyn Server, &str) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_entity_tick)(self.ctx(), YogStr::from_str(entity_type), ud, trampoline_entity_tick::<F>) }
     }
 
     /// Add placed feature `feature` (the mod's datapack's, like an ore's
@@ -2259,22 +2156,9 @@ impl Registry {
         unsafe { ((*self.api).on_body)(self.ctx(), ud, trampoline_body::<F>) }
     }
 
-    /// Register a handler that sees every loot table rolled — a chest's, a
-    /// block's drops, a mob's — and may change what it gives
-    /// ([`crate::loot::Loot::items`]); each handler sees the one before's
-    /// result. Server side. For adding and scaling items on some tables, a
-    /// [`crate::loot::LootModifier`] says it as data.
-    pub fn on_loot<F>(&mut self, handler: F)
-    where
-        F: Fn(&dyn Server, &mut crate::loot::Loot) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_loot)(self.ctx(), ud, trampoline_loot::<F>) }
-    }
-
     /// Change the loot of some tables as `modifier` says.
     pub fn add_loot_modifier(&mut self, modifier: crate::loot::LootModifier) {
-        self.on_loot(move |srv, loot| crate::loot::apply(srv, &modifier, loot));
+        self.change::<yog_event::world::loot::Roll>(move |loot, cx| crate::loot::apply(cx.server(), &modifier, loot));
     }
 
     /// Register an attribute every player has — what effects change and
@@ -2390,21 +2274,9 @@ impl Registry {
                 default_key.unwrap_or(crate::client::keys::UNBOUND),
             )
         };
-        let id = id.to_owned();
-        self.on_key_binding(move |pressed: &str| {
-            if pressed == id {
-                handler();
-            }
-        });
+        self.on_key::<yog_event::client::input::Binding, _>(id, move |_, _| handler());
     }
 
-    fn on_key_binding<F>(&mut self, handler: F)
-    where
-        F: Fn(&str) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_key_binding)(self.ctx(), ud, trampoline_key_binding::<F>) }
-    }
 
 }
 

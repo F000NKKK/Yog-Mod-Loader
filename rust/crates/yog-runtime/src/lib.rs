@@ -27,7 +27,7 @@ use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
 use yog_abi::{
-    ABI_VERSION, YogApi, YogBlockPos, YogCommandFn, YogGfxApi, YogHudRenderFn, YogItemInsertEvent, YogItemInsertFn, YogMachineCraftEvent, YogMachineCraftFn, YogKeyBindingFn, YogOwnedStr, YogPacketFn,
+    ABI_VERSION, YogApi, YogBlockPos, YogCommandFn, YogGfxApi, YogHudRenderFn, YogItemInsertEvent, YogItemInsertFn, YogOwnedStr, YogPacketFn,
     YogScheduledFn, YogServer, YogStr, YogVec3, YogWorldRenderFn,
 };
 use yog_registry::{BlockDef, ItemDef};
@@ -77,7 +77,6 @@ mod jni_client;
 
 mod bus;
 mod body;
-mod loot;
 // Hot reload: dev builds only (release ones are optimised past it).
 #[cfg(feature = "dev")]
 mod registrations;

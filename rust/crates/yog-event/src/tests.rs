@@ -21,3 +21,10 @@ fn the_java_events_are_current() {
     };
     assert!(on_disk == java::java("dev.yog.bus"), "{}/YogEvents.java is stale: cargo run -p yog-event --bin yog-event-export -- {} dev.yog.bus", dir.display(), dir.display());
 }
+
+#[test]
+fn a_keyed_event_names_its_key_field_and_branches_by_it() {
+    assert_eq!(entity::game::Tick::KEY, Some("entity_type"));
+    assert_eq!(block::Break::KEY, None);
+    assert_eq!(keyed(entity::game::Tick::ADDRESS, "mymod:golem"), "yog:event/entity/game/tick/mymod:golem");
+}

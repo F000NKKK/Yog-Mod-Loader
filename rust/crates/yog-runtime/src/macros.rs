@@ -11,10 +11,6 @@
 macro_rules! for_each_handler_list {
     ($h:expr_2021, |$list:ident| $body:expr_2021) => {{
         {
-            let $list = &mut $h.machine_craft;
-            $body;
-        }
-        {
             let $list = &mut $h.item_insert;
             $body;
         }
@@ -35,15 +31,7 @@ macro_rules! for_each_handler_list {
             $body;
         }
         {
-            let $list = &mut $h.loot;
-            $body;
-        }
-        {
             let $list = &mut $h.world_render;
-            $body;
-        }
-        {
-            let $list = &mut $h.key_binding;
             $body;
         }
     }};
