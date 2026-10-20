@@ -410,7 +410,8 @@ fn compiles_a_book() {
     let e = compile(&project(&[("content/bad.ybook", bad)]), "mymod", &yres::Refs::default()).unwrap_err();
     assert!(e.contains("bad.ybook:3: entries[0].category: `c`: name it by a reference — `@category:c`"), "{e}");
     assert!(e.contains("bad.ybook:5:") && e.contains("`@item:minecraft:stick`"), "{e}");
-    assert!(e.contains("minecraft:grass isn't in Minecraft 1.21.1 (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass"), "{e}");
+    let newest = super::refs::versions().last().expect("supported versions");
+    assert!(e.contains(&format!("minecraft:grass isn't in Minecraft {newest} (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass")), "{e}");
     assert!(e.contains("no recipe mymod:nope in this mod"), "{e}");
     assert!(e.contains("[external.create]"), "{e}");
 

@@ -305,7 +305,10 @@ mod tests {
         assert!(k.check(RefKind::Block, "minecraft:furnace[facing=north]").is_ok());
         assert!(k.check(RefKind::Entity, "minecraft:allay").is_ok());
         assert!(k.check(RefKind::Item, "minecraft:short_grass").is_ok(), "the datapack is the newest by default");
-        assert!(k.check(RefKind::Item, "minecraft:grass").unwrap_err().contains("isn't in Minecraft 1.21.1 (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass"));
+        let newest = versions().last().expect("supported versions");
+        let wanted = format!("isn't in Minecraft {newest} (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass");
+        assert!(k.check(RefKind::Item, "minecraft:grass").unwrap_err().contains(&wanted));
+        assert_eq!(equivalent(RefKind::Item, "minecraft:chain", newest).as_deref(), Some("minecraft:iron_chain"), "renamed in 1.21.9");
         let old = Known::new("mymod", &[ext], Some("1.20.1"));
         assert!(old.check(RefKind::Item, "yog:potion/awkward").is_ok());
         assert!(old.check(RefKind::Item, "yog:potion/wind_charged").is_err());

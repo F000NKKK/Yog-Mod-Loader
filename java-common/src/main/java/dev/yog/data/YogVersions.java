@@ -44,6 +44,12 @@ public final class YogVersions {
         return out;
     }
 
+    /** What item {@code id} is on this version: its other name when it has one here, else itself. */
+    public static String itemOr(String id) {
+        String here = item(id);
+        return here != null ? here : id;
+    }
+
     /** What item {@code id} is on this version: itself, its other name, or null when there's none. */
     public static String item(String id) {
         if (itemExists.test(id)) return id;

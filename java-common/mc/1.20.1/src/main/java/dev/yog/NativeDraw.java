@@ -123,6 +123,8 @@ public final class NativeDraw {
      * size in GUI pixels (16 = standard inventory icon).
      */
     public static void drawItem(String id, float x, float y, float size) {
+        // Its name on this version, if the game renamed it (`minecraft:chain` is `iron_chain` from 1.21.9).
+        id = dev.yog.data.YogVersions.itemOr(id);
         GuiGraphics ctx = hudDrawContext;
         if (ctx == null) return;
         ResourceLocation ident = ResourceLocation.tryParse(id);
@@ -217,6 +219,8 @@ public final class NativeDraw {
      * renderer, scaled into (x, y, w, h) GUI pixels (16 x 16 = slot size).
      */
     public static void drawItemRect(String id, boolean block, float x, float y, float w, float h) {
+        // Its name on this version, if the game renamed it (`minecraft:chain` is `iron_chain` from 1.21.9).
+        id = dev.yog.data.YogVersions.itemOr(id);
         GuiGraphics ctx = hudDrawContext;
         if (ctx == null || w <= 0 || h <= 0) return;
         ResourceLocation ident = ResourceLocation.tryParse(id);

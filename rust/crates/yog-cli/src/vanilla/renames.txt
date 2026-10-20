@@ -4,3 +4,5 @@
 block grass short_grass 1.20.3
 item grass short_grass 1.20.3
 item scute turtle_scute 1.20.5
+block chain iron_chain 1.21.9
+item chain iron_chain 1.21.9

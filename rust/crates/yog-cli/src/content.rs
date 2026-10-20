@@ -32,7 +32,7 @@ pub(crate) mod material;
 mod model;
 mod outputs;
 mod recipe;
-mod refs;
+pub(crate) mod refs;
 mod source;
 mod table;
 mod textures;

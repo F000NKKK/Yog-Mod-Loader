@@ -5,7 +5,7 @@ Run with the client jars of every supported version (Loom's cache):
 
 Add a version to VERSIONS when Yog starts supporting it."""
 import zipfile, json, re, os, sys, glob, subprocess, collections
-VERSIONS = ["1.20.1", "1.21.1"]
+VERSIONS = ["1.20.1", "1.21.1", "26.2"]
 ids = collections.defaultdict(set)   # (kind, id) -> versions
 for v in VERSIONS:
     z = zipfile.ZipFile(os.path.expanduser(f"~/.gradle/caches/fabric-loom/{v}/minecraft-client.jar"))
@@ -22,9 +22,11 @@ for v in VERSIONS:
         if re.fullmatch(r"assets/minecraft/models/item/[a-z0-9_]+\.json", n):
             for o in json.loads(z.read(n)).get("overrides", []):
                 textured.discard(o.get("model", "").split("/")[-1])
+    # 1.21.4 on, every item has its definition (`items/<id>.json`): the list itself.
+    defined = {m[1] for n in names if (m := re.fullmatch(r"assets/minecraft/items/([a-z0-9_]+)\.json", n))}
     for n in names:
         m = re.fullmatch(r"assets/minecraft/models/item/([a-z0-9_]+)\.json", n)
-        if m and (m[1] in named_items or m[1] in named_blocks or m[1] in textured):
+        if not defined and m and (m[1] in named_items or m[1] in named_blocks or m[1] in textured):
             ids[("item", m[1])].add(v)
         m = re.fullmatch(r"assets/minecraft/blockstates/([a-z0-9_]+)\.json", n)
         if m:
@@ -35,12 +37,17 @@ for v in VERSIONS:
         m = re.fullmatch(r"data/minecraft/loot_tables?/([a-z0-9_/]+)\.json", n)
         if m:
             ids[("loot_table", m[1])].add(v)
+    for item in defined:
+        ids[("item", item)].add(v)
     for k in lang:
         m = re.fullmatch(r"entity\.minecraft\.([a-z0-9_]+)", k)
         if m:
             ids[("entity", m[1])].add(v)
-    mappings = glob.glob(os.path.expanduser(f"~/.gradle/caches/fabric-loom/{v}/*/mappings.tiny"))
-    registry_class = None
+    # An unobfuscated version (26.1 on) names the class itself; an older one through Yarn.
+    # (Its registry ids are their own class's: `PotionIds`, `long_`/`strong_` spelled out.)
+    UNOBFUSCATED = "net/minecraft/world/item/alchemy/PotionIds"
+    registry_class = UNOBFUSCATED if f"{UNOBFUSCATED}.class" in names else None
+    mappings = [] if registry_class else glob.glob(os.path.expanduser(f"~/.gradle/caches/fabric-loom/{v}/*/mappings.tiny"))
     for mapping in mappings:
         with open(mapping) as f:
             for line in f:

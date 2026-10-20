@@ -7,6 +7,7 @@
 //! Also the Properties window's `source` picker ([`candidates`],
 //! [`preview`]).
 
+use crate::content::refs::RefKind;
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -143,6 +144,13 @@ fn resolve(sp: &Sprite) -> Option<SpriteSource<'_>> {
         SpriteSource::Atlas(id) => atlas_image(id).is_some(),
         SpriteSource::Region(r) => texture(&r.texture).is_some(),
     })
+}
+
+/// `id` as the game files the designer reads call it: itself, or what
+/// that version renamed it to (`minecraft:chain` is `iron_chain` from 1.21.9).
+fn in_game_files(kind: RefKind, id: String) -> String {
+    let version = with_doc(|d| d.and_then(|d| d.res.vanilla.as_ref().map(|v| v.version.clone())));
+    version.and_then(|v| crate::content::refs::equivalent(kind, &id, &v)).unwrap_or(id)
 }
 
 /// The texture an item/block icon is drawn with (the designer doesn't run
@@ -416,7 +424,13 @@ pub fn draw(c: &mut Canvas, source: &str, dest: [f32; 4], region: [f32; 4], t: u
         return;
     }
     let first_frame = |img: &Image| [0.0, 0.0, img.width as f32, img.width.min(img.height) as f32];
-    match ImageSource::parse(source) {
+    // Content the game renamed is shown by its name in the game files at hand.
+    let source = match ImageSource::parse(source) {
+        Some(ImageSource::Item(id)) => Some(ImageSource::Item(in_game_files(RefKind::Item, id))),
+        Some(ImageSource::Block(id)) => Some(ImageSource::Block(in_game_files(RefKind::Block, id))),
+        other => other,
+    };
+    match source {
         Some(ImageSource::Item(id)) if item_3d(c, &id, dest) => {}
         Some(ImageSource::Item(id)) => match item_texture(&id, false) {
             Some(img) => blit_px(c, &img, dest, first_frame(&img), Color::WHITE.0),
