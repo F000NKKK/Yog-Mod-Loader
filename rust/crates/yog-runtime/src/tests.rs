@@ -2,6 +2,7 @@
 //! functions write into a local `RuntimeHandlers`, callbacks are this
 //! test's own `extern "C"` functions, the "mod" is the test process.
 
+use yog_sync::{Locked, ReadWrite};
 use std::ffi::c_void;
 use std::sync::{Mutex, RwLock};
 

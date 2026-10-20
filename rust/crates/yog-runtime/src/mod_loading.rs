@@ -1,6 +1,7 @@
 //! Loading mods.
+use yog_sync::Locked;
+use super::{ABI_VERSION, CURRENT_REGISTRATION, HashMap, LoadedModule, MOD_INFOS, Path, PathBuf, Symbol, YOG_MOD_IDS, YogApi, hot_reloader};
 
-use super::*;
 
 // ── Mod loading ───────────────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ pub(super) fn load_mods(dir: &Path, api: &YogApi) {
     let mut metas: Vec<ModMeta> = Vec::new();
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("yog") {
+        if !yog_ids::Format::Mod.is(&path) {
             continue;
         }
         let info = read_mod_info(&path);
@@ -198,7 +199,7 @@ pub(super) fn read_mod_info(path: &Path) -> [String; 7] {
         String::new(),
         String::new(),
     ];
-    if path.extension().and_then(|e| e.to_str()) != Some("yog") {
+    if !yog_ids::Format::Mod.is(path) {
         return info;
     }
     let Some(text) = (|| {
@@ -255,7 +256,7 @@ pub(super) fn read_mod_info(path: &Path) -> [String; 7] {
 
 /// Parse `[dependencies]` section from yog.toml inside a .yog archive.
 pub(super) fn read_mod_deps(path: &Path) -> Vec<String> {
-    if path.extension().and_then(|e| e.to_str()) != Some("yog") {
+    if !yog_ids::Format::Mod.is(path) {
         return Vec::new();
     }
     let text = (|| {

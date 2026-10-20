@@ -124,7 +124,7 @@ pub fn game_kinds() -> impl Iterator<Item = &'static str> {
 }
 
 /// An item's side, in GUI pixels.
-pub const ICON_PX: f32 = 16.0;
+pub const ICON_PX: f32 = yog_ids::units::ITEM_PIXELS as f32;
 
 fn icon_px() -> f32 {
     ICON_PX

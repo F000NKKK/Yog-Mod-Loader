@@ -14,7 +14,9 @@ use std::sync::Mutex;
 
 use jni::JNIEnv;
 use yog_abi::YogStr;
+use yog_gfx::Color;
 use yog_gfx::image::{self, ImageSource, LegacyRegion, Sprite, SpriteSource};
+use yog_ui::{ICON_SIZE, INV_SLOT_FACE, INV_SLOT_LIGHT, INV_SLOT_SHADOW};
 
 use crate::jcall::jcall;
 
@@ -95,15 +97,15 @@ fn texture_size(env: &mut JNIEnv, id: &str) -> Option<(f32, f32)> {
     size
 }
 
-#[allow(clippy::too_many_arguments)]
-fn draw_texture(
-    env: &mut JNIEnv,
-    id: &str,
-    [x, y, w, h]: [f32; 4],
-    [u, v, uw, vh]: [f32; 4],
-    (tw, th): (f32, f32),
-    tint: u32,
-) {
+/// A region of a texture: `[u, v, width, height]` of the texture's
+/// `(width, height)` pixels.
+struct Region {
+    uv: [f32; 4],
+    texture: (f32, f32),
+}
+
+fn draw_texture(env: &mut JNIEnv, id: &str, [x, y, w, h]: [f32; 4], region: Region, tint: u32) {
+    let ([u, v, uw, vh], (tw, th)) = (region.uv, region.texture);
     if w <= 0.0 || h <= 0.0 || uw <= 0.0 || vh <= 0.0 {
         return;
     }
@@ -159,25 +161,26 @@ fn draw_atlas_sprite(env: &mut JNIEnv, id: &str, [x, y, w, h]: [f32; 4], tint: u
     };
 }
 
-fn rect(env: &mut JNIEnv, x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
+/// Fills `[x1, y1, x2, y2]` with `color`.
+fn rect(env: &mut JNIEnv, [x1, y1, x2, y2]: [f32; 4], color: Color) {
     let _: Option<()> = unsafe {
         jcall!(
             env,
             "dev/yog/NativeDraw",
             "drawRect",
-            [F(x1), F(y1), F(x2), F(y2), I(color as i32)]
+            [F(x1), F(y1), F(x2), F(y2), I(color.0 as i32)]
         )
     };
 }
 
 /// The inventory slot: grey with a dark top-left and a light bottom-right
-/// edge, like vanilla's container backgrounds.
+/// edge, like vanilla's container backgrounds (yog-ui's colours).
 fn draw_slot(env: &mut JNIEnv, [x, y, w, h]: [f32; 4]) {
-    rect(env, x, y, x + w, y + h, 0xFF_8B8B8B);
-    rect(env, x, y, x + w, y + 1.0, 0xFF_373737);
-    rect(env, x, y, x + 1.0, y + h, 0xFF_373737);
-    rect(env, x, y + h - 1.0, x + w, y + h, 0xFF_FFFFFF);
-    rect(env, x + w - 1.0, y, x + w, y + h, 0xFF_FFFFFF);
+    rect(env, [x, y, x + w, y + h], INV_SLOT_FACE);
+    rect(env, [x, y, x + w, y + 1.0], INV_SLOT_SHADOW);
+    rect(env, [x, y, x + 1.0, y + h], INV_SLOT_SHADOW);
+    rect(env, [x, y + h - 1.0, x + w, y + h], INV_SLOT_LIGHT);
+    rect(env, [x + w - 1.0, y, x + w, y + h], INV_SLOT_LIGHT);
 }
 
 /// A 1.20.1 texture region, nine-sliced by `border` when stretched.
@@ -190,7 +193,8 @@ fn draw_legacy(env: &mut JNIEnv, l: &LegacyRegion, border: f32, dest: [f32; 4], 
         .min(w / 2.0)
         .min(h / 2.0);
     if b <= 0.0 || (w == l.region.w && h == l.region.h) {
-        draw_texture(env, &l.texture, dest, [l.region.x, l.region.y, l.region.w, l.region.h], tex, tint);
+        let uv = [l.region.x, l.region.y, l.region.w, l.region.h];
+        draw_texture(env, &l.texture, dest, Region { uv, texture: tex }, tint);
         return;
     }
     // Columns/rows: (dest pos, dest size, src pos, src size).
@@ -206,14 +210,8 @@ fn draw_legacy(env: &mut JNIEnv, l: &LegacyRegion, border: f32, dest: [f32; 4], 
     ];
     for (dy, dh, sv, sh) in rows {
         for (dx, dw, su, sw) in cols {
-            draw_texture(
-                env,
-                &l.texture,
-                [dx, dy, dw, dh],
-                [su, sv, sw, sh],
-                tex,
-                tint,
-            );
+            let region = Region { uv: [su, sv, sw, sh], texture: tex };
+            draw_texture(env, &l.texture, [dx, dy, dw, dh], region, tint);
         }
     }
 }
@@ -270,12 +268,8 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
             },
             Some(ImageSource::Texture(id)) => match texture_size(&mut env, &id) {
                 Some(size) => {
-                    let region = if uw > 0.0 && vh > 0.0 {
-                        [u, v, uw, vh]
-                    } else {
-                        [0.0, 0.0, size.0, size.1]
-                    };
-                    draw_texture(&mut env, &id, dest, region, size, tint);
+                    let uv = if uw > 0.0 && vh > 0.0 { [u, v, uw, vh] } else { [0.0, 0.0, size.0, size.1] };
+                    draw_texture(&mut env, &id, dest, Region { uv, texture: size }, tint);
                 }
                 None => warn_once(source, &format!("texture {id} not found")),
             },
@@ -296,7 +290,7 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
     unsafe {
         let source = source.as_str();
         let size = match ImageSource::parse(source) {
-            Some(ImageSource::Item(_) | ImageSource::Block(_)) => Some((16.0, 16.0)),
+            Some(ImageSource::Item(_) | ImageSource::Block(_)) => Some((ICON_SIZE, ICON_SIZE)),
             Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
                 Some(sp) => crate::get_env().map(|mut env| natural_size(sp, resolve(&mut env, sp).as_ref())),
                 None => None,

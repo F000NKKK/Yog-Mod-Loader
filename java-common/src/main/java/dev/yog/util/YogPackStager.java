@@ -1,5 +1,8 @@
 package dev.yog.util;
 
+import dev.yog.YogNames;
+import dev.yog.YogNames.DimensionField;
+
 import dev.yog.YogLog;
 
 import com.google.gson.Gson;
@@ -467,7 +470,7 @@ public final class YogPackStager {
                 String name = colon > 0 ? id.substring(colon + 1) : id;
 
                 JsonObject def = d.def();
-                JsonObject dt = def.has("dimension_type") ? def.getAsJsonObject("dimension_type") : new JsonObject();
+                JsonObject dt = def.has(DimensionField.DIMENSION_TYPE) ? def.getAsJsonObject(DimensionField.DIMENSION_TYPE) : new JsonObject();
 
                 JsonObject dimensionType = new JsonObject();
                 dimensionType.addProperty("ultrawarm", jbool(dt, "ultrawarm", false));
@@ -484,7 +487,7 @@ public final class YogPackStager {
                 dimensionType.addProperty("infiniburn", "#minecraft:infiniburn_overworld");
                 dimensionType.addProperty("effects", jstr(dt, "effects", EFFECTS_OVERWORLD));
                 dimensionType.addProperty("piglin_safe", jbool(dt, "piglin_safe", false));
-                boolean mobs = jbool(def, "mob_spawning", true);
+                boolean mobs = jbool(def, DimensionField.MOB_SPAWNING, true);
                 dimensionType.addProperty("has_raids", mobs);
                 dimensionType.addProperty("monster_spawn_block_light_limit", 0);
                 dimensionType.addProperty("monster_spawn_light_level", mobs ? 7 : 0);
@@ -504,15 +507,15 @@ public final class YogPackStager {
 
                 JsonObject biomeSource = new JsonObject();
                 biomeSource.addProperty("type", "minecraft:fixed");
-                biomeSource.addProperty("biome", jstr(def, "biome", "minecraft:plains"));
+                biomeSource.addProperty("biome", jstr(def, DimensionField.BIOME, YogNames.Game.PLAINS));
                 JsonObject generator = new JsonObject();
-                if (def.has("generator_type") && !def.get("generator_type").isJsonNull()) {
+                if (def.has(DimensionField.GENERATOR_TYPE) && !def.get(DimensionField.GENERATOR_TYPE).isJsonNull()) {
                     generator.addProperty("type", CALLBACK_GENERATOR);
-                    generator.addProperty("generator_type_id", def.get("generator_type").getAsString());
+                    generator.addProperty("generator_type_id", def.get(DimensionField.GENERATOR_TYPE).getAsString());
                     generator.addProperty("min_y", (int) jnum(dt, "min_y", DEFAULT_MIN_Y));
                     generator.addProperty("height", (int) jnum(dt, "height", DEFAULT_HEIGHT));
-                    generator.addProperty("structures", jbool(def, "structures", true));
-                    generator.addProperty("features", jbool(def, "features", true));
+                    generator.addProperty("structures", jbool(def, DimensionField.STRUCTURES, true));
+                    generator.addProperty("features", jbool(def, DimensionField.FEATURES, true));
                     generator.addProperty("mob_spawning", mobs);
                     generator.add("biome_source", biomeSource);
                 } else {

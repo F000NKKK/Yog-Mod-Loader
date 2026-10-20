@@ -195,17 +195,23 @@ fn run(env: &mut JNIEnv, id: &str, font: &Font, text: &str, px_per_em: u32) -> O
     Some(r)
 }
 
+/// A colour's (`0xAARRGGBB`) alpha, a channel's bits, and where red, green
+/// and blue sit.
+const ALPHA: u32 = 0xFF00_0000;
+const CHANNEL: u32 = 0xFF;
+const RED: u32 = 16;
+const GREEN: u32 = 8;
+const BLUE: u32 = 0;
+
 /// `color` (`0xAARRGGBB`, alpha 0 meaning opaque as the game reads it) as a draw's tint.
 fn tint(color: u32) -> u32 {
-    const ALPHA: u32 = 0xFF00_0000;
     if color & ALPHA == 0 { color | ALPHA } else { color }
 }
 
 /// The shadow's tint for `tint`: each color channel dimmed, alpha kept.
 fn shadow(tint: u32) -> u32 {
-    const CHANNEL: u32 = 0xFF;
     let dim = |shift: u32| ((tint >> shift & CHANNEL) / SHADOW_DIM) << shift;
-    (tint & 0xFF00_0000) | dim(16) | dim(8) | dim(0)
+    (tint & ALPHA) | dim(RED) | dim(GREEN) | dim(BLUE)
 }
 
 /// Draws `text` in font `id` with its line's top-left at `x, y` GUI pixels.

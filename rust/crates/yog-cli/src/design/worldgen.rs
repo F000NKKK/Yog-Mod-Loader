@@ -33,11 +33,11 @@ fn png(pixels: &[u32], w: u32, h: u32) -> Result<String, String> {
 pub fn render(text: &str, size: u32) -> Result<Preview, String> {
     let size = size.clamp(16, 1024);
     let def = yog_data::text::parse_value(text).map_err(|e| format!("{}:{}: {}", e.at.line, e.at.col, e.message))?;
-    let terrain = def.get("terrain").ok_or("no `terrain` — this dimension's chunks come from a generator in code")?;
+    let terrain = def.get(yog_ids::dimension_field::TERRAIN).ok_or("no `terrain` — this dimension's chunks come from a generator in code")?;
     let terrain = yog_data::read_value::<Terrain>(terrain).map_err(|ps| {
         ps.iter().map(|p| format!("terrain.{}: {}", p.path, p.message)).collect::<Vec<_>>().join("\n")
     })?;
-    let int = |k: &str| def.get("dimension_type").and_then(|t| t.get(k)).and_then(|v| v.as_i64()).map(|v| v as i32);
+    let int = |k: &str| def.get(yog_ids::dimension_field::DIMENSION_TYPE).and_then(|t| t.get(k)).and_then(|v| v.as_i64()).map(|v| v as i32);
     let min_y = int("min_y").unwrap_or(-64);
     let height = int("height").unwrap_or(384);
     let g = Generator::new(terrain);

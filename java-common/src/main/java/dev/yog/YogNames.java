@@ -678,6 +678,13 @@ public final class YogNames {
         public static final String MODS = "yog-mods";
     }
 
+    public static final class UserCache {
+        private UserCache() {}
+
+        public static final String CACHE = "yog";
+        public static final String SHADERS = "shaders";
+    }
+
     public static final class Program {
         private Program() {}
 
@@ -851,6 +858,19 @@ public final class YogNames {
         public static final String TEXTURE = "texture";
         public static final String HUMANOID = "humanoid";
         public static final String HUMANOID_LEGGINGS = "humanoid_leggings";
+    }
+
+    public static final class DimensionField {
+        private DimensionField() {}
+
+        public static final String ID = "id";
+        public static final String DIMENSION_TYPE = "dimension_type";
+        public static final String BIOME = "biome";
+        public static final String STRUCTURES = "structures";
+        public static final String FEATURES = "features";
+        public static final String MOB_SPAWNING = "mob_spawning";
+        public static final String GENERATOR_TYPE = "generator_type";
+        public static final String TERRAIN = "terrain";
     }
 
     public static final class YuiValue {

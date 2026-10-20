@@ -1,6 +1,7 @@
 //! The server tick's own work: startup grants, entity data sent, scheduled tasks.
+use yog_sync::Locked;
+use super::{YogStr, entity_data, guard, handlers};
 
-use super::*;
 
 /// The command tag a player carries once startup grant `id` was given. It's
 /// saved with the player's own data, so it follows the player — not their

@@ -1,6 +1,7 @@
 //! `.ydef` definitions: ladders and levels, materials, tags, trees, ores,
 //! dimensions, damage types, advancements — and the files they become.
 
+use yog_ids::dimension_field;
 use yog_data::Path as At;
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
@@ -255,17 +256,17 @@ pub(super) fn dimension(d: yog_formats::def::DimensionDef, ns: &str) -> (String,
     use yog_data::{Map, Schema, Value as V};
     let id = if d.id.contains(':') { d.id.clone() } else { format!("{ns}:{}", d.id) };
     let mut m = Map::new();
-    m.insert("id", V::from(id.as_str()));
-    m.insert("dimension_type", d.dimension_type.write());
-    m.insert("biome", V::from(d.biome.map_or("minecraft:plains".to_string(), |b| b.id).as_str()));
-    m.insert("structures", V::Bool(d.structures));
-    m.insert("features", V::Bool(d.features));
-    m.insert("mob_spawning", V::Bool(d.mob_spawning));
+    m.insert(dimension_field::ID, V::from(id.as_str()));
+    m.insert(dimension_field::DIMENSION_TYPE, d.dimension_type.write());
+    m.insert(dimension_field::BIOME, V::from(d.biome.map_or(yog_ids::game::PLAINS.to_string(), |b| b.id).as_str()));
+    m.insert(dimension_field::STRUCTURES, V::Bool(d.structures));
+    m.insert(dimension_field::FEATURES, V::Bool(d.features));
+    m.insert(dimension_field::MOB_SPAWNING, V::Bool(d.mob_spawning));
     if let Some(t) = &d.terrain {
-        m.insert("generator_type", V::from(id.as_str()));
-        m.insert("terrain", t.write());
+        m.insert(dimension_field::GENERATOR_TYPE, V::from(id.as_str()));
+        m.insert(dimension_field::TERRAIN, t.write());
     } else if let Some(g) = &d.generator {
-        m.insert("generator_type", V::from(if g.contains(':') { g.clone() } else { format!("{ns}:{g}") }.as_str()));
+        m.insert(dimension_field::GENERATOR_TYPE, V::from(yog_ids::qualify_in(ns, g).as_str()));
     }
     (id, yog_data::binary::encode(&V::Map(m)))
 }

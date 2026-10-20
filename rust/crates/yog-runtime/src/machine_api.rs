@@ -1,8 +1,8 @@
 //! Machines (ABI 2.5).
 
-use super::*;
 use yog_core::BlockPos;
 use yog_event::container::machine::Craft;
+use super::{HOT_RELOADER, JClass, JNIEnv, JString, RwLock, YogStr, guard, handlers, jint, jstring, machine};
 
 // ── Machines (ABI 2.5) ───────────────────────────────────────────────────────
 
@@ -64,6 +64,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeMachineResult<'l>(
 /// `player` took machine `def`'s result, made by `recipe` of `items` (the
 /// ingredients still in): whether it may — then the mods take their share.
 #[unsafe(no_mangle)]
+// The native method's signature is Java's: one parameter per argument.
 #[allow(clippy::too_many_arguments)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeMachineCraft<'l>(
     mut env: JNIEnv<'l>,
@@ -99,9 +100,9 @@ pub(super) static YOG_MOD_IDS: RwLock<std::collections::BTreeSet<String>> = RwLo
 /// (Fabric's, Forge's, NeoForge's).
 pub(super) fn mod_loaded(id: &str) -> bool {
     YOG_MOD_IDS.read().unwrap_or_else(|e| e.into_inner()).contains(id)
-        || HOT_RELOADER.get().is_some_and(|r| r.all_active().iter().any(|(m, _)| m == id))
+        || HOT_RELOADER.all_active().iter().any(|(m, _)| m == id)
         // SAFETY: a host call with a string argument, on the calling thread.
-        || unsafe { bridge!("isModLoaded", [JArg::S(YogStr::from_str(id))]) }.unwrap_or(false)
+        || unsafe { bridge!("isModLoaded", [S(YogStr::from_str(id))]) }.unwrap_or(false)
 }
 
 /// The game's text for translation `key` in the current language — `None`

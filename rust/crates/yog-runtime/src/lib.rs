@@ -17,8 +17,6 @@ use std::os::raw::c_void;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
-use glow::HasContext;
-use jcall::JArg;
 use jni::objects::{JClass, JFloatArray, JString};
 use jni::sys::{jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
@@ -30,7 +28,7 @@ use yog_abi::{
     YogStr,
 };
 use yog_registry::{BlockDef, ItemDef};
-use yog_sync::{Locked, ReadWrite};
+use yog_sync::Locked;
 
 #[macro_use]
 mod macros;

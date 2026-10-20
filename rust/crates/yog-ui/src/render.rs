@@ -30,7 +30,7 @@ const SURFACE_EDGE: Color = Color(0xFF_4A5A52);
 const SURFACE_NAME: Color = Color(0xFF_8FA399);
 const SURFACE_NAME_ROOM: f32 = 4.0;
 /// Side of an item icon inside a slot (1 px inset).
-pub const ICON_SIZE: f32 = 16.0;
+pub const ICON_SIZE: f32 = yog_ids::units::ITEM_PIXELS as f32;
 /// Slack for "drawn whole or not at all" clip checks — absorbs rounding.
 pub(crate) const CLIP_SLACK: f32 = 0.5;
 

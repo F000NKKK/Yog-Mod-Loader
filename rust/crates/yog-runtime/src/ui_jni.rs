@@ -340,6 +340,7 @@ fn push_inventory_snapshot(snapshot: &yog_inventory::YogInvSnapshotRaw) {
 
 /// Draws a stack's tooltip picture in `x, y, w, h` (GUI pixels).
 #[unsafe(no_mangle)]
+// The native method's signature is Java's: one parameter per argument.
 #[allow(clippy::too_many_arguments)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeTooltipDraw<'l>(
     mut env: JNIEnv<'l>,

@@ -31,7 +31,7 @@ pub fn use_host_images(ctx: &GfxContext) {
 }
 
 /// The size of an image the host can't tell (an item's, offline).
-const FALLBACK_SIZE: Vec2 = Vec2::new(16.0, 16.0);
+const FALLBACK_SIZE: Vec2 = Vec2::new(crate::ICON_SIZE, crate::ICON_SIZE);
 /// Most image sizes cached before the cache starts over.
 const SIZE_CACHE_CAP: usize = 4096;
 

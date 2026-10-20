@@ -1,6 +1,6 @@
 //! The `YogApi` table a mod registers through.
+use super::{ABI_VERSION, YogApi};
 
-use super::*;
 
 pub(super) fn build_api_table() -> YogApi {
     YogApi {

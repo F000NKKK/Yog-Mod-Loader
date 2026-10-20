@@ -2,5 +2,7 @@
 
 /// A block's pixels along an edge: models are drawn in them (0–16 a block).
 pub const BLOCK_PIXELS: u32 = 16;
+/// An item's icon's side, in GUI pixels.
+pub const ITEM_PIXELS: u32 = 16;
 /// The most of an item a stack holds.
 pub const MAX_STACK: u32 = 64;

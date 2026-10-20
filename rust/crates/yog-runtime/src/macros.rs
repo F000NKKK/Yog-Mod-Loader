@@ -17,9 +17,9 @@ macro_rules! jstr {
 /// `<class>.<name>(args...)` on this thread's env, `Option<R>` — see
 /// [`jcall!`]; `None` without a JVM too.
 macro_rules! host {
-    ($class:literal, $name:literal, [$($arg:expr_2021),* $(,)?]) => {
+    ($class:literal, $name:literal, [$($kind:ident($arg:expr_2021)),* $(,)?]) => {
         match $crate::get_env() {
-            Some(mut env) => $crate::jcall::jcall!(&mut env, $class, $name, [$($arg),*]),
+            Some(mut env) => $crate::jcall::jcall!(&mut env, $class, $name, [$($kind($arg)),*]),
             None => None,
         }
     };
@@ -27,7 +27,7 @@ macro_rules! host {
 
 /// `NativeBridge.<name>(args...)` — see [`host!`].
 macro_rules! bridge {
-    ($name:literal, [$($arg:expr_2021),* $(,)?]) => {
-        host!("dev/yog/NativeBridge", $name, [$($arg),*])
+    ($name:literal, [$($kind:ident($arg:expr_2021)),* $(,)?]) => {
+        host!("dev/yog/NativeBridge", $name, [$($kind($arg)),*])
     };
 }

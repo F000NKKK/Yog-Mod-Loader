@@ -111,7 +111,12 @@ def test_only_module(path):
                 while k >= 0 and lines[k].strip().startswith("#["):
                     attrs.append(lines[k])
                     k -= 1
-                return any(TEST_CFG.search(a) for a in attrs)
+                if any(TEST_CFG.search(a) for a in attrs):
+                    return True
+                # Inside a module that is itself for tests or benches only.
+                return parent.name not in ("lib.rs", "main.rs") and test_only_module(
+                    str(parent.relative_to(WORKSPACE))
+                )
     return False
 
 

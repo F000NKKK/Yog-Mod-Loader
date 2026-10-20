@@ -1,6 +1,6 @@
 //! The OpenGL context (client side, render thread only).
+use super::{OnceLock};
 
-use super::*;
 
 // ── OpenGL context (client-side, render thread only) ─────────────────────────
 

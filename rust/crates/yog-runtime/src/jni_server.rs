@@ -1,6 +1,7 @@
 //! JNI: chunk generation, content, packet channels.
+use yog_sync::Locked;
+use super::{JClass, JNIEnv, JString, YogStr, content_blob, guard, handlers, jint, jstring};
 
-use super::*;
 
 /// Places one block in the chunk being generated, through
 /// `YogCallbackChunkGenerator.setBlockInGeneratingChunk` (same thread: the

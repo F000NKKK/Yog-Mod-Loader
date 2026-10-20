@@ -65,6 +65,13 @@ names! {
         MODS = "yog-mods",
     }
 
+    /// Yog's folders in a user's cache (`~/.cache/<CACHE>/…`).
+    user_cache {
+        CACHE = "yog",
+        /// Compiled shaders, by their sources' hash.
+        SHADERS = "shaders",
+    }
+
     /// Yog's programs.
     program {
         /// The command-line tool (`yog build`, `yog schema`, …).
@@ -289,6 +296,21 @@ names! {
         HUMANOID = "humanoid",
         /// Worn on the legs: leggings.
         HUMANOID_LEGGINGS = "humanoid_leggings",
+    }
+
+    /// The fields of a dimension as the build hands it to the runtime and
+    /// the runtime to the host.
+    dimension_field {
+        ID = "id",
+        DIMENSION_TYPE = "dimension_type",
+        BIOME = "biome",
+        STRUCTURES = "structures",
+        FEATURES = "features",
+        MOB_SPAWNING = "mob_spawning",
+        /// The generator its chunks come from: its own terrain's, or one in code.
+        GENERATOR_TYPE = "generator_type",
+        /// Its terrain, which the runtime keeps (the host never sees it).
+        TERRAIN = "terrain",
     }
 
     /// Words a `.yui` attribute's value is.

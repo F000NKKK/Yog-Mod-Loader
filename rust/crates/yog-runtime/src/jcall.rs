@@ -229,15 +229,13 @@ impl StaticMethod {
 /// Calls `<class>.<name>(args...)` on `env`, returning `Option<R>` (`R`
 /// inferred: `()`, `bool`, `i32`, `i64`, `f32`, `f64` or `String`).
 ///
-/// `S`, `D`, `F`, `I`, `J`, `Z` and `Bytes` ([`JArg`]) are in scope for the
-/// arguments.
+/// Each argument is written as its [`JArg`] variant: `S(..)`, `F(..)`,
+/// `I(..)`, `Z(..)`, `Bytes(..)`.
 macro_rules! jcall {
-    ($env:expr_2021, $class:literal, $name:literal, [$($arg:expr_2021),* $(,)?]) => {{
+    ($env:expr_2021, $class:literal, $name:literal, [$($kind:ident($arg:expr_2021)),* $(,)?]) => {{
         static METHOD: $crate::jcall::StaticMethod =
             $crate::jcall::StaticMethod::new($class, $name);
-        #[allow(unused_imports)]
-        use $crate::jcall::JArg::*;
-        METHOD.call($env, &[$($arg),*])
+        METHOD.call($env, &[$($crate::jcall::JArg::$kind($arg)),*])
     }};
 }
 pub(crate) use jcall;

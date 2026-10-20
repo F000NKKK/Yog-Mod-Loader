@@ -1,6 +1,7 @@
 //! The runtime's handler storage: what mods registered, read during dispatch.
+use yog_sync::ReadWrite;
+use super::{Arc, BlockDef, HANDLERS, HOT_RELOADER, HashMap, HotReloader, ItemDef, ModuleGeneration, ModuleRegistry, Mutex};
 
-use super::*;
 
 // ── Handler storage ───────────────────────────────────────────────────────────
 
@@ -72,22 +73,16 @@ unsafe impl Send for RuntimeHandlers {}
 unsafe impl Sync for RuntimeHandlers {}
 
 pub(super) fn handlers() -> std::sync::RwLockReadGuard<'static, RuntimeHandlers> {
-    HANDLERS
-        .get()
-        .expect("yog: nativeInit not called yet")
-        .read_locked()
+    HANDLERS.read_locked()
 }
 
 /// The handlers, to change (content a mod registers).
 pub(super) fn handlers_write() -> std::sync::RwLockWriteGuard<'static, RuntimeHandlers> {
-    HANDLERS
-        .get()
-        .expect("yog: nativeInit not called yet")
-        .write_locked()
+    HANDLERS.write_locked()
 }
 
 pub(super) fn hot_reloader() -> &'static HotReloader<RuntimeModuleRegistry> {
-    HOT_RELOADER.get().expect("yog: nativeInit not called yet")
+    &HOT_RELOADER
 }
 
 /// The `yog-hot-reload` host contract: `retarget` needs no work here because

@@ -113,7 +113,7 @@ pub fn draw(env: &mut JNIEnv, data: &str, [x, y, w, h]: [f32; 4], tint: u32) {
 /// `draw2d_svg` — see `YogGfxApi::draw2d_svg`.
 pub(crate) unsafe extern "C" fn gfx_draw2d_svg(data: YogStr, x: f32, y: f32, w: f32, h: f32) {
     if let Some(mut env) = crate::get_env() {
-        draw(&mut env, unsafe { data.as_str() }, [x, y, w, h], 0xFFFF_FFFF);
+        draw(&mut env, unsafe { data.as_str() }, [x, y, w, h], yog_gfx::Color::WHITE.0);
     }
 }
 

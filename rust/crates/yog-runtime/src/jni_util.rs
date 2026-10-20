@@ -1,6 +1,6 @@
 //! JNI helpers.
+use super::{JAVA_VM};
 
-use super::*;
 
 // ── JNI helpers ──────────────────────────────────────────────────────────────
 

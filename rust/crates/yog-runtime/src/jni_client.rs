@@ -1,6 +1,7 @@
 //! JNI: client-side entry points (ABI minor 10).
+use yog_sync::Locked;
+use super::{GFX_FN_TABLE, GL, GL_GET_PROGRAM_BINARY, GL_GET_PROGRAM_IV, GL_PROGRAM_BINARY, GlCtx, JClass, JFloatArray, JNIEnv, UiLayer, YogStr, handlers, jfloat, jint};
 
-use super::*;
 
 // ── ABI minor 10 — client-side JNI entry points ───────────────────────────────
 

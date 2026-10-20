@@ -1,6 +1,7 @@
 //! The runtime's static globals: the JVM, the mods, the tables.
 
-use super::*;
+use std::sync::LazyLock;
+use super::{HotReloader, JavaVM, LoadedModule, Mutex, OnceLock, RuntimeHandlers, RuntimeModuleRegistry, RwLock, YogApi, build_api_table};
 
 // ── Static globals ────────────────────────────────────────────────────────────
 
@@ -10,7 +11,8 @@ pub(super) static JAVA_VM: OnceLock<JavaVM> = OnceLock::new();
 /// swap lifecycle (see `yog-hot-reload`) instead of a flat keep-alive `Vec`,
 /// so a reload can find "the current generation of this mod" and safely
 /// retire the previous one.
-pub(super) static HOT_RELOADER: OnceLock<HotReloader<RuntimeModuleRegistry>> = OnceLock::new();
+pub(super) static HOT_RELOADER: LazyLock<HotReloader<RuntimeModuleRegistry>> =
+    LazyLock::new(|| HotReloader::new(RuntimeModuleRegistry));
 /// The mod currently inside its own `yog_mod_register` call. Every `api_*`
 /// registration function reads this to tag what it stores with a
 /// `LoadedModule` handle, instead of requiring mods to pass a mod id
@@ -30,7 +32,7 @@ pub(super) static MOD_INFOS: Mutex<Vec<[String; 7]>> = Mutex::new(Vec::new());
 /// the old design, where it pointed at a temporary pre-move `Box` that
 /// went stale the instant `nativeInit` finished) — so it stays valid for a
 /// hot-reload's later re-registration too.
-pub(super) static API_TABLE: OnceLock<YogApi> = OnceLock::new();
+pub(super) static API_TABLE: LazyLock<YogApi> = LazyLock::new(build_api_table);
 /// All registered handlers + content. A `RwLock`, not a plain value: unlike
 /// the original one-shot-then-immutable design, a hot-reload needs to
 /// append fresh entries for a reloaded mod after this has long been
@@ -38,4 +40,4 @@ pub(super) static API_TABLE: OnceLock<YogApi> = OnceLock::new();
 /// (initial or reload) takes a write guard — both deref straight through to
 /// `RuntimeHandlers`, so existing `handlers().field` call sites are
 /// unaffected by this type change.
-pub(super) static HANDLERS: OnceLock<RwLock<RuntimeHandlers>> = OnceLock::new();
+pub(super) static HANDLERS: LazyLock<RwLock<RuntimeHandlers>> = LazyLock::new(Default::default);

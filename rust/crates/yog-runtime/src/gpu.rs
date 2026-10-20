@@ -1,6 +1,10 @@
 //! The low-level GPU pipeline (ABI 14): buffers, vertex arrays, shaders, textures, draws, render state.
+use glow::HasContext;
+use super::{GL, GL_GET_PROGRAM_BINARY, GL_GET_PROGRAM_IV, GL_PROGRAM_BINARY, NonZeroU32, PathBuf, YogStr, c_void};
 
-use super::*;
+
+/// A user's cache, in their home (XDG's default).
+const USER_CACHE: &str = ".cache";
 
 // ── ABI minor 14 — low-level GPU pipeline ────────────────────────────────────
 //
@@ -182,9 +186,9 @@ pub(super) fn shader_cache_path(vert: &str, frag: &str) -> Option<PathBuf> {
     let dir = std::env::var("HOME")
         .map(|home| {
             PathBuf::from(home)
-                .join(".cache")
-                .join("yog")
-                .join("shaders")
+                .join(USER_CACHE)
+                .join(yog_ids::user_cache::CACHE)
+                .join(yog_ids::user_cache::SHADERS)
         })
         .ok()?;
     std::fs::create_dir_all(&dir).ok()?;

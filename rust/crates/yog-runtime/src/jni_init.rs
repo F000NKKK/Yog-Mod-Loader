@@ -1,6 +1,6 @@
 //! JNI: the runtime's start (`nativeInit`).
+use super::{API_TABLE, JAVA_VM, JClass, JNIEnv, JString, Path, YogApi, client_advancement_done, client_tag_items, guard, host_log, load_mods};
 
-use super::*;
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
@@ -19,14 +19,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
         .map(String::from)
         .unwrap_or_default();
 
-    // The content store before any mod registers into it.
-    HANDLERS.get_or_init(|| RwLock::new(RuntimeHandlers::default()));
-
-    let api: &'static YogApi = API_TABLE.get_or_init(build_api_table);
+    let api: &'static YogApi = &API_TABLE;
     crate::bus::register_duties();
     crate::bus::install_caller();
 
-    let _ = HOT_RELOADER.get_or_init(|| HotReloader::new(RuntimeModuleRegistry));
     // A book's entries an advancement unlocks wait for this client's player to have it.
     yog_book::set_unlocked(client_advancement_done);
     // A book's recipe shows a tag's items in turn.
@@ -63,7 +59,7 @@ pub(crate) fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
         return false;
     };
 
-    let api = API_TABLE.get().expect("yog: nativeInit not called yet");
+    let api: &'static YogApi = &API_TABLE;
 
     let module = match unsafe { hot_reloader().reload(mod_id, &native_path) } {
         Ok(m) => m,

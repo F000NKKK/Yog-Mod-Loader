@@ -1,5 +1,6 @@
 //! `YogApi`'s registration functions.
 
+use yog_ids::dimension_field;
 use super::*;
 
 // ── YogApi registration functions ─────────────────────────────────────────────
@@ -30,36 +31,16 @@ pub(super) fn register_blob(h: &mut RuntimeHandlers, kind: &str, id: String, byt
 /// Stores content of `kind` (see `register_content` in yog-abi).
 pub(super) fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_data::ValueRef) {
     *h.content_blob.get_mut().unwrap_or_else(|e| e.into_inner()) = None;
-    fn read<T: yog_data::Schema>(kind: &str, id: &str, v: &yog_data::ValueRef) -> Option<T> {
-        match yog_data::read_ref_value::<T>(v) {
-            Ok(value) => Some(value),
-            Err(problems) => {
-                let list: Vec<String> = problems.iter().map(|p| format!("{}: {}", p.path, p.message)).collect();
-                yog_logging::warn!("{kind} {id}: {}", list.join("; "));
-                None
-            }
-        }
-    }
-    let none_if_empty = |s: &mut Option<String>| {
-        if s.as_deref() == Some("") {
-            *s = None;
-        }
-    };
     match kind {
         yog_ids::kind::ITEM => {
             if let Some(mut d) = read::<ItemDef>(kind, &id, value) {
-                none_if_empty(&mut d.name);
-                none_if_empty(&mut d.tooltip);
+                none_if_empty(&mut [&mut d.name, &mut d.tooltip]);
                 h.items.push(d);
             }
         }
         yog_ids::kind::BLOCK => {
             if let Some(mut d) = read::<BlockDef>(kind, &id, value) {
-                none_if_empty(&mut d.name);
-                none_if_empty(&mut d.sound);
-                none_if_empty(&mut d.inventory_id);
-                none_if_empty(&mut d.base);
-                none_if_empty(&mut d.set);
+                none_if_empty(&mut [&mut d.name, &mut d.sound, &mut d.inventory_id, &mut d.base, &mut d.set]);
                 h.blocks.push(d);
             }
         }
@@ -110,59 +91,83 @@ pub(super) fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, 
         }
         yog_ids::kind::STARTUP_GRANT => {
             if let Some(mut g) = read::<yog_registry::StartupGrant>(kind, &id, value) {
-                none_if_empty(&mut g.book);
-                none_if_empty(&mut g.command);
+                none_if_empty(&mut [&mut g.book, &mut g.command]);
                 h.startup_grants.push(g);
             }
         }
-        yog_ids::kind::RECIPE => {
-            let (ns, name) = yog_ids::split(&id);
-            let recipe = value.to_value();
-            // Feed the recipe to the books already registered (their recipe pages).
-            for r in h.book_renderers.locked().values_mut() {
-                r.add_recipe(format!("{ns}:{name}"), &recipe);
-            }
-            h.recipes.push((ns.to_string(), name.to_string(), recipe));
-        }
+        yog_ids::kind::RECIPE => register_recipe(h, &id, value),
         yog_ids::kind::FONT => {
             if let Some(font) = read::<yog_font::Font>(kind, &id, value) {
                 crate::fonts::register(id, font);
             }
         }
-        yog_ids::kind::BOOK => {
-            // Read by its schema; the renderer draws it without a round trip to Java.
-            if let Some(mut book) = read::<yog_formats::book::Book>(kind, &id, value) {
-                // Entries about mods that aren't here aren't shown.
-                book.entries.retain(|e| e.requires.iter().all(|m| mod_loaded(m)));
-                h.books.insert(id.clone());
-                let mut renderer = yog_book::BookRenderer::new(book);
-                // i18n books carry translation keys; shown in the game language.
-                renderer.set_translator(translate);
-                // Recipes may register before the book — replay them into the renderer.
-                for (ns, name, recipe) in &h.recipes {
-                    renderer.add_recipe(format!("{ns}:{name}"), recipe);
-                }
-                h.book_renderers.get_mut().unwrap_or_else(|e| e.into_inner()).insert(id, renderer);
-            }
-        }
-        yog_ids::kind::DIMENSION => {
-            yog_logging::info!("registered dimension type: {}", id);
-            let mut def = value.to_value();
-            // The terrain stays here; the host gets the dimension, its generator this one.
-            if let Some(t) = value.get("terrain") {
-                let Some(terrain) = read::<yog_worldgen::Terrain>(kind, &id, t) else { return };
-                if let yog_data::Value::Map(m) = &mut def {
-                    m.remove("terrain");
-                    m.insert("generator_type", yog_data::Value::from(id.as_str()));
-                }
-                h.terrains.insert(id.clone(), Arc::new(yog_worldgen::Generator::new(terrain)));
-            }
-            h.dimensions.insert(id, def);
-        }
+        yog_ids::kind::BOOK => register_book(h, kind, id, value),
+        yog_ids::kind::DIMENSION => register_dimension(h, kind, id, value),
         other => yog_logging::warn!("unknown kind of content `{other}` ({id}) — this runtime doesn't know it"),
     }
 }
 
+/// `v` read as `T`; its problems logged (`kind id: …`) when it won't read.
+fn read<T: yog_data::Schema>(kind: &str, id: &str, v: &yog_data::ValueRef) -> Option<T> {
+    match yog_data::read_ref_value::<T>(v) {
+        Ok(value) => Some(value),
+        Err(problems) => {
+            let list: Vec<String> = problems.iter().map(|p| format!("{}: {}", p.path, p.message)).collect();
+            yog_logging::warn!("{kind} {id}: {}", list.join("; "));
+            None
+        }
+    }
+}
 
+/// Each of `fields` that's empty, none.
+fn none_if_empty(fields: &mut [&mut Option<String>]) {
+    for s in fields {
+        if s.as_deref() == Some("") {
+            **s = None;
+        }
+    }
+}
 
+/// A recipe, fed to the books already registered too (their recipe pages).
+fn register_recipe(h: &mut RuntimeHandlers, id: &str, value: &yog_data::ValueRef) {
+    let (ns, name) = yog_ids::split(id);
+    let recipe = value.to_value();
+    for r in h.book_renderers.locked().values_mut() {
+        r.add_recipe(yog_ids::join(ns, name), &recipe);
+    }
+    h.recipes.push((ns.to_string(), name.to_string(), recipe));
+}
 
+/// A book, read by its schema: the renderer draws it without a round trip
+/// to Java. Entries about mods that aren't here aren't shown; i18n books
+/// carry translation keys, shown in the game's language.
+fn register_book(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_data::ValueRef) {
+    let Some(mut book) = read::<yog_formats::book::Book>(kind, &id, value) else {
+        return;
+    };
+    book.entries.retain(|e| e.requires.iter().all(|m| mod_loaded(m)));
+    h.books.insert(id.clone());
+    let mut renderer = yog_book::BookRenderer::new(book);
+    renderer.set_translator(translate);
+    // Recipes may register before the book — replay them into the renderer.
+    for (ns, name, recipe) in &h.recipes {
+        renderer.add_recipe(yog_ids::join(ns, name), recipe);
+    }
+    h.book_renderers.get_mut().unwrap_or_else(|e| e.into_inner()).insert(id, renderer);
+}
+
+/// A dimension: its terrain stays here (the generator this one), the host
+/// gets the rest, naming the generator.
+fn register_dimension(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_data::ValueRef) {
+    yog_logging::info!("registered dimension type: {}", id);
+    let mut def = value.to_value();
+    if let Some(t) = value.get(dimension_field::TERRAIN) {
+        let Some(terrain) = read::<yog_worldgen::Terrain>(kind, &id, t) else { return };
+        if let yog_data::Value::Map(m) = &mut def {
+            m.remove(dimension_field::TERRAIN);
+            m.insert(dimension_field::GENERATOR_TYPE, yog_data::Value::from(id.as_str()));
+        }
+        h.terrains.insert(id.clone(), Arc::new(yog_worldgen::Generator::new(terrain)));
+    }
+    h.dimensions.insert(id, def);
+}

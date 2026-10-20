@@ -1,7 +1,7 @@
 //! 2D drawing through the game, and the GFX function table.
 
-use super::*;
 use crate::fonts::Named;
+use super::{YogGfxApi, YogStr, gfx_buf_create, gfx_buf_data, gfx_buf_delete, gfx_buf_subdata, gfx_clear_scissor, gfx_draw_arrays, gfx_draw_elements, gfx_prog_create, gfx_prog_delete, gfx_prog_uniform_1f, gfx_prog_uniform_1i, gfx_prog_uniform_2f, gfx_prog_uniform_3f, gfx_prog_uniform_4f, gfx_prog_uniform_mat4, gfx_set_blend, gfx_set_depth, gfx_set_scissor, gfx_set_viewport, gfx_tex_bind, gfx_tex_create, gfx_tex_delete, gfx_tex_from_mc, gfx_vao_attrib, gfx_vao_create, gfx_vao_delete, gfx_vao_set_ebo, images, svg};
 
 // ── 2D convenience (JNI — uses MC's DrawContext / text renderer) ──────────────
 
