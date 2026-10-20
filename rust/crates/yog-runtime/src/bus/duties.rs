@@ -5,7 +5,7 @@
 use std::os::raw::c_void;
 
 use yog_abi::{YogBytes, YogReply, YogStatus, status};
-use yog_event::{Event, Message, Service, client, keyed, player, server};
+use yog_event::{Event, Message, Service, client, keyed, log, player, server};
 
 use yog_sync::Locked;
 
@@ -92,6 +92,8 @@ pub(crate) fn register() {
     change::<client::render::Camera>(FIRST, |c| c.out = yog_body::CameraOut::default());
     // A body's frame carries what this client was told its entity keeps.
     change::<client::render::Body>(FIRST, |b| b.frame = crate::entity_data::with_data(&b.frame));
+    // Mods' records go to the game's log.
+    after::<log::Record>(LAST, |r| crate::host_log(yog_logging::Level::from_u32(r.level), &r.message));
     // What the server tells this client about entities comes on the runtime's own channel.
     listen::<client::net::Packet>(&keyed(client::net::Packet::ADDRESS, crate::entity_data::ENTITY_DATA), FIRST, |p| {
         crate::entity_data::receive(&p.payload)

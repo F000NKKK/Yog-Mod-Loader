@@ -221,6 +221,12 @@ names! {
         CLOSE = concatcp!(DOMAIN, "close"),
     }
 
+    /// `yog:content/…`: what mods register (provided by the runtime).
+    service_content {
+        DOMAIN = concatcp!(service::PREFIX, "content", sep::PATH),
+        REGISTER = concatcp!(DOMAIN, "register"),
+    }
+
     /// `yog:jvm/…`: Java mods' code, reached by reflection.
     service_jvm {
         DOMAIN = concatcp!(service::PREFIX, "jvm", sep::PATH),

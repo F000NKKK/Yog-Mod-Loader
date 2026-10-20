@@ -78,6 +78,14 @@ pub(super) fn handlers() -> std::sync::RwLockReadGuard<'static, RuntimeHandlers>
         .read_locked()
 }
 
+/// The handlers, to change (content a mod registers).
+pub(super) fn handlers_write() -> std::sync::RwLockWriteGuard<'static, RuntimeHandlers> {
+    HANDLERS
+        .get()
+        .expect("yog: nativeInit not called yet")
+        .write_locked()
+}
+
 pub(super) fn hot_reloader() -> &'static HotReloader<RuntimeModuleRegistry> {
     HOT_RELOADER.get().expect("yog: nativeInit not called yet")
 }

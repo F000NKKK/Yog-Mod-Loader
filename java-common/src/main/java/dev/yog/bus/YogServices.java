@@ -1805,6 +1805,48 @@ public final class YogServices {
         }
     }
 
+    /** `content`. */
+    public static final class Content {
+        private Content() {}
+
+        /** Content of `kind` (`item`, `block`, `recipe`, `book`, … — `yog_ids::kind`) named `id`, its definition as Yog Data (binary): the runtime keeps it for the hosts. One service for every kind — new kinds need nothing new. */
+        public record Register(String kind, String id, byte[] data) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("kind", kind);
+                m.put("id", id);
+                m.put("data", data);
+                return m;
+            }
+
+            public static Register fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Register(YogData.str(m.get("kind"), ""), YogData.str(m.get("id"), ""), (m.get("data") instanceof byte[] e0 ? e0 : new byte[0]));
+            }
+
+            public static Register fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceContent.REGISTER);
+            }
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
+            }
+        }
+    }
+
     /** `entity`. */
     public static final class Entity {
         private Entity() {}

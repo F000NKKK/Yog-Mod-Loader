@@ -16,27 +16,14 @@ use super::*;
 ///
 /// # Safety
 /// `ctx` must be that registration context.
-pub(super) unsafe fn handlers_mut<'a>(ctx: *mut c_void) -> std::sync::RwLockWriteGuard<'a, RuntimeHandlers> {
-    unsafe { (*(ctx as *const RwLock<RuntimeHandlers>)).write().unwrap_or_else(|e| e.into_inner()) }
-}
-
-/// `register_content`: content of `kind` named `id`, its definition a Yog
-/// Data blob — the one way mods hand the runtime what the hosts register.
-pub(super) unsafe extern "C" fn api_register_content(ctx: *mut c_void, kind: YogStr, id: YogStr, data: *const u8, len: usize) {
-    unsafe {
-        let kind = kind.as_str();
-        let id = id.as_str().to_owned();
-        let bytes = if data.is_null() || len == 0 { &[][..] } else { std::slice::from_raw_parts(data, len) };
-        // Borrowed: strings stay in `bytes`, only what's kept is copied.
-        let arena = yog_data::Bump::new();
-        let value = match yog_data::binary::decode_ref(bytes, &arena) {
-            Ok(v) => v,
-            Err(e) => {
-                yog_logging::warn!("{kind} {id}: not Yog Data: {e}");
-                return;
-            }
-        };
-        register_content(&mut handlers_mut(ctx), kind, id, &value);
+/// Content of `kind` named `id`, its definition a Yog Data blob — what
+/// the `content/register` service hands the runtime — stored in `h`.
+pub(super) fn register_blob(h: &mut RuntimeHandlers, kind: &str, id: String, bytes: &[u8]) {
+    // Borrowed: strings stay in `bytes`, only what's kept is copied.
+    let arena = yog_data::Bump::new();
+    match yog_data::binary::decode_ref(bytes, &arena) {
+        Ok(value) => register_content(h, kind, id, &value),
+        Err(e) => yog_logging::warn!("{kind} {id}: not Yog Data: {e}"),
     }
 }
 

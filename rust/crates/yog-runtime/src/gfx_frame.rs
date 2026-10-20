@@ -2,7 +2,6 @@
 //! reach it through `YogApi::gfx`.
 
 use std::cell::Cell;
-use std::os::raw::c_void;
 
 use yog_abi::YogGfxApi;
 
@@ -19,6 +18,6 @@ pub(crate) fn drawing<R>(gfx: &YogGfxApi, f: impl FnOnce() -> R) -> R {
 }
 
 /// `YogApi::gfx`.
-pub(crate) unsafe extern "C" fn api_gfx(_ctx: *mut c_void) -> *const YogGfxApi {
+pub(crate) unsafe extern "C" fn api_gfx() -> *const YogGfxApi {
     FRAME.with(Cell::get)
 }

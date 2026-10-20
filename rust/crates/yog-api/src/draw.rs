@@ -13,7 +13,7 @@ pub(crate) fn frame_gfx() -> Option<GfxContext> {
     if api.is_null() {
         return None;
     }
-    let gfx = unsafe { ((*api).gfx)((*api).ctx) };
+    let gfx = unsafe { ((*api).gfx)() };
     // SAFETY: the runtime keeps the frame's table alive while the event's handlers run.
     (!gfx.is_null()).then(|| unsafe { GfxContext::from_raw(gfx) })
 }

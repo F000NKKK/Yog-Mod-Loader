@@ -1,7 +1,7 @@
-//! The runtime's own services: what only it knows — the mods it loaded,
-//! and what this client was told about entities.
+//! The runtime's own services: what only it knows — the content mods
+//! register, the mods it loaded, what this client was told about entities.
 
-use yog_event::{client, entity, game};
+use yog_event::{client, content, entity, game};
 use yog_sync::Locked;
 
 use super::duties::provide;
@@ -41,6 +41,10 @@ fn mods() -> Vec<game::ModInfo> {
 
 /// The runtime's own services; once, at start.
 pub(crate) fn register() {
+    provide::<content::Register>(|r| {
+        crate::register_blob(&mut crate::handlers_write(), &r.kind, r.id.clone(), &r.data);
+        true
+    });
     provide::<game::Mods>(|_| mods());
     provide::<game::ModLoaded>(|m| crate::mod_loaded(&m.id));
     provide::<client::EntityData>(|d| crate::entity_data::client_get(&d.uuid, &d.key).map(|bytes| entity::DataValue { bytes }));

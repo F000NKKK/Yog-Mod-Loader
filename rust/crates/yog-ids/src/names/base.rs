@@ -41,6 +41,7 @@ names! {
         BIOME = "biome",
         BIOME_FEATURE = "biome_feature",
         DIMENSION = "dimension",
+        FONT = "font",
         ATTRIBUTE = "attribute",
         EFFECT = "effect",
         POTION = "potion",

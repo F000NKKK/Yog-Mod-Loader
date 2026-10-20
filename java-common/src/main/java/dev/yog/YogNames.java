@@ -37,6 +37,7 @@ public final class YogNames {
         public static final String BIOME = "biome";
         public static final String BIOME_FEATURE = "biome_feature";
         public static final String DIMENSION = "dimension";
+        public static final String FONT = "font";
         public static final String ATTRIBUTE = "attribute";
         public static final String EFFECT = "effect";
         public static final String POTION = "potion";
@@ -90,6 +91,13 @@ public final class YogNames {
 
         public static final String PREFIX = "yog:event/";
         public static final String PRE = "/pre";
+    }
+
+    public static final class EventLog {
+        private EventLog() {}
+
+        public static final String PLANE = "yog:event/log/";
+        public static final String RECORD = "yog:event/log/record";
     }
 
     public static final class EventPlayerSession {
@@ -525,6 +533,13 @@ public final class YogNames {
         public static final String OPEN = "yog:ui/open";
         public static final String OPEN_WITH_FLAGS = "yog:ui/open_with_flags";
         public static final String CLOSE = "yog:ui/close";
+    }
+
+    public static final class ServiceContent {
+        private ServiceContent() {}
+
+        public static final String DOMAIN = "yog:content/";
+        public static final String REGISTER = "yog:content/register";
     }
 
     public static final class ServiceJvm {

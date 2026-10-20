@@ -5,7 +5,7 @@ use yog_ids as ids;
 
 use crate::message::{Message, branch, last_segment};
 
-use crate::{block, client, container, entity, player, server, world};
+use crate::{block, client, container, entity, log, player, server, world};
 
 /// An event the bus carries; its payload is `Self` in `yog-data`'s binary form.
 pub trait Event: Message {
@@ -69,6 +69,7 @@ macro_rules! events {
 }
 
 events! {
+    log::Record => ids::event_log::RECORD, None;
     player::session::Join => ids::event_player_session::JOIN, None;
     player::session::Leave => ids::event_player_session::LEAVE, None;
     player::life::Death => ids::event_player_life::DEATH, Some(ids::event_player_life::DEATH_PRE);

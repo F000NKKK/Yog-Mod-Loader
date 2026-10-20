@@ -1,8 +1,6 @@
-//! Mods' logging (ABI 3.8).
+//! The game's log: where the runtime's records and mods' (the `log/record` event) go.
 
 use super::*;
-
-// ── Logging (ABI 3.8) ────────────────────────────────────────────────────────
 
 thread_local! {
     /// Set while a record is on its way to Java: a record the call itself
@@ -21,9 +19,4 @@ pub(super) fn host_log(level: yog_logging::Level, message: &str) {
     if !sent {
         eprintln!("[yog] [{level:?}] {message}");
     }
-}
-
-/// `YogApi::log`: a mod's record.
-pub(super) unsafe extern "C" fn api_log(level: u32, message: YogStr) {
-    host_log(yog_logging::Level::from_u32(level), unsafe { message.as_str() });
 }

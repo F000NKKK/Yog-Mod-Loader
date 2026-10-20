@@ -1,11 +1,10 @@
-//! The registration table passed to `yog_mod_register`.
+//! The table passed to `yog_mod_register`.
 
 use super::*;
 
-// ── Registration table (passed to yog_mod_register) ──────────────────────────
-
-/// Passed to `yog_mod_register`. Call the function pointers here to register
-/// handlers, commands, content, and schedulers.
+/// Passed to `yog_mod_register`: the bus — everything a mod does goes
+/// through it (`docs/design/bus.md`) — and the one thing that can't afford
+/// a message, the frame's graphics.
 ///
 /// When mods compiled against ABI `N` load on a runtime with ABI `M > N`:
 /// fields beyond `size` are not present in the mod's view — check `size` before
@@ -15,31 +14,12 @@ pub struct YogApi {
     pub abi_version: u32,
     /// `sizeof(YogApi)` at the runtime's build time.
     pub size: u32,
-    /// Opaque pointer to runtime handler storage.
-    pub ctx: *mut c_void,
-
-    // ── content ──────────────────────────────────────────────────────────────
-    /// Register content of `kind` (`item`, `block`, `inventory`, `recipe`,
-    /// `book`, `dimension`, `startup_grant`) named `id`: its definition as
-    /// a Yog Data blob (`yog_data::binary`, `len` bytes at `data`), the
-    /// shape of `yog_registry`'s / `yog_inventory`'s definitions, a recipe
-    /// in Yog's format, a book, a dimension. One call for every kind of
-    /// content — new kinds need no new ABI.
-    pub register_content: unsafe extern "C" fn(ctx: *mut c_void, kind: YogStr, id: YogStr, data: *const u8, len: usize),
-
-    // ── ABI 3.8 — logging ───────────────────────────────────────────────────
-    /// Writes `message` to the game's log at `level` (`yog_logging::Level`
-    /// as a number: 0 info, 1 warn, 2 error) — where a mod's records go, so
-    /// they're in the log with the game's instead of on a stdout nobody reads.
-    pub log: unsafe extern "C" fn(level: u32, message: YogStr),
-
-    // ── ABI 3.11 — the bus ──────────────────────────────────────────────────
     /// The bus: calls, events and services by address (`docs/design/bus.md`).
     /// Valid for the runtime's lifetime.
     pub bus: *const YogBus,
     /// The frame's graphics while a render event (`yog:event/client/render/…`)
     /// runs on this thread; null otherwise. Valid until the event's handlers return.
-    pub gfx: unsafe extern "C" fn(ctx: *mut c_void) -> *const YogGfxApi,
+    pub gfx: unsafe extern "C" fn() -> *const YogGfxApi,
 }
 
 unsafe impl Send for YogApi {}

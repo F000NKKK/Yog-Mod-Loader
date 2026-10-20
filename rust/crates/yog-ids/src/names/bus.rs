@@ -10,6 +10,12 @@ names! {
         PRE = concatcp!(sep::PATH, "pre"),
     }
 
+    /// `yog:event/log/…`.
+    event_log {
+        PLANE = concatcp!(event::PREFIX, "log", sep::PATH),
+        RECORD = concatcp!(PLANE, "record"),
+    }
+
     /// `yog:event/player/session/…`.
     event_player_session {
         PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "session", sep::PATH),

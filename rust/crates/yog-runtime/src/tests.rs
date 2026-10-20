@@ -5,7 +5,6 @@
 use std::ffi::c_void;
 use std::sync::{Mutex, RwLock};
 
-use yog_abi::YogStr;
 use yog_data::Schema;
 use yog_hot_reload::{GenerationAllocator, LoadedModule};
 
@@ -29,10 +28,15 @@ fn registering(f: impl FnOnce(*mut c_void)) -> Box<RwLock<RuntimeHandlers>> {
     handlers
 }
 
-/// `register_content` as a mod calls it: the definition's blob.
+/// A blob of content as `content/register` hands it over, into the handlers at `ctx`.
+unsafe fn blob(ctx: *mut c_void, kind: &str, id: &str, bytes: &[u8]) {
+    let handlers = unsafe { &*(ctx as *const RwLock<RuntimeHandlers>) };
+    register_blob(&mut handlers.write_locked(), kind, id.to_owned(), bytes);
+}
+
+/// Content as a mod registers it: the definition's blob.
 unsafe fn content(ctx: *mut c_void, kind: &str, id: &str, def: &yog_data::Value) {
-    let blob = yog_data::binary::encode(def);
-    unsafe { api_register_content(ctx, YogStr::from_str(kind), YogStr::from_str(id), blob.as_ptr(), blob.len()) }
+    unsafe { blob(ctx, kind, id, &yog_data::binary::encode(def)) }
 }
 
 fn json(text: &str) -> yog_data::Value {
@@ -79,7 +83,7 @@ fn books_get_the_recipes_registered_before_and_after_them() {
         content(ctx, "recipe", "mymod:b", &recipe);
         content(ctx, "book", "mymod:broken", &json(r#"{"categories": "none"}"#));
         // Not Yog Data, an unknown kind: told, nothing stored.
-        api_register_content(ctx, YogStr::from_str("book"), YogStr::from_str("mymod:junk"), b"junk".as_ptr(), 4);
+        blob(ctx, "book", "mymod:junk", b"junk");
         content(ctx, "spell", "mymod:fireball", &book);
     });
     let h = h.read_locked();
@@ -263,7 +267,7 @@ fn content_exchange() {
     time("runtime: register_content (decode + read)", 200, &mut || {
         handlers = Some(registering(|ctx| unsafe {
             for (k, i, b) in &blobs {
-                api_register_content(ctx, YogStr::from_str(k), YogStr::from_str(i), b.as_ptr(), b.len());
+                blob(ctx, k, i, b);
             }
         }));
     });
@@ -271,7 +275,7 @@ fn content_exchange() {
         time(&format!("  of which {kind}s"), 50, &mut || {
             std::hint::black_box(registering(|ctx| unsafe {
                 for (k, i, b) in blobs.iter().filter(|(k, ..)| k == kind) {
-                    api_register_content(ctx, YogStr::from_str(k), YogStr::from_str(i), b.as_ptr(), b.len());
+                    blob(ctx, k, i, b);
                 }
             }));
         });

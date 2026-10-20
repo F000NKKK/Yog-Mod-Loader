@@ -12,6 +12,54 @@ import java.util.Map;
 public final class YogEvents {
     private YogEvents() {}
 
+    /** `log`. */
+    public static final class Log {
+        private Log() {}
+
+        /** A record a mod wrote (`yog_api::info!`…): the runtime puts it in the game's log; anyone else may listen (a debugger's console). */
+        public record Record(long level, String message) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("level", level);
+                m.put("message", message);
+                return m;
+            }
+
+            public static Record fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Record(YogData.integer(m.get("level"), 0), YogData.str(m.get("message"), ""));
+            }
+
+            public static Record fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int POST = YogBus.resolve(YogNames.EventLog.RECORD);
+            }
+
+            /** Whether anyone listens — skip building an event no one hears. */
+            public static boolean heard() {
+                return YogBus.heard(Address.POST);
+            }
+
+            public YogBus.Reply emit() {
+                return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+            public Record emitChanged() {
+                YogBus.Reply r = emit();
+                if (r.status() != YogBus.OK) return this;
+                try {
+                    return fromBytes(r.bytes());
+                } catch (RuntimeException e) {
+                    return this;
+                }
+            }
+        }
+    }
+
     /** `player`. */
     public static final class Player {
         private Player() {}

@@ -15,7 +15,7 @@ pub mod control;
 pub mod vanilla;
 mod bus;
 mod draw;
-pub use bus::{EventCx, Flow, IntoFlow};
+pub use bus::{EventCx, Flow, IntoFlow, emit};
 pub use server::CServer;
 pub use service::call;
 mod interop;

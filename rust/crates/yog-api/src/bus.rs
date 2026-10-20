@@ -121,6 +121,28 @@ impl<E, F> Subscription<E, F> {
     }
 }
 
+/// Emits `event` on the bus — a mod's own event, or the game's on its
+/// behalf; whether no handler cancelled it (before the event, where it can be).
+pub fn emit<E: Event>(event: &E) -> bool {
+    let api = crate::registry::global_api();
+    if api.is_null() {
+        return true;
+    }
+    let bus = unsafe { &*(*api).bus };
+    let bytes = event.to_bytes();
+    let send = |address: &str| unsafe {
+        let at = (bus.resolve)(bus.ctx, YogStr::from_str(address));
+        (bus.emit)(bus.ctx, at, YogBytes::new(&bytes), std::ptr::null())
+    };
+    if let Some(pre) = event.pre_target()
+        && send(&pre) == status::CANCELLED
+    {
+        return false;
+    }
+    send(&event.target());
+    true
+}
+
 impl Registry {
     /// Runs `handler` on every `E`, before the game does it (if `E` can be
     /// stopped — [`Flow::Cancel`] / `false` stops it) and after.
