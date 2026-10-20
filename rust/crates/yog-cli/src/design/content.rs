@@ -12,7 +12,12 @@ use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
 
 /// The slots of a block model whose texture stands for it as an icon, best first.
-const ICON_SLOTS: [&str; 4] = ["all", "side", "top", yog_ids::model::TEXTURE];
+const ICON_SLOTS: [&str; 4] = [
+    yog_ids::texture_slot::ALL,
+    yog_ids::texture_slot::SIDE,
+    yog_ids::texture_slot::TOP,
+    yog_ids::texture_slot::TEXTURE,
+];
 
 /// `[mod] id` of the mod at `root`.
 /// The id a content file's texture names: `@texture:<ns>:<path>`, or an id

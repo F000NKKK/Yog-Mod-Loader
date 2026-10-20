@@ -7,6 +7,8 @@
 //! or every multipart part whose `when` it meets; elements keep their own
 //! rotations.
 
+use yog_ids::block_state::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
+use yog_ids::texture_slot::{ALL, BOTTOM, END, FRONT, SIDE, TEXTURE, TOP};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -86,22 +88,22 @@ pub fn cube(faces: Faces) -> Shape {
     vec![Cuboid { from: [0.0; 3], to: [BLOCK_UNITS; 3], faces, turns: Vec::new() }]
 }
 
-const FACE_NAMES: [&str; 6] = ["up", "down", "north", "south", "west", "east"];
+const FACE_NAMES: [&str; 6] = [UP, DOWN, NORTH, SOUTH, WEST, EAST];
 
 /// The texture variables the game's block models draw each face with (in
 /// [`FACE_NAMES`] order), most particular first: a cube's `up`, a
 /// column's `end`, a `cube_all`'s `all`, a one-texture model's `texture`.
 pub const FACE_TEXTURES: [&[&str]; 6] = [
-    &["up", "top", "end", "all", "texture"],
-    &["down", "bottom", "end", "all", "texture"],
-    &["north", "front", "side", "all", "texture"],
-    &["south", "side", "all", "texture"],
-    &["west", "side", "all", "texture"],
-    &["east", "side", "all", "texture"],
+    &[UP, TOP, END, ALL, TEXTURE],
+    &[DOWN, BOTTOM, END, ALL, TEXTURE],
+    &[NORTH, FRONT, SIDE, ALL, TEXTURE],
+    &[SOUTH, SIDE, ALL, TEXTURE],
+    &[WEST, SIDE, ALL, TEXTURE],
+    &[EAST, SIDE, ALL, TEXTURE],
 ];
 
 /// What a face falls back to when its model has none of [`FACE_TEXTURES`].
-const PARTICLE: &str = "particle";
+const PARTICLE: &str = yog_ids::model::PARTICLE;
 
 /// The part of a face's texture its box shows when the model gives no `uv`.
 fn default_uv(slot: usize, f: [f32; 3], t: [f32; 3]) -> [f32; 4] {
@@ -365,92 +367,99 @@ fn parse(list: &str) -> Vec<([i32; 3], String)> {
 
 pub fn draw(c: &mut Canvas, list: &str, rect: [f32; 4], yaw: f32, pitch: f32) {
     let mut cache = HashMap::new();
-    draw_with(c, &parse(list), rect, yaw, pitch, |res, id| shape(res, id, &mut cache));
+    draw_with(c, &parse(list), rect, (yaw, pitch), |res, id| shape(res, id, &mut cache));
 }
 
 /// One cube with its own `faces` (a mob's head, say), as [`draw`] draws a block.
 pub fn draw_cube(c: &mut Canvas, faces: Faces, rect: [f32; 4], yaw: f32, pitch: f32) {
-    draw_with(c, &[([0, 0, 0], String::new())], rect, yaw, pitch, |_, _| cube(faces.clone()));
+    draw_with(c, &[([0, 0, 0], String::new())], rect, (yaw, pitch), |_, _| cube(faces.clone()));
 }
+
+/// The game's shading of a block's faces by the way they look: up, down,
+/// north and south, west and east.
+const SHADE_UP: f32 = 1.0;
+const SHADE_DOWN: f32 = 0.5;
+const SHADE_NORTH_SOUTH: f32 = 0.8;
+const SHADE_WEST_EAST: f32 = 0.6;
+/// As the hosts draw them: the blocks as big as fit, this many times their largest side.
+const FIT: f32 = 1.7;
+
+/// (normal, corner offset, a, b, slot, shade) per face of a unit cube.
+const FACES: [CubeFace; 6] = [
+    ([0, 1, 0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], 0, SHADE_UP),
+    ([0, -1, 0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, -1.0], 1, SHADE_DOWN),
+    ([0, 0, -1], [1.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], 2, SHADE_NORTH_SOUTH),
+    ([0, 0, 1], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, -1.0, 0.0], 3, SHADE_NORTH_SOUTH),
+    ([-1, 0, 0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0], 4, SHADE_WEST_EAST),
+    ([1, 0, 0], [1.0, 1.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], 5, SHADE_WEST_EAST),
+];
+
+/// How the blocks are seen: their centre, the turn (yaw's and pitch's sine
+/// and cosine), the box drawn in and the scale.
+struct Camera {
+    centre: [f32; 3],
+    yaw: (f32, f32),
+    pitch: (f32, f32),
+    rect: [f32; 4],
+    scale: f32,
+}
+
+impl Camera {
+    /// The blocks' bounds fitted into `rect`, turned by `yaw` and `pitch` (degrees).
+    fn fit(blocks: &[([i32; 3], String)], rect: [f32; 4], yaw: f32, pitch: f32) -> Camera {
+        let mut lo = [i32::MAX; 3];
+        let mut hi = [i32::MIN; 3];
+        for (p, _) in blocks {
+            for i in 0..3 {
+                lo[i] = lo[i].min(p[i]);
+                hi[i] = hi[i].max(p[i]);
+            }
+        }
+        let size = (0..3).map(|i| hi[i] - lo[i]).max().unwrap_or(0) as f32 + 1.0;
+        Camera {
+            centre: [0, 1, 2].map(|i| (lo[i] + hi[i] + 1) as f32 / 2.0),
+            yaw: yaw.to_radians().sin_cos(),
+            pitch: pitch.to_radians().sin_cos(),
+            rect,
+            scale: rect[2].min(rect[3]) / (size * FIT),
+        }
+    }
+
+    /// World → view: about Y by yaw, then about X by pitch; x right, y up, z toward the viewer.
+    fn view(&self, p: [f32; 3]) -> [f32; 3] {
+        let ((sy, cy), (sp, cp)) = (self.yaw, self.pitch);
+        let [px, py, pz] = [0, 1, 2].map(|i| p[i] - self.centre[i]);
+        let x1 = px * cy + pz * sy;
+        let z1 = -px * sy + pz * cy;
+        [x1, py * cp - z1 * sp, py * sp + z1 * cp]
+    }
+
+    /// A view point on the canvas.
+    fn screen(&self, v: [f32; 3]) -> [f32; 2] {
+        let [x, y, w, h] = self.rect;
+        [x + w / 2.0 + v[0] * self.scale, y + h / 2.0 - v[1] * self.scale]
+    }
+}
+
+/// A face to draw: (depth, texture, corner, edge a, edge b, shade).
+type Quad = (f32, Option<Arc<Image>>, [f32; 2], [f32; 2], [f32; 2], f32);
 
 fn draw_with(
     c: &mut Canvas,
     blocks: &[([i32; 3], String)],
-    [x, y, w, h]: [f32; 4],
-    yaw: f32,
-    pitch: f32,
+    rect: [f32; 4],
+    (yaw, pitch): (f32, f32),
     mut shape_of: impl FnMut(&Resources, &str) -> Shape,
 ) {
-    if blocks.is_empty() || w <= 0.0 || h <= 0.0 {
+    if blocks.is_empty() || rect[2] <= 0.0 || rect[3] <= 0.0 {
         return;
     }
-    let mut lo = [i32::MAX; 3];
-    let mut hi = [i32::MIN; 3];
-    for (p, _) in blocks {
-        for i in 0..3 {
-            lo[i] = lo[i].min(p[i]);
-            hi[i] = hi[i].max(p[i]);
-        }
-    }
-    let size = (0..3).map(|i| hi[i] - lo[i]).max().unwrap_or(0) as f32 + 1.0;
-    // As the hosts: as big as fits (1.7 × the largest side).
-    let s = w.min(h) / (size * 1.7);
-    let centre = [(lo[0] + hi[0] + 1) as f32 / 2.0, (lo[1] + hi[1] + 1) as f32 / 2.0, (lo[2] + hi[2] + 1) as f32 / 2.0];
-    let (sy, cy) = yaw.to_radians().sin_cos();
-    let (sp, cp) = pitch.to_radians().sin_cos();
-    // World → view: about Y by yaw, then about X by pitch; x right, y up, z toward the viewer.
-    let view = |p: [f32; 3]| {
-        let (px, py, pz) = (p[0] - centre[0], p[1] - centre[1], p[2] - centre[2]);
-        let x1 = px * cy + pz * sy;
-        let z1 = -px * sy + pz * cy;
-        let y2 = py * cp - z1 * sp;
-        let z2 = py * sp + z1 * cp;
-        [x1, y2, z2]
-    };
-    let screen = |v: [f32; 3]| [x + w / 2.0 + v[0] * s, y + h / 2.0 - v[1] * s];
+    let cam = Camera::fit(blocks, rect, yaw, pitch);
     let occupied: HashSet<[i32; 3]> = blocks.iter().map(|(p, _)| *p).collect();
-
-    // Every face that can be seen: (depth, texture, corner, edge a, edge b, shade).
     let mut quads = Vec::new();
-    // (normal, corner offset, a, b, slot, shade) per face of a unit cube.
-    const FACES: [CubeFace; 6] = [
-        ([0, 1, 0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], 0, 1.0),
-        ([0, -1, 0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, -1.0], 1, 0.5),
-        ([0, 0, -1], [1.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], 2, 0.8),
-        ([0, 0, 1], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, -1.0, 0.0], 3, 0.8),
-        ([-1, 0, 0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0], 4, 0.6),
-        ([1, 0, 0], [1.0, 1.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], 5, 0.6),
-    ];
     for (p, id) in blocks {
         for cuboid in shape_of(c.resources(), id) {
-            let (f, t) = (cuboid.from, cuboid.to);
-            // A unit cube's corner → this box's (in sixteenths, turned), in the world.
-            let at = |u: [f32; 3]| {
-                let q = cuboid.turns.iter().fold([0, 1, 2].map(|i| f[i] + u[i] * (t[i] - f[i])), |q, turn| turn.apply(q));
-                [0, 1, 2].map(|i| p[i] as f32 + q[i] / BLOCK_UNITS)
-            };
-            for (n, corner, a, b, slot, shade) in FACES {
-                // On the block's side, against a neighbour: hidden (a turned box is never flush).
-                let on_side = cuboid.turns.is_empty()
-                    && (0..3).all(|i| n[i] == 0 || (n[i] > 0 && t[i] >= BLOCK_UNITS) || (n[i] < 0 && f[i] <= 0.0));
-                if on_side && occupied.contains(&[p[0] + n[0], p[1] + n[1], p[2] + n[2]]) {
-                    continue;
-                }
-                // Facing away from the viewer: unseen.
-                let normal = cuboid.turns.iter().fold(n.map(|v| v as f32), |v, turn| turn.apply_dir(v));
-                let nv = view([0, 1, 2].map(|i| centre[i] + normal[i]));
-                if nv[2] <= 0.0 {
-                    continue;
-                }
-                let Some(img) = cuboid.faces[slot].clone() else { continue };
-                let o = at(corner);
-                let oa = at([corner[0] + a[0], corner[1] + a[1], corner[2] + a[2]]);
-                let ob = at([corner[0] + b[0], corner[1] + b[1], corner[2] + b[2]]);
-                let (vo, va, vb) = (view(o), view(oa), view(ob));
-                let mid = view([0, 1, 2].map(|i| (oa[i] + ob[i]) / 2.0));
-                let (so, sa, sb) = (screen(vo), screen(va), screen(vb));
-                quads.push((mid[2], Some(img), so, [sa[0] - so[0], sa[1] - so[1]], [sb[0] - so[0], sb[1] - so[1]], shade));
-            }
+            seen_faces(&cam, *p, &cuboid, &occupied, &mut quads);
         }
     }
     // Back to front.
@@ -459,6 +468,37 @@ fn draw_with(
     for (_, img, o, a, b, shade) in quads {
         let img = img.unwrap_or_else(|| missing.clone());
         c.quad(&img, o, a, b, shade);
+    }
+}
+
+/// The faces of `cuboid` (of the block at `p`) that can be seen: not against
+/// a neighbour, not facing away.
+fn seen_faces(cam: &Camera, p: [i32; 3], cuboid: &Cuboid, occupied: &HashSet<[i32; 3]>, quads: &mut Vec<Quad>) {
+    let (f, t) = (cuboid.from, cuboid.to);
+    // A unit cube's corner → this box's (in sixteenths, turned), in the world.
+    let at = |u: [f32; 3]| {
+        let q = cuboid.turns.iter().fold([0, 1, 2].map(|i| f[i] + u[i] * (t[i] - f[i])), |q, turn| turn.apply(q));
+        [0, 1, 2].map(|i| p[i] as f32 + q[i] / BLOCK_UNITS)
+    };
+    for (n, corner, a, b, slot, shade) in FACES {
+        // On the block's side, against a neighbour: hidden (a turned box is never flush).
+        let on_side = cuboid.turns.is_empty()
+            && (0..3).all(|i| n[i] == 0 || (n[i] > 0 && t[i] >= BLOCK_UNITS) || (n[i] < 0 && f[i] <= 0.0));
+        if on_side && occupied.contains(&[p[0] + n[0], p[1] + n[1], p[2] + n[2]]) {
+            continue;
+        }
+        // Facing away from the viewer: unseen.
+        let normal = cuboid.turns.iter().fold(n.map(|v| v as f32), |v, turn| turn.apply_dir(v));
+        if cam.view([0, 1, 2].map(|i| cam.centre[i] + normal[i]))[2] <= 0.0 {
+            continue;
+        }
+        let Some(img) = cuboid.faces[slot].clone() else { continue };
+        let o = at(corner);
+        let oa = at([0, 1, 2].map(|i| corner[i] + a[i]));
+        let ob = at([0, 1, 2].map(|i| corner[i] + b[i]));
+        let mid = cam.view([0, 1, 2].map(|i| (oa[i] + ob[i]) / 2.0));
+        let (so, sa, sb) = (cam.screen(cam.view(o)), cam.screen(cam.view(oa)), cam.screen(cam.view(ob)));
+        quads.push((mid[2], Some(img), so, [sa[0] - so[0], sa[1] - so[1]], [sb[0] - so[0], sb[1] - so[1]], shade));
     }
 }
 

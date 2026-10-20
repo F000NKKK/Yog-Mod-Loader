@@ -897,6 +897,18 @@ public final class YogNames {
         public static final String MCMETA = "mcmeta";
     }
 
+    public static final class TextureSlot {
+        private TextureSlot() {}
+
+        public static final String ALL = "all";
+        public static final String SIDE = "side";
+        public static final String TOP = "top";
+        public static final String BOTTOM = "bottom";
+        public static final String END = "end";
+        public static final String FRONT = "front";
+        public static final String TEXTURE = "texture";
+    }
+
     public static final class BlockState {
         private BlockState() {}
 

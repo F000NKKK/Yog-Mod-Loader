@@ -333,6 +333,19 @@ names! {
         MCMETA = "mcmeta",
     }
 
+    /// The texture variables of the game's block models (`cube_all`'s `all`, a
+    /// column's `end`, …) — beside the faces' own names (`up`, `north`, …).
+    texture_slot {
+        ALL = "all",
+        SIDE = "side",
+        TOP = "top",
+        BOTTOM = "bottom",
+        END = "end",
+        FRONT = "front",
+        /// A one-texture model's.
+        TEXTURE = "texture",
+    }
+
     /// The game's block state properties Yog's blocks get, and their values.
     block_state {
         /// The way a block faces: the four sides, or up and down too.
