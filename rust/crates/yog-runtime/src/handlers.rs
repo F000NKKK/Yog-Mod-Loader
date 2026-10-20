@@ -59,9 +59,6 @@ pub(super) struct RuntimeHandlers {
     /// Dimensions' `terrain`s (`.ydef`), generated here: by the dimension's id,
     /// which is its `generator_type`.
     pub(super) terrains: HashMap<String, Arc<yog_worldgen::Generator>>,
-    pub(super) menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
-    /// The mods' key bindings (ABI 3.10), once each by id: the game's controls show them.
-    pub(super) key_bindings: Vec<KeyBinding>,
     pub active_uis: Mutex<Vec<UiLayer>>,
     pub(super) startup_grants: Vec<yog_registry::StartupGrant>,
     /// Players whose startup grants are pending: (name, uuid, ticks_waited).

@@ -163,8 +163,8 @@ public final class YogTypes {
         }
     }
 
-    /** A command a mod handles: its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
-    public record Declare(String name, String schema) {
+    /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
+    public record Command(String name, String schema) {
         public Map<String, Object> toData() {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("name", name);
@@ -172,12 +172,52 @@ public final class YogTypes {
             return m;
         }
 
-        public static Declare fromData(Object data) {
+        public static Command fromData(Object data) {
             Map<String, Object> m = YogData.map(data);
-            return new Declare(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
+            return new Command(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
         }
 
-        public static Declare fromBytes(byte[] bytes) {
+        public static Command fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** A button (the `menu/declare` service) the host shows on the title screen (the mod list on Forge and NeoForge), opening a mod's screen. */
+    public record MenuEntry(String label, String uiId) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("label", label);
+            m.put("ui_id", uiId);
+            return m;
+        }
+
+        public static MenuEntry fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new MenuEntry(YogData.str(m.get("label"), ""), YogData.str(m.get("ui_id"), ""));
+        }
+
+        public static MenuEntry fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** A declared key binding as the host registers it: under its mod's category. */
+    public record CategorizedBinding(String id, String name, int defaultKey, String category) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", id);
+            m.put("name", name);
+            m.put("default_key", defaultKey);
+            m.put("category", category);
+            return m;
+        }
+
+        public static CategorizedBinding fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new CategorizedBinding(YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), (int) YogData.integer(m.get("default_key"), 0), YogData.str(m.get("category"), ""));
+        }
+
+        public static CategorizedBinding fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
     }

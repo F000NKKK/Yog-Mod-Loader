@@ -4,7 +4,7 @@
 use yog_data::{Schema, Shape};
 use yog_ids as ids;
 
-use crate::{block, command, item};
+use crate::{block, command, item, key_binding, menu};
 use crate::message::{Message, branch, last_segment};
 
 /// A call the bus carries: its payload is `Self`, its answer a [`Service::Reply`].
@@ -67,6 +67,10 @@ services! {
     block::Insert => ids::service_block::INSERT, bool, key = block_id;
     item::Text => ids::service_item::TEXT, Option<item::Shown>, key = item;
     item::Picture => ids::service_item::PICTURE, Option<[f32; 2]>, key = item;
-    command::Declare => ids::service_command::DECLARE, bool;
-    command::Declared => ids::service_command::DECLARED, Vec<command::Declare>;
+    command::Command => ids::service_command::DECLARE, bool;
+    command::Declared => ids::service_command::DECLARED, Vec<command::Command>;
+    menu::MenuEntry => ids::service_menu::DECLARE, bool;
+    menu::Declared => ids::service_menu::DECLARED, Vec<menu::MenuEntry>;
+    key_binding::KeyBinding => ids::service_key_binding::DECLARE, bool;
+    key_binding::Declared => ids::service_key_binding::DECLARED, Vec<key_binding::CategorizedBinding>;
 }

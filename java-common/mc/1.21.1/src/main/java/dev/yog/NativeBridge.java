@@ -1512,9 +1512,6 @@ public final class NativeBridge {
     public static native boolean nativeUIChar(String uiId, char chr, int modifiers);
     public static native void nativeUIRender(String uiId, int screenW, int screenH);
     public static native boolean nativeIsUIActive(String uiId);
-    public static native String nativeMenuEntries();
-    /** The mods' key bindings (ABI 3.10): {@code id\tname key\tdefault key\tmod name} a line. */
-    public static native String nativeKeyBindings();
 
     /** Everything registered — items, blocks, inventories — as one Yog Data blob ({@code YogContent}). */
     public static native byte[] nativeContent();

@@ -85,14 +85,10 @@ public final class YogClientEvents {
     public static List<Button> menuButtons(Screen screen) {
         List<Button> out = new ArrayList<>();
         if (!(screen instanceof net.minecraft.client.gui.screens.TitleScreen)) return out;
-        String raw = NativeBridge.nativeMenuEntries();
-        if (raw == null || raw.isEmpty()) return out;
         int y = MENU_Y;
-        for (String line : raw.split("\n")) {
-            String[] parts = line.split("\t", 2);
-            if (parts.length < 2) continue;
-            String uiId = parts[1];
-            out.add(Button.builder(Component.translatable(parts[0]), b -> YogUIScreen.open(uiId, false, false))
+        for (dev.yog.bus.YogTypes.MenuEntry entry : new dev.yog.bus.YogServices.Menu.Declared().call()) {
+            String uiId = entry.uiId();
+            out.add(Button.builder(Component.translatable(entry.label()), b -> YogUIScreen.open(uiId, false, false))
                     .pos(MENU_X, y).size(MENU_WIDTH, MENU_HEIGHT).build());
             y += MENU_STEP;
         }
@@ -108,7 +104,7 @@ public final class YogClientEvents {
         NativeBridge.ensureLoaded();
         java.util.Map<String, KeyMapping.Category> categories = new java.util.HashMap<>();
         List<KeyMapping> out = new ArrayList<>();
-        for (dev.yog.util.YogKeyBindings.Binding b : dev.yog.util.YogKeyBindings.declared(NativeBridge.nativeKeyBindings())) {
+        for (dev.yog.util.YogKeyBindings.Binding b : dev.yog.util.YogKeyBindings.declared()) {
             KeyMapping.Category c = categories.computeIfAbsent(b.namespace(),
                     ns -> category.apply(Identifier.fromNamespaceAndPath(ns, dev.yog.util.YogKeyBindings.CATEGORY_PATH)));
             KeyMapping key = new KeyMapping(b.name(), com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM, b.defaultKey(), c);

@@ -1,6 +1,8 @@
 package dev.yog.util;
 
 import dev.yog.bus.YogEvents;
+import dev.yog.bus.YogServices;
+import dev.yog.bus.YogTypes;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,7 +10,7 @@ import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 /**
- * The mods' key bindings (ABI 3.10), the part every host shares: what the
+ * The mods' key bindings, the part every host shares: what the
  * runtime declares, which game key each became, the presses since the last
  * tick, and the names of the mods' categories in the controls. A host only
  * makes the game's key (its version's class) and registers it.
@@ -37,9 +39,6 @@ public final class YogKeyBindings {
      */
     public static final String CATEGORY_PATH = "keys";
     private static final String CATEGORY_PREFIX = "key.category.";
-    private static final String FIELD = "\t", LINE = "\n";
-    /** The fields of a binding's line: id, name, key, mod name. */
-    private static final int FIELDS = 4;
 
     private static final List<Binding> DECLARED = new ArrayList<>();
     private static final List<Map.Entry<String, BooleanSupplier>> KEYS = new ArrayList<>();
@@ -49,18 +48,11 @@ public final class YogKeyBindings {
         return CATEGORY_PREFIX + namespace + "." + CATEGORY_PATH;
     }
 
-    /** The bindings the runtime declares ({@code NativeBridge.nativeKeyBindings()}), remembered for {@link #categoryNames}. */
-    public static List<Binding> declared(String lines) {
+    /** The bindings the mods declare (the {@code key_binding/declared} service), remembered for {@link #categoryNames}. */
+    public static List<Binding> declared() {
         List<Binding> out = new ArrayList<>();
-        if (lines == null) return out;
-        for (String line : lines.split(LINE)) {
-            String[] f = line.split(FIELD, FIELDS);
-            if (f.length < FIELDS) continue;
-            try {
-                out.add(new Binding(f[0], f[1], Integer.parseInt(f[2]), f[3]));
-            } catch (NumberFormatException e) {
-                dev.yog.YogLog.warn("key binding " + f[0] + ": no key " + f[2]);
-            }
+        for (YogTypes.CategorizedBinding b : new YogServices.KeyBinding.Declared().call()) {
+            out.add(new Binding(b.id(), b.name(), b.defaultKey(), b.category()));
         }
         DECLARED.addAll(out);
         return out;

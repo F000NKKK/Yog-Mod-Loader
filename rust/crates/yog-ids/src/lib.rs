@@ -145,6 +145,20 @@ names! {
         PICTURE = concatcp!(DOMAIN, "picture"),
     }
 
+    /// `yog:menu/…`: the menu entries mods declare (provided by the runtime).
+    service_menu {
+        DOMAIN = concatcp!(service::PREFIX, "menu", sep::PATH),
+        DECLARE = concatcp!(DOMAIN, "declare"),
+        DECLARED = concatcp!(DOMAIN, "declared"),
+    }
+
+    /// `yog:key_binding/…`: the key bindings mods declare (provided by the runtime).
+    service_key_binding {
+        DOMAIN = concatcp!(service::PREFIX, "key_binding", sep::PATH),
+        DECLARE = concatcp!(DOMAIN, "declare"),
+        DECLARED = concatcp!(DOMAIN, "declared"),
+    }
+
     /// `yog:command/…`: the commands mods declare (provided by the runtime).
     service_command {
         DOMAIN = concatcp!(service::PREFIX, "command", sep::PATH),

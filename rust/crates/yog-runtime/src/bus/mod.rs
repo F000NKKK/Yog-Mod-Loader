@@ -1,6 +1,7 @@
 //! The bus (`docs/design/bus.md`): one channel for calls, events and
 //! services between Yog mods, the runtime, the Java host and Java mods.
 
+mod declared;
 mod duties;
 mod java;
 mod router;

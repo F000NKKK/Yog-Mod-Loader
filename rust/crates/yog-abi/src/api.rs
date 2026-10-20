@@ -29,12 +29,6 @@ pub struct YogApi {
     /// content — new kinds need no new ABI.
     pub register_content: unsafe extern "C" fn(ctx: *mut c_void, kind: YogStr, id: YogStr, data: *const u8, len: usize),
 
-    // ── ABI minor 22 — menu entry registration ──────────────────────────────
-    /// Register a button/link that the host renders on vanilla screens
-    /// (TitleScreen on Fabric, ModListScreen on Forge/NeoForge).
-    /// `label` is the human-readable button text (e.g. "Yog Mods").
-    /// `ui_id` is the Yog UI to open when clicked (e.g. "example:menu").
-    pub register_menu_entry: unsafe extern "C" fn(ctx: *mut c_void, label: YogStr, ui_id: YogStr),
 
     // ── ABI minor 23 — installed mods listing ───────────────────────────────
     /// All installed mods as TSV, one per line:
@@ -156,12 +150,6 @@ pub struct YogApi {
     /// actions; the answer as JSON, or none (no player, a server).
     pub client_op: unsafe extern "C" fn(ctx: *mut c_void, op: YogStr, args: YogStr) -> YogOwnedStr,
 
-    // ── ABI 3.10 — key bindings (client) ────────────────────────────────────
-    /// A key binding the player sees and rebinds in the game's controls,
-    /// under the mod's category: `id` (`mymod:xray`) names it, `name` is
-    /// the translation key of its label, `default_key` a GLFW key code (-1:
-    /// unbound). Declared while the mod registers; the game keeps the key.
-    pub register_key_binding: unsafe extern "C" fn(ctx: *mut c_void, id: YogStr, name: YogStr, default_key: i32),
 
     // ── ABI 3.11 — the bus ──────────────────────────────────────────────────
     /// The bus: calls, events and services by address (`docs/design/bus.md`).

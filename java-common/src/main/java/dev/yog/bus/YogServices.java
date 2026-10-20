@@ -127,8 +127,8 @@ public final class YogServices {
     public static final class Command {
         private Command() {}
 
-        /** A command a mod handles: its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
-        public record Declare(String name, String schema) {
+        /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
+        public record Command(String name, String schema) {
             public Map<String, Object> toData() {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("name", name);
@@ -136,12 +136,12 @@ public final class YogServices {
                 return m;
             }
 
-            public static Declare fromData(Object data) {
+            public static Command fromData(Object data) {
                 Map<String, Object> m = YogData.map(data);
-                return new Declare(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
+                return new Command(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
             }
 
-            public static Declare fromBytes(byte[] bytes) {
+            public static Command fromBytes(byte[] bytes) {
                 return fromData(YogData.decode(bytes));
             }
 
@@ -183,7 +183,7 @@ public final class YogServices {
                 static final int AT = YogBus.resolve(YogNames.ServiceCommand.DECLARED);
             }
 
-            public List<YogTypes.Declare> call() {
+            public List<YogTypes.Command> call() {
                 YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
                 Object v = null;
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
@@ -193,7 +193,158 @@ public final class YogServices {
                         v = null;
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.Declare.fromData(e0)).toList();
+                return YogData.list(v).stream().map(e0 -> YogTypes.Command.fromData(e0)).toList();
+            }
+        }
+    }
+
+    /** `menu`. */
+    public static final class Menu {
+        private Menu() {}
+
+        /** A button (the `menu/declare` service) the host shows on the title screen (the mod list on Forge and NeoForge), opening a mod's screen. */
+        public record MenuEntry(String label, String uiId) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("label", label);
+                m.put("ui_id", uiId);
+                return m;
+            }
+
+            public static MenuEntry fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new MenuEntry(YogData.str(m.get("label"), ""), YogData.str(m.get("ui_id"), ""));
+            }
+
+            public static MenuEntry fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceMenu.DECLARE);
+            }
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
+            }
+        }
+
+        /** Every declared menu entry, for the host. */
+        public record Declared() {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                return m;
+            }
+
+            public static Declared fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Declared();
+            }
+
+            public static Declared fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceMenu.DECLARED);
+            }
+
+            public List<YogTypes.MenuEntry> call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.list(v).stream().map(e0 -> YogTypes.MenuEntry.fromData(e0)).toList();
+            }
+        }
+    }
+
+    /** `key_binding`. */
+    public static final class Key_binding {
+        private Key_binding() {}
+
+        /** A key binding (the `key_binding/declare` service, declared while the mod registers; the game keeps the key). */
+        public record KeyBinding(String id, String name, int defaultKey) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", id);
+                m.put("name", name);
+                m.put("default_key", defaultKey);
+                return m;
+            }
+
+            public static KeyBinding fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new KeyBinding(YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), (int) YogData.integer(m.get("default_key"), 0));
+            }
+
+            public static KeyBinding fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceKeyBinding.DECLARE);
+            }
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
+            }
+        }
+
+        /** Every declared key binding, for the host. */
+        public record Declared() {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                return m;
+            }
+
+            public static Declared fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Declared();
+            }
+
+            public static Declared fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceKeyBinding.DECLARED);
+            }
+
+            public List<YogTypes.CategorizedBinding> call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.list(v).stream().map(e0 -> YogTypes.CategorizedBinding.fromData(e0)).toList();
             }
         }
     }

@@ -2,11 +2,11 @@
 
 use yog_data::Schema;
 
-/// A command a mod handles: its name, and its arguments' types
+/// A command a mod handles (the `command/declare` service): its name, and its arguments' types
 /// (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is
 /// typed. A name may be declared with several schemas.
 #[derive(Debug, Clone, PartialEq, Schema)]
-pub struct Declare {
+pub struct Command {
     pub name: String,
     pub schema: Option<String>,
 }

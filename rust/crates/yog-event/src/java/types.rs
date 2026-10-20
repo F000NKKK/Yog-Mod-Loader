@@ -20,7 +20,7 @@ pub(super) fn java_type(shape: &Shape, records: &mut Vec<StructShape>) -> String
         Shape::Map(f) => format!("Map<String, {}>", boxed(&java_type(&f(), records))),
         Shape::Optional(f) => boxed(&java_type(&f(), records)),
         Shape::Struct(s) => {
-            if !records.iter().any(|r| r.name == s.name) {
+            if !records.iter().any(|r| same(r, s)) {
                 records.push(s.clone());
             }
             format!("{TYPES}.{}", s.name)
@@ -31,6 +31,11 @@ pub(super) fn java_type(shape: &Shape, records: &mut Vec<StructShape>) -> String
 
 fn fits_int(min: i64, max: i64) -> bool {
     min >= i64::from(i32::MIN) && max <= i64::from(i32::MAX)
+}
+
+/// Whether `a` and `b` are one payload struct: its name and fields.
+pub(super) fn same(a: &StructShape, b: &StructShape) -> bool {
+    a.name == b.name && a.fields.iter().map(|f| f.name).eq(b.fields.iter().map(|f| f.name))
 }
 
 /// The object type standing for a primitive (in a list, or nullable).

@@ -1451,7 +1451,7 @@ impl Registry {
     where
         F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static,
     {
-        let declare = yog_event::command::Declare { name: name.to_owned(), schema: schema.map(str::to_owned) };
+        let declare = yog_event::command::Command { name: name.to_owned(), schema: schema.map(str::to_owned) };
         if self.call(&declare) != Some(true) {
             crate::error!("command {name}: the host wasn't told of it");
         }
@@ -1696,9 +1696,9 @@ impl Registry {
     }
 
     pub fn register_menu_entry(&mut self, label: &str, ui_id: &str) {
-        let l = YogStr::from_str(label);
-        let u = YogStr::from_str(ui_id);
-        unsafe { ((*self.api).register_menu_entry)(self.ctx(), l, u) }
+        if self.call(&yog_event::menu::MenuEntry { label: label.to_owned(), ui_id: ui_id.to_owned() }) != Some(true) {
+            crate::error!("menu entry {ui_id}: the host wasn't told of it");
+        }
     }
 
     /// Register a UI tree with an event callback.
@@ -1931,14 +1931,10 @@ impl Registry {
     where
         F: Fn() + Send + Sync + 'static,
     {
-        unsafe {
-            ((*self.api).register_key_binding)(
-                self.ctx(),
-                YogStr::from_str(id),
-                YogStr::from_str(name),
-                default_key.unwrap_or(crate::client::keys::UNBOUND),
-            )
-        };
+        let declare = yog_event::key_binding::KeyBinding { id: id.to_owned(), name: name.to_owned(), default_key: default_key.unwrap_or(crate::client::keys::UNBOUND) };
+        if self.call(&declare) != Some(true) {
+            crate::error!("key binding {id}: the host wasn't told of it");
+        }
         self.on_key::<yog_event::client::input::Binding, _>(id, move |_, _| handler());
     }
 

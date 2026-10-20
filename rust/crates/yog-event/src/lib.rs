@@ -23,6 +23,8 @@ pub mod command;
 pub mod container;
 pub mod entity;
 pub mod item;
+pub mod key_binding;
+pub mod menu;
 pub mod player;
 pub mod server;
 pub mod world;

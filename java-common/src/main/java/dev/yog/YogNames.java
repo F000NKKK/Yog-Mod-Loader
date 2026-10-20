@@ -113,6 +113,22 @@ public final class YogNames {
         public static final String PICTURE = "yog:item/picture";
     }
 
+    public static final class ServiceMenu {
+        private ServiceMenu() {}
+
+        public static final String DOMAIN = "yog:menu/";
+        public static final String DECLARE = "yog:menu/declare";
+        public static final String DECLARED = "yog:menu/declared";
+    }
+
+    public static final class ServiceKeyBinding {
+        private ServiceKeyBinding() {}
+
+        public static final String DOMAIN = "yog:key_binding/";
+        public static final String DECLARE = "yog:key_binding/declare";
+        public static final String DECLARED = "yog:key_binding/declared";
+    }
+
     public static final class ServiceCommand {
         private ServiceCommand() {}
 
