@@ -131,6 +131,10 @@ impl Registry {
         yog_logging::set_sink(log_to_host);
         // The actions' functions and handles (`player::give_item`, `Player`) reach the bus through it.
         yog_event::set_caller(crate::service::call_at);
+        // Atoms number the same in every mod: the runtime's table.
+        if !yog_data::atom::install(crate::service::ATOMS) {
+            yog_logging::warn!("atoms were made before the mod was registered: their numbers are this mod's own");
+        }
         Self { api }
     }
 

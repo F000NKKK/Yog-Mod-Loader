@@ -63,6 +63,7 @@ pub(super) fn pack(shape: &Shape, value: &str, depth: usize) -> String {
         Shape::Float { bits } if *bits == F32_BITS => format!("p.putF32({value});"),
         Shape::Float { .. } => format!("p.putF64({value});"),
         Shape::Str => format!("p.putStr({value});"),
+        Shape::Atom => format!("p.putAtom({value});"),
         Shape::Bytes => format!("p.putBytes({value});"),
         Shape::Optional(inner) => format!("p.putBool({value} != null); if ({value} != null) {{ {} }}", pack(&inner(), value, depth)),
         Shape::List(item) => match item() {
@@ -86,6 +87,7 @@ pub(super) fn unpack(shape: &Shape, depth: usize) -> String {
         Shape::Float { bits } if *bits == F32_BITS => "u.getF32()".into(),
         Shape::Float { .. } => "u.getF64()".into(),
         Shape::Str => "u.getStr()".into(),
+        Shape::Atom => "u.getAtom()".into(),
         Shape::Bytes => "u.getBytes()".into(),
         Shape::Optional(inner) => format!("(u.getBool() ? {} : null)", boxed(&inner(), depth)),
         Shape::List(item) => match item() {
@@ -150,7 +152,7 @@ pub(super) fn missing(shape: &Shape) -> String {
         Shape::List(_) => "java.util.List.of()".into(),
         Shape::Map(_) => "java.util.Map.of()".into(),
         Shape::Enum(en) if en.tag.is_none() => format!("{:?}", en.variants.first().map_or("", |v| v.name)),
-        Shape::Str | Shape::Text | Shape::Image | Shape::Color | Shape::Res => "\"\"".into(),
+        Shape::Str | Shape::Atom | Shape::Text | Shape::Image | Shape::Color | Shape::Res => "\"\"".into(),
         _ => "null".into(),
     }
 }

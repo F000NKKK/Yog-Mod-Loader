@@ -141,6 +141,12 @@ pub struct YogBus {
     pub provide: unsafe extern "C" fn(ctx: *mut c_void, address: YogAddress, ud: *mut c_void, handler: YogHandlerFn) -> YogStatus,
     /// Whether anyone provides `address` (a feature this host has).
     pub provided: unsafe extern "C" fn(ctx: *mut c_void, address: YogAddress) -> bool,
+    /// `name`'s atom (`yog_data::Atom`): the process's number for it, made
+    /// the first time; every mod and the host get the same.
+    pub atom: unsafe extern "C" fn(ctx: *mut c_void, name: YogStr) -> u32,
+    /// Atom `n`'s name, alive as long as the process; empty with a null
+    /// pointer when there's no such atom.
+    pub atom_name: unsafe extern "C" fn(ctx: *mut c_void, n: u32) -> YogStr,
 }
 
 unsafe impl Send for YogBus {}

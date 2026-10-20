@@ -244,6 +244,11 @@ public final class YogFrame {
             putU(i);
         }
 
+        /** A name that repeats: its atom's number ({@link dev.yog.YogAtoms}). */
+        public void putAtom(String name) {
+            putU(dev.yog.YogAtoms.number(name));
+        }
+
         public void putBytes(byte[] b) {
             putU(b.length);
             putAll(b);
@@ -469,6 +474,14 @@ public final class YogFrame {
             if (scratch == null || scratch.length < len) scratch = new byte[Math.max(len, START_BYTES)];
             b.get(at, scratch, 0, len);
             return new String(scratch, 0, len, StandardCharsets.UTF_8);
+        }
+
+        /** A name sent as its atom's number. */
+        public String getAtom() {
+            long n = getU();
+            String name = n <= Integer.MAX_VALUE ? dev.yog.YogAtoms.name((int) n) : null;
+            if (name == null) throw new YogData.DecodeException("no atom " + n, i);
+            return name;
         }
 
         public byte[] getBytes() {

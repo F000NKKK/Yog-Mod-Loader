@@ -1,7 +1,7 @@
 //! What the world queries answer (`yog_event`'s entity, block, player and
 //! world actions): records the host builds and the bus carries as Yog Data.
 
-use yog_data::Schema;
+use yog_data::{Atom, Schema};
 
 use crate::{BlockPos, Point};
 
@@ -44,9 +44,9 @@ pub mod entity_flags {
 #[data(view)]
 pub struct EntityInfo {
     /// Registry id of its type, e.g. `"minecraft:zombie"`.
-    pub type_id: String,
+    pub type_id: Atom,
     /// Dimension id, e.g. `"minecraft:overworld"`.
-    pub dimension: String,
+    pub dimension: Atom,
     /// Feet position.
     pub pos: Point,
     /// Eye height above `pos`.
@@ -130,7 +130,7 @@ pub struct BlockHit {
 #[data(view)]
 pub struct BlockInfo {
     /// Full block state, e.g. `"minecraft:oak_log[axis=y]"`.
-    pub state: String,
+    pub state: Atom,
     /// Destroy time; negative for unbreakable blocks (bedrock).
     pub hardness: f32,
     /// Placing a block here replaces this one (air, grass, water…).
@@ -160,7 +160,7 @@ impl BlockInfo {
 pub struct PlayerInfo {
     pub uuid: String,
     /// `"survival"`, `"creative"`, `"adventure"` or `"spectator"`.
-    pub gamemode: String,
+    pub gamemode: Atom,
     /// Selected hotbar slot (0–8).
     pub selected_slot: u32,
     pub xp_level: i32,
@@ -183,7 +183,7 @@ impl PlayerInfo {
 #[derive(Debug, Clone, PartialEq, Schema)]
 #[data(view)]
 pub struct Stack {
-    pub item: String,
+    pub item: Atom,
     pub count: u32,
     /// `{}` when it has none.
     pub snbt: String,
@@ -221,7 +221,7 @@ pub struct Rotation {
 pub struct PlacedBlock {
     pub pos: BlockPos,
     /// Full block state, e.g. `"minecraft:oak_log[axis=y]"`.
-    pub state: String,
+    pub state: Atom,
 }
 
 impl PlacedBlock {

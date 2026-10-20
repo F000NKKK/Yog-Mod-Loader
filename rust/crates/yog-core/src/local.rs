@@ -1,7 +1,7 @@
 //! What this client's player is and sees (`yog_event::client::local`), and
 //! how it clicks a container (`client::control`): records the host builds.
 
-use yog_data::Schema;
+use yog_data::{Atom, Schema};
 
 use crate::{BlockPos, Point};
 
@@ -20,7 +20,7 @@ pub struct LocalState {
     pub eye_height: f64,
     pub health: f32,
     pub food: i32,
-    pub dimension: String,
+    pub dimension: Atom,
     /// The selected hotbar slot, 0–8.
     pub slot: u32,
     /// How charged the next attack is: 1 does full damage.
@@ -38,7 +38,7 @@ impl LocalState {
 #[derive(Debug, Clone, PartialEq, Schema)]
 #[data(view)]
 pub struct BlockKind {
-    pub id: String,
+    pub id: Atom,
     /// Can be stood on and can't be walked through.
     pub solid: bool,
     pub liquid: bool,
@@ -76,7 +76,7 @@ impl BlockArea {
 #[data(view)]
 pub struct NearbyEntity {
     pub uuid: String,
-    pub entity_type: String,
+    pub entity_type: Atom,
     pub pos: Point,
     pub eye_height: f64,
     /// Blocks a tick.

@@ -279,6 +279,15 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
   is); batches; atoms (`#[data(atom)]`
   fields: ids sent as numbers, one Java `String` each). SPSC rings between
   threads go with F3.
+* **F2.7 — rkyv parity** (the goal: Rust ↔ Java as fast as rkyv's
+  in-place access): generated Java views (`XView` over the arena's
+  buffer, fields read in place, no objects); primitive arrays (`int[]`,
+  `float[]`…) in Java records instead of boxed lists; raw byte-aligned
+  number lists where bit-packing saves little (`get(i)` one load, bulk
+  copies); lazy views (lists kept as bytes and a count, fixed-size records
+  indexed in O(1), no `Vec`); no separate validation pass (every read
+  bounds-checked). Measured in `versus` (field and i-th element access
+  against rkyv) and `jni_calls` (a full Rust → Java → reply round trip).
 * **F3 — mirrors**: facts in `yog-ids`; the column store (inodes, key
   spaces, directories, merged demand, writer hand-over); `#[yog_mirror]`;
   its Java side; the host's mirrors (entities, players, block areas); Pipes'

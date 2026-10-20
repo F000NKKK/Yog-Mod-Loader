@@ -469,7 +469,7 @@ public final class YogTypes {
 
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
-            p.putStr(this.state);
+            p.putAtom(this.state);
             p.putF32(this.hardness);
             p.putBool(this.replaceable);
             p.putBool(this.air);
@@ -482,7 +482,7 @@ public final class YogTypes {
 
         public static BlockInfo unpack(YogFrame.Unpacker u) {
             int end = u.begin();
-            String f_state = u.more(end) ? u.getStr() : "";
+            String f_state = u.more(end) ? u.getAtom() : "";
             float f_hardness = u.more(end) ? u.getF32() : 0.0f;
             boolean f_replaceable = u.more(end) ? u.getBool() : false;
             boolean f_air = u.more(end) ? u.getBool() : false;
@@ -544,7 +544,7 @@ public final class YogTypes {
 
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
-            p.putStr(this.item);
+            p.putAtom(this.item);
             p.putI(this.count);
             p.putStr(this.snbt);
             p.end(at);
@@ -552,7 +552,7 @@ public final class YogTypes {
 
         public static Stack unpack(YogFrame.Unpacker u) {
             int end = u.begin();
-            String f_item = u.more(end) ? u.getStr() : "";
+            String f_item = u.more(end) ? u.getAtom() : "";
             long f_count = u.more(end) ? u.getI() : 0L;
             String f_snbt = u.more(end) ? u.getStr() : "";
             u.leave(end);
@@ -825,7 +825,7 @@ public final class YogTypes {
             p.putF64(this.eyeHeight);
             p.putF32(this.health);
             p.putI(this.food);
-            p.putStr(this.dimension);
+            p.putAtom(this.dimension);
             p.putI(this.slot);
             p.putF32(this.attackStrength);
             p.end(at);
@@ -842,7 +842,7 @@ public final class YogTypes {
             double f_eyeHeight = u.more(end) ? u.getF64() : 0.0;
             float f_health = u.more(end) ? u.getF32() : 0.0f;
             int f_food = u.more(end) ? (int) u.getI() : 0;
-            String f_dimension = u.more(end) ? u.getStr() : "";
+            String f_dimension = u.more(end) ? u.getAtom() : "";
             long f_slot = u.more(end) ? u.getI() : 0L;
             float f_attackStrength = u.more(end) ? u.getF32() : 0.0f;
             u.leave(end);
@@ -961,14 +961,14 @@ public final class YogTypes {
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
             this.pos.pack(p);
-            p.putStr(this.state);
+            p.putAtom(this.state);
             p.end(at);
         }
 
         public static PlacedBlock unpack(YogFrame.Unpacker u) {
             int end = u.begin();
             YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
-            String f_state = u.more(end) ? u.getStr() : "";
+            String f_state = u.more(end) ? u.getAtom() : "";
             u.leave(end);
             return new PlacedBlock(f_pos, f_state);
         }
@@ -1097,7 +1097,7 @@ public final class YogTypes {
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
             p.putStr(this.uuid);
-            p.putStr(this.entityType);
+            p.putAtom(this.entityType);
             this.pos.pack(p);
             p.putF64(this.eyeHeight);
             this.velocity.pack(p);
@@ -1110,7 +1110,7 @@ public final class YogTypes {
         public static NearbyEntity unpack(YogFrame.Unpacker u) {
             int end = u.begin();
             String f_uuid = u.more(end) ? u.getStr() : "";
-            String f_entityType = u.more(end) ? u.getStr() : "";
+            String f_entityType = u.more(end) ? u.getAtom() : "";
             YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
             double f_eyeHeight = u.more(end) ? u.getF64() : 0.0;
             YogTypes.Point f_velocity = u.more(end) ? YogTypes.Point.unpack(u) : null;
@@ -1365,8 +1365,8 @@ public final class YogTypes {
 
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
-            p.putStr(this.typeId);
-            p.putStr(this.dimension);
+            p.putAtom(this.typeId);
+            p.putAtom(this.dimension);
             this.pos.pack(p);
             p.putF64(this.eyeHeight);
             p.putF64(this.width);
@@ -1378,8 +1378,8 @@ public final class YogTypes {
 
         public static EntityInfo unpack(YogFrame.Unpacker u) {
             int end = u.begin();
-            String f_typeId = u.more(end) ? u.getStr() : "";
-            String f_dimension = u.more(end) ? u.getStr() : "";
+            String f_typeId = u.more(end) ? u.getAtom() : "";
+            String f_dimension = u.more(end) ? u.getAtom() : "";
             YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
             double f_eyeHeight = u.more(end) ? u.getF64() : 0.0;
             double f_width = u.more(end) ? u.getF64() : 0.0;
@@ -1712,7 +1712,7 @@ public final class YogTypes {
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
             p.putStr(this.uuid);
-            p.putStr(this.gamemode);
+            p.putAtom(this.gamemode);
             p.putI(this.selectedSlot);
             p.putI(this.xpLevel);
             p.putI(this.xpTotal);
@@ -1725,7 +1725,7 @@ public final class YogTypes {
         public static PlayerInfo unpack(YogFrame.Unpacker u) {
             int end = u.begin();
             String f_uuid = u.more(end) ? u.getStr() : "";
-            String f_gamemode = u.more(end) ? u.getStr() : "";
+            String f_gamemode = u.more(end) ? u.getAtom() : "";
             long f_selectedSlot = u.more(end) ? u.getI() : 0L;
             int f_xpLevel = u.more(end) ? (int) u.getI() : 0;
             int f_xpTotal = u.more(end) ? (int) u.getI() : 0;
@@ -1924,7 +1924,7 @@ public final class YogTypes {
 
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
-            p.putStr(this.id);
+            p.putAtom(this.id);
             p.putBool(this.solid);
             p.putBool(this.liquid);
             p.putBool(this.climbable);
@@ -1934,7 +1934,7 @@ public final class YogTypes {
 
         public static BlockKind unpack(YogFrame.Unpacker u) {
             int end = u.begin();
-            String f_id = u.more(end) ? u.getStr() : "";
+            String f_id = u.more(end) ? u.getAtom() : "";
             boolean f_solid = u.more(end) ? u.getBool() : false;
             boolean f_liquid = u.more(end) ? u.getBool() : false;
             boolean f_climbable = u.more(end) ? u.getBool() : false;

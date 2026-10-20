@@ -109,7 +109,7 @@ fn calls_cross_the_arena_both_ways() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let classes = std::env::temp_dir().join(format!("yog-arena-jvm-{}", std::process::id()));
     let java_common = root.join("../../../java-common/src/main/java/dev/yog");
-    let sources: Vec<PathBuf> = ["YogBus.java", "YogMessage.java", "YogNames.java", "data/YogFrame.java", "data/YogData.java"]
+    let sources: Vec<PathBuf> = ["YogBus.java", "YogMessage.java", "YogAtoms.java", "YogNames.java", "data/YogFrame.java", "data/YogData.java"]
         .map(|f| java_common.join(f))
         .into_iter()
         .chain(["YogLog.java", "ArenaProbe.java"].map(|f| root.join("tests/java/dev/yog").join(f)))
@@ -119,6 +119,12 @@ fn calls_cross_the_arena_both_ways() {
     let _ = crate::JAVA_VM.set(unsafe { jni::JavaVM::from_raw(vm.get_java_vm_pointer()) }.unwrap());
     let mut env = vm.attach_current_thread().unwrap();
     env.register_native_methods("dev/yog/YogBus", &natives()).unwrap();
+    let n = |name: &str, sig: &str, f: *mut c_void| NativeMethod { name: name.into(), sig: sig.into(), fn_ptr: f };
+    let atoms = [
+        n("nativeAtom", "(Ljava/lang/String;)I", java::Java_dev_yog_YogAtoms_nativeAtom as *mut c_void),
+        n("nativeAtomName", "(I)Ljava/lang/String;", java::Java_dev_yog_YogAtoms_nativeAtomName as *mut c_void),
+    ];
+    env.register_native_methods("dev/yog/YogAtoms", &atoms).unwrap();
 
     // Rust → Java: in the arena, and a payload too big for it.
     let name = env.new_string("test:echo").unwrap();
@@ -152,6 +158,16 @@ fn calls_cross_the_arena_both_ways() {
     assert_eq!(java_greet(&mut env, "test:greet", "bob", 5), "0:hi bob:10");
     // A frame that isn't one: the handler fails, and nothing is answered.
     assert_eq!(ROUTER.call_vec(ROUTER.resolve("test:greet"), b"", java::run), (status::FAILED, Vec::new()));
+    // Atoms: Java and Rust number a name the same, whoever saw it first.
+    let rust_first = yog_data::Atom::new("test:rust_first");
+    let a = env.new_string("test:rust_first").unwrap();
+    let java_n = env.call_static_method("dev/yog/ArenaProbe", "atom", "(Ljava/lang/String;)I", &[JValue::Object(&a)]).unwrap().i().unwrap();
+    assert_eq!(java_n as u32, rust_first.number());
+    let b = env.new_string("test:java_first").unwrap();
+    let java_n = env.call_static_method("dev/yog/ArenaProbe", "atom", "(Ljava/lang/String;)I", &[JValue::Object(&b)]).unwrap().i().unwrap();
+    assert_eq!(yog_data::Atom::new("test:java_first").number(), java_n as u32);
+    let name = env.call_static_method("dev/yog/ArenaProbe", "atomName", "(I)Ljava/lang/String;", &[JValue::Int(java_n)]).unwrap().l().unwrap();
+    assert_eq!(String::from(env.get_string(&name.into()).unwrap()), "test:java_first");
     // Every frame was taken back.
     assert_eq!(arena::frames_top(), 0);
     let _ = std::fs::remove_dir_all(&classes);

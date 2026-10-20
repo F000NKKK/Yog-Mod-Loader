@@ -217,6 +217,31 @@ impl Schema for String {
     }
 }
 
+/// Text everywhere but in a frame, which carries its number.
+impl Schema for crate::Atom {
+    fn shape() -> Shape {
+        Shape::Atom
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        String::read(v, cx).map(|s| crate::Atom::new(&s))
+    }
+    fn write(&self) -> Value {
+        Value::Str(self.as_str().to_owned())
+    }
+    fn encode(&self, w: &mut Writer) {
+        w.str(self.as_str());
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        d.str().filter(|s| !s.starts_with(typed_mark())).map(crate::Atom::new)
+    }
+    fn pack(&self, p: &mut Packer) {
+        p.put_u(u64::from(self.number()));
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        crate::Atom::from_number(u32::try_from(u.get_u()?).ok()?)
+    }
+}
+
 impl<T: Schema> Schema for Option<T> {
     fn shape() -> Shape {
         Shape::Optional(T::shape)

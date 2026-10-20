@@ -118,6 +118,22 @@ pub(crate) fn call_at(address: &str, payload: &[u8]) -> Option<Vec<u8>> {
     call_bytes(unsafe { &*api }, address, payload)
 }
 
+/// The runtime's atom table (`yog_data::atom`), for this mod's copy of
+/// `yog-data`: the same numbers as every mod's and the host's.
+pub(crate) const ATOMS: yog_data::atom::Table = yog_data::atom::Table { intern: atom, name: atom_name };
+
+fn atom(name: &str) -> u32 {
+    let bus = unsafe { &*(*global_api()).bus };
+    unsafe { (bus.atom)(bus.ctx, YogStr::from_str(name)) }
+}
+
+fn atom_name(n: u32) -> Option<&'static str> {
+    let bus = unsafe { &*(*global_api()).bus };
+    let s = unsafe { (bus.atom_name)(bus.ctx, n) };
+    // The runtime keeps its atoms' names for good.
+    (!s.ptr.is_null()).then(|| unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(s.ptr, s.len as usize)) })
+}
+
 fn call_bytes(api: &YogApi, address: &str, payload: &[u8]) -> Option<Vec<u8>> {
     let bus = unsafe { &*api.bus };
     let mut out = Vec::new();

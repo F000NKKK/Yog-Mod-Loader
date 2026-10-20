@@ -25,6 +25,8 @@ pub enum Shape {
     },
     /// Plain text.
     Str,
+    /// A name that repeats ([`crate::Atom`]): text everywhere, its number in a frame.
+    Atom,
     /// Yog text, a `@Set.key` resource, or `@kind:id` (that content's name).
     Text,
     /// An image source or a `@Set.key` image resource.
@@ -142,6 +144,7 @@ impl Shape {
                 m
             }
             Shape::Str => kind("string"),
+            Shape::Atom => kind("atom"),
             Shape::Text => kind("text"),
             Shape::Image => kind("image"),
             Shape::Color => kind("color"),

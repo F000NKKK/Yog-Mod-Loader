@@ -12,8 +12,8 @@ unsafe extern "C" fn yes(_: *mut c_void, _: YogBytes, _: *const YogReply) -> Yog
     status::OK
 }
 
-fn no_java(_: i32, _: &[u8]) -> (YogStatus, Vec<u8>) {
-    (status::NO_HANDLER, Vec::new())
+fn no_java(_: i32, _: &[u8], _: &YogReply) -> YogStatus {
+    status::NO_HANDLER
 }
 
 
@@ -27,5 +27,6 @@ pub fn dispatch(n: usize) -> impl FnMut() -> YogStatus {
         router.on(event, 0, Handler::Native { owner: Some(module.clone()), ud: 0, f: yes });
     }
     let payload = [0u8; 16];
-    move || router.emit(event, &payload, no_java).0
+    let reply = YogReply::discard();
+    move || router.emit(event, &payload, &reply, no_java)
 }

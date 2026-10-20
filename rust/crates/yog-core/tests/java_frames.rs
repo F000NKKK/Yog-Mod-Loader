@@ -32,7 +32,12 @@ fn walk(dir: &Path) -> Vec<PathBuf> {
 fn through_java<T: Schema + PartialEq + std::fmt::Debug>(dir: &Path, record: &str, value: &T) {
     let (input, output) = (dir.join(format!("{record}.in")), dir.join(format!("{record}.out")));
     std::fs::write(&input, to_frame(value)).unwrap();
+    // This process's atoms, for Java's stand-in table: line n is atom n.
+    let atoms = dir.join("atoms");
+    let names: Vec<&str> = (0..).map_while(yog_data::atom::local::name).collect();
+    std::fs::write(&atoms, names.join("\n")).unwrap();
     let run = Command::new(jdk_tool("java"))
+        .arg(format!("-Dyog.atoms={}", atoms.display()))
         .arg("-cp")
         .arg(std::env::join_paths([dir.to_path_buf(), gson()]).unwrap())
         .args(["FrameTrip", record])
@@ -59,6 +64,8 @@ fn java_records_read_and_write_rust_frames() {
         .args(["YogNames.java", "YogBus.java", "YogMessage.java", "data/YogData.java", "data/YogFrame.java", "bus/YogTypes.java"].map(|f| java.join(f)))
         // The runtime tests' stand-in logger: no SLF4J here.
         .arg(root.join("../yog-runtime/tests/java/dev/yog/YogLog.java"))
+        // No runtime here: the atoms are this test's.
+        .arg(root.join("tests/java/dev/yog/YogAtoms.java"))
         .arg(root.join("tests/java/FrameTrip.java"))
         .status()
         .expect("javac");

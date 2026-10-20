@@ -13,6 +13,7 @@
 // `::yog_data::…` paths of `#[derive(Schema)]` work inside this crate too.
 extern crate self as yog_data;
 
+pub mod atom;
 pub mod binary;
 mod borrowed;
 pub mod frame;
@@ -27,6 +28,7 @@ mod stream;
 mod value;
 pub mod with;
 
+pub use atom::Atom;
 pub use text::{Doc, LineCol, Span, Spans, SyntaxError};
 pub use borrowed::{MapRef, ValueRef};
 pub use bumpalo::Bump;

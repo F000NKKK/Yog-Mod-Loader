@@ -47,6 +47,8 @@ pub(crate) fn table() -> *const YogBus {
                 on: abi_on,
                 provide: abi_provide,
                 provided: abi_provided,
+                atom: abi_atom,
+                atom_name: abi_atom_name,
             })
         })
         .0
@@ -103,6 +105,14 @@ pub(crate) fn heard<E: Event>() -> bool {
 fn owner() -> Option<yog_hot_reload::LoadedModule> {
     use yog_sync::Locked;
     crate::CURRENT_REGISTRATION.locked().clone()
+}
+
+unsafe extern "C" fn abi_atom(_ctx: *mut c_void, name: YogStr) -> u32 {
+    yog_data::atom::local::intern(unsafe { name.as_str() })
+}
+
+unsafe extern "C" fn abi_atom_name(_ctx: *mut c_void, n: u32) -> YogStr {
+    yog_data::atom::local::name(n).map_or(YogStr::EMPTY, YogStr::from_str)
 }
 
 unsafe extern "C" fn abi_resolve(_ctx: *mut c_void, address: YogStr) -> YogAddress {

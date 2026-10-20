@@ -26,6 +26,7 @@ pub fn unpack_shaped(u: &mut Unpacker<'_>, shape: &Shape) -> Option<Value> {
         Shape::Float { bits } if *bits == F32_BITS => Value::Float(f64::from(u.get_f32()?)),
         Shape::Float { .. } => Value::Float(u.get_f64()?),
         Shape::Str => Value::Str(u.get_str()?.to_owned()),
+        Shape::Atom => Value::Str(crate::Atom::from_number(u32::try_from(u.get_u()?).ok()?)?.as_str().to_owned()),
         Shape::Bytes => Value::Bytes(u.get_bytes()?.to_vec()),
         Shape::Optional(inner) => {
             if u.get_bool()? {

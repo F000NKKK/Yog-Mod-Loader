@@ -68,6 +68,16 @@ public final class ArenaProbe {
         return r.status() + ":" + back + ":" + m;
     }
 
+    /** {@code name}'s atom number, as Java gets it. */
+    public static int atom(String name) {
+        return YogAtoms.number(name);
+    }
+
+    /** Atom {@code n}'s name, as Java gets it. */
+    public static String atomName(int n) {
+        return YogAtoms.name(n);
+    }
+
     private static byte[] reversed(byte[] p) {
         byte[] out = new byte[p.length];
         for (int i = 0; i < p.length; i++) out[i] = p[p.length - 1 - i];

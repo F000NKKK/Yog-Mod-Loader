@@ -4,7 +4,7 @@
 
 use jni::JNIEnv;
 use jni::objects::{JByteArray, JClass, JString};
-use jni::sys::{jboolean, jbyteArray, jint};
+use jni::sys::{jboolean, jbyteArray, jint, jobject};
 use yog_abi::{YogReply, YogStatus, status};
 
 use super::{Handler, ROUTER};
@@ -49,6 +49,20 @@ fn bytes(env: &mut JNIEnv, payload: &JByteArray) -> Vec<u8> {
 pub extern "system" fn Java_dev_yog_YogBus_nativeResolve<'l>(mut env: JNIEnv<'l>, _class: JClass<'l>, address: JString<'l>) -> jint {
     let name: String = env.get_string(&address).map(String::from).unwrap_or_default();
     ROUTER.resolve(&name) as jint
+}
+
+/// `name`'s atom (`YogAtoms`): the process's table, shared with every mod.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_YogAtoms_nativeAtom<'l>(mut env: JNIEnv<'l>, _class: JClass<'l>, name: JString<'l>) -> jint {
+    let name: String = env.get_string(&name).map(String::from).unwrap_or_default();
+    yog_data::atom::local::intern(&name) as jint
+}
+
+/// Atom `n`'s name; null when there's none.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_YogAtoms_nativeAtomName<'l>(env: JNIEnv<'l>, _class: JClass<'l>, n: jint) -> jobject {
+    let Some(name) = u32::try_from(n).ok().and_then(yog_data::atom::local::name) else { return std::ptr::null_mut() };
+    env.new_string(name).map_or(std::ptr::null_mut(), |s| s.into_raw())
 }
 
 #[unsafe(no_mangle)]

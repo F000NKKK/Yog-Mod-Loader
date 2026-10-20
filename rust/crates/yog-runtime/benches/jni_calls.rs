@@ -107,6 +107,17 @@ fn by_name_teleport(env: &mut JNIEnv, player: &str) -> bool {
     ok
 }
 
+/// Calls before a path is measured: past HotSpot's compile thresholds, so
+/// what's measured is the steady state a game runs in, not the first calls.
+const WARM_CALLS: usize = 100_000;
+
+/// Runs `f` until the JIT has compiled the Java it reaches.
+fn warm(mut f: impl FnMut()) {
+    for _ in 0..WARM_CALLS {
+        f();
+    }
+}
+
 fn bench(c: &mut Criterion) {
     let Some(jdk) = jdk() else {
         eprintln!("jni_calls: no JDK (set JAVA_HOME) — skipped");
@@ -116,6 +127,15 @@ fn bench(c: &mut Criterion) {
     let mut env = vm.attach_current_thread().unwrap();
     let text = YogStr::from_str("Hello, Yog!");
     let dim = YogStr::from_str("minecraft:overworld");
+
+    warm(|| by_name_rect(&mut env));
+    warm(|| by_name_text(&mut env, "Hello, Yog!"));
+    warm(|| {
+        by_name_get_block(&mut env, "minecraft:overworld");
+    });
+    warm(|| {
+        by_name_teleport(&mut env, "Steve");
+    });
 
     let mut g = c.benchmark_group("jni");
     g.bench_function("drawRect/by_name", |b| b.iter(|| by_name_rect(&mut env)));

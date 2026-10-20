@@ -403,7 +403,11 @@ impl<'b> Decoder<'b> {
     }
 
     /// A packed list of floats next: each one.
+    /// (Written narrow when they fit: widened back.)
     pub fn floats(&mut self) -> Option<Vec<f64>> {
+        if self.next_is(tag::FLOATS32).is_some() {
+            return Some(self.packed_floats::<F32_BYTES>().ok()?.map(|f| f64::from(f32::from_le_bytes(*f))).collect());
+        }
         self.next_is(tag::FLOATS)?;
         Some(self.packed_floats::<F64_BYTES>().ok()?.map(|f| f64::from_le_bytes(*f)).collect())
     }

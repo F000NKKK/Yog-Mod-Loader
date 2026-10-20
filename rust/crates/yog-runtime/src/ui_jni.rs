@@ -269,7 +269,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     // `push_inventory_snapshot` for the rest of this function's duration.
     let slots = crate::bus::call(&yog_event::client::ScreenSlots {}).unwrap_or_default();
     let n = slots.len().min(yog_inventory::MAX_SNAPSHOT_SLOTS);
-    let slot_item_ids: Vec<String> = slots.iter().take(n).map(|s| s.stack.as_ref().map(|st| st.item.clone()).unwrap_or_default()).collect();
+    // Atoms' names live as long as the process: the pointers stay good.
+    let slot_item_ids: Vec<&'static str> = slots.iter().take(n).map(|s| s.stack.as_ref().map_or("", |st| st.item.as_str())).collect();
     let mut snapshot = yog_inventory::YogInvSnapshotRaw::EMPTY;
     if n > 0 {
         snapshot.slot_count = n as u32;

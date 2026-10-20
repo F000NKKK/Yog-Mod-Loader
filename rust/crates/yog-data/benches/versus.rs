@@ -1,7 +1,9 @@
 //! Yog Data against the formats it replaced, on the same structs: rkyv 0.8
 //! (mods' exports), postcard (serde's compact binary) and serde_json (the
 //! client's operations). Each is written and read back whole; rkyv is also
-//! read in place (validated access, no copy).
+//! read in place (validated access, no copy). Yog Data both ways: the
+//! tagged binary form (files, self-describing) and frames (the bus:
+//! positional, written into a reused buffer, read whole or as a view).
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
@@ -9,6 +11,7 @@ use std::hint::black_box;
 macro_rules! all_formats {
     ($($item:item)*) => {$(
         #[derive(yog_data::Schema, serde::Serialize, serde::Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, PartialEq, Debug)]
+        #[data(view)]
         $item
     )*};
 }
@@ -64,16 +67,21 @@ macro_rules! compare {
     ($c:expr, $name:literal, $value:expr, $ty:ty) => {{
         let v: $ty = $value;
         let yog = yog_data::to_bytes(&v);
+        let frame = yog_data::frame::to_frame(&v);
         let post = postcard::to_allocvec(&v).unwrap();
         let json = serde_json::to_vec(&v).unwrap();
         let rk = rkyv::to_bytes::<rkyv::rancor::Error>(&v).unwrap();
-        eprintln!("{}: yog {} B, postcard {} B, json {} B, rkyv {} B", $name, yog.len(), post.len(), json.len(), rk.len());
+        eprintln!("{}: yog {} B, frame {} B, postcard {} B, json {} B, rkyv {} B", $name, yog.len(), frame.len(), post.len(), json.len(), rk.len());
         let mut g = $c.benchmark_group($name);
         g.bench_function("yog encode", |b| b.iter(|| yog_data::to_bytes(black_box(&v))));
+        g.bench_function("frame encode", |b| b.iter(|| yog_data::frame::to_frame(black_box(&v))));
+        g.bench_function("frame encode reused", |b| b.iter(|| yog_data::frame::with_frame(black_box(&v), |f| f.len())));
         g.bench_function("postcard encode", |b| b.iter(|| postcard::to_allocvec(black_box(&v)).unwrap()));
         g.bench_function("json encode", |b| b.iter(|| serde_json::to_vec(black_box(&v)).unwrap()));
         g.bench_function("rkyv encode", |b| b.iter(|| rkyv::to_bytes::<rkyv::rancor::Error>(black_box(&v)).unwrap()));
         g.bench_function("yog decode", |b| b.iter(|| yog_data::read_bytes::<$ty>(black_box(&yog)).unwrap()));
+        g.bench_function("frame decode", |b| b.iter(|| yog_data::frame::read_frame::<$ty>(black_box(&frame)).unwrap()));
+        g.bench_function("frame view", |b| b.iter(|| yog_data::frame::read_view::<$ty>(black_box(&frame)).map(|_| ()).unwrap()));
         g.bench_function("postcard decode", |b| b.iter(|| postcard::from_bytes::<$ty>(black_box(&post)).unwrap()));
         g.bench_function("json decode", |b| b.iter(|| serde_json::from_slice::<$ty>(black_box(&json)).unwrap()));
         g.bench_function("rkyv decode", |b| b.iter(|| rkyv::from_bytes::<$ty, rkyv::rancor::Error>(black_box(&rk)).unwrap()));

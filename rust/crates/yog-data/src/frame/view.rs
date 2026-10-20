@@ -78,6 +78,17 @@ impl<'a> View<'a> for Box<str> {
     }
 }
 
+impl<'a> View<'a> for crate::Atom {
+    type View = crate::Atom;
+    type ListView = Vec<crate::Atom>;
+    fn unpack_view(u: &mut Unpacker<'a>) -> Option<crate::Atom> {
+        <crate::Atom as crate::Schema>::unpack(u)
+    }
+    fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Vec<crate::Atom>> {
+        list_of::<crate::Atom>(u)
+    }
+}
+
 impl<'a, T: View<'a>> View<'a> for Option<T> {
     type View = Option<T::View>;
     type ListView = Vec<Option<T::View>>;
