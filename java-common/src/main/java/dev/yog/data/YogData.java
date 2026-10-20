@@ -339,31 +339,6 @@ public final class YogData {
 
     // ── JSON ─────────────────────────────────────────────────────────────
 
-    /**
-     * {@code v} as Gson's JSON tree — what {@link #toJson} writes, without
-     * the text in between (typed values as their string forms).
-     */
-    public static com.google.gson.JsonElement toGson(Object v) {
-        if (v == null) return com.google.gson.JsonNull.INSTANCE;
-        if (v instanceof Boolean b) return new com.google.gson.JsonPrimitive(b);
-        if (v instanceof Long || v instanceof Integer || v instanceof Double) return new com.google.gson.JsonPrimitive((Number) v);
-        if (v instanceof String s) return new com.google.gson.JsonPrimitive(s);
-        if (v instanceof List<?> l) {
-            com.google.gson.JsonArray a = new com.google.gson.JsonArray(l.size());
-            for (Object x : l) a.add(toGson(x));
-            return a;
-        }
-        if (v instanceof Map<?, ?> m) {
-            com.google.gson.JsonObject o = new com.google.gson.JsonObject();
-            for (Map.Entry<?, ?> e : m.entrySet()) o.add(String.valueOf(e.getKey()), toGson(e.getValue()));
-            return o;
-        }
-        if (v instanceof Text t) return new com.google.gson.JsonPrimitive(t.text());
-        StringBuilder one = new StringBuilder();
-        json(v, one);
-        return com.google.gson.JsonParser.parseString(one.toString());
-    }
-
     /** {@code v} as JSON text (typed values as their string forms: {@code "@item:minecraft:stick"}). */
     public static String toJson(Object v) {
         StringBuilder out = new StringBuilder();

@@ -74,9 +74,9 @@ public final class YogHostServices {
         return out;
     }
 
-    /** The reply to action {@code address} that threw {@code t}. */
-    public static YogBus.Reply failed(String address, Throwable t) {
+    /** The status of action {@code address} that threw {@code t}. */
+    public static int failed(String address, Throwable t) {
         YogLog.error(address + " failed", t);
-        return YogBus.Reply.of(YogBus.FAILED);
+        return YogBus.FAILED;
     }
 }

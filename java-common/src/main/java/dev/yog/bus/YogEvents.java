@@ -2,6 +2,7 @@
 package dev.yog.bus;
 
 import dev.yog.YogBus;
+import dev.yog.YogMessage;
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
 import dev.yog.data.YogFrame;
@@ -53,8 +54,23 @@ public final class YogEvents {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Record fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Record fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Record readFrame(YogFrame.Unpacker u) {
                 Record v = unpack(u);
                 u.finish();
                 return v;
@@ -69,17 +85,18 @@ public final class YogEvents {
                 return YogBus.heard(Address.POST);
             }
 
-            public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, toFrame());
+            /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+            public YogMessage emit() {
+                return YogBus.emit(Address.POST, packedFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Record emitChanged() {
-                YogBus.Reply r = emit();
+                YogMessage r = emit();
                 // Nothing back: no handler changed it.
-                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                if (!r.ok() || r.isEmpty()) return this;
                 try {
-                    return fromFrame(r.bytes());
+                    return fromFrame(r);
                 } catch (RuntimeException e) {
                     return this;
                 }
@@ -137,8 +154,23 @@ public final class YogEvents {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Join fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Join fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Join readFrame(YogFrame.Unpacker u) {
                     Join v = unpack(u);
                     u.finish();
                     return v;
@@ -153,17 +185,18 @@ public final class YogEvents {
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Join emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -212,8 +245,23 @@ public final class YogEvents {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Leave fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Leave fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Leave readFrame(YogFrame.Unpacker u) {
                     Leave v = unpack(u);
                     u.finish();
                     return v;
@@ -228,17 +276,18 @@ public final class YogEvents {
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Leave emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -297,8 +346,23 @@ public final class YogEvents {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Death fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Death fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Death readFrame(YogFrame.Unpacker u) {
                     Death v = unpack(u);
                     u.finish();
                     return v;
@@ -314,24 +378,25 @@ public final class YogEvents {
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Death emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -380,8 +445,23 @@ public final class YogEvents {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Respawn fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Respawn fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Respawn readFrame(YogFrame.Unpacker u) {
                     Respawn v = unpack(u);
                     u.finish();
                     return v;
@@ -396,17 +476,18 @@ public final class YogEvents {
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Respawn emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -460,8 +541,23 @@ public final class YogEvents {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Message fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Message fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Message readFrame(YogFrame.Unpacker u) {
                     Message v = unpack(u);
                     u.finish();
                     return v;
@@ -477,24 +573,25 @@ public final class YogEvents {
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Message emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -562,8 +659,23 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Move fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Move fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Move readFrame(YogFrame.Unpacker u) {
                     Move v = unpack(u);
                     u.finish();
                     return v;
@@ -578,17 +690,18 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Move emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -640,8 +753,23 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static UseItem fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static UseItem fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static UseItem readFrame(YogFrame.Unpacker u) {
                     UseItem v = unpack(u);
                     u.finish();
                     return v;
@@ -657,24 +785,25 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public UseItem emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -723,8 +852,23 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Attack fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Attack fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Attack readFrame(YogFrame.Unpacker u) {
                     Attack v = unpack(u);
                     u.finish();
                     return v;
@@ -739,17 +883,18 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Attack emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -809,8 +954,23 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Interact fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Interact fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Interact readFrame(YogFrame.Unpacker u) {
                     Interact v = unpack(u);
                     u.finish();
                     return v;
@@ -826,24 +986,25 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Interact emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -895,8 +1056,23 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Craft fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Craft fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Craft readFrame(YogFrame.Unpacker u) {
                     Craft v = unpack(u);
                     u.finish();
                     return v;
@@ -911,17 +1087,18 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Craft emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -981,8 +1158,23 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Pickup fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Pickup fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Pickup readFrame(YogFrame.Unpacker u) {
                     Pickup v = unpack(u);
                     u.finish();
                     return v;
@@ -998,24 +1190,25 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Pickup emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -1069,8 +1262,23 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Advancement fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Advancement fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Advancement readFrame(YogFrame.Unpacker u) {
                     Advancement v = unpack(u);
                     u.finish();
                     return v;
@@ -1085,17 +1293,18 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Advancement emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1153,8 +1362,23 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Break fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Break fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Break readFrame(YogFrame.Unpacker u) {
                 Break v = unpack(u);
                 u.finish();
                 return v;
@@ -1170,24 +1394,25 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 return YogBus.heard(Address.POST);
             }
 
-            public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, toFrame());
+            /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+            public YogMessage emit() {
+                return YogBus.emit(Address.POST, packedFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Break emitChanged() {
-                YogBus.Reply r = emit();
+                YogMessage r = emit();
                 // Nothing back: no handler changed it.
-                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                if (!r.ok() || r.isEmpty()) return this;
                 try {
-                    return fromFrame(r.bytes());
+                    return fromFrame(r);
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
             }
         }
 
@@ -1241,8 +1466,23 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Place fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Place fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Place readFrame(YogFrame.Unpacker u) {
                 Place v = unpack(u);
                 u.finish();
                 return v;
@@ -1258,24 +1498,25 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return YogBus.heard(Address.POST);
             }
 
-            public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, toFrame());
+            /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+            public YogMessage emit() {
+                return YogBus.emit(Address.POST, packedFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Place emitChanged() {
-                YogBus.Reply r = emit();
+                YogMessage r = emit();
                 // Nothing back: no handler changed it.
-                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                if (!r.ok() || r.isEmpty()) return this;
                 try {
-                    return fromFrame(r.bytes());
+                    return fromFrame(r);
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
             }
         }
 
@@ -1327,8 +1568,23 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Use fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Use fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Use readFrame(YogFrame.Unpacker u) {
                 Use v = unpack(u);
                 u.finish();
                 return v;
@@ -1344,24 +1600,25 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return YogBus.heard(Address.POST);
             }
 
-            public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, toFrame());
+            /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+            public YogMessage emit() {
+                return YogBus.emit(Address.POST, packedFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Use emitChanged() {
-                YogBus.Reply r = emit();
+                YogMessage r = emit();
                 // Nothing back: no handler changed it.
-                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                if (!r.ok() || r.isEmpty()) return this;
                 try {
-                    return fromFrame(r.bytes());
+                    return fromFrame(r);
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
             }
         }
     }
@@ -1418,8 +1675,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Spawn fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Spawn fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Spawn readFrame(YogFrame.Unpacker u) {
                     Spawn v = unpack(u);
                     u.finish();
                     return v;
@@ -1435,24 +1707,25 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Spawn emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -1501,8 +1774,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Death fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Death fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Death readFrame(YogFrame.Unpacker u) {
                     Death v = unpack(u);
                     u.finish();
                     return v;
@@ -1517,17 +1805,18 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Death emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1587,8 +1876,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Damage fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Damage fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Damage readFrame(YogFrame.Unpacker u) {
                     Damage v = unpack(u);
                     u.finish();
                     return v;
@@ -1604,24 +1908,25 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Damage emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -1687,8 +1992,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static ProjectileHit fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static ProjectileHit fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static ProjectileHit readFrame(YogFrame.Unpacker u) {
                     ProjectileHit v = unpack(u);
                     u.finish();
                     return v;
@@ -1704,24 +2024,25 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public ProjectileHit emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -1769,24 +2090,40 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Tick fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Tick fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Tick readFrame(YogFrame.Unpacker u) {
                     Tick v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventEntityGame.TICK, entityType), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventEntityGame.TICK, entityType), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Tick emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1852,8 +2189,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Explosion fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Explosion fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Explosion readFrame(YogFrame.Unpacker u) {
                 Explosion v = unpack(u);
                 u.finish();
                 return v;
@@ -1869,24 +2221,25 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return YogBus.heard(Address.POST);
             }
 
-            public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, toFrame());
+            /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+            public YogMessage emit() {
+                return YogBus.emit(Address.POST, packedFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Explosion emitChanged() {
-                YogBus.Reply r = emit();
+                YogMessage r = emit();
                 // Nothing back: no handler changed it.
-                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                if (!r.ok() || r.isEmpty()) return this;
                 try {
-                    return fromFrame(r.bytes());
+                    return fromFrame(r);
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
             }
         }
 
@@ -1948,24 +2301,40 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Chunk fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Chunk fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Chunk readFrame(YogFrame.Unpacker u) {
                     Chunk v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventWorldGeneration.CHUNK, generator), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventWorldGeneration.CHUNK, generator), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Chunk emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2034,8 +2403,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Roll fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Roll fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Roll readFrame(YogFrame.Unpacker u) {
                     Roll v = unpack(u);
                     u.finish();
                     return v;
@@ -2050,17 +2434,18 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Roll emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2120,8 +2505,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Open fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Open fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Open readFrame(YogFrame.Unpacker u) {
                 Open v = unpack(u);
                 u.finish();
                 return v;
@@ -2137,24 +2537,25 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return YogBus.heard(Address.POST);
             }
 
-            public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, toFrame());
+            /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+            public YogMessage emit() {
+                return YogBus.emit(Address.POST, packedFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Open emitChanged() {
-                YogBus.Reply r = emit();
+                YogMessage r = emit();
                 // Nothing back: no handler changed it.
-                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                if (!r.ok() || r.isEmpty()) return this;
                 try {
-                    return fromFrame(r.bytes());
+                    return fromFrame(r);
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
             }
         }
 
@@ -2200,8 +2601,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Close fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Close fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Close readFrame(YogFrame.Unpacker u) {
                 Close v = unpack(u);
                 u.finish();
                 return v;
@@ -2216,17 +2632,18 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return YogBus.heard(Address.POST);
             }
 
-            public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, toFrame());
+            /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+            public YogMessage emit() {
+                return YogBus.emit(Address.POST, packedFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
             public Close emitChanged() {
-                YogBus.Reply r = emit();
+                YogMessage r = emit();
                 // Nothing back: no handler changed it.
-                if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                if (!r.ok() || r.isEmpty()) return this;
                 try {
-                    return fromFrame(r.bytes());
+                    return fromFrame(r);
                 } catch (RuntimeException e) {
                     return this;
                 }
@@ -2297,8 +2714,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Craft fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Craft fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Craft readFrame(YogFrame.Unpacker u) {
                     Craft v = unpack(u);
                     u.finish();
                     return v;
@@ -2314,24 +2746,25 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Craft emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -2378,8 +2811,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Tick fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Tick fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Tick readFrame(YogFrame.Unpacker u) {
                     Tick v = unpack(u);
                     u.finish();
                     return v;
@@ -2394,17 +2842,18 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Tick emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2452,8 +2901,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Started fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Started fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Started readFrame(YogFrame.Unpacker u) {
                     Started v = unpack(u);
                     u.finish();
                     return v;
@@ -2468,17 +2932,18 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Started emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2518,8 +2983,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Stopping fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Stopping fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Stopping readFrame(YogFrame.Unpacker u) {
                     Stopping v = unpack(u);
                     u.finish();
                     return v;
@@ -2534,17 +3014,18 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Stopping emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2607,24 +3088,40 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Run fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Run fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Run readFrame(YogFrame.Unpacker u) {
                     Run v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventServerCommand.RUN, name), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventServerCommand.RUN, name), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Run emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2678,24 +3175,40 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Packet fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Packet fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Packet readFrame(YogFrame.Unpacker u) {
                     Packet v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventServerNet.PACKET, channel), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventServerNet.PACKET, channel), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Packet emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2745,8 +3258,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Tick fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Tick fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Tick readFrame(YogFrame.Unpacker u) {
                     Tick v = unpack(u);
                     u.finish();
                     return v;
@@ -2761,17 +3289,18 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Tick emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2817,8 +3346,23 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Travel fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Travel fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Travel readFrame(YogFrame.Unpacker u) {
                     Travel v = unpack(u);
                     u.finish();
                     return v;
@@ -2833,17 +3377,18 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Travel emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2902,8 +3447,23 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Key fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Key fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Key readFrame(YogFrame.Unpacker u) {
                     Key v = unpack(u);
                     u.finish();
                     return v;
@@ -2919,24 +3479,25 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Key emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -2976,24 +3537,40 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Binding fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Binding fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Binding readFrame(YogFrame.Unpacker u) {
                     Binding v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientInput.BINDING, id), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientInput.BINDING, id), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Binding emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3041,8 +3618,23 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Open fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Open fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Open readFrame(YogFrame.Unpacker u) {
                     Open v = unpack(u);
                     u.finish();
                     return v;
@@ -3057,17 +3649,18 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Open emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3110,8 +3703,23 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Close fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Close fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Close readFrame(YogFrame.Unpacker u) {
                     Close v = unpack(u);
                     u.finish();
                     return v;
@@ -3126,17 +3734,18 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Close emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3182,31 +3791,47 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Input fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Input fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Input readFrame(YogFrame.Unpacker u) {
                     Input v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT, uiId), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT, uiId), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Input emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT_PRE, uiId), toFrame()).status() != YogBus.CANCELLED;
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT_PRE, uiId), packedFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -3251,8 +3876,23 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Hud fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Hud fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Hud readFrame(YogFrame.Unpacker u) {
                     Hud v = unpack(u);
                     u.finish();
                     return v;
@@ -3267,17 +3907,18 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Hud emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3320,8 +3961,23 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static World fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static World fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static World readFrame(YogFrame.Unpacker u) {
                     World v = unpack(u);
                     u.finish();
                     return v;
@@ -3336,17 +3992,18 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public World emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3389,24 +4046,40 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Ui fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Ui fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Ui readFrame(YogFrame.Unpacker u) {
                     Ui v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.UI, uiId), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.UI, uiId), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Ui emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3455,24 +4128,40 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Tooltip fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Tooltip fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Tooltip readFrame(YogFrame.Unpacker u) {
                     Tooltip v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.TOOLTIP, item), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.TOOLTIP, item), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Tooltip emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3521,24 +4210,40 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Page fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Page fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Page readFrame(YogFrame.Unpacker u) {
                     Page v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.PAGE, drawer), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.PAGE, drawer), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Page emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3584,8 +4289,23 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Camera fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Camera fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Camera readFrame(YogFrame.Unpacker u) {
                     Camera v = unpack(u);
                     u.finish();
                     return v;
@@ -3600,17 +4320,18 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Camera emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3656,8 +4377,23 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Body fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Body fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Body readFrame(YogFrame.Unpacker u) {
                     Body v = unpack(u);
                     u.finish();
                     return v;
@@ -3672,17 +4408,18 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return YogBus.heard(Address.POST);
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Body emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -3733,24 +4470,40 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Packet fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Packet fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Packet readFrame(YogFrame.Unpacker u) {
                     Packet v = unpack(u);
                     u.finish();
                     return v;
                 }
 
-                public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientNet.PACKET, channel), toFrame());
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientNet.PACKET, channel), packedFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Packet emitChanged() {
-                    YogBus.Reply r = emit();
+                    YogMessage r = emit();
                     // Nothing back: no handler changed it.
-                    if (r.status() != YogBus.OK || r.bytes().length == 0) return this;
+                    if (!r.ok() || r.isEmpty()) return this;
                     try {
-                        return fromFrame(r.bytes());
+                        return fromFrame(r);
                     } catch (RuntimeException e) {
                         return this;
                     }

@@ -56,7 +56,9 @@ fn java_records_read_and_write_rust_frames() {
         .arg(gson())
         .arg("-d")
         .arg(&dir)
-        .args(["YogNames.java", "data/YogData.java", "data/YogFrame.java", "bus/YogTypes.java"].map(|f| java.join(f)))
+        .args(["YogNames.java", "YogBus.java", "YogMessage.java", "data/YogData.java", "data/YogFrame.java", "bus/YogTypes.java"].map(|f| java.join(f)))
+        // The runtime tests' stand-in logger: no SLF4J here.
+        .arg(root.join("../yog-runtime/tests/java/dev/yog/YogLog.java"))
         .arg(root.join("tests/java/FrameTrip.java"))
         .status()
         .expect("javac");

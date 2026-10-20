@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 use jni::objects::{JByteArray, JValue};
 use jni::{JNIEnv, NativeMethod};
 use yog_abi::{YogBytes, YogReply, YogStatus, status};
+use yog_data::Schema;
+use yog_data::frame::{read_frame, to_frame};
 
 use super::arena::{self, BYTES};
 use super::{Handler, ROUTER, java};
@@ -44,6 +46,37 @@ unsafe extern "C" fn through_java(_ud: *mut c_void, payload: YogBytes, reply: *c
     st
 }
 
+/// What the frame probes send: `ArenaProbe`'s {name, n}.
+#[derive(Schema, Debug, PartialEq)]
+struct Greet {
+    name: String,
+    n: i64,
+}
+
+/// A Rust service reading a frame: {"hey " + name, n + 1}.
+unsafe extern "C" fn greet_back(_ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus {
+    let Some(g) = read_frame::<Greet>(unsafe { payload.as_slice() }) else { return status::BAD_PAYLOAD };
+    unsafe { YogReply::send(reply, &to_frame(&Greet { name: format!("hey {}", g.name), n: g.n + 1 })) };
+    status::OK
+}
+
+/// Java's `ArenaProbe.callGreet(address, name, n)`.
+fn java_greet(env: &mut JNIEnv, address: &str, name: &str, n: i64) -> String {
+    let a = env.new_string(address).unwrap();
+    let who = env.new_string(name).unwrap();
+    let out = env
+        .call_static_method(
+            "dev/yog/ArenaProbe",
+            "callGreet",
+            "(Ljava/lang/String;Ljava/lang/String;J)Ljava/lang/String;",
+            &[JValue::Object(&a), JValue::Object(&who), JValue::Long(n)],
+        )
+        .unwrap()
+        .l()
+        .unwrap();
+    env.get_string(&out.into()).unwrap().into()
+}
+
 fn provide_native(address: &str, f: yog_abi::YogHandlerFn) {
     ROUTER.provide(ROUTER.resolve(address), Handler::Native { owner: None, ud: 0, f });
 }
@@ -76,7 +109,8 @@ fn calls_cross_the_arena_both_ways() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let classes = std::env::temp_dir().join(format!("yog-arena-jvm-{}", std::process::id()));
     let java_common = root.join("../../../java-common/src/main/java/dev/yog");
-    let sources: Vec<PathBuf> = [java_common.join("YogBus.java"), java_common.join("YogNames.java")]
+    let sources: Vec<PathBuf> = ["YogBus.java", "YogMessage.java", "YogNames.java", "data/YogFrame.java", "data/YogData.java"]
+        .map(|f| java_common.join(f))
         .into_iter()
         .chain(["YogLog.java", "ArenaProbe.java"].map(|f| root.join("tests/java/dev/yog").join(f)))
         .collect();
@@ -107,6 +141,17 @@ fn calls_cross_the_arena_both_ways() {
     assert_eq!(java_call(&mut env, "test:nobody", b"?").0, status::NO_HANDLER);
     let (st, out) = java_call(&mut env, "test:twice", &huge);
     assert_eq!((st, out.len()), (status::OK, huge.len() * 2));
+
+    // Frames packed and read in place: Rust → Java, Java → Rust, Java → Java.
+    let name = env.new_string("test:greet").unwrap();
+    java_void(&mut env, "provideGreet", "(Ljava/lang/String;)V", &[JValue::Object(&name)]);
+    let (st, out) = ROUTER.call_vec(ROUTER.resolve("test:greet"), &to_frame(&Greet { name: "steve".into(), n: 21 }), java::run);
+    assert_eq!((st, read_frame::<Greet>(&out)), (status::OK, Some(Greet { name: "hi steve".into(), n: 42 })));
+    provide_native("test:greet_back", greet_back);
+    assert_eq!(java_greet(&mut env, "test:greet_back", "alex", 1), "0:hey alex:2");
+    assert_eq!(java_greet(&mut env, "test:greet", "bob", 5), "0:hi bob:10");
+    // A frame that isn't one: the handler fails, and nothing is answered.
+    assert_eq!(ROUTER.call_vec(ROUTER.resolve("test:greet"), b"", java::run), (status::FAILED, Vec::new()));
     // Every frame was taken back.
     assert_eq!(arena::frames_top(), 0);
     let _ = std::fs::remove_dir_all(&classes);

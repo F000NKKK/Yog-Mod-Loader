@@ -1,5 +1,6 @@
 package dev.yog.data;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +55,15 @@ public final class YogFrame {
         return out;
     }
 
+    /** This thread's packers, a stack: a call nested in a handler takes the next one. */
+    private static final class Pool {
+        private static final int START = 4;
+        private Packer[] stack = new Packer[START];
+        private int depth;
+    }
+
+    private static final ThreadLocal<Pool> POOL = ThreadLocal.withInitial(Pool::new);
+
     /** Writes a frame. */
     public static final class Packer {
         private byte[] out = new byte[START_BYTES];
@@ -61,6 +71,62 @@ public final class YogFrame {
         private byte[] table = new byte[START_BYTES];
         private int tableLen;
         private final Map<String, Integer> strings = new HashMap<>();
+        /** Where in this thread's pool it was taken; -1 when it isn't pooled. */
+        private int level = -1;
+
+        /**
+         * A packer of this thread's, emptied — no allocation once the thread
+         * has made a few; give it back with {@link #release}.
+         */
+        public static Packer take() {
+            Pool pool = POOL.get();
+            if (pool.depth == pool.stack.length) pool.stack = Arrays.copyOf(pool.stack, pool.stack.length * 2);
+            Packer p = pool.stack[pool.depth];
+            if (p == null) {
+                p = new Packer();
+                pool.stack[pool.depth] = p;
+            }
+            p.reset();
+            p.level = pool.depth++;
+            return p;
+        }
+
+        /** Gives a {@link #take}n packer back, with every one taken after it. */
+        public void release() {
+            if (level >= 0) POOL.get().depth = level;
+        }
+
+        /** Empty again, its buffers kept. */
+        public void reset() {
+            n = 0;
+            tableLen = 0;
+            strings.clear();
+        }
+
+        /** Nothing packed. */
+        public boolean isEmpty() {
+            return n == 0 && tableLen == 0;
+        }
+
+        /** The frame's length: what {@link #finish} would make. */
+        public int size() {
+            return n + tableLen + varintLength(tableLen);
+        }
+
+        /** Writes the frame into {@code dst} at {@code at}, which has {@link #size} bytes free. */
+        public void writeTo(ByteBuffer dst, int at) {
+            dst.put(at, out, 0, n);
+            dst.put(at + n, table, 0, tableLen);
+            long len = tableLen;
+            int end = at + size();
+            // The table's length backwards: read from the frame's end.
+            while (true) {
+                int more = (len & ~(long) BITS) != 0 ? MORE : 0;
+                dst.put(--end, (byte) ((len & BITS) | more));
+                len >>>= SHIFT;
+                if (more == 0) break;
+            }
+        }
 
         private void put(int b) {
             if (n == out.length) out = Arrays.copyOf(out, out.length * 2);
@@ -211,12 +277,18 @@ public final class YogFrame {
 
         /** The frame: body, table, the table's length written backwards. */
         public byte[] finish() {
-            byte[] tail = varint(tableLen);
-            byte[] frame = new byte[n + tableLen + tail.length];
-            System.arraycopy(out, 0, frame, 0, n);
-            System.arraycopy(table, 0, frame, n, tableLen);
-            for (int k = 0; k < tail.length; k++) frame[n + tableLen + k] = tail[tail.length - 1 - k];
+            byte[] frame = new byte[size()];
+            writeTo(ByteBuffer.wrap(frame), 0);
             return frame;
+        }
+
+        private static int varintLength(long v) {
+            int k = 1;
+            while ((v & ~(long) BITS) != 0) {
+                v >>>= SHIFT;
+                k++;
+            }
+            return k;
         }
 
         private static byte[] varint(long v) {
@@ -231,28 +303,43 @@ public final class YogFrame {
         }
     }
 
-    /** Reads a frame; throws {@link YogData.DecodeException} on bytes that aren't one. */
+    /**
+     * Reads a frame where it is — an array, or the bus's arena (a direct
+     * buffer): numbers read in place, nothing copied but strings and bytes
+     * taken out. Throws {@link YogData.DecodeException} on bytes that aren't one.
+     */
     public static final class Unpacker {
-        private final byte[] b;
+        private final ByteBuffer b;
         private int i;
         private final int bodyEnd;
+        private final int frameEnd;
         private int tableAt;
-        private final List<String> strings = new ArrayList<>();
+        /** The strings read out of the table so far, made when the first is. */
+        private List<String> strings;
+        /** A string's bytes out of a direct buffer, kept for the next. */
+        private byte[] scratch;
         private int depth;
 
         public Unpacker(byte[] bytes) {
-            this.b = bytes;
+            this(ByteBuffer.wrap(bytes), 0, bytes.length);
+        }
+
+        /** The frame in {@code buf} from {@code from} up to {@code to}. */
+        public Unpacker(ByteBuffer buf, int from, int to) {
+            this.b = buf;
+            this.i = from;
+            this.frameEnd = to;
             long tableLen = 0;
             int shift = 0;
-            int at = bytes.length;
+            int at = to;
             while (true) {
-                if (at == 0 || shift >= VARINT_MAX_SHIFT) throw new YogData.DecodeException("no frame trailer", at);
-                int x = bytes[--at] & 0xFF;
+                if (at == from || shift >= VARINT_MAX_SHIFT) throw new YogData.DecodeException("no frame trailer", at);
+                int x = buf.get(--at) & 0xFF;
                 tableLen |= (long) (x & BITS) << shift;
                 if ((x & MORE) == 0) break;
                 shift += SHIFT;
             }
-            if (tableLen < 0 || tableLen > at) throw new YogData.DecodeException("table past the start", at);
+            if (tableLen < 0 || tableLen > at - from) throw new YogData.DecodeException("table past the start", at);
             this.bodyEnd = at - (int) tableLen;
             this.tableAt = bodyEnd;
         }
@@ -264,7 +351,7 @@ public final class YogFrame {
 
         private int u8(int limit) {
             if (i >= limit) throw new YogData.DecodeException("unexpected end", i);
-            return b[i++] & 0xFF;
+            return b.get(i++) & 0xFF;
         }
 
         private long varintAt(boolean table) {
@@ -272,8 +359,8 @@ public final class YogFrame {
             for (int shift = 0; shift < VARINT_MAX_SHIFT; shift += SHIFT) {
                 int x;
                 if (table) {
-                    if (tableAt >= b.length) throw new YogData.DecodeException("unexpected end", tableAt);
-                    x = b[tableAt++] & 0xFF;
+                    if (tableAt >= frameEnd) throw new YogData.DecodeException("unexpected end", tableAt);
+                    x = b.get(tableAt++) & 0xFF;
                 } else {
                     x = u8(bodyEnd);
                 }
@@ -300,7 +387,7 @@ public final class YogFrame {
         private long fixed(int bytes) {
             if (i + bytes > bodyEnd) throw new YogData.DecodeException("unexpected end", i);
             long v = 0;
-            for (int k = 0; k < bytes; k++) v |= (long) (b[i + k] & 0xFF) << (BYTE_BITS * k);
+            for (int k = 0; k < bytes; k++) v |= (long) (b.get(i + k) & 0xFF) << (BYTE_BITS * k);
             i += bytes;
             return v;
         }
@@ -367,18 +454,27 @@ public final class YogFrame {
         /** A string: the table read as far as it's needed. */
         public String getStr() {
             long index = getU();
+            if (strings == null) strings = new ArrayList<>();
             while (strings.size() <= index) {
                 long len = varintAt(true);
-                if (len < 0 || len > b.length - tableAt) throw new YogData.DecodeException("string past the end", tableAt);
-                strings.add(new String(b, tableAt, (int) len, StandardCharsets.UTF_8));
+                if (len < 0 || len > frameEnd - tableAt) throw new YogData.DecodeException("string past the end", tableAt);
+                strings.add(utf8(tableAt, (int) len));
                 tableAt += (int) len;
             }
             return strings.get((int) index);
         }
 
+        private String utf8(int at, int len) {
+            if (b.hasArray()) return new String(b.array(), b.arrayOffset() + at, len, StandardCharsets.UTF_8);
+            if (scratch == null || scratch.length < len) scratch = new byte[Math.max(len, START_BYTES)];
+            b.get(at, scratch, 0, len);
+            return new String(scratch, 0, len, StandardCharsets.UTF_8);
+        }
+
         public byte[] getBytes() {
             int len = count();
-            byte[] out = Arrays.copyOfRange(b, i, i + len);
+            byte[] out = new byte[len];
+            b.get(i, out);
             i += len;
             return out;
         }

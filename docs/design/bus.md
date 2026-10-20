@@ -273,8 +273,10 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
   zero-copy views; Java typed codecs (with F2.1); a decoder by `Shape` for
   tools.
 * **F2 — transport**: generated Java dispatch (done); per-thread arenas
-  with stacked frames (done); no allocation on a call (frames packed and
-  read in the arena on both sides); batches; atoms (`#[data(atom)]`
+  with stacked frames (done); no allocation on a call (done: frames packed
+  by pooled packers straight into the arena and read there on both sides,
+  replies sent to the caller's sink, a payload passed on read where it
+  is); batches; atoms (`#[data(atom)]`
   fields: ids sent as numbers, one Java `String` each). SPSC rings between
   threads go with F3.
 * **F3 — mirrors**: facts in `yog-ids`; the column store (inodes, key

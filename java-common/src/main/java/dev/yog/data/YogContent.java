@@ -420,7 +420,7 @@ public final class YogContent {
     }
 
     private static com.google.gson.JsonObject object(Object v) {
-        com.google.gson.JsonElement e = YogData.toGson(v);
+        com.google.gson.JsonElement e = toGson(v);
         return e.isJsonObject() ? e.getAsJsonObject() : new com.google.gson.JsonObject();
     }
 
@@ -441,5 +441,30 @@ public final class YogContent {
             out.add(new Property(YogData.str(m.get("name"), ""), values));
         }
         return out;
+    }
+
+    /**
+     * {@code v} as Gson's JSON tree — what {@link YogData#toJson} writes, without
+     * the text in between (typed values as their string forms).
+     */
+    static com.google.gson.JsonElement toGson(Object v) {
+        if (v == null) return com.google.gson.JsonNull.INSTANCE;
+        if (v instanceof Boolean b) return new com.google.gson.JsonPrimitive(b);
+        if (v instanceof Long || v instanceof Integer || v instanceof Double) return new com.google.gson.JsonPrimitive((Number) v);
+        if (v instanceof String s) return new com.google.gson.JsonPrimitive(s);
+        if (v instanceof List<?> l) {
+            com.google.gson.JsonArray a = new com.google.gson.JsonArray(l.size());
+            for (Object x : l) a.add(toGson(x));
+            return a;
+        }
+        if (v instanceof Map<?, ?> m) {
+            com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+            for (Map.Entry<?, ?> e : m.entrySet()) o.add(String.valueOf(e.getKey()), toGson(e.getValue()));
+            return o;
+        }
+        if (v instanceof YogData.Text t) return new com.google.gson.JsonPrimitive(t.text());
+        StringBuilder one = new StringBuilder();
+        one.append(YogData.toJson(v));
+        return com.google.gson.JsonParser.parseString(one.toString());
     }
 }

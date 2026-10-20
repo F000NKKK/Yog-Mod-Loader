@@ -24,6 +24,7 @@ const IMPORTS: &[(&str, &str)] = &[
     ("YogBus.", "dev.yog.YogBus"),
     ("YogData.", "dev.yog.data.YogData"),
     ("YogFrame.", "dev.yog.data.YogFrame"),
+    ("YogMessage", "dev.yog.YogMessage"),
 ];
 
 /// One level of indentation.

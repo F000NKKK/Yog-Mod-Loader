@@ -31,7 +31,7 @@ fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
     let reply = java_type(&s.reply, &mut o.records);
     let _ = write!(
         body,
-        "\n\n    public {reply} call() {{\n        YogBus.Reply r = YogBus.call({}, toFrame());\n        if (r.status() == YogBus.OK && r.bytes().length > 0) {{\n            try {{\n                YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());\n                {reply} v = {};\n                u.finish();\n                return v;\n            }} catch (YogData.DecodeException e) {{\n                // Not a reply: as if no one answered.\n            }}\n        }}\n        return {};\n    }}",
+        "\n\n    public {reply} call() {{\n        YogMessage r = YogBus.call({}, packedFrame());\n        if (r.ok() && !r.isEmpty()) {{\n            try {{\n                YogFrame.Unpacker u = r.frame();\n                {reply} v = {};\n                u.finish();\n                return v;\n            }} catch (YogData.DecodeException e) {{\n                // Not a reply: as if no one answered.\n            }}\n        }}\n        return {};\n    }}",
         target(s.address, s.key, "AT"),
         frames::unpack(&s.reply, 0),
         frames::missing(&s.reply)
@@ -40,7 +40,7 @@ fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
         body.push_str(&serve(s, &mut o.records));
         let _ = write!(
             body,
-            "\n\n    /** The host method's result {{@code out}} (its \"none\" already null) as the reply's frame. */\n    public static byte[] replyFrame(Object out) {{\n        YogFrame.Packer p = new YogFrame.Packer();\n        {reply} v = {};\n        {}\n        return p.finish();\n    }}",
+            "\n\n    /** The host method's result {{@code out}} (its \"none\" already null) packed as the reply. */\n    public static void reply(Object out, YogFrame.Packer p) {{\n        {reply} v = {};\n        {}\n    }}",
             frames::from_host(&s.reply, "out"),
             frames::pack(&s.reply, "v", 0)
         );
@@ -59,7 +59,7 @@ fn serve(s: &ServiceInfo, records: &mut Vec<StructShape>) -> String {
     let classes: String = args.iter().map(|(_, java)| format!(", {}", class_of(java))).collect();
     let exprs: Vec<&str> = args.iter().map(|(expr, _)| expr.as_str()).collect();
     format!(
-        "\n\n    private static final class HostMethod {{\n        static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class{classes}));\n    }}\n\n    /** Answers the action: the request out of its frame, the host method called, the reply packed. */\n    public static YogBus.Reply serve(byte[] payload) {{\n        if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);\n        try {{\n            {name} r = fromFrame(payload);\n            Object out = (Object) HostMethod.H.invokeExact({});\n            return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));\n        }} catch (YogData.DecodeException e) {{\n            return YogBus.Reply.of(YogBus.BAD_PAYLOAD);\n        }} catch (Throwable t) {{\n            return dev.yog.YogHostServices.failed(ADDRESS, t);\n        }}\n    }}",
+        "\n\n    private static final class HostMethod {{\n        static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class{classes}));\n    }}\n\n    /** Answers the action: the request out of its frame, the host method called, the reply packed. */\n    public static int serve(YogMessage in, YogBus.Out sink) {{\n        if (HostMethod.H == null) return YogBus.NO_HANDLER;\n        try {{\n            {name} r = fromFrame(in);\n            Object out = (Object) HostMethod.H.invokeExact({});\n            reply(dev.yog.YogHostServices.none(out), sink.frame());\n            return YogBus.OK;\n        }} catch (YogData.DecodeException e) {{\n            return YogBus.BAD_PAYLOAD;\n        }} catch (Throwable t) {{\n            return dev.yog.YogHostServices.failed(ADDRESS, t);\n        }}\n    }}",
         exprs.join(", "),
         name = s.name
     )

@@ -35,9 +35,21 @@ pub(super) fn codec(name: &str, s: &StructShape, pad: &str) -> String {
         out,
         "{pad}    public byte[] toFrame() {{\n{pad}        YogFrame.Packer p = new YogFrame.Packer();\n{pad}        pack(p);\n{pad}        return p.finish();\n{pad}    }}\n"
     );
+    let _ = writeln!(
+        out,
+        "{pad}    /** Packed by one of this thread's packers: what the bus sends in place. */\n{pad}    public YogFrame.Packer packedFrame() {{\n{pad}        YogFrame.Packer p = YogFrame.Packer.take();\n{pad}        pack(p);\n{pad}        return p;\n{pad}    }}\n"
+    );
+    let _ = writeln!(
+        out,
+        "{pad}    public static {name} fromFrame(byte[] bytes) {{\n{pad}        return readFrame(new YogFrame.Unpacker(bytes));\n{pad}    }}\n"
+    );
+    let _ = writeln!(
+        out,
+        "{pad}    /** Read where the message is (the arena, in place). */\n{pad}    public static {name} fromFrame(YogMessage m) {{\n{pad}        return readFrame(m.frame());\n{pad}    }}\n"
+    );
     let _ = write!(
         out,
-        "{pad}    public static {name} fromFrame(byte[] bytes) {{\n{pad}        YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);\n{pad}        {name} v = unpack(u);\n{pad}        u.finish();\n{pad}        return v;\n{pad}    }}"
+        "{pad}    private static {name} readFrame(YogFrame.Unpacker u) {{\n{pad}        {name} v = unpack(u);\n{pad}        u.finish();\n{pad}        return v;\n{pad}    }}"
     );
     out
 }

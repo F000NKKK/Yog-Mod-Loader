@@ -2,6 +2,7 @@
 package dev.yog.bus;
 
 import dev.yog.YogBus;
+import dev.yog.YogMessage;
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
 import dev.yog.data.YogFrame;
@@ -56,8 +57,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Grant fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Grant fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Grant readFrame(YogFrame.Unpacker u) {
                 Grant v = unpack(u);
                 u.finish();
                 return v;
@@ -72,10 +88,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceAdvancement.GRANT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -91,25 +107,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Grant r = fromFrame(payload);
+                    Grant r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.id());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -152,8 +167,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Done fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Done fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Done readFrame(YogFrame.Unpacker u) {
                 Done v = unpack(u);
                 u.finish();
                 return v;
@@ -168,10 +198,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceAdvancement.DONE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -187,25 +217,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Done r = fromFrame(payload);
+                    Done r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.id());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
     }
@@ -268,18 +297,33 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Insert fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Insert fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Insert readFrame(YogFrame.Unpacker u) {
                 Insert v = unpack(u);
                 u.finish();
                 return v;
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceBlock.INSERT, blockId), toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(YogBus.keyed(YogNames.ServiceBlock.INSERT, blockId), packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -330,8 +374,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Nbt fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Nbt fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Nbt readFrame(YogFrame.Unpacker u) {
                 Nbt v = unpack(u);
                 u.finish();
                 return v;
@@ -346,10 +405,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.NBT;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -365,25 +424,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Nbt r = fromFrame(payload);
+                    Nbt r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -429,8 +487,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetNbt fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetNbt fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetNbt readFrame(YogFrame.Unpacker u) {
                 SetNbt v = unpack(u);
                 u.finish();
                 return v;
@@ -445,10 +518,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.SET_NBT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -464,25 +537,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetNbt r = fromFrame(payload);
+                    SetNbt r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.snbt());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -525,8 +597,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static State fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static State fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static State readFrame(YogFrame.Unpacker u) {
                 State v = unpack(u);
                 u.finish();
                 return v;
@@ -541,10 +628,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.STATE;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -560,25 +647,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    State r = fromFrame(payload);
+                    State r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -624,8 +710,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetState fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetState fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetState readFrame(YogFrame.Unpacker u) {
                 SetState v = unpack(u);
                 u.finish();
                 return v;
@@ -640,10 +741,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.SET_STATE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -659,25 +760,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetState r = fromFrame(payload);
+                    SetState r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.state());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -720,8 +820,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Info fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Info fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Info readFrame(YogFrame.Unpacker u) {
                 Info v = unpack(u);
                 u.finish();
                 return v;
@@ -736,10 +851,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.INFO;
 
             public YogTypes.BlockInfo call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.BlockInfo v = (u.getBool() ? YogTypes.BlockInfo.unpack(u) : null);
                         u.finish();
                         return v;
@@ -755,25 +870,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Info r = fromFrame(payload);
+                    Info r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.BlockInfo v = (out == null ? null : (YogTypes.BlockInfo) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -822,8 +936,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Destroy fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Destroy fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Destroy readFrame(YogFrame.Unpacker u) {
                 Destroy v = unpack(u);
                 u.finish();
                 return v;
@@ -838,10 +967,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.DESTROY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -857,25 +986,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Destroy r = fromFrame(payload);
+                    Destroy r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.drop(), r.breaker());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -918,8 +1046,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Bonemeal fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Bonemeal fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Bonemeal readFrame(YogFrame.Unpacker u) {
                 Bonemeal v = unpack(u);
                 u.finish();
                 return v;
@@ -934,10 +1077,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.BONEMEAL;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -953,25 +1096,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Bonemeal r = fromFrame(payload);
+                    Bonemeal r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -1023,8 +1165,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static UseItem fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static UseItem fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static UseItem readFrame(YogFrame.Unpacker u) {
                 UseItem v = unpack(u);
                 u.finish();
                 return v;
@@ -1039,10 +1196,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.USE_ITEM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -1058,25 +1215,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    UseItem r = fromFrame(payload);
+                    UseItem r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.face(), r.item(), r.player());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -1122,8 +1278,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static PourFluid fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static PourFluid fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static PourFluid readFrame(YogFrame.Unpacker u) {
                 PourFluid v = unpack(u);
                 u.finish();
                 return v;
@@ -1138,10 +1309,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.POUR_FLUID;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -1157,25 +1328,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PourFluid r = fromFrame(payload);
+                    PourFluid r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.bucket());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -1218,8 +1388,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static RedstonePower fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static RedstonePower fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static RedstonePower readFrame(YogFrame.Unpacker u) {
                 RedstonePower v = unpack(u);
                 u.finish();
                 return v;
@@ -1234,10 +1419,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.REDSTONE_POWER;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
                         u.finish();
                         return v;
@@ -1253,25 +1438,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RedstonePower r = fromFrame(payload);
+                    RedstonePower r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
                 p.putBool(v != null); if (v != null) { p.putI(v); }
-                return p.finish();
             }
         }
 
@@ -1314,8 +1498,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static RedstoneSignal fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static RedstoneSignal fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static RedstoneSignal readFrame(YogFrame.Unpacker u) {
                 RedstoneSignal v = unpack(u);
                 u.finish();
                 return v;
@@ -1330,10 +1529,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.REDSTONE_SIGNAL;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
                         u.finish();
                         return v;
@@ -1349,25 +1548,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RedstoneSignal r = fromFrame(payload);
+                    RedstoneSignal r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
                 p.putBool(v != null); if (v != null) { p.putI(v); }
-                return p.finish();
             }
         }
 
@@ -1413,8 +1611,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetRedstoneOutput fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetRedstoneOutput fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetRedstoneOutput readFrame(YogFrame.Unpacker u) {
                 SetRedstoneOutput v = unpack(u);
                 u.finish();
                 return v;
@@ -1429,10 +1642,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.SET_REDSTONE_OUTPUT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -1448,25 +1661,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetRedstoneOutput r = fromFrame(payload);
+                    SetRedstoneOutput r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.level());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -1512,8 +1724,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static InventorySlot fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static InventorySlot fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static InventorySlot readFrame(YogFrame.Unpacker u) {
                 InventorySlot v = unpack(u);
                 u.finish();
                 return v;
@@ -1528,10 +1755,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.INVENTORY_SLOT;
 
             public YogTypes.Stack call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.Stack v = (u.getBool() ? YogTypes.Stack.unpack(u) : null);
                         u.finish();
                         return v;
@@ -1547,25 +1774,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    InventorySlot r = fromFrame(payload);
+                    InventorySlot r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.slot());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.Stack v = (out == null ? null : (YogTypes.Stack) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -1620,8 +1846,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetInventorySlot fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetInventorySlot fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetInventorySlot readFrame(YogFrame.Unpacker u) {
                 SetInventorySlot v = unpack(u);
                 u.finish();
                 return v;
@@ -1636,10 +1877,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.SET_INVENTORY_SLOT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -1655,25 +1896,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetInventorySlot r = fromFrame(payload);
+                    SetInventorySlot r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.slot(), r.item(), r.count(), r.snbt());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
     }
@@ -1727,8 +1967,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Create fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Create fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Create readFrame(YogFrame.Unpacker u) {
                 Create v = unpack(u);
                 u.finish();
                 return v;
@@ -1743,10 +1998,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.CREATE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -1762,25 +2017,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Create r = fromFrame(payload);
+                    Create r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.title(), r.color(), r.style());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -1820,8 +2074,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Remove fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Remove fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Remove readFrame(YogFrame.Unpacker u) {
                 Remove v = unpack(u);
                 u.finish();
                 return v;
@@ -1836,10 +2105,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.REMOVE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -1855,25 +2124,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Remove r = fromFrame(payload);
+                    Remove r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.id());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -1916,8 +2184,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetTitle fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetTitle fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetTitle readFrame(YogFrame.Unpacker u) {
                 SetTitle v = unpack(u);
                 u.finish();
                 return v;
@@ -1932,10 +2215,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_TITLE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -1951,25 +2234,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetTitle r = fromFrame(payload);
+                    SetTitle r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.title());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -2012,8 +2294,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetProgress fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetProgress fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetProgress readFrame(YogFrame.Unpacker u) {
                 SetProgress v = unpack(u);
                 u.finish();
                 return v;
@@ -2028,10 +2325,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_PROGRESS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -2047,25 +2344,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetProgress r = fromFrame(payload);
+                    SetProgress r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.progress());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -2108,8 +2404,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetColor fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetColor fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetColor readFrame(YogFrame.Unpacker u) {
                 SetColor v = unpack(u);
                 u.finish();
                 return v;
@@ -2124,10 +2435,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_COLOR;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -2143,25 +2454,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetColor r = fromFrame(payload);
+                    SetColor r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.color());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -2204,8 +2514,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static AddPlayer fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static AddPlayer fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static AddPlayer readFrame(YogFrame.Unpacker u) {
                 AddPlayer v = unpack(u);
                 u.finish();
                 return v;
@@ -2220,10 +2545,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.ADD_PLAYER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -2239,25 +2564,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AddPlayer r = fromFrame(payload);
+                    AddPlayer r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.player());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -2300,8 +2624,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static RemovePlayer fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static RemovePlayer fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static RemovePlayer readFrame(YogFrame.Unpacker u) {
                 RemovePlayer v = unpack(u);
                 u.finish();
                 return v;
@@ -2316,10 +2655,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.REMOVE_PLAYER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -2335,25 +2674,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RemovePlayer r = fromFrame(payload);
+                    RemovePlayer r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.player());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -2396,8 +2734,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetVisible fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetVisible fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetVisible readFrame(YogFrame.Unpacker u) {
                 SetVisible v = unpack(u);
                 u.finish();
                 return v;
@@ -2412,10 +2765,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_VISIBLE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -2431,25 +2784,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetVisible r = fromFrame(payload);
+                    SetVisible r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.visible());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
     }
@@ -2509,8 +2861,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Descriptor fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Descriptor fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Descriptor readFrame(YogFrame.Unpacker u) {
                 Descriptor v = unpack(u);
                 u.finish();
                 return v;
@@ -2521,10 +2888,10 @@ public final class YogServices {
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -2572,8 +2939,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Describe fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Describe fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Describe readFrame(YogFrame.Unpacker u) {
                 Describe v = unpack(u);
                 u.finish();
                 return v;
@@ -2584,10 +2966,10 @@ public final class YogServices {
             }
 
             public YogTypes.Descriptor call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.Descriptor v = (u.getBool() ? YogTypes.Descriptor.unpack(u) : null);
                         u.finish();
                         return v;
@@ -2635,8 +3017,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static List fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static List fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static List readFrame(YogFrame.Unpacker u) {
                 List v = unpack(u);
                 u.finish();
                 return v;
@@ -2647,10 +3044,10 @@ public final class YogServices {
             }
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
                         u.finish();
                         return v;
@@ -2698,8 +3095,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Find fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Find fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Find readFrame(YogFrame.Unpacker u) {
                 Find v = unpack(u);
                 u.finish();
                 return v;
@@ -2710,10 +3122,10 @@ public final class YogServices {
             }
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
                         u.finish();
                         return v;
@@ -2766,8 +3178,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Broadcast fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Broadcast fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Broadcast readFrame(YogFrame.Unpacker u) {
                 Broadcast v = unpack(u);
                 u.finish();
                 return v;
@@ -2782,10 +3209,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.BROADCAST;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -2801,25 +3228,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Broadcast r = fromFrame(payload);
+                    Broadcast r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.message());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -2862,8 +3288,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Tellraw fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Tellraw fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Tellraw readFrame(YogFrame.Unpacker u) {
                 Tellraw v = unpack(u);
                 u.finish();
                 return v;
@@ -2878,10 +3319,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.TELLRAW;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -2897,25 +3338,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Tellraw r = fromFrame(payload);
+                    Tellraw r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.json());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -2970,8 +3410,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Title fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Title fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Title readFrame(YogFrame.Unpacker u) {
                 Title v = unpack(u);
                 u.finish();
                 return v;
@@ -2986,10 +3441,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.TITLE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -3005,25 +3460,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Title r = fromFrame(payload);
+                    Title r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.title(), r.subtitle(), r.fadeIn(), r.stay(), r.fadeOut());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -3066,8 +3520,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Actionbar fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Actionbar fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Actionbar readFrame(YogFrame.Unpacker u) {
                 Actionbar v = unpack(u);
                 u.finish();
                 return v;
@@ -3082,10 +3551,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.ACTIONBAR;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -3101,25 +3570,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Actionbar r = fromFrame(payload);
+                    Actionbar r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.message());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -3162,8 +3630,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static ActionbarJson fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static ActionbarJson fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static ActionbarJson readFrame(YogFrame.Unpacker u) {
                 ActionbarJson v = unpack(u);
                 u.finish();
                 return v;
@@ -3178,10 +3661,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.ACTIONBAR_JSON;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -3197,25 +3680,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    ActionbarJson r = fromFrame(payload);
+                    ActionbarJson r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.json());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
     }
@@ -3263,8 +3745,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static EntityData fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static EntityData fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static EntityData readFrame(YogFrame.Unpacker u) {
                 EntityData v = unpack(u);
                 u.finish();
                 return v;
@@ -3275,10 +3772,10 @@ public final class YogServices {
             }
 
             public YogTypes.DataValue call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.DataValue v = (u.getBool() ? YogTypes.DataValue.unpack(u) : null);
                         u.finish();
                         return v;
@@ -3335,8 +3832,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static PlaySound fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static PlaySound fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static PlaySound readFrame(YogFrame.Unpacker u) {
                 PlaySound v = unpack(u);
                 u.finish();
                 return v;
@@ -3351,10 +3863,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.PLAY_SOUND;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
                         u.finish();
                         return v;
@@ -3370,25 +3882,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlaySound r = fromFrame(payload);
+                    PlaySound r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.sound(), r.volume(), r.pitch(), r.looping());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
                 p.putBool(v != null); if (v != null) { p.putI(v); }
-                return p.finish();
             }
         }
 
@@ -3428,8 +3939,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static StopSound fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static StopSound fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static StopSound readFrame(YogFrame.Unpacker u) {
                 StopSound v = unpack(u);
                 u.finish();
                 return v;
@@ -3444,10 +3970,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.STOP_SOUND;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -3463,25 +3989,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    StopSound r = fromFrame(payload);
+                    StopSound r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.handle());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -3521,8 +4046,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static HeldItem fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static HeldItem fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static HeldItem readFrame(YogFrame.Unpacker u) {
                 HeldItem v = unpack(u);
                 u.finish();
                 return v;
@@ -3537,10 +4077,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.HELD_ITEM;
 
             public YogTypes.Stack call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.Stack v = (u.getBool() ? YogTypes.Stack.unpack(u) : null);
                         u.finish();
                         return v;
@@ -3556,25 +4096,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HeldItem r = fromFrame(payload);
+                    HeldItem r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.offHand());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.Stack v = (out == null ? null : (YogTypes.Stack) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -3620,8 +4159,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetBlockTint fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetBlockTint fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetBlockTint readFrame(YogFrame.Unpacker u) {
                 SetBlockTint v = unpack(u);
                 u.finish();
                 return v;
@@ -3636,10 +4190,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.SET_BLOCK_TINT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -3655,25 +4209,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetBlockTint r = fromFrame(payload);
+                    SetBlockTint r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.color());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -3710,8 +4263,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static ScreenSlots fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static ScreenSlots fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static ScreenSlots readFrame(YogFrame.Unpacker u) {
                 ScreenSlots v = unpack(u);
                 u.finish();
                 return v;
@@ -3726,10 +4294,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.SCREEN_SLOTS;
 
             public java.util.List<YogTypes.ScreenSlot> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<YogTypes.ScreenSlot> v = YogFrame.list(u, () -> YogTypes.ScreenSlot.unpack(u));
                         u.finish();
                         return v;
@@ -3745,25 +4313,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    ScreenSlots r = fromFrame(payload);
+                    ScreenSlots r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact();
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<YogTypes.ScreenSlot> v = (java.util.List<YogTypes.ScreenSlot>) out;
                 p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
-                return p.finish();
             }
         }
 
@@ -3803,8 +4370,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static KeyDown fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static KeyDown fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static KeyDown readFrame(YogFrame.Unpacker u) {
                 KeyDown v = unpack(u);
                 u.finish();
                 return v;
@@ -3819,10 +4401,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.KEY_DOWN;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -3838,25 +4420,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    KeyDown r = fromFrame(payload);
+                    KeyDown r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.key());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -3896,8 +4477,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static AttributeValue fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static AttributeValue fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static AttributeValue readFrame(YogFrame.Unpacker u) {
                 AttributeValue v = unpack(u);
                 u.finish();
                 return v;
@@ -3912,10 +4508,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.ATTRIBUTE_VALUE;
 
             public Double call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Double v = (u.getBool() ? Double.valueOf(u.getF64()) : null);
                         u.finish();
                         return v;
@@ -3931,25 +4527,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AttributeValue r = fromFrame(payload);
+                    AttributeValue r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.attribute());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
                 p.putBool(v != null); if (v != null) { p.putF64(v); }
-                return p.finish();
             }
         }
 
@@ -3989,8 +4584,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static AdvancementDone fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static AdvancementDone fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static AdvancementDone readFrame(YogFrame.Unpacker u) {
                 AdvancementDone v = unpack(u);
                 u.finish();
                 return v;
@@ -4005,10 +4615,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.ADVANCEMENT_DONE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -4024,25 +4634,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AdvancementDone r = fromFrame(payload);
+                    AdvancementDone r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.id());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -4085,8 +4694,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static BodyTrack fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static BodyTrack fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static BodyTrack readFrame(YogFrame.Unpacker u) {
                 BodyTrack v = unpack(u);
                 u.finish();
                 return v;
@@ -4101,10 +4725,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.BODY_TRACK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -4120,25 +4744,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    BodyTrack r = fromFrame(payload);
+                    BodyTrack r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.on());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -4181,8 +4804,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static BodyTrackType fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static BodyTrackType fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static BodyTrackType readFrame(YogFrame.Unpacker u) {
                 BodyTrackType v = unpack(u);
                 u.finish();
                 return v;
@@ -4197,10 +4835,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.BODY_TRACK_TYPE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -4216,25 +4854,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    BodyTrackType r = fromFrame(payload);
+                    BodyTrackType r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.on());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -4283,8 +4920,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetDimensions fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetDimensions fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetDimensions readFrame(YogFrame.Unpacker u) {
                 SetDimensions v = unpack(u);
                 u.finish();
                 return v;
@@ -4299,10 +4951,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.SET_DIMENSIONS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -4318,25 +4970,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetDimensions r = fromFrame(payload);
+                    SetDimensions r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.width(), r.height(), r.eye());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -4395,8 +5046,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Drive fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Drive fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Drive readFrame(YogFrame.Unpacker u) {
                     Drive v = unpack(u);
                     u.finish();
                     return v;
@@ -4411,10 +5077,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.DRIVE;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -4430,25 +5096,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Drive r = fromFrame(payload);
+                        Drive r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.forward(), r.strafe(), r.jump(), r.sneak(), r.sprint(), r.useItem());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -4485,8 +5150,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Release fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Release fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Release readFrame(YogFrame.Unpacker u) {
                     Release v = unpack(u);
                     u.finish();
                     return v;
@@ -4501,10 +5181,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.RELEASE;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -4520,25 +5200,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Release r = fromFrame(payload);
+                        Release r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact();
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -4581,8 +5260,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Look fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Look fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Look readFrame(YogFrame.Unpacker u) {
                     Look v = unpack(u);
                     u.finish();
                     return v;
@@ -4597,10 +5291,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.LOOK;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -4616,25 +5310,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Look r = fromFrame(payload);
+                        Look r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.yaw(), r.pitch());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -4674,8 +5367,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Attack fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Attack fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Attack readFrame(YogFrame.Unpacker u) {
                     Attack v = unpack(u);
                     u.finish();
                     return v;
@@ -4690,10 +5398,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.ATTACK;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -4709,25 +5417,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Attack r = fromFrame(payload);
+                        Attack r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.entity());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -4767,8 +5474,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static UseItem fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static UseItem fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static UseItem readFrame(YogFrame.Unpacker u) {
                     UseItem v = unpack(u);
                     u.finish();
                     return v;
@@ -4783,10 +5505,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.USE_ITEM;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -4802,25 +5524,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        UseItem r = fromFrame(payload);
+                        UseItem r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.offHand());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -4863,8 +5584,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Mine fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Mine fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Mine readFrame(YogFrame.Unpacker u) {
                     Mine v = unpack(u);
                     u.finish();
                     return v;
@@ -4879,10 +5615,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.MINE;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -4898,25 +5634,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Mine r = fromFrame(payload);
+                        Mine r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.pos().x(), r.pos().y(), r.pos().z(), r.face());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -4953,8 +5688,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static StopMining fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static StopMining fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static StopMining readFrame(YogFrame.Unpacker u) {
                     StopMining v = unpack(u);
                     u.finish();
                     return v;
@@ -4969,10 +5719,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.STOP_MINING;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -4988,25 +5738,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        StopMining r = fromFrame(payload);
+                        StopMining r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact();
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -5049,8 +5798,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Place fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Place fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Place readFrame(YogFrame.Unpacker u) {
                     Place v = unpack(u);
                     u.finish();
                     return v;
@@ -5065,10 +5829,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.PLACE;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -5084,25 +5848,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Place r = fromFrame(payload);
+                        Place r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.pos().x(), r.pos().y(), r.pos().z(), r.face());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -5142,8 +5905,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static SelectSlot fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static SelectSlot fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static SelectSlot readFrame(YogFrame.Unpacker u) {
                     SelectSlot v = unpack(u);
                     u.finish();
                     return v;
@@ -5158,10 +5936,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.SELECT_SLOT;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -5177,25 +5955,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        SelectSlot r = fromFrame(payload);
+                        SelectSlot r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.slot());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -5241,8 +6018,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Click fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Click fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Click readFrame(YogFrame.Unpacker u) {
                     Click v = unpack(u);
                     u.finish();
                     return v;
@@ -5257,10 +6049,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.CLICK;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -5276,25 +6068,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Click r = fromFrame(payload);
+                        Click r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.slot(), r.button(), r.mode());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
 
@@ -5334,8 +6125,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Chat fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Chat fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Chat readFrame(YogFrame.Unpacker u) {
                     Chat v = unpack(u);
                     u.finish();
                     return v;
@@ -5350,10 +6156,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.CHAT;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             boolean v = u.getBool();
                             u.finish();
                             return v;
@@ -5369,25 +6175,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Chat r = fromFrame(payload);
+                        Chat r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.text());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
                     p.putBool(v);
-                    return p.finish();
                 }
             }
         }
@@ -5429,8 +6234,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static State fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static State fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static State readFrame(YogFrame.Unpacker u) {
                     State v = unpack(u);
                     u.finish();
                     return v;
@@ -5445,10 +6265,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.STATE;
 
                 public YogTypes.LocalState call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             YogTypes.LocalState v = (u.getBool() ? YogTypes.LocalState.unpack(u) : null);
                             u.finish();
                             return v;
@@ -5464,25 +6284,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        State r = fromFrame(payload);
+                        State r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact();
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     YogTypes.LocalState v = (out == null ? null : (YogTypes.LocalState) out);
                     p.putBool(v != null); if (v != null) { v.pack(p); }
-                    return p.finish();
                 }
             }
 
@@ -5519,8 +6338,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Inventory fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Inventory fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Inventory readFrame(YogFrame.Unpacker u) {
                     Inventory v = unpack(u);
                     u.finish();
                     return v;
@@ -5535,10 +6369,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.INVENTORY;
 
                 public java.util.List<YogTypes.SlotStack> call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             java.util.List<YogTypes.SlotStack> v = YogFrame.list(u, () -> YogTypes.SlotStack.unpack(u));
                             u.finish();
                             return v;
@@ -5554,25 +6388,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Inventory r = fromFrame(payload);
+                        Inventory r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact();
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     java.util.List<YogTypes.SlotStack> v = (java.util.List<YogTypes.SlotStack>) out;
                     p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
-                    return p.finish();
                 }
             }
 
@@ -5618,8 +6451,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Scan fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Scan fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Scan readFrame(YogFrame.Unpacker u) {
                     Scan v = unpack(u);
                     u.finish();
                     return v;
@@ -5634,10 +6482,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.SCAN;
 
                 public java.util.List<YogTypes.PlacedBlock> call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             java.util.List<YogTypes.PlacedBlock> v = YogFrame.list(u, () -> YogTypes.PlacedBlock.unpack(u));
                             u.finish();
                             return v;
@@ -5653,25 +6501,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Scan r = fromFrame(payload);
+                        Scan r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z(), r.ids());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     java.util.List<YogTypes.PlacedBlock> v = (java.util.List<YogTypes.PlacedBlock>) out;
                     p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
-                    return p.finish();
                 }
             }
 
@@ -5714,8 +6561,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Area fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Area fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Area readFrame(YogFrame.Unpacker u) {
                     Area v = unpack(u);
                     u.finish();
                     return v;
@@ -5730,10 +6592,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.AREA;
 
                 public YogTypes.BlockArea call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             YogTypes.BlockArea v = (u.getBool() ? YogTypes.BlockArea.unpack(u) : null);
                             u.finish();
                             return v;
@@ -5749,25 +6611,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Area r = fromFrame(payload);
+                        Area r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     YogTypes.BlockArea v = (out == null ? null : (YogTypes.BlockArea) out);
                     p.putBool(v != null); if (v != null) { v.pack(p); }
-                    return p.finish();
                 }
             }
 
@@ -5807,8 +6668,23 @@ public final class YogServices {
                     return p.finish();
                 }
 
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
                 public static Entities fromFrame(byte[] bytes) {
-                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Entities fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Entities readFrame(YogFrame.Unpacker u) {
                     Entities v = unpack(u);
                     u.finish();
                     return v;
@@ -5823,10 +6699,10 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.ENTITIES;
 
                 public java.util.List<YogTypes.NearbyEntity> call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    YogMessage r = YogBus.call(Address.AT, packedFrame());
+                    if (r.ok() && !r.isEmpty()) {
                         try {
-                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogFrame.Unpacker u = r.frame();
                             java.util.List<YogTypes.NearbyEntity> v = YogFrame.list(u, () -> YogTypes.NearbyEntity.unpack(u));
                             u.finish();
                             return v;
@@ -5842,25 +6718,24 @@ public final class YogServices {
                 }
 
                 /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static YogBus.Reply serve(byte[] payload) {
-                    if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+                public static int serve(YogMessage in, YogBus.Out sink) {
+                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Entities r = fromFrame(payload);
+                        Entities r = fromFrame(in);
                         Object out = (Object) HostMethod.H.invokeExact(r.radius());
-                        return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                        reply(dev.yog.YogHostServices.none(out), sink.frame());
+                        return YogBus.OK;
                     } catch (YogData.DecodeException e) {
-                        return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                        return YogBus.BAD_PAYLOAD;
                     } catch (Throwable t) {
                         return dev.yog.YogHostServices.failed(ADDRESS, t);
                     }
                 }
 
-                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-                public static byte[] replyFrame(Object out) {
-                    YogFrame.Packer p = new YogFrame.Packer();
+                /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+                public static void reply(Object out, YogFrame.Packer p) {
                     java.util.List<YogTypes.NearbyEntity> v = (java.util.List<YogTypes.NearbyEntity>) out;
                     p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
-                    return p.finish();
                 }
             }
         }
@@ -5909,8 +6784,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static CommandSpec fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static CommandSpec fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static CommandSpec readFrame(YogFrame.Unpacker u) {
                 CommandSpec v = unpack(u);
                 u.finish();
                 return v;
@@ -5921,10 +6811,10 @@ public final class YogServices {
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -5969,8 +6859,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Declared fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Declared fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Declared readFrame(YogFrame.Unpacker u) {
                 Declared v = unpack(u);
                 u.finish();
                 return v;
@@ -5981,10 +6886,10 @@ public final class YogServices {
             }
 
             public java.util.List<YogTypes.CommandSpec> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<YogTypes.CommandSpec> v = YogFrame.list(u, () -> YogTypes.CommandSpec.unpack(u));
                         u.finish();
                         return v;
@@ -6043,8 +6948,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Register fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Register fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Register readFrame(YogFrame.Unpacker u) {
                 Register v = unpack(u);
                 u.finish();
                 return v;
@@ -6055,10 +6975,10 @@ public final class YogServices {
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -6114,8 +7034,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Data fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Data fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Data readFrame(YogFrame.Unpacker u) {
                 Data v = unpack(u);
                 u.finish();
                 return v;
@@ -6126,10 +7061,10 @@ public final class YogServices {
             }
 
             public YogTypes.DataValue call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.DataValue v = (u.getBool() ? YogTypes.DataValue.unpack(u) : null);
                         u.finish();
                         return v;
@@ -6186,8 +7121,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetData fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetData fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetData readFrame(YogFrame.Unpacker u) {
                 SetData v = unpack(u);
                 u.finish();
                 return v;
@@ -6198,10 +7148,10 @@ public final class YogServices {
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -6252,8 +7202,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetDimensions fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetDimensions fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetDimensions readFrame(YogFrame.Unpacker u) {
                 SetDimensions v = unpack(u);
                 u.finish();
                 return v;
@@ -6264,10 +7229,10 @@ public final class YogServices {
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -6318,8 +7283,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Teleport fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Teleport fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Teleport readFrame(YogFrame.Unpacker u) {
                 Teleport v = unpack(u);
                 u.finish();
                 return v;
@@ -6334,10 +7314,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.TELEPORT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -6353,25 +7333,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Teleport r = fromFrame(payload);
+                    Teleport r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -6417,8 +7396,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static TeleportToDim fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static TeleportToDim fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static TeleportToDim readFrame(YogFrame.Unpacker u) {
                 TeleportToDim v = unpack(u);
                 u.finish();
                 return v;
@@ -6433,10 +7427,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.TELEPORT_TO_DIM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -6452,25 +7446,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    TeleportToDim r = fromFrame(payload);
+                    TeleportToDim r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -6510,8 +7503,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Position fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Position fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Position readFrame(YogFrame.Unpacker u) {
                 Position v = unpack(u);
                 u.finish();
                 return v;
@@ -6526,10 +7534,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.POSITION;
 
             public YogTypes.Point call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.Point v = (u.getBool() ? YogTypes.Point.unpack(u) : null);
                         u.finish();
                         return v;
@@ -6545,25 +7553,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Position r = fromFrame(payload);
+                    Position r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.Point v = (out == null ? null : (YogTypes.Point) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -6603,8 +7610,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Rotation fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Rotation fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Rotation readFrame(YogFrame.Unpacker u) {
                 Rotation v = unpack(u);
                 u.finish();
                 return v;
@@ -6619,10 +7641,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ROTATION;
 
             public YogTypes.Rotation call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.Rotation v = (u.getBool() ? YogTypes.Rotation.unpack(u) : null);
                         u.finish();
                         return v;
@@ -6638,25 +7660,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Rotation r = fromFrame(payload);
+                    Rotation r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.Rotation v = (out == null ? null : (YogTypes.Rotation) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -6696,8 +7717,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Velocity fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Velocity fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Velocity readFrame(YogFrame.Unpacker u) {
                 Velocity v = unpack(u);
                 u.finish();
                 return v;
@@ -6712,10 +7748,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.VELOCITY;
 
             public YogTypes.Point call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.Point v = (u.getBool() ? YogTypes.Point.unpack(u) : null);
                         u.finish();
                         return v;
@@ -6731,25 +7767,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Velocity r = fromFrame(payload);
+                    Velocity r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.Point v = (out == null ? null : (YogTypes.Point) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -6792,8 +7827,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetVelocity fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetVelocity fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetVelocity readFrame(YogFrame.Unpacker u) {
                 SetVelocity v = unpack(u);
                 u.finish();
                 return v;
@@ -6808,10 +7858,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_VELOCITY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -6827,25 +7877,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetVelocity r = fromFrame(payload);
+                    SetVelocity r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.velocity().x(), r.velocity().y(), r.velocity().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -6888,8 +7937,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static AddVelocity fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static AddVelocity fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static AddVelocity readFrame(YogFrame.Unpacker u) {
                 AddVelocity v = unpack(u);
                 u.finish();
                 return v;
@@ -6904,10 +7968,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ADD_VELOCITY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -6923,25 +7987,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AddVelocity r = fromFrame(payload);
+                    AddVelocity r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.velocity().x(), r.velocity().y(), r.velocity().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -6981,8 +8044,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Health fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Health fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Health readFrame(YogFrame.Unpacker u) {
                 Health v = unpack(u);
                 u.finish();
                 return v;
@@ -6997,10 +8075,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.HEALTH;
 
             public Double call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Double v = (u.getBool() ? Double.valueOf(u.getF64()) : null);
                         u.finish();
                         return v;
@@ -7016,25 +8094,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Health r = fromFrame(payload);
+                    Health r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
                 p.putBool(v != null); if (v != null) { p.putF64(v); }
-                return p.finish();
             }
         }
 
@@ -7077,8 +8154,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetHealth fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetHealth fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetHealth readFrame(YogFrame.Unpacker u) {
                 SetHealth v = unpack(u);
                 u.finish();
                 return v;
@@ -7093,10 +8185,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_HEALTH;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -7112,25 +8204,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetHealth r = fromFrame(payload);
+                    SetHealth r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.health());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -7170,8 +8261,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Kill fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Kill fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Kill readFrame(YogFrame.Unpacker u) {
                 Kill v = unpack(u);
                 u.finish();
                 return v;
@@ -7186,10 +8292,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.KILL;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -7205,25 +8311,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Kill r = fromFrame(payload);
+                    Kill r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -7269,8 +8374,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Spawn fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Spawn fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Spawn readFrame(YogFrame.Unpacker u) {
                 Spawn v = unpack(u);
                 u.finish();
                 return v;
@@ -7285,10 +8405,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SPAWN;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -7304,25 +8424,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Spawn r = fromFrame(payload);
+                    Spawn r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -7374,8 +8493,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static AddEffect fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static AddEffect fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static AddEffect readFrame(YogFrame.Unpacker u) {
                 AddEffect v = unpack(u);
                 u.finish();
                 return v;
@@ -7390,10 +8524,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ADD_EFFECT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -7409,25 +8543,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AddEffect r = fromFrame(payload);
+                    AddEffect r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.effect(), r.duration(), r.amplifier(), r.particles());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -7470,8 +8603,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static RemoveEffect fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static RemoveEffect fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static RemoveEffect readFrame(YogFrame.Unpacker u) {
                 RemoveEffect v = unpack(u);
                 u.finish();
                 return v;
@@ -7486,10 +8634,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.REMOVE_EFFECT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -7505,25 +8653,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RemoveEffect r = fromFrame(payload);
+                    RemoveEffect r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.effect());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -7563,8 +8710,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static ClearEffects fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static ClearEffects fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static ClearEffects readFrame(YogFrame.Unpacker u) {
                 ClearEffects v = unpack(u);
                 u.finish();
                 return v;
@@ -7579,10 +8741,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.CLEAR_EFFECTS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -7598,25 +8760,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    ClearEffects r = fromFrame(payload);
+                    ClearEffects r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -7656,8 +8817,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Nbt fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Nbt fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Nbt readFrame(YogFrame.Unpacker u) {
                 Nbt v = unpack(u);
                 u.finish();
                 return v;
@@ -7672,10 +8848,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.NBT;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -7691,25 +8867,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Nbt r = fromFrame(payload);
+                    Nbt r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -7752,8 +8927,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetNbt fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetNbt fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetNbt readFrame(YogFrame.Unpacker u) {
                 SetNbt v = unpack(u);
                 u.finish();
                 return v;
@@ -7768,10 +8958,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_NBT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -7787,25 +8977,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetNbt r = fromFrame(payload);
+                    SetNbt r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.snbt());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -7848,8 +9037,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static AttributeBase fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static AttributeBase fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static AttributeBase readFrame(YogFrame.Unpacker u) {
                 AttributeBase v = unpack(u);
                 u.finish();
                 return v;
@@ -7864,10 +9068,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ATTRIBUTE_BASE;
 
             public Double call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Double v = (u.getBool() ? Double.valueOf(u.getF64()) : null);
                         u.finish();
                         return v;
@@ -7883,25 +9087,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AttributeBase r = fromFrame(payload);
+                    AttributeBase r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
                 p.putBool(v != null); if (v != null) { p.putF64(v); }
-                return p.finish();
             }
         }
 
@@ -7947,8 +9150,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetAttributeBase fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetAttributeBase fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetAttributeBase readFrame(YogFrame.Unpacker u) {
                 SetAttributeBase v = unpack(u);
                 u.finish();
                 return v;
@@ -7963,10 +9181,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_ATTRIBUTE_BASE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -7982,25 +9200,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetAttributeBase r = fromFrame(payload);
+                    SetAttributeBase r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute(), r.value());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -8043,8 +9260,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static AttributeValue fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static AttributeValue fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static AttributeValue readFrame(YogFrame.Unpacker u) {
                 AttributeValue v = unpack(u);
                 u.finish();
                 return v;
@@ -8059,10 +9291,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ATTRIBUTE_VALUE;
 
             public Double call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Double v = (u.getBool() ? Double.valueOf(u.getF64()) : null);
                         u.finish();
                         return v;
@@ -8078,25 +9310,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AttributeValue r = fromFrame(payload);
+                    AttributeValue r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
                 p.putBool(v != null); if (v != null) { p.putF64(v); }
-                return p.finish();
             }
         }
 
@@ -8136,8 +9367,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Info fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Info fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Info readFrame(YogFrame.Unpacker u) {
                 Info v = unpack(u);
                 u.finish();
                 return v;
@@ -8152,10 +9398,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.INFO;
 
             public YogTypes.EntityInfo call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.EntityInfo v = (u.getBool() ? YogTypes.EntityInfo.unpack(u) : null);
                         u.finish();
                         return v;
@@ -8171,25 +9417,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Info r = fromFrame(payload);
+                    Info r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.EntityInfo v = (out == null ? null : (YogTypes.EntityInfo) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -8238,8 +9483,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Damage fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Damage fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Damage readFrame(YogFrame.Unpacker u) {
                 Damage v = unpack(u);
                 u.finish();
                 return v;
@@ -8254,10 +9514,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.DAMAGE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -8273,25 +9533,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Damage r = fromFrame(payload);
+                    Damage r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.amount(), r.damageType(), r.attacker());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -8334,8 +9593,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetFireTicks fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetFireTicks fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetFireTicks readFrame(YogFrame.Unpacker u) {
                 SetFireTicks v = unpack(u);
                 u.finish();
                 return v;
@@ -8350,10 +9624,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_FIRE_TICKS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -8369,25 +9643,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetFireTicks r = fromFrame(payload);
+                    SetFireTicks r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.ticks());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -8427,8 +9700,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Vehicle fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Vehicle fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Vehicle readFrame(YogFrame.Unpacker u) {
                 Vehicle v = unpack(u);
                 u.finish();
                 return v;
@@ -8443,10 +9731,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.VEHICLE;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -8462,25 +9750,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Vehicle r = fromFrame(payload);
+                    Vehicle r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -8520,8 +9807,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Passengers fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Passengers fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Passengers readFrame(YogFrame.Unpacker u) {
                 Passengers v = unpack(u);
                 u.finish();
                 return v;
@@ -8536,10 +9838,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.PASSENGERS;
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
                         u.finish();
                         return v;
@@ -8555,25 +9857,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Passengers r = fromFrame(payload);
+                    Passengers r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<String> v = (java.util.List<String>) out;
                 p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
-                return p.finish();
             }
         }
 
@@ -8619,8 +9920,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Mount fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Mount fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Mount readFrame(YogFrame.Unpacker u) {
                 Mount v = unpack(u);
                 u.finish();
                 return v;
@@ -8635,10 +9951,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.MOUNT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -8654,25 +9970,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Mount r = fromFrame(payload);
+                    Mount r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.rider(), r.vehicle(), r.force());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -8712,8 +10027,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Dismount fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Dismount fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Dismount readFrame(YogFrame.Unpacker u) {
                 Dismount v = unpack(u);
                 u.finish();
                 return v;
@@ -8728,10 +10058,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.DISMOUNT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -8747,25 +10077,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Dismount r = fromFrame(payload);
+                    Dismount r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -8808,8 +10137,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetFallDistance fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetFallDistance fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetFallDistance readFrame(YogFrame.Unpacker u) {
                 SetFallDistance v = unpack(u);
                 u.finish();
                 return v;
@@ -8824,10 +10168,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_FALL_DISTANCE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -8843,25 +10187,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetFallDistance r = fromFrame(payload);
+                    SetFallDistance r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.distance());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
     }
@@ -8903,8 +10246,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Mods fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Mods fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Mods readFrame(YogFrame.Unpacker u) {
                 Mods v = unpack(u);
                 u.finish();
                 return v;
@@ -8915,10 +10273,10 @@ public final class YogServices {
             }
 
             public java.util.List<YogTypes.ModInfo> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<YogTypes.ModInfo> v = YogFrame.list(u, () -> YogTypes.ModInfo.unpack(u));
                         u.finish();
                         return v;
@@ -8966,8 +10324,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static ModLoaded fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static ModLoaded fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static ModLoaded readFrame(YogFrame.Unpacker u) {
                 ModLoaded v = unpack(u);
                 u.finish();
                 return v;
@@ -8978,10 +10351,10 @@ public final class YogServices {
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -9026,8 +10399,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Dir fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Dir fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Dir readFrame(YogFrame.Unpacker u) {
                 Dir v = unpack(u);
                 u.finish();
                 return v;
@@ -9042,10 +10430,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceGame.DIR;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -9061,25 +10449,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Dir r = fromFrame(payload);
+                    Dir r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact();
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -9116,8 +10503,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static WorldDir fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static WorldDir fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static WorldDir readFrame(YogFrame.Unpacker u) {
                 WorldDir v = unpack(u);
                 u.finish();
                 return v;
@@ -9132,10 +10534,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceGame.WORLD_DIR;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -9151,25 +10553,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    WorldDir r = fromFrame(payload);
+                    WorldDir r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact();
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -9209,8 +10610,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Translate fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Translate fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Translate readFrame(YogFrame.Unpacker u) {
                 Translate v = unpack(u);
                 u.finish();
                 return v;
@@ -9225,10 +10641,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceGame.TRANSLATE;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -9244,25 +10660,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Translate r = fromFrame(payload);
+                    Translate r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.key());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -9299,8 +10714,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static PlatformMods fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static PlatformMods fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static PlatformMods readFrame(YogFrame.Unpacker u) {
                 PlatformMods v = unpack(u);
                 u.finish();
                 return v;
@@ -9315,10 +10745,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceGame.PLATFORM_MODS;
 
             public java.util.List<YogTypes.ModInfo> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<YogTypes.ModInfo> v = YogFrame.list(u, () -> YogTypes.ModInfo.unpack(u));
                         u.finish();
                         return v;
@@ -9334,25 +10764,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlatformMods r = fromFrame(payload);
+                    PlatformMods r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact();
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<YogTypes.ModInfo> v = (java.util.List<YogTypes.ModInfo>) out;
                 p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
-                return p.finish();
             }
         }
     }
@@ -9400,18 +10829,33 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Text fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Text fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Text readFrame(YogFrame.Unpacker u) {
                 Text v = unpack(u);
                 u.finish();
                 return v;
             }
 
             public YogTypes.Shown call() {
-                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.TEXT, item), toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.TEXT, item), packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.Shown v = (u.getBool() ? YogTypes.Shown.unpack(u) : null);
                         u.finish();
                         return v;
@@ -9462,18 +10906,33 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Picture fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Picture fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Picture readFrame(YogFrame.Unpacker u) {
                 Picture v = unpack(u);
                 u.finish();
                 return v;
             }
 
             public java.util.List<Float> call() {
-                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.PICTURE, item), toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.PICTURE, item), packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<Float> v = (u.getBool() ? u.getF32s() : null);
                         u.finish();
                         return v;
@@ -9536,8 +10995,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SpawnItem fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SpawnItem fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SpawnItem readFrame(YogFrame.Unpacker u) {
                 SpawnItem v = unpack(u);
                 u.finish();
                 return v;
@@ -9552,10 +11026,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceItem.SPAWN;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -9571,25 +11045,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SpawnItem r = fromFrame(payload);
+                    SpawnItem r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.velocity().x(), r.velocity().y(), r.velocity().z(), r.item(), r.count(), r.snbt());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -9629,8 +11102,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static EntityStack fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static EntityStack fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static EntityStack readFrame(YogFrame.Unpacker u) {
                 EntityStack v = unpack(u);
                 u.finish();
                 return v;
@@ -9645,10 +11133,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceItem.ENTITY_STACK;
 
             public YogTypes.Stack call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.Stack v = (u.getBool() ? YogTypes.Stack.unpack(u) : null);
                         u.finish();
                         return v;
@@ -9664,25 +11152,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    EntityStack r = fromFrame(payload);
+                    EntityStack r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.Stack v = (out == null ? null : (YogTypes.Stack) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -9731,8 +11218,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetEntityStack fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetEntityStack fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetEntityStack readFrame(YogFrame.Unpacker u) {
                 SetEntityStack v = unpack(u);
                 u.finish();
                 return v;
@@ -9747,10 +11249,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceItem.SET_ENTITY_STACK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -9766,25 +11268,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetEntityStack r = fromFrame(payload);
+                    SetEntityStack r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.item(), r.count(), r.snbt());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -9824,8 +11325,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Block fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Block fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Block readFrame(YogFrame.Unpacker u) {
                 Block v = unpack(u);
                 u.finish();
                 return v;
@@ -9840,10 +11356,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceItem.BLOCK;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -9859,25 +11375,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Block r = fromFrame(payload);
+                    Block r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.item());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
     }
@@ -9925,8 +11440,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Call fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Call fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Call readFrame(YogFrame.Unpacker u) {
                 Call v = unpack(u);
                 u.finish();
                 return v;
@@ -9941,10 +11471,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceJvm.CALL;
 
             public Object call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Object v = (u.getBool() ? u.getTagged() : null);
                         u.finish();
                         return v;
@@ -9960,25 +11490,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Call r = fromFrame(payload);
+                    Call r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.expr(), r.args());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Object v = (out == null ? null : (Object) out);
                 p.putBool(v != null); if (v != null) { p.putTagged(v); }
-                return p.finish();
             }
         }
     }
@@ -10029,8 +11558,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static KeyBindingSpec fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static KeyBindingSpec fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static KeyBindingSpec readFrame(YogFrame.Unpacker u) {
                 KeyBindingSpec v = unpack(u);
                 u.finish();
                 return v;
@@ -10041,10 +11585,10 @@ public final class YogServices {
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -10089,8 +11633,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Declared fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Declared fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Declared readFrame(YogFrame.Unpacker u) {
                 Declared v = unpack(u);
                 u.finish();
                 return v;
@@ -10101,10 +11660,10 @@ public final class YogServices {
             }
 
             public java.util.List<YogTypes.CategorizedBinding> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<YogTypes.CategorizedBinding> v = YogFrame.list(u, () -> YogTypes.CategorizedBinding.unpack(u));
                         u.finish();
                         return v;
@@ -10160,8 +11719,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static MenuEntry fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static MenuEntry fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static MenuEntry readFrame(YogFrame.Unpacker u) {
                 MenuEntry v = unpack(u);
                 u.finish();
                 return v;
@@ -10172,10 +11746,10 @@ public final class YogServices {
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -10220,8 +11794,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Declared fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Declared fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Declared readFrame(YogFrame.Unpacker u) {
                 Declared v = unpack(u);
                 u.finish();
                 return v;
@@ -10232,10 +11821,10 @@ public final class YogServices {
             }
 
             public java.util.List<YogTypes.MenuEntry> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<YogTypes.MenuEntry> v = YogFrame.list(u, () -> YogTypes.MenuEntry.unpack(u));
                         u.finish();
                         return v;
@@ -10294,8 +11883,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SendToPlayer fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SendToPlayer fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SendToPlayer readFrame(YogFrame.Unpacker u) {
                 SendToPlayer v = unpack(u);
                 u.finish();
                 return v;
@@ -10310,10 +11914,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceNet.SEND_TO_PLAYER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -10329,25 +11933,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SendToPlayer r = fromFrame(payload);
+                    SendToPlayer r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.channel(), r.payload());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -10390,8 +11993,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SendToServer fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SendToServer fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SendToServer readFrame(YogFrame.Unpacker u) {
                 SendToServer v = unpack(u);
                 u.finish();
                 return v;
@@ -10406,10 +12024,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceNet.SEND_TO_SERVER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -10425,25 +12043,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SendToServer r = fromFrame(payload);
+                    SendToServer r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.channel(), r.payload());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
     }
@@ -10503,8 +12120,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SpawnParticles fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SpawnParticles fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SpawnParticles readFrame(YogFrame.Unpacker u) {
                 SpawnParticles v = unpack(u);
                 u.finish();
                 return v;
@@ -10519,10 +12151,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceParticle.SPAWN;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -10538,25 +12170,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SpawnParticles r = fromFrame(payload);
+                    SpawnParticles r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.particle(), r.count(), r.spread().x(), r.spread().y(), r.spread().z(), r.speed());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
     }
@@ -10607,8 +12238,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static GiveItem fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static GiveItem fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static GiveItem readFrame(YogFrame.Unpacker u) {
                 GiveItem v = unpack(u);
                 u.finish();
                 return v;
@@ -10623,10 +12269,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.GIVE_ITEM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -10642,25 +12288,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    GiveItem r = fromFrame(payload);
+                    GiveItem r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.item(), r.count());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -10703,8 +12348,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Teleport fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Teleport fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Teleport readFrame(YogFrame.Unpacker u) {
                 Teleport v = unpack(u);
                 u.finish();
                 return v;
@@ -10719,10 +12379,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.TELEPORT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -10738,25 +12398,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Teleport r = fromFrame(payload);
+                    Teleport r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -10802,8 +12461,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static TeleportToDim fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static TeleportToDim fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static TeleportToDim readFrame(YogFrame.Unpacker u) {
                 TeleportToDim v = unpack(u);
                 u.finish();
                 return v;
@@ -10818,10 +12492,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.TELEPORT_TO_DIM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -10837,25 +12511,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    TeleportToDim r = fromFrame(payload);
+                    TeleportToDim r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -10898,8 +12571,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Kick fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Kick fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Kick readFrame(YogFrame.Unpacker u) {
                 Kick v = unpack(u);
                 u.finish();
                 return v;
@@ -10914,10 +12602,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.KICK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -10933,25 +12621,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Kick r = fromFrame(payload);
+                    Kick r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.reason());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -10994,8 +12681,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetGamemode fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetGamemode fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetGamemode readFrame(YogFrame.Unpacker u) {
                 SetGamemode v = unpack(u);
                 u.finish();
                 return v;
@@ -11010,10 +12712,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_GAMEMODE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -11029,25 +12731,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetGamemode r = fromFrame(payload);
+                    SetGamemode r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.mode());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -11087,8 +12788,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Inventory fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Inventory fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Inventory readFrame(YogFrame.Unpacker u) {
                 Inventory v = unpack(u);
                 u.finish();
                 return v;
@@ -11103,10 +12819,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.INVENTORY;
 
             public java.util.List<YogTypes.SlotStack> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<YogTypes.SlotStack> v = YogFrame.list(u, () -> YogTypes.SlotStack.unpack(u));
                         u.finish();
                         return v;
@@ -11122,25 +12838,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Inventory r = fromFrame(payload);
+                    Inventory r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<YogTypes.SlotStack> v = (java.util.List<YogTypes.SlotStack>) out;
                 p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
-                return p.finish();
             }
         }
 
@@ -11189,8 +12904,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetSlot fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetSlot fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetSlot readFrame(YogFrame.Unpacker u) {
                 SetSlot v = unpack(u);
                 u.finish();
                 return v;
@@ -11205,10 +12935,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_SLOT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -11224,25 +12954,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetSlot r = fromFrame(payload);
+                    SetSlot r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.item(), r.count());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -11282,8 +13011,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static HeldItemNbt fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static HeldItemNbt fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static HeldItemNbt readFrame(YogFrame.Unpacker u) {
                 HeldItemNbt v = unpack(u);
                 u.finish();
                 return v;
@@ -11298,10 +13042,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.HELD_ITEM_NBT;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -11317,25 +13061,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HeldItemNbt r = fromFrame(payload);
+                    HeldItemNbt r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -11378,8 +13121,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetHeldItemNbt fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetHeldItemNbt fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetHeldItemNbt readFrame(YogFrame.Unpacker u) {
                 SetHeldItemNbt v = unpack(u);
                 u.finish();
                 return v;
@@ -11394,10 +13152,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_HELD_ITEM_NBT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -11413,25 +13171,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetHeldItemNbt r = fromFrame(payload);
+                    SetHeldItemNbt r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.snbt());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -11471,8 +13228,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static OffhandItemNbt fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static OffhandItemNbt fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static OffhandItemNbt readFrame(YogFrame.Unpacker u) {
                 OffhandItemNbt v = unpack(u);
                 u.finish();
                 return v;
@@ -11487,10 +13259,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.OFFHAND_ITEM_NBT;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -11506,25 +13278,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    OffhandItemNbt r = fromFrame(payload);
+                    OffhandItemNbt r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -11567,8 +13338,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetOffhandItemNbt fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetOffhandItemNbt fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetOffhandItemNbt readFrame(YogFrame.Unpacker u) {
                 SetOffhandItemNbt v = unpack(u);
                 u.finish();
                 return v;
@@ -11583,10 +13369,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_OFFHAND_ITEM_NBT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -11602,25 +13388,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetOffhandItemNbt r = fromFrame(payload);
+                    SetOffhandItemNbt r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.snbt());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -11663,8 +13448,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SlotItem fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SlotItem fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SlotItem readFrame(YogFrame.Unpacker u) {
                 SlotItem v = unpack(u);
                 u.finish();
                 return v;
@@ -11679,10 +13479,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SLOT_ITEM;
 
             public YogTypes.Stack call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.Stack v = (u.getBool() ? YogTypes.Stack.unpack(u) : null);
                         u.finish();
                         return v;
@@ -11698,25 +13498,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SlotItem r = fromFrame(payload);
+                    SlotItem r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.Stack v = (out == null ? null : (YogTypes.Stack) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -11768,8 +13567,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetSlotItem fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetSlotItem fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetSlotItem readFrame(YogFrame.Unpacker u) {
                 SetSlotItem v = unpack(u);
                 u.finish();
                 return v;
@@ -11784,10 +13598,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_SLOT_ITEM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -11803,25 +13617,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetSlotItem r = fromFrame(payload);
+                    SetSlotItem r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.item(), r.count(), r.snbt());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -11864,8 +13677,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static AddXp fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static AddXp fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static AddXp readFrame(YogFrame.Unpacker u) {
                 AddXp v = unpack(u);
                 u.finish();
                 return v;
@@ -11880,10 +13708,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.ADD_XP;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -11899,25 +13727,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AddXp r = fromFrame(payload);
+                    AddXp r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.amount());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -11960,8 +13787,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetMayFly fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetMayFly fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetMayFly readFrame(YogFrame.Unpacker u) {
                 SetMayFly v = unpack(u);
                 u.finish();
                 return v;
@@ -11976,10 +13818,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_MAY_FLY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -11995,25 +13837,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetMayFly r = fromFrame(payload);
+                    SetMayFly r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.mayFly());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -12053,8 +13894,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Info fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Info fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Info readFrame(YogFrame.Unpacker u) {
                 Info v = unpack(u);
                 u.finish();
                 return v;
@@ -12069,10 +13925,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.INFO;
 
             public YogTypes.PlayerInfo call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.PlayerInfo v = (u.getBool() ? YogTypes.PlayerInfo.unpack(u) : null);
                         u.finish();
                         return v;
@@ -12088,25 +13944,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Info r = fromFrame(payload);
+                    Info r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.PlayerInfo v = (out == null ? null : (YogTypes.PlayerInfo) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -12152,8 +14007,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetItemCooldown fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetItemCooldown fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetItemCooldown readFrame(YogFrame.Unpacker u) {
                 SetItemCooldown v = unpack(u);
                 u.finish();
                 return v;
@@ -12168,10 +14038,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_ITEM_COOLDOWN;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -12187,25 +14057,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetItemCooldown r = fromFrame(payload);
+                    SetItemCooldown r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.item(), r.ticks());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -12254,8 +14123,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static PlaceBlockFromSlot fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static PlaceBlockFromSlot fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static PlaceBlockFromSlot readFrame(YogFrame.Unpacker u) {
                 PlaceBlockFromSlot v = unpack(u);
                 u.finish();
                 return v;
@@ -12270,10 +14154,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.PLACE_BLOCK_FROM_SLOT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -12289,25 +14173,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlaceBlockFromSlot r = fromFrame(payload);
+                    PlaceBlockFromSlot r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -12344,8 +14227,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Online fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Online fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Online readFrame(YogFrame.Unpacker u) {
                 Online v = unpack(u);
                 u.finish();
                 return v;
@@ -12360,10 +14258,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.ONLINE;
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
                         u.finish();
                         return v;
@@ -12379,25 +14277,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Online r = fromFrame(payload);
+                    Online r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact();
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<String> v = (java.util.List<String>) out;
                 p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
-                return p.finish();
             }
         }
     }
@@ -12445,8 +14342,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Get fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Get fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Get readFrame(YogFrame.Unpacker u) {
                 Get v = unpack(u);
                 u.finish();
                 return v;
@@ -12461,10 +14373,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceScoreboard.GET;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
                         u.finish();
                         return v;
@@ -12480,25 +14392,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Get r = fromFrame(payload);
+                    Get r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
                 p.putBool(v != null); if (v != null) { p.putI(v); }
-                return p.finish();
             }
         }
 
@@ -12544,8 +14455,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Set fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Set fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Set readFrame(YogFrame.Unpacker u) {
                 Set v = unpack(u);
                 u.finish();
                 return v;
@@ -12560,10 +14486,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceScoreboard.SET;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -12579,25 +14505,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Set r = fromFrame(payload);
+                    Set r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player(), r.score());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -12643,8 +14568,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Add fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Add fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Add readFrame(YogFrame.Unpacker u) {
                 Add v = unpack(u);
                 u.finish();
                 return v;
@@ -12659,10 +14599,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceScoreboard.ADD;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
                         u.finish();
                         return v;
@@ -12678,25 +14618,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Add r = fromFrame(payload);
+                    Add r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player(), r.delta());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
                 p.putBool(v != null); if (v != null) { p.putI(v); }
-                return p.finish();
             }
         }
     }
@@ -12753,8 +14692,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Play fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Play fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Play readFrame(YogFrame.Unpacker u) {
                 Play v = unpack(u);
                 u.finish();
                 return v;
@@ -12769,10 +14723,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceSound.PLAY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -12788,25 +14742,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Play r = fromFrame(payload);
+                    Play r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.sound(), r.volume(), r.pitch());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -12855,8 +14808,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static PlayToPlayer fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static PlayToPlayer fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static PlayToPlayer readFrame(YogFrame.Unpacker u) {
                 PlayToPlayer v = unpack(u);
                 u.finish();
                 return v;
@@ -12871,10 +14839,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceSound.PLAY_TO_PLAYER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -12890,25 +14858,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlayToPlayer r = fromFrame(payload);
+                    PlayToPlayer r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.sound(), r.volume(), r.pitch());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
     }
@@ -12956,8 +14923,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static HasItem fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static HasItem fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static HasItem readFrame(YogFrame.Unpacker u) {
                 HasItem v = unpack(u);
                 u.finish();
                 return v;
@@ -12972,10 +14954,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceTag.HAS_ITEM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -12991,25 +14973,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HasItem r = fromFrame(payload);
+                    HasItem r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.item(), r.tag());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -13052,8 +15033,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static HasBlock fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static HasBlock fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static HasBlock readFrame(YogFrame.Unpacker u) {
                 HasBlock v = unpack(u);
                 u.finish();
                 return v;
@@ -13068,10 +15064,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceTag.HAS_BLOCK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -13087,25 +15083,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HasBlock r = fromFrame(payload);
+                    HasBlock r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.block(), r.tag());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -13148,8 +15143,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static HasEntity fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static HasEntity fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static HasEntity readFrame(YogFrame.Unpacker u) {
                 HasEntity v = unpack(u);
                 u.finish();
                 return v;
@@ -13164,10 +15174,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceTag.HAS_ENTITY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -13183,25 +15193,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HasEntity r = fromFrame(payload);
+                    HasEntity r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.tag());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -13241,8 +15250,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Items fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Items fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Items readFrame(YogFrame.Unpacker u) {
                 Items v = unpack(u);
                 u.finish();
                 return v;
@@ -13257,10 +15281,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceTag.ITEMS;
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
                         u.finish();
                         return v;
@@ -13276,25 +15300,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Items r = fromFrame(payload);
+                    Items r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.tag());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<String> v = (java.util.List<String>) out;
                 p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
-                return p.finish();
             }
         }
     }
@@ -13345,8 +15368,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Open fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Open fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Open readFrame(YogFrame.Unpacker u) {
                 Open v = unpack(u);
                 u.finish();
                 return v;
@@ -13361,10 +15399,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceUi.OPEN;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -13380,25 +15418,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Open r = fromFrame(payload);
+                    Open r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uiId(), r.modal(), r.pause());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -13441,8 +15478,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static OpenWithFlags fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static OpenWithFlags fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static OpenWithFlags readFrame(YogFrame.Unpacker u) {
                 OpenWithFlags v = unpack(u);
                 u.finish();
                 return v;
@@ -13457,10 +15509,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceUi.OPEN_WITH_FLAGS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -13476,25 +15528,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    OpenWithFlags r = fromFrame(payload);
+                    OpenWithFlags r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uiId(), r.flags());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -13534,8 +15585,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Close fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Close fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Close readFrame(YogFrame.Unpacker u) {
                 Close v = unpack(u);
                 u.finish();
                 return v;
@@ -13550,10 +15616,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceUi.CLOSE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -13569,25 +15635,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Close r = fromFrame(payload);
+                    Close r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.uiId());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
     }
@@ -13635,8 +15700,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static GetBlock fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static GetBlock fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static GetBlock readFrame(YogFrame.Unpacker u) {
                 GetBlock v = unpack(u);
                 u.finish();
                 return v;
@@ -13651,10 +15731,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.GET_BLOCK;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -13670,25 +15750,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    GetBlock r = fromFrame(payload);
+                    GetBlock r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
 
@@ -13734,8 +15813,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetBlock fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetBlock fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetBlock readFrame(YogFrame.Unpacker u) {
                 SetBlock v = unpack(u);
                 u.finish();
                 return v;
@@ -13750,10 +15844,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SET_BLOCK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -13769,25 +15863,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetBlock r = fromFrame(payload);
+                    SetBlock r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.block());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -13827,8 +15920,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Time fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Time fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Time readFrame(YogFrame.Unpacker u) {
                 Time v = unpack(u);
                 u.finish();
                 return v;
@@ -13843,10 +15951,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.TIME;
 
             public Long call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Long v = (u.getBool() ? Long.valueOf(u.getI()) : null);
                         u.finish();
                         return v;
@@ -13862,25 +15970,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Time r = fromFrame(payload);
+                    Time r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Long v = (out == null ? null : Long.valueOf(((Number) out).longValue()));
                 p.putBool(v != null); if (v != null) { p.putI(v); }
-                return p.finish();
             }
         }
 
@@ -13923,8 +16030,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetTime fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetTime fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetTime readFrame(YogFrame.Unpacker u) {
                 SetTime v = unpack(u);
                 u.finish();
                 return v;
@@ -13939,10 +16061,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SET_TIME;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -13958,25 +16080,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetTime r = fromFrame(payload);
+                    SetTime r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.time());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -14016,8 +16137,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static IsRaining fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static IsRaining fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static IsRaining readFrame(YogFrame.Unpacker u) {
                 IsRaining v = unpack(u);
                 u.finish();
                 return v;
@@ -14032,10 +16168,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.IS_RAINING;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -14051,25 +16187,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    IsRaining r = fromFrame(payload);
+                    IsRaining r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -14115,8 +16250,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetWeather fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetWeather fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetWeather readFrame(YogFrame.Unpacker u) {
                 SetWeather v = unpack(u);
                 u.finish();
                 return v;
@@ -14131,10 +16281,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SET_WEATHER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -14150,25 +16300,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetWeather r = fromFrame(payload);
+                    SetWeather r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.raining(), r.duration());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -14208,8 +16357,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static IsThundering fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static IsThundering fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static IsThundering readFrame(YogFrame.Unpacker u) {
                 IsThundering v = unpack(u);
                 u.finish();
                 return v;
@@ -14224,10 +16388,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.IS_THUNDERING;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -14243,25 +16407,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    IsThundering r = fromFrame(payload);
+                    IsThundering r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -14307,8 +16470,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static SetThunder fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetThunder fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetThunder readFrame(YogFrame.Unpacker u) {
                 SetThunder v = unpack(u);
                 u.finish();
                 return v;
@@ -14323,10 +16501,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SET_THUNDER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -14342,25 +16520,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetThunder r = fromFrame(payload);
+                    SetThunder r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.thundering(), r.duration());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -14409,8 +16586,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static FillRegion fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static FillRegion fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static FillRegion readFrame(YogFrame.Unpacker u) {
                 FillRegion v = unpack(u);
                 u.finish();
                 return v;
@@ -14425,10 +16617,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.FILL_REGION;
 
             public Long call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Long v = (u.getBool() ? Long.valueOf(u.getI()) : null);
                         u.finish();
                         return v;
@@ -14444,25 +16636,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    FillRegion r = fromFrame(payload);
+                    FillRegion r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z(), r.state());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Long v = (out == null ? null : Long.valueOf(((Number) out).longValue()));
                 p.putBool(v != null); if (v != null) { p.putI(v); }
-                return p.finish();
             }
         }
 
@@ -14508,8 +16699,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static ScanRegion fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static ScanRegion fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static ScanRegion readFrame(YogFrame.Unpacker u) {
                 ScanRegion v = unpack(u);
                 u.finish();
                 return v;
@@ -14524,10 +16730,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SCAN_REGION;
 
             public java.util.List<YogTypes.PlacedBlock> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<YogTypes.PlacedBlock> v = YogFrame.list(u, () -> YogTypes.PlacedBlock.unpack(u));
                         u.finish();
                         return v;
@@ -14543,25 +16749,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    ScanRegion r = fromFrame(payload);
+                    ScanRegion r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<YogTypes.PlacedBlock> v = (java.util.List<YogTypes.PlacedBlock>) out;
                 p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
-                return p.finish();
             }
         }
 
@@ -14607,8 +16812,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static PlaceFeature fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static PlaceFeature fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static PlaceFeature readFrame(YogFrame.Unpacker u) {
                 PlaceFeature v = unpack(u);
                 u.finish();
                 return v;
@@ -14623,10 +16843,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.PLACE_FEATURE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -14642,25 +16862,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlaceFeature r = fromFrame(payload);
+                    PlaceFeature r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.feature());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -14712,8 +16931,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static Explode fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Explode fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Explode readFrame(YogFrame.Unpacker u) {
                 Explode v = unpack(u);
                 u.finish();
                 return v;
@@ -14728,10 +16962,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.EXPLODE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -14747,25 +16981,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Explode r = fromFrame(payload);
+                    Explode r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.power(), r.fire(), r.source());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -14811,8 +17044,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static DropLoot fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static DropLoot fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static DropLoot readFrame(YogFrame.Unpacker u) {
                 DropLoot v = unpack(u);
                 u.finish();
                 return v;
@@ -14827,10 +17075,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.DROP_LOOT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         boolean v = u.getBool();
                         u.finish();
                         return v;
@@ -14846,25 +17094,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    DropLoot r = fromFrame(payload);
+                    DropLoot r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.table(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
                 p.putBool(v);
-                return p.finish();
             }
         }
 
@@ -14907,8 +17154,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static EntityCount fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static EntityCount fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static EntityCount readFrame(YogFrame.Unpacker u) {
                 EntityCount v = unpack(u);
                 u.finish();
                 return v;
@@ -14923,10 +17185,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.ENTITY_COUNT;
 
             public Long call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         Long v = (u.getBool() ? Long.valueOf(u.getI()) : null);
                         u.finish();
                         return v;
@@ -14942,25 +17204,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    EntityCount r = fromFrame(payload);
+                    EntityCount r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.entityType());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 Long v = (out == null ? null : Long.valueOf(((Number) out).longValue()));
                 p.putBool(v != null); if (v != null) { p.putI(v); }
-                return p.finish();
             }
         }
 
@@ -15006,8 +17267,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static EntitiesInBox fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static EntitiesInBox fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static EntitiesInBox readFrame(YogFrame.Unpacker u) {
                 EntitiesInBox v = unpack(u);
                 u.finish();
                 return v;
@@ -15022,10 +17298,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.ENTITIES_IN_BOX;
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
                         u.finish();
                         return v;
@@ -15041,25 +17317,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    EntitiesInBox r = fromFrame(payload);
+                    EntitiesInBox r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<String> v = (java.util.List<String>) out;
                 p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
-                return p.finish();
             }
         }
 
@@ -15105,8 +17380,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static RaycastBlock fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static RaycastBlock fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static RaycastBlock readFrame(YogFrame.Unpacker u) {
                 RaycastBlock v = unpack(u);
                 u.finish();
                 return v;
@@ -15121,10 +17411,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.RAYCAST_BLOCK;
 
             public YogTypes.BlockHit call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         YogTypes.BlockHit v = (u.getBool() ? YogTypes.BlockHit.unpack(u) : null);
                         u.finish();
                         return v;
@@ -15140,25 +17430,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RaycastBlock r = fromFrame(payload);
+                    RaycastBlock r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.BlockHit v = (out == null ? null : (YogTypes.BlockHit) out);
                 p.putBool(v != null); if (v != null) { v.pack(p); }
-                return p.finish();
             }
         }
 
@@ -15207,8 +17496,23 @@ public final class YogServices {
                 return p.finish();
             }
 
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
             public static RaycastEntity fromFrame(byte[] bytes) {
-                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static RaycastEntity fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static RaycastEntity readFrame(YogFrame.Unpacker u) {
                 RaycastEntity v = unpack(u);
                 u.finish();
                 return v;
@@ -15223,10 +17527,10 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.RAYCAST_ENTITY;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
                     try {
-                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogFrame.Unpacker u = r.frame();
                         String v = (u.getBool() ? u.getStr() : null);
                         u.finish();
                         return v;
@@ -15242,25 +17546,24 @@ public final class YogServices {
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static YogBus.Reply serve(byte[] payload) {
-                if (HostMethod.H == null) return YogBus.Reply.of(YogBus.NO_HANDLER);
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RaycastEntity r = fromFrame(payload);
+                    RaycastEntity r = fromFrame(in);
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z(), r.exclude());
-                    return YogBus.Reply.ok(replyFrame(dev.yog.YogHostServices.none(out)));
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
                 } catch (YogData.DecodeException e) {
-                    return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
+                    return YogBus.BAD_PAYLOAD;
                 } catch (Throwable t) {
                     return dev.yog.YogHostServices.failed(ADDRESS, t);
                 }
             }
 
-            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
-            public static byte[] replyFrame(Object out) {
-                YogFrame.Packer p = new YogFrame.Packer();
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
-                return p.finish();
             }
         }
     }

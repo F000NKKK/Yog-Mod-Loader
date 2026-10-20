@@ -76,8 +76,16 @@ fn slice<'a>(base: *mut u8, at: usize, len: usize) -> Option<&'a [u8]> {
     fits(at, len).then(|| unsafe { std::slice::from_raw_parts(base.add(HEADER + at), len) })
 }
 
+/// `bytes` written at frame offset `at` — they may be in the arena already,
+/// overlapping (a reply moved down onto the place its caller reads it).
 fn write(base: *mut u8, at: usize, bytes: &[u8]) {
-    unsafe { std::ptr::copy_nonoverlapping(bytes.as_ptr(), base.add(HEADER + at), bytes.len()) };
+    unsafe { std::ptr::copy(bytes.as_ptr(), base.add(HEADER + at), bytes.len()) };
+}
+
+/// Whether `payload` is the arena's last frame, ending at frame offset `top`
+/// (a call from Java passed straight on): it's read where it is.
+fn is_top_frame(base: *mut u8, top: usize, payload: &[u8]) -> bool {
+    top >= payload.len() && std::ptr::eq(payload.as_ptr(), unsafe { base.add(HEADER + top - payload.len()) })
 }
 
 /// Where this thread's frames end (none taken: 0).
@@ -91,14 +99,19 @@ pub(crate) fn frames_top() -> usize {
 /// old way).
 pub(super) fn run_java(env: &mut JNIEnv, handler: i32, payload: &[u8], reply: &YogReply) -> Option<YogStatus> {
     let base = base();
-    let at = top(base);
-    if !fits(at, payload.len()) {
-        return None;
-    }
-    write(base, at, payload);
+    let top0 = top(base);
+    let at = if is_top_frame(base, top0, payload) {
+        top0 - payload.len()
+    } else {
+        if !fits(top0, payload.len()) {
+            return None;
+        }
+        write(base, top0, payload);
+        top0
+    };
     set_top(base, at + payload.len());
     let answer: Option<i64> = unsafe { jcall!(env, "dev/yog/YogBus", "handleAt", [I(handler), I(at as i32), I(payload.len() as i32)]) };
-    set_top(base, at);
+    set_top(base, top0);
     let Some(answer) = answer else {
         return Some(status::FAILED);
     };
