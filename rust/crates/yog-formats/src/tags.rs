@@ -111,6 +111,11 @@ pub fn hosts() -> &'static [String] {
     &TAGS.hosts
 }
 
+/// Host `<loader>/<version>`'s version.
+pub fn host_version(host: &str) -> Option<&str> {
+    host.split_once(yog_ids::sep::PATH).map(|(_, v)| v)
+}
+
 /// Whether the tables know tags of namespace `ns` (the game's, the loaders', Yog's).
 pub fn tags_known(ns: &str) -> bool {
     TAGS.namespaces.contains(ns)
@@ -154,14 +159,14 @@ pub fn describe_hosts(hosts: &BTreeSet<String>) -> String {
     let versions: BTreeSet<&str> = TAGS
         .hosts
         .iter()
-        .filter_map(|h| h.split_once('/').map(|(_, v)| v))
+        .filter_map(|h| host_version(h))
         .collect();
     let mut out = Vec::new();
     for v in versions {
         let all: Vec<&String> = TAGS
             .hosts
             .iter()
-            .filter(|h| h.ends_with(&format!("/{v}")))
+            .filter(|h| host_version(h) == Some(v))
             .collect();
         let on: Vec<&String> = all.iter().copied().filter(|h| hosts.contains(*h)).collect();
         if on.len() == all.len() {

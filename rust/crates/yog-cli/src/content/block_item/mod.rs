@@ -17,9 +17,9 @@ use yog_data::field;
 use yog_formats::content::{BlockFile, ItemFile, Model, Register};
 use yog_ids::{Format, content_field};
 
+use crate::content::file::{check_format, file_id};
 use crate::content::{
     BlockProps, Compiled, Ctx, Entry, ItemProps, Lang, Loc, TAG_REF, datapack, pretty,
-    valid_namespace, valid_path,
 };
 use crate::yres;
 
@@ -27,41 +27,8 @@ pub(super) use loot::{drops_table, kind_drops};
 pub(super) use screens::inventory_screens;
 pub(super) use source::item_props;
 
-/// The one format version of `.yitem` and `.yblock` files.
-const FORMAT: u32 = 1;
 /// What a translation key adds for an item's or block's description.
 const DESCRIPTION: &str = ".desc";
-
-/// A file's id: as written, else the file's name; the mod's namespace by default.
-pub(super) fn file_id(
-    cx: &mut Ctx,
-    line: usize,
-    id: Option<&str>,
-    path: &Path,
-    mod_ns: Option<&str>,
-) -> Option<(String, String)> {
-    let raw = id.map(str::to_string).unwrap_or_else(|| {
-        path.file_stem()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .into_owned()
-    });
-    let (ns, p) = match raw.split_once(yog_ids::sep::NAMESPACE) {
-        Some((ns, p)) => (ns.to_string(), p.to_string()),
-        None => match mod_ns {
-            Some(ns) => (ns.to_string(), raw.clone()),
-            None => {
-                cx.err(line, "the mod id isn't a valid Minecraft namespace (a-z, 0-9, `_`, `-`, `.`), so give the namespace: id: \"mynamespace:name\"");
-                return None;
-            }
-        },
-    };
-    if !valid_namespace(&ns) || !valid_path(&p) {
-        cx.err(line, format!("id `{ns}:{p}` isn't a valid Minecraft id — lower case a-z, 0-9, `_`, `-`, `.` (and `/` in the path)"));
-        return None;
-    }
-    Some((ns, p))
-}
 
 /// What a `.yitem` and a `.yblock` both say, and what only one of them does.
 struct Parts {
@@ -179,13 +146,7 @@ pub(super) fn compile_file(
     let loc: Loc = &loc_fn;
     let mut parts = read_parts(cx, text, &doc, kind, mod_ns)?;
     let root = At::root();
-    if parts.format.is_some_and(|f| f != FORMAT) {
-        cx.err_at(
-            loc,
-            &root.key(field!(ItemFile, format)),
-            format!("format must be {FORMAT} (this yog understands format {FORMAT})"),
-        );
-    }
+    check_format(cx, loc, &root.key(field!(ItemFile, format)), parts.format);
     let (ns, p) = file_id(
         cx,
         loc(&root.key(field!(ItemFile, id))),

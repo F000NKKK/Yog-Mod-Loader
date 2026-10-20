@@ -8,7 +8,7 @@ use crate::content::Compiled;
 use crate::content::Ctx;
 use crate::content::EntityFile;
 use crate::content::FontFile;
-use crate::content::block_item::file_id;
+use crate::content::file::file_id;
 use crate::yres;
 
 

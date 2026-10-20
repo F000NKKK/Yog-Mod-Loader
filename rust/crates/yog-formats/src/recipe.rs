@@ -168,6 +168,9 @@ impl Body {
     }
 }
 
+/// The field naming a recipe's kind.
+pub const TYPE_FIELD: &str = "type";
+
 /// Most ingredients a shapeless recipe takes: a crafting grid's places.
 pub const MAX_SHAPELESS: usize =
     yog_registry::recipe_kinds::GRID_SIDE * yog_registry::recipe_kinds::GRID_SIDE;
@@ -186,7 +189,7 @@ impl Schema for RecipeFile {
     fn shape() -> Shape {
         // `type` and the common fields; the kinds' own come with `type`.
         let mut fields = vec![Field {
-            name: "type",
+            name: TYPE_FIELD,
             doc: "The game's recipe type, or the mod's own kind (`mymod:infusion`).",
             shape: String::shape,
             required: true,
@@ -205,10 +208,10 @@ impl Schema for RecipeFile {
 
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let map = cx.map(v)?;
-        let ty = match map.get("type") {
+        let ty = match map.get(TYPE_FIELD) {
             Some(ValueRef::Str(t)) => t.to_string(),
             Some(other) => {
-                cx.at(Seg::Key("type".into()), |cx| {
+                cx.at(Seg::Key(TYPE_FIELD.into()), |cx| {
                     cx.expected("a recipe type", other)
                 });
                 return None;
@@ -221,7 +224,7 @@ impl Schema for RecipeFile {
                 return None;
             }
         };
-        let also = &["type"];
+        let also = &[TYPE_FIELD];
         let (common, body) =
             match ty.as_str() {
                 ids::SHAPED => {
@@ -243,7 +246,7 @@ impl Schema for RecipeFile {
                 own if own.contains(':') => read_both::<Common, Custom>(v, cx, also)
                     .map(|(c, b)| (c, Body::Custom(ty.clone(), b)))?,
                 other => {
-                    cx.at(Seg::Key("type".into()), |cx| cx.unknown_name(other, &TYPES));
+                    cx.at(Seg::Key(TYPE_FIELD.into()), |cx| cx.unknown_name(other, &TYPES));
                     return None;
                 }
             };
@@ -262,7 +265,7 @@ impl Schema for RecipeFile {
             Body::Custom(_, b) => b.write(),
         };
         let mut m = yog_data::Map::new();
-        m.insert("type", Value::from(ty));
+        m.insert(TYPE_FIELD, Value::from(ty));
         for part in [self.common.write(), body] {
             if let Value::Map(fields) = part {
                 for (k, v) in fields {

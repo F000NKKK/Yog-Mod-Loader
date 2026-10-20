@@ -24,6 +24,7 @@ mod body;
 mod book;
 mod datapack;
 mod defs;
+mod file;
 mod import;
 pub(crate) use import::font_copy_path;
 pub mod json;
@@ -796,6 +797,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     // How kinds of recipe are shown: `.yui` `recipe_layout` components.
     let layouts = recipe_layouts(root, mod_ns.unwrap_or("minecraft"), &recipe_defs, &known, &mut errors);
+    let mut against = recipe::Against { mod_ns, known: &known, kinds: &recipe_defs, brews: &mut brews };
     for (shown, text, path) in &pending_recipes {
         let mut cx = Ctx {
             root,
@@ -808,7 +810,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
             inventories: &mut inventories,
             deferred: &mut deferred,
         };
-        if let Some(r) = compile_recipe(&mut cx, text, path, mod_ns, &known, &recipe_defs, &mut brews) {
+        if let Some(r) = compile_recipe(&mut cx, text, path, &mut against) {
             if let Some(other) = recipe_ids.insert(r.id.clone(), shown.clone()) {
                 errors.push(format!("{shown}: recipe {} is also defined by {other}", r.id));
             }

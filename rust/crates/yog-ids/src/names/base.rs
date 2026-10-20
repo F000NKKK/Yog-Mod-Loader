@@ -82,6 +82,8 @@ names! {
         DIMENSION = crate::concatcp!(crate::sep::TYPED, crate::kind::DIMENSION, crate::sep::NAMESPACE),
         TEXTURE = crate::concatcp!(crate::sep::TYPED, crate::kind::TEXTURE, crate::sep::NAMESPACE),
         MATERIAL = crate::concatcp!(crate::sep::TYPED, crate::kind::MATERIAL, crate::sep::NAMESPACE),
+        /// A tag, its registry after: `@tag:item:c:ingots`.
+        TAG = crate::concatcp!(crate::sep::TYPED, crate::kind::TAG, crate::sep::NAMESPACE),
     }
 
     /// Typed values that aren't references to content.
