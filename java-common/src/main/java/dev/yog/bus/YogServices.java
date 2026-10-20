@@ -128,7 +128,7 @@ public final class YogServices {
         private Command() {}
 
         /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
-        public record Command(String name, String schema) {
+        public record CommandSpec(String name, String schema) {
             public Map<String, Object> toData() {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("name", name);
@@ -136,12 +136,12 @@ public final class YogServices {
                 return m;
             }
 
-            public static Command fromData(Object data) {
+            public static CommandSpec fromData(Object data) {
                 Map<String, Object> m = YogData.map(data);
-                return new Command(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
+                return new CommandSpec(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
             }
 
-            public static Command fromBytes(byte[] bytes) {
+            public static CommandSpec fromBytes(byte[] bytes) {
                 return fromData(YogData.decode(bytes));
             }
 
@@ -183,7 +183,7 @@ public final class YogServices {
                 static final int AT = YogBus.resolve(YogNames.ServiceCommand.DECLARED);
             }
 
-            public List<YogTypes.Command> call() {
+            public List<YogTypes.CommandSpec> call() {
                 YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
                 Object v = null;
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
@@ -193,7 +193,7 @@ public final class YogServices {
                         v = null;
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.Command.fromData(e0)).toList();
+                return YogData.list(v).stream().map(e0 -> YogTypes.CommandSpec.fromData(e0)).toList();
             }
         }
     }
@@ -274,11 +274,11 @@ public final class YogServices {
     }
 
     /** `key_binding`. */
-    public static final class Key_binding {
-        private Key_binding() {}
+    public static final class KeyBinding {
+        private KeyBinding() {}
 
         /** A key binding (the `key_binding/declare` service, declared while the mod registers; the game keeps the key). */
-        public record KeyBinding(String id, String name, int defaultKey) {
+        public record KeyBindingSpec(String id, String name, int defaultKey) {
             public Map<String, Object> toData() {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id", id);
@@ -287,12 +287,12 @@ public final class YogServices {
                 return m;
             }
 
-            public static KeyBinding fromData(Object data) {
+            public static KeyBindingSpec fromData(Object data) {
                 Map<String, Object> m = YogData.map(data);
-                return new KeyBinding(YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), (int) YogData.integer(m.get("default_key"), 0));
+                return new KeyBindingSpec(YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), (int) YogData.integer(m.get("default_key"), 0));
             }
 
-            public static KeyBinding fromBytes(byte[] bytes) {
+            public static KeyBindingSpec fromBytes(byte[] bytes) {
                 return fromData(YogData.decode(bytes));
             }
 

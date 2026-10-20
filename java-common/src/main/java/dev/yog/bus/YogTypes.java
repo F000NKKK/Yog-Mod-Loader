@@ -164,7 +164,7 @@ public final class YogTypes {
     }
 
     /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
-    public record Command(String name, String schema) {
+    public record CommandSpec(String name, String schema) {
         public Map<String, Object> toData() {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("name", name);
@@ -172,12 +172,12 @@ public final class YogTypes {
             return m;
         }
 
-        public static Command fromData(Object data) {
+        public static CommandSpec fromData(Object data) {
             Map<String, Object> m = YogData.map(data);
-            return new Command(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
+            return new CommandSpec(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
         }
 
-        public static Command fromBytes(byte[] bytes) {
+        public static CommandSpec fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
     }

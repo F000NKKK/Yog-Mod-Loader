@@ -109,12 +109,12 @@ fn declared_commands_are_kept_once_each() {
     let router = &*super::ROUTER;
     let call = |address: &str, payload: Vec<u8>| router.call(router.resolve(address), &payload, no_java);
     for schema in [None, Some("int".to_owned()), None] {
-        let d = command::Command { name: "hex".into(), schema };
-        assert_eq!(call(command::Command::ADDRESS, d.to_bytes()).0, status::OK);
+        let d = command::CommandSpec { name: "hex".into(), schema };
+        assert_eq!(call(command::CommandSpec::ADDRESS, d.to_bytes()).0, status::OK);
     }
     let (st, reply) = call(command::Declared::ADDRESS, command::Declared {}.to_bytes());
     assert_eq!(st, status::OK);
-    let all = Vec::<command::Command>::from_bytes(&reply).expect("the declared commands");
+    let all = Vec::<command::CommandSpec>::from_bytes(&reply).expect("the declared commands");
     let schemas: Vec<Option<&str>> = all.iter().filter(|d| d.name == "hex").map(|d| d.schema.as_deref()).collect();
     assert_eq!(schemas, [None, Some("int")]);
 }

@@ -47,10 +47,13 @@ fn camel(snake: &str) -> String {
     out
 }
 
-/// `player` → `Player`.
-fn class_name(plane: &str) -> String {
-    let mut c = plane.chars();
-    c.next().map(|f| f.to_uppercase().chain(c).collect()).unwrap_or_default()
+/// `key_binding` → `KeyBinding`.
+fn class_name(segment: &str) -> String {
+    let mut out = camel(segment);
+    if let Some(first) = out.get(..1) {
+        out.replace_range(..1, &first.to_uppercase());
+    }
+    out
 }
 
 /// The file being written, and the payload records it still owes.
@@ -138,6 +141,8 @@ fn file(package: &str, class: &str, doc: &str, mut o: Out, entries: &[Entry]) ->
             open.push((*seg).to_owned());
         }
         let Shape::Struct(s) = &e.shape else { continue };
+        // Java refuses a member type named like a class around it.
+        assert!(open.iter().all(|seg| class_name(seg) != e.name), "{} is named like the class around it ({}): rename it", e.name, e.path);
         record(&mut o, &INDENT.repeat(open.len() + 1), e.name, s, &e.body);
     }
     close(&mut o.text, &mut open, 0);

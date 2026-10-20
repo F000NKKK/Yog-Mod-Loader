@@ -31,14 +31,14 @@ public final class YogCommands {
         // literal name into one command-tree node, so this produces one
         // root node with a sibling branch per distinct arg shape, instead
         // of collapsing them all down to whichever schema was seen last.
-        java.util.List<YogTypes.Command> declared = new YogServices.Command.Declared().call();
-        for (YogTypes.Command d : typedSchemaOrder(declared)) {
+        java.util.List<YogTypes.CommandSpec> declared = new YogServices.Command.Declared().call();
+        for (YogTypes.CommandSpec d : typedSchemaOrder(declared)) {
             if (d.schema() != null) dispatcher.register(buildTypedCommand(d.name(), d.schema().trim().isEmpty() ? new String[0] : d.schema().trim().split("\\s+")));
         }
 
         // Plain commands: greedy-string arg (or no args).
         java.util.Set<String> plain = new java.util.LinkedHashSet<>();
-        for (YogTypes.Command d : declared) if (d.schema() == null) plain.add(d.name());
+        for (YogTypes.CommandSpec d : declared) if (d.schema() == null) plain.add(d.name());
         for (String name : plain) {
             dispatcher.register(Commands.literal(name)
                     .executes(ctx -> runCommand(name, "", ctx))
@@ -80,8 +80,8 @@ public final class YogCommands {
     }
 
     /** Typed commands with greedy `string` args last: Brigadier tries a command's branches in registration order, so word chains go first. */
-    private static java.util.List<YogTypes.Command> typedSchemaOrder(java.util.List<YogTypes.Command> declared) {
-        java.util.List<YogTypes.Command> out = new java.util.ArrayList<>(declared);
+    private static java.util.List<YogTypes.CommandSpec> typedSchemaOrder(java.util.List<YogTypes.CommandSpec> declared) {
+        java.util.List<YogTypes.CommandSpec> out = new java.util.ArrayList<>(declared);
         out.sort(java.util.Comparator.comparing(d -> d.schema() != null && d.schema().contains("string")));
         return out;
     }

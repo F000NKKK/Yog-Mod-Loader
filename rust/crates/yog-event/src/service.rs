@@ -67,10 +67,10 @@ services! {
     block::Insert => ids::service_block::INSERT, bool, key = block_id;
     item::Text => ids::service_item::TEXT, Option<item::Shown>, key = item;
     item::Picture => ids::service_item::PICTURE, Option<[f32; 2]>, key = item;
-    command::Command => ids::service_command::DECLARE, bool;
-    command::Declared => ids::service_command::DECLARED, Vec<command::Command>;
+    command::CommandSpec => ids::service_command::DECLARE, bool;
+    command::Declared => ids::service_command::DECLARED, Vec<command::CommandSpec>;
     menu::MenuEntry => ids::service_menu::DECLARE, bool;
     menu::Declared => ids::service_menu::DECLARED, Vec<menu::MenuEntry>;
-    key_binding::KeyBinding => ids::service_key_binding::DECLARE, bool;
+    key_binding::KeyBindingSpec => ids::service_key_binding::DECLARE, bool;
     key_binding::Declared => ids::service_key_binding::DECLARED, Vec<key_binding::CategorizedBinding>;
 }

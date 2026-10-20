@@ -1451,7 +1451,7 @@ impl Registry {
     where
         F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static,
     {
-        let declare = yog_event::command::Command { name: name.to_owned(), schema: schema.map(str::to_owned) };
+        let declare = yog_event::command::CommandSpec { name: name.to_owned(), schema: schema.map(str::to_owned) };
         if self.call(&declare) != Some(true) {
             crate::error!("command {name}: the host wasn't told of it");
         }
@@ -1931,7 +1931,7 @@ impl Registry {
     where
         F: Fn() + Send + Sync + 'static,
     {
-        let declare = yog_event::key_binding::KeyBinding { id: id.to_owned(), name: name.to_owned(), default_key: default_key.unwrap_or(crate::client::keys::UNBOUND) };
+        let declare = yog_event::key_binding::KeyBindingSpec { id: id.to_owned(), name: name.to_owned(), default_key: default_key.unwrap_or(crate::client::keys::UNBOUND) };
         if self.call(&declare) != Some(true) {
             crate::error!("key binding {id}: the host wasn't told of it");
         }

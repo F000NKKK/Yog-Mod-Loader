@@ -6,7 +6,7 @@ use yog_data::Schema;
 /// (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is
 /// typed. A name may be declared with several schemas.
 #[derive(Debug, Clone, PartialEq, Schema)]
-pub struct Command {
+pub struct CommandSpec {
     pub name: String,
     pub schema: Option<String>,
 }

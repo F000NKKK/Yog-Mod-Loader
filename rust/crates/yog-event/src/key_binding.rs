@@ -5,7 +5,7 @@ use yog_data::Schema;
 
 /// A key binding (the `key_binding/declare` service, declared while the mod registers; the game keeps the key).
 #[derive(Debug, Clone, PartialEq, Schema)]
-pub struct KeyBinding {
+pub struct KeyBindingSpec {
     /// Its id (`mymod:xray`), the key of its presses.
     pub id: String,
     /// Its label's translation key.
